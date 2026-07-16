@@ -24,12 +24,17 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
 import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
 import type { SettingsService } from '@/features/settings/services/SettingsService';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
+import { translateReasonCode } from '@/utils/errorUtils';
 import { configLog } from '@/utils/logger';
 
 import type { FactionTabItem } from './components';
@@ -269,11 +274,12 @@ export function useConfigScreenState({
       if (nominateMode) {
         const displayName = user?.displayName ?? '匿名玩家';
         const result = await client.boardNominate(displayName, roles);
-        if (!result.success) {
-          showErrorAlert('提交失败', result.reason ?? '提交建议失败，请重试');
+        if (!isSuccessfulRoomCommand(result)) {
+          const reason = getRoomCommandFailureReason(result);
+          showErrorAlert('提交失败', translateReasonCode(reason));
           return;
         }
-        if (result.reason === 'DEDUPLICATED') {
+        if (result.decision.outcome.reason === 'DEDUPLICATED') {
           toast.info('已有相同板子建议，已自动为你投票');
         }
         onReturnToRoom(nominateMode.roomCode);
@@ -289,8 +295,9 @@ export function useConfigScreenState({
 
       if (isEditMode && existingRoomCode) {
         const result = await client.updateTemplate(template);
-        if (!result.success) {
-          showErrorAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
+        if (!isSuccessfulRoomCommand(result)) {
+          const reason = getRoomCommandFailureReason(result);
+          showErrorAlert('更新失败', translateReasonCode(reason));
           return;
         }
         onExitFlow();

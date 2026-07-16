@@ -1,19 +1,22 @@
 /** Shared player-profile target and profile action controller. */
 
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import type {
-  RoomOperationResult,
-  RoomProfileTarget,
-} from '@/features/room/model/RoomCapabilities';
+import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
-import { getUserFacingMessage } from '@/utils/errorUtils';
+import { translateReasonCode } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
-interface UseRoomProfileControllerParams {
+interface UseRoomProfileControllerParams<TState extends BaseGameState<string>> {
   readonly myUserId: string | null;
-  readonly kickSeat: (seat: number) => Promise<RoomOperationResult>;
+  readonly kickSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 export interface RoomProfileSelection {
@@ -41,12 +44,12 @@ function assertProfileTarget(target: RoomProfileTarget): void {
   }
 }
 
-export function useRoomProfileController({
+export function useRoomProfileController<TState extends BaseGameState<string>>({
   myUserId,
   kickSeat,
-}: UseRoomProfileControllerParams): RoomProfileController {
+}: UseRoomProfileControllerParams<TState>): RoomProfileController {
   const [target, setTarget] = useState<RoomProfileTarget | null>(null);
-  const kickSubmissionRef = useRef<Promise<RoomOperationResult> | null>(null);
+  const kickSubmissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
 
   const open = useCallback(
     (nextTarget: RoomProfileTarget) => {
@@ -88,19 +91,22 @@ export function useRoomProfileController({
       const submission = Promise.resolve().then(() => kickSeat(seat));
       kickSubmissionRef.current = submission;
       void submission
-        .then((result) => {
-          if (!result.success) {
-            roomScreenLog.warn('kick seat rejected', { seat, reason: result.reason });
-            showErrorAlert('移出失败', getUserFacingMessage(result));
-          }
-        })
-        .catch((error: unknown) => {
-          handleError(error, {
-            label: '移出',
-            logger: roomScreenLog,
-            alertMessage: '房间响应异常，请重新进入房间后重试。',
-          });
-        })
+        .then(
+          (result) => {
+            if (!isSuccessfulRoomCommand(result)) {
+              const reason = getRoomCommandFailureReason(result);
+              roomScreenLog.warn('kick seat rejected', { seat, reason });
+              showErrorAlert('移出失败', translateReasonCode(reason));
+            }
+          },
+          (error: unknown) => {
+            handleError(error, {
+              label: '移出',
+              logger: roomScreenLog,
+              alertMessage: '房间响应异常，请重新进入房间后重试。',
+            });
+          },
+        )
         .finally(() => {
           kickSubmissionRef.current = null;
         });

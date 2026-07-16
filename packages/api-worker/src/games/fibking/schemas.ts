@@ -52,5 +52,3 @@ export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.strictO
   definition: z.string().trim().min(FIB_DEFINITION_MIN_LENGTH).max(FIB_DEFINITION_MAX_LENGTH),
   source: z.enum(FIB_WORD_SOURCES),
 });
-
-export const FIB_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT = publicCommandOptions.length;

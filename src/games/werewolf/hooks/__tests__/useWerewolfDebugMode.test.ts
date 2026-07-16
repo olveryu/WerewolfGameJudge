@@ -1,27 +1,34 @@
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import { useWerewolfDebugMode } from '@/games/werewolf/hooks/useWerewolfDebugMode';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type {
+  WerewolfCommandDispatchOutcome,
+  WerewolfGameClient,
+} from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+
+const state = buildWerewolfTestState();
 
 function createMockClient(): WerewolfGameClient {
   return {
-    markAllBotsViewed: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
+    markAllBotsViewed: jest
+      .fn<Promise<WerewolfCommandDispatchOutcome>, []>()
+      .mockResolvedValue(success()),
     markAllBotsGroupConfirmed: jest
-      .fn<Promise<ActionResult>, []>()
-      .mockResolvedValue({ success: true }),
+      .fn<Promise<WerewolfCommandDispatchOutcome>, []>()
+      .mockResolvedValue(success()),
   } as unknown as WerewolfGameClient;
 }
 
-function success(): RoomOperationResult {
-  return { success: true };
+function success(): WerewolfCommandDispatchOutcome {
+  return successfulRoomCommand(state);
 }
 
 function createSeatCommands(overrides?: {
-  readonly leaveSeat?: () => Promise<RoomOperationResult>;
-  readonly fillBots?: () => Promise<RoomOperationResult>;
+  readonly leaveSeat?: () => Promise<WerewolfCommandDispatchOutcome>;
+  readonly fillBots?: () => Promise<WerewolfCommandDispatchOutcome>;
 }) {
   return {
     leaveSeat: jest.fn(overrides?.leaveSeat ?? (async () => success())),
@@ -127,12 +134,7 @@ describe('useWerewolfDebugMode', () => {
   });
 
   it('does not fill bots when leave-seat is rejected', async () => {
-    const rejection: RoomOperationResult = {
-      success: false,
-      failureKind: 'rejected',
-      commandId: 'leave-command',
-      reason: 'game_in_progress',
-    };
+    const rejection = domainRejectedRoomCommand(state, 'game_in_progress', 'leave-command');
     const seatCommands = createSeatCommands({ leaveSeat: async () => rejection });
     const { result } = renderDebugMode({ seatCommands });
 

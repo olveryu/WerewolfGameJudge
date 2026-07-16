@@ -7,6 +7,7 @@ import type {
   RoomCommandDispatchOptions,
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
+import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 
 type TestState = BaseGameState<'werewolf'>;
 type TestProfile = { readonly displayName: string };
@@ -42,14 +43,8 @@ function createReadySnapshot(userId = 'user-1'): RoomSessionSnapshot<TestState> 
 describe('useRoomSeatCommands', () => {
   it('dispatches every canonical seat command through one shared controller', async () => {
     const dispatch = jest.fn(
-      async (_command: RoomSeatCommand<TestProfile>, _options: RoomCommandDispatchOptions) => ({
-        kind: 'decided' as const,
-        decision: {
-          kind: 'rejected' as const,
-          commandId: 'command-id',
-          reason: 'test-rejection',
-        },
-      }),
+      async (_command: RoomSeatCommand<TestProfile>, _options: RoomCommandDispatchOptions) =>
+        rejectedRoomCommand<TestState>('test-rejection', 'command-id'),
     );
     const createProfile = jest.fn(() => ({ displayName: 'Alice' }));
     const session = { getSnapshot: () => createReadySnapshot(), dispatch };

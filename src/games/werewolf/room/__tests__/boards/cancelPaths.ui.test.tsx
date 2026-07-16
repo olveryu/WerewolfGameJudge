@@ -17,6 +17,7 @@ import {
   mockNavigation,
   mockRoom,
   RoomScreenTestHarness,
+  successfulWerewolfCommand,
   tapSeat,
   waitForRoomScreen,
 } from '@/games/werewolf/room/__tests__/harness';
@@ -75,7 +76,7 @@ describe('Cancel Paths (cross-board)', () => {
 
   describe('wolfVote cancel', () => {
     it('pressing cancel on wolfVote dialog does NOT call submitAction', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
@@ -110,7 +111,7 @@ describe('Cancel Paths (cross-board)', () => {
 
   describe('wolfVoteEmpty cancel', () => {
     it('pressing cancel on wolfVoteEmpty dialog does NOT call submitAction', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
@@ -147,7 +148,7 @@ describe('Cancel Paths (cross-board)', () => {
 
   describe('actionConfirm cancel', () => {
     it('pressing cancel on seer actionConfirm does NOT call submitAction', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
@@ -176,7 +177,7 @@ describe('Cancel Paths (cross-board)', () => {
 
   describe('skipConfirm cancel', () => {
     it('pressing cancel on skipConfirm does NOT call submitAction', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
@@ -207,7 +208,7 @@ describe('Cancel Paths (cross-board)', () => {
 
   describe('witchPoisonPrompt cancel', () => {
     it('pressing cancel on witch poison confirm does NOT call submitAction', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
@@ -243,7 +244,7 @@ describe('Cancel Paths (cross-board)', () => {
 
   describe('magicianFirst dismiss', () => {
     it('dismissing magicianFirst alert keeps first target but no submit', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'magicianSwap',
         currentActionRole: 'magician',

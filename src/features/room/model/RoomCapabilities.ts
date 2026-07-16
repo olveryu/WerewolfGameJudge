@@ -1,18 +1,5 @@
 /** Executable room permissions derived by each game adapter. */
 
-export type RoomOperationResult =
-  | { readonly success: true; readonly reason?: string }
-  | {
-      readonly success: false;
-      readonly failureKind: 'rejected' | 'notDecided' | 'deliveryUnknown';
-      readonly commandId: string;
-      readonly reason: string;
-    };
-
-export type FailedRoomOperationResult = Extract<RoomOperationResult, { readonly success: false }>;
-
-export type RoomOperationFailureMessage = (result: FailedRoomOperationResult) => string;
-
 export type RoomCapability<TArgs extends readonly unknown[] = readonly [], TResult = void> =
   | {
       readonly isAllowed: false;

@@ -88,7 +88,6 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
   z.strictObject({ type: z.literal('werewolf.board.withdraw') }),
   z.strictObject({ type: z.literal('werewolf.night.start') }),
   z.strictObject({ type: z.literal('werewolf.audio.ack') }),
-  z.strictObject({ type: z.literal('werewolf.audio.gate'), isPlaying: z.boolean() }),
   z.strictObject({ type: z.literal('werewolf.progress.request') }),
   z.strictObject({ type: z.literal('werewolf.reveal.ack') }),
   z.strictObject({ type: z.literal('werewolf.wolfRobot.ackHunterStatus') }),
@@ -105,5 +104,3 @@ export const werewolfInternalCommandSchema: z.ZodType<WerewolfInternalCommand> =
   type: z.literal('werewolf.growth.applyRosterLevels'),
   levels: z.record(z.string().min(1), z.number().int().nonnegative()),
 });
-
-export const WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT = publicCommandOptions.length;

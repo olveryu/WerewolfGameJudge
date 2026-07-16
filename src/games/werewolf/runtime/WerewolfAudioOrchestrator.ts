@@ -22,9 +22,13 @@
 import type { AudioEffect, GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { getStepSpec } from '@game-judge/game-engine/games/werewolf/public';
 import { resolveSeerAudioKey } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 import { MissingWerewolfAudioError } from '@/games/werewolf/audio/audioRegistry';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { handleError } from '@/utils/errorPipeline';
@@ -180,7 +184,7 @@ export class WerewolfAudioOrchestrator {
    * 2. If audio was playing when disconnected -> replay current step begin audio
    * 3. After audio ends, POST audio-ack to unlock gate
    *
-   * Note: isAudioPlaying persists as true from DB, no need to setAudioPlaying(true) again.
+   * The authoritative audio gate remains active in the persisted snapshot during replay.
    */
   async resumeAfterRejoin(): Promise<void> {
     // Early clear — prevent listener from re-setting overlay + prevent multiple click re-entry
@@ -257,18 +261,14 @@ export class WerewolfAudioOrchestrator {
     this.#unregisterOnlineRetry();
   }
 
-  async #dispatchAudioAck(source: string): Promise<ActionResult> {
+  async #dispatchAudioAck(source: string): Promise<RoomCommandDispatchOutcome<GameState>> {
     const prepared = this.#getOrPrepareAudioAck();
 
     const outcome = await gameActions.dispatchPreparedAudioAck(
       this.#deps.getActionsContext(),
       prepared,
     );
-    if (outcome.kind === 'superseded') {
-      if (this.#pendingAudioAck === prepared) this.#clearPendingAudioAck();
-      throw new Error(`Audio acknowledgement ${outcome.commandId} belongs to a stale session`);
-    }
-    if (outcome.kind !== 'decided') {
+    if (outcome.kind === 'notDecided' || outcome.kind === 'deliveryUnknown') {
       werewolfRuntimeLog.warn(
         'Audio ack has no terminal decision; retaining the prepared command',
         {
@@ -279,21 +279,20 @@ export class WerewolfAudioOrchestrator {
         },
       );
       this.#registerOnlineRetry();
-      return { success: false, reason: outcome.reason };
+      return outcome;
     }
 
-    const result = gameActions.toWerewolfActionResult(outcome);
-    if (!result.success) {
+    if (!isSuccessfulRoomCommand(outcome)) {
       werewolfRuntimeLog.warn('Audio ack was terminally rejected', {
         source,
         commandId: prepared.commandId,
-        reason: result.reason,
+        reason: getRoomCommandFailureReason(outcome),
       });
     }
     if (this.#pendingAudioAck === prepared) {
       this.#clearPendingAudioAck();
     }
-    return result;
+    return outcome;
   }
 
   // =========================================================================
@@ -358,7 +357,7 @@ export class WerewolfAudioOrchestrator {
         // POST audio-ack releases gate
         if (!this.#deps.isAborted()) {
           const ackResult = await this.#dispatchAudioAck('playback');
-          if (!ackResult.success) {
+          if (!isSuccessfulRoomCommand(ackResult)) {
             break; // ack failed, no re-check (wait for retry path to recover)
           }
         }

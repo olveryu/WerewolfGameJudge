@@ -3,7 +3,6 @@
  *
  * Pure function module, handles:
  * - ADVANCE_NIGHT / END_NIGHT shared gate validation
- * - SET_AUDIO_PLAYING dedicated gate validation
  *
  * Gates have no IO and do not mutate state.
  */
@@ -59,31 +58,6 @@ export function validateNightFlowPreconditions(
     return {
       valid: false,
       result: handlerError('wolfrobot_hunter_status_not_viewed'),
-    };
-  }
-
-  return { valid: true, state };
-}
-
-/**
- * Validate SET_AUDIO_PLAYING preconditions
- *
- * Gate order:
- * 1. invalid_status (must be ongoing or ended)
- *
- * Note: does not check isAudioPlaying, since this handler is what sets it.
- */
-export function validateSetAudioPlayingPreconditions(
-  context: HandlerContext,
-): { valid: false; result: HandlerResult } | { valid: true; state: GameState } {
-  const { state } = context;
-
-  // Gate 1: invalid_status (must be ongoing or ended)
-  // ended is allowed because the daybreak audio plays after endNight
-  if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Ended) {
-    return {
-      valid: false,
-      result: handlerError('invalid_status'),
     };
   }
 

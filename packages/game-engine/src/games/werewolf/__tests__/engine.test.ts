@@ -324,7 +324,6 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.board.withdraw': { type: 'werewolf.board.withdraw' },
     'werewolf.night.start': { type: 'werewolf.night.start' },
     'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
-    'werewolf.audio.gate': { type: 'werewolf.audio.gate', isPlaying: false },
     'werewolf.progress.request': { type: 'werewolf.progress.request' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
     'werewolf.wolfRobot.ackHunterStatus': {
@@ -343,10 +342,9 @@ describe('Werewolf engine definition and catalog', () => {
     expect(GAME_ENGINE_CATALOG.werewolf).toBe(werewolfEngine);
   });
 
-  it('exhaustively dispatches all 25 command discriminants', () => {
+  it('exhaustively dispatches every command discriminant', () => {
     const state = createState();
     const commands = Object.values(commandByType);
-    expect(commands).toHaveLength(25);
 
     for (const command of commands) {
       const context =
@@ -387,7 +385,6 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.review.share',
     'werewolf.night.start',
     'werewolf.audio.ack',
-    'werewolf.audio.gate',
     'werewolf.progress.request',
     'werewolf.groupConfirm.ackBots',
   ] as const)('rejects non-host execution of %s', (type) => {

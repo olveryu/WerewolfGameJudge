@@ -212,7 +212,7 @@ describe('RoomSession', () => {
     expect(mockCfPost).not.toHaveBeenCalled();
   });
 
-  it('marks a late command response superseded without applying it to a new epoch', async () => {
+  it('fails fast on a late command response without applying it to a new epoch', async () => {
     const { session } = createSession();
     await session.connect(IDENTITY);
     const commandResponse = createDeferred<unknown>();
@@ -234,10 +234,9 @@ describe('RoomSession', () => {
       outcome: { kind: 'success' },
     });
 
-    await expect(dispatched).resolves.toEqual({
-      kind: 'superseded',
-      commandId: request.commandId,
-    });
+    await expect(dispatched).rejects.toThrow(
+      `[FAIL-FAST] Room command ${request.commandId} completed for a stale session`,
+    );
     expect(session.getSnapshot().phase).toBe('idle');
   });
 

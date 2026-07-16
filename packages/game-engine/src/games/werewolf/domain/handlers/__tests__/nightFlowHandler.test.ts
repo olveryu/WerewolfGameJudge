@@ -16,13 +16,11 @@
 import {
   handleAdvanceNight as executeAdvanceNight,
   handleEndNight as executeEndNight,
-  handleSetAudioPlaying,
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
   AdvanceNightIntent,
   EndNightIntent,
-  SetAudioPlayingIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
@@ -637,74 +635,7 @@ describe('nightFlowHandler', () => {
     });
   });
 
-  // ==========================================================================
-  // SET_AUDIO_PLAYING Handler (PR7)
-  // ==========================================================================
-  describe('handleSetAudioPlaying', () => {
-    describe('Gate: invalid_status', () => {
-      it('should reject when status is not ongoing', () => {
-        const intent: SetAudioPlayingIntent = {
-          type: 'SET_AUDIO_PLAYING',
-          payload: { isPlaying: true },
-        };
-        const context: HandlerContext = {
-          state: createOngoingState({ status: GameStatus.Ready }),
-          myUserId: 'host-uid',
-          mySeat: null,
-        };
-
-        const result = handleSetAudioPlaying(intent, context);
-
-        const err = expectError(result);
-        expect(err.reason).toBe('invalid_status');
-      });
-    });
-
-    describe('Happy path', () => {
-      it('should set isAudioPlaying to true', () => {
-        const intent: SetAudioPlayingIntent = {
-          type: 'SET_AUDIO_PLAYING',
-          payload: { isPlaying: true },
-        };
-        const context: HandlerContext = {
-          state: createOngoingState({ isAudioPlaying: false }),
-          myUserId: 'host-uid',
-          mySeat: null,
-        };
-
-        const result = handleSetAudioPlaying(intent, context);
-
-        const success = expectSuccess(result);
-        expect(success.actions).toHaveLength(1);
-        const action = success.actions[0]!;
-        expect(action.type).toBe('SET_AUDIO_PLAYING');
-        if (action.type === 'SET_AUDIO_PLAYING') {
-          expect(action.payload.isPlaying).toBe(true);
-        }
-      });
-
-      it('should set isAudioPlaying to false', () => {
-        const intent: SetAudioPlayingIntent = {
-          type: 'SET_AUDIO_PLAYING',
-          payload: { isPlaying: false },
-        };
-        const context: HandlerContext = {
-          state: createOngoingState({ isAudioPlaying: true }),
-          myUserId: 'host-uid',
-          mySeat: null,
-        };
-
-        const result = handleSetAudioPlaying(intent, context);
-
-        const success = expectSuccess(result);
-        const action = success.actions[0]!;
-        expect(action.type).toBe('SET_AUDIO_PLAYING');
-        if (action.type === 'SET_AUDIO_PLAYING') {
-          expect(action.payload.isPlaying).toBe(false);
-        }
-      });
-    });
-
+  describe('authoritative audio gate contracts', () => {
     describe('PR7 contract: ADVANCE_NIGHT/END_NIGHT reject when isAudioPlaying=true', () => {
       it('ADVANCE_NIGHT should reject with forbidden_while_audio_playing when audio is playing', () => {
         const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };

@@ -5,10 +5,13 @@
  * Provides mock factories and common test patterns.
  */
 
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import type { RevealKind } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { getSchema, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
@@ -18,7 +21,10 @@ import type { ReactTestInstance } from 'react-test-renderer';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
 
 import { type RoomScreenTestHarness } from './RoomScreenTestHarness';
@@ -55,6 +61,52 @@ export const mockRoom: RoomRecord<'werewolf'> = {
   hostUserId: 'host-uid',
   createdAt: new Date(0),
 };
+
+export function successfulWerewolfCommand(
+  stateOverrides: Partial<GameState> = {},
+): WerewolfCommandDispatchOutcome {
+  return successfulRoomCommand(buildWerewolfTestState(stateOverrides));
+}
+
+function revealState(revealKind: RevealKind, targetSeat: number): Partial<GameState> {
+  switch (revealKind) {
+    case 'seer':
+      return { seerReveal: { targetSeat, result: '好人' } };
+    case 'mirrorSeer':
+      return { mirrorSeerReveal: { targetSeat, result: '好人' } };
+    case 'drunkSeer':
+      return { drunkSeerReveal: { targetSeat, result: '好人' } };
+    case 'psychic':
+      return { psychicReveal: { targetSeat, result: 'villager' } };
+    case 'gargoyle':
+      return { gargoyleReveal: { targetSeat, result: 'villager' } };
+    case 'pureWhite':
+      return { pureWhiteReveal: { targetSeat, result: 'villager' } };
+    case 'wolfWitch':
+      return { wolfWitchReveal: { targetSeat, result: 'villager' } };
+    case 'wolfRobot':
+      return {
+        wolfRobotReveal: {
+          targetSeat,
+          result: 'villager',
+          learnedRoleId: 'villager',
+        },
+      };
+  }
+}
+
+function successfulWerewolfActionCommand(
+  schemaId: SchemaId,
+  input: WerewolfActionInput,
+): WerewolfCommandDispatchOutcome {
+  const schema = getSchema(schemaId);
+  const revealKind = schema.kind === 'chooseSeat' ? schema.ui?.revealKind : undefined;
+  if (revealKind === undefined) return successfulWerewolfCommand();
+  if (input.kind !== 'target' || input.target === null) {
+    throw new Error(`[TEST] Reveal schema ${schemaId} requires a numeric target command`);
+  }
+  return successfulWerewolfCommand(revealState(revealKind, input.target));
+}
 
 // =============================================================================
 // Game State Factory
@@ -220,20 +272,22 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     startGame: jest.fn(),
     restartGame: jest.fn(),
     clearAllSeats: jest.fn(),
-    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
-    shareNightReview: jest.fn().mockResolvedValue(undefined),
-    submitAction: jest.fn().mockResolvedValue(undefined),
+    kickPlayer: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    shareNightReview: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    submitAction: jest.fn(async (input: WerewolfActionInput) =>
+      successfulWerewolfActionCommand(schemaId, input),
+    ),
     hasWolfVoted: jest.fn().mockReturnValue(false),
-    viewedRole: jest.fn(),
-    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
-    submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
-    sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
-    postProgression: jest.fn().mockResolvedValue(undefined),
+    viewedRole: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    submitRevealAck: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    submitGroupConfirmAck: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    postProgression: jest.fn().mockResolvedValue(true),
 
     // Board nominations
-    boardNominate: jest.fn().mockResolvedValue({ success: true }),
-    boardUpvote: jest.fn().mockResolvedValue({ success: true }),
-    boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
+    boardNominate: jest.fn().mockResolvedValue(undefined),
+    boardUpvote: jest.fn().mockResolvedValue(undefined),
+    boardWithdraw: jest.fn().mockResolvedValue(undefined),
 
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
@@ -431,7 +485,7 @@ export async function chainWolfVoteConfirm(
   wolfAssignments: Map<number, RoleId>,
   targetSeat: number,
 ): Promise<jest.Mock> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfKill',
@@ -476,7 +530,7 @@ export async function chainSkipConfirm(
   playerRole: RoleId,
   seat: number,
 ): Promise<jest.Mock> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId,
@@ -580,7 +634,7 @@ export async function chainWolfRobotHunterStatus(
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
 ): Promise<jest.Mock> {
-  const sendMock = jest.fn().mockResolvedValue(undefined);
+  const sendMock = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfRobotLearn',
@@ -650,7 +704,7 @@ export async function coverageChainWolfVote(
   wolfAssignments: Map<number, RoleId>,
   targetSeat: number,
 ): Promise<{ submitAction: jest.Mock }> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfKill',
@@ -690,7 +744,7 @@ export async function coverageChainSkipConfirm(
   playerRole: RoleId,
   seat: number,
 ): Promise<{ submitAction: jest.Mock }> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId,
@@ -785,7 +839,7 @@ export async function coverageChainWolfRobotHunterStatus(
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
 ): Promise<{ sendWolfRobotHunterStatusViewed: jest.Mock }> {
-  const sendMock = jest.fn().mockResolvedValue(undefined);
+  const sendMock = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfRobotLearn',
@@ -923,7 +977,7 @@ export async function coverageChainMagicianSwap(
   firstTarget: number,
   secondTarget: number,
 ): Promise<{ submitAction: jest.Mock }> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'magicianSwap',
@@ -1031,7 +1085,9 @@ export async function coverageChainSeatActionConfirm(
   seat: number,
   targetSeat: number,
 ): Promise<{ submitAction: jest.Mock }> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn(async (input: WerewolfActionInput) =>
+    successfulWerewolfActionCommand(schemaId, input),
+  );
   mockSetter(
     createGameRoomMock({
       schemaId,
@@ -1070,7 +1126,7 @@ export async function coverageChainWolfVoteEmpty(
   wolfSeat: number,
   wolfAssignments: Map<number, RoleId>,
 ): Promise<{ submitAction: jest.Mock }> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfKill',
@@ -1120,7 +1176,7 @@ export async function chainActionConfirm(
   firstTarget: number,
   secondTarget: number,
 ): Promise<jest.Mock> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
     createGameRoomMock({
       schemaId: 'magicianSwap',

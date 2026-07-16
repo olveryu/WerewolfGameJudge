@@ -3,14 +3,16 @@
 import {
   parseRoomCommandResult,
   RoomCommandProtocolError,
-  type RoomCommandResult,
 } from '@game-judge/game-engine/platform/protocol/commandResult';
 import type {
   BaseGameState,
   GameStateCodec,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import type { PreparedRoomCommand } from '@/features/room/session/types';
+import type {
+  PreparedRoomCommand,
+  RoomCommandDispatchOutcome,
+} from '@/features/room/session/types';
 import { cfPost, CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 import { handleError } from '@/utils/errorPipeline';
 import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
@@ -37,17 +39,6 @@ interface SendPreparedRoomCommandOptions<
   readonly codec: GameStateCodec<TState>;
   readonly label: string;
 }
-
-export type RoomCommandTransportAttempt<TState extends BaseGameState<string>> =
-  | {
-      readonly kind: 'decided';
-      readonly decision: RoomCommandResult<TState>;
-    }
-  | {
-      readonly kind: 'notDecided' | 'deliveryUnknown';
-      readonly commandId: string;
-      readonly reason: string;
-    };
 
 function freezeCommand(value: unknown, ancestors: Set<object>): void {
   if (value === null || typeof value !== 'object') return;
@@ -126,7 +117,7 @@ function mapTransportError(
   error: unknown,
   label: string,
   commandId: string,
-): Exclude<RoomCommandTransportAttempt<never>, { readonly kind: 'decided' }> {
+): Exclude<RoomCommandDispatchOutcome<never>, { readonly kind: 'decided' }> {
   reportTransportError(error, label);
 
   let reason: string;
@@ -162,7 +153,7 @@ export async function sendPreparedRoomCommand<
   prepared,
   codec,
   label,
-}: SendPreparedRoomCommandOptions<TState, TCommand>): Promise<RoomCommandTransportAttempt<TState>> {
+}: SendPreparedRoomCommandOptions<TState, TCommand>): Promise<RoomCommandDispatchOutcome<TState>> {
   const request = {
     roomCode: prepared.roomCode,
     roomId: prepared.roomId,

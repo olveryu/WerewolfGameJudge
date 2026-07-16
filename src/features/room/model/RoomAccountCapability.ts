@@ -1,9 +1,10 @@
 /** Game-neutral account operations for the one active room. */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { RoomProfileUpdate } from '@game-judge/game-engine/platform/room/roster';
 
-import type { RoomOperationResult } from './RoomCapabilities';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 
 export interface RoomProfilePatch {
   readonly displayName?: string;
@@ -35,12 +36,17 @@ export interface GameRoomAccountSnapshot<TGameType extends string = GameType> {
   readonly canSyncProfile: boolean;
 }
 
+export type RoomAccountCommandOutcome<TGameType extends string = GameType> =
+  RoomCommandDispatchOutcome<BaseGameState<TGameType>>;
+
 export interface RoomAccountCapability<TGameType extends string = GameType> {
   readonly gameType: TGameType;
   getSnapshot(): GameRoomAccountSnapshot<TGameType>;
   subscribe(listener: () => void): () => void;
-  readonly updateProfile: (patch: RoomProfilePatch) => Promise<RoomOperationResult>;
-  readonly leaveSeat: () => Promise<RoomOperationResult>;
+  readonly updateProfile: (
+    patch: RoomProfilePatch,
+  ) => Promise<RoomAccountCommandOutcome<TGameType>>;
+  readonly leaveSeat: () => Promise<RoomAccountCommandOutcome<TGameType>>;
 }
 
 export type ActiveRoomAccountSnapshot =
@@ -56,6 +62,6 @@ export type ActiveRoomAccountSnapshot =
       readonly isSeated: boolean;
       readonly canSwitchAccount: boolean;
       readonly canSyncProfile: boolean;
-      readonly updateProfile: (patch: RoomProfilePatch) => Promise<RoomOperationResult>;
-      readonly leaveSeat: () => Promise<RoomOperationResult>;
+      readonly updateProfile: (patch: RoomProfilePatch) => Promise<RoomAccountCommandOutcome>;
+      readonly leaveSeat: () => Promise<RoomAccountCommandOutcome>;
     };

@@ -1,7 +1,7 @@
 /**
  * stepTransitionGuards Unit Tests
  *
- * Covers: validateNightFlowPreconditions, validateSetAudioPlayingPreconditions
+ * Covers: validateNightFlowPreconditions
  */
 
 import { GameStatus } from '../../models/GameStatus';
@@ -10,7 +10,6 @@ import { WOLF_ROBOT_GATE_ROLES } from '../revealPayload';
 import {
   isWolfRobotHunterStatusGatePending,
   validateNightFlowPreconditions,
-  validateSetAudioPlayingPreconditions,
 } from '../stepTransitionGuards';
 import type { HandlerContext } from '../types';
 import { expectError } from './handlerTestUtils';
@@ -146,39 +145,5 @@ describe('isWolfRobotHunterStatusGatePending', () => {
         currentStepId: 'wolfKill',
       }),
     ).toBe(false);
-  });
-});
-
-// =============================================================================
-// validateSetAudioPlayingPreconditions
-// =============================================================================
-
-describe('validateSetAudioPlayingPreconditions', () => {
-  it('should reject when status is Unseated', () => {
-    const state = createMinimalState({ status: GameStatus.Unseated });
-    const result = validateSetAudioPlayingPreconditions(createContext(state));
-    expect(result.valid).toBe(false);
-    if (!result.valid) {
-      const err = expectError(result.result);
-      expect(err.reason).toBe('invalid_status');
-    }
-  });
-
-  it('should pass when status is Ongoing', () => {
-    const state = createMinimalState({ status: GameStatus.Ongoing });
-    const result = validateSetAudioPlayingPreconditions(createContext(state));
-    expect(result.valid).toBe(true);
-  });
-
-  it('should pass when status is Ended (for dawn audio)', () => {
-    const state = createMinimalState({ status: GameStatus.Ended });
-    const result = validateSetAudioPlayingPreconditions(createContext(state));
-    expect(result.valid).toBe(true);
-  });
-
-  it('should not check isAudioPlaying (this handler sets it)', () => {
-    const state = createMinimalState({ isAudioPlaying: true });
-    const result = validateSetAudioPlayingPreconditions(createContext(state));
-    expect(result.valid).toBe(true);
   });
 });

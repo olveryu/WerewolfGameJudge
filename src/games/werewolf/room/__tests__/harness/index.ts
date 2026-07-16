@@ -36,6 +36,7 @@ export {
   createReactiveGameRoomMock,
   mockNavigation,
   mockRoom,
+  successfulWerewolfCommand,
   tapSeat,
   waitForRoomScreen,
 } from './boardTestUtils';

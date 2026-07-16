@@ -15,9 +15,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
+import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import { useRoomOperationSubmission } from '@/features/room/controllers/useRoomOperationSubmission';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
@@ -26,7 +26,6 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { dispatchRoomOperation } from '@/features/room/session/roomOperationCommandClient';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -39,7 +38,7 @@ import {
   FIB_DISPLAY_NAME,
   getFibProfileTarget,
 } from '../fibRoomAdapter';
-import { getFibRoomOperationFailureMessage } from '../fibRoomOperationFailureMessage';
+import { getFibRoomCommandFailureMessage } from '../fibRoomCommandFailureMessage';
 import { useFibSeatCommands } from './useFibSeatCommands';
 
 interface UseFibRoomScreenStateParams {
@@ -101,8 +100,9 @@ export function useFibRoomScreenState({
     gameDisplayName: FIB_DISPLAY_NAME,
   });
   const openShare = share.open;
-  const { isSubmitting: isOperationSubmitting, submit: submitOperation } =
-    useRoomOperationSubmission(getFibRoomOperationFailureMessage);
+  const { isSubmitting: isCommandSubmitting, submit: submitRoomCommand } = useRoomCommandSubmission(
+    getFibRoomCommandFailureMessage,
+  );
   const { requestClearSeats, requestFillBots } = useRoomHostOperations({
     clearSeats: seatCommands.clearSeats,
     fillBots: seatCommands.fillBots,
@@ -142,8 +142,8 @@ export function useFibRoomScreenState({
 
   const submitCommand = useCallback(
     (label: string, command: FibPublicCommand): Promise<boolean> =>
-      submitOperation(label, () => dispatchRoomOperation(session, command, label)),
-    [session, submitOperation],
+      submitRoomCommand(label, () => session.dispatch(command, { controlledSeat: null, label })),
+    [session, submitRoomCommand],
   );
 
   const startRound = useCallback(() => {
@@ -389,7 +389,7 @@ export function useFibRoomScreenState({
       statusRibbon: createFibStatusRibbon(state),
       seats: {
         source: seatSource,
-        visuallyDisabled: isOperationSubmitting || seatController.isSubmitting,
+        visuallyDisabled: isCommandSubmitting || seatController.isSubmitting,
         onSeatPress,
         onBotSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPress : null,
       },
@@ -407,7 +407,7 @@ export function useFibRoomScreenState({
       navigation,
       onSeatLongPress,
       onSeatPress,
-      isOperationSubmitting,
+      isCommandSubmitting,
       profile,
       room.roomCode,
       seatConfirmation,

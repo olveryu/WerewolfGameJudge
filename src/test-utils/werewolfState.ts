@@ -1,9 +1,9 @@
-import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+/** Canonical minimal Werewolf state for client tests. */
 
-/** Build a minimal API state for Werewolf runtime tests. */
-export function buildApiTestState(overrides: Partial<GameState> = {}): GameState {
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+
+export function buildWerewolfTestState(overrides: Partial<GameState> = {}): GameState {
   return {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ABCD',

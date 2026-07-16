@@ -29,6 +29,7 @@ import {
 } from '@/games/werewolf/room/__tests__/harness';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { showAlert } from '@/utils/alert';
 
 // =============================================================================
@@ -178,9 +179,11 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       startGame: jest.fn(),
       restartGame: jest.fn(),
       viewedRole: jest.fn(),
-      submitAction: jest.fn().mockResolvedValue(undefined),
-      submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
-      sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
+      submitAction: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      submitRevealAck: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      sendWolfRobotHunterStatusViewed: jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(realState)),
       getLastNightInfo: jest.fn().mockReturnValue(''),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
@@ -271,9 +274,11 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       startGame: jest.fn(),
       restartGame: jest.fn(),
       viewedRole: jest.fn(),
-      submitAction: jest.fn().mockResolvedValue(undefined),
-      submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
-      sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
+      submitAction: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      submitRevealAck: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      sendWolfRobotHunterStatusViewed: jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(realState)),
       getLastNightInfo: jest.fn().mockReturnValue(''),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 

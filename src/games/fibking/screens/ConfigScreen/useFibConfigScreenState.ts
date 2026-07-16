@@ -5,13 +5,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
-import { useRoomOperationSubmission } from '@/features/room/controllers/useRoomOperationSubmission';
 import {
   replaceWithCreatedRoom,
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
-import { dispatchRoomOperation } from '@/features/room/session/roomOperationCommandClient';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { FibConfigRouteParams } from '@/games/fibking/navigation/types';
 import type { RootStackParamList } from '@/navigation/types';
@@ -19,7 +18,7 @@ import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
-import { getFibRoomOperationFailureMessage } from '../../room/fibRoomOperationFailureMessage';
+import { getFibRoomCommandFailureMessage } from '../../room/fibRoomCommandFailureMessage';
 import { parseFibPlayerCountInput } from './fibPlayerCount';
 
 interface UseFibConfigScreenStateParams {
@@ -47,8 +46,9 @@ export function useFibConfigScreenState({
 }: UseFibConfigScreenStateParams): FibConfigScreenState {
   const { user } = useAuthContext();
   const { createRoom, isCreating } = useRoomCreationController();
-  const { isSubmitting: isOperationSubmitting, submit: submitOperation } =
-    useRoomOperationSubmission(getFibRoomOperationFailureMessage);
+  const { isSubmitting: isCommandSubmitting, submit: submitRoomCommand } = useRoomCommandSubmission(
+    getFibRoomCommandFailureMessage,
+  );
   const initialCount = (() => {
     if (params.mode === 'create') return FIB_DEFAULT_PLAYERS;
     const snapshot = session.getSnapshot();
@@ -100,11 +100,10 @@ export function useFibConfigScreenState({
     if (numberOfPlayers === null) return;
 
     if (params.mode === 'edit') {
-      void submitOperation('更新房间设置', () =>
-        dispatchRoomOperation(
-          session,
+      void submitRoomCommand('更新房间设置', () =>
+        session.dispatch(
           { type: 'fib.config.update', numberOfPlayers },
-          'updateFibConfig',
+          { controlledSeat: null, label: 'updateFibConfig' },
         ),
       ).then((success) => {
         if (success) returnFromEdit();
@@ -138,7 +137,7 @@ export function useFibConfigScreenState({
     params.mode,
     returnFromEdit,
     session,
-    submitOperation,
+    submitRoomCommand,
     user,
   ]);
 
@@ -154,7 +153,7 @@ export function useFibConfigScreenState({
 
   return {
     playerCountText,
-    isSubmitting: isCreating || isOperationSubmitting,
+    isSubmitting: isCreating || isCommandSubmitting,
     isEditMode: params.mode === 'edit',
     canDecrement: parsedCount.kind === 'valid' && parsedCount.value > FIB_MIN_PLAYERS,
     onPlayerCountChange: setPlayerCountText,

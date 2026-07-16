@@ -9,6 +9,8 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useRef, useState } from 'react';
 
+import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
@@ -21,7 +23,7 @@ interface UseRoomModalsDeps {
   /** Get last-night info text */
   getLastNightInfo: () => string; /** Get crow curse info; null if no crow */
   getCurseInfo: () => string | null; /** Share night details to specified seats (HTTP API) */
-  shareNightReview: (allowedSeats: number[]) => Promise<void>;
+  shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   /** Begin background capture of report; returns base64 (success) or null (failure) */
   beginReportCapture: () => Promise<string | null>;
   /** Directly share the report (system share/copy). Return value is optional and unused by caller. */
@@ -202,8 +204,8 @@ export function useRoomModals({
 
   const handleShareNightReview = useCallback(
     async (allowedSeats: number[]) => {
-      await shareNightReview(allowedSeats);
-      setShareReviewVisible(false);
+      const result = await shareNightReview(allowedSeats);
+      if (isSuccessfulRoomCommand(result)) setShareReviewVisible(false);
     },
     [shareNightReview],
   );

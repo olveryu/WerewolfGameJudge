@@ -17,15 +17,16 @@ import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type {
+  WerewolfCommandDispatchOutcome,
+  WerewolfGameClient,
+} from '@/games/werewolf/runtime/WerewolfGameClient';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
@@ -61,9 +62,9 @@ interface UseWerewolfRoomResult {
   takeOverBot: (seat: number) => void;
   releaseBot: () => void;
   isDebugMode: boolean;
-  fillWithBots: () => Promise<RoomOperationResult>;
-  markAllBotsViewed: () => Promise<ActionResult>;
-  markAllBotsGroupConfirmed: () => Promise<ActionResult>;
+  fillWithBots: () => Promise<WerewolfCommandDispatchOutcome>;
+  markAllBotsViewed: () => Promise<WerewolfCommandDispatchOutcome>;
+  markAllBotsGroupConfirmed: () => Promise<WerewolfCommandDispatchOutcome>;
 
   // Night-derived (from useWerewolfNightDerived)
   roomStatus: GameStatus;
@@ -76,21 +77,21 @@ interface UseWerewolfRoomResult {
   // Connection (from shared RoomSession)
   connectionStatus: RoomConnectionStatus;
 
-  takeSeat: (seat: number) => Promise<RoomOperationResult>;
-  leaveSeat: () => Promise<RoomOperationResult>;
-  kickPlayer: (targetSeat: number) => Promise<RoomOperationResult>;
+  takeSeat: (seat: number) => Promise<WerewolfCommandDispatchOutcome>;
+  leaveSeat: () => Promise<WerewolfCommandDispatchOutcome>;
+  kickPlayer: (targetSeat: number) => Promise<WerewolfCommandDispatchOutcome>;
 
   // Game actions (from useWerewolfGameActions)
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  clearAllSeats: () => Promise<RoomOperationResult>;
-  shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  viewedRole: () => Promise<ActionResult>;
-  submitAction: (input: WerewolfActionInput) => Promise<void>;
-  submitRevealAck: () => Promise<ActionResult>;
-  submitGroupConfirmAck: () => Promise<ActionResult>;
-  sendWolfRobotHunterStatusViewed: () => Promise<void>;
+  clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
+  shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
+  viewedRole: () => Promise<WerewolfCommandDispatchOutcome>;
+  submitAction: (input: WerewolfActionInput) => Promise<WerewolfCommandDispatchOutcome>;
+  submitRevealAck: () => Promise<WerewolfCommandDispatchOutcome>;
+  submitGroupConfirmAck: () => Promise<WerewolfCommandDispatchOutcome>;
+  sendWolfRobotHunterStatusViewed: () => Promise<WerewolfCommandDispatchOutcome>;
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
   hasWolfVoted: (seat: number) => boolean;

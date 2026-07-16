@@ -4,7 +4,6 @@
  * Responsibilities:
  * - ADVANCE_NIGHT: progress to the next step after audio ends
  * - END_NIGHT: run death settlement after night ends
- * - SET_AUDIO_PLAYING: set the audio playback gate state
  *
  * Returns authoritative StateAction lists, including the Host audio queue; does not perform IO
  * (network / audio playback / Alert), does not
@@ -25,17 +24,12 @@ import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
 import { calculateDeathsDetailed } from '../DeathCalculator';
-import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
+import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
 import { type SchemaId } from '../models';
 import { buildNightPlan, getStepSpec } from '../models/roles/spec';
 import { Team } from '../models/roles/spec/types';
 import type { AudioEffect } from '../protocol/types';
-import type {
-  AdvanceToNextActionAction,
-  EndNightAction,
-  SetAudioPlayingAction,
-  StateAction,
-} from '../reducer/types';
+import type { AdvanceToNextActionAction, EndNightAction, StateAction } from '../reducer/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import {
   buildCheckedSeats,
@@ -44,10 +38,7 @@ import {
   buildReflectionSources,
   buildRoleSeatMap,
 } from './deathResolution';
-import {
-  validateNightFlowPreconditions,
-  validateSetAudioPlayingPreconditions,
-} from './stepTransitionGuards';
+import { validateNightFlowPreconditions } from './stepTransitionGuards';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
@@ -240,38 +231,4 @@ export function handleEndNight(
   };
 
   return handlerSuccess([endNightAction, ...createAudioQueueActions([{ audioKey: 'night_end' }])]);
-}
-
-// =============================================================================
-// SET_AUDIO_PLAYING Handler
-// =============================================================================
-
-/**
- * Set the audio playback state
- *
- * Audio sequencing control
- *
- * Gate:
- * 1. host_only
- * 2. invalid_status (must be ongoing or ended)
- *
- * Logic:
- * - Set isAudioPlaying = payload.isPlaying
- * - Broadcast state
- */
-export function handleSetAudioPlaying(
-  intent: SetAudioPlayingIntent,
-  context: HandlerContext,
-): HandlerResult {
-  const validation = validateSetAudioPlayingPreconditions(context);
-  if (!validation.valid) {
-    return validation.result;
-  }
-
-  const setAudioAction: SetAudioPlayingAction = {
-    type: 'SET_AUDIO_PLAYING',
-    payload: { isPlaying: intent.payload.isPlaying },
-  };
-
-  return handlerSuccess([setAudioAction]);
 }

@@ -14,6 +14,10 @@ import type {
   ActiveRoomAccountSnapshot,
   RoomProfilePatch,
 } from '@/features/room/model/RoomAccountCapability';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -48,8 +52,10 @@ async function syncActiveRoomProfile(
   if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
   try {
     const result = await activeRoom.updateProfile(patch);
-    if (result.success) return true;
-    settingsLog.warn('Cosmetic sync to active room rejected', { reason: result.reason });
+    if (isSuccessfulRoomCommand(result)) return true;
+    settingsLog.warn('Cosmetic sync to active room rejected', {
+      reason: getRoomCommandFailureReason(result),
+    });
   } catch (error: unknown) {
     settingsLog.warn('Cosmetic sync to active room failed', error);
   }

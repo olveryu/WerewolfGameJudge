@@ -14,11 +14,90 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import ts from 'typescript';
+
 const PROJECT_ROOT = process.cwd();
 
 function readFileContent(relativePath: string): string {
   const absolutePath = path.join(PROJECT_ROOT, relativePath);
   return fs.readFileSync(absolutePath, 'utf-8');
+}
+
+function parseTypeScriptSource(relativePath: string): ts.SourceFile {
+  const content = readFileContent(relativePath);
+  return ts.createSourceFile(
+    relativePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    relativePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+}
+
+function getVariableDeclarationSource(relativePath: string, variableName: string): string {
+  const sourceFile = parseTypeScriptSource(relativePath);
+  const matches: ts.VariableDeclaration[] = [];
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === variableName
+    ) {
+      matches.push(node);
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  if (matches.length !== 1) {
+    throw new Error(
+      `[FAIL-FAST] Expected exactly one ${variableName} declaration in ${relativePath}, found ${matches.length}`,
+    );
+  }
+  const match = matches[0];
+  if (match === undefined) {
+    throw new Error(`[FAIL-FAST] ${variableName} declaration disappeared after validation`);
+  }
+  return match.getText(sourceFile);
+}
+
+function getInterfaceMethod(
+  relativePath: string,
+  interfaceName: string,
+  methodName: string,
+): ts.MethodSignature {
+  const sourceFile = parseTypeScriptSource(relativePath);
+  const matches: ts.MethodSignature[] = [];
+
+  function visit(node: ts.Node): void {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === interfaceName) {
+      for (const member of node.members) {
+        if (
+          ts.isMethodSignature(member) &&
+          ts.isIdentifier(member.name) &&
+          member.name.text === methodName
+        ) {
+          matches.push(member);
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  if (matches.length !== 1) {
+    throw new Error(
+      `[FAIL-FAST] Expected exactly one ${interfaceName}.${methodName} signature in ${relativePath}, found ${matches.length}`,
+    );
+  }
+  const match = matches[0];
+  if (match === undefined) {
+    throw new Error(
+      `[FAIL-FAST] ${interfaceName}.${methodName} signature disappeared after validation`,
+    );
+  }
+  return match;
 }
 
 // After refactoring, handleActionIntent logic moved to useActionOrchestrator,
@@ -137,22 +216,14 @@ describe('Delegation Seat Identity Contract', () => {
      * submitAction must use effectiveSeat, not mySeat
      */
     it('submitAction passes typed input and controlledSeat only', () => {
-      const content = readFileContent('src/games/werewolf/hooks/useWerewolfGameActions.ts');
+      const declaration = getVariableDeclarationSource(
+        'src/games/werewolf/hooks/useWerewolfGameActions.ts',
+        'submitAction',
+      );
 
-      // Find submitAction definition
-      const submitActionRegex = /const\s+submitAction\s*=\s*useCallback/g;
-      const match = submitActionRegex.exec(content);
-
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 300);
-
-        expect(block).toMatch(/client\.submitAction\(input,\s*debug\.controlledSeat\)/);
-        expect(block).not.toMatch(/client\.submitAction\([^)]*effectiveRole/);
-        expect(block).not.toMatch(/client\.submitAction\([^)]*effectiveSeat/);
-      }
+      expect(declaration).toMatch(/client\.submitAction\(input,\s*debug\.controlledSeat\)/);
+      expect(declaration).not.toMatch(/client\.submitAction\([^)]*effectiveRole/);
+      expect(declaration).not.toMatch(/client\.submitAction\([^)]*effectiveSeat/);
     });
 
     /**
@@ -160,21 +231,15 @@ describe('Delegation Seat Identity Contract', () => {
      * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
      */
     it('sendWolfRobotHunterStatusViewed derives controlledSeat from debug state', () => {
-      const content = readFileContent('src/games/werewolf/hooks/useWerewolfGameActions.ts');
+      const declaration = getVariableDeclarationSource(
+        'src/games/werewolf/hooks/useWerewolfGameActions.ts',
+        'sendWolfRobotHunterStatusViewed',
+      );
 
-      // Find sendWolfRobotHunterStatusViewed definition
-      const regex = /const\s+sendWolfRobotHunterStatusViewed\s*=\s*useCallback/g;
-      const match = regex.exec(content);
-
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 300);
-
-        expect(block).toMatch(/async\s*\(\s*\)/);
-        expect(block).toMatch(/client\.sendWolfRobotHunterStatusViewed\(debug\.controlledSeat\)/);
-      }
+      expect(declaration).toMatch(/async\s*\(\s*\)/);
+      expect(declaration).toMatch(
+        /client\.sendWolfRobotHunterStatusViewed\(debug\.controlledSeat\)/,
+      );
     });
   });
 
@@ -463,11 +528,55 @@ describe('Delegation Seat Identity Contract', () => {
 
     /** The client accepts only the explicit takeover discriminator. */
     it('WerewolfGameClient.sendWolfRobotHunterStatusViewed takes controlledSeat', () => {
-      const content = readFileContent('src/games/werewolf/runtime/WerewolfGameClient.ts');
+      const signature = getInterfaceMethod(
+        'src/games/werewolf/runtime/WerewolfGameClient.ts',
+        'WerewolfGameClient',
+        'sendWolfRobotHunterStatusViewed',
+      );
+      expect(signature.parameters).toHaveLength(1);
 
-      const regex =
-        /sendWolfRobotHunterStatusViewed\s*\(\s*controlledSeat\s*:\s*number\s*\|\s*null\s*\)/;
-      expect(content).toMatch(regex);
+      const controlledSeat = signature.parameters[0];
+      if (controlledSeat === undefined || !ts.isIdentifier(controlledSeat.name)) {
+        throw new Error('[FAIL-FAST] controlledSeat must be the only named parameter');
+      }
+      expect(controlledSeat.name.text).toBe('controlledSeat');
+
+      const controlledSeatType = controlledSeat.type;
+      if (controlledSeatType === undefined || !ts.isUnionTypeNode(controlledSeatType)) {
+        throw new Error('[FAIL-FAST] controlledSeat must be typed as a union');
+      }
+      expect(controlledSeatType.types.map((typeNode) => typeNode.kind)).toEqual([
+        ts.SyntaxKind.NumberKeyword,
+        ts.SyntaxKind.LiteralType,
+      ]);
+      const nullType = controlledSeatType.types[1];
+      if (nullType === undefined || !ts.isLiteralTypeNode(nullType)) {
+        throw new Error('[FAIL-FAST] controlledSeat must include null');
+      }
+      expect(nullType.literal.kind).toBe(ts.SyntaxKind.NullKeyword);
+
+      const returnType = signature.type;
+      if (
+        returnType === undefined ||
+        !ts.isTypeReferenceNode(returnType) ||
+        !ts.isIdentifier(returnType.typeName)
+      ) {
+        throw new Error('[FAIL-FAST] wolfRobot acknowledgement must return a Promise');
+      }
+      expect(returnType.typeName.text).toBe('Promise');
+      const typeArguments = returnType.typeArguments;
+      if (typeArguments === undefined || typeArguments.length !== 1) {
+        throw new Error('[FAIL-FAST] wolfRobot acknowledgement Promise must have one result type');
+      }
+      const outcomeType = typeArguments[0];
+      if (
+        outcomeType === undefined ||
+        !ts.isTypeReferenceNode(outcomeType) ||
+        !ts.isIdentifier(outcomeType.typeName)
+      ) {
+        throw new Error('[FAIL-FAST] wolfRobot acknowledgement must return a command outcome');
+      }
+      expect(outcomeType.typeName.text).toBe('WerewolfCommandDispatchOutcome');
     });
   });
 });

@@ -18,10 +18,16 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type {
+  WerewolfCommandDispatchOutcome,
+  WerewolfGameClient,
+} from '@/games/werewolf/runtime/WerewolfGameClient';
 import { computeFactionStats } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
@@ -34,6 +40,7 @@ import {
   withAlpha,
 } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
+import { translateReasonCode } from '@/utils/errorUtils';
 
 interface BoardNominationModalProps {
   readonly client: WerewolfGameClient;
@@ -52,7 +59,7 @@ interface BoardNominationModalProps {
   /** Withdraw own nomination */
   onWithdraw: () => void;
   /** Clear all seats (called before adopt when player count changes) */
-  clearAllSeats: () => Promise<RoomOperationResult>;
+  clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Close the modal */
   onClose: () => void;
 }
@@ -221,15 +228,18 @@ export const BoardNominationModal = memo(function BoardNominationModal({
       const newCount = getPlayerCount(roles);
       if (newCount !== currentPlayerCount) {
         const clearResult = await clearAllSeats();
-        if (!clearResult.success) {
-          showErrorAlert('采纳失败', clearResult.reason);
+        if (!isSuccessfulRoomCommand(clearResult)) {
+          const reason = getRoomCommandFailureReason(clearResult);
+          showErrorAlert('采纳失败', translateReasonCode(reason));
           return;
         }
       }
       const template = createCustomTemplate([...roles]);
       const result = await client.updateTemplate(template);
-      if (!result.success) {
-        showErrorAlert('采纳失败', result.reason ?? '请稍后重试');
+      if (!isSuccessfulRoomCommand(result)) {
+        const reason = getRoomCommandFailureReason(result);
+        showErrorAlert('采纳失败', translateReasonCode(reason));
+        return;
       }
       onClose();
     },

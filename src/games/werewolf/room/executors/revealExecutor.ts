@@ -1,20 +1,23 @@
 /**
  * revealExecutor — Handles 'reveal' ActionIntent
  *
- * Submits via confirmThenAct, polls gameStateRef for reveal data, shows the
- * reveal dialog, and triggers revealAckMutation.mutate when the user
+ * Submits via confirmThenAct, reads reveal data from the committed command
+ * snapshot, shows the reveal dialog, and triggers revealAckMutation.mutate when the user
  * dismisses. The mutation's isPending covers the dialog-closed-but-ack-pending
  * window the previous pendingRevealDialog flag protected (gate logic in
  * RoomInteractionPolicy via useWerewolfPendingAcks).
  *
- * Soft failure (server returns success: false) re-shows the dialog with the
- * same attemptAck closure for retry.
+ * Failed acknowledgements reject the dialog action so the same attempt can be retried.
  */
 
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { showErrorAlert } from '@/utils/alertPresets';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -23,7 +26,7 @@ import type { IntentExecutor } from './types';
 
 /** Handle reveal intent (display check result + ack). */
 export const revealExecutor: IntentExecutor = (intent, ctx) => {
-  const { gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
+  const { currentSchema, confirmThenAct } = ctx;
   const { revealAckMutation, actionDialogs } = ctx;
 
   if (!intent.revealKind) {
@@ -33,27 +36,13 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
 
   const revealKind = intent.revealKind;
 
-  confirmThenAct(intent.targetSeat, async () => {
-    const maxRetries = 30;
-    const retryInterval = 100;
-    let reveal: { targetSeat: number; result: string } | undefined;
-
-    for (let i = 0; i < maxRetries; i++) {
-      await new Promise((resolve) => setTimeout(resolve, retryInterval));
-      if (!mountedRef.current) return;
-      const state = gameStateRef.current;
-      reveal = getRevealDataFromState(state, revealKind);
-      if (reveal) break;
-    }
-
-    if (!mountedRef.current) return;
-
+  confirmThenAct(intent.targetSeat, async (accepted) => {
+    const state = toWerewolfLocalState(accepted.decision.snapshot.state);
+    const reveal = getRevealDataFromState(state, revealKind);
     if (!reveal) {
-      roomScreenLog.warn(
-        `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
+      throw new Error(
+        `[FAIL-FAST] Successful ${revealKind} command snapshot is missing reveal data`,
       );
-      showErrorAlert('查看结果超时', '未收到服务端返回，请稍后重试');
-      return;
     }
 
     const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
@@ -66,10 +55,10 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
       new Promise<void>((resolve, reject) => {
         revealAckMutation.mutate(undefined, {
           onSuccess: (result) => {
-            if (!mountedRef.current) return;
-            if (!result.success) {
-              roomScreenLog.warn('revealAck failed', { reason: result.reason });
-              reject(new Error(result.reason ?? 'revealAck failed'));
+            if (!isSuccessfulRoomCommand(result)) {
+              const reason = getRoomCommandFailureReason(result);
+              roomScreenLog.warn('revealAck failed', { reason });
+              reject(new Error(reason));
             } else {
               resolve();
             }

@@ -1,16 +1,18 @@
 /** Shared confirmation and submission handling for destructive room-wide operations. */
 
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo } from 'react';
 
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import { getRoomCommandFailureReason } from '@/features/room/session/roomCommandResult';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
-import { getUserFacingMessage } from '@/utils/errorUtils';
+import { translateReasonCode } from '@/utils/errorUtils';
 
-import { useRoomOperationSubmission } from './useRoomOperationSubmission';
+import { useRoomCommandSubmission } from './useRoomCommandSubmission';
 
-interface UseRoomHostOperationsParams {
-  readonly clearSeats: () => Promise<RoomOperationResult>;
-  readonly fillBots: () => Promise<RoomOperationResult>;
+interface UseRoomHostOperationsParams<TState extends BaseGameState<string>> {
+  readonly clearSeats: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly fillBots: () => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 export interface RoomHostOperations {
@@ -18,11 +20,15 @@ export interface RoomHostOperations {
   readonly requestFillBots: () => void;
 }
 
-export function useRoomHostOperations({
+export function useRoomHostOperations<TState extends BaseGameState<string>>({
   clearSeats,
   fillBots,
-}: UseRoomHostOperationsParams): RoomHostOperations {
-  const { submit } = useRoomOperationSubmission(getUserFacingMessage);
+}: UseRoomHostOperationsParams<TState>): RoomHostOperations {
+  const getFailureMessage = useCallback((result: RoomCommandDispatchOutcome<TState>): string => {
+    const reason = getRoomCommandFailureReason(result);
+    return translateReasonCode(reason);
+  }, []);
+  const { submit } = useRoomCommandSubmission(getFailureMessage);
 
   const requestClearSeats = useCallback(() => {
     showDestructiveAlert(

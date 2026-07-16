@@ -154,28 +154,6 @@ export interface ViewedRoleIntent {
 }
 
 // =============================================================================
-// Audio control Intents (Host-only)
-// =============================================================================
-
-/**
- * Set audio playing state Intent (Host-only)
- *
- * Audio timing control
- * - When audio starts playing, call setAudioPlaying(true)
- * - When audio ends (or is skipped), call setAudioPlaying(false)
- *
- * Gate:
- * - host_only
- * - invalid_status (must be ongoing or ended)
- */
-export interface SetAudioPlayingIntent {
-  type: 'SET_AUDIO_PLAYING';
-  payload: {
-    isPlaying: boolean;
-  };
-}
-
-// =============================================================================
 // Night flow Intents (Host-only)
 // =============================================================================
 

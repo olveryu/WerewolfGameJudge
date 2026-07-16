@@ -3,14 +3,16 @@ import type {
   RoomAccountCapability,
 } from '@/features/room/model/RoomAccountCapability';
 import { createActiveRoomAccountSource } from '@/games/activeRoomAccount';
+import { successfulRoomCommand, testRoomState } from '@/test-utils/roomCommand';
 
 function createCapability(snapshot: GameRoomAccountSnapshot): RoomAccountCapability {
   return {
     gameType: snapshot.gameType,
     getSnapshot: () => snapshot,
     subscribe: () => () => {},
-    updateProfile: async () => ({ success: true }),
-    leaveSeat: async () => ({ success: true }),
+    updateProfile: async () =>
+      successfulRoomCommand(testRoomState(snapshot.gameType), 'account-profile'),
+    leaveSeat: async () => successfulRoomCommand(testRoomState(snapshot.gameType), 'account-leave'),
   };
 }
 
@@ -36,7 +38,9 @@ describe('createActiveRoomAccountSource', () => {
   });
 
   it('exposes the active capability without game-specific state', async () => {
-    const updateProfile = jest.fn(async () => ({ success: true }) as const);
+    const updateProfile = jest.fn(async () =>
+      successfulRoomCommand(testRoomState('werewolf'), 'active-profile'),
+    );
     const capability: RoomAccountCapability = {
       ...createCapability({
         gameType: 'werewolf',

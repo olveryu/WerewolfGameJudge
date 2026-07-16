@@ -12,6 +12,8 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RoomCreationRequest, RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -60,21 +62,22 @@ const idleRoomSnapshot = {
   error: null,
 };
 
-const createMockClient = (): WerewolfGameClient =>
-  ({
+const createMockClient = (): WerewolfGameClient => {
+  const commandResult = successfulRoomCommand(buildWerewolfTestState());
+  return {
     roomSession: {
       getSnapshot: () => idleRoomSnapshot,
       subscribe: jest.fn(() => () => undefined),
     },
     assignRoles: jest.fn(),
-    updateTemplate: jest.fn().mockResolvedValue({ success: true }),
+    updateTemplate: jest.fn().mockResolvedValue(commandResult),
     startNight: jest.fn(),
     restartGame: jest.fn(),
     markViewedRole: jest.fn(),
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
-    setAudioPlaying: jest.fn(),
-  }) as unknown as WerewolfGameClient;
+  } as unknown as WerewolfGameClient;
+};
 
 function renderConfigScreen() {
   const mockClient = createMockClient();

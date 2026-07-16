@@ -17,15 +17,20 @@
  */
 
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import {
+  isSuccessfulRoomCommand,
+  type SuccessfulRoomCommandDispatchOutcome,
+} from '@/features/room/session/roomCommandResult';
 import { useWerewolfAckMutation } from '@/games/werewolf/hooks/useWerewolfAckMutation';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
+import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -63,10 +68,10 @@ interface UseActionOrchestratorParams {
   setSecondSeat: (v: number | null) => void;
 
   // ── Submission callbacks ──
-  submitAction: (input: WerewolfActionInput) => Promise<void>;
-  submitRevealAck: () => Promise<ActionResult>;
-  sendWolfRobotHunterStatusViewed: () => Promise<void>;
-  submitGroupConfirmAck: () => Promise<ActionResult>;
+  submitAction: (input: WerewolfActionInput) => Promise<WerewolfCommandDispatchOutcome>;
+  submitRevealAck: () => Promise<WerewolfCommandDispatchOutcome>;
+  sendWolfRobotHunterStatusViewed: () => Promise<WerewolfCommandDispatchOutcome>;
+  submitGroupConfirmAck: () => Promise<WerewolfCommandDispatchOutcome>;
 
   // ── Multi-select state (owned by WerewolfRoomScreen, passed in + out) ──
   multiSelectedSeats: readonly number[];
@@ -122,28 +127,23 @@ export function useActionOrchestrator({
   // ─── Server-ack mutations (TanStack — owns isPending lifecycle) ──────────
   // mutationKey ['ack', name] aggregates into useWerewolfPendingAcks for the policy gate.
   // retry: 0 — UI controls re-show on failure (see executor onSuccess branches).
-  const revealAckMutation = useWerewolfAckMutation<void, ActionResult>('reveal', () =>
-    submitRevealAck(),
+  const revealAckMutation = useWerewolfAckMutation<void, WerewolfCommandDispatchOutcome>(
+    'reveal',
+    () => submitRevealAck(),
   );
-  const hunterStatusAckMutation = useWerewolfAckMutation<void, void>('hunterStatus', () =>
-    sendWolfRobotHunterStatusViewed(),
+  const hunterStatusAckMutation = useWerewolfAckMutation<void, WerewolfCommandDispatchOutcome>(
+    'hunterStatus',
+    () => sendWolfRobotHunterStatusViewed(),
   );
-  const groupConfirmAckMutation = useWerewolfAckMutation<void, ActionResult>('groupConfirm', () =>
-    submitGroupConfirmAck(),
+  const groupConfirmAckMutation = useWerewolfAckMutation<void, WerewolfCommandDispatchOutcome>(
+    'groupConfirm',
+    () => submitGroupConfirmAck(),
   );
 
   // ─── Refs ────────────────────────────────────────────────────────────────
   const gameStateRef = useRef<LocalGameState>(gameState);
   const lastAutoIntentKeyRef = useRef<string | null>(null);
   const lastRejectedKeyRef = useRef<string | null>(null);
-  const mountedRef = useRef(true);
-
-  // Clear mountedRef on unmount
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   // Keep gameStateRef in sync
   useEffect(() => {
@@ -161,18 +161,17 @@ export function useActionOrchestrator({
   }, []);
 
   const proceedWithAction = useCallback(
-    async (input: WerewolfActionInput): Promise<boolean> => {
+    async (input: WerewolfActionInput): Promise<WerewolfCommandDispatchOutcome> => {
       if (actionSubmittingRef.current) {
-        roomScreenLog.debug('proceedWithAction Skipped: already submitting');
-        return false;
+        throw new Error('[FAIL-FAST] Werewolf action submitted while another action is pending');
       }
       markActionSubmitting(true);
       roomScreenLog.debug('proceedWithAction Submitting', { inputKind: input.kind });
       try {
-        await submitAction(input);
+        const result = await submitAction(input);
         // Submission success/failure UX is handled by the state-driven
         // `gameState.actionRejected` effect below.
-        return true;
+        return result;
       } catch (err) {
         handleError(err, {
           label: '提交操作',
@@ -191,16 +190,16 @@ export function useActionOrchestrator({
   const confirmThenAct = useCallback(
     (
       targetSeat: number,
-      onAccepted: () => Promise<void> | void,
+      onAccepted: (result: SuccessfulRoomCommandDispatchOutcome<GameState>) => Promise<void> | void,
       opts?: { title?: string; message?: string },
     ) => {
       const title = opts?.title ?? currentSchema?.ui?.confirmTitle ?? '确认操作';
       const message = opts?.message ?? currentSchema?.ui?.confirmText ?? '执行此操作？';
 
       actionDialogs.showConfirmDialog(title, message, async () => {
-        const accepted = await proceedWithAction({ kind: 'target', target: targetSeat });
-        if (!accepted) return;
-        await onAccepted();
+        const result = await proceedWithAction({ kind: 'target', target: targetSeat });
+        if (!isSuccessfulRoomCommand(result)) return;
+        await onAccepted(result);
       });
     },
     [actionDialogs, currentSchema, proceedWithAction],
@@ -262,7 +261,6 @@ export function useActionOrchestrator({
         groupConfirmAckMutation,
         openChooseCardModal,
         actionDialogs,
-        mountedRef,
       };
 
       await dispatchIntent(intent, ctx);

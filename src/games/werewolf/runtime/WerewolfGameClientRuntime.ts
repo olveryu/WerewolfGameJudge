@@ -23,7 +23,6 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
@@ -37,7 +36,7 @@ import {
 // Sub-modules
 import type { GameActionsContext } from './werewolfGameActions';
 import * as gameActions from './werewolfGameActions';
-import type { WerewolfGameClient } from './WerewolfGameClient';
+import type { WerewolfCommandDispatchOutcome, WerewolfGameClient } from './WerewolfGameClient';
 
 /**
  * WerewolfGameClientRuntime injectable dependencies.
@@ -119,7 +118,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * Called when client countdown expires, server executes inline progression.
    */
-  async postProgression(): Promise<ActionResult> {
+  async postProgression(): Promise<WerewolfCommandDispatchOutcome> {
     werewolfRuntimeLog.debug('postProgression');
     return gameActions.postProgression(this.#getActionsContext());
   }
@@ -128,19 +127,19 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
   // Game Control (delegated to gameActions)
   // =========================================================================
 
-  async assignRoles(): Promise<ActionResult> {
+  async assignRoles(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.assignRoles(this.#getActionsContext());
   }
 
-  async updateTemplate(template: GameTemplate): Promise<ActionResult> {
+  async updateTemplate(template: GameTemplate): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.updateTemplate(this.#getActionsContext(), template);
   }
 
-  async markViewedRole(controlledSeat: number | null): Promise<ActionResult> {
+  async markViewedRole(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.markViewedRole(this.#getActionsContext(), controlledSeat);
   }
 
-  async startNight(): Promise<ActionResult> {
+  async startNight(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.startNight(this.#getActionsContext());
   }
 
@@ -149,7 +148,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * Server resets state -> WS broadcast pushes new state to all clients.
    */
-  async restartGame(): Promise<ActionResult> {
+  async restartGame(): Promise<WerewolfCommandDispatchOutcome> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
     this.#audio.stopNarration();
     this.#audio.clearPreloaded();
@@ -167,7 +166,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    * Sets hasViewedRole = true only for isBot === true players.
    * Only available when debugMode.botsEnabled === true && status === Assigned.
    */
-  async markAllBotsViewed(): Promise<ActionResult> {
+  async markAllBotsViewed(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.markAllBotsViewed(this.#getActionsContext());
   }
 
@@ -177,7 +176,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    * Batch-submits groupConfirm ack for all isBot players.
    * Only available when debugMode.botsEnabled === true && status === Ongoing && current step is groupConfirm.
    */
-  async markAllBotsGroupConfirmed(): Promise<ActionResult> {
+  async markAllBotsGroupConfirmed(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.markAllBotsGroupConfirmed(this.#getActionsContext());
   }
 
@@ -186,7 +185,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * In ended phase, Host selects seats allowed to view night action details.
    */
-  async shareNightReview(allowedSeats: number[]): Promise<ActionResult> {
+  async shareNightReview(allowedSeats: number[]): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.shareNightReview(this.#getActionsContext(), allowedSeats);
   }
 
@@ -194,15 +193,18 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
   // Board Nomination (delegated to gameActions)
   // =========================================================================
 
-  async boardNominate(displayName: string, roles: RoleId[]): Promise<ActionResult> {
+  async boardNominate(
+    displayName: string,
+    roles: RoleId[],
+  ): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.boardNominate(this.#getActionsContext(), displayName, roles);
   }
 
-  async boardUpvote(targetUserId: string): Promise<ActionResult> {
+  async boardUpvote(targetUserId: string): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.boardUpvote(this.#getActionsContext(), targetUserId);
   }
 
-  async boardWithdraw(): Promise<ActionResult> {
+  async boardWithdraw(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.boardWithdraw(this.#getActionsContext());
   }
 
@@ -219,7 +221,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
   async submitAction(
     input: WerewolfActionInput,
     controlledSeat: number | null,
-  ): Promise<ActionResult> {
+  ): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.submitAction(this.#getActionsContext(), input, controlledSeat);
   }
 
@@ -228,7 +230,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * Host/Player both call HTTP API uniformly
    */
-  async submitRevealAck(controlledSeat: number | null): Promise<ActionResult> {
+  async submitRevealAck(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.submitRevealAck(this.#getActionsContext(), controlledSeat);
   }
 
@@ -237,7 +239,9 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * Any player can call. Server auto-progresses step after receiving all player acks.
    */
-  async submitGroupConfirmAck(controlledSeat: number | null): Promise<ActionResult> {
+  async submitGroupConfirmAck(
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.submitGroupConfirmAck(this.#getActionsContext(), controlledSeat);
   }
 
@@ -248,23 +252,10 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * @param controlledSeat - bot seat controlled by Host, or null for the authenticated player
    */
-  async sendWolfRobotHunterStatusViewed(controlledSeat: number | null): Promise<ActionResult> {
+  async sendWolfRobotHunterStatusViewed(
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.setWolfRobotHunterStatusViewed(this.#getActionsContext(), controlledSeat);
-  }
-
-  // =========================================================================
-  // Night Flow (delegated to gameActions) - PR6
-  // =========================================================================
-
-  /**
-   * Host: set audio playing state
-   *
-   * PR7: audio timing control
-   * - When audio starts playing, call setAudioPlaying(true)
-   * - When audio ends (or is skipped), call setAudioPlaying(false)
-   */
-  async setAudioPlaying(isPlaying: boolean): Promise<ActionResult> {
-    return gameActions.setAudioPlaying(this.#getActionsContext(), isPlaying);
   }
 
   // =========================================================================

@@ -41,7 +41,15 @@ const roomScreenProps: React.ComponentProps<typeof WerewolfRoomScreen> = {
 };
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
-const mockSubmitAction = jest.fn<void, [WerewolfActionInput]>();
+function mockSuccessfulCommand() {
+  const { successfulRoomCommand } =
+    require('@/test-utils/roomCommand') as typeof import('@/test-utils/roomCommand');
+  const { buildWerewolfTestState } =
+    require('@/test-utils/werewolfState') as typeof import('@/test-utils/werewolfState');
+  return successfulRoomCommand(buildWerewolfTestState());
+}
+
+const mockSubmitAction = jest.fn(async (_input: WerewolfActionInput) => mockSuccessfulCommand());
 
 type UseWerewolfRoomReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
 let mockUseGameRoomImpl: () => UseWerewolfRoomReturn;
@@ -132,7 +140,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
-    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+    submitRevealAck: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
 
     // BGM controls
     isBgmPlaying: false,
@@ -223,7 +231,9 @@ describe('WerewolfRoomScreen wolf vote UI', () => {
     dialogs.showWolfVoteDialog(
       '1号狼人',
       2,
-      () => mockSubmitAction({ kind: 'target', target: 2 }),
+      async () => {
+        await mockSubmitAction({ kind: 'target', target: 2 });
+      },
       undefined,
       getSchema('wolfKill'),
     );

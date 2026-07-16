@@ -1,11 +1,9 @@
-import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
-import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import {
   type WerewolfActionInput,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type {
   PreparedRoomCommand,
@@ -24,7 +22,6 @@ import {
   postProgression,
   prepareAudioAck,
   restartGame,
-  setAudioPlaying,
   setWolfRobotHunterStatusViewed,
   shareNightReview,
   startNight,
@@ -33,8 +30,8 @@ import {
   submitRevealAck,
   updateTemplate,
 } from '@/games/werewolf/runtime/werewolfGameActions';
-
-import { buildApiTestState } from './apiTestState';
+import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf.audio.ack' }>;
 
@@ -65,29 +62,18 @@ const PREPARED_AUDIO_ACK: PreparedRoomCommand<AudioAckCommand> = Object.freeze({
   controlledSeat: null,
 });
 
-const STATE = buildApiTestState({
+const STATE = buildWerewolfTestState({
   roomCode: 'ABCD',
   status: GameStatus.Seated,
   templateRoles: ['wolf', 'seer'],
 });
 
-function decidedSuccess(): RoomCommandDispatchOutcome<GameState> {
-  return {
-    kind: 'decided',
-    decision: {
-      kind: 'committed',
-      commandId: 'command-id',
-      snapshot: createRoomSnapshot(STATE, 1),
-      outcome: { kind: 'success' },
-    },
-  };
+function successfulCommand(): RoomCommandDispatchOutcome<GameState> {
+  return successfulRoomCommand(STATE, 'command-id');
 }
 
-function decidedRejection(reason: string): RoomCommandDispatchOutcome<GameState> {
-  return {
-    kind: 'decided',
-    decision: { kind: 'rejected', commandId: 'command-id', reason },
-  };
+function rejectedCommand(reason: string): RoomCommandDispatchOutcome<GameState> {
+  return domainRejectedRoomCommand(STATE, reason, 'command-id');
 }
 
 function createContext(): GameActionsContext {
@@ -120,8 +106,8 @@ function expectCommand(command: WerewolfPublicCommand, controlledSeat: number | 
 
 describe('canonical Werewolf command builders', () => {
   beforeEach(() => {
-    dispatchMock.mockReset().mockResolvedValue(decidedSuccess());
-    dispatchPreparedMock.mockReset().mockResolvedValue(decidedSuccess());
+    dispatchMock.mockReset().mockResolvedValue(successfulCommand());
+    dispatchPreparedMock.mockReset().mockResolvedValue(successfulCommand());
     prepareMock.mockReset().mockReturnValue(PREPARED_AUDIO_ACK);
   });
 
@@ -149,8 +135,6 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.game.restart' }, null);
     await shareNightReview(ctx, [1, 3]);
     expectCommand({ type: 'werewolf.review.share', allowedSeats: [1, 3] }, null);
-    await setAudioPlaying(ctx, true);
-    expectCommand({ type: 'werewolf.audio.gate', isPlaying: true }, null);
     await postProgression(ctx);
     expectCommand({ type: 'werewolf.progress.request' }, null);
     await markAllBotsViewed(ctx);
@@ -215,7 +199,7 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.night.start' }, null);
     expect(ctx.audio.preloadRoles).toHaveBeenCalledWith(['wolf', 'seer']);
 
-    dispatchMock.mockResolvedValueOnce(decidedRejection('invalid_status'));
+    dispatchMock.mockResolvedValueOnce(rejectedCommand('invalid_status'));
     jest.mocked(ctx.audio.preloadRoles).mockClear();
     await startNight(ctx);
     expect(ctx.audio.preloadRoles).not.toHaveBeenCalled();

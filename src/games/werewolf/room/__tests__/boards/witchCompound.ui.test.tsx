@@ -20,6 +20,7 @@ import {
   mockNavigation,
   mockRoom,
   RoomScreenTestHarness,
+  successfulWerewolfCommand,
   tapSeat,
   waitForRoomScreen,
 } from '@/games/werewolf/room/__tests__/harness';
@@ -78,7 +79,7 @@ describe('Witch Compound Sequence', () => {
 
   describe('save prompt dismiss → poison flow', () => {
     it('save prompt appears, dismiss, then tap seat triggers poison confirm', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
@@ -122,7 +123,7 @@ describe('Witch Compound Sequence', () => {
 
   describe('save prompt dismiss → skip all flow', () => {
     it('save prompt appears, dismiss, then pressing skip triggers skipConfirm', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
@@ -165,7 +166,7 @@ describe('Witch Compound Sequence', () => {
 
   describe('no abilities available', () => {
     it('witch with canSave=false canPoison=false can still skip', async () => {
-      const submitAction = jest.fn().mockResolvedValue(undefined);
+      const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',

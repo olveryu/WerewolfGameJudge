@@ -12,9 +12,10 @@ import type {
 } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 import { WerewolfGameClientRuntime } from '../WerewolfGameClientRuntime';
-import { buildApiTestState } from './apiTestState';
 
 const room: RoomRecord<'werewolf'> = {
   roomCode: '1234',
@@ -53,15 +54,11 @@ function createRoomSession() {
     commandSequence += 1;
     const commandId = `command-${commandSequence}`;
     if (snapshot.phase !== 'ready') throw new Error('test session is not ready');
-    return {
-      kind: 'decided' as const,
-      decision: {
-        kind: 'committed' as const,
-        commandId,
-        snapshot: snapshot.snapshot,
-        outcome: { kind: 'success' as const },
-      },
-    };
+    return successfulRoomCommand(
+      snapshot.snapshot.state,
+      commandId,
+      snapshot.snapshot.revision + 1,
+    );
   });
   const session: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent> = {
     getSnapshot: () => snapshot,
@@ -113,7 +110,7 @@ function enteringSnapshot(userId = 'host-user'): RoomSessionSnapshot<GameState> 
 }
 
 function readySnapshot(status: GameStatus, userId = 'host-user'): RoomSessionSnapshot<GameState> {
-  const state = buildApiTestState({
+  const state = buildWerewolfTestState({
     roomCode: room.roomCode,
     hostUserId: room.hostUserId,
     status,

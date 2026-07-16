@@ -9,6 +9,8 @@ import type React from 'react';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 type RoomScreenProps = React.ComponentProps<typeof WerewolfRoomScreen>;
 
@@ -48,6 +50,7 @@ export function makeBaseUseGameRoomReturn({
   overrides,
   gameStateOverrides,
 }: MakeUseGameRoomArgs) {
+  const commandResult = successfulRoomCommand(buildWerewolfTestState());
   const players = new Map<number, LocalPlayer>(
     Array.from({ length: numberOfPlayers }).map((_, i) => [
       i,
@@ -123,15 +126,15 @@ export function makeBaseUseGameRoomReturn({
     startGame: jest.fn(),
     restartGame: jest.fn(),
 
-    submitAction: jest.fn(),
+    submitAction: jest.fn().mockResolvedValue(commandResult),
 
     hasWolfVoted: () => false,
     viewedRole: jest.fn(),
 
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
-    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
-    submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
+    submitRevealAck: jest.fn().mockResolvedValue(commandResult),
+    submitGroupConfirmAck: jest.fn().mockResolvedValue(commandResult),
 
     isBgmPlaying: false,
     playBgm: jest.fn(),

@@ -27,7 +27,15 @@ const mockRoom: React.ComponentProps<typeof WerewolfRoomScreen>['room'] = {
 
 // Schema-driven flow: when currentSchema is the step schema (witchPoison), seat tap triggers a confirm
 // and confirmation submits a canonical Witch action input.
-const mockSubmitAction = jest.fn();
+function mockSuccessfulCommand() {
+  const { successfulRoomCommand } =
+    require('@/test-utils/roomCommand') as typeof import('@/test-utils/roomCommand');
+  const { buildWerewolfTestState } =
+    require('@/test-utils/werewolfState') as typeof import('@/test-utils/werewolfState');
+  return successfulRoomCommand(buildWerewolfTestState());
+}
+
+const mockSubmitAction = jest.fn(async () => mockSuccessfulCommand());
 
 // Witch poison phase: seat tap opens poison confirm and submits poisonTarget.
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
@@ -111,7 +119,7 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
 
         getLastNightInfo: jest.fn().mockReturnValue(''),
 
-        submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+        submitRevealAck: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
 
         isBgmPlaying: false,
         playBgm: jest.fn(),

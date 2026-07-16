@@ -5,9 +5,9 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import type {
   RoomAccountCapability,
+  RoomAccountCommandOutcome,
   RoomProfilePatch,
 } from '@/features/room/model/RoomAccountCapability';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import {
   createSessionRoomAccountCapability,
   type SessionRoomAccountCapability,
@@ -38,8 +38,10 @@ export class WerewolfRoomAccountCapability implements RoomAccountCapability<'wer
     return this.#delegate.subscribe(listener);
   }
 
-  readonly updateProfile = (patch: RoomProfilePatch): Promise<RoomOperationResult> =>
-    this.#delegate.updateProfile(patch);
+  readonly updateProfile = (
+    patch: RoomProfilePatch,
+  ): Promise<RoomAccountCommandOutcome<'werewolf'>> => this.#delegate.updateProfile(patch);
 
-  readonly leaveSeat = (): Promise<RoomOperationResult> => this.#delegate.leaveSeat();
+  readonly leaveSeat = (): Promise<RoomAccountCommandOutcome<'werewolf'>> =>
+    this.#delegate.leaveSeat();
 }

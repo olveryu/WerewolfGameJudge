@@ -7,10 +7,11 @@ import type {
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 
-import type { RoomSessionClient } from '@/features/room/session/types';
+import type { RoomCommandDispatchOutcome, RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
+
+export type WerewolfCommandDispatchOutcome = RoomCommandDispatchOutcome<GameState>;
 
 /** Werewolf game client composed around the single shared room session. */
 export interface WerewolfGameClient {
@@ -20,93 +21,93 @@ export interface WerewolfGameClient {
   /**
    * Assign roles
    */
-  assignRoles(): Promise<ActionResult>;
+  assignRoles(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Update template (Host only, only in unseated status)
    */
-  updateTemplate(template: GameTemplate): Promise<ActionResult>;
+  updateTemplate(template: GameTemplate): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Start night
    */
-  startNight(): Promise<ActionResult>;
+  startNight(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Restart game
    */
-  restartGame(): Promise<ActionResult>;
+  restartGame(): Promise<WerewolfCommandDispatchOutcome>;
 
   // === Debug Mode ===
   /**
    * Mark all bots as having viewed roles (Debug-only, Host-only)
    */
-  markAllBotsViewed(): Promise<ActionResult>;
+  markAllBotsViewed(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Mark all bots as having confirmed groupConfirm step (Debug-only, Host-only)
    */
-  markAllBotsGroupConfirmed(): Promise<ActionResult>;
+  markAllBotsGroupConfirmed(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Share "detailed info" to specified seats (Host-only, ended phase)
    */
-  shareNightReview(allowedSeats: number[]): Promise<ActionResult>;
+  shareNightReview(allowedSeats: number[]): Promise<WerewolfCommandDispatchOutcome>;
 
   // === Board Nomination (any connected player) ===
   /**
    * Submit board nomination (max one per person, later overrides earlier)
    */
-  boardNominate(displayName: string, roles: RoleId[]): Promise<ActionResult>;
+  boardNominate(displayName: string, roles: RoleId[]): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Upvote board nomination
    */
-  boardUpvote(targetUserId: string): Promise<ActionResult>;
+  boardUpvote(targetUserId: string): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Withdraw board nomination (submitter only)
    */
-  boardWithdraw(): Promise<ActionResult>;
+  boardWithdraw(): Promise<WerewolfCommandDispatchOutcome>;
 
   // === Player Actions ===
   /**
    * Player confirms role viewed
    */
-  markViewedRole(controlledSeat: number | null): Promise<ActionResult>;
+  markViewedRole(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Submit night action
    */
-  submitAction(input: WerewolfActionInput, controlledSeat: number | null): Promise<ActionResult>;
+  submitAction(
+    input: WerewolfActionInput,
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Submit reveal confirmation (seer/psychic/gargoyle/wolfRobot)
    */
-  submitRevealAck(controlledSeat: number | null): Promise<ActionResult>;
+  submitRevealAck(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Submit groupConfirm ack (hypnotize confirmation "I understand")
    * @param controlledSeat - bot seat controlled by Host, or null for the authenticated player
    */
-  submitGroupConfirmAck(controlledSeat: number | null): Promise<ActionResult>;
+  submitGroupConfirmAck(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Submit wolfRobot hunter status view confirmation
    * @param controlledSeat - bot seat controlled by Host, or null for the authenticated player
    */
-  sendWolfRobotHunterStatusViewed(controlledSeat: number | null): Promise<ActionResult>;
+  sendWolfRobotHunterStatusViewed(
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome>;
 
   // === Night Flow (Host-only) ===
   /**
-   * Set audio playing state
-   */
-  setAudioPlaying(isPlaying: boolean): Promise<ActionResult>;
-
-  /**
    * Host: trigger server-side progression after wolf vote deadline expires
    */
-  postProgression(): Promise<ActionResult>;
+  postProgression(): Promise<WerewolfCommandDispatchOutcome>;
 
   /**
    * Whether audio was interrupted after Host rejoin

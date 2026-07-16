@@ -9,6 +9,7 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
@@ -48,7 +49,7 @@ export const multiSelectConfirmExecutor: IntentExecutor = async (intent, ctx) =>
   const targetLabels = targets.map((s) => formatSeat(s)).join('、');
 
   actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
-    const accepted = await proceedWithAction({ kind: 'multiTarget', targets: [...targets] });
-    if (accepted) setMultiSelectedSeats([]);
+    const result = await proceedWithAction({ kind: 'multiTarget', targets: [...targets] });
+    if (isSuccessfulRoomCommand(result)) setMultiSelectedSeats([]);
   });
 };

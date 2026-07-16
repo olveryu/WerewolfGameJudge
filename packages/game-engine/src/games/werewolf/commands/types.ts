@@ -48,7 +48,6 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.board.withdraw' }
   | { readonly type: 'werewolf.night.start' }
   | { readonly type: 'werewolf.audio.ack' }
-  | { readonly type: 'werewolf.audio.gate'; readonly isPlaying: boolean }
   | { readonly type: 'werewolf.progress.request' }
   | { readonly type: 'werewolf.reveal.ack' }
   | { readonly type: 'werewolf.wolfRobot.ackHunterStatus' }

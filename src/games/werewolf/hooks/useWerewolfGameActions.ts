@@ -15,14 +15,19 @@
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useCallback } from 'react';
 import { toast } from 'sonner-native';
 
 import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import type {
+  WerewolfCommandDispatchOutcome,
+  WerewolfGameClient,
+} from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -33,7 +38,7 @@ import type { WerewolfDebugModeState } from './useWerewolfDebugMode';
 /**
  * Unified mutation-result handling — tiered user notification by error type
  *
- * - Network/infrastructure errors (NETWORK_ERROR / SERVER_ERROR): request never reached server, always show alert
+ * - Undecided delivery errors: the client has no authoritative decision, always show alert
  * - Business rejection: delegated to onBusinessError callback
  *   - Pass toastError -> lightweight toast (unified business-error presentation)
  *   - Omit -> silent (state-driven / background operations)
@@ -43,26 +48,32 @@ import type { WerewolfDebugModeState } from './useWerewolfDebugMode';
  */
 type BusinessErrorHandler = (title: string, message: string) => void;
 
-/** Lightweight toast error — passed to handleMutationResult as the onBusinessError callback */
+/** Lightweight toast error passed to command-outcome presentation. */
 function toastError(title: string, message: string): void {
   toast.error(title, { description: message });
 }
 
-function handleMutationResult(
-  result: ActionResult,
+function handleCommandOutcome(
+  result: WerewolfCommandDispatchOutcome,
   actionLabel: string,
   onBusinessError?: BusinessErrorHandler,
 ): void {
-  if (result.success) return;
-  const { reason } = result;
+  if (isSuccessfulRoomCommand(result)) return;
+  const reason = getRoomCommandFailureReason(result);
 
-  // Network/infrastructure error -> request never reached server, always show alert
-  if (reason === 'NETWORK_ERROR' || reason === 'SERVER_ERROR') {
+  // No authoritative Worker decision is available, so the UI must not continue the workflow.
+  if (result.kind !== 'decided') {
     showErrorAlert(`${actionLabel}失败`, reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR);
     return;
   }
 
-  // Business rejection -> delegate to caller
+  // Pre-commit rejection has no state-driven rejection event, so it must be presented here.
+  if (result.decision.kind === 'rejected') {
+    (onBusinessError ?? toastError)(`${actionLabel}失败`, translateReasonCode(reason));
+    return;
+  }
+
+  // Committed domain rejection may be presented by the authoritative state consumer.
   onBusinessError?.(`${actionLabel}失败`, translateReasonCode(reason));
 }
 
@@ -76,16 +87,14 @@ interface WerewolfGameActionsState {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  clearAllSeats: () => Promise<RoomOperationResult>;
-  shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  setAudioPlaying: (isPlaying: boolean) => Promise<ActionResult>;
-
+  clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
+  shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   // Player night actions
-  viewedRole: () => Promise<ActionResult>;
-  submitAction: (input: WerewolfActionInput) => Promise<void>;
-  submitRevealAck: () => Promise<ActionResult>;
-  submitGroupConfirmAck: () => Promise<ActionResult>;
-  sendWolfRobotHunterStatusViewed: () => Promise<void>;
+  viewedRole: () => Promise<WerewolfCommandDispatchOutcome>;
+  submitAction: (input: WerewolfActionInput) => Promise<WerewolfCommandDispatchOutcome>;
+  submitRevealAck: () => Promise<WerewolfCommandDispatchOutcome>;
+  submitGroupConfirmAck: () => Promise<WerewolfCommandDispatchOutcome>;
+  sendWolfRobotHunterStatusViewed: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Host: triggers server progression after wolf vote deadline. Returns success status (used for retry guard). */
   postProgression: () => Promise<boolean>;
 
@@ -107,7 +116,7 @@ interface WerewolfGameActionsDeps {
   isHost: boolean;
   mySeat: number | null;
   gameState: LocalGameState;
-  clearSeats: () => Promise<RoomOperationResult>;
+  clearSeats: () => Promise<WerewolfCommandDispatchOutcome>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -131,7 +140,7 @@ interface WerewolfGameActionsDeps {
     async (template: GameTemplate): Promise<void> => {
       if (!isHost) return;
       const result = await client.updateTemplate(template);
-      handleMutationResult(result, '更新模板', toastError);
+      handleCommandOutcome(result, '更新模板', toastError);
     },
     [client, isHost],
   );
@@ -140,7 +149,7 @@ interface WerewolfGameActionsDeps {
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!isHost) return;
     const result = await client.assignRoles();
-    handleMutationResult(result, '分配角色', toastError);
+    handleCommandOutcome(result, '分配角色', toastError);
   }, [client, isHost]);
 
   // Start game (host only)
@@ -149,7 +158,7 @@ interface WerewolfGameActionsDeps {
     if (!isHost) return;
 
     const result = await client.startNight();
-    handleMutationResult(result, '开始游戏', toastError);
+    handleCommandOutcome(result, '开始游戏', toastError);
   }, [client, isHost]);
 
   // Restart game (host only)
@@ -162,11 +171,11 @@ interface WerewolfGameActionsDeps {
       debug.releaseBot();
     }
     const result = await client.restartGame();
-    handleMutationResult(result, '重新开始', toastError);
+    handleCommandOutcome(result, '重新开始', toastError);
   }, [client, bgm, debug, isHost]);
 
   // Clear all seats (host only)
-  const clearAllSeats = useCallback(async (): Promise<RoomOperationResult> => {
+  const clearAllSeats = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     if (!isHost) {
       throw new Error('[FAIL-FAST] Clearing Werewolf seats requires the host');
     }
@@ -175,21 +184,13 @@ interface WerewolfGameActionsDeps {
 
   // Share night review to selected seats (host only)
   const shareNightReview = useCallback(
-    async (allowedSeats: number[]): Promise<void> => {
-      if (!isHost) return;
-      const result = await client.shareNightReview(allowedSeats);
-      handleMutationResult(result, '分享详细信息', toastError);
-    },
-    [client, isHost],
-  );
-
-  // Set audio playing (host only) - PR7 audio timing control
-  const setAudioPlaying = useCallback(
-    async (isPlaying: boolean): Promise<ActionResult> => {
+    async (allowedSeats: number[]): Promise<WerewolfCommandDispatchOutcome> => {
       if (!isHost) {
-        return { success: false, reason: 'host_only' };
+        throw new Error('[FAIL-FAST] Sharing Werewolf night review requires the host');
       }
-      return client.setAudioPlaying(isPlaying);
+      const result = await client.shareNightReview(allowedSeats);
+      handleCommandOutcome(result, '分享详细信息', toastError);
+      return result;
     },
     [client, isHost],
   );
@@ -201,11 +202,13 @@ interface WerewolfGameActionsDeps {
   // Mark role as viewed (pessimistic — POST must succeed before UI shows card)
   // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
   // Normal mode: mark my own seat as viewed
-  const viewedRole = useCallback(async (): Promise<ActionResult> => {
+  const viewedRole = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     const seat = debug.controlledSeat ?? mySeat;
-    if (seat === null) return { success: false, reason: 'NO_SEAT' };
+    if (seat === null) {
+      throw new Error('[FAIL-FAST] Viewing a Werewolf role requires an effective seat');
+    }
     const result = await client.markViewedRole(debug.controlledSeat);
-    handleMutationResult(result, '查看身份', toastError);
+    handleCommandOutcome(result, '查看身份', toastError);
     return result;
   }, [debug.controlledSeat, mySeat, client]);
 
@@ -213,43 +216,52 @@ interface WerewolfGameActionsDeps {
   // Business rejection UX is handled by the state-driven actionRejected effect
   // in useActionOrchestrator. Network/server errors handled by handleMutationResult.
   const submitAction = useCallback(
-    async (input: WerewolfActionInput): Promise<void> => {
-      if (debug.effectiveSeat === null) return;
+    async (input: WerewolfActionInput): Promise<WerewolfCommandDispatchOutcome> => {
+      if (debug.effectiveSeat === null) {
+        throw new Error('[FAIL-FAST] Submitting a Werewolf action requires an effective seat');
+      }
       const result = await client.submitAction(input, debug.controlledSeat);
-      handleMutationResult(result, '提交行动');
+      handleCommandOutcome(result, '提交行动');
+      return result;
     },
     [debug.controlledSeat, debug.effectiveSeat, client],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
-  const submitRevealAck = useCallback(async (): Promise<ActionResult> => {
+  const submitRevealAck = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     const result = await client.submitRevealAck(debug.controlledSeat);
-    handleMutationResult(result, '确认揭示', toastError);
+    handleCommandOutcome(result, '确认揭示', toastError);
     return result;
   }, [debug.controlledSeat, client]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
   // Uses effectiveSeat internally to support debug bot control mode
-  const submitGroupConfirmAck = useCallback(async (): Promise<ActionResult> => {
+  const submitGroupConfirmAck = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     const seat = debug.effectiveSeat;
-    if (seat === null) return { success: false, reason: 'NO_SEAT' };
+    if (seat === null) {
+      throw new Error('[FAIL-FAST] Confirming a Werewolf reveal requires an effective seat');
+    }
     const result = await client.submitGroupConfirmAck(debug.controlledSeat);
-    handleMutationResult(result, '确认催眠', toastError);
+    handleCommandOutcome(result, '确认催眠', toastError);
     return result;
   }, [debug.controlledSeat, debug.effectiveSeat, client]);
 
   // WolfRobot hunter status viewed gate
-  const sendWolfRobotHunterStatusViewed = useCallback(async (): Promise<void> => {
-    if (debug.effectiveSeat === null) return;
-    const result = await client.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
-    handleMutationResult(result, '确认猎人状态', toastError);
-  }, [debug.controlledSeat, debug.effectiveSeat, client]);
+  const sendWolfRobotHunterStatusViewed =
+    useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+      if (debug.effectiveSeat === null) {
+        throw new Error('[FAIL-FAST] Confirming Hunter status requires an effective seat');
+      }
+      const result = await client.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
+      handleCommandOutcome(result, '确认猎人状态', toastError);
+      return result;
+    }, [debug.controlledSeat, debug.effectiveSeat, client]);
 
   // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {
     if (!isHost) return false;
     const result = await client.postProgression();
-    return result.success;
+    return isSuccessfulRoomCommand(result);
   }, [client, isHost]);
 
   // =========================================================================
@@ -259,11 +271,11 @@ interface WerewolfGameActionsDeps {
   const boardNominate = useCallback(
     async (displayName: string, roles: RoleId[]): Promise<void> => {
       const result = await client.boardNominate(displayName, roles);
-      if (result.success && result.reason === 'DEDUPLICATED') {
+      if (isSuccessfulRoomCommand(result) && result.decision.outcome.reason === 'DEDUPLICATED') {
         toast.info('已有相同板子建议，已自动为你投票');
         return;
       }
-      handleMutationResult(result, '提交建议', toastError);
+      handleCommandOutcome(result, '提交建议', toastError);
     },
     [client],
   );
@@ -271,14 +283,14 @@ interface WerewolfGameActionsDeps {
   const boardUpvote = useCallback(
     async (targetUserId: string): Promise<void> => {
       const result = await client.boardUpvote(targetUserId);
-      handleMutationResult(result, '点赞', toastError);
+      handleCommandOutcome(result, '点赞', toastError);
     },
     [client],
   );
 
   const boardWithdraw = useCallback(async (): Promise<void> => {
     const result = await client.boardWithdraw();
-    handleMutationResult(result, '撤回建议', toastError);
+    handleCommandOutcome(result, '撤回建议', toastError);
   }, [client]);
 
   // =========================================================================
@@ -331,7 +343,6 @@ interface WerewolfGameActionsDeps {
     restartGame,
     clearAllSeats,
     shareNightReview,
-    setAudioPlaying,
     viewedRole,
     submitAction,
     submitRevealAck,

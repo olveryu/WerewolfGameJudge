@@ -37,7 +37,6 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/werewolf/public',
   './platform/engine',
   './platform/identifiers',
-  './platform/protocol/actionResult',
   './platform/protocol/canonicalJson',
   './platform/protocol/commandResult',
   './platform/protocol/commands',

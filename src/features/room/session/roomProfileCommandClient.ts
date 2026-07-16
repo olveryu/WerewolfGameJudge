@@ -3,19 +3,14 @@
 import type { RoomProfileUpdateCommand } from '@game-judge/game-engine/platform/protocol/commands';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
-import {
-  dispatchRoomOperation,
-  type RoomOperationCommandContext,
-} from '@/features/room/session/roomOperationCommandClient';
+import type { RoomCommandContext, RoomCommandDispatchOutcome } from '@/features/room/session/types';
 
 export function updateRoomProfile<TState extends BaseGameState<string>, TProfileUpdate>(
-  context: RoomOperationCommandContext<TState, RoomProfileUpdateCommand<TProfileUpdate>>,
+  context: RoomCommandContext<TState, RoomProfileUpdateCommand<TProfileUpdate>>,
   profile: TProfileUpdate,
-): Promise<RoomOperationResult> {
-  return dispatchRoomOperation(
-    context,
+): Promise<RoomCommandDispatchOutcome<TState>> {
+  return context.dispatch(
     { type: 'room.profile.update', profile },
-    'updateRoomProfile',
+    { controlledSeat: null, label: 'updateRoomProfile' },
   );
 }

@@ -26,7 +26,15 @@ const mockRoom: React.ComponentProps<typeof WerewolfRoomScreen>['room'] = {
   createdAt: new Date(0),
 };
 
-const mockSubmitAction = jest.fn();
+function mockSuccessfulCommand() {
+  const { successfulRoomCommand } =
+    require('@/test-utils/roomCommand') as typeof import('@/test-utils/roomCommand');
+  const { buildWerewolfTestState } =
+    require('@/test-utils/werewolfState') as typeof import('@/test-utils/werewolfState');
+  return successfulRoomCommand(buildWerewolfTestState());
+}
+
+const mockSubmitAction = jest.fn(async () => mockSuccessfulCommand());
 
 let mockedCanSkip = true;
 let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
@@ -125,7 +133,7 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
 
         getLastNightInfo: jest.fn().mockReturnValue(''),
 
-        submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+        submitRevealAck: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
 
         isBgmPlaying: false,
         playBgm: jest.fn(),

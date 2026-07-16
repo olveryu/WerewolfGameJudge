@@ -17,15 +17,13 @@ import type {
   RoomProfilePatch,
 } from '@/features/room/model/RoomAccountCapability';
 import { toRoomProfileUpdate } from '@/features/room/model/RoomAccountCapability';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
-import type { RoomOperationCommandContext } from '@/features/room/session/roomOperationCommandClient';
 import { updateRoomProfile } from '@/features/room/session/roomProfileCommandClient';
 import {
   leaveRoomSeat,
   type RoomSeatCommandContext,
 } from '@/features/room/session/roomSeatCommandClient';
 import type {
-  RoomCommandDispatchOptions,
+  RoomCommandContext,
   RoomCommandDispatchOutcome,
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
@@ -39,14 +37,8 @@ type RoomAccountCommand =
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | RoomSeatCommand<RoomSeatProfile>;
 
-interface RoomAccountCommandSession<
-  TState extends BaseGameState<string>,
-> extends RoomAccountSession<TState> {
-  dispatch(
-    command: RoomAccountCommand,
-    options: RoomCommandDispatchOptions,
-  ): Promise<RoomCommandDispatchOutcome<TState>>;
-}
+interface RoomAccountCommandSession<TState extends BaseGameState<string>>
+  extends RoomAccountSession<TState>, RoomCommandContext<TState, RoomAccountCommand> {}
 
 interface SessionRoomAccountCapabilityDeps<
   TGameType extends string,
@@ -56,8 +48,8 @@ interface SessionRoomAccountCapabilityDeps<
   readonly session: RoomAccountSession<TState>;
   readonly isUserSeated: (state: TState, userId: string) => boolean;
   readonly canSwitchAccount: (state: TState) => boolean;
-  readonly updateProfile: (patch: RoomProfilePatch) => Promise<RoomOperationResult>;
-  readonly leaveSeat: () => Promise<RoomOperationResult>;
+  readonly updateProfile: (patch: RoomProfilePatch) => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 interface CreateSessionRoomAccountCapabilityParams<
@@ -132,14 +124,16 @@ export class SessionRoomAccountCapability<
     return this.#deps.session.subscribe(listener);
   }
 
-  readonly updateProfile = async (patch: RoomProfilePatch): Promise<RoomOperationResult> => {
+  readonly updateProfile = async (
+    patch: RoomProfilePatch,
+  ): Promise<RoomCommandDispatchOutcome<TState>> => {
     if (!this.getSnapshot().canSyncProfile) {
       throw new Error('[FAIL-FAST] Active room profile sync requires a seated player');
     }
     return this.#deps.updateProfile(patch);
   };
 
-  readonly leaveSeat = async (): Promise<RoomOperationResult> => {
+  readonly leaveSeat = async (): Promise<RoomCommandDispatchOutcome<TState>> => {
     if (!this.getSnapshot().isSeated) {
       throw new Error('[FAIL-FAST] Active room leave requires a seated player');
     }
@@ -159,10 +153,7 @@ export function createSessionRoomAccountCapability<
   TGameType,
   TState
 > {
-  const profileContext: RoomOperationCommandContext<
-    TState,
-    RoomProfileUpdateCommand<RoomProfileUpdate>
-  > = {
+  const profileContext: RoomCommandContext<TState, RoomProfileUpdateCommand<RoomProfileUpdate>> = {
     dispatch: (command, options) => session.dispatch(command, options),
   };
   const seatContext: RoomSeatCommandContext<TState, RoomSeatProfile> = {

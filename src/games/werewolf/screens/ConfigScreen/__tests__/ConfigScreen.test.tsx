@@ -3,6 +3,8 @@ import type React from 'react';
 
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -56,20 +58,20 @@ const idleRoomSnapshot = {
 };
 
 // Mock Werewolf client for testing
-const createMockClient = (): WerewolfGameClient =>
-  ({
+const createMockClient = (): WerewolfGameClient => {
+  const commandResult = successfulRoomCommand(buildWerewolfTestState());
+  return {
     roomSession: {
       getSnapshot: () => idleRoomSnapshot,
       subscribe: jest.fn(() => () => undefined),
     },
     assignRoles: jest.fn(),
-    updateTemplate: jest.fn().mockResolvedValue({ success: true }),
+    updateTemplate: jest.fn().mockResolvedValue(commandResult),
     startNight: jest.fn(),
     restartGame: jest.fn(),
     markViewedRole: jest.fn(),
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
-    setAudioPlaying: jest.fn(),
     postProgression: jest.fn(),
     sendWolfRobotHunterStatusViewed: jest.fn(),
     get wasAudioInterrupted() {
@@ -77,7 +79,8 @@ const createMockClient = (): WerewolfGameClient =>
     },
     resumeAfterRejoin: jest.fn(),
     markAllBotsViewed: jest.fn(),
-  }) as unknown as WerewolfGameClient;
+  } as unknown as WerewolfGameClient;
+};
 
 const renderWithClient = (ui: React.ReactElement) => {
   return render(ui);

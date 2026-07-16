@@ -6,15 +6,18 @@
  */
 
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { WerewolfBgmControlState } from '@/games/werewolf/hooks/useWerewolfBgmControl';
 import type { WerewolfDebugModeState } from '@/games/werewolf/hooks/useWerewolfDebugMode';
 import { useWerewolfGameActions } from '@/games/werewolf/hooks/useWerewolfGameActions';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type {
+  WerewolfCommandDispatchOutcome,
+  WerewolfGameClient,
+} from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 // Mock showAlert
 const mockShowAlert = jest.fn<void, [string, string]>();
@@ -28,7 +31,26 @@ import { toast } from 'sonner-native';
 
 // ---- Factory helpers ----
 
-type MutationResult = ActionResult;
+type MutationResult = WerewolfCommandDispatchOutcome;
+const protocolState = buildWerewolfTestState();
+
+function successfulCommand(commandId = 'test-command'): WerewolfCommandDispatchOutcome {
+  return successfulRoomCommand(protocolState, commandId);
+}
+
+function domainRejected(
+  reason: string,
+  commandId = 'test-command',
+): WerewolfCommandDispatchOutcome {
+  return domainRejectedRoomCommand(protocolState, reason, commandId);
+}
+
+function deliveryUnknown(
+  reason: string,
+  commandId = 'test-command',
+): WerewolfCommandDispatchOutcome {
+  return { kind: 'deliveryUnknown', commandId, reason };
+}
 
 type MockClient = {
   [K in keyof WerewolfGameClient]: jest.Mock;
@@ -38,32 +60,29 @@ function createMockClient(overrides: Partial<MockClient> = {}): MockClient {
   return {
     updateTemplate: jest
       .fn<Promise<MutationResult>, [unknown]>()
-      .mockResolvedValue({ success: true }),
-    assignRoles: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
-    startNight: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
-    restartGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
+    assignRoles: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
+    startNight: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
+    restartGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     shareNightReview: jest
       .fn<Promise<MutationResult>, [number[]]>()
-      .mockResolvedValue({ success: true }),
-    setAudioPlaying: jest
-      .fn<Promise<MutationResult>, [boolean]>()
-      .mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
     markViewedRole: jest
       .fn<Promise<MutationResult>, [number | null]>()
-      .mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
     submitAction: jest
       .fn<Promise<MutationResult>, [WerewolfActionInput, number | null]>()
-      .mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
     submitRevealAck: jest
       .fn<Promise<MutationResult>, [number | null]>()
-      .mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
     submitGroupConfirmAck: jest
       .fn<Promise<MutationResult>, [number | null]>()
-      .mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
     sendWolfRobotHunterStatusViewed: jest
       .fn<Promise<MutationResult>, [number | null]>()
-      .mockResolvedValue({ success: true }),
-    postProgression: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+      .mockResolvedValue(successfulCommand()),
+    postProgression: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     ...overrides,
   } as MockClient;
 }
@@ -109,7 +128,7 @@ interface MockDepsOverrides {
   isHost?: boolean;
   mySeat?: number | null;
   gameState?: Partial<LocalGameState>;
-  clearSeats?: () => Promise<RoomOperationResult>;
+  clearSeats?: () => Promise<WerewolfCommandDispatchOutcome>;
 }
 
 function createDeps(overrides: MockDepsOverrides = {}): WerewolfGameActionsDeps {
@@ -126,7 +145,7 @@ function createDeps(overrides: MockDepsOverrides = {}): WerewolfGameActionsDeps 
       currentNightResults: {},
       template: { roles: [] },
     } as unknown as LocalGameState,
-    clearSeats: jest.fn(async () => ({ success: true })),
+    clearSeats: jest.fn(async () => successfulCommand()),
     ...rest,
     ...(gameState !== undefined && { gameState: gameState as LocalGameState }),
   } as unknown as WerewolfGameActionsDeps;
@@ -161,7 +180,7 @@ describe('useWerewolfGameActions - game control', () => {
 
   it('assignRoles should call client and toast on failure', async () => {
     const client = createMockClient({
-      assignRoles: jest.fn().mockResolvedValue({ success: false, reason: 'role_count_mismatch' }),
+      assignRoles: jest.fn().mockResolvedValue(domainRejected('role_count_mismatch')),
     });
     const deps = createDeps({ client });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
@@ -224,19 +243,6 @@ describe('useWerewolfGameActions - game control', () => {
     expect(deps.client.shareNightReview).toHaveBeenCalledWith([1, 3, 5]);
   });
 
-  it('setAudioPlaying should return host_only reason when not host', async () => {
-    const deps = createDeps({ isHost: false });
-    const { result } = renderHook(() => useWerewolfGameActions(deps));
-
-    let res: ActionResult | undefined;
-    await act(async () => {
-      res = await result.current.setAudioPlaying(true);
-    });
-
-    expect(res).toEqual({ success: false, reason: 'host_only' });
-    expect(deps.client.setAudioPlaying).not.toHaveBeenCalled();
-  });
-
   it('postProgression should return true on success for host', async () => {
     const deps = createDeps();
     const { result } = renderHook(() => useWerewolfGameActions(deps));
@@ -253,7 +259,7 @@ describe('useWerewolfGameActions - game control', () => {
   it('postProgression should return false on failure for host', async () => {
     const deps = createDeps({
       client: createMockClient({
-        postProgression: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
+        postProgression: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
       }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
@@ -302,14 +308,16 @@ describe('useWerewolfGameActions - player night actions', () => {
     expect(deps.client.markViewedRole).toHaveBeenCalledWith(5);
   });
 
-  it('viewedRole should skip when both seats are null', async () => {
+  it('viewedRole fails fast when both seats are null', async () => {
     const deps = createDeps({
       mySeat: null,
       debug: createMockDebug({ controlledSeat: null }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
-    await act(() => result.current.viewedRole());
+    await expect(result.current.viewedRole()).rejects.toThrow(
+      '[FAIL-FAST] Viewing a Werewolf role requires an effective seat',
+    );
 
     expect(deps.client.markViewedRole).not.toHaveBeenCalled();
   });
@@ -325,11 +333,13 @@ describe('useWerewolfGameActions - player night actions', () => {
     expect(deps.client.submitAction).toHaveBeenCalledWith({ kind: 'target', target: 4 }, null);
   });
 
-  it('submitAction should skip when effectiveSeat is null', async () => {
+  it('submitAction fails fast when effectiveSeat is null', async () => {
     const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
-    await act(() => result.current.submitAction({ kind: 'target', target: 4 }));
+    await expect(result.current.submitAction({ kind: 'target', target: 4 })).rejects.toThrow(
+      '[FAIL-FAST] Submitting a Werewolf action requires an effective seat',
+    );
 
     expect(deps.client.submitAction).not.toHaveBeenCalled();
   });
@@ -442,20 +452,15 @@ describe('useWerewolfGameActions - game state queries', () => {
   });
 });
 
-describe('useWerewolfGameActions - handleMutationResult', () => {
+describe('useWerewolfGameActions - handleCommandOutcome', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('returns a shared seat-command rejection without duplicating presentation', async () => {
-    const rejection: RoomOperationResult = {
-      success: false,
-      failureKind: 'rejected',
-      commandId: 'clear-command',
-      reason: 'invalid_status',
-    };
-    const clearSeats = jest.fn(async (): Promise<RoomOperationResult> => rejection);
+    const rejection = domainRejected('invalid_status', 'clear-command');
+    const clearSeats = jest.fn(async (): Promise<WerewolfCommandDispatchOutcome> => rejection);
     const deps = createDeps({ clearSeats });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
-    let clearResult: RoomOperationResult | null = null;
+    let clearResult: WerewolfCommandDispatchOutcome | null = null;
 
     await act(async () => {
       clearResult = await result.current.clearAllSeats();
@@ -468,7 +473,7 @@ describe('useWerewolfGameActions - handleMutationResult', () => {
 
   it('should alert on NETWORK_ERROR even without onBusinessError callback', async () => {
     const client = createMockClient({
-      submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
+      submitAction: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
     });
     const deps = createDeps({
       client,
@@ -483,7 +488,7 @@ describe('useWerewolfGameActions - handleMutationResult', () => {
 
   it('should alert on SERVER_ERROR even without onBusinessError callback', async () => {
     const client = createMockClient({
-      submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'SERVER_ERROR' }),
+      submitAction: jest.fn().mockResolvedValue(deliveryUnknown('SERVER_ERROR')),
     });
     const deps = createDeps({
       client,
@@ -498,7 +503,7 @@ describe('useWerewolfGameActions - handleMutationResult', () => {
 
   it('should NOT alert on business rejection without onBusinessError callback', async () => {
     const client = createMockClient({
-      submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'invalid_action' }),
+      submitAction: jest.fn().mockResolvedValue(domainRejected('invalid_action')),
     });
     const deps = createDeps({
       client,
@@ -513,9 +518,7 @@ describe('useWerewolfGameActions - handleMutationResult', () => {
 
   it('should show toast on business rejection with toastError callback (submitRevealAck)', async () => {
     const client = createMockClient({
-      submitRevealAck: jest
-        .fn()
-        .mockResolvedValue({ success: false, reason: 'forbidden_while_audio_playing' }),
+      submitRevealAck: jest.fn().mockResolvedValue(domainRejected('forbidden_while_audio_playing')),
     });
     const deps = createDeps({ client });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
@@ -530,7 +533,7 @@ describe('useWerewolfGameActions - handleMutationResult', () => {
 
   it('should alert on NETWORK_ERROR even with toastError callback', async () => {
     const client = createMockClient({
-      submitRevealAck: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
+      submitRevealAck: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
     });
     const deps = createDeps({ client });
     const { result } = renderHook(() => useWerewolfGameActions(deps));

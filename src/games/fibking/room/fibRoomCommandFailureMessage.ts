@@ -1,6 +1,7 @@
 /** FibKing-owned presentation for domain command rejections. */
 
 import {
+  type FibState,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_ROUND_ALREADY_ONGOING,
@@ -12,11 +13,16 @@ import {
   REASON_FIB_WORD_REUSED,
 } from '@game-judge/game-engine/games/fibking/public';
 
-import type { RoomOperationFailureMessage } from '@/features/room/model/RoomCapabilities';
-import { getUserFacingMessage } from '@/utils/errorUtils';
+import { getRoomCommandFailureReason } from '@/features/room/session/roomCommandResult';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import { translateReasonCode } from '@/utils/errorUtils';
 
-export const getFibRoomOperationFailureMessage: RoomOperationFailureMessage = (result) => {
-  switch (result.reason) {
+export function getFibRoomCommandFailureMessage(
+  result: RoomCommandDispatchOutcome<FibState>,
+): string {
+  const reason = getRoomCommandFailureReason(result);
+
+  switch (reason) {
     case REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE:
       return '目标人数之外仍有真人入座，请先让这些玩家离座或换到保留座位';
     case REASON_FIB_PLAYER_COUNT_INVALID:
@@ -36,6 +42,6 @@ export const getFibRoomOperationFailureMessage: RoomOperationFailureMessage = (r
     case REASON_FIB_WORD_INVALID:
       return '生成的词语不符合玩法要求，请重试';
     default:
-      return getUserFacingMessage(result);
+      return translateReasonCode(reason);
   }
-};
+}

@@ -857,7 +857,7 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
   });
 
   const forbiddenGameSemanticIdentifiers =
-    /\b(?:ActionResult|GameState|GameStatus|LocalGameState|RoleId|GameStore|campStats|roleRevealEffect|playerRoleRevealEffect|wolfVoteBadge|wolfRing|NightProgressIndicator|currentRoleName)\b/;
+    /\b(?:ActionResult|RoomCommandOutcome|RoomOperationResult|GameState|GameStatus|LocalGameState|RoleId|GameStore|campStats|roleRevealEffect|playerRoleRevealEffect|wolfVoteBadge|wolfRing|NightProgressIndicator|currentRoleName)\b/;
 
   it.each(sharedRoomFiles)('%s must use game-neutral room contracts', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');

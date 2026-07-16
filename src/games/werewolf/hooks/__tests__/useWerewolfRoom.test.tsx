@@ -13,6 +13,7 @@ import type { RoomSessionClient } from '@/features/room/session/types';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 let mockAuthUserId = 'host-user';
 
@@ -105,30 +106,29 @@ function createClient(options?: {
   readonly wasAudioInterrupted?: boolean;
 }): WerewolfGameClient {
   const state = options?.state ?? createGameState();
+  const success = () => successfulRoomCommand(state);
   mockAuthUserId = options?.userId ?? 'host-user';
   return {
     roomSession: createRoomSession(state, mockAuthUserId),
-    assignRoles: jest.fn(async () => ({ success: true })),
-    updateTemplate: jest.fn(async () => ({ success: true })),
-    startNight: jest.fn(async () => ({ success: true })),
-    restartGame: jest.fn(async () => ({ success: true })),
-    markAllBotsViewed: jest.fn(async () => ({ success: true })),
-    markAllBotsGroupConfirmed: jest.fn(async () => ({ success: true })),
-    updatePlayerProfile: jest.fn(async () => ({ success: true })),
-    shareNightReview: jest.fn(async () => ({ success: true })),
-    boardNominate: jest.fn(async () => ({ success: true })),
-    boardUpvote: jest.fn(async () => ({ success: true })),
-    boardWithdraw: jest.fn(async () => ({ success: true })),
-    markViewedRole: jest.fn(async () => ({ success: true })),
-    submitAction: jest.fn(async () => ({ success: true })),
-    submitRevealAck: jest.fn(async () => ({ success: true })),
-    submitGroupConfirmAck: jest.fn(async () => ({ success: true })),
-    sendWolfRobotHunterStatusViewed: jest.fn(async () => ({ success: true })),
-    setAudioPlaying: jest.fn(async () => ({ success: true })),
-    postProgression: jest.fn(async () => ({ success: true })),
+    assignRoles: jest.fn(async () => success()),
+    updateTemplate: jest.fn(async () => success()),
+    startNight: jest.fn(async () => success()),
+    restartGame: jest.fn(async () => success()),
+    markAllBotsViewed: jest.fn(async () => success()),
+    markAllBotsGroupConfirmed: jest.fn(async () => success()),
+    shareNightReview: jest.fn(async () => success()),
+    boardNominate: jest.fn(async () => success()),
+    boardUpvote: jest.fn(async () => success()),
+    boardWithdraw: jest.fn(async () => success()),
+    markViewedRole: jest.fn(async () => success()),
+    submitAction: jest.fn(async () => success()),
+    submitRevealAck: jest.fn(async () => success()),
+    submitGroupConfirmAck: jest.fn(async () => success()),
+    sendWolfRobotHunterStatusViewed: jest.fn(async () => success()),
+    postProgression: jest.fn(async () => success()),
     wasAudioInterrupted: options?.wasAudioInterrupted ?? false,
     resumeAfterRejoin: jest.fn(async () => undefined),
-  } as unknown as WerewolfGameClient;
+  };
 }
 
 function createWrapper(): React.FC<React.PropsWithChildren> {

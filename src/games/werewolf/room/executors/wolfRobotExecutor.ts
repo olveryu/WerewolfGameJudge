@@ -12,6 +12,10 @@
  *   events while the mutation is pending.
  */
 
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -45,7 +49,14 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
   actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, () => {
     return new Promise<void>((resolve, reject) => {
       hunterStatusAckMutation.mutate(undefined, {
-        onSuccess: () => resolve(),
+        onSuccess: (result) => {
+          if (isSuccessfulRoomCommand(result)) {
+            resolve();
+            return;
+          }
+          const reason = getRoomCommandFailureReason(result);
+          reject(new Error(reason));
+        },
         onError: (error) => {
           handleError(error, {
             label: '机械狼确认猎人状态',

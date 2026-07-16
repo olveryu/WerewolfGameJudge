@@ -58,8 +58,24 @@ const pictionaryRoomAccount: RoomAccountCapability<typeof PICTURE_DICTIONARY_GAM
     canSyncProfile: false,
   }),
   subscribe: () => () => undefined,
-  updateProfile: () => Promise.resolve({ success: true }),
-  leaveSeat: () => Promise.resolve({ success: true }),
+  updateProfile: () =>
+    Promise.resolve({
+      kind: 'decided',
+      decision: {
+        kind: 'rejected',
+        commandId: 'pictionary-profile',
+        reason: 'compile-only',
+      },
+    }),
+  leaveSeat: () =>
+    Promise.resolve({
+      kind: 'decided',
+      decision: {
+        kind: 'rejected',
+        commandId: 'pictionary-leave',
+        reason: 'compile-only',
+      },
+    }),
 };
 
 const pictionaryClientModule = {

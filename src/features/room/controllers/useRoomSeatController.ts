@@ -1,12 +1,17 @@
 /** Shared take, move, and leave-seat confirmation state machine. */
 
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useReducer, useRef } from 'react';
 
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { RoomSeatPendingAction } from '@/features/room/model/RoomSeatConfirmation';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
-import { getUserFacingMessage } from '@/utils/errorUtils';
+import { translateReasonCode } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 type RoomSeatControllerState =
@@ -20,10 +25,10 @@ type RoomSeatControllerEvent =
   | { readonly kind: 'SUBMIT' }
   | { readonly kind: 'SETTLE' };
 
-interface UseRoomSeatControllerParams {
+interface UseRoomSeatControllerParams<TState extends BaseGameState<string>> {
   readonly currentSeat: number | null;
-  readonly takeSeat: (seat: number) => Promise<RoomOperationResult>;
-  readonly leaveSeat: () => Promise<RoomOperationResult>;
+  readonly takeSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 export interface RoomSeatController {
@@ -73,13 +78,13 @@ function getActionLabel(action: RoomSeatPendingAction): '入座' | '换座' | '�
   }
 }
 
-export function useRoomSeatController({
+export function useRoomSeatController<TState extends BaseGameState<string>>({
   currentSeat,
   takeSeat,
   leaveSeat,
-}: UseRoomSeatControllerParams): RoomSeatController {
+}: UseRoomSeatControllerParams<TState>): RoomSeatController {
   const [state, dispatch] = useReducer(transitionRoomSeatController, { kind: 'idle' });
-  const submissionRef = useRef<Promise<RoomOperationResult> | null>(null);
+  const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
 
   const requestTakeSeat = useCallback(
     (seat: number) => {
@@ -139,38 +144,38 @@ export function useRoomSeatController({
     submissionRef.current = submission;
     dispatch({ kind: 'SUBMIT' });
 
-    let rejectedReason: string | null = null;
-    let caughtFailure: { readonly error: unknown } | null = null;
+    let settled:
+      | { readonly kind: 'result'; readonly result: RoomCommandDispatchOutcome<TState> }
+      | { readonly kind: 'error'; readonly error: unknown };
     try {
-      const result = await submission;
-      if (!result.success) {
-        rejectedReason =
-          result.reason === 'seat_taken' && action.kind !== 'leave'
-            ? `${action.toSeat + 1}号座位已被占用，请选择其他位置。`
-            : getUserFacingMessage(result);
-        roomScreenLog.warn(`${action.kind} seat rejected`, {
-          action,
-          reason: result.reason,
-        });
-      }
-    } catch (error) {
-      caughtFailure = { error };
+      settled = await submission.then(
+        (result) => ({ kind: 'result', result }) as const,
+        (error: unknown) => ({ kind: 'error', error }) as const,
+      );
     } finally {
       submissionRef.current = null;
       dispatch({ kind: 'SETTLE' });
     }
 
-    if (caughtFailure !== null) {
-      handleError(caughtFailure.error, {
+    if (settled.kind === 'error') {
+      handleError(settled.error, {
         label,
         logger: roomScreenLog,
         alertMessage: '房间响应异常，请重新进入房间后重试。',
       });
       return;
     }
-    if (rejectedReason !== null) {
-      showErrorAlert(`${label}失败`, rejectedReason);
-    }
+
+    const result = settled.result;
+    if (isSuccessfulRoomCommand(result)) return;
+
+    const reason = getRoomCommandFailureReason(result);
+    const rejectionMessage =
+      reason === 'seat_taken' && action.kind !== 'leave'
+        ? `${action.toSeat + 1}号座位已被占用，请选择其他位置。`
+        : translateReasonCode(reason);
+    roomScreenLog.warn(`${action.kind} seat rejected`, { action, reason });
+    showErrorAlert(`${label}失败`, rejectionMessage);
   }, [leaveSeat, state, takeSeat]);
 
   return {

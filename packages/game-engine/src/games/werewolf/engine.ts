@@ -48,7 +48,6 @@ import {
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from './domain/handlers/seatHandler';
-import { handleSetAudioPlaying } from './domain/handlers/stepTransitionHandler';
 import type { HandlerResult } from './domain/handlers/types';
 import { handleViewedRole } from './domain/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from './domain/handlers/wolfRobotHunterGateHandler';
@@ -99,7 +98,6 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.board.withdraw':
     case 'werewolf.night.start':
     case 'werewolf.audio.ack':
-    case 'werewolf.audio.gate':
     case 'werewolf.progress.request':
     case 'werewolf.groupConfirm.ackBots':
     case 'werewolf.growth.applyRosterLevels':
@@ -391,18 +389,6 @@ function decideWerewolfCommandRules(
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(state, handleAudioAck(actor.value.handlerContext), context, true);
-    }
-    case 'werewolf.audio.gate': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleSetAudioPlaying(
-          { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: command.isPlaying } },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
     }
     case 'werewolf.progress.request': {
       const actor = resolveHostActor(state, context);

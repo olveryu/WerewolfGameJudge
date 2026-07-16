@@ -1,7 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import { successfulRoomCommand, testRoomState } from '@/test-utils/roomCommand';
+
+const state = testRoomState('werewolf');
 
 const otherPlayer = {
   seat: 4,
@@ -16,7 +18,7 @@ describe('useRoomProfileController', () => {
     const { result } = renderHook(() =>
       useRoomProfileController({
         myUserId: 'user-self',
-        kickSeat: async (): Promise<RoomOperationResult> => ({ success: true }),
+        kickSeat: async () => successfulRoomCommand(state, 'kick-self-unused'),
       }),
     );
 
@@ -36,7 +38,7 @@ describe('useRoomProfileController', () => {
   });
 
   it('directly kicks the selected target without a confirmation branch', async () => {
-    const kickSeat = jest.fn(async (): Promise<RoomOperationResult> => ({ success: true }));
+    const kickSeat = jest.fn(async () => successfulRoomCommand(state, 'kick-other'));
     const { result } = renderHook(() =>
       useRoomProfileController({ myUserId: 'user-self', kickSeat }),
     );
@@ -52,7 +54,7 @@ describe('useRoomProfileController', () => {
     const { result } = renderHook(() =>
       useRoomProfileController({
         myUserId: 'user-self',
-        kickSeat: async (): Promise<RoomOperationResult> => ({ success: true }),
+        kickSeat: async () => successfulRoomCommand(state, 'kick-mismatch-unused'),
       }),
     );
 

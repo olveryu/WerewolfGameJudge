@@ -10,17 +10,17 @@
  */
 
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { MutableRefObject } from 'react';
 
+import type { SuccessfulRoomCommandDispatchOutcome } from '@/features/room/session/roomCommandResult';
 import type { ActionIntent, ActionIntentType } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
+import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-
-type AckResult = ActionResult;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Executor context — bag of dependencies each executor receives
@@ -49,30 +49,26 @@ export interface ExecutorContext {
   setMultiSelectedSeats: (v: readonly number[]) => void;
 
   // ── Submission helpers ──
-  proceedWithAction: (input: WerewolfActionInput) => Promise<boolean>;
+  proceedWithAction: (input: WerewolfActionInput) => Promise<WerewolfCommandDispatchOutcome>;
   confirmThenAct: (
     targetSeat: number,
-    onAccepted: () => Promise<void> | void,
+    onAccepted: (result: SuccessfulRoomCommandDispatchOutcome<GameState>) => Promise<void> | void,
     opts?: { title?: string; message?: string },
   ) => void;
 
   // ── Server-ack mutations (TanStack — owns isPending lifecycle) ──
   /** reveal-ack roundtrip; mutate() called after user dismisses reveal dialog */
-  revealAckMutation: UseMutationResult<AckResult, Error, void>;
+  revealAckMutation: UseMutationResult<WerewolfCommandDispatchOutcome, Error, void>;
   /** wolfRobot hunter-status-viewed roundtrip; controlledSeat is captured by the hook */
-  hunterStatusAckMutation: UseMutationResult<void, Error, void>;
+  hunterStatusAckMutation: UseMutationResult<WerewolfCommandDispatchOutcome, Error, void>;
   /** groupConfirm-ack roundtrip; mutate() after user confirms group reveal */
-  groupConfirmAckMutation: UseMutationResult<AckResult, Error, void>;
+  groupConfirmAckMutation: UseMutationResult<WerewolfCommandDispatchOutcome, Error, void>;
 
   // ── Choose card modal (treasureMaster) ──
   openChooseCardModal?: () => void;
 
   // ── Dialog layer ──
   actionDialogs: UseRoomActionDialogsResult;
-
-  // ── Lifecycle ──
-  /** Ref tracking whether the owning component is still mounted. */
-  mountedRef: MutableRefObject<boolean>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

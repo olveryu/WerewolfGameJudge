@@ -12,12 +12,14 @@
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { useCallback } from 'react';
 
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import type {
+  WerewolfCommandDispatchOutcome,
+  WerewolfGameClient,
+} from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export interface WerewolfDebugModeState {
@@ -32,11 +34,11 @@ export interface WerewolfDebugModeState {
   /** Whether debug bot mode is active */
   isDebugMode: boolean;
   /** Fill all empty seats with bots */
-  fillWithBots: () => Promise<RoomOperationResult>;
+  fillWithBots: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Mark all bot seats as having viewed their roles */
-  markAllBotsViewed: () => Promise<ActionResult>;
+  markAllBotsViewed: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Mark all bot seats as having acked groupConfirm step */
-  markAllBotsGroupConfirmed: () => Promise<ActionResult>;
+  markAllBotsGroupConfirmed: () => Promise<WerewolfCommandDispatchOutcome>;
 }
 
 /**
@@ -47,8 +49,8 @@ export function useWerewolfDebugMode(
   client: WerewolfGameClient,
   mySeat: number | null,
   gameState: LocalGameState,
-  leaveSeat: () => Promise<RoomOperationResult>,
-  fillBots: () => Promise<RoomOperationResult>,
+  leaveSeat: () => Promise<WerewolfCommandDispatchOutcome>,
+  fillBots: () => Promise<WerewolfCommandDispatchOutcome>,
 ): WerewolfDebugModeState {
   const botControl = useRoomBotControl();
   const { controlledSeat } = botControl;
@@ -64,24 +66,25 @@ export function useWerewolfDebugMode(
   const isDebugMode = gameState.debugMode?.botsEnabled === true;
 
   // Fill all empty seats with bots
-  const fillWithBots = useCallback(async (): Promise<RoomOperationResult> => {
+  const fillWithBots = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     // If Host is seated, leave seat first so the seat can be filled with a bot
     if (mySeat !== null) {
       const leaveResult = await leaveSeat();
-      if (!leaveResult.success) return leaveResult;
+      if (!isSuccessfulRoomCommand(leaveResult)) return leaveResult;
     }
     return fillBots();
   }, [fillBots, leaveSeat, mySeat]);
 
   // Mark all bot seats as having viewed their roles
-  const markAllBotsViewed = useCallback(async (): Promise<ActionResult> => {
+  const markAllBotsViewed = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     return client.markAllBotsViewed();
   }, [client]);
 
   // Mark all bot seats as having acked groupConfirm step
-  const markAllBotsGroupConfirmed = useCallback(async (): Promise<ActionResult> => {
-    return client.markAllBotsGroupConfirmed();
-  }, [client]);
+  const markAllBotsGroupConfirmed =
+    useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+      return client.markAllBotsGroupConfirmed();
+    }, [client]);
 
   return {
     controlledSeat,

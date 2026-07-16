@@ -11,11 +11,11 @@
 
 import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import { useWerewolfPendingAcks } from '@/games/werewolf/hooks/useWerewolfPendingAcks';
 import {
   getInteractionResult,
@@ -23,6 +23,7 @@ import {
   type InteractionEvent,
 } from '@/games/werewolf/room/policy';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
+import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -62,7 +63,7 @@ interface UseInteractionDispatcherParams {
   releaseBot: () => void;
 
   // ── Seat operations (raw API) ──
-  viewedRole: () => Promise<ActionResult>;
+  viewedRole: () => Promise<WerewolfCommandDispatchOutcome>;
 
   // ── Host dialogs ──
   showPrepareToFlipDialog: () => void;
@@ -249,7 +250,7 @@ export function useInteractionDispatcher({
                   void (async () => {
                     try {
                       const result = await viewedRole();
-                      if (!result.success) {
+                      if (!isSuccessfulRoomCommand(result)) {
                         // handleMutationResult already handles user feedback inside viewedRole
                         setRoleCardVisible(false);
                         setIsLoadingRole(false);

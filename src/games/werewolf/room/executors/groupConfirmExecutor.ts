@@ -7,6 +7,10 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -65,9 +69,10 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
     new Promise<void>((resolve, reject) => {
       groupConfirmAckMutation.mutate(undefined, {
         onSuccess: (result) => {
-          if (!result.success) {
-            roomScreenLog.warn('groupConfirmAck failed', { reason: result.reason });
-            reject(new Error(result.reason ?? 'groupConfirmAck failed'));
+          if (!isSuccessfulRoomCommand(result)) {
+            const reason = getRoomCommandFailureReason(result);
+            roomScreenLog.warn('groupConfirmAck failed', { reason });
+            reject(new Error(reason));
           } else {
             resolve();
           }

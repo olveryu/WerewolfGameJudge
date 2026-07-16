@@ -4,7 +4,6 @@ import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo } from 'react';
 
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import {
   clearRoomSeats,
   fillRoomSeatsWithBots,
@@ -28,12 +27,12 @@ interface RoomSeatSession<TState extends BaseGameState<string>, TProfile> {
   ): Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
-export interface RoomSeatCommandOperations {
-  readonly takeSeat: (seat: number) => Promise<RoomOperationResult>;
-  readonly leaveSeat: () => Promise<RoomOperationResult>;
-  readonly kickSeat: (seat: number) => Promise<RoomOperationResult>;
-  readonly clearSeats: () => Promise<RoomOperationResult>;
-  readonly fillBots: () => Promise<RoomOperationResult>;
+export interface RoomSeatCommandOperations<TState extends BaseGameState<string>> {
+  readonly takeSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly kickSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly clearSeats: () => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly fillBots: () => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 interface UseRoomSeatCommandsParams<TState extends BaseGameState<string>, TProfile> {
@@ -46,7 +45,7 @@ export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfi
   session,
   userId,
   createProfile,
-}: UseRoomSeatCommandsParams<TState, TProfile>): RoomSeatCommandOperations {
+}: UseRoomSeatCommandsParams<TState, TProfile>): RoomSeatCommandOperations<TState> {
   const sessionSnapshot = session.getSnapshot();
   if (sessionSnapshot.phase !== 'ready') {
     throw new Error('[FAIL-FAST] Room seat commands require a ready room session');

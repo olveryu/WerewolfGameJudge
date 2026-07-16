@@ -5,16 +5,15 @@
  */
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 import type { WerewolfAudioOrchestratorDeps } from '../WerewolfAudioOrchestrator';
 import { WerewolfAudioOrchestrator } from '../WerewolfAudioOrchestrator';
 import type { PreparedAudioAck } from '../werewolfGameActions';
-import { buildApiTestState } from './apiTestState';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -50,9 +49,13 @@ jest.mock('../werewolfGameActions', () => ({
   prepareAudioAck: (...args: unknown[]) => mockPrepareAudioAck(...args),
   dispatchPreparedAudioAck: async (...args: unknown[]) => {
     const outcome = await mockDispatchPreparedAudioAck(...args);
-    if (outcome.kind === 'decided' && outcome.decision.kind === 'committed') {
+    if (
+      outcome.kind === 'decided' &&
+      outcome.decision.kind === 'committed' &&
+      outcome.decision.outcome.kind === 'success'
+    ) {
       if (mockApplyCommittedSnapshot === null) {
-        throw new Error('Committed audio command has no fake room source');
+        throw new Error('Successful audio command has no fake room snapshot consumer');
       }
       mockApplyCommittedSnapshot(outcome.decision.snapshot.state);
     }
@@ -91,8 +94,10 @@ function createOrchestrator(overrides?: Partial<WerewolfAudioOrchestratorDeps>):
   const mockStore = {
     getState: jest.fn().mockReturnValue(null),
   };
-  mockApplyCommittedSnapshot = (state) => mockStore.getState.mockReturnValue(state);
-
+  // RoomSession applies the committed snapshot before exposing a successful outcome.
+  mockApplyCommittedSnapshot = (state) => {
+    mockStore.getState.mockReturnValue(state);
+  };
   const deps: WerewolfAudioOrchestratorDeps = {
     roomSource: {
       getSnapshot: () => {
@@ -138,17 +143,11 @@ function createOrchestrator(overrides?: Partial<WerewolfAudioOrchestratorDeps>):
   return { orchestrator, emitStatus, mockStore, triggerStoreSubscriber };
 }
 
-function decidedSuccess(): RoomCommandDispatchOutcome<GameState> {
-  const state = buildApiTestState({ status: GameStatus.Seated });
-  return {
-    kind: 'decided',
-    decision: {
-      kind: 'committed',
-      commandId: 'audio-command',
-      snapshot: createRoomSnapshot(state, 1),
-      outcome: { kind: 'success' },
-    },
-  };
+function successfulCommand(): RoomCommandDispatchOutcome<GameState> {
+  return successfulRoomCommand(
+    buildWerewolfTestState({ pendingAudioEffects: undefined }),
+    'audio-command',
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +158,7 @@ describe('WerewolfAudioOrchestrator reconnect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrepareAudioAck.mockReturnValue(mockPreparedAudioAckA);
-    mockDispatchPreparedAudioAck.mockResolvedValue(decidedSuccess());
+    mockDispatchPreparedAudioAck.mockResolvedValue(successfulCommand());
     jest.useFakeTimers();
   });
 
@@ -194,7 +193,7 @@ describe('WerewolfAudioOrchestrator reconnect', () => {
       await jest.advanceTimersByTimeAsync(100);
 
       // Step 2: Emit Live — should trigger L2 retry since ack failed
-      mockDispatchPreparedAudioAck.mockResolvedValue(decidedSuccess());
+      mockDispatchPreparedAudioAck.mockResolvedValue(successfulCommand());
       mockStore.getState.mockReturnValue({ pendingAudioEffects: null });
       emitStatus('live');
 
@@ -241,7 +240,7 @@ describe('WerewolfAudioOrchestrator reconnect', () => {
       });
       await jest.advanceTimersByTimeAsync(100);
 
-      mockDispatchPreparedAudioAck.mockResolvedValue(decidedSuccess());
+      mockDispatchPreparedAudioAck.mockResolvedValue(successfulCommand());
       mockStore.getState.mockReturnValue({ pendingAudioEffects: null });
       emitStatus('live');
       await jest.advanceTimersByTimeAsync(100);

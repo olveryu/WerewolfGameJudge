@@ -28,6 +28,10 @@ import {
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
 import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { type RootStackParamList } from '@/navigation/types';
@@ -77,8 +81,10 @@ export const SettingsScreen: React.FC = () => {
       if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
       try {
         const result = await activeRoom.updateProfile(patch);
-        if (result.success) return true;
-        settingsLog.warn('Profile sync to active room rejected', { reason: result.reason });
+        if (isSuccessfulRoomCommand(result)) return true;
+        settingsLog.warn('Profile sync to active room rejected', {
+          reason: getRoomCommandFailureReason(result),
+        });
       } catch (error: unknown) {
         settingsLog.warn('Profile sync to active room failed', error);
       }
@@ -240,8 +246,9 @@ export const SettingsScreen: React.FC = () => {
         // If seated in a room, leave seat first (simplifies all edge cases)
         if (isInRoom && isSeated) {
           const result = await activeRoom.leaveSeat();
-          if (!result.success) {
-            showErrorAlert('离座失败', translateReasonCode(result.reason));
+          if (!isSuccessfulRoomCommand(result)) {
+            const reason = getRoomCommandFailureReason(result);
+            showErrorAlert('离座失败', translateReasonCode(reason));
             return;
           }
         }

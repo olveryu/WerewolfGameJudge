@@ -12,8 +12,8 @@ import {
   type WerewolfActionInput,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 
+import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type {
   PreparedRoomCommand,
   RoomCommandDispatchOutcome,
@@ -29,6 +29,8 @@ export interface GameActionsContext {
   readonly commands: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
 }
 
+type WerewolfCommandDispatchOutcome = RoomCommandDispatchOutcome<GameState>;
+
 type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf.audio.ack' }>;
 
 /** Audio ack envelope retained by the orchestrator until one receipt is observed. */
@@ -39,31 +41,11 @@ async function dispatchWerewolfCommand(
   command: WerewolfPublicCommand,
   controlledSeat: number | null,
   label: string,
-): Promise<ActionResult> {
-  const outcome = await ctx.commands.dispatch(command, {
+): Promise<WerewolfCommandDispatchOutcome> {
+  return ctx.commands.dispatch(command, {
     controlledSeat,
     label,
   });
-  return toWerewolfActionResult(outcome);
-}
-
-export function toWerewolfActionResult(
-  outcome: RoomCommandDispatchOutcome<GameState>,
-): ActionResult {
-  if (outcome.kind === 'superseded') {
-    throw new Error(`Werewolf command ${outcome.commandId} was superseded by another session`);
-  }
-  if (outcome.kind !== 'decided') {
-    return { success: false, reason: outcome.reason };
-  }
-  if (outcome.decision.kind === 'rejected') {
-    return { success: false, reason: outcome.decision.reason };
-  }
-  return outcome.decision.outcome.kind === 'domainRejected'
-    ? { success: false, reason: outcome.decision.outcome.reason }
-    : outcome.decision.outcome.reason === undefined
-      ? { success: true }
-      : { success: true, reason: outcome.decision.outcome.reason };
 }
 
 function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
@@ -87,14 +69,14 @@ function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
   }
 }
 
-export function assignRoles(ctx: GameActionsContext): Promise<ActionResult> {
+export function assignRoles(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(ctx, { type: 'werewolf.roles.assign' }, null, 'assignRoles');
 }
 
 export function updateTemplate(
   ctx: GameActionsContext,
   template: GameTemplate,
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     {
@@ -107,14 +89,14 @@ export function updateTemplate(
   );
 }
 
-export function restartGame(ctx: GameActionsContext): Promise<ActionResult> {
+export function restartGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, 'restartGame');
 }
 
 export function markViewedRole(
   ctx: GameActionsContext,
   controlledSeat: number | null,
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.role.view' },
@@ -123,14 +105,14 @@ export function markViewedRole(
   );
 }
 
-export async function startNight(ctx: GameActionsContext): Promise<ActionResult> {
+export async function startNight(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   const result = await dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.night.start' },
     null,
     'startNight',
   );
-  if (!result.success) return result;
+  if (!isSuccessfulRoomCommand(result)) return result;
 
   const stateAfterStart = ctx.getState();
   ctx.audio.preloadRoles(stateAfterStart.templateRoles).catch((error: unknown) => {
@@ -142,7 +124,7 @@ export async function startNight(ctx: GameActionsContext): Promise<ActionResult>
 export function shareNightReview(
   ctx: GameActionsContext,
   allowedSeats: readonly number[],
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.review.share', allowedSeats: [...allowedSeats] },
@@ -155,16 +137,16 @@ export async function submitAction(
   ctx: GameActionsContext,
   input: WerewolfActionInput,
   controlledSeat: number | null,
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   const result = await dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.action.submit', input: copyActionInput(input) },
     controlledSeat,
     'submitAction',
   );
-  if (!result.success) {
+  if (!isSuccessfulRoomCommand(result)) {
     werewolfRuntimeLog.warn('submitAction failed', {
-      reason: result.reason,
+      delivery: result.kind,
       inputKind: input.kind,
       controlledSeat,
     });
@@ -172,22 +154,10 @@ export async function submitAction(
   return result;
 }
 
-export function setAudioPlaying(
-  ctx: GameActionsContext,
-  isPlaying: boolean,
-): Promise<ActionResult> {
-  return dispatchWerewolfCommand(
-    ctx,
-    { type: 'werewolf.audio.gate', isPlaying },
-    null,
-    'setAudioPlaying',
-  );
-}
-
 export function submitRevealAck(
   ctx: GameActionsContext,
   controlledSeat: number | null,
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.reveal.ack' },
@@ -199,7 +169,7 @@ export function submitRevealAck(
 export function submitGroupConfirmAck(
   ctx: GameActionsContext,
   controlledSeat: number | null,
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.groupConfirm.ack' },
@@ -211,7 +181,7 @@ export function submitGroupConfirmAck(
 export function setWolfRobotHunterStatusViewed(
   ctx: GameActionsContext,
   controlledSeat: number | null,
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.wolfRobot.ackHunterStatus' },
@@ -229,11 +199,11 @@ export function prepareAudioAck(ctx: GameActionsContext): PreparedAudioAck {
 export async function dispatchPreparedAudioAck(
   ctx: GameActionsContext,
   prepared: PreparedAudioAck,
-): Promise<RoomCommandDispatchOutcome<GameState>> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return ctx.commands.dispatchPrepared(prepared, 'postAudioAck');
 }
 
-export function postProgression(ctx: GameActionsContext): Promise<ActionResult> {
+export function postProgression(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.progress.request' },
@@ -242,7 +212,9 @@ export function postProgression(ctx: GameActionsContext): Promise<ActionResult> 
   );
 }
 
-export function markAllBotsViewed(ctx: GameActionsContext): Promise<ActionResult> {
+export function markAllBotsViewed(
+  ctx: GameActionsContext,
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.bots.markRolesViewed' },
@@ -251,7 +223,9 @@ export function markAllBotsViewed(ctx: GameActionsContext): Promise<ActionResult
   );
 }
 
-export function markAllBotsGroupConfirmed(ctx: GameActionsContext): Promise<ActionResult> {
+export function markAllBotsGroupConfirmed(
+  ctx: GameActionsContext,
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.groupConfirm.ackBots' },
@@ -264,7 +238,7 @@ export function boardNominate(
   ctx: GameActionsContext,
   displayName: string,
   roles: readonly RoleId[],
-): Promise<ActionResult> {
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.board.nominate', displayName, roles: [...roles] },
@@ -273,7 +247,10 @@ export function boardNominate(
   );
 }
 
-export function boardUpvote(ctx: GameActionsContext, targetUserId: string): Promise<ActionResult> {
+export function boardUpvote(
+  ctx: GameActionsContext,
+  targetUserId: string,
+): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
     { type: 'werewolf.board.upvote', targetUserId },
@@ -282,6 +259,6 @@ export function boardUpvote(ctx: GameActionsContext, targetUserId: string): Prom
   );
 }
 
-export function boardWithdraw(ctx: GameActionsContext): Promise<ActionResult> {
+export function boardWithdraw(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(ctx, { type: 'werewolf.board.withdraw' }, null, 'boardWithdraw');
 }

@@ -15,7 +15,6 @@ import { describe, expect, it } from 'vitest';
 import { WORKER_GAME_CATALOG, WORKER_GAME_HTTP_ROUTES } from '../catalog';
 import { fibEffectSchema } from '../fibking/effects';
 import {
-  FIB_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT,
   fibCreateConfigSchema,
   fibInternalCommandSchema,
   fibPublicCommandSchema,
@@ -23,60 +22,74 @@ import {
 import { werewolfAiChatRoutes } from '../werewolf/aiChat/routes';
 import { werewolfEffectSchema } from '../werewolf/effects';
 import {
-  WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT,
   werewolfCreateConfigSchema,
   werewolfInternalCommandSchema,
   werewolfPublicCommandSchema,
 } from '../werewolf/schemas';
 
-const VALID_PUBLIC_COMMANDS = [
-  { type: 'room.seat.take', seat: 0, profile: { displayName: '玩家' } },
-  { type: 'room.seat.leave' },
-  { type: 'room.seat.kick', seat: 0 },
-  { type: 'room.seat.clear' },
-  { type: 'room.seat.fillBots' },
-  { type: 'room.profile.update', profile: { displayName: '新名字' } },
-  { type: 'werewolf.roles.assign' },
-  { type: 'werewolf.game.restart' },
-  { type: 'werewolf.bots.markRolesViewed' },
-  { type: 'werewolf.action.submit', input: { kind: 'skip' } },
-  { type: 'werewolf.role.view' },
-  { type: 'werewolf.config.update', templateRoles: ['villager'] },
-  { type: 'werewolf.review.share', allowedSeats: [0] },
-  {
+const VALID_PUBLIC_COMMAND_BY_TYPE = {
+  'room.seat.take': { type: 'room.seat.take', seat: 0, profile: { displayName: '玩家' } },
+  'room.seat.leave': { type: 'room.seat.leave' },
+  'room.seat.kick': { type: 'room.seat.kick', seat: 0 },
+  'room.seat.clear': { type: 'room.seat.clear' },
+  'room.seat.fillBots': { type: 'room.seat.fillBots' },
+  'room.profile.update': {
+    type: 'room.profile.update',
+    profile: { displayName: '新名字' },
+  },
+  'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
+  'werewolf.game.restart': { type: 'werewolf.game.restart' },
+  'werewolf.bots.markRolesViewed': { type: 'werewolf.bots.markRolesViewed' },
+  'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
+  'werewolf.role.view': { type: 'werewolf.role.view' },
+  'werewolf.config.update': {
+    type: 'werewolf.config.update',
+    templateRoles: ['villager'],
+  },
+  'werewolf.review.share': { type: 'werewolf.review.share', allowedSeats: [0] },
+  'werewolf.board.nominate': {
     type: 'werewolf.board.nominate',
     displayName: '玩家',
     roles: ['villager'],
   },
-  { type: 'werewolf.board.upvote', targetUserId: 'user-1' },
-  { type: 'werewolf.board.withdraw' },
-  { type: 'werewolf.night.start' },
-  { type: 'werewolf.audio.ack' },
-  { type: 'werewolf.audio.gate', isPlaying: true },
-  { type: 'werewolf.progress.request' },
-  { type: 'werewolf.reveal.ack' },
-  { type: 'werewolf.wolfRobot.ackHunterStatus' },
-  { type: 'werewolf.groupConfirm.ack' },
-  { type: 'werewolf.groupConfirm.ackBots' },
-] as const satisfies readonly WerewolfPublicCommand[];
+  'werewolf.board.upvote': { type: 'werewolf.board.upvote', targetUserId: 'user-1' },
+  'werewolf.board.withdraw': { type: 'werewolf.board.withdraw' },
+  'werewolf.night.start': { type: 'werewolf.night.start' },
+  'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
+  'werewolf.progress.request': { type: 'werewolf.progress.request' },
+  'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
+  'werewolf.wolfRobot.ackHunterStatus': { type: 'werewolf.wolfRobot.ackHunterStatus' },
+  'werewolf.groupConfirm.ack': { type: 'werewolf.groupConfirm.ack' },
+  'werewolf.groupConfirm.ackBots': { type: 'werewolf.groupConfirm.ackBots' },
+} as const satisfies {
+  readonly [Type in WerewolfPublicCommand['type']]: Extract<
+    WerewolfPublicCommand,
+    { readonly type: Type }
+  >;
+};
 
 const VALID_INTERNAL_COMMAND = {
   type: 'werewolf.growth.applyRosterLevels',
   levels: { 'user-1': 3 },
 } as const satisfies WerewolfInternalCommand;
 
-const VALID_FIB_PUBLIC_COMMANDS = [
-  { type: 'room.seat.take', seat: 0, profile: { displayName: '玩家' } },
-  { type: 'room.seat.leave' },
-  { type: 'room.seat.kick', seat: 0 },
-  { type: 'room.seat.clear' },
-  { type: 'room.seat.fillBots' },
-  { type: 'room.profile.update', profile: { displayName: '新名字' } },
-  { type: 'fib.config.update', numberOfPlayers: 8 },
-  { type: 'fib.round.start' },
-  { type: 'fib.round.cancelPreparing' },
-  { type: 'fib.round.reveal' },
-] as const satisfies readonly FibPublicCommand[];
+const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
+  'room.seat.take': { type: 'room.seat.take', seat: 0, profile: { displayName: '玩家' } },
+  'room.seat.leave': { type: 'room.seat.leave' },
+  'room.seat.kick': { type: 'room.seat.kick', seat: 0 },
+  'room.seat.clear': { type: 'room.seat.clear' },
+  'room.seat.fillBots': { type: 'room.seat.fillBots' },
+  'room.profile.update': {
+    type: 'room.profile.update',
+    profile: { displayName: '新名字' },
+  },
+  'fib.config.update': { type: 'fib.config.update', numberOfPlayers: 8 },
+  'fib.round.start': { type: 'fib.round.start' },
+  'fib.round.cancelPreparing': { type: 'fib.round.cancelPreparing' },
+  'fib.round.reveal': { type: 'fib.round.reveal' },
+} as const satisfies {
+  readonly [Type in FibPublicCommand['type']]: Extract<FibPublicCommand, { readonly type: Type }>;
+};
 
 const VALID_FIB_INTERNAL_COMMAND = {
   type: 'fib.round.complete',
@@ -142,31 +155,33 @@ describe('Worker game catalog', () => {
   });
 
   it('keeps all Werewolf public command discriminants separate from the internal schema', () => {
-    expect(WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT).toBe(24);
-    expect(VALID_PUBLIC_COMMANDS).toHaveLength(24);
+    const publicCommands = Object.values(VALID_PUBLIC_COMMAND_BY_TYPE);
 
-    for (const command of VALID_PUBLIC_COMMANDS) {
+    for (const command of publicCommands) {
       expect(werewolfPublicCommandSchema.parse(command)).toEqual(command);
     }
     expect(werewolfInternalCommandSchema.parse(VALID_INTERNAL_COMMAND)).toEqual(
       VALID_INTERNAL_COMMAND,
     );
     expect(() => werewolfPublicCommandSchema.parse(VALID_INTERNAL_COMMAND)).toThrow();
-    expect(() => werewolfInternalCommandSchema.parse(VALID_PUBLIC_COMMANDS[0])).toThrow();
+    expect(() =>
+      werewolfInternalCommandSchema.parse(VALID_PUBLIC_COMMAND_BY_TYPE['room.seat.take']),
+    ).toThrow();
   });
 
   it('keeps every Fib public command separate from its internal completion command', () => {
-    expect(FIB_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT).toBe(10);
-    expect(VALID_FIB_PUBLIC_COMMANDS).toHaveLength(10);
+    const publicCommands = Object.values(VALID_FIB_PUBLIC_COMMAND_BY_TYPE);
 
-    for (const command of VALID_FIB_PUBLIC_COMMANDS) {
+    for (const command of publicCommands) {
       expect(fibPublicCommandSchema.parse(command)).toEqual(command);
     }
     expect(fibInternalCommandSchema.parse(VALID_FIB_INTERNAL_COMMAND)).toEqual(
       VALID_FIB_INTERNAL_COMMAND,
     );
     expect(() => fibPublicCommandSchema.parse(VALID_FIB_INTERNAL_COMMAND)).toThrow();
-    expect(() => fibInternalCommandSchema.parse(VALID_FIB_PUBLIC_COMMANDS[0])).toThrow();
+    expect(() =>
+      fibInternalCommandSchema.parse(VALID_FIB_PUBLIC_COMMAND_BY_TYPE['room.seat.take']),
+    ).toThrow();
   });
 
   it('rejects unknown command fields and malformed Werewolf role IDs', () => {

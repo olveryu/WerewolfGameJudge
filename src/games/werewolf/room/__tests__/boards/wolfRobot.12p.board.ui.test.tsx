@@ -45,6 +45,7 @@ import {
   mockNavigation,
   mockRoom,
   RoomScreenTestHarness,
+  successfulWerewolfCommand,
   tapSeat,
   waitForRoomScreen,
 } from '@/games/werewolf/room/__tests__/harness';
@@ -252,7 +253,9 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
      * actually triggers the wire protocol message to the server.
      */
     it('pressing confirm calls sendWolfRobotHunterStatusViewed', async () => {
-      const sendWolfRobotHunterStatusViewedMock = jest.fn().mockResolvedValue(undefined);
+      const sendWolfRobotHunterStatusViewedMock = jest
+        .fn()
+        .mockResolvedValue(successfulWerewolfCommand());
 
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'wolfRobotLearn',

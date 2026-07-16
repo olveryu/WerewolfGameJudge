@@ -1,7 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
-import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import {
+  rejectedRoomCommand,
+  successfulRoomCommand,
+  testRoomState,
+} from '@/test-utils/roomCommand';
 import { showAlert } from '@/utils/alert';
 
 jest.mock('@/utils/alert', () => ({
@@ -10,9 +15,10 @@ jest.mock('@/utils/alert', () => ({
 }));
 
 const mockShowAlert = showAlert as jest.MockedFunction<typeof showAlert>;
+const state = testRoomState('werewolf');
 
-function createSuccess(): Promise<RoomOperationResult> {
-  return Promise.resolve({ success: true });
+function createSuccess(): Promise<RoomCommandDispatchOutcome<typeof state>> {
+  return Promise.resolve(successfulRoomCommand(state, 'seat-success'));
 }
 
 describe('useRoomSeatController', () => {
@@ -70,13 +76,8 @@ describe('useRoomSeatController', () => {
   });
 
   it('closes the modal and reports an authoritative rejection', async () => {
-    const takeSeat = jest.fn(
-      async (): Promise<RoomOperationResult> => ({
-        success: false,
-        failureKind: 'rejected',
-        commandId: 'seat-command-1',
-        reason: 'seat_taken',
-      }),
+    const takeSeat = jest.fn(async () =>
+      rejectedRoomCommand<typeof state>('seat_taken', 'seat-command-1'),
     );
     const { result } = renderHook(() =>
       useRoomSeatController({ currentSeat: null, takeSeat, leaveSeat: createSuccess }),

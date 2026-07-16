@@ -9,7 +9,7 @@
  *   - handleAdvanceToNextAction: @pre status === 'Ongoing'
  *   - handleEndNight: @pre status === 'Ongoing' && currentStepId === undefined
  *   - handleApplyResolverResult: @pre status === 'Ongoing'
- *   - handleSetAudioPlaying: @pre status === 'Ongoing' || status === 'Ended'
+ *   - handleSetAudioPlaying: accepts authoritative audio-queue state events
  *   - handleSetWitchContext: @pre status === 'Ongoing'
  *   - handleSetWolfKillOverride: @pre status === 'Ongoing'
  */
@@ -39,7 +39,7 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
     status: GameStatus.Ongoing,
     currentStepIndex,
     currentStepId: currentStepId ?? undefined,
-    // Do not set isAudioPlaying in reducer; Host UI controls it via SET_AUDIO_PLAYING
+    // Audio queue events own isAudioPlaying; step transitions never infer it.
     actions: [],
     currentNightResults: {},
     pendingRevealAcks: [],
@@ -59,7 +59,7 @@ export function handleAdvanceToNextAction(
     currentStepId: nextStepId ?? undefined,
     // Clear previous step's stepDeadline when advancing to a new step
     stepDeadline: undefined,
-    // Do not set isAudioPlaying in reducer; Host UI controls it via SET_AUDIO_PLAYING
+    // Audio queue events own isAudioPlaying; step transitions never infer it.
     // Note: wolf vote single source of truth is currentNightResults.wolfVotesBySeat (protocol removed wolfVotes/wolfVoteStatus).
     // P0-FIX: no longer clear reveal fields. Reveal should persist through the entire night
     // so UI has enough time to display the popup. Only clear confirmStatus and witchContext

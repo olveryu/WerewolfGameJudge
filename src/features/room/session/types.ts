@@ -75,6 +75,7 @@ export interface PreparedRoomCommand<TCommand extends object> {
   readonly controlledSeat: number | null;
 }
 
+/** Lossless client delivery envelope around the authoritative Worker decision. */
 export type RoomCommandDispatchOutcome<TState extends BaseGameState<string>> =
   | {
       readonly kind: 'decided';
@@ -84,17 +85,20 @@ export type RoomCommandDispatchOutcome<TState extends BaseGameState<string>> =
       readonly kind: 'notDecided' | 'deliveryUnknown';
       readonly commandId: string;
       readonly reason: string;
-    }
-  | {
-      readonly kind: 'superseded';
-      readonly commandId: string;
     };
+
+export interface RoomCommandContext<TState extends BaseGameState<string>, TCommand extends object> {
+  dispatch(
+    command: TCommand,
+    options: RoomCommandDispatchOptions,
+  ): Promise<RoomCommandDispatchOutcome<TState>>;
+}
 
 export interface RoomSessionClient<
   TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
-> {
+> extends RoomCommandContext<TState, TCommand> {
   getSnapshot(): RoomSessionSnapshot<TState>;
   subscribe(listener: () => void): () => void;
   connect(
@@ -107,10 +111,6 @@ export interface RoomSessionClient<
     command: TPreparedCommand,
     controlledSeat: number | null,
   ): PreparedRoomCommand<TPreparedCommand>;
-  dispatch(
-    command: TCommand,
-    options: RoomCommandDispatchOptions,
-  ): Promise<RoomCommandDispatchOutcome<TState>>;
   dispatchPrepared<TPreparedCommand extends TCommand>(
     prepared: PreparedRoomCommand<TPreparedCommand>,
     label: string,

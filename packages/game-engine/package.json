@@ -16,10 +16,6 @@
       "types": "./src/games/fibking/public.ts",
       "default": "./dist/games/fibking/public.js"
     },
-    "./platform/protocol/actionResult": {
-      "types": "./src/platform/protocol/actionResult.ts",
-      "default": "./dist/platform/protocol/actionResult.js"
-    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"

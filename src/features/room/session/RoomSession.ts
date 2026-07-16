@@ -287,10 +287,7 @@ export class RoomSession<
     const entry = pending;
     const inFlight = this.dispatchPrepared(entry.prepared, options.label)
       .then((outcome) => {
-        if (
-          (outcome.kind === 'decided' || outcome.kind === 'superseded') &&
-          this.#pendingCommands.get(intentKey) === entry
-        ) {
+        if (outcome.kind === 'decided' && this.#pendingCommands.get(intentKey) === entry) {
           this.#pendingCommands.delete(intentKey);
         }
         return outcome;
@@ -313,14 +310,16 @@ export class RoomSession<
       label,
     });
     if (this.#snapshot.epoch !== current.epoch) {
-      return { kind: 'superseded', commandId: prepared.commandId };
+      throw new Error(
+        `[FAIL-FAST] Room command ${prepared.commandId} completed for a stale session`,
+      );
     }
     if (attempt.kind !== 'decided') return attempt;
 
     if (attempt.decision.kind === 'committed') {
       this.#applySnapshot(attempt.decision.snapshot, null);
     }
-    return { kind: 'decided', decision: attempt.decision };
+    return attempt;
   }
 
   setUserEventHandler(handler: (event: TEvent) => void | Promise<void>): () => void {
