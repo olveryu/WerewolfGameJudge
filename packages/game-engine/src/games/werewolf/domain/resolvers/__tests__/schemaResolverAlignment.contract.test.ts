@@ -106,7 +106,7 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
 
         expect(result.valid).toBe(true);
         // Skip behavior should produce no updates (no-op)
-        expect(result.result).toEqual({});
+        expect(result.reveal).toBeUndefined();
       },
     );
   });
@@ -126,8 +126,8 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
 
       expect(result.valid).toBe(true);
       // No effects should apply when skipped
-      expect(result.result?.savedTarget).toBeUndefined();
-      expect(result.result?.poisonedTarget).toBeUndefined();
+      expect(result.updates?.savedSeat).toBeUndefined();
+      expect(result.updates?.poisonedSeat).toBeUndefined();
     });
   });
 });

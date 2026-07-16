@@ -57,7 +57,6 @@ describe('genericResolver: poisoner (poisonedSeat)', () => {
     const result = resolver(ctx, createInput(3));
     expect(result.valid).toBe(true);
     expect(result.updates?.poisonedSeat).toBe(3);
-    expect(result.result?.poisonedTarget).toBe(3);
   });
 
   it('should allow self-target (no NotSelf constraint)', () => {

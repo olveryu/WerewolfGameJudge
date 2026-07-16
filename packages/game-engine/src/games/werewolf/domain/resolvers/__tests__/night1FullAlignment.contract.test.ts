@@ -237,8 +237,8 @@ describe('revealKind ↔ Resolver result field alignment', () => {
     );
   });
 
-  describe('resolvers with revealKind should return corresponding result field', () => {
-    it('seerCheck resolver returns checkResult when valid target', () => {
+  describe('resolvers with revealKind should return the corresponding typed reveal', () => {
+    it('seerCheck resolver returns factionCheck when given a valid target', () => {
       const resolver = RESOLVERS.seerCheck;
       const seerSeat = 10;
       const targetSeat = 7; // wolf
@@ -247,12 +247,10 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const result = resolver!(context, { schemaId: 'seerCheck', target: targetSeat });
 
       expect(result.valid).toBe(true);
-      expect(result.result).toBeDefined();
-      expect(result.result!.checkResult).toBeDefined();
-      expect(['好人', '狼人']).toContain(result.result!.checkResult);
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
     });
 
-    it('psychicCheck resolver returns identityResult when valid target', () => {
+    it('psychicCheck resolver returns identityCheck when given a valid target', () => {
       const resolver = RESOLVERS.psychicCheck;
       const psychicSeat = 11;
       const targetSeat = 7; // wolf
@@ -261,11 +259,10 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const result = resolver!(context, { schemaId: 'psychicCheck', target: targetSeat });
 
       expect(result.valid).toBe(true);
-      expect(result.result).toBeDefined();
-      expect(result.result!.identityResult).toBeDefined();
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
     });
 
-    it('gargoyleCheck resolver returns identityResult when valid target', () => {
+    it('gargoyleCheck resolver returns identityCheck when given a valid target', () => {
       const resolver = RESOLVERS.gargoyleCheck;
       const gargoyleSeat = 4;
       const targetSeat = 7; // wolf
@@ -274,11 +271,10 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const result = resolver!(context, { schemaId: 'gargoyleCheck', target: targetSeat });
 
       expect(result.valid).toBe(true);
-      expect(result.result).toBeDefined();
-      expect(result.result!.identityResult).toBeDefined();
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
     });
 
-    it('wolfRobotLearn resolver returns identityResult when valid target', () => {
+    it('wolfRobotLearn resolver returns its dedicated reveal when given a valid target', () => {
       const resolver = RESOLVERS.wolfRobotLearn;
       const robotSeat = 2;
       const targetSeat = 10; // seer (good)
@@ -287,10 +283,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const result = resolver!(context, { schemaId: 'wolfRobotLearn', target: targetSeat });
 
       expect(result.valid).toBe(true);
-      expect(result.result).toBeDefined();
-      // wolfRobot returns identityResult (exact role), not checkResult (good/evil)
-      expect(result.result!.identityResult).toBeDefined();
-      expect(result.result!.learnTarget).toBe(targetSeat);
+      expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'seer' });
     });
   });
 
@@ -301,7 +294,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const result = resolver!(context, { schemaId: 'seerCheck', target: undefined });
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
 
     it('psychicCheck skip should not return result', () => {
@@ -310,7 +303,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const result = resolver!(context, { schemaId: 'psychicCheck', target: undefined });
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
   });
 });
@@ -327,12 +320,12 @@ describe('Nightmare blocking behavior', () => {
   ];
 
   // NOTE: Nightmare block guard is now at actionHandler layer, not resolver layer.
-  // Resolvers no longer reject blocked actions directly - they return valid=true with empty result.
+  // Resolvers no longer reject blocked actions directly; a skip is a successful no-op.
   // The rejection happens in checkNightmareBlockGuard() in actionHandler.ts.
 
-  describe('blocked actors skip returns empty result', () => {
+  describe('blocked actors can resolve a skip as a no-op', () => {
     it.each(blockableSchemas)(
-      '$schemaId: blocked by nightmare + skip → valid=true with empty result',
+      '$schemaId: blocked by nightmare + skip -> valid no-op',
       ({ schemaId, roleId, actorSeat }) => {
         const resolver = RESOLVERS[schemaId];
         const context = createContext(actorSeat, roleId, {
@@ -342,7 +335,7 @@ describe('Nightmare blocking behavior', () => {
         const result = resolver!(context, { schemaId, target: undefined }); // skip
 
         expect(result.valid).toBe(true);
-        expect(result.result).toEqual({});
+        expect(result.reveal).toBeUndefined();
       },
     );
   });
@@ -464,7 +457,7 @@ describe('canSkip behavior alignment', () => {
         const result = resolver!(context, { schemaId, target: undefined });
 
         expect(result.valid).toBe(true);
-        expect(result.result).toEqual({});
+        expect(result.reveal).toBeUndefined();
       },
     );
   });

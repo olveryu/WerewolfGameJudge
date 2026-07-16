@@ -142,7 +142,6 @@ describe('awakenedGargoyleConvertResolver', () => {
 
       expect(result.valid).toBe(true);
       expect(result.updates).toEqual({ convertedSeat: 3 });
-      expect(result.result).toEqual({ convertTarget: 3 });
     });
 
     it('应该接受转化另一侧与觉醒石像鬼相邻的玩家', () => {
@@ -154,7 +153,6 @@ describe('awakenedGargoyleConvertResolver', () => {
 
       expect(result.valid).toBe(true);
       expect(result.updates).toEqual({ convertedSeat: 5 });
-      expect(result.result).toEqual({ convertTarget: 5 });
     });
 
     it('应该接受转化与普通狼人相邻的玩家', () => {
@@ -166,7 +164,6 @@ describe('awakenedGargoyleConvertResolver', () => {
 
       expect(result.valid).toBe(true);
       expect(result.updates).toEqual({ convertedSeat: 1 });
-      expect(result.result).toEqual({ convertTarget: 1 });
     });
   });
 });

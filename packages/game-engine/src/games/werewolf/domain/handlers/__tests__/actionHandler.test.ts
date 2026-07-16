@@ -19,6 +19,7 @@ import {
   BLOCKED_UI_DEFAULTS,
   SCHEMAS,
 } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import type { ApplyResolverResultAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
@@ -468,6 +469,39 @@ describe('handleSubmitAction', () => {
       const success = expectSuccess(result);
       expect(success.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
     });
+
+    it.each([
+      { currentNightResults: {}, expectedCanShoot: true },
+      { currentNightResults: { poisonedSeat: 2 }, expectedCanShoot: false },
+    ])(
+      'should attach authoritative wolfRobot hunter status: $expectedCanShoot',
+      ({ currentNightResults, expectedCanShoot }) => {
+        const state = createOngoingState({
+          currentStepId: 'wolfRobotLearn',
+          currentNightResults,
+          players: {
+            0: { userId: 'p1', seat: 0, role: 'hunter', hasViewedRole: true },
+            1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+            2: { userId: 'p3', seat: 2, role: 'wolfRobot', hasViewedRole: true },
+          },
+        });
+        const intent: SubmitActionIntent = {
+          type: 'SUBMIT_ACTION',
+          payload: { seat: 2, role: 'wolfRobot', target: 0, extra: {} },
+        };
+
+        const success = expectSuccess(handleSubmitAction(intent, createContext(state)));
+        const applyAction = success.actions.find(
+          (action): action is ApplyResolverResultAction => action.type === 'APPLY_RESOLVER_RESULT',
+        );
+
+        expect(applyAction?.payload.wolfRobotReveal).toMatchObject({
+          targetSeat: 0,
+          learnedRoleId: 'hunter',
+          canShootAsHunter: expectedCanShoot,
+        });
+      },
+    );
   });
 
   // ==========================================================================

@@ -27,7 +27,7 @@ export const shadowChooseMimicResolver: ResolverFn = (context, input) => {
   // But if blocked by nightmare, skip is allowed
   if (target === undefined || target === null) {
     if (currentNightResults.blockedSeat === actorSeat) {
-      return { valid: true, result: {} };
+      return { valid: true };
     }
     return { valid: false, rejectReason: REJECT_MUST_CHOOSE };
   }
@@ -60,6 +60,5 @@ export const shadowChooseMimicResolver: ResolverFn = (context, input) => {
   return {
     valid: true,
     updates: { shadowMimicTarget: target, avengerFaction },
-    result: { idolTarget: target },
   };
 };

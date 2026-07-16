@@ -15,7 +15,7 @@ export const magicianSwapResolver: ResolverFn = (context, input) => {
 
   // Magician can skip
   if (!targets || targets.length === 0) {
-    return { valid: true, result: {} };
+    return { valid: true };
   }
 
   // Block guard is handled at actionHandler layer (single-point guard)
@@ -41,6 +41,5 @@ export const magicianSwapResolver: ResolverFn = (context, input) => {
   return {
     valid: true,
     updates: { swappedSeats: [target1, target2] },
-    result: { swapTargets: [target1, target2] },
   };
 };

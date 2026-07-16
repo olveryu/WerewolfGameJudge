@@ -99,7 +99,7 @@ describe('witchActionResolver', () => {
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.savedTarget).toBe(5);
+      expect(result.updates?.savedSeat).toBe(5);
     });
 
     it('应该拒绝解药已用完', () => {
@@ -135,7 +135,7 @@ describe('witchActionResolver', () => {
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.savedTarget).toBe(0);
+      expect(result.updates?.savedSeat).toBe(0);
     });
 
     it('Cupid board rejects a save when wolf votes are not unanimous', () => {
@@ -183,7 +183,7 @@ describe('witchActionResolver', () => {
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.poisonedTarget).toBe(2);
+      expect(result.updates?.poisonedSeat).toBe(2);
     });
 
     it('女巫可以毒自己（neutral judge）', () => {
@@ -193,7 +193,7 @@ describe('witchActionResolver', () => {
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.poisonedTarget).toBe(5);
+      expect(result.updates?.poisonedSeat).toBe(5);
     });
 
     it('应该拒绝毒不存在的目标玩家', () => {
@@ -234,9 +234,9 @@ describe('witchActionResolver', () => {
   describe('nightmare block', () => {
     // NOTE: Nightmare block guard is now at actionHandler layer.
     // The resolver itself does NOT reject blocked actions.
-    // These tests verify resolver behavior when invoked directly (skip returns empty result)
+    // These tests verify resolver behavior when invoked directly (skip is a successful no-op).
 
-    it('被噩梦之影封锁时跳过返回空结果', () => {
+    it('被噩梦之影封锁时跳过不产生更新或揭示', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 }, // witch is blocked
       });
@@ -245,7 +245,8 @@ describe('witchActionResolver', () => {
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.updates).toBeUndefined();
+      expect(result.reveal).toBeUndefined();
     });
   });
 });

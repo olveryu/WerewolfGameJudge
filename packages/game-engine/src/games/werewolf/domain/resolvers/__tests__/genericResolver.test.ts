@@ -71,7 +71,6 @@ describe('genericResolver: writeSlot effect', () => {
       const result = resolver(ctx, createInput('guardProtect', 4));
       expect(result.valid).toBe(true);
       expect(result.updates?.guardedSeat).toBe(4);
-      expect(result.result?.guardedTarget).toBe(4);
     });
 
     it('should allow skip (target=undefined)', () => {
@@ -105,12 +104,11 @@ describe('genericResolver: writeSlot effect', () => {
   describe('dreamcatcher (dreamingSeat)', () => {
     const resolver = createGenericResolver('dreamcatcher');
 
-    it('should write dreamingSeat and return dreamTarget', () => {
+    it('should write dreamingSeat', () => {
       const ctx = createContext({ actorSeat: 5, actorRoleId: 'dreamcatcher' as RoleId });
       const result = resolver(ctx, createInput('dreamcatcherDream', 4));
       expect(result.valid).toBe(true);
       expect(result.updates?.dreamingSeat).toBe(4);
-      expect(result.result?.dreamTarget).toBe(4);
     });
 
     it('should reject self-target (NotSelf constraint)', () => {
@@ -130,12 +128,11 @@ describe('genericResolver: writeSlot effect', () => {
   describe('silenceElder (silencedSeat)', () => {
     const resolver = createGenericResolver('silenceElder');
 
-    it('should write silencedSeat and return silenceTarget', () => {
+    it('should write silencedSeat', () => {
       const ctx = createContext({ actorSeat: 10, actorRoleId: 'silenceElder' as RoleId });
       const result = resolver(ctx, createInput('silenceElderSilence', 4));
       expect(result.valid).toBe(true);
       expect(result.updates?.silencedSeat).toBe(4);
-      expect(result.result?.silenceTarget).toBe(4);
     });
 
     it('should allow self-target (no NotSelf constraint)', () => {
@@ -148,12 +145,11 @@ describe('genericResolver: writeSlot effect', () => {
   describe('votebanElder (votebannedSeat)', () => {
     const resolver = createGenericResolver('votebanElder');
 
-    it('should write votebannedSeat and return votebanTarget', () => {
+    it('should write votebannedSeat', () => {
       const ctx = createContext({ actorSeat: 11, actorRoleId: 'votebanElder' as RoleId });
       const result = resolver(ctx, createInput('votebanElderBan', 3));
       expect(result.valid).toBe(true);
       expect(result.updates?.votebannedSeat).toBe(3);
-      expect(result.result?.votebanTarget).toBe(3);
     });
   });
 });
@@ -165,11 +161,10 @@ describe('genericResolver: writeSlot effect', () => {
 describe('genericResolver: charm effect', () => {
   const resolver = createGenericResolver('wolfQueen');
 
-  it('should return charmTarget with charmedSeat update', () => {
+  it('should write charmedSeat', () => {
     const ctx = createContext({ actorSeat: 6, actorRoleId: 'wolfQueen' as RoleId });
     const result = resolver(ctx, createInput('wolfQueenCharm', 4));
     expect(result.valid).toBe(true);
-    expect(result.result?.charmTarget).toBe(4);
     expect(result.updates).toEqual({ charmedSeat: 4 });
   });
 
@@ -194,11 +189,11 @@ describe('genericResolver: charm effect', () => {
 describe('genericResolver: chooseIdol effect', () => {
   const resolver = createGenericResolver('slacker');
 
-  it('should return idolTarget', () => {
+  it('should accept a valid idol target', () => {
     const ctx = createContext({ actorSeat: 7, actorRoleId: 'slacker' as RoleId });
     const result = resolver(ctx, createInput('slackerChooseIdol', 4));
     expect(result.valid).toBe(true);
-    expect(result.result?.idolTarget).toBe(4);
+    expect(result.reveal).toBeUndefined();
   });
 
   it('should reject skip (canSkip=false)', () => {
@@ -236,11 +231,11 @@ describe('genericResolver: chooseIdol effect', () => {
 describe('genericResolver: wildChild chooseIdol', () => {
   const resolver = createGenericResolver('wildChild');
 
-  it('should return idolTarget', () => {
+  it('should accept a valid idol target', () => {
     const ctx = createContext({ actorSeat: 7, actorRoleId: 'wildChild' as RoleId });
     const result = resolver(ctx, createInput('wildChildChooseIdol', 4));
     expect(result.valid).toBe(true);
-    expect(result.result?.idolTarget).toBe(4);
+    expect(result.reveal).toBeUndefined();
   });
 });
 
@@ -256,14 +251,14 @@ describe('genericResolver: check effect', () => {
       const ctx = createContext({ actorSeat: 1, actorRoleId: 'seer' as RoleId });
       const result = resolver(ctx, createInput('seerCheck', 4)); // villager
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBe('好人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
     });
 
     it('should return 狼人 for wolf team target', () => {
       const ctx = createContext({ actorSeat: 1, actorRoleId: 'seer' as RoleId });
       const result = resolver(ctx, createInput('seerCheck', 2)); // wolf
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBe('狼人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
     });
 
     it('should reject self-target', () => {
@@ -288,7 +283,7 @@ describe('genericResolver: check effect', () => {
       // Checking seat 2 (wolf), but swapped with seat 4 (villager)
       const result = resolver(ctx, createInput('seerCheck', 2));
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBe('好人'); // sees villager's team
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
     });
   });
 
@@ -299,14 +294,14 @@ describe('genericResolver: check effect', () => {
       const ctx = createContext({ actorSeat: 1, actorRoleId: 'mirrorSeer' as RoleId });
       const result = resolver(ctx, createInput('mirrorSeerCheck', 4)); // villager
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBe('狼人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
     });
 
     it('should return inverted result: 好人 for wolf team', () => {
       const ctx = createContext({ actorSeat: 1, actorRoleId: 'mirrorSeer' as RoleId });
       const result = resolver(ctx, createInput('mirrorSeerCheck', 2)); // wolf
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBe('好人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
     });
   });
 
@@ -331,8 +326,8 @@ describe('genericResolver: check effect', () => {
         createInput('drunkSeerCheck', 4),
       );
 
-      expect(normal.result?.checkResult).toBe('好人');
-      expect(inverted.result?.checkResult).toBe('狼人');
+      expect(normal.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
+      expect(inverted.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
     });
   });
 
@@ -343,7 +338,7 @@ describe('genericResolver: check effect', () => {
       const ctx = createContext({ actorSeat: 9, actorRoleId: 'psychic' as RoleId });
       const result = resolver(ctx, createInput('psychicCheck', 4)); // villager
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('villager');
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'villager' });
     });
 
     it('should be swap-aware', () => {
@@ -354,7 +349,7 @@ describe('genericResolver: check effect', () => {
       });
       const result = resolver(ctx, createInput('psychicCheck', 4)); // seat 4 swapped with 2
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('wolf'); // sees wolf at swapped seat
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
     });
 
     it('should reject self-target', () => {
@@ -376,7 +371,7 @@ describe('genericResolver: check effect', () => {
       });
       const result = resolver(ctx, createInput('gargoyleCheck', 4));
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('villager');
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'villager' });
     });
   });
 
@@ -392,7 +387,7 @@ describe('genericResolver: check effect', () => {
       });
       const result = resolver(ctx, createInput('wolfWitchCheck', 4));
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('villager');
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'villager' });
     });
 
     it('should reject wolf-faction target (NotWolfFaction constraint)', () => {
@@ -420,7 +415,7 @@ describe('genericResolver: check effect', () => {
       });
       const result = resolver(ctx, createInput('pureWhiteCheck', 4));
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('villager');
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'villager' });
     });
   });
 });
@@ -432,12 +427,11 @@ describe('genericResolver: check effect', () => {
 describe('genericResolver: block effect', () => {
   const resolver = createGenericResolver('nightmare');
 
-  it('should write blockedSeat and return blockedTarget', () => {
+  it('should write blockedSeat', () => {
     const ctx = createContext({ actorSeat: 8, actorRoleId: 'nightmare' as RoleId });
     const result = resolver(ctx, createInput('nightmareBlock', 4));
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(4);
-    expect(result.result?.blockedTarget).toBe(4);
     expect(result.updates?.wolfKillOverride).toBeUndefined();
   });
 
@@ -464,7 +458,7 @@ describe('genericResolver: block effect', () => {
 describe('genericResolver: learn effect', () => {
   const resolver = createGenericResolver('wolfRobot');
 
-  it('should return learnTarget and learnedRoleId', () => {
+  it('should return the learned role as a typed reveal', () => {
     const players = createPlayers({ 5: 'wolfRobot' });
     const ctx = createContext({
       actorSeat: 5,
@@ -473,12 +467,10 @@ describe('genericResolver: learn effect', () => {
     });
     const result = resolver(ctx, createInput('wolfRobotLearn', 4)); // villager
     expect(result.valid).toBe(true);
-    expect(result.result?.learnTarget).toBe(4);
-    expect(result.result?.learnedRoleId).toBe('villager');
-    expect(result.result?.canShootAsHunter).toBeUndefined();
+    expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'villager' });
   });
 
-  it('should set canShootAsHunter when learning hunter', () => {
+  it('should leave authoritative hunter status to the action handler', () => {
     const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter' });
     const ctx = createContext({
       actorSeat: 5,
@@ -487,63 +479,7 @@ describe('genericResolver: learn effect', () => {
     });
     const result = resolver(ctx, createInput('wolfRobotLearn', 4));
     expect(result.valid).toBe(true);
-    expect(result.result?.learnedRoleId).toBe('hunter');
-    expect(result.result?.canShootAsHunter).toBe(true);
-  });
-
-  it('should set canShootAsHunter=true when wolfRobot itself is poisoned (authoritative override in handler)', () => {
-    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'wolfRobot' as RoleId,
-      players,
-      currentNightResults: { poisonedSeat: 5 }, // actorSeat poisoned
-    });
-    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
-    expect(result.valid).toBe(true);
-    // Resolver always sets true; actionHandler overrides with authoritative computation
-    expect(result.result?.canShootAsHunter).toBe(true);
-  });
-
-  it('should set canShootAsHunter=true when target is poisoned but wolfRobot is not', () => {
-    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'wolfRobot' as RoleId,
-      players,
-      currentNightResults: { poisonedSeat: 4 }, // target poisoned, not actor
-    });
-    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
-    expect(result.valid).toBe(true);
-    expect(result.result?.canShootAsHunter).toBe(true);
-  });
-
-  it('should set canShootAsHunter=true even when dream-linked (authoritative override in handler)', () => {
-    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter', 3: 'dreamcatcher' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'wolfRobot' as RoleId,
-      players,
-      currentNightResults: { dreamingSeat: 5, poisonedSeat: 3 },
-    });
-    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
-    expect(result.valid).toBe(true);
-    // Resolver always sets true; actionHandler overrides with authoritative computation
-    expect(result.result?.canShootAsHunter).toBe(true);
-  });
-
-  it('should set canShootAsHunter=true even when charm victim (authoritative override in handler)', () => {
-    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter', 2: 'wolfQueen' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'wolfRobot' as RoleId,
-      players,
-      currentNightResults: { charmedSeat: 5, poisonedSeat: 2 },
-    });
-    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
-    expect(result.valid).toBe(true);
-    // Resolver always sets true; actionHandler overrides with authoritative computation
-    expect(result.result?.canShootAsHunter).toBe(true);
+    expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'hunter' });
   });
 
   it('should be swap-aware', () => {
@@ -557,7 +493,7 @@ describe('genericResolver: learn effect', () => {
     // Seat 4 was villager, now swapped with 2 (wolf)
     const result = resolver(ctx, createInput('wolfRobotLearn', 4));
     expect(result.valid).toBe(true);
-    expect(result.result?.learnedRoleId).toBe('wolf');
+    expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'wolf' });
   });
 
   it('should reject self-target', () => {

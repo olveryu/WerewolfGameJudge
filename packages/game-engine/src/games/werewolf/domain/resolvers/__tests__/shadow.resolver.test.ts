@@ -78,7 +78,6 @@ describe('shadowChooseMimicResolver', () => {
       const result = shadowChooseMimicResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.idolTarget).toBe(0);
       expect(result.updates?.shadowMimicTarget).toBe(0);
     });
 
@@ -89,7 +88,6 @@ describe('shadowChooseMimicResolver', () => {
       const result = shadowChooseMimicResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.idolTarget).toBe(1);
       expect(result.updates?.shadowMimicTarget).toBe(1);
     });
 
@@ -100,7 +98,6 @@ describe('shadowChooseMimicResolver', () => {
       const result = shadowChooseMimicResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.idolTarget).toBe(2);
       expect(result.updates?.shadowMimicTarget).toBe(2);
     });
 
@@ -135,7 +132,6 @@ describe('shadowChooseMimicResolver', () => {
       const result = shadowChooseMimicResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.idolTarget).toBe(3);
       expect(result.updates?.avengerFaction).toBe(Team.Third);
       expect(result.updates?.shadowMimicTarget).toBe(3);
     });
@@ -174,7 +170,7 @@ describe('shadowChooseMimicResolver', () => {
       const result = shadowChooseMimicResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
   });
 });

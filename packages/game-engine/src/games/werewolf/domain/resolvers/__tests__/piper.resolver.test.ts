@@ -118,7 +118,6 @@ describe('piperHypnotizeResolver', () => {
       const result = piperHypnotizeResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.hypnotizedTargets).toEqual([0]);
       expect(result.updates?.hypnotizedSeats).toEqual([0]);
     });
 
@@ -129,7 +128,6 @@ describe('piperHypnotizeResolver', () => {
       const result = piperHypnotizeResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.hypnotizedTargets).toEqual([0, 3]);
       expect(result.updates?.hypnotizedSeats).toEqual([0, 3]);
     });
 
@@ -140,7 +138,7 @@ describe('piperHypnotizeResolver', () => {
       const result = piperHypnotizeResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.hypnotizedTargets).toEqual([2]);
+      expect(result.updates?.hypnotizedSeats).toEqual([2]);
     });
   });
 });

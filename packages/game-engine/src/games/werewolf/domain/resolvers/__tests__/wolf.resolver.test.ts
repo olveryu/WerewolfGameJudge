@@ -60,7 +60,7 @@ describe('wolfKillResolver', () => {
 
       // Skipping attack is allowed (schema.meeting.allowEmptyVote: true)
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({}); // No kill target
+      expect(result.reveal).toBeUndefined(); // No kill target
     });
 
     it('应该拒绝不存在的目标玩家', () => {
@@ -148,7 +148,7 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
   });
 

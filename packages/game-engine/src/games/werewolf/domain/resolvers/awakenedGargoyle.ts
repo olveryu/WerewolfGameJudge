@@ -45,7 +45,6 @@ export const awakenedGargoyleConvertResolver: ResolverFn = (context: ResolverCon
   return {
     valid: true,
     updates: { convertedSeat: target },
-    result: { convertTarget: target },
   };
 };
 

@@ -56,7 +56,7 @@ describe('magicianSwapResolver', () => {
       const result = magicianSwapResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
 
     it('应该接受跳过（空数组）', () => {
@@ -66,7 +66,7 @@ describe('magicianSwapResolver', () => {
       const result = magicianSwapResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
 
     it('应该拒绝只选一个目标', () => {
@@ -120,16 +120,6 @@ describe('magicianSwapResolver', () => {
   });
 
   describe('resolve', () => {
-    it('交换时应该返回交换目标', () => {
-      const ctx = createContext();
-      const input = createInput([0, 2]);
-
-      const result = magicianSwapResolver(ctx, input);
-
-      expect(result.valid).toBe(true);
-      expect(result.result?.swapTargets).toEqual([0, 2]);
-    });
-
     it('交换时应该更新 swappedSeats', () => {
       const ctx = createContext();
       const input = createInput([0, 2]);
@@ -147,7 +137,7 @@ describe('magicianSwapResolver', () => {
       const result = magicianSwapResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.swapTargets).toEqual([4, 2]);
+      expect(result.updates?.swappedSeats).toEqual([4, 2]);
     });
   });
 
@@ -176,7 +166,7 @@ describe('magicianSwapResolver', () => {
       const result = magicianSwapResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result).toEqual({});
+      expect(result.reveal).toBeUndefined();
     });
   });
 });

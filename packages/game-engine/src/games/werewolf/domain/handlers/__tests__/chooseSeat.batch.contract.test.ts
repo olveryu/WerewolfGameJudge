@@ -49,6 +49,7 @@ function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext)
  * - constraints: schema constraints (for validation)
  * - hasReveal: whether a reveal result is produced
  * - revealKey: key of the reveal result (if any)
+ * - isRecordOnly: target is authoritative in ProtocolAction and needs no state mutation
  */
 interface ChooseSeatTestCase {
   schemaId: SchemaId;
@@ -56,6 +57,7 @@ interface ChooseSeatTestCase {
   constraints: readonly (TargetConstraint | string)[];
   hasReveal: boolean;
   revealKey?: 'seerReveal' | 'psychicReveal' | 'gargoyleReveal' | 'wolfRobotReveal';
+  isRecordOnly?: true;
 }
 
 const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
@@ -120,6 +122,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
     role: 'slacker',
     constraints: [TargetConstraint.NotSelf],
     hasReveal: false,
+    isRecordOnly: true,
   },
 ];
 
@@ -202,8 +205,8 @@ describe('chooseSeat Batch Handler Contract', () => {
 
   describe('Wire Protocol: target field', () => {
     it.each(CHOOSE_SEAT_SCHEMAS)(
-      '$schemaId - valid target: should accept and produce RECORD_ACTION + APPLY_RESOLVER_RESULT',
-      ({ schemaId, role, hasReveal }) => {
+      '$schemaId - valid target: should emit its canonical action sequence',
+      ({ schemaId, role, hasReveal, isRecordOnly }) => {
         const state = createMinimalState(schemaId, role);
         const context = createContext(state);
 
@@ -216,14 +219,12 @@ describe('chooseSeat Batch Handler Contract', () => {
         const result = handleSubmitAction(intent, context);
 
         const success = expectSuccess(result);
-        // schemas with reveal produce an extra ADD_REVEAL_ACK action
-        const expectedLength = hasReveal ? 3 : 2;
-        expect(success.actions).toHaveLength(expectedLength);
-        expect(success.actions[0]!.type).toBe('RECORD_ACTION');
-        expect(success.actions[1]!.type).toBe('APPLY_RESOLVER_RESULT');
-        if (hasReveal) {
-          expect(success.actions[2]!.type).toBe('ADD_REVEAL_ACK');
-        }
+        const expectedActionTypes = hasReveal
+          ? ['RECORD_ACTION', 'APPLY_RESOLVER_RESULT', 'ADD_REVEAL_ACK']
+          : isRecordOnly
+            ? ['RECORD_ACTION']
+            : ['RECORD_ACTION', 'APPLY_RESOLVER_RESULT'];
+        expect(success.actions.map((action) => action.type)).toEqual(expectedActionTypes);
       },
     );
 

@@ -10,7 +10,7 @@ import { type RevealKind, type RoleId, type SchemaId, SCHEMAS } from '../models'
 import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
 import { ROLE_SPECS } from '../models/roles/spec/specs';
 import type { ApplyResolverResultAction } from '../reducer/types';
-import type { ResolverResult } from '../resolvers/types';
+import type { ResolverSuccess } from '../resolvers/types';
 
 // ---------------------------------------------------------------------------
 // V2-derived gate trigger roles (replaces hardcoded 'hunter' check)
@@ -64,28 +64,28 @@ type IdentityResultRevealKey =
 function makeCheckResultRevealHandler(
   key: CheckResultRevealKey,
 ): (
-  result: ResolverResult,
+  result: ResolverSuccess,
   targetSeat: number,
 ) => Pick<ApplyResolverResultAction['payload'], CheckResultRevealKey> {
   return (result, targetSeat) => {
-    if (result.result?.checkResult) {
-      return { [key]: { targetSeat, result: result.result.checkResult } };
+    if (result.reveal?.kind !== 'factionCheck') {
+      throw new Error(`[FAIL-FAST] ${key} requires a factionCheck resolver reveal`);
     }
-    return {};
+    return { [key]: { targetSeat, result: result.reveal.checkResult } };
   };
 }
 
 function makeIdentityResultRevealHandler(
   key: IdentityResultRevealKey,
 ): (
-  result: ResolverResult,
+  result: ResolverSuccess,
   targetSeat: number,
 ) => Pick<ApplyResolverResultAction['payload'], IdentityResultRevealKey> {
   return (result, targetSeat) => {
-    if (result.result?.identityResult) {
-      return { [key]: { targetSeat, result: result.result.identityResult } };
+    if (result.reveal?.kind !== 'identityCheck') {
+      throw new Error(`[FAIL-FAST] ${key} requires an identityCheck resolver reveal`);
     }
-    return {};
+    return { [key]: { targetSeat, result: result.reveal.roleId } };
   };
 }
 
@@ -93,22 +93,25 @@ function makeIdentityResultRevealHandler(
  * Handle WolfRobot reveal
  */
 function handleWolfRobotReveal(
-  result: ResolverResult,
+  result: ResolverSuccess,
   targetSeat: number,
 ): Pick<
   ApplyResolverResultAction['payload'],
   'wolfRobotReveal' | 'wolfRobotHunterStatusViewed' | 'wolfRobotContext'
 > {
-  if (!result.result?.identityResult) {
-    return {};
+  if (result.reveal?.kind !== 'wolfRobotLearn') {
+    throw new Error('[FAIL-FAST] wolfRobot reveal requires a wolfRobotLearn resolver reveal');
   }
 
-  const learnedRoleId = result.result.learnedRoleId;
-  // FAIL-FAST: learnedRoleId is REQUIRED when wolfRobotReveal is set
-  if (!learnedRoleId) {
+  const { learnedRoleId, canShootAsHunter } = result.reveal;
+  const hasShootStatus = WOLF_ROBOT_GATE_ROLES.includes(learnedRoleId);
+  if (hasShootStatus && canShootAsHunter === undefined) {
     throw new Error(
-      '[FAIL-FAST] wolfRobotLearn resolver must return learnedRoleId when identityResult is set',
+      '[FAIL-FAST] wolfRobotLearn handler must resolve shoot status for a gate-triggering role',
     );
+  }
+  if (!hasShootStatus && canShootAsHunter !== undefined) {
+    throw new Error('[FAIL-FAST] wolfRobotLearn produced shoot status for a non-gate role');
   }
 
   const payload: Pick<
@@ -117,23 +120,19 @@ function handleWolfRobotReveal(
   > = {
     wolfRobotReveal: {
       targetSeat,
-      result: result.result.identityResult,
+      result: learnedRoleId,
       learnedRoleId,
-      canShootAsHunter: result.result.canShootAsHunter,
+      canShootAsHunter,
+    },
+    wolfRobotContext: {
+      learnedSeat: targetSeat,
+      disguisedRole: learnedRoleId,
     },
   };
 
   // Gate: if learned a gate-triggering role, set gate to false (requires viewing before advancing)
   if (WOLF_ROBOT_GATE_ROLES.includes(learnedRoleId)) {
     payload.wolfRobotHunterStatusViewed = false;
-  }
-
-  // Write wolfRobotContext for disguise during subsequent checks
-  if (result.result.learnTarget !== undefined && learnedRoleId) {
-    payload.wolfRobotContext = {
-      learnedSeat: result.result.learnTarget,
-      disguisedRole: learnedRoleId,
-    };
   }
 
   return payload;
@@ -144,7 +143,7 @@ function handleWolfRobotReveal(
 // ---------------------------------------------------------------------------
 
 type RevealHandler = (
-  result: ResolverResult,
+  result: ResolverSuccess,
   targetSeat: number,
 ) => Partial<ApplyResolverResultAction['payload']>;
 
@@ -167,7 +166,7 @@ const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
  * Build ApplyResolverResultAction payload from resolver result
  */
 export function buildRevealPayload(
-  result: ResolverResult,
+  result: ResolverSuccess,
   schemaId: SchemaId,
   targetSeat: number,
 ): ApplyResolverResultAction['payload'] {
@@ -176,14 +175,17 @@ export function buildRevealPayload(
   };
 
   // Look up the corresponding reveal via schema.ui.revealKind (schema is single source of truth)
-  const schema = SCHEMAS[schemaId];
-  const revealKind = schema?.ui?.revealKind;
-  if (revealKind) {
-    const handler = REVEAL_HANDLERS[revealKind];
-    if (handler) {
-      Object.assign(payload, handler(result, targetSeat));
+  const revealKind = SCHEMAS[schemaId].ui?.revealKind;
+  if (!revealKind) {
+    if (result.reveal) {
+      throw new Error(
+        `[FAIL-FAST] Schema ${schemaId} cannot consume resolver reveal ${result.reveal.kind}`,
+      );
     }
+    return payload;
   }
+
+  Object.assign(payload, REVEAL_HANDLERS[revealKind](result, targetSeat));
 
   return payload;
 }

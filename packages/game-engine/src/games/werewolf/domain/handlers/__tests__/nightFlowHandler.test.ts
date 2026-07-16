@@ -623,7 +623,7 @@ describe('nightFlowHandler', () => {
         }
       });
 
-      it('should not change roleSeatMap when no magician swap (backward compatible)', () => {
+      it('should not change roleSeatMap when no magician swap exists', () => {
         // Behavior unchanged without swap: spiritKnight at seat 2, attack villager seat 4
         const context: HandlerContext = {
           state: createOngoingState({

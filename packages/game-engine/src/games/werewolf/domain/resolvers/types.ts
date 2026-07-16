@@ -147,40 +147,41 @@ export interface ActionInput {
   readonly shelterRedirected?: boolean;
 }
 
-/** Resolver result - role action outcome */
-export interface ResolverResult {
-  readonly valid: boolean;
-  readonly rejectReason?: string;
+/** Resolver output consumed by a reveal-style action schema. */
+export type ResolverReveal =
+  | {
+      readonly kind: 'factionCheck';
+      readonly checkResult: '好人' | '狼人';
+    }
+  | {
+      readonly kind: 'identityCheck';
+      readonly roleId: RoleId;
+    }
+  | {
+      readonly kind: 'wolfRobotLearn';
+      readonly learnedRoleId: RoleId;
+      /** Present only for roles configured to expose the shoot-status gate. */
+      readonly canShootAsHunter?: boolean;
+    };
 
-  /**
-   * Updates to CurrentNightResults after this action.
-   * Server will merge these updates into the accumulated results.
-   */
+/** Successful resolver outcome. State changes have one authoritative channel. */
+export interface ResolverSuccess {
+  readonly valid: true;
+  readonly rejectReason?: never;
   readonly updates?: Partial<CurrentNightResults>;
-
-  /** Computed results (role-specific, for feedback to server/UI) */
-  readonly result?: {
-    readonly checkResult?: '好人' | '狼人'; // seer
-    readonly identityResult?: RoleId; // psychic, gargoyle, wolfRobot (display only)
-    readonly savedTarget?: number; // witch save
-    readonly poisonedTarget?: number; // witch poison
-    readonly guardedTarget?: number; // guard
-    readonly blockedTarget?: number; // nightmare
-    readonly dreamTarget?: number; // dreamcatcher
-    readonly charmTarget?: number; // wolfQueen
-    readonly swapTargets?: readonly [number, number]; // magician
-    readonly learnTarget?: number; // wolfRobot - target seat
-    readonly learnedRoleId?: RoleId; // wolfRobot - learned role (see WolfRobotLearnSuccessResult for strong typing)
-    readonly canShootAsHunter?: boolean; // wolfRobot - can shoot as hunter (only set when learned hunter)
-    readonly idolTarget?: number; // slacker
-    readonly silenceTarget?: number; // silenceElder
-    readonly votebanTarget?: number; // votebanElder
-    readonly hypnotizedTargets?: readonly number[]; // piper - newly hypnotized seats this night
-    readonly convertTarget?: number; // awakenedGargoyle - converted seat
-    readonly curseTarget?: number; // crow - cursed seat
-    readonly shelterTarget?: number; // eclipseWolfQueen - sheltered seat
-  };
+  readonly reveal?: ResolverReveal;
 }
+
+/** Rejected resolver outcome. Every rejection must carry its user-facing reason. */
+export interface ResolverRejection {
+  readonly valid: false;
+  readonly rejectReason: string;
+  readonly updates?: never;
+  readonly reveal?: never;
+}
+
+/** Resolver result - role action outcome. */
+export type ResolverResult = ResolverSuccess | ResolverRejection;
 
 /** Resolver function signature */
 export type ResolverFn = (context: ResolverContext, input: ActionInput) => ResolverResult;

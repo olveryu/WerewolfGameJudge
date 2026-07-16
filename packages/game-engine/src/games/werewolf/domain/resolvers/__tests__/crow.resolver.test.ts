@@ -57,7 +57,6 @@ describe('genericResolver: crow (cursedSeat)', () => {
     const result = resolver(ctx, createInput(3));
     expect(result.valid).toBe(true);
     expect(result.updates?.cursedSeat).toBe(3);
-    expect(result.result?.curseTarget).toBe(3);
   });
 
   it('should reject self-target (NotSelf constraint)', () => {

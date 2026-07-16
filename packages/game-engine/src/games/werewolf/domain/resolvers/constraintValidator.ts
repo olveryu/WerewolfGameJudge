@@ -26,10 +26,9 @@ interface ConstraintValidationContext {
   shelterRedirected?: boolean;
 }
 
-interface ConstraintValidationResult {
-  valid: boolean;
-  rejectReason?: string;
-}
+type ConstraintValidationResult =
+  | { readonly valid: true; readonly rejectReason?: never }
+  | { readonly valid: false; readonly rejectReason: string };
 
 /**
  * Validate a target against a list of constraints.

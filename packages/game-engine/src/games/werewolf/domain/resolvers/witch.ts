@@ -83,7 +83,7 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
 
   // Skip (no action) is always allowed
   if (saveTarget === null && poisonTarget === null) {
-    return { valid: true, result: {} };
+    return { valid: true };
   }
 
   // Block guard is handled at actionHandler layer (single-point guard)
@@ -126,10 +126,6 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
     updates: {
       savedSeat: saveTarget ?? undefined,
       poisonedSeat: poisonTarget ?? undefined,
-    },
-    result: {
-      savedTarget: saveTarget ?? undefined,
-      poisonedTarget: poisonTarget ?? undefined,
     },
   };
 };

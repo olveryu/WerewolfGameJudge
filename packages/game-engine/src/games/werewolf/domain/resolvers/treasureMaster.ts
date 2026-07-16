@@ -57,7 +57,7 @@ export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
   // Nightmare block -> skip allowed
   if (cardIndex === undefined || cardIndex === null) {
     if (currentNightResults.blockedSeat === actorSeat) {
-      return { valid: true, result: {} };
+      return { valid: true };
     }
     return { valid: false, rejectReason: REJECT_MUST_CHOOSE };
   }
@@ -88,7 +88,6 @@ export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
 
   return {
     valid: true,
-    result: {},
     updates: {
       treasureMasterChosenCard: chosenRoleId,
       effectiveTeam,

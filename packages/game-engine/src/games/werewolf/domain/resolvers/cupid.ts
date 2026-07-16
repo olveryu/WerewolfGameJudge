@@ -50,7 +50,6 @@ export const cupidChooseLoversResolver: ResolverFn = (context, input) => {
     updates: {
       loverSeats: sortedTargets,
     },
-    result: {},
   };
 };
 

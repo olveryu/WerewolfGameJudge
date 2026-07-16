@@ -192,7 +192,7 @@ describe('Check alignment (post-swap identity)', () => {
 
       expect(result.valid).toBe(true);
       // A is originally villager, but post-swap check should see B's identity (wolf) → '狼人'
-      expect(result.result?.checkResult).toBe('狼人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
     });
 
     it('post-swap check on B (originally wolf) → should return good faction', () => {
@@ -206,7 +206,7 @@ describe('Check alignment (post-swap identity)', () => {
 
       expect(result.valid).toBe(true);
       // B is originally wolf, but post-swap check should see A's identity (villager) → '好人'
-      expect(result.result?.checkResult).toBe('好人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
     });
 
     it('checking seat not affected by swap → returns original identity', () => {
@@ -219,7 +219,7 @@ describe('Check alignment (post-swap identity)', () => {
       const result = seerCheckResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.checkResult).toBe('好人');
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
     });
   });
 
@@ -235,7 +235,7 @@ describe('Check alignment (post-swap identity)', () => {
 
       expect(result.valid).toBe(true);
       // post-swap should see wolf
-      expect(result.result?.identityResult).toBe('wolf');
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
     });
   });
 
@@ -250,7 +250,7 @@ describe('Check alignment (post-swap identity)', () => {
       const result = gargoyleCheckResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('wolf');
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
     });
   });
 
@@ -265,7 +265,7 @@ describe('Check alignment (post-swap identity)', () => {
       const result = wolfRobotLearnResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      expect(result.result?.identityResult).toBe('wolf');
+      expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'wolf' });
     });
   });
 });
@@ -372,7 +372,7 @@ describe('Swap edge cases', () => {
     const result = seerCheckResolver(ctx, input);
 
     expect(result.valid).toBe(true);
-    expect(result.result?.checkResult).toBe('好人'); // villager is good
+    expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '好人' });
   });
 
   it('no swap → no death transfer', () => {

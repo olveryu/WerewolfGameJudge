@@ -26,7 +26,6 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
           [String(actorSeat)]: -1,
         },
       },
-      result: {}, // No kill target
     };
   }
 
@@ -36,7 +35,6 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     return {
       valid: true,
       updates: { wolfVotesBySeat: rest },
-      result: {},
     };
   }
 
@@ -79,6 +77,5 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
         [String(actorSeat)]: target,
       },
     },
-    result: {},
   };
 };

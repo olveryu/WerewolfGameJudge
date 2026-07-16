@@ -12,13 +12,13 @@
 
 import { createSeededRng, type Rng } from '../../../../platform/random';
 import type { SubmitActionIntent } from '../intents/types';
-import { ROLE_SPECS, type RoleId, type SchemaId, SCHEMAS, Team } from '../models';
+import { ROLE_SPECS, type RoleId, type SchemaId, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';
 import type { ProtocolAction } from '../protocol/types';
 import { gameReducer } from '../reducer/gameReducer';
 import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
 import { RESOLVERS } from '../resolvers';
-import type { ActionInput, ResolverContext, ResolverResult } from '../resolvers/types';
+import type { ActionInput, ResolverContext, ResolverSuccess } from '../resolvers/types';
 import {
   checkNightmareBlockGuard,
   isBottomCardActorOverride,
@@ -26,7 +26,7 @@ import {
 } from './actionGuards';
 import { computeCanShootForSeat } from './confirmContext';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
-import { buildRevealPayload } from './revealPayload';
+import { buildRevealPayload, WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult, NonNullState } from './types';
 import { handlerRejection, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
@@ -202,12 +202,14 @@ export function handleSubmitAction(
     return buildRejectionResult(schemaId, result.rejectReason, state, seat, execution.commandId);
   }
 
-  // When wolfRobot learns hunter, the resolver only flags canShootAsHunter=true (without full death cause info);
-  // authoritative override using the full GameState here (shares logic with confirmContext for hunter/wolfKing).
-  if (result.result?.canShootAsHunter !== undefined) {
+  // Resolver identifies the learned role; the handler owns authoritative shoot-status computation.
+  if (
+    result.reveal?.kind === 'wolfRobotLearn' &&
+    WOLF_ROBOT_GATE_ROLES.includes(result.reveal.learnedRoleId)
+  ) {
     result = {
       ...result,
-      result: { ...result.result, canShootAsHunter: computeCanShootForSeat(seat, state) },
+      reveal: { ...result.reveal, canShootAsHunter: computeCanShootForSeat(seat, state) },
     };
   }
 
@@ -216,7 +218,6 @@ export function handleSubmitAction(
     schemaId,
     seat,
     effectiveTarget,
-    role,
     result,
     execution.nowMs,
   );
@@ -254,7 +255,7 @@ export function handleSubmitAction(
  */
 function buildRejectionResult(
   schemaId: SchemaId,
-  rejectReason: string | undefined,
+  rejectReason: string,
   state: NonNullState,
   seat: number,
   rejectionId: string,
@@ -263,7 +264,7 @@ function buildRejectionResult(
     type: 'ACTION_REJECTED',
     payload: {
       action: schemaId,
-      reason: rejectReason ?? 'invalid_action',
+      reason: rejectReason,
       targetUserId:
         state.players[seat]?.userId ??
         (() => {
@@ -273,11 +274,7 @@ function buildRejectionResult(
     },
   };
 
-  return handlerRejection(
-    rejectReason ?? 'invalid_action',
-    [rejectAction],
-    [{ type: 'BROADCAST_STATE' }],
-  );
+  return handlerRejection(rejectReason, [rejectAction], [{ type: 'BROADCAST_STATE' }]);
 }
 
 /**
@@ -287,8 +284,7 @@ function buildSuccessResult(
   schemaId: SchemaId,
   seat: number,
   target: number | null,
-  role: RoleId,
-  result: ResolverResult,
+  result: ResolverSuccess,
   timestamp: number,
 ): HandlerResult {
   const protocolAction: ProtocolAction = {
@@ -307,29 +303,22 @@ function buildSuccessResult(
 
   // Only attach reveal payload when we have a concrete target.
   // (Avoid fabricating seat=0 when target is null.)
-  if (target !== null && (result.updates || result.result)) {
+  if (target === null && result.reveal) {
+    throw new Error(`[FAIL-FAST] Schema ${schemaId} produced a reveal without a target`);
+  }
+
+  if (target !== null && (result.updates || result.reveal)) {
     const revealPayload = buildRevealPayload(result, schemaId, target);
     actions.push({
       type: 'APPLY_RESOLVER_RESULT',
       payload: revealPayload,
     });
 
-    // If the schema defines revealKind and the reveal payload contains actual data, add a pending ack to block progression
-    // ackKey uses schemaId as the stable identifier (avoids breakage if revealKind text changes)
-    // Condition checks whether the payload has reveal data (shadow only has reveal when mimicking avenger)
-    const schema = SCHEMAS[schemaId];
-    const revealKind = (schema?.ui as { revealKind?: string } | undefined)?.revealKind;
-    if (revealKind) {
-      const revealKey = `${revealKind}Reveal`;
-      const hasRevealData =
-        revealKey in revealPayload &&
-        revealPayload[revealKey as keyof typeof revealPayload] != null;
-      if (hasRevealData) {
-        actions.push({
-          type: 'ADD_REVEAL_ACK',
-          payload: { ackKey: schemaId },
-        });
-      }
+    if (result.reveal) {
+      actions.push({
+        type: 'ADD_REVEAL_ACK',
+        payload: { ackKey: schemaId },
+      });
     }
   } else if (result.updates) {
     // Updates can exist without a target (e.g. skip/blocked); keep them.

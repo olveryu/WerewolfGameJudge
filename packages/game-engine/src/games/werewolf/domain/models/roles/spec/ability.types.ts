@@ -61,7 +61,14 @@ export interface CheckEffect {
 export interface WriteSlotEffect {
   readonly kind: 'writeSlot';
   /** The field name in CurrentNightResults to write to */
-  readonly slot: string;
+  readonly slot:
+    | 'guardedSeat'
+    | 'dreamingSeat'
+    | 'silencedSeat'
+    | 'votebannedSeat'
+    | 'cursedSeat'
+    | 'poisonedSeat'
+    | 'shelteredSeat';
 }
 
 /**

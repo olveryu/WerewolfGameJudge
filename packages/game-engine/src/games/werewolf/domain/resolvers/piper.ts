@@ -23,7 +23,7 @@ export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, inp
 
   // Piper can skip (canSkip: true)
   if (!targets || targets.length === 0) {
-    return { valid: true, result: {} };
+    return { valid: true };
   }
 
   // Validate target count
@@ -55,7 +55,6 @@ export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, inp
   return {
     valid: true,
     updates: { hypnotizedSeats: [...targets].sort((a, b) => a - b) },
-    result: { hypnotizedTargets: targets },
   };
 };
 

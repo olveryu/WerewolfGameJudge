@@ -8,7 +8,7 @@
  * - writeSlot: write to CurrentNightResults slot (guard/dreamcatcher/silenceElder/votebanElder/wolfQueen)
  * - chooseIdol: choose idol (slacker/wildChild)
  * - check: check faction/identity (seer family/psychic/gargoyle/wolfWitch/pureWhite)
- * - charm: charm target (wolfQueen — writeSlot charmedSeat + result)
+ * - charm: charm target (wolfQueen — write charmedSeat update)
  * - block: block target skill (nightmare)
  * - learn: learn target identity and skill (wolfRobot)
  * - confirm: confirmation type (hunter/darkWolfKing/avenger)
@@ -65,28 +65,14 @@ function processWriteSlot(
 
   const slot = effect.slot;
 
-  // Map slot → result key for backward compat
-  const resultKeyMap: Record<string, string> = {
-    guardedSeat: 'guardedTarget',
-    dreamingSeat: 'dreamTarget',
-    silencedSeat: 'silenceTarget',
-    votebannedSeat: 'votebanTarget',
-    cursedSeat: 'curseTarget',
-    poisonedSeat: 'poisonedTarget',
-    shelteredSeat: 'shelterTarget',
-  };
-
-  const resultKey = resultKeyMap[slot];
-
   return {
     valid: true,
     updates: { [slot]: target },
-    result: resultKey ? { [resultKey]: target } : {},
   };
 }
 
 /**
- * charm: charm target (wolfQueen — writes charmedSeat + result)
+ * charm: charm target (wolfQueen — writes charmedSeat update)
  */
 function processCharm(
   _ability: ActiveAbility,
@@ -97,7 +83,6 @@ function processCharm(
   return {
     valid: true,
     updates: { charmedSeat: target },
-    result: { charmTarget: target },
   };
 }
 
@@ -108,12 +93,9 @@ function processChooseIdol(
   _ability: ActiveAbility,
   _context: ResolverContext,
   _input: ActionInput,
-  target: number,
+  _target: number,
 ): ResolverResult {
-  return {
-    valid: true,
-    result: { idolTarget: target },
-  };
+  return { valid: true };
 }
 
 /**
@@ -167,7 +149,7 @@ function processFactionCheck(
 
   return {
     valid: true,
-    result: { checkResult },
+    reveal: { kind: 'factionCheck', checkResult },
   };
 }
 
@@ -179,7 +161,7 @@ function processIdentityCheck(context: ResolverContext, target: number): Resolve
 
   return {
     valid: true,
-    result: { identityResult: effectiveRoleId },
+    reveal: { kind: 'identityCheck', roleId: effectiveRoleId },
   };
 }
 
@@ -216,7 +198,6 @@ function processBlock(
   return {
     valid: true,
     updates,
-    result: { blockedTarget: target },
   };
 }
 
@@ -245,22 +226,12 @@ function processLearn(
     return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
   }
 
-  const result: Record<string, unknown> = {
-    learnTarget: target,
-    learnedRoleId: effectiveRoleId,
-    identityResult: effectiveRoleId,
-  };
-
-  // Gate triggers (e.g., hunter -> canShootAsHunter)
-  // Resolver only marks "learned gate role"; authoritative canShoot is computed
-  // by the actionHandler layer using full GameState + computeCanShootForSeat.
-  if (effect.gateTriggersOnRoles?.includes(effectiveRoleId)) {
-    result.canShootAsHunter = true;
-  }
-
   return {
     valid: true,
-    result,
+    reveal: {
+      kind: 'wolfRobotLearn',
+      learnedRoleId: effectiveRoleId,
+    },
   };
 }
 
@@ -275,7 +246,7 @@ function processConfirm(
 ): ResolverResult {
   // Confirm actions don't produce updates — the status display is handled by
   // confirmContext.ts and the UI layer. Resolver just validates.
-  return { valid: true, result: {} };
+  return { valid: true };
 }
 
 // =============================================================================
@@ -343,7 +314,7 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
 
     // --- Process effect ---
     if (!effectKind) {
-      return { valid: true, result: {} };
+      return { valid: true };
     }
 
     const processor = EFFECT_PROCESSORS[effectKind];
@@ -371,12 +342,12 @@ function getTarget(_ability: ActiveAbility, input: ActionInput): number | undefi
  */
 function handleSkip(ability: ActiveAbility, context: ResolverContext): ResolverResult {
   if (ability.canSkip) {
-    return { valid: true, result: {} };
+    return { valid: true };
   }
 
   // canSkip=false → normally must choose, but nightmare block exception
   if (context.currentNightResults.blockedSeat === context.actorSeat) {
-    return { valid: true, result: {} };
+    return { valid: true };
   }
 
   // chooseIdol abilities require a target

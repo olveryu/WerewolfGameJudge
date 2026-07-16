@@ -57,7 +57,6 @@ describe('genericResolver: eclipseWolfQueen (shelteredSeat)', () => {
     const result = resolver(ctx, createInput(3));
     expect(result.valid).toBe(true);
     expect(result.updates?.shelteredSeat).toBe(3);
-    expect(result.result?.shelterTarget).toBe(3);
   });
 
   it('should allow self-target (no NotSelf constraint)', () => {
