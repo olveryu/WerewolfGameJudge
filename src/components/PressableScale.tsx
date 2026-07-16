@@ -2,13 +2,13 @@
  * PressableScale - iOS-style press-to-scale component.
  *
  * Press springs to scale(0.97) + opacity(0.9) and bounces back on release.
- * Optional haptic feedback (via triggerHaptic). Compatible with ActionButton meta callback mode.
+ * Optional haptic feedback (via triggerHaptic).
  * Uses react-native-reanimated for cross-platform animation.
  *
  * Renders UI and reports user intent. No service imports, no business logic.
  */
 import type React from 'react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { type AccessibilityState, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
@@ -23,13 +23,7 @@ const SPRING_CONFIG = {
   mass: 0.8,
 } as const;
 
-interface PressableScaleProps {
-  /** Press callback. Compatible with ActionButton meta mode and plain () => void. */
-  onPress: ((meta: { disabled: boolean }) => void) | (() => void);
-  /** Visually disabled (blocks onPress by default unless fireWhenDisabled=true). */
-  disabled?: boolean;
-  /** Still fires onPress with meta when disabled (ActionButton mode). Defaults to false. */
-  fireWhenDisabled?: boolean;
+interface PressableScaleBaseProps {
   /** Scale factor on press (default: 0.97). */
   activeScale?: number;
   /** Whether to trigger haptic feedback (default: false). */
@@ -42,10 +36,21 @@ interface PressableScaleProps {
   accessibilityState?: AccessibilityState;
 }
 
+type PressableScaleProps = PressableScaleBaseProps &
+  (
+    | {
+        onPress: () => void;
+        disabled?: boolean;
+      }
+    | {
+        onPress?: never;
+        disabled: true;
+      }
+  );
+
 const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   onPress,
   disabled = false,
-  fireWhenDisabled = false,
   activeScale = 0.97,
   haptic = false,
   style,
@@ -70,20 +75,22 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
     scale.value = withSpring(1, SPRING_CONFIG);
   }, [scale]);
 
-  const handlePress = useCallback(() => {
-    if (disabled && !fireWhenDisabled) return;
-    if (haptic) {
-      void triggerHaptic('light');
-    }
-    // Meta callback compatibility: always pass { disabled }, let callers decide
-    onPress({ disabled });
-  }, [haptic, onPress, disabled, fireWhenDisabled]);
+  const handlePress = useMemo(() => {
+    if (onPress === undefined) return undefined;
+    return () => {
+      if (haptic) {
+        void triggerHaptic('light');
+      }
+      onPress();
+    };
+  }, [haptic, onPress]);
 
   return (
     <AnimatedPressable
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      disabled={disabled}
       style={[animatedStyle, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}

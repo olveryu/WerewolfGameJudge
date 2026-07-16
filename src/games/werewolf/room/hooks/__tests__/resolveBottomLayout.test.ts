@@ -18,7 +18,6 @@ function makeCtx(overrides: Partial<LayoutContext> = {}): LayoutContext {
     effectiveSeat: null,
     imActioner: false,
     isAudioPlaying: false,
-    isStartingGame: false,
     isHostActionSubmitting: false,
     nightReviewAllowedSeats: [],
     isPlagueMode: false,
@@ -66,8 +65,10 @@ describe('resolveBottomLayout', () => {
         makeCtx({ roomStatus: GameStatus.Unseated, isHost: false, effectiveSeat: 1 }),
       );
       expect(keys(layout, 'primary')).toEqual(['waitForHost']);
-      expect(layout.primary[0]!.disabled).toBe(true);
-      expect(layout.primary[0]!.fireWhenDisabled).toBe(true);
+      expect(layout.primary[0]).toMatchObject({
+        isEnabled: false,
+        onDisabledBehavior: { kind: 'static', action: 'waitForHost' },
+      });
     });
 
     it('spectator → empty layout', () => {
@@ -164,7 +165,10 @@ describe('resolveBottomLayout', () => {
           isHostActionSubmitting: true,
         }),
       );
-      expect(layout.primary[0]!.disabled).toBe(true);
+      expect(layout.primary[0]).toMatchObject({
+        isEnabled: false,
+        onDisabledBehavior: null,
+      });
     });
 
     it('player → primary: viewRole', () => {
@@ -510,9 +514,10 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
-      // Placeholder must be visibly disabled and non-firing (intent-less)
-      expect(layout.primary[0]!.disabled).toBe(true);
-      expect(layout.primary[0]!.fireWhenDisabled).toBe(true);
+      expect(layout.primary[0]).toMatchObject({
+        isEnabled: false,
+        onDisabledBehavior: null,
+      });
     });
 
     it('audio playing, player actioner → audioWaiting placeholder, ghost empty', () => {

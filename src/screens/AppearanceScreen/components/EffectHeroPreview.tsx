@@ -22,7 +22,9 @@ interface EffectHeroPreviewProps {
   heroEffectIsEquipped: boolean;
   saving: boolean;
   onPreviewEffect: () => void;
+  onPreviewEffectUnavailable: () => void;
   onEquipEffect: () => void;
+  onEquipEffectUnavailable: () => void;
   styles: AppearanceScreenStyles;
 }
 
@@ -37,7 +39,9 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
   heroEffectIsEquipped,
   saving,
   onPreviewEffect,
+  onPreviewEffectUnavailable,
   onEquipEffect,
+  onEquipEffectUnavailable,
   styles,
 }) => {
   const petConfig = useMemo(() => getPetByEffectId(heroEffectId), [heroEffectId]);
@@ -87,8 +91,8 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
             variant="secondary"
             size="sm"
             disabled={heroEffectId === 'none' || heroEffectId === 'random'}
-            fireWhenDisabled
             onPress={onPreviewEffect}
+            onDisabledPress={onPreviewEffectUnavailable}
           >
             预览动画
           </Button>
@@ -96,9 +100,9 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
             variant={heroEffectIsEquipped ? 'secondary' : 'primary'}
             size="sm"
             disabled={!heroEffectUnlocked || heroEffectIsEquipped}
-            fireWhenDisabled
             loading={saving}
             onPress={onEquipEffect}
+            onDisabledPress={onEquipEffectUnavailable}
           >
             {!heroEffectUnlocked ? '未解锁' : heroEffectIsEquipped ? '已装备' : '装备'}
           </Button>

@@ -11,6 +11,7 @@ interface AppearanceFooterProps {
   saving: boolean;
   hasUser: boolean;
   onConfirm: () => void;
+  onConfirmUnavailable: () => void;
   onUpgrade: () => void;
   styles: AppearanceScreenStyles;
 }
@@ -22,6 +23,7 @@ export const AppearanceFooter: React.FC<AppearanceFooterProps> = ({
   saving,
   hasUser,
   onConfirm,
+  onConfirmUnavailable,
   onUpgrade,
   styles,
 }) => {
@@ -47,7 +49,7 @@ export const AppearanceFooter: React.FC<AppearanceFooterProps> = ({
       variant="primary"
       onPress={onConfirm}
       disabled={!hasSelection}
-      fireWhenDisabled
+      onDisabledPress={onConfirmUnavailable}
       loading={saving}
     >
       {hasSelection ? '确认使用' : '未做更改'}

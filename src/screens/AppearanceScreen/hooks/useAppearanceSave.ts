@@ -114,8 +114,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
   const handleConfirm = useCallback(async () => {
     const p = ref.current;
     if (!p.hasSelection) {
-      toast.info('未做更改');
-      return;
+      throw new Error('[FAIL-FAST] Appearance confirm requires a pending selection');
     }
     setSaving(true);
     try {
@@ -219,15 +218,17 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
     }
   }, []);
 
+  const handleConfirmUnavailable = useCallback(() => {
+    if (ref.current.hasSelection) {
+      throw new Error('[FAIL-FAST] Appearance unavailable feedback requires no pending selection');
+    }
+    toast.info('未做更改');
+  }, []);
+
   const handleEquipEffect = useCallback(async () => {
     const p = ref.current;
-    if (p.heroEffectIsEquipped) {
-      toast.info('已装备该特效');
-      return;
-    }
-    if (!p.heroEffectUnlocked) {
-      showErrorAlert('未解锁', '提升等级后随机解锁');
-      return;
+    if (p.heroEffectIsEquipped || !p.heroEffectUnlocked) {
+      throw new Error('[FAIL-FAST] Equip effect requires an unlocked, unequipped effect');
     }
     setSaving(true);
     try {
@@ -255,5 +256,28 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
     }
   }, []);
 
-  return { saving, handleUpload, handleConfirm, handleEquipEffect };
+  const handleEquipEffectUnavailable = useCallback(() => {
+    const p = ref.current;
+    if (p.heroEffectIsEquipped) {
+      if (!p.heroEffectUnlocked) {
+        throw new Error('[FAIL-FAST] Equipped effect must be unlocked');
+      }
+      toast.info('已装备该特效');
+      return;
+    }
+    if (!p.heroEffectUnlocked) {
+      showErrorAlert('未解锁', '提升等级后随机解锁');
+      return;
+    }
+    throw new Error('[FAIL-FAST] Equip effect unavailable feedback requires a disabled action');
+  }, []);
+
+  return {
+    saving,
+    handleUpload,
+    handleConfirm,
+    handleConfirmUnavailable,
+    handleEquipEffect,
+    handleEquipEffectUnavailable,
+  };
 }

@@ -22,8 +22,9 @@ import type {
 } from '@/features/room/model/RoomShellModel';
 import type {
   BottomLayout,
+  ButtonBehavior,
   ButtonConfig,
-  StaticButtonId,
+  StaticButtonAction,
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
@@ -223,26 +224,20 @@ export function createWerewolfControlledSeatModel(input: {
 export function createWerewolfBottomActionLayout(input: {
   readonly layout: BottomLayout;
   readonly onIntent: (intent: ActionIntent) => void;
-  readonly onStaticAction: (action: StaticButtonId) => void;
+  readonly onStaticAction: (action: StaticButtonAction) => void;
 }): RoomBottomActionLayout {
-  const mapButton = (button: ButtonConfig): RoomBottomButton => {
-    const hasIntent = button.intent !== undefined;
-    const hasAction = button.action !== undefined;
-    if (hasIntent === hasAction) {
-      throw new Error(`Werewolf bottom button ${button.key} must have exactly one behavior`);
-    }
-
-    const execute = () => {
-      if (button.intent) {
-        input.onIntent(button.intent);
+  const executeBehavior = (behavior: ButtonBehavior): void => {
+    switch (behavior.kind) {
+      case 'intent':
+        input.onIntent(behavior.intent);
         return;
-      }
-      if (!button.action) {
-        throw new Error(`Werewolf bottom button ${button.key} lost its behavior`);
-      }
-      input.onStaticAction(button.action);
-    };
+      case 'static':
+        input.onStaticAction(behavior.action);
+        return;
+    }
+  };
 
+  const mapButton = (button: ButtonConfig): RoomBottomButton => {
     const base = {
       key: button.key,
       label: button.label,
@@ -253,15 +248,21 @@ export function createWerewolfBottomActionLayout(input: {
       buttonColor: button.buttonColor,
     } as const;
 
-    if (!button.disabled) {
-      return { ...base, isEnabled: true, onPress: execute };
+    if (button.isEnabled) {
+      return {
+        ...base,
+        isEnabled: true,
+        onPress: () => executeBehavior(button.behavior),
+      };
     }
 
+    const onDisabledBehavior = button.onDisabledBehavior;
     return {
       ...base,
       isEnabled: false,
-      disabledReason: null,
-      onDisabledPress: button.action === 'waitForHost' ? execute : null,
+      disabledReason: button.disabledReason,
+      onDisabledPress:
+        onDisabledBehavior === null ? null : () => executeBehavior(onDisabledBehavior),
     };
   };
 

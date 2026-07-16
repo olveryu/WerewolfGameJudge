@@ -114,9 +114,9 @@ describe('werewolfRoomAdapter', () => {
             label: '开始游戏',
             variant: 'primary',
             size: 'lg',
-            action: 'startGame',
-            disabled: true,
-            fireWhenDisabled: true,
+            isEnabled: false,
+            disabledReason: null,
+            onDisabledBehavior: null,
           },
         ],
         secondary: [],
@@ -131,5 +131,36 @@ describe('werewolfRoomAdapter', () => {
       onDisabledPress: null,
     });
     expect(onStaticAction).not.toHaveBeenCalled();
+  });
+
+  it('maps explicit disabled feedback without inventing an enabled action', () => {
+    const onStaticAction = jest.fn();
+    const layout = createWerewolfBottomActionLayout({
+      layout: {
+        primary: [
+          {
+            key: 'waitForHost',
+            label: '等待房主开始',
+            variant: 'primary',
+            size: 'lg',
+            isEnabled: false,
+            disabledReason: '等待房主开始分配角色',
+            onDisabledBehavior: { kind: 'static', action: 'waitForHost' },
+          },
+        ],
+        secondary: [],
+        ghost: [],
+      },
+      onIntent: jest.fn(),
+      onStaticAction,
+    });
+    const button = layout.primary[0]!;
+
+    if (button.isEnabled || button.onDisabledPress === null) {
+      throw new Error('Expected explicit Werewolf disabled feedback');
+    }
+    button.onDisabledPress();
+
+    expect(onStaticAction).toHaveBeenCalledWith('waitForHost');
   });
 });

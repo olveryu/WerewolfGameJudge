@@ -267,9 +267,11 @@ export const AppearanceScreen: React.FC = () => {
           heroEffectIsEquipped={state.heroEffectIsEquipped}
           saving={state.saving}
           onPreviewEffect={state.handlePreviewEffect}
+          onPreviewEffectUnavailable={state.handlePreviewEffectUnavailable}
           onEquipEffect={() => {
             void state.handleEquipEffect();
           }}
+          onEquipEffectUnavailable={state.handleEquipEffectUnavailable}
           styles={styles}
         />
       )}
@@ -382,6 +384,7 @@ export const AppearanceScreen: React.FC = () => {
           onConfirm={() => {
             void state.handleConfirm();
           }}
+          onConfirmUnavailable={state.handleConfirmUnavailable}
           onUpgrade={state.handleUpgrade}
           styles={styles}
         />

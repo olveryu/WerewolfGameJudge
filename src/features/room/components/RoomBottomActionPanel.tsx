@@ -95,20 +95,37 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   );
 };
 
-const LayoutButton: React.FC<{ readonly model: RoomBottomButton }> = ({ model }) => (
-  <Button
-    variant={model.variant}
-    size={model.size}
-    disabled={!model.isEnabled}
-    fireWhenDisabled={!model.isEnabled && model.onDisabledPress !== null}
-    buttonColor={model.buttonColor}
-    textColor={model.textColor}
-    testID={model.testID}
-    onPress={model.isEnabled ? model.onPress : (model.onDisabledPress ?? undefined)}
-  >
-    {model.label}
-  </Button>
-);
+const LayoutButton: React.FC<{ readonly model: RoomBottomButton }> = ({ model }) => {
+  const visualProps = {
+    variant: model.variant,
+    size: model.size,
+    buttonColor: model.buttonColor,
+    textColor: model.textColor,
+    testID: model.testID,
+  } as const;
+
+  if (model.isEnabled) {
+    return (
+      <Button {...visualProps} onPress={model.onPress}>
+        {model.label}
+      </Button>
+    );
+  }
+
+  if (model.onDisabledPress === null) {
+    return (
+      <Button {...visualProps} disabled>
+        {model.label}
+      </Button>
+    );
+  }
+
+  return (
+    <Button {...visualProps} disabled onDisabledPress={model.onDisabledPress}>
+      {model.label}
+    </Button>
+  );
+};
 
 export const RoomBottomActionPanel = memo(RoomBottomActionPanelComponent);
 RoomBottomActionPanel.displayName = 'RoomBottomActionPanel';

@@ -1133,6 +1133,16 @@ describe('Client ownership: RoomSession has one implementation', () => {
   });
 });
 
+describe('Client interaction: disabled feedback is explicit', () => {
+  it('does not restore disabled-press compatibility metadata', () => {
+    const offenders = srcFiles.filter((filePath) =>
+      /\bfireWhenDisabled\b/.test(fs.readFileSync(filePath, 'utf-8')),
+    );
+
+    expect(offenders.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([]);
+  });
+});
+
 describe('Client composition: one game-neutral catalog provider', () => {
   const compositionRootFiles = [
     path.join(process.cwd(), 'App.tsx'),

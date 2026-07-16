@@ -216,7 +216,14 @@ export function useAppearanceState() {
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
-  const { saving, handleUpload, handleConfirm, handleEquipEffect } = useAppearanceSave({
+  const {
+    saving,
+    handleUpload,
+    handleConfirm,
+    handleConfirmUnavailable,
+    handleEquipEffect,
+    handleEquipEffectUnavailable,
+  } = useAppearanceSave({
     selected,
     selectedFrame,
     selectedFlair,
@@ -327,14 +334,20 @@ export function useAppearanceState() {
 
   const handlePreviewEffect = useCallback(() => {
     if (heroEffectId === 'none' || heroEffectId === 'random') {
-      showAlert('无法预览', '请先选择一个具体特效');
-      return;
+      throw new Error('[FAIL-FAST] Effect preview requires a concrete effect');
     }
     if (heroEffectPresentation.id === 'none' || heroEffectPresentation.id === 'random') {
       throw new Error('[FAIL-FAST] Concrete reveal effect presentation expected');
     }
     setPreviewEffectId(heroEffectPresentation.id);
   }, [heroEffectId, heroEffectPresentation.id]);
+
+  const handlePreviewEffectUnavailable = useCallback(() => {
+    if (heroEffectId !== 'none' && heroEffectId !== 'random') {
+      throw new Error('[FAIL-FAST] Effect preview feedback requires a non-concrete effect');
+    }
+    showAlert('无法预览', '请先选择一个具体特效');
+  }, [heroEffectId]);
 
   const handleLongPress = useCallback((avatarId: string) => {
     setPreviewAvatarId(avatarId);
@@ -400,11 +413,14 @@ export function useAppearanceState() {
     handlePressEffect,
     handlePressSeatAnimation,
     handlePreviewEffect,
+    handlePreviewEffectUnavailable,
     handleEquipEffect,
+    handleEquipEffectUnavailable,
     handleLongPress,
     handleClosePreview,
     handleUpload,
     handleConfirm,
+    handleConfirmUnavailable,
     handleUpgrade,
     // Preview
     previewAvatarId,

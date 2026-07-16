@@ -13,6 +13,7 @@ import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { BottomButton } from './bottomActionBuilder';
 import {
   type BottomLayout,
+  type ButtonBehavior,
   type ButtonConfig,
   type ButtonSlot,
   EMPTY_LAYOUT,
@@ -72,45 +73,58 @@ function materializeStaticButton(
   ctx: LayoutContext,
 ): ButtonConfig {
   const def = STATIC_BUTTONS[id];
-
-  const config: ButtonConfig = {
+  const base = {
     key: id,
     label: def.label,
     variant: tier,
     size: tier === 'primary' ? 'lg' : 'md',
-    action: id,
     testID: def.testID,
-  };
+    textColor: tier === 'ghost' ? def.ghostTextColor : undefined,
+    buttonColor: tier === 'primary' ? def.primaryButtonColor : undefined,
+  } as const;
 
-  // Tier-specific overrides
-  if (tier === 'ghost' && def.ghostTextColor) {
-    config.textColor = def.ghostTextColor;
-  }
-  if (tier === 'primary' && def.primaryButtonColor) {
-    config.buttonColor = def.primaryButtonColor;
-  }
-
-  // Contextual overrides per button
   switch (id) {
-    case 'waitForHost':
+    case 'waitForHost': {
+      const onDisabledBehavior: ButtonBehavior = { kind: 'static', action: id };
+      return {
+        ...base,
+        isEnabled: false,
+        disabledReason: '等待房主开始分配角色',
+        onDisabledBehavior,
+      };
+    }
     case 'audioWaiting':
-      config.disabled = true;
-      config.fireWhenDisabled = true;
-      break;
+      return {
+        ...base,
+        isEnabled: false,
+        disabledReason: null,
+        onDisabledBehavior: null,
+      };
 
     case 'prepareToFlip':
     case 'startGame':
-      config.disabled = ctx.isHostActionSubmitting;
-      config.fireWhenDisabled = true;
-      break;
-
     case 'restart':
-      config.disabled = ctx.isHostActionSubmitting;
-      config.fireWhenDisabled = true;
-      break;
-  }
+      if (ctx.isHostActionSubmitting) {
+        return {
+          ...base,
+          isEnabled: false,
+          disabledReason: null,
+          onDisabledBehavior: null,
+        };
+      }
+      return {
+        ...base,
+        isEnabled: true,
+        behavior: { kind: 'static', action: id },
+      };
 
-  return config;
+    default:
+      return {
+        ...base,
+        isEnabled: true,
+        behavior: { kind: 'static', action: id },
+      };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,7 +155,8 @@ function materializeSlots(
           // Schema buttons in primary slot → primary variant; in secondary slot → secondary variant
           variant: tier === 'ghost' ? 'ghost' : tier,
           size: tier === 'primary' ? 'lg' : 'md',
-          intent: btn.intent,
+          isEnabled: true,
+          behavior: { kind: 'intent', intent: btn.intent },
         });
       }
     }

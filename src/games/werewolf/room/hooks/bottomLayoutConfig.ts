@@ -18,24 +18,35 @@ import { colors } from '@/theme';
 // Output types
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Fully resolved button ready for rendering. */
-export interface ButtonConfig {
-  key: string;
-  label: string;
-  variant: 'primary' | 'secondary' | 'ghost';
-  size: 'lg' | 'md';
-  /** Schema-driven action intent (for BOTTOM_ACTION dispatch). */
-  intent?: ActionIntent;
-  /** Static button identifier (for HOST_CONTROL / VIEW_ROLE dispatch). */
-  action?: StaticButtonId;
-  testID?: string;
-  disabled?: boolean;
-  fireWhenDisabled?: boolean;
+interface ButtonConfigBase {
+  readonly key: string;
+  readonly label: string;
+  readonly variant: 'primary' | 'secondary' | 'ghost';
+  readonly size: 'lg' | 'md';
+  readonly testID?: string;
   /** Text color override (e.g. danger-colored ghost button). */
-  textColor?: string;
+  readonly textColor?: string;
   /** Background color override (e.g. info-colored settings button). */
-  buttonColor?: string;
+  readonly buttonColor?: string;
 }
+
+export type ButtonBehavior =
+  | { readonly kind: 'intent'; readonly intent: ActionIntent }
+  | { readonly kind: 'static'; readonly action: StaticButtonAction };
+
+/** Fully resolved button with exactly one enabled or disabled interaction contract. */
+export type ButtonConfig = ButtonConfigBase &
+  (
+    | {
+        readonly isEnabled: true;
+        readonly behavior: ButtonBehavior;
+      }
+    | {
+        readonly isEnabled: false;
+        readonly disabledReason: string | null;
+        readonly onDisabledBehavior: ButtonBehavior | null;
+      }
+  );
 
 /** The three-tier layout produced by resolveBottomLayout. */
 export interface BottomLayout {
@@ -58,6 +69,9 @@ export type StaticButtonId =
   | 'restart'
   | 'lastNightInfo'
   | 'nightReview';
+
+/** Static entries that represent real user intent. Display-only entries are excluded. */
+export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting'>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static button definitions
@@ -122,7 +136,6 @@ export interface LayoutContext {
   effectiveSeat: number | null;
   imActioner: boolean;
   isAudioPlaying: boolean;
-  isStartingGame: boolean;
   isHostActionSubmitting: boolean;
   nightReviewAllowedSeats: readonly number[];
   isPlagueMode: boolean;

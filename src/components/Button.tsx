@@ -25,14 +25,12 @@ import { borderRadius, componentSizes, fixed, spacing, textStyles } from '@/them
 
 import { PressableScale } from './PressableScale';
 
-const NOOP = () => {};
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps {
+interface ButtonVisualProps {
   /** Visual & semantic variant (default: 'primary') */
   variant?: ButtonVariant;
   /** Height / dimension tier (default: 'md') */
@@ -41,12 +39,6 @@ interface ButtonProps {
   children?: React.ReactNode;
   /** Optional leading icon */
   icon?: React.ReactNode;
-  /** Press callback. Supports plain () => void and ActionButton meta pattern. */
-  onPress?: (() => void) | ((meta: { disabled: boolean }) => void);
-  /** Visual disable + behavioral block (unless fireWhenDisabled) */
-  disabled?: boolean;
-  /** Fire onPress even when disabled, passing { disabled: true } in meta */
-  fireWhenDisabled?: boolean;
   /** Show spinner and auto-disable */
   loading?: boolean;
   /** Override background color (e.g. dynamic factionColor) */
@@ -59,6 +51,37 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityLabel?: string;
+}
+
+type ButtonProps = ButtonVisualProps &
+  (
+    | {
+        /** Normal action. Never runs while disabled or loading. */
+        onPress: () => void;
+        disabled?: boolean;
+        /** Explicit feedback action for a visually disabled button. */
+        onDisabledPress?: () => void;
+      }
+    | {
+        /** A permanently disabled display button has no normal action. */
+        onPress?: never;
+        disabled: true;
+        onDisabledPress?: () => void;
+      }
+  );
+
+type PressInteraction =
+  | { readonly onPress: () => void; readonly disabled?: false }
+  | { readonly onPress?: never; readonly disabled: true };
+
+function resolvePressInteraction(props: ButtonProps, isLoading: boolean): PressInteraction {
+  if (isLoading) return { disabled: true };
+  if (props.disabled === true) {
+    return props.onDisabledPress === undefined
+      ? { disabled: true }
+      : { onPress: props.onDisabledPress };
+  }
+  return { onPress: props.onPress };
 }
 
 // ── Size mappings ─────────────────────────────────────────────────────────────
@@ -86,23 +109,23 @@ const TEXT_STYLES: Record<ButtonSize, TextStyle> = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const ButtonComponent: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'md',
-  children,
-  icon,
-  onPress,
-  disabled = false,
-  fireWhenDisabled = false,
-  loading = false,
-  buttonColor,
-  textColor: textColorProp,
-  haptic = false,
-  style,
-  testID,
-  accessibilityLabel,
-}) => {
+const ButtonComponent: React.FC<ButtonProps> = (props) => {
+  const {
+    variant = 'primary',
+    size = 'md',
+    children,
+    icon,
+    disabled = false,
+    loading = false,
+    buttonColor,
+    textColor: textColorProp,
+    haptic = false,
+    style,
+    testID,
+    accessibilityLabel,
+  } = props;
   const isDisabled = disabled || loading;
+  const pressInteraction = resolvePressInteraction(props, loading);
 
   // ── Computed styles ───────────────────────────────────────────────────────
 
@@ -247,11 +270,9 @@ const ButtonComponent: React.FC<ButtonProps> = ({
 
   return (
     <PressableScale
-      onPress={onPress ?? NOOP}
-      disabled={isDisabled}
-      fireWhenDisabled={fireWhenDisabled}
+      {...pressInteraction}
       activeScale={isDisabled ? 1 : undefined}
-      haptic={haptic}
+      haptic={haptic && !isDisabled}
       style={[containerStyle, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}

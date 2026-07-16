@@ -53,7 +53,7 @@ import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { RoleCardModal } from './components/RoleCardModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
-import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
+import type { LayoutContext, StaticButtonAction } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useWerewolfRoomScreenState } from './hooks/useWerewolfRoomScreenState';
 import type { ActionIntent } from './policy/types';
@@ -285,7 +285,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       effectiveSeat,
       imActioner,
       isAudioPlaying,
-      isStartingGame,
       isHostActionSubmitting,
       nightReviewAllowedSeats: gameState?.nightReviewAllowedSeats ?? [],
       isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
@@ -296,7 +295,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       effectiveSeat,
       imActioner,
       isAudioPlaying,
-      isStartingGame,
       isHostActionSubmitting,
       gameState?.nightReviewAllowedSeats,
       gameState?.rules?.isPlagueMode,
@@ -313,7 +311,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   );
 
   const handleStaticButtonPress = useCallback(
-    (action: StaticButtonId) => {
+    (action: StaticButtonAction) => {
       switch (action) {
         case 'viewRole':
           dispatchInteraction({ kind: 'VIEW_ROLE' });
@@ -344,6 +342,10 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         case 'nightReview':
           openNightReview();
           break;
+        default: {
+          const exhaustiveAction: never = action;
+          throw new Error(`Unhandled Werewolf static button action: ${exhaustiveAction}`);
+        }
       }
     },
     [capabilities.canConfigureGame, dispatchInteraction, showLastNightInfo, openNightReview],
