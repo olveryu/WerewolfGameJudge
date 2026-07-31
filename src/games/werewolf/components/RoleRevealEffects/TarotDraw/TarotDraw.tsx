@@ -6,7 +6,6 @@
  * Uses `useSharedValue` to drive all animations, `` to switch phases, no `setTimeout`.
  * Renders animations and haptic feedback. No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -863,7 +862,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
         {/* Card front */}
         <Animated.View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
           <RoleCardContent
-            roleId={role.id as RoleId}
+            roleId={role.id}
             width={cardWidth}
             height={cardHeight}
             revealMode

@@ -22,6 +22,8 @@ import {
 import type { FactionColorKey } from './components';
 import { buildInitialSelection, FACTION_GROUPS } from './configData';
 
+export type VariantOverrides = Partial<Record<RoleId, RoleId>>;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Selection helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,16 +36,15 @@ export const getEmptySelection = (): Record<string, boolean> => buildInitialSele
 /** Convert selection to a RoleId array. */
 export const selectionToRoles = (
   selection: Record<string, boolean>,
-  variantOverrides?: Record<string, string>,
+  variantOverrides?: VariantOverrides,
 ): RoleId[] => {
   const roles: RoleId[] = [];
   Object.entries(selection).forEach(([key, selected]) => {
     if (selected) {
       const baseRoleId = key.replace(/\d+$/, '');
+      if (!isValidRoleId(baseRoleId)) return;
       const roleId = variantOverrides?.[baseRoleId] ?? baseRoleId;
-      if (isValidRoleId(roleId)) {
-        roles.push(roleId);
-      }
+      roles.push(roleId);
     }
   });
   return roles;
@@ -57,8 +58,8 @@ export const selectionToRoles = (
  * Reverse lookup: variantId → base slot roleId.
  * Built once from FACTION_GROUPS at module level.
  */
-const VARIANT_TO_BASE: ReadonlyMap<string, string> = (() => {
-  const map = new Map<string, string>();
+const VARIANT_TO_BASE: ReadonlyMap<RoleId, RoleId> = (() => {
+  const map = new Map<RoleId, RoleId>();
   for (const group of FACTION_GROUPS) {
     for (const section of group.sections) {
       for (const slot of section.roles) {
@@ -80,26 +81,26 @@ const VARIANT_TO_BASE: ReadonlyMap<string, string> = (() => {
  * for selection keys, and stored in variantOverrides for display.
  */
 export const restoreFromTemplateRoles = (
-  templateRoles: RoleId[],
+  templateRoles: readonly RoleId[],
 ): {
   selection: Record<string, boolean>;
-  variantOverrides: Record<string, string>;
+  variantOverrides: VariantOverrides;
   matchedPreset: string | undefined;
 } => {
   const selection = getInitialSelection();
   Object.keys(selection).forEach((key) => {
     selection[key] = false;
   });
-  const overrides: Record<string, string> = {};
-  const baseCounts: Record<string, number> = {};
+  const overrides: VariantOverrides = {};
+  const baseCounts = new Map<RoleId, number>();
   templateRoles.forEach((role) => {
     const baseId = VARIANT_TO_BASE.get(role) ?? role;
     if (VARIANT_TO_BASE.has(role)) {
       overrides[baseId] = role;
     }
-    baseCounts[baseId] = (baseCounts[baseId] ?? 0) + 1;
+    baseCounts.set(baseId, (baseCounts.get(baseId) ?? 0) + 1);
   });
-  Object.entries(baseCounts).forEach(([baseRole, count]) => {
+  baseCounts.forEach((count, baseRole) => {
     for (let i = 0; i < count; i++) {
       const key = i === 0 ? baseRole : `${baseRole}${i}`;
       if (key in selection) selection[key] = true;
@@ -124,7 +125,7 @@ export const FACTION_COLOR_MAP: Record<string, FactionColorKey> = {
 /** Compute total player count (accounts for treasureMaster bottom cards) */
 export const computeTotalCount = (
   selection: Record<string, boolean>,
-  variantOverrides?: Record<string, string>,
+  variantOverrides?: VariantOverrides,
 ): number => {
   const roles = selectionToRoles(selection, variantOverrides);
   return getPlayerCount(roles);
@@ -133,16 +134,15 @@ export const computeTotalCount = (
 /** Expand a RoleSlot into an array of {key, label} for rendering chips */
 export const expandSlotToChipEntries = (
   slot: {
-    roleId: string;
+    roleId: RoleId;
     count?: number;
-    variants?: string[];
+    variants?: readonly RoleId[];
   },
-  variantOverrides?: Record<string, string>,
+  variantOverrides?: VariantOverrides,
 ): { key: string; label: string; hasVariants: boolean }[] => {
   const count = slot.count ?? 1;
   const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
-  const spec = isValidRoleId(activeRoleId) ? ROLE_SPECS[activeRoleId] : undefined;
-  const label = spec?.displayName ?? activeRoleId;
+  const label = ROLE_SPECS[activeRoleId].displayName;
   const hasVariants = !!slot.variants && slot.variants.length > 0;
 
   return Array.from({ length: count }, (_, i) => ({
@@ -173,7 +173,7 @@ interface TemplateRoleItem {
 }
 
 /** Compute faction statistics from a roles array */
-export const computeFactionStats = (roles: RoleId[]): FactionStats => {
+export const computeFactionStats = (roles: readonly RoleId[]): FactionStats => {
   let wolfCount = 0;
   let godCount = 0;
   let villagerCount = 0;

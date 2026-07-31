@@ -29,6 +29,12 @@ interface BarChartProps {
 /** Threshold: if bar fill >= 40%, show value inside the bar */
 const INLINE_THRESHOLD = 0.4;
 
+function isPercentageDimension(value: string): value is `${number}%` {
+  if (!value.endsWith('%')) return false;
+  const numericValue = Number(value.slice(0, -1));
+  return Number.isFinite(numericValue);
+}
+
 const BarChartComponent: React.FC<BarChartProps> = ({ title, items, labelWidth = 36 }) => {
   const maxValue = useMemo(() => {
     if (items.length === 0) return 1;
@@ -42,7 +48,11 @@ const BarChartComponent: React.FC<BarChartProps> = ({ title, items, labelWidth =
       <Text style={styles.title}>{title}</Text>
       {items.map((item) => {
         const ratio = item.value / maxValue;
-        const percent = `${(ratio * 100).toFixed(0)}%` as DimensionValue;
+        const percentText = `${(ratio * 100).toFixed(0)}%`;
+        if (!isPercentageDimension(percentText)) {
+          throw new Error(`BarChart cannot render a non-finite value for "${item.label}"`);
+        }
+        const percent: DimensionValue = percentText;
         const showInline = ratio >= INLINE_THRESHOLD;
         const display = item.displayValue ?? String(item.value);
 

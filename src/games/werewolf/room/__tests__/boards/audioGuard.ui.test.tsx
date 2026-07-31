@@ -13,8 +13,8 @@ import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { render, waitFor } from '@testing-library/react-native';
 
 import {
-  createGameRoomMock,
   createShowAlertMock,
+  createWerewolfRoomMock,
   mockNavigation,
   mockRoom,
   RoomScreenTestHarness,
@@ -54,10 +54,10 @@ jest.mock('../../hooks/useActionerState', () => ({
 // =============================================================================
 
 let harness: RoomScreenTestHarness;
-let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 describe('Audio Guard (isAudioPlaying=true)', () => {
@@ -72,7 +72,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
   describe('seat tap blocked during audio', () => {
     it('seer seat tap produces no dialog when isAudioPlaying=true', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
@@ -91,7 +91,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
     });
 
     it('wolf seat tap produces no dialog when isAudioPlaying=true', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
@@ -117,7 +117,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
   describe('bottom action buttons hidden during audio', () => {
     it('seer skip button is not visible when isAudioPlaying=true', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
@@ -135,7 +135,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
     });
 
     it('wolf empty knife button is not visible when isAudioPlaying=true', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
@@ -160,7 +160,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
   describe('audio off → interactions work normally', () => {
     it('seer seat tap works when isAudioPlaying=false (control test)', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',

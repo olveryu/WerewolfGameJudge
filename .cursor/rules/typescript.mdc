@@ -19,9 +19,9 @@ alwaysApply: false
   - Compound assignment (`+=`, `|=`) needs expansion: `data[x] = data[x]! + y`.
   - Adding `!` to expressions already non-`undefined` is forbidden (ESLint `no-unnecessary-type-assertion` will warn).
 - Discriminated Union (`type` / `kind` tag field). Optional field stacking to distinguish variants is forbidden.
-- Result types follow their boundary: engine/Worker transport uses `RoomCommandResult`; client controllers use
-  `RoomOperationResult`, which preserves `failureKind` and `commandId`. Bare booleans and lossy duplicate result types
-  are forbidden.
+- Result types follow their boundary: engine/Worker decisions use `RoomCommandResult`; client dispatch uses
+  `RoomCommandDispatchOutcome`, which preserves the authoritative decision and adds only transport uncertainty.
+  Bare booleans and lossy duplicate result types are forbidden.
 - Exhaustive `switch`: `default` uses `assertNever` or `const _: never`.
 - `satisfies` used for "both type-check and preserve literal inference" (`ROLE_SPECS`, `SCHEMAS`, config objects etc.).
 - Function parameter arrays/objects prefer `readonly`; exported constants prefer `as const`.

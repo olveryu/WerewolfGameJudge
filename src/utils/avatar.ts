@@ -34,6 +34,12 @@ export const AVATAR_KEYS: readonly AvatarId[] = AVATAR_IDS;
 /** Hand-drawn avatar keys (with actual image files) */
 export const HAND_DRAWN_KEYS: readonly HandDrawnAvatarId[] = HAND_DRAWN_AVATAR_IDS;
 
+const HAND_DRAWN_AVATAR_ID_SET: ReadonlySet<string> = new Set(HAND_DRAWN_AVATAR_IDS);
+
+function isHandDrawnAvatarId(avatarId: string): avatarId is HandDrawnAvatarId {
+  return HAND_DRAWN_AVATAR_ID_SET.has(avatarId);
+}
+
 /** All hand-drawn avatar image sources, in HAND_DRAWN_AVATAR_IDS order. */
 export const AVATAR_IMAGES: readonly number[] = HAND_DRAWN_AVATAR_IDS.map(
   (id) => AVATAR_IMAGE_MAP[id],
@@ -52,12 +58,14 @@ export function getAvatarThumbByIndex(index: number): number {
 
 /** Resolve a hand-drawn avatarId to its thumbnail. Returns undefined for generated/unknown IDs. */
 export function getHandDrawnThumb(avatarId: string): number | undefined {
-  return AVATAR_THUMB_MAP[avatarId as HandDrawnAvatarId];
+  if (!isHandDrawnAvatarId(avatarId)) return undefined;
+  return AVATAR_THUMB_MAP[avatarId];
 }
 
 /** Resolve a hand-drawn avatarId to its full-size image. Returns undefined for generated/unknown IDs. */
 export function getHandDrawnImage(avatarId: string): number | undefined {
-  return AVATAR_IMAGE_MAP[avatarId as HandDrawnAvatarId];
+  if (!isHandDrawnAvatarId(avatarId)) return undefined;
+  return AVATAR_IMAGE_MAP[avatarId];
 }
 
 /**
@@ -148,9 +156,7 @@ export function getBuiltinAvatarId(url: string): string {
  */
 export function getBuiltinAvatarImage(url: string): number | null {
   const key = getBuiltinAvatarId(url);
-  const index = (HAND_DRAWN_KEYS as readonly string[]).indexOf(key);
-  if (index === -1) return null;
-  return AVATAR_IMAGES[index]!;
+  return getHandDrawnImage(key) ?? null;
 }
 
 /** Create a builtin:// URL from an avatar ID. */

@@ -186,11 +186,11 @@ function hasPropertyAccess(filePath: string, propertyName: string): boolean {
   return found;
 }
 
-function getUnsafeTypeAssertions(filePath: string): readonly string[] {
-  const source = fs.readFileSync(filePath, 'utf-8');
+function getOrdinaryTypeAssertions(filePath: string, source?: string): readonly string[] {
+  const content = source ?? fs.readFileSync(filePath, 'utf-8');
   const sourceFile = ts.createSourceFile(
     filePath,
-    source,
+    content,
     ts.ScriptTarget.Latest,
     true,
     filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
@@ -198,17 +198,12 @@ function getUnsafeTypeAssertions(filePath: string): readonly string[] {
   const violations: string[] = [];
 
   function visit(node: ts.Node): void {
-    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
-      const isEscapeType =
-        node.type.kind === ts.SyntaxKind.AnyKeyword ||
-        node.type.kind === ts.SyntaxKind.NeverKeyword;
-      const isDoubleAssertion =
-        ts.isAsExpression(node.expression) || ts.isTypeAssertionExpression(node.expression);
-
-      if (isEscapeType || isDoubleAssertion) {
-        const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
-        violations.push(`${path.relative(process.cwd(), filePath)}:${line}`);
-      }
+    if (
+      ts.isTypeAssertionExpression(node) ||
+      (ts.isAsExpression(node) && node.type.getText(sourceFile) !== 'const')
+    ) {
+      const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+      violations.push(`${path.relative(process.cwd(), filePath)}:${line}`);
     }
     ts.forEachChild(node, visit);
   }
@@ -1219,10 +1214,24 @@ describe('Client interaction: disabled feedback is explicit', () => {
   });
 });
 
-describe('Production types: no escape-hatch assertions', () => {
-  it('forbids any, never, and double assertions across all runtime packages', () => {
-    const violations = [...srcFiles, ...gameEngineFiles, ...workerFiles].flatMap(
-      getUnsafeTypeAssertions,
+describe('Production types: no ordinary assertions', () => {
+  it('detects both assertion syntaxes while allowing const assertions', () => {
+    const fixturePath = path.join(process.cwd(), 'ordinary-assertion-fixture.ts');
+    const fixture = [
+      'const first = value as string;',
+      'const second = <string>value;',
+      'const allowed = value as const;',
+    ].join('\n');
+
+    expect(getOrdinaryTypeAssertions(fixturePath, fixture)).toEqual([
+      'ordinary-assertion-fixture.ts:1',
+      'ordinary-assertion-fixture.ts:2',
+    ]);
+  });
+
+  it('allows only const assertions across all runtime packages', () => {
+    const violations = [...srcFiles, ...gameEngineFiles, ...workerFiles].flatMap((filePath) =>
+      getOrdinaryTypeAssertions(filePath),
     );
 
     expect(violations).toEqual([]);

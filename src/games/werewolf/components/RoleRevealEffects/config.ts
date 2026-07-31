@@ -4,6 +4,7 @@
  * All animation parameters (duration, size, count) are tuned here.
  * Exports declarative animation constants. No service imports, no runtime side effects.
  */
+import type { RoleAlignment } from './types';
 
 export const CONFIG = {
   // =====================================================
@@ -287,7 +288,7 @@ export const CONFIG = {
       god: 3000,
       third: 4000,
       villager: 2500,
-    } as Record<string, number>,
+    } satisfies Record<RoleAlignment, number>,
 
     // ── Screen flash ──
     /** Screen flash duration (ms) */
@@ -341,9 +342,9 @@ export const CONFIG = {
     /** Screen flash blur */
     flashBlur: 30,
     /** Breathing border blur range [min, max] */
-    breathingBlurRange: [8, 16] as readonly [number, number],
+    breathingBlurRange: [8, 16],
     /** Breathing border stroke width range [min, max] */
-    breathingStrokeRange: [4, 8] as readonly [number, number],
+    breathingStrokeRange: [4, 8],
     /** Burst particle count (reveal moment) */
     burstParticleCount: 20,
     /** Trail particle count (entrance) */

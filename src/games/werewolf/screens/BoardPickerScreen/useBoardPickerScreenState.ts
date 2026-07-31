@@ -3,7 +3,7 @@
  *
  * Search / category / role filter / expand-collapse / navigation.
  */
-import { Faction, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction, isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES, TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import { LayoutAnimation } from 'react-native';
 
 import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
+import type { FactionColorKey } from '@/games/werewolf/screens/ConfigScreen/components';
 import {
   filterTemplates,
   getDistinctiveRoles,
@@ -49,7 +50,7 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
   const distinctiveRoles = useMemo(() => getDistinctiveRoles(PRESET_TEMPLATES), []);
   const filterGroups = useMemo(() => {
     const groups: { label: string; color: string; items: typeof distinctiveRoles }[] = [];
-    const factions: { key: Faction; label: string; colorKey: string }[] = [
+    const factions: { key: Faction; label: string; colorKey: FactionColorKey }[] = [
       { key: Faction.Wolf, label: '狼人', colorKey: 'wolf' },
       { key: Faction.God, label: '神职', colorKey: 'god' },
       { key: Faction.Villager, label: '村民', colorKey: 'villager' },
@@ -60,7 +61,7 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
       if (items.length > 0) {
         groups.push({
           label: f.label,
-          color: colors[f.colorKey as keyof typeof colors],
+          color: colors[f.colorKey],
           items,
         });
       }
@@ -128,7 +129,10 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
   }, [navigation, existingRoomCode, nominateMode]);
 
   const handleRolePress = useCallback((roleId: string) => {
-    setPreviewRoleId(roleId as RoleId);
+    if (!isValidRoleId(roleId)) {
+      throw new Error(`[useBoardPickerScreenState] Invalid role ID: ${roleId}`);
+    }
+    setPreviewRoleId(roleId);
   }, []);
 
   const handlePreviewClose = useCallback(() => {

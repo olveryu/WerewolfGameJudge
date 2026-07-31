@@ -11,8 +11,8 @@
 import { render } from '@testing-library/react-native';
 
 import {
-  createGameRoomMock,
   createShowAlertMock,
+  createWerewolfRoomMock,
   mockNavigation,
   mockRoom,
   RoomScreenTestHarness,
@@ -53,10 +53,10 @@ jest.mock('../../hooks/useActionerState', () => ({
 // =============================================================================
 
 let harness: RoomScreenTestHarness;
-let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 // =============================================================================
@@ -72,7 +72,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
 
   it('seer step: non-actioner villager sees no actionPrompt', async () => {
     // Current step is seerCheck, but myRole is villager (non-actioner)
-    mockUseGameRoomReturn = createGameRoomMock({
+    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'seerCheck',
       currentActionRole: 'seer',
       myRole: 'villager',
@@ -89,7 +89,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
   });
 
   it('witchAction step: non-actioner villager sees no witch dialogs', async () => {
-    mockUseGameRoomReturn = createGameRoomMock({
+    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'villager',
@@ -109,7 +109,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
   });
 
   it('witchAction step: non-actioner tapping seat does not trigger poison dialog', async () => {
-    mockUseGameRoomReturn = createGameRoomMock({
+    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'villager',
@@ -130,7 +130,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
   });
 
   it('hunterConfirm step: non-actioner sees no confirmTrigger or actionPrompt', async () => {
-    mockUseGameRoomReturn = createGameRoomMock({
+    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'hunterConfirm',
       currentActionRole: 'hunter',
       myRole: 'villager',
@@ -149,7 +149,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
   });
 
   it('wolfKill step: non-actioner sees no wolfVote dialog', async () => {
-    mockUseGameRoomReturn = createGameRoomMock({
+    mockUseWerewolfRoomReturn = createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'villager',

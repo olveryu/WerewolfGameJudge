@@ -125,18 +125,18 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
 
   // ── Role stats ───────────────────────────────────────────────────────────
 
-  const roleStats = useMemo(() => {
+  const roleStats = useMemo<ReturnType<typeof getRoleStats>>(() => {
     if (!gameState) {
       return {
         roleCounts: {},
-        wolfRoles: [] as string[],
-        godRoles: [] as string[],
-        specialRoles: [] as string[],
+        wolfRoles: [],
+        godRoles: [],
+        specialRoles: [],
         villagerCount: 0,
-        wolfRoleItems: [] as ReturnType<typeof getRoleStats>['wolfRoleItems'],
-        godRoleItems: [] as ReturnType<typeof getRoleStats>['godRoleItems'],
-        specialRoleItems: [] as ReturnType<typeof getRoleStats>['specialRoleItems'],
-        villagerRoleItems: [] as ReturnType<typeof getRoleStats>['villagerRoleItems'],
+        wolfRoleItems: [],
+        godRoleItems: [],
+        specialRoleItems: [],
+        villagerRoleItems: [],
       };
     }
     return getRoleStats(gameState.template.roles);

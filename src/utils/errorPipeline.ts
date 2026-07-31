@@ -64,10 +64,9 @@ interface HandleErrorOptions {
  */
 function extractStatusCode(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
-  const obj = err as Record<string, unknown>;
-  if (typeof obj.status === 'number') return obj.status;
-  if (typeof obj.code === 'string') {
-    const parsed = Number(obj.code);
+  if ('status' in err && typeof err.status === 'number') return err.status;
+  if ('code' in err && typeof err.code === 'string') {
+    const parsed = Number(err.code);
     if (!Number.isNaN(parsed) && parsed >= 100 && parsed < 600) return parsed;
   }
   return undefined;

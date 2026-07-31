@@ -30,11 +30,14 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
   onRolePress,
   showStats = true,
 }) {
-  const stats = useMemo(() => computeFactionStats(roles as RoleId[]), [roles]);
-  const { wolfItems, godItems, villagerItems, thirdItems } = useMemo(
-    () => groupRolesByFaction(roles as RoleId[]),
-    [roles],
-  );
+  const { stats, groupedRoles } = useMemo(() => {
+    const rolesForHelpers = [...roles];
+    return {
+      stats: computeFactionStats(rolesForHelpers),
+      groupedRoles: groupRolesByFaction(rolesForHelpers),
+    };
+  }, [roles]);
+  const { wolfItems, godItems, villagerItems, thirdItems } = groupedRoles;
 
   return (
     <View>

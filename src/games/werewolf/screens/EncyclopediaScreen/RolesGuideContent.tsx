@@ -42,6 +42,21 @@ function getFactionColorForRole(roleId: RoleId, themeColors: ThemeColors): strin
   return themeColors.villager;
 }
 
+function getFactionColorByKey(colorKey: string, themeColors: ThemeColors): string {
+  switch (colorKey) {
+    case 'wolf':
+      return themeColors.wolf;
+    case 'god':
+      return themeColors.god;
+    case 'villager':
+      return themeColors.villager;
+    case 'third':
+      return themeColors.third;
+    default:
+      throw new Error(`[RolesGuideContent] Invalid faction color key: ${colorKey}`);
+  }
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface RolesGuideContentProps {
@@ -101,7 +116,7 @@ export const RolesGuideContent: React.FC<RolesGuideContentProps> = ({ state }) =
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<[RoleId, RoleId | null], RoleSection> }) => {
-      const factionColor = colors[section.colorKey as keyof typeof colors];
+      const factionColor = getFactionColorByKey(section.colorKey, colors);
       return (
         <View style={[styles.sectionHeader, { backgroundColor: withAlpha(factionColor, 0.06) }]}>
           <View style={[styles.sectionAccent, { backgroundColor: factionColor }]} />

@@ -13,7 +13,9 @@ import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import {
   createCustomTemplate,
   type GameRuleOverrides,
+  isValidRoleId,
   PRESET_TEMPLATES,
+  type RoleId,
   validateTemplateRoles,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -45,6 +47,7 @@ import {
   getInitialSelection,
   restoreFromTemplateRoles,
   selectionToRoles,
+  type VariantOverrides,
 } from './configHelpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,7 +115,7 @@ export function useConfigScreenState({
   );
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [overflowVisible, setOverflowVisible] = useState(false);
-  const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>(
+  const [variantOverrides, setVariantOverrides] = useState<VariantOverrides>(
     () => presetInitial?.variantOverrides ?? {},
   );
   const [rules, setRules] = useState<GameRuleOverrides>({});
@@ -352,10 +355,9 @@ export function useConfigScreenState({
 
   // ── Role info card (long-press any chip → RoleCardSimple with variant bar) ──
 
-  const [roleInfoBaseId, setRoleInfoBaseId] = useState<string | null>(null);
+  const [roleInfoBaseId, setRoleInfoBaseId] = useState<RoleId | null>(null);
 
-  const findSlotForKey = useCallback((key: string) => {
-    const baseRoleId = key.replace(/\d+$/, '');
+  const findSlotForKey = useCallback((baseRoleId: RoleId) => {
     for (const group of FACTION_GROUPS) {
       for (const section of group.sections) {
         for (const slot of section.roles) {
@@ -373,13 +375,18 @@ export function useConfigScreenState({
 
   // Variant pill bar data (only for slots that have variants)
   const roleInfoSlot = roleInfoBaseId ? findSlotForKey(roleInfoBaseId) : null;
-  const roleInfoVariantIds = roleInfoSlot ? [roleInfoSlot.roleId, ...roleInfoSlot.variants!] : [];
+  const roleInfoVariantIds = roleInfoSlot?.variants
+    ? [roleInfoSlot.roleId, ...roleInfoSlot.variants]
+    : [];
   const roleInfoActiveVariant = roleInfoBaseId
     ? (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId)
-    : '';
+    : undefined;
 
   const handleChipInfoPress = useCallback((key: string) => {
     const baseRoleId = key.replace(/\d+$/, '');
+    if (!isValidRoleId(baseRoleId)) {
+      throw new Error(`[useConfigScreenState] Invalid role selection key: ${key}`);
+    }
     setRoleInfoBaseId(baseRoleId);
   }, []);
 
@@ -389,7 +396,7 @@ export function useConfigScreenState({
 
   /** Switch variant from within the RoleCardSimple pill bar. */
   const handleRoleInfoVariantSelect = useCallback(
-    (variantId: string) => {
+    (variantId: RoleId) => {
       if (!roleInfoBaseId) return;
       setVariantOverrides((prev) => {
         if (variantId === roleInfoBaseId) {

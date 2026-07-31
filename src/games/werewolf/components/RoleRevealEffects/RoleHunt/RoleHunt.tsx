@@ -15,7 +15,6 @@
  * Gesture Handler handles: scope drag + shot trigger.
  * No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -1245,7 +1244,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
             style={[styles.cardContainer, { width: cardWidth, height: cardHeight }, cardAnimStyle]}
           >
             <RoleCardContent
-              roleId={role.id as RoleId}
+              roleId={role.id}
               width={cardWidth}
               height={cardHeight}
               revealMode

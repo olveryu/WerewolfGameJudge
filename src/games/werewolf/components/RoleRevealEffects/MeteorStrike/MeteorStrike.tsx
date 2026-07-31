@@ -9,7 +9,6 @@
  * Reanimated handles: driving phase transitions + card entrance.
  * Does not import service, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -600,7 +599,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
-              roleId={role.id as RoleId}
+              roleId={role.id}
               width={cardWidth}
               height={cardHeight}
               revealMode

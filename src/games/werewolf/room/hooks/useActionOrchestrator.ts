@@ -222,9 +222,7 @@ export function useActionOrchestrator({
     if (!myUserId || !isTargetMatch) return;
 
     // Deduplicate repeated broadcasts of the same rejection
-    const key =
-      (rejected as { rejectionId?: string }).rejectionId ??
-      `${rejected.action}:${rejected.reason}:${rejected.targetUserId}`;
+    const key = rejected.rejectionId;
     if (key === lastRejectedKeyRef.current) return;
     lastRejectedKeyRef.current = key;
 

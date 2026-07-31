@@ -22,8 +22,8 @@ import {
   coverageChainWitchSavePrompt,
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
-  createGameRoomMock,
   createShowAlertMock,
+  createWerewolfRoomMock,
   getBoardByName,
   mockNavigation,
   mockRoom,
@@ -59,17 +59,17 @@ const BOARD_NAME = '隐狼乌鸦';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;
-let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   const renderRoom = () =>
     render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
-  const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
-    mockUseGameRoomReturn = m;
+  const setMock = (m: ReturnType<typeof createWerewolfRoomMock>) => {
+    mockUseWerewolfRoomReturn = m;
   };
 
   beforeEach(() => {
@@ -80,7 +80,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('actionPrompt coverage', () => {
     it('seer action: shows action prompt', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
@@ -95,7 +95,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('actionConfirm coverage', () => {
     it('seer: tapping seat shows actionConfirm dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
@@ -112,7 +112,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('wolfVote coverage', () => {
     it('wolf vote: tapping seat shows wolf vote dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
@@ -134,7 +134,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('confirmTrigger coverage', () => {
     it('hiddenWolf confirm: pressing bottom button shows confirmTrigger dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'hiddenWolfReveal',
         currentActionRole: 'hiddenWolf',
         myRole: 'hiddenWolf',
@@ -157,7 +157,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
 
     it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
@@ -180,7 +180,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
@@ -197,7 +197,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('witchPoisonPrompt coverage', () => {
     it('witch action: tapping seat triggers poison', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
@@ -216,7 +216,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('witchNoKill coverage', () => {
     it('witch action: shows no-kill info when no kill happened', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
@@ -233,7 +233,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('wolfVoteEmpty coverage', () => {
     it('wolf vote: skip shows wolfVoteEmpty dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
@@ -258,7 +258,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('skipConfirm coverage', () => {
     it('seer: skip button shows skipConfirm dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',

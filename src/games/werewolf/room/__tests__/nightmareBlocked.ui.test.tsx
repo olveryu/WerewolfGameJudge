@@ -15,7 +15,7 @@ import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/Read
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
-import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
+import { createBaseWerewolfRoomMock, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
@@ -25,7 +25,7 @@ jest.mock('@/utils/alert', () => ({
 const mockShowAlert = jest.mocked(showAlert);
 
 const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
-  const base = makeBaseUseGameRoomReturn({
+  const base = createBaseWerewolfRoomMock({
     schemaId: 'seerCheck',
     currentActionRole: 'seer',
     myRole: 'seer',
@@ -41,17 +41,17 @@ const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
   };
 };
 
-type MockReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
-let mockUseGameRoomReturn: MockReturn;
+type MockReturn = ReturnType<typeof createBaseWerewolfRoomMock>;
+let mockUseWerewolfRoomReturn: MockReturn;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 describe('Nightmare Blocked UI (server-authoritative)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseGameRoomReturn = makeBlockedPlayerMock();
+    mockUseWerewolfRoomReturn = makeBlockedPlayerMock();
   });
 
   it('blocked player tapping a seat shows confirm dialog (not blocked alert)', async () => {
@@ -80,7 +80,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
 
   it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
-    mockUseGameRoomReturn = {
+    mockUseWerewolfRoomReturn = {
       ...makeBlockedPlayerMock(),
       myUserId: 'p0',
       gameState: {
@@ -106,15 +106,15 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
 
   it('confirm schema (hunter) shows skip button when blocked', async () => {
-    mockUseGameRoomReturn = {
-      ...makeBaseUseGameRoomReturn({
+    mockUseWerewolfRoomReturn = {
+      ...createBaseWerewolfRoomMock({
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
         mySeat: 0,
       }),
       gameState: {
-        ...makeBaseUseGameRoomReturn({
+        ...createBaseWerewolfRoomMock({
           schemaId: 'hunterConfirm',
           currentActionRole: 'hunter',
           myRole: 'hunter',
@@ -152,8 +152,8 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
 
   it('confirm schema (hunter) does NOT show skip button when NOT blocked', async () => {
-    mockUseGameRoomReturn = {
-      ...makeBaseUseGameRoomReturn({
+    mockUseWerewolfRoomReturn = {
+      ...createBaseWerewolfRoomMock({
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
@@ -184,8 +184,8 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
 
   it('confirm schema (darkWolfKing) does NOT show skip button when NOT blocked', async () => {
-    mockUseGameRoomReturn = {
-      ...makeBaseUseGameRoomReturn({
+    mockUseWerewolfRoomReturn = {
+      ...createBaseWerewolfRoomMock({
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
@@ -216,15 +216,15 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
 
   it('confirm schema (darkWolfKing) shows skip button when blocked', async () => {
-    mockUseGameRoomReturn = {
-      ...makeBaseUseGameRoomReturn({
+    mockUseWerewolfRoomReturn = {
+      ...createBaseWerewolfRoomMock({
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
         mySeat: 0,
       }),
       gameState: {
-        ...makeBaseUseGameRoomReturn({
+        ...createBaseWerewolfRoomMock({
           schemaId: 'darkWolfKingConfirm',
           currentActionRole: 'darkWolfKing',
           myRole: 'darkWolfKing',

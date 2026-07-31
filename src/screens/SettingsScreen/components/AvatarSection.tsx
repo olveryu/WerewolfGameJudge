@@ -65,6 +65,11 @@ export const AvatarSection = memo<AvatarSectionProps>(
     onPickAvatar,
     styles,
   }) => {
+    const avatarBorderRadius = styles.avatar.borderRadius;
+    if (typeof avatarBorderRadius !== 'number') {
+      throw new Error('AvatarSection requires a numeric avatar border radius');
+    }
+
     // Anonymous users: show avatar + name, then a teaser card to upgrade
     if (isAnonymous) {
       return (
@@ -72,7 +77,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
           <Avatar
             value={userId}
             size={componentSizes.avatar.xl}
-            borderRadius={styles.avatar.borderRadius as number}
+            borderRadius={avatarBorderRadius}
           />
           <Text style={styles.userName}>{displayName || '匿名用户'}</Text>
 
@@ -82,7 +87,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
               {PREVIEW_STRIP_INDICES.map((avatarIdx) => (
                 <Image
                   key={avatarIdx}
-                  source={getAvatarThumbByIndex(avatarIdx) as ImageSourcePropType}
+                  source={getAvatarThumbByIndex(avatarIdx)}
                   style={styles.avatarPreviewItem}
                   resizeMode="cover"
                 />
@@ -125,14 +130,14 @@ export const AvatarSection = memo<AvatarSectionProps>(
         value={userId}
         size={avatarSize}
         avatarUrl={avatarUrl}
-        borderRadius={styles.avatar.borderRadius as number}
+        borderRadius={avatarBorderRadius}
         frameId={avatarFrame}
       />
     ) : (
       <AvatarWithFrame
         value={userId}
         size={avatarSize}
-        borderRadius={styles.avatar.borderRadius as number}
+        borderRadius={avatarBorderRadius}
         frameId={avatarFrame}
       />
     );
@@ -141,9 +146,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
       <TouchableOpacity onPress={onPickAvatar} activeOpacity={fixed.activeOpacity}>
         <View>
           {avatarContent}
-          {FlairComp && (
-            <FlairComp size={avatarSize} borderRadius={styles.avatar.borderRadius as number} />
-          )}
+          {FlairComp && <FlairComp size={avatarSize} borderRadius={avatarBorderRadius} />}
           <View style={styles.avatarEditBadge}>
             <Ionicons
               name={UI_ICONS.CAMERA}

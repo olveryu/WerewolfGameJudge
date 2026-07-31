@@ -211,7 +211,7 @@ export function useWerewolfRoomScreenState(
     const raw = gameState?.currentNightResults?.wolfVotesBySeat;
     if (!raw) return new Map<number, number>();
     const map = new Map<number, number>();
-    for (const [k, v] of Object.entries(raw as Record<string, number>)) {
+    for (const [k, v] of Object.entries(raw)) {
       map.set(Number.parseInt(k, 10), v);
     }
     return map;

@@ -145,7 +145,7 @@ export const BoardCard = React.memo<BoardCardProps>(
             <View style={styles.keyRoleRow}>
               {keyRoles.map((item) => {
                 const colorKey = FACTION_COLOR_MAP[item.faction] ?? 'villager';
-                const chipColor = colors[colorKey as keyof typeof colors];
+                const chipColor = colors[colorKey];
                 return (
                   <View
                     key={item.roleId}

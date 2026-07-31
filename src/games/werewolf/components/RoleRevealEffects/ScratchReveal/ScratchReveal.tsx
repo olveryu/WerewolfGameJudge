@@ -7,7 +7,6 @@
  * Uses `Gesture.Pan()` instead of PanResponder; `useSharedValue` drives all animations.
  * Renders animations and haptic feedback. No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -490,7 +489,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         {/* Role card underneath */}
         <View style={styles.roleCardLayer}>
           <RoleCardContent
-            roleId={role.id as RoleId}
+            roleId={role.id}
             width={cardWidth}
             height={cardHeight}
             revealMode
@@ -574,7 +573,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
                     ]}
                   >
                     <RoleCardContent
-                      roleId={role.id as RoleId}
+                      roleId={role.id}
                       width={cardWidth}
                       height={cardHeight}
                       revealMode

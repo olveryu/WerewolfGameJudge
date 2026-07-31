@@ -32,8 +32,8 @@ import {
   coverageChainSkipConfirm,
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
-  createGameRoomMock,
   createShowAlertMock,
+  createWerewolfRoomMock,
   getBoardByName,
   mockNavigation,
   mockRoom,
@@ -77,10 +77,10 @@ const BOARD_NAME = '盗宝大师';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;
-let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 // =============================================================================
@@ -90,8 +90,8 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
 describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   const renderRoom = () =>
     render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
-  const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
-    mockUseGameRoomReturn = m;
+  const setMock = (m: ReturnType<typeof createWerewolfRoomMock>) => {
+    mockUseWerewolfRoomReturn = m;
   };
 
   beforeEach(() => {
@@ -102,7 +102,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('actionPrompt coverage', () => {
     it('psychic action: shows action prompt', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'psychicCheck',
         currentActionRole: 'psychic',
         myRole: 'psychic',
@@ -120,7 +120,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('wolfVote coverage', () => {
     it('darkWolfKing vote: tapping seat shows wolf vote dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'darkWolfKing',
@@ -146,7 +146,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('confirmTrigger coverage', () => {
     it('darkWolfKing confirm: pressing bottom button shows confirmTrigger dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
@@ -171,7 +171,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
 
     it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
@@ -197,7 +197,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('psychic actionConfirm coverage', () => {
     it('psychic: seat tap shows actionConfirm dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'psychicCheck',
         currentActionRole: 'psychic',
         myRole: 'psychic',
@@ -217,7 +217,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('psychic skipConfirm coverage', () => {
     it('psychic: skip button shows skipConfirm dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'psychicCheck',
         currentActionRole: 'psychic',
         myRole: 'psychic',
@@ -240,7 +240,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
 
   describe('wolfVoteEmpty coverage', () => {
     it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
-      mockUseGameRoomReturn = createGameRoomMock({
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'darkWolfKing',

@@ -1,11 +1,11 @@
 /**
  * Mock Shape Contract Test
  *
- * Verifies that the key set of createGameRoomMock's return value matches useWerewolfRoom's return value.
- * If useWerewolfRoom adds a field that createGameRoomMock does not include, this test will fail.
+ * Verifies that the key set of createWerewolfRoomMock's return value matches useWerewolfRoom's return value.
+ * If useWerewolfRoom adds a field that createWerewolfRoomMock does not include, this test will fail.
  *
  * Implementation: extracts the return-value key list from useWerewolfRoom source (via AST-like regex),
- * and compares it against the keys actually produced by createGameRoomMock.
+ * and compares it against the keys actually produced by createWerewolfRoomMock.
  *
  * Note: this is a contract test, not a functional test. Only the key set is checked, not values.
  */
@@ -13,7 +13,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { createGameRoomMock } from '../harness/boardTestUtils';
+import { createWerewolfRoomMock } from '../harness/boardTestUtils';
 
 // =============================================================================
 // Extract keys from useWerewolfRoom source
@@ -69,7 +69,7 @@ function extractReturnKeys(source: string): string[] {
 // Tests
 // =============================================================================
 
-describe('createGameRoomMock shape contract', () => {
+describe('createWerewolfRoomMock shape contract', () => {
   const useWerewolfRoomPath = path.resolve(
     process.cwd(),
     'src/games/werewolf/hooks/useWerewolfRoom.ts',
@@ -77,13 +77,13 @@ describe('createGameRoomMock shape contract', () => {
 
   /**
    * Known gaps: keys that exist in useWerewolfRoom but are intentionally
-   * not in createGameRoomMock (existing board UI tests don't need them).
+   * not in createWerewolfRoomMock (existing board UI tests don't need them).
    * If this set grows, it means more drift has been introduced.
    * Reduce this set over time by adding missing keys to the mock.
    */
   const KNOWN_MISSING_KEYS = new Set<string>([
     // All gaps fixed — this set should stay empty.
-    // If a new key is added to useWerewolfRoom but not to createGameRoomMock,
+    // If a new key is added to useWerewolfRoom but not to createWerewolfRoomMock,
     // the test below will fail and tell you exactly which key to add.
   ]);
 
@@ -95,7 +95,7 @@ describe('createGameRoomMock shape contract', () => {
     expect(expectedKeys.length).toBeGreaterThan(20); // Sanity check
 
     // Get actual mock keys
-    const mock = createGameRoomMock({
+    const mock = createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'wolf',
@@ -109,10 +109,10 @@ describe('createGameRoomMock shape contract', () => {
 
     if (newMissingKeys.length > 0) {
       throw new Error(
-        `createGameRoomMock has ${newMissingKeys.length} NEW missing keys from useWerewolfRoom:\n` +
+        `createWerewolfRoomMock has ${newMissingKeys.length} NEW missing keys from useWerewolfRoom:\n` +
           `  ${newMissingKeys.join(', ')}\n\n` +
           `These new keys exist in useWerewolfRoom's return value but are not in the mock.\n` +
-          `Either add them to createGameRoomMock or to KNOWN_MISSING_KEYS in this test.`,
+          `Either add them to createWerewolfRoomMock or to KNOWN_MISSING_KEYS in this test.`,
       );
     }
 
@@ -131,7 +131,7 @@ describe('createGameRoomMock shape contract', () => {
     const source = fs.readFileSync(useWerewolfRoomPath, 'utf-8');
     const expectedKeys = extractReturnKeys(source);
 
-    const mock = createGameRoomMock({
+    const mock = createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'wolf',
@@ -149,7 +149,7 @@ describe('createGameRoomMock shape contract', () => {
     const source = fs.readFileSync(useWerewolfRoomPath, 'utf-8');
     const expectedKeys = new Set(extractReturnKeys(source));
 
-    const mock = createGameRoomMock({
+    const mock = createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'wolf',
@@ -162,10 +162,10 @@ describe('createGameRoomMock shape contract', () => {
 
     if (extraKeys.length > 0) {
       throw new Error(
-        `createGameRoomMock has ${extraKeys.length} extra keys not in useWerewolfRoom:\n` +
+        `createWerewolfRoomMock has ${extraKeys.length} extra keys not in useWerewolfRoom:\n` +
           `  ${extraKeys.join(', ')}\n\n` +
           `These keys exist in the mock but not in useWerewolfRoom's return value.\n` +
-          `Remove them from createGameRoomMock to prevent false coverage.`,
+          `Remove them from createWerewolfRoomMock to prevent false coverage.`,
       );
     }
   });

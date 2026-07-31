@@ -211,7 +211,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       if (ctx.schemaId !== 'witchAction') return null;
 
       {
-        const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
+        const compound = SCHEMAS.witchAction;
         if (compound?.kind !== 'compound') return null;
         const poison = compound.steps?.find((s) => s.key === 'poison');
         if (!poison) {
@@ -304,18 +304,14 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
     // Hardcore schema-driven UI contract:
     // Confirm copy must come from schema.ui.confirmText; alternate derivation is forbidden.
-    // NOTE: compound schemas don't confirm directly (they delegate to stepSchemaId);
-    // for those, confirmText is not required here.
-    if (currentSchema?.kind !== 'compound') {
-      if (!confirmText || typeof confirmText !== 'string') {
-        throw new Error(
-          `[SchemaDrivenUI] Missing currentSchema.ui.confirmText for schema: ${currentSchema?.id ?? 'unknown'}`,
-        );
-      }
+    // Compound schemas delegate to stepSchemaId and must not call this helper directly.
+    if (typeof confirmText !== 'string' || confirmText.length === 0) {
+      throw new Error(
+        `[SchemaDrivenUI] Missing currentSchema.ui.confirmText for schema: ${currentSchema?.id ?? 'unknown'}`,
+      );
     }
 
-    // Non-compound schemas throw above if confirmText is missing, so this is safe.
-    return confirmText as string;
+    return confirmText;
   }, [currentSchema]);
 
   // ─────────────────────────────────────────────────────────────────────────

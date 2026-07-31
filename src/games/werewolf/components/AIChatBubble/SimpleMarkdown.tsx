@@ -153,8 +153,13 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
     // ── Headers: # / ## / ### ───────────────────────
     const headerMatch = /^(#{1,3})\s+(.+)/.exec(trimmed);
     if (headerMatch) {
-      const level = headerMatch[1]!.length as 1 | 2 | 3;
-      const sizes = { 1: typography.subtitle + 2, 2: typography.subtitle, 3: typography.body };
+      const headerMarker = headerMatch[1]!;
+      const headerFontSize =
+        headerMarker === '#'
+          ? typography.subtitle + 2
+          : headerMarker === '##'
+            ? typography.subtitle
+            : typography.body;
       elements.push(
         <Text
           key={lineKey}
@@ -162,7 +167,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
             baseStyle,
             localStyles.headerText,
             {
-              fontSize: sizes[level],
+              fontSize: headerFontSize,
             },
           ]}
         >

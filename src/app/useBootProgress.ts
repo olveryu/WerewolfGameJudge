@@ -23,6 +23,12 @@ interface BootProgress {
 
 const bootLog = log.extend('Boot');
 
+function resolveImageSourceUri(source: unknown): string | null {
+  if (typeof source === 'string') return source;
+  if (source === null || typeof source !== 'object' || !('uri' in source)) return null;
+  return typeof source.uri === 'string' ? source.uri : null;
+}
+
 /**
  * Resolve user's avatarUrl to a browser-fetchable URL string.
  * Returns null when no prefetch is needed (generated SVG, default icon, or native).
@@ -35,18 +41,8 @@ function resolveAvatarPrefetchUrl(avatarUrl: string | null | undefined): string 
     const id = getBuiltinAvatarId(avatarUrl);
     // Generated avatars are SVG, no prefetch needed
     if (isGeneratedAvatar(id)) return null;
-    const source = getBuiltinAvatarImage(avatarUrl);
-    // On web, Metro import returns a string URL despite the `number` type annotation
-    if (source != null && typeof source === 'string') return source;
-    // In production builds, Metro may return { uri: '...' }
-    if (
-      source != null &&
-      typeof source === 'object' &&
-      'uri' in (source as Record<string, unknown>)
-    ) {
-      return (source as Record<string, string>).uri ?? null;
-    }
-    return null;
+    // Metro declares bundled assets as numbers even though Web emits a URL or { uri } object.
+    return resolveImageSourceUri(getBuiltinAvatarImage(avatarUrl));
   }
 
   // Remote URL → prefetch directly

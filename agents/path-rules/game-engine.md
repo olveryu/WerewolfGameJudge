@@ -28,8 +28,8 @@ Pure game logic workspace imported by client and Worker. It has no React, Cloudf
   reducer, or state-builder exports are forbidden.
 - Game-owned domain deep paths are package-private. Restoring generic `src/engine`, `src/models`, `src/protocol`,
   or `src/resolvers` directories is forbidden.
-- Authoritative command responses use `RoomCommandResult`; client room operations use their application-owned
-  `RoomOperationResult`. A second lossy protocol result shape is forbidden.
+- Authoritative command responses use `RoomCommandResult`; client dispatch wraps them only in the application-owned
+  `RoomCommandDispatchOutcome` to represent transport uncertainty. A second lossy protocol result shape is forbidden.
 
 ## Reducer Rules
 

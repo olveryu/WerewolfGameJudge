@@ -6,6 +6,8 @@
  * (derives glow / particle / gradient colors from ThemeColors tokens).
  * No service imports.
  */
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+
 import type { ThemeColors } from '@/theme';
 import { darken, lighten } from '@/theme/colorUtils';
 
@@ -19,7 +21,7 @@ export type RoleAlignment = 'wolf' | 'god' | 'villager' | 'third';
  */
 export interface RoleData {
   /** Role identifier */
-  id: string;
+  id: RoleId;
   /** Display name (Chinese) */
   name: string;
   /** Role alignment for visual theming */

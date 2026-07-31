@@ -32,8 +32,8 @@ export {
   // Coverage-integrated chain drivers
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
-  createGameRoomMock,
-  createReactiveGameRoomMock,
+  createReactiveWerewolfRoomMock,
+  createWerewolfRoomMock,
   mockNavigation,
   mockRoom,
   successfulWerewolfCommand,

@@ -6,7 +6,6 @@
  * Uses `useSharedValue` to drive all animations; `` switches phases.
  * Renders animations and haptic feedback. No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -602,7 +601,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
-              roleId={role.id as RoleId}
+              roleId={role.id}
               width={cardWidth}
               height={cardHeight}
               revealMode

@@ -4,7 +4,7 @@
  * Extracts fully duplicated style keys; each screen must spread-override the differing keys.
  * Only exports a style factory function; contains no runtime logic.
  */
-import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, type TextStyle } from 'react-native';
 
 import {
   borderRadius,
@@ -80,8 +80,8 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       borderWidth: 0,
       backgroundColor: 'transparent',
       // Web-only: suppress browser focus ring (wrapper provides visual boundary)
-      ...Platform.select({ web: { outlineStyle: 'none' } }),
-    } as TextStyle,
+      ...Platform.select<TextStyle>({ web: { outlineWidth: 0 } }),
+    },
     eyeButton: {
       alignSelf: 'center',
       justifyContent: 'center',
@@ -219,13 +219,11 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       borderRadius: borderRadius.medium,
     },
     avatarStripLockOverlay: {
-      ...({
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      } as ViewStyle),
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       backgroundColor: colors.overlayLight,
       justifyContent: 'center',
       alignItems: 'center',

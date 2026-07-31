@@ -81,12 +81,13 @@ interface SeatFlairConfig {
 }
 
 /**
- * Seat flair registry (exhaustive Record) — adding a new ID to SEAT_FLAIR_IDS without adding it here -> TS compile error.
+ * Seat flair registry. Static keys are compiler-checked, and catalog projection fails fast when a
+ * generated entry is missing.
  * UI display order follows SEAT_FLAIR_IDS.
  * Static entries are listed manually; the 50 Common entries are expanded from a factory (runtime covered by gachaProbability tests).
  */
-function buildFlairRegistry(): Record<FlairId, SeatFlairConfig> {
-  const staticEntries: Record<string, SeatFlairConfig> = {
+function buildFlairRegistry(): Partial<Record<FlairId, SeatFlairConfig>> {
+  const staticEntries = {
     emberGlow: { name: '余烬微光', Component: EmberGlowFlair },
     frostAura: { name: '寒霜气场', Component: FrostAuraFlair },
     shadowMist: { name: '暗影迷雾', Component: ShadowMistFlair },
@@ -147,17 +148,20 @@ function buildFlairRegistry(): Record<FlairId, SeatFlairConfig> {
     stormSurge: { name: '风暴潮涌', Component: StormSurgeFlair },
     ashCloud: { name: '灰烬之云', Component: AshCloudFlair },
     lunarFrost: { name: '月霜凝结', Component: LunarFrostFlair },
-  };
-  return { ...staticEntries, ...COMMON_FLAIR_ENTRIES, ...RARE_FLAIR_ENTRIES } as Record<
-    FlairId,
-    SeatFlairConfig
-  >;
+  } satisfies Partial<Record<FlairId, SeatFlairConfig>>;
+  return { ...staticEntries, ...COMMON_FLAIR_ENTRIES, ...RARE_FLAIR_ENTRIES };
 }
 const FLAIR_REGISTRY = buildFlairRegistry();
 
 /** All available seat flairs (order = SEAT_FLAIR_IDS display order) */
 export const SEAT_FLAIRS: readonly (SeatFlairConfig & { id: FlairId })[] = SEAT_FLAIR_IDS.map(
-  (id) => ({ id, ...FLAIR_REGISTRY[id] }),
+  (id) => {
+    const config = FLAIR_REGISTRY[id];
+    if (config === undefined) {
+      throw new Error(`Missing seat flair config for "${id}"`);
+    }
+    return { id, ...config };
+  },
 );
 
 const FLAIR_MAP = new Map<string, SeatFlairConfig>(SEAT_FLAIRS.map((f) => [f.id, f]));

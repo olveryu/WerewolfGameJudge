@@ -166,7 +166,7 @@ export const createTemplateFromRoles = (roles: RoleId[]): GameTemplate => ({
  * Find matching preset name for given roles.
  * Returns the preset name if roles match exactly (sorted), otherwise null.
  */
-export const findMatchingPresetName = (roles: RoleId[]): string | null => {
+export const findMatchingPresetName = (roles: readonly RoleId[]): string | null => {
   const sortedRoles = [...roles].sort((a, b) => a.localeCompare(b));
   for (const preset of PRESET_TEMPLATES) {
     const sortedPreset = [...preset.roles].sort((a, b) => a.localeCompare(b));

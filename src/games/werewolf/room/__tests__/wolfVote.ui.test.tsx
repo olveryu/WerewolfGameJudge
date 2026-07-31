@@ -51,17 +51,17 @@ function mockSuccessfulCommand() {
 
 const mockSubmitAction = jest.fn(async (_input: WerewolfActionInput) => mockSuccessfulCommand());
 
-type UseWerewolfRoomReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
-let mockUseGameRoomImpl: () => UseWerewolfRoomReturn;
+type UseWerewolfRoomReturn = ReturnType<typeof createBaseWerewolfRoomMock>;
+let mockUseWerewolfRoomImpl: () => UseWerewolfRoomReturn;
 
 jest.mock<{ useWerewolfRoom: () => UseWerewolfRoomReturn }>(
   '@/games/werewolf/hooks/useWerewolfRoom',
   () => ({
-    useWerewolfRoom: () => mockUseGameRoomImpl(),
+    useWerewolfRoom: () => mockUseWerewolfRoomImpl(),
   }),
 );
 
-function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
+function createBaseWerewolfRoomMock(overrides?: Record<string, unknown>) {
   const gameState = {
     status: GameStatus.Ongoing,
     template: {
@@ -217,7 +217,7 @@ jest.mock('../useRoomActionDialogs', () => ({
 describe('WerewolfRoomScreen wolf vote UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+    mockUseWerewolfRoomImpl = () => createBaseWerewolfRoomMock();
   });
 
   it('wolf vote dialog -> confirm triggers submitAction', () => {
@@ -292,8 +292,8 @@ describe('WerewolfRoomScreen wolf vote UI', () => {
     // Server then broadcasts actionRejected and UI shows the unified "操作无效" alert.
 
     // Override just the players map: seat 3 (index 2) is spiritKnight (server will reject).
-    mockUseGameRoomImpl = () => {
-      const base = makeBaseUseGameRoomReturn();
+    mockUseWerewolfRoomImpl = () => {
+      const base = createBaseWerewolfRoomMock();
       const players = new Map<number, LocalPlayer>(base.gameState.players);
       const target = players.get(2);
       players.set(2, {
@@ -310,7 +310,7 @@ describe('WerewolfRoomScreen wolf vote UI', () => {
       const submitAction = mockSubmitAction;
       submitActionMock = submitAction;
 
-      return makeBaseUseGameRoomReturn({
+      return createBaseWerewolfRoomMock({
         gameState: {
           ...base.gameState,
           players,
@@ -376,11 +376,11 @@ describe('WerewolfRoomScreen wolf vote chain interaction (harness)', () => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
     jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
-    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+    mockUseWerewolfRoomImpl = () => createBaseWerewolfRoomMock();
   });
 
   it('tap seat → wolfVote dialog → press 确定 → submitAction called with correct target', async () => {
-    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+    mockUseWerewolfRoomImpl = () => createBaseWerewolfRoomMock();
 
     const props = roomScreenProps;
 
@@ -408,7 +408,7 @@ describe('WerewolfRoomScreen wolf vote chain interaction (harness)', () => {
   });
 
   it('tap seat → wolfVote dialog → press 取消 → submitAction NOT called', async () => {
-    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+    mockUseWerewolfRoomImpl = () => createBaseWerewolfRoomMock();
 
     const props = roomScreenProps;
 
@@ -433,7 +433,7 @@ describe('WerewolfRoomScreen wolf vote chain interaction (harness)', () => {
   });
 
   it('harness getLastEvent returns the wolfVote dialog with correct metadata', async () => {
-    mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
+    mockUseWerewolfRoomImpl = () => createBaseWerewolfRoomMock();
 
     const props = roomScreenProps;
 

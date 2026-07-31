@@ -4,17 +4,17 @@ import { render, waitFor } from '@testing-library/react-native';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 
-import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
+import { createBaseWerewolfRoomMock, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),
 }));
 
-let mockUseGameRoomImpl: () => ReturnType<typeof makeBaseUseGameRoomReturn>;
+let mockUseWerewolfRoomImpl: () => ReturnType<typeof createBaseWerewolfRoomMock>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomImpl(),
+  useWerewolfRoom: () => mockUseWerewolfRoomImpl(),
 }));
 
 jest.mock('../hooks/useActionerState', () => ({
@@ -130,8 +130,8 @@ describe('WerewolfRoomScreen schema smoke (one-per-schema)', () => {
         };
       }
 
-      mockUseGameRoomImpl = () =>
-        makeBaseUseGameRoomReturn({
+      mockUseWerewolfRoomImpl = () =>
+        createBaseWerewolfRoomMock({
           schemaId,
           currentActionRole: role,
           myRole: role,
@@ -143,7 +143,7 @@ describe('WerewolfRoomScreen schema smoke (one-per-schema)', () => {
       // IMPORTANT: useRoomActions signature is (gameContext, deps).
       const actual =
         jest.requireActual<typeof import('../hooks/useRoomActions')>('../hooks/useRoomActions');
-      const room = mockUseGameRoomImpl();
+      const room = mockUseWerewolfRoomImpl();
       mockUseRoomActionsImpl = () =>
         actual.useRoomActions(
           {

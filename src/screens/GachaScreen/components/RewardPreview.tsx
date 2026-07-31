@@ -91,7 +91,7 @@ function AvatarPreview({ id, size }: { id: string; size: number }) {
       </View>
     );
   }
-  const avatarIndex = (HAND_DRAWN_KEYS as readonly string[]).indexOf(id);
+  const avatarIndex = HAND_DRAWN_KEYS.findIndex((avatarId) => avatarId === id);
   const thumbSource = avatarIndex >= 0 ? getAvatarThumbByIndex(avatarIndex) : undefined;
   if (thumbSource == null) return null;
 

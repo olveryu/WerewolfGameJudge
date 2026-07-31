@@ -10,7 +10,6 @@
  * Gesture Handler handles: `Gesture.Pan()` accumulates spin via circle drawing.
  * Does not import services and contains no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -744,7 +743,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
-              roleId={role.id as RoleId}
+              roleId={role.id}
               width={cardWidth}
               height={cardHeight}
               revealMode

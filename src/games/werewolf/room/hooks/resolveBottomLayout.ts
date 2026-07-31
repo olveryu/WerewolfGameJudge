@@ -177,9 +177,15 @@ function getUserRole(ctx: LayoutContext): UserRole {
   return 'spectator';
 }
 
+function isGameStatusList(
+  ruleStatus: GameStatus | readonly GameStatus[],
+): ruleStatus is readonly GameStatus[] {
+  return Array.isArray(ruleStatus);
+}
+
 function matchStatus(ruleStatus: GameStatus | readonly GameStatus[], actual: GameStatus): boolean {
-  if (Array.isArray(ruleStatus)) {
-    return (ruleStatus as readonly GameStatus[]).includes(actual);
+  if (isGameStatusList(ruleStatus)) {
+    return ruleStatus.includes(actual);
   }
   return ruleStatus === actual;
 }

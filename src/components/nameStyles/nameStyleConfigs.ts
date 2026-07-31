@@ -7,7 +7,7 @@
  * - Native: solid color + textShadow (gradient/animation degraded)
  */
 
-import type { NameStyleId } from '@game-judge/game-engine/product/rewards';
+import { NAME_STYLE_IDS, type NameStyleId } from '@game-judge/game-engine/product/rewards';
 
 import { COMMON_NAME_STYLE_CONFIGS, RARE_NAME_STYLE_CONFIGS } from './common';
 
@@ -63,7 +63,7 @@ export interface NameStyleConfig {
 
 // ── Configs ─────────────────────────────────────────────────────────────────
 
-export const NAME_STYLE_CONFIGS = {
+const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
   // ══════════════════════════════════════════════════════════════════════════
   // EPIC (46) — static gradient text, no animation
   // ══════════════════════════════════════════════════════════════════════════
@@ -737,4 +737,18 @@ export const NAME_STYLE_CONFIGS = {
   // ══════════════════════════════════════════════════════════════════════════
   ...COMMON_NAME_STYLE_CONFIGS,
   ...RARE_NAME_STYLE_CONFIGS,
-} as Record<NameStyleId, NameStyleConfig>;
+};
+
+function validateNameStyleConfigs(
+  configs: Record<string, NameStyleConfig>,
+): Record<NameStyleId, NameStyleConfig> {
+  for (const id of NAME_STYLE_IDS) {
+    if (configs[id] === undefined) {
+      throw new Error(`Missing name style config for "${id}"`);
+    }
+  }
+
+  return configs;
+}
+
+export const NAME_STYLE_CONFIGS = validateNameStyleConfigs(NAME_STYLE_CONFIGS_BY_ID);

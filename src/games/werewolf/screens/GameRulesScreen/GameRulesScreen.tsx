@@ -8,7 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { GameRuleOverrides } from '@game-judge/game-engine/games/werewolf/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type FC, useCallback, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,7 +37,7 @@ type ScreenRouteProp = RouteProp<WerewolfConfigStackParamList, 'Rules'>;
 
 interface RuleItemConfig {
   key: keyof GameRuleOverrides;
-  icon: string;
+  icon: ComponentProps<typeof Ionicons>['name'];
   iconColor: string;
   label: string;
   description: string;
@@ -133,11 +133,7 @@ export const GameRulesScreen: FC = () => {
       return (
         <View key={item.key} style={styles.ruleCard}>
           <View style={styles.ruleHeader}>
-            <Ionicons
-              name={item.icon as 'skull-outline'}
-              size={componentSizes.icon.md}
-              color={item.iconColor}
-            />
+            <Ionicons name={item.icon} size={componentSizes.icon.md} color={item.iconColor} />
             <Text style={styles.ruleLabel}>{item.label}</Text>
             <Switch
               value={isEnabled}

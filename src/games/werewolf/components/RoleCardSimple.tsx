@@ -7,11 +7,7 @@
  * Renders Modal and button. Does not import services, contains no business logic, and does not duplicate card UI.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  isValidRoleId,
-  ROLE_SPECS,
-  type RoleId,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback } from 'react';
 import {
@@ -51,11 +47,11 @@ interface RoleCardSimpleProps {
    * Full list of variant roleIds (including the base role).
    * Shows the variant pill bar when present and length > 1.
    */
-  variantIds?: string[];
+  variantIds?: readonly RoleId[];
   /** Currently selected variant roleId. */
-  activeVariant?: string;
+  activeVariant?: RoleId;
   /** Callback when the user taps a pill to switch variant. */
-  onVariantSelect?: (variantId: string) => void;
+  onVariantSelect?: (variantId: RoleId) => void;
   /**
    * Callback for the AI strategy button; receives the currently displayed roleId (including variant switch).
    * When present, the AI button is shown; otherwise hidden.
@@ -83,7 +79,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 
   const handleAskAI = useCallback(() => {
     if (!displayRoleId || !onAskAI) return;
-    onAskAI(displayRoleId as RoleId);
+    onAskAI(displayRoleId);
   }, [displayRoleId, onAskAI]);
 
   if (!visible || !roleId) return null;
@@ -127,7 +123,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
           {showVariantBar && (
             <View style={styles.variantBar}>
               {variantIds.map((id) => {
-                const spec = isValidRoleId(id) ? ROLE_SPECS[id] : undefined;
+                const spec = ROLE_SPECS[id];
                 const isActive = id === activeVariant;
                 return (
                   <TouchableOpacity
@@ -146,7 +142,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
                         isActive && [styles.variantPillTextActive, { color: factionColor }],
                       ]}
                     >
-                      {spec?.displayName ?? id}
+                      {spec.displayName}
                     </Text>
                   </TouchableOpacity>
                 );

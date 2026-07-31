@@ -264,13 +264,9 @@ const EXPECTED_ERROR_CODES = new Set([
 
 export function isExpectedError(error: unknown): boolean {
   if (typeof error === 'string') return EXPECTED_ERROR_CODES.has(error);
-  if (error instanceof Error) {
-    // error.message is the reason code after wire format unification
-    if (EXPECTED_ERROR_CODES.has(error.message)) return true;
-    // Also check .reason property (cfFetch attaches it)
-    const reason = (error as { reason?: string }).reason;
-    if (reason && EXPECTED_ERROR_CODES.has(reason)) return true;
-  }
+  // error.message is the reason code after wire format unification
+  if (error instanceof Error && EXPECTED_ERROR_CODES.has(error.message)) return true;
+  // Also check .reason property (cfFetch attaches it)
   if (error != null && typeof error === 'object' && 'reason' in error) {
     const reason = error.reason;
     if (typeof reason === 'string' && EXPECTED_ERROR_CODES.has(reason)) return true;

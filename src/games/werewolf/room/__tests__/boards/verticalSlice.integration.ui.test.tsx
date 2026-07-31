@@ -93,10 +93,10 @@ function toMockGameState(state: GameState) {
 }
 
 let harness: RoomScreenTestHarness;
-let mockUseGameRoomReturn: Record<string, unknown>;
+let mockUseWerewolfRoomReturn: Record<string, unknown>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 // =============================================================================
@@ -144,7 +144,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
 
     // 3. Build useWerewolfRoom mock from real state
     const currentSchema = getSchema('witchAction');
-    mockUseGameRoomReturn = {
+    mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
       connectionStatus: 'live',
       isHost: false,
@@ -242,7 +242,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const seerSeat = 8;
 
     const currentSchema = getSchema('seerCheck');
-    mockUseGameRoomReturn = {
+    mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
       connectionStatus: 'live',
       isHost: false,

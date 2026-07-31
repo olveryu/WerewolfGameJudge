@@ -9,7 +9,7 @@
  * - RoleSlot with `count` > 1 generates multiple selection keys (e.g. wolf, wolf1, wolf2...)
  * - RoleSlot with `count` = 1 (default) generates a single key matching the roleId
  */
-import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleDisplayName, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 
 // ============================================
@@ -18,7 +18,7 @@ import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 
 interface RoleSlot {
   /** The base roleId (matches ROLE_SPECS key) */
-  roleId: string;
+  roleId: RoleId;
   /**
    * How many selectable copies of this role.
    * Generates keys: roleId, roleId1, roleId2, ... roleId(count-1)
@@ -36,7 +36,7 @@ interface RoleSlot {
    * When present, the chip shows a variant indicator and supports long-press to switch.
    * The variants list does NOT include the base roleId — it lists only alternatives.
    */
-  variants?: string[];
+  variants?: readonly RoleId[];
 }
 
 interface RoleSection {

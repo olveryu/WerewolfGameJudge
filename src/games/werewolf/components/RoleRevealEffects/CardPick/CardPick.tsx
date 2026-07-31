@@ -9,7 +9,6 @@
  * so later viewers see fewer cards, creating a "running out" tension.
  * Renders pick animation and haptic feedback. No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -565,7 +564,7 @@ export const CardPick: React.FC<CardPickProps> = ({
           {/* Card front */}
           <Animated.View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
             <RoleCardContent
-              roleId={role.id as RoleId}
+              roleId={role.id}
               width={revealCardWidth}
               height={revealCardHeight}
               revealMode

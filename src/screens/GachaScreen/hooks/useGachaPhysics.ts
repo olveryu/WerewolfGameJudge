@@ -417,7 +417,7 @@ function physicsTick(
     const p = phase.value;
     if (p === PHASE.IDLE || p === PHASE.DONE || cancelled.value === 1) return;
 
-    const dt = Math.min(((fi.timeSincePreviousFrame as number | undefined) ?? 16) / 1000, 0.033);
+    const dt = Math.min((fi.timeSincePreviousFrame ?? 16) / 1000, 0.033);
     phaseTimer.value += dt;
 
     const data = ballData.value;

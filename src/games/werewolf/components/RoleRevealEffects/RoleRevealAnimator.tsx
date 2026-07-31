@@ -5,6 +5,7 @@
  * All effects display the full RoleCardContent style directly within the animation.
  * Renders the animation and dispatches to the appropriate effect component by effectType. No service imports, no business logic.
  */
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
@@ -143,7 +144,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
  * Helper to create RoleData from role ID and spec
  */
 export function createRoleData(
-  id: string,
+  id: RoleId,
   name: string,
   alignment: 'wolf' | 'god' | 'villager' | 'third',
   avatar?: string,

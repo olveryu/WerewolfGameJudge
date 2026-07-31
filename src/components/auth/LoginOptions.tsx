@@ -6,7 +6,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
-import { Image, type ImageSourcePropType, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
@@ -52,7 +52,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
             {STRIP_INDICES.map((avatarIdx, i) => (
               <View key={avatarIdx} style={styles.avatarStripImageWrapper}>
                 <Image
-                  source={getAvatarThumbByIndex(avatarIdx) as ImageSourcePropType}
+                  source={getAvatarThumbByIndex(avatarIdx)}
                   style={styles.avatarStripImage}
                   resizeMode="cover"
                 />
@@ -61,7 +61,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
                     <Ionicons
                       name="lock-closed"
                       size={typography.title}
-                      color={styles.avatarStripLockIcon.color as string}
+                      color={styles.avatarStripLockIcon.color}
                     />
                   </View>
                 )}

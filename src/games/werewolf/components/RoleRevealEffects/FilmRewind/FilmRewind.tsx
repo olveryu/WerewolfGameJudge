@@ -10,7 +10,6 @@
  * Reanimated handles: sprocket scroll + flicker + phase transitions + card entrance.
  * Does not import service, contains no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Canvas,
   Group,
@@ -556,7 +555,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
-              roleId={role.id as RoleId}
+              roleId={role.id}
               width={cardWidth}
               height={cardHeight}
               revealMode

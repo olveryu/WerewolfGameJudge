@@ -30,6 +30,8 @@ import {
 import { log } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
+import appLogo from '../../../../assets/pwa/icon-192.png';
+
 interface QRCodeModalProps {
   readonly model: RoomShareModel;
 }
@@ -40,9 +42,6 @@ const QR_SIZE = 160;
 const QR_LOGO_SIZE = 44;
 /** QR center logo margin (white background area) */
 const QR_LOGO_MARGIN = 4;
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro require for local PNG asset
-const appLogo = require('../../../../assets/pwa/icon-192.png') as number;
 
 const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({ model }) => {
   const shareCardRef = useRef<View>(null);

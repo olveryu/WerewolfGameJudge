@@ -6,7 +6,6 @@
  * no `setTimeout` (phase transitions driven via `` callback).
  * Renders animations and haptic feedback. No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { shuffleArray } from '@game-judge/game-engine/platform/random';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -629,7 +628,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           style={[styles.revealedCardContainer, { width: cardWidth, height: cardHeight }]}
         >
           <RoleCardContent
-            roleId={role.id as RoleId}
+            roleId={role.id}
             width={cardWidth}
             height={cardHeight}
             revealMode

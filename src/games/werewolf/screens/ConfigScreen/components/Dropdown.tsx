@@ -135,7 +135,7 @@ export const Dropdown = memo<DropdownProps>(
                       <Ionicons
                         name="checkmark"
                         size={typography.body}
-                        color={styles.modalOptionCheck.color as string}
+                        color={styles.modalOptionCheck.color}
                       />
                     )}
                   </TouchableOpacity>

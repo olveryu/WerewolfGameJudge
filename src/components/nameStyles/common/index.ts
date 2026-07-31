@@ -6,6 +6,8 @@
  *
  * Pattern mirrors `avatarFrames/common/index.tsx` and `seatFlairs/common/index.tsx`.
  */
+import { NAME_STYLE_IDS, type NameStyleId } from '@game-judge/game-engine/product/rewards';
+
 import type { NameStyleConfig, TextShadowLayer } from '../nameStyleConfigs';
 import { BASE_PALETTE, COLOR_KEYS, type NameStyleColor } from './palette';
 
@@ -201,6 +203,14 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function resolveNameStyleId(id: string): NameStyleId {
+  const nameStyleId = NAME_STYLE_IDS.find((candidate) => candidate === id);
+  if (nameStyleId === undefined) {
+    throw new Error(`Generated name style ID is missing from the reward catalog: "${id}"`);
+  }
+  return nameStyleId;
+}
+
 /** 100 common name style configs keyed by NameStyleId string. */
 export const COMMON_NAME_STYLE_CONFIGS: Record<string, NameStyleConfig> = {};
 
@@ -209,11 +219,12 @@ for (let pi = 0; pi < COMMON_PREFIXES.length; pi++) {
   for (const colorKey of COLOR_KEYS) {
     const c = BASE_PALETTE[colorKey]!;
     const id = `${prefix}${capitalize(colorKey)}`;
+    const nameStyleId = resolveNameStyleId(id);
     const color = shiftHex(c.hex, pi);
     const shiftedRgb = shiftRgb(c, pi);
     const shadowColor: NameStyleColor = { hex: color, rgb: shiftedRgb, cn: c.cn };
-    COMMON_NAME_STYLE_CONFIGS[id] = {
-      id: id as NameStyleConfig['id'],
+    COMMON_NAME_STYLE_CONFIGS[nameStyleId] = {
+      id: nameStyleId,
       name: `${cn}${c.cn}`,
       tier: 'common',
       color,
@@ -231,15 +242,25 @@ for (let pi = 0; pi < RARE_PREFIXES.length; pi++) {
   for (const colorKey of COLOR_KEYS) {
     const c = BASE_PALETTE[colorKey]!;
     const id = `${prefix}${capitalize(colorKey)}`;
+    const nameStyleId = resolveNameStyleId(id);
     const result = factory(c);
     // radiant factory returns { color, shadows } to also lighten the text color
-    const isCompound = 'shadows' in result;
-    RARE_NAME_STYLE_CONFIGS[id] = {
-      id: id as NameStyleConfig['id'],
-      name: `${cn}${c.cn}`,
-      tier: 'rare',
-      color: isCompound ? (result as { color: string }).color : c.hex,
-      textShadows: isCompound ? (result as { shadows: TextShadowLayer[] }).shadows : result,
-    };
+    if ('shadows' in result) {
+      RARE_NAME_STYLE_CONFIGS[nameStyleId] = {
+        id: nameStyleId,
+        name: `${cn}${c.cn}`,
+        tier: 'rare',
+        color: result.color,
+        textShadows: result.shadows,
+      };
+    } else {
+      RARE_NAME_STYLE_CONFIGS[nameStyleId] = {
+        id: nameStyleId,
+        name: `${cn}${c.cn}`,
+        tier: 'rare',
+        color: c.hex,
+        textShadows: result,
+      };
+    }
   }
 }

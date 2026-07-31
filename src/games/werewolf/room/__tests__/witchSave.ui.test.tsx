@@ -17,7 +17,7 @@ import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/Read
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
-import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
+import { createBaseWerewolfRoomMock, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
@@ -35,7 +35,7 @@ const mockShowAlert = jest.mocked(showAlert);
 const mockSubmitAction = jest.fn();
 
 const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
-  makeBaseUseGameRoomReturn({
+  createBaseWerewolfRoomMock({
     schemaId: 'witchAction',
     currentActionRole: 'witch',
     myRole: 'witch',
@@ -53,16 +53,16 @@ const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
     },
   });
 
-let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
+let mockUseWerewolfRoomReturn: ReturnType<typeof makeMock>;
 
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
-  useWerewolfRoom: () => mockUseGameRoomReturn,
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
 }));
 
 describe('WerewolfRoomScreen witch save UI (contract)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseGameRoomReturn = makeMock();
+    mockUseWerewolfRoomReturn = makeMock();
   });
 
   it('seat tapping does NOT submit save (save is confirmTarget, target comes from witchContext)', async () => {
@@ -91,7 +91,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
   });
 
   it('canSave=false should not submit save (guardrail contract)', async () => {
-    mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 2 });
+    mockUseWerewolfRoomReturn = makeMock({ canSave: false, killedSeat: 2 });
 
     const { getByTestId } = render(
       <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
@@ -109,7 +109,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
   it('save button -> confirm -> submits canonical witch input', async () => {
     // killedSeat = 2, mySeat = 0
     const killedSeat = 2;
-    mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
+    mockUseWerewolfRoomReturn = makeMock({ canSave: true, killedSeat });
 
     const { getByTestId, getByText } = render(
       <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
@@ -155,7 +155,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
 
   it('canSave=true with killedSeat>=0 shows promptTemplate from schema', async () => {
     const killedSeat = 2;
-    mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
+    mockUseWerewolfRoomReturn = makeMock({ canSave: true, killedSeat });
 
     render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 
@@ -174,7 +174,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
 
   it('canSave=false with killedSeat>=0 shows cannotSavePrompt from schema (witch self-kill)', async () => {
     // Witch is at seat 0, wolves kill seat 0 → canSave=false, killedSeat=0
-    mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 0 });
+    mockUseWerewolfRoomReturn = makeMock({ canSave: false, killedSeat: 0 });
 
     render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 

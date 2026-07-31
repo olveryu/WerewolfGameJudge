@@ -105,7 +105,7 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
   const factionLabel = getFactionLabel(roleId);
   const structuredDesc = getRoleStructuredDescription(roleId);
   const tags = spec.tags ?? [];
-  const englishName = 'englishName' in spec ? (spec.englishName as string) : undefined;
+  const englishName = spec.englishName;
 
   return (
     <Modal visible={true} transparent animationType="slide" onRequestClose={onClose}>

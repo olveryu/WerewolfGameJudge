@@ -298,12 +298,10 @@ export async function* streamChatMessage(
 /** Extract delta content from an OpenAI-compatible SSE chunk. */
 function extractDelta(parsed: unknown): string | undefined {
   if (typeof parsed !== 'object' || parsed === null) return undefined;
-  const obj = parsed as Record<string, unknown>;
-  if (!Array.isArray(obj.choices)) return undefined;
-  const first: unknown = obj.choices[0];
-  if (typeof first !== 'object' || first === null) return undefined;
-  const choice = first as Record<string, unknown>;
-  if (typeof choice.delta !== 'object' || choice.delta === null) return undefined;
-  const delta = choice.delta as Record<string, unknown>;
+  if (!('choices' in parsed) || !Array.isArray(parsed.choices)) return undefined;
+  const first: unknown = parsed.choices[0];
+  if (typeof first !== 'object' || first === null || !('delta' in first)) return undefined;
+  const { delta } = first;
+  if (typeof delta !== 'object' || delta === null || !('content' in delta)) return undefined;
   return typeof delta.content === 'string' ? delta.content : undefined;
 }

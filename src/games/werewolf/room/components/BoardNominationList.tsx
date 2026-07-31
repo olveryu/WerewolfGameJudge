@@ -13,6 +13,7 @@ import {
   createCustomTemplate,
   findMatchingPresetName,
   getPlayerCount,
+  isValidRoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -91,7 +92,7 @@ function NominationCard({
 }) {
   const isMine = nomination.userId === myUserId;
   const hasUpvoted = myUserId ? nomination.upvoters.includes(myUserId) : false;
-  const roles = nomination.roles as RoleId[];
+  const roles = nomination.roles;
   const nominationPlayerCount = getPlayerCount(roles);
   const boardName = useMemo(() => findMatchingPresetName(roles) ?? '自定义板子', [roles]);
   const stats = useMemo(() => computeFactionStats(roles), [roles]);
@@ -264,7 +265,12 @@ export const BoardNominationModal = memo(function BoardNominationModal({
 
   // Role preview (click chip → skill card)
   const [previewRoleId, setPreviewRoleId] = useState<RoleId | null>(null);
-  const handleRolePress = useCallback((roleId: string) => setPreviewRoleId(roleId as RoleId), []);
+  const handleRolePress = useCallback((roleId: string) => {
+    if (!isValidRoleId(roleId)) {
+      throw new Error(`[BoardNominationList] Invalid role ID: ${roleId}`);
+    }
+    setPreviewRoleId(roleId);
+  }, []);
   const handlePreviewClose = useCallback(() => setPreviewRoleId(null), []);
 
   return (

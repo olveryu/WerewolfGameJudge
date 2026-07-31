@@ -112,7 +112,7 @@ function successfulWerewolfActionCommand(
 // Game State Factory
 // =============================================================================
 
-interface GameStateMockOptions {
+interface WerewolfRoomMockOptions {
   /** Schema ID for current step */
   schemaId: SchemaId;
   /** Current action role */
@@ -163,7 +163,7 @@ interface GameStateMockOptions {
   hookOverrides?: Record<string, unknown>;
 }
 
-export function createGameRoomMock(options: GameStateMockOptions) {
+export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
   const {
     schemaId,
     currentActionRole,
@@ -347,18 +347,18 @@ interface ActionRejection {
 }
 
 /**
- * Creates a reactive game room mock that can simulate Host state updates.
+ * Creates a reactive werewolf room mock that can simulate Host state updates.
  *
  * Usage:
  * ```typescript
- * const reactiveMock = createReactiveGameRoomMock(initialOptions);
- * mockUseGameRoomReturn = reactiveMock.getMock();
+ * const reactiveMock = createReactiveWerewolfRoomMock(initialOptions);
+ * mockUseWerewolfRoomReturn = reactiveMock.getMock();
  *
  * const { rerender } = render(<WerewolfRoomScreen ... />);
  *
  * // Connect rerender for automatic updates
  * reactiveMock.connect((newMock) => {
- *   mockUseGameRoomReturn = newMock;
+ *   mockUseWerewolfRoomReturn = newMock;
  *   rerender(<WerewolfRoomScreen ... />);
  * });
  *
@@ -372,10 +372,10 @@ interface ActionRejection {
  *
  * NOTE: Call connect() after render() to enable automatic re-rendering on state updates.
  */
-export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions) {
+export function createReactiveWerewolfRoomMock(initialOptions: WerewolfRoomMockOptions) {
   let currentOptions = { ...initialOptions };
-  let currentMock = createGameRoomMock(currentOptions);
-  let onUpdateCallback: ((mock: ReturnType<typeof createGameRoomMock>) => void) | null = null;
+  let currentMock = createWerewolfRoomMock(currentOptions);
+  let onUpdateCallback: ((mock: ReturnType<typeof createWerewolfRoomMock>) => void) | null = null;
 
   const notifyUpdate = () => {
     if (onUpdateCallback) {
@@ -385,7 +385,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 
   const self = {
     /**
-     * Get the current mock object (pass to mockUseGameRoomReturn)
+     * Get the current mock object (pass to mockUseWerewolfRoomReturn)
      */
     getMock: () => currentMock,
 
@@ -395,7 +395,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
      *
      * @param callback Called with the new mock after any simulate* call
      */
-    connect: (callback: (mock: ReturnType<typeof createGameRoomMock>) => void) => {
+    connect: (callback: (mock: ReturnType<typeof createWerewolfRoomMock>) => void) => {
       onUpdateCallback = callback;
       return self;
     },
@@ -417,7 +417,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
         ...currentOptions,
         actionRejected: rejection,
       };
-      currentMock = createGameRoomMock(currentOptions);
+      currentMock = createWerewolfRoomMock(currentOptions);
       notifyUpdate();
       return self;
     },
@@ -426,12 +426,12 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
      * Simulate Host state update.
      * Merges overrides into the current options and rebuilds the mock.
      */
-    simulateStateUpdate: (overrides: Partial<GameStateMockOptions>) => {
+    simulateStateUpdate: (overrides: Partial<WerewolfRoomMockOptions>) => {
       currentOptions = {
         ...currentOptions,
         ...overrides,
       };
-      currentMock = createGameRoomMock(currentOptions);
+      currentMock = createWerewolfRoomMock(currentOptions);
       notifyUpdate();
       return self;
     },
@@ -441,7 +441,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
      */
     reset: () => {
       currentOptions = { ...initialOptions };
-      currentMock = createGameRoomMock(currentOptions);
+      currentMock = createWerewolfRoomMock(currentOptions);
       return self;
     },
 
@@ -464,7 +464,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 // Usage in board tests:
 //   import { chainWolfVoteConfirm, chainSkipConfirm, ... } from '@/games/werewolf/room/__tests__/harness';
 //   it('wolfVote confirm → submitAction called', async () => {
-//     await chainWolfVoteConfirm(harness, mockUseGameRoomReturn, ...);
+//     await chainWolfVoteConfirm(harness, mockUseWerewolfRoomReturn, ...);
 //   });
 // =============================================================================
 
@@ -478,7 +478,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
  */
 export async function chainWolfVoteConfirm(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   wolfRole: RoleId,
   wolfSeat: number,
@@ -487,7 +487,7 @@ export async function chainWolfVoteConfirm(
 ): Promise<jest.Mock> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: wolfRole,
@@ -523,7 +523,7 @@ export async function chainWolfVoteConfirm(
  */
 export async function chainSkipConfirm(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   schemaId: SchemaId,
   actionRole: RoleId,
@@ -532,7 +532,7 @@ export async function chainSkipConfirm(
 ): Promise<jest.Mock> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
@@ -575,7 +575,7 @@ export async function chainSkipConfirm(
  */
 export async function chainConfirmTrigger(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   schemaId: SchemaId,
   actionRole: RoleId,
@@ -583,7 +583,7 @@ export async function chainConfirmTrigger(
   seat: number,
 ): Promise<void> {
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
@@ -630,13 +630,13 @@ export async function chainConfirmTrigger(
  */
 export async function chainWolfRobotHunterStatus(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
 ): Promise<jest.Mock> {
   const sendMock = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'wolfRobotLearn',
       currentActionRole: 'wolfRobot',
       myRole: 'wolfRobot',
@@ -697,7 +697,7 @@ export async function chainWolfRobotHunterStatus(
  */
 export async function coverageChainWolfVote(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   wolfRole: RoleId,
   wolfSeat: number,
@@ -706,7 +706,7 @@ export async function coverageChainWolfVote(
 ): Promise<{ submitAction: jest.Mock }> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: wolfRole,
@@ -737,7 +737,7 @@ export async function coverageChainWolfVote(
  */
 export async function coverageChainSkipConfirm(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   schemaId: SchemaId,
   actionRole: RoleId,
@@ -746,7 +746,7 @@ export async function coverageChainSkipConfirm(
 ): Promise<{ submitAction: jest.Mock }> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
@@ -785,7 +785,7 @@ export async function coverageChainSkipConfirm(
  */
 export async function coverageChainConfirmTrigger(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   schemaId: SchemaId,
   actionRole: RoleId,
@@ -793,7 +793,7 @@ export async function coverageChainConfirmTrigger(
   seat: number,
 ): Promise<void> {
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
@@ -835,13 +835,13 @@ export async function coverageChainConfirmTrigger(
  */
 export async function coverageChainWolfRobotHunterStatus(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
 ): Promise<{ sendWolfRobotHunterStatusViewed: jest.Mock }> {
   const sendMock = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'wolfRobotLearn',
       currentActionRole: 'wolfRobot',
       myRole: 'wolfRobot',
@@ -887,7 +887,7 @@ export async function coverageChainWolfRobotHunterStatus(
  */
 export async function coverageChainActionPrompt(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   schemaId: SchemaId,
   actionRole: RoleId,
@@ -895,7 +895,7 @@ export async function coverageChainActionPrompt(
   seat: number,
 ): Promise<void> {
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
@@ -914,12 +914,12 @@ export async function coverageChainActionPrompt(
  */
 export async function coverageChainWitchSavePrompt(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
 ): Promise<void> {
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'witch',
@@ -940,12 +940,12 @@ export async function coverageChainWitchSavePrompt(
  */
 export async function coverageChainWitchPoisonPrompt(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
 ): Promise<void> {
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'witch',
@@ -971,7 +971,7 @@ export async function coverageChainWitchPoisonPrompt(
  */
 export async function coverageChainMagicianSwap(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
   firstTarget: number,
@@ -979,7 +979,7 @@ export async function coverageChainMagicianSwap(
 ): Promise<{ submitAction: jest.Mock }> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'magicianSwap',
       currentActionRole: 'magician',
       myRole: 'magician',
@@ -1015,14 +1015,14 @@ export async function coverageChainMagicianSwap(
  */
 export async function coverageChainNightmareBlocked(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   blockedSchemaId: SchemaId,
   blockedRole: RoleId,
   blockedSeat: number,
   blockedMessage: string,
 ): Promise<{ rejectedEvents: import('./RoomScreenTestHarness').DialogEvent[] }> {
-  const reactiveMock = createReactiveGameRoomMock({
+  const reactiveMock = createReactiveWerewolfRoomMock({
     schemaId: blockedSchemaId,
     currentActionRole: blockedRole,
     myRole: blockedRole,
@@ -1077,7 +1077,7 @@ export async function coverageChainNightmareBlocked(
  */
 export async function coverageChainSeatActionConfirm(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   schemaId: SchemaId,
   actionRole: RoleId,
@@ -1089,7 +1089,7 @@ export async function coverageChainSeatActionConfirm(
     successfulWerewolfActionCommand(schemaId, input),
   );
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
@@ -1120,7 +1120,7 @@ export async function coverageChainSeatActionConfirm(
  */
 export async function coverageChainWolfVoteEmpty(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   wolfRole: RoleId,
   wolfSeat: number,
@@ -1128,7 +1128,7 @@ export async function coverageChainWolfVoteEmpty(
 ): Promise<{ submitAction: jest.Mock }> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: wolfRole,
@@ -1170,7 +1170,7 @@ export async function coverageChainWolfVoteEmpty(
  */
 export async function chainActionConfirm(
   harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
+  mockSetter: (mock: ReturnType<typeof createWerewolfRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
   seat: number,
   firstTarget: number,
@@ -1178,7 +1178,7 @@ export async function chainActionConfirm(
 ): Promise<jest.Mock> {
   const submitAction = jest.fn().mockResolvedValue(successfulWerewolfCommand());
   mockSetter(
-    createGameRoomMock({
+    createWerewolfRoomMock({
       schemaId: 'magicianSwap',
       currentActionRole: 'magician',
       myRole: 'magician',

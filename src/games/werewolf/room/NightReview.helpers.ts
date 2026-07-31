@@ -35,6 +35,28 @@ const DEATH_REASON_LABELS: Record<DeathReason, string> = {
   magicianSwap: '魔术师交换',
 };
 
+type DamageReflectionRevealKey =
+  | 'seerReveal'
+  | 'mirrorSeerReveal'
+  | 'drunkSeerReveal'
+  | 'psychicReveal'
+  | 'gargoyleReveal'
+  | 'pureWhiteReveal'
+  | 'wolfWitchReveal';
+
+const DAMAGE_REFLECTION_REVEAL_CHECKS: readonly {
+  readonly key: DamageReflectionRevealKey;
+  readonly roleId: RoleId;
+}[] = [
+  { key: 'seerReveal', roleId: 'seer' },
+  { key: 'mirrorSeerReveal', roleId: 'mirrorSeer' },
+  { key: 'drunkSeerReveal', roleId: 'drunkSeer' },
+  { key: 'psychicReveal', roleId: 'psychic' },
+  { key: 'gargoyleReveal', roleId: 'gargoyle' },
+  { key: 'pureWhiteReveal', roleId: 'pureWhite' },
+  { key: 'wolfWitchReveal', roleId: 'wolfWitch' },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -479,16 +501,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   }
 
   // Damage reflection warning
-  const revealChecks = [
-    { key: 'seerReveal' as const, roleId: 'seer' as RoleId },
-    { key: 'mirrorSeerReveal' as const, roleId: 'mirrorSeer' as RoleId },
-    { key: 'drunkSeerReveal' as const, roleId: 'drunkSeer' as RoleId },
-    { key: 'psychicReveal' as const, roleId: 'psychic' as RoleId },
-    { key: 'gargoyleReveal' as const, roleId: 'gargoyle' as RoleId },
-    { key: 'pureWhiteReveal' as const, roleId: 'pureWhite' as RoleId },
-    { key: 'wolfWitchReveal' as const, roleId: 'wolfWitch' as RoleId },
-  ];
-  for (const { key, roleId } of revealChecks) {
+  for (const { key, roleId } of DAMAGE_REFLECTION_REVEAL_CHECKS) {
     const reveal = gameState[key];
     if (reveal) {
       const targetPlayer = gameState.players.get(reveal.targetSeat);

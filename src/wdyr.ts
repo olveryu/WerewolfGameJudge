@@ -14,12 +14,19 @@
 import type whyDidYouRenderFn from '@welldone-software/why-did-you-render';
 import React from 'react';
 
+function isWhyDidYouRender(value: unknown): value is typeof whyDidYouRenderFn {
+  return typeof value === 'function';
+}
+
 if (__DEV__) {
   // Conditional require — production bundles strip this entire __DEV__ block.
   // Top-level `import` would ship the module in production.
-  const whyDidYouRender =
+  const whyDidYouRender: unknown =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('@welldone-software/why-did-you-render') as typeof whyDidYouRenderFn;
+    require('@welldone-software/why-did-you-render');
+  if (!isWhyDidYouRender(whyDidYouRender)) {
+    throw new TypeError('why-did-you-render must export a callable function');
+  }
   whyDidYouRender(React, {
     trackAllPureComponents: true,
   });

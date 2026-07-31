@@ -47,8 +47,8 @@ export function useWerewolfNightDerived(gameState: LocalGameState): WerewolfNigh
     if (gameState.currentStepIndex >= nightPlan.steps.length) return NONE;
     const step = nightPlan.steps[gameState.currentStepIndex]!;
     return {
-      currentActionRole: step.roleId as RoleId | null,
-      currentSchemaId: step.stepId as SchemaId | null,
+      currentActionRole: step.roleId,
+      currentSchemaId: step.stepId,
     };
   }, [gameState]);
 

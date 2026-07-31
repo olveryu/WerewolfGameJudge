@@ -14,9 +14,9 @@ async function loadHaptics(): Promise<typeof import('expo-haptics') | null> {
   if (Haptics) return Haptics;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    Haptics = require('expo-haptics') as typeof import('expo-haptics');
-    return Haptics;
+    const haptics = await import('expo-haptics');
+    Haptics = haptics;
+    return haptics;
   } catch {
     return null;
   }

@@ -7,7 +7,7 @@
  * No hardcoded style values; no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
@@ -226,12 +226,12 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
                 if (bulkSlot) {
                   const maxCount = bulkSlot.count ?? 1;
                   const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
-                  const spec = ROLE_SPECS[bulkSlot.roleId as keyof typeof ROLE_SPECS];
+                  const spec = ROLE_SPECS[bulkSlot.roleId];
                   return (
                     <React.Fragment key={section.title}>
                       <RoleStepper
                         roleId={bulkSlot.roleId}
-                        label={spec?.displayName ?? bulkSlot.roleId}
+                        label={spec.displayName}
                         count={currentCount}
                         maxCount={maxCount}
                         onCountChange={handleBulkCountChange}
@@ -321,7 +321,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
       {/* Role Info Card (long-press any chip → card with variant pills) */}
       <RoleCardSimple
         visible={roleInfoId !== null}
-        roleId={roleInfoId as RoleId | null}
+        roleId={roleInfoId}
         onClose={handleCloseRoleInfo}
         showRealIdentity
         variantIds={roleInfoVariantIds}

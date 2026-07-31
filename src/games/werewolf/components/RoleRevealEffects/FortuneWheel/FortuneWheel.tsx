@@ -9,7 +9,6 @@
  * via Animated.View rotation.
  * No service imports, no business logic.
  */
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -701,7 +700,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
           <Animated.View style={[styles.cardWrapper, cardStyle]}>
             <View style={styles.cardInner}>
               <RoleCardContent
-                roleId={role.id as RoleId}
+                roleId={role.id}
                 width={cardWidth}
                 height={cardHeight}
                 revealMode

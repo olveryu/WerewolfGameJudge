@@ -6,7 +6,7 @@
  * Excludes shared room modals and Werewolf action dialogs.
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useRef, useState } from 'react';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -84,7 +84,10 @@ export function useRoomModals({
   const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
 
   const handleSkillPreviewOpen = useCallback((roleId: string) => {
-    setSkillPreviewRoleId(roleId as RoleId);
+    if (!isValidRoleId(roleId)) {
+      throw new Error(`[useRoomModals] Invalid role ID: ${roleId}`);
+    }
+    setSkillPreviewRoleId(roleId);
   }, []);
 
   const handleSkillPreviewClose = useCallback(() => {

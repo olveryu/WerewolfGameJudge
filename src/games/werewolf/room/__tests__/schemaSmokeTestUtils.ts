@@ -14,7 +14,7 @@ import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 type RoomScreenProps = React.ComponentProps<typeof WerewolfRoomScreen>;
 
-type MakeUseGameRoomArgs = {
+type CreateWerewolfRoomMockOptions = {
   schemaId: SchemaId;
   currentActionRole: RoleId;
   myRole: RoleId;
@@ -41,7 +41,7 @@ export const mockRoom: RoomRecord<'werewolf'> = {
   createdAt: new Date(0),
 };
 
-export function makeBaseUseGameRoomReturn({
+export function createBaseWerewolfRoomMock({
   schemaId,
   currentActionRole,
   myRole,
@@ -49,7 +49,7 @@ export function makeBaseUseGameRoomReturn({
   numberOfPlayers = 12,
   overrides,
   gameStateOverrides,
-}: MakeUseGameRoomArgs) {
+}: CreateWerewolfRoomMockOptions) {
   const commandResult = successfulRoomCommand(buildWerewolfTestState());
   const players = new Map<number, LocalPlayer>(
     Array.from({ length: numberOfPlayers }).map((_, i) => [
