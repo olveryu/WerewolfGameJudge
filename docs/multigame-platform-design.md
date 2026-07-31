@@ -3275,3 +3275,17 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - `legacy` / `compat` / 已删除 API 残留审计只剩 migration 与 malformed payload 负向 fixture、架构防恢复名单，以及
   iOS Safari audio player 复用的当前平台行为说明；production 不存在旧 reader、route、facade、result DTO 或 forwarding
   export。完整 `pnpm run quality` 通过；Phase 8 只剩 local migration/seed 与完整 E2E 最终验收。
+
+### 当前提交：Phase 8.12S local D1 seed 配置归属
+
+- `packages/api-worker` 的 migration、dev、deploy 与 types 命令已经显式绑定 Worker `wrangler.toml`，但
+  `scripts/seed-local.mjs` 内部启动的 `wrangler d1 execute` 仍依赖 workspace 配置发现。在根 Pages
+  `wrangler.jsonc` 与 Worker 配置并存时，这条嵌套命令可能选择错误配置并找不到 `werewolf-db`；seed 现在与其他 Worker
+  D1 命令一致，显式传入 `--config=wrangler.toml`。
+- root architecture contract 使用 TypeScript AST 定位 seed 中唯一的 `execFileSync` 调用，要求 literal argument array
+  同时包含 `werewolf-db`、`--local` 与 `--config=wrangler.toml`。测试不依赖 Prettier 排版，也不允许后续脚本重新退回
+  ambient config discovery。
+- 本地 `db:migrate:local` 确认无待执行 migration；修复后的 `db:seed:local` 成功执行两条 statement。随后通过同一 Worker
+  配置查询 D1，确认 `dev@test.local` 为 level 99 且 `unlocked_items` 包含 1018 项；architecture contract 为 1 suite /
+  4618 tests 全绿。完整 `pnpm run quality` 通过，其中 game-engine 88 suites / 2492 tests、Worker 28 files / 172
+  tests、root 230 suites / 9634 tests；Phase 8 只剩全量 E2E 最终验收。

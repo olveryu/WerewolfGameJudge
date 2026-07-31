@@ -633,6 +633,49 @@ describe('Worker ownership: source tree is exact', () => {
     expect(workerDevDependencies).not.toHaveProperty('@cloudflare/workers-types');
   });
 
+  it('binds the local seed subprocess to the Worker Wrangler config', () => {
+    const seedPath = path.join(process.cwd(), 'scripts', 'seed-local.mjs');
+    const seedSource = fs.readFileSync(seedPath, 'utf-8');
+    const seedSourceFile = ts.createSourceFile(
+      seedPath,
+      seedSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.JS,
+    );
+    const wranglerCalls: ts.CallExpression[] = [];
+
+    function visit(node: ts.Node): void {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'execFileSync'
+      ) {
+        wranglerCalls.push(node);
+      }
+      ts.forEachChild(node, visit);
+    }
+
+    visit(seedSourceFile);
+    expect(wranglerCalls).toHaveLength(1);
+
+    const commandArguments = wranglerCalls[0]?.arguments[1];
+    if (!commandArguments || !ts.isArrayLiteralExpression(commandArguments)) {
+      throw new Error('seed-local.mjs must pass a literal argument array to execFileSync');
+    }
+    const literalArguments = commandArguments.elements
+      .filter(ts.isStringLiteralLike)
+      .map((argument) => argument.text);
+    expect(literalArguments).toEqual([
+      'wrangler',
+      'd1',
+      'execute',
+      'werewolf-db',
+      '--local',
+      '--config=wrangler.toml',
+    ]);
+  });
+
   it('derives Pages runtime types from the committed Wrangler declaration', () => {
     const rootPackageJson: unknown = JSON.parse(
       fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'),

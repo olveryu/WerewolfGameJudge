@@ -135,11 +135,23 @@ const tmpSql = join(workerDir, '.seed-local-tmp.sql');
 try {
   // Write SQL to temp file to avoid shell $ expansion mangling the password hash
   writeFileSync(tmpSql, sql, 'utf-8');
-  execFileSync('npx', ['wrangler', 'd1', 'execute', 'werewolf-db', '--local', `--file=${tmpSql}`], {
-    cwd: workerDir,
-    encoding: 'utf-8',
-    stdio: 'inherit',
-  });
+  execFileSync(
+    'npx',
+    [
+      'wrangler',
+      'd1',
+      'execute',
+      'werewolf-db',
+      '--local',
+      '--config=wrangler.toml',
+      `--file=${tmpSql}`,
+    ],
+    {
+      cwd: workerDir,
+      encoding: 'utf-8',
+      stdio: 'inherit',
+    },
+  );
   console.log('\nSeed complete! Login with dev@test.local / dev123');
 } catch (e) {
   console.error('Seed failed:', e);
