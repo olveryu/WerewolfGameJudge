@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { FIB_WORD_JSON_SCHEMA, parseFibWordCandidateJson } from './candidate';
+import { FIB_WORD_BATCH_JSON_SCHEMA, parseFibWordCandidateBatchJson } from './candidate';
 import { createFibWordMessages } from './prompt';
 import type { FibWordProvider } from './types';
 
@@ -38,13 +38,13 @@ export function createGeminiFibWordProvider(
           model: GEMINI_MODEL,
           messages: [...createFibWordMessages(request)],
           temperature: 1,
-          max_tokens: 256,
+          max_tokens: 768,
           response_format: {
             type: 'json_schema',
             json_schema: {
               name: 'fib_word_candidate',
               strict: true,
-              schema: FIB_WORD_JSON_SCHEMA,
+              schema: FIB_WORD_BATCH_JSON_SCHEMA,
             },
           },
         }),
@@ -57,11 +57,7 @@ export function createGeminiFibWordProvider(
         );
       }
       const parsed = geminiResponseSchema.parse(await response.json());
-      return parseFibWordCandidateJson(
-        parsed.choices[0].message.content,
-        'gemini',
-        request.avoidWords,
-      );
+      return parseFibWordCandidateBatchJson(parsed.choices[0].message.content, 'gemini', request);
     },
   };
 }

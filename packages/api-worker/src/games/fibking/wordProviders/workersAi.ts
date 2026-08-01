@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { FIB_WORD_JSON_SCHEMA, parseFibWordCandidate } from './candidate';
+import { FIB_WORD_BATCH_JSON_SCHEMA, parseFibWordCandidateBatch } from './candidate';
 import { createFibWordMessages } from './prompt';
 import type { FibWordProvider } from './types';
 
@@ -18,14 +18,14 @@ export function createWorkersAiFibWordProvider(run: FibWorkersAiRun): FibWordPro
         await run(WORKERS_AI_MODEL, {
           messages: [...createFibWordMessages(request)],
           temperature: 1,
-          max_tokens: 256,
+          max_tokens: 768,
           response_format: {
             type: 'json_schema',
-            json_schema: FIB_WORD_JSON_SCHEMA,
+            json_schema: FIB_WORD_BATCH_JSON_SCHEMA,
           },
         }),
       );
-      return parseFibWordCandidate(response.response, 'workers-ai', request.avoidWords);
+      return parseFibWordCandidateBatch(response.response, 'workers-ai', request);
     },
   };
 }

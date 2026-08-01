@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 import type { WorkerEffectRoomIdentity } from '../../platform/gameModules/runtimeGameModule';
 import type { fibWordGenerationResults } from './dbSchema';
+import { readRecentFibWords } from './wordHistory';
 import { parseFibWordCandidate } from './wordProviders/candidate';
 import type { FibWordCandidate, FibWordProvider } from './wordProviders/types';
 
@@ -45,6 +46,7 @@ interface GetFibWordGenerationResultInput {
   readonly effectId: string;
   readonly effect: FibGenerateWordEffect;
   readonly provider: FibWordProvider;
+  readonly historyUserIds: readonly string[];
 }
 
 async function createRequestFingerprint(effect: FibGenerateWordEffect): Promise<string> {
@@ -105,12 +107,17 @@ function parseMatchingResult(
 export async function getOrCreateFibWordGenerationResult(
   input: GetFibWordGenerationResultInput,
 ): Promise<FibWordCandidate> {
-  const { db, roomIdentity, effectId, effect, provider } = input;
+  const { db, roomIdentity, effectId, effect, provider, historyUserIds } = input;
   const requestFingerprint = await createRequestFingerprint(effect);
   const persisted = await readResult(db, roomIdentity.roomId, effectId);
   if (persisted !== null) return parseMatchingResult(persisted, input, requestFingerprint);
 
-  const generated = await provider.generate({ avoidWords: effect.payload.avoidWords });
+  const recentWords = await readRecentFibWords(db, historyUserIds);
+  const generated = await provider.generate({
+    avoidWords: effect.payload.avoidWords,
+    recentWords,
+    selectionSeed: effect.payload.roundId,
+  });
   const candidate = parseFibWordCandidate(
     { word: generated.word, definition: generated.definition },
     generated.source,

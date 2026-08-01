@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { getOrCreateFibWordGenerationResult } from './wordGenerationResults';
+import { getFibWordHistoryUserIds, recordFibWordExposure } from './wordHistory';
 import { createConfiguredFibWordProvider, type FibWordProvider } from './wordProviders';
 
 export const fibEffectSchema: z.ZodType<FibEffect> = z.strictObject({
@@ -39,12 +40,14 @@ export async function handleFibGenerateWordEffect(
   ) {
     return;
   }
+  const historyUserIds = getFibWordHistoryUserIds(context.state);
   const candidate = await getOrCreateFibWordGenerationResult({
     db: context.bindings.DB,
     roomIdentity: context.roomIdentity,
     effectId: context.effectId,
     effect,
     provider,
+    historyUserIds,
   });
   const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
   const result = await context.dispatchInternal(commandId, {
@@ -66,6 +69,12 @@ export async function handleFibGenerateWordEffect(
   if (result.outcome.kind !== 'success') {
     throw new Error(`Fib round-complete command ${commandId} failed: ${result.outcome.reason}`);
   }
+  await recordFibWordExposure(
+    context.bindings.DB,
+    historyUserIds,
+    candidate.word,
+    new Date().toISOString(),
+  );
 }
 
 export async function handleFibEffect(

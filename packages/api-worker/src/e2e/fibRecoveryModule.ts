@@ -9,6 +9,7 @@ import type {
 import { fibEffectSchema, handleFibGenerateWordEffect } from '../games/fibking/effects';
 import { fibWorkerModule } from '../games/fibking/module';
 import { getOrCreateFibWordGenerationResult } from '../games/fibking/wordGenerationResults';
+import { getFibWordHistoryUserIds } from '../games/fibking/wordHistory';
 import { createLocalFibWordProvider } from '../games/fibking/wordProviders/local';
 import type { WorkerEffectContext } from '../platform/gameModules/workerModule';
 import {
@@ -41,6 +42,7 @@ async function handleRecoverableFibEffect(
       effectId: context.effectId,
       effect,
       provider,
+      historyUserIds: getFibWordHistoryUserIds(context.state),
     });
     throw new Error('[E2E] Interrupted Fib effect after provider-result persistence');
   }

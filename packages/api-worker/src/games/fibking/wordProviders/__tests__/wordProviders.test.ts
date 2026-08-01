@@ -15,12 +15,17 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { WorkerEffectContext } from '../../../../platform/gameModules/workerModule';
 import { handleFibGenerateWordEffect } from '../../effects';
+import { readRecentFibWords, recordFibWordExposure } from '../../wordHistory';
 import { createConfiguredFibWordProvider } from '..';
-import { FIB_WORD_JSON_SCHEMA, parseFibWordCandidate } from '../candidate';
+import {
+  FIB_WORD_BATCH_JSON_SCHEMA,
+  parseFibWordCandidate,
+  parseFibWordCandidateBatch,
+} from '../candidate';
 import { createGeminiFibWordProvider } from '../gemini';
 import { createLocalFibWordProvider } from '../local';
 import { LOCAL_FIB_WORD_BANK } from '../localWordBank';
-import type { FibWordProvider } from '../types';
+import type { FibWordProvider, FibWordRequest } from '../types';
 import { createWorkersAiFibWordProvider } from '../workersAi';
 
 const ROOM_ID = 'fib-provider-room';
@@ -31,6 +36,39 @@ const EFFECT = {
   type: 'fib.word.generate',
   payload: { roundId: 'fib-round:start-command', avoidWords: [] },
 } as const;
+
+const AI_CANDIDATES = [
+  { word: '菡萏', definition: '尚未开放的荷花，也泛指荷花。', category: 'literary' },
+  {
+    word: '电子榨菜',
+    definition: '吃饭时用来佐餐的轻松视频或其他内容。',
+    category: 'internet',
+  },
+  {
+    word: '情绪价值',
+    definition: '一段关系带给人的积极情绪体验和支持。',
+    category: 'compound',
+  },
+  {
+    word: '峰终定律',
+    definition: '人主要依据体验高峰和结尾形成整体印象的规律。',
+    category: 'niche',
+  },
+] as const;
+
+function createWordRequest(overrides: Partial<FibWordRequest> = {}): FibWordRequest {
+  return {
+    avoidWords: [],
+    recentWords: [],
+    selectionSeed: 'fib-provider-test-seed',
+    ...overrides,
+  };
+}
+
+const AI_WORD_REQUEST = createWordRequest({
+  avoidWords: ['氤氲'],
+  recentWords: AI_CANDIDATES.slice(1).map((candidate) => candidate.word),
+});
 
 function applyPublicCommand(
   state: FibState,
@@ -94,14 +132,19 @@ function committedResult(commandId: string): RoomCommandResult<FibState> {
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM fib_word_generation_results').run();
   await env.DB.prepare('DELETE FROM rooms').run();
-  await env.DB.prepare(
-    `INSERT INTO rooms (
-      id, code, game_type, host_user_id, creation_id, config_json, status,
-      created_at, updated_at, games_started
-    ) VALUES (?, ?, 'fibking', 'host', ?, '{"numberOfPlayers":4}', 'active', ?, ?, 0)`,
-  )
-    .bind(ROOM_ID, ROOM_CODE, CREATION_ID, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')
-    .run();
+  await env.DB.prepare("DELETE FROM users WHERE id = 'host'").run();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO users (id, is_anonymous, created_at, updated_at)
+         VALUES ('host', 1, ?, ?)`,
+    ).bind('2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+    env.DB.prepare(
+      `INSERT INTO rooms (
+          id, code, game_type, host_user_id, creation_id, config_json, status,
+          created_at, updated_at, games_started
+        ) VALUES (?, ?, 'fibking', 'host', ?, '{"numberOfPlayers":4}', 'active', ?, ?, 0)`,
+    ).bind(ROOM_ID, ROOM_CODE, CREATION_ID, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+  ]);
 });
 
 describe('Fib word providers', () => {
@@ -129,6 +172,35 @@ describe('Fib word providers', () => {
     ).toThrow();
   });
 
+  it('selects from four distinct, categorized candidates outside room and player history', async () => {
+    await expect(
+      parseFibWordCandidateBatch({ candidates: AI_CANDIDATES }, 'workers-ai', AI_WORD_REQUEST),
+    ).resolves.toEqual({
+      word: AI_CANDIDATES[0].word,
+      definition: AI_CANDIDATES[0].definition,
+      source: 'workers-ai',
+    });
+    expect(() =>
+      parseFibWordCandidateBatch(
+        { candidates: [AI_CANDIDATES[0], AI_CANDIDATES[0], ...AI_CANDIDATES.slice(2)] },
+        'workers-ai',
+        createWordRequest(),
+      ),
+    ).toThrow('duplicate candidate');
+    expect(() =>
+      parseFibWordCandidateBatch(
+        {
+          candidates: [
+            { word: '🔥🔥', definition: '两个没有形成明确词义的火焰符号。', category: 'literary' },
+            ...AI_CANDIDATES.slice(1),
+          ],
+        },
+        'workers-ai',
+        createWordRequest(),
+      ),
+    ).toThrow();
+  });
+
   it('keeps the local bank larger than the authoritative used-word window', async () => {
     expect(LOCAL_FIB_WORD_BANK.length).toBeGreaterThan(FIB_USED_WORD_LIMIT);
     for (const entry of LOCAL_FIB_WORD_BANK) {
@@ -136,10 +208,24 @@ describe('Fib word providers', () => {
     }
     const provider = createLocalFibWordProvider();
     const avoidWords = LOCAL_FIB_WORD_BANK.slice(0, FIB_USED_WORD_LIMIT).map((entry) => entry.word);
-    await expect(provider.generate({ avoidWords })).resolves.toMatchObject({
+    const recentWords = LOCAL_FIB_WORD_BANK.slice(FIB_USED_WORD_LIMIT + 1).map(
+      (entry) => entry.word,
+    );
+    await expect(
+      provider.generate(
+        createWordRequest({ avoidWords, recentWords, selectionSeed: 'local-target-seed' }),
+      ),
+    ).resolves.toMatchObject({
       word: LOCAL_FIB_WORD_BANK[FIB_USED_WORD_LIMIT].word,
       source: 'local',
     });
+
+    const rotated = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        provider.generate(createWordRequest({ selectionSeed: `local-rotation-${index}` })),
+      ),
+    );
+    expect(new Set(rotated.map((candidate) => candidate.word)).size).toBeGreaterThan(1);
   });
 
   it('uses Gemini structured output and rejects transport failures for outbox retry', async () => {
@@ -154,7 +240,7 @@ describe('Fib word providers', () => {
           choices: [
             {
               message: {
-                content: '{"word":"菡萏","definition":"尚未开放的荷花，也泛指荷花。"}',
+                content: JSON.stringify({ candidates: AI_CANDIDATES }),
               },
             },
           ],
@@ -164,17 +250,18 @@ describe('Fib word providers', () => {
     };
     const provider = createGeminiFibWordProvider('test-key', fetchImpl);
 
-    await expect(provider.generate({ avoidWords: ['氤氲'] })).resolves.toEqual({
+    await expect(provider.generate(AI_WORD_REQUEST)).resolves.toEqual({
       word: '菡萏',
       definition: '尚未开放的荷花，也泛指荷花。',
       source: 'gemini',
     });
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('"additionalProperties":false');
+    expect(requestBody).toContain('"candidates"');
 
     const failingFetch: typeof fetch = async () => new Response('unavailable', { status: 503 });
     await expect(
-      createGeminiFibWordProvider('test-key', failingFetch).generate({ avoidWords: [] }),
+      createGeminiFibWordProvider('test-key', failingFetch).generate(createWordRequest()),
     ).rejects.toThrow('Gemini Fib word request failed (503)');
   });
 
@@ -186,25 +273,22 @@ describe('Fib word providers', () => {
       receivedInput = input;
       return Promise.resolve({
         response: {
-          word: '菡萏',
-          definition: '尚未开放的荷花，也泛指荷花。',
+          candidates: AI_CANDIDATES,
         },
       });
     };
 
-    await expect(createWorkersAiFibWordProvider(run).generate({ avoidWords: [] })).resolves.toEqual(
-      {
-        word: '菡萏',
-        definition: '尚未开放的荷花，也泛指荷花。',
-        source: 'workers-ai',
-      },
-    );
+    await expect(createWorkersAiFibWordProvider(run).generate(AI_WORD_REQUEST)).resolves.toEqual({
+      word: '菡萏',
+      definition: '尚未开放的荷花，也泛指荷花。',
+      source: 'workers-ai',
+    });
     expect(receivedModel).toBe('@cf/meta/llama-3.1-8b-instruct-fast');
     expect(receivedInput).toMatchObject({
-      max_tokens: 256,
+      max_tokens: 768,
       response_format: {
         type: 'json_schema',
-        json_schema: FIB_WORD_JSON_SCHEMA,
+        json_schema: FIB_WORD_BATCH_JSON_SCHEMA,
       },
     });
   });
@@ -272,13 +356,38 @@ describe('Fib word-generation effect', () => {
     ]);
   });
 
+  it('passes participant history to generation and records only a successful round', async () => {
+    await recordFibWordExposure(env.DB, ['host'], '阒寂', '2026-01-01T00:00:00.000Z');
+    let receivedRequest: FibWordRequest | null = null;
+    const historyProvider: FibWordProvider = {
+      generate: (request) => {
+        receivedRequest = request;
+        return Promise.resolve({
+          word: '菡萏',
+          definition: '尚未开放的荷花，也泛指荷花。',
+          source: 'local',
+        });
+      },
+    };
+    const context = createEffectContext((commandId) => Promise.resolve(committedResult(commandId)));
+
+    await handleFibGenerateWordEffect(EFFECT, context, historyProvider);
+
+    expect(receivedRequest).toMatchObject({
+      avoidWords: [],
+      recentWords: ['阒寂'],
+      selectionSeed: 'fib-round:start-command',
+    });
+    await expect(readRecentFibWords(env.DB, ['host'])).resolves.toEqual(['菡萏', '阒寂']);
+  });
+
   it('retires a stale effect before invoking the configured provider', async () => {
     let providerCallCount = 0;
     let dispatchCallCount = 0;
     const staleProvider: FibWordProvider = {
       generate: () => {
         providerCallCount += 1;
-        return provider.generate({ avoidWords: [] });
+        return provider.generate(createWordRequest());
       },
     };
     const lobby = fibEngine.createInitialState(
@@ -332,5 +441,6 @@ describe('Fib word-generation effect', () => {
     await expect(handleFibGenerateWordEffect(EFFECT, context, provider)).rejects.toThrow(
       'was rejected: fib_word_reused',
     );
+    await expect(readRecentFibWords(env.DB, ['host'])).resolves.toEqual([]);
   });
 });
