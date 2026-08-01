@@ -92,6 +92,7 @@ export const TESTIDS = {
   fibIdentityModal: 'fib-identity-modal',
   fibIdentityRole: 'fib-identity-role',
   fibIdentityWord: 'fib-identity-word',
+  fibIdentityPinyin: 'fib-identity-pinyin',
   fibIdentityDefinition: 'fib-identity-definition',
   fibRulesButton: 'fib-rules-button',
   fibStartRoundButton: 'fib-start-round-button',

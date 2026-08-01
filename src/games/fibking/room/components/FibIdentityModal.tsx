@@ -21,6 +21,7 @@ import {
 } from '@/theme';
 
 import { getFibRoleName } from '../fibRoomAdapter';
+import { formatFibWordPinyin } from '../formatFibWordPinyin';
 
 interface FibIdentityModalProps {
   readonly view: FibRoundView;
@@ -41,6 +42,7 @@ function getRoleInstruction(view: FibRoundView): string {
 
 const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({ view, onClose }) => {
   const roleName = view.viewerRole === null ? '公开结果' : getFibRoleName(view.viewerRole);
+  const wordPinyin = formatFibWordPinyin(view.word);
   return (
     <BaseCenterModal
       visible
@@ -69,6 +71,11 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({ view, onCl
           <Text style={styles.word} testID={TESTIDS.fibIdentityWord}>
             {view.word}
           </Text>
+          {wordPinyin !== null && (
+            <Text style={styles.pinyin} testID={TESTIDS.fibIdentityPinyin}>
+              {wordPinyin}
+            </Text>
+          )}
         </View>
 
         {view.definition !== null && (
@@ -166,6 +173,12 @@ const styles = StyleSheet.create({
     lineHeight: typography.heading * 1.3,
     fontWeight: typography.weights.bold,
     color: colors.primary,
+  },
+  pinyin: {
+    marginTop: spacing.micro,
+    fontSize: typography.secondary,
+    lineHeight: typography.secondary * 1.45,
+    color: colors.textSecondary,
   },
   definitionSection: {
     marginTop: spacing.medium,

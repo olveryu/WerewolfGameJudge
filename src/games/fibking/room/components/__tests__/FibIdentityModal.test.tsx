@@ -7,13 +7,14 @@ import { FibIdentityModal } from '../FibIdentityModal';
 
 function createOngoingView(
   viewerRole: Extract<FibRoundView, { phase: 'ongoing' }>['viewerRole'],
+  word = '山谷',
 ): Extract<FibRoundView, { phase: 'ongoing' }> {
   return {
     phase: 'ongoing',
     roundId: 'round-1',
     viewerSeat: viewerRole === 'guesser' ? 0 : viewerRole === 'honest' ? 1 : 2,
     viewerRole,
-    word: '山谷',
+    word,
     definition: viewerRole === 'honest' ? '两山之间低洼狭长的地带' : null,
     guesserSeat: 0,
     honestSeat: null,
@@ -30,6 +31,7 @@ describe('FibIdentityModal', () => {
     expect(view.getByTestId(TESTIDS.fibIdentityModal)).toBeTruthy();
     expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent(roleName);
     expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
+    expect(view.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('shān gǔ');
     expect(view.queryByTestId(TESTIDS.fibIdentityDefinition)).toBeNull();
   });
 
@@ -40,9 +42,23 @@ describe('FibIdentityModal', () => {
 
     expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent('老实人');
     expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
+    expect(view.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('shān gǔ');
     expect(view.getByTestId(TESTIDS.fibIdentityDefinition)).toHaveTextContent(
       '两山之间低洼狭长的地带',
     );
+  });
+
+  it('shows pinyin for multi-character network terms without duplicating Latin-only words', () => {
+    const chinese = render(
+      <FibIdentityModal view={createOngoingView('fibber', '电子榨菜')} onClose={jest.fn()} />,
+    );
+    expect(chinese.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('diàn zǐ zhà cài');
+    chinese.unmount();
+
+    const latin = render(
+      <FibIdentityModal view={createOngoingView('fibber', 'Citywalk')} onClose={jest.fn()} />,
+    );
+    expect(latin.queryByTestId(TESTIDS.fibIdentityPinyin)).toBeNull();
   });
 
   it('reveals every assignment after the round ends and closes through the shared action', () => {

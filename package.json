@@ -88,6 +88,7 @@
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "html2canvas": "^1.4.1",
+    "pinyin-pro": "^3.28.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
