@@ -6,13 +6,14 @@ import {
   createFibSeatDataSource,
   createFibStatusRibbon,
   getFibProfileTarget,
+  getFibSeatTapIntent,
 } from '@/games/fibking/room/fibRoomAdapter';
 import { TESTIDS } from '@/testids';
 
 const callbacks = {
   requestTakeSeat: jest.fn(),
   requestMoveSeat: jest.fn(),
-  requestLeaveSeat: jest.fn(),
+  leaveSeat: jest.fn(),
   kickSeat: jest.fn(),
   clearSeats: jest.fn(),
   fillBots: jest.fn(),
@@ -25,7 +26,7 @@ const callbacks = {
 function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }> {
   return {
     gameType: 'fibking',
-    stateVersion: 1,
+    stateVersion: 2,
     roomCode: '4321',
     hostUserId: 'host',
     phase: 'lobby',
@@ -38,6 +39,7 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
       },
     },
     fillEmptySeatsWithBots: false,
+    excludedBotSeats: [],
     usedWords: [],
     pendingRound: null,
     round: null,
@@ -81,6 +83,24 @@ describe('FibKing room adapter', () => {
     expect(capabilities.canConfigureGame.isAllowed).toBe(true);
     expect(capabilities.canShareRoom.isAllowed).toBe(true);
     expect(capabilities.canTakeOverBots.isAllowed).toBe(false);
+  });
+
+  it('executes profile leave and kick directly through the shared capabilities', () => {
+    const capabilities = createFibRoomCapabilities({
+      state: createLobby(),
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+    if (!capabilities.canLeaveSeat.isAllowed || !capabilities.canKickSeat.isAllowed) {
+      throw new Error('Expected FibKing profile seat operations to be executable');
+    }
+
+    capabilities.canLeaveSeat.execute();
+    capabilities.canKickSeat.execute(2);
+
+    expect(callbacks.leaveSeat).toHaveBeenCalledTimes(1);
+    expect(callbacks.kickSeat).toHaveBeenCalledWith(2);
   });
 
   it('locks seat mutation during a round while retaining profile and bot-control capabilities', () => {
@@ -150,7 +170,7 @@ describe('FibKing room adapter', () => {
     expect(endedSource.getSeat(3).secondaryLabel).toBe('瞎掰王');
   });
 
-  it('represents implicit bots as profile targets without treating them as kickable humans', () => {
+  it('represents implicit bots as the same shared profile target kind used by the room shell', () => {
     const ongoing = createOngoing();
     expect(getFibProfileTarget(ongoing, 0)).toEqual({
       seat: 0,
@@ -163,6 +183,45 @@ describe('FibKing room adapter', () => {
       userId: 'fib-bot:4321:3',
       occupantKind: 'bot',
       rosterName: '机器人4号',
+    });
+  });
+
+  it('projects an explicitly kicked bot seat as empty without changing other implicit bots', () => {
+    const state = {
+      ...createLobby(4),
+      fillEmptySeatsWithBots: true,
+      excludedBotSeats: [2],
+    } satisfies FibState;
+    const source = createFibSeatDataSource({
+      state,
+      revision: 2,
+      myUserId: 'host',
+      controlledSeat: null,
+    });
+
+    expect(getFibProfileTarget(state, 2)).toBeNull();
+    expect(source.getSeat(2).player).toBeNull();
+    expect(source.getSeat(3).player).toMatchObject({ kind: 'bot' });
+  });
+
+  it('routes an implicit lobby bot through the shared profile intent before replacement', () => {
+    const lobby = { ...createLobby(4), fillEmptySeatsWithBots: true } satisfies FibState;
+
+    expect(getFibSeatTapIntent({ state: lobby, seat: 2, currentSeat: null })).toEqual({
+      kind: 'profile',
+      target: {
+        seat: 2,
+        userId: 'fib-bot:4321:2',
+        occupantKind: 'bot',
+        rosterName: '机器人3号',
+      },
+    });
+  });
+
+  it('routes a genuinely empty lobby seat through the shared take intent', () => {
+    expect(getFibSeatTapIntent({ state: createLobby(4), seat: 2, currentSeat: null })).toEqual({
+      kind: 'take',
+      seat: 2,
     });
   });
 

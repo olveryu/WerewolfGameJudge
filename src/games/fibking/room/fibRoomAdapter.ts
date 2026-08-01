@@ -24,6 +24,7 @@ import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
 
@@ -49,7 +50,7 @@ interface FibCapabilitiesInput {
   readonly mySeat: number | null;
   readonly requestTakeSeat: (seat: number) => void;
   readonly requestMoveSeat: (seat: number) => void;
-  readonly requestLeaveSeat: () => void;
+  readonly leaveSeat: () => void;
   readonly kickSeat: (seat: number) => void;
   readonly clearSeats: () => void;
   readonly fillBots: () => void;
@@ -73,9 +74,7 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
         ? allowed(input.requestMoveSeat)
         : denied('当前阶段不能换座'),
     canLeaveSeat:
-      isLobby && input.mySeat !== null
-        ? allowed(input.requestLeaveSeat)
-        : denied('当前阶段不能离座'),
+      isLobby && input.mySeat !== null ? allowed(input.leaveSeat) : denied('当前阶段不能离座'),
     canKickSeat: input.isHost && isLobby ? allowed(input.kickSeat) : denied('当前阶段不能移出座位'),
     canClearSeats:
       input.isHost && isLobby && occupiedCount > 0
@@ -114,6 +113,23 @@ export function getFibProfileTarget(state: FibState, seat: number): RoomProfileT
     occupantKind: 'bot',
     rosterName: getFibBotDisplayName(seat),
   };
+}
+
+interface FibSeatTapInput {
+  readonly state: FibState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/** Project Fib sparse seating into the shared room seat-tap contract. */
+export function getFibSeatTapIntent(input: FibSeatTapInput) {
+  return getRoomSeatTapIntent({
+    seat: input.seat,
+    currentSeat: input.currentSeat,
+    target: getFibProfileTarget(input.state, input.seat),
+    disabledReason: input.disabledReason,
+  });
 }
 
 function getSeatRoleLabel(state: FibState, seat: number): string | null {

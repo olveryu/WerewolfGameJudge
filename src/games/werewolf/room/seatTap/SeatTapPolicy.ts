@@ -16,6 +16,8 @@
 // (Both point to the same enum from services/types/GameStateTypes)
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -117,49 +119,50 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     return { kind: 'NOOP', reason: 'audio_playing' };
   }
 
+  if (roomStatus !== GameStatus.Ongoing) {
+    const profileTarget =
+      isSeatOccupiedByOther && targetUserId
+        ? { seat, targetUserId }
+        : isSelfSeated && myUserId
+          ? { seat, targetUserId: myUserId }
+          : null;
+    const isSetup = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
+
+    if (profileTarget !== null || isSetup) {
+      const roomIntent = getRoomSeatTapIntent({
+        seat,
+        currentSeat: isSelfSeated ? seat : null,
+        target: profileTarget,
+        disabledReason,
+      });
+      switch (roomIntent.kind) {
+        case 'blocked':
+          return { kind: 'ALERT', title: '不可选择', message: roomIntent.reason };
+        case 'take':
+        case 'move':
+          return { kind: 'SEATING_FLOW', seat: roomIntent.seat };
+        case 'profile':
+          return {
+            kind: 'VIEW_PROFILE',
+            seat: roomIntent.target.seat,
+            targetUserId: roomIntent.target.targetUserId,
+          };
+      }
+    }
+    if (disabledReason) {
+      return { kind: 'ALERT', title: '不可选择', message: disabledReason };
+    }
+    return { kind: 'NOOP', reason: 'other_status' };
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
-  // Priority 2: DisabledReason (schema constraint violation)
-  // Show alert if seat has a disabled reason (e.g., "不能选择自己")
+  // Priority 2: Ongoing action routing
   // ─────────────────────────────────────────────────────────────────────────
   if (disabledReason) {
-    return {
-      kind: 'ALERT',
-      title: '不可选择',
-      message: disabledReason,
-    };
+    return { kind: 'ALERT', title: '不可选择', message: disabledReason };
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Priority 3: View Profile (any non-ongoing phase, tapping occupied seat)
-  // Includes both other players and self — self gets leave button in profile card
-  // ─────────────────────────────────────────────────────────────────────────
-  if (roomStatus !== GameStatus.Ongoing) {
-    if (isSeatOccupiedByOther && targetUserId) {
-      return { kind: 'VIEW_PROFILE', seat, targetUserId };
-    }
-    if (isSelfSeated && myUserId) {
-      return { kind: 'VIEW_PROFILE', seat, targetUserId: myUserId };
-    }
+  if (imActioner) {
+    return { kind: 'ACTION_FLOW', seat };
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Priority 4: Room Status routing
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // Seating phase: allow seat selection/leaving
-  if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
-    return { kind: 'SEATING_FLOW', seat };
-  }
-
-  // Ongoing phase: action flow if player can act
-  if (roomStatus === GameStatus.Ongoing) {
-    if (imActioner) {
-      return { kind: 'ACTION_FLOW', seat };
-    }
-    // Player cannot act (not their turn, already acted, etc.)
-    return { kind: 'NOOP', reason: 'not_actioner' };
-  }
-
-  // Other statuses (assigned, ready, ended) with no occupied target: no action
-  return { kind: 'NOOP', reason: 'other_status' };
+  return { kind: 'NOOP', reason: 'not_actioner' };
 }

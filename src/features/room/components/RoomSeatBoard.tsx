@@ -47,8 +47,8 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
   const pixelRatio = PixelRatio.get();
   const isAppVisible = useAppVisibility();
   const isFocused = useIsFocused();
-  const [containerWidth, setContainerWidth] = useState(0);
-  const effectiveWidth = containerWidth || screenWidth - spacing.medium * 2;
+  const [contentWidth, setContentWidth] = useState(0);
+  const effectiveWidth = contentWidth || screenWidth - spacing.medium * 2;
   const gap = spacing.small + spacing.tight;
   const seatsPerPage = columns * ROWS_PER_PAGE;
   const pageCount = Math.max(1, Math.ceil(model.source.count / seatsPerPage));
@@ -75,8 +75,8 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
   const onBotSeatLongPress = useCallback((seat: number) => {
     onBotSeatLongPressRef.current?.(seat);
   }, []);
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    setContainerWidth(event.nativeEvent.layout.width);
+  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
+    setContentWidth(event.nativeEvent.layout.width);
   }, []);
 
   useEffect(() => {
@@ -177,6 +177,11 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
 
   const listHeader = (
     <>
+      <View
+        style={styles.contentWidthProbe}
+        onLayout={handleContentLayout}
+        testID={TESTIDS.roomSeatContentWidthProbe}
+      />
       {header}
       {pageCount > 1 && (
         <View style={styles.pagination} testID={TESTIDS.roomSeatPagination}>
@@ -247,7 +252,6 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={7}
-      onLayout={handleLayout}
     />
   );
 };
@@ -260,6 +264,9 @@ export const RoomSeatBoard = memo(RoomSeatBoardComponent);
 RoomSeatBoard.displayName = 'RoomSeatBoard';
 
 const styles = StyleSheet.create({
+  contentWidthProbe: {
+    alignSelf: 'stretch',
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'flex-start',

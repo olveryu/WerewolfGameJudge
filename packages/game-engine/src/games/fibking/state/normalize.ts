@@ -58,6 +58,20 @@ function assertRealSeats(state: FibState): void {
   }
 }
 
+function assertExcludedBotSeats(state: FibState): void {
+  if (!state.fillEmptySeatsWithBots && state.excludedBotSeats.length > 0) {
+    throw new Error('Fib excludedBotSeats requires bot fill to be enabled');
+  }
+  let previousSeat = -1;
+  for (const seat of state.excludedBotSeats) {
+    assertSeatInRange(seat, state.numberOfPlayers, `Fib excluded bot seat ${seat}`);
+    if (seat <= previousSeat) {
+      throw new Error('Fib excludedBotSeats must be unique and strictly ascending');
+    }
+    previousSeat = seat;
+  }
+}
+
 function assertUsedWords(state: FibState): void {
   if (state.usedWords.length > FIB_USED_WORD_LIMIT) {
     throw new Error(`Fib usedWords exceeds ${FIB_USED_WORD_LIMIT}`);
@@ -103,6 +117,7 @@ export function normalizeFibState(state: FibState): FibState {
     throw new Error(`Fib numberOfPlayers must be a safe integer >= ${FIB_MIN_PLAYERS}`);
   }
   assertRealSeats(state);
+  assertExcludedBotSeats(state);
   assertUsedWords(state);
 
   switch (state.phase) {

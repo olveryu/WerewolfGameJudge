@@ -1,4 +1,4 @@
-/** Shared take, move, and leave-seat confirmation state machine. */
+/** Shared take-seat and move-seat confirmation state machine. */
 
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useReducer, useRef } from 'react';
@@ -28,7 +28,6 @@ type RoomSeatControllerEvent =
 interface UseRoomSeatControllerParams<TState extends BaseGameState<string>> {
   readonly currentSeat: number | null;
   readonly takeSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
-  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 export interface RoomSeatController {
@@ -36,7 +35,6 @@ export interface RoomSeatController {
   readonly isSubmitting: boolean;
   readonly requestTakeSeat: (seat: number) => void;
   readonly requestMoveSeat: (seat: number) => void;
-  readonly requestLeaveSeat: () => void;
   readonly confirm: () => Promise<void>;
   readonly cancel: () => void;
 }
@@ -67,21 +65,18 @@ function assertSeat(seat: number): void {
   }
 }
 
-function getActionLabel(action: RoomSeatPendingAction): '入座' | '换座' | '离座' {
+function getActionLabel(action: RoomSeatPendingAction): '入座' | '换座' {
   switch (action.kind) {
     case 'take':
       return '入座';
     case 'move':
       return '换座';
-    case 'leave':
-      return '离座';
   }
 }
 
 export function useRoomSeatController<TState extends BaseGameState<string>>({
   currentSeat,
   takeSeat,
-  leaveSeat,
 }: UseRoomSeatControllerParams<TState>): RoomSeatController {
   const [state, dispatch] = useReducer(transitionRoomSeatController, { kind: 'idle' });
   const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
@@ -114,13 +109,6 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
     [currentSeat],
   );
 
-  const requestLeaveSeat = useCallback(() => {
-    if (currentSeat === null) {
-      throw new Error('Cannot request leave-seat while unseated');
-    }
-    dispatch({ kind: 'REQUEST', action: { kind: 'leave', fromSeat: currentSeat } });
-  }, [currentSeat]);
-
   const cancel = useCallback(() => {
     if (state.kind !== 'confirming') {
       throw new Error(`Cannot cancel room seat action while controller is ${state.kind}`);
@@ -138,9 +126,7 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
 
     const action = state.action;
     const label = getActionLabel(action);
-    const submission = Promise.resolve().then(() =>
-      action.kind === 'leave' ? leaveSeat() : takeSeat(action.toSeat),
-    );
+    const submission = Promise.resolve().then(() => takeSeat(action.toSeat));
     submissionRef.current = submission;
     dispatch({ kind: 'SUBMIT' });
 
@@ -171,19 +157,18 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
 
     const reason = getRoomCommandFailureReason(result);
     const rejectionMessage =
-      reason === 'seat_taken' && action.kind !== 'leave'
+      reason === 'seat_taken'
         ? `${action.toSeat + 1}号座位已被占用，请选择其他位置。`
         : translateReasonCode(reason);
     roomScreenLog.warn(`${action.kind} seat rejected`, { action, reason });
     showErrorAlert(`${label}失败`, rejectionMessage);
-  }, [leaveSeat, state, takeSeat]);
+  }, [state, takeSeat]);
 
   return {
     pendingAction: state.kind === 'idle' ? null : state.action,
     isSubmitting: state.kind === 'submitting',
     requestTakeSeat,
     requestMoveSeat,
-    requestLeaveSeat,
     confirm,
     cancel,
   };

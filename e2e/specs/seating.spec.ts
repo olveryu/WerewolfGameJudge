@@ -112,13 +112,11 @@ test.describe('Seating', () => {
       // "我" badge should be visible
       await room.expectMyBadgeVisible();
 
-      // Click own seat -> should show player profile card (self-profile with "离座" button)
-      await room.getSeatTile(0).click();
-      await expect(page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-
-      // Dismiss profile card
-      await page.mouse.click(5, 5);
-      await expect(page.getByTestId('player-profile-card')).not.toBeVisible({ timeout: 3000 });
+      await room.standUp(0);
+      expect((await room.collectSeatState(1)).isEmpty, 'Direct leave should empty the seat').toBe(
+        true,
+      );
+      await room.seatAt(0);
 
       await room.screenshot(testInfo, 'single-player-seated.png');
     } finally {

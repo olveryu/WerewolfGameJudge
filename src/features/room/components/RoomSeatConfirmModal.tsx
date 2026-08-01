@@ -1,4 +1,4 @@
-/** Shared confirmation modal for taking, moving, or leaving a room seat. */
+/** Shared confirmation modal for taking or moving to a room seat. */
 
 import type React from 'react';
 import { memo } from 'react';
@@ -36,13 +36,6 @@ function getCopy(model: RoomSeatConfirmationModel): {
         message: `确定从${model.action.fromSeat + 1}号位换到${model.action.toSeat + 1}号位？`,
         confirmText: '换座',
         submittingText: '换座中',
-      };
-    case 'leave':
-      return {
-        title: '离座',
-        message: `确定从${model.action.fromSeat + 1}号位离座？`,
-        confirmText: '离座',
-        submittingText: '离座中',
       };
   }
 }

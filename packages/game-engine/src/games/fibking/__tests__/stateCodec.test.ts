@@ -1,6 +1,7 @@
 import { assignFibRoles } from '../domain/roles';
 import { fibEngine } from '../engine';
 import { parseFibState } from '../state/parseState';
+import { FIB_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT = {
   roomCode: '2468',
@@ -45,8 +46,26 @@ describe('FibKing compact state and codec', () => {
     expect(() => parseFibState({ ...state, gameType: 'werewolf' })).toThrow(
       'FibState.gameType must be fibking',
     );
-    expect(() => parseFibState({ ...state, stateVersion: 2 })).toThrow(
-      'FibState.stateVersion must be state version 1',
+    expect(() => parseFibState({ ...state, stateVersion: FIB_STATE_VERSION - 1 })).toThrow(
+      `FibState.stateVersion must be state version ${FIB_STATE_VERSION}`,
+    );
+  });
+
+  it('rejects non-canonical bot-seat exclusions', () => {
+    const state = fibEngine.createInitialState({ numberOfPlayers: 8 }, CREATE_CONTEXT);
+    const filled = { ...state, fillEmptySeatsWithBots: true };
+
+    expect(() => parseFibState({ ...filled, excludedBotSeats: [2, 2] })).toThrow(
+      'must be unique and strictly ascending',
+    );
+    expect(() => parseFibState({ ...filled, excludedBotSeats: [3, 1] })).toThrow(
+      'must be unique and strictly ascending',
+    );
+    expect(() => parseFibState({ ...filled, excludedBotSeats: [8] })).toThrow(
+      'must be within the configured Fib seat range',
+    );
+    expect(() => parseFibState({ ...state, excludedBotSeats: [1] })).toThrow(
+      'requires bot fill to be enabled',
     );
   });
 

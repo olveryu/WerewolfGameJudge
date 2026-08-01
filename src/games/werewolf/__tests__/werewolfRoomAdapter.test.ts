@@ -18,7 +18,7 @@ function createCapabilityInput() {
     hasOccupiedSeats: true,
     requestTakeSeat: jest.fn(),
     requestMoveSeat: jest.fn(),
-    requestLeaveSeat: jest.fn(),
+    leaveSeat: jest.fn(),
     kickSeat: jest.fn(),
     clearSeats: jest.fn(),
     fillBots: jest.fn(),
@@ -59,6 +59,20 @@ describe('werewolfRoomAdapter', () => {
     capabilities.canShareRoom.execute();
     expect(input.requestTakeSeat).toHaveBeenCalledWith(2);
     expect(input.shareRoom).toHaveBeenCalledTimes(1);
+  });
+
+  it('executes profile leave and kick directly through the shared capabilities', () => {
+    const input = { ...createCapabilityInput(), status: GameStatus.Seated, mySeat: 0 };
+    const capabilities = createWerewolfRoomCapabilities(input);
+    if (!capabilities.canLeaveSeat.isAllowed || !capabilities.canKickSeat.isAllowed) {
+      throw new Error('Expected Werewolf profile seat operations to be executable');
+    }
+
+    capabilities.canLeaveSeat.execute();
+    capabilities.canKickSeat.execute(2);
+
+    expect(input.leaveSeat).toHaveBeenCalledTimes(1);
+    expect(input.kickSeat).toHaveBeenCalledWith(2);
   });
 
   it('maps Werewolf-only role data into a neutral lazy seat model', () => {

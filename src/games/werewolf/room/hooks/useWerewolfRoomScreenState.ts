@@ -192,11 +192,11 @@ export function useWerewolfRoomScreenState(
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
     takeSeat,
-    leaveSeat,
   });
   const profileController = useRoomProfileController({
     myUserId,
     kickSeat: kickPlayer,
+    leaveSeat,
   });
   const shareController = useRoomShareController({
     roomCode,
@@ -493,7 +493,7 @@ export function useWerewolfRoomScreenState(
         hasOccupiedSeats,
         requestTakeSeat: seatController.requestTakeSeat,
         requestMoveSeat: seatController.requestMoveSeat,
-        requestLeaveSeat: seatController.requestLeaveSeat,
+        leaveSeat: profileController.leaveSelf,
         kickSeat: profileController.kick,
         clearSeats: hostOperations.requestClearSeats,
         fillBots: hostOperations.requestFillBots,
@@ -511,7 +511,7 @@ export function useWerewolfRoomScreenState(
       hasOccupiedSeats,
       seatController.requestTakeSeat,
       seatController.requestMoveSeat,
-      seatController.requestLeaveSeat,
+      profileController.leaveSelf,
       profileController.kick,
       profileController.open,
       hostOperations.requestClearSeats,
@@ -812,7 +812,6 @@ export function useWerewolfRoomScreenState(
     // ── Player profile card ──
     profileSelection: profileController.selection,
     closeProfile: profileController.close,
-    requestProfileSelfLeave: profileController.requestSelfLeave,
 
     // ── Local UI state ──
     isStartingGame,

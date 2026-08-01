@@ -48,7 +48,7 @@ interface WerewolfCapabilitiesInput {
   readonly hasOccupiedSeats: boolean;
   readonly requestTakeSeat: (seat: number) => void;
   readonly requestMoveSeat: (seat: number) => void;
-  readonly requestLeaveSeat: () => void;
+  readonly leaveSeat: () => void;
   readonly kickSeat: (seat: number) => void;
   readonly clearSeats: () => void;
   readonly fillBots: () => void;
@@ -75,9 +75,7 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
         ? allowed(input.requestMoveSeat)
         : denied('当前阶段不能换座'),
     canLeaveSeat:
-      isSetup && input.mySeat !== null
-        ? allowed(input.requestLeaveSeat)
-        : denied('当前阶段不能离座'),
+      isSetup && input.mySeat !== null ? allowed(input.leaveSeat) : denied('当前阶段不能离座'),
     canKickSeat: input.isHost && isSetup ? allowed(input.kickSeat) : denied('当前阶段不能移出座位'),
     canClearSeats:
       input.isHost && isSetup && input.hasOccupiedSeats

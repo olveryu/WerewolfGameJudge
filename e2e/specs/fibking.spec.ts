@@ -105,6 +105,15 @@ test.describe('FibKing', () => {
       await joinerRooms[0]!.seatAt(1);
 
       await hostRoom.fillEmptySeatsWithBots(8);
+      await hostRoom.kickPlayer(4);
+      expect((await hostRoom.collectSeatState(5)).isEmpty, 'Kicked bot seat should be empty').toBe(
+        true,
+      );
+      expect(
+        (await hostRoom.collectSeatState(6)).isEmpty,
+        'Kicking one bot must not remove other bots',
+      ).toBe(false);
+      await hostRoom.fillEmptySeatsWithBots(8);
       await hostRoom.screenshot(testInfo, 'fibking-lobby-eight-player.png');
       await hostRoom.startRound();
 

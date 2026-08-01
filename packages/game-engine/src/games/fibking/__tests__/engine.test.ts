@@ -128,13 +128,14 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
-      stateVersion: 1,
+      stateVersion: 2,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',
       numberOfPlayers: 8,
       realSeats: {},
       fillEmptySeatsWithBots: false,
+      excludedBotSeats: [],
       usedWords: [],
       pendingRound: null,
       round: null,
@@ -174,7 +175,44 @@ describe('FibKing engine configuration and seating', () => {
     state = dispatch(state, { type: 'room.seat.clear' }, userContext('host'));
     expect(state.realSeats).toEqual({});
     expect(state.fillEmptySeatsWithBots).toBe(false);
+    expect(state.excludedBotSeats).toEqual([]);
     expect(getFibOccupiedSeatCount(state)).toBe(0);
+  });
+
+  it('kicks exactly one implicit bot and restores it only when bots are filled again', () => {
+    let state = createFullLobby();
+    state = dispatch(state, { type: 'room.seat.kick', seat: 2 }, userContext('host'));
+
+    expect(state.excludedBotSeats).toEqual([2]);
+    expect(getFibOccupiedSeatCount(state)).toBe(3);
+    expect(isFibImplicitBotSeat(state, 2)).toBe(false);
+    expect(isFibImplicitBotSeat(state, 3)).toBe(true);
+    expect(decideFibCommand(state, { type: 'fib.round.start' }, userContext('host'))).toEqual({
+      kind: 'reject',
+      reason: REASON_FIB_ROUND_NOT_FULL,
+    });
+
+    state = takeSeat(state, 2, 'alice', 'Alice');
+    expect(getFibOccupiedSeatCount(state)).toBe(4);
+    state = dispatch(state, { type: 'room.seat.leave' }, userContext('alice'));
+    expect(getFibOccupiedSeatCount(state)).toBe(3);
+    expect(isFibImplicitBotSeat(state, 2)).toBe(false);
+
+    state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
+    expect(state.excludedBotSeats).toEqual([]);
+    expect(getFibOccupiedSeatCount(state)).toBe(4);
+    expect(isFibImplicitBotSeat(state, 2)).toBe(true);
+  });
+
+  it('keeps a kicked real seat empty while bot fill remains enabled', () => {
+    let state = createFullLobby();
+    state = takeSeat(state, 1, 'alice', 'Alice');
+    state = dispatch(state, { type: 'room.seat.kick', seat: 1 }, userContext('host'));
+
+    expect(state.realSeats[1]).toBeUndefined();
+    expect(state.excludedBotSeats).toEqual([1]);
+    expect(isFibImplicitBotSeat(state, 1)).toBe(false);
+    expect(isFibImplicitBotSeat(state, 2)).toBe(true);
   });
 
   it('keeps implicit bot fill and idempotent no-op commands free of N-sized state', () => {
@@ -184,6 +222,15 @@ describe('FibKing engine configuration and seating', () => {
     expect(Object.keys(state.realSeats)).toHaveLength(0);
     expect(JSON.stringify(state).length).toBeLessThan(300);
 
+    const excludedSeat = Number.MAX_SAFE_INTEGER - 1;
+    state = dispatch(state, { type: 'room.seat.kick', seat: excludedSeat }, userContext('host'));
+    expect(state.excludedBotSeats).toEqual([excludedSeat]);
+    expect(getFibOccupiedSeatCount(state)).toBe(Number.MAX_SAFE_INTEGER - 1);
+    expect(isFibImplicitBotSeat(state, excludedSeat - 1)).toBe(true);
+    expect(JSON.stringify(state).length).toBeLessThan(350);
+
+    state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
+    expect(state.excludedBotSeats).toEqual([]);
     expect(decideFibCommand(state, { type: 'room.seat.fillBots' }, userContext('host'))).toEqual({
       kind: 'commit',
       events: [],
@@ -217,6 +264,11 @@ describe('FibKing engine configuration and seating', () => {
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_PLAYER_COUNT_INVALID });
+
+    state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
+    state = dispatch(state, { type: 'room.seat.kick', seat: 7 }, userContext('host'));
+    state = dispatch(state, { type: 'fib.config.update', numberOfPlayers: 7 }, userContext('host'));
+    expect(state.excludedBotSeats).toEqual([]);
   });
 
   it('updates only the authenticated real player profile in every phase', () => {

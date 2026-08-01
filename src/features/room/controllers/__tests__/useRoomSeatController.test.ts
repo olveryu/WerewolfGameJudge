@@ -28,10 +28,9 @@ describe('useRoomSeatController', () => {
 
   it('keeps take and move as distinct intents while using one atomic take command', async () => {
     const takeSeat = jest.fn(createSuccess);
-    const leaveSeat = jest.fn(createSuccess);
     const { result, rerender } = renderHook(
       ({ currentSeat }: { currentSeat: number | null }) =>
-        useRoomSeatController({ currentSeat, takeSeat, leaveSeat }),
+        useRoomSeatController({ currentSeat, takeSeat }),
       { initialProps: { currentSeat: null } },
     );
 
@@ -39,39 +38,19 @@ describe('useRoomSeatController', () => {
     expect(result.current.pendingAction).toEqual({ kind: 'take', toSeat: 2 });
     await act(async () => result.current.confirm());
     expect(takeSeat).toHaveBeenLastCalledWith(2);
-    expect(leaveSeat).not.toHaveBeenCalled();
 
     rerender({ currentSeat: 2 });
     act(() => result.current.requestMoveSeat(5));
     expect(result.current.pendingAction).toEqual({ kind: 'move', fromSeat: 2, toSeat: 5 });
     await act(async () => result.current.confirm());
     expect(takeSeat).toHaveBeenLastCalledWith(5);
-    expect(leaveSeat).not.toHaveBeenCalled();
-  });
-
-  it('confirms leave through the leave command', async () => {
-    const takeSeat = jest.fn(createSuccess);
-    const leaveSeat = jest.fn(createSuccess);
-    const { result } = renderHook(() =>
-      useRoomSeatController({ currentSeat: 3, takeSeat, leaveSeat }),
-    );
-
-    act(() => result.current.requestLeaveSeat());
-    expect(result.current.pendingAction).toEqual({ kind: 'leave', fromSeat: 3 });
-    await act(async () => result.current.confirm());
-    expect(leaveSeat).toHaveBeenCalledTimes(1);
-    expect(takeSeat).not.toHaveBeenCalled();
   });
 
   it('fails fast for impossible seat intents', async () => {
     const takeSeat = jest.fn(createSuccess);
-    const leaveSeat = jest.fn(createSuccess);
-    const { result } = renderHook(() =>
-      useRoomSeatController({ currentSeat: null, takeSeat, leaveSeat }),
-    );
+    const { result } = renderHook(() => useRoomSeatController({ currentSeat: null, takeSeat }));
 
     expect(() => result.current.requestMoveSeat(1)).toThrow('while unseated');
-    expect(() => result.current.requestLeaveSeat()).toThrow('while unseated');
     await expect(result.current.confirm()).rejects.toThrow('while controller is idle');
   });
 
@@ -79,9 +58,7 @@ describe('useRoomSeatController', () => {
     const takeSeat = jest.fn(async () =>
       rejectedRoomCommand<typeof state>('seat_taken', 'seat-command-1'),
     );
-    const { result } = renderHook(() =>
-      useRoomSeatController({ currentSeat: null, takeSeat, leaveSeat: createSuccess }),
-    );
+    const { result } = renderHook(() => useRoomSeatController({ currentSeat: null, takeSeat }));
 
     act(() => result.current.requestTakeSeat(4));
     await act(async () => result.current.confirm());

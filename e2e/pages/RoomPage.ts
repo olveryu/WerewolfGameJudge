@@ -76,20 +76,14 @@ export class RoomPage {
     });
   }
 
-  /** Click own seat, request leave from the profile, then confirm the leave intent. */
+  /** Click own seat and leave directly from the profile. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
-    // Profile card should appear (self-profile)
     await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-    // Click "离座" button inside the profile card
     await this.page.getByText('离座', { exact: true }).click();
-    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('离座', {
-      timeout: 5000,
-    });
-    await this.page.getByTestId('seat-confirm-ok').click();
-    // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
+    await expect(this.page.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
-      timeout: 5000,
+      timeout: 10_000,
     });
   }
 
@@ -103,6 +97,7 @@ export class RoomPage {
     await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
     // Click "移出座位" button inside the profile card — directly executes kick
     await this.page.getByText('移出座位', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible();
     // Wait for kicked seat to show as empty via broadcast
     const tile = this.getSeatTile(seat);
     await expect

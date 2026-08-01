@@ -22,7 +22,7 @@ function renderModal(action: RoomSeatConfirmationModel['action']) {
 }
 
 describe('RoomSeatConfirmModal', () => {
-  it('renders take, move, and leave as distinct user intents', () => {
+  it('renders take and move as distinct user intents', () => {
     const take = renderModal({ kind: 'take', toSeat: 2 });
     expect(take.getByTestId('seat-confirm-title').props.children).toBe('入座');
     expect(take.getByTestId('seat-confirm-message').props.children).toBe('确定在3号位入座？');
@@ -31,10 +31,5 @@ describe('RoomSeatConfirmModal', () => {
     const move = renderModal({ kind: 'move', fromSeat: 2, toSeat: 5 });
     expect(move.getByTestId('seat-confirm-title').props.children).toBe('换座');
     expect(move.getByTestId('seat-confirm-message').props.children).toBe('确定从3号位换到6号位？');
-    move.unmount();
-
-    const leave = renderModal({ kind: 'leave', fromSeat: 5 });
-    expect(leave.getByTestId('seat-confirm-title').props.children).toBe('离座');
-    expect(leave.getByTestId('seat-confirm-message').props.children).toBe('确定从6号位离座？');
   });
 });

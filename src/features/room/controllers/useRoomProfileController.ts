@@ -17,6 +17,7 @@ import { roomScreenLog } from '@/utils/logger';
 interface UseRoomProfileControllerParams<TState extends BaseGameState<string>> {
   readonly myUserId: string | null;
   readonly kickSeat: (seat: number) => Promise<RoomCommandDispatchOutcome<TState>>;
+  readonly leaveSeat: () => Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
 export interface RoomProfileSelection {
@@ -29,8 +30,14 @@ export interface RoomProfileController {
   readonly open: (target: RoomProfileTarget) => void;
   readonly close: () => void;
   readonly kick: (seat: number) => void;
-  readonly requestSelfLeave: (executeLeave: () => void) => void;
+  readonly leaveSelf: () => void;
 }
+
+type RoomProfileCommand = {
+  readonly kind: 'kick' | 'leave';
+  readonly seat: number;
+  readonly label: '移出' | '离座';
+};
 
 function assertProfileTarget(target: RoomProfileTarget): void {
   if (!Number.isSafeInteger(target.seat) || target.seat < 0) {
@@ -47,9 +54,10 @@ function assertProfileTarget(target: RoomProfileTarget): void {
 export function useRoomProfileController<TState extends BaseGameState<string>>({
   myUserId,
   kickSeat,
+  leaveSeat,
 }: UseRoomProfileControllerParams<TState>): RoomProfileController {
   const [target, setTarget] = useState<RoomProfileTarget | null>(null);
-  const kickSubmissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
+  const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
 
   const open = useCallback(
     (nextTarget: RoomProfileTarget) => {
@@ -72,61 +80,59 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
     setTarget(null);
   }, [target]);
 
-  const kick = useCallback(
-    (seat: number) => {
-      if (target === null) {
-        throw new Error('Cannot kick from a room profile when none is open');
+  const submit = useCallback(
+    (command: RoomProfileCommand, execute: () => Promise<RoomCommandDispatchOutcome<TState>>) => {
+      if (submissionRef.current !== null) {
+        throw new Error('Room profile command is already in progress');
       }
-      if (target.seat !== seat) {
-        throw new Error(`Profile target seat ${target.seat} does not match kick seat ${seat}`);
-      }
-      if (target.userId === myUserId) {
-        throw new Error('Cannot kick the current user through the profile controller');
-      }
-      if (kickSubmissionRef.current !== null) {
-        throw new Error('Room profile kick is already in progress');
-      }
-
       setTarget(null);
-      const submission = Promise.resolve().then(() => kickSeat(seat));
-      kickSubmissionRef.current = submission;
+      const submission = Promise.resolve().then(execute);
+      submissionRef.current = submission;
       void submission
         .then(
           (result) => {
-            if (!isSuccessfulRoomCommand(result)) {
-              const reason = getRoomCommandFailureReason(result);
-              roomScreenLog.warn('kick seat rejected', { seat, reason });
-              showErrorAlert('移出失败', translateReasonCode(reason));
-            }
+            if (isSuccessfulRoomCommand(result)) return;
+            const reason = getRoomCommandFailureReason(result);
+            roomScreenLog.warn(`${command.kind} seat rejected`, { seat: command.seat, reason });
+            showErrorAlert(`${command.label}失败`, translateReasonCode(reason));
           },
           (error: unknown) => {
             handleError(error, {
-              label: '移出',
+              label: command.label,
               logger: roomScreenLog,
               alertMessage: '房间响应异常，请重新进入房间后重试。',
             });
           },
         )
         .finally(() => {
-          kickSubmissionRef.current = null;
+          submissionRef.current = null;
         });
     },
-    [kickSeat, myUserId, target],
+    [],
   );
 
-  const requestSelfLeave = useCallback(
-    (executeLeave: () => void) => {
-      if (target === null) {
-        throw new Error('Cannot leave a seat from a room profile when none is open');
+  const kick = useCallback(
+    (seat: number) => {
+      if (target === null) throw new Error('Cannot kick from a room profile when none is open');
+      if (target.seat !== seat) {
+        throw new Error(`Profile target seat ${target.seat} does not match kick seat ${seat}`);
       }
-      if (target.userId !== myUserId) {
-        throw new Error(`Profile target ${target.userId} is not the current user`);
+      if (target.userId === myUserId) {
+        throw new Error('Cannot kick the current user through the profile controller');
       }
-      setTarget(null);
-      executeLeave();
+      submit({ kind: 'kick', seat, label: '移出' }, () => kickSeat(seat));
     },
-    [myUserId, target],
+    [kickSeat, myUserId, submit, target],
   );
+
+  const leaveSelf = useCallback(() => {
+    if (target === null)
+      throw new Error('Cannot leave a seat from a room profile when none is open');
+    if (target.userId !== myUserId) {
+      throw new Error(`Profile target ${target.userId} is not the current user`);
+    }
+    submit({ kind: 'leave', seat: target.seat, label: '离座' }, leaveSeat);
+  }, [leaveSeat, myUserId, submit, target]);
 
   const selection = useMemo(
     (): RoomProfileSelection | null =>
@@ -134,5 +140,5 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
     [myUserId, target],
   );
 
-  return { selection, open, close, kick, requestSelfLeave };
+  return { selection, open, close, kick, leaveSelf };
 }

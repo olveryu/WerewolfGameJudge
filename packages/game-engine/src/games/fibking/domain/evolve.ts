@@ -44,9 +44,26 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
       };
     }
     case 'fib.botFill.changed':
-      return { ...state, fillEmptySeatsWithBots: event.isEnabled };
+      return { ...state, fillEmptySeatsWithBots: event.isEnabled, excludedBotSeats: [] };
+    case 'fib.botSeat.excluded':
+      if (!state.fillEmptySeatsWithBots) {
+        throw new Error('Fib bot-seat exclusion requires bot fill to be enabled');
+      }
+      if (state.excludedBotSeats.includes(event.seat)) {
+        throw new Error(`Fib bot seat ${event.seat} is already excluded`);
+      }
+      return {
+        ...state,
+        excludedBotSeats: [...state.excludedBotSeats, event.seat].sort(
+          (left, right) => left - right,
+        ),
+      };
     case 'fib.config.updated':
-      return { ...state, numberOfPlayers: event.numberOfPlayers };
+      return {
+        ...state,
+        numberOfPlayers: event.numberOfPlayers,
+        excludedBotSeats: state.excludedBotSeats.filter((seat) => seat < event.numberOfPlayers),
+      };
     case 'fib.round.preparing':
       return {
         ...state,

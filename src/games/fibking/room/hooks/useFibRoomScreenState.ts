@@ -37,6 +37,7 @@ import {
   createFibStatusRibbon,
   FIB_DISPLAY_NAME,
   getFibProfileTarget,
+  getFibSeatTapIntent,
 } from '../fibRoomAdapter';
 import { getFibRoomCommandFailureMessage } from '../fibRoomCommandFailureMessage';
 import { useFibSeatCommands } from './useFibSeatCommands';
@@ -85,15 +86,18 @@ export function useFibRoomScreenState({
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
     takeSeat: seatCommands.takeSeat,
-    leaveSeat: seatCommands.leaveSeat,
   });
   const {
     selection: profileSelection,
     open: openProfile,
     close: closeProfile,
     kick: kickProfile,
-    requestSelfLeave,
-  } = useRoomProfileController({ myUserId: user.id, kickSeat: seatCommands.kickSeat });
+    leaveSelf,
+  } = useRoomProfileController({
+    myUserId: user.id,
+    kickSeat: seatCommands.kickSeat,
+    leaveSeat: seatCommands.leaveSeat,
+  });
   const { controlledSeat, takeOver: takeOverBot, release: releaseBot } = useRoomBotControl();
   const share = useRoomShareController({
     roomCode: room.roomCode,
@@ -189,7 +193,7 @@ export function useFibRoomScreenState({
         mySeat,
         requestTakeSeat: seatController.requestTakeSeat,
         requestMoveSeat: seatController.requestMoveSeat,
-        requestLeaveSeat: seatController.requestLeaveSeat,
+        leaveSeat: leaveSelf,
         kickSeat: kickProfile,
         clearSeats: requestClearSeats,
         fillBots: requestFillBots,
@@ -207,7 +211,7 @@ export function useFibRoomScreenState({
       openShare,
       requestClearSeats,
       requestFillBots,
-      seatController.requestLeaveSeat,
+      leaveSelf,
       seatController.requestMoveSeat,
       seatController.requestTakeSeat,
       state,
@@ -228,24 +232,37 @@ export function useFibRoomScreenState({
 
   const onSeatPress = useCallback(
     (seat: number, disabledReason?: string) => {
-      const target = getFibProfileTarget(state, seat);
-      const isReplaceableBot = target?.occupantKind === 'bot' && state.phase === 'lobby';
-      if (target === null || isReplaceableBot) {
-        const capability = mySeat === null ? capabilities.canTakeSeat : capabilities.canMoveSeat;
-        if (!capability.isAllowed) {
-          showErrorAlert('无法操作座位', disabledReason ?? capability.reason ?? '当前阶段不可操作');
+      const roomIntent = getFibSeatTapIntent({
+        state,
+        seat,
+        currentSeat: mySeat,
+        disabledReason,
+      });
+      switch (roomIntent.kind) {
+        case 'blocked':
+          showErrorAlert('不可选择', roomIntent.reason);
+          return;
+        case 'take':
+        case 'move': {
+          const capability =
+            roomIntent.kind === 'take' ? capabilities.canTakeSeat : capabilities.canMoveSeat;
+          if (!capability.isAllowed) {
+            showErrorAlert('无法操作座位', capability.reason ?? '当前阶段不可操作');
+            return;
+          }
+          capability.execute(roomIntent.seat);
           return;
         }
-        capability.execute(seat);
-        return;
+        case 'profile': {
+          const capability = capabilities.canViewProfiles;
+          if (!capability.isAllowed) {
+            showErrorAlert('无法查看资料', capability.reason ?? '当前阶段不可查看');
+            return;
+          }
+          capability.execute(roomIntent.target);
+          return;
+        }
       }
-
-      const profileCapability = capabilities.canViewProfiles;
-      if (!profileCapability.isAllowed) {
-        showErrorAlert('无法查看资料', profileCapability.reason ?? '当前阶段不可查看');
-        return;
-      }
-      profileCapability.execute(target);
     },
     [capabilities, mySeat, state],
   );
@@ -286,8 +303,8 @@ export function useFibRoomScreenState({
     if (!capability.isAllowed) {
       throw new Error(`[FAIL-FAST] FibKing profile leave is denied: ${capability.reason}`);
     }
-    requestSelfLeave(capability.execute);
-  }, [capabilities.canLeaveSeat, requestSelfLeave]);
+    capability.execute();
+  }, [capabilities.canLeaveSeat]);
 
   const profile = useMemo((): RoomProfileCardModel | null => {
     const selection = profileSelection;
@@ -296,12 +313,7 @@ export function useFibRoomScreenState({
       target: selection.target,
       isSelf: selection.isSelf,
       onClose: closeProfile,
-      onKick:
-        selection.target.occupantKind === 'human' &&
-        !selection.isSelf &&
-        capabilities.canKickSeat.isAllowed
-          ? handleProfileKick
-          : null,
+      onKick: !selection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
       onLeaveSeat:
         selection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
       gameDetails: null,

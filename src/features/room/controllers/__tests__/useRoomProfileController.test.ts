@@ -13,12 +13,13 @@ const otherPlayer = {
 };
 
 describe('useRoomProfileController', () => {
-  it('derives self identity from userId and routes self leave through seat confirmation', () => {
-    const requestLeaveSeat = jest.fn();
+  it('derives self identity and submits profile leave directly without confirmation', async () => {
+    const leaveSeat = jest.fn(async () => successfulRoomCommand(state, 'leave-self'));
     const { result } = renderHook(() =>
       useRoomProfileController({
         myUserId: 'user-self',
         kickSeat: async () => successfulRoomCommand(state, 'kick-self-unused'),
+        leaveSeat,
       }),
     );
 
@@ -32,15 +33,19 @@ describe('useRoomProfileController', () => {
     );
     expect(result.current.selection?.isSelf).toBe(true);
 
-    act(() => result.current.requestSelfLeave(requestLeaveSeat));
+    act(() => result.current.leaveSelf());
     expect(result.current.selection).toBeNull();
-    expect(requestLeaveSeat).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(leaveSeat).toHaveBeenCalledTimes(1));
   });
 
   it('directly kicks the selected target without a confirmation branch', async () => {
     const kickSeat = jest.fn(async () => successfulRoomCommand(state, 'kick-other'));
     const { result } = renderHook(() =>
-      useRoomProfileController({ myUserId: 'user-self', kickSeat }),
+      useRoomProfileController({
+        myUserId: 'user-self',
+        kickSeat,
+        leaveSeat: async () => successfulRoomCommand(state, 'leave-other-unused'),
+      }),
     );
 
     act(() => result.current.open(otherPlayer));
@@ -55,11 +60,12 @@ describe('useRoomProfileController', () => {
       useRoomProfileController({
         myUserId: 'user-self',
         kickSeat: async () => successfulRoomCommand(state, 'kick-mismatch-unused'),
+        leaveSeat: async () => successfulRoomCommand(state, 'leave-mismatch-unused'),
       }),
     );
 
     act(() => result.current.open(otherPlayer));
     expect(() => result.current.kick(2)).toThrow('does not match kick seat');
-    expect(() => result.current.requestSelfLeave(jest.fn())).toThrow('is not the current user');
+    expect(() => result.current.leaveSelf()).toThrow('is not the current user');
   });
 });

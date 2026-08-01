@@ -138,6 +138,7 @@ export function parseFibState(value: unknown): FibState {
       raw.fillEmptySeatsWithBots,
       'FibState.fillEmptySeatsWithBots',
     ),
+    excludedBotSeats: parseArray(raw.excludedBotSeats, 'FibState.excludedBotSeats', parseSeat),
     usedWords: parseArray(raw.usedWords, 'FibState.usedWords', parseNonEmptyString),
   };
 

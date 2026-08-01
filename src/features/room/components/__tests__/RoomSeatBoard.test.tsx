@@ -1,5 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, PixelRatio, StyleSheet, View } from 'react-native';
 
 import type {
   RoomSeatDataSource,
@@ -7,6 +7,7 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
+import { spacing } from '@/theme';
 
 import { RoomSeatBoard } from '../RoomSeatBoard';
 import { getGridColumns } from '../RoomSeatTile';
@@ -42,6 +43,41 @@ function createModel(
 }
 
 describe('RoomSeatBoard', () => {
+  it('keeps the Werewolf tile geometry after measuring padded content', async () => {
+    const source: RoomSeatDataSource = {
+      count: 4,
+      revision: 1,
+      getSeat: (index) => emptySeat(index),
+    };
+    const view = render(
+      <RoomSeatBoard
+        model={createModel(source)}
+        header={<View />}
+        footer={null}
+        contentContainerStyle={styles.content}
+      />,
+    );
+    const contentWidth = Dimensions.get('window').width - spacing.medium * 2;
+    const columns = getGridColumns(Dimensions.get('window').width);
+    const gap = spacing.small + spacing.tight;
+    const pixelRatio = PixelRatio.get();
+    const tileSize =
+      Math.floor(((contentWidth - gap * (columns - 1)) / columns) * pixelRatio) / pixelRatio;
+    const expectedPlayerTileWidth = tileSize - spacing.tight;
+
+    expect(await view.findByTestId(TESTIDS.seatTilePressable(0))).toHaveStyle({
+      width: expectedPlayerTileWidth,
+    });
+
+    fireEvent(view.getByTestId(TESTIDS.roomSeatContentWidthProbe), 'layout', {
+      nativeEvent: { layout: { width: contentWidth, height: 0, x: 0, y: 0 } },
+    });
+
+    expect(view.getByTestId(TESTIDS.seatTilePressable(0))).toHaveStyle({
+      width: expectedPlayerTileWidth,
+    });
+  });
+
   it('reports seat taps even when the tile is visually disabled', async () => {
     const onSeatPress = jest.fn();
     const source: RoomSeatDataSource = {

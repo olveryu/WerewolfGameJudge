@@ -1,6 +1,7 @@
 import {
   FIB_STATE_CODEC,
   type FibPublicCommand,
+  isFibImplicitBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
@@ -90,12 +91,38 @@ describe('FibKing generic GameRoom integration', () => {
 
     expect(state).toMatchObject({
       gameType: 'fibking',
+      stateVersion: 2,
       phase: 'lobby',
       numberOfPlayers: 8,
       realSeats: {},
       fillEmptySeatsWithBots: false,
+      excludedBotSeats: [],
     });
     expect(result.snapshot.revision).toBe(1);
+  });
+
+  it('persists a single implicit-bot kick without removing the other bots', async () => {
+    const stub = getStub();
+    await initialize(stub);
+
+    const filled = requireCommitted(
+      await dispatch(stub, stub, 'fib-fill-bots-for-kick', { type: 'room.seat.fillBots' }),
+    );
+    expect(isFibImplicitBotSeat(filled.snapshot.state, 4)).toBe(true);
+    expect(isFibImplicitBotSeat(filled.snapshot.state, 5)).toBe(true);
+
+    const kicked = requireCommitted(
+      await dispatch(stub, stub, 'fib-kick-bot-4', { type: 'room.seat.kick', seat: 4 }),
+    );
+    expect(kicked.snapshot.state.excludedBotSeats).toEqual([4]);
+    expect(isFibImplicitBotSeat(kicked.snapshot.state, 4)).toBe(false);
+    expect(isFibImplicitBotSeat(kicked.snapshot.state, 5)).toBe(true);
+
+    const refilled = requireCommitted(
+      await dispatch(stub, stub, 'fib-refill-bot-4', { type: 'room.seat.fillBots' }),
+    );
+    expect(refilled.snapshot.state.excludedBotSeats).toEqual([]);
+    expect(isFibImplicitBotSeat(refilled.snapshot.state, 4)).toBe(true);
   });
 
   it('recovers an interrupted word effect and completes the round through generic alarm dispatch', async () => {

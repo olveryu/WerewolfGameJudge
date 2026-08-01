@@ -192,7 +192,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     // Player profile card
     profileSelection,
     closeProfile,
-    requestProfileSelfLeave,
     // Local UI state
     isStartingGame,
     isHostActionSubmitting,
@@ -506,8 +505,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     if (!capability.isAllowed) {
       throw new Error(`Cannot leave from profile: ${capability.reason}`);
     }
-    requestProfileSelfLeave(capability.execute);
-  }, [capabilities.canLeaveSeat, requestProfileSelfLeave]);
+    capability.execute();
+  }, [capabilities.canLeaveSeat]);
 
   const profile = useMemo((): RoomProfileCardModel | null => {
     if (profileSelection === null) return null;

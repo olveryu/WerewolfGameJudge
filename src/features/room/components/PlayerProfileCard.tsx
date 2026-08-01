@@ -369,7 +369,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
           </View>
         )}
 
-        {/* Bot: simplified card — no API, roster name + kick only */}
+        {/* Bot: simplified card — no API, roster name + kick action */}
         {isBot && !loading && (
           <>
             <View style={styles.headerBand}>

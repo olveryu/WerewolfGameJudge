@@ -25,6 +25,10 @@ export type FibEvent =
       readonly isEnabled: boolean;
     })
   | (GameEvent & {
+      readonly type: 'fib.botSeat.excluded';
+      readonly seat: number;
+    })
+  | (GameEvent & {
       readonly type: 'fib.config.updated';
       readonly numberOfPlayers: number;
     })

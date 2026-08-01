@@ -56,6 +56,8 @@ interface FibStateBase extends BaseGameState<FibKingGameType> {
   readonly numberOfPlayers: number;
   readonly realSeats: Readonly<Record<number, FibHumanSeat | undefined>>;
   readonly fillEmptySeatsWithBots: boolean;
+  /** Sparse seats where a host explicitly removed an otherwise implicit bot. */
+  readonly excludedBotSeats: readonly number[];
   readonly usedWords: readonly string[];
 }
 
@@ -109,12 +111,18 @@ export function isFibImplicitBotSeat(state: FibState, seat: number): boolean {
     Number.isSafeInteger(seat) &&
     seat >= 0 &&
     seat < state.numberOfPlayers &&
-    state.realSeats[seat] === undefined
+    state.realSeats[seat] === undefined &&
+    !state.excludedBotSeats.includes(seat)
   );
 }
 
 export function getFibOccupiedSeatCount(state: FibState): number {
-  return state.fillEmptySeatsWithBots ? state.numberOfPlayers : Object.keys(state.realSeats).length;
+  if (!state.fillEmptySeatsWithBots) return Object.keys(state.realSeats).length;
+  const excludedEmptySeatCount = state.excludedBotSeats.reduce(
+    (count, seat) => count + (state.realSeats[seat] === undefined ? 1 : 0),
+    0,
+  );
+  return state.numberOfPlayers - excludedEmptySeatCount;
 }
 
 export function isFibRoomFull(state: FibState): boolean {
