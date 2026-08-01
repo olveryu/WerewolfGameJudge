@@ -14,7 +14,7 @@ import { Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { usePWAInstall } from '@/features/home/controllers/usePWAInstall';
 import { componentSizes, fixed, spacing, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';

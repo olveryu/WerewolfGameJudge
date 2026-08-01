@@ -4,15 +4,15 @@ import {
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
   isSeatAnimationUnlocked,
-} from '@werewolf/game-engine/growth/frameUnlock';
-import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@game-judge/game-engine/product/rewards';
+import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@game-judge/game-engine/product/rewards';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
-import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { compareByRarity } from '@/config/rarityVisual';
+import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import { AVATAR_KEYS } from '@/utils/avatar';
 
 import {
@@ -142,6 +142,7 @@ export function buildNameStyleGridData(
 
 /** Build effect grid data. */
 export function buildEffectGridData(
+  productUi: ClientProductUi,
   unlockedIds: readonly string[],
   currentEquippedEffect: string | null,
   isNoEffectActive: boolean,
@@ -164,11 +165,11 @@ export function buildEffectGridData(
     rarity: null,
   };
   const items: EffectGridItem[] = ROLE_REVEAL_EFFECT_IDS.map((id) => {
-    const opt = getAnimationOption(id);
+    const presentation = productUi.getRevealEffectPresentation(id);
     return {
       id,
-      name: opt?.label ?? id,
-      icon: opt?.icon ?? 'help-outline',
+      name: presentation.label,
+      icon: presentation.icon,
       unlocked: isRoleRevealEffectUnlocked(id, unlockedIds),
       isActive: currentEquippedEffect === id,
       rarity: getItemRarity(id),

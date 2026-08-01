@@ -1,0 +1,119 @@
+/**
+ * useGachaQuery — gacha status query + draw mutation + daily login reward
+ *
+ * useGachaStatusQuery: queries ticket count/pity/unlocked count/daily reward status
+ * useDrawMutation: performs a draw and auto-invalidates gachaStatus + userStats cache
+ * useClaimDailyRewardMutation: claims the daily login reward
+ * useAutoClaimDailyReward: auto-detects and claims daily reward + shows a toast
+ */
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner-native';
+
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
+import { useAuthenticatedQuery } from '@/features/auth/queries/useAuthenticatedQuery';
+import {
+  claimDailyReward,
+  type DailyRewardResponse,
+  type DrawResponse,
+  type ExchangeResponse,
+  exchangeShard,
+  performDraw,
+} from '@/features/gacha/services/gachaApi';
+import { gachaLog } from '@/utils/logger';
+
+import { gachaStatusOptions } from './gachaQueryOptions';
+
+/**
+ * useGachaStatusQuery — gacha status (ticket count/pity/unlocked count).
+ *
+ * enabled=false for anonymous users or when auth is not yet complete; no request is made.
+ */
+export function useGachaStatusQuery(options?: { enabled?: boolean }) {
+  return useAuthenticatedQuery({
+    ...gachaStatusOptions(),
+    ...options,
+  });
+}
+
+export function useDrawMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ['gacha', 'draw'],
+    mutationFn: ({ drawType, count }: { drawType: 'normal' | 'golden'; count?: number }) => {
+      gachaLog.debug('Draw requested', { drawType, count });
+      return performDraw(drawType, count);
+    },
+    onSuccess: (data: DrawResponse, { drawType, count }) => {
+      const rarities = data.results.map((r) => r.rarity);
+      gachaLog.info('Draw success', { drawType, count, rarities });
+      // Invalidate both gacha status and user stats (unlocked items changed)
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
+    },
+  });
+}
+
+function useClaimDailyRewardMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: claimDailyReward,
+    onSuccess: (data: DailyRewardResponse) => {
+      if (data.claimed) {
+        void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+      }
+    },
+  });
+}
+
+/**
+ * useAutoClaimDailyReward — auto-claims the daily reward after gacha status loads.
+ *
+ * Attempts once per session; the server is the sole authority for the 20-hour cooldown.
+ */
+export function useAutoClaimDailyReward() {
+  const { data: status } = useGachaStatusQuery();
+  const { mutate: claimDailyReward, isPending: isClaimPending } = useClaimDailyRewardMutation();
+  const attemptedRef = useRef(false);
+
+  useEffect(() => {
+    if (attemptedRef.current || !status || isClaimPending) return;
+
+    attemptedRef.current = true;
+    claimDailyReward(undefined, {
+      onSuccess: (data) => {
+        if (data.claimed) {
+          toast.success('每日登录奖励', {
+            description: `获得 ${data.normalDrawsAdded} 次普通抽 + ${data.goldenDrawsAdded} 次黄金抽！`,
+          });
+        }
+      },
+      onError: (err) => {
+        gachaLog.warn('Auto claim daily reward failed', { error: String(err) });
+      },
+    });
+  }, [status, claimDailyReward, isClaimPending]);
+}
+
+export function useExchangeShardMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (rewardId: string) => {
+      gachaLog.debug('Exchange requested', { rewardId });
+      return exchangeShard(rewardId);
+    },
+    onSuccess: (data: ExchangeResponse) => {
+      gachaLog.info('Exchange success', {
+        rewardId: data.rewardId,
+        cost: data.cost,
+        remainingShards: data.remainingShards,
+      });
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
+    },
+  });
+}

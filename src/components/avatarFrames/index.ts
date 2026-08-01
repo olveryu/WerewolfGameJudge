@@ -1,11 +1,11 @@
 /**
  * avatarFrames — avatar frame registry
  *
- * FrameId type derived from FRAME_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * FrameId type derived from FRAME_IDS in `@game-judge/game-engine/product/rewards`.
  * Use getFrameComponent to fetch the corresponding SVG render component by id.
  * No service or theme imports.
  */
-import { FRAME_IDS, type FrameId } from '@werewolf/game-engine/growth/rewardCatalog';
+import { FRAME_IDS, type FrameId } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 
 import { AshWoodFrame } from './AshWoodFrame';
@@ -71,13 +71,14 @@ interface AvatarFrameConfig {
 }
 
 /**
- * Avatar frame registry (exhaustive Record) — adding a new ID to FRAME_IDS without adding here -> TS compile error.
+ * Avatar frame registry. Static keys are compiler-checked, and FRAME_IDS projection fails fast
+ * when a generated entry is missing.
  * UI display order follows FRAME_IDS.
  * Static entries listed manually; 50 Common entries expanded from factory (runtime covered by gachaProbability tests).
  */
-function buildFrameRegistry(): Record<FrameId, AvatarFrameConfig> {
+function buildFrameRegistry(): Partial<Record<FrameId, AvatarFrameConfig>> {
   // Static entries — manually listed for unique hand-crafted frames
-  const staticEntries: Record<string, AvatarFrameConfig> = {
+  const staticEntries = {
     ironForge: { name: '铁锻', Component: IronForgeFrame },
     moonSilver: { name: '月银', Component: MoonSilverFrame },
     bloodThorn: { name: '血棘', Component: BloodThornFrame },
@@ -128,19 +129,22 @@ function buildFrameRegistry(): Record<FrameId, AvatarFrameConfig> {
     sirenCall: { name: '海妖', Component: SirenCallFrame },
     ashWood: { name: '灰木', Component: AshWoodFrame },
     crystalThorn: { name: '晶棘', Component: CrystalThornFrame },
-  };
+  } satisfies Partial<Record<FrameId, AvatarFrameConfig>>;
   // Merge static + common factory entries.
   // Exhaustiveness validated by gachaProbability test (REWARD_POOL counts).
-  return { ...staticEntries, ...COMMON_FRAME_ENTRIES, ...RARE_FRAME_ENTRIES } as Record<
-    FrameId,
-    AvatarFrameConfig
-  >;
+  return { ...staticEntries, ...COMMON_FRAME_ENTRIES, ...RARE_FRAME_ENTRIES };
 }
 const FRAME_REGISTRY = buildFrameRegistry();
 
 /** All available avatar frames (order = FRAME_IDS display order) */
 export const AVATAR_FRAMES: readonly (AvatarFrameConfig & { id: FrameId })[] = FRAME_IDS.map(
-  (id) => ({ id, ...FRAME_REGISTRY[id] }),
+  (id) => {
+    const config = FRAME_REGISTRY[id];
+    if (config === undefined) {
+      throw new Error(`Missing avatar frame config for "${id}"`);
+    }
+    return { id, ...config };
+  },
 );
 
 const FRAME_MAP = new Map<string, AvatarFrameConfig>(AVATAR_FRAMES.map((f) => [f.id, f]));

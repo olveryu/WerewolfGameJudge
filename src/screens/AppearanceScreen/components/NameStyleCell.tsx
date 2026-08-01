@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { NameStyleId } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { NameStyleId } from '@game-judge/game-engine/product/rewards';
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 

@@ -1,0 +1,30 @@
+import type { ChooseSeatSchema } from '@game-judge/game-engine/games/werewolf/public';
+
+import { deriveSkipIntentFromSchema } from '@/games/werewolf/room/hooks/useRoomActions';
+
+describe('deriveSkipIntentFromSchema (chooseSeat schemas)', () => {
+  it('returns skip intent when currentSchema.kind=chooseSeat and canSkip=true', () => {
+    const schema: ChooseSeatSchema = {
+      kind: 'chooseSeat',
+      canSkip: true,
+      constraints: [],
+      id: 'seerCheck',
+      displayName: 'Seer',
+    };
+
+    const intent = deriveSkipIntentFromSchema(
+      'seer',
+      schema,
+      () => '确定不发动技能吗？',
+      false,
+      null,
+    );
+
+    expect(intent).toEqual(
+      expect.objectContaining({
+        type: 'skip',
+        targetSeat: -1,
+      }),
+    );
+  });
+});

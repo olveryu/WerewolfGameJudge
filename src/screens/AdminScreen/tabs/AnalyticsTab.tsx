@@ -8,9 +8,10 @@ import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import type { AdminAnalytics } from '@/features/admin/model/adminContracts';
+import { fetchAnalytics } from '@/features/admin/services/adminApi';
 import { colors, spacing, typography } from '@/theme';
 
-import { type AdminAnalytics, fetchAnalytics } from '../adminApi';
 import { AdminEmptyState, BarChart, MetricCard, TimeRangeSelector } from '../components';
 
 export const AnalyticsTab: React.FC = () => {

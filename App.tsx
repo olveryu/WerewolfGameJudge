@@ -1,27 +1,26 @@
 import * as Sentry from '@sentry/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 
-import { AIChatBubble } from '@/components/AIChatBubble';
+import { createAppServices } from '@/app/createAppServices';
+import { queryClient } from '@/app/queryClient';
+import { getSentryIntegrations } from '@/app/sentryIntegrations';
+import { useBootProgress } from '@/app/useBootProgress';
 import { AlertModal } from '@/components/AlertModal';
 import { ModalStackProvider } from '@/components/AppModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
-import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
-import { useGameFacade } from '@/contexts';
+import { AuthProvider, ServiceProvider } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useBootProgress } from '@/hooks/useBootProgress';
-import { queryClient } from '@/lib/queryClient';
-import { getSentryIntegrations } from '@/lib/sentryIntegrations';
+import { ClientGameCatalogProvider, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { AppNavigator } from '@/navigation';
-import { createAllServices } from '@/services/registry';
 import { colors } from '@/theme';
 import { type AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
@@ -234,24 +233,8 @@ function dismissWebSplash() {
 
 function AppContent() {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
-  const facade = useGameFacade();
-
-  // Compute triggerPulse: true when game has progressed past Unseated/Seated
-  const [triggerPulse, setTriggerPulse] = useState(() => {
-    const s = facade.getState();
-    return s !== null && s.status !== GameStatus.Unseated && s.status !== GameStatus.Seated;
-  });
-
-  useEffect(() => {
-    const unsubscribe = facade.addListener((state) => {
-      const isAssigned =
-        state !== null &&
-        state.status !== GameStatus.Unseated &&
-        state.status !== GameStatus.Seated;
-      setTriggerPulse(isAssigned);
-    });
-    return unsubscribe;
-  }, [facade]);
+  const gameCatalog = useClientGameCatalog();
+  const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);
 
   // Set up global alert listener
   useEffect(() => {
@@ -356,7 +339,10 @@ function AppContent() {
           onClose={handleAlertClose}
         />
       )}
-      <AIChatBubble triggerPulse={triggerPulse} />
+      {gameModules.map((gameModule) => {
+        const AppOverlay = gameModule.appOverlay;
+        return AppOverlay === null ? null : <AppOverlay key={gameModule.gameType} />;
+      })}
       <Toaster theme="light" richColors position="top-center" />
     </>
   );
@@ -367,7 +353,7 @@ export default function App() {
 
   // Composition root: create all service instances via ServiceRegistry
   // useState lazy init ensures services are created only once
-  const [{ services, facade }] = useState(() => createAllServices());
+  const [{ services, gameCatalog }] = useState(() => createAppServices());
 
   return (
     <ErrorBoundary>
@@ -375,11 +361,11 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <ServiceProvider services={services}>
             <AuthProvider>
-              <GameFacadeProvider facade={facade}>
+              <ClientGameCatalogProvider catalog={gameCatalog}>
                 <ModalStackProvider>
                   <AppContent />
                 </ModalStackProvider>
-              </GameFacadeProvider>
+              </ClientGameCatalogProvider>
             </AuthProvider>
           </ServiceProvider>
         </QueryClientProvider>

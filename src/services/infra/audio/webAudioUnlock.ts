@@ -43,7 +43,7 @@ let unlockedAudioElement: HTMLAudioElement | null = null;
 let unlockedBgmElement: HTMLAudioElement | null = null;
 
 /**
- * Get the gesture-authorized HTMLAudioElement (for WebAudioStrategy TTS playback).
+ * Get the gesture-authorized HTMLAudioElement for foreground game audio.
  * Returns null if unlock hasn't fired yet; callers fall back to creating their own.
  */
 export function getUnlockedAudioElement(): HTMLAudioElement | null {
@@ -52,8 +52,8 @@ export function getUnlockedAudioElement(): HTMLAudioElement | null {
 
 /**
  * Get the gesture-authorized HTMLAudioElement for BGM playback.
- * Separate from the TTS element because both may play simultaneously
- * (BGM loops while TTS plays role audio). Each element needs its own
+ * Separate from the foreground element because both may play simultaneously.
+ * Each element needs its own
  * MediaElementAudioSourceNode binding.
  * Returns null if unlock hasn't fired yet; callers fall back to creating their own.
  */
@@ -73,7 +73,7 @@ function unlock(): void {
   // the gesture handler — the element is then "gesture-authorized" for
   // subsequent src swaps + play() calls.
   // Create two separate Audio elements (howler.js creates a pool of 10).
-  // We need exactly two: one for TTS (WebAudioStrategy) and one for BGM
+  // We need exactly two: one for foreground game audio and one for BGM
   // (BgmPlayer), since both play simultaneously and each binds to its own
   // MediaElementAudioSourceNode.
   try {
@@ -88,7 +88,7 @@ function unlock(): void {
     bgmAudio.load();
     unlockedBgmElement = bgmAudio;
 
-    audioLog.debug('webAudioUnlock: HTMLAudioElements created (TTS + BGM)');
+    audioLog.debug('webAudioUnlock: HTMLAudioElements created (foreground + BGM)');
   } catch (e) {
     audioLog.warn('webAudioUnlock: HTMLAudioElement creation failed', e);
   }

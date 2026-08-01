@@ -1,44 +1,51 @@
 /**
  * AppNavigator - Root navigation stack for the app
  *
- * Registers all screens (Home / Config / Room / Settings) and configures the navigation header.
+ * Registers product screens and game-neutral host routes selected by canonical game type.
  * URL ↔ navigation state two-way sync via `linking` config (restores page on Web refresh).
  * Covers navigator definition, screen registration, header style config, and linking route mapping.
  * No business logic; does not call services directly.
  */
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import {
   getPathFromState as defaultGetPathFromState,
   getStateFromPath as defaultGetStateFromPath,
   type LinkingOptions,
   NavigationContainer,
 } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  createNativeStackNavigator,
+  type NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import type React from 'react';
+import { useCallback } from 'react';
 
+import { reactNavigationIntegration } from '@/app/sentryIntegrations';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
-import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
+import type { GameNavigationRouteKind } from '@/features/navigation/model/GameNavigationContribution';
+import { parseRouteParams } from '@/features/navigation/model/routeParams';
+import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
+import { useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { getClientGameModule } from '@/games/model/ClientGameCatalog';
+import { getGameNavigationRoomCode } from '@/games/navigation';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
 import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';
 import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswordScreen';
 import { AuthLoginScreen } from '@/screens/AuthScreen/AuthLoginScreen';
 import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordScreen';
-import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
-import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
-import { GameRulesScreen } from '@/screens/GameRulesScreen/GameRulesScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
-import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { ShardExchangeScreen } from '@/screens/ShardExchangeScreen/ShardExchangeScreen';
 import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 
+import { GameConfigHostRoute, GameGuideHostRoute, GameNotepadHostRoute } from './GameHostRoutes';
 import { navigationRef } from './navigationRef';
 import { type RootStackParamList } from './types';
 
@@ -52,15 +59,49 @@ const navLog = log.extend('AppNavigator');
  * | Screen   | URL                            |
  * |----------|--------------------------------|
  * | Home     | `/`                            |
- * | Config   | `/config`                      |
- * | Room     | `/room/:roomCode?isHost=true` |
+ * | Config   | `/game/:gameType/config/:mode` |
+ * | Room     | `/room/:roomCode`             |
  * | Settings | `/settings`                    |
  *
- * `template` is a complex object needed only at creation time and is stripped from the URL (via getPathFromState).
+ * Programmatic entry intent is stripped from the URL.
  */
 
 /** Params that are programmatic-only and should never appear in the URL. */
-const TRANSIENT_PARAMS = ['template'];
+const TRANSIENT_PARAMS = ['entryReason'];
+
+const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Room'>> = (props) => {
+  const catalog = useClientGameCatalog();
+  const resolveGameModule = useCallback(
+    (gameType: Parameters<typeof getClientGameModule>[1]) => getClientGameModule(catalog, gameType),
+    [catalog],
+  );
+  return <RoomResolverScreen {...props} getGameModule={resolveGameModule} />;
+};
+
+function getOptionalRoomCode(params: unknown): string | null {
+  if (params === undefined) return null;
+  const roomCode = parseRouteParams(params, 'Navigation').roomCode;
+  return roomCode === undefined ? null : parseRoomCode(roomCode);
+}
+
+function getGameNavigationRouteKind(routeName: string): GameNavigationRouteKind | null {
+  switch (routeName) {
+    case 'GameConfig':
+      return 'config';
+    case 'GameGuide':
+      return 'guide';
+    case 'GameNotepad':
+      return 'notepad';
+    default:
+      return null;
+  }
+}
+
+function getParentRoomCode(routeName: string, params: unknown): string | null {
+  const routeKind = getGameNavigationRouteKind(routeName);
+  if (routeKind !== null) return getGameNavigationRoomCode(routeKind, params);
+  return getOptionalRoomCode(params);
+}
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -68,23 +109,38 @@ export const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Home: '',
-      BoardPicker: 'board-picker',
-      Config: 'config',
+      GameConfig: {
+        path: 'game/:gameType/config/:mode/:roomCode?',
+        parse: {
+          gameType: parseGameType,
+          roomCode: parseRoomCode,
+        },
+      },
+      GameGuide: {
+        path: 'game/:gameType/guide/:roomCode?',
+        parse: {
+          gameType: parseGameType,
+          roomCode: parseRoomCode,
+        },
+      },
+      GameNotepad: {
+        path: 'game/:gameType/notepad/:roomCode',
+        parse: {
+          gameType: parseGameType,
+          roomCode: parseRoomCode,
+        },
+      },
       Room: {
         path: 'room/:roomCode',
         parse: {
-          roomCode: (roomCode: string) => roomCode,
-          isHost: (isHost: string) => isHost === 'true',
+          roomCode: parseRoomCode,
         },
         stringify: {
           roomCode: (roomCode: string) => roomCode,
-          isHost: (isHost: boolean) => (isHost ? 'true' : 'false'),
         },
       },
       Settings: 'settings/:roomCode?',
       MusicSettings: 'settings/music/:roomCode?',
-      Encyclopedia: 'encyclopedia/:roomCode?',
-      Notepad: 'notepad/:roomCode',
       Appearance: 'appearance',
       Unlocks: 'unlocks/:userId?',
       Gacha: 'gacha',
@@ -95,7 +151,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
     },
   },
   // Rebuild navigation stack when deep-linking into screens that expect a parent.
-  // e.g. /notepad/ABC123 → [Home, Room({roomCode: 'ABC123'}), Notepad({roomCode: 'ABC123'})]
+  // e.g. a game notepad URL becomes [Home, Room({roomCode}), GameNotepad({roomCode})].
   getStateFromPath(path, options) {
     const state = defaultGetStateFromPath(path, options);
     if (!state) return state;
@@ -108,15 +164,21 @@ export const linking: LinkingOptions<RootStackParamList> = {
     if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
       // Screens that can be opened from Room: inject Home + Room when roomCode is present.
       // Without roomCode, they were opened from Home — just inject Home as base.
-      const ROOM_CHILD_SCREENS = new Set(['Notepad', 'MusicSettings', 'Settings', 'Encyclopedia']);
+      const ROOM_CHILD_SCREENS = new Set([
+        'GameConfig',
+        'GameGuide',
+        'GameNotepad',
+        'MusicSettings',
+        'Settings',
+      ]);
       if (ROOM_CHILD_SCREENS.has(topRoute.name)) {
-        const roomCode = (topRoute.params as { roomCode?: string })?.roomCode;
-        if (roomCode) {
+        const roomCode = getParentRoomCode(topRoute.name, topRoute.params);
+        if (roomCode !== null) {
           return {
             ...state,
             routes: [
               { name: 'Home' as const },
-              { name: 'Room' as const, params: { roomCode, isHost: false } },
+              { name: 'Room' as const, params: { roomCode } },
               topRoute,
             ],
             index: 2,
@@ -134,7 +196,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
 
     return state;
   },
-  // Strip non-serializable params (template, roleRevealAnimation) from browser URL
+  // Strip programmatic-only params from the browser URL.
   getPathFromState(state, options) {
     const path = defaultGetPathFromState(state, options);
     try {
@@ -179,32 +241,28 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
         }}
         screenLayout={({ children }) => <ErrorBoundary>{children}</ErrorBoundary>}
       >
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '桌游电子裁判助手' }} />
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: '狼人面杀电子裁判助手' }}
+          name="GameConfig"
+          component={GameConfigHostRoute}
+          options={{ title: '游戏配置', animation: 'slide_from_bottom' }}
+          getId={({ params }) =>
+            params.mode === 'create'
+              ? undefined
+              : `${params.gameType}-${params.mode}-${params.roomCode}`
+          }
         />
         <Stack.Screen
-          name="BoardPicker"
-          component={BoardPickerScreen}
-          options={{ title: '选择板子' }}
+          name="GameGuide"
+          component={GameGuideHostRoute}
+          options={{ title: '游戏图鉴', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
-          name="Config"
-          component={ConfigScreen}
-          options={{ title: '创建房间', animation: 'slide_from_bottom' }}
-          getId={({ params }) => {
-            if (params?.nominateMode) return 'nominate';
-            if (params?.existingRoomCode) return `edit-${params.existingRoomCode}`;
-            return undefined;
-          }}
+          name="GameNotepad"
+          component={GameNotepadHostRoute}
+          options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
-        <Stack.Screen
-          name="GameRules"
-          component={GameRulesScreen}
-          options={{ title: '游戏规则' }}
-        />
-        <Stack.Screen name="Room" component={RoomScreen} options={{ title: '房间' }} />
+        <Stack.Screen name="Room" component={RoomResolverRoute} options={{ title: '房间' }} />
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
@@ -214,16 +272,6 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
           name="MusicSettings"
           component={MusicSettingsScreen}
           options={{ title: '音乐设置' }}
-        />
-        <Stack.Screen
-          name="Encyclopedia"
-          component={EncyclopediaScreen}
-          options={{ title: '角色图鉴', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="Notepad"
-          component={NotepadScreen}
-          options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="Appearance"

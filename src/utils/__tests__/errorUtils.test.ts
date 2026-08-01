@@ -20,8 +20,7 @@ describe('translateReasonCode', () => {
     expect(translateReasonCode('invalid_status')).toBe('当前状态不允许此操作');
     expect(translateReasonCode('role_count_mismatch')).toBe('角色数量与座位数不匹配');
     expect(translateReasonCode('forbidden_while_audio_playing')).toBe('请等待语音播放完毕');
-    expect(translateReasonCode('CONFLICT_RETRY')).toBe('操作冲突，请重试');
-    expect(translateReasonCode('ROOM_NOT_FOUND')).toBe('房间不存在或已解散');
+    expect(translateReasonCode('command_id_conflict')).toBe('操作标识冲突，请重试');
     expect(translateReasonCode('INTERNAL_ERROR')).toBe('服务器内部错误');
   });
 
@@ -58,7 +57,7 @@ describe('getUserFacingMessage', () => {
   });
 
   it('translates Error.message if it matches a known reason code', () => {
-    expect(getUserFacingMessage(new Error('CONFLICT_RETRY'))).toBe('操作冲突，请重试');
+    expect(getUserFacingMessage(new Error('command_id_conflict'))).toBe('操作标识冲突，请重试');
   });
 
   it('returns Chinese error messages as-is', () => {

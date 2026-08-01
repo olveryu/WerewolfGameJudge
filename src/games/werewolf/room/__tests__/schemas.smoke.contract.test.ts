@@ -1,0 +1,62 @@
+import { getAllSchemaIds } from '@game-judge/game-engine/games/werewolf/public';
+
+// Keep this list in sync with `schemas.smoke.ui.test.tsx`.
+//
+// Why a contract test?
+// The UI smoke suite runs one test per schemaId, but it depends on a
+// schemaId -> roleId mapping. When a new schema is added, forgetting to add a
+// mapping yields a confusing runtime failure in the middle of the UI test.
+// This contract test makes that failure immediate and precise.
+
+const schemaToRole: Record<string, string> = {
+  // god
+  seerCheck: 'seer',
+  mirrorSeerCheck: 'mirrorSeer',
+  drunkSeerCheck: 'drunkSeer',
+  guardProtect: 'guard',
+  psychicCheck: 'psychic',
+  pureWhiteCheck: 'pureWhite',
+  dreamcatcherDream: 'dreamcatcher',
+  magicianSwap: 'magician',
+  hunterConfirm: 'hunter',
+  witchSave: 'witch',
+  witchPoison: 'witch',
+  witchAction: 'witch',
+  silenceElderSilence: 'silenceElder',
+  votebanElderBan: 'votebanElder',
+  crowCurse: 'crow',
+  poisonerPoison: 'poisoner',
+
+  // wolf
+  wolfKill: 'wolf',
+  wolfQueenCharm: 'wolfQueen',
+  nightmareBlock: 'nightmare',
+  gargoyleCheck: 'gargoyle',
+  awakenedGargoyleConvert: 'awakenedGargoyle',
+  awakenedGargoyleConvertReveal: 'awakenedGargoyle',
+  wolfWitchCheck: 'wolfWitch',
+  wolfRobotLearn: 'wolfRobot',
+  darkWolfKingConfirm: 'darkWolfKing',
+  eclipseWolfQueenShelter: 'eclipseWolfQueen',
+  hiddenWolfReveal: 'hiddenWolf',
+
+  // third party
+  slackerChooseIdol: 'slacker',
+  wildChildChooseIdol: 'wildChild',
+  shadowChooseMimic: 'shadow',
+  avengerConfirm: 'avenger',
+  piperHypnotize: 'piper',
+  piperHypnotizedReveal: 'piper',
+  treasureMasterChoose: 'treasureMaster',
+  thiefChoose: 'thief',
+  cupidChooseLovers: 'cupid',
+  cupidLoversReveal: 'cupid',
+};
+
+describe('WerewolfRoomScreen schema smoke: schemaId->role mapping contract', () => {
+  it('has a role mapping for every SchemaId', () => {
+    const all = getAllSchemaIds();
+    const missing = all.filter((id) => !schemaToRole[id]);
+    expect(missing).toEqual([]);
+  });
+});

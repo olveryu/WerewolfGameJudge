@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
@@ -7,13 +7,14 @@ import { Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
+import type { ProductIconName } from '@/features/product/model/GameProductUi';
 import { colors } from '@/theme';
 
 import type { AppearanceScreenStyles } from './styles';
 
 interface EffectHeroPreviewProps {
   heroEffectId: string | null;
-  heroEffectIcon: string;
+  heroEffectIcon: ProductIconName;
   heroEffectLabel: string;
   heroEffectDesc: string;
   heroEffectRarity: Rarity | null;
@@ -21,7 +22,9 @@ interface EffectHeroPreviewProps {
   heroEffectIsEquipped: boolean;
   saving: boolean;
   onPreviewEffect: () => void;
+  onPreviewEffectUnavailable: () => void;
   onEquipEffect: () => void;
+  onEquipEffectUnavailable: () => void;
   styles: AppearanceScreenStyles;
 }
 
@@ -36,7 +39,9 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
   heroEffectIsEquipped,
   saving,
   onPreviewEffect,
+  onPreviewEffectUnavailable,
   onEquipEffect,
+  onEquipEffectUnavailable,
   styles,
 }) => {
   const petConfig = useMemo(() => getPetByEffectId(heroEffectId), [heroEffectId]);
@@ -50,7 +55,7 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
             <PetComponent size={48} />
           ) : (
             <Ionicons
-              name={heroEffectIcon as React.ComponentProps<typeof Ionicons>['name']}
+              name={heroEffectIcon}
               size={36}
               color={
                 heroEffectRarity ? RARITY_VISUAL[heroEffectRarity].color : colors.textSecondary
@@ -86,8 +91,8 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
             variant="secondary"
             size="sm"
             disabled={heroEffectId === 'none' || heroEffectId === 'random'}
-            fireWhenDisabled
             onPress={onPreviewEffect}
+            onDisabledPress={onPreviewEffectUnavailable}
           >
             预览动画
           </Button>
@@ -95,9 +100,9 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
             variant={heroEffectIsEquipped ? 'secondary' : 'primary'}
             size="sm"
             disabled={!heroEffectUnlocked || heroEffectIsEquipped}
-            fireWhenDisabled
             loading={saving}
             onPress={onEquipEffect}
+            onDisabledPress={onEquipEffectUnavailable}
           >
             {!heroEffectUnlocked ? '未解锁' : heroEffectIsEquipped ? '已装备' : '装备'}
           </Button>

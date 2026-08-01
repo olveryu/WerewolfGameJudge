@@ -133,18 +133,22 @@ function findViolations(content: string): Violation[] {
 //
 // Key: relative file path → array of allowed (rule, line) pairs.
 // flexGrow: 0 on flex-grid items is intentional (prevents grow beyond basis).
-// ShareReviewModal scrollView uses flexGrow:0 to shrink-wrap a short seat list.
-const KNOWN_VIOLATIONS: Record<string, { rule: string; line: number }[]> = {
-  'src/components/SettingsSheet/SettingsSheet.tsx': [{ rule: 'no-flexGrow-zero', line: 308 }],
-};
+const KNOWN_VIOLATIONS: Record<string, { rule: string; line: number }[]> = {};
 
 // ─── Test ───────────────────────────────────────────────────────────────────
 
 describe('Responsive layout anti-patterns', () => {
   const screensDir = path.join(process.cwd(), 'src', 'screens');
   const componentsDir = path.join(process.cwd(), 'src', 'components');
+  const featuresDir = path.join(process.cwd(), 'src', 'features');
+  const gamesDir = path.join(process.cwd(), 'src', 'games');
 
-  const files = [...getProductionFiles(screensDir), ...getProductionFiles(componentsDir)];
+  const files = [
+    ...getProductionFiles(screensDir),
+    ...getProductionFiles(componentsDir),
+    ...getProductionFiles(featuresDir),
+    ...getProductionFiles(gamesDir),
+  ];
 
   it('should find production files to check', () => {
     expect(files.length).toBeGreaterThan(0);

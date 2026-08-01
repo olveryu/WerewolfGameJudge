@@ -1,0 +1,99 @@
+/**
+ * actionSubmitExecutor — Handles 'magicianFirst' and 'actionConfirm' ActionIntents
+ *
+ * 'magicianFirst': Records the first magician swap target, shows first-pick alert.
+ * 'actionConfirm': Shows confirmation dialog, then submits one canonical action input.
+ */
+
+import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+
+import { roomScreenLog } from '@/utils/logger';
+
+import { buildWitchActionInput, getSubStepByKey } from '../hooks/actionIntentHelpers';
+import type { IntentExecutor } from './types';
+
+export const magicianFirstExecutor: IntentExecutor = (intent, ctx) => {
+  roomScreenLog.debug('magicianFirst', {
+    targetSeat: intent.targetSeat,
+  });
+  ctx.setFirstSwapSeat(intent.targetSeat);
+  ctx.actionDialogs.showMagicianFirstAlert(intent.targetSeat, ctx.currentSchema!);
+};
+
+export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
+  const {
+    effectiveRole,
+    firstSwapSeat,
+    setFirstSwapSeat,
+    setSecondSeat,
+    currentSchema,
+    proceedWithAction,
+    actionDialogs,
+  } = ctx;
+
+  roomScreenLog.debug('actionConfirm Processing', {
+    effectiveRole,
+    firstSwapSeat,
+    schemaKind: currentSchema?.kind,
+    schemaId: currentSchema?.id,
+    'intent.targetSeat': intent.targetSeat,
+    'intent.stepKey': intent.stepKey,
+  });
+
+  if (effectiveRole === 'magician' && firstSwapSeat !== null) {
+    const swapTargets: [number, number] = [firstSwapSeat, intent.targetSeat];
+    setSecondSeat(intent.targetSeat);
+    // setTimeout(0) ensures setSecondSeat triggers re-render before dialog shows,
+    // so the UI reflects the second seat selection visually.
+    setTimeout(() => {
+      actionDialogs.showConfirmDialog(
+        currentSchema!.ui!.confirmTitle!,
+        intent.message ?? '',
+        async () => {
+          setFirstSwapSeat(null);
+          setSecondSeat(null);
+          await proceedWithAction({ kind: 'multiTarget', targets: swapTargets });
+        },
+        () => {
+          setFirstSwapSeat(null);
+          setSecondSeat(null);
+        },
+      );
+    }, 0);
+  } else {
+    const stepSchema = getSubStepByKey(currentSchema, intent.stepKey);
+    let actionInput: WerewolfActionInput;
+
+    if (currentSchema?.kind === 'compound') {
+      if (stepSchema?.key === 'save') {
+        actionInput = buildWitchActionInput({
+          saveTarget: intent.targetSeat,
+          poisonTarget: null,
+        });
+      } else if (stepSchema?.key === 'poison') {
+        actionInput = buildWitchActionInput({
+          saveTarget: null,
+          poisonTarget: intent.targetSeat,
+        });
+      } else {
+        throw new Error(`[FAIL-FAST] Unknown compound action step: ${String(stepSchema?.key)}`);
+      }
+    } else {
+      actionInput = { kind: 'target', target: intent.targetSeat };
+    }
+
+    roomScreenLog.debug('actionConfirm Submitting', {
+      schemaKind: currentSchema?.kind,
+      'intent.targetSeat': intent.targetSeat,
+      inputKind: actionInput.kind,
+    });
+
+    actionDialogs.showConfirmDialog(
+      stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
+      stepSchema?.ui?.confirmText ?? intent.message ?? '',
+      async () => {
+        await proceedWithAction(actionInput);
+      },
+    );
+  }
+};

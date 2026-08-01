@@ -17,9 +17,9 @@ test.setTimeout(60_000);
 
 test.describe('Room Lifecycle', () => {
   // -------------------------------------------------------------------------
-  // 1. Join a non-existent room → fatal error → redirect to Home
+  // 1. Reject a malformed room code before canonical resolution
   // -------------------------------------------------------------------------
-  test('joining a non-existent room shows error and redirects home', async ({ browser }) => {
+  test('joining with a malformed room code stays in the join modal', async ({ browser }) => {
     const fixture = await createPlayerContexts(browser, 1);
     const [page] = fixture.pages;
 
@@ -28,26 +28,13 @@ test.describe('Room Lifecycle', () => {
       await home.clickJoinRoom();
       await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      // Enter a room code outside generateRoomCode() range [1000–9999],
-      // guaranteeing it never exists in the DB regardless of accumulated test data.
+      // 0000 is outside the canonical public-room namespace and must fail before lookup.
       await enterRoomCodeViaNumPad(page, '0000');
       await page.getByText('加入', { exact: true }).click();
 
-      // The app navigates to RoomScreen, discovers the room doesn't exist,
-      // and immediately redirects back to Home with a fatal error alert.
-      // The round-trip is fast enough that the URL may never visibly change to /room/.
-      // Wait for the alert modal to appear (web-first assertion auto-retries)
-      const alertModal = page.locator('[data-testid="alert-modal"]');
-      await expect(alertModal).toBeVisible({ timeout: 20_000 });
-      await expect(alertModal).toContainText('房间不存在');
-
-      // Dismiss alert
-      const okBtn = alertModal.getByText('确定', { exact: true });
-      await okBtn.click();
-      await expect(alertModal).toBeHidden({ timeout: 5_000 });
-
-      // Verify redirect to Home via URL (web-first assertion polls URL until match)
-      await expect(page).toHaveURL(/^(?!.*\/room\/)/, { timeout: 30_000 });
+      await expect(page.getByText('请输入4位数字房间号')).toBeVisible();
+      await expect(page.getByText('加入房间')).toBeVisible();
+      await expect(page).toHaveURL(/^(?!.*\/room\/)/);
     } finally {
       await closeAll(fixture);
     }
@@ -111,7 +98,7 @@ test.describe('Room Lifecycle', () => {
 
     try {
       const home = new HomePage(page);
-      await home.clickCreateRoom();
+      await home.clickCreateRoom('werewolf');
 
       const { BoardPickerPage } = await import('../pages/BoardPickerPage');
       const bp = new BoardPickerPage(page);

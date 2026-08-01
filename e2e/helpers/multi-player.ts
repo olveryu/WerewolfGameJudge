@@ -5,7 +5,7 @@ import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.f
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
-import { enterRoomCodeViaNumPad, extractRoomCode } from './home';
+import { enterRoomCodeViaNumPad, extractRoomCode, startRoomCreation } from './home';
 import { getVisibleText } from './ui';
 import { ensureConnected, waitForRoomScreenReady } from './waits';
 
@@ -216,7 +216,7 @@ export async function setupNPlayerGame(
   const [hostPage, ...joinerPages] = fixture.pages;
 
   // Step 2: Host creates room
-  await hostPage.getByText('创建房间').click();
+  await startRoomCreation(hostPage, 'werewolf');
   const boardPicker = new BoardPickerPage(hostPage);
   await boardPicker.waitForReady();
   await boardPicker.selectDefaultTemplate();
@@ -293,7 +293,7 @@ export async function setupNPlayerGameWithRoles(
   const [hostPage, ...joinerPages] = fixture.pages;
 
   // Step 2: Host creates room
-  await hostPage.getByText('创建房间').click();
+  await startRoomCreation(hostPage, 'werewolf');
   const boardPicker2 = new BoardPickerPage(hostPage);
   await boardPicker2.waitForReady();
   await boardPicker2.selectDefaultTemplate();

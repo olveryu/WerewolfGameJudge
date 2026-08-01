@@ -4,13 +4,60 @@
  * Unified fetch wrapper: JWT Bearer token injection, timeout (AbortSignal.timeout),
  * network-layer auto retry (fetchWithRetry), JSON response parsing,
  * 401 auto refresh (single refresh lock + queue),
- * structured error handling (non-JSON responses return `{ success: false, reason: 'SERVER_ERROR' }`).
+ * owner-provided runtime response decoding and structured HTTP errors.
  * Pure IO module, no business logic.
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
 import { createTimeoutSignal } from '@/utils/abortSignal';
 import { cfFetchLog } from '@/utils/logger';
+
+import { isAccessTokenClaimsExpired, parseAccessTokenClaims } from './accessTokenClaims';
+
+/** Runtime decoder owned by the endpoint consumer. */
+export type JsonResponseDecoder<T> = (value: unknown) => T;
+
+/** A non-successful HTTP response with one normalized server reason. */
+export class CloudflareHttpError extends Error {
+  readonly status: number;
+  readonly reason: string;
+  readonly body: unknown;
+
+  constructor(options: {
+    readonly status: number;
+    readonly reason: string;
+    readonly body: unknown;
+    readonly cause?: unknown;
+  }) {
+    super(options.reason, { cause: options.cause });
+    this.name = 'CloudflareHttpError';
+    this.status = options.status;
+    this.reason = options.reason;
+    this.body = options.body;
+  }
+}
+
+/** A successful response whose JSON does not satisfy its endpoint contract. */
+export class CloudflareResponseProtocolError extends Error {
+  readonly path: string;
+  readonly status: number;
+  readonly body: unknown;
+
+  constructor(options: {
+    readonly path: string;
+    readonly status: number;
+    readonly body: unknown;
+    readonly cause?: unknown;
+  }) {
+    super(`[FAIL-FAST] Invalid JSON response contract for ${options.path}`, {
+      cause: options.cause,
+    });
+    this.name = 'CloudflareResponseProtocolError';
+    this.path = options.path;
+    this.status = options.status;
+    this.body = options.body;
+  }
+}
 
 // ── Token management ────────────────────────────────────────────────────────
 
@@ -40,7 +87,7 @@ export function setOnAuthExpired(handler: () => void): void {
   onAuthExpired = handler;
 }
 
-/** Get current JWT token (for non-cfFetch callers like CFStorageService) */
+/** Get current JWT token (for non-cfFetch callers such as the avatar upload adapter). */
 export function getCurrentToken(): string | null {
   return tokenProvider?.() ?? null;
 }
@@ -78,12 +125,8 @@ async function refreshWithLock(): Promise<'refreshed' | 'expired' | 'offline'> {
  */
 export function isAccessTokenExpired(token: string): boolean {
   try {
-    const parts = token.split('.');
-    const payloadB64 = parts[1];
-    if (parts.length !== 3 || !payloadB64) return true;
-    const payload = JSON.parse(atob(payloadB64)) as { exp?: number };
-    if (typeof payload.exp !== 'number') return true;
-    return payload.exp * 1000 < Date.now() - 30_000;
+    const claims = parseAccessTokenClaims(token);
+    return isAccessTokenClaimsExpired(claims);
   } catch {
     return true;
   }
@@ -122,10 +165,7 @@ export async function ensureFreshToken(): Promise<string | null> {
  * @throws {TypeError} Still fails after FETCH_RETRY_COUNT retries
  * @throws {DOMException} AbortError/TimeoutError — thrown immediately, no retry
  */
-export async function fetchWithRetry(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<Response> {
+async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   for (let attempt = 0; attempt <= FETCH_RETRY_COUNT; attempt++) {
     try {
       return await fetch(input, init);
@@ -147,18 +187,19 @@ export async function fetchWithRetry(
 
 // ── Internal request execution (with 401 interception) ─────────────────────
 
-interface RequestOptions {
+interface RequestOptions<T> {
   method: string;
   path: string;
   body?: string | FormData;
   headers: Record<string, string>;
   timeoutMs: number;
+  decode: JsonResponseDecoder<T>;
   noRetry?: boolean;
   /** This is the refresh request itself; skip 401 interception */
   skipAuthIntercept?: boolean;
 }
 
-async function executeRequest<T>(opts: RequestOptions): Promise<T> {
+async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
   const url = `${API_BASE_URL}${opts.path}`;
   const fetchFn = opts.noRetry ? fetch : fetchWithRetry;
 
@@ -191,18 +232,22 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
         retryHeaders['Authorization'] = `Bearer ${newToken}`;
       }
       const retryRes = await doFetch(retryHeaders);
-      return parseJsonResponse<T>(retryRes, opts.path);
+      return parseJsonResponse(retryRes, opts.path, opts.decode);
     }
     if (refreshResult === 'expired') {
       // Session fully dead — notify UI and fail fast
       onAuthExpired?.();
-      throw Object.assign(new Error('AUTH_EXPIRED'), { status: 401, reason: 'AUTH_EXPIRED' });
+      throw new CloudflareHttpError({
+        status: 401,
+        reason: 'AUTH_EXPIRED',
+        body: null,
+      });
     }
     // refreshResult === 'offline': network error during refresh, don't sign out
     // Fall through to parseJsonResponse so TanStack Query can retry
   }
 
-  return parseJsonResponse<T>(res, opts.path);
+  return parseJsonResponse(res, opts.path, opts.decode);
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -210,9 +255,10 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
 /**
  * Send a JSON POST request to the Workers API.
  */
-export async function cfPost<T = Record<string, unknown>>(
+export async function cfPost<T>(
   path: string,
-  body?: Record<string, unknown>,
+  body: Record<string, unknown> | undefined,
+  decode: JsonResponseDecoder<T>,
   options?: {
     timeoutMs?: number;
     extraHeaders?: Record<string, string>;
@@ -221,7 +267,7 @@ export async function cfPost<T = Record<string, unknown>>(
   },
 ): Promise<T> {
   cfFetchLog.debug('POST', { path });
-  return executeRequest<T>({
+  return executeRequest({
     method: 'POST',
     path,
     body: body ? JSON.stringify(body) : undefined,
@@ -230,6 +276,7 @@ export async function cfPost<T = Record<string, unknown>>(
       ...options?.extraHeaders,
     },
     timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    decode,
     noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,
   });
@@ -238,16 +285,18 @@ export async function cfPost<T = Record<string, unknown>>(
 /**
  * Send a GET request to the Workers API.
  */
-export async function cfGet<T = Record<string, unknown>>(
+export async function cfGet<T>(
   path: string,
+  decode: JsonResponseDecoder<T>,
   options?: { skipAuthIntercept?: boolean; noRetry?: boolean; timeoutMs?: number },
 ): Promise<T> {
   cfFetchLog.debug('GET', { path });
-  return executeRequest<T>({
+  return executeRequest({
     method: 'GET',
     path,
     headers: {},
     timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    decode,
     noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,
   });
@@ -256,12 +305,13 @@ export async function cfGet<T = Record<string, unknown>>(
 /**
  * Send a PUT request to the Workers API.
  */
-export async function cfPut<T = Record<string, unknown>>(
+export async function cfPut<T>(
   path: string,
-  body?: Record<string, unknown>,
+  body: Record<string, unknown> | undefined,
+  decode: JsonResponseDecoder<T>,
 ): Promise<T> {
   cfFetchLog.debug('PUT', { path });
-  return executeRequest<T>({
+  return executeRequest({
     method: 'PUT',
     path,
     body: body ? JSON.stringify(body) : undefined,
@@ -269,13 +319,18 @@ export async function cfPut<T = Record<string, unknown>>(
       'Content-Type': 'application/json',
     },
     timeoutMs: API_TIMEOUT_MS,
+    decode,
   });
 }
 
 /**
- * Safely parse a JSON response. Non-JSON (502/503 HTML) returns a structured error.
+ * Parse JSON and apply the endpoint owner's decoder before data crosses the transport boundary.
  */
-async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
+async function parseJsonResponse<T>(
+  res: Response,
+  path: string,
+  decode: JsonResponseDecoder<T>,
+): Promise<T> {
   const contentType = res.headers.get('content-type') ?? '';
 
   if (!contentType.includes('application/json')) {
@@ -285,48 +340,100 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
         statusText: res.statusText,
         path,
       });
-      throw Object.assign(new Error(`服务端错误 (${res.status})`), {
+      throw new CloudflareHttpError({
         status: res.status,
         reason: 'SERVER_ERROR',
+        body: null,
       });
     }
     cfFetchLog.warn('Non-JSON 200 response', { path, status: res.status, contentType });
-    throw Object.assign(new Error('响应格式异常'), { reason: 'SERVER_ERROR' });
+    throw new CloudflareResponseProtocolError({
+      path,
+      status: res.status,
+      body: null,
+    });
   }
 
-  const data = (await res.json()) as T;
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch (cause) {
+    if (!res.ok) {
+      throw new CloudflareHttpError({
+        status: res.status,
+        reason: 'SERVER_ERROR',
+        body: null,
+        cause,
+      });
+    }
+    throw new CloudflareResponseProtocolError({
+      path,
+      status: res.status,
+      body: null,
+      cause,
+    });
+  }
 
   if (!res.ok) {
-    const errBody = data as Record<string, unknown>;
+    const reason = readErrorReason(data);
     cfFetchLog.warn('HTTP error', {
       status: res.status,
       path,
-      reason: errBody.reason,
+      reason,
     });
-    throw Object.assign(new Error((errBody.reason as string) ?? `HTTP ${res.status}`), {
+    throw new CloudflareHttpError({
       status: res.status,
-      reason: (errBody.reason as string) ?? 'SERVER_ERROR',
-      body: errBody,
+      reason: reason ?? 'SERVER_ERROR',
+      body: data,
+      cause:
+        reason === null
+          ? new Error(`[FAIL-FAST] Invalid HTTP error envelope for ${path}`)
+          : undefined,
     });
   }
 
-  return data;
+  try {
+    return decode(data);
+  } catch (cause) {
+    throw new CloudflareResponseProtocolError({
+      path,
+      status: res.status,
+      body: data,
+      cause,
+    });
+  }
+}
+
+function readErrorReason(value: unknown): string | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const reason =
+    'reason' in value && typeof value.reason === 'string' && value.reason.length > 0
+      ? value.reason
+      : null;
+  const middlewareError =
+    'error' in value && typeof value.error === 'string' && value.error.length > 0
+      ? value.error
+      : null;
+  if ((reason === null) === (middlewareError === null)) return null;
+  return reason ?? middlewareError;
 }
 
 /**
  * Upload multipart/form-data to the Workers API.
  */
-export async function cfUpload<T = Record<string, unknown>>(
+export async function cfUpload<T>(
   path: string,
   formData: FormData,
+  decode: JsonResponseDecoder<T>,
   timeoutMs?: number,
 ): Promise<T> {
   cfFetchLog.debug('UPLOAD', { path });
-  return executeRequest<T>({
+  return executeRequest({
     method: 'POST',
     path,
     body: formData, // FormData handled by fetch natively
     headers: {}, // No Content-Type — let browser set multipart boundary
     timeoutMs: timeoutMs ?? API_TIMEOUT_MS,
+    decode,
   });
 }

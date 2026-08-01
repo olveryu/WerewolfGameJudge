@@ -8,7 +8,7 @@
  * animations clip children with `overflow: hidden`, which would cut the frame).
  * Returns null when no frame is equipped. No service imports, no business logic.
  */
-import { LEGENDARY_FRAME_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { LEGENDARY_FRAME_IDS } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -35,9 +35,9 @@ interface FrameOverlayProps {
 }
 
 const FrameOverlayComponent: React.FC<FrameOverlayProps> = ({ frameId, size, borderRadius }) => {
-  const frameConfig = useMemo(() => getFrameById(frameId as string), [frameId]);
+  const frameConfig = useMemo(() => getFrameById(frameId), [frameId]);
 
-  if (!frameConfig) {
+  if (!frameConfig || !frameId) {
     return null;
   }
 
@@ -46,7 +46,7 @@ const FrameOverlayComponent: React.FC<FrameOverlayProps> = ({ frameId, size, bor
   const svgSize = (size * VB_TOTAL) / 100;
   const svgOffset = (-size * VB_PAD) / 100;
   const rxVB = (innerRadius * 100) / size;
-  const isLegendary = LEGENDARY_FRAME_IDS.has(frameId as string);
+  const isLegendary = LEGENDARY_FRAME_IDS.has(frameId);
 
   return (
     <>

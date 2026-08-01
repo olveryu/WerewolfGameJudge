@@ -14,11 +14,16 @@ import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PressableScale } from '@/components/PressableScale';
-import { ADMIN_PASSWORD_KEY } from '@/config/storageKeys';
-import { storage } from '@/lib/storage';
+import { verifyAdminPassword } from '@/features/admin/services/adminApi';
+import {
+  clearAdminCredential,
+  readAdminCredential,
+  writeAdminCredential,
+} from '@/features/admin/services/adminCredentialStore';
 import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
+import { handleError } from '@/utils/errorPipeline';
+import { log } from '@/utils/logger';
 
-import { verifyAdminPassword } from './adminApi';
 import { AITab } from './tabs/AITab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
 import { RoomsTab } from './tabs/RoomsTab';
@@ -34,6 +39,7 @@ const TABS: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphM
   { id: 'analytics', label: '性能', icon: 'speedometer-outline' },
   { id: 'ai', label: 'AI', icon: 'sparkles-outline' },
 ];
+const adminScreenLog = log.extend('AdminScreen');
 
 /** Admin portal screen. */
 export const AdminScreen: React.FC = () => {
@@ -46,7 +52,7 @@ export const AdminScreen: React.FC = () => {
 
   // On mount, check if cached password is still valid
   useEffect(() => {
-    const cached = storage.getString(ADMIN_PASSWORD_KEY);
+    const cached = readAdminCredential();
     if (!cached) {
       setVerifying(false);
       return;
@@ -56,11 +62,16 @@ export const AdminScreen: React.FC = () => {
         if (valid) {
           setAuthenticated(true);
         } else {
-          storage.remove(ADMIN_PASSWORD_KEY);
+          clearAdminCredential();
         }
       })
-      .catch(() => {
-        storage.remove(ADMIN_PASSWORD_KEY);
+      .catch((cause: unknown) => {
+        handleError(cause, {
+          label: '验证管理员身份',
+          logger: adminScreenLog,
+          feedback: false,
+        });
+        setError('验证失败，请重试');
       })
       .finally(() => {
         setVerifying(false);
@@ -74,12 +85,17 @@ export const AdminScreen: React.FC = () => {
     try {
       const valid = await verifyAdminPassword(password.trim());
       if (valid) {
-        storage.set(ADMIN_PASSWORD_KEY, password.trim());
+        writeAdminCredential(password.trim());
         setAuthenticated(true);
       } else {
         setError('密码错误');
       }
-    } catch {
+    } catch (cause: unknown) {
+      handleError(cause, {
+        label: '验证管理员身份',
+        logger: adminScreenLog,
+        feedback: false,
+      });
       setError('网络错误，请重试');
     } finally {
       setVerifying(false);

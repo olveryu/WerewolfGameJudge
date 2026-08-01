@@ -4,7 +4,7 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["./worker-configuration.d.ts", "node"],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -12,12 +12,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "baseUrl": ".",
     "paths": {
-      "@werewolf/game-engine/*": ["../game-engine/src/*"],
-      "@werewolf/game-engine": ["../game-engine/src/index.ts"]
+      "@game-judge/game-engine/*": ["../game-engine/src/*"]
     }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/__tests__"]
+  "include": ["worker-configuration.d.ts", "src/**/*.ts", "type-tests/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/**/__tests__"]
 }

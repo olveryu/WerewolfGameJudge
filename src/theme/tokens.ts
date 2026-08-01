@@ -187,11 +187,11 @@ export const typography = {
 
   /** Font weight */
   weights: {
-    normal: '400' as TextStyle['fontWeight'],
-    medium: '500' as TextStyle['fontWeight'],
-    semibold: '600' as TextStyle['fontWeight'],
-    bold: '700' as TextStyle['fontWeight'],
-  },
+    normal: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700',
+  } satisfies Record<string, NonNullable<TextStyle['fontWeight']>>,
 
   /** Line height (1:1 mapping with font size semantic layer) */
   lineHeights: {
@@ -467,15 +467,15 @@ export function crossPlatformTextShadow(
  * RN 0.76+ New Architecture: boxShadow works directly across iOS / Android / Web.
  */
 export const shadows = {
-  none: {} as ViewStyle,
-  sm: { boxShadow: '0px 1px 3px rgba(0,0,0,0.06)' } as ViewStyle,
-  md: { boxShadow: '0px 2px 8px rgba(0,0,0,0.08)' } as ViewStyle,
-  lg: { boxShadow: '0px 4px 16px rgba(0,0,0,0.10)' } as ViewStyle,
+  none: {},
+  sm: { boxShadow: '0px 1px 3px rgba(0,0,0,0.06)' },
+  md: { boxShadow: '0px 2px 8px rgba(0,0,0,0.08)' },
+  lg: { boxShadow: '0px 4px 16px rgba(0,0,0,0.10)' },
   /** Upward shadow for bottom panels */
-  upward: { boxShadow: '0px -1px 8px rgba(0,0,0,0.06)' } as ViewStyle,
+  upward: { boxShadow: '0px -1px 8px rgba(0,0,0,0.06)' },
   /** Strong upward shadow for primary bottom action panels */
-  lgUpward: { boxShadow: '0px -2px 12px rgba(0,0,0,0.08)' } as ViewStyle,
-} as const;
+  lgUpward: { boxShadow: '0px -2px 12px rgba(0,0,0,0.08)' },
+} as const satisfies Record<string, ViewStyle>;
 
 // ============================================================================
 // Layout Constants

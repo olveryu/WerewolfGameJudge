@@ -12,7 +12,7 @@ import { useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { ForgotPasswordForm } from '@/components/auth';
-import { useForgotPassword } from '@/hooks/mutations/useAuthMutations';
+import { useForgotPassword } from '@/features/auth/controllers/useAuthMutations';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { getErrorMessage } from '@/utils/errorUtils';

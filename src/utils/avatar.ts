@@ -5,7 +5,7 @@
  * Provides avatar image mapping plus stable hash assignment + deduplication keyed on userId/roomId.
  * Does not import React or services; does not make network requests.
  *
- * The ID registry lives in `@werewolf/game-engine/growth/rewardCatalog` (single source of truth).
+ * The ID registry lives in `@game-judge/game-engine/product/rewards` (single source of truth).
  * Adding a new avatar requires updating both rewardCatalog AVATAR_IDS and avatarImages.ts / avatarImages.web.ts.
  *
  * Image maps are split by platform (Metro resolves .web.ts automatically):
@@ -18,8 +18,7 @@ import {
   type AvatarId,
   HAND_DRAWN_AVATAR_IDS,
   type HandDrawnAvatarId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+} from '@game-judge/game-engine/product/rewards';
 
 import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 
@@ -34,6 +33,12 @@ export const AVATAR_KEYS: readonly AvatarId[] = AVATAR_IDS;
 
 /** Hand-drawn avatar keys (with actual image files) */
 export const HAND_DRAWN_KEYS: readonly HandDrawnAvatarId[] = HAND_DRAWN_AVATAR_IDS;
+
+const HAND_DRAWN_AVATAR_ID_SET: ReadonlySet<string> = new Set(HAND_DRAWN_AVATAR_IDS);
+
+function isHandDrawnAvatarId(avatarId: string): avatarId is HandDrawnAvatarId {
+  return HAND_DRAWN_AVATAR_ID_SET.has(avatarId);
+}
 
 /** All hand-drawn avatar image sources, in HAND_DRAWN_AVATAR_IDS order. */
 export const AVATAR_IMAGES: readonly number[] = HAND_DRAWN_AVATAR_IDS.map(
@@ -53,20 +58,14 @@ export function getAvatarThumbByIndex(index: number): number {
 
 /** Resolve a hand-drawn avatarId to its thumbnail. Returns undefined for generated/unknown IDs. */
 export function getHandDrawnThumb(avatarId: string): number | undefined {
-  return AVATAR_THUMB_MAP[avatarId as HandDrawnAvatarId];
+  if (!isHandDrawnAvatarId(avatarId)) return undefined;
+  return AVATAR_THUMB_MAP[avatarId];
 }
 
 /** Resolve a hand-drawn avatarId to its full-size image. Returns undefined for generated/unknown IDs. */
 export function getHandDrawnImage(avatarId: string): number | undefined {
-  return AVATAR_IMAGE_MAP[avatarId as HandDrawnAvatarId];
-}
-
-/**
- * Resolve a roleId to its full hand-drawn avatar image (platform-split:
- * web 512px WebP, native 2048px PNG). Every role has a hand-drawn avatar, so this is total.
- */
-export function getRoleAvatar(roleId: RoleId): number {
-  return AVATAR_IMAGE_MAP[roleId];
+  if (!isHandDrawnAvatarId(avatarId)) return undefined;
+  return AVATAR_IMAGE_MAP[avatarId];
 }
 
 /**
@@ -157,9 +156,7 @@ export function getBuiltinAvatarId(url: string): string {
  */
 export function getBuiltinAvatarImage(url: string): number | null {
   const key = getBuiltinAvatarId(url);
-  const index = (HAND_DRAWN_KEYS as readonly string[]).indexOf(key);
-  if (index === -1) return null;
-  return AVATAR_IMAGES[index]!;
+  return getHandDrawnImage(key) ?? null;
 }
 
 /** Create a builtin:// URL from an avatar ID. */

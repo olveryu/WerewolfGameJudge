@@ -2,21 +2,15 @@
  * HomeScreen - Home entry point (login, join room, create room)
  *
  * Apple HIG-style layout: TopBar brand+avatar → Hero Card → Action Row →
- * RandomRoleCard → Announcement & Feedback Card → Footer.
+ * game-owned spotlights → Announcement & Feedback Card → Footer.
  * Performance: styles factory created once and passed via props to children; handlers stabilized with useCallback.
  * Responsible for orchestrating children, calling service/navigation/showAlert.
  * No hardcoded style values, no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  Faction,
-  getAllRoleIds,
-  getRoleSpec,
-  isWolfRole,
-} from '@werewolf/game-engine/models/roles';
-import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -34,30 +28,37 @@ import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
-import { LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { getRecentRooms } from '@/lib/recentRooms';
-import { storage } from '@/lib/storage';
+import { getUnreadFeedbackCount } from '@/features/feedback/services/feedbackApi';
+import {
+  useAutoClaimDailyReward,
+  useGachaStatusQuery,
+} from '@/features/gacha/queries/useGachaQuery';
+import {
+  hasSeenAnnouncement,
+  markAnnouncementSeen,
+} from '@/features/home/services/announcementReceiptStore';
+import { getRecentRooms, type RecentRoomIdentity } from '@/features/room/services/recentRooms';
+import { useClientGameHome } from '@/games/ClientGameCatalogContext';
+import type { ClientGameModeOption } from '@/games/home';
 import { type RootStackParamList } from '@/navigation/types';
-import { getUnreadFeedbackCount } from '@/services/feature/FeedbackService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
-import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 
 import {
   AnnouncementModal,
   createHomeScreenStyles,
+  GameModePickerModal,
   InstallMenuItem,
   JoinRoomModal,
-  RandomRoleCard,
   RecentRoomsModal,
 } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type PickerPurpose = 'create' | 'guide';
 
 /** Main screen. */
 export const HomeScreen: React.FC = () => {
@@ -67,11 +68,13 @@ export const HomeScreen: React.FC = () => {
   const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [screenWidth]);
 
   const navigation = useNavigation<NavigationProp>();
+  const clientGameHome = useClientGameHome();
   const { user, loading: authLoading, error: authError } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showRecentRooms, setShowRecentRooms] = useState(false);
+  const [pickerPurpose, setPickerPurpose] = useState<PickerPurpose | null>(null);
   const [roomCode, setRoomCode] = useState('');
-  const [recentRoomCodes, setRecentRoomCodes] = useState<string[]>([]);
+  const [recentRooms, setRecentRooms] = useState<RecentRoomIdentity[]>([]);
 
   // Announcement modal state (auto-show once per version + manual open from card)
   const [showAnnouncement, setShowAnnouncement] = useState(false);
@@ -80,14 +83,13 @@ export const HomeScreen: React.FC = () => {
   // Show announcement after auth loading settles (avoid flashing modal over loading state)
   useEffect(() => {
     if (authLoading) return;
-    const lastSeen = storage.getString(LAST_SEEN_VERSION_KEY);
-    if (lastSeen === APP_VERSION) return;
+    if (hasSeenAnnouncement(APP_VERSION)) return;
     if (ANNOUNCEMENTS[APP_VERSION]) {
       setShowAnnouncement(true);
       return;
     }
     // No announcement for this version — silently mark as seen
-    storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
+    markAnnouncementSeen(APP_VERSION);
   }, [authLoading]);
 
   // Fetch unread feedback count when user is logged in
@@ -98,8 +100,8 @@ export const HomeScreen: React.FC = () => {
       .then((count) => {
         if (!cancelled) setUnreadFeedbackCount(count);
       })
-      .catch(() => {
-        // Non-critical — silently ignore
+      .catch((error: unknown) => {
+        homeLog.warn('Failed to load unread feedback count', { error });
       });
     return () => {
       cancelled = true;
@@ -147,12 +149,12 @@ export const HomeScreen: React.FC = () => {
   // Load recent room codes on mount and when returning to screen
   useEffect(() => {
     const readRecent = () => {
-      setRecentRoomCodes(getRecentRooms());
+      setRecentRooms(user === null ? [] : getRecentRooms(user.id));
     };
     readRecent();
     const unsubscribeFocus = navigation.addListener('focus', readRecent);
     return unsubscribeFocus;
-  }, [navigation]);
+  }, [navigation, user]);
 
   // Get user display name
   const userName = useMemo(() => {
@@ -177,9 +179,9 @@ export const HomeScreen: React.FC = () => {
     [user, navigation],
   );
 
-  const handleJoinRoom = useCallback(async () => {
-    if (roomCode.length !== 4) {
-      setJoinError('请输入4位房间号');
+  const handleJoinRoom = useCallback(() => {
+    if (!isRoomCode(roomCode)) {
+      setJoinError('请输入4位数字房间号');
       return;
     }
 
@@ -187,33 +189,33 @@ export const HomeScreen: React.FC = () => {
     setIsJoining(true);
     homeLog.info('Join room', { roomCode });
 
-    try {
-      setShowJoinModal(false);
-      navigation.navigate('Room', { roomCode: roomCode, isHost: false });
-      setRoomCode('');
-    } catch {
-      homeLog.warn('Join failed');
-      setJoinError('加入失败，请重试');
-    } finally {
-      setIsJoining(false);
-    }
+    setShowJoinModal(false);
+    navigation.navigate('Room', { roomCode });
+    setRoomCode('');
+    setIsJoining(false);
   }, [roomCode, navigation]);
 
   const handleShowRecentRooms = useCallback(() => {
-    setRecentRoomCodes(getRecentRooms());
+    if (user === null) {
+      throw new Error('[FAIL-FAST] Recent rooms require an authenticated user');
+    }
+    setRecentRooms(getRecentRooms(user.id));
     setShowRecentRooms(true);
-  }, []);
+  }, [user]);
 
   const handleCloseRecentRooms = useCallback(() => {
     setShowRecentRooms(false);
     // Refresh list (offline rooms were removed during check)
-    setRecentRoomCodes(getRecentRooms());
-  }, []);
+    if (user === null) {
+      throw new Error('[FAIL-FAST] Recent rooms require an authenticated user');
+    }
+    setRecentRooms(getRecentRooms(user.id));
+  }, [user]);
 
   const handleJoinFromRecent = useCallback(
     (code: string) => {
       homeLog.info('Join from recent rooms', { roomCode: code });
-      navigation.navigate('Room', { roomCode: code, isHost: false });
+      navigation.navigate('Room', { roomCode: code });
     },
     [navigation],
   );
@@ -227,9 +229,8 @@ export const HomeScreen: React.FC = () => {
 
   const handleCreateRoom = useCallback(() => {
     homeLog.info('Create room');
-    setIsCreating(true);
-    navigation.navigate('BoardPicker');
-  }, [navigation]);
+    setPickerPurpose('create');
+  }, []);
 
   const handleShowJoinModal = useCallback(() => {
     setShowJoinModal(true);
@@ -239,66 +240,46 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Settings');
   }, [navigation]);
 
-  const handleNavigateEncyclopedia = useCallback(() => {
-    navigation.navigate('Encyclopedia');
-  }, [navigation]);
+  const handleNavigateGuide = useCallback(() => {
+    if (clientGameHome.guideOptions.length === 0) {
+      throw new Error('[FAIL-FAST] Home guide action requires a registered guide screen');
+    }
+    if (clientGameHome.guideOptions.length === 1) {
+      const option = clientGameHome.guideOptions[0];
+      if (option === undefined) {
+        throw new Error('[FAIL-FAST] Missing sole Home guide option');
+      }
+      navigation.navigate('GameGuide', { gameType: option.gameType });
+      return;
+    }
+    setPickerPurpose('guide');
+  }, [clientGameHome.guideOptions, navigation]);
 
   const handleNavigateGacha = useCallback(() => {
     navigation.navigate('Gacha');
   }, [navigation]);
 
-  // ============================================
-  // Random Role Card state (F8)
-  // ============================================
+  const handleClosePicker = useCallback(() => {
+    setPickerPurpose(null);
+    setIsCreating(false);
+  }, []);
 
-  const allRoleIds = useMemo(() => getAllRoleIds(), []);
-  const [randomRoleIndex, setRandomRoleIndex] = useState(() =>
-    randomIntInclusive(0, getAllRoleIds().length - 1),
+  const handleSelectGame = useCallback(
+    (option: ClientGameModeOption) => {
+      if (pickerPurpose === null) {
+        throw new Error('[FAIL-FAST] Game selected without an active Home picker');
+      }
+
+      setPickerPurpose(null);
+      if (pickerPurpose === 'create') {
+        setIsCreating(true);
+        navigation.navigate('GameConfig', { gameType: option.gameType, mode: 'create' });
+        return;
+      }
+      navigation.navigate('GameGuide', { gameType: option.gameType });
+    },
+    [navigation, pickerPurpose],
   );
-
-  const handleRefreshRole = useCallback(() => {
-    setRandomRoleIndex((prev) => {
-      let next: number;
-      do {
-        next = randomIntInclusive(0, allRoleIds.length - 1);
-      } while (next === prev && allRoleIds.length > 1);
-      return next;
-    });
-  }, [allRoleIds.length]);
-
-  const randomRoleData = useMemo(() => {
-    const roleId = allRoleIds[randomRoleIndex % allRoleIds.length]!;
-    const spec = getRoleSpec(roleId);
-    // Map faction to color + label
-    let factionColor = colors.villager;
-    let factionLabel = '村民';
-    if (isWolfRole(roleId)) {
-      factionColor = colors.wolf;
-      factionLabel = '狼人';
-    } else if (spec.faction === Faction.God) {
-      factionColor = colors.god;
-      factionLabel = '神职';
-    } else if (spec.faction === Faction.Special) {
-      factionColor = colors.third;
-      factionLabel = '第三方';
-    }
-    // Avatar image: AVATAR_KEYS matches RoleId names, use indexOf for exact match
-    // Widen to string[] — not all RoleIds are AvatarIds, fallback handles misses
-    const avatarKeyIdx = (AVATAR_KEYS as readonly string[]).indexOf(roleId);
-    const avatarImage = avatarKeyIdx >= 0 ? AVATAR_IMAGES[avatarKeyIdx]! : AVATAR_IMAGES[0]!;
-    return {
-      roleId,
-      displayName: spec.displayName,
-      description: spec.description,
-      factionColor,
-      factionLabel,
-      avatarImage,
-    };
-  }, [allRoleIds, randomRoleIndex]);
-
-  const handleRoleDetail = useCallback(() => {
-    navigation.navigate('Encyclopedia', { roleId: randomRoleData.roleId });
-  }, [navigation, randomRoleData.roleId]);
 
   // ============================================
   // Memoized menu item handlers (stable references)
@@ -344,7 +325,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleCloseAnnouncement = useCallback(() => {
     setShowAnnouncement(false);
-    storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
+    markAnnouncementSeen(APP_VERSION);
   }, []);
 
   const handleOpenAnnouncement = useCallback(() => {
@@ -395,22 +376,24 @@ export const HomeScreen: React.FC = () => {
         <View style={[styles.topBar, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <View style={styles.topBarBrand}>
             <Pressable onPress={handleTitlePress}>
-              <Text style={styles.topBarTitle}>狼人面杀电子裁判助手</Text>
+              <Text style={styles.topBarTitle}>桌游电子裁判助手</Text>
             </Pressable>
           </View>
           <View style={styles.topBarActions}>
-            <Button
-              variant="icon"
-              onPress={handleNavigateEncyclopedia}
-              testID={TESTIDS.homeEncyclopediaButton}
-              accessibilityLabel="角色图鉴"
-            >
-              <Ionicons
-                name="book-outline"
-                size={componentSizes.icon.md}
-                color={colors.textSecondary}
-              />
-            </Button>
+            {clientGameHome.guideOptions.length > 0 && (
+              <Button
+                variant="icon"
+                onPress={handleNavigateGuide}
+                testID={TESTIDS.homeGuideButton}
+                accessibilityLabel="游戏图鉴"
+              >
+                <Ionicons
+                  name="book-outline"
+                  size={componentSizes.icon.md}
+                  color={colors.textSecondary}
+                />
+              </Button>
+            )}
 
             <UserAvatar
               user={user}
@@ -497,10 +480,10 @@ export const HomeScreen: React.FC = () => {
           </PressableScale>
           <PressableScale
             onPress={handleReturnLastGamePress}
-            disabled={authLoading || recentRoomCodes.length === 0}
+            disabled={authLoading || recentRooms.length === 0}
             style={[
               styles.actionCard,
-              (authLoading || recentRoomCodes.length === 0) && styles.actionCardDisabled,
+              (authLoading || recentRooms.length === 0) && styles.actionCardDisabled,
             ]}
             testID={TESTIDS.homeReturnLastGameButton}
           >
@@ -509,7 +492,7 @@ export const HomeScreen: React.FC = () => {
             </View>
             <Text style={styles.actionCardTitle}>最近房间</Text>
             <Text style={styles.actionCardSubtitle}>
-              {recentRoomCodes.length > 0 ? `${recentRoomCodes.length} 个房间` : '无记录'}
+              {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
             </Text>
           </PressableScale>
         </View>
@@ -528,19 +511,10 @@ export const HomeScreen: React.FC = () => {
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </PressableScale>
 
-        {/* ── Random Role Card (F8) ───────────────── */}
-        <RandomRoleCard
-          roleId={randomRoleData.roleId}
-          displayName={randomRoleData.displayName}
-          description={randomRoleData.description}
-          factionColor={randomRoleData.factionColor}
-          factionLabel={randomRoleData.factionLabel}
-          avatarImage={randomRoleData.avatarImage}
-          onRefresh={handleRefreshRole}
-          onDetail={handleRoleDetail}
-          styles={styles}
-          colors={colors}
-        />
+        {clientGameHome.spotlights.map((entry) => {
+          const Spotlight = entry.spotlight;
+          return <Spotlight key={entry.gameType} />;
+        })}
 
         {/* ── Announcement & Feedback Card ────────────────────────── */}
         {ANNOUNCEMENT_VERSIONS.length > 0 && (
@@ -585,28 +559,43 @@ export const HomeScreen: React.FC = () => {
         isLoading={isJoining}
         errorMessage={joinError}
         onRoomCodeChange={setRoomCode}
-        onJoin={() => {
-          void handleJoinRoom();
-        }}
+        onJoin={handleJoinRoom}
         onCancel={handleCancelJoin}
         styles={styles}
       />
 
       {/* Recent Rooms Modal */}
-      <RecentRoomsModal
-        visible={showRecentRooms}
-        roomCodes={recentRoomCodes}
-        onClose={handleCloseRecentRooms}
-        onJoin={handleJoinFromRecent}
-      />
+      {user !== null && (
+        <RecentRoomsModal
+          visible={showRecentRooms}
+          ownerUserId={user.id}
+          rooms={recentRooms}
+          onClose={handleCloseRecentRooms}
+          onJoin={handleJoinFromRecent}
+        />
+      )}
 
       {/* What's New announcement modal */}
       <AnnouncementModal
         visible={showAnnouncement}
+        gameTabs={clientGameHome.announcementTabs}
         onClose={handleCloseAnnouncement}
         hasUnreadFeedback={unreadFeedbackCount > 0}
         onUnreadFeedbackChange={setUnreadFeedbackCount}
       />
+
+      {pickerPurpose !== null && (
+        <GameModePickerModal
+          visible
+          title={pickerPurpose === 'create' ? '选择游戏模式' : '选择游戏图鉴'}
+          subtitle={pickerPurpose === 'create' ? '选择本局要创建的游戏' : '选择要查看的游戏'}
+          options={
+            pickerPurpose === 'create' ? clientGameHome.modeOptions : clientGameHome.guideOptions
+          }
+          onClose={handleClosePicker}
+          onSelect={handleSelectGame}
+        />
+      )}
     </SafeAreaView>
   );
 };

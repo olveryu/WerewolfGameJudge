@@ -9,7 +9,7 @@
 import {
   ROLE_REVEAL_EFFECT_IDS,
   type RoleRevealEffectId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 
 import { CapsulePet } from './CapsulePet';

@@ -1,5 +1,3 @@
-import { type RoleId } from '@werewolf/game-engine/models/roles';
-
 // Mock logger
 const mockAudioLogWarn = jest.fn();
 jest.mock('../../../utils/logger', () => ({
@@ -29,83 +27,10 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock all audio file requires before importing AudioService
-jest.mock('../../../../assets/audio/slacker.mp3', () => 'slacker-audio', { virtual: true });
-jest.mock('../../../../assets/audio/wolf_robot.mp3', () => 'wolf_robot-audio', { virtual: true });
-jest.mock('../../../../assets/audio/magician.mp3', () => 'magician-audio', { virtual: true });
-jest.mock('../../../../assets/audio/dreamcatcher.mp3', () => 'dreamcatcher-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio/gargoyle.mp3', () => 'gargoyle-audio', { virtual: true });
-jest.mock('../../../../assets/audio/nightmare.mp3', () => 'nightmare-audio', { virtual: true });
-jest.mock('../../../../assets/audio/guard.mp3', () => 'guard-audio', { virtual: true });
-jest.mock('../../../../assets/audio/wolf.mp3', () => 'wolf-audio', { virtual: true });
-jest.mock('../../../../assets/audio/wolf_queen.mp3', () => 'wolf_queen-audio', { virtual: true });
-jest.mock('../../../../assets/audio/witch.mp3', () => 'witch-audio', { virtual: true });
-jest.mock('../../../../assets/audio/seer.mp3', () => 'seer-audio', { virtual: true });
-jest.mock('../../../../assets/audio/psychic.mp3', () => 'psychic-audio', { virtual: true });
-jest.mock('../../../../assets/audio/hunter.mp3', () => 'hunter-audio', { virtual: true });
-jest.mock('../../../../assets/audio/dark_wolf_king.mp3', () => 'dark_wolf_king-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio/pure_white.mp3', () => 'pure_white-audio', { virtual: true });
-jest.mock('../../../../assets/audio/wolf_witch.mp3', () => 'wolf_witch-audio', { virtual: true });
-jest.mock('../../../../assets/audio/wild_child.mp3', () => 'wild_child-audio', { virtual: true });
-jest.mock('../../../../assets/audio/night.mp3', () => 'night-audio', { virtual: true });
-jest.mock('../../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virtual: true });
-jest.mock('../../../../assets/audio/seer_1.mp3', () => 'seer_1-audio', { virtual: true });
-jest.mock('../../../../assets/audio/seer_2.mp3', () => 'seer_2-audio', { virtual: true });
-
-// Mock ending audio files
-jest.mock('../../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/wolf_robot.mp3', () => 'wolf_robot-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/magician.mp3', () => 'magician-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/dreamcatcher.mp3', () => 'dreamcatcher-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/gargoyle.mp3', () => 'gargoyle-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/nightmare.mp3', () => 'nightmare-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/guard.mp3', () => 'guard-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/wolf.mp3', () => 'wolf-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/wolf_queen.mp3', () => 'wolf_queen-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/witch.mp3', () => 'witch-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/seer.mp3', () => 'seer-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/psychic.mp3', () => 'psychic-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/hunter.mp3', () => 'hunter-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_king-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/pure_white.mp3', () => 'pure_white-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/wolf_witch.mp3', () => 'wolf_witch-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/wild_child.mp3', () => 'wild_child-end-audio', {
-  virtual: true,
-});
-jest.mock('../../../../assets/audio_end/seer_1.mp3', () => 'seer_1-end-audio', { virtual: true });
-jest.mock('../../../../assets/audio_end/seer_2.mp3', () => 'seer_2-end-audio', { virtual: true });
-
 // Now import AudioService after mocks are set up
-import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-import {
-  _AUDIO_END_ROLE_IDS,
-  _AUDIO_ROLE_IDS,
-  BGM_VOLUME,
-} from '@/services/infra/audio/audioRegistry';
+import { BGM_VOLUME } from '@/features/product/model/BgmCatalog';
 import { audioAssetToUrl } from '@/services/infra/audio/types';
 import { AudioService } from '@/services/infra/AudioService';
 
@@ -139,75 +64,6 @@ describe('AudioService - Initialization', () => {
   });
 });
 
-describe('AudioService - Audio file mappings', () => {
-  let audioService: AudioService;
-
-  beforeEach(() => {
-    audioService = new AudioService();
-    jest.clearAllMocks();
-  });
-
-  it('should have beginning audio for wolf', () => {
-    const audio = audioService.getBeginningAudio('wolf');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for seer', () => {
-    const audio = audioService.getBeginningAudio('seer');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for witch', () => {
-    const audio = audioService.getBeginningAudio('witch');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for guard', () => {
-    const audio = audioService.getBeginningAudio('guard');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for hunter', () => {
-    const audio = audioService.getBeginningAudio('hunter');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for nightmare', () => {
-    const audio = audioService.getBeginningAudio('nightmare');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for wolfQueen', () => {
-    const audio = audioService.getBeginningAudio('wolfQueen');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have beginning audio for darkWolfKing', () => {
-    const audio = audioService.getBeginningAudio('darkWolfKing');
-    expect(audio).toBeDefined();
-  });
-
-  it('should return null for role without audio', () => {
-    const audio = audioService.getBeginningAudio('villager');
-    expect(audio).toBeNull();
-  });
-
-  it('should have ending audio for wolf', () => {
-    const audio = audioService.getEndingAudio('wolf');
-    expect(audio).toBeDefined();
-  });
-
-  it('should have ending audio for seer', () => {
-    const audio = audioService.getEndingAudio('seer');
-    expect(audio).toBeDefined();
-  });
-
-  it('should return null for ending audio of role without audio', () => {
-    const audio = audioService.getEndingAudio('villager');
-    expect(audio).toBeNull();
-  });
-});
-
 describe('AudioService - Playback control', () => {
   let audioService: AudioService;
 
@@ -230,7 +86,7 @@ describe('AudioService - Playback control', () => {
   });
 });
 
-describe('AudioService - Play methods', () => {
+describe('AudioService - foreground playback', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
@@ -249,40 +105,8 @@ describe('AudioService - Play methods', () => {
     );
   });
 
-  it('playRoleBeginningAudio should call createAudioPlayer for valid role', async () => {
-    await audioService.playRoleBeginningAudio('wolf');
-
-    expect(createAudioPlayer).toHaveBeenCalled();
-    expect(mockPlay).toHaveBeenCalled();
-  });
-
-  it('playRoleBeginningAudio should not throw for role without audio', async () => {
-    await expect(audioService.playRoleBeginningAudio('villager')).resolves.toBeUndefined();
-  });
-
-  it('playRoleEndingAudio should call createAudioPlayer for valid role', async () => {
-    await audioService.playRoleEndingAudio('wolf');
-
-    expect(createAudioPlayer).toHaveBeenCalled();
-    expect(mockPlay).toHaveBeenCalled();
-  });
-
-  it('playNightAudio should create audio player', async () => {
-    await audioService.playNightAudio();
-
-    expect(createAudioPlayer).toHaveBeenCalled();
-    expect(mockPlay).toHaveBeenCalled();
-  });
-
-  it('playNightBeginAudio should be alias for playNightAudio', async () => {
-    await audioService.playNightBeginAudio();
-
-    expect(createAudioPlayer).toHaveBeenCalled();
-    expect(mockPlay).toHaveBeenCalled();
-  });
-
-  it('playNightEndAudio should create audio player', async () => {
-    await audioService.playNightEndAudio();
+  it('delegates an owning feature clip to the platform strategy', async () => {
+    await audioService.playClip({ key: 'sample', asset: 'sample-audio' });
 
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlay).toHaveBeenCalled();
@@ -311,10 +135,10 @@ describe('AudioService - Stop current player', () => {
 
   it('should stop current player when playing new audio', async () => {
     // Start playing (won't complete due to mock setup)
-    void audioService.playRoleBeginningAudio('wolf');
+    void audioService.playClip({ key: 'first', asset: 'first-audio' });
 
     // Start another - should stop the first
-    void audioService.playRoleBeginningAudio('seer');
+    void audioService.playClip({ key: 'second', asset: 'second-audio' });
 
     // Second call should have paused the first player (player kept for reuse on iOS Safari)
     expect(mockPause).toHaveBeenCalled();
@@ -323,85 +147,6 @@ describe('AudioService - Stop current player', () => {
 
     // Consume pending timers to avoid open handles
     jest.advanceTimersByTime(15000);
-  });
-});
-
-describe('AudioService - Audio roles coverage', () => {
-  let audioService: AudioService;
-
-  beforeEach(() => {
-    audioService = new AudioService();
-  });
-
-  const rolesWithAudio: RoleId[] = [
-    'slacker',
-    'wolfRobot',
-    'magician',
-    'dreamcatcher',
-    'gargoyle',
-    'nightmare',
-    'guard',
-    'wolf',
-    'wolfQueen',
-    'witch',
-    'seer',
-    'psychic',
-    'hunter',
-    'darkWolfKing',
-  ];
-
-  const rolesWithoutAudio: RoleId[] = ['villager', 'idiot', 'knight', 'wolfKing', 'bloodMoon'];
-
-  rolesWithAudio.forEach((role) => {
-    it(`should have beginning audio for ${role}`, () => {
-      expect(audioService.getBeginningAudio(role)).toBeDefined();
-    });
-
-    it(`should have ending audio for ${role}`, () => {
-      expect(audioService.getEndingAudio(role)).toBeDefined();
-    });
-  });
-
-  rolesWithoutAudio.forEach((role) => {
-    it(`should NOT have beginning audio for ${role}`, () => {
-      expect(audioService.getBeginningAudio(role)).toBeNull();
-    });
-
-    it(`should NOT have ending audio for ${role}`, () => {
-      expect(audioService.getEndingAudio(role)).toBeNull();
-    });
-  });
-});
-
-// =============================================================================
-// Fallback / Error Handling Tests
-// =============================================================================
-
-describe('AudioService - Fallback: unregistered audio', () => {
-  let audioService: AudioService;
-
-  beforeEach(() => {
-    audioService = new AudioService();
-    jest.clearAllMocks();
-    mockAudioLogWarn.mockClear();
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should resolve immediately with warning when beginning audio is not registered', async () => {
-    // villager has no audio registered
-    await expect(audioService.playRoleBeginningAudio('villager')).resolves.toBeUndefined();
-    // Missing audio is a normal case for some roles (e.g. villager)
-    // We just verify it resolves - no assertion on logging since this is expected behavior
-  });
-
-  it('should resolve immediately with warning when ending audio is not registered', async () => {
-    // villager has no audio registered
-    await expect(audioService.playRoleEndingAudio('villager')).resolves.toBeUndefined();
-    // Missing audio is a normal case for some roles (e.g. villager)
-    // We just verify it resolves - no assertion on logging since this is expected behavior
   });
 });
 
@@ -422,29 +167,14 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
       throw new Error('Simulated player creation failure');
     });
 
-    // Should resolve, not reject
-    await expect(audioService.playNightBeginAudio()).resolves.toBeUndefined();
+    await expect(
+      audioService.playClip({ key: 'sample', asset: 'sample-audio' }),
+    ).resolves.toBeUndefined();
 
     // Should have logged a warning
     expect(mockAudioLogWarn).toHaveBeenCalledWith(
       'Audio playback failed, resolving anyway',
-      expect.objectContaining({ label: 'night' }),
-      expect.any(Error),
-    );
-  });
-
-  it('should resolve (not reject) when createAudioPlayer throws for role audio', async () => {
-    jest.mocked(createAudioPlayer).mockImplementationOnce(() => {
-      throw new Error('Simulated player creation failure');
-    });
-
-    // Should resolve, not reject
-    await expect(audioService.playRoleBeginningAudio('wolf')).resolves.toBeUndefined();
-
-    // Should have logged a warning
-    expect(mockAudioLogWarn).toHaveBeenCalledWith(
-      'Audio playback failed, resolving anyway',
-      expect.objectContaining({ label: 'role_begin_wolf' }),
+      expect.objectContaining({ label: 'sample' }),
       expect.any(Error),
     );
   });
@@ -470,7 +200,7 @@ describe('AudioService - Fallback: timeout', () => {
   });
 
   it('should resolve after timeout if didJustFinish never fires', async () => {
-    const playPromise = audioService.playNightBeginAudio();
+    const playPromise = audioService.playClip({ key: 'sample', asset: 'sample-audio' });
 
     // Fast-forward past the timeout (15 seconds)
     jest.advanceTimersByTime(15000);
@@ -479,30 +209,6 @@ describe('AudioService - Fallback: timeout', () => {
 
     // The important contract: it must resolve (not hang). Logging is optional.
     // We don't assert on logging here as timeout logging may be debug-level.
-  });
-});
-
-// =============================================================================
-// Contract: AUDIO_FILES / AUDIO_END_FILES cover all NIGHT_STEPS roleIds
-// =============================================================================
-
-describe('Audio coverage contract', () => {
-  const nightStepRoleIds = [...new Set(NIGHT_STEPS.map((s) => s.roleId))];
-
-  it('AUDIO_FILES covers every unique NIGHT_STEPS roleId', () => {
-    for (const roleId of nightStepRoleIds) {
-      expect(_AUDIO_ROLE_IDS).toContain(roleId);
-    }
-  });
-
-  it('AUDIO_END_FILES covers every unique NIGHT_STEPS roleId', () => {
-    for (const roleId of nightStepRoleIds) {
-      expect(_AUDIO_END_ROLE_IDS).toContain(roleId);
-    }
-  });
-
-  it('AUDIO_FILES and AUDIO_END_FILES have same keys', () => {
-    expect([..._AUDIO_ROLE_IDS].sort()).toEqual([..._AUDIO_END_ROLE_IDS].sort());
   });
 });
 
@@ -593,7 +299,7 @@ describe('AudioService - BGM (native path)', () => {
 // Preload Methods
 // =============================================================================
 
-describe('AudioService - preloadForRoles (native)', () => {
+describe('AudioService - preloadClips (native)', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
@@ -601,21 +307,16 @@ describe('AudioService - preloadForRoles (native)', () => {
     jest.clearAllMocks();
   });
 
-  it('should preload night + role begin/end for given roles', async () => {
-    // In Jest environment (isJest=true), preloadSingleFile skips native preload.
-    // But we can verify the method runs without errors.
-    await audioService.preloadForRoles(['wolf', 'seer']);
-
-    // In Jest env, native preload is skipped (isJest check).
-    // We just verify no errors.
+  it('preloads clips supplied by the owning feature', async () => {
+    await expect(
+      audioService.preloadClips([
+        { key: 'first', asset: 'first-audio' },
+        { key: 'second', asset: 'second-audio' },
+      ]),
+    ).resolves.toBeUndefined();
   });
 
-  it('should handle roles without audio files gracefully', async () => {
-    // villager has no audio - should just skip, not error
-    await expect(audioService.preloadForRoles(['villager', 'wolf'])).resolves.toBeUndefined();
-  });
-
-  it('should handle empty roles array', async () => {
-    await expect(audioService.preloadForRoles([])).resolves.toBeUndefined();
+  it('accepts an empty clip list', async () => {
+    await expect(audioService.preloadClips([])).resolves.toBeUndefined();
   });
 });

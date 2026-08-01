@@ -1,0 +1,194 @@
+/**
+ * ChooseBottomCardModal — Bottom card selection modal (shared by Treasure Master / Thief)
+ *
+ * Pure display component: caller controls which cards are greyed-out via disabledIndices.
+ * Tapping a selectable card shows a confirmation dialog; on confirm, submits via onChoose(cardIndex) callback.
+ * No service imports, no business logic.
+ */
+import { getRoleDisplayName, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type React from 'react';
+import { memo, useMemo } from 'react';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+
+import { Modal } from '@/components/AppModal';
+import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
+import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
+import { showConfirmAlert } from '@/utils/alertPresets';
+
+interface BottomCardItem {
+  roleId: RoleId;
+  displayName: string;
+}
+
+interface ChooseBottomCardModalProps {
+  visible: boolean;
+  bottomCards: readonly RoleId[];
+  confirmText: string;
+  /** Indices of cards that should be greyed out and non-clickable. */
+  disabledIndices: number[];
+  /** Hint text shown below disabled card names (e.g. "狼人阵营 · 不可选"). */
+  disabledHint?: string;
+  /** Full subtitle text displayed below the title. */
+  subtitle: string;
+  onChoose: (cardIndex: number) => void | Promise<void>;
+  onClose: () => void;
+}
+
+function createStyles(colors: ThemeColors, screenHeight: number) {
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      padding: spacing.large,
+      width: '85%',
+      maxWidth: 400,
+    },
+    title: {
+      ...textStyles.subtitle,
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: spacing.micro,
+    },
+    teamSubtitle: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.medium,
+    },
+    cardList: {
+      gap: spacing.small,
+    },
+    cardListScroll: {
+      maxHeight: screenHeight * 0.45,
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.medium,
+      padding: spacing.medium,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    cardDisabled: {
+      opacity: 0.4,
+    },
+    cardBadge: {
+      width: 40,
+      height: 40,
+      marginRight: spacing.small,
+    },
+    cardInfo: {
+      flex: 1,
+    },
+    cardName: {
+      ...textStyles.body,
+      color: colors.text,
+      fontWeight: typography.weights.semibold,
+    },
+    cardNameDisabled: {
+      color: colors.textMuted,
+    },
+    cardHint: {
+      ...textStyles.caption,
+      color: colors.textMuted,
+      marginTop: spacing.micro,
+    },
+    cancelButton: {
+      marginTop: spacing.medium,
+      alignItems: 'center',
+      padding: spacing.small,
+    },
+    cancelText: {
+      ...textStyles.body,
+      color: colors.textSecondary,
+    },
+  });
+}
+
+const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
+  visible,
+  bottomCards,
+  confirmText,
+  disabledIndices,
+  disabledHint,
+  subtitle,
+  onChoose,
+  onClose,
+}) => {
+  const { height: screenHeight } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(colors, screenHeight), [screenHeight]);
+
+  const cards: BottomCardItem[] = useMemo(
+    () =>
+      bottomCards.map((roleId) => ({
+        roleId,
+        displayName: getRoleDisplayName(roleId),
+      })),
+    [bottomCards],
+  );
+
+  const handleCardPress = (cardIndex: number, card: BottomCardItem) => {
+    showConfirmAlert('确认选择', `${confirmText}\n\n${card.displayName}`, () =>
+      onChoose(cardIndex),
+    );
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>选择底牌</Text>
+          <Text style={styles.teamSubtitle}>{subtitle}</Text>
+          <ScrollView
+            style={styles.cardListScroll}
+            contentContainerStyle={styles.cardList}
+            showsVerticalScrollIndicator={false}
+          >
+            {cards.map((card, index) => {
+              const isDisabled = disabledIndices.includes(index);
+              return (
+                <TouchableOpacity
+                  key={`${card.roleId}-${index}`}
+                  style={[styles.card, isDisabled && styles.cardDisabled]}
+                  disabled={isDisabled}
+                  activeOpacity={0.7}
+                  onPress={() => handleCardPress(index, card)}
+                >
+                  <Image source={getRoleBadge(card.roleId)} style={styles.cardBadge} />
+                  <View style={styles.cardInfo}>
+                    <Text style={[styles.cardName, isDisabled && styles.cardNameDisabled]}>
+                      {card.displayName}
+                    </Text>
+                    {isDisabled && disabledHint && (
+                      <Text style={styles.cardHint}>{disabledHint}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
+            <Text style={styles.cancelText}>取消</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+export const ChooseBottomCardModal = memo(ChooseBottomCardModalComponent);

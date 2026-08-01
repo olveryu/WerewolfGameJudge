@@ -1,5 +1,5 @@
 /**
- * Werewolf API Worker -- Hono app entry point
+ * Game Judge API Worker -- Hono app entry point
  *
  * Declarative routes; CORS / error-handling middleware managed centrally.
  * Each handler file exports a Hono route group; this file composes them.
@@ -13,9 +13,8 @@
  *   POST /auth/signout            -- sign out
  *   POST /auth/forgot-password    -- send password reset code
  *   POST /auth/reset-password     -- reset password with code
- *   POST /game/{assign,seat,...}  -- game control API
- *   POST /game/night/{action,...} -- night flow API
- *   POST /gemini-proxy            -- Gemini AI proxy
+ *   POST /room/command            -- authenticated game command API
+ *   *    /api/games/:gameType/*  -- game-owned HTTP capabilities
  *   GET  /health                  -- health check
  */
 
@@ -24,32 +23,37 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
+import { runScheduledCron } from './app/scheduled';
 import type { AppEnv, Env } from './env';
-import { createLogger } from './lib/logger';
+import { accountAuthRoutes } from './features/account/authRoutes';
+import { avatarRoutes } from './features/account/avatarRoutes';
+import { accountRoutes } from './features/account/routes';
+import { adminRoutes } from './features/admin/routes';
+import { authRoutes } from './features/auth/routes';
+import { authenticateAccessToken, requireAuth } from './features/auth/tokenAuth';
+import { feedbackRoutes, feedbackWebhookRoutes } from './features/feedback/routes';
+import { gachaRoutes } from './features/gacha/routes';
+import { shareRoutes } from './features/sharing/routes';
+import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
+import { publicGameStatsRoutes } from './games/publicStatsRoutes';
+import { readCloudflareRequestMetadata } from './platform/http/requestMetadata';
+import { createLogger } from './platform/observability/logger';
+import { createRoomRoutes } from './platform/room/routes';
+import { createRoomWebSocketHandler } from './platform/room/webSocketRoutes';
+import { telemetryRoutes } from './platform/telemetry/routes';
 
 // Re-export Durable Object class for wrangler
-export { GameRoom } from './durableObjects/GameRoom';
-export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
-
-// Route groups
-import { adminRoutes } from './handlers/adminHandlers';
-import { authRoutes } from './handlers/authHandlers';
-import { avatarRoutes } from './handlers/avatarUpload';
-import { runScheduledCleanup } from './handlers/cronHandlers';
-import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
-import { gachaRoutes } from './handlers/gachaHandlers';
-import { gameRoutes } from './handlers/gameControl';
-import { geminiRoutes } from './handlers/geminiProxy';
-import { nightRoutes } from './handlers/night';
-import { roomRoutes } from './handlers/roomHandlers';
-import { callDO, getGameRoomStub } from './handlers/shared';
-import { shareRoutes } from './handlers/shareImage';
-import { statsRoutes } from './handlers/statsHandlers';
-import { telemetryRoutes } from './handlers/telemetryHandlers';
+export { GameRoom } from './app/GameRoom';
+export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
 const app = new Hono<AppEnv>();
+const roomRoutes = createRoomRoutes(getWorkerGameModule, requireAuth);
+const roomWebSocketHandler = createRoomWebSocketHandler(async (token, env) => {
+  const authentication = await authenticateAccessToken(token, env);
+  return authentication.kind === 'authenticated' ? authentication.principal.userId : null;
+});
 
 const log = createLogger('worker');
 
@@ -58,7 +62,7 @@ const log = createLogger('worker');
 app.use(
   '*',
   cors({
-    origin: (_, c) => (c.env as Env).CORS_ORIGIN,
+    origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id', 'x-admin-token'],
     maxAge: 3600,
@@ -70,13 +74,13 @@ app.use(
 app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
-  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+  const metadata = readCloudflareRequestMetadata(c.req.raw);
   log.info('request', {
     method: c.req.method,
     path: c.req.path,
     status: c.res.status,
-    country: cf?.country,
-    colo: cf?.colo,
+    country: metadata.country,
+    colo: metadata.colo,
     ms: Date.now() - start,
   });
 });
@@ -106,42 +110,21 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 // ── WebSocket upgrade → Durable Object ──────────────────────────────────────
 
-app.get('/ws', async (c) => {
-  const roomCode = c.req.query('roomCode');
-  const token = c.req.query('token');
-  if (!roomCode) {
-    return c.json({ error: 'roomCode required' }, 400);
-  }
-  if (!token) {
-    return c.json({ error: 'token required' }, 401);
-  }
-
-  // Verify JWT before allowing WebSocket upgrade
-  const { verifyToken } = await import('./lib/auth');
-  const payload = await verifyToken(token, c.env);
-  if (!payload) {
-    return c.json({ error: 'unauthorized' }, 401);
-  }
-
-  const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const doUrl = new URL(c.req.url);
-  doUrl.pathname = '/websocket';
-  // Pass verified userId (from JWT) to DO instead of trusting client-provided userId
-  doUrl.searchParams.set('userId', payload.sub);
-  return await callDO(() => stub.fetch(new Request(doUrl.toString(), c.req.raw)));
-});
+app.get('/ws', roomWebSocketHandler);
 
 // ── Route groups ────────────────────────────────────────────────────────────
 
 app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
+app.route('/auth', accountAuthRoutes);
 app.route('/room', roomRoutes);
-app.route('/game/night', nightRoutes);
-app.route('/game', gameRoutes);
-app.route('/gemini-proxy', geminiRoutes);
+for (const route of WORKER_GAME_HTTP_ROUTES) {
+  app.route(route.path, route.router);
+}
 app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
-app.route('/api', statsRoutes);
+app.route('/api', accountRoutes);
+app.route('/api', publicGameStatsRoutes);
 app.route('/api', gachaRoutes);
 app.route('/api', feedbackRoutes);
 app.route('/api', feedbackWebhookRoutes);
@@ -152,7 +135,7 @@ app.route('/telemetry', telemetryRoutes);
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    release: env.CF_VERSION_METADATA?.id,
+    release: env.CF_VERSION_METADATA.id,
     tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
     environment: env.ENVIRONMENT,
     sendDefaultPii: true,
@@ -165,7 +148,7 @@ export default Sentry.withSentry(
       env: Env,
       ctx: ExecutionContext,
     ): Promise<void> {
-      ctx.waitUntil(runScheduledCleanup(env));
+      ctx.waitUntil(runScheduledCron(env, controller.cron, controller.scheduledTime));
     },
   } satisfies ExportedHandler<Env>,
 );

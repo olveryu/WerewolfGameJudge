@@ -8,8 +8,9 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { PITY_THRESHOLD } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
+import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -28,10 +29,9 @@ import { toast } from 'sonner-native';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { userStatsOptions } from '@/hooks/queries/queryOptions';
-import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { queryClient } from '@/lib/queryClient';
-import type { DrawResultItem } from '@/services/feature/GachaService';
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
+import { useDrawMutation, useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
 import { getUserFacingMessage } from '@/utils/errorUtils';
@@ -54,6 +54,7 @@ export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
+  const queryClient = useQueryClient();
   const { user } = useAuthContext();
   const isAnon = !user || user.isAnonymous;
   const { data: status, isLoading } = useGachaStatusQuery();
@@ -62,7 +63,7 @@ export function GachaScreen({ navigation }: Props) {
   const machineRef = useRef<CapsuleMachineRef>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentDrawType, setCurrentDrawType] = useState<'normal' | 'golden'>('normal');
-  const [lastResults, setLastResults] = useState<DrawResultItem[]>([]);
+  const [lastResults, setLastResults] = useState<readonly DrawResultItem[]>([]);
   const [showTenOverlay, setShowTenOverlay] = useState(false);
   const [showSingleResult, setShowSingleResult] = useState(false);
   const [activeTab, setActiveTab] = useState<'normal' | 'golden'>('normal');
@@ -73,7 +74,7 @@ export function GachaScreen({ navigation }: Props) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Home' as never);
+      navigation.navigate('Home');
     }
   }, [navigation]);
 
@@ -132,8 +133,9 @@ export function GachaScreen({ navigation }: Props) {
           onError: (error: Error) => {
             setIsAnimating(false);
             machineRef.current?.cancelAnimation();
-            // Business rejection (insufficient tickets, collection complete) is warn-only; other errors are reported to Sentry via MutationCache.onError
-            const reason = 'reason' in error ? (error as { reason: string }).reason : '';
+            // Expected business rejections are warn-only; unexpected failures are reported by MutationCache.
+            const reason =
+              'reason' in error && typeof error.reason === 'string' ? error.reason : '';
             const isExpected =
               reason === 'INSUFFICIENT_DRAWS' ||
               reason === 'NO_STATS' ||

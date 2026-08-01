@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleRevealEffectId } from '@werewolf/game-engine/growth/rewardCatalog';
-import type React from 'react';
+import type { RoleRevealEffectId } from '@game-judge/game-engine/product/rewards';
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
@@ -59,7 +58,7 @@ export const EffectCell = memo<EffectCellProps>(({ item, selectedEffect, onPress
         ]}
       >
         <Ionicons
-          name={item.icon as React.ComponentProps<typeof Ionicons>['name']}
+          name={item.icon}
           size={componentSizes.icon.xl}
           color={item.unlocked ? colors.text : colors.textMuted}
         />

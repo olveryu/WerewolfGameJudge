@@ -8,9 +8,10 @@ import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import type { AdminAIUsage } from '@/features/admin/model/adminContracts';
+import { fetchAIUsage } from '@/features/admin/services/adminApi';
 import { spacing } from '@/theme';
 
-import { type AdminAIUsage, fetchAIUsage } from '../adminApi';
 import { AdminEmptyState, BarChart, MetricCard, TimeRangeSelector } from '../components';
 
 export const AITab: React.FC = () => {

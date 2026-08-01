@@ -1,74 +1,84 @@
 {
-  "name": "@werewolf/game-engine",
+  "name": "@game-judge/game-engine",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./dist/index.js"
+    "./games/catalog": {
+      "types": "./src/games/catalog.ts",
+      "default": "./dist/games/catalog.js"
     },
-    "./models/*": {
-      "types": "./src/models/*.ts",
-      "default": "./dist/models/*.js"
+    "./games/werewolf/public": {
+      "types": "./src/games/werewolf/public.ts",
+      "default": "./dist/games/werewolf/public.js"
     },
-    "./models/roles": {
-      "types": "./src/models/roles/index.ts",
-      "default": "./dist/models/roles/index.js"
+    "./games/fibking/public": {
+      "types": "./src/games/fibking/public.ts",
+      "default": "./dist/games/fibking/public.js"
     },
-    "./models/roles/*": {
-      "types": "./src/models/roles/*.ts",
-      "default": "./dist/models/roles/*.js"
+    "./platform/protocol/canonicalJson": {
+      "types": "./src/platform/protocol/canonicalJson.ts",
+      "default": "./dist/platform/protocol/canonicalJson.js"
     },
-    "./models/actions/*": {
-      "types": "./src/models/actions/*.ts",
-      "default": "./dist/models/actions/*.js"
+    "./platform/protocol/commandResult": {
+      "types": "./src/platform/protocol/commandResult.ts",
+      "default": "./dist/platform/protocol/commandResult.js"
     },
-    "./engine/*": {
-      "types": "./src/engine/*.ts",
-      "default": "./dist/engine/*.js"
+    "./platform/protocol/commands": {
+      "types": "./src/platform/protocol/commands.ts",
+      "default": "./dist/platform/protocol/commands.js"
     },
-    "./engine/store": {
-      "types": "./src/engine/store/index.ts",
-      "default": "./dist/engine/store/index.js"
+    "./platform/protocol/gameTypes": {
+      "types": "./src/platform/protocol/gameTypes.ts",
+      "default": "./dist/platform/protocol/gameTypes.js"
     },
-    "./engine/store/*": {
-      "types": "./src/engine/store/*.ts",
-      "default": "./dist/engine/store/*.js"
+    "./platform/protocol/reasons": {
+      "types": "./src/platform/protocol/reasons.ts",
+      "default": "./dist/platform/protocol/reasons.js"
     },
-    "./engine/state/*": {
-      "types": "./src/engine/state/*.ts",
-      "default": "./dist/engine/state/*.js"
+    "./platform/protocol/roomCode": {
+      "types": "./src/platform/protocol/roomCode.ts",
+      "default": "./dist/platform/protocol/roomCode.js"
     },
-    "./engine/reducer/*": {
-      "types": "./src/engine/reducer/*.ts",
-      "default": "./dist/engine/reducer/*.js"
+    "./platform/protocol/roomLocator": {
+      "types": "./src/platform/protocol/roomLocator.ts",
+      "default": "./dist/platform/protocol/roomLocator.js"
     },
-    "./protocol/*": {
-      "types": "./src/protocol/*.ts",
-      "default": "./dist/protocol/*.js"
+    "./platform/protocol/roomSnapshot": {
+      "types": "./src/platform/protocol/roomSnapshot.ts",
+      "default": "./dist/platform/protocol/roomSnapshot.js"
     },
-    "./types/*": {
-      "types": "./src/types/*.ts",
-      "default": "./dist/types/*.js"
+    "./platform/protocol/userEvents": {
+      "types": "./src/platform/protocol/userEvents.ts",
+      "default": "./dist/platform/protocol/userEvents.js"
     },
-    "./resolvers/*": {
-      "types": "./src/resolvers/*.ts",
-      "default": "./dist/resolvers/*.js"
+    "./platform/engine": {
+      "types": "./src/platform/engine/index.ts",
+      "default": "./dist/platform/engine/index.js"
     },
-    "./utils/*": {
-      "types": "./src/utils/*.ts",
-      "default": "./dist/utils/*.js"
+    "./platform/room/roster": {
+      "types": "./src/platform/room/roster.ts",
+      "default": "./dist/platform/room/roster.js"
     },
-    "./growth": {
-      "types": "./src/growth/index.ts",
-      "default": "./dist/growth/index.js"
+    "./platform/room/formatSeat": {
+      "types": "./src/platform/room/formatSeat.ts",
+      "default": "./dist/platform/room/formatSeat.js"
     },
-    "./growth/*": {
-      "types": "./src/growth/*.ts",
-      "default": "./dist/growth/*.js"
+    "./platform/identifiers": {
+      "types": "./src/platform/identifiers/index.ts",
+      "default": "./dist/platform/identifiers/index.js"
+    },
+    "./platform/random": {
+      "types": "./src/platform/random/index.ts",
+      "default": "./dist/platform/random/index.js"
+    },
+    "./product/growth": {
+      "types": "./src/product/growth/index.ts",
+      "default": "./dist/product/growth/index.js"
+    },
+    "./product/rewards": {
+      "types": "./src/product/rewards/index.ts",
+      "default": "./dist/product/rewards/index.js"
     }
   },
   "scripts": {

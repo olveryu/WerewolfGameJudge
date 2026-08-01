@@ -3,8 +3,8 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
-    "strict": true,
-    "types": ["@cloudflare/workers-types"]
+    "lib": ["ES2022"],
+    "strict": true
   },
-  "include": ["**/*.ts"]
+  "include": ["types.d.ts", "**/*.ts"]
 }

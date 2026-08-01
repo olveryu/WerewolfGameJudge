@@ -33,7 +33,7 @@ export function createInitialContext(
   return {
     state: ConnectionState.Idle,
     roomCode: null,
-    userId: null,
+    roomId: null,
     attempt: 0,
     maxAttempts: overrides?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     lastRevision: 0,
@@ -54,6 +54,22 @@ export function createInitialContext(
  * @returns New context + side effects to execute
  */
 export function transition(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
+  if (event.type === 'PROTOCOL_FAILURE') {
+    if (ctx.state === ConnectionState.Idle || ctx.state === ConnectionState.Disposed) {
+      return noop(ctx);
+    }
+    return {
+      ctx: { ...ctx, state: ConnectionState.Failed },
+      effects: [
+        log('error', `${ctx.state} → Failed (protocol failure)`, { error: event.error }),
+        { type: 'CLOSE_WS' },
+        { type: 'CANCEL_RETRY' },
+        { type: 'STOP_PING' },
+        { type: 'STOP_REVISION_POLL' },
+      ],
+    };
+  }
+
   switch (ctx.state) {
     case ConnectionState.Idle:
       return handleIdle(ctx, event);
@@ -84,7 +100,7 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
       ...ctx,
       state: ConnectionState.Connecting,
       roomCode: event.roomCode,
-      userId: event.userId,
+      roomId: event.roomId,
       attempt: 0,
       lastRevision: 0,
     };
@@ -92,7 +108,7 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
       ctx: next,
       effects: [
         log('info', `Idle → Connecting`, { roomCode: event.roomCode }),
-        { type: 'OPEN_WS', roomCode: event.roomCode, userId: event.userId },
+        openWebSocket(next),
       ],
     };
   }
@@ -113,11 +129,7 @@ function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionRe
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
         ctx: next,
-        effects: [
-          log('info', `Connecting → Syncing`),
-          { type: 'START_PING' },
-          { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
-        ],
+        effects: [log('info', `Connecting → Syncing`), { type: 'START_PING' }, fetchState(ctx)],
       };
     }
     case 'WS_CLOSE': {
@@ -216,7 +228,7 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         ctx,
         effects: [
           log('info', `Syncing: retrying fetch`, { attempt: ctx.attempt }),
-          { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
+          fetchState(ctx),
         ],
       };
     }
@@ -301,7 +313,7 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
         ctx: next,
         effects: [
           log('info', 'Foreground: fetching state from DB'),
-          { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
+          fetchState(ctx),
           { type: 'START_REVISION_POLL' },
           { type: 'START_PING' },
         ],
@@ -334,7 +346,7 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
             dbRevision: event.dbRevision,
             localRevision: ctx.lastRevision,
           }),
-          { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
+          fetchState(ctx),
         ],
       };
     }
@@ -390,7 +402,7 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
             attempt: next.attempt,
             maxAttempts: ctx.maxAttempts,
           }),
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
+          openWebSocket(next),
         ],
       };
     }
@@ -418,7 +430,7 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
             attempt: next.attempt,
           }),
           { type: 'CANCEL_RETRY' },
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
+          openWebSocket(next),
         ],
       };
     }
@@ -446,7 +458,7 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
             attempt: next.attempt,
           }),
           { type: 'CANCEL_RETRY' },
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
+          openWebSocket(next),
         ],
       };
     }
@@ -461,7 +473,7 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
         effects: [
           log('info', `Disconnected → Reconnecting (manual)`),
           { type: 'CANCEL_RETRY' },
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
+          openWebSocket(next),
         ],
       };
     }
@@ -506,7 +518,7 @@ function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): Transition
         effects: [
           log('info', `Reconnecting → Syncing`, { attempt: ctx.attempt }),
           { type: 'START_PING' },
-          { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
+          fetchState(ctx),
         ],
       };
     }
@@ -556,10 +568,7 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
       const next: FSMContext = { ...ctx, state: ConnectionState.Reconnecting, attempt: 1 };
       return {
         ctx: next,
-        effects: [
-          log('info', `Failed → Reconnecting (manual)`),
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
-        ],
+        effects: [log('info', `Failed → Reconnecting (manual)`), openWebSocket(next)],
       };
     }
     case 'NETWORK_ONLINE': {
@@ -571,10 +580,7 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
       };
       return {
         ctx: next,
-        effects: [
-          log('info', `Failed → Reconnecting (NETWORK_ONLINE)`),
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
-        ],
+        effects: [log('info', `Failed → Reconnecting (NETWORK_ONLINE)`), openWebSocket(next)],
       };
     }
     case 'VISIBILITY_VISIBLE': {
@@ -586,10 +592,7 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
       };
       return {
         ctx: next,
-        effects: [
-          log('info', `Failed → Reconnecting (foreground)`),
-          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
-        ],
+        effects: [log('info', `Failed → Reconnecting (foreground)`), openWebSocket(next)],
       };
     }
     case 'CONNECT':
@@ -606,6 +609,26 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+function requireRoomIdentity(ctx: FSMContext): { roomCode: string; roomId: string } {
+  if (
+    ctx.roomCode === null ||
+    ctx.roomCode.length === 0 ||
+    ctx.roomId === null ||
+    ctx.roomId.length === 0
+  ) {
+    throw new Error(`Connection state ${ctx.state} requires a room identity`);
+  }
+  return { roomCode: ctx.roomCode, roomId: ctx.roomId };
+}
+
+function fetchState(ctx: FSMContext): SideEffect {
+  return { type: 'FETCH_STATE', ...requireRoomIdentity(ctx) };
+}
+
+function openWebSocket(ctx: FSMContext): SideEffect {
+  return { type: 'OPEN_WS', ...requireRoomIdentity(ctx) };
+}
 
 function noop(ctx: FSMContext): TransitionResult {
   return { ctx, effects: [] };
@@ -647,7 +670,7 @@ function toConnecting(
     ...ctx,
     state: ConnectionState.Connecting,
     roomCode: event.roomCode,
-    userId: event.userId,
+    roomId: event.roomId,
     attempt: 0,
     lastRevision: 0,
   };
@@ -659,7 +682,7 @@ function toConnecting(
       { type: 'CANCEL_RETRY' },
       { type: 'STOP_PING' },
       { type: 'STOP_REVISION_POLL' },
-      { type: 'OPEN_WS', roomCode: event.roomCode, userId: event.userId },
+      openWebSocket(next),
     ],
   };
 }

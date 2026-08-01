@@ -8,9 +8,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -19,16 +18,22 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useUpdateProfile } from '@/features/account/controllers/useUpdateProfile';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
   useChangePassword,
   useSignInAnonymously,
   useSignOut,
-  useUpdateProfile,
-} from '@/hooks/mutations/useAuthMutations';
-import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
-import { clearRecentRooms } from '@/lib/recentRooms';
+} from '@/features/auth/controllers/useAuthMutations';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
+import { clearRecentRooms } from '@/features/room/services/recentRooms';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
@@ -64,19 +69,30 @@ export const SettingsScreen: React.FC = () => {
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: changePassword } = useChangePassword();
-  const facade = useGameFacade();
+  const gameCatalog = useClientGameCatalog();
+  const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);
+  const activeRoom = useActiveRoomAccount();
+  const isInRoom = activeRoom.phase !== 'idle';
+  const isSeated = activeRoom.isSeated;
+  const canSwitchAccount = activeRoom.canSwitchAccount;
 
-  // Room context: subscribe to facade state for reactive canSwitchAccount
-  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
-  const getSnapshot = useCallback(() => facade.getState(), [facade]);
-  const gameState = useSyncExternalStore(subscribe, getSnapshot);
-  const isInRoom = gameState !== null;
-  const isSeated = facade.getMySeat() !== null;
-  // Disable account switch / email binding after role assignment (Assigned/Ready/Ongoing/Ended)
-  const canSwitchAccount =
-    !isInRoom ||
-    gameState?.status === GameStatus.Unseated ||
-    gameState?.status === GameStatus.Seated;
+  const syncActiveRoomProfile = useCallback(
+    async (patch: RoomProfilePatch): Promise<boolean> => {
+      if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
+      try {
+        const result = await activeRoom.updateProfile(patch);
+        if (isSuccessfulRoomCommand(result)) return true;
+        settingsLog.warn('Profile sync to active room rejected', {
+          reason: getRoomCommandFailureReason(result),
+        });
+      } catch (error: unknown) {
+        settingsLog.warn('Profile sync to active room failed', error);
+      }
+      toast.warning('资料已保存，房间内同步失败');
+      return false;
+    },
+    [activeRoom],
+  );
 
   const [showChangePassword, setShowChangePassword] = useState(false);
 
@@ -97,13 +113,14 @@ export const SettingsScreen: React.FC = () => {
     if (wasAnonymousRef.current && user && !isAnonymous) {
       // Just upgraded from anonymous → email; sync profile to GameState if in room
       settingsLog.info('Anonymous→email upgrade detected, syncing profile to GameState');
-      facade
-        .updatePlayerProfile(user.displayName ?? undefined, user.avatarUrl ?? undefined)
-        .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed', err));
+      void syncActiveRoomProfile({
+        displayName: user.displayName ?? undefined,
+        avatarUrl: user.avatarUrl ?? undefined,
+      });
     }
     wasAnonymousRef.current = isAnonymous;
     if (isAuthenticated) wasAuthenticatedRef.current = true;
-  }, [user, facade, isAuthenticated]);
+  }, [user, syncActiveRoomProfile, isAuthenticated]);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
@@ -137,17 +154,21 @@ export const SettingsScreen: React.FC = () => {
   }, [navigation]);
 
   const handleSignOut = useCallback(async () => {
+    if (user === null) {
+      throw new Error('[FAIL-FAST] Sign out requires a current user');
+    }
     try {
       wasAuthenticatedRef.current = false;
+      const previousUserId = user.id;
       await signOut();
-      clearRecentRooms();
+      clearRecentRooms(previousUserId);
       await refreshUser();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.error('Sign out failed', { message }, e);
       showErrorAlert('退出失败', message);
     }
-  }, [signOut, refreshUser]);
+  }, [signOut, refreshUser, user]);
 
   const handlePickAvatar = useCallback(() => {
     navigation.navigate('Appearance');
@@ -175,10 +196,8 @@ export const SettingsScreen: React.FC = () => {
           try {
             await updateProfile({ displayName: trimmed });
             await refreshUser();
-            toast.success('昵称已更新');
-            facade
-              .updatePlayerProfile(trimmed, undefined)
-              .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed', err));
+            const roomSynced = await syncActiveRoomProfile({ displayName: trimmed });
+            if (roomSynced) toast.success('昵称已更新');
           } catch (e: unknown) {
             const message = getErrorMessage(e);
             settingsLog.error('Update name failed', { message }, e);
@@ -187,7 +206,7 @@ export const SettingsScreen: React.FC = () => {
         })();
       },
     });
-  }, [user?.displayName, updateProfile, refreshUser, facade]);
+  }, [user?.displayName, updateProfile, refreshUser, syncActiveRoomProfile]);
 
   /** Anonymous user "bind email": enter sign-up mode directly. */
   const handleShowUpgradeForm = useCallback(() => {
@@ -226,9 +245,10 @@ export const SettingsScreen: React.FC = () => {
       try {
         // If seated in a room, leave seat first (simplifies all edge cases)
         if (isInRoom && isSeated) {
-          const result = await facade.leaveSeatWithAck();
-          if (!result.success) {
-            showErrorAlert('离座失败', translateReasonCode(result.reason));
+          const result = await activeRoom.leaveSeat();
+          if (!isSuccessfulRoomCommand(result)) {
+            const reason = getRoomCommandFailureReason(result);
+            showErrorAlert('离座失败', translateReasonCode(reason));
             return;
           }
         }
@@ -256,7 +276,7 @@ export const SettingsScreen: React.FC = () => {
     } else {
       void doSwitch();
     }
-  }, [user?.isAnonymous, facade, navigation, isInRoom, isSeated]);
+  }, [user?.isAnonymous, navigation, isInRoom, isSeated, activeRoom]);
 
   // ============================================
   // Render helpers
@@ -397,12 +417,18 @@ export const SettingsScreen: React.FC = () => {
           </View>
 
           {/* Growth — full width below profile row */}
-          {growthStats && (
-            <GrowthSection
-              stats={growthStats}
-              styles={styles}
-              onPressUnlocks={handleNavigateUnlocks}
-            />
+          {growthStats && user && (
+            <>
+              <GrowthSection
+                stats={growthStats}
+                styles={styles}
+                onPressUnlocks={handleNavigateUnlocks}
+              />
+              {gameModules.map((gameModule) => {
+                const AccountStatsSection = gameModule.accountStatsSection;
+                return <AccountStatsSection key={gameModule.gameType} userId={user.id} />;
+              })}
+            </>
           )}
 
           {/* Zone 2: Dresser entry */}

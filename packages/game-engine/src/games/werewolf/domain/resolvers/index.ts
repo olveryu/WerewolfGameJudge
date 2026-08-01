@@ -1,0 +1,71 @@
+/**
+ * Resolvers Registry (SERVER-ONLY)
+ *
+ * Responsibility: registers the SchemaId -> ResolverFn map used by actionHandler,
+ * and exports the resolver mapping. Must not be imported by UI code.
+ *
+ * ⚠️ WARNING: This module MUST NOT be imported by UI code.
+ * The package architecture contract enforces the public/testing export boundary.
+ */
+
+import {
+  awakenedGargoyleConvertResolver,
+  awakenedGargoyleConvertRevealResolver,
+} from './awakenedGargoyle';
+import { cupidChooseLoversResolver, cupidLoversRevealResolver } from './cupid';
+import { createGenericResolver } from './genericResolver';
+import { magicianSwapResolver } from './magician';
+import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
+import { shadowChooseMimicResolver } from './shadow';
+import { thiefChooseResolver } from './thief';
+import { treasureMasterChooseResolver } from './treasureMaster';
+import type { ResolverRegistry } from './types';
+import { witchActionResolver } from './witch';
+import { wolfKillResolver } from './wolf';
+
+export const RESOLVERS: ResolverRegistry = {
+  // --- Generic resolvers (data-driven from ROLE_SPECS_V2) ---
+  // P2: writeSlot / charm / chooseIdol
+  guardProtect: createGenericResolver('guard'),
+  dreamcatcherDream: createGenericResolver('dreamcatcher'),
+  silenceElderSilence: createGenericResolver('silenceElder'),
+  votebanElderBan: createGenericResolver('votebanElder'),
+  crowCurse: createGenericResolver('crow'),
+  wolfQueenCharm: createGenericResolver('wolfQueen'),
+  eclipseWolfQueenShelter: createGenericResolver('eclipseWolfQueen'),
+  slackerChooseIdol: createGenericResolver('slacker'),
+  wildChildChooseIdol: createGenericResolver('wildChild'),
+  // P3: check (faction + identity)
+  seerCheck: createGenericResolver('seer'),
+  mirrorSeerCheck: createGenericResolver('mirrorSeer'),
+  drunkSeerCheck: createGenericResolver('drunkSeer'),
+  psychicCheck: createGenericResolver('psychic'),
+  gargoyleCheck: createGenericResolver('gargoyle'),
+  pureWhiteCheck: createGenericResolver('pureWhite'),
+  wolfWitchCheck: createGenericResolver('wolfWitch'),
+  // P4: block / learn / confirm
+  nightmareBlock: createGenericResolver('nightmare'),
+  wolfRobotLearn: createGenericResolver('wolfRobot'),
+  hunterConfirm: createGenericResolver('hunter'),
+  darkWolfKingConfirm: createGenericResolver('darkWolfKing'),
+  avengerConfirm: createGenericResolver('avenger'),
+  hiddenWolfReveal: createGenericResolver('hiddenWolf'),
+  poisonerPoison: createGenericResolver('poisoner'),
+
+  // --- Custom resolvers (complex logic not expressible declaratively) ---
+  witchAction: witchActionResolver,
+  wolfKill: wolfKillResolver,
+  magicianSwap: magicianSwapResolver,
+  shadowChooseMimic: shadowChooseMimicResolver,
+  awakenedGargoyleConvert: awakenedGargoyleConvertResolver,
+  awakenedGargoyleConvertReveal: awakenedGargoyleConvertRevealResolver,
+  piperHypnotize: piperHypnotizeResolver,
+  piperHypnotizedReveal: piperHypnotizedRevealResolver,
+  treasureMasterChoose: treasureMasterChooseResolver,
+  thiefChoose: thiefChooseResolver,
+  cupidChooseLovers: cupidChooseLoversResolver,
+  cupidLoversReveal: cupidLoversRevealResolver,
+};
+
+// Re-export types for convenience (SERVER-ONLY consumers)
+export * from './types';

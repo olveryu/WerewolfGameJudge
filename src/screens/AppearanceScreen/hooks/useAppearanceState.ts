@@ -1,33 +1,30 @@
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getUnlockedAvatars } from '@werewolf/game-engine/growth/frameUnlock';
+import { getUnlockedAvatars } from '@game-judge/game-engine/product/rewards';
 import {
   isFlairUnlocked,
   isFrameUnlocked,
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
   isSeatAnimationUnlocked,
-} from '@werewolf/game-engine/growth/frameUnlock';
+} from '@game-judge/game-engine/product/rewards';
 import {
   getItemRarity,
   type NameStyleId,
   type RoleRevealEffectId,
   type SeatAnimationId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@game-judge/game-engine/product/rewards';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo, useState } from 'react';
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
-import type { RevealEffectType } from '@/components/RoleRevealEffects';
 import type { FlairId } from '@/components/seatFlairs';
-import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
-import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
-import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
-import { useConnectionStatus } from '@/hooks/useConnectionStatus';
+import { useUpdateProfile } from '@/features/account/controllers/useUpdateProfile';
+import { useUploadAvatar } from '@/features/account/controllers/useUploadAvatar';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
+import { useActiveRoomAccount } from '@/games/ClientGameCatalogContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
 import { BUILTIN_AVATAR_PREFIX, isBuiltinAvatarUrl, makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
@@ -50,9 +47,8 @@ export function useAppearanceState() {
   const { user, refreshUser } = useAuth();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: uploadAvatar } = useUploadAvatar();
-  const facade = useGameFacade();
-  const { connectionStatus } = useConnectionStatus(facade);
-  const isInRoom = connectionStatus === ConnectionStatus.Live;
+  const activeRoom = useActiveRoomAccount();
+  const productUi = useClientProductUi();
 
   const readOnly = !user || (user.isAnonymous ?? false);
 
@@ -83,7 +79,7 @@ export function useAppearanceState() {
   >(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
-  const [previewEffectType, setPreviewEffectType] = useState<RevealEffectType | null>(null);
+  const [previewEffectId, setPreviewEffectId] = useState<RoleRevealEffectId | null>(null);
 
   // Growth stats for unlock check (shared cache via TanStack Query)
   const { data: statsData } = useUserStatsQuery();
@@ -155,12 +151,13 @@ export function useAppearanceState() {
   const effectGridData = useMemo(
     () =>
       buildEffectGridData(
+        productUi,
         unlockedIds,
         currentEquippedEffect,
         isNoEffectActive,
         isRandomEffectActive,
       ),
-    [unlockedIds, currentEquippedEffect, isNoEffectActive, isRandomEffectActive],
+    [productUi, unlockedIds, currentEquippedEffect, isNoEffectActive, isRandomEffectActive],
   );
 
   const seatAnimationGridData = useMemo(
@@ -205,9 +202,7 @@ export function useAppearanceState() {
   // ── Effect Hero derived state ──
 
   const heroEffectId = selectedEffect ?? currentEquippedEffect ?? 'none';
-  const heroEffectOption = getAnimationOption(
-    heroEffectId === 'none' ? 'none' : heroEffectId === 'random' ? 'random' : heroEffectId,
-  );
+  const heroEffectPresentation = productUi.getRevealEffectPresentation(heroEffectId);
   const heroEffectRarity =
     heroEffectId !== 'none' && heroEffectId !== 'random' ? getItemRarity(heroEffectId) : null;
   const heroEffectUnlocked =
@@ -221,7 +216,14 @@ export function useAppearanceState() {
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
-  const { saving, handleUpload, handleConfirm, handleEquipEffect } = useAppearanceSave({
+  const {
+    saving,
+    handleUpload,
+    handleConfirm,
+    handleConfirmUnavailable,
+    handleEquipEffect,
+    handleEquipEffectUnavailable,
+  } = useAppearanceSave({
     selected,
     selectedFrame,
     selectedFlair,
@@ -233,12 +235,11 @@ export function useAppearanceState() {
     heroEffectId,
     heroEffectUnlocked,
     heroEffectIsEquipped,
-    heroEffectOptionLabel: heroEffectOption?.label,
+    heroEffectOptionLabel: heroEffectPresentation.label,
     updateProfile,
     uploadAvatar,
     refreshUser,
-    facade,
-    isInRoom,
+    activeRoom,
     goBack,
   });
 
@@ -333,10 +334,19 @@ export function useAppearanceState() {
 
   const handlePreviewEffect = useCallback(() => {
     if (heroEffectId === 'none' || heroEffectId === 'random') {
-      showAlert('无法预览', '请先选择一个具体特效');
-      return;
+      throw new Error('[FAIL-FAST] Effect preview requires a concrete effect');
     }
-    setPreviewEffectType(heroEffectId as RevealEffectType);
+    if (heroEffectPresentation.id === 'none' || heroEffectPresentation.id === 'random') {
+      throw new Error('[FAIL-FAST] Concrete reveal effect presentation expected');
+    }
+    setPreviewEffectId(heroEffectPresentation.id);
+  }, [heroEffectId, heroEffectPresentation.id]);
+
+  const handlePreviewEffectUnavailable = useCallback(() => {
+    if (heroEffectId !== 'none' && heroEffectId !== 'random') {
+      throw new Error('[FAIL-FAST] Effect preview feedback requires a non-concrete effect');
+    }
+    showAlert('无法预览', '请先选择一个具体特效');
   }, [heroEffectId]);
 
   const handleLongPress = useCallback((avatarId: string) => {
@@ -388,7 +398,7 @@ export function useAppearanceState() {
     filteredSeatAnimationData,
     // Effect hero
     heroEffectId,
-    heroEffectOption,
+    heroEffectPresentation,
     heroEffectRarity,
     heroEffectUnlocked,
     heroEffectIsEquipped,
@@ -403,16 +413,19 @@ export function useAppearanceState() {
     handlePressEffect,
     handlePressSeatAnimation,
     handlePreviewEffect,
+    handlePreviewEffectUnavailable,
     handleEquipEffect,
+    handleEquipEffectUnavailable,
     handleLongPress,
     handleClosePreview,
     handleUpload,
     handleConfirm,
+    handleConfirmUnavailable,
     handleUpgrade,
     // Preview
     previewAvatarId,
-    previewEffectType,
-    setPreviewEffectType,
+    previewEffectId,
+    setPreviewEffectId,
     // Misc
     saving,
     wolfPawIcon,

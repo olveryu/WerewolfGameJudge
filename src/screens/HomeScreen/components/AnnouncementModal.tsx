@@ -1,71 +1,51 @@
-/**
- * AnnouncementModal — Announcement and feedback modal (3-tab switcher)
- *
- * Controlled component: parent passes visible / onClose.
- * Tab 1 "Boards": all preset boards grouped by version, latest on top.
- * Tab 2 "Changelog": vertical scroll of version updates (latest on top).
- * Tab 3 "Feedback": two-way conversation system (FeedbackTab component).
- */
+/** Product announcement modal composed with game-owned announcement tabs. */
+
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PRESET_TEMPLATES, TEMPLATE_CATEGORY_LABELS } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import {
-  ANNOUNCEMENT_VERSIONS,
-  ANNOUNCEMENTS,
-  BOARD_VERSION_MAP,
-  BOARD_VERSIONS_DESC,
-} from '@/config/announcements';
+import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import type { ClientGameAnnouncementTab } from '@/games/home';
+import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
 
 import { FeedbackTab } from './FeedbackTab';
 
-type Tab = 'boards' | 'changelog' | 'feedback';
-
-/** Color token key for each category */
-const CATEGORY_COLOR: Record<string, string> = {
-  classic: colors.god,
-  advanced: colors.primary,
-  special: colors.warning,
-  thirdParty: colors.third,
-};
-
-/** Collapse by default when boards in a version group >= this value */
-const COLLAPSE_THRESHOLD = 6;
+const CHANGELOG_TAB = 'changelog';
+const FEEDBACK_TAB = 'feedback';
+const ANNOUNCEMENT_MAX_HEIGHT = 400;
+const ANNOUNCEMENT_SCREEN_HEIGHT_RATIO = 0.45;
 
 interface AnnouncementModalProps {
-  visible: boolean;
-  onClose: () => void;
-  hasUnreadFeedback: boolean;
-  onUnreadFeedbackChange: (count: number) => void;
+  readonly visible: boolean;
+  readonly gameTabs: readonly ClientGameAnnouncementTab[];
+  readonly onClose: () => void;
+  readonly hasUnreadFeedback: boolean;
+  readonly onUnreadFeedbackChange: (count: number) => void;
 }
 
 export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
   visible,
+  gameTabs,
   onClose,
   hasUnreadFeedback,
   onUnreadFeedbackChange,
 }) => {
   const { height: screenHeight } = useWindowDimensions();
-  const scrollMaxHeight = Math.min(400, Math.round(screenHeight * 0.45));
-
+  const scrollMaxHeight = Math.min(
+    ANNOUNCEMENT_MAX_HEIGHT,
+    Math.round(screenHeight * ANNOUNCEMENT_SCREEN_HEIGHT_RATIO),
+  );
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('boards');
-  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState(() => gameTabs[0]?.key ?? CHANGELOG_TAB);
+  const activeGameTab = gameTabs.find((tab) => tab.key === activeTab);
+  const ActiveGameTabContent = activeGameTab?.Content ?? null;
 
-  /** Boards grouped by version (each group preserves original PRESET_TEMPLATES order) */
-  const boardsByVersion = useMemo(() => {
-    return BOARD_VERSIONS_DESC.map((version) => {
-      const boards = PRESET_TEMPLATES.filter((t) => BOARD_VERSION_MAP[t.name] === version);
-      return { version, boards };
-    });
-  }, []);
-
-  const latestBoardVersion = BOARD_VERSIONS_DESC[0];
+  if (activeGameTab === undefined && activeTab !== CHANGELOG_TAB && activeTab !== FEEDBACK_TAB) {
+    throw new Error(`[FAIL-FAST] Unknown announcement tab ${activeTab}`);
+  }
 
   return (
     <BaseCenterModal
@@ -76,7 +56,6 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       contentStyle={styles.modalContent}
     >
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Ionicons
@@ -96,140 +75,48 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           </Pressable>
         </View>
 
-        {/* Tab bar — 3 tabs */}
-        <View style={styles.tabBar}>
-          <Pressable
-            style={[styles.tab, activeTab === 'boards' && styles.tabActive]}
-            onPress={() => setActiveTab('boards')}
-          >
-            <Text style={[styles.tabText, activeTab === 'boards' && styles.tabTextActive]}>
-              板子
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.tab, activeTab === 'changelog' && styles.tabActive]}
-            onPress={() => setActiveTab('changelog')}
-          >
-            <Text style={[styles.tabText, activeTab === 'changelog' && styles.tabTextActive]}>
-              更新日志
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.tab, activeTab === 'feedback' && styles.tabActive]}
-            onPress={() => setActiveTab('feedback')}
-          >
-            <View style={styles.tabWithBadge}>
-              <Text style={[styles.tabText, activeTab === 'feedback' && styles.tabTextActive]}>
-                意见反馈
-              </Text>
-              {hasUnreadFeedback && <View style={styles.tabDot} />}
-            </View>
-          </Pressable>
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabBar}
+          contentContainerStyle={styles.tabBarContent}
+        >
+          {gameTabs.map((tab) => (
+            <AnnouncementTabButton
+              key={tab.key}
+              label={tab.label}
+              isActive={activeTab === tab.key}
+              onPress={() => setActiveTab(tab.key)}
+            />
+          ))}
+          <AnnouncementTabButton
+            label="更新日志"
+            isActive={activeTab === CHANGELOG_TAB}
+            onPress={() => setActiveTab(CHANGELOG_TAB)}
+          />
+          <AnnouncementTabButton
+            label="意见反馈"
+            isActive={activeTab === FEEDBACK_TAB}
+            hasBadge={hasUnreadFeedback}
+            onPress={() => setActiveTab(FEEDBACK_TAB)}
+          />
+        </ScrollView>
 
-        {/* ── Tab: Boards ── */}
-        {activeTab === 'boards' && (
+        {ActiveGameTabContent !== null && <ActiveGameTabContent maxHeight={scrollMaxHeight} />}
+
+        {activeTab === CHANGELOG_TAB && (
           <ScrollView
             style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
             showsVerticalScrollIndicator={false}
           >
-            {boardsByVersion.map(({ version, boards }, groupIdx) => {
-              const isLatest = version === latestBoardVersion;
-              const shouldCollapse = boards.length >= COLLAPSE_THRESHOLD;
-              const isExpanded = expandedVersions.has(version);
-
-              return (
-                <View key={version}>
-                  {groupIdx > 0 && <View style={styles.separator} />}
-                  <View style={[styles.versionGroup, isLatest && styles.versionGroupLatest]}>
-                    {/* Version title row */}
-                    <View style={styles.versionHeaderRow}>
-                      <View
-                        style={[
-                          styles.versionBar,
-                          { backgroundColor: isLatest ? colors.primary : colors.border },
-                        ]}
-                      />
-                      <Text style={styles.versionTitle}>
-                        {version === 'v1.0.0' ? 'v1.0.0 首发' : `${version} 新增`}
-                      </Text>
-                      {isLatest && (
-                        <View style={styles.newBadge}>
-                          <Text style={styles.newBadgeText}>NEW</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Collapsed state */}
-                    {shouldCollapse && !isExpanded ? (
-                      <Pressable
-                        style={styles.expandButton}
-                        onPress={() => setExpandedVersions((prev) => new Set(prev).add(version))}
-                      >
-                        <Text style={styles.expandButtonText}>展开 {boards.length} 套板子</Text>
-                        <Ionicons
-                          name="chevron-down"
-                          size={componentSizes.icon.xs}
-                          color={colors.primary}
-                        />
-                      </Pressable>
-                    ) : (
-                      <View style={styles.boardChips}>
-                        {boards.map((board) => {
-                          const catColor = CATEGORY_COLOR[board.category] ?? colors.textMuted;
-                          return (
-                            <View key={board.name} style={styles.boardChipRow}>
-                              <View style={styles.boardChip}>
-                                <Text style={styles.boardChipText}>{board.name}</Text>
-                              </View>
-                              <Text style={[styles.categoryLabel, { color: catColor }]}>
-                                {TEMPLATE_CATEGORY_LABELS[board.category]}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-
-                    {/* Collapse button when expanded */}
-                    {shouldCollapse && isExpanded && (
-                      <Pressable
-                        style={styles.expandButton}
-                        onPress={() =>
-                          setExpandedVersions((prev) => {
-                            const next = new Set(prev);
-                            next.delete(version);
-                            return next;
-                          })
-                        }
-                      >
-                        <Text style={styles.expandButtonText}>收起</Text>
-                        <Ionicons
-                          name="chevron-up"
-                          size={componentSizes.icon.xs}
-                          color={colors.primary}
-                        />
-                      </Pressable>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {/* ── Tab: Changelog ── */}
-        {activeTab === 'changelog' && (
-          <ScrollView
-            style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
-            showsVerticalScrollIndicator={false}
-          >
-            {ANNOUNCEMENT_VERSIONS.map((version, i) => {
+            {ANNOUNCEMENT_VERSIONS.map((version, index) => {
               const announcement = ANNOUNCEMENTS[version];
-              if (!announcement) return null;
+              if (announcement === undefined) {
+                throw new Error(`[FAIL-FAST] Missing announcement content for ${version}`);
+              }
               return (
                 <View key={version}>
-                  {i > 0 && <View style={styles.separator} />}
+                  {index > 0 && <View style={styles.separator} />}
                   <View style={styles.section}>
                     <Text style={styles.changelogTitle}>{announcement.title}</Text>
                     <View style={styles.itemList}>
@@ -247,11 +134,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           </ScrollView>
         )}
 
-        {/* ── Tab: Feedback ── */}
-        {activeTab === 'feedback' && (
+        {activeTab === FEEDBACK_TAB && (
           <FeedbackTab
             scrollMaxHeight={scrollMaxHeight}
-            isLoggedIn={!!user}
+            isLoggedIn={user !== null}
             onUnreadChange={onUnreadFeedbackChange}
           />
         )}
@@ -259,6 +145,27 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     </BaseCenterModal>
   );
 };
+
+interface AnnouncementTabButtonProps {
+  readonly label: string;
+  readonly isActive: boolean;
+  readonly hasBadge?: boolean;
+  readonly onPress: () => void;
+}
+
+const AnnouncementTabButton: React.FC<AnnouncementTabButtonProps> = ({
+  label,
+  isActive,
+  hasBadge = false,
+  onPress,
+}) => (
+  <Pressable style={[styles.tab, isActive && styles.tabActive]} onPress={onPress}>
+    <View style={styles.tabLabelRow}>
+      <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{label}</Text>
+      {hasBadge && <View style={styles.tabDot} />}
+    </View>
+  </Pressable>
+);
 
 const styles = StyleSheet.create({
   modalContent: {
@@ -284,22 +191,29 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.text,
   },
-  // ── Tab bar ──
   tabBar: {
-    flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     marginBottom: spacing.medium,
   },
+  tabBarContent: {
+    flexGrow: 1,
+  },
   tab: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
+    paddingHorizontal: spacing.small,
     paddingVertical: spacing.small,
     borderBottomWidth: 2,
     borderBottomColor: colors.transparent,
   },
   tabActive: {
     borderBottomColor: colors.primary,
+  },
+  tabLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
   },
   tabText: {
     fontSize: typography.body,
@@ -310,18 +224,12 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.weights.semibold,
   },
-  tabWithBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.micro,
-  },
   tabDot: {
     width: 6,
     height: 6,
     borderRadius: borderRadius.full,
     backgroundColor: colors.error,
   },
-  // ── Shared ──
   scrollArea: {
     marginBottom: spacing.small,
   },
@@ -333,81 +241,6 @@ const styles = StyleSheet.create({
   section: {
     gap: spacing.tight,
   },
-  // ── Boards tab ──
-  versionGroup: {
-    gap: spacing.small,
-  },
-  versionGroupLatest: {
-    backgroundColor: withAlpha(colors.primary, 0.04),
-    borderRadius: borderRadius.small,
-    padding: spacing.small,
-    marginHorizontal: -spacing.small,
-  },
-  versionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-  },
-  versionBar: {
-    width: 3,
-    height: 14,
-    borderRadius: borderRadius.full,
-  },
-  versionTitle: {
-    fontSize: typography.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  },
-  newBadge: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.tight,
-    paddingVertical: spacing.micro,
-  },
-  newBadgeText: {
-    fontSize: typography.captionSmall,
-    fontWeight: typography.weights.semibold,
-    color: colors.primaryDark,
-  },
-  boardChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.tight,
-  },
-  boardChipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.micro,
-  },
-  boardChip: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.micro,
-  },
-  boardChipText: {
-    fontSize: typography.caption,
-    color: colors.text,
-    fontWeight: typography.weights.medium,
-  },
-  categoryLabel: {
-    fontSize: typography.captionSmall,
-    fontWeight: typography.weights.medium,
-  },
-  expandButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.tight,
-    paddingVertical: spacing.tight,
-  },
-  expandButtonText: {
-    fontSize: typography.caption,
-    color: colors.primary,
-    fontWeight: typography.weights.medium,
-  },
-  // ── Changelog tab ──
   changelogTitle: {
     fontSize: typography.body,
     fontWeight: typography.weights.semibold,

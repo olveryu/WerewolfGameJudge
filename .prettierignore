@@ -9,6 +9,8 @@ coverage
 miniapp
 playwright-report
 pnpm-lock.yaml
+packages/api-worker/worker-configuration.d.ts
+functions/types.d.ts
 .venv
 tsconfig.json
 expo-env.d.ts

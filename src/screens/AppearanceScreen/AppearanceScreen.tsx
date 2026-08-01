@@ -7,7 +7,7 @@
  * Orchestrator layer: calls useAppearanceState -> composes all Presentational components.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import { getItemRarity } from '@game-judge/game-engine/product/rewards';
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
@@ -22,7 +22,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
-import { RoleRevealAnimator } from '@/components/RoleRevealEffects';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, componentSizes } from '@/theme';
 import { getHandDrawnImage } from '@/utils/avatar';
@@ -48,13 +47,14 @@ import type {
   NameStyleGridItem,
   SeatAnimationGridItem,
 } from './types';
-import { FRAME_NUM_COLUMNS, NUM_COLUMNS, PREVIEW_ALL_ROLES, PREVIEW_ROLE } from './types';
+import { FRAME_NUM_COLUMNS, NUM_COLUMNS } from './types';
 
 /** Appearance customization screen. */
 export const AppearanceScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAppearanceScreenStyles(colors), []);
   const state = useAppearanceState();
+  const RevealEffectPreview = state.heroEffectPresentation.Preview;
 
   // ── Key extractors ──
 
@@ -259,17 +259,19 @@ export const AppearanceScreen: React.FC = () => {
       ) : (
         <EffectHeroPreview
           heroEffectId={state.heroEffectId}
-          heroEffectIcon={state.heroEffectOption?.icon ?? 'help-outline'}
-          heroEffectLabel={state.heroEffectOption?.label ?? '无'}
-          heroEffectDesc={state.heroEffectOption?.shortDesc ?? '跳过动画，直接显示身份'}
+          heroEffectIcon={state.heroEffectPresentation.icon}
+          heroEffectLabel={state.heroEffectPresentation.label}
+          heroEffectDesc={state.heroEffectPresentation.shortDescription}
           heroEffectRarity={state.heroEffectRarity}
           heroEffectUnlocked={state.heroEffectUnlocked}
           heroEffectIsEquipped={state.heroEffectIsEquipped}
           saving={state.saving}
           onPreviewEffect={state.handlePreviewEffect}
+          onPreviewEffectUnavailable={state.handlePreviewEffectUnavailable}
           onEquipEffect={() => {
             void state.handleEquipEffect();
           }}
+          onEquipEffectUnavailable={state.handleEquipEffectUnavailable}
           styles={styles}
         />
       )}
@@ -382,6 +384,7 @@ export const AppearanceScreen: React.FC = () => {
           onConfirm={() => {
             void state.handleConfirm();
           }}
+          onConfirmUnavailable={state.handleConfirmUnavailable}
           onUpgrade={state.handleUpgrade}
           styles={styles}
         />
@@ -403,14 +406,10 @@ export const AppearanceScreen: React.FC = () => {
         </Pressable>
       )}
 
-      {state.previewEffectType && (
-        <RoleRevealAnimator
-          visible
-          effectType={state.previewEffectType}
-          role={PREVIEW_ROLE}
-          allRoles={PREVIEW_ALL_ROLES}
-          onComplete={() => state.setPreviewEffectType(null)}
-          enableHaptics={false}
+      {state.previewEffectId !== null && (
+        <RevealEffectPreview
+          effectId={state.previewEffectId}
+          onComplete={() => state.setPreviewEffectId(null)}
         />
       )}
     </SafeAreaView>

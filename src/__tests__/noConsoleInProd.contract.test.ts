@@ -13,7 +13,7 @@ describe('No console.* in production code', () => {
   /** Files allowed to use console.* directly */
   const ALLOWED_FILES = new Set([
     path.join(process.cwd(), 'src/utils/logger.ts'),
-    path.join(process.cwd(), 'packages/api-worker/src/lib/logger.ts'),
+    path.join(process.cwd(), 'packages/api-worker/src/platform/observability/logger.ts'),
   ]);
 
   /**
@@ -71,7 +71,7 @@ describe('No console.* in production code', () => {
 
 describe('No Math.random in speakOrder logic', () => {
   it('should not use Math.random in useRoomHostDialogs.ts', () => {
-    const fullPath = path.join(process.cwd(), 'src/screens/RoomScreen/useRoomHostDialogs.ts');
+    const fullPath = path.join(process.cwd(), 'src/games/werewolf/room/useRoomHostDialogs.ts');
     const content = fs.readFileSync(fullPath, 'utf-8');
 
     expect(content).not.toMatch(/Math\.random\s*\(\s*\)/);

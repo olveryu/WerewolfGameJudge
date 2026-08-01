@@ -17,7 +17,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { PressableScale } from '@/components/PressableScale';
 import { useServices } from '@/contexts/ServiceContext';
-import { removeRecentRoom } from '@/lib/recentRooms';
+import { type RecentRoomIdentity, removeRecentRoom } from '@/features/room/services/recentRooms';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -29,16 +29,18 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
+import { homeLog } from '@/utils/logger';
 
 type RoomEntry =
-  | { roomCode: string; status: 'checking' }
-  | { roomCode: string; status: 'online'; createdAt: Date }
-  | { roomCode: string; status: 'offline' }
-  | { roomCode: string; status: 'error' };
+  | { identity: RecentRoomIdentity; status: 'checking' }
+  | { identity: RecentRoomIdentity; status: 'online'; createdAt: Date }
+  | { identity: RecentRoomIdentity; status: 'offline' }
+  | { identity: RecentRoomIdentity; status: 'error' };
 
 interface RecentRoomsModalProps {
   visible: boolean;
-  roomCodes: string[];
+  ownerUserId: string;
+  rooms: readonly RecentRoomIdentity[];
   onClose: () => void;
   onJoin: (roomCode: string) => void;
 }
@@ -74,48 +76,73 @@ function formatRelativeTime(date: Date): string {
 
 export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
   visible,
-  roomCodes,
+  ownerUserId,
+  rooms,
   onClose,
   onJoin,
 }) => {
-  const { roomService } = useServices();
+  const { roomDirectory } = useServices();
   const [entries, setEntries] = useState<RoomEntry[]>([]);
+  const [integrityError, setIntegrityError] = useState<Error | null>(null);
 
   // Check all rooms when modal opens
   useEffect(() => {
     if (!visible) return;
+    let isCurrentGeneration = true;
 
-    const initial: RoomEntry[] = roomCodes.map((roomCode) => ({ roomCode, status: 'checking' }));
+    setIntegrityError(null);
+    const initial: RoomEntry[] = rooms.map((identity) => ({ identity, status: 'checking' }));
     setEntries(initial);
 
-    for (const roomCode of roomCodes) {
-      roomService.getRoom(roomCode).then(
+    for (const identity of rooms) {
+      roomDirectory.getRoom(identity.roomCode).then(
         (room) => {
-          if (!room) {
-            removeRecentRoom(roomCode);
+          if (!isCurrentGeneration) return;
+          const isCurrentInstance = room !== null && room.roomId === identity.roomId;
+          if (!isCurrentInstance) {
+            removeRecentRoom(ownerUserId, identity.roomId);
+          } else if (room.gameType !== identity.gameType) {
+            setIntegrityError(
+              new Error(
+                `[FAIL-FAST] Recent room ${identity.roomId} changed game type from ${identity.gameType} to ${room.gameType}`,
+              ),
+            );
+            return;
           }
           setEntries((prev) =>
             prev.map(
               (e): RoomEntry =>
-                e.roomCode === roomCode
-                  ? room
-                    ? { roomCode, status: 'online', createdAt: room.createdAt }
-                    : { roomCode, status: 'offline' }
+                e.identity.roomId === identity.roomId
+                  ? isCurrentInstance
+                    ? { identity, status: 'online', createdAt: room.createdAt }
+                    : { identity, status: 'offline' }
                   : e,
             ),
           );
         },
-        () => {
+        (cause: unknown) => {
+          if (!isCurrentGeneration) return;
           // Network error — do NOT remove from storage
+          homeLog.warn('recent room availability check failed', {
+            roomCode: identity.roomCode,
+            roomId: identity.roomId,
+            cause,
+          });
           setEntries((prev) =>
             prev.map(
-              (e): RoomEntry => (e.roomCode === roomCode ? { roomCode, status: 'error' } : e),
+              (e): RoomEntry =>
+                e.identity.roomId === identity.roomId ? { identity, status: 'error' } : e,
             ),
           );
         },
       );
     }
-  }, [visible, roomCodes, roomService]);
+    return () => {
+      isCurrentGeneration = false;
+    };
+  }, [ownerUserId, roomDirectory, rooms, visible]);
+
+  if (integrityError !== null) throw integrityError;
 
   const handleJoin = useCallback(
     (roomCode: string) => {
@@ -151,8 +178,8 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
 
           return (
             <PressableScale
-              key={entry.roomCode}
-              onPress={() => handleJoin(entry.roomCode)}
+              key={entry.identity.roomId}
+              onPress={() => handleJoin(entry.identity.roomCode)}
               disabled={!isOnline}
               style={[
                 styles.card,
@@ -160,7 +187,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
                 isError && styles.cardError,
                 isChecking && styles.cardChecking,
               ]}
-              testID={TESTIDS.recentRoomJoin(entry.roomCode)}
+              testID={TESTIDS.recentRoomJoin(entry.identity.roomCode)}
               haptic
             >
               <View
@@ -188,7 +215,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
               </View>
               <View style={styles.cardContent}>
                 <Text style={[styles.roomCode, !isOnline && styles.roomCodeDisabled]}>
-                  {formatRoomCode(entry.roomCode)}
+                  {formatRoomCode(entry.identity.roomCode)}
                 </Text>
                 <Text
                   style={[

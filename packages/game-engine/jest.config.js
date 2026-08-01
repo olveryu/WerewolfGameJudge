@@ -5,8 +5,7 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],
   moduleNameMapper: {
-    '^@werewolf/game-engine/(.*)$': '<rootDir>/src/$1',
-    '^@werewolf/game-engine$': '<rootDir>/src/index.ts',
+    '^@game-judge/game-engine/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],

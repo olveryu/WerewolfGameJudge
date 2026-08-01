@@ -86,16 +86,16 @@ Search `PRESET_TEMPLATES.length`; if the guide text has a hardcoded template cou
 
 ### Phase 4 — Integration Test
 
-Create an integration test under `src/services/__tests__/boards/`.
+Create an integration test under `src/games/werewolf/__tests__/engine/boards/`.
 
 #### 4a. Create Integration Test File
 
-**File**: `src/services/__tests__/boards/night1.<topic>.<role-feature>.12p.integration.test.ts`
+**File**: `src/games/werewolf/__tests__/engine/boards/night1.<topic>.<role-feature>.12p.integration.test.ts`
 
 Naming example: `night1.guard.blocks_wolfkill.12p.integration.test.ts`
 
 ```typescript
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@game-judge/game-engine/models/roles';
 
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
@@ -139,7 +139,7 @@ describe('Night-1: <topic description> (12p)', () => {
 
 #### 4b. Register in Boards Coverage Contract
 
-**File**: `src/services/__tests__/boards/night1.boards.coverage.contract.test.ts`
+**File**: `src/games/werewolf/__tests__/engine/boards/night1.boards.coverage.contract.test.ts`
 
 1. Add the board name to `REQUIRED_12P_TEMPLATES` array
 2. Add the corresponding regex to `TEMPLATE_TO_TEST_PATTERN`
@@ -209,7 +209,7 @@ If the board contains special role combinations or new roles, add a Playwright E
 ### Phase 7 — Wrap-up
 
 - Confirm `pnpm run quality` passes
-- **Add a strategy entry in `src/components/BoardStrategy/boardStrategyData.ts`** under `BOARD_STRATEGY` (key = `PresetTemplate.name`), including `difficulty`, `recommendLevel`, `tags`, `summary`, `goodStrategy`, `wolfStrategy` (add `thirdStrategy` if third-party faction present), `firstNight`, `pitfalls`, `meta`
+- **Add a strategy entry in `src/games/werewolf/components/BoardStrategy/boardStrategyData.ts`** under `BOARD_STRATEGY` (key = `PresetTemplate.name`), including `difficulty`, `recommendLevel`, `tags`, `summary`, `goodStrategy`, `wolfStrategy` (add `thirdStrategy` if third-party faction present), `firstNight`, `pitfalls`, `meta`
 - Update preset board count in `README.md` and `README.en.md` (e.g., "27 preset boards" → "28 preset boards")
 - Update `docs/PRESET_BOARDS.md` preset boards reference doc (append to corresponding category table)
 - Summarize changed file list

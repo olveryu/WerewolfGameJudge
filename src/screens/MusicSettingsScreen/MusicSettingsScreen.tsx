@@ -1,12 +1,12 @@
 /**
  * MusicSettingsScreen — music settings page
  *
- * Two main sections: BGM (toggle + track selection + preview + volume) + Role audio (toggle + volume + preview).
+ * Two main sections: BGM controls and game-owned foreground audio controls.
  * Preview is decoupled from selection — previewing does not auto-switch the selected track.
  * When BGM is off the track list remains visible but disabled (avoids layout jumps).
  * Settings are persisted via SettingsService (AsyncStorage).
  * Preview goes through AudioService.startBgm / stopBgm.
- * Contains no game logic, does not import GameFacade.
+ * Game-specific previews enter through the client game catalog contribution.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -18,9 +18,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
+import type { BgmTrackId, BgmTrackSetting } from '@/features/product/model/BgmCatalog';
+import { BGM_TRACKS, BGM_VOLUME, getBgmTrack } from '@/features/product/model/BgmCatalog';
+import type { ClientGameAudioPreview } from '@/games/audioPreviews';
+import { useClientGameAudioPreviews } from '@/games/ClientGameCatalogContext';
 import type { RootStackParamList } from '@/navigation/types';
-import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
-import { BGM_TRACKS, BGM_VOLUME } from '@/services/infra/audio/audioRegistry';
 import { colors, componentSizes, fixed, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
@@ -29,6 +31,10 @@ import { createMusicSettingsStyles } from './MusicSettingsScreen.styles';
 
 const musicSettingsLog = log.extend('MusicSettingsScreen');
 
+interface ActiveGameAudioPreview {
+  readonly preview: ClientGameAudioPreview;
+}
+
 /** Music settings screen. */
 export const MusicSettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -36,30 +42,29 @@ export const MusicSettingsScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'MusicSettings'>>();
   const { settingsService, audioService } = useServices();
+  const gameAudioPreviews = useClientGameAudioPreviews();
 
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [bgmTrack, setBgmTrack] = useState<BgmTrackSetting>('random');
   const [bgmVolume, setBgmVolume] = useState(BGM_VOLUME);
-  const [roleAudioVolume, setRoleAudioVolume] = useState(1.0);
-  const [previewingTrack, setPreviewingTrack] = useState<string | null>(null);
-  const [previewingRoleAudio, setPreviewingRoleAudio] = useState(false);
+  const [gameAudioVolume, setGameAudioVolume] = useState(1.0);
+  const [previewingTrack, setPreviewingTrack] = useState<BgmTrackId | null>(null);
+  const [previewingGameAudio, setPreviewingGameAudio] = useState<
+    ClientGameAudioPreview['gameType'] | null
+  >(null);
 
   // Track whether we started a preview so we can stop on unmount
   const previewActiveRef = useRef(false);
+  const activeGameAudioPreviewRef = useRef<ActiveGameAudioPreview | null>(null);
 
   // Load persisted settings
   useEffect(() => {
-    settingsService
-      .load()
-      .then(() => {
-        setBgmEnabled(settingsService.isBgmEnabled());
-        setBgmTrack(settingsService.getBgmTrack());
-        setBgmVolume(settingsService.getBgmVolume());
-        setRoleAudioVolume(settingsService.getRoleAudioVolume());
-      })
-      .catch(() => {
-        // defaults already set
-      });
+    void settingsService.load().then(() => {
+      setBgmEnabled(settingsService.isBgmEnabled());
+      setBgmTrack(settingsService.getBgmTrack());
+      setBgmVolume(settingsService.getBgmVolume());
+      setGameAudioVolume(settingsService.getGameAudioVolume());
+    });
   }, [settingsService]);
 
   // Stop preview on unmount
@@ -68,7 +73,8 @@ export const MusicSettingsScreen: React.FC = () => {
       if (previewActiveRef.current) {
         audioService.stopBgm();
       }
-      audioService.stop(); // stop any role audio preview
+      activeGameAudioPreviewRef.current?.preview.stop();
+      activeGameAudioPreviewRef.current = null;
     };
   }, [audioService]);
 
@@ -100,8 +106,7 @@ export const MusicSettingsScreen: React.FC = () => {
 
   // Track selection (does NOT stop preview — selection and preview are independent)
   const handleTrackSelect = useCallback(
-    (trackId: string) => {
-      const track = trackId as BgmTrackSetting;
+    (track: BgmTrackSetting) => {
       setBgmTrack(track);
       settingsService.setBgmTrack(track).catch((e: unknown) => {
         musicSettingsLog.warn('Failed to persist bgmTrack', e);
@@ -112,7 +117,7 @@ export const MusicSettingsScreen: React.FC = () => {
 
   // Preview playback (independent of selection)
   const handlePreviewToggle = useCallback(
-    (trackId: string) => {
+    (trackId: BgmTrackId) => {
       if (previewingTrack === trackId) {
         // Stop preview
         audioService.stopBgm();
@@ -123,14 +128,12 @@ export const MusicSettingsScreen: React.FC = () => {
         if (previewActiveRef.current) {
           audioService.stopBgm();
         }
-        const entry = BGM_TRACKS.find((t) => t.id === trackId);
-        if (entry) {
-          audioService.startBgm([entry.asset]).catch((e: unknown) => {
-            musicSettingsLog.warn('Preview playback failed', e);
-          });
-          previewActiveRef.current = true;
-          setPreviewingTrack(trackId);
-        }
+        const entry = getBgmTrack(trackId);
+        audioService.startBgm([entry.asset]).catch((e: unknown) => {
+          musicSettingsLog.warn('Preview playback failed', e);
+        });
+        previewActiveRef.current = true;
+        setPreviewingTrack(trackId);
       }
     },
     [previewingTrack, audioService],
@@ -162,48 +165,57 @@ export const MusicSettingsScreen: React.FC = () => {
     [settingsService],
   );
 
-  // Role audio volume change (live)
-  const handleRoleAudioVolumeChange = useCallback(
+  // Foreground game audio volume change (live)
+  const handleGameAudioVolumeChange = useCallback(
     (value: number) => {
-      setRoleAudioVolume(value);
-      audioService.setRoleAudioVolume(value);
+      setGameAudioVolume(value);
+      audioService.setGameAudioVolume(value);
     },
     [audioService],
   );
 
-  // Role audio volume persist on release
-  const handleRoleAudioVolumeComplete = useCallback(
+  // Foreground game audio volume persist on release
+  const handleGameAudioVolumeComplete = useCallback(
     (value: number) => {
-      settingsService.setRoleAudioVolume(value).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist roleAudioVolume', e);
+      settingsService.setGameAudioVolume(value).catch((e: unknown) => {
+        musicSettingsLog.warn('Failed to persist gameAudioVolume', e);
       });
     },
     [settingsService],
   );
 
-  // Role audio preview (wolf begin clip)
-  const handleRoleAudioPreview = useCallback(() => {
-    if (previewingRoleAudio) {
-      audioService.stop();
-      setPreviewingRoleAudio(false);
-    } else {
-      audioService
-        .playRoleBeginningAudio('wolf')
-        .then(() => {
-          setPreviewingRoleAudio(false);
-        })
-        .catch(() => {
-          setPreviewingRoleAudio(false);
-        });
-      setPreviewingRoleAudio(true);
+  const handleGameAudioPreview = useCallback((preview: ClientGameAudioPreview) => {
+    const activePlayback = activeGameAudioPreviewRef.current;
+    if (activePlayback?.preview.gameType === preview.gameType) {
+      activePlayback.preview.stop();
+      activeGameAudioPreviewRef.current = null;
+      setPreviewingGameAudio(null);
+      return;
     }
-  }, [previewingRoleAudio, audioService]);
+
+    activePlayback?.preview.stop();
+    const playback: ActiveGameAudioPreview = { preview };
+    activeGameAudioPreviewRef.current = playback;
+    setPreviewingGameAudio(preview.gameType);
+    void preview
+      .play()
+      .catch((error: unknown) => {
+        musicSettingsLog.warn('Game audio preview failed', {
+          gameType: preview.gameType,
+          error,
+        });
+      })
+      .finally(() => {
+        if (activeGameAudioPreviewRef.current !== playback) return;
+        activeGameAudioPreviewRef.current = null;
+        setPreviewingGameAudio(null);
+      });
+  }, []);
 
   // Resolve previewing track label for NowPlayingBar
   const previewingTrackLabel = useMemo(() => {
     if (!previewingTrack) return '';
-    const entry = BGM_TRACKS.find((t) => t.id === previewingTrack);
-    return entry ? entry.label : '';
+    return getBgmTrack(previewingTrack).label;
   }, [previewingTrack]);
 
   return (
@@ -309,37 +321,43 @@ export const MusicSettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Section 2: Role Audio ── */}
+        {/* ── Section 2: Game Audio ── */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <Ionicons name="volume-high" size={componentSizes.icon.sm} color={colors.primary} />
-              <Text style={styles.sectionTitle}>角色音效</Text>
+              <Text style={styles.sectionTitle}>游戏音效</Text>
             </View>
           </View>
 
           <Text style={styles.volumeLabel}>音量</Text>
           <View style={styles.volumeRow}>
             <VolumeSlider
-              value={roleAudioVolume}
-              onValueChange={handleRoleAudioVolumeChange}
-              onSlidingComplete={handleRoleAudioVolumeComplete}
+              value={gameAudioVolume}
+              onValueChange={handleGameAudioVolumeChange}
+              onSlidingComplete={handleGameAudioVolumeComplete}
               colors={colors}
             />
           </View>
 
-          <TouchableOpacity
-            style={styles.previewRow}
-            onPress={handleRoleAudioPreview}
-            activeOpacity={fixed.activeOpacity}
-          >
-            <Ionicons
-              name={previewingRoleAudio ? 'stop-circle' : 'play-circle'}
-              size={componentSizes.icon.lg}
-              color={previewingRoleAudio ? colors.primary : colors.textSecondary}
-            />
-            <Text style={styles.previewText}>{previewingRoleAudio ? '停止试听' : '试听效果'}</Text>
-          </TouchableOpacity>
+          {gameAudioPreviews.map((preview) => {
+            const isPreviewing = previewingGameAudio === preview.gameType;
+            return (
+              <TouchableOpacity
+                key={preview.gameType}
+                style={styles.previewRow}
+                onPress={() => handleGameAudioPreview(preview)}
+                activeOpacity={fixed.activeOpacity}
+              >
+                <Ionicons
+                  name={isPreviewing ? 'stop-circle' : 'play-circle'}
+                  size={componentSizes.icon.lg}
+                  color={isPreviewing ? colors.primary : colors.textSecondary}
+                />
+                <Text style={styles.previewText}>{isPreviewing ? '停止试听' : preview.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.bottomSpacer} />

@@ -1,0 +1,74 @@
+/**
+ * useActionerState.ts - Memoized actioner state derivation
+ *
+ * This hook wraps the pure `determineActionerState` helper with useMemo.
+ * Memoizes derived state from props. Does not call services, push state,
+ * or advance game phase.
+ */
+
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { useMemo } from 'react';
+
+import {
+  type ActionerState,
+  determineActionerState,
+} from '@/games/werewolf/room/werewolfRoom.helpers';
+
+export interface UseActionerStateParams {
+  /** Actor's role (actorRoleForUi — may be bot's role when Host is delegating) */
+  actorRole: RoleId | null;
+  /** Currently acting role in night phase */
+  currentActionRole: RoleId | null;
+  /** Current action schema (Phase 3: schema-driven UI) */
+  currentSchema: ActionSchema | null;
+  /** Actor's seat number (actorSeatForUi — may be bot's seat when Host is delegating) */
+  actorSeat: number | null;
+  /** Wolf votes map (seat -> targetSeat) */
+  wolfVotes: Map<number, number>;
+  /** Already submitted role actions */
+  actions: Map<RoleId, RoleAction>;
+  /** Authoritative accumulated night results. */
+  currentNightResults?: CurrentNightResults;
+  /** Seats that have already acked the current groupConfirm step */
+  groupConfirmAcks: readonly number[];
+}
+
+/**
+ * Derives actionerState (imActioner, showWolves) from current game state.
+ * Returns a stable object via useMemo.
+ */
+export function useActionerState({
+  actorRole,
+  currentActionRole,
+  currentSchema,
+  actorSeat,
+  wolfVotes,
+  actions,
+  currentNightResults,
+  groupConfirmAcks,
+}: UseActionerStateParams): ActionerState {
+  return useMemo(() => {
+    return determineActionerState(
+      actorRole,
+      currentActionRole,
+      currentSchema,
+      actorSeat,
+      wolfVotes,
+      actions,
+      currentNightResults,
+      groupConfirmAcks,
+    );
+  }, [
+    actorRole,
+    currentActionRole,
+    currentSchema,
+    actorSeat,
+    wolfVotes,
+    actions,
+    currentNightResults,
+    groupConfirmAcks,
+  ]);
+}

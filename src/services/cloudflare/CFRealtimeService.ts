@@ -17,13 +17,24 @@
  * - Connection timeout is controlled by WS_CONNECT_TIMEOUT_MS (8s)
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import {
+  parseRoomLocator,
+  type RoomLocator,
+} from '@game-judge/game-engine/platform/protocol/roomLocator';
+import {
+  type BaseGameState,
+  type GameStateCodec,
+  parseStateUpdateMessage,
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { API_BASE_URL } from '@/config/api';
 import type {
   IRealtimeTransport,
+  RealtimeUserEvent,
+  RealtimeUserEventCodec,
   TransportEventHandlers,
 } from '@/services/types/IRealtimeTransport';
+import { handleError } from '@/utils/errorPipeline';
 import { realtimeLog } from '@/utils/logger';
 
 import { ensureFreshToken } from './cfFetch';
@@ -37,42 +48,66 @@ const WS_CONNECT_TIMEOUT_MS = 8_000;
  * Responsibilities: URL construction, WS creation/teardown, message parsing, connection timeout.
  * Does not include reconnect/backoff logic.
  */
-export class CFRealtimeService implements IRealtimeTransport {
+export class CFRealtimeService<
+  TState extends BaseGameState<string>,
+  TEvent extends RealtimeUserEvent,
+> implements IRealtimeTransport<TState, TEvent> {
   #ws: WebSocket | null = null;
-  #handlers: TransportEventHandlers | null = null;
+  #handlers: TransportEventHandlers<TState, TEvent> | null = null;
+  readonly #stateCodec: GameStateCodec<TState>;
+  readonly #userEventCodec: RealtimeUserEventCodec<TEvent>;
   /** Generation counter: prevents stale WS events after disconnect/reconnect */
   #generation = 0;
+  #lastSocketRevision = 0;
 
-  setEventHandlers(handlers: TransportEventHandlers): void {
+  constructor(stateCodec: GameStateCodec<TState>, userEventCodec: RealtimeUserEventCodec<TEvent>) {
+    this.#stateCodec = stateCodec;
+    this.#userEventCodec = userEventCodec;
+  }
+
+  setEventHandlers(handlers: TransportEventHandlers<TState, TEvent>): void {
     this.#handlers = handlers;
   }
 
-  /**\n   * @pre setEventHandlers() \u5df2\u8c03\u7528\u3002\n   * @remarks generation counter \u9632\u6b62 stale WS \u4e8b\u4ef6\u6cc4\u6f0f\uff1a\u6bcf\u6b21 connect() \u9012\u589e #generation\uff0c\n   *   \u4e8b\u4ef6 handler \u4e2d\u68c0\u67e5 `if (gen !== this.#generation) return;` \u4e22\u5f03\u65e7\u8fde\u63a5\u4e8b\u4ef6\u3002\n   *   \u8fde\u63a5\u8d85\u65f6 = WS_CONNECT_TIMEOUT_MS (8s)\uff0c\u8d85\u65f6\u540e\u4e3b\u52a8 close WS\u3002\n   */
-  connect(roomCode: string, _userId: string): void {
+  #requireHandlers(): TransportEventHandlers<TState, TEvent> {
+    if (!this.#handlers) {
+      throw new Error('CFRealtimeService requires event handlers before connect');
+    }
+    return this.#handlers;
+  }
+
+  /**
+   * Open a new room socket after invalidating every event from the previous generation.
+   * setEventHandlers() must be called before connect().
+   */
+  async connect(room: RoomLocator): Promise<void> {
+    this.#requireHandlers();
     // Close any existing connection first (silent, no event)
     this.#closeWsSilent();
 
     const generation = ++this.#generation;
+    this.#lastSocketRevision = 0;
     // The WS handshake cannot surface a 401 to the cfFetch refresh interceptor,
     // so an expired token would loop (401 → close → retry with the same stale token).
     // Refresh the token up-front, then open the socket.
-    void this.#openSocket(roomCode, generation);
+    await this.#openSocket(
+      parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId }),
+      generation,
+    );
   }
 
-  async #openSocket(roomCode: string, generation: number): Promise<void> {
+  async #openSocket(room: RoomLocator, generation: number): Promise<void> {
     const token = await ensureFreshToken();
     // A newer connect()/disconnect() superseded us while refreshing → abort.
     if (generation !== this.#generation) return;
     if (!token) {
-      realtimeLog.warn('Transport: no valid token, aborting WS connect');
-      this.#handlers?.onClose(4001, 'no valid token');
-      return;
+      throw new Error('Transport cannot connect without a valid access token');
     }
 
     const wsBase = API_BASE_URL.replace(/^http/, 'ws');
-    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&token=${encodeURIComponent(token)}`;
+    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(room.roomCode)}&roomId=${encodeURIComponent(room.roomId)}&token=${encodeURIComponent(token)}`;
 
-    realtimeLog.info('Transport: connecting', { roomCode });
+    realtimeLog.info('Transport: connecting', room);
     const ws = new WebSocket(wsUrl);
 
     const timeout = setTimeout(() => {
@@ -89,8 +124,8 @@ export class CFRealtimeService implements IRealtimeTransport {
       }
       clearTimeout(timeout);
       this.#ws = ws;
-      realtimeLog.info('Transport: WebSocket open', { roomCode });
-      this.#handlers?.onOpen();
+      realtimeLog.info('Transport: WebSocket open', room);
+      this.#requireHandlers().onOpen();
     };
 
     ws.onmessage = (event) => {
@@ -98,10 +133,10 @@ export class CFRealtimeService implements IRealtimeTransport {
       // Heartbeat pong arrives as the literal string "pong" via the DO's
       // setWebSocketAutoResponse, so it never reaches #parseMessage (JSON path).
       if (event.data === 'pong') {
-        this.#handlers?.onPong();
+        this.#requireHandlers().onPong();
         return;
       }
-      this.#parseMessage(event);
+      this.#parseMessage(event, ws);
     };
 
     ws.onclose = (event) => {
@@ -116,7 +151,7 @@ export class CFRealtimeService implements IRealtimeTransport {
         code: event.code,
         reason: event.reason,
       });
-      this.#handlers?.onClose(event.code, event.reason);
+      this.#requireHandlers().onClose(event.code, event.reason);
     };
 
     ws.onerror = () => {
@@ -124,7 +159,7 @@ export class CFRealtimeService implements IRealtimeTransport {
       clearTimeout(timeout);
       // Detail-less and always followed by onclose (which carries the code) → debug only.
       realtimeLog.debug('Transport: WebSocket error');
-      this.#handlers?.onError(new Error('WebSocket error'));
+      this.#requireHandlers().onError(new Error('WebSocket error'));
     };
   }
 
@@ -132,13 +167,15 @@ export class CFRealtimeService implements IRealtimeTransport {
     this.#closeWsSilent();
   }
 
-  send(data: string): void {
+  send(data: string): boolean {
     if (this.#ws?.readyState === WebSocket.OPEN) {
       this.#ws.send(data);
+      return true;
     } else {
       realtimeLog.warn('Transport: send dropped (WS not open)', {
         readyState: this.#ws?.readyState,
       });
+      return false;
     }
   }
 
@@ -155,55 +192,52 @@ export class CFRealtimeService implements IRealtimeTransport {
       this.#ws = null;
       try {
         ws.close();
-      } catch {
-        // Ignore close errors
+      } catch (error) {
+        realtimeLog.warn('Transport: failed to close WebSocket', { error });
       }
     }
   }
 
-  #parseMessage(event: MessageEvent): void {
+  #parseMessage(event: MessageEvent, ws: WebSocket): void {
     try {
-      const data: unknown = JSON.parse(event.data as string);
-      if (!isWsObject(data)) return;
-
-      if (data.type === 'STATE_UPDATE' && 'state' in data && 'revision' in data) {
-        const { state, revision, lastAction } = data as {
-          state: GameState;
-          revision: number;
-          lastAction?: string;
-        };
-        realtimeLog.debug('Transport: STATE_UPDATE', { revision });
-        this.#handlers?.onStateUpdate(state, revision, lastAction);
-      } else if (data.type === 'SETTLE_RESULT') {
-        const d = data as Record<string, unknown>;
-        if (
-          typeof d.xpEarned === 'number' &&
-          typeof d.newXp === 'number' &&
-          typeof d.newLevel === 'number' &&
-          typeof d.previousLevel === 'number'
-        ) {
-          this.#handlers?.onSettleResult({
-            xpEarned: d.xpEarned,
-            newXp: d.newXp,
-            newLevel: d.newLevel,
-            previousLevel: d.previousLevel,
-            normalDrawsEarned: typeof d.normalDrawsEarned === 'number' ? d.normalDrawsEarned : 0,
-            goldenDrawsEarned: typeof d.goldenDrawsEarned === 'number' ? d.goldenDrawsEarned : 0,
-          });
-        }
+      if (typeof event.data !== 'string') {
+        throw new Error('Realtime protocol message must be text');
       }
-    } catch {
-      realtimeLog.warn('Transport: failed to parse WS message');
+      const data: unknown = JSON.parse(event.data);
+      if (!isWsObject(data)) {
+        throw new Error('Realtime protocol message must contain a string type');
+      }
+
+      if (data.type === 'STATE_UPDATE') {
+        const message = parseStateUpdateMessage(data, this.#stateCodec);
+        if (message.revision <= this.#lastSocketRevision) {
+          throw new Error(
+            `STATE_UPDATE revision ${message.revision} did not advance from ${this.#lastSocketRevision}`,
+          );
+        }
+        this.#lastSocketRevision = message.revision;
+        realtimeLog.debug('Transport: STATE_UPDATE', { revision: message.revision });
+        this.#requireHandlers().onStateUpdate(message);
+      } else {
+        this.#requireHandlers().onUserEvent(this.#userEventCodec.parse(data));
+      }
+    } catch (error) {
+      handleError(error, {
+        label: '实时协议',
+        logger: realtimeLog,
+        feedback: false,
+      });
+      this.#requireHandlers().onError(error);
+      ws.close(1002, 'protocol_error');
     }
   }
 }
 
 /** Type guard: parsed JSON is a non-null object with a string `type` field. */
-function isWsObject(data: unknown): data is { type: string } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    typeof (data as Record<string, unknown>).type === 'string'
-  );
+function isWsObject(data: unknown): data is Record<string, unknown> & { type: string } {
+  return isRecord(data) && typeof data.type === 'string';
+}
+
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === 'object' && data !== null && !Array.isArray(data);
 }

@@ -11,8 +11,9 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
 ADMIN_PASSWORD = "test-admin-token-do-not-use-in-production"
-CORS_ORIGIN = "*"
 ENVIRONMENT = "test"
+FIB_WORD_PROVIDER = "local"
+CLOUDFLARE_ACCOUNT_ID = "test-cloudflare-account"
 SENTRY_DSN = ""
 
 # ── D1 Database (local miniflare) ───────────────────────────────────────────
@@ -31,6 +32,9 @@ bucket_name = "werewolf-avatars"
 bindings = [
   { name = "GAME_ROOM", class_name = "GameRoom" }
 ]
+
+[version_metadata]
+binding = "CF_VERSION_METADATA"
 
 [[migrations]]
 tag = "v1"

@@ -1,6 +1,7 @@
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { expect, type Page, type TestInfo } from '@playwright/test';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
+import { TESTIDS } from '../../src/testids';
 import { extractRoomCode } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 
@@ -13,7 +14,7 @@ import { waitForRoomScreenReady } from '../helpers/waits';
  * - Game flow triggers (prepare roles, view role, start game, restart)
  */
 export class RoomPage {
-  constructor(private readonly page: Page) {}
+  constructor(protected readonly page: Page) {}
 
   // ---------------------------------------------------------------------------
   // Selectors
@@ -58,21 +59,31 @@ export class RoomPage {
     });
     await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for seat broadcast to arrive — green seat badge confirms the seat is taken
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({
       timeout: 10_000,
     });
   }
 
-  /** Click own seat → profile card opens → click "离座" button. No second confirm. */
+  /** Move from the current seat and confirm the explicit "换座" intent. */
+  async moveToSeat(seat: number) {
+    await this.getSeatTile(seat).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('换座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({
+      timeout: 10_000,
+    });
+  }
+
+  /** Click own seat and leave directly from the profile. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
-    // Profile card should appear (self-profile)
     await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-    // Click "离座" button inside the profile card
     await this.page.getByText('离座', { exact: true }).click();
-    // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
-      timeout: 5000,
+    await expect(this.page.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
+      timeout: 10_000,
     });
   }
 
@@ -86,6 +97,7 @@ export class RoomPage {
     await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
     // Click "移出座位" button inside the profile card — directly executes kick
     await this.page.getByText('移出座位', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.seatConfirmModal)).not.toBeVisible();
     // Wait for kicked seat to show as empty via broadcast
     const tile = this.getSeatTile(seat);
     await expect
@@ -99,7 +111,13 @@ export class RoomPage {
 
   /** Check if green seat badge (my seat) is visible anywhere. */
   async expectMyBadgeVisible() {
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({ timeout: 3000 });
+  }
+
+  async expectNotSeated(): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
+      timeout: 10_000,
+    });
   }
 
   /**

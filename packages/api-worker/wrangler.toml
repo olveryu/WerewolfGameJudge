@@ -71,12 +71,30 @@ binding = "CF_VERSION_METADATA"
 # ── Environment Variables ────────────────────────────────────────────────────
 [vars]
 ENVIRONMENT = "production"
-CORS_ORIGIN = "*"
+FIB_WORD_PROVIDER = "workers-ai"
+CLOUDFLARE_ACCOUNT_ID = "a38318fda66da2d2d931d8ab2d98e1c0"
 SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.us.sentry.io/4511310645035008"
+
+[secrets]
+required = [
+  "ADMIN_PASSWORD",
+  "CF_API_TOKEN",
+  "GEMINI_API_KEY",
+  "GITHUB_REPO_OWNER",
+  "GITHUB_TOKEN",
+  "GITHUB_WEBHOOK_SECRET",
+  "JWT_SECRET",
+  "RESEND_API_KEY",
+  "WECHAT_APP_ID",
+  "WECHAT_APP_SECRET"
+]
 
 # ── Cron Triggers ────────────────────────────────────────────────────────────
 [triggers]
-crons = ["0 3 * * *"]   # Daily at UTC 03:00 — cleanup stale rooms / anonymous users / login attempts
+crons = [
+  "*/5 * * * *", # Reconcile interrupted room create/delete sagas
+  "0 3 * * *"    # Daily room expiry and account/data retention cleanup
+]
 
 # ── Local Dev Server ─────────────────────────────────────────────────────────
 # Bind to localhost so Expo Web (localhost:8081) and wrangler share the same
@@ -84,7 +102,3 @@ crons = ["0 3 * * *"]   # Daily at UTC 03:00 — cleanup stale rooms / anonymous
 [dev]
 ip = "localhost"
 port = 8787
-
-# ── Development Overrides ────────────────────────────────────────────────────
-[env.dev]
-vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*", SENTRY_DSN = "" }

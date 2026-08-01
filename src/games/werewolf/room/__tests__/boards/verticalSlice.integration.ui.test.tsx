@@ -1,0 +1,299 @@
+/**
+ * Vertical Slice Board Test
+ *
+ * Drives WerewolfRoomScreen UI rendering from real GameState produced by gameFactory.
+ * Purpose: verify the full pipeline from integration state -> UI rendering,
+ * catching UI behavior differences caused by mock vs. real-state shape mismatches.
+ *
+ * Strategy:
+ * 1. gameFactory creates the game and advances to witchAction step
+ * 2. Convert the real snapshot to useWerewolfRoom mock format
+ * 3. Render WerewolfRoomScreen and verify the correct dialog appears
+ */
+
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { render, waitFor } from '@testing-library/react-native';
+
+import { cleanupGame, createGame } from '@/games/werewolf/__tests__/engine/boards/gameFactory';
+import { submitActionOrThrow } from '@/games/werewolf/__tests__/engine/boards/stepByStepRunner';
+import {
+  createShowAlertMock,
+  mockNavigation,
+  mockRoom,
+  RoomScreenTestHarness,
+  waitForRoomScreen,
+} from '@/games/werewolf/room/__tests__/harness';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { showAlert } from '@/utils/alert';
+
+// =============================================================================
+// Mocks
+// =============================================================================
+
+jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
+  showAlert: jest.fn(),
+}));
+
+jest.mock('../../useRoomHostDialogs', () => ({
+  useRoomHostDialogs: () => ({
+    showPrepareToFlipDialog: jest.fn(),
+    showStartGameDialog: jest.fn(),
+    showRestartDialog: jest.fn(),
+    handleSettingsPress: jest.fn(),
+  }),
+}));
+
+// imActioner=true so we can verify action dialogs appear
+jest.mock('../../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: true,
+  }),
+}));
+
+// =============================================================================
+// Test Setup
+// =============================================================================
+
+const TEMPLATE_NAME = '预女猎白';
+const MY_SEAT = 9; // witch seat
+
+function createRoleAssignment(): Map<number, RoleId> {
+  const map = new Map<number, RoleId>();
+  [
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'wolf',
+    'wolf',
+    'wolf',
+    'wolf',
+    'seer',
+    'witch',
+    'hunter',
+    'idiot',
+  ].forEach((role, idx) => map.set(idx, role as RoleId));
+  return map;
+}
+
+/**
+ * Convert GameState (protocol format) to the gameState format used in the useWerewolfRoom mock.
+ * Uses the real toWerewolfLocalState adapter (matches the production code path).
+ */
+function toMockGameState(state: GameState) {
+  return toWerewolfLocalState(state);
+}
+
+let harness: RoomScreenTestHarness;
+let mockUseWerewolfRoomReturn: Record<string, unknown>;
+
+jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+}));
+
+// =============================================================================
+// Tests
+// =============================================================================
+
+describe('Vertical Slice: real state -> UI rendering', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    harness = new RoomScreenTestHarness();
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
+  });
+
+  afterEach(() => {
+    cleanupGame();
+  });
+
+  it('witchAction step with real state -> shows witchSavePrompt', async () => {
+    // 1. Create real game and walk to witchAction
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
+    const s0 = ctx.getGameState();
+
+    // Submit all wolf votes, then release the authoritative deadline gate
+    for (const [seatStr, player] of Object.entries(s0.players)) {
+      const seat = Number.parseInt(seatStr, 10);
+      if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
+      }
+    }
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
+    );
+    ctx.assertStep('witchAction');
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+
+    // 2. Get real broadcast state at witchAction
+    const realState = ctx.getGameState();
+
+    // 3. Build useWerewolfRoom mock from real state
+    const currentSchema = getSchema('witchAction');
+    mockUseWerewolfRoomReturn = {
+      gameState: toMockGameState(realState),
+      connectionStatus: 'live',
+      isHost: false,
+      roomStatus: GameStatus.Ongoing,
+      currentActionRole: 'witch',
+      currentSchema,
+      currentStepId: 'witchAction',
+      currentSchemaId: 'witchAction',
+      isAudioPlaying: false,
+      mySeat: MY_SEAT,
+      myRole: 'witch',
+      myUserId: `p${MY_SEAT}`,
+
+      // Debug mode
+      isDebugMode: false,
+      controlledSeat: null,
+      effectiveSeat: MY_SEAT,
+      effectiveRole: 'witch',
+      fillWithBots: jest.fn(),
+      markAllBotsViewed: jest.fn(),
+      markAllBotsGroupConfirmed: jest.fn(),
+      takeOverBot: jest.fn(),
+      releaseBot: jest.fn(),
+
+      // Connection
+      stateRevision: 1,
+
+      // Actions
+      takeSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      assignRoles: jest.fn(),
+      startGame: jest.fn(),
+      restartGame: jest.fn(),
+      viewedRole: jest.fn(),
+      submitAction: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      submitRevealAck: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      sendWolfRobotHunterStatusViewed: jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(realState)),
+      getLastNightInfo: jest.fn().mockReturnValue(''),
+      hasWolfVoted: jest.fn().mockReturnValue(false),
+
+      // BGM
+      isBgmPlaying: false,
+      playBgm: jest.fn(),
+      stopBgm: jest.fn(),
+    };
+
+    // 4. Render and verify
+    const { getByTestId } = render(
+      <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+    );
+
+    await waitForRoomScreen(getByTestId);
+
+    // Witch should see save prompt since seat 0 was killed and canSave=true
+    await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+  });
+
+  it('seerCheck step with real state -> shows actionPrompt', async () => {
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
+    const s0 = ctx.getGameState();
+
+    // Walk to seerCheck
+    for (const [seatStr, player] of Object.entries(s0.players)) {
+      const seat = Number.parseInt(seatStr, 10);
+      if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
+      }
+    }
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
+    );
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete witchAction to hunterConfirm audio',
+    );
+    submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
+    ctx.assertStep('seerCheck');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete hunterConfirm to seerCheck audio',
+    );
+
+    const realState = ctx.getGameState();
+    const seerSeat = 8;
+
+    const currentSchema = getSchema('seerCheck');
+    mockUseWerewolfRoomReturn = {
+      gameState: toMockGameState(realState),
+      connectionStatus: 'live',
+      isHost: false,
+      roomStatus: GameStatus.Ongoing,
+      currentActionRole: 'seer',
+      currentSchema,
+      currentStepId: 'seerCheck',
+      currentSchemaId: 'seerCheck',
+      isAudioPlaying: false,
+      mySeat: seerSeat,
+      myRole: 'seer',
+      myUserId: `p${seerSeat}`,
+
+      isDebugMode: false,
+      controlledSeat: null,
+      effectiveSeat: seerSeat,
+      effectiveRole: 'seer',
+      fillWithBots: jest.fn(),
+      markAllBotsViewed: jest.fn(),
+      markAllBotsGroupConfirmed: jest.fn(),
+      takeOverBot: jest.fn(),
+      releaseBot: jest.fn(),
+
+      stateRevision: 1,
+
+      takeSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      assignRoles: jest.fn(),
+      startGame: jest.fn(),
+      restartGame: jest.fn(),
+      viewedRole: jest.fn(),
+      submitAction: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      submitRevealAck: jest.fn().mockResolvedValue(successfulRoomCommand(realState)),
+      sendWolfRobotHunterStatusViewed: jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(realState)),
+      getLastNightInfo: jest.fn().mockReturnValue(''),
+      hasWolfVoted: jest.fn().mockReturnValue(false),
+
+      isBgmPlaying: false,
+      playBgm: jest.fn(),
+      stopBgm: jest.fn(),
+    };
+
+    const { getByTestId } = render(
+      <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+    );
+
+    await waitForRoomScreen(getByTestId);
+
+    // Seer should see action prompt
+    await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+  });
+});

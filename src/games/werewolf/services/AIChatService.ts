@@ -1,0 +1,307 @@
+/**
+ * AI Chat Service — Gemini (primary) + Workers AI (fallback) via Cloudflare Workers
+ *
+ * The server uses Gemini API as the primary model, falling back to Workers AI (@cf/google/gemma-4-26b-a4b-it) on geo-restrictions/rate limits.
+ * The client is only responsible for message assembly and streaming SSE response parsing. Model selection happens server-side.
+ * Does not access third-party APIs directly, store API keys, or mutate game state.
+ */
+
+import { type GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
+
+import { API_BASE_URL } from '@/config/api';
+import { NETWORK_ERROR } from '@/config/errorMessages';
+import { getCurrentToken } from '@/services/cloudflare/cfFetch';
+import { combineSignals, createTimeoutSignal } from '@/utils/abortSignal';
+import { handleError } from '@/utils/errorPipeline';
+import { log } from '@/utils/logger';
+
+const chatLog = log.extend('AIChatService');
+
+const API_CONFIG = {
+  /** Workers AI chat endpoint */
+  baseURL: `${API_BASE_URL}/api/games/werewolf/ai-chat`,
+  maxTokens: 2048,
+};
+
+// Token optimization config
+const TOKEN_OPTIMIZATION = {
+  maxHistoryRounds: 3, // 最多保留最近 3 轮对话
+};
+
+/**
+ * Checks whether the AI service is ready.
+ */
+export function isAIChatReady(): boolean {
+  return true;
+}
+
+/**
+ * Game context information (player's perspective, no cheating information included).
+ */
+export interface GameContext {
+  /** Whether the player is in a game room. */
+  inRoom: boolean;
+  /** Room code. */
+  roomCode?: string;
+  /** Game state. */
+  status?: GameStatus;
+  /** My seat number. */
+  mySeat?: number;
+  /** My role. */
+  myRole?: string;
+  /** My role name. */
+  myRoleName?: string;
+  /** Total number of players. */
+  totalPlayers?: number;
+  /** Detailed skill description of each role in this game (public information). */
+  boardRoleDetails?: Array<{ name: string; description: string }>;
+}
+
+/**
+ * Builds the game context prompt (player's perspective, without leaking other players' information).
+ */
+function buildGameContextPrompt(context: GameContext): string {
+  if (!context.inRoom) {
+    return '（用户当前不在游戏房间中）';
+  }
+
+  const lines: string[] = ['## 当前游戏状态（玩家视角）', ''];
+
+  if (context.roomCode) {
+    lines.push(`- 房间号: ${context.roomCode}`);
+  }
+
+  if (context.status) {
+    const statusMap: Record<string, string> = {
+      Unseated: '等待入座',
+      Seated: '已入座，等待分配角色',
+      Assigned: '已分配角色，等待查看',
+      Ready: '已准备，等待开始',
+      Ongoing: '游戏进行中（第一夜）',
+      Ended: '游戏已结束',
+    };
+    lines.push(`- 游戏状态: ${statusMap[context.status] || context.status}`);
+  }
+
+  if (context.mySeat !== undefined) {
+    lines.push(`- 我的座位: ${formatSeat(context.mySeat)}`);
+  }
+
+  if (context.myRoleName) {
+    lines.push(`- 我的身份: ${context.myRoleName}`);
+  }
+
+  if (context.totalPlayers) {
+    lines.push(`- 总玩家数: ${context.totalPlayers} 人`);
+  }
+
+  // boardRoleDetails already contains role names; no need for a separate boardRoles list
+  if (context.boardRoleDetails && context.boardRoleDetails.length > 0) {
+    const uniqueRoles = new Map<string, string>();
+    context.boardRoleDetails.forEach((r) => {
+      if (!uniqueRoles.has(r.name)) {
+        uniqueRoles.set(r.name, r.description);
+      }
+    });
+    lines.push(`- 角色配置: ${[...uniqueRoles.keys()].join('、')}`);
+    lines.push(`- 本局角色技能:`);
+    uniqueRoles.forEach((desc, name) => {
+      lines.push(`  - ${name}: ${desc}`);
+    });
+  }
+
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// Opt 1: removed getRolesDescription; use roles from the board context instead
+
+// Opt 3+4: simplified System Prompt, removed follow-up question requirement
+const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策略建议、争议裁决。
+
+回答原则：
+- 简洁中文，默认简短回答；当用户提交笔记分析等长任务时按其要求的篇幅输出
+- 适当使用 **加粗** 突出关键词、- 列表分条说明、emoji 🐺 增加可读性
+- 本App只处理第一夜，白天在线下进行`;
+
+/** AI chat message structure (aligned with the OpenAI Chat API). */
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+// ══════════════════════════════════════════════════════════
+// Streaming (SSE)
+// ══════════════════════════════════════════════════════════
+
+interface StreamChunk {
+  type: 'delta' | 'done' | 'error';
+  content: string;
+}
+
+/**
+ * Streams a chat message to the AI via SSE (proxied through Cloudflare Workers).
+ *
+ * Uses Cloudflare Workers to proxy the Gemini streaming endpoint, returning tokens one at a time.
+ * Callers consume with `for await (const chunk of streamChatMessage(...))`.
+ *
+ * @param messages chat message history
+ * @param gameContext optional game context
+ * @param signal optional AbortSignal
+ */
+export async function* streamChatMessage(
+  messages: ChatMessage[],
+  gameContext?: GameContext,
+  signal?: AbortSignal,
+  maxTokens?: number,
+): AsyncGenerator<StreamChunk> {
+  if (!isAIChatReady()) {
+    yield { type: 'error', content: 'AI 服务未配置' };
+    return;
+  }
+
+  let systemPrompt = SYSTEM_PROMPT;
+  if (gameContext) {
+    systemPrompt += '\n\n' + buildGameContextPrompt(gameContext);
+  }
+
+  const maxMessages = TOKEN_OPTIMIZATION.maxHistoryRounds * 2;
+  const trimmedMessages = messages.length > maxMessages ? messages.slice(-maxMessages) : messages;
+
+  chatLog.debug('Starting streaming chat request', {
+    messageCount: messages.length,
+    hasContext: !!gameContext,
+  });
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const token = getCurrentToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Combine caller abort signal with a 30s TTFB timeout so long inputs don't hang forever
+  const timeoutSignal = createTimeoutSignal(30_000);
+  const combinedSignal = signal ? combineSignals([signal, timeoutSignal]) : timeoutSignal;
+
+  let response: Response;
+  try {
+    response = await fetch(API_CONFIG.baseURL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
+        max_tokens: maxTokens ?? API_CONFIG.maxTokens,
+        temperature: 0.7,
+        stream: true,
+      }),
+      signal: combinedSignal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      chatLog.warn('Streaming fetch timed out (30s TTFB)');
+      yield { type: 'error', content: 'AI 响应超时，请稍后重试' };
+      return;
+    }
+    chatLog.warn('Streaming fetch failed (network)', error);
+    yield { type: 'error', content: NETWORK_ERROR };
+    return;
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    // Parse structured error code from server
+    let errorCode: string | undefined;
+    try {
+      const parsed: unknown = JSON.parse(errorText);
+      if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
+        const { error } = parsed;
+        if (typeof error === 'string') errorCode = error;
+      }
+    } catch {
+      // Not JSON — use raw text for logging
+    }
+
+    if (response.status === 401) {
+      chatLog.warn('AI service auth failed', { status: response.status, error: errorText });
+      yield { type: 'error', content: 'AI 服务认证失败，请联系管理员' };
+    } else if (response.status === 429 || errorCode === 'quota_exhausted') {
+      chatLog.warn('AI quota exhausted', { status: response.status, errorCode });
+      yield { type: 'error', content: '今日 AI 使用次数已达上限，明天再试吧' };
+    } else if (response.status === 502 || response.status === 503) {
+      chatLog.warn('Upstream unavailable', { status: response.status, error: errorText });
+      yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
+    } else {
+      handleError(
+        new Error(`Streaming API error: HTTP ${response.status}: ${errorText.slice(0, 200)}`),
+        { label: 'AI 流式请求', logger: chatLog, feedback: false },
+      );
+      yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
+    }
+    return;
+  }
+
+  // Parse SSE stream
+  const reader = response.body?.getReader();
+  if (!reader) {
+    yield { type: 'error', content: '浏览器不支持流式响应' };
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      // Keep the last potentially incomplete line in the buffer
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue; // SSE comment or empty
+        if (!trimmed.startsWith('data: ')) continue;
+
+        const data = trimmed.slice(6); // Remove "data: " prefix
+        if (data === '[DONE]') {
+          yield { type: 'done', content: '' };
+          return;
+        }
+
+        try {
+          const parsed: unknown = JSON.parse(data);
+          const delta = extractDelta(parsed);
+          if (delta) {
+            yield { type: 'delta', content: delta };
+          }
+        } catch {
+          chatLog.debug('SSE chunk parse failed, skipping', { data });
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  yield { type: 'done', content: '' };
+}
+
+/** Extract delta content from an OpenAI-compatible SSE chunk. */
+function extractDelta(parsed: unknown): string | undefined {
+  if (typeof parsed !== 'object' || parsed === null) return undefined;
+  if (!('choices' in parsed) || !Array.isArray(parsed.choices)) return undefined;
+  const first: unknown = parsed.choices[0];
+  if (typeof first !== 'object' || first === null || !('delta' in first)) return undefined;
+  const { delta } = first;
+  if (typeof delta !== 'object' || delta === null || !('content' in delta)) return undefined;
+  return typeof delta.content === 'string' ? delta.content : undefined;
+}

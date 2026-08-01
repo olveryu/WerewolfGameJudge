@@ -1,0 +1,180 @@
+/**
+ * Audio Guard UI Test
+ *
+ * Tests that UI interactions are properly blocked when isAudioPlaying=true.
+ * All existing board tests use isAudioPlaying=false — this file covers the guard.
+ *
+ * Verifies:
+ * - Seat taps do NOT trigger dialogs when audio is playing
+ * - Bottom action buttons are NOT rendered when audio is playing
+ */
+
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { render, waitFor } from '@testing-library/react-native';
+
+import {
+  createShowAlertMock,
+  createWerewolfRoomMock,
+  mockNavigation,
+  mockRoom,
+  RoomScreenTestHarness,
+  tapSeat,
+  waitForRoomScreen,
+} from '@/games/werewolf/room/__tests__/harness';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import { showAlert } from '@/utils/alert';
+
+// =============================================================================
+// Mocks
+// =============================================================================
+
+jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
+  showAlert: jest.fn(),
+}));
+
+jest.mock('../../useRoomHostDialogs', () => ({
+  useRoomHostDialogs: () => ({
+    showPrepareToFlipDialog: jest.fn(),
+    showStartGameDialog: jest.fn(),
+    showRestartDialog: jest.fn(),
+    handleSettingsPress: jest.fn(),
+  }),
+}));
+
+jest.mock('../../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: true,
+  }),
+}));
+
+// =============================================================================
+// Test Setup
+// =============================================================================
+
+let harness: RoomScreenTestHarness;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
+
+jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+}));
+
+describe('Audio Guard (isAudioPlaying=true)', () => {
+  const renderRoom = () =>
+    render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    harness = new RoomScreenTestHarness();
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
+  });
+
+  describe('seat tap blocked during audio', () => {
+    it('seer seat tap produces no dialog when isAudioPlaying=true', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeat: 8,
+        isAudioPlaying: true,
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      tapSeat(getByTestId, 1);
+
+      expect(harness.hasSeen('actionConfirm')).toBe(false);
+      expect(harness.hasSeen('actionPrompt')).toBe(false);
+    });
+
+    it('wolf seat tap produces no dialog when isAudioPlaying=true', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'wolf',
+        mySeat: 4,
+        isAudioPlaying: true,
+        roleAssignments: new Map([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolf'],
+        ]),
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      tapSeat(getByTestId, 1);
+
+      expect(harness.hasSeen('wolfVote')).toBe(false);
+    });
+  });
+
+  describe('bottom action buttons hidden during audio', () => {
+    it('seer skip button is not visible when isAudioPlaying=true', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeat: 8,
+        isAudioPlaying: true,
+      });
+
+      const { queryByText } = renderRoom();
+
+      // The skip button text should not be rendered
+      const skipText = getSchema('seerCheck').ui?.bottomActionText;
+      if (!skipText) throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
+
+      expect(queryByText(skipText)).toBeNull();
+    });
+
+    it('wolf empty knife button is not visible when isAudioPlaying=true', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'wolf',
+        mySeat: 4,
+        isAudioPlaying: true,
+        roleAssignments: new Map([
+          [4, 'wolf'],
+          [5, 'wolf'],
+          [6, 'wolf'],
+          [7, 'wolf'],
+        ]),
+      });
+
+      const { queryByText } = renderRoom();
+
+      const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
+      if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
+
+      expect(queryByText(emptyText)).toBeNull();
+    });
+  });
+
+  describe('audio off → interactions work normally', () => {
+    it('seer seat tap works when isAudioPlaying=false (control test)', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeat: 8,
+        isAudioPlaying: false,
+      });
+
+      const { getByTestId } = renderRoom();
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      tapSeat(getByTestId, 1);
+
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+});

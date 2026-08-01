@@ -30,10 +30,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm exec tsc --noEmit
+        run: pnpm run typecheck
 
       - name: Build game-engine
-        run: pnpm --filter @werewolf/game-engine run build
+        run: pnpm --filter @game-judge/game-engine run build
 
       - name: Lint
         run: pnpm run lint
@@ -64,7 +64,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build game-engine (api-worker dependency)
-        run: pnpm --filter @werewolf/game-engine run build
+        run: pnpm --filter @game-judge/game-engine run build
 
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4
@@ -375,6 +375,8 @@ jobs:
             specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts'
           - shard: 4
             specs: 'entry-flow.spec.ts db-recovery.spec.ts seating.spec.ts night-roles-eclipse-wolf-queen.spec.ts night-roles-thief-cupid.spec.ts night-roles-treasure.spec.ts night-verify.spec.ts night-2p.spec.ts night-6p.spec.ts offline-recovery-canary.spec.ts rejoin.spec.ts restart.spec.ts room-lifecycle.spec.ts home.spec.ts config.spec.ts'
+          - shard: 5
+            specs: 'fibking.spec.ts fibking-responsive.spec.ts night-roles-hidden-wolf-crow.spec.ts'
     steps:
       - uses: actions/checkout@v6
 
@@ -407,7 +409,7 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      - name: Run E2E tests (shard ${{ matrix.shard }}/4)
+      - name: Run E2E tests (shard ${{ matrix.shard }}/5)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
       - name: Upload blob report
@@ -422,13 +424,17 @@ jobs:
     runs-on: ubuntu-latest
     if: always() && needs.e2e.result != 'skipped'
     needs: e2e
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
 
       - name: Download blob reports
         uses: actions/download-artifact@v8
@@ -438,7 +444,7 @@ jobs:
           merge-multiple: true
 
       - name: Merge reports
-        run: npx playwright merge-reports --reporter=html ./all-blob-reports
+        run: pnpm exec playwright merge-reports --reporter=html ./all-blob-reports
 
       - name: Upload merged report artifact
         uses: actions/upload-artifact@v7
@@ -448,18 +454,32 @@ jobs:
           retention-days: 30
 
       - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main'
+        if: |
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-pages-artifact@v5
         with:
           path: playwright-report/
 
+  deploy-e2e-report:
+    runs-on: ubuntu-latest
+    if: |
+      needs.merge-reports.result == 'success' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: merge-reports
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
         id: deploy
         uses: actions/deploy-pages@v5
 
       - name: Add report link to summary
-        if: github.ref == 'refs/heads/main'
         run: |
           echo "## 📊 Playwright Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

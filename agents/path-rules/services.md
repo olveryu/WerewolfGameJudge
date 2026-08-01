@@ -1,6 +1,6 @@
 ---
 name: 'Services'
-description: 'Service layer standards: facade/transport/infra/feature services, resolvers, state management, audio orchestration. Use when: editing services, audio orchestration, connection management, game facade, realtime transport'
+description: 'Service layer standards: Cloudflare adapters, transport ports, connection management, storage, and audio playback. Use when: editing services, audio infrastructure, connection management, or realtime transport'
 applyTo: 'src/services/**'
 ---
 
@@ -8,30 +8,37 @@ applyTo: 'src/services/**'
 
 ## Source Code Location
 
-Game logic: `@werewolf/game-engine` (see `game-engine.instructions.md`). Client services: `facade/`, `transport/`, `infra/`, `feature/`.
+Game logic: `@game-judge/game-engine` (see `game-engine.instructions.md`). `src/services/` only owns
+Cloudflare adapters, connection management, infrastructure implementations, and transport ports. Product APIs and
+React controllers live under their owning `src/features/*`; game-owned APIs live under `src/games/<gameType>/`.
 
-## Feature Services
+## Owned Application APIs
 
-High-level facades combining infra/transport services to provide business capabilities externally.
+Feature APIs may call `src/services/cloudflare/cfFetch`, but screens/components call the feature API or controller, not
+the infrastructure adapter directly.
 
-| Service               | File                                        | Responsibility                                                  |
-| --------------------- | ------------------------------------------- | --------------------------------------------------------------- |
-| **StatsService**      | `src/services/feature/StatsService.ts`      | User growth data query (XP/level/unlocked items)                |
-| **GachaService**      | `src/services/feature/GachaService.ts`      | Gacha status query, draw execution, daily login reward claiming |
-| **ShareImageService** | `src/services/feature/ShareImageService.ts` | Share image upload to R2, returns public URL                    |
-| **CFStorageService**  | `src/services/infra/CFStorageService.ts`    | Custom avatar upload to Cloudflare R2                           |
+| Owner          | File                                                    | Responsibility                                  |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| Account        | `src/features/account/services/accountApi.ts`           | Growth data, public profiles, unlocked items    |
+| Gacha          | `src/features/gacha/services/gachaApi.ts`               | Draw status, draw, daily reward, shard exchange |
+| Feedback       | `src/features/feedback/services/feedbackApi.ts`         | Submit, history, reply, read, resolve           |
+| Settings       | `src/features/settings/services/SettingsService.ts`     | Persist product preferences                     |
+| Werewolf       | `src/games/werewolf/services/uploadNightReviewImage.ts` | Upload a Werewolf night-review image            |
+| Infrastructure | `src/services/cloudflare/CFAvatarUploadService.ts`      | Custom avatar upload adapter                    |
 
 ## Core Rules
 
 - Resolvers / calculators / validators are pure functions. IO/UI is forbidden.
 - Server-side business logic (night flow / death calc / state transition / reducer) is executed by Cloudflare Worker (Durable Objects).
-- Client facade handles: HTTP API submission + Realtime receive + audio orchestration. Client running resolvers / reducers / death calculation is forbidden.
-- Facade methods return `Promise<ActionResult>` (imported from `@werewolf/game-engine/protocol/ActionResult`). Returning bare `boolean` or loose `{ success: boolean; reason?: string }` type is forbidden.
+- `RoomSession` handles command submission and realtime snapshots. A game-owned runtime may orchestrate audio and
+  local UI state; client-side resolvers, reducers, and death calculation remain forbidden.
+- Room command methods return the typed protocol result. Returning bare `boolean` or a loose result shape is forbidden.
 - Infra services may use platform APIs (MMKV / Platform / expo-audio etc.).
 - Pure type files (`src/services/types/**`) may be `import type`'d by any layer.
 - Cross-night state (`previousActions` / `lastNightTarget` etc.) is forbidden.
 - SRP ~400 line split signal (see `screens.instructions.md`). When exceeding threshold, first evaluate whether independent reuse/test/modification scenarios exist — don't mechanically apply.
-- Wire protocol (`PlayerMessage` / `GameState`) must maintain compatibility.
+- Realtime and HTTP room boundaries decode exact `RoomSnapshot` / `RoomCommandResult` contracts. Removed command
+  shapes and legacy snapshot fields are rejected; compatibility readers are forbidden.
 
 ## Resolver Standards
 
@@ -75,13 +82,15 @@ UI state loaded from MMKV / DB (coordinates, enums, config values) must validate
 
 ## Audio Orchestration
 
-Single orchestration source: Handler declares → Facade executes → UI read-only.
+Single orchestration source: Engine commits authoritative audio events → game runtime executes → UI reads state.
 
 - **Handler** (server-side): writes `pendingAudioEffects`, `audioKey` / `audioEndKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden. Audio IO is forbidden.
-- **Facade** (client-side): reactively watches store's `pendingAudioEffects` → plays → `postAudioAck` releases gate. Wolf vote deadline expires → `postProgression` triggers advancement (one-time guard prevents re-entry).
+- **Game runtime** (client-side): reactively watches `pendingAudioEffects` → plays → submits
+  `werewolf.audio.ack`. Wolf vote deadline expiry submits `werewolf.progress.request`.
 - **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
-- **Rejoin recovery**: `joinRoom(isHost=true)` recovers from DB → continue game AlertModal user gesture (Web autoplay needs gesture unlock) → `resumeAfterRejoin()` replays current step audio → `postAudioAck`. useEffect auto-triggering is forbidden.
+- **Rejoin recovery**: `RoomSession` restores the authoritative snapshot; the game audio runtime resumes the pending
+  batch after a user gesture when Web autoplay requires one, then dispatches the same audio ACK command.
 - **Audio-ack disconnect retry** (two-layer mutual exclusion):
   - **L1: Status listener** — WebSocket truly disconnects, SDK reconnects → `ConnectionStatus.Live` → retry `postAudioAck`. Covers real network disconnect.
   - **L2: Browser `online` event** — `window.addEventListener('online', ...)` zero-delay network recovery detection → retry `postAudioAck`. Covers scenario where WebSocket hasn't disconnected but HTTP has (e.g., Playwright `setOffline`, brief DNS failure). Web platform only (`typeof globalThis.window?.addEventListener === 'function'` capability check); native covered by L1.

@@ -1,0 +1,597 @@
+/**
+ * useConfigScreenState — ConfigScreen state & callbacks extraction
+ *
+ * Owns all useState, useEffect, useCallback, useMemo for ConfigScreen.
+ * Returns a flat bag of values consumed by ConfigScreen JSX (same pattern
+ * as useRoomScreenState for RoomScreen).
+ *
+ * Does not render JSX, does not import RN components, does not own styles.
+ */
+
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  createCustomTemplate,
+  type GameRuleOverrides,
+  isValidRoleId,
+  PRESET_TEMPLATES,
+  type RoleId,
+  validateTemplateRoles,
+} from '@game-judge/game-engine/games/werewolf/public';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner-native';
+
+import { useAuthContext } from '@/contexts/AuthContext';
+import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
+import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import {
+  getRoomCommandFailureReason,
+  isSuccessfulRoomCommand,
+} from '@/features/room/session/roomCommandResult';
+import type { SettingsService } from '@/features/settings/services/SettingsService';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { colors } from '@/theme';
+import { showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { translateReasonCode } from '@/utils/errorUtils';
+import { configLog } from '@/utils/logger';
+
+import type { FactionTabItem } from './components';
+import { FACTION_GROUPS } from './configData';
+import {
+  computeTotalCount,
+  getEmptySelection,
+  getInitialSelection,
+  restoreFromTemplateRoles,
+  selectionToRoles,
+  type VariantOverrides,
+} from './configHelpers';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ConfigNavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Config'>;
+
+interface UseConfigScreenStateParams {
+  existingRoomCode: string | undefined;
+  presetName: string | undefined;
+  nominateMode: { roomCode: string } | undefined;
+  updatedRules: GameRuleOverrides | undefined;
+  navigation: ConfigNavigationProp;
+  client: WerewolfGameClient;
+  settingsService: SettingsService;
+  onExitFlow: () => void;
+  onReturnToRoom: (roomCode: string) => void;
+  onRoomCreated: (roomCode: string) => void;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useConfigScreenState({
+  existingRoomCode,
+  presetName,
+  nominateMode,
+  updatedRules,
+  navigation,
+  client,
+  settingsService,
+  onExitFlow,
+  onReturnToRoom,
+  onRoomCreated,
+}: UseConfigScreenStateParams) {
+  const { user } = useAuthContext();
+  const { roomSession } = client;
+  const room = useRoomSessionSnapshot(roomSession);
+  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+  const isEditMode = !!existingRoomCode;
+  const isNominateMode = !!nominateMode;
+
+  // ── Core state ────────────────────────────────────────────────────────────
+
+  // Compute initial selection from presetName (if navigating from BoardPicker)
+  const presetInitial = useMemo(() => {
+    if (!presetName) return undefined;
+    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+    if (!preset) return undefined;
+    return restoreFromTemplateRoles(preset.roles);
+  }, [presetName]);
+
+  const [selection, setSelection] = useState(
+    () =>
+      presetInitial?.selection ??
+      (isEditMode || isNominateMode ? getInitialSelection() : getEmptySelection()),
+  );
+  const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditMode || isNominateMode);
+  const [selectedTemplate, setSelectedTemplate] = useState(
+    presetInitial?.matchedPreset ??
+      (isEditMode || isNominateMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
+  );
+  const [bgmEnabled, setBgmEnabled] = useState(true);
+  const [overflowVisible, setOverflowVisible] = useState(false);
+  const [variantOverrides, setVariantOverrides] = useState<VariantOverrides>(
+    () => presetInitial?.variantOverrides ?? {},
+  );
+  const [rules, setRules] = useState<GameRuleOverrides>({});
+
+  const totalCount = useMemo(
+    () => computeTotalCount(selection, variantOverrides),
+    [selection, variantOverrides],
+  );
+
+  // ── Apply preset when returning from BoardPicker (popTo updates params
+  //    but useState won't re-initialize on an already-mounted screen) ───────
+  // ── OR load current room's roles when in edit/nominate mode ──────────────
+  //
+  // Single effect with explicit priority:
+  //   1. presetName (user picked a board in BoardPicker) — always wins
+  //   2. room state (edit/nominate mode without preset) — load from client
+  //   3. neither — no-op (new room, empty selection already set by useState)
+
+  useEffect(() => {
+    // Priority 1: presetName — user explicitly chose a board
+    if (presetName) {
+      const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+      if (preset) {
+        const restored = restoreFromTemplateRoles(preset.roles);
+        setSelection(restored.selection);
+        setVariantOverrides(restored.variantOverrides);
+        setSelectedTemplate(restored.matchedPreset ?? '__custom__');
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    // Priority 2: edit/nominate mode — load current room roles from client
+    if ((isEditMode || isNominateMode) && (existingRoomCode || isNominateMode)) {
+      configLog.debug('Loading room roles', {
+        roomCode: existingRoomCode ?? nominateMode?.roomCode,
+      });
+      try {
+        const state = gameState;
+        if (state?.templateRoles && state.templateRoles.length > 0) {
+          const restored = restoreFromTemplateRoles(state.templateRoles);
+          setSelection(restored.selection);
+          setVariantOverrides(restored.variantOverrides);
+          setSelectedTemplate(restored.matchedPreset ?? '__custom__');
+        }
+        if (state?.rules) {
+          setRules(state.rules);
+        }
+        setBgmEnabled(settingsService.isBgmEnabled());
+      } catch (error) {
+        handleError(error, { label: '加载房间', logger: configLog, feedback: false });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [
+    presetName,
+    isEditMode,
+    isNominateMode,
+    existingRoomCode,
+    nominateMode,
+    gameState,
+    settingsService,
+  ]);
+
+  // ── Load settings (animation + BGM) for new rooms ────────────────────────
+
+  useEffect(() => {
+    if (!existingRoomCode) {
+      setBgmEnabled(settingsService.isBgmEnabled());
+    }
+  }, [existingRoomCode, settingsService]);
+
+  // ── Apply rules returned from GameRulesScreen ────────────────────────────
+
+  useEffect(() => {
+    if (updatedRules) {
+      setRules(updatedRules);
+    }
+  }, [updatedRules]);
+
+  // ── Auto-navigate back when game progresses past nomination phase ───────
+
+  useEffect(() => {
+    if (!nominateMode) return;
+    if (!gameState) return;
+    const canNominate =
+      gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated;
+    if (!canNominate) {
+      onReturnToRoom(nominateMode.roomCode);
+    }
+  }, [gameState, nominateMode, onReturnToRoom]);
+
+  // ── Callback handlers ────────────────────────────────────────────────────
+
+  const handleGoBack = useCallback(() => {
+    if (hasPreviousRouteInCurrentNavigator(navigation)) {
+      navigation.goBack();
+      return;
+    }
+    onExitFlow();
+  }, [navigation, onExitFlow]);
+
+  const handleTemplatePillPress = useCallback(() => {
+    navigation.navigate('BoardPicker', {
+      ...(existingRoomCode ? { existingRoomCode } : {}),
+      ...(nominateMode ? { nominateMode } : {}),
+    });
+  }, [navigation, existingRoomCode, nominateMode]);
+
+  const toggleRole = useCallback((key: string) => {
+    setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+    setSelectedTemplate('__custom__');
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelection((prev) => {
+      const cleared: Record<string, boolean> = {};
+      Object.keys(prev).forEach((k) => (cleared[k] = false));
+      return cleared;
+    });
+    setSelectedTemplate('__custom__');
+  }, []);
+
+  /** Navigate to GameRulesScreen */
+  const handleOpenGameRules = useCallback(() => {
+    navigation.navigate('Rules', {
+      rules,
+      ...(existingRoomCode ? { existingRoomCode } : {}),
+      ...(nominateMode ? { nominateMode } : {}),
+    });
+  }, [navigation, rules, existingRoomCode, nominateMode]);
+
+  /** Update rules when returning from GameRulesScreen */
+  const updateRules = useCallback((newRules: GameRuleOverrides) => {
+    setRules(newRules);
+  }, []);
+
+  const { createRoom, isCreating: isRoomCreating } = useRoomCreationController();
+  const handleCreateRoom = useCallback(async () => {
+    if (isLoading) {
+      throw new Error('[FAIL-FAST] Werewolf config cannot submit before room state is loaded');
+    }
+    const roles = selectionToRoles(selection, variantOverrides);
+    if (roles.length === 0) {
+      showErrorAlert('配置有误', '请至少选择一个角色');
+      return;
+    }
+
+    const validationError = validateTemplateRoles(roles);
+    if (validationError) {
+      showErrorAlert('配置有误', validationError);
+      return;
+    }
+
+    setIsWorkflowSubmitting(true);
+    try {
+      // ── Nominate mode: submit board nomination ──
+      if (nominateMode) {
+        const displayName = user?.displayName ?? '匿名玩家';
+        const result = await client.boardNominate(displayName, roles);
+        if (!isSuccessfulRoomCommand(result)) {
+          const reason = getRoomCommandFailureReason(result);
+          showErrorAlert('提交失败', translateReasonCode(reason));
+          return;
+        }
+        if (result.decision.outcome.reason === 'DEDUPLICATED') {
+          toast.info('已有相同板子建议，已自动为你投票');
+        }
+        onReturnToRoom(nominateMode.roomCode);
+        return;
+      }
+
+      const template = createCustomTemplate(roles);
+      if (Object.values(rules).some(Boolean)) {
+        template.rules = rules;
+      }
+
+      await settingsService.setBgmEnabled(bgmEnabled);
+
+      if (isEditMode && existingRoomCode) {
+        const result = await client.updateTemplate(template);
+        if (!isSuccessfulRoomCommand(result)) {
+          const reason = getRoomCommandFailureReason(result);
+          showErrorAlert('更新失败', translateReasonCode(reason));
+          return;
+        }
+        onExitFlow();
+      } else {
+        // Create room record in DB first — get confirmed/final roomCode
+        if (user === null) {
+          throw new Error('[FAIL-FAST] Werewolf room creation requires an authenticated user');
+        }
+        const record = await createRoom({
+          expectedHostUserId: user.id,
+          gameType: 'werewolf',
+          config: {
+            templateRoles: template.roles,
+            ...(template.rules === undefined ? {} : { rules: template.rules }),
+          },
+        });
+        const roomCode = record.roomCode;
+        onRoomCreated(roomCode);
+      }
+    } catch (e) {
+      handleError(e, {
+        label: isEditMode ? '更新房间' : '创建房间',
+        logger: configLog,
+        alertMessage: isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
+      });
+    } finally {
+      setIsWorkflowSubmitting(false);
+    }
+  }, [
+    selection,
+    isEditMode,
+    nominateMode,
+    existingRoomCode,
+    client,
+    settingsService,
+    bgmEnabled,
+    isLoading,
+    createRoom,
+    variantOverrides,
+    rules,
+    user,
+    onExitFlow,
+    onReturnToRoom,
+    onRoomCreated,
+  ]);
+
+  // ── Template label ───────────────────────────────────────────────────────
+
+  const handleBgmChange = useCallback((v: string) => {
+    setBgmEnabled(v === 'on');
+  }, []);
+
+  // ── Role info card (long-press any chip → RoleCardSimple with variant bar) ──
+
+  const [roleInfoBaseId, setRoleInfoBaseId] = useState<RoleId | null>(null);
+
+  const findSlotForKey = useCallback((baseRoleId: RoleId) => {
+    for (const group of FACTION_GROUPS) {
+      for (const section of group.sections) {
+        for (const slot of section.roles) {
+          if (slot.roleId === baseRoleId && slot.variants && slot.variants.length > 0) {
+            return slot;
+          }
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  // The displayed roleId resolves the active variant override
+  const roleInfoId = roleInfoBaseId ? (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId) : null;
+
+  // Variant pill bar data (only for slots that have variants)
+  const roleInfoSlot = roleInfoBaseId ? findSlotForKey(roleInfoBaseId) : null;
+  const roleInfoVariantIds = roleInfoSlot?.variants
+    ? [roleInfoSlot.roleId, ...roleInfoSlot.variants]
+    : [];
+  const roleInfoActiveVariant = roleInfoBaseId
+    ? (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId)
+    : undefined;
+
+  const handleChipInfoPress = useCallback((key: string) => {
+    const baseRoleId = key.replace(/\d+$/, '');
+    if (!isValidRoleId(baseRoleId)) {
+      throw new Error(`[useConfigScreenState] Invalid role selection key: ${key}`);
+    }
+    setRoleInfoBaseId(baseRoleId);
+  }, []);
+
+  const handleCloseRoleInfo = useCallback(() => {
+    setRoleInfoBaseId(null);
+  }, []);
+
+  /** Switch variant from within the RoleCardSimple pill bar. */
+  const handleRoleInfoVariantSelect = useCallback(
+    (variantId: RoleId) => {
+      if (!roleInfoBaseId) return;
+      setVariantOverrides((prev) => {
+        if (variantId === roleInfoBaseId) {
+          const next = { ...prev };
+          delete next[roleInfoBaseId];
+          return next;
+        }
+        return { ...prev, [roleInfoBaseId]: variantId };
+      });
+      setSelection((prev) => {
+        if (prev[roleInfoBaseId]) return prev;
+        return { ...prev, [roleInfoBaseId]: true };
+      });
+      setSelectedTemplate('__custom__');
+    },
+    [roleInfoBaseId],
+  );
+
+  // ── Active faction tab ───────────────────────────────────────────────────
+
+  const [activeTab, setActiveTab] = useState<Faction>(
+    FACTION_GROUPS[0]?.faction ?? Faction.Villager,
+  );
+
+  const handleTabPress = useCallback((key: Faction) => {
+    setActiveTab(key);
+  }, []);
+
+  // ── Settings sheet ───────────────────────────────────────────────────────
+
+  const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsSheetVisible(true);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsSheetVisible(false);
+  }, []);
+
+  // ── Template label ───────────────────────────────────────────────────────
+
+  const selectedTemplateLabel = useMemo(() => {
+    if (selectedTemplate === '__custom__') return '自定义';
+    const preset = PRESET_TEMPLATES.find((p) => p.name === selectedTemplate);
+    return preset ? preset.name : selectedTemplate;
+  }, [selectedTemplate]);
+
+  // ── Bulk role stepper ────────────────────────────────────────────────────
+
+  const getBulkCount = useCallback(
+    (roleId: string, maxCount: number): number => {
+      let count = 0;
+      for (let i = 0; i < maxCount; i++) {
+        const key = i === 0 ? roleId : `${roleId}${i}`;
+        if (selection[key]) count++;
+      }
+      return count;
+    },
+    [selection],
+  );
+
+  const handleBulkCountChange = useCallback((roleId: string, newCount: number) => {
+    setSelection((prev) => {
+      const next = { ...prev };
+      let maxCount = 1;
+      for (const group of FACTION_GROUPS) {
+        for (const section of group.sections) {
+          for (const slot of section.roles) {
+            if (slot.roleId === roleId) maxCount = slot.count ?? 1;
+          }
+        }
+      }
+      for (let i = 0; i < maxCount; i++) {
+        const key = i === 0 ? roleId : `${roleId}${i}`;
+        next[key] = i < newCount;
+      }
+      return next;
+    });
+    setSelectedTemplate('__custom__');
+  }, []);
+
+  const getFactionAccentColor = useCallback((faction: Faction): string => {
+    switch (faction) {
+      case Faction.Wolf:
+        return colors.wolf;
+      case Faction.God:
+        return colors.god;
+      case Faction.Villager:
+        return colors.villager;
+      case Faction.Special:
+        return colors.third;
+      default:
+        return colors.primary;
+    }
+  }, []);
+
+  const getFactionSelectedCount = useCallback(
+    (group: (typeof FACTION_GROUPS)[number]): number => {
+      let count = 0;
+      for (const section of group.sections) {
+        for (const slot of section.roles) {
+          const slotCount = slot.count ?? 1;
+          for (let i = 0; i < slotCount; i++) {
+            const key = i === 0 ? slot.roleId : `${slot.roleId}${i}`;
+            if (selection[key]) count++;
+          }
+        }
+      }
+      return count;
+    },
+    [selection],
+  );
+
+  const tabItems: FactionTabItem[] = useMemo(
+    () =>
+      FACTION_GROUPS.map((group) => {
+        const accentColor = getFactionAccentColor(group.faction);
+        return {
+          key: group.faction,
+          title: group.title,
+          count: getFactionSelectedCount(group),
+          accentColor,
+        };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- FACTION_GROUPS is module-level constant
+    [selection, getFactionAccentColor, getFactionSelectedCount],
+  );
+
+  const activeGroup = useMemo(
+    () => FACTION_GROUPS.find((g) => g.faction === activeTab) ?? FACTION_GROUPS[0],
+    [activeTab],
+  );
+
+  const isSubmitting = isWorkflowSubmitting || isRoomCreating;
+  const isDisabled = isSubmitting || isLoading;
+
+  // ── Return bag ───────────────────────────────────────────────────────────
+
+  return {
+    // Mode
+    isEditMode,
+    isNominateMode,
+    isDisabled,
+    isLoading,
+    isSubmitting,
+
+    // Core state
+    selection,
+    totalCount,
+    variantOverrides,
+    overflowVisible,
+    setOverflowVisible,
+
+    // Navigation
+    handleGoBack,
+    handleTemplatePillPress,
+    handleCreateRoom,
+
+    // Role toggling
+    toggleRole,
+    handleClearSelection,
+
+    // Game rules
+    rules,
+    handleOpenGameRules,
+    updateRules,
+
+    // Template
+    selectedTemplateLabel,
+
+    // Settings
+    bgmEnabled,
+    settingsSheetVisible,
+    handleOpenSettings,
+    handleCloseSettings,
+    handleBgmChange,
+
+    // Role info (with variant switching)
+    roleInfoId,
+    roleInfoVariantIds,
+    roleInfoActiveVariant,
+    handleChipInfoPress,
+    handleCloseRoleInfo,
+    handleRoleInfoVariantSelect,
+
+    // Faction tabs
+    tabItems,
+    activeTab,
+    activeGroup,
+    handleTabPress,
+
+    // Bulk stepper
+    getBulkCount,
+    handleBulkCountChange,
+    getFactionAccentColor,
+  };
+}

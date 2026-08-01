@@ -6,19 +6,17 @@
  * Embedded inside account card; does not include its own card container.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { getLevelProgress, LEVEL_THRESHOLDS } from '@game-judge/game-engine/product/growth';
 import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
-  getLevelProgress,
-  LEVEL_THRESHOLDS,
   TOTAL_UNLOCKABLE_COUNT,
-} from '@werewolf/game-engine/growth';
+} from '@game-judge/game-engine/product/rewards';
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { CampDistributionBar } from '@/components/CampDistributionBar';
-import type { UserStats } from '@/services/feature/StatsService';
+import type { UserStats } from '@/features/account/services/accountApi';
 import { colors, componentSizes, fixed } from '@/theme';
 
 import type { SettingsScreenStyles } from './styles';
@@ -79,15 +77,6 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressU
         </View>
         <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
       </TouchableOpacity>
-
-      {/* Camp distribution — 2h-delayed view (same anti-cheat delay as others' view) */}
-      <View style={styles.campSection}>
-        <View style={styles.campHeaderRow}>
-          <Text style={styles.campHeaderTitle}>阵营分布</Text>
-          <Text style={styles.campHeaderCount}>{stats.campStats.total} 局</Text>
-        </View>
-        <CampDistributionBar campStats={stats.campStats} />
-      </View>
     </>
   );
 });

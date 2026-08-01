@@ -1,15 +1,11 @@
 /**
  * Audio subsystem types — shared by all audio modules.
  *
- * Exports immutable value types and the playback strategy contract.
- * Contains zero platform-specific code and zero side effects.
+ * Defines playback adapter contracts and conversion helpers. Product-owned asset
+ * value types live in features/product/model/AudioClip.
  */
 
-/**
- * Metro bundler `require()` returns a number (asset ID) on native,
- * a string URL on Web. expo-audio also accepts { uri: string }.
- */
-export type AudioAsset = number | string | { uri: string };
+import type { AudioAsset } from '@/features/product/model/AudioClip';
 
 /** Resolve an AudioAsset to a URL string. */
 export function audioAssetToUrl(asset: AudioAsset): string {

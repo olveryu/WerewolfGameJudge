@@ -1,0 +1,415 @@
+/**
+ * Generic Resolver (SERVER-ONLY, pure function)
+ *
+ * Data-driven resolver: drives action validation and result computation from ROLE_SPECS' abilities declarations.
+ * Replaces many pattern-identical individual resolver files.
+ *
+ * Supported effect kinds (expanded gradually in P2-P4):
+ * - writeSlot: write to CurrentNightResults slot (guard/dreamcatcher/silenceElder/votebanElder/wolfQueen)
+ * - chooseIdol: choose idol (slacker/wildChild)
+ * - check: check faction/identity (seer family/psychic/gargoyle/wolfWitch/pureWhite)
+ * - charm: charm target (wolfQueen — write charmedSeat update)
+ * - block: block target skill (nightmare)
+ * - learn: learn target identity and skill (wolfRobot)
+ * - confirm: confirmation type (hunter/darkWolfKing/avenger)
+ *
+ * Does not handle: witch (compound two-step), wolf (vote aggregation), shadow (cross-role interaction),
+ * piper (multi-target + cumulative hypnosis), magician (swap two targets), awakenedGargoyle (transformation logic).
+ * These roles retain customResolver.
+ */
+
+import type { RoleId } from '../models';
+import { getRoleSpec, getSeerCheckResultForTeam } from '../models/roles/spec';
+import type { AbilityEffect, ActiveAbility, CheckEffect } from '../models/roles/spec/ability.types';
+import { TargetConstraint } from '../models/roles/spec/ability.types';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
+import { Team } from '../models/roles/spec/types';
+import { validateConstraints } from './constraintValidator';
+import { invertCheckResult } from './shared';
+import type {
+  ActionInput,
+  CurrentNightResults,
+  ResolverContext,
+  ResolverFn,
+  ResolverResult,
+} from './types';
+import { getRoleAfterSwap, resolveRoleForChecks } from './types';
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const REJECT_TARGET_NOT_FOUND = '目标玩家不存在' as const;
+const REJECT_MUST_CHOOSE_IDOL = '必须选择榜样' as const;
+
+// =============================================================================
+// Effect Processors
+// =============================================================================
+
+type EffectProcessor = (
+  ability: ActiveAbility<RoleId>,
+  context: ResolverContext,
+  input: ActionInput,
+  target: number,
+) => ResolverResult;
+
+/**
+ * writeSlot: write target to specified slot in CurrentNightResults
+ */
+function processWriteSlot(
+  ability: ActiveAbility<RoleId>,
+  _context: ResolverContext,
+  _input: ActionInput,
+  target: number,
+): ResolverResult {
+  const effect = ability.effects[0];
+  if (!effect || effect.kind !== 'writeSlot') {
+    throw new Error(`[FAIL-FAST] Expected writeSlot effect, got ${effect?.kind}`);
+  }
+
+  const slot = effect.slot;
+
+  return {
+    valid: true,
+    updates: { [slot]: target },
+  };
+}
+
+/**
+ * charm: charm target (wolfQueen — writes charmedSeat update)
+ */
+function processCharm(
+  _ability: ActiveAbility<RoleId>,
+  _context: ResolverContext,
+  _input: ActionInput,
+  target: number,
+): ResolverResult {
+  return {
+    valid: true,
+    updates: { charmedSeat: target },
+  };
+}
+
+/**
+ * chooseIdol: choose idol (slacker/wildChild)
+ */
+function processChooseIdol(
+  _ability: ActiveAbility<RoleId>,
+  _context: ResolverContext,
+  _input: ActionInput,
+  _target: number,
+): ResolverResult {
+  return { valid: true };
+}
+
+/**
+ * check: faction check (seer family) or identity check (psychic/gargoyle/pureWhite/wolfWitch)
+ */
+function processCheck(
+  ability: ActiveAbility<RoleId>,
+  context: ResolverContext,
+  _input: ActionInput,
+  target: number,
+): ResolverResult {
+  const effect = ability.effects[0];
+  if (!effect || effect.kind !== 'check') {
+    throw new Error(`[FAIL-FAST] Expected check effect, got ${effect?.kind}`);
+  }
+
+  if (effect.resultType === 'faction') {
+    return processFactionCheck(effect, context, target);
+  }
+
+  // identity check
+  return processIdentityCheck(context, target);
+}
+
+function processFactionCheck(
+  effect: CheckEffect,
+  context: ResolverContext,
+  target: number,
+): ResolverResult {
+  const effectiveRoleId = resolveRoleForChecks(context, target);
+  if (!effectiveRoleId) {
+    return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
+  }
+
+  const targetSpec = getRoleSpec(effectiveRoleId);
+  const normalResult = getSeerCheckResultForTeam(targetSpec.team);
+
+  let checkResult = normalResult;
+  if (effect.transformer === 'invert') {
+    checkResult = invertCheckResult(normalResult);
+  } else if (effect.transformer === 'random') {
+    // 50% chance to invert
+    const shouldInvert = context.rng() < 0.5;
+    if (shouldInvert) {
+      checkResult = invertCheckResult(normalResult);
+    }
+  }
+
+  return {
+    valid: true,
+    reveal: { kind: 'factionCheck', checkResult },
+  };
+}
+
+function processIdentityCheck(context: ResolverContext, target: number): ResolverResult {
+  const effectiveRoleId = resolveRoleForChecks(context, target);
+  if (!effectiveRoleId) {
+    return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
+  }
+
+  return {
+    valid: true,
+    reveal: { kind: 'identityCheck', roleId: effectiveRoleId },
+  };
+}
+
+/**
+ * block: block target skill (nightmare)
+ */
+function processBlock(
+  ability: ActiveAbility<RoleId>,
+  context: ResolverContext,
+  _input: ActionInput,
+  target: number,
+): ResolverResult {
+  const effect = ability.effects[0];
+  if (!effect || effect.kind !== 'block') {
+    throw new Error(`[FAIL-FAST] Expected block effect, got ${effect?.kind}`);
+  }
+
+  let wolfKillOverride: CurrentNightResults['wolfKillOverride'];
+
+  // If target is wolf team and disablesWolfKillOnWolfTarget, disable wolf kill
+  if (effect.disablesWolfKillOnWolfTarget) {
+    const targetRoleId = context.players.get(target);
+    if (targetRoleId) {
+      const targetSpec = getRoleSpec(targetRoleId);
+      if (targetSpec.team === Team.Wolf) {
+        wolfKillOverride = {
+          source: 'nightmare',
+          ui: WOLF_KILL_OVERRIDE_TEXTS.nightmare,
+        };
+      }
+    }
+  }
+
+  return {
+    valid: true,
+    updates: { blockedSeat: target, ...(wolfKillOverride ? { wolfKillOverride } : {}) },
+  };
+}
+
+/**
+ * learn: learn target identity (wolfRobot)
+ */
+function processLearn(
+  ability: ActiveAbility<RoleId>,
+  context: ResolverContext,
+  _input: ActionInput,
+  target: number,
+): ResolverResult {
+  const effect = ability.effects[0];
+  if (!effect || effect.kind !== 'learn') {
+    throw new Error(`[FAIL-FAST] Expected learn effect, got ${effect?.kind}`);
+  }
+
+  // Learn uses getRoleAfterSwap (magician swap only, no wolfRobot disguise)
+  // Wolf Robot learns the real role after a magician swap.
+  const effectiveRoleId = getRoleAfterSwap(
+    target,
+    context.players,
+    context.currentNightResults.swappedSeats,
+  );
+  if (!effectiveRoleId) {
+    return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
+  }
+
+  return {
+    valid: true,
+    reveal: {
+      kind: 'wolfRobotLearn',
+      learnedRoleId: effectiveRoleId,
+    },
+  };
+}
+
+/**
+ * confirm: confirmation type (hunter/darkWolfKing confirm status)
+ */
+function processConfirm(
+  _ability: ActiveAbility<RoleId>,
+  _context: ResolverContext,
+  _input: ActionInput,
+  _target: number,
+): ResolverResult {
+  // Confirm actions don't produce updates — the status display is handled by
+  // confirmContext.ts and the UI layer. Resolver just validates.
+  return { valid: true };
+}
+
+// =============================================================================
+// Effect Processor Registry
+// =============================================================================
+
+function getEffectProcessor(
+  effectKind: AbilityEffect<RoleId>['kind'],
+): EffectProcessor | undefined {
+  switch (effectKind) {
+    case 'writeSlot':
+      return processWriteSlot;
+    case 'charm':
+      return processCharm;
+    case 'chooseIdol':
+      return processChooseIdol;
+    case 'check':
+      return processCheck;
+    case 'block':
+      return processBlock;
+    case 'learn':
+      return processLearn;
+    case 'confirm':
+      return processConfirm;
+    default:
+      return undefined;
+  }
+}
+
+// =============================================================================
+// Generic Resolver Entry Point
+// =============================================================================
+
+/**
+ * Create a generic resolver for a role spec's active ability.
+ *
+ * @param roleId - The role ID in ROLE_SPECS
+ * @param abilityIndex - Which ability to use (default 0)
+ */
+export function createGenericResolver(roleId: RoleId, abilityIndex = 0): ResolverFn {
+  const spec = getRoleSpec(roleId);
+  const ability = spec.abilities[abilityIndex];
+  if (!ability || ability.type !== 'active') {
+    throw new Error(`[FAIL-FAST] Role ${roleId} ability[${abilityIndex}] is not an active ability`);
+  }
+
+  const activeAbility = ability;
+  const effectKind = activeAbility.effects[0]?.kind;
+  const processor = effectKind === undefined ? undefined : getEffectProcessor(effectKind);
+  if (effectKind !== undefined && !processor) {
+    throw new Error(`[FAIL-FAST] No generic effect processor for kind '${effectKind}'`);
+  }
+
+  return (context: ResolverContext, input: ActionInput): ResolverResult => {
+    // --- Handle skip ---
+    const target = getTarget(activeAbility, input);
+
+    if (target === undefined || target === null) {
+      return handleSkip(activeAbility, context);
+    }
+
+    // --- Validate target exists ---
+    if (!context.players.has(target)) {
+      return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
+    }
+
+    // --- Validate constraints ---
+    if (activeAbility.target) {
+      const constraintCtx = buildConstraintContext(activeAbility, context, target);
+      if (input.shelterRedirected) {
+        constraintCtx.shelterRedirected = true;
+      }
+      const constraintResult = validateConstraints(activeAbility.target.constraints, constraintCtx);
+      if (!constraintResult.valid) {
+        return { valid: false, rejectReason: constraintResult.rejectReason };
+      }
+    }
+
+    // --- Process effect ---
+    if (!processor) {
+      return { valid: true };
+    }
+
+    return processor(activeAbility, context, input, target);
+  };
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Extract target from input.
+ */
+function getTarget(_ability: ActiveAbility<RoleId>, input: ActionInput): number | undefined {
+  return input.target;
+}
+
+/**
+ * Handle skip action. canSkip=false → reject (unless nightmare-blocked).
+ */
+function handleSkip(ability: ActiveAbility<RoleId>, context: ResolverContext): ResolverResult {
+  if (ability.canSkip) {
+    return { valid: true };
+  }
+
+  // canSkip=false → normally must choose, but nightmare block exception
+  if (context.currentNightResults.blockedSeat === context.actorSeat) {
+    return { valid: true };
+  }
+
+  // chooseIdol abilities require a target
+  if (ability.effects.some((effect) => effect.kind === 'chooseIdol')) {
+    return { valid: false, rejectReason: REJECT_MUST_CHOOSE_IDOL };
+  }
+
+  return { valid: false, rejectReason: '必须选择目标' };
+}
+
+/**
+ * Build constraint validation context, including players map for
+ * faction-based constraints (NotWolfFaction, AdjacentToWolfFaction).
+ */
+function buildConstraintContext(
+  ability: ActiveAbility<RoleId>,
+  context: ResolverContext,
+  target: number,
+): {
+  actorSeat: number;
+  target: number;
+  players?: ReadonlyMap<number, RoleId>;
+  swappedSeats?: readonly [number, number];
+  totalSeats?: number;
+  shelterRedirected?: boolean;
+} {
+  const constraints = ability.target?.constraints ?? [];
+  const needsPlayers = constraints.some(
+    (c: TargetConstraint) =>
+      c === TargetConstraint.NotWolfFaction || c === TargetConstraint.AdjacentToWolfFaction,
+  );
+  const needsAdjacency = constraints.includes(TargetConstraint.AdjacentToWolfFaction);
+
+  const result: {
+    actorSeat: number;
+    target: number;
+    players?: ReadonlyMap<number, RoleId>;
+    swappedSeats?: readonly [number, number];
+    totalSeats?: number;
+    shelterRedirected?: boolean;
+  } = {
+    actorSeat: context.actorSeat,
+    target,
+  };
+
+  if (needsPlayers) {
+    result.players = context.players;
+  }
+
+  if (needsAdjacency) {
+    result.swappedSeats = context.currentNightResults.swappedSeats;
+    result.totalSeats = context.players.size;
+  }
+
+  return result;
+}

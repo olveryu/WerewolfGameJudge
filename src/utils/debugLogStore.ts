@@ -1,7 +1,7 @@
 /**
  * debugLogStore — External store for debug log entries
  *
- * Provides `useSyncExternalStore`-compatible subscribe/getSnapshot API.
+ * Provides the subscribe/getSnapshot contract consumed by `useSyncExternalStore`.
  * Module-level state — works before React mounts (transport writes arrive early).
  * No React, no service, no game state imports.
  */
@@ -39,43 +39,44 @@ function emitChange(): void {
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
-/** External debug log store, compatible with useSyncExternalStore's subscribe/getSnapshot API. */ export const debugLogStore =
-  {
-    /** useSyncExternalStore subscribe */
-    subscribe(listener: () => void): () => void {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+/** External debug log store used before and after React mounts. */
+export const debugLogStore = {
+  /** useSyncExternalStore subscribe */
+  subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
 
-    /** useSyncExternalStore getSnapshot */
-    getSnapshot(): DebugLogSnapshot {
-      return snapshot;
-    },
+  /** useSyncExternalStore getSnapshot */
+  getSnapshot(): DebugLogSnapshot {
+    return snapshot;
+  },
 
-    addLog(message: string, level: DebugLogEntry['level']): void {
-      const entry: DebugLogEntry = {
-        timestamp: new Date(),
-        message,
-        level,
-      };
+  addLog(message: string, level: DebugLogEntry['level']): void {
+    const entry: DebugLogEntry = {
+      timestamp: new Date(),
+      message,
+      level,
+    };
 
-      const next = [...logs, entry];
-      logs = next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
-      emitChange();
-    },
+    const next = [...logs, entry];
+    logs = next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
+    emitChange();
+  },
 
-    clear(): void {
-      logs = [];
-      emitChange();
-    },
+  clear(): void {
+    logs = [];
+    emitChange();
+  },
 
-    setVisible(v: boolean): void {
-      if (visible === v) return;
-      visible = v;
-      emitChange();
-    },
+  setVisible(nextVisible: boolean): void {
+    if (visible === nextVisible) return;
+    visible = nextVisible;
+    emitChange();
+  },
 
-    getVisible(): boolean {
-      return visible;
-    },
-  } as const;
+  toggleVisibility(): void {
+    visible = !visible;
+    emitChange();
+  },
+} as const;

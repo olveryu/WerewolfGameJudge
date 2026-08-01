@@ -116,14 +116,14 @@ const REASON_CODE_MAP: Record<string, string> = {
   INVALID_OLD_PASSWORD: '原密码错误',
   EMAIL_SEND_FAILED: '邮件发送失败，请稍后重试',
   INVALID_OR_EXPIRED_CODE: '验证码无效或已过期',
-  WECHAT_NOT_CONFIGURED: '微信登录未配置',
   WECHAT_TIMEOUT: '微信服务超时，请重试',
   WECHAT_AUTH_FAILED: '微信认证失败',
   INVALID_REFRESH_TOKEN: '登录已过期，请重新登录',
   WECHAT_ALREADY_BOUND: '该微信已绑定其他账号',
   // ── Room / Avatar / Share ─────────────────────────────────────────────────
-  ROOM_CODE_CONFLICT: '房间号冲突，请重试',
-  STORAGE_NOT_CONFIGURED: '存储服务未配置',
+  room_initialization_conflict: '房间初始化冲突，请重新创建',
+  room_effects_pending: '房间操作仍在处理中，请稍后重试',
+  command_id_conflict: '操作标识冲突，请重试',
   FILE_REQUIRED: '请选择文件',
   INVALID_FILE_TYPE: '文件类型无效，仅支持 JPEG/PNG/WebP',
   FILE_TOO_LARGE: '文件过大（最大 5MB）',
@@ -147,13 +147,15 @@ const REASON_CODE_MAP: Record<string, string> = {
   invalid_seat: '座位不存在',
   seat_taken: '座位已被占用',
   not_seated: '你还没有入座',
+  not_host: '仅房主可以执行此操作',
+  seat_empty: '该座位没有玩家',
+  controlled_seat_not_allowed: '当前操作不支持接管座位',
+  controlled_seat_not_bot: '只能接管机器人座位',
   // Game control
   invalid_status: '当前状态不允许此操作',
   role_count_mismatch: '角色数量与座位数不匹配',
   forbidden_while_audio_playing: '请等待语音播放完毕',
-  // Transport (processGameAction)
-  CONFLICT_RETRY: '操作冲突，请重试',
-  ROOM_NOT_FOUND: '房间不存在或已解散',
+  // Transport
   INTERNAL_ERROR: '服务器内部错误',
   // Client API layer
   NETWORK_ERROR: '网络异常，请检查网络后重试',
@@ -262,13 +264,9 @@ const EXPECTED_ERROR_CODES = new Set([
 
 export function isExpectedError(error: unknown): boolean {
   if (typeof error === 'string') return EXPECTED_ERROR_CODES.has(error);
-  if (error instanceof Error) {
-    // error.message is the reason code after wire format unification
-    if (EXPECTED_ERROR_CODES.has(error.message)) return true;
-    // Also check .reason property (cfFetch attaches it)
-    const reason = (error as { reason?: string }).reason;
-    if (reason && EXPECTED_ERROR_CODES.has(reason)) return true;
-  }
+  // error.message is the reason code after wire format unification
+  if (error instanceof Error && EXPECTED_ERROR_CODES.has(error.message)) return true;
+  // Also check .reason property (cfFetch attaches it)
   if (error != null && typeof error === 'object' && 'reason' in error) {
     const reason = error.reason;
     if (typeof reason === 'string' && EXPECTED_ERROR_CODES.has(reason)) return true;

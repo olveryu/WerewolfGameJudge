@@ -1,3 +1,4 @@
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
@@ -71,7 +72,19 @@ const ERROR_RECOVERY_PATTERNS = [
  * Uses app title as hydration indicator.
  */
 export async function waitForAppReady(page: Page, timeoutMs = 15000): Promise<void> {
-  await page.waitForSelector('text=狼人面杀电子裁判助手', { timeout: timeoutMs });
+  await page.waitForSelector('text=桌游电子裁判助手', { timeout: timeoutMs });
+}
+
+/** Complete the explicit Home create-room mode selection. */
+export async function startRoomCreation(page: Page, gameType: GameType): Promise<void> {
+  await page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`).click();
+  await selectGameMode(page, gameType);
+}
+
+/** Select a visible catalog-backed game mode. */
+export async function selectGameMode(page: Page, gameType: GameType): Promise<void> {
+  await expect(page.locator(`[data-testid="${TESTIDS.gameModePickerModal}"]`)).toBeVisible();
+  await page.locator(`[data-testid="${TESTIDS.gameModePickerOption(gameType)}"]`).click();
 }
 
 /**
@@ -376,161 +389,24 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
 
   // Trigger login via "进入房间" button (calls requireAuth -> shows login modal)
   const enterRoomBtn = page.locator(`[data-testid="${TESTIDS.homeEnterRoomButton}"]`);
-  const hasEnterBtn = await enterRoomBtn
-    .waitFor({ state: 'visible', timeout: 3000 })
+  await expect(enterRoomBtn).toBeVisible({ timeout: 3000 });
+  await enterRoomBtn.click({ timeout: 2000 });
+
+  // Wait for login modal to appear
+  const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
+  const hasAnonBtn = await anonLoginBtn
+    .waitFor({ state: 'visible', timeout: 5000 })
     .then(() => true)
     .catch(() => false);
-  if (hasEnterBtn) {
-    await enterRoomBtn.click({ timeout: 2000 });
-
-    // Wait for login modal to appear
-    const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
-    const hasAnonBtn = await anonLoginBtn
-      .waitFor({ state: 'visible', timeout: 5000 })
-      .then(() => true)
-      .catch(() => false);
-    if (hasAnonBtn) {
-      await anonLoginBtn.click();
-      await expect(userNameLocator).toBeVisible({ timeout: 15000 });
-    } else {
-      await completeAnonLoginIfNeeded(page);
-    }
-
-    // Dismiss any leftover modals (e.g. join room modal from pending action)
-    await dismissBlockingModals(page);
-    await ensureHomeReady(page);
-    return;
+  if (hasAnonBtn) {
+    await anonLoginBtn.click();
+    await expect(userNameLocator).toBeVisible({ timeout: 15000 });
+  } else {
+    await completeAnonLoginIfNeeded(page);
   }
 
-  // Last resort: trigger login via create room button (testID)
-  const createRoomBtn = page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`);
-  await expect(createRoomBtn).toBeVisible({ timeout: 5000 });
-  await createRoomBtn.click();
-  // Wait for login modal to appear after triggering create room
-  await page
-    .locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`)
-    .or(page.getByText('登录', { exact: true }))
-    .waitFor({ state: 'visible', timeout: 5000 })
-    .catch(() => {});
-
-  await completeAnonLoginIfNeeded(page);
-  await waitForPostLoginStable(page);
-  await navigateBackToHome(page);
-}
-
-/**
- * Wait for post-login state to stabilize.
- * After login, the app might be in various states.
- */
-async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<void> {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < maxWaitMs) {
-    // Check if we're on a stable screen using testIDs (preferred) or fallback regex
-    const onBoardPicker = await page
-      .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-    const onConfig = await page
-      .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-    const onRoom = await page
-      .locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-    const onHome = await page
-      .locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-
-    if (onBoardPicker || onConfig || onRoom || onHome) {
-      return;
-    }
-
-    // Wait for any stable screen to appear
-    await page
-      .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
-      .or(page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`))
-      .or(page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`))
-      .or(page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`))
-      .first()
-      .waitFor({ state: 'visible', timeout: 3000 })
-      .catch(() => {});
-  }
-}
-
-/**
- * Navigate back to home screen from wherever we are.
- * Uses ensureHomeReady at the end to verify stable state.
- */
-async function navigateBackToHome(page: Page): Promise<void> {
-  const maxAttempts = 5;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Check if we're on ConfigScreen using testID
-    const onConfig = await page
-      .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-    if (onConfig) {
-      const backBtn = page.locator('[data-testid="config-back-button"]');
-      if (await backBtn.isVisible().catch(() => false)) {
-        await backBtn.click();
-        // Wait for config screen to disappear
-        await page
-          .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
-          .waitFor({ state: 'hidden', timeout: 3000 })
-          .catch(() => {});
-        continue;
-      }
-    }
-
-    // Check if we're on BoardPickerScreen using testID
-    const onBoardPicker = await page
-      .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-    if (onBoardPicker) {
-      // Press browser back or the header back button to return to Home
-      await page.goBack();
-      await page
-        .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
-        .waitFor({ state: 'hidden', timeout: 3000 })
-        .catch(() => {});
-      continue;
-    }
-
-    // Check if we're on RoomScreen using testID
-    const onRoom = await page
-      .locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`)
-      .isVisible()
-      .catch(() => false);
-    if (onRoom) {
-      // This is a more complex case - for now just return and let the caller handle
-      // The test might need to leave the room explicitly
-      return;
-    }
-
-    // Check if home is truly ready (no transient states)
-    if (await isHomeReady(page)) {
-      return;
-    }
-
-    // Try back button anyway
-    const backBtn = page.locator('[data-testid="config-back-button"]');
-    if (await backBtn.isVisible().catch(() => false)) {
-      await backBtn.click();
-      // Wait for back button to disappear (screen transition)
-      await backBtn.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
-      continue;
-    }
-
-    // Poll cadence for retry loop
-    await page.waitForTimeout(300);
-  }
-
-  // Final check - use ensureHomeReady which handles transient states
+  // Dismiss the join-room modal opened by the pending authenticated action.
+  await dismissBlockingModals(page);
   await ensureHomeReady(page);
 }
 

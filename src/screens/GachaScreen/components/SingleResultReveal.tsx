@@ -9,7 +9,7 @@
  *
  * Under reducedMotion all animations degrade to a simple fade-in.
  */
-import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -26,7 +26,8 @@ import Animated, {
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
-import type { DrawResultItem } from '@/services/feature/GachaService';
+import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
@@ -75,8 +76,9 @@ export function SingleResultReveal({
   reducedMotion,
 }: SingleResultRevealProps) {
   const rarity = item.rarity;
+  const productUi = useClientProductUi();
   const visual = RARITY_VISUAL[rarity];
-  const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
+  const displayName = getRewardDisplayName(productUi, item.rewardType, item.rewardId);
   const typeLabel = REWARD_TYPE_LABELS[item.rewardType];
   const previewSize = PREVIEW_SIZES[rarity];
   const borderWidth = BORDER_WIDTHS[rarity];

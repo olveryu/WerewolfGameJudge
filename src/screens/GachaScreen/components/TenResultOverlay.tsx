@@ -21,7 +21,8 @@ import Animated, {
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
-import type { DrawResultItem } from '@/services/feature/GachaService';
+import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import {
   borderRadius,
   colors,
@@ -36,7 +37,7 @@ import {
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
 interface TenResultOverlayProps {
-  results: DrawResultItem[];
+  results: readonly DrawResultItem[];
   drawType: 'normal' | 'golden';
   onClose: () => void;
   onGoEquip?: () => void;
@@ -60,6 +61,7 @@ function ResultCell({
   index: number;
   isHighRarity: boolean;
 }) {
+  const productUi = useClientProductUi();
   const scale = useSharedValue(isHighRarity ? 0.5 : 0.7);
   const opacity = useSharedValue(0);
   const glowPulse = useSharedValue(1);
@@ -103,7 +105,7 @@ function ResultCell({
   }));
 
   const visual = RARITY_VISUAL[item.rarity];
-  const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
+  const displayName = getRewardDisplayName(productUi, item.rewardType, item.rewardId);
 
   return (
     <Animated.View

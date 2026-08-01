@@ -92,53 +92,6 @@ export const ANNOUNCEMENTS: Record<string, Announcement> = {
   },
 };
 
-// ── Board version mapping ────────────────────────────────────────────────────
-
-/** Version when each board was first introduced. key = PresetTemplate.name */
-export const BOARD_VERSION_MAP: Record<string, string> = {
-  // v1.0.0 — initial 17 boards
-  预女猎白: 'v1.0.0',
-  狼美守卫: 'v1.0.0',
-  狼王守卫: 'v1.0.0',
-  白狼王守卫: 'v1.0.0',
-  石像鬼守墓人: 'v1.0.0',
-  噩梦之影守卫: 'v1.0.0',
-  血月猎魔: 'v1.0.0',
-  狼王摄梦人: 'v1.0.0',
-  狼王魔术师: 'v1.0.0',
-  机械狼人通灵师: 'v1.0.0',
-  恶灵骑士: 'v1.0.0',
-  // v1.2.0
-  纯白夜影: 'v1.2.0',
-  灯影预言家: 'v1.2.0',
-  假面舞会: 'v1.2.0',
-  吹笛者: 'v1.2.0',
-  预女猎白混: 'v1.0.0',
-  预女猎白野: 'v1.2.0',
-  // v2.0.0
-  盗宝大师: 'v2.0.0',
-  盗贼丘比特: 'v2.0.0',
-  咒狐乌鸦: 'v2.0.0',
-  影子复仇者: 'v2.0.0',
-  // v2.1.0
-  唯邻是从: 'v2.1.0',
-  孤注一掷: 'v2.1.0',
-  // v2.2.0
-  永序之轮: 'v2.2.0',
-  // v2.5.0
-  隐狼乌鸦: 'v2.5.0',
-};
-
-/** Board versions in descending order (latest first), for grouped display */
-export const BOARD_VERSIONS_DESC = [
-  'v2.5.0',
-  'v2.2.0',
-  'v2.1.0',
-  'v2.0.0',
-  'v1.2.0',
-  'v1.0.0',
-] as const;
-
 /** Developer WeChat ID, shown fixed at announcement footer */
 export const DEVELOPER_WECHAT_ID = 'olveryu';
 

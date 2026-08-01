@@ -1,0 +1,30 @@
+/** Minimal game-agnostic RPC contract exposed by the room Durable Object. */
+
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type {
+  BaseGameState,
+  RoomSnapshot,
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+
+import type {
+  AuthorizeRoomDeletionCommand,
+  AuthorizeRoomDeletionResult,
+  DeleteRoomStorageCommand,
+  DeleteRoomStorageResult,
+  DispatchRoomResult,
+  DispatchUserRoomCommand,
+  InitializeRoomCommand,
+  InitializeRoomResult,
+  ReadRoomCommand,
+} from './types';
+
+export interface IGameRoomRPC {
+  initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult>;
+  dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult>;
+  getSnapshot(command: ReadRoomCommand): Promise<RoomSnapshot<BaseGameState<GameType>> | null>;
+  getRevision(command: ReadRoomCommand): Promise<number | null>;
+  authorizeRoomDeletion(
+    command: AuthorizeRoomDeletionCommand,
+  ): Promise<AuthorizeRoomDeletionResult>;
+  deleteRoomStorage(command: DeleteRoomStorageCommand): Promise<DeleteRoomStorageResult>;
+}

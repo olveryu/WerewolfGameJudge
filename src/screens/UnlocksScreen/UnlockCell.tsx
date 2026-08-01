@@ -13,8 +13,8 @@ import { getSeatAnimationById } from '@/components/seatAnimations';
 import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAnimation';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
-import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { getRarityCellConfig, getRarityCellStyle } from '@/config/rarityVisual';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { borderRadius, colors, shadows, spacing, typography, withAlpha } from '@/theme';
 import { getHandDrawnThumb } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
@@ -171,7 +171,8 @@ const NameStyleThumb = React.memo<{ id: string; displayName: string }>(({ id, di
 NameStyleThumb.displayName = 'NameStyleThumb';
 
 const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
-  const opt = getAnimationOption(id);
+  const productUi = useClientProductUi();
+  const presentation = productUi.getRevealEffectPresentation(id);
   const petConfig = getPetByEffectId(id);
   const PetComponent = petConfig?.Component;
   return (
@@ -186,7 +187,7 @@ const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocke
         <PetComponent size={EFFECT_PREVIEW_SIZE - 8} />
       ) : (
         <Ionicons
-          name={opt?.icon ?? 'help-outline'}
+          name={presentation.icon}
           size={28}
           color={unlocked ? colors.text : colors.textMuted}
         />

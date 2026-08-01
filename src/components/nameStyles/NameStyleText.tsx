@@ -15,6 +15,10 @@ import { crossPlatformTextShadow } from '@/theme/tokens';
 
 import { NAME_STYLE_CONFIGS, type NameStyleConfig, type TextShadowLayer } from './nameStyleConfigs';
 
+const NAME_STYLE_CONFIG_MAP: ReadonlyMap<string, NameStyleConfig> = new Map(
+  Object.entries(NAME_STYLE_CONFIGS),
+);
+
 interface NameStyleTextProps extends TextProps {
   /** Name style ID from rewardCatalog. Undefined/null/invalid = plain text. */
   styleId?: string | null;
@@ -112,7 +116,7 @@ function buildWebStyle(config: NameStyleConfig): Record<string, unknown> {
 
 export const NameStyleText: React.FC<NameStyleTextProps> = React.memo(
   ({ styleId, style, children, ...rest }) => {
-    const config = styleId ? NAME_STYLE_CONFIGS[styleId as keyof typeof NAME_STYLE_CONFIGS] : null;
+    const config = styleId ? NAME_STYLE_CONFIG_MAP.get(styleId) : undefined;
 
     const nameStyle = useMemo(() => {
       if (!config) return null;

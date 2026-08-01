@@ -1,8 +1,7 @@
 /**
  * DebugPanel — On-screen debug log viewer (React Native Modal)
  *
- * Replaces the DOM-based mobileDebug panel with a proper RN component.
- * Subscribes to debugLogStore via useSyncExternalStore.
+ * Subscribes to debugLogStore via useSyncExternalStore and renders with React Native primitives.
  * Dark theme overlay — visually distinct from game UI.
  *
  * Features:

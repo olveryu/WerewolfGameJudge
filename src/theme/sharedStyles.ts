@@ -13,7 +13,7 @@
  * - Modal    — modalOverlay, modalBase
  * - Sheet    — sheetOverlay, sheetBase, sheetHandle
  * - List     — listItem, sectionTitle
- * - Misc     — iconButton (legacy)
+ * - Misc     — iconButton
  */
 import type { TextStyle, ViewStyle } from 'react-native';
 import { StyleSheet } from 'react-native';

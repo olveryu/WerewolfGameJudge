@@ -1,31 +1,35 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreBinaries": ["miniprogram-ci", "gh"],
-  "ignore": [".husky/**"],
   "exclude": ["types"],
   "workspaces": {
     ".": {
-      "entry": ["App.tsx!", "scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
+      "entry": [
+        "App.tsx!",
+        "scripts/*.{ts,mjs,sh}",
+        "functions/**/*.ts!",
+        "e2e/**/*.ts",
+        "type-tests/**/*.{ts,tsx}!"
+      ],
       "project": ["src/**/*.{ts,tsx}!", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
       "ignoreDependencies": [
-        "@sentry/browser",
         "canvaskit-wasm",
         "expo-modules-core",
         "expo-updates",
         "expo-system-ui",
-        "html2canvas",
         "jest-environment-jsdom",
         "babel-plugin-transform-define",
         "babel-plugin-react-compiler",
-        "serve",
-        "lint-staged"
+        "serve"
       ]
     },
     "packages/game-engine": {
+      "entry": ["type-tests/**/*.ts!"],
       "project": ["src/**/*.ts!"]
     },
     "packages/api-worker": {
-      "project": ["src/**/*.ts!"],
+      "entry": ["src/e2e/index.ts!", "type-tests/**/*.ts!"],
+      "project": ["src/**/*.ts!", "type-tests/**/*.ts!"],
       "ignoreDependencies": ["cloudflare"]
     }
   }

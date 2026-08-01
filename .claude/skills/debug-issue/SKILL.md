@@ -115,12 +115,12 @@ Common root causes: testid changed without sync, WebSocket not ready before acti
 
 **F — Performance Issue:**
 
-| First-check Path   | Investigation Focus                                |
-| ------------------ | -------------------------------------------------- |
-| `src/screens/`     | Large lists not virtualized, unnecessary re-render |
-| `src/services/`    | Frequent setState, un-debounced operations         |
-| `src/hooks/`       | useMemo/useCallback deps too broad                 |
-| Worker network tab | Request waterfall, oversized payload               |
+| First-check Path              | Investigation Focus                                |
+| ----------------------------- | -------------------------------------------------- |
+| `src/screens/`                | Large lists not virtualized, unnecessary re-render |
+| `src/services/`               | Frequent setState, un-debounced operations         |
+| `src/features/*/controllers/` | useMemo/useCallback deps too broad                 |
+| Worker network tab            | Request waterfall, oversized payload               |
 
 Common root causes: Selector returning new object each time, list items without memo, audio preload blocking
 

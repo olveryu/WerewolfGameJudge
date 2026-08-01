@@ -25,11 +25,13 @@
 
 ### 1.1 Motivation
 
-Existing growth system: gain 50–70 XP per game → level up → `pickRandomReward()` directly gives 1 random unlocked item. Problems with this approach:
+The original growth flow granted an item automatically on level-up. The current system separates
+growth earnings from reward draws: settlement grants tickets, and the player spends tickets through
+the server-authoritative gacha API.
 
 - **No ceremony**: Level unlock only shows a toast, players likely miss it
 - **No active engagement**: Rewards auto-deposit, players have no participation in "receiving"
-- **Single source**: Only leveling gives rewards; if no level-up after a game, only "+55 XP" is shown
+- **Single source**: Automatic level-up grants did not support daily rewards, pity, or shard exchange
 
 ### 1.2 Goals
 
@@ -46,7 +48,7 @@ Introduce gacha mechanism:
 | Constraint           | Description                                                                                                                                           |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server authoritative | Probability calculation, ticket deduction, item grants all execute on Worker. Client only submits "draw" request and displays server-returned results |
-| Game engine purity   | `@werewolf/game-engine` holds probability pure functions (`rollRarity`/`selectReward`), no IO / DB operations                                         |
+| Game engine purity   | `@game-judge/game-engine` holds probability pure functions (`rollRarity`/`selectReward`), no IO / DB operations                                       |
 | Trust model          | Face-to-face party game, no extra anti-cheat architecture, but server validates ticket balance                                                        |
 | Atomic deployment    | Worker + Pages deploy atomically, no old/new version coexistence, API changes are directly breaking                                                   |
 
@@ -56,40 +58,43 @@ Introduce gacha mechanism:
 
 ### 2.1 Item Registry
 
-**File**: `packages/game-engine/src/growth/rewardCatalog.ts`
+**File**: `packages/game-engine/src/product/rewards/catalog.ts`
 
-- 4 item types: `avatar`(43) / `frame`(170) / `seatFlair`(180) / `nameStyle`(170)
-- `REWARD_POOL`: 563 drawable items, `RewardItem { type, id, rarity }`
-- 4 rarities: Common(319) / Rare(164) / Epic(55) / Legendary(25)
+- 6 item types: avatar, frame, seat flair, name style, role-reveal effect, and seat animation
+- `REWARD_POOL`: 1018 drawable items, `RewardItem { type, id, rarity }`
+- 4 rarities: Common(500) / Rare(250) / Epic(219) / Legendary(49)
 
 ### 2.2 Random Selection
 
-**File**: `packages/game-engine/src/growth/frameUnlock.ts`
+**File**: `packages/game-engine/src/product/rewards/gacha.ts`
 
-- `pickRandomReward(unlockedIds, randomFn, level)` — determines priority type by level modulo 5/7/3, filters already-unlocked, randomly picks one
-- Gacha system will **replace this function** (no longer type-by-level; instead roll rarity first, then randomly pick from that rarity pool)
+- `rollRarity(drawType, pityCount, randomValue)` selects a rarity and applies the pity floor
+- `selectReward(rarity, unlockedIds, rng)` selects only from that exact rarity pool
+- Duplicate items remain valid results and are converted to rarity-based shards
+- The injected `Rng` contract is shared with `platform/random` and fails fast outside `[0, 1)`
 
 ### 2.3 Settlement Chain
 
 ```
 Game ends
-  → GameRoom DO #settleIfEnded()
-    → settleGameResults() [packages/api-worker/src/growth/settleGameResults.ts]
-      → per player: rollXp() → Drizzle upsert → check level up → pickRandomReward()
-    → #sendSettleResults() — WebSocket unicast SETTLE_RESULT
-    → #updateRosterLevels() — broadcast UPDATE_ROSTER_LEVELS action
+  → generic effect outbox commits werewolf.game.ended
+    → Werewolf effect handler
+      → settleGameResults() [packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts]
+      → effect-idempotent D1 ledger + user_stats + camp history
+      → internal roster-level command
+      → durable user_event_inbox SETTLE_RESULT
 
 Client
-  → CFRealtimeService parses SETTLE_RESULT
-    → facade.handleSettleResult()
-      → useSettleToast hook shows toast
+  → shared RoomSession decodes the acknowledged user event
+    → useWerewolfSettleToast shows toast and invalidates product queries
 ```
 
-**Key change point**: `settleGameResults()` no longer calls `pickRandomReward()`, instead increments ticket count.
+**Settlement boundary**: `settleGameResults()` updates XP and ticket earnings only. Item selection is
+owned by the authenticated gacha route, not by game settlement.
 
 ### 2.4 D1 Schema
 
-**File**: `packages/api-worker/src/db/schema.ts`
+**File**: `packages/api-worker/src/db/applicationSchema.ts`
 
 ```
 user_stats:
@@ -118,7 +123,7 @@ New gacha route approach: add `/api/gacha/*` within the `/api` route group.
 
 ### 2.6 Migration Numbers
 
-Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column).
+Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column), `0022_gacha_idempotency_keys.sql` (replay table), `0039_gacha_mutation_ledger.sql` (atomic claim/application state), and `0040_normalize_daily_reward_timestamp.sql` (canonical UTC timestamp normalization and write constraints).
 
 ---
 
@@ -163,7 +168,7 @@ CREATE INDEX idx_draw_history_created ON draw_history(created_at);
 
 ### 3.2 Drizzle Schema Update
 
-`packages/api-worker/src/db/schema.ts` — `userStats` table gains 4 columns:
+`packages/api-worker/src/db/applicationSchema.ts` — `userStats` table gains 4 columns:
 
 ```typescript
 export const userStats = sqliteTable('user_stats', {
@@ -180,23 +185,42 @@ New `drawHistory` table definition:
 
 ```typescript
 export const drawHistory = sqliteTable('draw_history', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+  id: text('id').primaryKey(),
   userId: text('user_id')
     .notNull()
     .references(() => users.id),
   drawType: text('draw_type').notNull(),
   rarity: text('rarity').notNull(),
-  itemType: text('item_type').notNull(),
-  itemId: text('item_id').notNull(),
+  rewardType: text('reward_type').notNull(),
+  rewardId: text('reward_id').notNull(),
   pityCount: integer('pity_count').notNull(),
-  wasPity: integer('was_pity').notNull().default(0),
+  isPityTriggered: integer('is_pity_triggered').notNull().default(0),
+  isDuplicate: integer('is_duplicate').notNull().default(0),
+  shardsAwarded: integer('shards_awarded').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
 ```
 
+`idempotency_keys` is the mutation ledger, not a best-effort response cache:
+
+```sql
+CREATE TABLE idempotency_keys (
+  key TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  claim_id TEXT NOT NULL,
+  operation TEXT NOT NULL CHECK (operation IN ('draw', 'exchange')),
+  is_applied INTEGER NOT NULL CHECK (is_applied IN (0, 1)),
+  response TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+`claim_id` identifies the one request allowed to apply a globally unique key. Only rows with
+`is_applied = 1` are externally replayable; an unapplied claim is deleted inside the same D1 batch.
+
 ### 3.3 RewardItem Gains Rarity
 
-`packages/game-engine/src/growth/rewardCatalog.ts`:
+`packages/game-engine/src/product/rewards/catalog.ts`:
 
 ```typescript
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -210,22 +234,27 @@ export interface RewardItem {
 
 Each entry in `REWARD_POOL` gains a `rarity` field. Specific distribution in §5.
 
-### 3.4 SettleResultMessage Changes
+### 3.4 Werewolf Settlement Event
 
-`src/services/types/IRealtimeTransport.ts`:
+`src/games/werewolf/realtime/werewolfUserEventCodec.ts`:
 
 ```typescript
-export interface SettleResultMessage {
+export interface WerewolfSettlementEvent {
+  type: 'SETTLE_RESULT';
+  eventId: string;
+  gameType: 'werewolf';
+  settlementId: string;
+  endedRevision: number;
   xpEarned: number;
   newXp: number;
   newLevel: number;
   previousLevel: number;
-  normalDrawsEarned: number; // usually = 1 (valid game)
-  goldenDrawsEarned: number; // = 1 on level-up (0 otherwise)
+  normalDrawsEarned: number;
+  goldenDrawsEarned: number;
 }
 ```
 
-`reward` field removed outright (Web client + Worker deploy atomically, no old/new version coexistence).
+`reward` field was removed outright. The Worker and client use one strict game-owned event shape; no old/new version coexistence.
 
 ---
 
@@ -267,18 +296,17 @@ export interface SettleResultMessage {
 - When reaching 10, pity forcibly triggers (this draw doesn't consume count, directly resets to 0)
 - **10-pull calculates pity independently per draw** (multi-pull is not rolling 10 results at once then settling together)
 
-### 4.3 Deduplication Mechanism
+### 4.3 Duplicate and Shard Mechanism
 
-**Pool Removal System**:
-
-- `selectReward(rarity, unlockedIds)` filters `REWARD_POOL` for `rarity === target && !unlockedIds.has(id)`
-- If target rarity pool is empty (all of that rarity collected), upgrade upward: Common empty → Rare → Epic → Legendary
-- If all 563 items collected → draws disallowed, API returns `{ success: false, reason: 'ALL_COLLECTED' }`
-- Client ticket badge shows "已集齐", draw button disabled, **tickets preserved, not wasted**
+- `selectReward(rarity, unlockedIds, rng)` samples the complete pool for the exact rolled rarity
+- Owned items can be selected again; they produce `SHARD_VALUES[rarity]` instead of another unlock
+- New items are appended to `unlockedItems`; duplicates leave the collection unchanged
+- Shards can be exchanged for a specific catalog item through `POST /api/gacha/exchange`
+- Every rarity pool is validated at module initialization; an empty pool is a catalog error and fails fast
 
 ### 4.4 Pure Function Implementation Location
 
-**File**: `packages/game-engine/src/growth/gachaProbability.ts` (new)
+**File**: `packages/game-engine/src/product/rewards/gacha.ts` (new)
 
 ```typescript
 // ── Constants ──
@@ -315,19 +343,18 @@ export function rollRarity(
 ): { rarity: Rarity; pityReset: boolean };
 
 /**
- * Select an item from the unlocked pool of the specified rarity.
- * If target rarity is empty, upgrade upward (Common→Rare→Epic→Legendary).
- * Returns undefined if all collected.
+ * Select an item from the exact target-rarity pool.
+ * Owned items remain selectable and are converted to shards.
  *
  * @param targetRarity - rarity returned by rollRarity
  * @param unlockedIds - set of owned item IDs
- * @param randomFn - random integer in [0, max)
+ * @param rng - random number generator returning a float in [0, 1)
  */
 export function selectReward(
   targetRarity: Rarity,
   unlockedIds: ReadonlySet<string>,
-  randomFn: (max: number) => number,
-): RewardItem | undefined;
+  rng: Rng,
+): SelectRewardResult;
 ```
 
 **Why pure functions**:
@@ -338,7 +365,7 @@ export function selectReward(
 
 ### 4.5 Probability Verification Tests
 
-`packages/game-engine/src/__tests__/gachaProbability.test.ts` (new)
+`packages/game-engine/src/product/rewards/__tests__/gacha.test.ts` (new)
 
 Scenarios to cover:
 
@@ -349,10 +376,10 @@ Scenarios to cover:
 | Normal pity triggers on 10th draw            | When pityCount=9, must not return Common         |
 | Golden pity triggers on 10th draw            | When pityCount=9, must not return Common or Rare |
 | Pity resets on natural high-rarity draw      | pityCount=5 draws Rare → pityReset=true          |
-| `selectReward` normal selection              | Given rarity returns item of that rarity         |
-| `selectReward` rarity upgrade                | Common pool empty → returns Rare item            |
-| `selectReward` all collected                 | Returns undefined                                |
-| `selectReward` won't return owned items      | Filter verification                              |
+| `selectReward` exact-rarity selection        | Returned item has the requested rarity           |
+| `selectReward` duplicate conversion          | Owned item returns the configured shard amount   |
+| `selectReward` complete collection           | Owned items remain drawable as duplicates        |
+| `selectReward` invalid RNG                   | Values outside `[0, 1)` fail fast                |
 
 ---
 
@@ -360,60 +387,31 @@ Scenarios to cover:
 
 ### 5.1 Overview
 
-| Type       | Total   | Legendary | Epic   | Rare    | Common  |
-| ---------- | ------- | --------- | ------ | ------- | ------- |
-| Avatars    | 43      | 3         | 7      | 14      | 19      |
-| Frames     | 170     | 11        | 9      | 50      | 100     |
-| SeatFlairs | 180     | 7         | 23     | 50      | 100     |
-| NameStyles | 170     | 4         | 16     | 50      | 100     |
-| **Total**  | **563** | **25**    | **55** | **164** | **319** |
+| Type                | Total    | Legendary | Epic    | Rare    | Common  |
+| ------------------- | -------- | --------- | ------- | ------- | ------- |
+| Avatars             | 196      | 11        | 35      | 50      | 100     |
+| Frames              | 200      | 11        | 39      | 50      | 100     |
+| Seat flairs         | 210      | 7         | 53      | 50      | 100     |
+| Name styles         | 200      | 4         | 46      | 50      | 100     |
+| Role-reveal effects | 12       | 6         | 6       | 0       | 0       |
+| Seat animations     | 200      | 10        | 40      | 50      | 100     |
+| **Total**           | **1018** | **49**    | **219** | **250** | **500** |
 
-> Note: Exact numbers defer to `REWARD_POOL` in `packages/game-engine/src/growth/rewardCatalog.ts`.
+> `REWARD_POOL` in `packages/game-engine/src/product/rewards/catalog.ts` is authoritative. Contract
+> tests verify both the total and per-rarity distribution.
 
 ### 5.2 Specific Distribution
 
-#### Avatars (42)
-
-**Legendary (3)**: `darkWolfKing` / `nightmare` / `masquerade`
-
-**Epic (7)**: `wolfKing` / `wolfQueen` / `bloodMoon` / `spiritKnight` / `awakenedGargoyle` / `witch` / `seer`
-
-**Rare (14)**: `hunter` / `guard` / `knight` / `magician` / `piper` / `poisoner` / `gargoyle` / `dreamcatcher` / `avenger` / `mirrorSeer` / `psychic` / `cursedFox` / `witcher` / `wolfWitch`
-
-**Common (19)**: `wolf` / `wolfRobot` / `crow` / `cupid` / `dancer` / `drunkSeer` / `graveyardKeeper` / `idiot` / `maskedMan` / `pureWhite` / `shadow` / `silenceElder` / `slacker` / `thief` / `treasureMaster` / `votebanElder` / `warden` / `wildChild` / `halfblood`
-
-> `villager` is a free default avatar, not in REWARD_POOL.
-
-#### Frames (170)
-
-Generated by `{shape}_{color}` naming convention. 10 shapes (circle / diamond / hexagon / octagon / pentagon / shield / square / star / triangle / rounded) × 10 colors (gold / silver / bronze / ruby / sapphire / emerald / amethyst / obsidian / pearl / rose), totaling 100 Common. Plus 50 Rare (hand-drawn themed frames), 9 Epic (glowing effect frames), 11 Legendary (full-screen animated frames).
-
-See `packages/game-engine/src/growth/rewardCatalog.ts` — `FRAME_IDS` / frame rarity assignments.
-
-#### SeatFlairs (180)
-
-100 Common (basic SVG animations) + 50 Rare + 23 Epic + 7 Legendary.
-
-See `packages/game-engine/src/growth/rewardCatalog.ts` — `SEAT_FLAIR_IDS` / flair rarity assignments.
-
-#### NameStyles (170)
-
-100 Common (basic gradient text) + 50 Rare + 16 Epic + 4 Legendary.
-
-See `packages/game-engine/src/growth/rewardCatalog.ts` — `NAME_STYLE_IDS` / nameStyle rarity assignments.
+The catalog owns the complete ordered ID arrays and rarity maps. Client registries consume those IDs
+and contract tests reject missing assets or duplicate IDs. The design document intentionally does not
+copy the full ID list because that would create a second source of truth.
 
 ### 5.3 Collection Expectation Analysis
 
-Assuming only normal draws (1 ticket per game):
-
-| Rarity         | Pool Size | Single Probability | Expected Draws to Complete (incl. pity)        |
-| -------------- | --------- | ------------------ | ---------------------------------------------- |
-| Common (319)   | 319       | 84.5%              | ~319 / 0.845 ≈ 378 draws                       |
-| Rare (164)     | 164       | 10% (+pity)        | Effective rate ~15% (incl. pity) → ~1093 draws |
-| Epic (55)      | 55        | 4%                 | ~1375 draws                                    |
-| Legendary (25) | 25        | 1.5%               | ~1667 draws                                    |
-
-Full collection of 563 items: ~2000+ games (normal draws only, excluding golden draw acceleration). Golden draws have 3× legendary probability + ~52 tickets from leveling, significantly shortening mid-to-late collection. Daily login rewards provide a steady non-gameplay ticket source (1/day).
+Draws are with replacement. Collection completion therefore has no fixed draw count: duplicate rates
+rise over time and duplicates become shards for deterministic exchange. Probability disclosure reads
+`NORMAL_RATES` / `GOLDEN_RATES`; collection progress reads `TOTAL_UNLOCKABLE_COUNT`. No UI or API
+hardcodes the catalog total.
 
 ---
 
@@ -423,76 +421,31 @@ Full collection of 563 items: ~2000+ games (normal draws only, excluding golden 
 
 **Changes**:
 
-```diff
- // 3. Iterate registered players, settle XP
- for (const uid of registeredUids) {
-   const xpEarned = rollXp();
-   // ... upsert XP + gamesPlayed ...
-
-   const statsRow = await db.select(...).from(userStats).where(eq(userStats.userId, uid)).get();
-
-   if (statsRow) {
-     const previousLevel = statsRow.level;
-     const newLevel = getLevel(statsRow.xp);
-
--    let reward: RewardItem | undefined;
--    if (newLevel > previousLevel) {
--      const unlockedIds = JSON.parse(statsRow.unlockedItems);
--      const unlockedSet = new Set(unlockedIds);
--      for (let lv = previousLevel + 1; lv <= newLevel; lv++) {
--        const picked = pickRandomReward(unlockedSet, cryptoRandomInt, lv);
--        if (picked) { unlockedSet.add(picked.id); reward = picked; }
--      }
--      const updatedItems = JSON.stringify([...unlockedSet]);
--      await db.update(userStats).set({ level: newLevel, unlockedItems: updatedItems }).where(...);
--    }
-+    // Each valid game → +1 normal ticket
-+    let normalDrawsEarned = 1;
-+    let goldenDrawsEarned = 0;
-+
-+    if (newLevel > previousLevel) {
-+      // Each level-up → +1 golden ticket
-+      goldenDrawsEarned = newLevel - previousLevel;
-+      await db.update(userStats).set({ level: newLevel }).where(eq(userStats.userId, uid));
-+    }
-+
-+    // Accumulate tickets
-+    await db.update(userStats).set({
-+      normalDraws: sql`${userStats.normalDraws} + ${normalDrawsEarned}`,
-+      goldenDraws: sql`${userStats.goldenDraws} + ${goldenDrawsEarned}`,
-+    }).where(eq(userStats.userId, uid));
-
-     results.push({
-       uid, xpEarned,
-       newXp: statsRow.xp, newLevel, previousLevel,
--      reward,
-+      normalDrawsEarned,
-+      goldenDrawsEarned,
-     });
-   }
- }
-```
+- Only the Werewolf `game.ended` effect triggers growth settlement today
+- At least six human participants are required; bots never receive account rewards
+- Reward RNG is seeded by `effectId + userId + reward kind`, so retries reproduce the same result
+- `game_settlement_results` is the idempotency ledger and records XP plus normal/golden ticket earnings
+- D1 applies the ledger and `user_stats` update once, then publishes a durable per-user result event
 
 **`PlayerSettleResult` interface changes**:
 
 ```typescript
 export interface PlayerSettleResult {
-  uid: string;
+  userId: string;
   xpEarned: number;
   newXp: number;
   newLevel: number;
   previousLevel: number;
   normalDrawsEarned: number;
   goldenDrawsEarned: number;
-  // reward field removed
 }
 ```
 
-**`#sendSettleResults` changes**: WebSocket message adds `normalDrawsEarned` / `goldenDrawsEarned` fields.
+**Settlement user event changes**: the Werewolf effect publishes `normalDrawsEarned` / `goldenDrawsEarned` through the durable user inbox.
 
-### 6.2 New Gacha API: `gachaHandlers.ts`
+### 6.2 Gacha API routes
 
-**File**: `packages/api-worker/src/handlers/gachaHandlers.ts`
+**File**: `packages/api-worker/src/features/gacha/routes.ts`
 
 **Routes**:
 
@@ -507,9 +460,8 @@ Returns current user's gacha status.
   goldenDraws: number; // available golden tickets
   normalPity: number; // normal pity count
   goldenPity: number; // golden pity count
-  totalCollected: number; // total items collected
-  totalItems: 112; // total collectible items
-  allCollected: boolean; // whether all collected
+  shards: number;
+  unlockedCount: number;
 }
 ```
 
@@ -521,24 +473,25 @@ Execute draw.
 // Request body (Zod schema)
 {
   drawType: 'normal' | 'golden';
-  count: 1 | 10;
+  count: number; // integer in [1, 10]
+  idempotencyKey: string; // UUID
 }
 
 // Response (success)
 {
-  success: true;
   results: Array<{
     rarity: Rarity;
-    itemType: RewardType;
-    itemId: string;
-    isNew: true; // always true in gacha system (deduplication)
-    wasPity: boolean;
+    rewardType: RewardType;
+    rewardId: string;
+    isNew: boolean;
+    isPityTriggered: boolean;
+    isDuplicate: boolean;
+    shardsAwarded: number;
   }>;
+  totalShardsAwarded: number;
   remaining: {
     normalDraws: number;
     goldenDraws: number;
-    normalPity: number;
-    goldenPity: number;
   }
 }
 
@@ -546,8 +499,8 @@ Execute draw.
 {
   success: false;
   reason: 'INSUFFICIENT_DRAWS' | // not enough tickets
-    'ALL_COLLECTED' | // all collected
-    'VALIDATION_ERROR'; // parameter error
+    'NO_STATS' |
+    'CONFLICT';
 }
 ```
 
@@ -556,39 +509,34 @@ Execute draw.
 ```
 POST /api/gacha/draw:
 1. requireAuth → userId
-2. Validate body: { drawType ∈ ['normal','golden'], count ∈ [1, 10] }
-3. BEGIN transaction (D1 doesn't support real transactions, use batch or sequential validation)
-4. Read user_stats: normalDraws/goldenDraws/normalPity/goldenPity/unlockedItems
-5. Check ticket balance >= count, otherwise → INSUFFICIENT_DRAWS
-6. Parse unlockedItems → Set<string>
-7. Check REWARD_POOL.length - unlockedSet.size > 0, otherwise → ALL_COLLECTED
-8. results = []
-9. FOR i = 0 to count-1:
-   a. cryptoRandomValue = crypto random [0, 100)
-   b. { rarity, pityReset } = rollRarity(drawType, currentPity, cryptoRandomValue)
-   c. item = selectReward(rarity, unlockedSet, cryptoRandomInt)
-   d. IF item is undefined → break (pool emptied, but already checked above, theoretically won't happen)
-   e. unlockedSet.add(item.id)
-   f. IF pityReset → currentPity = 0, ELSE → currentPity += 1
-   g. INSERT draw_history
-   h. results.push({ rarity, itemType: item.type, itemId: item.id, wasPity })
-10. UPDATE user_stats SET
-      normalDraws/goldenDraws -= count,
-      normalPity/goldenPity = currentPity,
-      unlockedItems = JSON.stringify([...unlockedSet])
-11. RETURN { success: true, results, remaining: { ... } }
+2. Validate body; return the committed response for the same owner/operation, or 409 on identity conflict
+3. Read user_stats with its OCC version
+4. Check ticket balance >= count, otherwise → INSUFFICIENT_DRAWS
+5. FOR each draw:
+   a. use secureRng() to produce the rarity roll
+   b. selectReward(rarity, unlockedSet, secureRng) from the exact rarity pool
+   c. add a new item, or add shards for a duplicate
+   d. update pity and prepare one draw_history row
+6. Execute one D1 batch transaction:
+   a. INSERT the key/claim/operation/response with is_applied = 0; key conflict is a no-op
+   b. INSERT history only when this claim owns the key and user_stats.version = readVersion
+   c. mark this claim applied under the same version predicate
+   d. UPDATE user_stats under the applied-claim and version predicates
+   e. DELETE this claim when it was not applied
+7. Read the committed ledger row: replay the winner, or retry from a fresh stats snapshot after OCC loss
 ```
 
 ### 6.3 New Zod Schema
 
-**File**: `packages/api-worker/src/schemas/gacha.ts`
+**File**: `packages/api-worker/src/features/gacha/schemas.ts`
 
 ```typescript
 import { z } from 'zod';
 
-export const drawSchema = z.object({
+export const gachaDrawSchema = z.object({
   drawType: z.enum(['normal', 'golden']),
-  count: z.union([z.literal(1), z.literal(10)]),
+  count: z.number().int().min(1).max(10).default(1),
+  idempotencyKey: z.string().uuid(),
 });
 ```
 
@@ -597,8 +545,8 @@ export const drawSchema = z.object({
 `packages/api-worker/src/index.ts`:
 
 ```diff
- import { statsRoutes } from './handlers/statsHandlers';
-+import { gachaRoutes } from './handlers/gachaHandlers';
+ import { statsRoutes } from './features/account/routes';
++import { gachaRoutes } from './features/gacha/routes';
 
  // ... existing routes ...
  app.route('/api', statsRoutes);
@@ -607,9 +555,11 @@ export const drawSchema = z.object({
 
 ### 6.5 Idempotency & Concurrency Safety
 
-- **Settlement idempotency**: Existing `lastRoomCode` mechanism ensures no duplicate settlement per game
-- **Draw concurrency — OCC (Optimistic Concurrency Control)**: `user_stats.version` column (Migration `0015`). Each draw reads version → writes with `WHERE version = readVersion`; 0 affected rows triggers retry (MAX_DRAW_RETRIES=3). Stricter than D1 balance conditions, prevents two concurrent draws from reading the same snapshot and double-deducting
-- **Random number security**: `crypto.getRandomValues()` generates `percent [0, 100)` and `int [0, max)`, no modulo bias (Uint32 range 4.29B)
+- **Settlement idempotency**: `game_settlement_results.effect_id` is the durable settlement ledger
+- **Draw/exchange idempotency**: `idempotency_keys.key` is globally unique; owner and operation must match. `claim_id` prevents a losing concurrent request from using the winner's row. Stored responses are parsed by operation-specific Zod schemas before replay.
+- **Atomic mutation**: claim, draw history, applied state, and `user_stats` update execute in one `D1Database.batch()` transaction. Any statement error rolls back the whole sequence; no response is committed without the matching balance/version mutation.
+- **Draw concurrency — OCC (Optimistic Concurrency Control)**: `user_stats.version` (Migration `0015`) is read before calculation and rechecked inside the ledger transaction. A different-key loser leaves no claim/history and retries from a fresh snapshot (maximum `MAX_GACHA_OCC_ATTEMPTS=3`). Same-key concurrency returns the one committed response and applies one mutation.
+- **Random number source**: Worker injects `secureRng` from `platform/random`; selection uses the same validated `[0, 1)` contract as engine tests
 
 ### 6.6 seed-local.mjs Update
 
@@ -626,33 +576,36 @@ WHERE user_id = '00000000-0000-4000-a000-000000000001';
 
 ### 6.7 Daily Login Reward
 
-**Migration**: `0016_daily_login_reward.sql` — `ALTER TABLE user_stats ADD COLUMN last_login_reward_at TEXT;`
+**Migrations**:
 
-**Schema**: `packages/api-worker/src/schemas/gacha.ts`
+- `0016_daily_login_reward.sql` adds `last_login_reward_at`.
+- `0040_normalize_daily_reward_timestamp.sql` converts valid historical `YYYY-MM-DD` values to canonical UTC timestamps, aborts on unrecognized persisted values, and adds D1 insert/update triggers that enforce the `Date.toISOString()` representation.
+
+**Schema**: `packages/api-worker/src/features/gacha/schemas.ts`
 
 ```typescript
-export const dailyRewardSchema = z.object({
-  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-});
+// Strict empty command body. The server owns cooldown time.
+export const dailyRewardSchema = z.strictObject({});
 ```
 
 **Endpoint**: `POST /api/gacha/daily-reward` (requireAuth)
 
 **Mechanism**:
 
-- Client passes `localDate` (player's local date YYYY-MM-DD, `new Date().toLocaleDateString('en-CA')`)
+- Client sends an empty `{}` command; it cannot influence cooldown time.
 - Server checks:
-  1. No user_stats row → auto-create (`INSERT ... ON CONFLICT DO UPDATE`)
-  2. `lastLoginRewardAt === localDate` → `{ claimed: false, reason: 'already_claimed' }`
+  1. No user_stats row → `INSERT ... ON CONFLICT DO NOTHING`; exactly one concurrent request creates and claims it
+  2. An insert loser restarts the OCC loop and observes the committed cooldown
   3. Less than 20h since last claim → `{ claimed: false, reason: 'cooldown' }`
-  4. Passes → `normalDraws + 1`, update `lastLoginRewardAt`, return `{ claimed: true, normalDrawsAdded: 1 }`
+  4. Passes → add 1–5 normal draws and one golden draw, write a canonical UTC `lastLoginRewardAt`, and bump `version`
 - 20h cooldown guard prevents timezone abuse (face-to-face party game trust model, lightweight protection suffices)
-- OCC retry (MAX_DRAW_RETRIES=3), reuses draw concurrency safety pattern
+- OCC retry (`MAX_GACHA_OCC_ATTEMPTS=3`) reuses the stats-version concurrency pattern
+- `lastLoginRewardAt` is an internal persistence field and is not exposed by `GET /api/gacha/status`.
 
 **Client auto-claim**: `useAutoClaimDailyReward()` hook:
 
-- Mounted on HomeScreen, checks `status.lastLoginRewardAt !== today` on app startup
-- Auto-calls `claimDailyReward(getLocalDate())`, on success toasts "每日登录奖励 / 获得 1 次普通抽！"
+- Mounted on HomeScreen and asks the server once per app session; the server is the sole cooldown authority.
+- Auto-calls `claimDailyReward()`, on success toasts the exact normal/golden draw counts returned by the server.
 - `attemptedRef` ensures only one attempt per session
 
 ---
@@ -661,7 +614,7 @@ export const dailyRewardSchema = z.object({
 
 ### 7.1 Settlement Toast Refactor
 
-**File**: `src/hooks/useSettleToast.ts`
+**File**: `src/games/werewolf/hooks/useWerewolfSettleToast.ts`
 
 Before:
 
@@ -671,48 +624,44 @@ Level up → "升级！Lv.3"
 Normal → "+55 XP"
 ```
 
-After:
-
-```
-Level up + golden ticket → "升级 Lv.3！获得黄金抽奖机会 🎰", description: "+55 XP · 抽奖券 +1"
-Normal (every game has normal ticket) → "+55 XP · 获得抽奖券"
-```
+Current toast content reads the committed settlement event. It always shows XP; it adds the exact
+`normalDrawsEarned` count when positive and adds the level/golden-ticket message only when those
+fields say they were earned.
 
 **SettleResultMessage interface changes**: Directly replaced with §3.4 definition (remove `reward` field, `normalDrawsEarned`/`goldenDrawsEarned` are required).
 
-**CFRealtimeService parsing changes**: Parse new fields, remove old `reward` parsing logic.
+**RoomSession parsing changes**: the Werewolf user-event codec parses the required ticket fields and rejects malformed payloads.
 
 ### 7.2 New Gacha Service
 
-**File**: `src/services/feature/GachaService.ts`
+**File**: `src/features/gacha/services/gachaApi.ts`
 
 ```typescript
-export interface GachaStatus {
+interface GachaStatus {
   normalDraws: number;
   goldenDraws: number;
   normalPity: number;
   goldenPity: number;
-  totalCollected: number;
-  totalItems: number;
-  allCollected: boolean;
+  shards: number;
+  unlockedCount: number;
 }
 
-export interface DrawResult {
+export interface DrawResultItem {
   rarity: Rarity;
-  itemType: RewardType;
-  itemId: string;
+  rewardType: RewardType;
+  rewardId: string;
   isNew: boolean;
-  wasPity: boolean;
+  isPityTriggered: boolean;
+  isDuplicate: boolean;
+  shardsAwarded: number;
 }
 
 export interface DrawResponse {
-  success: true;
-  results: DrawResult[];
+  results: DrawResultItem[];
+  totalShardsAwarded: number;
   remaining: {
     normalDraws: number;
     goldenDraws: number;
-    normalPity: number;
-    goldenPity: number;
   };
 }
 
@@ -722,15 +671,16 @@ export async function fetchGachaStatus(): Promise<GachaStatus> {
 
 export async function performDraw(
   drawType: 'normal' | 'golden',
-  count: 1 | 10,
+  count: number = 1,
 ): Promise<DrawResponse> {
-  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count });
+  const idempotencyKey = crypto.randomUUID();
+  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count, idempotencyKey });
 }
 ```
 
 ### 7.3 TanStack Query Hooks
 
-**File**: `src/hooks/queries/useGachaQuery.ts`
+**File**: `src/features/gacha/queries/useGachaQuery.ts`
 
 ```typescript
 // useGachaStatusQuery — queryKey: ['gachaStatus']
@@ -758,7 +708,6 @@ Add gacha entry button in HomeScreen's action area (near existing "百科" / "�
 
 - **Icon**: 🎰 or custom Skia icon
 - **Badge**: Shows available ticket total `normalDraws + goldenDraws` (no badge when 0)
-- **Text**: `已集齐` replaces ticket badge when all collected
 - **Anonymous users**: Entry not shown (consistent with Settings GrowthSection pattern)
 - **Position**: Next to encyclopedia (same flex row)
 
@@ -775,11 +724,10 @@ GachaScreen
 │   └── Landing area (opening animation)
 ├── Status bar
 │   ├── Normal ticket count + Golden ticket count
-│   ├── Collection progress "42/112"
 │   └── Pity countdown "Pity in {10-pity} draws"
 ├── Action button area
 │   ├── Normal ×1 / ×10
-│   └── Golden ×1 / ×10 (each disabled when tickets insufficient or all collected)
+│   └── Golden ×1 / ×10 (disabled when tickets are insufficient)
 └── Recent results display (last draw results, emoji + name + rarity color)
 ```
 
@@ -868,28 +816,28 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 ## 9. Implementation Steps
 
-### Phase 1a — rewardCatalog.ts Add Rarity
+### Phase 1a — Reward Catalog Rarity
 
 **Changed files**:
 
-- `packages/game-engine/src/growth/rewardCatalog.ts` — Add `Rarity` type, `RewardItem` gains `rarity` field, each `REWARD_POOL` entry gains `rarity`
+- `packages/game-engine/src/product/rewards/catalog.ts` — Add `Rarity` type, `RewardItem` gains `rarity` field, each `REWARD_POOL` entry gains `rarity`
 - `packages/game-engine/src/index.ts` — export `Rarity`
 
 **Impact analysis**:
 
-- `pickRandomReward()` params unchanged, not affected (doesn't read rarity field)
-- `REWARD_POOL` consumers: `pickRandomReward`, `getUnlockedAvatars/Frames/Flairs/NameStyles`, seed-local.mjs — none read rarity, safe
-- Type change: `RewardItem` gains a required field. All places constructing `RewardItem` need updating → only `REWARD_POOL` itself (add rarity in map function)
+- `catalog.ts` is the only item-ID and rarity registry
+- Client asset registries and Worker reward handlers import the exact `product/rewards` package export
+- `RewardItem.rarity` is required and every `REWARD_POOL` entry is built by the catalog
 
-**Tests**: All existing tests should pass (rarity is a new field that doesn't break existing functionality).
+**Tests**: Catalog contracts verify unique IDs, client asset coverage, and rarity totals.
 
-### Phase 1b — New gachaProbability.ts + Tests
+### Phase 1b — Gacha Probability Engine + Tests
 
 **New files**:
 
-- `packages/game-engine/src/growth/gachaProbability.ts`
-- `packages/game-engine/src/__tests__/gachaProbability.test.ts`
-- `packages/game-engine/src/growth/index.ts` — add re-export
+- `packages/game-engine/src/product/rewards/gacha.ts`
+- `packages/game-engine/src/product/rewards/__tests__/gacha.test.ts`
+- `packages/game-engine/src/product/rewards/index.ts` — add re-export
 - `packages/game-engine/src/index.ts` — add export
 
 **Test coverage**: All scenarios listed in §4.5.
@@ -902,7 +850,7 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **Changed files**:
 
-- `packages/api-worker/src/db/schema.ts` — add 4 columns + drawHistory table
+- `packages/api-worker/src/db/applicationSchema.ts` — add 4 columns + drawHistory table
 
 **Impact analysis**:
 
@@ -914,16 +862,16 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **Changed files**:
 
-- `packages/api-worker/src/growth/settleGameResults.ts` — Remove `pickRandomReward` call, replace with ticket accumulation
-- `packages/api-worker/src/durableObjects/GameRoom.ts` — `#sendSettleResults` adds fields
-- `src/services/types/IRealtimeTransport.ts` — `SettleResultMessage` replaced with ticket count fields (remove `reward`)
-- `src/services/cloudflare/CFRealtimeService.ts` — Parse new fields
-- `src/hooks/useSettleToast.ts` — Display changed to ticket notification
+- `packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts` — persist effect-idempotent XP and ticket earnings
+- `packages/api-worker/src/games/werewolf/effects.ts` — publish durable settlement events with ticket fields
+- `src/games/werewolf/realtime/werewolfUserEventCodec.ts` — parse the game-owned settlement event
+- `src/features/room/session/RoomSession.ts` — deliver and acknowledge durable user events
+- `src/games/werewolf/hooks/useWerewolfSettleToast.ts` — Display changed to ticket notification
 
 **Impact analysis**:
 
 - `PlayerSettleResult` interface change: `reward` → `normalDrawsEarned` / `goldenDrawsEarned`
-- Consumers: `#sendSettleResults`, `#updateRosterLevels` — former needs change, latter unaffected
+- Consumers: Werewolf internal roster-level command and durable user-event publisher
 - `getRewardDisplayName` function no longer needed (delete)
 - `useSettleToast`'s `showSettleToast` logic rewritten
 
@@ -931,8 +879,8 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **New files**:
 
-- `packages/api-worker/src/handlers/gachaHandlers.ts`
-- `packages/api-worker/src/schemas/gacha.ts`
+- `packages/api-worker/src/features/gacha/routes.ts`
+- `packages/api-worker/src/features/gacha/schemas.ts`
 
 **Changed files**:
 
@@ -942,8 +890,8 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **New files**:
 
-- `src/services/feature/GachaService.ts`
-- `src/hooks/queries/useGachaQuery.ts`
+- `src/features/gacha/services/gachaApi.ts`
+- `src/features/gacha/queries/useGachaQuery.ts`
 
 ### Phase 1g — seed-local.mjs Update
 
@@ -958,7 +906,7 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 - `src/screens/GachaScreen/GachaScreen.tsx`
 - `src/screens/GachaScreen/components/CapsuleMachine.tsx` — Skia animation component
 - `src/screens/GachaScreen/components/TenResultOverlay.tsx` — 10-pull result panel
-- `src/screens/GachaScreen/hooks/usePhysicsEngine.ts` — Physics simulation hook
+- `src/screens/GachaScreen/hooks/useGachaPhysics.ts` — Physics simulation hook
 
 **Changed files**:
 
@@ -979,22 +927,21 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 ### 10.1 Edge Cases
 
-| Scenario                       | Handling                                                                                                                            |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 10-pull but only 3 tickets     | API returns `INSUFFICIENT_DRAWS`, client button disabled (when count > available)                                                   |
-| Pool empties mid-10-pull       | Loop's `selectReward` returns undefined → end loop, only return already-drawn results. Update ticket deduction to actual draw count |
-| All 563 items collected        | GET status → `allCollected: true`, client draw button disabled, badge shows "已集齐"                                                |
-| Anonymous user                 | No settlement, no tickets, entry not shown                                                                                          |
-| Offline / disconnected         | Draw is HTTP POST, standard cfPost timeout+error handling. On failure `showAlert('抽奖失败', '请稍后重试')`                         |
-| Multi-device simultaneous draw | D1 UPDATE WHERE balance sufficient, second request rejected due to insufficient balance                                             |
-| Settlement retry (alarm)       | Existing retry mechanism unchanged, new `normalDrawsEarned` field correct on retry (idempotent upsert)                              |
+| Scenario                       | Handling                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 10-pull but only 3 tickets     | API returns `INSUFFICIENT_DRAWS`; client controls are disabled when balance is insufficient          |
+| Complete collection            | Draws continue with duplicate-to-shard conversion; deterministic exchange remains available          |
+| Missing account stats          | API returns `NO_STATS`; no ticket deduction occurs                                                   |
+| Offline / disconnected         | `cfPost` reports the request failure and the client presents the draw error                          |
+| Multi-device simultaneous draw | Same key replays one atomic ledger result; different keys serialize through `user_stats.version` OCC |
+| Settlement retry               | The effect ledger returns the already-committed per-user result without rolling rewards again        |
 
 ### 10.2 Risks
 
-| Risk                                                     | Level    | Mitigation                                                                                                                                                                                                       |
-| -------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1 concurrency race (two draws reading same balance)     | Low      | D1 single writer guarantee. UPDATE SET WHERE condition as safety net                                                                                                                                             |
-| Probability bias (crypto.getRandomValues modulo bias)    | Very Low | Uint32 range 4.29B, modulo 100 bias < 0.0000024%                                                                                                                                                                 |
-| Partial failure mid-10-pull (partial DB write success)   | Low      | 10 draws execute serially in same handler, D1 write atomicity is sufficient. Worst case: some items written but tickets not deducted → user gains extra items (acceptable risk). Can further reduce with batch() |
-| Skia animation performance (28 ball physics + particles) | Medium   | HTML prototype verified smooth. Skia's GPU acceleration should be better. If needed, reduce ball count to 20                                                                                                     |
-| Probability engine bug                                   | Medium   | §4.5 test coverage + 100K Monte Carlo verification                                                                                                                                                               |
+| Risk                                                     | Level  | Mitigation                                                                                                          |
+| -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| D1 concurrency race (two draws reading same balance)     | Low    | One D1 batch owns the claim, verifies OCC version, writes history, updates stats, and commits the replay atomically |
+| Invalid RNG or empty rarity catalog                      | Low    | Shared random contracts and module-initialization checks fail fast before an invalid result can be persisted        |
+| Partial failure mid-10-pull                              | Low    | D1 rolls back the claim, all history rows, applied marker, and stats mutation as one batch transaction              |
+| Skia animation performance (28 ball physics + particles) | Medium | HTML prototype verified smooth. Skia's GPU acceleration should be better. If needed, reduce ball count to 20        |
+| Probability engine bug                                   | Medium | §4.5 test coverage + 100K Monte Carlo verification                                                                  |

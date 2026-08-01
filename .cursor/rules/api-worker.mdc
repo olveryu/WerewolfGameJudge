@@ -7,7 +7,7 @@ alwaysApply: false
 ---
 
 
-# @werewolf/api-worker Standards
+# @game-judge/api-worker Standards
 
 Cloudflare Worker (Durable Objects + D1 + R2). Game API + Auth API.
 Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `hono/factory`).
@@ -20,13 +20,13 @@ Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `
 
 ## Request Body Validation
 
-- Use `jsonBody<T>(schema)` middleware (`handlers/shared.ts`, based on `hono/validator`) to validate JSON body.
+- Use `jsonBody(schema)` middleware (`platform/http/jsonBody.ts`) to validate JSON bodies.
 - Validation failure returns 400 (`{ success: false, reason: 'VALIDATION_ERROR', detail }`).
 - Handler accesses strongly-typed data via `c.req.valid('json')`. `(await req.json()) as { ... }` is forbidden.
 
 ## Zod Schema Files
 
-- Schemas are defined in `src/schemas/`, organized by route module (`auth.ts`, `game.ts`, `night.ts`, `room.ts`, `gemini.ts`, `shareImage.ts`).
+- Schemas stay with their owner under `features/*`, `games/*`, or `platform/*`; there is no shared root schema directory.
 - Project uses **zod 4** (`^4.3`). Key changes:
   - Top-level format validators (`z.email()`, `z.url()`, etc.) — deprecated method chains (`z.string().email()`) must not be used.
   - `z.input<typeof schema>` / `z.output<typeof schema>` replace legacy `z.infer<>` (`z.infer` still works but `z.output` is more precise).
@@ -54,28 +54,29 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 
 ## Auth Middleware
 
-- `requireAuth` (`lib/auth.ts`, `createMiddleware` from `hono/factory`): verifies Bearer token, sets `c.var.userId` and `c.var.jwtPayload`.
-- Optional auth (e.g., signup) is handled inline in handler via `extractBearerToken` + `verifyToken`.
+- `requireAuth` (`features/auth/tokenAuth.ts`, `createMiddleware` from `hono/factory`) authenticates the current D1 principal and sets `c.var.userId` plus `c.var.isAnonymous`.
+- Optional auth uses `extractBearerToken` plus `authenticateAccessToken`; there is no signature-only authentication entry point.
 
 ## Error Handling
 
-- `callDO(fn)` throws `HTTPException` on DO errors (503 retryable, 429 overloaded).
+- `callDurableObject(fn)` throws `HTTPException` on DO errors (503 retryable, 429 overloaded).
 - `app.onError` catches `HTTPException`, `SyntaxError` (malformed JSON), and generic errors uniformly.
 - Handlers don't need `try/catch` for DO call errors.
 
-## Shared Utilities (`handlers/shared.ts`)
+## Platform Utilities
 
-| Export                    | Purpose                                                                                                                                                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `jsonBody<T>(schema)`     | `hono/validator` middleware: JSON parsing + zod validation                                                                                                                                                          |
-| `callDO<T>(fn)`           | DO RPC call + HTTPException error handling. **Note**: `@cloudflare/workers-types` injects `& Disposable` to DO RPC return values, breaking DU narrowing. Call site needs `as Promise<GameActionResult>` (see JSDoc) |
-| `getGameRoomStub(env, c)` | Get DO stub                                                                                                                                                                                                         |
-| `resultToStatus(result)`  | Input `{ success: boolean; reason?: string }` (structural subtype, compatible with `ActionResult` & `GameActionResult`) → `200 \| 400 \| 500`                                                                       |
-| `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                              |
+| Export                                   | Owner                                | Purpose                                     |
+| ---------------------------------------- | ------------------------------------ | ------------------------------------------- |
+| `jsonBody(schema)`                       | `platform/http/jsonBody.ts`          | JSON parsing plus strict Zod validation     |
+| `callDurableObject(fn)`                  | `platform/http/callDurableObject.ts` | DO availability to HTTP status translation  |
+| `readCloudflareRequestMetadata(request)` | `platform/http/requestMetadata.ts`   | Runtime parsing of consumed `Request.cf`    |
+| `getGameRoomStub(env, id)`               | `platform/room/roomStub.ts`          | Typed room Durable Object stub resolution   |
+| `resolveRoomLocator(...)`                | `platform/room/roomDirectory.ts`     | Exact room code and immutable ID resolution |
+| `translatePlatformEffects()`             | `platform/room/platformEffects.ts`   | Shared room effect execution                |
 
 ## Gacha System
 
-### Routes (`gachaHandlers.ts` → `/api/gacha/*`)
+### Routes (`features/gacha/routes.ts` → `/api/gacha/*`)
 
 | Method | Path                      | Auth | Body Schema         | Description                                              |
 | ------ | ------------------------- | ---- | ------------------- | -------------------------------------------------------- |
@@ -85,8 +86,9 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 
 ### Concurrency Safety
 
-- OCC (Optimistic Concurrency Control): `user_stats.version` column; draw/daily-reward reads version → writes with `WHERE version = readVersion`, retries on conflict (MAX_DRAW_RETRIES=3)
-- `crypto.getRandomValues()` for random number generation; probability functions (`rollRarity` / `selectReward`) imported from `@werewolf/game-engine`
+- Draw/exchange use the D1 mutation ledger: global idempotency claim, history, stats OCC update, replay response, and loser cleanup commit in one `DB.batch()` transaction.
+- Daily reward uses insert-winner semantics for the first stats row and versioned updates for existing rows; concurrent requests award exactly once.
+- `crypto.getRandomValues()` for random number generation; probability functions (`rollRarity` / `selectReward`) imported from `@game-judge/game-engine`
 
 ### Daily Login Reward
 

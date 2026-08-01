@@ -1,11 +1,11 @@
 /**
  * nameStyles -- Name effect registry
  *
- * NameStyleId is derived from NAME_STYLE_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * NameStyleId is derived from NAME_STYLE_IDS in `@game-judge/game-engine/product/rewards`.
  * Use getNameStyleById to look up a config by id. Pattern follows `seatFlairs/index.ts`.
  */
 
-import { NAME_STYLE_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { NAME_STYLE_IDS } from '@game-judge/game-engine/product/rewards';
 
 import { NAME_STYLE_CONFIGS, type NameStyleConfig } from './nameStyleConfigs';
 

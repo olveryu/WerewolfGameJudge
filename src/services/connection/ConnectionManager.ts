@@ -21,9 +21,18 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import {
+  parseRoomLocator,
+  type RoomLocator,
+} from '@game-judge/game-engine/platform/protocol/roomLocator';
+import type {
+  BaseGameState,
+  RoomSnapshot,
+  StateUpdateMessage,
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 
-import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
+import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
 import { connectionLog } from '@/utils/logger';
 
@@ -38,7 +47,6 @@ import {
   REVISION_POLL_BASE_MS,
   REVISION_POLL_MAX_MS,
   type SideEffect,
-  SupersededError,
 } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,20 +55,27 @@ import {
 
 type ConnectionStateListener = (state: ConnectionState) => void;
 
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
 /** ConnectionManager dependency injection interface. */
-export interface ConnectionManagerDeps {
+export interface ConnectionManagerDeps<
+  TState extends BaseGameState<string>,
+  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
+> {
   /** WebSocket transport layer (IRealtimeTransport) */
-  transport: IRealtimeTransport;
+  transport: IRealtimeTransport<TState, TEvent>;
   /** Fetch full game state from DB (used by both Host and Player) */
-  fetchStateFromDB: (roomCode: string) => Promise<{ state: GameState; revision: number } | null>;
+  fetchStateFromDB: (room: RoomLocator) => Promise<RoomSnapshot<TState> | null>;
   /** Lightweight revision comparison: read state_revision from DB */
-  getStateRevision: (roomCode: string) => Promise<number | null>;
+  getStateRevision: (room: RoomLocator) => Promise<number | null>;
   /** Callback when WS broadcast receives STATE_UPDATE */
-  onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
+  onStateUpdate: (message: StateUpdateMessage<TState>) => void;
   /** Callback after fetch or WS broadcast yields new state (used for store.applySnapshot) */
-  onFetchedState: (state: GameState, revision: number) => void;
-  /** Settle-result unicast callback (optional) */
-  onSettleResult?: (result: SettleResultMessage) => void;
+  onFetchedState: (snapshot: RoomSnapshot<TState>) => void;
+  /** Durable user-event callback. */
+  onUserEvent: (event: TEvent) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,9 +94,12 @@ export interface ConnectionManagerDeps {
  *   ping/pong keepalive: sends ping every PING_INTERVAL_MS; missing pong within PONG_TIMEOUT_MS is treated as disconnect.
  *   revision poll: polls DB revision every REVISION_POLL_BASE_MS~MAX_MS to detect missed WS broadcasts.
  */
-export class ConnectionManager {
+export class ConnectionManager<
+  TState extends BaseGameState<string>,
+  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
+> {
   #ctx: FSMContext;
-  readonly #deps: ConnectionManagerDeps;
+  readonly #deps: ConnectionManagerDeps<TState, TEvent>;
   readonly #stateListeners = new Set<ConnectionStateListener>();
 
   // Timers
@@ -105,26 +123,44 @@ export class ConnectionManager {
 
   // Prefetch: fire HTTP fetch in parallel with WS handshake to avoid serial bottleneck.
   // The HTTP call also wakes the DO, so subsequent WS handshake hits a warm DO.
-  #prefetchPromise: Promise<{ state: GameState; revision: number } | null> | null = null;
+  #prefetchPromise: Promise<RoomSnapshot<TState> | null> | null = null;
   #prefetchGeneration = 0;
+  #connectionGeneration = 0;
 
-  constructor(deps: ConnectionManagerDeps) {
+  constructor(deps: ConnectionManagerDeps<TState, TEvent>) {
     this.#deps = deps;
     this.#ctx = createInitialContext();
 
     // Wire transport events → FSM events
     deps.transport.setEventHandlers({
       onOpen: () => this.#dispatch({ type: 'WS_OPEN' }),
-      onClose: (code, reason) => this.#dispatch({ type: 'WS_CLOSE', code, reason }),
+      onClose: (code, reason) => {
+        if (code === 1002) {
+          this.#failProtocol(new Error(`Realtime protocol closed: ${reason || 'unknown'}`));
+          return;
+        }
+        this.#dispatch({ type: 'WS_CLOSE', code, reason });
+      },
       onError: (error) => this.#dispatch({ type: 'WS_ERROR', error }),
-      onStateUpdate: (state, revision, lastAction) => {
-        deps.onStateUpdate(state, revision, lastAction);
-        this.#dispatch({ type: 'STATE_UPDATE', revision });
+      onStateUpdate: (message) => {
+        try {
+          deps.onStateUpdate(message);
+        } catch (error) {
+          this.#failProtocol(error);
+          return;
+        }
+        this.#dispatch({ type: 'STATE_UPDATE', revision: message.revision });
         // Activity detected — reset revision poll to fast interval
         this.#resetRevisionPollInterval();
       },
       onPong: () => this.#handlePong(),
-      onSettleResult: (result) => deps.onSettleResult?.(result),
+      onUserEvent: (event) => {
+        try {
+          deps.onUserEvent(event);
+        } catch (error) {
+          this.#failProtocol(error);
+        }
+      },
     });
 
     this.#registerPlatformListeners();
@@ -151,37 +187,34 @@ export class ConnectionManager {
     return this.#ctx;
   }
 
+  /** Send a durable user-event acknowledgement on the active socket. */
+  sendUserEventAcknowledgement(eventId: string): boolean {
+    return this.#deps.transport.send(JSON.stringify(createUserEventAckMessage(eventId)));
+  }
+
   /**
    * Connect and wait until Connected state (or timeout/failure).
    *
-   * Used by GameFacade.createRoom / joinRoom to synchronously wait for
-   * WS connection + initial DB fetch before proceeding with game logic.
+   * Used by RoomSession to wait for WS connection and the initial authoritative snapshot.
    *
    * @param roomCode - Room to connect to
-   * @param userId - Current user ID
    * @param timeoutMs - Connection + sync timeout (default 15s)
    * @throws Error if connection fails or times out
    */
-  async connectAndWait(roomCode: string, userId: string, timeoutMs = 15_000): Promise<void> {
-    // If already connected to this room, re-fetch state (store may have been reset)
-    // but skip the full WS reconnect cycle.
-    if (this.#ctx.state === ConnectionState.Connected && this.#ctx.roomCode === roomCode) {
-      connectionLog.debug('Already connected, re-fetching state', { roomCode });
-      await this.#fetchState(roomCode);
-      return;
+  async connectAndWait(room: RoomLocator, timeoutMs = 15_000): Promise<void> {
+    const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
+    const { roomCode, roomId } = locator;
+    if (this.#ctx.state !== ConnectionState.Idle) {
+      throw new Error(
+        `ConnectionManager.connectAndWait requires Idle, received ${this.#ctx.state}`,
+      );
     }
+    this.#assertNoPendingWait();
 
-    // Disposed — no recovery possible, reject immediately
-    if (this.#ctx.state === ConnectionState.Disposed) {
-      throw new Error('Cannot connect: ConnectionManager is disposed');
-    }
-
-    connectionLog.info('connectAndWait', { roomCode, userId });
+    connectionLog.info('connectAndWait', { roomCode });
+    this.#connectionGeneration += 1;
 
     return new Promise<void>((resolve, reject) => {
-      // Settle any pending connectAndWait before creating a new one (P2)
-      this.#settleConnectWait(new SupersededError());
-
       this.#connectWaitResolve = resolve;
       this.#connectWaitReject = reject;
 
@@ -191,23 +224,36 @@ export class ConnectionManager {
 
       // Dispatch CONNECT → triggers OPEN_WS side effect.
       // FSM handles CONNECT as a global transition from any non-Disposed state.
-      this.#dispatch({ type: 'CONNECT', roomCode, userId });
+      this.#dispatch({ type: 'CONNECT', roomCode, roomId });
     });
   }
 
-  /** Fire-and-forget connect (for cases where caller doesn't need to await) */
-  connect(roomCode: string, userId: string): void {
-    this.#dispatch({ type: 'CONNECT', roomCode, userId });
-  }
+  /** Reconnect an existing room binding and wait for a fresh snapshot/update. */
+  reconnectAndWait(timeoutMs = 15_000): Promise<void> {
+    if (
+      this.#ctx.state !== ConnectionState.Disconnected &&
+      this.#ctx.state !== ConnectionState.Failed
+    ) {
+      throw new Error(
+        `ConnectionManager.reconnectAndWait requires Disconnected or Failed, received ${this.#ctx.state}`,
+      );
+    }
+    this.#assertNoPendingWait();
 
-  /** Manual reconnect (user clicked "reconnect" button) */
-  manualReconnect(): void {
-    this.#dispatch({ type: 'MANUAL_RECONNECT' });
+    return new Promise<void>((resolve, reject) => {
+      this.#connectWaitResolve = resolve;
+      this.#connectWaitReject = reject;
+      this.#connectWaitTimeout = setTimeout(() => {
+        this.#settleConnectWait(new Error(`reconnectAndWait timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+      this.#dispatch({ type: 'MANUAL_RECONNECT' });
+    });
   }
 
   /** Disconnect — clean up connection, return to Idle. Can reconnect later. */
   disconnect(): void {
     connectionLog.info('disconnect');
+    this.#connectionGeneration += 1;
     this.#cancelPrefetch();
     this.#settleConnectWait(new Error('Connection disconnected'));
     this.#dispatch({ type: 'DISCONNECT' });
@@ -216,6 +262,7 @@ export class ConnectionManager {
   /** Dispose — clean up all resources, stop all timers, ignore all future events */
   dispose(): void {
     connectionLog.info('dispose');
+    this.#connectionGeneration += 1;
     this.#cancelPrefetch();
     this.#settleConnectWait(new Error('Connection disposed'));
     this.#dispatch({ type: 'DISPOSE' });
@@ -260,7 +307,11 @@ export class ConnectionManager {
         this.#ctx.state === ConnectionState.Failed ||
         this.#ctx.state === ConnectionState.Disposed
       ) {
-        this.#settleConnectWait(new Error(`Connection ${this.#ctx.state}`));
+        const failure =
+          event.type === 'PROTOCOL_FAILURE'
+            ? toError(event.error)
+            : new Error(`Connection ${this.#ctx.state}`);
+        this.#settleConnectWait(failure);
       }
     }
   }
@@ -272,15 +323,15 @@ export class ConnectionManager {
   #executeSideEffect(effect: SideEffect): void {
     switch (effect.type) {
       case 'OPEN_WS':
-        this.#startPrefetch(effect.roomCode);
-        this.#deps.transport.connect(effect.roomCode, effect.userId);
+        this.#startPrefetch({ roomCode: effect.roomCode, roomId: effect.roomId });
+        void this.#openTransport({ roomCode: effect.roomCode, roomId: effect.roomId });
         break;
       case 'CLOSE_WS':
         this.#cancelPrefetch();
         this.#deps.transport.disconnect();
         break;
       case 'FETCH_STATE':
-        void this.#fetchState(effect.roomCode);
+        void this.#fetchState({ roomCode: effect.roomCode, roomId: effect.roomId });
         break;
       case 'SCHEDULE_RETRY':
         this.#scheduleRetry(effect.delayMs);
@@ -308,6 +359,12 @@ export class ConnectionManager {
 
   // ─── connectAndWait settlement ────────────────────────────────────────────
 
+  #assertNoPendingWait(): void {
+    if (this.#connectWaitResolve !== null || this.#connectWaitReject !== null) {
+      throw new Error('ConnectionManager already has a pending connection wait');
+    }
+  }
+
   #settleConnectWait(error: Error | null): void {
     if (this.#connectWaitTimeout) {
       clearTimeout(this.#connectWaitTimeout);
@@ -320,6 +377,31 @@ export class ConnectionManager {
     }
     this.#connectWaitResolve = null;
     this.#connectWaitReject = null;
+  }
+
+  #failProtocol(error: unknown): void {
+    handleError(error, {
+      label: '实时协议',
+      logger: connectionLog,
+      feedback: false,
+    });
+    this.#dispatch({ type: 'PROTOCOL_FAILURE', error });
+  }
+
+  async #openTransport(room: RoomLocator): Promise<void> {
+    const generation = this.#connectionGeneration;
+    try {
+      await this.#deps.transport.connect(room);
+    } catch (error) {
+      if (generation !== this.#connectionGeneration) return;
+      handleError(error, {
+        label: '实时连接',
+        logger: connectionLog,
+        feedback: false,
+      });
+      this.#dispatch({ type: 'WS_ERROR', error });
+      this.#dispatch({ type: 'WS_CLOSE', code: 4001, reason: 'transport_connect_failed' });
+    }
   }
 
   // ─── Ping / Pong ──────────────────────────────────────────────────────────
@@ -381,13 +463,17 @@ export class ConnectionManager {
 
   // ─── Prefetch (parallel with WS handshake) ────────────────────────────────
 
-  #startPrefetch(roomCode: string): void {
+  #startPrefetch(room: RoomLocator): void {
     this.#cancelPrefetch();
     const generation = ++this.#prefetchGeneration;
-    connectionLog.debug('Starting prefetch', { roomCode });
-    this.#prefetchPromise = this.#deps.fetchStateFromDB(roomCode).catch((e: unknown) => {
+    const connectionGeneration = this.#connectionGeneration;
+    connectionLog.debug('Starting prefetch', room);
+    this.#prefetchPromise = this.#deps.fetchStateFromDB(room).catch((e: unknown) => {
       // Prefetch failure is non-fatal — #fetchState will retry via normal path
-      if (generation === this.#prefetchGeneration) {
+      if (
+        generation === this.#prefetchGeneration &&
+        connectionGeneration === this.#connectionGeneration
+      ) {
         connectionLog.debug('Prefetch failed (will retry in FETCH_STATE)', { error: e });
       }
       return null;
@@ -401,7 +487,8 @@ export class ConnectionManager {
 
   // ─── Fetch State ──────────────────────────────────────────────────────────
 
-  async #fetchState(roomCode: string): Promise<void> {
+  async #fetchState(room: RoomLocator): Promise<void> {
+    const connectionGeneration = this.#connectionGeneration;
     try {
       // Consume prefetch result if available (same generation = not cancelled).
       // Race against a grace timer: if prefetch hasn't settled within PREFETCH_GRACE_MS
@@ -409,35 +496,56 @@ export class ConnectionManager {
       const prefetch = this.#prefetchPromise;
       this.#prefetchPromise = null;
 
-      let result: { state: GameState; revision: number } | null = null;
+      let result: RoomSnapshot<TState> | null = null;
 
       if (prefetch) {
-        result = await Promise.race([
-          prefetch,
-          new Promise<null>((r) => setTimeout(r, PREFETCH_GRACE_MS)),
-        ]);
+        result = await this.#waitForPrefetch(prefetch);
+        if (connectionGeneration !== this.#connectionGeneration) return;
         if (!result) {
           connectionLog.debug('Prefetch did not settle within grace window, fetching fresh');
         }
       }
 
       if (!result) {
-        result = await this.#deps.fetchStateFromDB(roomCode);
+        result = await this.#deps.fetchStateFromDB(room);
+        if (connectionGeneration !== this.#connectionGeneration) return;
       }
 
       if (result) {
-        this.#deps.onFetchedState(result.state, result.revision);
+        try {
+          this.#deps.onFetchedState(result);
+        } catch (error) {
+          this.#failProtocol(error);
+          return;
+        }
         this.#dispatch({ type: 'FETCH_SUCCESS', revision: result.revision });
       } else {
-        this.#dispatch({ type: 'FETCH_FAILURE', error: new Error('No state returned') });
+        this.#failProtocol(new Error('Active room returned no authoritative snapshot'));
       }
     } catch (e) {
+      if (connectionGeneration !== this.#connectionGeneration) return;
       handleError(e, {
         label: '状态恢复',
         logger: connectionLog,
         feedback: false,
       });
       this.#dispatch({ type: 'FETCH_FAILURE', error: e });
+    }
+  }
+
+  async #waitForPrefetch(
+    prefetch: Promise<RoomSnapshot<TState> | null>,
+  ): Promise<RoomSnapshot<TState> | null> {
+    let graceTimer: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race([
+        prefetch,
+        new Promise<null>((resolve) => {
+          graceTimer = setTimeout(() => resolve(null), PREFETCH_GRACE_MS);
+        }),
+      ]);
+    } finally {
+      if (graceTimer !== null) clearTimeout(graceTimer);
     }
   }
 
@@ -482,16 +590,21 @@ export class ConnectionManager {
     }, this.#revisionPollCurrentMs);
   }
 
-  async #checkRevisionAndReschedule(generation: number): Promise<void> {
-    const roomCode = this.#ctx.roomCode;
-    if (!roomCode) {
-      if (generation === this.#revisionPollGeneration) this.#scheduleNextRevisionPoll();
-      return;
+  #requireRoomIdentity(): RoomLocator {
+    const { roomCode, roomId } = this.#ctx;
+    if (roomCode === null || roomId === null) {
+      throw new Error(`Connection state ${this.#ctx.state} has no room identity`);
     }
+    return parseRoomLocator({ roomCode, roomId });
+  }
+
+  async #checkRevisionAndReschedule(generation: number): Promise<void> {
+    if (generation !== this.#revisionPollGeneration) return;
+    const room = this.#requireRoomIdentity();
 
     let hadDrift = false;
     try {
-      const dbRevision = await this.#deps.getStateRevision(roomCode);
+      const dbRevision = await this.#deps.getStateRevision(room);
       if (dbRevision != null && dbRevision > this.#ctx.lastRevision) {
         hadDrift = true;
         this.#dispatch({ type: 'REVISION_DRIFT', dbRevision });

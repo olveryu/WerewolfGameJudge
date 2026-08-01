@@ -5,13 +5,13 @@
  * Data reads directly from game-engine's NORMAL_RATES / GOLDEN_RATES exports, no hardcoding.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { Rarity } from '@game-judge/game-engine/product/rewards';
 import {
   GOLDEN_RATES,
   NORMAL_RATES,
   PITY_THRESHOLD,
-} from '@werewolf/game-engine/growth/gachaProbability';
-import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
-import { SHARD_VALUES } from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@game-judge/game-engine/product/rewards';
+import { SHARD_VALUES } from '@game-judge/game-engine/product/rewards';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 

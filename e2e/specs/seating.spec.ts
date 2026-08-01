@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { enterRoomCodeViaNumPad, startRoomCreation } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
@@ -90,7 +91,7 @@ test.describe('Seating', () => {
 
     try {
       const home = page;
-      await home.getByText('创建房间').click();
+      await startRoomCreation(home, 'werewolf');
       const bp = new BoardPickerPage(page);
       await bp.waitForReady();
       await bp.selectDefaultTemplate();
@@ -111,13 +112,11 @@ test.describe('Seating', () => {
       // "我" badge should be visible
       await room.expectMyBadgeVisible();
 
-      // Click own seat -> should show player profile card (self-profile with "离座" button)
-      await room.getSeatTile(0).click();
-      await expect(page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
-
-      // Dismiss profile card
-      await page.mouse.click(5, 5);
-      await expect(page.getByTestId('player-profile-card')).not.toBeVisible({ timeout: 3000 });
+      await room.standUp(0);
+      expect((await room.collectSeatState(1)).isEmpty, 'Direct leave should empty the seat').toBe(
+        true,
+      );
+      await room.seatAt(0);
 
       await room.screenshot(testInfo, 'single-player-seated.png');
     } finally {
@@ -132,7 +131,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp1 = new BoardPickerPage(pageA);
       await bp1.waitForReady();
       await bp1.selectDefaultTemplate();
@@ -166,7 +165,7 @@ test.describe('Seating', () => {
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
-      await expect(pageB.locator('[data-testid="my-seat-badge"]')).toBeVisible({ timeout: 3000 });
+      await expect(pageB.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({ timeout: 3000 });
 
       // Host should see seat 2 occupied
       const hostSeat2 = await pollSeatOccupied(roomA, 2);
@@ -185,7 +184,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp2 = new BoardPickerPage(pageA);
       await bp2.waitForReady();
       await bp2.selectDefaultTemplate();
@@ -225,7 +224,7 @@ test.describe('Seating', () => {
       expect(hostSeat2After.isEmpty, 'Kicked seat should be empty').toBe(true);
 
       // Joiner sees their seat badge disappear (kicked)
-      await expect(pageB.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
+      await expect(pageB.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
         timeout: 10_000,
       });
 
@@ -242,7 +241,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp3 = new BoardPickerPage(pageA);
       await bp3.waitForReady();
       await bp3.selectDefaultTemplate();
@@ -291,7 +290,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp4 = new BoardPickerPage(pageA);
       await bp4.waitForReady();
       await bp4.selectDefaultTemplate();
@@ -320,7 +319,7 @@ test.describe('Seating', () => {
       expect(joinerSeat2.hasPlayerName, 'Joiner seated at seat 2').toBe(true);
 
       // Switch to seat 5
-      await roomB.seatAt(4);
+      await roomB.moveToSeat(4);
 
       // Poll for seat switch to propagate (broadcast round-trip)
       const joinerSeat5 = await pollSeatOccupied(roomB, 5);
@@ -349,7 +348,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp5 = new BoardPickerPage(pageA);
       await bp5.waitForReady();
       await bp5.selectDefaultTemplate();

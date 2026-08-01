@@ -1,0 +1,65 @@
+/**
+ * Step Transition Guards - Night step transition preconditions
+ *
+ * Pure function module, handles:
+ * - ADVANCE_NIGHT / END_NIGHT shared gate validation
+ *
+ * Gates have no IO and do not mutate state.
+ */
+
+import { GameStatus } from '../models';
+import type { GameState } from '../protocol/types';
+import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
+import type { HandlerContext, HandlerResult } from './types';
+import { handlerError } from './types';
+
+/** Whether the current step is waiting for the Wolf Robot hunter-status acknowledgement. */
+export function isWolfRobotHunterStatusGatePending(state: GameState): boolean {
+  return (
+    state.currentStepId === 'wolfRobotLearn' &&
+    state.wolfRobotReveal?.learnedRoleId != null &&
+    WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId) &&
+    state.wolfRobotHunterStatusViewed === false
+  );
+}
+
+/**
+ * Validate preconditions (shared by ADVANCE_NIGHT / END_NIGHT)
+ *
+ * Gate order:
+ * 1. invalid_status (must be ongoing)
+ * 2. forbidden_while_audio_playing
+ * 3. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
+ */
+export function validateNightFlowPreconditions(
+  context: HandlerContext,
+): { valid: false; result: HandlerResult } | { valid: true; state: GameState } {
+  const { state } = context;
+
+  // Gate 1: invalid_status (must be ongoing)
+  if (state.status !== GameStatus.Ongoing) {
+    return {
+      valid: false,
+      result: handlerError('invalid_status'),
+    };
+  }
+
+  // Gate 2: forbidden_while_audio_playing
+  if (state.isAudioPlaying) {
+    return {
+      valid: false,
+      result: handlerError('forbidden_while_audio_playing'),
+    };
+  }
+
+  // Gate 3: wolfrobot_hunter_status_not_viewed
+  // If current step is wolfRobotLearn and learned a gate-triggering role but not viewed, reject advance
+  if (isWolfRobotHunterStatusGatePending(state)) {
+    return {
+      valid: false,
+      result: handlerError('wolfrobot_hunter_status_not_viewed'),
+    };
+  }
+
+  return { valid: true, state };
+}

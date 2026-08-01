@@ -1,0 +1,225 @@
+/**
+ * useBoardPickerScreenState — state hook for BoardPickerScreen
+ *
+ * Search / category / role filter / expand-collapse / navigation.
+ */
+import { Faction, isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { PRESET_TEMPLATES, TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
+import type { RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCallback, useMemo, useState } from 'react';
+import { LayoutAnimation } from 'react-native';
+
+import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
+import type { FactionColorKey } from '@/games/werewolf/screens/ConfigScreen/components';
+import {
+  filterTemplates,
+  getDistinctiveRoles,
+  groupTemplatesByCategory,
+} from '@/games/werewolf/screens/ConfigScreen/configHelpers';
+import { colors } from '@/theme';
+
+type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'BoardPicker'>;
+type BoardPickerRouteProp = RouteProp<WerewolfConfigStackParamList, 'BoardPicker'>;
+
+interface UseBoardPickerScreenStateParams {
+  readonly onExitFlow: () => void;
+}
+
+/** Board picker screen state hook. */
+export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenStateParams) {
+  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<BoardPickerRouteProp>();
+  const existingRoomCode = route.params?.existingRoomCode;
+  const nominateMode = route.params?.nominateMode;
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [previewRoleId, setPreviewRoleId] = useState<RoleId | null>(null);
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory | null>(
+    TemplateCategory.Classic,
+  );
+  const [expandedName, setExpandedName] = useState<string | null>(null);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<Set<string>>(new Set());
+  const [expandedFactions, setExpandedFactions] = useState<Set<string>>(new Set());
+
+  // ── Role filter chip data (stable, grouped by faction) ──
+  const distinctiveRoles = useMemo(() => getDistinctiveRoles(PRESET_TEMPLATES), []);
+  const filterGroups = useMemo(() => {
+    const groups: { label: string; color: string; items: typeof distinctiveRoles }[] = [];
+    const factions: { key: Faction; label: string; colorKey: FactionColorKey }[] = [
+      { key: Faction.Wolf, label: '狼人', colorKey: 'wolf' },
+      { key: Faction.God, label: '神职', colorKey: 'god' },
+      { key: Faction.Villager, label: '村民', colorKey: 'villager' },
+      { key: Faction.Special, label: '第三方', colorKey: 'third' },
+    ];
+    for (const f of factions) {
+      const items = distinctiveRoles.filter((r) => r.faction === f.key);
+      if (items.length > 0) {
+        groups.push({
+          label: f.label,
+          color: colors[f.colorKey],
+          items,
+        });
+      }
+    }
+    return groups;
+  }, [distinctiveRoles]);
+
+  // ── Data pipeline ──
+  const filtered = useMemo(() => filterTemplates(PRESET_TEMPLATES, searchQuery), [searchQuery]);
+  const roleFiltered = useMemo(
+    () =>
+      selectedRoleIds.size === 0
+        ? filtered
+        : filtered.filter((t) => {
+            const roleSet = new Set<string>(t.roles);
+            for (const id of selectedRoleIds) {
+              if (!roleSet.has(id)) return false;
+            }
+            return true;
+          }),
+    [filtered, selectedRoleIds],
+  );
+  const allSections = useMemo(() => groupTemplatesByCategory(roleFiltered), [roleFiltered]);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<TemplateCategory, number>();
+    for (const s of allSections) {
+      counts.set(s.category, s.data.length);
+    }
+    return counts;
+  }, [allSections]);
+  const sections = useMemo(
+    () =>
+      activeCategory === null
+        ? allSections
+        : allSections.filter((s) => s.category === activeCategory),
+    [allSections, activeCategory],
+  );
+
+  // ── Handlers ──
+  const handleGoBack = useCallback(() => {
+    if (hasPreviousRouteInCurrentNavigator(navigation)) {
+      navigation.goBack();
+      return;
+    }
+    onExitFlow();
+  }, [navigation, onExitFlow]);
+
+  const handleSelect = useCallback(
+    (presetName: string) => {
+      if (nominateMode) {
+        navigation.replace('Config', { presetName, nominateMode });
+      } else {
+        navigation.popTo('Config', { presetName, existingRoomCode });
+      }
+    },
+    [navigation, existingRoomCode, nominateMode],
+  );
+
+  const handleCustom = useCallback(() => {
+    if (nominateMode) {
+      navigation.replace('Config', { nominateMode });
+    } else {
+      navigation.popTo('Config', existingRoomCode ? { existingRoomCode } : undefined);
+    }
+  }, [navigation, existingRoomCode, nominateMode]);
+
+  const handleRolePress = useCallback((roleId: string) => {
+    if (!isValidRoleId(roleId)) {
+      throw new Error(`[useBoardPickerScreenState] Invalid role ID: ${roleId}`);
+    }
+    setPreviewRoleId(roleId);
+  }, []);
+
+  const handlePreviewClose = useCallback(() => {
+    setPreviewRoleId(null);
+  }, []);
+
+  const toggleSearch = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSearchVisible((prev) => {
+      if (prev) setSearchQuery('');
+      return !prev;
+    });
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  const handleTabPress = useCallback((cat: TemplateCategory) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setActiveCategory((prev) => (prev === cat ? null : cat));
+  }, []);
+
+  const handleToggleExpand = useCallback((name: string) => {
+    setExpandedName((prev) => (prev === name ? null : name));
+  }, []);
+
+  const toggleFilter = useCallback(() => {
+    setFilterVisible((prev) => !prev);
+  }, []);
+
+  const handleToggleRole = useCallback((roleId: string) => {
+    setSelectedRoleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(roleId)) {
+        next.delete(roleId);
+      } else {
+        next.add(roleId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleClearFilter = useCallback(() => {
+    setSelectedRoleIds(new Set());
+  }, []);
+
+  const handleToggleFactionSection = useCallback((label: string) => {
+    setExpandedFactions((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }, []);
+
+  return {
+    // State
+    searchQuery,
+    setSearchQuery,
+    searchVisible,
+    previewRoleId,
+    activeCategory,
+    expandedName,
+    filterVisible,
+    selectedRoleIds,
+    expandedFactions,
+    // Computed
+    filterGroups,
+    categoryCounts,
+    sections,
+    // Handlers
+    handleGoBack,
+    handleSelect,
+    handleCustom,
+    handleRolePress,
+    handlePreviewClose,
+    toggleSearch,
+    handleClearSearch,
+    handleTabPress,
+    handleToggleExpand,
+    toggleFilter,
+    handleToggleRole,
+    handleClearFilter,
+    handleToggleFactionSection,
+  };
+}

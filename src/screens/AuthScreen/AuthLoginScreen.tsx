@@ -14,7 +14,7 @@ import { toast } from 'sonner-native';
 
 import { LoginOptions } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useSignInAnonymously } from '@/hooks/mutations/useAuthMutations';
+import { useSignInAnonymously } from '@/features/auth/controllers/useAuthMutations';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';

@@ -8,7 +8,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useLoopProgress } from '@/hooks/useLoopProgress';
+import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 /** Props for all seat pet animation components */
 export interface PetProps {

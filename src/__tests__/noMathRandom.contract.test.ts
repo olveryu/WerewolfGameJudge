@@ -1,9 +1,9 @@
 /**
  * Contract Test: forbid Math.random() in business/service/Screen code
  *
- * Rules (see docs/random-and-id-guidelines.md):
- * 1. ID/nonce generation -> use src/utils/id.ts (randomHex, newRequestId, newRejectionId)
- * 2. Testable randomness -> use src/utils/random.ts (secureRng + Rng injection)
+ * Rules (see docs/multigame-platform-design.md):
+ * 1. ID/nonce generation -> use game-engine platform/identifiers
+ * 2. Testable randomness -> use game-engine platform/random with Rng injection
  * 3. Cross-client consistent randomness -> server-resolved + GameState broadcast
  *
  * Exceptions (Math.random allowed):
@@ -33,15 +33,15 @@ const ALLOWED_PATTERNS = [
 ];
 
 // Directories to scan
-const SCAN_DIRS = ['src/screens', 'src/services', 'src/hooks', 'src/contexts', 'src/components'];
+const SCAN_DIRS = ['src', 'packages/api-worker/src', 'packages/game-engine/src'];
 
 describe('Math.random() 禁止规则', () => {
   it('业务代码中不应直接使用 Math.random()', async () => {
-    const srcRoot = path.resolve(__dirname, '..');
+    const projectRoot = process.cwd();
     const violations: Array<{ file: string; line: number; content: string }> = [];
 
     for (const dir of SCAN_DIRS) {
-      const dirPath = path.join(srcRoot, dir.replace('src/', ''));
+      const dirPath = path.join(projectRoot, dir);
       if (!fs.existsSync(dirPath)) continue;
 
       // Find all .ts/.tsx files
@@ -52,7 +52,7 @@ describe('Math.random() 禁止规则', () => {
       });
 
       for (const file of files) {
-        const relativePath = path.relative(srcRoot, file);
+        const relativePath = path.relative(projectRoot, file);
 
         // Check whether file is in the allowed list
         const isAllowed = ALLOWED_PATTERNS.some((pattern) => {
@@ -99,21 +99,21 @@ describe('Math.random() 禁止规则', () => {
       throw new Error(
         `发现 ${violations.length} 处禁止使用 Math.random() 的代码:\n\n${report}\n\n` +
           `修复方案:\n` +
-          `- ID/nonce 生成 → import { randomHex } from '@werewolf/game-engine/utils/id'\n` +
-          `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@werewolf/game-engine/utils/random'\n` +
-          `- 数组打乱 → import { shuffleArray } from '@werewolf/game-engine/utils/shuffle'\n` +
+          `- ID/nonce 生成 → import { randomHex } from '@game-judge/game-engine/platform/identifiers'\n` +
+          `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@game-judge/game-engine/platform/random'\n` +
+          `- 数组打乱 → import { shuffleArray } from '@game-judge/game-engine/platform/random'\n` +
           `- 跨客户端一致 → 服务端解析并通过 GameState 广播\n` +
-          `- 详见 docs/random-and-id-guidelines.md`,
+          `- 详见 docs/multigame-platform-design.md`,
       );
     }
   });
 
   it('shuffle 函数应使用 Rng 注入而非 Math.random()', async () => {
-    const shufflePath = path.resolve(__dirname, '../utils/shuffle.ts');
-    if (!fs.existsSync(shufflePath)) {
-      // Skip if shuffle.ts does not exist
-      return;
-    }
+    const shufflePath = path.resolve(
+      process.cwd(),
+      'packages/game-engine/src/platform/random/shuffle.ts',
+    );
+    expect(fs.existsSync(shufflePath)).toBe(true);
 
     const content = fs.readFileSync(shufflePath, 'utf-8');
 

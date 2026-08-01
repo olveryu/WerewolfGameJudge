@@ -8,7 +8,7 @@
  * - NightFlowController (night flow state machine)
  * - DeathCalculator (death calculation)
  *
- * UI/hooks should only interact via GameFacade or transport layer.
+ * UI/hooks should only interact through a game-owned client or the shared room session.
  */
 
 import fs from 'node:fs';
@@ -79,15 +79,19 @@ describe('Server authority import boundary', () => {
   ];
 
   // Directories to check (UI layer - should not import server-authority modules)
+  const featuresDir = path.join(process.cwd(), 'src', 'features');
+  const gamesDir = path.join(process.cwd(), 'src', 'games');
   const hooksDir = path.join(process.cwd(), 'src', 'hooks');
   const screensDir = path.join(process.cwd(), 'src', 'screens');
 
+  const featuresFiles = getAllProductionFiles(featuresDir);
+  const gamesFiles = getAllProductionFiles(gamesDir);
   const hooksFiles = getAllProductionFiles(hooksDir);
   const screensFiles = getAllProductionFiles(screensDir);
-  const allFilesToCheck = [...hooksFiles, ...screensFiles];
+  const allFilesToCheck = [...featuresFiles, ...gamesFiles, ...hooksFiles, ...screensFiles];
 
   // Ensure we found files to check
-  it('should find hooks and screens files to check', () => {
+  it('should find feature, game, hook, and screen files to check', () => {
     expect(allFilesToCheck.length).toBeGreaterThan(0);
   });
 
@@ -97,10 +101,10 @@ describe('Server authority import boundary', () => {
     for (const pattern of forbiddenPatterns) {
       const match = content.match(pattern);
       if (match) {
-        fail(
+        throw new Error(
           `File ${filePath} imports server-authority module: "${match[0]}"\n` +
             'Hooks and screens should not import reducer, handlers, resolvers, DeathCalculator, or resolveWolfVotes.\n' +
-            'Use GameFacade or transport layer instead.',
+            'Use a game-owned client or the shared room session instead.',
         );
       }
     }

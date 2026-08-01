@@ -9,9 +9,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
+import { type AdminRoom, type AdminRoomPlayer } from '@/features/admin/model/adminContracts';
+import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
 
-import { type AdminRoom, type AdminRoomPlayer, fetchRoomPlayers, fetchRooms } from '../adminApi';
 import { AdminEmptyState, Pagination } from '../components';
 
 export const RoomsTab: React.FC = () => {
@@ -77,6 +78,17 @@ export const RoomsTab: React.FC = () => {
             </View>
             <Text style={styles.cardDetail}>
               房主: {item.hostName ?? '未知'} · {item.hostCountry ?? '?'}
+            </Text>
+            <Text style={styles.cardDetail}>
+              {item.gameType} ·{' '}
+              {
+                { creating: '创建中', active: '活跃', deleting: '删除中', failed: '恢复失败' }[
+                  item.status
+                ]
+              }
+              {item.reconciliationAttemptCount > 0
+                ? ` · 已重试 ${item.reconciliationAttemptCount} 次`
+                : ''}
             </Text>
             <Text style={styles.cardDetail}>
               {item.gamesStarted > 0

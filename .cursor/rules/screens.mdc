@@ -2,7 +2,7 @@
 
 ---
 description: Screen/Component layer standards: Policy-Orchestrator-Presentational three-tier, Theme Tokens, RN performance. Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations
-globs: src/screens/**,src/components/**
+globs: src/screens/**,src/components/**,src/games/*/screens/**,src/games/*/components/**
 alwaysApply: false
 ---
 
@@ -48,7 +48,7 @@ Faction colors must uniformly use theme tokens. Hardcoded color values are forbi
 | Third    | `colors.third`    | same as above                               |
 
 - All UI displaying faction colors (ConfigScreen chip, BoardInfoCard chip, RoleCard, NotepadPanel badge, AIChatBubble etc.) must read from `colors.*` to ensure theme-following.
-- `RoleRevealEffects` animation components derive glow/particle/gradient colors via `createAlignmentThemes(colors)` factory function (`src/components/RoleRevealEffects/types.ts`).
+- `RoleRevealEffects` animation components derive glow/particle/gradient colors via `createAlignmentThemes(colors)` factory function (`src/games/werewolf/components/RoleRevealEffects/types.ts`).
 - When adding new faction-related UI, all 4 factions (wolf / god / villager / third) must be covered.
 
 ## Shared Component Registry
@@ -67,7 +67,7 @@ Faction colors must uniformly use theme tokens. Hardcoded color values are forbi
 
 - `index.ts` exports `SEAT_FLAIRS` object + `getFlairComponent(flairId)` factory function.
 - Each Flair accepts `FlairProps` (`size` / `progress: SharedValue<number>`), renders with Skia Immediate Mode.
-- Adding flair: create component → register in `index.ts` → add to `rewardCatalog.ts` SEAT_FLAIR_IDS.
+- Adding flair: create component → register in `index.ts` → add to `product/rewards/catalog.ts` SEAT_FLAIR_IDS.
 
 ### Avatar Frames (avatarFrames)
 

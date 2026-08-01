@@ -34,7 +34,7 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
   avatarUrl,
   borderRadius,
 }) => {
-  const frameConfig = useMemo(() => getFrameById(frameId as string), [frameId]);
+  const frameConfig = useMemo(() => getFrameById(frameId), [frameId]);
 
   if (!frameConfig) {
     return <Avatar value={value} size={size} avatarUrl={avatarUrl} borderRadius={borderRadius} />;

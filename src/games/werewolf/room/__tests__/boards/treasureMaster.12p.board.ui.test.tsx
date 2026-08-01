@@ -1,0 +1,414 @@
+/**
+ * TreasureMaster 12P Board UI Test
+ *
+ * Board: Treasure Master
+ * Roles: 5x villager, 3x wolf, darkWolfKing, psychic, poisoner, hunter,
+ *        dreamcatcher, crow, treasureMaster (15 roles -> 12 players + 3 bottom cards)
+ *
+ * Required UI coverage (getRequiredUiDialogTypes):
+ * - actionPrompt: psychic, dreamcatcher actions
+ * - wolfVote: wolf vote dialog
+ * - wolfVoteEmpty: wolf empty knife
+ * - actionConfirm: psychic/dreamcatcher seat tap confirm
+ * - skipConfirm: psychic/dreamcatcher skip
+ * - confirmTrigger: hunter/darkWolfKing confirm trigger
+ *
+ * Server-data required (covered by integration):
+ * - psychicReveal
+ */
+
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+
+import {
+  chainConfirmTrigger,
+  chainSkipConfirm,
+  chainWolfVoteConfirm,
+  // Coverage-integrated chain drivers
+  coverageChainActionPrompt,
+  coverageChainConfirmTrigger,
+  coverageChainSeatActionConfirm,
+  coverageChainSkipConfirm,
+  coverageChainWolfVote,
+  coverageChainWolfVoteEmpty,
+  createShowAlertMock,
+  createWerewolfRoomMock,
+  getBoardByName,
+  mockNavigation,
+  mockRoom,
+  RoomScreenTestHarness,
+  tapSeat,
+  waitForRoomScreen,
+} from '@/games/werewolf/room/__tests__/harness';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import { showAlert } from '@/utils/alert';
+
+// =============================================================================
+// Mocks
+// =============================================================================
+
+jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
+  showAlert: jest.fn(),
+}));
+
+jest.mock('../../useRoomHostDialogs', () => ({
+  useRoomHostDialogs: () => ({
+    showPrepareToFlipDialog: jest.fn(),
+    showStartGameDialog: jest.fn(),
+    showRestartDialog: jest.fn(),
+    handleSettingsPress: jest.fn(),
+  }),
+}));
+
+jest.mock('../../hooks/useActionerState', () => ({
+  useActionerState: () => ({
+    imActioner: true,
+    showWolves: true,
+  }),
+}));
+
+// =============================================================================
+// Test Setup
+// =============================================================================
+
+const BOARD_NAME = '盗宝大师';
+const _board = getBoardByName(BOARD_NAME)!;
+
+let harness: RoomScreenTestHarness;
+let mockUseWerewolfRoomReturn: ReturnType<typeof createWerewolfRoomMock>;
+
+jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseWerewolfRoomReturn,
+}));
+
+// =============================================================================
+// Tests
+// =============================================================================
+
+describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
+  const renderRoom = () =>
+    render(<WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
+  const setMock = (m: ReturnType<typeof createWerewolfRoomMock>) => {
+    mockUseWerewolfRoomReturn = m;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    harness = new RoomScreenTestHarness();
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
+  });
+
+  describe('actionPrompt coverage', () => {
+    it('psychic action: shows action prompt', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'psychicCheck',
+        currentActionRole: 'psychic',
+        myRole: 'psychic',
+        mySeat: 10,
+      });
+
+      const { getByTestId } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+    });
+  });
+
+  describe('wolfVote coverage', () => {
+    it('darkWolfKing vote: tapping seat shows wolf vote dialog', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'darkWolfKing',
+        mySeat: 9,
+        roleAssignments: new Map([
+          [6, 'wolf'],
+          [7, 'wolf'],
+          [8, 'wolf'],
+          [9, 'darkWolfKing'],
+        ]),
+      });
+
+      const { getByTestId } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+    });
+  });
+
+  describe('confirmTrigger coverage', () => {
+    it('darkWolfKing confirm: pressing bottom button shows confirmTrigger dialog', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'darkWolfKingConfirm',
+        currentActionRole: 'darkWolfKing',
+        myRole: 'darkWolfKing',
+        mySeat: 9,
+        gameStateOverrides: { confirmStatus: { role: 'darkWolfKing', canShoot: true } },
+      });
+
+      const { getByTestId, getByText } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      const bottomActionText = getSchema('darkWolfKingConfirm').ui?.bottomActionText;
+      if (!bottomActionText)
+        throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
+
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+    });
+
+    it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'hunterConfirm',
+        currentActionRole: 'hunter',
+        myRole: 'hunter',
+        mySeat: 12,
+        gameStateOverrides: { confirmStatus: { role: 'hunter', canShoot: true } },
+      });
+
+      const { getByTestId, getByText } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      const bottomActionText = getSchema('hunterConfirm').ui?.bottomActionText;
+      if (!bottomActionText) throw new Error('[TEST] Missing hunterConfirm.ui.bottomActionText');
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
+
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+    });
+  });
+
+  describe('psychic actionConfirm coverage', () => {
+    it('psychic: seat tap shows actionConfirm dialog', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'psychicCheck',
+        currentActionRole: 'psychic',
+        myRole: 'psychic',
+        mySeat: 10,
+      });
+
+      const { getByTestId } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+      tapSeat(getByTestId, 1);
+      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    });
+  });
+
+  describe('psychic skipConfirm coverage', () => {
+    it('psychic: skip button shows skipConfirm dialog', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'psychicCheck',
+        currentActionRole: 'psychic',
+        myRole: 'psychic',
+        mySeat: 10,
+      });
+
+      const { getByTestId, getByText } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const skipText = getSchema('psychicCheck').ui?.bottomActionText;
+      if (!skipText) throw new Error('[TEST] Missing psychicCheck.ui.bottomActionText');
+      fireEvent.press(getByText(skipText));
+      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
+    });
+  });
+
+  describe('wolfVoteEmpty coverage', () => {
+    it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'wolfKill',
+        currentActionRole: 'wolf',
+        myRole: 'darkWolfKing',
+        mySeat: 9,
+        roleAssignments: new Map([
+          [6, 'wolf'],
+          [7, 'wolf'],
+          [8, 'wolf'],
+          [9, 'darkWolfKing'],
+        ]),
+      });
+
+      const { getByTestId, getByText } = render(
+        <WerewolfRoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+      harness.clear();
+
+      const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
+      if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
+      fireEvent.press(getByText(emptyText));
+      await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
+    });
+  });
+
+  // =============================================================================
+  // Chain Interaction (press button -> assert callback)
+  // =============================================================================
+
+  describe('chain interaction', () => {
+    it('wolfVote confirm → submitAction called', async () => {
+      await chainWolfVoteConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKing',
+        9,
+        new Map<number, RoleId>([
+          [6, 'wolf'],
+          [7, 'wolf'],
+          [8, 'wolf'],
+          [9, 'darkWolfKing'],
+        ]),
+        1,
+      );
+    });
+
+    it('skipConfirm (psychic) → submitAction called', async () => {
+      await chainSkipConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'psychicCheck',
+        'psychic',
+        'psychic',
+        10,
+      );
+    });
+
+    it('confirmTrigger (darkWolfKing) → dialog dismissed', async () => {
+      await chainConfirmTrigger(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKingConfirm',
+        'darkWolfKing',
+        'darkWolfKing',
+        9,
+      );
+    });
+  });
+
+  // =============================================================================
+  // Coverage Assertion (MUST PASS)
+  // =============================================================================
+
+  describe('Coverage Assertion (MUST PASS)', () => {
+    it('all required UI dialog types covered with chain interactions and effect assertions', async () => {
+      // Step 1: actionPrompt (psychic)
+      await coverageChainActionPrompt(
+        harness,
+        setMock,
+        renderRoom,
+        'psychicCheck',
+        'psychic',
+        'psychic',
+        10,
+      );
+
+      // Step 2: wolfVote -> press confirm -> submitAction(1) called
+      const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKing',
+        9,
+        new Map<number, RoleId>([
+          [6, 'wolf'],
+          [7, 'wolf'],
+          [8, 'wolf'],
+          [9, 'darkWolfKing'],
+        ]),
+        1,
+      );
+      expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
+
+      // Step 3: confirmTrigger (darkWolfKing) -> press primary + assertNoLoop
+      await coverageChainConfirmTrigger(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKingConfirm',
+        'darkWolfKing',
+        'darkWolfKing',
+        9,
+      );
+
+      // Step 4: actionConfirm (psychic tap seat) -> press confirm -> submitAction called
+      const { submitAction: psychicSubmit } = await coverageChainSeatActionConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'psychicCheck',
+        'psychic',
+        'psychic',
+        10,
+        1,
+      );
+      expect(psychicSubmit).toHaveBeenCalled();
+
+      // Step 5: skipConfirm (psychic) -> press primary -> submitAction called
+      const { submitAction: psychicSkip } = await coverageChainSkipConfirm(
+        harness,
+        setMock,
+        renderRoom,
+        'psychicCheck',
+        'psychic',
+        'psychic',
+        10,
+      );
+      expect(psychicSkip).toHaveBeenCalled();
+
+      // Step 6: wolfVoteEmpty -> press confirm -> submitAction(null) called
+      const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKing',
+        9,
+        new Map<number, RoleId>([
+          [6, 'wolf'],
+          [7, 'wolf'],
+          [8, 'wolf'],
+          [9, 'darkWolfKing'],
+        ]),
+      );
+      expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
+
+      // Final: literal coverage requirements
+      harness.assertCoverage([
+        'actionPrompt',
+        'wolfVote',
+        'wolfVoteEmpty',
+        'actionConfirm',
+        'skipConfirm',
+        'confirmTrigger',
+      ]);
+    });
+  });
+});

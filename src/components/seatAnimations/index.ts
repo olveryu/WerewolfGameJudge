@@ -1,14 +1,11 @@
 /**
  * seatAnimations — sit animation registry.
  *
- * SeatAnimationId type is derived from SEAT_ANIMATION_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * SeatAnimationId type is derived from SEAT_ANIMATION_IDS in `@game-judge/game-engine/product/rewards`.
  * Use getSeatAnimationById to look up the corresponding Reanimated animation component by id.
  * Structure mirrors `seatFlairs/index.ts`.
  */
-import {
-  SEAT_ANIMATION_IDS,
-  type SeatAnimationId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+import { SEAT_ANIMATION_IDS, type SeatAnimationId } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 
 import { COMMON_ANIMATION_ENTRIES, RARE_ANIMATION_ENTRIES } from './common';
@@ -33,12 +30,13 @@ interface SeatAnimationConfig {
 }
 
 /**
- * Sit animation registry (exhaustive Record) — TS will fail to compile if SEAT_ANIMATION_IDS gains a new id not added here.
+ * Sit animation registry. Legendary keys are compiler-checked, and catalog projection fails fast
+ * when a generated entry is missing.
  * UI display order follows SEAT_ANIMATION_IDS.
  * Legendary entries are listed manually; Common/Rare/Epic are spread from their respective factories.
  */
-function buildAnimationRegistry(): Record<SeatAnimationId, SeatAnimationConfig> {
-  const legendaryEntries: Record<string, SeatAnimationConfig> = {
+function buildAnimationRegistry(): Partial<Record<SeatAnimationId, SeatAnimationConfig>> {
+  const legendaryEntries = {
     wolfKingEntry: { name: '狼王登场', Component: WolfKingEntry },
     witchBrew: { name: '女巫秘药', Component: WitchBrew },
     seerVision: { name: '预言之眼', Component: SeerVision },
@@ -49,19 +47,25 @@ function buildAnimationRegistry(): Record<SeatAnimationId, SeatAnimationConfig> 
     bloodMoonRise: { name: '血月升起', Component: BloodMoonRise },
     spiritSummon: { name: '灵魂召唤', Component: SpiritSummon },
     cardReveal: { name: '翻牌登场', Component: CardReveal },
-  };
+  } satisfies Partial<Record<SeatAnimationId, SeatAnimationConfig>>;
   return {
     ...legendaryEntries,
     ...EPIC_ANIMATION_ENTRIES,
     ...COMMON_ANIMATION_ENTRIES,
     ...RARE_ANIMATION_ENTRIES,
-  } as Record<SeatAnimationId, SeatAnimationConfig>;
+  };
 }
 const ANIMATION_REGISTRY = buildAnimationRegistry();
 
 /** All available sit animations (order = SEAT_ANIMATION_IDS display order) */
 export const SEAT_ANIMATIONS: readonly (SeatAnimationConfig & { id: SeatAnimationId })[] =
-  SEAT_ANIMATION_IDS.map((id) => ({ id, ...ANIMATION_REGISTRY[id] }));
+  SEAT_ANIMATION_IDS.map((id) => {
+    const config = ANIMATION_REGISTRY[id];
+    if (config === undefined) {
+      throw new Error(`Missing seat animation config for "${id}"`);
+    }
+    return { id, ...config };
+  });
 
 const ANIMATION_MAP = new Map<string, SeatAnimationConfig>(SEAT_ANIMATIONS.map((a) => [a.id, a]));
 
