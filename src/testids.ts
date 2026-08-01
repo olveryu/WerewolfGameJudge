@@ -69,6 +69,8 @@ export const TESTIDS = {
   restartButton: 'restart-button',
   audioWaitingButton: 'audio-waiting-button',
   lastNightInfoButton: 'last-night-info-button',
+  chooseBottomCardModal: 'choose-bottom-card-modal',
+  chooseBottomCardOption: (cardIndex: number) => `choose-bottom-card-option-${cardIndex}`,
   bgmToggleButton: 'bgm-toggle-button',
   connectionStatusContainer: 'connection-status-container',
 

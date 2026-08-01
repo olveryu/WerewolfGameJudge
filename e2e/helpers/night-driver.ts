@@ -1,5 +1,6 @@
 import { type Page } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import type { CapturedRole } from './multi-player';
 import { ensureConnected } from './waits';
 
@@ -127,6 +128,33 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
   }
   log(`clickSeatAndConfirm seat=${seatIdx} — confirm btn not visible`);
   return false;
+}
+
+/** Select and confirm the first enabled card inside the bottom-card modal. */
+export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> {
+  const modal = page.locator(`[data-testid="${TESTIDS.chooseBottomCardModal}"]`);
+  await modal.waitFor({ state: 'visible', timeout: 5000 });
+
+  const options = modal.locator('[data-testid^="choose-bottom-card-option-"]');
+  const optionCount = await options.count();
+  for (let cardIndex = 0; cardIndex < optionCount; cardIndex++) {
+    const option = options.nth(cardIndex);
+    if (!(await option.isEnabled())) continue;
+
+    const selectedText = await option.textContent();
+    if (selectedText === null || selectedText.trim().length === 0) {
+      throw new Error(`Bottom-card option ${cardIndex} has no accessible text`);
+    }
+    const selectedName = selectedText.trim();
+    await option.click();
+
+    const alertModal = page.locator('[data-testid="alert-modal"]');
+    await alertModal.waitFor({ state: 'visible', timeout: 3000 });
+    await alertModal.getByText('确定', { exact: true }).click();
+    return selectedName;
+  }
+
+  throw new Error('Bottom-card modal has no enabled option');
 }
 
 // ---------------------------------------------------------------------------

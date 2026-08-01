@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  chooseFirstEnabledBottomCard,
   clickBottomButton,
   dismissAlert,
   findAllRolePageIndices,
@@ -70,27 +71,7 @@ test.describe('Night Roles — TreasureMaster', () => {
         await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
         await chooseBtn.click();
 
-        // Wait for the bottom card modal (subtitle "你的阵营：...")
-        await pages[tmIdx]!.getByText('你的阵营', { exact: false })
-          .first()
-          .waitFor({ state: 'visible', timeout: 5000 });
-
-        // Pick the first non-wolf card visible in the modal.
-        // Wolf cards are disabled; good/villager cards are clickable.
-        const CANDIDATE_NAMES = ['平民', '预言家', '毒师'];
-        let clicked = false;
-        for (const name of CANDIDATE_NAMES) {
-          const card = pages[tmIdx]!.getByText(name, { exact: true }).first();
-          if (await card.isVisible().catch(() => false)) {
-            await card.click();
-            clicked = true;
-            break;
-          }
-        }
-        expect(clicked, 'Should find a non-wolf bottom card to click').toBe(true);
-
-        // Confirm selection in the "确认选择" alert
-        await dismissAlert(pages[tmIdx]!);
+        await chooseFirstEnabledBottomCard(pages[tmIdx]!);
 
         // === Step 2: Wolf's turn — forced empty kill (poisoner in template) ===
         // All wolf players must confirm the empty kill.

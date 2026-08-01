@@ -2,6 +2,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
 import {
+  chooseFirstEnabledBottomCard,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfVote,
@@ -188,38 +189,8 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
           await chooseBtn.click();
 
-          // Wait for the bottom card modal (subtitle contains "底牌" for thief)
-          await pages[thiefIdx]!.getByText(/底牌[含均]/)
-            .first()
-            .waitFor({ state: 'visible', timeout: 5000 });
-
-          // Pick the first *enabled* card — disabled cards (opacity 0.4) are still
-          // "visible" to Playwright but won't trigger showConfirmAlert on press.
-          // Strategy: click each candidate, wait for the confirm alert; if it
-          // doesn't appear the card was disabled, so try the next one.
-          const CANDIDATE_NAMES = ['平民', '预言家', '狼人'];
-          const alertModal = pages[thiefIdx]!.locator('[data-testid="alert-modal"]');
-          let picked = false;
-          for (const name of CANDIDATE_NAMES) {
-            const card = pages[thiefIdx]!.getByText(name, { exact: true }).first();
-            if (!(await card.isVisible().catch(() => false))) continue;
-
-            await card.click();
-
-            // If the card was enabled, a confirm alert ("确认选择") appears
-            const appeared = await alertModal
-              .waitFor({ state: 'visible', timeout: 1500 })
-              .then(() => true)
-              .catch(() => false);
-            if (appeared) {
-              const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
-              await confirmBtn.click();
-              thiefPickedWolf = name === '狼人';
-              picked = true;
-              break;
-            }
-          }
-          expect(picked, 'Should pick an enabled bottom card').toBe(true);
+          const selectedCard = await chooseFirstEnabledBottomCard(pages[thiefIdx]!);
+          thiefPickedWolf = selectedCard === '狼人';
         });
 
         // === Step 2: Cupid's turn — link 2 lovers ===
