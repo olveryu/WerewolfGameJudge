@@ -3363,3 +3363,14 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   3 files / 18 tests，独立 provider contract 为 1 file / 13 tests，D1 table ownership contract 为 4629 tests。
   完整 `pnpm run quality` 通过：game-engine 88 suites / 2495 tests、Worker 29 files / 177 tests、root 232 suites /
   9660 tests；Pages/Worker types、三套 TypeScript、engine build、Knip、ESLint 与 Prettier 全绿。
+
+### 当前提交：Phase 8.12W Worker deploy 配置归属
+
+- `main` merge 后 CI run `30679798231` 的 remote D1 migration 失败；原始 job 日志确认
+  `wrangler-action@v4` 从 workspace 根执行 `pnpm exec wrangler d1 migrations apply werewolf-db --remote`，因此选中
+  Pages `wrangler.jsonc` 并报告找不到 `werewolf-db`。migration `0041_fib_word_exposures.sql` 本身未开始执行。
+- `deploy-api-worker` 改为调用 `@game-judge/api-worker` 的 `db:migrate:remote` 与 `deploy` package scripts；两条 script
+  都显式传入 Worker `wrangler.toml`。认证使用 Wrangler 官方支持的 `CLOUDFLARE_API_TOKEN` 与
+  `CLOUDFLARE_ACCOUNT_ID` job environment，不再依赖 action 的 working-directory 行为。
+- 独立 contract test 同时锁住 package script 的 `--config wrangler.toml` 与 workflow 的 package-owned command，并
+  禁止 API Worker deploy job 重新使用 ambient-config `wrangler-action`。完整 `pnpm run quality` 待执行。
