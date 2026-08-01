@@ -375,6 +375,8 @@ jobs:
             specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts'
           - shard: 4
             specs: 'entry-flow.spec.ts db-recovery.spec.ts seating.spec.ts night-roles-eclipse-wolf-queen.spec.ts night-roles-thief-cupid.spec.ts night-roles-treasure.spec.ts night-verify.spec.ts night-2p.spec.ts night-6p.spec.ts offline-recovery-canary.spec.ts rejoin.spec.ts restart.spec.ts room-lifecycle.spec.ts home.spec.ts config.spec.ts'
+          - shard: 5
+            specs: 'fibking.spec.ts fibking-responsive.spec.ts night-roles-hidden-wolf-crow.spec.ts'
     steps:
       - uses: actions/checkout@v6
 
@@ -407,7 +409,7 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      - name: Run E2E tests (shard ${{ matrix.shard }}/4)
+      - name: Run E2E tests (shard ${{ matrix.shard }}/5)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
       - name: Upload blob report
