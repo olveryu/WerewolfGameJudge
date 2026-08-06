@@ -1,6 +1,7 @@
 /** Worker-side validation and execution for FibKing word-generation effects. */
 
 import {
+  FIB_PREPARATION_PROGRESS,
   FIB_USED_WORD_LIMIT,
   type FibEffect,
   type FibGenerateWordEffect,
@@ -29,6 +30,39 @@ function isSupersededRoundRejection(reason: string): boolean {
   return reason === REASON_FIB_ROUND_NOT_PREPARING || reason === REASON_FIB_ROUND_MISMATCH;
 }
 
+async function dispatchPreparationProgress(
+  context: WorkerEffectContext<FibState, FibInternalCommand>,
+  roundId: string,
+  progressPercent:
+    | typeof FIB_PREPARATION_PROGRESS.generating
+    | typeof FIB_PREPARATION_PROGRESS.ready,
+): Promise<boolean> {
+  const commandId = await createEffectCommandId(
+    `fib:preparation-progress-${progressPercent}`,
+    context.effectId,
+  );
+  const result = await context.dispatchInternal(commandId, {
+    type: 'fib.round.updatePreparationProgress',
+    roundId,
+    progressPercent,
+  });
+  if (result.commandId !== commandId) {
+    throw new Error(
+      `[FAIL-FAST] Fib preparation-progress receipt ${result.commandId} does not match ${commandId}`,
+    );
+  }
+  if (result.kind === 'rejected') {
+    if (isSupersededRoundRejection(result.reason)) return false;
+    throw new Error(`Fib preparation-progress command ${commandId} was rejected: ${result.reason}`);
+  }
+  if (result.outcome.kind !== 'success') {
+    throw new Error(
+      `Fib preparation-progress command ${commandId} failed: ${result.outcome.reason}`,
+    );
+  }
+  return true;
+}
+
 export async function handleFibGenerateWordEffect(
   effect: FibGenerateWordEffect,
   context: WorkerEffectContext<FibState, FibInternalCommand>,
@@ -37,6 +71,15 @@ export async function handleFibGenerateWordEffect(
   if (
     context.state.phase !== 'preparing' ||
     context.state.pendingRound.roundId !== effect.payload.roundId
+  ) {
+    return;
+  }
+  if (
+    !(await dispatchPreparationProgress(
+      context,
+      effect.payload.roundId,
+      FIB_PREPARATION_PROGRESS.generating,
+    ))
   ) {
     return;
   }
@@ -49,6 +92,15 @@ export async function handleFibGenerateWordEffect(
     provider,
     historyUserIds,
   });
+  if (
+    !(await dispatchPreparationProgress(
+      context,
+      effect.payload.roundId,
+      FIB_PREPARATION_PROGRESS.ready,
+    ))
+  ) {
+    return;
+  }
   const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
   const result = await context.dispatchInternal(commandId, {
     type: 'fib.round.complete',

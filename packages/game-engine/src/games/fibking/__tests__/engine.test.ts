@@ -11,6 +11,7 @@ import type { FibEvent } from '../domain/events';
 import {
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
+  REASON_FIB_PREPARATION_PROGRESS_INVALID,
   REASON_FIB_ROUND_ALREADY_ONGOING,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_FULL,
@@ -20,6 +21,7 @@ import { getFibRoundView, getFibUserSeat } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine, getFibLifecycle } from '../engine';
 import {
+  FIB_PREPARATION_PROGRESS,
   type FibState,
   getFibOccupiedSeatCount,
   getFibRole,
@@ -107,11 +109,31 @@ function completeRound(
   randomSeed = 'role-seed-1',
 ): FibState {
   if (state.phase !== 'preparing') throw new Error('Expected preparing state');
-  return dispatch(
+  let readyState = dispatch(
     state,
     {
-      type: 'fib.round.complete',
+      type: 'fib.round.updatePreparationProgress',
       roundId: state.pendingRound.roundId,
+      progressPercent: FIB_PREPARATION_PROGRESS.generating,
+    },
+    systemContext(),
+  );
+  if (readyState.phase !== 'preparing') throw new Error('Expected preparing state');
+  readyState = dispatch(
+    readyState,
+    {
+      type: 'fib.round.updatePreparationProgress',
+      roundId: readyState.pendingRound.roundId,
+      progressPercent: FIB_PREPARATION_PROGRESS.ready,
+    },
+    systemContext(),
+  );
+  if (readyState.phase !== 'preparing') throw new Error('Expected preparing state');
+  return dispatch(
+    readyState,
+    {
+      type: 'fib.round.complete',
+      roundId: readyState.pendingRound.roundId,
       word,
       definition,
       source: 'local',
@@ -128,7 +150,7 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
-      stateVersion: 2,
+      stateVersion: 3,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',
@@ -323,7 +345,11 @@ describe('FibKing recoverable round workflow', () => {
       events: [
         {
           type: 'fib.round.preparing',
-          pendingRound: { roundId: 'fib-round:round-a', requestedAt: 2_000 },
+          pendingRound: {
+            roundId: 'fib-round:round-a',
+            requestedAt: 2_000,
+            progressPercent: FIB_PREPARATION_PROGRESS.queued,
+          },
         },
       ],
       effects: [
@@ -338,7 +364,7 @@ describe('FibKing recoverable round workflow', () => {
   });
 
   it('accepts only the system completion for the current pending round', () => {
-    const preparing = startPreparing(createFullLobby());
+    let preparing = startPreparing(createFullLobby());
     const roundId = preparing.phase === 'preparing' ? preparing.pendingRound.roundId : '';
     const command = {
       type: 'fib.round.complete',
@@ -355,7 +381,29 @@ describe('FibKing recoverable round workflow', () => {
     expect(
       decideFibCommand(preparing, { ...command, roundId: 'stale-round' }, systemContext()),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_MISMATCH });
+    expect(decideFibCommand(preparing, command, systemContext())).toEqual({
+      kind: 'reject',
+      reason: REASON_FIB_PREPARATION_PROGRESS_INVALID,
+    });
 
+    preparing = dispatch(
+      preparing,
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId,
+        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      },
+      systemContext(),
+    );
+    preparing = dispatch(
+      preparing,
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId,
+        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+      },
+      systemContext(),
+    );
     const ongoing = dispatch(preparing, command, systemContext('roles-a'));
     expect(ongoing.phase).toBe('ongoing');
     if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing state');
@@ -363,6 +411,56 @@ describe('FibKing recoverable round workflow', () => {
     expect(getFibRole(ongoing.round.roles, ongoing.round.roles.guesserSeat)).toBe('guesser');
     expect(getFibRole(ongoing.round.roles, ongoing.round.roles.honestSeat)).toBe('honest');
     expect(ongoing.usedWords).toEqual(['海浪']);
+  });
+
+  it('accepts only monotonic system preparation progress for the current round', () => {
+    let preparing = startPreparing(createFullLobby());
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
+    const roundId = preparing.pendingRound.roundId;
+    const generatingCommand = {
+      type: 'fib.round.updatePreparationProgress',
+      roundId,
+      progressPercent: FIB_PREPARATION_PROGRESS.generating,
+    } as const;
+
+    expect(preparing.pendingRound.progressPercent).toBe(FIB_PREPARATION_PROGRESS.queued);
+    expect(decideFibCommand(preparing, generatingCommand, userContext('host'))).toEqual({
+      kind: 'reject',
+      reason: REASON_SYSTEM_ACTOR_REQUIRED,
+    });
+    expect(
+      decideFibCommand(
+        preparing,
+        { ...generatingCommand, roundId: 'stale-round' },
+        systemContext(),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_MISMATCH });
+    expect(
+      decideFibCommand(
+        preparing,
+        { ...generatingCommand, progressPercent: FIB_PREPARATION_PROGRESS.ready },
+        systemContext(),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_PREPARATION_PROGRESS_INVALID });
+
+    preparing = dispatch(preparing, generatingCommand, systemContext());
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
+    expect(preparing.pendingRound.progressPercent).toBe(FIB_PREPARATION_PROGRESS.generating);
+    expect(decideFibCommand(preparing, generatingCommand, systemContext())).toEqual({
+      kind: 'reject',
+      reason: REASON_FIB_PREPARATION_PROGRESS_INVALID,
+    });
+    preparing = dispatch(
+      preparing,
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId,
+        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+      },
+      systemContext(),
+    );
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
+    expect(preparing.pendingRound.progressPercent).toBe(FIB_PREPARATION_PROGRESS.ready);
   });
 
   it('supports host cancellation without losing seats or word history', () => {
@@ -402,6 +500,26 @@ describe('FibKing recoverable round workflow', () => {
     expect(state.usedWords).toEqual(['灯塔']);
     expect(state.phase).toBe('preparing');
 
+    if (state.phase !== 'preparing') throw new Error('Expected preparing state');
+    state = dispatch(
+      state,
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: state.pendingRound.roundId,
+        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      },
+      systemContext(),
+    );
+    if (state.phase !== 'preparing') throw new Error('Expected preparing state');
+    state = dispatch(
+      state,
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: state.pendingRound.roundId,
+        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+      },
+      systemContext(),
+    );
     if (state.phase !== 'preparing') throw new Error('Expected preparing state');
     expect(
       decideFibCommand(

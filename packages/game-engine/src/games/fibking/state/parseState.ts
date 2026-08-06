@@ -16,7 +16,7 @@ import {
 import type { RosterEntry } from '../../../platform/room/roster';
 import { normalizeFibState } from './normalize';
 import type { FibHumanSeat, FibRoleAssignment, FibRound, FibState, PendingFibRound } from './types';
-import { type FibWordSource, isFibWordSource } from './types';
+import { type FibWordSource, isFibPreparingProgressPercent, isFibWordSource } from './types';
 import { FIB_STATE_VERSION } from './version';
 
 function parseGameType(value: unknown, path: string): FibKingGameType {
@@ -83,11 +83,15 @@ function parseRealSeats(value: unknown, path: string): Readonly<Record<number, F
 
 function parsePendingRound(value: unknown, path: string): PendingFibRound {
   const raw = parseObject(value, path);
+  if (!isFibPreparingProgressPercent(raw.progressPercent)) {
+    return failDecode(`${path}.progressPercent`, 'a valid Fib preparation percentage');
+  }
   return finishObject(
     raw,
     {
       roundId: parseNonEmptyString(raw.roundId, `${path}.roundId`),
       requestedAt: parseInteger(raw.requestedAt, `${path}.requestedAt`),
+      progressPercent: raw.progressPercent,
     },
     path,
   );

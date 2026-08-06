@@ -1,4 +1,5 @@
 import {
+  FIB_PREPARATION_PROGRESS,
   FIB_USED_WORD_LIMIT,
   fibEngine,
   type FibInternalCommand,
@@ -320,7 +321,7 @@ describe('Fib word-generation effect', () => {
 
   it('replays the persisted candidate after an internal commit without regenerating it', async () => {
     const dispatchedCommands: FibInternalCommand[] = [];
-    let dispatchedCommandId = '';
+    const dispatchedCommandIds: string[] = [];
     let providerCallCount = 0;
     const replayProvider: FibWordProvider = {
       generate: () => {
@@ -341,7 +342,7 @@ describe('Fib word-generation effect', () => {
       },
     };
     const context = createEffectContext((commandId, command) => {
-      dispatchedCommandId = commandId;
+      dispatchedCommandIds.push(commandId);
       dispatchedCommands.push(command);
       return Promise.resolve(committedResult(commandId));
     });
@@ -349,16 +350,45 @@ describe('Fib word-generation effect', () => {
     await handleFibGenerateWordEffect(EFFECT, context, replayProvider);
     await handleFibGenerateWordEffect(EFFECT, context, replayProvider);
 
-    expect(dispatchedCommandId).toMatch(/^fib:round-complete:[0-9a-f]{64}$/);
-    expect(dispatchedCommandId.length).toBeLessThanOrEqual(200);
+    expect(dispatchedCommandIds).toEqual([
+      expect.stringMatching(/^fib:preparation-progress-50:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-progress-75:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:round-complete:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-progress-50:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-progress-75:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:round-complete:[0-9a-f]{64}$/),
+    ]);
+    expect(dispatchedCommandIds.slice(0, 3)).toEqual(dispatchedCommandIds.slice(3));
+    expect(new Set(dispatchedCommandIds.slice(0, 3)).size).toBe(3);
+    expect(dispatchedCommandIds.every((commandId) => commandId.length <= 200)).toBe(true);
     expect(providerCallCount).toBe(1);
     expect(dispatchedCommands).toEqual([
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: 'fib-round:start-command',
+        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      },
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: 'fib-round:start-command',
+        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+      },
       {
         type: 'fib.round.complete',
         roundId: 'fib-round:start-command',
         word: '菡萏',
         definition: '尚未开放的荷花，也泛指荷花。',
         source: 'local',
+      },
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: 'fib-round:start-command',
+        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      },
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: 'fib-round:start-command',
+        progressPercent: FIB_PREPARATION_PROGRESS.ready,
       },
       {
         type: 'fib.round.complete',
@@ -464,6 +494,43 @@ describe('Fib word-generation effect', () => {
       await expect(handleFibGenerateWordEffect(EFFECT, context, provider)).resolves.toBeUndefined();
     },
   );
+
+  it('stops after candidate persistence when the round is superseded before ready', async () => {
+    const dispatchedCommands: FibInternalCommand[] = [];
+    const context = createEffectContext((commandId, command) => {
+      dispatchedCommands.push(command);
+      if (
+        command.type === 'fib.round.updatePreparationProgress' &&
+        command.progressPercent === FIB_PREPARATION_PROGRESS.ready
+      ) {
+        return Promise.resolve({
+          kind: 'rejected',
+          commandId,
+          reason: REASON_FIB_ROUND_MISMATCH,
+        });
+      }
+      return Promise.resolve(committedResult(commandId));
+    });
+
+    await expect(handleFibGenerateWordEffect(EFFECT, context, provider)).resolves.toBeUndefined();
+
+    expect(dispatchedCommands).toEqual([
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: 'fib-round:start-command',
+        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      },
+      {
+        type: 'fib.round.updatePreparationProgress',
+        roundId: 'fib-round:start-command',
+        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+      },
+    ]);
+    await expect(
+      env.DB.prepare('SELECT word FROM fib_word_generation_results LIMIT 1').first(),
+    ).resolves.toEqual({ word: '菡萏' });
+    await expect(readRecentFibWords(env.DB, ['host'])).resolves.toEqual([]);
+  });
 
   it('propagates every non-cancellation rejection to the outbox retry policy', async () => {
     const context = createEffectContext((commandId) =>

@@ -1,6 +1,7 @@
 import { assignFibRoles } from '../domain/roles';
 import { fibEngine } from '../engine';
 import { parseFibState } from '../state/parseState';
+import { FIB_PREPARATION_PROGRESS } from '../state/types';
 import { FIB_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT = {
@@ -28,6 +29,29 @@ describe('FibKing compact state and codec', () => {
   it('round-trips a canonical sparse state', () => {
     const state = fibEngine.createInitialState({ numberOfPlayers: 8 }, CREATE_CONTEXT);
     expect(parseFibState(JSON.parse(JSON.stringify(state)))).toEqual(state);
+  });
+
+  it('round-trips and validates preparing progress', () => {
+    const state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
+    const preparing = {
+      ...state,
+      phase: 'preparing',
+      fillEmptySeatsWithBots: true,
+      pendingRound: {
+        roundId: 'fib-round:codec',
+        requestedAt: 2,
+        progressPercent: FIB_PREPARATION_PROGRESS.queued,
+      },
+      round: null,
+    };
+
+    expect(parseFibState(preparing)).toEqual(preparing);
+    expect(() =>
+      parseFibState({
+        ...preparing,
+        pendingRound: { ...preparing.pendingRound, progressPercent: 60 },
+      }),
+    ).toThrow('FibState.pendingRound.progressPercent must be a valid Fib preparation percentage');
   });
 
   it('rejects unknown fields, non-canonical seat keys, and unsupported identity', () => {

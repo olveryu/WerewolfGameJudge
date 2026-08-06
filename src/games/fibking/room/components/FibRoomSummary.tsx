@@ -5,7 +5,6 @@ import type React from 'react';
 import { memo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed, spacing, typography, withAlpha } from '@/theme';
 
@@ -13,6 +12,7 @@ interface FibRoomSummaryProps {
   readonly phase: 'lobby' | 'preparing' | 'ongoing' | 'ended';
   readonly occupiedSeatCount: number;
   readonly playerCount: number;
+  readonly progressPercent: number;
   readonly onOpenRules: () => void;
 }
 
@@ -27,6 +27,7 @@ const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
   phase,
   occupiedSeatCount,
   playerCount,
+  progressPercent,
   onOpenRules,
 }) => (
   <View style={styles.container}>
@@ -40,10 +41,17 @@ const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
           {PHASE_LABELS[phase]} · {occupiedSeatCount}/{playerCount} 人就座
         </Text>
         {phase === 'preparing' ? (
-          <IndeterminateProgressBar
-            accessibilityLabel="正在准备本轮词语"
-            style={styles.preparingProgress}
-          />
+          <View style={styles.preparingProgressRow}>
+            <View
+              accessibilityLabel="正在准备本轮词语"
+              accessibilityRole="progressbar"
+              accessibilityValue={{ min: 0, max: 100, now: progressPercent }}
+              style={styles.preparingProgressTrack}
+            >
+              <View style={[styles.preparingProgressFill, { width: `${progressPercent}%` }]} />
+            </View>
+            <Text style={styles.preparingProgressText}>{progressPercent}%</Text>
+          </View>
         ) : null}
       </View>
     </View>
@@ -103,8 +111,31 @@ const styles = StyleSheet.create({
     lineHeight: typography.secondary * 1.4,
     color: colors.textSecondary,
   },
-  preparingProgress: {
+  preparingProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: spacing.small,
+  },
+  preparingProgressTrack: {
+    flex: 1,
+    height: componentSizes.progressBar.height,
+    borderRadius: componentSizes.progressBar.borderRadius,
+    overflow: 'hidden',
+    backgroundColor: colors.border,
+  },
+  preparingProgressFill: {
+    height: '100%',
+    borderRadius: componentSizes.progressBar.borderRadius,
+    backgroundColor: colors.primary,
+  },
+  preparingProgressText: {
+    minWidth: componentSizes.icon.xl,
+    marginLeft: spacing.small,
+    fontSize: typography.caption,
+    lineHeight: typography.caption * 1.4,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+    textAlign: 'right',
   },
   rulesRow: {
     flexDirection: 'row',

@@ -91,13 +91,25 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
   readonly [Type in FibPublicCommand['type']]: Extract<FibPublicCommand, { readonly type: Type }>;
 };
 
-const VALID_FIB_INTERNAL_COMMAND = {
-  type: 'fib.round.complete',
-  roundId: 'round-1',
-  word: '氤氲',
-  definition: '烟气或云雾弥漫缭绕的样子。',
-  source: 'local',
-} as const satisfies FibInternalCommand;
+const VALID_FIB_INTERNAL_COMMAND_BY_TYPE = {
+  'fib.round.updatePreparationProgress': {
+    type: 'fib.round.updatePreparationProgress',
+    roundId: 'round-1',
+    progressPercent: 50,
+  },
+  'fib.round.complete': {
+    type: 'fib.round.complete',
+    roundId: 'round-1',
+    word: '氤氲',
+    definition: '烟气或云雾弥漫缭绕的样子。',
+    source: 'local',
+  },
+} as const satisfies {
+  readonly [Type in FibInternalCommand['type']]: Extract<
+    FibInternalCommand,
+    { readonly type: Type }
+  >;
+};
 
 describe('Worker game catalog', () => {
   it('registers exactly one Worker module for every canonical game type', () => {
@@ -169,16 +181,17 @@ describe('Worker game catalog', () => {
     ).toThrow();
   });
 
-  it('keeps every Fib public command separate from its internal completion command', () => {
+  it('keeps every Fib public command separate from its internal commands', () => {
     const publicCommands = Object.values(VALID_FIB_PUBLIC_COMMAND_BY_TYPE);
+    const internalCommands = Object.values(VALID_FIB_INTERNAL_COMMAND_BY_TYPE);
 
     for (const command of publicCommands) {
       expect(fibPublicCommandSchema.parse(command)).toEqual(command);
     }
-    expect(fibInternalCommandSchema.parse(VALID_FIB_INTERNAL_COMMAND)).toEqual(
-      VALID_FIB_INTERNAL_COMMAND,
-    );
-    expect(() => fibPublicCommandSchema.parse(VALID_FIB_INTERNAL_COMMAND)).toThrow();
+    for (const command of internalCommands) {
+      expect(fibInternalCommandSchema.parse(command)).toEqual(command);
+      expect(() => fibPublicCommandSchema.parse(command)).toThrow();
+    }
     expect(() =>
       fibInternalCommandSchema.parse(VALID_FIB_PUBLIC_COMMAND_BY_TYPE['room.seat.take']),
     ).toThrow();

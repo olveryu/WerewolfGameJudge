@@ -14,7 +14,16 @@ interface UserProfileResponse {
       email: string | null;
       is_anonymous: boolean;
       has_wechat: boolean;
-      user_metadata: { display_name?: string };
+      user_metadata: {
+        display_name?: string;
+        avatar_url?: string | null;
+        custom_avatar_url?: string | null;
+        avatar_frame?: string | null;
+        seat_flair?: string | null;
+        name_style?: string | null;
+        equipped_effect?: string | null;
+        seat_animation?: string | null;
+      };
     };
   };
 }
@@ -139,6 +148,48 @@ describe('PUT /auth/profile', () => {
     const currentUser = await getCurrentUser(token);
     const body = await currentUser.json<UserProfileResponse>();
     expect(body.data.user.user_metadata.display_name).toBe('NewName');
+  });
+
+  it('stores unequipped optional profile values as null', async () => {
+    const token = await signUp('unequipped@test.local');
+    const response = await updateProfile(token, {
+      avatarUrl: '',
+      customAvatarUrl: '',
+      avatarFrame: '',
+      seatFlair: '',
+      nameStyle: '',
+      equippedEffect: '',
+      seatAnimation: '',
+    });
+
+    expect(response.status).toBe(200);
+    const currentUser = await getCurrentUser(token);
+    const body = await currentUser.json<UserProfileResponse>();
+    expect(body.data.user.user_metadata).toMatchObject({
+      avatar_url: null,
+      custom_avatar_url: null,
+      avatar_frame: null,
+      seat_flair: null,
+      name_style: null,
+      equipped_effect: null,
+      seat_animation: null,
+    });
+
+    const userRow = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`)
+      .bind('unequipped@test.local')
+      .first<{ id: string }>();
+    if (userRow === null) throw new Error('[FAIL-FAST] Missing unequipped profile test user');
+    const publicProfileResponse = await SELF.fetch(
+      `https://test.local/api/user/${userRow.id}/profile`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const publicProfile = await publicProfileResponse.json<Record<string, unknown>>();
+    expect(publicProfile).not.toHaveProperty('avatarUrl');
+    expect(publicProfile).not.toHaveProperty('avatarFrame');
+    expect(publicProfile).not.toHaveProperty('seatFlair');
+    expect(publicProfile).not.toHaveProperty('nameStyle');
+    expect(publicProfile).not.toHaveProperty('revealEffect');
+    expect(publicProfile).not.toHaveProperty('seatAnimation');
   });
 
   it.each(['avatarFrame', 'seatFlair', 'nameStyle', 'seatAnimation'] as const)(

@@ -22,6 +22,10 @@ import { updateProfileSchema } from './schemas';
 /** Current-account and profile mutation routes. */
 export const accountAuthRoutes = new Hono<AppEnv>();
 
+function emptyToNull(value: string): string | null {
+  return value === '' ? null : value;
+}
+
 accountAuthRoutes.get('/user', async (c) => {
   const db = createDb(c.env.DB);
   const token = extractBearerToken(c.req.raw);
@@ -101,13 +105,19 @@ accountAuthRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), as
 
   const updates = {
     ...(parsed.displayName === undefined ? {} : { displayName: parsed.displayName }),
-    ...(parsed.avatarUrl === undefined ? {} : { avatarUrl: parsed.avatarUrl }),
-    ...(parsed.customAvatarUrl === undefined ? {} : { customAvatarUrl: parsed.customAvatarUrl }),
-    ...(parsed.avatarFrame === undefined ? {} : { avatarFrame: parsed.avatarFrame }),
-    ...(parsed.seatFlair === undefined ? {} : { equippedFlair: parsed.seatFlair }),
-    ...(parsed.nameStyle === undefined ? {} : { equippedNameStyle: parsed.nameStyle }),
-    ...(parsed.equippedEffect === undefined ? {} : { equippedEffect: parsed.equippedEffect }),
-    ...(parsed.seatAnimation === undefined ? {} : { equippedSeatAnimation: parsed.seatAnimation }),
+    ...(parsed.avatarUrl === undefined ? {} : { avatarUrl: emptyToNull(parsed.avatarUrl) }),
+    ...(parsed.customAvatarUrl === undefined
+      ? {}
+      : { customAvatarUrl: emptyToNull(parsed.customAvatarUrl) }),
+    ...(parsed.avatarFrame === undefined ? {} : { avatarFrame: emptyToNull(parsed.avatarFrame) }),
+    ...(parsed.seatFlair === undefined ? {} : { equippedFlair: emptyToNull(parsed.seatFlair) }),
+    ...(parsed.nameStyle === undefined ? {} : { equippedNameStyle: emptyToNull(parsed.nameStyle) }),
+    ...(parsed.equippedEffect === undefined
+      ? {}
+      : { equippedEffect: emptyToNull(parsed.equippedEffect) }),
+    ...(parsed.seatAnimation === undefined
+      ? {}
+      : { equippedSeatAnimation: emptyToNull(parsed.seatAnimation) }),
   };
 
   if (Object.keys(updates).length === 0) {

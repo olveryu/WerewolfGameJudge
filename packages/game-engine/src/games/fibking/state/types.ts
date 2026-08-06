@@ -13,13 +13,33 @@ export const FIB_WORD_MAX_LENGTH = 12;
 export const FIB_DEFINITION_MIN_LENGTH = 8;
 export const FIB_DEFINITION_MAX_LENGTH = 120;
 export const FIB_WORD_SOURCES = ['gemini', 'workers-ai', 'local'] as const;
+export const FIB_PREPARATION_PROGRESS = {
+  queued: 25,
+  generating: 50,
+  ready: 75,
+  complete: 100,
+} as const;
 
 export type FibPhase = 'lobby' | 'preparing' | 'ongoing' | 'ended';
 export type FibRole = 'guesser' | 'honest' | 'fibber';
 export type FibWordSource = (typeof FIB_WORD_SOURCES)[number];
+export type FibPreparingProgressPercent =
+  | typeof FIB_PREPARATION_PROGRESS.queued
+  | typeof FIB_PREPARATION_PROGRESS.generating
+  | typeof FIB_PREPARATION_PROGRESS.ready;
 
 export function isFibWordSource(value: unknown): value is FibWordSource {
   return FIB_WORD_SOURCES.some((source) => source === value);
+}
+
+export function isFibPreparingProgressPercent(
+  value: unknown,
+): value is FibPreparingProgressPercent {
+  return (
+    value === FIB_PREPARATION_PROGRESS.queued ||
+    value === FIB_PREPARATION_PROGRESS.generating ||
+    value === FIB_PREPARATION_PROGRESS.ready
+  );
 }
 
 export function isValidFibPlayerCount(value: number): boolean {
@@ -42,6 +62,7 @@ export interface FibRoleAssignment {
 export interface PendingFibRound {
   readonly roundId: string;
   readonly requestedAt: number;
+  readonly progressPercent: FibPreparingProgressPercent;
 }
 
 export interface FibRound {
@@ -95,6 +116,20 @@ export function getFibRole(roles: FibRoleAssignment, seat: number): FibRole {
   if (seat === roles.guesserSeat) return 'guesser';
   if (seat === roles.honestSeat) return 'honest';
   return 'fibber';
+}
+
+export function getFibPreparationProgressPercent(state: FibState): number {
+  switch (state.phase) {
+    case 'lobby':
+      return 0;
+    case 'preparing':
+      return state.pendingRound.progressPercent;
+    case 'ongoing':
+    case 'ended':
+      return FIB_PREPARATION_PROGRESS.complete;
+  }
+  const exhaustive: never = state;
+  return exhaustive;
 }
 
 export function getFibBotUserId(roomCode: string, seat: number): string {

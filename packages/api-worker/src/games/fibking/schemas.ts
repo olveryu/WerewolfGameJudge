@@ -9,6 +9,7 @@ import {
   FIB_DEFINITION_MAX_LENGTH,
   FIB_DEFINITION_MIN_LENGTH,
   FIB_MIN_PLAYERS,
+  FIB_PREPARATION_PROGRESS,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   FIB_WORD_SOURCES,
@@ -45,10 +46,23 @@ export const fibPublicCommandSchema: z.ZodType<FibPublicCommand> = z.discriminat
   publicCommandOptions,
 );
 
-export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.strictObject({
-  type: z.literal('fib.round.complete'),
-  roundId: z.string().min(1),
-  word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
-  definition: z.string().trim().min(FIB_DEFINITION_MIN_LENGTH).max(FIB_DEFINITION_MAX_LENGTH),
-  source: z.enum(FIB_WORD_SOURCES),
-});
+export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.discriminatedUnion(
+  'type',
+  [
+    z.strictObject({
+      type: z.literal('fib.round.updatePreparationProgress'),
+      roundId: z.string().min(1),
+      progressPercent: z.union([
+        z.literal(FIB_PREPARATION_PROGRESS.generating),
+        z.literal(FIB_PREPARATION_PROGRESS.ready),
+      ]),
+    }),
+    z.strictObject({
+      type: z.literal('fib.round.complete'),
+      roundId: z.string().min(1),
+      word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
+      definition: z.string().trim().min(FIB_DEFINITION_MIN_LENGTH).max(FIB_DEFINITION_MAX_LENGTH),
+      source: z.enum(FIB_WORD_SOURCES),
+    }),
+  ],
+);

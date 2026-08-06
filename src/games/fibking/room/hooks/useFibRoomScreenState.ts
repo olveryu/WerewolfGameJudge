@@ -5,6 +5,7 @@ import {
   type FibRoundView,
   getFibBotDisplayName,
   getFibOccupiedSeatCount,
+  getFibPreparationProgressPercent,
   getFibRoundView,
   getFibUserSeat,
   isFibImplicitBotSeat,
@@ -59,6 +60,7 @@ export interface FibRoomScreenState {
   readonly occupiedSeatCount: number;
   readonly playerCount: number;
   readonly phase: 'lobby' | 'preparing' | 'ongoing' | 'ended';
+  readonly preparationProgressPercent: number;
   readonly isHost: boolean;
 }
 
@@ -448,6 +450,7 @@ export function useFibRoomScreenState({
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     playerCount: state.numberOfPlayers,
     phase: state.phase,
+    preparationProgressPercent: getFibPreparationProgressPercent(state),
     isHost,
   };
 }

@@ -4,7 +4,12 @@ import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
-import type { FibProfileUpdate, FibSeatProfile, FibWordSource } from '../state/types';
+import type {
+  FIB_PREPARATION_PROGRESS,
+  FibProfileUpdate,
+  FibSeatProfile,
+  FibWordSource,
+} from '../state/types';
 
 type FibRoomCommand = RoomSeatCommand<FibSeatProfile> | RoomProfileUpdateCommand<FibProfileUpdate>;
 
@@ -23,5 +28,13 @@ export interface FibCompleteRoundCommand {
   readonly source: FibWordSource;
 }
 
-export type FibInternalCommand = FibCompleteRoundCommand;
+export interface FibUpdatePreparationProgressCommand {
+  readonly type: 'fib.round.updatePreparationProgress';
+  readonly roundId: string;
+  readonly progressPercent:
+    | typeof FIB_PREPARATION_PROGRESS.generating
+    | typeof FIB_PREPARATION_PROGRESS.ready;
+}
+
+export type FibInternalCommand = FibCompleteRoundCommand | FibUpdatePreparationProgressCommand;
 export type FibCommand = FibPublicCommand | FibInternalCommand;

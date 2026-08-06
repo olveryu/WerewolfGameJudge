@@ -1,4 +1,8 @@
-import type { FibState } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_PREPARATION_PROGRESS,
+  FIB_STATE_VERSION,
+  type FibState,
+} from '@game-judge/game-engine/games/fibking/public';
 
 import {
   createFibBottomActions,
@@ -26,7 +30,7 @@ const callbacks = {
 function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }> {
   return {
     gameType: 'fibking',
-    stateVersion: 2,
+    stateVersion: FIB_STATE_VERSION,
     roomCode: '4321',
     hostUserId: 'host',
     phase: 'lobby',
@@ -286,7 +290,11 @@ describe('FibKing room adapter', () => {
       ...createLobby(4),
       phase: 'preparing',
       fillEmptySeatsWithBots: true,
-      pendingRound: { roundId: 'round-1', requestedAt: 1 },
+      pendingRound: {
+        roundId: 'round-1',
+        requestedAt: 1,
+        progressPercent: FIB_PREPARATION_PROGRESS.queued,
+      },
       round: null,
     };
     const preparingActions = createFibBottomActions({ state: preparing, ...common });

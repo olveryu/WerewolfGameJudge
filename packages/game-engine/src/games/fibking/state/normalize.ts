@@ -9,6 +9,7 @@ import {
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   type FibState,
+  isFibPreparingProgressPercent,
   isFibRoomFull,
   isValidFibPlayerCount,
 } from './types';
@@ -128,6 +129,9 @@ export function normalizeFibState(state: FibState): FibState {
       return state;
     case 'preparing':
       assertNonEmpty(state.pendingRound.roundId, 'Fib pending roundId');
+      if (!isFibPreparingProgressPercent(state.pendingRound.progressPercent)) {
+        throw new Error('Fib pending progressPercent must be a valid preparation percentage');
+      }
       if (
         !Number.isSafeInteger(state.pendingRound.requestedAt) ||
         state.pendingRound.requestedAt < 0

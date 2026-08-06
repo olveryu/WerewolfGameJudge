@@ -71,6 +71,17 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         pendingRound: event.pendingRound,
         round: null,
       };
+    case 'fib.round.preparationProgressed':
+      if (state.phase !== 'preparing') {
+        throw new Error('Fib preparation-progress event requires a preparing state');
+      }
+      return {
+        ...state,
+        pendingRound: {
+          ...state.pendingRound,
+          progressPercent: event.progressPercent,
+        },
+      };
     case 'fib.round.preparationCancelled':
       return { ...state, phase: 'lobby', pendingRound: null, round: null };
     case 'fib.round.started':
