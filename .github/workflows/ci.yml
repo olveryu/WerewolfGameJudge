@@ -220,73 +220,111 @@ jobs:
 
       - name: Sync npmmirror and verify CDN
         run: |
+          set -euo pipefail
+
           PKG_VERSION="${{ steps.npm.outputs.version }}"
           CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
-
-          # Trigger sync and capture task ID
-          SYNC_RESP=$(curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs")
-          SYNC_ID=$(echo "$SYNC_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-          echo "Sync triggered: $SYNC_ID"
-
-          # Poll sync task status until success (up to 180s)
-          SYNC_OK=false
-          for i in $(seq 1 36); do
-            STATE=$(curl -s "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs/$SYNC_ID" \
-              | python3 -c "import sys,json; print(json.load(sys.stdin).get('state','unknown'))")
-            if [ "$STATE" = "success" ]; then
-              echo "✅ npmmirror sync task complete"
-              SYNC_OK=true
-              break
-            elif [ "$STATE" = "fail" ]; then
-              echo "❌ npmmirror sync task failed"
-              break
-            fi
-            echo "⏳ Sync state: $STATE ($((i*5))s)"
-            sleep 5
-          done
-
-          if [ "$SYNC_OK" != "true" ]; then
-            echo "❌ npmmirror sync did not succeed — aborting deploy"
-            exit 1
-          fi
-
-          # Verify the version actually exists on npmmirror registry
-          VERSION_CHECK=$(curl -s "https://registry.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',''))")
-          if [ "$VERSION_CHECK" != "$PKG_VERSION" ]; then
-            echo "⚠️ Version $PKG_VERSION not on npmmirror registry after sync — re-triggering..."
-            # Retry: trigger a second sync and wait
-            SYNC_RESP2=$(curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs")
-            SYNC_ID2=$(echo "$SYNC_RESP2" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-            for j in $(seq 1 24); do
-              STATE2=$(curl -s "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs/$SYNC_ID2" \
-                | python3 -c "import sys,json; print(json.load(sys.stdin).get('state','unknown'))")
-              if [ "$STATE2" = "success" ]; then break; fi
-              sleep 5
-            done
-            # Final check
-            VERSION_CHECK2=$(curl -s "https://registry.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}" \
-              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',''))")
-            if [ "$VERSION_CHECK2" != "$PKG_VERSION" ]; then
-              echo "❌ Version still missing after retry — aborting deploy"
-              exit 1
-            fi
-          fi
-          echo "✅ Version $PKG_VERSION confirmed on npmmirror registry"
-
-          # Verify CDN file is actually accessible (the real test)
+          SYNC_ENDPOINT="https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"
+          REGISTRY_URL="https://registry-direct.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}"
           CDN_URL="${CDN_BASE}/index.js"
-          for k in $(seq 1 12); do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$CDN_URL")
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ CDN file verified: $CDN_URL → 200"
+          CHECK_INTERVAL_SECONDS=5
+          SYNC_RETRY_INTERVAL_SECONDS=180
+          MAX_WAIT_SECONDS=900
+          REQUEST_TIMEOUT_SECONDS=30
+          NEXT_SYNC_AT_SECONDS=$SYNC_RETRY_INTERVAL_SECONDS
+          REGISTRY_RESPONSE_FILE=$(mktemp)
+          trap 'rm -f "$REGISTRY_RESPONSE_FILE"' EXIT
+
+          trigger_sync() {
+            if ! SYNC_RESP=$(curl --fail --silent --show-error \
+              --max-time "$REQUEST_TIMEOUT_SECONDS" \
+              --request PUT "$SYNC_ENDPOINT"); then
+              echo "⚠️ npmmirror sync trigger failed; artifact polling will continue"
+              return
+            fi
+
+            SYNC_ID=$(python3 -c \
+              "import json,sys; data=json.load(sys.stdin); task_id=data['id']; assert task_id; print(task_id)" \
+              <<< "$SYNC_RESP")
+            echo "🔄 npmmirror sync triggered: $SYNC_ID"
+          }
+
+          report_sync_state() {
+            if [ -z "$SYNC_ID" ]; then
+              echo "ℹ️ No npmmirror sync task ID is available"
+              return
+            fi
+
+            if ! SYNC_RESP=$(curl --fail --silent --show-error \
+              --max-time "$REQUEST_TIMEOUT_SECONDS" \
+              "${SYNC_ENDPOINT}/${SYNC_ID}"); then
+              echo "⚠️ Could not read npmmirror sync task $SYNC_ID"
+              return
+            fi
+
+            STATE=$(python3 -c \
+              "import json,sys; print(json.load(sys.stdin).get('state', 'unknown'))" \
+              <<< "$SYNC_RESP")
+            echo "ℹ️ npmmirror sync task $SYNC_ID state: $STATE (diagnostic only)"
+          }
+
+          SYNC_ID=""
+          trigger_sync
+          SECONDS=0
+
+          while [ "$SECONDS" -le "$MAX_WAIT_SECONDS" ]; do
+            if ! REGISTRY_HTTP_CODE=$(curl --silent --show-error \
+              --max-time "$REQUEST_TIMEOUT_SECONDS" \
+              --output "$REGISTRY_RESPONSE_FILE" \
+              --write-out "%{http_code}" \
+              "$REGISTRY_URL"); then
+              REGISTRY_HTTP_CODE="request-error"
+              echo "⚠️ npmmirror registry request failed; retrying"
+            fi
+
+            VERSION_CHECK=""
+            if [ "$REGISTRY_HTTP_CODE" = "200" ]; then
+              VERSION_CHECK=$(python3 -c \
+                "import json,sys; version=json.load(open(sys.argv[1]))['version']; assert isinstance(version, str); print(version)" \
+                "$REGISTRY_RESPONSE_FILE")
+            fi
+
+            if ! CDN_HTTP_CODE=$(curl --silent --show-error \
+              --max-time "$REQUEST_TIMEOUT_SECONDS" \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              "$CDN_URL"); then
+              CDN_HTTP_CODE="request-error"
+              echo "⚠️ npmmirror CDN request failed; retrying"
+            fi
+
+            if [ "$VERSION_CHECK" = "$PKG_VERSION" ] && [ "$CDN_HTTP_CODE" = "200" ]; then
+              echo "✅ npmmirror registry and CDN confirmed $PKG_VERSION after ${SECONDS}s"
               exit 0
             fi
-            echo "⏳ CDN file check: $CDN_URL → $HTTP_CODE ($((k*5))s)"
-            sleep 5
+
+            echo "⏳ Waiting for npmmirror artifacts (${SECONDS}s/${MAX_WAIT_SECONDS}s): registry=$REGISTRY_HTTP_CODE version=${VERSION_CHECK:-missing}, CDN=$CDN_HTTP_CODE"
+
+            if [ "$SECONDS" -ge "$MAX_WAIT_SECONDS" ]; then
+              break
+            fi
+
+            if [ "$SECONDS" -ge "$NEXT_SYNC_AT_SECONDS" ]; then
+              report_sync_state
+              trigger_sync
+              NEXT_SYNC_AT_SECONDS=$((SECONDS + SYNC_RETRY_INTERVAL_SECONDS))
+            fi
+
+            sleep "$CHECK_INTERVAL_SECONDS"
           done
-          echo "❌ CDN file still not accessible after 60s — aborting deploy"
-          echo "   URL: $CDN_URL"
+
+          report_sync_state
+          echo "❌ npmmirror artifacts unavailable after ${MAX_WAIT_SECONDS}s — aborting deploy"
+          echo "   Registry: $REGISTRY_URL → $REGISTRY_HTTP_CODE (${VERSION_CHECK:-missing})"
+          echo "   CDN: $CDN_URL → $CDN_HTTP_CODE"
+          if [ -n "$SYNC_ID" ]; then
+            echo "   Last sync task: ${SYNC_ENDPOINT}/${SYNC_ID}"
+          fi
           exit 1
 
       # Cloudflare Pages API rejects non-ASCII commit messages.
