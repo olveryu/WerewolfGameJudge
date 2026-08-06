@@ -1,13 +1,17 @@
 /** Curated local word bank used by development, tests, and explicit local policy. */
 
-import { FIB_USED_WORD_LIMIT } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_DEFINITION_FIELD_MIN_LENGTH,
+  FIB_USED_WORD_LIMIT,
+  type FibWordDefinition,
+} from '@game-judge/game-engine/games/fibking/public';
 
 export interface LocalFibWord {
   readonly word: string;
-  readonly definition: string;
+  readonly definition: FibWordDefinition;
 }
 
-export const LOCAL_FIB_WORD_BANK: readonly LocalFibWord[] = [
+const LOCAL_FIB_WORD_SEEDS = [
   { word: '踟蹰', definition: '徘徊不前，要走不走的样子。' },
   { word: '彳亍', definition: '慢步行走，走走停停的样子。' },
   { word: '氤氲', definition: '烟气或云雾弥漫缭绕的样子。' },
@@ -109,8 +113,25 @@ export const LOCAL_FIB_WORD_BANK: readonly LocalFibWord[] = [
   { word: '反向消费', definition: '主动减少品牌溢价并追求实用性价比的消费倾向。' },
   { word: '城市漫游', definition: '不以固定景点为目标，慢速探索城市空间的活动。' },
   { word: '脆皮年轻人', definition: '自嘲身体容易出现各种小毛病的年轻群体。' },
-  { word: 'Citywalk', definition: '以步行为主、不按固定景点路线探索城市的活动。' },
+  { word: '街巷漫步', definition: '以步行为主、不按固定景点路线探索城市的活动。' },
 ] as const;
+
+function createLocalFibWord(seed: (typeof LOCAL_FIB_WORD_SEEDS)[number]): LocalFibWord {
+  const coreMeaning =
+    seed.definition.length >= FIB_DEFINITION_FIELD_MIN_LENGTH
+      ? seed.definition
+      : `${seed.definition}这是该词在常见语境中的基本含义。`;
+  return {
+    word: seed.word,
+    definition: {
+      coreMeaning,
+      usageNote: `使用“${seed.word}”时应结合具体对象与上下文，避免只凭字面猜测其含义。`,
+    },
+  };
+}
+
+export const LOCAL_FIB_WORD_BANK: readonly LocalFibWord[] =
+  LOCAL_FIB_WORD_SEEDS.map(createLocalFibWord);
 
 if (LOCAL_FIB_WORD_BANK.length <= FIB_USED_WORD_LIMIT) {
   throw new Error('Local Fib word bank must exceed the used-word history window');

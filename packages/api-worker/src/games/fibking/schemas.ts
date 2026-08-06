@@ -6,10 +6,11 @@ import type {
   FibPublicCommand,
 } from '@game-judge/game-engine/games/fibking/public';
 import {
-  FIB_DEFINITION_MAX_LENGTH,
-  FIB_DEFINITION_MIN_LENGTH,
+  FIB_DEFINITION_FIELD_MAX_LENGTH,
+  FIB_DEFINITION_FIELD_MIN_LENGTH,
   FIB_MIN_PLAYERS,
-  FIB_PREPARATION_PROGRESS,
+  FIB_PREPARATION_FAILURE_CODES,
+  FIB_PREPARATION_STAGES,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   FIB_WORD_SOURCES,
@@ -50,18 +51,35 @@ export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.discrim
   'type',
   [
     z.strictObject({
-      type: z.literal('fib.round.updatePreparationProgress'),
+      type: z.literal('fib.round.updatePreparationStage'),
       roundId: z.string().min(1),
-      progressPercent: z.union([
-        z.literal(FIB_PREPARATION_PROGRESS.generating),
-        z.literal(FIB_PREPARATION_PROGRESS.ready),
+      stage: z.union([
+        z.literal(FIB_PREPARATION_STAGES.queued),
+        z.literal(FIB_PREPARATION_STAGES.generating),
+        z.literal(FIB_PREPARATION_STAGES.finalizing),
       ]),
+    }),
+    z.strictObject({
+      type: z.literal('fib.round.failPreparation'),
+      roundId: z.string().min(1),
+      failureCode: z.enum(FIB_PREPARATION_FAILURE_CODES),
     }),
     z.strictObject({
       type: z.literal('fib.round.complete'),
       roundId: z.string().min(1),
       word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
-      definition: z.string().trim().min(FIB_DEFINITION_MIN_LENGTH).max(FIB_DEFINITION_MAX_LENGTH),
+      definition: z.strictObject({
+        coreMeaning: z
+          .string()
+          .trim()
+          .min(FIB_DEFINITION_FIELD_MIN_LENGTH)
+          .max(FIB_DEFINITION_FIELD_MAX_LENGTH),
+        usageNote: z
+          .string()
+          .trim()
+          .min(FIB_DEFINITION_FIELD_MIN_LENGTH)
+          .max(FIB_DEFINITION_FIELD_MAX_LENGTH),
+      }),
       source: z.enum(FIB_WORD_SOURCES),
     }),
   ],

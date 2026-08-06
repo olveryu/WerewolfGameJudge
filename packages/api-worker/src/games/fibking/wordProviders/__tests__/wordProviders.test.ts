@@ -1,5 +1,5 @@
 import {
-  FIB_PREPARATION_PROGRESS,
+  FIB_PREPARATION_STAGES,
   FIB_USED_WORD_LIMIT,
   fibEngine,
   type FibInternalCommand,
@@ -12,74 +12,78 @@ import {
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { createRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { env } from 'cloudflare:test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkerEffectContext } from '../../../../platform/gameModules/workerModule';
 import { handleFibGenerateWordEffect } from '../../effects';
+import { FIB_PREPARATION_TIMEOUT_MS } from '../../wordGenerationResults';
 import { readRecentFibWords, recordFibWordExposure } from '../../wordHistory';
-import { createConfiguredFibWordProvider } from '..';
+import { createConfiguredFibWordProvider, createGeminiPrimaryFibWordProvider } from '..';
 import {
-  FIB_WORD_BATCH_JSON_SCHEMA,
+  FIB_WORD_JSON_SCHEMA,
   parseFibWordCandidate,
-  parseFibWordCandidateBatch,
+  parseGeneratedFibWordCandidate,
 } from '../candidate';
 import { createGeminiFibWordProvider } from '../gemini';
 import { createLocalFibWordProvider } from '../local';
 import { LOCAL_FIB_WORD_BANK } from '../localWordBank';
+import { FibWordProviderError } from '../providerError';
 import type { FibWordProvider, FibWordRequest } from '../types';
 import { createWorkersAiFibWordProvider } from '../workersAi';
 
 const ROOM_ID = 'fib-provider-room';
 const ROOM_CODE = '9876';
 const CREATION_ID = 'fib-provider-creation';
+const TEST_GENERATION_BUDGET_MS = 60_000;
 
 const EFFECT = {
   type: 'fib.word.generate',
   payload: { roundId: 'fib-round:start-command', avoidWords: [] },
 } as const;
 
-const AI_CANDIDATES = [
-  { word: '菡萏', definition: '尚未开放的荷花，也泛指荷花。', category: 'literary' },
-  {
-    word: '电子榨菜',
-    definition: '吃饭时用来佐餐的轻松视频或其他内容。',
-    category: 'internet',
-  },
-  {
-    word: '情绪价值',
-    definition: '一段关系带给人的积极情绪体验和支持。',
-    category: 'compound',
-  },
-  {
-    word: '峰终定律',
-    definition: '人主要依据体验高峰和结尾形成整体印象的规律。',
-    category: 'niche',
-  },
-] as const;
+const AI_DEFINITION = {
+  coreMeaning: '尚未开放的荷花花苞，也可以用来泛指荷花。',
+  usageNote: '多见于书面语和文学描写，常用来营造含蓄雅致的意象。',
+} as const;
+
+const MIST_DEFINITION = {
+  coreMeaning: '烟气或云雾在空气中弥漫缭绕的朦胧景象。',
+  usageNote: '常用于描写云烟、水汽或光线交织形成的柔和氛围。',
+} as const;
+
+const AI_CANDIDATE = {
+  word: '菡萏',
+  definition: AI_DEFINITION,
+  category: 'literary',
+} as const;
 
 function createWordRequest(overrides: Partial<FibWordRequest> = {}): FibWordRequest {
   return {
     avoidWords: [],
     recentWords: [],
     selectionSeed: 'fib-provider-test-seed',
+    category: 'literary',
+    generationDeadlineAt: Date.now() + TEST_GENERATION_BUDGET_MS,
+    signal: new AbortController().signal,
     ...overrides,
   };
 }
 
 const AI_WORD_REQUEST = createWordRequest({
   avoidWords: ['氤氲'],
-  recentWords: AI_CANDIDATES.slice(1).map((candidate) => candidate.word),
+  recentWords: ['电子榨菜'],
 });
 
 function applyPublicCommand(
   state: FibState,
   command: FibPublicCommand,
   commandId: string,
+  nowMs: number,
 ): FibState {
   const decision = fibEngine.decide(state, command, {
     actor: { kind: 'user', userId: 'host' },
     controlledSeat: null,
-    nowMs: 2,
+    nowMs,
     commandId,
     randomSeed: `${commandId}-seed`,
   });
@@ -89,13 +93,31 @@ function applyPublicCommand(
   return fibEngine.normalize(nextState);
 }
 
-function createPreparingState(startCommandId = 'start-command'): FibState {
+function createPreparingState(
+  startCommandId = 'start-command',
+  requestedAt = Date.now(),
+): FibState {
   const lobby = fibEngine.createInitialState(
     { numberOfPlayers: 4 },
-    { roomCode: ROOM_CODE, hostUserId: 'host', nowMs: 1, commandId: 'create-1' },
+    {
+      roomCode: ROOM_CODE,
+      hostUserId: 'host',
+      nowMs: requestedAt - 2,
+      commandId: 'create-1',
+    },
   );
-  const full = applyPublicCommand(lobby, { type: 'room.seat.fillBots' }, 'fill-bots');
-  const preparing = applyPublicCommand(full, { type: 'fib.round.start' }, startCommandId);
+  const full = applyPublicCommand(
+    lobby,
+    { type: 'room.seat.fillBots' },
+    'fill-bots',
+    requestedAt - 1,
+  );
+  const preparing = applyPublicCommand(
+    full,
+    { type: 'fib.round.start' },
+    startCommandId,
+    requestedAt,
+  );
   if (preparing.phase !== 'preparing') throw new Error('Expected preparing Fib test state');
   return preparing;
 }
@@ -153,67 +175,186 @@ describe('Fib word providers', () => {
     expect(() =>
       createConfiguredFibWordProvider({ ...env, FIB_WORD_PROVIDER: 'invented-provider' }),
     ).toThrow('Unknown FIB_WORD_PROVIDER: invented-provider');
+    expect(() =>
+      createConfiguredFibWordProvider({ ...env, FIB_WORD_PROVIDER: 'workers-ai' }),
+    ).toThrow('Unknown FIB_WORD_PROVIDER: workers-ai');
+  });
+
+  it('falls back from Gemini to Workers AI at most once for an eligible failure', async () => {
+    let geminiCallCount = 0;
+    let workersAiCallCount = 0;
+    const geminiRequests: FibWordRequest[] = [];
+    const workersAiRequests: FibWordRequest[] = [];
+    const geminiProvider: FibWordProvider = {
+      generate: (request) => {
+        geminiCallCount += 1;
+        geminiRequests.push(request);
+        return Promise.reject(
+          new FibWordProviderError('Gemini temporarily unavailable', 'serviceUnavailable'),
+        );
+      },
+    };
+    const workersAiProvider: FibWordProvider = {
+      generate: (request) => {
+        workersAiCallCount += 1;
+        workersAiRequests.push(request);
+        return Promise.resolve({
+          word: AI_CANDIDATE.word,
+          definition: AI_CANDIDATE.definition,
+          source: 'workers-ai',
+        });
+      },
+    };
+    const request = createWordRequest();
+
+    await expect(
+      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(request),
+    ).resolves.toEqual({
+      word: AI_CANDIDATE.word,
+      definition: AI_CANDIDATE.definition,
+      source: 'workers-ai',
+    });
+
+    expect(geminiCallCount).toBe(1);
+    expect(workersAiCallCount).toBe(1);
+    expect(geminiRequests[0]).toMatchObject({
+      generationDeadlineAt: request.generationDeadlineAt,
+    });
+    expect(workersAiRequests[0]).toMatchObject({
+      generationDeadlineAt: request.generationDeadlineAt,
+    });
+    expect(geminiRequests[0]?.signal).not.toBe(request.signal);
+    expect(workersAiRequests[0]?.signal).not.toBe(request.signal);
+  });
+
+  it('does not fall back for a non-eligible Gemini request failure', async () => {
+    let workersAiCallCount = 0;
+    const geminiProvider: FibWordProvider = {
+      generate: () =>
+        Promise.reject(new FibWordProviderError('Gemini authentication failed', 'requestFailed')),
+    };
+    const workersAiProvider: FibWordProvider = {
+      generate: () => {
+        workersAiCallCount += 1;
+        return Promise.resolve({
+          word: AI_CANDIDATE.word,
+          definition: AI_CANDIDATE.definition,
+          source: 'workers-ai',
+        });
+      },
+    };
+
+    await expect(
+      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
+        createWordRequest(),
+      ),
+    ).rejects.toMatchObject({ failureKind: 'requestFailed' });
+    expect(workersAiCallCount).toBe(0);
+  });
+
+  it('does not invoke either provider after the shared generation deadline', async () => {
+    let providerCallCount = 0;
+    const provider: FibWordProvider = {
+      generate: () => {
+        providerCallCount += 1;
+        return Promise.resolve({
+          word: AI_CANDIDATE.word,
+          definition: AI_CANDIDATE.definition,
+          source: 'gemini',
+        });
+      },
+    };
+
+    await expect(
+      createGeminiPrimaryFibWordProvider(provider, provider).generate(
+        createWordRequest({ generationDeadlineAt: Date.now() - 1 }),
+      ),
+    ).rejects.toMatchObject({ failureKind: 'timedOut' });
+    expect(providerCallCount).toBe(0);
   });
 
   it('strictly validates, trims, and deduplicates every provider candidate', () => {
     expect(
-      parseFibWordCandidate({ word: '  氤氲 ', definition: ' 烟气或云雾弥漫缭绕。 ' }, 'local', []),
-    ).toEqual({ word: '氤氲', definition: '烟气或云雾弥漫缭绕。', source: 'local' });
+      parseFibWordCandidate(
+        {
+          word: '  氤氲 ',
+          definition: {
+            coreMeaning: ` ${MIST_DEFINITION.coreMeaning} `,
+            usageNote: ` ${MIST_DEFINITION.usageNote} `,
+          },
+        },
+        'local',
+        [],
+      ),
+    ).toEqual({ word: '氤氲', definition: MIST_DEFINITION, source: 'local' });
     expect(() =>
-      parseFibWordCandidate({ word: '氤氲', definition: '烟气或云雾弥漫缭绕。' }, 'local', [
-        '氤氲',
-      ]),
+      parseFibWordCandidate({ word: '氤氲', definition: MIST_DEFINITION }, 'local', ['氤氲']),
     ).toThrow('returned an avoided word');
     expect(() =>
       parseFibWordCandidate(
-        { word: '氤氲', definition: '烟气或云雾弥漫缭绕。', extra: true },
+        { word: '氤氲', definition: MIST_DEFINITION, extra: true },
         'local',
         [],
       ),
     ).toThrow();
     expect(() =>
       parseFibWordCandidate(
-        { word: '氤氲', definition: 'A cloud of mist drifting through the air.' },
+        {
+          word: '氤氲',
+          definition: {
+            ...MIST_DEFINITION,
+            coreMeaning: 'A cloud of mist drifting through the air.',
+          },
+        },
         'gemini',
         [],
       ),
     ).toThrow();
     expect(() =>
       parseFibWordCandidate(
-        { word: '氤氲', definition: '形容空气中有 soft drifting mist 的景象。' },
+        {
+          word: '氤氲',
+          definition: {
+            ...MIST_DEFINITION,
+            usageNote: '常用于描写空气中有 soft drifting mist 的景象。',
+          },
+        },
+        'gemini',
+        [],
+      ),
+    ).toThrow();
+    expect(() =>
+      parseFibWordCandidate({ word: 'serendipity', definition: MIST_DEFINITION }, 'gemini', []),
+    ).toThrow();
+    expect(() =>
+      parseFibWordCandidate(
+        { word: '氤氲', definition: { coreMeaning: MIST_DEFINITION.coreMeaning } },
         'gemini',
         [],
       ),
     ).toThrow();
   });
 
-  it('selects from four distinct, categorized candidates outside room and player history', async () => {
-    await expect(
-      parseFibWordCandidateBatch({ candidates: AI_CANDIDATES }, 'workers-ai', AI_WORD_REQUEST),
-    ).resolves.toEqual({
-      word: AI_CANDIDATES[0].word,
-      definition: AI_CANDIDATES[0].definition,
+  it('validates one candidate against the server-selected category and word history', () => {
+    expect(parseGeneratedFibWordCandidate(AI_CANDIDATE, 'workers-ai', AI_WORD_REQUEST)).toEqual({
+      word: AI_CANDIDATE.word,
+      definition: AI_CANDIDATE.definition,
       source: 'workers-ai',
     });
     expect(() =>
-      parseFibWordCandidateBatch(
-        { candidates: [AI_CANDIDATES[0], AI_CANDIDATES[0], ...AI_CANDIDATES.slice(2)] },
+      parseGeneratedFibWordCandidate(
+        { ...AI_CANDIDATE, category: 'internet' },
         'workers-ai',
-        createWordRequest(),
+        AI_WORD_REQUEST,
       ),
-    ).toThrow('duplicate candidate');
+    ).toThrow('expected literary');
     expect(() =>
-      parseFibWordCandidateBatch(
-        {
-          candidates: [
-            { word: '🔥🔥', definition: '两个没有形成明确词义的火焰符号。', category: 'literary' },
-            ...AI_CANDIDATES.slice(1),
-          ],
-        },
+      parseGeneratedFibWordCandidate(
+        { ...AI_CANDIDATE, word: '电子榨菜' },
         'workers-ai',
-        createWordRequest(),
+        AI_WORD_REQUEST,
       ),
-    ).toThrow();
+    ).toThrow('returned a recent word');
   });
 
   it('keeps the local bank larger than the authoritative used-word window', async () => {
@@ -245,17 +386,19 @@ describe('Fib word providers', () => {
 
   it('uses Gemini structured output and rejects transport failures for outbox retry', async () => {
     let requestBody = '';
+    let requestSignal: AbortSignal | null = null;
     const fetchImpl: typeof fetch = async (_input, init) => {
       if (typeof init?.body !== 'string') {
         throw new Error('Expected Gemini request body to be a JSON string');
       }
       requestBody = init.body;
+      requestSignal = init.signal ?? null;
       return new Response(
         JSON.stringify({
           choices: [
             {
               message: {
-                content: JSON.stringify({ candidates: AI_CANDIDATES }),
+                content: JSON.stringify(AI_CANDIDATE),
               },
             },
           ],
@@ -267,12 +410,14 @@ describe('Fib word providers', () => {
 
     await expect(provider.generate(AI_WORD_REQUEST)).resolves.toEqual({
       word: '菡萏',
-      definition: '尚未开放的荷花，也泛指荷花。',
+      definition: AI_DEFINITION,
       source: 'gemini',
     });
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('"additionalProperties":false');
-    expect(requestBody).toContain('"candidates"');
+    expect(requestBody).toContain('"max_tokens":256');
+    expect(requestBody).not.toContain('"candidates"');
+    expect(requestSignal).toBe(AI_WORD_REQUEST.signal);
 
     const failingFetch: typeof fetch = async () => new Response('unavailable', { status: 503 });
     await expect(
@@ -283,29 +428,34 @@ describe('Fib word providers', () => {
   it('uses a Workers AI model with a documented JSON Mode contract', async () => {
     let receivedModel = '';
     let receivedInput: unknown;
-    const run = (model: string, input: Record<string, unknown>) => {
+    let receivedSignal: AbortSignal | null = null;
+    const run = (
+      model: string,
+      input: Record<string, unknown>,
+      options: { readonly signal: AbortSignal },
+    ) => {
       receivedModel = model;
       receivedInput = input;
+      receivedSignal = options.signal;
       return Promise.resolve({
-        response: {
-          candidates: AI_CANDIDATES,
-        },
+        response: AI_CANDIDATE,
       });
     };
 
     await expect(createWorkersAiFibWordProvider(run).generate(AI_WORD_REQUEST)).resolves.toEqual({
       word: '菡萏',
-      definition: '尚未开放的荷花，也泛指荷花。',
+      definition: AI_DEFINITION,
       source: 'workers-ai',
     });
     expect(receivedModel).toBe('@cf/meta/llama-3.1-8b-instruct-fast');
     expect(receivedInput).toMatchObject({
-      max_tokens: 768,
+      max_tokens: 256,
       response_format: {
         type: 'json_schema',
-        json_schema: FIB_WORD_BATCH_JSON_SCHEMA,
+        json_schema: FIB_WORD_JSON_SCHEMA,
       },
     });
+    expect(receivedSignal).toBe(AI_WORD_REQUEST.signal);
   });
 });
 
@@ -314,12 +464,12 @@ describe('Fib word-generation effect', () => {
     generate: () =>
       Promise.resolve({
         word: '菡萏',
-        definition: '尚未开放的荷花，也泛指荷花。',
+        definition: AI_DEFINITION,
         source: 'local',
       }),
   };
 
-  it('replays the persisted candidate after an internal commit without regenerating it', async () => {
+  it('replays a persisted candidate after the deadline without regenerating it', async () => {
     const dispatchedCommands: FibInternalCommand[] = [];
     const dispatchedCommandIds: string[] = [];
     let providerCallCount = 0;
@@ -330,32 +480,42 @@ describe('Fib word-generation effect', () => {
           providerCallCount === 1
             ? {
                 word: '菡萏',
-                definition: '尚未开放的荷花，也泛指荷花。',
+                definition: AI_DEFINITION,
                 source: 'local',
               }
             : {
                 word: '氤氲',
-                definition: '烟气或云雾弥漫缭绕的样子。',
+                definition: MIST_DEFINITION,
                 source: 'local',
               },
         );
       },
     };
-    const context = createEffectContext((commandId, command) => {
-      dispatchedCommandIds.push(commandId);
-      dispatchedCommands.push(command);
-      return Promise.resolve(committedResult(commandId));
-    });
+    const requestedAt = Date.now();
+    const context = createEffectContext(
+      (commandId, command) => {
+        dispatchedCommandIds.push(commandId);
+        dispatchedCommands.push(command);
+        return Promise.resolve(committedResult(commandId));
+      },
+      createPreparingState('start-command', requestedAt),
+    );
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(requestedAt + 100);
 
-    await handleFibGenerateWordEffect(EFFECT, context, replayProvider);
-    await handleFibGenerateWordEffect(EFFECT, context, replayProvider);
+    try {
+      await handleFibGenerateWordEffect(EFFECT, context, replayProvider);
+      nowSpy.mockReturnValue(requestedAt + FIB_PREPARATION_TIMEOUT_MS + 1);
+      await handleFibGenerateWordEffect(EFFECT, context, replayProvider);
+    } finally {
+      nowSpy.mockRestore();
+    }
 
     expect(dispatchedCommandIds).toEqual([
-      expect.stringMatching(/^fib:preparation-progress-50:[0-9a-f]{64}$/),
-      expect.stringMatching(/^fib:preparation-progress-75:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-stage-generating:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-stage-finalizing:[0-9a-f]{64}$/),
       expect.stringMatching(/^fib:round-complete:[0-9a-f]{64}$/),
-      expect.stringMatching(/^fib:preparation-progress-50:[0-9a-f]{64}$/),
-      expect.stringMatching(/^fib:preparation-progress-75:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-stage-generating:[0-9a-f]{64}$/),
+      expect.stringMatching(/^fib:preparation-stage-finalizing:[0-9a-f]{64}$/),
       expect.stringMatching(/^fib:round-complete:[0-9a-f]{64}$/),
     ]);
     expect(dispatchedCommandIds.slice(0, 3)).toEqual(dispatchedCommandIds.slice(3));
@@ -364,37 +524,37 @@ describe('Fib word-generation effect', () => {
     expect(providerCallCount).toBe(1);
     expect(dispatchedCommands).toEqual([
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+        stage: FIB_PREPARATION_STAGES.generating,
       },
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+        stage: FIB_PREPARATION_STAGES.finalizing,
       },
       {
         type: 'fib.round.complete',
         roundId: 'fib-round:start-command',
         word: '菡萏',
-        definition: '尚未开放的荷花，也泛指荷花。',
+        definition: AI_DEFINITION,
         source: 'local',
       },
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+        stage: FIB_PREPARATION_STAGES.generating,
       },
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+        stage: FIB_PREPARATION_STAGES.finalizing,
       },
       {
         type: 'fib.round.complete',
         roundId: 'fib-round:start-command',
         word: '菡萏',
-        definition: '尚未开放的荷花，也泛指荷花。',
+        definition: AI_DEFINITION,
         source: 'local',
       },
     ]);
@@ -408,7 +568,7 @@ describe('Fib word-generation effect', () => {
         receivedRequest = request;
         return Promise.resolve({
           word: '菡萏',
-          definition: '尚未开放的荷花，也泛指荷花。',
+          definition: AI_DEFINITION,
           source: 'local',
         });
       },
@@ -425,21 +585,72 @@ describe('Fib word-generation effect', () => {
     await expect(readRecentFibWords(env.DB, ['host'])).resolves.toEqual(['菡萏', '阒寂']);
   });
 
-  it('rejects an English definition before persisting a generation result', async () => {
-    const englishProvider: FibWordProvider = {
+  it('commits terminal generation failure when provider output validation fails', async () => {
+    const failingProvider: FibWordProvider = {
       generate: () =>
-        Promise.resolve({
-          word: '菡萏',
-          definition: 'A lotus flower before it fully opens.',
-          source: 'gemini',
-        }),
+        Promise.reject(new FibWordProviderError('Provider output was invalid', 'invalidOutput')),
     };
-    const context = createEffectContext((commandId) => Promise.resolve(committedResult(commandId)));
+    const dispatchedCommands: FibInternalCommand[] = [];
+    const context = createEffectContext((commandId, command) => {
+      dispatchedCommands.push(command);
+      return Promise.resolve(committedResult(commandId));
+    });
 
-    await expect(handleFibGenerateWordEffect(EFFECT, context, englishProvider)).rejects.toThrow();
     await expect(
-      env.DB.prepare('SELECT definition FROM fib_word_generation_results LIMIT 1').first(),
+      handleFibGenerateWordEffect(EFFECT, context, failingProvider),
+    ).resolves.toBeUndefined();
+    expect(dispatchedCommands).toEqual([
+      {
+        type: 'fib.round.updatePreparationStage',
+        roundId: 'fib-round:start-command',
+        stage: FIB_PREPARATION_STAGES.generating,
+      },
+      {
+        type: 'fib.round.failPreparation',
+        roundId: 'fib-round:start-command',
+        failureCode: 'generationFailed',
+      },
+    ]);
+    await expect(
+      env.DB.prepare('SELECT core_meaning FROM fib_word_generation_results LIMIT 1').first(),
     ).resolves.toBeNull();
+  });
+
+  it('times out from the original request without invoking a provider', async () => {
+    let providerCallCount = 0;
+    const timeoutProvider: FibWordProvider = {
+      generate: () => {
+        providerCallCount += 1;
+        return provider.generate(createWordRequest());
+      },
+    };
+    const dispatchedCommands: FibInternalCommand[] = [];
+    const expiredState = createPreparingState(
+      'start-command',
+      Date.now() - FIB_PREPARATION_TIMEOUT_MS - 1,
+    );
+    const context = createEffectContext((commandId, command) => {
+      dispatchedCommands.push(command);
+      return Promise.resolve(committedResult(commandId));
+    }, expiredState);
+
+    await expect(
+      handleFibGenerateWordEffect(EFFECT, context, timeoutProvider),
+    ).resolves.toBeUndefined();
+
+    expect(providerCallCount).toBe(0);
+    expect(dispatchedCommands).toEqual([
+      {
+        type: 'fib.round.updatePreparationStage',
+        roundId: 'fib-round:start-command',
+        stage: FIB_PREPARATION_STAGES.generating,
+      },
+      {
+        type: 'fib.round.failPreparation',
+        roundId: 'fib-round:start-command',
+        failureCode: 'timedOut',
+      },
+    ]);
   });
 
   it('retires a stale effect before invoking the configured provider', async () => {
@@ -495,13 +706,13 @@ describe('Fib word-generation effect', () => {
     },
   );
 
-  it('stops after candidate persistence when the round is superseded before ready', async () => {
+  it('stops after candidate persistence when the round is superseded before finalizing', async () => {
     const dispatchedCommands: FibInternalCommand[] = [];
     const context = createEffectContext((commandId, command) => {
       dispatchedCommands.push(command);
       if (
-        command.type === 'fib.round.updatePreparationProgress' &&
-        command.progressPercent === FIB_PREPARATION_PROGRESS.ready
+        command.type === 'fib.round.updatePreparationStage' &&
+        command.stage === FIB_PREPARATION_STAGES.finalizing
       ) {
         return Promise.resolve({
           kind: 'rejected',
@@ -516,14 +727,14 @@ describe('Fib word-generation effect', () => {
 
     expect(dispatchedCommands).toEqual([
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+        stage: FIB_PREPARATION_STAGES.generating,
       },
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+        stage: FIB_PREPARATION_STAGES.finalizing,
       },
     ]);
     await expect(

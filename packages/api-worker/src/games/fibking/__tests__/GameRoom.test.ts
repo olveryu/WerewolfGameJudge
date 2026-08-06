@@ -190,7 +190,7 @@ describe('FibKing generic GameRoom integration', () => {
       .first();
     expect(room).toEqual({ games_started: 1 });
     const generated = await env.DB.prepare(
-      `SELECT round_id, word, definition, source
+      `SELECT round_id, word, core_meaning, usage_note, source
       FROM fib_word_generation_results WHERE room_id = ?`,
     )
       .bind(stub.id.toString())
@@ -198,7 +198,8 @@ describe('FibKing generic GameRoom integration', () => {
     expect(generated).toEqual({
       round_id: ongoing.round.roundId,
       word: ongoing.round.word,
-      definition: ongoing.round.definition,
+      core_meaning: ongoing.round.definition.coreMeaning,
+      usage_note: ongoing.round.definition.usageNote,
       source: ongoing.round.source,
     });
   });

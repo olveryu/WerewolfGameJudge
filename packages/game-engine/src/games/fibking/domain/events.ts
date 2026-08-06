@@ -4,9 +4,11 @@ import type { GameEvent } from '../../../platform/engine';
 import type { SeatChange } from '../../../platform/room/seating';
 import type {
   FibHumanSeat,
-  FibPreparingProgressPercent,
+  FibPreparationFailureCode,
+  FibPreparationStage,
   FibProfileUpdate,
   FibRoleAssignment,
+  FibWordDefinition,
   FibWordSource,
   PendingFibRound,
 } from '../state/types';
@@ -38,15 +40,20 @@ export type FibEvent =
       readonly pendingRound: PendingFibRound;
     })
   | (GameEvent & {
-      readonly type: 'fib.round.preparationProgressed';
-      readonly progressPercent: FibPreparingProgressPercent;
+      readonly type: 'fib.round.preparationStageUpdated';
+      readonly stage: FibPreparationStage;
     })
   | (GameEvent & { readonly type: 'fib.round.preparationCancelled' })
+  | (GameEvent & {
+      readonly type: 'fib.round.preparationFailed';
+      readonly failedAt: number;
+      readonly failureCode: FibPreparationFailureCode;
+    })
   | (GameEvent & {
       readonly type: 'fib.round.started';
       readonly roundId: string;
       readonly word: string;
-      readonly definition: string;
+      readonly definition: FibWordDefinition;
       readonly source: FibWordSource;
       readonly roles: FibRoleAssignment;
     })

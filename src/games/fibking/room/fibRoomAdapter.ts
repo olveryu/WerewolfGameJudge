@@ -133,7 +133,13 @@ export function getFibSeatTapIntent(input: FibSeatTapInput) {
 }
 
 function getSeatRoleLabel(state: FibState, seat: number): string | null {
-  if (state.phase === 'lobby' || state.phase === 'preparing') return null;
+  if (
+    state.phase === 'lobby' ||
+    state.phase === 'preparing' ||
+    state.phase === 'preparationFailed'
+  ) {
+    return null;
+  }
   const role = getFibRole(state.round.roles, seat);
   if (state.phase === 'ongoing' && role !== 'guesser') return null;
   return FIB_ROLE_NAMES[role];
@@ -213,6 +219,16 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel {
         icon: 'guide',
         text: '正在准备本轮词语',
         supportingText: null,
+      };
+    case 'preparationFailed':
+      return {
+        kind: 'message',
+        icon: 'guide',
+        text: '词语准备失败',
+        supportingText:
+          state.preparationFailure.failureCode === 'timedOut'
+            ? '准备超时，请重新准备'
+            : '暂时无法生成词语，请重新准备',
       };
     case 'ongoing':
       return {
@@ -313,6 +329,28 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
         );
       }
       break;
+    case 'preparationFailed':
+      if (input.isHost) {
+        primary.push(
+          enabledButton(
+            'retry-preparation',
+            '重新准备',
+            'primary',
+            TESTIDS.fibRetryPreparationButton,
+            input.startRound,
+          ),
+        );
+        ghost.push(
+          enabledButton(
+            'return-lobby',
+            '返回大厅',
+            'ghost',
+            TESTIDS.fibReturnLobbyButton,
+            input.cancelPreparing,
+          ),
+        );
+      }
+      break;
     case 'ongoing':
       if (input.isHost) {
         primary.push(
@@ -373,6 +411,8 @@ function getPlayerMessage(state: FibState): string | null {
       return '等待房主开始本轮';
     case 'preparing':
       return '房主正在准备本轮';
+    case 'preparationFailed':
+      return '词语准备失败，等待房主重新准备';
     case 'ongoing':
     case 'ended':
       return null;

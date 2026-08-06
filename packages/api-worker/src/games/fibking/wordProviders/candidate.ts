@@ -1,85 +1,70 @@
 /** Strict candidate validation shared by every Fib word provider adapter. */
 
 import {
-  FIB_DEFINITION_MAX_LENGTH,
-  FIB_DEFINITION_MIN_LENGTH,
+  FIB_DEFINITION_FIELD_MAX_LENGTH,
+  FIB_DEFINITION_FIELD_MIN_LENGTH,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   type FibWordSource,
+  isValidFibDefinitionField,
+  isValidFibWord,
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
-import {
-  FIB_WORD_CANDIDATE_COUNT,
-  FIB_WORD_CATEGORIES,
-  type FibWordCandidate,
-  type FibWordCategory,
-  type FibWordRequest,
-} from './types';
+import { FIB_WORD_CATEGORIES, type FibWordCandidate, type FibWordRequest } from './types';
 
 const SELECTION_HASH_HEX_LENGTH = 8;
-const CHINESE_DEFINITION_PATTERN = /^(?=.*\p{Script=Han})[\p{Script=Han}\p{N}\p{P}\p{Zs}]+$/u;
-const generatedFibWordSchema = z
-  .string()
-  .trim()
-  .min(FIB_WORD_MIN_LENGTH)
-  .max(FIB_WORD_MAX_LENGTH)
-  .regex(/^[\p{L}\p{N}·+&/ -]+$/u);
+const generatedFibWordSchema = z.string().trim().refine(isValidFibWord);
+const fibDefinitionFieldSchema = z.string().trim().refine(isValidFibDefinitionField);
+const fibWordDefinitionSchema = z.strictObject({
+  coreMeaning: fibDefinitionFieldSchema,
+  usageNote: fibDefinitionFieldSchema,
+});
 
 const fibWordCandidatePayloadSchema = z.strictObject({
-  word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
-  definition: z
-    .string()
-    .trim()
-    .min(FIB_DEFINITION_MIN_LENGTH)
-    .max(FIB_DEFINITION_MAX_LENGTH)
-    .regex(CHINESE_DEFINITION_PATTERN),
+  word: generatedFibWordSchema,
+  definition: fibWordDefinitionSchema,
 });
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
-  word: generatedFibWordSchema,
-});
-
-const categorizedFibWordCandidatePayloadSchema = generatedFibWordCandidatePayloadSchema.extend({
   category: z.enum(FIB_WORD_CATEGORIES),
 });
 
-const fibWordCandidateBatchPayloadSchema = z.strictObject({
-  candidates: z.array(categorizedFibWordCandidatePayloadSchema).length(FIB_WORD_CANDIDATE_COUNT),
-});
-
-const FIB_WORD_JSON_SCHEMA = {
+export const FIB_WORD_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['word', 'definition', 'category'],
   properties: {
     word: {
       type: 'string',
-      description: `${FIB_WORD_MIN_LENGTH}-${FIB_WORD_MAX_LENGTH}字符的中文词语、网络用语或多字概念，可含汉字、字母或数字`,
+      minLength: FIB_WORD_MIN_LENGTH,
+      maxLength: FIB_WORD_MAX_LENGTH,
+      description: `${FIB_WORD_MIN_LENGTH}-${FIB_WORD_MAX_LENGTH}个纯汉字组成的中文词语或多字概念`,
     },
     definition: {
-      type: 'string',
-      description: `${FIB_DEFINITION_MIN_LENGTH}-${FIB_DEFINITION_MAX_LENGTH}字的准确简洁中文释义，不得含英文字母`,
+      type: 'object',
+      additionalProperties: false,
+      required: ['coreMeaning', 'usageNote'],
+      properties: {
+        coreMeaning: {
+          type: 'string',
+          minLength: FIB_DEFINITION_FIELD_MIN_LENGTH,
+          maxLength: FIB_DEFINITION_FIELD_MAX_LENGTH,
+          description: '准确说明词语核心含义的完整中文句子，不得含英文字母',
+        },
+        usageNote: {
+          type: 'string',
+          minLength: FIB_DEFINITION_FIELD_MIN_LENGTH,
+          maxLength: FIB_DEFINITION_FIELD_MAX_LENGTH,
+          description: '说明适用对象、语境或容易误解之处的完整中文句子，不得含英文字母',
+        },
+      },
     },
     category: {
       type: 'string',
       enum: FIB_WORD_CATEGORIES,
       description: '候选类别',
-    },
-  },
-} as const;
-
-export const FIB_WORD_BATCH_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['candidates'],
-  properties: {
-    candidates: {
-      type: 'array',
-      minItems: FIB_WORD_CANDIDATE_COUNT,
-      maxItems: FIB_WORD_CANDIDATE_COUNT,
-      items: FIB_WORD_JSON_SCHEMA,
     },
   },
 } as const;
@@ -94,19 +79,8 @@ function assertDistinctCandidates(candidates: readonly { readonly word: string }
   }
 }
 
-function assertCompleteCategories(
-  candidates: readonly { readonly category: FibWordCategory }[],
-): void {
-  const categories = new Set(candidates.map((candidate) => candidate.category));
-  for (const category of FIB_WORD_CATEGORIES) {
-    if (!categories.has(category)) {
-      throw new Error(`Fib word provider omitted candidate category: ${category}`);
-    }
-  }
-}
-
 async function selectCandidate(
-  candidates: readonly z.output<typeof generatedFibWordCandidatePayloadSchema>[],
+  candidates: readonly z.output<typeof fibWordCandidatePayloadSchema>[],
   source: FibWordSource,
   request: FibWordRequest,
   allowRecentWordFallback: boolean,
@@ -147,30 +121,39 @@ export function parseFibWordCandidate(
   return { ...payload, source };
 }
 
-export function parseFibWordCandidateBatch(
+export function parseGeneratedFibWordCandidate(
   value: unknown,
   source: FibWordSource,
   request: FibWordRequest,
-): Promise<FibWordCandidate> {
-  const payload = fibWordCandidateBatchPayloadSchema.parse(value);
-  assertDistinctCandidates(payload.candidates);
-  assertCompleteCategories(payload.candidates);
-  return selectCandidate(payload.candidates, source, request, false);
+): FibWordCandidate {
+  const payload = generatedFibWordCandidatePayloadSchema.parse(value);
+  if (payload.category !== request.category) {
+    throw new Error(
+      `Fib word provider ${source} returned category ${payload.category}, expected ${request.category}`,
+    );
+  }
+  if (request.avoidWords.includes(payload.word)) {
+    throw new Error(`Fib word provider ${source} returned an avoided word: ${payload.word}`);
+  }
+  if (request.recentWords.includes(payload.word)) {
+    throw new Error(`Fib word provider ${source} returned a recent word: ${payload.word}`);
+  }
+  return { word: payload.word, definition: payload.definition, source };
 }
 
-export function parseFibWordCandidateBatchJson(
+export function parseGeneratedFibWordCandidateJson(
   value: string,
   source: FibWordSource,
   request: FibWordRequest,
-): Promise<FibWordCandidate> {
-  return parseFibWordCandidateBatch(JSON.parse(value), source, request);
+): FibWordCandidate {
+  return parseGeneratedFibWordCandidate(JSON.parse(value), source, request);
 }
 
 export function selectLocalFibWordCandidate(
   values: readonly unknown[],
   request: FibWordRequest,
 ): Promise<FibWordCandidate> {
-  const candidates = values.map((value) => generatedFibWordCandidatePayloadSchema.parse(value));
+  const candidates = values.map((value) => fibWordCandidatePayloadSchema.parse(value));
   assertDistinctCandidates(candidates);
   return selectCandidate(candidates, 'local', request, true);
 }

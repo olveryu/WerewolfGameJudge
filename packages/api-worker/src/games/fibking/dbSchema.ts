@@ -1,7 +1,14 @@
 /** FibKing-owned D1 table definitions imported directly by FibKing persistence. */
 
 import { FIB_WORD_SOURCES } from '@game-judge/game-engine/games/fibking/public';
-import { index, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
@@ -17,8 +24,11 @@ export const fibWordGenerationResults = sqliteTable(
     effectId: text('effect_id').notNull(),
     roundId: text('round_id').notNull(),
     requestFingerprint: text('request_fingerprint').notNull(),
+    requestedAt: integer('requested_at').notNull(),
+    deadlineAt: integer('deadline_at').notNull(),
     word: text('word').notNull(),
-    definition: text('definition').notNull(),
+    coreMeaning: text('core_meaning').notNull(),
+    usageNote: text('usage_note').notNull(),
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
     createdAt: text('created_at').notNull(),
   },

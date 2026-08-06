@@ -1,7 +1,7 @@
 import { assignFibRoles } from '../domain/roles';
 import { fibEngine } from '../engine';
 import { parseFibState } from '../state/parseState';
-import { FIB_PREPARATION_PROGRESS } from '../state/types';
+import { FIB_PREPARATION_STAGES } from '../state/types';
 import { FIB_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT = {
@@ -31,7 +31,7 @@ describe('FibKing compact state and codec', () => {
     expect(parseFibState(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
 
-  it('round-trips and validates preparing progress', () => {
+  it('round-trips and validates preparing stages', () => {
     const state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
     const preparing = {
       ...state,
@@ -40,8 +40,9 @@ describe('FibKing compact state and codec', () => {
       pendingRound: {
         roundId: 'fib-round:codec',
         requestedAt: 2,
-        progressPercent: FIB_PREPARATION_PROGRESS.queued,
+        stage: FIB_PREPARATION_STAGES.queued,
       },
+      preparationFailure: null,
       round: null,
     };
 
@@ -49,9 +50,28 @@ describe('FibKing compact state and codec', () => {
     expect(() =>
       parseFibState({
         ...preparing,
-        pendingRound: { ...preparing.pendingRound, progressPercent: 60 },
+        pendingRound: { ...preparing.pendingRound, stage: 'unknown' },
       }),
-    ).toThrow('FibState.pendingRound.progressPercent must be a valid Fib preparation percentage');
+    ).toThrow('FibState.pendingRound.stage must be a valid Fib preparation stage');
+  });
+
+  it('round-trips a terminal preparation failure', () => {
+    const state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
+    const failed = {
+      ...state,
+      phase: 'preparationFailed',
+      fillEmptySeatsWithBots: true,
+      pendingRound: null,
+      preparationFailure: {
+        roundId: 'fib-round:codec',
+        requestedAt: 2,
+        failedAt: 8_002,
+        failureCode: 'timedOut',
+      },
+      round: null,
+    };
+
+    expect(parseFibState(failed)).toEqual(failed);
   });
 
   it('rejects unknown fields, non-canonical seat keys, and unsupported identity', () => {

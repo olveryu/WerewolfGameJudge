@@ -8,7 +8,10 @@ import { RoomPage } from './RoomPage';
 export type FibIdentity = {
   readonly role: '大聪明' | '老实人' | '瞎掰王';
   readonly word: string;
-  readonly definition: string | null;
+  readonly definition: {
+    readonly coreMeaning: string;
+    readonly usageNote: string;
+  } | null;
 };
 
 /** FibKing-only actions layered over the shared room page object. */
@@ -97,8 +100,11 @@ export class FibRoomPage extends RoomPage {
   async startRound(): Promise<void> {
     await this.page.getByTestId(TESTIDS.fibStartRoundButton).click();
     await expect(this.page.getByText('正在准备本轮词语', { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toHaveText(
+      /等待生成词语|正在生成中文词语|正在检查词语和释义/,
+    );
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
-      timeout: 30_000,
+      timeout: 15_000,
     });
   }
 
@@ -139,8 +145,11 @@ export class FibRoomPage extends RoomPage {
 
   async startNextRound(): Promise<void> {
     await this.page.getByTestId(TESTIDS.fibNextRoundButton).click();
+    await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toHaveText(
+      /等待生成词语|正在生成中文词语|正在检查词语和释义/,
+    );
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
-      timeout: 30_000,
+      timeout: 15_000,
     });
   }
 
@@ -155,12 +164,30 @@ export class FibRoomPage extends RoomPage {
     if (word === null || word.trim().length === 0) {
       throw new Error('Fib identity modal did not render a word');
     }
-    const definitionLocator = modal.getByTestId(TESTIDS.fibIdentityDefinition);
-    const definition =
-      (await definitionLocator.count()) === 0 ? null : await definitionLocator.textContent();
-    if (definition !== null && definition.trim().length === 0) {
-      throw new Error('Fib identity modal rendered an empty definition');
+    const coreMeaningLocator = modal.getByTestId(TESTIDS.fibIdentityCoreMeaning);
+    const usageNoteLocator = modal.getByTestId(TESTIDS.fibIdentityUsageNote);
+    const [coreMeaningCount, usageNoteCount] = await Promise.all([
+      coreMeaningLocator.count(),
+      usageNoteLocator.count(),
+    ]);
+    if (coreMeaningCount !== usageNoteCount) {
+      throw new Error('Fib identity modal rendered a partial definition');
     }
-    return { role: roleText, word, definition };
+    if (coreMeaningCount === 0) {
+      return { role: roleText, word, definition: null };
+    }
+    const [coreMeaning, usageNote] = await Promise.all([
+      coreMeaningLocator.textContent(),
+      usageNoteLocator.textContent(),
+    ]);
+    if (
+      coreMeaning === null ||
+      coreMeaning.trim().length === 0 ||
+      usageNote === null ||
+      usageNote.trim().length === 0
+    ) {
+      throw new Error('Fib identity modal rendered an empty definition field');
+    }
+    return { role: roleText, word, definition: { coreMeaning, usageNote } };
   }
 }

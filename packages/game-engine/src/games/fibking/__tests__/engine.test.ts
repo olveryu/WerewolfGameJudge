@@ -11,7 +11,7 @@ import type { FibEvent } from '../domain/events';
 import {
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
-  REASON_FIB_PREPARATION_PROGRESS_INVALID,
+  REASON_FIB_PREPARATION_STAGE_INVALID,
   REASON_FIB_ROUND_ALREADY_ONGOING,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_FULL,
@@ -21,8 +21,9 @@ import { getFibRoundView, getFibUserSeat } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine, getFibLifecycle } from '../engine';
 import {
-  FIB_PREPARATION_PROGRESS,
+  FIB_PREPARATION_STAGES,
   type FibState,
+  type FibWordDefinition,
   getFibOccupiedSeatCount,
   getFibRole,
   isFibImplicitBotSeat,
@@ -109,12 +110,16 @@ function completeRound(
   randomSeed = 'role-seed-1',
 ): FibState {
   if (state.phase !== 'preparing') throw new Error('Expected preparing state');
+  const structuredDefinition: FibWordDefinition = {
+    coreMeaning: definition,
+    usageNote: '常用于说明该词所指事物的具体含义和适用语境。',
+  };
   let readyState = dispatch(
     state,
     {
-      type: 'fib.round.updatePreparationProgress',
+      type: 'fib.round.updatePreparationStage',
       roundId: state.pendingRound.roundId,
-      progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      stage: FIB_PREPARATION_STAGES.generating,
     },
     systemContext(),
   );
@@ -122,9 +127,9 @@ function completeRound(
   readyState = dispatch(
     readyState,
     {
-      type: 'fib.round.updatePreparationProgress',
+      type: 'fib.round.updatePreparationStage',
       roundId: readyState.pendingRound.roundId,
-      progressPercent: FIB_PREPARATION_PROGRESS.ready,
+      stage: FIB_PREPARATION_STAGES.finalizing,
     },
     systemContext(),
   );
@@ -135,7 +140,7 @@ function completeRound(
       type: 'fib.round.complete',
       roundId: readyState.pendingRound.roundId,
       word,
-      definition,
+      definition: structuredDefinition,
       source: 'local',
     },
     systemContext(randomSeed),
@@ -150,7 +155,7 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
-      stateVersion: 3,
+      stateVersion: 4,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',
@@ -160,6 +165,7 @@ describe('FibKing engine configuration and seating', () => {
       excludedBotSeats: [],
       usedWords: [],
       pendingRound: null,
+      preparationFailure: null,
       round: null,
     });
     expect(() => fibEngine.createInitialState({ numberOfPlayers: 3 }, CREATE_CONTEXT)).toThrow(
@@ -348,7 +354,7 @@ describe('FibKing recoverable round workflow', () => {
           pendingRound: {
             roundId: 'fib-round:round-a',
             requestedAt: 2_000,
-            progressPercent: FIB_PREPARATION_PROGRESS.queued,
+            stage: FIB_PREPARATION_STAGES.queued,
           },
         },
       ],
@@ -370,7 +376,10 @@ describe('FibKing recoverable round workflow', () => {
       type: 'fib.round.complete',
       roundId,
       word: '海浪',
-      definition: '海水受力形成的波动',
+      definition: {
+        coreMeaning: '海水受到风力等作用后形成的起伏波动。',
+        usageNote: '常用于描述海面连续起伏并向岸边传播的现象。',
+      },
       source: 'local',
     } as const;
 
@@ -383,24 +392,24 @@ describe('FibKing recoverable round workflow', () => {
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_MISMATCH });
     expect(decideFibCommand(preparing, command, systemContext())).toEqual({
       kind: 'reject',
-      reason: REASON_FIB_PREPARATION_PROGRESS_INVALID,
+      reason: REASON_FIB_PREPARATION_STAGE_INVALID,
     });
 
     preparing = dispatch(
       preparing,
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId,
-        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+        stage: FIB_PREPARATION_STAGES.generating,
       },
       systemContext(),
     );
     preparing = dispatch(
       preparing,
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId,
-        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+        stage: FIB_PREPARATION_STAGES.finalizing,
       },
       systemContext(),
     );
@@ -413,17 +422,17 @@ describe('FibKing recoverable round workflow', () => {
     expect(ongoing.usedWords).toEqual(['海浪']);
   });
 
-  it('accepts only monotonic system preparation progress for the current round', () => {
+  it('accepts only monotonic system preparation stages for the current round', () => {
     let preparing = startPreparing(createFullLobby());
     if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
     const roundId = preparing.pendingRound.roundId;
     const generatingCommand = {
-      type: 'fib.round.updatePreparationProgress',
+      type: 'fib.round.updatePreparationStage',
       roundId,
-      progressPercent: FIB_PREPARATION_PROGRESS.generating,
+      stage: FIB_PREPARATION_STAGES.generating,
     } as const;
 
-    expect(preparing.pendingRound.progressPercent).toBe(FIB_PREPARATION_PROGRESS.queued);
+    expect(preparing.pendingRound.stage).toBe(FIB_PREPARATION_STAGES.queued);
     expect(decideFibCommand(preparing, generatingCommand, userContext('host'))).toEqual({
       kind: 'reject',
       reason: REASON_SYSTEM_ACTOR_REQUIRED,
@@ -438,33 +447,74 @@ describe('FibKing recoverable round workflow', () => {
     expect(
       decideFibCommand(
         preparing,
-        { ...generatingCommand, progressPercent: FIB_PREPARATION_PROGRESS.ready },
+        { ...generatingCommand, stage: FIB_PREPARATION_STAGES.finalizing },
         systemContext(),
       ),
-    ).toEqual({ kind: 'reject', reason: REASON_FIB_PREPARATION_PROGRESS_INVALID });
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_PREPARATION_STAGE_INVALID });
 
     preparing = dispatch(preparing, generatingCommand, systemContext());
     if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
-    expect(preparing.pendingRound.progressPercent).toBe(FIB_PREPARATION_PROGRESS.generating);
+    expect(preparing.pendingRound.stage).toBe(FIB_PREPARATION_STAGES.generating);
     expect(decideFibCommand(preparing, generatingCommand, systemContext())).toEqual({
       kind: 'reject',
-      reason: REASON_FIB_PREPARATION_PROGRESS_INVALID,
+      reason: REASON_FIB_PREPARATION_STAGE_INVALID,
     });
     preparing = dispatch(
       preparing,
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId,
-        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+        stage: FIB_PREPARATION_STAGES.finalizing,
       },
       systemContext(),
     );
     if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
-    expect(preparing.pendingRound.progressPercent).toBe(FIB_PREPARATION_PROGRESS.ready);
+    expect(preparing.pendingRound.stage).toBe(FIB_PREPARATION_STAGES.finalizing);
+  });
+
+  it('records terminal preparation failure and lets the host retry or return to the lobby', () => {
+    const preparing = startPreparing(createFullLobby(), 'failed-round');
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
+    const failed = dispatch(
+      preparing,
+      {
+        type: 'fib.round.failPreparation',
+        roundId: preparing.pendingRound.roundId,
+        failureCode: 'timedOut',
+      },
+      systemContext(),
+    );
+
+    expect(failed).toMatchObject({
+      phase: 'preparationFailed',
+      pendingRound: null,
+      preparationFailure: {
+        roundId: 'fib-round:failed-round',
+        requestedAt: 2_000,
+        failedAt: 2_100,
+        failureCode: 'timedOut',
+      },
+    });
+    expect(getFibLifecycle(failed)).toBe('ongoing');
+    expect(
+      decideFibCommand(
+        failed,
+        { type: 'fib.round.start' },
+        userContext('host', { commandId: 'retry-round' }),
+      ),
+    ).toMatchObject({ kind: 'commit' });
+
+    const lobby = dispatch(failed, { type: 'fib.round.cancelPreparing' }, userContext('host'));
+    expect(lobby.phase).toBe('lobby');
+    expect(lobby.preparationFailure).toBeNull();
   });
 
   it('supports host cancellation without losing seats or word history', () => {
-    let state = completeRound(startPreparing(createFullLobby()), '灯塔', '指引船只航行的高塔');
+    let state = completeRound(
+      startPreparing(createFullLobby()),
+      '灯塔',
+      '建在岸边用于指引船只航行方向的高塔。',
+    );
     state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
     state = startPreparing(state, 'round-b');
     const realSeats = state.realSeats;
@@ -477,7 +527,11 @@ describe('FibKing recoverable round workflow', () => {
   });
 
   it('uses next round as the ended-phase action and preserves seats and used words', () => {
-    let state = completeRound(startPreparing(createFullLobby()), '灯塔', '指引船只航行的高塔');
+    let state = completeRound(
+      startPreparing(createFullLobby()),
+      '灯塔',
+      '建在岸边用于指引船只航行方向的高塔。',
+    );
     state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
     expect(state.phase).toBe('ended');
     const realSeats = state.realSeats;
@@ -504,9 +558,9 @@ describe('FibKing recoverable round workflow', () => {
     state = dispatch(
       state,
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: state.pendingRound.roundId,
-        progressPercent: FIB_PREPARATION_PROGRESS.generating,
+        stage: FIB_PREPARATION_STAGES.generating,
       },
       systemContext(),
     );
@@ -514,9 +568,9 @@ describe('FibKing recoverable round workflow', () => {
     state = dispatch(
       state,
       {
-        type: 'fib.round.updatePreparationProgress',
+        type: 'fib.round.updatePreparationStage',
         roundId: state.pendingRound.roundId,
-        progressPercent: FIB_PREPARATION_PROGRESS.ready,
+        stage: FIB_PREPARATION_STAGES.finalizing,
       },
       systemContext(),
     );
@@ -528,7 +582,10 @@ describe('FibKing recoverable round workflow', () => {
           type: 'fib.round.complete',
           roundId: state.pendingRound.roundId,
           word: '灯塔',
-          definition: '这是一个重复词语的定义。',
+          definition: {
+            coreMeaning: '这是一个已经在当前房间使用过的重复词语。',
+            usageNote: '该测试释义用于验证重复词语会在开始轮次前被拒绝。',
+          },
           source: 'local',
         },
         systemContext(),
@@ -543,7 +600,7 @@ describe('FibKing recoverable round workflow', () => {
       reason: REASON_FIB_ROUND_ALREADY_ONGOING,
     });
 
-    const ongoing = completeRound(preparing, '山谷', '两山之间低洼狭长的地带');
+    const ongoing = completeRound(preparing, '山谷', '两座山之间低洼而狭长的地带或空间。');
     expect(decideFibCommand(ongoing, { type: 'fib.round.start' }, userContext('host'))).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_ALREADY_ONGOING,
@@ -553,7 +610,7 @@ describe('FibKing recoverable round workflow', () => {
   it('maps game phases to the shared lifecycle without renaming domain phases', () => {
     const lobby = createFullLobby();
     const preparing = startPreparing(lobby);
-    const ongoing = completeRound(preparing, '山谷', '两山之间低洼狭长的地带');
+    const ongoing = completeRound(preparing, '山谷', '两座山之间低洼而狭长的地带或空间。');
     const ended = dispatch(ongoing, { type: 'fib.round.reveal' }, userContext('host'));
 
     expect(getFibLifecycle(lobby)).toBe('setup');
@@ -566,7 +623,7 @@ describe('FibKing recoverable round workflow', () => {
     const ongoing = completeRound(
       startPreparing(createFullLobby()),
       '山谷',
-      '两山之间低洼狭长的地带',
+      '两座山之间低洼而狭长的地带或空间。',
       'visibility-seed',
     );
     if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing state');
@@ -587,7 +644,10 @@ describe('FibKing recoverable round workflow', () => {
     expect(getFibRoundView(ongoing, honestSeat)).toMatchObject({
       viewerRole: 'honest',
       word: '山谷',
-      definition: '两山之间低洼狭长的地带',
+      definition: {
+        coreMeaning: '两座山之间低洼而狭长的地带或空间。',
+        usageNote: '常用于说明该词所指事物的具体含义和适用语境。',
+      },
       guesserSeat,
       honestSeat: null,
     });
@@ -605,7 +665,10 @@ describe('FibKing recoverable round workflow', () => {
       phase: 'ended',
       viewerRole: null,
       word: '山谷',
-      definition: '两山之间低洼狭长的地带',
+      definition: {
+        coreMeaning: '两座山之间低洼而狭长的地带或空间。',
+        usageNote: '常用于说明该词所指事物的具体含义和适用语境。',
+      },
       guesserSeat,
       honestSeat,
     });

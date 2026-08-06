@@ -1,3 +1,9 @@
+import {
+  FIB_DEFINITION_FIELD_MAX_LENGTH,
+  FIB_DEFINITION_FIELD_MIN_LENGTH,
+  FIB_WORD_MAX_LENGTH,
+  FIB_WORD_MIN_LENGTH,
+} from '@game-judge/game-engine/games/fibking/public';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -13,10 +19,23 @@ import { HomePage } from '../pages/HomePage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(240_000);
 
+const PURE_HAN_WORD_PATTERN = /^\p{Script=Han}+$/u;
+const LATIN_LETTER_PATTERN = /[A-Za-z]/;
+
 function expectIdentityVisibility(identity: FibIdentity): void {
-  expect(identity.word.length).toBeGreaterThan(0);
+  expect(identity.word.length).toBeGreaterThanOrEqual(FIB_WORD_MIN_LENGTH);
+  expect(identity.word.length).toBeLessThanOrEqual(FIB_WORD_MAX_LENGTH);
+  expect(identity.word).toMatch(PURE_HAN_WORD_PATTERN);
   if (identity.role === '老实人') {
-    expect(identity.definition?.length).toBeGreaterThan(0);
+    expect(identity.definition).not.toBeNull();
+    if (identity.definition === null) {
+      throw new Error('The honest player did not receive the Fib definition');
+    }
+    for (const field of [identity.definition.coreMeaning, identity.definition.usageNote]) {
+      expect(field.length).toBeGreaterThanOrEqual(FIB_DEFINITION_FIELD_MIN_LENGTH);
+      expect(field.length).toBeLessThanOrEqual(FIB_DEFINITION_FIELD_MAX_LENGTH);
+      expect(field).not.toMatch(LATIN_LETTER_PATTERN);
+    }
     return;
   }
   expect(identity.definition).toBeNull();
@@ -143,7 +162,7 @@ test.describe('FibKing', () => {
       await hostRoom.screenshot(testInfo, 'fibking-ongoing.png');
       await hostRoom.revealRound();
       const result = await hostRoom.viewResult();
-      expect(result.definition?.length).toBeGreaterThan(0);
+      expectIdentityVisibility({ ...result, role: '老实人' });
       await hostRoom.closeIdentity();
 
       await hostRoom.startNextRound();

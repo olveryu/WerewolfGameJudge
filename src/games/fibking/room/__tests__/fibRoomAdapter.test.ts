@@ -1,5 +1,5 @@
 import {
-  FIB_PREPARATION_PROGRESS,
+  FIB_PREPARATION_STAGES,
   FIB_STATE_VERSION,
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
@@ -46,6 +46,7 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
     excludedBotSeats: [],
     usedWords: [],
     pendingRound: null,
+    preparationFailure: null,
     round: null,
   };
 }
@@ -60,7 +61,10 @@ function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
     round: {
       roundId: 'round-1',
       word: '山谷',
-      definition: '两山之间低洼狭长的地带',
+      definition: {
+        coreMeaning: '两山之间低洼而且狭长的自然地形区域。',
+        usageNote: '常用于描述山地之间可供河流或道路穿行的低地。',
+      },
       source: 'local',
       roles: { guesserSeat: 1, honestSeat: 2 },
     },
@@ -293,8 +297,9 @@ describe('FibKing room adapter', () => {
       pendingRound: {
         roundId: 'round-1',
         requestedAt: 1,
-        progressPercent: FIB_PREPARATION_PROGRESS.queued,
+        stage: FIB_PREPARATION_STAGES.queued,
       },
+      preparationFailure: null,
       round: null,
     };
     const preparingActions = createFibBottomActions({ state: preparing, ...common });
@@ -321,6 +326,66 @@ describe('FibKing room adapter', () => {
         isEnabled: true,
       },
     ]);
+  });
+
+  it('offers recovery actions after preparation fails', () => {
+    const startRound = jest.fn();
+    const cancelPreparing = jest.fn();
+    const failed: FibState = {
+      ...createLobby(4),
+      phase: 'preparationFailed',
+      fillEmptySeatsWithBots: true,
+      pendingRound: null,
+      preparationFailure: {
+        roundId: 'round-1',
+        requestedAt: 1,
+        failedAt: 8_001,
+        failureCode: 'timedOut',
+      },
+      round: null,
+    };
+    const common = {
+      hasPerspective: false,
+      startRound,
+      cancelPreparing,
+      revealRound: jest.fn(),
+      openIdentity: jest.fn(),
+      configureGame: jest.fn(),
+      onStartDisabled: jest.fn(),
+    };
+
+    const hostActions = createFibBottomActions({ state: failed, isHost: true, ...common });
+    expect(hostActions.layout.primary).toMatchObject([
+      {
+        label: '重新准备',
+        testID: TESTIDS.fibRetryPreparationButton,
+        isEnabled: true,
+      },
+    ]);
+    expect(hostActions.layout.ghost).toMatchObject([
+      {
+        label: '返回大厅',
+        testID: TESTIDS.fibReturnLobbyButton,
+        isEnabled: true,
+      },
+    ]);
+    const retryButton = hostActions.layout.primary[0];
+    const returnLobbyButton = hostActions.layout.ghost[0];
+    if (retryButton?.isEnabled !== true || returnLobbyButton?.isEnabled !== true) {
+      throw new Error('Expected enabled Fib preparation recovery buttons');
+    }
+    retryButton.onPress();
+    returnLobbyButton.onPress();
+    expect(startRound).toHaveBeenCalledTimes(1);
+    expect(cancelPreparing).toHaveBeenCalledTimes(1);
+    expect(createFibStatusRibbon(failed)).toMatchObject({
+      text: '词语准备失败',
+      supportingText: '准备超时，请重新准备',
+    });
+
+    const playerActions = createFibBottomActions({ state: failed, isHost: false, ...common });
+    expect(playerActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+    expect(playerActions.message).toBe('词语准备失败，等待房主重新准备');
   });
 
   it('does not expose host progression actions to a non-host', () => {

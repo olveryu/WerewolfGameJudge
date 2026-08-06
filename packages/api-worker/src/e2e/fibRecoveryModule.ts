@@ -35,6 +35,7 @@ async function handleRecoverableFibEffect(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
 ): Promise<void> {
   const provider = createLocalFibWordProvider();
+  if (context.state.phase !== 'preparing') return;
   if (!(await hasPersistedProviderResult(context))) {
     await getOrCreateFibWordGenerationResult({
       db: context.bindings.DB,
@@ -43,6 +44,7 @@ async function handleRecoverableFibEffect(
       effect,
       provider,
       historyUserIds: getFibWordHistoryUserIds(context.state),
+      requestedAt: context.state.pendingRound.requestedAt,
     });
     throw new Error('[E2E] Interrupted Fib effect after provider-result persistence');
   }

@@ -12,7 +12,15 @@ import type { WorkerEffectRoomIdentity } from '../../platform/gameModules/runtim
 import type { fibWordGenerationResults } from './dbSchema';
 import { readRecentFibWords } from './wordHistory';
 import { parseFibWordCandidate } from './wordProviders/candidate';
-import type { FibWordCandidate, FibWordProvider } from './wordProviders/types';
+import { FibWordProviderError } from './wordProviders/providerError';
+import {
+  FIB_WORD_CATEGORIES,
+  type FibWordCandidate,
+  type FibWordProvider,
+} from './wordProviders/types';
+
+export const FIB_PREPARATION_TIMEOUT_MS = 8_000;
+const FIB_FINALIZATION_RESERVE_MS = 500;
 
 type FibWordGenerationResult = typeof fibWordGenerationResults.$inferSelect;
 
@@ -22,8 +30,11 @@ interface RawFibWordGenerationResultRow {
   readonly effect_id: FibWordGenerationResult['effectId'];
   readonly round_id: FibWordGenerationResult['roundId'];
   readonly request_fingerprint: FibWordGenerationResult['requestFingerprint'];
+  readonly requested_at: FibWordGenerationResult['requestedAt'];
+  readonly deadline_at: FibWordGenerationResult['deadlineAt'];
   readonly word: FibWordGenerationResult['word'];
-  readonly definition: FibWordGenerationResult['definition'];
+  readonly core_meaning: FibWordGenerationResult['coreMeaning'];
+  readonly usage_note: FibWordGenerationResult['usageNote'];
   readonly source: FibWordGenerationResult['source'];
 }
 
@@ -33,8 +44,11 @@ const fibWordGenerationResultRowSchema: z.ZodType<RawFibWordGenerationResultRow>
   effect_id: z.string().min(1),
   round_id: z.string().min(1),
   request_fingerprint: z.string().length(64),
+  requested_at: z.int().nonnegative(),
+  deadline_at: z.int().nonnegative(),
   word: z.string(),
-  definition: z.string(),
+  core_meaning: z.string(),
+  usage_note: z.string(),
   source: z.enum(FIB_WORD_SOURCES),
 });
 
@@ -47,15 +61,30 @@ interface GetFibWordGenerationResultInput {
   readonly effect: FibGenerateWordEffect;
   readonly provider: FibWordProvider;
   readonly historyUserIds: readonly string[];
+  readonly requestedAt: number;
 }
 
-async function createRequestFingerprint(effect: FibGenerateWordEffect): Promise<string> {
+async function createRequestFingerprint(
+  effect: FibGenerateWordEffect,
+  requestedAt: number,
+  deadlineAt: number,
+): Promise<string> {
   return sha256Hex(
     canonicalJson({
       roundId: effect.payload.roundId,
       avoidWords: effect.payload.avoidWords,
+      requestedAt,
+      deadlineAt,
     }),
   );
+}
+
+function createGenerationSignal(generationDeadlineAt: number): AbortSignal {
+  const remainingDurationMs = generationDeadlineAt - Date.now();
+  if (remainingDurationMs <= 0) {
+    throw new FibWordProviderError('Fib word generation deadline expired', 'timedOut');
+  }
+  return AbortSignal.timeout(remainingDurationMs);
 }
 
 async function readResult(
@@ -71,8 +100,11 @@ async function readResult(
         effect_id,
         round_id,
         request_fingerprint,
+        requested_at,
+        deadline_at,
         word,
-        definition,
+        core_meaning,
+        usage_note,
         source
       FROM fib_word_generation_results
       WHERE room_id = ? AND effect_id = ?`,
@@ -87,42 +119,88 @@ function parseMatchingResult(
   input: GetFibWordGenerationResultInput,
   requestFingerprint: string,
 ): FibWordCandidate {
-  const { roomIdentity, effectId, effect } = input;
+  const { roomIdentity, effectId, effect, requestedAt } = input;
+  const deadlineAt = requestedAt + FIB_PREPARATION_TIMEOUT_MS;
   if (
     row.room_id !== roomIdentity.roomId ||
     row.room_creation_id !== roomIdentity.creationId ||
     row.effect_id !== effectId ||
     row.round_id !== effect.payload.roundId ||
-    row.request_fingerprint !== requestFingerprint
+    row.request_fingerprint !== requestFingerprint ||
+    row.requested_at !== requestedAt ||
+    row.deadline_at !== deadlineAt
   ) {
     throw new Error(`[FAIL-FAST] Fib word result identity conflict for effect ${effectId}`);
   }
-  return parseFibWordCandidate(
-    { word: row.word, definition: row.definition },
-    row.source,
-    effect.payload.avoidWords,
-  );
+  try {
+    return parseFibWordCandidate(
+      {
+        word: row.word,
+        definition: {
+          coreMeaning: row.core_meaning,
+          usageNote: row.usage_note,
+        },
+      },
+      row.source,
+      effect.payload.avoidWords,
+    );
+  } catch (error) {
+    throw new FibWordProviderError('Persisted Fib word result was invalid', 'invalidOutput', {
+      cause: error,
+    });
+  }
 }
 
 export async function getOrCreateFibWordGenerationResult(
   input: GetFibWordGenerationResultInput,
 ): Promise<FibWordCandidate> {
-  const { db, roomIdentity, effectId, effect, provider, historyUserIds } = input;
-  const requestFingerprint = await createRequestFingerprint(effect);
+  const { db, roomIdentity, effectId, effect, provider, historyUserIds, requestedAt } = input;
+  const deadlineAt = requestedAt + FIB_PREPARATION_TIMEOUT_MS;
+  const generationDeadlineAt = deadlineAt - FIB_FINALIZATION_RESERVE_MS;
+  if (!Number.isSafeInteger(deadlineAt) || !Number.isSafeInteger(generationDeadlineAt)) {
+    throw new Error('[FAIL-FAST] Fib word generation deadline must be a safe integer');
+  }
+  const requestFingerprint = await createRequestFingerprint(effect, requestedAt, deadlineAt);
   const persisted = await readResult(db, roomIdentity.roomId, effectId);
   if (persisted !== null) return parseMatchingResult(persisted, input, requestFingerprint);
 
+  if (generationDeadlineAt - Date.now() <= 0) {
+    throw new FibWordProviderError('Fib word generation deadline expired', 'timedOut');
+  }
   const recentWords = await readRecentFibWords(db, historyUserIds);
-  const generated = await provider.generate({
-    avoidWords: effect.payload.avoidWords,
-    recentWords,
-    selectionSeed: effect.payload.roundId,
-  });
-  const candidate = parseFibWordCandidate(
-    { word: generated.word, definition: generated.definition },
-    generated.source,
-    effect.payload.avoidWords,
-  );
+  const category =
+    FIB_WORD_CATEGORIES[effect.payload.avoidWords.length % FIB_WORD_CATEGORIES.length];
+  if (category === undefined) {
+    throw new Error('[FAIL-FAST] Fib word category selection produced no value');
+  }
+  let generated: FibWordCandidate;
+  try {
+    generated = await provider.generate({
+      avoidWords: effect.payload.avoidWords,
+      recentWords,
+      selectionSeed: effect.payload.roundId,
+      category,
+      generationDeadlineAt,
+      signal: createGenerationSignal(generationDeadlineAt),
+    });
+  } catch (error) {
+    if (error instanceof FibWordProviderError) throw error;
+    throw new FibWordProviderError('Fib word provider request failed', 'requestFailed', {
+      cause: error,
+    });
+  }
+  let candidate: FibWordCandidate;
+  try {
+    candidate = parseFibWordCandidate(
+      { word: generated.word, definition: generated.definition },
+      generated.source,
+      [...effect.payload.avoidWords, ...recentWords],
+    );
+  } catch (error) {
+    throw new FibWordProviderError('Generated Fib word candidate was invalid', 'invalidOutput', {
+      cause: error,
+    });
+  }
   const createdAt = new Date().toISOString();
 
   await db
@@ -133,12 +211,15 @@ export async function getOrCreateFibWordGenerationResult(
         effect_id,
         round_id,
         request_fingerprint,
+        requested_at,
+        deadline_at,
         word,
-        definition,
+        core_meaning,
+        usage_note,
         source,
         created_at
       )
-      SELECT id, creation_id, ?, ?, ?, ?, ?, ?, ?
+      SELECT id, creation_id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       FROM rooms
       WHERE id = ? AND code = ? AND creation_id = ?
       ON CONFLICT (room_id, effect_id) DO NOTHING`,
@@ -147,8 +228,11 @@ export async function getOrCreateFibWordGenerationResult(
       effectId,
       effect.payload.roundId,
       requestFingerprint,
+      requestedAt,
+      deadlineAt,
       candidate.word,
-      candidate.definition,
+      candidate.definition.coreMeaning,
+      candidate.definition.usageNote,
       candidate.source,
       createdAt,
       roomIdentity.roomId,

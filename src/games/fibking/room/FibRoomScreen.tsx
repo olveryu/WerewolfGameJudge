@@ -68,7 +68,8 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
           phase={screen.phase}
           occupiedSeatCount={screen.occupiedSeatCount}
           playerCount={screen.playerCount}
-          progressPercent={screen.preparationProgressPercent}
+          preparationStage={screen.preparationStage}
+          preparationFailureCode={screen.preparationFailureCode}
           onOpenRules={screen.openRules}
         />
       }

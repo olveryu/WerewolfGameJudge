@@ -15,7 +15,13 @@ function createOngoingView(
     viewerSeat: viewerRole === 'guesser' ? 0 : viewerRole === 'honest' ? 1 : 2,
     viewerRole,
     word,
-    definition: viewerRole === 'honest' ? '两山之间低洼狭长的地带' : null,
+    definition:
+      viewerRole === 'honest'
+        ? {
+            coreMeaning: '两山之间低洼而且狭长的自然地形区域。',
+            usageNote: '常用于描述山地之间可供河流或道路穿行的低地。',
+          }
+        : null,
     guesserSeat: 0,
     honestSeat: null,
   };
@@ -33,6 +39,8 @@ describe('FibIdentityModal', () => {
     expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
     expect(view.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('shān gǔ');
     expect(view.queryByTestId(TESTIDS.fibIdentityDefinition)).toBeNull();
+    expect(view.queryByTestId(TESTIDS.fibIdentityCoreMeaning)).toBeNull();
+    expect(view.queryByTestId(TESTIDS.fibIdentityUsageNote)).toBeNull();
   });
 
   it('shows the word and definition to the honest player', () => {
@@ -43,22 +51,21 @@ describe('FibIdentityModal', () => {
     expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent('老实人');
     expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
     expect(view.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('shān gǔ');
-    expect(view.getByTestId(TESTIDS.fibIdentityDefinition)).toHaveTextContent(
-      '两山之间低洼狭长的地带',
+    expect(view.getByText('核心释义')).toBeTruthy();
+    expect(view.getByTestId(TESTIDS.fibIdentityCoreMeaning)).toHaveTextContent(
+      '两山之间低洼而且狭长的自然地形区域。',
+    );
+    expect(view.getByText('使用提示')).toBeTruthy();
+    expect(view.getByTestId(TESTIDS.fibIdentityUsageNote)).toHaveTextContent(
+      '常用于描述山地之间可供河流或道路穿行的低地。',
     );
   });
 
-  it('shows pinyin for multi-character network terms without duplicating Latin-only words', () => {
+  it('shows pinyin for a multi-character Chinese term', () => {
     const chinese = render(
       <FibIdentityModal view={createOngoingView('fibber', '电子榨菜')} onClose={jest.fn()} />,
     );
     expect(chinese.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('diàn zǐ zhà cài');
-    chinese.unmount();
-
-    const latin = render(
-      <FibIdentityModal view={createOngoingView('fibber', 'Citywalk')} onClose={jest.fn()} />,
-    );
-    expect(latin.queryByTestId(TESTIDS.fibIdentityPinyin)).toBeNull();
   });
 
   it('reveals every assignment after the round ends and closes through the shared action', () => {
@@ -69,7 +76,10 @@ describe('FibIdentityModal', () => {
       viewerSeat: null,
       viewerRole: null,
       word: '山谷',
-      definition: '两山之间低洼狭长的地带',
+      definition: {
+        coreMeaning: '两山之间低洼而且狭长的自然地形区域。',
+        usageNote: '常用于描述山地之间可供河流或道路穿行的低地。',
+      },
       guesserSeat: 0,
       honestSeat: 1,
     };

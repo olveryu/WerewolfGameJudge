@@ -5,9 +5,11 @@ import type {
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type {
-  FIB_PREPARATION_PROGRESS,
+  FibPreparationFailureCode,
+  FibPreparationStage,
   FibProfileUpdate,
   FibSeatProfile,
+  FibWordDefinition,
   FibWordSource,
 } from '../state/types';
 
@@ -24,17 +26,24 @@ export interface FibCompleteRoundCommand {
   readonly type: 'fib.round.complete';
   readonly roundId: string;
   readonly word: string;
-  readonly definition: string;
+  readonly definition: FibWordDefinition;
   readonly source: FibWordSource;
 }
 
-export interface FibUpdatePreparationProgressCommand {
-  readonly type: 'fib.round.updatePreparationProgress';
+export interface FibUpdatePreparationStageCommand {
+  readonly type: 'fib.round.updatePreparationStage';
   readonly roundId: string;
-  readonly progressPercent:
-    | typeof FIB_PREPARATION_PROGRESS.generating
-    | typeof FIB_PREPARATION_PROGRESS.ready;
+  readonly stage: FibPreparationStage;
 }
 
-export type FibInternalCommand = FibCompleteRoundCommand | FibUpdatePreparationProgressCommand;
+export interface FibFailPreparationCommand {
+  readonly type: 'fib.round.failPreparation';
+  readonly roundId: string;
+  readonly failureCode: FibPreparationFailureCode;
+}
+
+export type FibInternalCommand =
+  | FibCompleteRoundCommand
+  | FibUpdatePreparationStageCommand
+  | FibFailPreparationCommand;
 export type FibCommand = FibPublicCommand | FibInternalCommand;
