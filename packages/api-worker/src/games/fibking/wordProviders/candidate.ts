@@ -19,6 +19,7 @@ import {
 } from './types';
 
 const SELECTION_HASH_HEX_LENGTH = 8;
+const CHINESE_DEFINITION_PATTERN = /^(?=.*\p{Script=Han})[\p{Script=Han}\p{N}\p{P}\p{Zs}]+$/u;
 const generatedFibWordSchema = z
   .string()
   .trim()
@@ -28,7 +29,12 @@ const generatedFibWordSchema = z
 
 const fibWordCandidatePayloadSchema = z.strictObject({
   word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
-  definition: z.string().trim().min(FIB_DEFINITION_MIN_LENGTH).max(FIB_DEFINITION_MAX_LENGTH),
+  definition: z
+    .string()
+    .trim()
+    .min(FIB_DEFINITION_MIN_LENGTH)
+    .max(FIB_DEFINITION_MAX_LENGTH)
+    .regex(CHINESE_DEFINITION_PATTERN),
 });
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
@@ -54,7 +60,7 @@ const FIB_WORD_JSON_SCHEMA = {
     },
     definition: {
       type: 'string',
-      description: `${FIB_DEFINITION_MIN_LENGTH}-${FIB_DEFINITION_MAX_LENGTH}字的准确简洁中文释义`,
+      description: `${FIB_DEFINITION_MIN_LENGTH}-${FIB_DEFINITION_MAX_LENGTH}字的准确简洁中文释义，不得含英文字母`,
     },
     category: {
       type: 'string',

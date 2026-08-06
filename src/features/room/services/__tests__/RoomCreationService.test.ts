@@ -4,15 +4,8 @@ import type {
   RoomDirectory,
   RoomRecord,
 } from '@/features/room/model/RoomDirectory';
-import type { RecentRoomIdentity } from '@/features/room/services/recentRooms';
 import type { RoomCreationIntentRepository } from '@/features/room/services/RoomCreationIntentStore';
 import { RoomCreationService } from '@/features/room/services/RoomCreationService';
-
-const mockAddRecentRoom = jest.fn<void, [string, RecentRoomIdentity]>();
-jest.mock('@/features/room/services/recentRooms', () => ({
-  addRecentRoom: (userId: string, room: RecentRoomIdentity): void =>
-    mockAddRecentRoom(userId, room),
-}));
 
 const REQUEST: RoomCreationRequest = {
   expectedHostUserId: 'host-user',
@@ -47,10 +40,6 @@ function createHarness() {
 }
 
 describe('RoomCreationService', () => {
-  beforeEach(() => {
-    mockAddRecentRoom.mockReset();
-  });
-
   it('runs one in-flight creation for equal canonical requests', async () => {
     const harness = createHarness();
     let resolveDirectory: ((room: RoomRecord) => void) | undefined;
@@ -69,12 +58,6 @@ describe('RoomCreationService', () => {
     resolveDirectory(ROOM);
 
     await expect(Promise.all([first, second])).resolves.toEqual([ROOM, ROOM]);
-    expect(mockAddRecentRoom).toHaveBeenCalledTimes(1);
-    expect(mockAddRecentRoom).toHaveBeenCalledWith('host-user', {
-      roomCode: ROOM.roomCode,
-      roomId: ROOM.roomId,
-      gameType: ROOM.gameType,
-    });
     expect(harness.remove).toHaveBeenCalledTimes(1);
     expect(harness.remove).toHaveBeenCalledWith('creation-id-1');
   });
@@ -108,20 +91,6 @@ describe('RoomCreationService', () => {
 
     await expect(harness.service.createRoom(REQUEST)).rejects.toThrow('invalid config');
     expect(harness.remove).toHaveBeenCalledWith('creation-id-1');
-    expect(mockAddRecentRoom).not.toHaveBeenCalled();
-  });
-
-  it('retains the intent when committing recent-room identity fails', async () => {
-    const harness = createHarness();
-    harness.createRoom.mockResolvedValue(ROOM);
-    mockAddRecentRoom.mockImplementation(() => {
-      throw new Error('recent-room persistence failed');
-    });
-
-    await expect(harness.service.createRoom(REQUEST)).rejects.toThrow(
-      'recent-room persistence failed',
-    );
-    expect(harness.remove).not.toHaveBeenCalled();
   });
 
   it('fails fast when the transport returns another room identity', async () => {
@@ -131,7 +100,6 @@ describe('RoomCreationService', () => {
     await expect(harness.service.createRoom(REQUEST)).rejects.toThrow(
       'does not match its creation request',
     );
-    expect(mockAddRecentRoom).not.toHaveBeenCalled();
     expect(harness.remove).not.toHaveBeenCalled();
   });
 });

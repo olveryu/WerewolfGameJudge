@@ -1,11 +1,13 @@
 /** Single auth, entry, reconnect, retry, and exit controller for resolved rooms. */
 
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellModel';
+import { addRecentRoom } from '@/features/room/services/recentRooms';
 import type {
   ActiveRoomIdentity,
   RoomSessionClient,
@@ -18,7 +20,7 @@ import { roomScreenLog } from '@/utils/logger';
 const SLOW_CONNECTION_HINT_MS = 8_000;
 
 interface UseRoomEntryControllerParams<
-  TState extends BaseGameState<string>,
+  TState extends BaseGameState<GameType>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 > {
@@ -54,7 +56,7 @@ function matchesIdentity<TGameType extends string>(
 }
 
 export function useRoomEntryController<
-  TState extends BaseGameState<string>,
+  TState extends BaseGameState<GameType>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 >({
@@ -79,6 +81,27 @@ export function useRoomEntryController<
     }),
     [roomCreatedAtMs, room.gameType, room.hostUserId, room.roomCode, room.roomId],
   );
+
+  useEffect(() => {
+    if (authUserId === null || sessionSnapshot.phase !== 'ready') return;
+    const current = session.getSnapshot();
+    if (current.phase !== 'ready' || !matchesIdentity(current.identity, stableRoom, authUserId)) {
+      throw new Error('[FAIL-FAST] Ready room does not match recent-room identity');
+    }
+    try {
+      addRecentRoom(authUserId, {
+        roomCode: current.identity.room.roomCode,
+        roomId: current.identity.room.roomId,
+        gameType: current.identity.room.gameType,
+      });
+    } catch (error) {
+      handleError(error, {
+        label: '记录最近房间',
+        logger: roomScreenLog,
+        alertMessage: '最近房间记录保存失败',
+      });
+    }
+  }, [authUserId, session, sessionSnapshot.phase, stableRoom]);
 
   useEffect(() => {
     if (isAuthLoading || authUserId === null) return;

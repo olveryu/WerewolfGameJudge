@@ -25,6 +25,7 @@ export function createFibWordMessages(
         '禁止小学基础词、普通人名地名、品牌、无明确含义的字母缩写以及纯专业符号。' +
         `词语长度为${FIB_WORD_MIN_LENGTH}-${FIB_WORD_MAX_LENGTH}个字符，可包含汉字、字母、数字和常见连接符，` +
         `释义长度为${FIB_DEFINITION_MIN_LENGTH}-${FIB_DEFINITION_MAX_LENGTH}个字符。` +
+        '释义必须全程使用中文，不得出现英文字母、英文单词或英文句子。' +
         '候选之间不得同义或只替换一个字。不得编造词语或释义，不得包含成人、仇恨、暴力、政治宣传或违法内容。',
     },
     {

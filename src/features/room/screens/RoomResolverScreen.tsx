@@ -84,10 +84,11 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
   const handleRetry = useCallback(() => {
     setRetryGeneration((generation) => generation + 1);
   }, []);
+  const handleBack = useCallback(() => navigation.navigate('Home'), [navigation]);
 
   if (state.kind === 'loading') return <LoadingScreen message="正在查找房间" />;
   if (state.kind === 'error') {
-    return <LoadingScreen error={state.message} onRetry={handleRetry} />;
+    return <LoadingScreen error={state.message} onRetry={handleRetry} onBack={handleBack} />;
   }
 
   const GameRoomScreen = state.module.roomScreen;

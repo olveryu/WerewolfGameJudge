@@ -170,6 +170,20 @@ describe('Fib word providers', () => {
         [],
       ),
     ).toThrow();
+    expect(() =>
+      parseFibWordCandidate(
+        { word: '氤氲', definition: 'A cloud of mist drifting through the air.' },
+        'gemini',
+        [],
+      ),
+    ).toThrow();
+    expect(() =>
+      parseFibWordCandidate(
+        { word: '氤氲', definition: '形容空气中有 soft drifting mist 的景象。' },
+        'gemini',
+        [],
+      ),
+    ).toThrow();
   });
 
   it('selects from four distinct, categorized candidates outside room and player history', async () => {
@@ -379,6 +393,23 @@ describe('Fib word-generation effect', () => {
       selectionSeed: 'fib-round:start-command',
     });
     await expect(readRecentFibWords(env.DB, ['host'])).resolves.toEqual(['菡萏', '阒寂']);
+  });
+
+  it('rejects an English definition before persisting a generation result', async () => {
+    const englishProvider: FibWordProvider = {
+      generate: () =>
+        Promise.resolve({
+          word: '菡萏',
+          definition: 'A lotus flower before it fully opens.',
+          source: 'gemini',
+        }),
+    };
+    const context = createEffectContext((commandId) => Promise.resolve(committedResult(commandId)));
+
+    await expect(handleFibGenerateWordEffect(EFFECT, context, englishProvider)).rejects.toThrow();
+    await expect(
+      env.DB.prepare('SELECT definition FROM fib_word_generation_results LIMIT 1').first(),
+    ).resolves.toBeNull();
   });
 
   it('retires a stale effect before invoking the configured provider', async () => {

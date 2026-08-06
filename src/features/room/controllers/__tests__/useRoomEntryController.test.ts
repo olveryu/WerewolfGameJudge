@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useRoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import type { RecentRoomIdentity } from '@/features/room/services/recentRooms';
 import type {
   ActiveRoomIdentity,
   RoomCommandDispatchOutcome,
@@ -13,11 +14,16 @@ import type {
 import type { handleError } from '@/utils/errorPipeline';
 
 const mockHandleError = jest.fn<ReturnType<typeof handleError>, Parameters<typeof handleError>>();
+const mockAddRecentRoom = jest.fn<void, [string, RecentRoomIdentity]>();
 jest.mock('@/utils/errorPipeline', () => ({
   handleError: (
     error: Parameters<typeof handleError>[0],
     options: Parameters<typeof handleError>[1],
   ) => mockHandleError(error, options),
+}));
+jest.mock('@/features/room/services/recentRooms', () => ({
+  addRecentRoom: (userId: string, room: RecentRoomIdentity): void =>
+    mockAddRecentRoom(userId, room),
 }));
 
 interface TestState {
@@ -134,7 +140,10 @@ function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot())
   return { connect, disconnect, emit, reconnect, session };
 }
 
-beforeEach(() => mockHandleError.mockReset());
+beforeEach(() => {
+  mockHandleError.mockReset();
+  mockAddRecentRoom.mockReset();
+});
 
 describe('useRoomEntryController', () => {
   it('does not connect before authentication is available', () => {
@@ -170,6 +179,13 @@ describe('useRoomEntryController', () => {
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(connect).toHaveBeenCalledWith({ room, userId: 'host-user' }, expect.any(AbortSignal));
+    await waitFor(() =>
+      expect(mockAddRecentRoom).toHaveBeenCalledWith('host-user', {
+        roomCode: room.roomCode,
+        roomId: room.roomId,
+        gameType: room.gameType,
+      }),
+    );
 
     rerender({ resolvedRoom: createRoom() });
     expect(connect).toHaveBeenCalledTimes(1);
@@ -204,14 +220,38 @@ describe('useRoomEntryController', () => {
 
     await waitFor(() => expect(result.current.showRetryButton).toBe(true));
     expect(testSession.connect).toHaveBeenCalledTimes(1);
+    expect(mockAddRecentRoom).not.toHaveBeenCalled();
 
     act(() => result.current.retry());
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(testSession.connect).toHaveBeenCalledTimes(2);
+    expect(mockAddRecentRoom).toHaveBeenCalledTimes(1);
     expect(mockHandleError).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({ label: '加入房间' }),
+    );
+  });
+
+  it('reports recent-room persistence failure without undoing a successful entry', async () => {
+    mockAddRecentRoom.mockImplementation(() => {
+      throw new Error('storage unavailable');
+    });
+    const { session } = createSession();
+    const { result } = renderHook(() =>
+      useRoomEntryController({
+        room: createRoom(),
+        session,
+        authUserId: 'host-user',
+        isAuthLoading: false,
+        onExit: jest.fn(),
+      }),
+    );
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(mockHandleError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ label: '记录最近房间' }),
     );
   });
 

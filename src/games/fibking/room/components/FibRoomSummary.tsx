@@ -5,6 +5,7 @@ import type React from 'react';
 import { memo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed, spacing, typography, withAlpha } from '@/theme';
 
@@ -38,6 +39,12 @@ const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
         <Text style={styles.subtitle}>
           {PHASE_LABELS[phase]} · {occupiedSeatCount}/{playerCount} 人就座
         </Text>
+        {phase === 'preparing' ? (
+          <IndeterminateProgressBar
+            accessibilityLabel="正在准备本轮词语"
+            style={styles.preparingProgress}
+          />
+        ) : null}
       </View>
     </View>
 
@@ -95,6 +102,9 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     lineHeight: typography.secondary * 1.4,
     color: colors.textSecondary,
+  },
+  preparingProgress: {
+    marginTop: spacing.small,
   },
   rulesRow: {
     flexDirection: 'row',

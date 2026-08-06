@@ -8,8 +8,8 @@
  * Includes logo pulse animation, consistent with the PWA splash screen.
  * Renders loading state UI and pulse animation. Does not import service, contains no business logic.
  */
-import { useEffect, useState } from 'react';
-import { Image, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   FadeIn,
@@ -23,6 +23,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 import { borderRadius, colors, componentSizes, shadows, spacing, typography } from '@/theme';
 
 import appIcon from '../../../assets/pwa/icon-192.png';
@@ -44,12 +45,9 @@ interface LoadingScreenProps {
   readonly error?: string | null;
   /** Retry callback - must be provided when error exists */
   readonly onRetry?: () => void;
+  /** Return-home callback shown alongside retry in an error state */
+  readonly onBack?: () => void;
 }
-
-/** Width of the sliding bar relative to track width */
-const BAR_WIDTH_RATIO = 0.3;
-/** Full cycle duration for the sliding animation */
-const PROGRESS_DURATION_MS = 1_500;
 
 export function LoadingScreen({
   message = '加载中',
@@ -57,15 +55,10 @@ export function LoadingScreen({
   steps,
   error,
   onRetry,
+  onBack,
 }: LoadingScreenProps) {
   const reducedMotion = useReducedMotion();
   const pulseProgress = useSharedValue(1);
-  const progressValue = useSharedValue(0);
-  const [trackWidth, setTrackWidth] = useState(0);
-
-  const handleTrackLayout = (e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width);
-
-  const barPixelWidth = trackWidth * BAR_WIDTH_RATIO;
 
   const isStepMode = steps != null && steps.length > 0;
 
@@ -79,25 +72,9 @@ export function LoadingScreen({
     return () => cancelAnimation(pulseProgress);
   }, [pulseProgress, reducedMotion]);
 
-  // ── Indeterminate progress bar (only in message mode, skip for reduced motion) ──
-  useEffect(() => {
-    if (reducedMotion || isStepMode || trackWidth === 0) return;
-    progressValue.value = 0;
-    progressValue.value = withRepeat(withTiming(1, { duration: PROGRESS_DURATION_MS }), -1);
-    return () => cancelAnimation(progressValue);
-  }, [reducedMotion, isStepMode, progressValue, trackWidth]);
-
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseProgress.value }],
     opacity: interpolate(pulseProgress.value, [1, 1.05], [1, 0.8]),
-  }));
-
-  const progressBarStyle = useAnimatedStyle(() => ({
-    width: barPixelWidth,
-    backgroundColor: colors.primary,
-    transform: [
-      { translateX: interpolate(progressValue.value, [0, 1], [-barPixelWidth, trackWidth]) },
-    ],
   }));
 
   // Step mode: find the first incomplete step as current active
@@ -118,16 +95,28 @@ export function LoadingScreen({
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-          {onRetry && (
-            <Pressable
-              style={[styles.retryButton, { backgroundColor: colors.primary }]}
-              onPress={onRetry}
-              accessibilityRole="button"
-              accessibilityLabel="重试"
-            >
-              <Text style={[styles.retryText, { color: colors.textInverse }]}>重试</Text>
-            </Pressable>
-          )}
+          <View style={styles.errorActions}>
+            {onRetry && (
+              <Pressable
+                style={[styles.errorButton, { backgroundColor: colors.primary }]}
+                onPress={onRetry}
+                accessibilityRole="button"
+                accessibilityLabel="重试"
+              >
+                <Text style={[styles.errorButtonText, { color: colors.textInverse }]}>重试</Text>
+              </Pressable>
+            )}
+            {onBack && (
+              <Pressable
+                style={[styles.errorButton, styles.backButton]}
+                onPress={onBack}
+                accessibilityRole="button"
+                accessibilityLabel="返回首页"
+              >
+                <Text style={[styles.errorButtonText, { color: colors.primary }]}>返回首页</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       ) : isStepMode ? (
         <View style={styles.stepContainer}>
@@ -138,13 +127,7 @@ export function LoadingScreen({
       ) : (
         <>
           <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
-          {/* Indeterminate progress bar */}
-          <View
-            style={[styles.progressTrack, { backgroundColor: colors.border }]}
-            onLayout={handleTrackLayout}
-          >
-            <Animated.View style={[styles.progressBar, progressBarStyle]} />
-          </View>
+          <IndeterminateProgressBar accessibilityLabel={message} style={styles.progressTrack} />
         </>
       )}
     </View>
@@ -208,14 +191,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     width: '60%',
-    height: 3,
-    borderRadius: borderRadius.small,
-    overflow: 'hidden',
     marginTop: spacing.large,
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: borderRadius.small,
   },
   stepContainer: {
     alignItems: 'flex-start',
@@ -249,12 +225,22 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.secondary,
     textAlign: 'center' as const,
   },
-  retryButton: {
+  errorActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.small,
+  },
+  errorButton: {
     paddingVertical: spacing.small,
     paddingHorizontal: spacing.xlarge,
     borderRadius: borderRadius.medium,
   },
-  retryText: {
+  backButton: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  errorButtonText: {
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.medium,

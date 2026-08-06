@@ -67,6 +67,9 @@ describe('RoomResolverScreen', () => {
 
     await waitFor(() => expect(view.getByText('房间不存在')).toBeTruthy());
     expect(getGameModule).not.toHaveBeenCalled();
+
+    fireEvent.press(view.getByText('返回首页'));
+    expect(navigation.navigate).toHaveBeenCalledWith('Home');
   });
 
   it('rejects malformed deep-link codes without issuing a request', async () => {
