@@ -44,7 +44,6 @@ Playing Werewolf in-person has a fundamental problem — **being the judge sucks
 - 🙅 The judge can't play, only moderate from the sidelines
 - 📖 Inexperienced judges mess up the flow, ruining the experience
 - 🔇 Verbal narration is error-prone, especially for complex role sets
-- 📱 Playing remotely? Good luck coordinating over voice chat alone
 
 **Werewolf Game Judge** turns your phone into the judge — automated voice narration guides every Night-1 step, so everyone (including the room host) can close their eyes and play for real. Share a 4-digit room code, and you're good to go — in-person or remote.
 
