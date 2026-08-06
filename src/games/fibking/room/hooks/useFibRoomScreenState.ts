@@ -1,11 +1,11 @@
 /** Compose shared room controllers with FibKing phase and role semantics. */
 
 import {
-  type FibPhase,
   type FibPublicCommand,
   type FibRoundView,
   getFibBotDisplayName,
   getFibOccupiedSeatCount,
+  getFibPreparationProgressPercent,
   getFibRoundView,
   getFibUserSeat,
   isFibImplicitBotSeat,
@@ -59,7 +59,8 @@ export interface FibRoomScreenState {
   readonly openRules: () => void;
   readonly occupiedSeatCount: number;
   readonly playerCount: number;
-  readonly phase: FibPhase;
+  readonly phase: 'lobby' | 'preparing' | 'ongoing' | 'ended';
+  readonly preparationProgressPercent: number;
   readonly isHost: boolean;
 }
 
@@ -152,27 +153,16 @@ export function useFibRoomScreenState({
   );
 
   const startRound = useCallback(() => {
-    let commandLabel = '开始本轮';
-    if (state.phase === 'ended') commandLabel = '开始下一轮';
-    if (state.phase === 'preparationFailed') commandLabel = '重新准备';
-    void submitCommand(commandLabel, {
+    void submitCommand(state.phase === 'ended' ? '开始下一轮' : '开始本轮', {
       type: 'fib.round.start',
     });
   }, [state.phase, submitCommand]);
 
   const cancelPreparing = useCallback(() => {
-    const isRecoveringFromFailure = state.phase === 'preparationFailed';
-    const commandLabel = isRecoveringFromFailure ? '返回大厅' : '取消准备';
-    showConfirmAlert(
-      isRecoveringFromFailure ? '返回大厅？' : '取消准备？',
-      isRecoveringFromFailure
-        ? '返回大厅后可以调整座位或房间设置，历史词语会保留。'
-        : '本次词语准备会终止，座位和历史词语会保留。',
-      async () => {
-        await submitCommand(commandLabel, { type: 'fib.round.cancelPreparing' });
-      },
-    );
-  }, [state.phase, submitCommand]);
+    showConfirmAlert('取消准备？', '本次词语准备会终止，座位和历史词语会保留。', async () => {
+      await submitCommand('取消准备', { type: 'fib.round.cancelPreparing' });
+    });
+  }, [submitCommand]);
 
   const revealRound = useCallback(() => {
     showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
@@ -460,6 +450,7 @@ export function useFibRoomScreenState({
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     playerCount: state.numberOfPlayers,
     phase: state.phase,
+    preparationProgressPercent: getFibPreparationProgressPercent(state),
     isHost,
   };
 }

@@ -1,5 +1,5 @@
 import {
-  FIB_PREPARATION_STAGES,
+  FIB_PREPARATION_PROGRESS,
   FIB_STATE_VERSION,
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
@@ -46,7 +46,6 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
     excludedBotSeats: [],
     usedWords: [],
     pendingRound: null,
-    preparationFailure: null,
     round: null,
   };
 }
@@ -60,13 +59,9 @@ function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
     pendingRound: null,
     round: {
       roundId: 'round-1',
-      catalogEntryId: 'fib-0001',
-      catalogVersion: 1,
       word: '山谷',
-      definition: {
-        coreMeaning: '两山之间低洼狭长的地带。',
-        usageNote: '常用于描述由地形围合形成的狭长低地。',
-      },
+      definition: '两山之间低洼狭长的地带',
+      source: 'local',
       roles: { guesserSeat: 1, honestSeat: 2 },
     },
   };
@@ -298,9 +293,8 @@ describe('FibKing room adapter', () => {
       pendingRound: {
         roundId: 'round-1',
         requestedAt: 1,
-        stage: FIB_PREPARATION_STAGES.queued,
+        progressPercent: FIB_PREPARATION_PROGRESS.queued,
       },
-      preparationFailure: null,
       round: null,
     };
     const preparingActions = createFibBottomActions({ state: preparing, ...common });
@@ -311,48 +305,6 @@ describe('FibKing room adapter', () => {
         isEnabled: true,
       },
     ]);
-    expect(createFibStatusRibbon(preparing)).toMatchObject({ text: '词语任务已排队' });
-    expect(
-      createFibStatusRibbon({
-        ...preparing,
-        pendingRound: {
-          ...preparing.pendingRound,
-          stage: FIB_PREPARATION_STAGES.selectingWord,
-        },
-      }),
-    ).toMatchObject({ text: '正在选择本轮词语' });
-
-    const preparationFailed: FibState = {
-      ...createLobby(4),
-      phase: 'preparationFailed',
-      fillEmptySeatsWithBots: true,
-      pendingRound: null,
-      preparationFailure: {
-        roundId: 'round-1',
-        requestedAt: 1,
-        failedAt: 2,
-        failureCode: 'unexpected-error',
-      },
-      round: null,
-    };
-    const failedActions = createFibBottomActions({ state: preparationFailed, ...common });
-    expect(failedActions.layout.primary).toMatchObject([
-      {
-        label: '重新准备',
-        testID: TESTIDS.fibStartRoundButton,
-        isEnabled: true,
-      },
-    ]);
-    expect(failedActions.layout.ghost).toMatchObject([
-      {
-        label: '返回大厅',
-        testID: TESTIDS.fibCancelPreparingButton,
-        isEnabled: true,
-      },
-    ]);
-    expect(createFibStatusRibbon(preparationFailed)).toMatchObject({
-      text: '词语准备失败：词语准备出现异常',
-    });
 
     const ongoingActions = createFibBottomActions({ state: ongoing, ...common });
     expect(ongoingActions.layout.primary).toMatchObject([

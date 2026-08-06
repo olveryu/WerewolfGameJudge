@@ -55,8 +55,7 @@ const pictionaryWorkerModule = defineWorkerGameModule({
   parsePublicUserStats: (value) => publicUserStatsSchema.parse(value),
   getPublicUserStats: () => Promise.resolve({ gameType: PICTURE_DICTIONARY_GAME_TYPE }),
   getEffectBusinessKey: (effect) => effect.roundId,
-  handleEffect: () => Promise.resolve({ kind: 'success' }),
-  handleTerminalEffect: () => Promise.resolve(),
+  handleEffect: () => Promise.resolve(),
 });
 
 void pictionaryWorkerModule;

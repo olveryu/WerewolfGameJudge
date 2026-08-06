@@ -80,13 +80,9 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({ view, onCl
 
         {view.definition !== null && (
           <View style={styles.definitionSection}>
-            <Text style={styles.sectionLabel}>核心释义</Text>
-            <Text style={styles.definition} testID={TESTIDS.fibIdentityCoreMeaning}>
-              {view.definition.coreMeaning}
-            </Text>
-            <Text style={[styles.sectionLabel, styles.usageLabel]}>使用提示</Text>
-            <Text style={styles.definition} testID={TESTIDS.fibIdentityUsageNote}>
-              {view.definition.usageNote}
+            <Text style={styles.sectionLabel}>真实释义</Text>
+            <Text style={styles.definition} testID={TESTIDS.fibIdentityDefinition}>
+              {view.definition}
             </Text>
           </View>
         )}
@@ -195,9 +191,6 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     lineHeight: typography.body * 1.6,
     color: colors.text,
-  },
-  usageLabel: {
-    marginTop: spacing.medium,
   },
   assignmentSection: {
     marginTop: spacing.large,

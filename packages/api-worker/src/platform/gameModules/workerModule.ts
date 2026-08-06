@@ -26,8 +26,6 @@ import type { ZodType } from 'zod';
 
 import type { AppEnv, Env } from '../../env';
 import type {
-  EffectExecutionResult,
-  EffectTerminalReason,
   RuntimeWorkerGameModule,
   WorkerEffectBusinessContext,
   WorkerEffectRoomIdentity,
@@ -122,15 +120,7 @@ export interface WorkerModuleRuntime<
   ): WorkerModuleDecision<TState, TEffect>;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
-  handleEffect(
-    effect: unknown,
-    context: WorkerModuleRuntimeEffectContext<TState>,
-  ): Promise<EffectExecutionResult>;
-  handleTerminalEffect(
-    effect: unknown,
-    context: WorkerModuleRuntimeEffectContext<TState>,
-    reason: EffectTerminalReason,
-  ): Promise<void>;
+  handleEffect(effect: unknown, context: WorkerModuleRuntimeEffectContext<TState>): Promise<void>;
 }
 
 export interface WorkerGameModuleDefinition<
@@ -165,11 +155,6 @@ export interface WorkerGameModuleDefinition<
   handleEffect(
     effect: TEffect,
     context: WorkerEffectContext<TState, TInternalCommand>,
-  ): Promise<EffectExecutionResult>;
-  handleTerminalEffect(
-    effect: TEffect,
-    context: WorkerEffectContext<TState, TInternalCommand>,
-    reason: EffectTerminalReason,
   ): Promise<void>;
 }
 
@@ -202,7 +187,7 @@ export type WorkerGameModule<
     TEngine,
     TPublicUserStats
   >,
-  'getPublicUserStats' | 'getEffectBusinessKey' | 'handleEffect' | 'handleTerminalEffect'
+  'getPublicUserStats' | 'getEffectBusinessKey' | 'handleEffect'
 > &
   WorkerModuleRuntime<TState, TConfig, TEffect, TPublicUserStats>;
 
@@ -397,21 +382,6 @@ export function defineWorkerGameModule<
         publishUserEvent: (userId, eventId, message) =>
           context.publishUserEvent(userId, eventId, message),
       }),
-    handleTerminalEffect: (rawEffect, context, reason) =>
-      definition.handleTerminalEffect(
-        definition.effectSchema.parse(rawEffect),
-        {
-          bindings: context.bindings,
-          effectId: context.effectId,
-          state: parseState(context.state),
-          roomIdentity: context.roomIdentity,
-          createdRevision: context.createdRevision,
-          dispatchInternal: (commandId, command) => context.dispatchInternal(commandId, command),
-          publishUserEvent: (userId, eventId, message) =>
-            context.publishUserEvent(userId, eventId, message),
-        },
-        reason,
-      ),
   };
 }
 
@@ -469,22 +439,6 @@ export function registerWorkerGameModule<
         publishUserEvent: (userId, eventId, message) =>
           context.publishUserEvent(userId, eventId, message),
       }),
-    handleTerminalEffect: (effect, context, reason) =>
-      module.handleTerminalEffect(
-        effect,
-        {
-          bindings: context.bindings,
-          effectId: context.effectId,
-          state: module.parseState(context.state),
-          roomIdentity: context.roomIdentity,
-          createdRevision: context.createdRevision,
-          dispatchInternal: async (commandId, command) =>
-            module.parseCommandResult(await context.dispatchInternal(commandId, command)),
-          publishUserEvent: (userId, eventId, message) =>
-            context.publishUserEvent(userId, eventId, message),
-        },
-        reason,
-      ),
   };
 
   return {

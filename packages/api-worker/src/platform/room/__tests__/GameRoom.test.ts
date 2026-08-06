@@ -18,7 +18,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { enqueueUserEvent } from '../../userEvents/inbox';
-import { EffectOutbox } from '../effectOutbox';
 import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
 import { initializeRoomStorage } from '../storageSchema';
 import type { DispatchRoomResult, InitializeRoomResult } from '../types';
@@ -420,95 +419,7 @@ describe('GameRoom command receipts', () => {
     expect(participant).toEqual({ user_id: 'host-1' });
   });
 
-  it('keeps an exhausted retry pending until terminalization runs', async () => {
-    const stub = getStub();
-    await initialize(stub);
-
-    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      state.storage.sql.exec(`
-        INSERT INTO effect_outbox (
-          id,
-          origin_command_id,
-          scope,
-          game_type,
-          effect_type,
-          business_key,
-          payload_json,
-          status,
-          attempt_count,
-          available_at,
-          created_revision,
-          created_at,
-          last_error
-        ) VALUES (
-          'retryable-effect',
-          'retryable-command',
-          'game',
-          'werewolf',
-          'test.retryable',
-          'retryable-business-key',
-          '{"type":"test.retryable"}',
-          'pending',
-          0,
-          0,
-          1,
-          0,
-          NULL
-        )
-      `);
-      const outbox = new EffectOutbox(state.storage);
-      const firstClaim = await outbox.claimNextDue(0);
-      if (firstClaim.kind !== 'claimed') throw new Error('Expected first outbox claim');
-      expect(firstClaim.effect.attemptCount).toBe(1);
-      expect(outbox.markRetryable(firstClaim.effect, new Error('temporary'), 0)).toEqual({
-        kind: 'scheduled',
-      });
-      expect(
-        state.storage.sql
-          .exec(
-            `SELECT status, attempt_count, available_at, last_error
-            FROM effect_outbox WHERE id = 'retryable-effect'`,
-          )
-          .one(),
-      ).toEqual({
-        status: 'pending',
-        attempt_count: 1,
-        available_at: 2_000,
-        last_error: 'temporary',
-      });
-
-      state.storage.sql.exec(
-        `UPDATE effect_outbox
-        SET attempt_count = 6, available_at = 0
-        WHERE id = 'retryable-effect'`,
-      );
-      const finalClaim = await outbox.claimNextDue(0);
-      if (finalClaim.kind !== 'claimed') throw new Error('Expected final outbox claim');
-      expect(finalClaim.effect.attemptCount).toBe(7);
-      expect(outbox.markRetryable(finalClaim.effect, new Error('still temporary'), 0)).toEqual({
-        kind: 'exhausted',
-      });
-      await expect(outbox.claimNextDue(finalClaim.effect.availableAt)).resolves.toMatchObject({
-        kind: 'exhausted',
-        effect: { id: 'retryable-effect', attemptCount: 7 },
-      });
-      expect(
-        state.storage.sql
-          .exec(
-            `SELECT status, attempt_count, last_error
-            FROM effect_outbox WHERE id = 'retryable-effect'`,
-          )
-          .one(),
-      ).toEqual({
-        status: 'pending',
-        attempt_count: 7,
-        last_error: 'still temporary',
-      });
-      await state.storage.deleteAlarm();
-    });
-  });
-
-  it('refuses deletion only while a pending outbox effect remains', async () => {
+  it('refuses deletion while any outbox effect remains', async () => {
     const stub = getStub();
     await initialize(stub);
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
@@ -541,20 +452,6 @@ describe('GameRoom command receipts', () => {
           1,
           0,
           'delivery exhausted'
-        ), (
-          'pending-effect',
-          'pending-command',
-          'platform',
-          'werewolf',
-          'room.participant.seated',
-          'pending-business-key',
-          '{}',
-          'pending',
-          1,
-          0,
-          1,
-          0,
-          NULL
         )
       `);
     });
@@ -570,12 +467,12 @@ describe('GameRoom command receipts', () => {
         count: 1,
       });
       expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
-        count: 2,
+        count: 1,
       });
     });
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'pending-effect'");
+      state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'failed-effect'");
     });
     await expect(
       stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'host-1' }),

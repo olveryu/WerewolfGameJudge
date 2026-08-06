@@ -92,26 +92,17 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
 };
 
 const VALID_FIB_INTERNAL_COMMAND_BY_TYPE = {
-  'fib.round.updatePreparationStage': {
-    type: 'fib.round.updatePreparationStage',
+  'fib.round.updatePreparationProgress': {
+    type: 'fib.round.updatePreparationProgress',
     roundId: 'round-1',
-    stage: 'selectingWord',
-  },
-  'fib.round.failPreparation': {
-    type: 'fib.round.failPreparation',
-    roundId: 'round-1',
-    failureCode: 'unexpected-error',
+    progressPercent: 50,
   },
   'fib.round.complete': {
     type: 'fib.round.complete',
     roundId: 'round-1',
-    catalogEntryId: 'fib-0001',
-    catalogVersion: 1,
     word: '氤氲',
-    definition: {
-      coreMeaning: '烟气或云雾弥漫缭绕的样子。',
-      usageNote: '常用于描写水汽、烟雾或气氛缓慢弥散的状态。',
-    },
+    definition: '烟气或云雾弥漫缭绕的样子。',
+    source: 'local',
   },
 } as const satisfies {
   readonly [Type in FibInternalCommand['type']]: Extract<

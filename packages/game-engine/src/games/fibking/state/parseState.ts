@@ -15,16 +15,8 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
 import { normalizeFibState } from './normalize';
-import type {
-  FibHumanSeat,
-  FibPreparationFailure,
-  FibRoleAssignment,
-  FibRound,
-  FibState,
-  FibWordDefinition,
-  PendingFibRound,
-} from './types';
-import { isFibPreparationFailureCode, isFibPreparationStage } from './types';
+import type { FibHumanSeat, FibRoleAssignment, FibRound, FibState, PendingFibRound } from './types';
+import { type FibWordSource, isFibPreparingProgressPercent, isFibWordSource } from './types';
 import { FIB_STATE_VERSION } from './version';
 
 function parseGameType(value: unknown, path: string): FibKingGameType {
@@ -91,47 +83,23 @@ function parseRealSeats(value: unknown, path: string): Readonly<Record<number, F
 
 function parsePendingRound(value: unknown, path: string): PendingFibRound {
   const raw = parseObject(value, path);
-  if (!isFibPreparationStage(raw.stage)) {
-    return failDecode(`${path}.stage`, 'a valid Fib preparation stage');
+  if (!isFibPreparingProgressPercent(raw.progressPercent)) {
+    return failDecode(`${path}.progressPercent`, 'a valid Fib preparation percentage');
   }
   return finishObject(
     raw,
     {
       roundId: parseNonEmptyString(raw.roundId, `${path}.roundId`),
       requestedAt: parseInteger(raw.requestedAt, `${path}.requestedAt`),
-      stage: raw.stage,
+      progressPercent: raw.progressPercent,
     },
     path,
   );
 }
 
-function parsePreparationFailure(value: unknown, path: string): FibPreparationFailure {
-  const raw = parseObject(value, path);
-  if (!isFibPreparationFailureCode(raw.failureCode)) {
-    return failDecode(`${path}.failureCode`, 'a registered Fib preparation failure code');
-  }
-  return finishObject(
-    raw,
-    {
-      roundId: parseNonEmptyString(raw.roundId, `${path}.roundId`),
-      requestedAt: parseInteger(raw.requestedAt, `${path}.requestedAt`),
-      failedAt: parseInteger(raw.failedAt, `${path}.failedAt`),
-      failureCode: raw.failureCode,
-    },
-    path,
-  );
-}
-
-function parseDefinition(value: unknown, path: string): FibWordDefinition {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      coreMeaning: parseNonEmptyString(raw.coreMeaning, `${path}.coreMeaning`),
-      usageNote: parseNonEmptyString(raw.usageNote, `${path}.usageNote`),
-    },
-    path,
-  );
+function parseWordSource(value: unknown, path: string): FibWordSource {
+  if (!isFibWordSource(value)) return failDecode(path, 'a registered Fib word source');
+  return value;
 }
 
 function parseRoles(value: unknown, path: string): FibRoleAssignment {
@@ -152,10 +120,9 @@ function parseRound(value: unknown, path: string): FibRound {
     raw,
     {
       roundId: parseNonEmptyString(raw.roundId, `${path}.roundId`),
-      catalogEntryId: parseNonEmptyString(raw.catalogEntryId, `${path}.catalogEntryId`),
-      catalogVersion: parseInteger(raw.catalogVersion, `${path}.catalogVersion`),
       word: parseNonEmptyString(raw.word, `${path}.word`),
-      definition: parseDefinition(raw.definition, `${path}.definition`),
+      definition: parseNonEmptyString(raw.definition, `${path}.definition`),
+      source: parseWordSource(raw.source, `${path}.source`),
       roles: parseRoles(raw.roles, `${path}.roles`),
     },
     path,
@@ -188,7 +155,6 @@ export function parseFibState(value: unknown): FibState {
             ...base,
             phase: 'lobby',
             pendingRound: parseNull(raw.pendingRound, 'FibState.pendingRound'),
-            preparationFailure: parseNull(raw.preparationFailure, 'FibState.preparationFailure'),
             round: parseNull(raw.round, 'FibState.round'),
           },
           'FibState',
@@ -202,24 +168,6 @@ export function parseFibState(value: unknown): FibState {
             ...base,
             phase: 'preparing',
             pendingRound: parsePendingRound(raw.pendingRound, 'FibState.pendingRound'),
-            preparationFailure: parseNull(raw.preparationFailure, 'FibState.preparationFailure'),
-            round: parseNull(raw.round, 'FibState.round'),
-          },
-          'FibState',
-        ),
-      );
-    case 'preparationFailed':
-      return normalizeFibState(
-        finishObject(
-          raw,
-          {
-            ...base,
-            phase: 'preparationFailed',
-            pendingRound: parseNull(raw.pendingRound, 'FibState.pendingRound'),
-            preparationFailure: parsePreparationFailure(
-              raw.preparationFailure,
-              'FibState.preparationFailure',
-            ),
             round: parseNull(raw.round, 'FibState.round'),
           },
           'FibState',
@@ -234,7 +182,6 @@ export function parseFibState(value: unknown): FibState {
             ...base,
             phase: raw.phase,
             pendingRound: parseNull(raw.pendingRound, 'FibState.pendingRound'),
-            preparationFailure: parseNull(raw.preparationFailure, 'FibState.preparationFailure'),
             round: parseRound(raw.round, 'FibState.round'),
           },
           'FibState',

@@ -15,13 +15,7 @@ function createOngoingView(
     viewerSeat: viewerRole === 'guesser' ? 0 : viewerRole === 'honest' ? 1 : 2,
     viewerRole,
     word,
-    definition:
-      viewerRole === 'honest'
-        ? {
-            coreMeaning: '两山之间低洼狭长的地带。',
-            usageNote: '常用于描述由地形围合形成的狭长低地。',
-          }
-        : null,
+    definition: viewerRole === 'honest' ? '两山之间低洼狭长的地带' : null,
     guesserSeat: 0,
     honestSeat: null,
   };
@@ -38,11 +32,10 @@ describe('FibIdentityModal', () => {
     expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent(roleName);
     expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
     expect(view.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('shān gǔ');
-    expect(view.queryByTestId(TESTIDS.fibIdentityCoreMeaning)).toBeNull();
-    expect(view.queryByTestId(TESTIDS.fibIdentityUsageNote)).toBeNull();
+    expect(view.queryByTestId(TESTIDS.fibIdentityDefinition)).toBeNull();
   });
 
-  it('shows the word and both definition fields to the honest player', () => {
+  it('shows the word and definition to the honest player', () => {
     const view = render(
       <FibIdentityModal view={createOngoingView('honest')} onClose={jest.fn()} />,
     );
@@ -50,21 +43,22 @@ describe('FibIdentityModal', () => {
     expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent('老实人');
     expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
     expect(view.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('shān gǔ');
-    expect(view.getByText('核心释义')).toBeTruthy();
-    expect(view.getByTestId(TESTIDS.fibIdentityCoreMeaning)).toHaveTextContent(
-      '两山之间低洼狭长的地带。',
-    );
-    expect(view.getByText('使用提示')).toBeTruthy();
-    expect(view.getByTestId(TESTIDS.fibIdentityUsageNote)).toHaveTextContent(
-      '常用于描述由地形围合形成的狭长低地。',
+    expect(view.getByTestId(TESTIDS.fibIdentityDefinition)).toHaveTextContent(
+      '两山之间低洼狭长的地带',
     );
   });
 
-  it('shows pinyin for a reviewed multi-character Chinese term', () => {
+  it('shows pinyin for multi-character network terms without duplicating Latin-only words', () => {
     const chinese = render(
       <FibIdentityModal view={createOngoingView('fibber', '电子榨菜')} onClose={jest.fn()} />,
     );
     expect(chinese.getByTestId(TESTIDS.fibIdentityPinyin)).toHaveTextContent('diàn zǐ zhà cài');
+    chinese.unmount();
+
+    const latin = render(
+      <FibIdentityModal view={createOngoingView('fibber', 'Citywalk')} onClose={jest.fn()} />,
+    );
+    expect(latin.queryByTestId(TESTIDS.fibIdentityPinyin)).toBeNull();
   });
 
   it('reveals every assignment after the round ends and closes through the shared action', () => {
@@ -75,22 +69,13 @@ describe('FibIdentityModal', () => {
       viewerSeat: null,
       viewerRole: null,
       word: '山谷',
-      definition: {
-        coreMeaning: '两山之间低洼狭长的地带。',
-        usageNote: '常用于描述由地形围合形成的狭长低地。',
-      },
+      definition: '两山之间低洼狭长的地带',
       guesserSeat: 0,
       honestSeat: 1,
     };
     const screen = render(<FibIdentityModal view={view} onClose={onClose} />);
 
     expect(screen.getByText('公开结果')).toBeTruthy();
-    expect(screen.getByTestId(TESTIDS.fibIdentityCoreMeaning)).toHaveTextContent(
-      '两山之间低洼狭长的地带。',
-    );
-    expect(screen.getByTestId(TESTIDS.fibIdentityUsageNote)).toHaveTextContent(
-      '常用于描述由地形围合形成的狭长低地。',
-    );
     expect(screen.getByText('1号 · 大聪明')).toBeTruthy();
     expect(screen.getByText('2号 · 老实人')).toBeTruthy();
     expect(screen.getByText('其余座位 · 瞎掰王')).toBeTruthy();

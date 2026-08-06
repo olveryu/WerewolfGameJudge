@@ -34,5 +34,4 @@ export const werewolfWorkerModule = defineWorkerGameModule({
   getPublicUserStats: getWerewolfPublicUserStats,
   getEffectBusinessKey: (_effect, context) => `revision:${context.createdRevision}`,
   handleEffect: handleWerewolfEffect,
-  handleTerminalEffect: () => Promise.resolve(),
 });

@@ -71,6 +71,7 @@ binding = "CF_VERSION_METADATA"
 # ── Environment Variables ────────────────────────────────────────────────────
 [vars]
 ENVIRONMENT = "production"
+FIB_WORD_PROVIDER = "workers-ai"
 CLOUDFLARE_ACCOUNT_ID = "a38318fda66da2d2d931d8ab2d98e1c0"
 SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.us.sentry.io/4511310645035008"
 

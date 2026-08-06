@@ -6,12 +6,13 @@ import type {
   FibPublicCommand,
 } from '@game-judge/game-engine/games/fibking/public';
 import {
-  FIB_DEFINITION_FIELD_MAX_LENGTH,
+  FIB_DEFINITION_MAX_LENGTH,
+  FIB_DEFINITION_MIN_LENGTH,
   FIB_MIN_PLAYERS,
-  FIB_PREPARATION_FAILURE_CODES,
-  FIB_PREPARATION_STAGES,
+  FIB_PREPARATION_PROGRESS,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
+  FIB_WORD_SOURCES,
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
@@ -49,32 +50,19 @@ export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.discrim
   'type',
   [
     z.strictObject({
-      type: z.literal('fib.round.updatePreparationStage'),
+      type: z.literal('fib.round.updatePreparationProgress'),
       roundId: z.string().min(1),
-      stage: z.union([
-        z.literal(FIB_PREPARATION_STAGES.queued),
-        z.literal(FIB_PREPARATION_STAGES.selectingWord),
+      progressPercent: z.union([
+        z.literal(FIB_PREPARATION_PROGRESS.generating),
+        z.literal(FIB_PREPARATION_PROGRESS.ready),
       ]),
-    }),
-    z.strictObject({
-      type: z.literal('fib.round.failPreparation'),
-      roundId: z.string().min(1),
-      failureCode: z.enum(FIB_PREPARATION_FAILURE_CODES),
     }),
     z.strictObject({
       type: z.literal('fib.round.complete'),
       roundId: z.string().min(1),
-      catalogEntryId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-      catalogVersion: z.int().positive(),
-      word: z
-        .string()
-        .min(FIB_WORD_MIN_LENGTH)
-        .max(FIB_WORD_MAX_LENGTH)
-        .regex(/^\p{Script=Han}+$/u),
-      definition: z.strictObject({
-        coreMeaning: z.string().min(1).max(FIB_DEFINITION_FIELD_MAX_LENGTH),
-        usageNote: z.string().min(1).max(FIB_DEFINITION_FIELD_MAX_LENGTH),
-      }),
+      word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
+      definition: z.string().trim().min(FIB_DEFINITION_MIN_LENGTH).max(FIB_DEFINITION_MAX_LENGTH),
+      source: z.enum(FIB_WORD_SOURCES),
     }),
   ],
 );

@@ -180,10 +180,7 @@ describe('FibKing generic GameRoom integration', () => {
     const ongoing = FIB_STATE_CODEC.parse(snapshot.state);
     expect(ongoing.phase).toBe('ongoing');
     if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing Fib state');
-    expect(ongoing.round.catalogEntryId).toMatch(/^fib-[0-9]{4}$/);
-    expect(ongoing.round.catalogVersion).toBe(1);
-    expect(ongoing.round.definition.coreMeaning.length).toBeGreaterThan(0);
-    expect(ongoing.round.definition.usageNote.length).toBeGreaterThan(0);
+    expect(ongoing.round.source).toBe('local');
     expect(ongoing.round.roles.guesserSeat).not.toBe(ongoing.round.roles.honestSeat);
     expect(ongoing.usedWords).toEqual([ongoing.round.word]);
     expect(Object.keys(ongoing.realSeats)).toEqual(['0']);
@@ -193,94 +190,16 @@ describe('FibKing generic GameRoom integration', () => {
       .first();
     expect(room).toEqual({ games_started: 1 });
     const generated = await env.DB.prepare(
-      `SELECT round_id, catalog_entry_id, catalog_version, word, core_meaning, usage_note
+      `SELECT round_id, word, definition, source
       FROM fib_word_generation_results WHERE room_id = ?`,
     )
       .bind(stub.id.toString())
       .first();
     expect(generated).toEqual({
       round_id: ongoing.round.roundId,
-      catalog_entry_id: ongoing.round.catalogEntryId,
-      catalog_version: ongoing.round.catalogVersion,
       word: ongoing.round.word,
-      core_meaning: ongoing.round.definition.coreMeaning,
-      usage_note: ongoing.round.definition.usageNote,
-    });
-  });
-
-  it('terminalizes an unexpected catalog ledger conflict without retrying', async () => {
-    const stub = getStub();
-    await initialize(stub);
-    let roundId = '';
-
-    await runInDurableObject(stub, async (instance: GameRoom, state) => {
-      requireCommitted(
-        await dispatch(instance, stub, 'fib-terminal-seat-host', {
-          type: 'room.seat.take',
-          seat: 0,
-          profile: { displayName: '房主' },
-        }),
-      );
-      requireCommitted(
-        await dispatch(instance, stub, 'fib-terminal-fill-bots', { type: 'room.seat.fillBots' }),
-      );
-      const preparing = requireCommitted(
-        await dispatch(instance, stub, 'fib-terminal-start', { type: 'fib.round.start' }),
-      );
-      if (preparing.snapshot.state.phase !== 'preparing') {
-        throw new Error('Expected preparing Fib state');
-      }
-      roundId = preparing.snapshot.state.pendingRound.roundId;
-      const effect = state.storage.sql
-        .exec<{
-          id: string;
-        }>(`SELECT id FROM effect_outbox WHERE effect_type = 'fib.word.generate'`)
-        .one();
-      await env.DB.prepare(
-        `INSERT INTO fib_word_generation_results (
-          room_id,
-          room_creation_id,
-          effect_id,
-          round_id,
-          request_fingerprint,
-          catalog_entry_id,
-          catalog_version,
-          word,
-          core_meaning,
-          usage_note,
-          created_at
-        ) VALUES (?, 'conflicting-creation', ?, ?, ?, 'fib-0001', 1, '踟蹰', ?, ?, ?)`,
-      )
-        .bind(
-          stub.id.toString(),
-          effect.id,
-          roundId,
-          '0'.repeat(64),
-          '来回走动而迟迟不能向前，也指拿不定主意。',
-          '多用于书面语，重点在迟迟不能前进。',
-          '2026-01-01T00:00:00.000Z',
-        )
-        .run();
-      await state.storage.deleteAlarm();
-    });
-
-    await runInDurableObject(stub, async (instance: GameRoom, state) => {
-      await instance.alarm();
-      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
-        count: 0,
-      });
-    });
-
-    const snapshot = await stub.getSnapshot(roomIdentity(stub));
-    if (snapshot === null) throw new Error('Expected Fib snapshot after terminalization');
-    expect(FIB_STATE_CODEC.parse(snapshot.state)).toMatchObject({
-      phase: 'preparationFailed',
-      pendingRound: null,
-      preparationFailure: {
-        roundId,
-        failureCode: 'unexpected-error',
-      },
-      round: null,
+      definition: ongoing.round.definition,
+      source: ongoing.round.source,
     });
   });
 });

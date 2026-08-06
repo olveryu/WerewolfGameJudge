@@ -1,7 +1,11 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { FIB_WORD_HISTORY_LIMIT, readRecentFibWords, recordFibWordExposure } from '../wordHistory';
+import {
+  FIB_WORD_HISTORY_LIMIT,
+  readRecentFibWords,
+  recordFibWordExposure,
+} from '../../wordHistory';
 
 const USER_A = 'fib-word-history-a';
 const USER_B = 'fib-word-history-b';

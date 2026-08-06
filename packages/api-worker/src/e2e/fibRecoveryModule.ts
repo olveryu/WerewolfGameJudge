@@ -1,4 +1,4 @@
-/** E2E-only Fib module that interrupts once after persisting the catalog result. */
+/** E2E-only Fib module that interrupts once after persisting the provider result. */
 
 import type {
   FibEffect,
@@ -6,23 +6,18 @@ import type {
   FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
-import {
-  ensureFibSelectingWordStage,
-  fibEffectSchema,
-  handleFibGenerateWordEffect,
-  handleFibTerminalEffect,
-} from '../games/fibking/effects';
+import { fibEffectSchema, handleFibGenerateWordEffect } from '../games/fibking/effects';
 import { fibWorkerModule } from '../games/fibking/module';
 import { getOrCreateFibWordGenerationResult } from '../games/fibking/wordGenerationResults';
 import { getFibWordHistoryUserIds } from '../games/fibking/wordHistory';
-import type { EffectExecutionResult } from '../platform/gameModules/runtimeGameModule';
+import { createLocalFibWordProvider } from '../games/fibking/wordProviders/local';
 import type { WorkerEffectContext } from '../platform/gameModules/workerModule';
 import {
   defineWorkerGameModule,
   registerWorkerGameModule,
 } from '../platform/gameModules/workerModule';
 
-async function hasPersistedCatalogResult(
+async function hasPersistedProviderResult(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
 ): Promise<boolean> {
   const row = await context.bindings.DB.prepare(
@@ -38,29 +33,26 @@ async function hasPersistedCatalogResult(
 async function handleRecoverableFibEffect(
   effect: FibEffect,
   context: WorkerEffectContext<FibState, FibInternalCommand>,
-): Promise<EffectExecutionResult> {
-  if (!(await hasPersistedCatalogResult(context))) {
-    if (!(await ensureFibSelectingWordStage(effect, context))) return { kind: 'success' };
+): Promise<void> {
+  const provider = createLocalFibWordProvider();
+  if (!(await hasPersistedProviderResult(context))) {
     await getOrCreateFibWordGenerationResult({
       db: context.bindings.DB,
       roomIdentity: context.roomIdentity,
       effectId: context.effectId,
       effect,
+      provider,
       historyUserIds: getFibWordHistoryUserIds(context.state),
     });
-    return {
-      kind: 'retryable',
-      error: new Error('[E2E] Interrupted Fib effect after catalog-result persistence'),
-    };
+    throw new Error('[E2E] Interrupted Fib effect after provider-result persistence');
   }
-  return handleFibGenerateWordEffect(effect, context);
+  await handleFibGenerateWordEffect(effect, context, provider);
 }
 
 const e2eFibWorkerModuleDefinition = defineWorkerGameModule({
   ...fibWorkerModule,
   effectSchema: fibEffectSchema,
   handleEffect: handleRecoverableFibEffect,
-  handleTerminalEffect: handleFibTerminalEffect,
 });
 
 export const e2eFibWorkerModule = registerWorkerGameModule(e2eFibWorkerModuleDefinition);

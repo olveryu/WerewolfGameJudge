@@ -29,7 +29,7 @@ import { evolveFibState } from './domain/evolve';
 import {
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
-  REASON_FIB_PREPARATION_STAGE_INVALID,
+  REASON_FIB_PREPARATION_PROGRESS_INVALID,
   REASON_FIB_ROUND_ALREADY_ONGOING,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_FULL,
@@ -42,9 +42,12 @@ import { assignFibRoles } from './domain/roles';
 import type { FibEffect } from './effects/types';
 import { normalizeFibState } from './state/normalize';
 import {
-  FIB_DEFINITION_FIELD_MAX_LENGTH,
+  FIB_DEFINITION_MAX_LENGTH,
+  FIB_DEFINITION_MIN_LENGTH,
   FIB_MIN_PLAYERS,
-  FIB_PREPARATION_STAGES,
+  FIB_PREPARATION_PROGRESS,
+  FIB_WORD_MAX_LENGTH,
+  FIB_WORD_MIN_LENGTH,
   type FibConfig,
   type FibHumanSeat,
   type FibProfileUpdate,
@@ -52,10 +55,7 @@ import {
   type FibState,
   isFibImplicitBotSeat,
   isFibRoomFull,
-  isValidFibCatalogEntryId,
-  isValidFibCatalogVersion,
   isValidFibPlayerCount,
-  isValidFibWord,
 } from './state/types';
 import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
 
@@ -222,7 +222,7 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
         pendingRound: {
           roundId,
           requestedAt: context.nowMs,
-          stage: FIB_PREPARATION_STAGES.queued,
+          progressPercent: FIB_PREPARATION_PROGRESS.queued,
         },
       },
     ],
@@ -238,7 +238,7 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
 function decideCancelFibPreparation(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return state.phase === 'preparing' || state.phase === 'preparationFailed'
+  return state.phase === 'preparing'
     ? commitFib([{ type: 'fib.round.preparationCancelled' }])
     : reject(REASON_FIB_ROUND_NOT_PREPARING);
 }
@@ -251,50 +251,34 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
     : reject(REASON_FIB_ROUND_NOT_ONGOING);
 }
 
-function hasCanonicalDefinitionField(value: string): boolean {
-  return (
-    value.trim() === value && value.length > 0 && value.length <= FIB_DEFINITION_FIELD_MAX_LENGTH
-  );
+function hasCanonicalLength(value: string, minLength: number, maxLength: number): boolean {
+  return value.trim() === value && value.length >= minLength && value.length <= maxLength;
 }
 
-function decideUpdateFibPreparationStage(
+function decideUpdateFibPreparationProgress(
   state: FibState,
-  command: Extract<FibCommand, { readonly type: 'fib.round.updatePreparationStage' }>,
+  command: Extract<FibCommand, { readonly type: 'fib.round.updatePreparationProgress' }>,
   context: CommandContext,
 ): FibDecision {
   const actor = resolveSystemActorEffectId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase !== 'preparing') return reject(REASON_FIB_ROUND_NOT_PREPARING);
   if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
-  if (
-    state.pendingRound.stage !== FIB_PREPARATION_STAGES.queued ||
-    command.stage !== FIB_PREPARATION_STAGES.selectingWord
-  ) {
-    return reject(REASON_FIB_PREPARATION_STAGE_INVALID);
+
+  const expectedProgress =
+    state.pendingRound.progressPercent === FIB_PREPARATION_PROGRESS.queued
+      ? FIB_PREPARATION_PROGRESS.generating
+      : state.pendingRound.progressPercent === FIB_PREPARATION_PROGRESS.generating
+        ? FIB_PREPARATION_PROGRESS.ready
+        : null;
+  if (command.progressPercent !== expectedProgress) {
+    return reject(REASON_FIB_PREPARATION_PROGRESS_INVALID);
   }
 
-  return commitFib([{ type: 'fib.round.preparationStageUpdated', stage: command.stage }]);
-}
-
-function decideFailFibPreparation(
-  state: FibState,
-  command: Extract<FibCommand, { readonly type: 'fib.round.failPreparation' }>,
-  context: CommandContext,
-): FibDecision {
-  const actor = resolveSystemActorEffectId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase === 'preparationFailed') {
-    return command.roundId === state.preparationFailure.roundId
-      ? commitFib([])
-      : reject(REASON_FIB_ROUND_MISMATCH);
-  }
-  if (state.phase !== 'preparing') return reject(REASON_FIB_ROUND_NOT_PREPARING);
-  if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
   return commitFib([
     {
-      type: 'fib.round.preparationFailed',
-      failedAt: context.nowMs,
-      failureCode: command.failureCode,
+      type: 'fib.round.preparationProgressed',
+      progressPercent: command.progressPercent,
     },
   ]);
 }
@@ -308,15 +292,12 @@ function decideCompleteFibRound(
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase !== 'preparing') return reject(REASON_FIB_ROUND_NOT_PREPARING);
   if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
-  if (state.pendingRound.stage !== FIB_PREPARATION_STAGES.selectingWord) {
-    return reject(REASON_FIB_PREPARATION_STAGE_INVALID);
+  if (state.pendingRound.progressPercent !== FIB_PREPARATION_PROGRESS.ready) {
+    return reject(REASON_FIB_PREPARATION_PROGRESS_INVALID);
   }
   if (
-    !isValidFibCatalogEntryId(command.catalogEntryId) ||
-    !isValidFibCatalogVersion(command.catalogVersion) ||
-    !isValidFibWord(command.word) ||
-    !hasCanonicalDefinitionField(command.definition.coreMeaning) ||
-    !hasCanonicalDefinitionField(command.definition.usageNote)
+    !hasCanonicalLength(command.word, FIB_WORD_MIN_LENGTH, FIB_WORD_MAX_LENGTH) ||
+    !hasCanonicalLength(command.definition, FIB_DEFINITION_MIN_LENGTH, FIB_DEFINITION_MAX_LENGTH)
   ) {
     return reject(REASON_FIB_WORD_INVALID);
   }
@@ -326,10 +307,9 @@ function decideCompleteFibRound(
     {
       type: 'fib.round.started',
       roundId: command.roundId,
-      catalogEntryId: command.catalogEntryId,
-      catalogVersion: command.catalogVersion,
       word: command.word,
       definition: command.definition,
+      source: command.source,
       roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
     },
   ]);
@@ -352,7 +332,6 @@ function createInitialFibState(config: FibConfig, context: CreateGameContext): F
     excludedBotSeats: [],
     usedWords: [],
     pendingRound: null,
-    preparationFailure: null,
     round: null,
   });
 }
@@ -362,7 +341,6 @@ export function getFibLifecycle(state: FibState): CommonGameLifecycle {
     case 'lobby':
       return 'setup';
     case 'preparing':
-    case 'preparationFailed':
     case 'ongoing':
       return 'ongoing';
     case 'ended':
@@ -398,10 +376,8 @@ export function decideFibCommand(
       return decideCancelFibPreparation(state, context);
     case 'fib.round.reveal':
       return decideRevealFibRound(state, context);
-    case 'fib.round.updatePreparationStage':
-      return decideUpdateFibPreparationStage(state, command, context);
-    case 'fib.round.failPreparation':
-      return decideFailFibPreparation(state, command, context);
+    case 'fib.round.updatePreparationProgress':
+      return decideUpdateFibPreparationProgress(state, command, context);
     case 'fib.round.complete':
       return decideCompleteFibRound(state, command, context);
   }

@@ -1,4 +1,3 @@
-import type { FibWordDefinition } from '@game-judge/game-engine/games/fibking/public';
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
@@ -9,7 +8,7 @@ import { RoomPage } from './RoomPage';
 export type FibIdentity = {
   readonly role: '大聪明' | '老实人' | '瞎掰王';
   readonly word: string;
-  readonly definition: FibWordDefinition | null;
+  readonly definition: string | null;
 };
 
 /** FibKing-only actions layered over the shared room page object. */
@@ -97,9 +96,7 @@ export class FibRoomPage extends RoomPage {
 
   async startRound(): Promise<void> {
     await this.page.getByTestId(TESTIDS.fibStartRoundButton).click();
-    await expect(this.page.getByText('正在选择本轮词语', { exact: true })).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(this.page.getByText('正在准备本轮词语', { exact: true })).toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 30_000,
     });
@@ -158,24 +155,12 @@ export class FibRoomPage extends RoomPage {
     if (word === null || word.trim().length === 0) {
       throw new Error('Fib identity modal did not render a word');
     }
-    const coreMeaningLocator = modal.getByTestId(TESTIDS.fibIdentityCoreMeaning);
-    const usageNoteLocator = modal.getByTestId(TESTIDS.fibIdentityUsageNote);
-    const hasCoreMeaning = (await coreMeaningLocator.count()) > 0;
-    const hasUsageNote = (await usageNoteLocator.count()) > 0;
-    if (hasCoreMeaning !== hasUsageNote) {
-      throw new Error('Fib identity modal rendered an incomplete definition');
+    const definitionLocator = modal.getByTestId(TESTIDS.fibIdentityDefinition);
+    const definition =
+      (await definitionLocator.count()) === 0 ? null : await definitionLocator.textContent();
+    if (definition !== null && definition.trim().length === 0) {
+      throw new Error('Fib identity modal rendered an empty definition');
     }
-    if (!hasCoreMeaning) return { role: roleText, word, definition: null };
-
-    const coreMeaning = await coreMeaningLocator.textContent();
-    const usageNote = await usageNoteLocator.textContent();
-    if (coreMeaning === null || coreMeaning.trim().length === 0) {
-      throw new Error('Fib identity modal rendered an empty core meaning');
-    }
-    if (usageNote === null || usageNote.trim().length === 0) {
-      throw new Error('Fib identity modal rendered an empty usage note');
-    }
-    const definition: FibWordDefinition = { coreMeaning, usageNote };
     return { role: roleText, word, definition };
   }
 }

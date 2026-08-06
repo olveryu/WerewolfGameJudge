@@ -1,12 +1,11 @@
 /** Worker-side validation and execution for FibKing word-generation effects. */
 
 import {
-  FIB_PREPARATION_STAGES,
+  FIB_PREPARATION_PROGRESS,
   FIB_USED_WORD_LIMIT,
   type FibEffect,
   type FibGenerateWordEffect,
   type FibInternalCommand,
-  type FibPreparationFailureCode,
   type FibState,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_PREPARING,
@@ -14,14 +13,10 @@ import {
 import { z } from 'zod';
 
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
-import type {
-  EffectExecutionResult,
-  EffectTerminalReason,
-} from '../../platform/gameModules/runtimeGameModule';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
-import { FibWordCatalogExhaustedError } from './wordCatalog';
 import { getOrCreateFibWordGenerationResult } from './wordGenerationResults';
 import { getFibWordHistoryUserIds, recordFibWordExposure } from './wordHistory';
+import { createConfiguredFibWordProvider, type FibWordProvider } from './wordProviders';
 
 export const fibEffectSchema: z.ZodType<FibEffect> = z.strictObject({
   type: z.literal('fib.word.generate'),
@@ -35,134 +30,112 @@ function isSupersededRoundRejection(reason: string): boolean {
   return reason === REASON_FIB_ROUND_NOT_PREPARING || reason === REASON_FIB_ROUND_MISMATCH;
 }
 
-async function dispatchPreparationStage(
+async function dispatchPreparationProgress(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
   roundId: string,
+  progressPercent:
+    | typeof FIB_PREPARATION_PROGRESS.generating
+    | typeof FIB_PREPARATION_PROGRESS.ready,
 ): Promise<boolean> {
   const commandId = await createEffectCommandId(
-    'fib:preparation-stage-selecting-word',
+    `fib:preparation-progress-${progressPercent}`,
     context.effectId,
   );
   const result = await context.dispatchInternal(commandId, {
-    type: 'fib.round.updatePreparationStage',
+    type: 'fib.round.updatePreparationProgress',
     roundId,
-    stage: FIB_PREPARATION_STAGES.selectingWord,
+    progressPercent,
   });
   if (result.commandId !== commandId) {
     throw new Error(
-      `[FAIL-FAST] Fib preparation-stage receipt ${result.commandId} does not match ${commandId}`,
+      `[FAIL-FAST] Fib preparation-progress receipt ${result.commandId} does not match ${commandId}`,
     );
   }
   if (result.kind === 'rejected') {
     if (isSupersededRoundRejection(result.reason)) return false;
-    throw new Error(`Fib preparation-stage command ${commandId} was rejected: ${result.reason}`);
+    throw new Error(`Fib preparation-progress command ${commandId} was rejected: ${result.reason}`);
   }
   if (result.outcome.kind !== 'success') {
-    throw new Error(`Fib preparation-stage command ${commandId} failed: ${result.outcome.reason}`);
+    throw new Error(
+      `Fib preparation-progress command ${commandId} failed: ${result.outcome.reason}`,
+    );
   }
   return true;
-}
-
-export async function ensureFibSelectingWordStage(
-  effect: FibGenerateWordEffect,
-  context: WorkerEffectContext<FibState, FibInternalCommand>,
-): Promise<boolean> {
-  if (
-    context.state.phase !== 'preparing' ||
-    context.state.pendingRound.roundId !== effect.payload.roundId
-  ) {
-    return false;
-  }
-  if (context.state.pendingRound.stage === FIB_PREPARATION_STAGES.selectingWord) return true;
-  return dispatchPreparationStage(context, effect.payload.roundId);
 }
 
 export async function handleFibGenerateWordEffect(
   effect: FibGenerateWordEffect,
   context: WorkerEffectContext<FibState, FibInternalCommand>,
-): Promise<EffectExecutionResult> {
-  try {
-    if (!(await ensureFibSelectingWordStage(effect, context))) return { kind: 'success' };
-
-    const historyUserIds = getFibWordHistoryUserIds(context.state);
-    const candidate = await getOrCreateFibWordGenerationResult({
-      db: context.bindings.DB,
-      roomIdentity: context.roomIdentity,
-      effectId: context.effectId,
-      effect,
-      historyUserIds,
-    });
-    const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
-    const result = await context.dispatchInternal(commandId, {
-      type: 'fib.round.complete',
-      roundId: effect.payload.roundId,
-      catalogEntryId: candidate.catalogEntryId,
-      catalogVersion: candidate.catalogVersion,
-      word: candidate.word,
-      definition: candidate.definition,
-    });
-    if (result.commandId !== commandId) {
-      throw new Error(
-        `[FAIL-FAST] Fib round-complete receipt ${result.commandId} does not match ${commandId}`,
-      );
-    }
-    if (result.kind === 'rejected') {
-      if (isSupersededRoundRejection(result.reason)) return { kind: 'success' };
-      throw new Error(`Fib round-complete command ${commandId} was rejected: ${result.reason}`);
-    }
-    if (result.outcome.kind !== 'success') {
-      throw new Error(`Fib round-complete command ${commandId} failed: ${result.outcome.reason}`);
-    }
-    await recordFibWordExposure(
-      context.bindings.DB,
-      historyUserIds,
-      candidate.word,
-      new Date().toISOString(),
-    );
-    return { kind: 'success' };
-  } catch (error) {
-    return {
-      kind: 'terminal',
-      error: error instanceof Error ? error : new Error(String(error)),
-    };
+  provider: FibWordProvider,
+): Promise<void> {
+  if (
+    context.state.phase !== 'preparing' ||
+    context.state.pendingRound.roundId !== effect.payload.roundId
+  ) {
+    return;
   }
+  if (
+    !(await dispatchPreparationProgress(
+      context,
+      effect.payload.roundId,
+      FIB_PREPARATION_PROGRESS.generating,
+    ))
+  ) {
+    return;
+  }
+  const historyUserIds = getFibWordHistoryUserIds(context.state);
+  const candidate = await getOrCreateFibWordGenerationResult({
+    db: context.bindings.DB,
+    roomIdentity: context.roomIdentity,
+    effectId: context.effectId,
+    effect,
+    provider,
+    historyUserIds,
+  });
+  if (
+    !(await dispatchPreparationProgress(
+      context,
+      effect.payload.roundId,
+      FIB_PREPARATION_PROGRESS.ready,
+    ))
+  ) {
+    return;
+  }
+  const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
+  const result = await context.dispatchInternal(commandId, {
+    type: 'fib.round.complete',
+    roundId: effect.payload.roundId,
+    word: candidate.word,
+    definition: candidate.definition,
+    source: candidate.source,
+  });
+  if (result.commandId !== commandId) {
+    throw new Error(
+      `[FAIL-FAST] Fib round-complete receipt ${result.commandId} does not match ${commandId}`,
+    );
+  }
+  if (result.kind === 'rejected') {
+    if (isSupersededRoundRejection(result.reason)) return;
+    throw new Error(`Fib round-complete command ${commandId} was rejected: ${result.reason}`);
+  }
+  if (result.outcome.kind !== 'success') {
+    throw new Error(`Fib round-complete command ${commandId} failed: ${result.outcome.reason}`);
+  }
+  await recordFibWordExposure(
+    context.bindings.DB,
+    historyUserIds,
+    candidate.word,
+    new Date().toISOString(),
+  );
 }
 
 export async function handleFibEffect(
   effect: FibEffect,
   context: WorkerEffectContext<FibState, FibInternalCommand>,
-): Promise<EffectExecutionResult> {
-  return handleFibGenerateWordEffect(effect, context);
-}
-
-function resolvePreparationFailureCode(reason: EffectTerminalReason): FibPreparationFailureCode {
-  if (reason.kind === 'attemptsExhausted') return 'service-unavailable';
-  if (reason.error instanceof FibWordCatalogExhaustedError) return reason.error.failureCode;
-  if (reason.error instanceof z.ZodError) return 'catalog-invalid';
-  return 'unexpected-error';
-}
-
-export async function handleFibTerminalEffect(
-  effect: FibEffect,
-  context: WorkerEffectContext<FibState, FibInternalCommand>,
-  reason: EffectTerminalReason,
 ): Promise<void> {
-  const commandId = await createEffectCommandId('fib:preparation-failed', context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type: 'fib.round.failPreparation',
-    roundId: effect.payload.roundId,
-    failureCode: resolvePreparationFailureCode(reason),
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Fib preparation-failed receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededRoundRejection(result.reason)) return;
-    throw new Error(`Fib preparation-failed command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`Fib preparation-failed command ${commandId} failed: ${result.outcome.reason}`);
-  }
+  await handleFibGenerateWordEffect(
+    effect,
+    context,
+    createConfiguredFibWordProvider(context.bindings),
+  );
 }
