@@ -321,9 +321,9 @@ describe('POST /room/delete', () => {
           payload_json, status, attempt_count, available_at, created_revision,
           created_at, last_error
         ) VALUES (
-          'failed-delete-effect', 'failed-delete-command', 'platform', 'werewolf',
-          'room.participant.seated', 'failed-delete-business-key', '{}', 'failed',
-          7, 0, 1, 0, 'delivery exhausted'
+          'pending-delete-effect', 'pending-delete-command', 'platform', 'werewolf',
+          'room.participant.seated', 'pending-delete-business-key', '{}', 'pending',
+          1, 0, 1, 0, 'delivery pending'
         )
       `);
     });
@@ -339,7 +339,7 @@ describe('POST /room/delete', () => {
     });
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'failed-delete-effect'");
+      state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'pending-delete-effect'");
     });
     const deleted = await postJson('/room/delete', { roomCode, roomId }, auth.access_token);
     expect(deleted.status).toBe(200);

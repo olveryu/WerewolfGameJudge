@@ -627,7 +627,8 @@ describe('Worker ownership: source tree is exact', () => {
       packageJson.devDependencies,
       'api-worker package.json devDependencies',
     );
-    expect(workerScripts.dev).toContain('--var FIB_WORD_PROVIDER:local');
+    expect(workerScripts.dev).toContain('--var ENVIRONMENT:development');
+    expect(workerScripts.dev).not.toContain('FIB_WORD_PROVIDER');
     expect(workerScripts.types).toContain('--env-interface WorkerBindings');
     expect(workerScripts['types:check']).toContain('--check');
     expect(workerScripts.typecheck).toContain('types:check');
@@ -866,8 +867,6 @@ describe('Worker request boundary: client objects are strict', () => {
       'packages/api-worker/src/features/auth/wechat/WeChatAuthProxy.ts',
       'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
       'packages/api-worker/src/features/feedback/providers/github.ts',
-      'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
-      'packages/api-worker/src/games/fibking/wordProviders/workersAi.ts',
     ]);
   });
 

@@ -17,6 +17,9 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';
 import type {
+  EffectExecutionResult,
+  EffectTerminalReason,
+  RuntimeWorkerEffectContext,
   RuntimeWorkerGameModule,
   WorkerGameModuleResolver,
 } from '../gameModules/runtimeGameModule';
@@ -41,6 +44,7 @@ import type {
   PendingOutboxEffect,
   ReadRoomCommand,
   RoomInstanceIdentity,
+  StoredRoomRow,
 } from './types';
 
 const OUTBOX_DRAIN_BATCH_SIZE = 16;
@@ -178,49 +182,125 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       const claim = await this.#outbox.claimNextDue(Date.now());
       if (claim.kind === 'empty') break;
       if (claim.kind === 'exhausted') {
-        const exhausted = new Error(
-          `Outbox effect exhausted after interrupted delivery: ${claim.effect.id}`,
-        );
-        log.error('outbox effect exhausted', {
-          effectId: claim.effect.id,
-          effectType: claim.effect.effectType,
-          attemptCount: claim.effect.attemptCount,
-        });
-        Sentry.captureException(exhausted, {
-          tags: {
-            gameType: claim.effect.gameType,
-            effectType: claim.effect.effectType,
-          },
-          extra: { effectId: claim.effect.id },
+        await this.#terminalizeEffect(claim.effect, {
+          kind: 'attemptsExhausted',
+          error: new Error(
+            `Outbox effect exhausted after interrupted delivery: ${claim.effect.id}`,
+          ),
         });
         continue;
       }
-      const { effect } = claim;
-      try {
-        await this.#executeEffect(effect);
-        this.#outbox.markSucceeded(effect.id);
-      } catch (error) {
-        const cause = error instanceof Error ? error : new Error(String(error));
-        log.error('outbox effect failed', {
-          effectId: effect.id,
-          effectType: effect.effectType,
-          attemptCount: effect.attemptCount,
-          error: cause.message,
-        });
-        Sentry.captureException(cause, {
-          tags: {
-            gameType: effect.gameType,
-            effectType: effect.effectType,
-          },
-          extra: { effectId: effect.id, attemptCount: effect.attemptCount },
-        });
-        this.#outbox.markFailed(effect, cause, Date.now());
-      }
+      await this.#processClaimedEffect(claim.effect);
     }
     await this.#schedulePendingOutbox();
   }
 
-  async #executeEffect(effect: PendingOutboxEffect): Promise<void> {
+  async #processClaimedEffect(effect: PendingOutboxEffect): Promise<void> {
+    const result = await this.#executeEffect(effect);
+    switch (result.kind) {
+      case 'success':
+        this.#outbox.markSucceeded(effect.id);
+        return;
+      case 'retryable': {
+        const retry = this.#outbox.markRetryable(effect, result.error, Date.now());
+        if (retry.kind === 'scheduled') {
+          log.warn('outbox effect retry scheduled', {
+            effectId: effect.id,
+            effectType: effect.effectType,
+            attemptCount: effect.attemptCount,
+            error: result.error.message,
+          });
+          return;
+        }
+        await this.#terminalizeEffect(effect, {
+          kind: 'attemptsExhausted',
+          error: result.error,
+        });
+        return;
+      }
+      case 'terminal':
+        await this.#terminalizeEffect(effect, { kind: 'execution', error: result.error });
+        return;
+    }
+    const exhaustive: never = result;
+    return exhaustive;
+  }
+
+  async #executeEffect(effect: PendingOutboxEffect): Promise<EffectExecutionResult> {
+    try {
+      const room = this.#readEffectRoom(effect);
+      const context = this.#createEffectContext(effect, room);
+      await assertRoomEffectDirectory(this.env, context.roomIdentity);
+      if (effect.scope === 'platform') {
+        await handlePlatformRoomEffect(
+          effect.id,
+          parsePlatformRoomEffect(effect.payload),
+          context.roomIdentity,
+          this.env,
+        );
+        return { kind: 'success' };
+      }
+
+      const module = this.#gameModuleResolver(room.gameType);
+      return await module.handleEffect(effect.payload, context);
+    } catch (error) {
+      return {
+        kind: 'terminal',
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
+  }
+
+  async #terminalizeEffect(
+    effect: PendingOutboxEffect,
+    reason: EffectTerminalReason,
+  ): Promise<void> {
+    log.error('outbox effect terminal', {
+      effectId: effect.id,
+      effectType: effect.effectType,
+      attemptCount: effect.attemptCount,
+      terminalReason: reason.kind,
+      error: reason.error.message,
+    });
+    Sentry.captureException(reason.error, {
+      tags: {
+        gameType: effect.gameType,
+        effectType: effect.effectType,
+        terminalReason: reason.kind,
+      },
+      extra: { effectId: effect.id, attemptCount: effect.attemptCount },
+    });
+
+    try {
+      if (effect.scope === 'game') {
+        const room = this.#readEffectRoom(effect);
+        const context = this.#createEffectContext(effect, room);
+        await assertRoomEffectDirectory(this.env, context.roomIdentity);
+        const module = this.#gameModuleResolver(room.gameType);
+        await module.handleTerminalEffect(effect.payload, context, reason);
+      }
+      this.#outbox.markSucceeded(effect.id);
+    } catch (error) {
+      const cause = error instanceof Error ? error : new Error(String(error));
+      log.error('outbox effect terminalization failed', {
+        effectId: effect.id,
+        effectType: effect.effectType,
+        attemptCount: effect.attemptCount,
+        error: cause.message,
+      });
+      Sentry.captureException(cause, {
+        tags: {
+          gameType: effect.gameType,
+          effectType: effect.effectType,
+          terminalReason: 'terminalizationFailed',
+        },
+        extra: { effectId: effect.id, attemptCount: effect.attemptCount },
+      });
+      this.#outbox.markTerminalFailed(effect, cause);
+    }
+  }
+
+  #readEffectRoom(effect: PendingOutboxEffect): StoredRoomRow {
     assertEffectType(effect);
     const room = this.#repository.readRoom();
     if (room === null) {
@@ -229,28 +309,22 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     if (room.gameType !== effect.gameType) {
       throw new Error(`Game effect ${effect.id} does not match its room`);
     }
-    const directoryIdentity = {
-      roomId: this.ctx.id.toString(),
-      roomCode: room.roomCode,
-      creationId: room.creationId,
-    };
-    await assertRoomEffectDirectory(this.env, directoryIdentity);
-    if (effect.scope === 'platform') {
-      await handlePlatformRoomEffect(
-        effect.id,
-        parsePlatformRoomEffect(effect.payload),
-        directoryIdentity,
-        this.env,
-      );
-      return;
-    }
+    return room;
+  }
 
-    const module = this.#gameModuleResolver(room.gameType);
-    await module.handleEffect(effect.payload, {
+  #createEffectContext(
+    effect: PendingOutboxEffect,
+    room: StoredRoomRow,
+  ): RuntimeWorkerEffectContext {
+    return {
       bindings: this.env,
       effectId: effect.id,
       state: room.state,
-      roomIdentity: directoryIdentity,
+      roomIdentity: {
+        roomId: this.ctx.id.toString(),
+        roomCode: room.roomCode,
+        creationId: room.creationId,
+      },
       createdRevision: effect.createdRevision,
       dispatchInternal: async (commandId, command) => {
         const dispatched = await dispatchRoomCommand(
@@ -279,7 +353,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       },
       publishUserEvent: (userId, eventId, message) =>
         this.#publishUserEvent(userId, eventId, message),
-    });
+    };
   }
 
   async #schedulePendingOutbox(): Promise<void> {

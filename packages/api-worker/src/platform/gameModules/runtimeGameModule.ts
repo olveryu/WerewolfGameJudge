@@ -69,6 +69,15 @@ export interface RuntimeWorkerEffectContext {
   publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
 }
 
+export type EffectExecutionResult =
+  | { readonly kind: 'success' }
+  | { readonly kind: 'retryable'; readonly error: Error }
+  | { readonly kind: 'terminal'; readonly error: Error };
+
+export type EffectTerminalReason =
+  | { readonly kind: 'execution'; readonly error: Error }
+  | { readonly kind: 'attemptsExhausted'; readonly error: Error };
+
 /** Runtime-erased game operations consumed by the generic room authority. */
 export interface RuntimeWorkerGameModule {
   readonly gameType: GameType;
@@ -81,7 +90,15 @@ export interface RuntimeWorkerGameModule {
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   getPublicUserStats(userId: string, bindings: Env): Promise<unknown>;
   getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
-  handleEffect(effect: unknown, context: RuntimeWorkerEffectContext): Promise<void>;
+  handleEffect(
+    effect: unknown,
+    context: RuntimeWorkerEffectContext,
+  ): Promise<EffectExecutionResult>;
+  handleTerminalEffect(
+    effect: unknown,
+    context: RuntimeWorkerEffectContext,
+    reason: EffectTerminalReason,
+  ): Promise<void>;
 }
 
 export type WorkerGameModuleResolver = (gameType: GameType) => RuntimeWorkerGameModule;

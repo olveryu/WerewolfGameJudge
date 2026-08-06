@@ -69,31 +69,56 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         ...state,
         phase: 'preparing',
         pendingRound: event.pendingRound,
+        preparationFailure: null,
         round: null,
       };
-    case 'fib.round.preparationProgressed':
+    case 'fib.round.preparationStageUpdated':
       if (state.phase !== 'preparing') {
-        throw new Error('Fib preparation-progress event requires a preparing state');
+        throw new Error('Fib preparation-stage event requires a preparing state');
       }
       return {
         ...state,
         pendingRound: {
           ...state.pendingRound,
-          progressPercent: event.progressPercent,
+          stage: event.stage,
         },
       };
     case 'fib.round.preparationCancelled':
-      return { ...state, phase: 'lobby', pendingRound: null, round: null };
+      return {
+        ...state,
+        phase: 'lobby',
+        pendingRound: null,
+        preparationFailure: null,
+        round: null,
+      };
+    case 'fib.round.preparationFailed':
+      if (state.phase !== 'preparing') {
+        throw new Error('Fib preparation-failed event requires a preparing state');
+      }
+      return {
+        ...state,
+        phase: 'preparationFailed',
+        pendingRound: null,
+        preparationFailure: {
+          roundId: state.pendingRound.roundId,
+          requestedAt: state.pendingRound.requestedAt,
+          failedAt: event.failedAt,
+          failureCode: event.failureCode,
+        },
+        round: null,
+      };
     case 'fib.round.started':
       return {
         ...state,
         phase: 'ongoing',
         pendingRound: null,
+        preparationFailure: null,
         round: {
           roundId: event.roundId,
+          catalogEntryId: event.catalogEntryId,
+          catalogVersion: event.catalogVersion,
           word: event.word,
           definition: event.definition,
-          source: event.source,
           roles: event.roles,
         },
         usedWords: appendUsedWord(state.usedWords, event.word),

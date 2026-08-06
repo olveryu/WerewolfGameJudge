@@ -10,35 +10,46 @@ export const FIB_DEFAULT_PLAYERS = 8;
 export const FIB_USED_WORD_LIMIT = 50;
 export const FIB_WORD_MIN_LENGTH = 2;
 export const FIB_WORD_MAX_LENGTH = 12;
-export const FIB_DEFINITION_MIN_LENGTH = 8;
-export const FIB_DEFINITION_MAX_LENGTH = 120;
-export const FIB_WORD_SOURCES = ['gemini', 'workers-ai', 'local'] as const;
-export const FIB_PREPARATION_PROGRESS = {
-  queued: 25,
-  generating: 50,
-  ready: 75,
-  complete: 100,
+export const FIB_DEFINITION_FIELD_MAX_LENGTH = 240;
+export const FIB_PREPARATION_FAILURE_CODES = [
+  'catalog-exhausted',
+  'catalog-invalid',
+  'service-unavailable',
+  'unexpected-error',
+] as const;
+export const FIB_PREPARATION_STAGES = {
+  queued: 'queued',
+  selectingWord: 'selectingWord',
 } as const;
 
-export type FibPhase = 'lobby' | 'preparing' | 'ongoing' | 'ended';
+export type FibPhase = 'lobby' | 'preparing' | 'preparationFailed' | 'ongoing' | 'ended';
 export type FibRole = 'guesser' | 'honest' | 'fibber';
-export type FibWordSource = (typeof FIB_WORD_SOURCES)[number];
-export type FibPreparingProgressPercent =
-  | typeof FIB_PREPARATION_PROGRESS.queued
-  | typeof FIB_PREPARATION_PROGRESS.generating
-  | typeof FIB_PREPARATION_PROGRESS.ready;
+export type FibPreparationFailureCode = (typeof FIB_PREPARATION_FAILURE_CODES)[number];
+export type FibPreparationStage =
+  (typeof FIB_PREPARATION_STAGES)[keyof typeof FIB_PREPARATION_STAGES];
 
-export function isFibWordSource(value: unknown): value is FibWordSource {
-  return FIB_WORD_SOURCES.some((source) => source === value);
+export function isFibPreparationFailureCode(value: unknown): value is FibPreparationFailureCode {
+  return FIB_PREPARATION_FAILURE_CODES.some((code) => code === value);
 }
 
-export function isFibPreparingProgressPercent(
-  value: unknown,
-): value is FibPreparingProgressPercent {
+export function isFibPreparationStage(value: unknown): value is FibPreparationStage {
+  return Object.values(FIB_PREPARATION_STAGES).some((stage) => stage === value);
+}
+
+export function isValidFibCatalogEntryId(value: string): boolean {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+export function isValidFibCatalogVersion(value: number): boolean {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
+export function isValidFibWord(value: string): boolean {
   return (
-    value === FIB_PREPARATION_PROGRESS.queued ||
-    value === FIB_PREPARATION_PROGRESS.generating ||
-    value === FIB_PREPARATION_PROGRESS.ready
+    value.trim() === value &&
+    value.length >= FIB_WORD_MIN_LENGTH &&
+    value.length <= FIB_WORD_MAX_LENGTH &&
+    /^\p{Script=Han}+$/u.test(value)
   );
 }
 
@@ -62,14 +73,27 @@ export interface FibRoleAssignment {
 export interface PendingFibRound {
   readonly roundId: string;
   readonly requestedAt: number;
-  readonly progressPercent: FibPreparingProgressPercent;
+  readonly stage: FibPreparationStage;
+}
+
+export interface FibPreparationFailure {
+  readonly roundId: string;
+  readonly requestedAt: number;
+  readonly failedAt: number;
+  readonly failureCode: FibPreparationFailureCode;
+}
+
+export interface FibWordDefinition {
+  readonly coreMeaning: string;
+  readonly usageNote: string;
 }
 
 export interface FibRound {
   readonly roundId: string;
+  readonly catalogEntryId: string;
+  readonly catalogVersion: number;
   readonly word: string;
-  readonly definition: string;
-  readonly source: FibWordSource;
+  readonly definition: FibWordDefinition;
   readonly roles: FibRoleAssignment;
 }
 
@@ -85,28 +109,44 @@ interface FibStateBase extends BaseGameState<FibKingGameType> {
 export interface FibLobbyState extends FibStateBase {
   readonly phase: 'lobby';
   readonly pendingRound: null;
+  readonly preparationFailure: null;
   readonly round: null;
 }
 
 export interface FibPreparingState extends FibStateBase {
   readonly phase: 'preparing';
   readonly pendingRound: PendingFibRound;
+  readonly preparationFailure: null;
+  readonly round: null;
+}
+
+export interface FibPreparationFailedState extends FibStateBase {
+  readonly phase: 'preparationFailed';
+  readonly pendingRound: null;
+  readonly preparationFailure: FibPreparationFailure;
   readonly round: null;
 }
 
 export interface FibOngoingState extends FibStateBase {
   readonly phase: 'ongoing';
   readonly pendingRound: null;
+  readonly preparationFailure: null;
   readonly round: FibRound;
 }
 
 export interface FibEndedState extends FibStateBase {
   readonly phase: 'ended';
   readonly pendingRound: null;
+  readonly preparationFailure: null;
   readonly round: FibRound;
 }
 
-export type FibState = FibLobbyState | FibPreparingState | FibOngoingState | FibEndedState;
+export type FibState =
+  | FibLobbyState
+  | FibPreparingState
+  | FibPreparationFailedState
+  | FibOngoingState
+  | FibEndedState;
 
 export interface FibConfig {
   readonly numberOfPlayers: number;
@@ -116,20 +156,6 @@ export function getFibRole(roles: FibRoleAssignment, seat: number): FibRole {
   if (seat === roles.guesserSeat) return 'guesser';
   if (seat === roles.honestSeat) return 'honest';
   return 'fibber';
-}
-
-export function getFibPreparationProgressPercent(state: FibState): number {
-  switch (state.phase) {
-    case 'lobby':
-      return 0;
-    case 'preparing':
-      return state.pendingRound.progressPercent;
-    case 'ongoing':
-    case 'ended':
-      return FIB_PREPARATION_PROGRESS.complete;
-  }
-  const exhaustive: never = state;
-  return exhaustive;
 }
 
 export function getFibBotUserId(roomCode: string, seat: number): string {

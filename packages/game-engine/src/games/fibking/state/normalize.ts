@@ -2,16 +2,17 @@
 
 import { FIBKING_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import {
-  FIB_DEFINITION_MAX_LENGTH,
-  FIB_DEFINITION_MIN_LENGTH,
+  FIB_DEFINITION_FIELD_MAX_LENGTH,
   FIB_MIN_PLAYERS,
   FIB_USED_WORD_LIMIT,
-  FIB_WORD_MAX_LENGTH,
-  FIB_WORD_MIN_LENGTH,
   type FibState,
-  isFibPreparingProgressPercent,
+  isFibPreparationFailureCode,
+  isFibPreparationStage,
   isFibRoomFull,
+  isValidFibCatalogEntryId,
+  isValidFibCatalogVersion,
   isValidFibPlayerCount,
+  isValidFibWord,
 } from './types';
 import { FIB_STATE_VERSION } from './version';
 
@@ -19,14 +20,21 @@ function assertNonEmpty(value: string, label: string): void {
   if (value.length === 0) throw new Error(`${label} must be non-empty`);
 }
 
-function assertCanonicalLength(
-  value: string,
-  minLength: number,
-  maxLength: number,
-  label: string,
-): void {
-  if (value.trim() !== value || value.length < minLength || value.length > maxLength) {
-    throw new Error(`${label} must be trimmed and contain ${minLength}-${maxLength} characters`);
+function assertCanonicalDefinitionField(value: string, label: string): void {
+  if (
+    value.trim() !== value ||
+    value.length === 0 ||
+    value.length > FIB_DEFINITION_FIELD_MAX_LENGTH
+  ) {
+    throw new Error(
+      `${label} must be trimmed and contain 1-${FIB_DEFINITION_FIELD_MAX_LENGTH} characters`,
+    );
+  }
+}
+
+function assertNonNegativeSafeInteger(value: number, label: string): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative safe integer`);
   }
 }
 
@@ -79,22 +87,26 @@ function assertUsedWords(state: FibState): void {
   }
   const words = new Set<string>();
   for (const word of state.usedWords) {
-    assertCanonicalLength(word, FIB_WORD_MIN_LENGTH, FIB_WORD_MAX_LENGTH, 'Fib used word');
+    if (!isValidFibWord(word)) throw new Error('Fib used word must be a valid Chinese word');
     if (words.has(word)) throw new Error(`Fib usedWords contains duplicate word ${word}`);
     words.add(word);
   }
 }
 
-function assertRound(state: Exclude<FibState, { readonly phase: 'lobby' | 'preparing' }>): void {
+function assertRound(
+  state: Exclude<FibState, { readonly phase: 'lobby' | 'preparing' | 'preparationFailed' }>,
+): void {
   const { round } = state;
   assertNonEmpty(round.roundId, 'Fib roundId');
-  assertCanonicalLength(round.word, FIB_WORD_MIN_LENGTH, FIB_WORD_MAX_LENGTH, 'Fib round word');
-  assertCanonicalLength(
-    round.definition,
-    FIB_DEFINITION_MIN_LENGTH,
-    FIB_DEFINITION_MAX_LENGTH,
-    'Fib round definition',
-  );
+  if (!isValidFibCatalogEntryId(round.catalogEntryId)) {
+    throw new Error('Fib catalogEntryId must be canonical');
+  }
+  if (!isValidFibCatalogVersion(round.catalogVersion)) {
+    throw new Error('Fib catalogVersion must be a positive safe integer');
+  }
+  if (!isValidFibWord(round.word)) throw new Error('Fib round word must be a valid Chinese word');
+  assertCanonicalDefinitionField(round.definition.coreMeaning, 'Fib round coreMeaning');
+  assertCanonicalDefinitionField(round.definition.usageNote, 'Fib round usageNote');
   assertSeatInRange(round.roles.guesserSeat, state.numberOfPlayers, 'Fib guesser seat');
   assertSeatInRange(round.roles.honestSeat, state.numberOfPlayers, 'Fib honest seat');
   if (round.roles.guesserSeat === round.roles.honestSeat) {
@@ -123,30 +135,49 @@ export function normalizeFibState(state: FibState): FibState {
 
   switch (state.phase) {
     case 'lobby':
-      if (state.pendingRound !== null || state.round !== null) {
+      if (
+        state.pendingRound !== null ||
+        state.preparationFailure !== null ||
+        state.round !== null
+      ) {
         throw new Error('Fib lobby cannot carry round state');
       }
       return state;
     case 'preparing':
       assertNonEmpty(state.pendingRound.roundId, 'Fib pending roundId');
-      if (!isFibPreparingProgressPercent(state.pendingRound.progressPercent)) {
-        throw new Error('Fib pending progressPercent must be a valid preparation percentage');
+      if (!isFibPreparationStage(state.pendingRound.stage)) {
+        throw new Error('Fib pending stage must be a valid preparation stage');
       }
-      if (
-        !Number.isSafeInteger(state.pendingRound.requestedAt) ||
-        state.pendingRound.requestedAt < 0
-      ) {
-        throw new Error('Fib pending requestedAt must be a non-negative safe integer');
+      assertNonNegativeSafeInteger(state.pendingRound.requestedAt, 'Fib pending requestedAt');
+      if (state.preparationFailure !== null || state.round !== null) {
+        throw new Error('Fib preparing state cannot carry failure or completed round state');
       }
-      if (state.round !== null)
-        throw new Error('Fib preparing state cannot carry a completed round');
       if (!isFibRoomFull(state)) throw new Error('Fib preparing state requires a full room');
+      return state;
+    case 'preparationFailed':
+      assertNonEmpty(state.preparationFailure.roundId, 'Fib failed roundId');
+      assertNonNegativeSafeInteger(state.preparationFailure.requestedAt, 'Fib failed requestedAt');
+      assertNonNegativeSafeInteger(state.preparationFailure.failedAt, 'Fib failed failedAt');
+      if (state.preparationFailure.failedAt < state.preparationFailure.requestedAt) {
+        throw new Error('Fib failedAt must not precede requestedAt');
+      }
+      if (!isFibPreparationFailureCode(state.preparationFailure.failureCode)) {
+        throw new Error('Fib failureCode must be a registered preparation failure code');
+      }
+      if (state.pendingRound !== null || state.round !== null) {
+        throw new Error(
+          'Fib preparationFailed state cannot carry pending or completed round state',
+        );
+      }
+      if (!isFibRoomFull(state)) {
+        throw new Error('Fib preparationFailed state requires a full room');
+      }
       return state;
     case 'ongoing':
     case 'ended': {
       const phase = state.phase;
-      if (state.pendingRound !== null) {
-        throw new Error(`Fib ${phase} state cannot carry a pending round`);
+      if (state.pendingRound !== null || state.preparationFailure !== null) {
+        throw new Error(`Fib ${phase} state cannot carry preparation state`);
       }
       if (!isFibRoomFull(state)) throw new Error(`Fib ${phase} state requires a full room`);
       assertRound(state);

@@ -10,6 +10,7 @@ import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewo
 import { z } from 'zod';
 
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import type { EffectExecutionResult } from '../../platform/gameModules/runtimeGameModule';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { settleGameResults } from './settlement/settleGameResults';
 
@@ -89,6 +90,14 @@ async function handleGameEnded(
 export async function handleWerewolfEffect(
   effect: WerewolfEffect,
   context: WorkerEffectContext<GameState, WerewolfInternalCommand>,
-): Promise<void> {
-  await handleGameEnded(effect, context);
+): Promise<EffectExecutionResult> {
+  try {
+    await handleGameEnded(effect, context);
+    return { kind: 'success' };
+  } catch (error) {
+    return {
+      kind: 'terminal',
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
 }

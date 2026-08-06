@@ -35,6 +35,8 @@ export type ClaimOutboxResult =
   | { readonly kind: 'empty' }
   | { readonly kind: 'exhausted'; readonly effect: PendingOutboxEffect };
 
+export type RetryOutboxResult = { readonly kind: 'scheduled' } | { readonly kind: 'exhausted' };
+
 function parseNonEmptyString(value: unknown, label: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`${label} must be a non-empty string`);
@@ -116,17 +118,6 @@ export class EffectOutbox {
 
       const effect = parseOutboxEffect(rows[0]);
       if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
-        this.#sql
-          .exec(
-            `UPDATE effect_outbox
-          SET status = 'failed', last_error = ?
-          WHERE id = ? AND status = 'pending' AND attempt_count = ?
-          RETURNING id`,
-            'delivery interrupted at maximum attempt',
-            effect.id,
-            effect.attemptCount,
-          )
-          .one();
         return { kind: 'exhausted', effect };
       }
 
@@ -167,7 +158,9 @@ export class EffectOutbox {
 
   hasOutstandingEffects(): boolean {
     const row = this.#sql
-      .exec<EffectCountRow>('SELECT COUNT(*) AS effect_count FROM effect_outbox')
+      .exec<EffectCountRow>(
+        "SELECT COUNT(*) AS effect_count FROM effect_outbox WHERE status = 'pending'",
+      )
       .one();
     const effectCount = parseNonNegativeInteger(row.effect_count, 'effect_outbox count');
     return effectCount > 0;
@@ -177,34 +170,53 @@ export class EffectOutbox {
     this.#sql.exec('DELETE FROM effect_outbox WHERE id = ? RETURNING id', effectId).one();
   }
 
-  markFailed(effect: PendingOutboxEffect, error: Error, nowMs: number): void {
+  markRetryable(effect: PendingOutboxEffect, error: Error, nowMs: number): RetryOutboxResult {
     if (effect.attemptCount < 1) {
-      throw new Error(`Outbox effect was not claimed before failure: ${effect.id}`);
+      throw new Error(`Outbox effect was not claimed before retry: ${effect.id}`);
     }
     const lastError = error.message.slice(0, OUTBOX_ERROR_MAX_LENGTH);
-    this.#storage.transactionSync(() => {
-      const cursor =
-        effect.attemptCount >= OUTBOX_MAX_ATTEMPTS
-          ? this.#sql.exec(
-              `UPDATE effect_outbox
-              SET status = 'failed', last_error = ?
-              WHERE id = ? AND status = 'pending' AND attempt_count = ?
-              RETURNING id`,
-              lastError,
-              effect.id,
-              effect.attemptCount,
-            )
-          : this.#sql.exec(
-              `UPDATE effect_outbox
-              SET available_at = ?, last_error = ?
-              WHERE id = ? AND status = 'pending' AND attempt_count = ?
-              RETURNING id`,
-              nowMs + retryDelayMs(effect.attemptCount),
-              lastError,
-              effect.id,
-              effect.attemptCount,
-            );
-      cursor.one();
-    });
+    if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
+      this.#sql
+        .exec(
+          `UPDATE effect_outbox
+          SET last_error = ?
+          WHERE id = ? AND status = 'pending' AND attempt_count = ?
+          RETURNING id`,
+          lastError,
+          effect.id,
+          effect.attemptCount,
+        )
+        .one();
+      return { kind: 'exhausted' };
+    }
+
+    this.#sql
+      .exec(
+        `UPDATE effect_outbox
+        SET available_at = ?, last_error = ?
+        WHERE id = ? AND status = 'pending' AND attempt_count = ?
+        RETURNING id`,
+        nowMs + retryDelayMs(effect.attemptCount),
+        lastError,
+        effect.id,
+        effect.attemptCount,
+      )
+      .one();
+    return { kind: 'scheduled' };
+  }
+
+  markTerminalFailed(effect: PendingOutboxEffect, error: Error): void {
+    const lastError = error.message.slice(0, OUTBOX_ERROR_MAX_LENGTH);
+    this.#sql
+      .exec(
+        `UPDATE effect_outbox
+        SET status = 'failed', last_error = ?
+        WHERE id = ? AND status = 'pending' AND attempt_count = ?
+        RETURNING id`,
+        lastError,
+        effect.id,
+        effect.attemptCount,
+      )
+      .one();
   }
 }

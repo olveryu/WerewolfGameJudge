@@ -16,7 +16,8 @@ test.setTimeout(240_000);
 function expectIdentityVisibility(identity: FibIdentity): void {
   expect(identity.word.length).toBeGreaterThan(0);
   if (identity.role === '老实人') {
-    expect(identity.definition?.length).toBeGreaterThan(0);
+    expect(identity.definition?.coreMeaning.length).toBeGreaterThan(0);
+    expect(identity.definition?.usageNote.length).toBeGreaterThan(0);
     return;
   }
   expect(identity.definition).toBeNull();
@@ -143,7 +144,8 @@ test.describe('FibKing', () => {
       await hostRoom.screenshot(testInfo, 'fibking-ongoing.png');
       await hostRoom.revealRound();
       const result = await hostRoom.viewResult();
-      expect(result.definition?.length).toBeGreaterThan(0);
+      expect(result.definition?.coreMeaning.length).toBeGreaterThan(0);
+      expect(result.definition?.usageNote.length).toBeGreaterThan(0);
       await hostRoom.closeIdentity();
 
       await hostRoom.startNextRound();

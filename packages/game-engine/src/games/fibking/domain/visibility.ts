@@ -1,7 +1,7 @@
 /** Authoritative FibKing round visibility for human and controlled-bot perspectives. */
 
 import { findSeatByUserId } from '../../../platform/room/seating';
-import type { FibRole, FibState } from '../state/types';
+import type { FibRole, FibState, FibWordDefinition } from '../state/types';
 import { getFibRole } from '../state/types';
 
 export interface FibOngoingRoundView {
@@ -10,7 +10,7 @@ export interface FibOngoingRoundView {
   readonly viewerSeat: number;
   readonly viewerRole: FibRole;
   readonly word: string;
-  readonly definition: string | null;
+  readonly definition: FibWordDefinition | null;
   readonly guesserSeat: number;
   readonly honestSeat: null;
 }
@@ -21,7 +21,7 @@ export interface FibEndedRoundView {
   readonly viewerSeat: number | null;
   readonly viewerRole: FibRole | null;
   readonly word: string;
-  readonly definition: string;
+  readonly definition: FibWordDefinition;
   readonly guesserSeat: number;
   readonly honestSeat: number;
 }
@@ -39,7 +39,13 @@ function assertViewerSeat(state: FibState, viewerSeat: number): void {
 }
 
 export function getFibRoundView(state: FibState, viewerSeat: number | null): FibRoundView | null {
-  if (state.phase === 'lobby' || state.phase === 'preparing') return null;
+  if (
+    state.phase === 'lobby' ||
+    state.phase === 'preparing' ||
+    state.phase === 'preparationFailed'
+  ) {
+    return null;
+  }
 
   if (viewerSeat !== null) assertViewerSeat(state, viewerSeat);
 

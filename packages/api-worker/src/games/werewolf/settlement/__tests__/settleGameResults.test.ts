@@ -271,7 +271,7 @@ describe('Werewolf game-ended effect handler', () => {
     ).toThrow();
   });
 
-  it('retries exact D1 results until the internal command commits successfully', async () => {
+  it('returns typed terminal results while preserving exact D1 settlement replay', async () => {
     const effect = buildEndedEffect('EFFECT-ROOM');
     await insertEffectUsers(['user-0']);
     const dispatchCalls: { commandId: string; command: WerewolfInternalCommand }[] = [];
@@ -314,17 +314,23 @@ describe('Werewolf game-ended effect handler', () => {
       },
     };
 
-    await expect(handleWerewolfEffect(effect, context)).rejects.toThrow('was rejected');
+    const transportRejected = await handleWerewolfEffect(effect, context);
+    expect(transportRejected.kind).toBe('terminal');
+    if (transportRejected.kind !== 'terminal') throw new Error('Expected terminal result');
+    expect(transportRejected.error.message).toContain('was rejected');
     expect(publishedEvents).toEqual([]);
     expect((await readStats('user-0')).games_played).toBe(1);
 
     dispatchOutcome = 'domainRejected';
-    await expect(handleWerewolfEffect(effect, context)).rejects.toThrow('failed');
+    const domainRejected = await handleWerewolfEffect(effect, context);
+    expect(domainRejected.kind).toBe('terminal');
+    if (domainRejected.kind !== 'terminal') throw new Error('Expected terminal result');
+    expect(domainRejected.error.message).toContain('failed');
     expect(publishedEvents).toEqual([]);
     expect((await readStats('user-0')).games_played).toBe(1);
 
     dispatchOutcome = 'success';
-    await handleWerewolfEffect(effect, context);
+    await expect(handleWerewolfEffect(effect, context)).resolves.toEqual({ kind: 'success' });
 
     expect((await readStats('user-0')).games_played).toBe(1);
     expect(dispatchCalls).toHaveLength(3);

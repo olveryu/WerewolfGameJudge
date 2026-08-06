@@ -112,8 +112,8 @@ describe('room saga reconciliation', () => {
           created_at, last_error
         ) VALUES (
           'saga-effect', 'saga-command', 'platform', 'werewolf',
-          'room.participant.seated', 'saga-business-key', '{}', 'failed',
-          7, 0, 1, 0, 'delivery exhausted'
+          'room.participant.seated', 'saga-business-key', '{}', 'pending',
+          1, 0, 1, 0, 'delivery pending'
         )
       `);
     });

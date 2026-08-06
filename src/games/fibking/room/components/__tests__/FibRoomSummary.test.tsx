@@ -5,32 +5,29 @@ import { render } from '@testing-library/react-native';
 import { FibRoomSummary } from '../FibRoomSummary';
 
 describe('FibRoomSummary', () => {
-  it.each([25, 50, 75])('shows authoritative %i%% preparation progress', (progressPercent) => {
+  it.each([
+    ['preparing', '准备词语'],
+    ['preparationFailed', '词语准备失败'],
+  ] as const)('shows the authoritative %s phase without invented progress', (phase, label) => {
     const view = render(
       <FibRoomSummary
-        phase="preparing"
+        phase={phase}
         occupiedSeatCount={4}
         playerCount={4}
-        progressPercent={progressPercent}
         onOpenRules={jest.fn()}
       />,
     );
 
-    expect(view.getByText(`${progressPercent}%`)).toBeTruthy();
-    expect(view.getByLabelText('正在准备本轮词语').props.accessibilityValue).toEqual({
-      min: 0,
-      max: 100,
-      now: progressPercent,
-    });
+    expect(view.getByText(`${label} · 4/4 人就座`)).toBeTruthy();
+    expect(view.queryByRole('progressbar')).toBeNull();
   });
 
-  it('hides preparation progress outside the preparing phase', () => {
+  it('updates the phase summary when preparation completes', () => {
     const view = render(
       <FibRoomSummary
         phase="preparing"
         occupiedSeatCount={4}
         playerCount={4}
-        progressPercent={75}
         onOpenRules={jest.fn()}
       />,
     );
@@ -40,11 +37,11 @@ describe('FibRoomSummary', () => {
         phase="ongoing"
         occupiedSeatCount={4}
         playerCount={4}
-        progressPercent={100}
         onOpenRules={jest.fn()}
       />,
     );
 
-    expect(view.queryByLabelText('正在准备本轮词语')).toBeNull();
+    expect(view.getByText('描述进行中 · 4/4 人就座')).toBeTruthy();
+    expect(view.queryByText('准备词语 · 4/4 人就座')).toBeNull();
   });
 });

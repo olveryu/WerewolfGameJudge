@@ -7,7 +7,7 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
-import { fibEffectSchema, handleFibEffect } from './effects';
+import { fibEffectSchema, handleFibEffect, handleFibTerminalEffect } from './effects';
 import { fibCreateConfigSchema, fibInternalCommandSchema, fibPublicCommandSchema } from './schemas';
 
 export const fibWorkerModule = defineWorkerGameModule({
@@ -23,4 +23,5 @@ export const fibWorkerModule = defineWorkerGameModule({
   getPublicUserStats: () => Promise.resolve({ gameType: 'fibking' }),
   getEffectBusinessKey: (effect) => effect.payload.roundId,
   handleEffect: handleFibEffect,
+  handleTerminalEffect: handleFibTerminalEffect,
 });

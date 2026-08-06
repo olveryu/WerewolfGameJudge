@@ -262,7 +262,9 @@ packages/
 │   │   │   │   ├── schemas.ts
 │   │   │   │   ├── effects.ts
 │   │   │   │   ├── dbSchema.ts
-│   │   │   │   └── wordProviders/
+│   │   │   │   ├── wordCatalog.ts
+│   │   │   │   ├── wordGenerationResults.ts
+│   │   │   │   └── wordHistory.ts
 │   │   │   ├── catalog.ts
 │   │   │   └── publicStatsRoutes.ts
 │   │   ├── platform/
@@ -1072,49 +1074,40 @@ interface PendingFibRound {
 
 1. Host 发送 `fib.round.start`。
 2. Engine 验证 phase 和满座条件。
-3. Engine 转为 `preparing`，保存 `roundId`，发出 `fib.word.generate` effect。
-4. Outbox worker 调用配置好的 word source。
-5. 它使用同一个 `roundId` 发送 internal `fib.round.complete`，附带 word、definition、source。
-6. Engine 拒绝过期或重复 `roundId`。
-7. Complete 成功后分配身份并转为 `ongoing`。
-8. Provider 失败通过 outbox retry。
-9. 产品需要恢复操作时，host 可以发送 `fib.round.cancelPreparing`。
+3. Engine 转为 `preparing`，保存 `roundId` 和 `queued` stage，发出 `fib.word.generate` effect。
+4. Outbox worker 先发送 `fib.round.updatePreparationStage`，权威状态进入 `selectingWord`。
+5. Worker 按 `roundId` 从 reviewed catalog 确定性选择词条，并在 D1 保存完整 selection snapshot。
+6. Worker 使用同一个 `roundId` 发送 `fib.round.complete`，附带 catalog ID/version、word、`coreMeaning` 和
+   `usageNote`。
+7. Engine 拒绝过期、重复或 stage 不匹配的 `roundId`；complete 成功后分配身份并转为 `ongoing`。
+8. 明确标为 `retryable` 的 effect 才进入 outbox backoff；未知异常直接 terminalize，写入
+   `preparationFailed` 后删除 outbox row。
+9. Host 可以从 `preparing` 或 `preparationFailed` 发送 `fib.round.cancelPreparing` 返回 lobby。
 
 不再使用“先 `BEGIN_DRAW`，等待外部调用，再希望第二个 action 成功”的流程。
 
-### 18.3 Provider boundary
+### 18.3 Catalog boundary
 
-瞎掰王拥有自己的 `FibWordProvider`：
+`games/fibking/wordCatalog.ts` 是唯一词语来源。Catalog 固定包含 101 条人工审阅的中文词条；每条都有稳定 ID、
+catalog version、纯汉字 word，以及分开的 `coreMeaning` 与 `usageNote`。模块加载时校验容量、ID 唯一性、词语唯一性、
+中文字符和释义长度，任一条目不合法就阻止 Worker 启动。
 
-```ts
-interface FibWordProvider {
-  generate(request: FibWordRequest): Promise<FibWordCandidate>;
-}
-```
-
-Gemini、Workers AI、本地词库都是瞎掰王内部的 provider adapter，不是全 App 的 LLM compatibility API。Provider selection policy 放在 `games/fibking/wordProviders/`，并显式返回 source。
-
-AI provider 每轮生成四个候选并各覆盖一种类别：书面/古典词、仍在使用的网络用语、三字以上的新概念或复合表达、
-可向普通人解释的冷门生活/文化/专业概念。候选允许 2–12 字符的汉字、字母、数字和常见连接符；目标是新鲜且有
-描述空间，不把词库收窄成两字生僻词，也不接受一眼可解释的基础词、过时烂梗或无明确含义的缩写。Worker 使用
-`roundId` 派生的稳定 seed 从合格候选中选择；本地词库使用相同 seeded rotation，不在每个新房间固定从第一项开始。
-
-Provider-facing schema 只使用 Gemini 与 Workers AI 共同支持的 JSON Schema 子集。字符、长度、候选类别完整性、候选
-重复和历史命中由 Worker 的 Zod/runtime validator 再次严格校验；schema 不支持或语义不合格都作为 effect 失败进入
-既有 outbox retry，不能降级接受低质量结果。
-
-客户端不会通过 Gemini proxy 来开始一轮。
+选择算法以 `roundId` 为 seed，并排除当前房间 `usedWords` 与参与者近期 exposure。`wordGenerationResults.ts` 按
+room/effect 保存 catalog ID/version 和完整文本 snapshot；重放必须同时匹配 room creation、round 和 request
+fingerprint，冲突立即 terminalize。生产路径没有 Gemini、Workers AI 或本地 fallback，也不接受运行时生成内容。
+Wrangler 的 `AI` 与 `GEMINI_API_KEY` 只服务狼人杀 AI chat，与瞎掰王选词无关。
 
 ### 18.4 玩家词语历史
 
-当前房间 `usedWords` 仍是 authoritative 50 词硬去重窗口。除此之外，D1 为每名真人保留最近 200 个实际进入
-authoritative round 的词；新一轮读取本局当前真人与 host 的历史并集作为 provider 排除项。词史只在
-`fib.round.complete` committed success 后写入；provider 失败、准备取消、过期 round 或 command rejection 都不写。
+当前房间 `usedWords` 是 authoritative 50 词硬去重窗口。除此之外，D1 为每名真人保留最近 50 个实际进入
+authoritative round 的词；新一轮读取本局当前真人与 host 的历史并集作为 catalog 排除项。词史只在
+`fib.round.complete` committed success 后写入；catalog selection 失败、准备取消、过期 round 或 command rejection
+都不写。
 
 `fib_word_exposures` 以 `(user_id, word)` 为主键，重复看到同一词只更新时间。写入与按用户 `ROW_NUMBER()` 裁剪在一个
 D1 batch 中执行，因此表大小按用户有界；已删除账号先与 `users` 相交，不会让一个 stale participant 阻断其他玩家
-的历史。若写入在 command commit 后失败，outbox 重试读取相同 provider ledger 结果和相同 internal command receipt，
-再补写 exposure，不重新抽词。
+的历史。Catalog snapshot 与 exposure 分属不同职责：snapshot 保证 effect 重放不重新选词，exposure 只记录已经进入
+authoritative round 的结果。
 
 ## 19. 客户端 Session 架构
 
@@ -1695,7 +1688,7 @@ Metrics 区分：
 - State normalization failure。
 - Outbox retry 和 exhausted effect。
 - WebSocket reconnect 和 snapshot mismatch。
-- 瞎掰王 word provider source 和失败类别。
+- 瞎掰王 catalog version、selection exhaustion 和 preparation failure 类别。
 - 按 status 分类的 room creation saga age。
 
 ## 28. 测试策略
@@ -1902,7 +1895,7 @@ pnpm run e2e
 
 - Compact Fib state、command、role assignment、normalize。
 - Implicit bots 和 sparse real seats。
-- Word provider port 和 outbox workflow。
+- Reviewed Chinese word catalog、structured definition 和 outbox workflow。
 - 在 engine/Worker catalog 穷尽式注册 Fib。
 
 退出条件：
@@ -2450,9 +2443,9 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   只有老实人能在 ongoing 看定义；ended 后所有角色都能看完整答案。bot takeover 只改变客户端控制视角，不把
   controlled seat 写入 room command actor。
 - Worker 通过 exhaustive game catalog 注册 Fib module、exact command/config/state schema 和 post-commit effect。
-  word provider port 支持 local、Gemini structured output 与 Cloudflare Workers AI JSON Mode；provider response
-  严格解析、trim、去重后才提交 internal completion。effect identity、candidate result 和 retry ledger 持久化，
-  alarm 中断后复用同一结果，不重新生成词条；stale effect 和 identity 冲突直接失败。
+  词语只来自版本化 reviewed Chinese catalog，释义拆分为 `coreMeaning` 与 `usageNote`；catalog identity、version、
+  selection snapshot 和 effect identity 持久化，alarm 中断后复用同一结果，不重新选择词条。catalog exhaustion、
+  malformed snapshot、stale effect 和 identity conflict 都 fail fast，不存在 AI/local fallback。
 - 新增 D1 migration `0037_add_fibking_game_type.sql` 与 `0038_fib_word_generation_results.sql`，并在本地 D1
   实际执行。Worker integration test 覆盖 catalog 建房、sparse state、outbox alarm 中断恢复和 provider replay。
 - 客户端新增 Fib module、config、rules、summary、identity 与 room adapter，但不增加 Fib facade/context/store。
@@ -2463,7 +2456,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Playwright 新增 Fib 专用 page object，只保留 Fib phase/identity 操作；seat、profile 和直接踢人沿用 shared room
   page contract。`createColdRoomContext` 使用全新 browser context 首次直达 `/room/:code`，不再先访问 Home
   预热认证或 product catalog；shared 用户设置入口也有稳定 test ID，不借用狼人杀底部设置按钮。
-- E2E Worker 使用独立 composition root：第一次 provider effect 把真实 local provider 结果写入 D1 ledger 后，
+- E2E Worker 使用独立 composition root：第一次 catalog effect 把 deterministic catalog snapshot 写入 D1 ledger 后，
   在 internal completion 前中断；alarm 重放必须读取同一持久结果并推进 `preparing -> ongoing`。该故障注入只存在于
   E2E `GameRoom` 装配，不在 production module 中增加环境分支、retry helper 或吞错。
 - 定向 Playwright 验证通过 3 条用例：1,000,001 人稀疏建房、8 人四个真人加 implicit bot 的完整 round，以及
@@ -2873,9 +2866,9 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   `WORKER_GAME_CATALOG` dispatch 对应游戏的公开统计。account production code 不再 import game composition，
   architecture contract 对该依赖方向和 owner 根文件集合做精确断言。
 - 所有客户端控制的 auth、account、feedback、gacha、telemetry 与狼人杀 AI chat JSON object schema 使用 Zod 4
-  `strictObject`，未知 root 或 nested field 在 HTTP boundary 直接返回 validation error。GitHub webhook、微信 API 与
-  Fib word provider 的第三方响应仍允许 provider 增加字段，并分别保存在明确命名的 provider schema/adapter 中。
-- architecture contract 通过 TypeScript AST 扫描全部 Worker production file，只允许三个 external provider
+  `strictObject`，未知 root 或 nested field 在 HTTP boundary 直接返回 validation error。Cloudflare Analytics Engine、
+  GitHub 与微信 API 的第三方响应允许增加字段，并保存在明确命名的 provider schema/adapter 中。
+- architecture contract 通过 TypeScript AST 扫描全部 Worker production file，只允许四个 external provider
   boundary 调用 permissive `z.object()`；新增 integration/schema tests 同时证明客户端未知字段被拒绝、第三方额外字段
   被接受。定向验证通过：root/Worker TypeScript、architecture contract 1 suite / 3751 tests、Worker
   21 files / 134 tests。
@@ -2889,13 +2882,13 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   Workers AI、Analytics Engine、version metadata 或 secret；第二份 `worker-globals.d.ts` 已删除。
 - 删除从未被 `pnpm dev` 选中的 `[env.dev]`。该 named environment 让 Wrangler 2026 multi-environment type generation
   把只存在于 production config 的资源错误地生成为 optional，却没有为实际 local command 提供任何覆盖。local command
-  现在显式传入 `ENVIRONMENT=development`、`FIB_WORD_PROVIDER=local` 与空 Sentry DSN，不复制 resource binding。
+  现在显式传入 `ENVIRONMENT=development` 与空 Sentry DSN，不复制 resource binding。
 - Cloudflare 只读 secret inventory 证明 Worker 消费的十个 secret 已全部配置；`[secrets].required` 现在同时承担部署
   validation 与 type generation。代码删除 R2、WeChat、Resend、GitHub、Gemini 和 Analytics token 的请求期
   `NOT_CONFIGURED` 分支，配置缺失在 Wrangler boundary fail fast，不再伪装成业务 500/503。
 - 类型生成使用 `--env-interface WorkerBindings --strict-vars=false`：binding key 及 required/optional 仍由
   `wrangler.toml` 精确生成；value 保持 `string`，因为同一 production source 还由 local、Vitest 与 E2E composition 以
-  `development/test`、`local` 等值执行，具体 Fib provider 继续由 owner-local runtime parser 穷尽校验。
+  `development/test` 等值执行。
 - api-worker 删除 `@cloudflare/workers-types` 和手写 crypto augmentation，改用生成的 workerd runtime types；Pages
   `functions/` 同样改用根 `wrangler.jsonc` 生成的 `functions/types.d.ts`，root 与 Worker manifest 都删除旧 runtime
   types package 的直接依赖。

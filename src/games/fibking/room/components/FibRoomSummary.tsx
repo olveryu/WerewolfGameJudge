@@ -1,6 +1,7 @@
 /** Compact FibKing room summary and aligned rules entry above the shared seat board. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { FibPhase } from '@game-judge/game-engine/games/fibking/public';
 import type React from 'react';
 import { memo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -9,25 +10,24 @@ import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed, spacing, typography, withAlpha } from '@/theme';
 
 interface FibRoomSummaryProps {
-  readonly phase: 'lobby' | 'preparing' | 'ongoing' | 'ended';
+  readonly phase: FibPhase;
   readonly occupiedSeatCount: number;
   readonly playerCount: number;
-  readonly progressPercent: number;
   readonly onOpenRules: () => void;
 }
 
 const PHASE_LABELS = {
   lobby: '等待入座',
   preparing: '准备词语',
+  preparationFailed: '词语准备失败',
   ongoing: '描述进行中',
   ended: '本轮已结束',
-} as const;
+} as const satisfies Readonly<Record<FibPhase, string>>;
 
 const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
   phase,
   occupiedSeatCount,
   playerCount,
-  progressPercent,
   onOpenRules,
 }) => (
   <View style={styles.container}>
@@ -40,19 +40,6 @@ const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
         <Text style={styles.subtitle}>
           {PHASE_LABELS[phase]} · {occupiedSeatCount}/{playerCount} 人就座
         </Text>
-        {phase === 'preparing' ? (
-          <View style={styles.preparingProgressRow}>
-            <View
-              accessibilityLabel="正在准备本轮词语"
-              accessibilityRole="progressbar"
-              accessibilityValue={{ min: 0, max: 100, now: progressPercent }}
-              style={styles.preparingProgressTrack}
-            >
-              <View style={[styles.preparingProgressFill, { width: `${progressPercent}%` }]} />
-            </View>
-            <Text style={styles.preparingProgressText}>{progressPercent}%</Text>
-          </View>
-        ) : null}
       </View>
     </View>
 
@@ -110,32 +97,6 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     lineHeight: typography.secondary * 1.4,
     color: colors.textSecondary,
-  },
-  preparingProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.small,
-  },
-  preparingProgressTrack: {
-    flex: 1,
-    height: componentSizes.progressBar.height,
-    borderRadius: componentSizes.progressBar.borderRadius,
-    overflow: 'hidden',
-    backgroundColor: colors.border,
-  },
-  preparingProgressFill: {
-    height: '100%',
-    borderRadius: componentSizes.progressBar.borderRadius,
-    backgroundColor: colors.primary,
-  },
-  preparingProgressText: {
-    minWidth: componentSizes.icon.xl,
-    marginLeft: spacing.small,
-    fontSize: typography.caption,
-    lineHeight: typography.caption * 1.4,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
-    textAlign: 'right',
   },
   rulesRow: {
     flexDirection: 'row',

@@ -1,6 +1,8 @@
 /** FibKing-owned derivation of game-neutral RoomShell models. */
 
 import {
+  type FibPreparationFailureCode,
+  type FibPreparationStage,
   type FibRole,
   type FibState,
   getFibBotDisplayName,
@@ -34,6 +36,18 @@ const FIB_ROLE_NAMES: Readonly<Record<FibRole, string>> = {
   guesser: '大聪明',
   honest: '老实人',
   fibber: '瞎掰王',
+};
+
+const FIB_PREPARATION_STAGE_MESSAGES: Readonly<Record<FibPreparationStage, string>> = {
+  queued: '词语任务已排队',
+  selectingWord: '正在选择本轮词语',
+};
+
+const FIB_PREPARATION_FAILURE_MESSAGES: Readonly<Record<FibPreparationFailureCode, string>> = {
+  'catalog-exhausted': '可用词语已经用完',
+  'catalog-invalid': '词库内容校验失败',
+  'service-unavailable': '词语服务暂时不可用',
+  'unexpected-error': '词语准备出现异常',
 };
 
 const denied = <TArgs extends readonly unknown[], TResult>(
@@ -133,10 +147,27 @@ export function getFibSeatTapIntent(input: FibSeatTapInput) {
 }
 
 function getSeatRoleLabel(state: FibState, seat: number): string | null {
-  if (state.phase === 'lobby' || state.phase === 'preparing') return null;
+  if (state.phase !== 'ongoing' && state.phase !== 'ended') return null;
   const role = getFibRole(state.round.roles, seat);
   if (state.phase === 'ongoing' && role !== 'guesser') return null;
   return FIB_ROLE_NAMES[role];
+}
+
+function getFibPreparationStatusText(
+  state: Extract<FibState, { readonly phase: 'preparing' | 'preparationFailed' }>,
+): string;
+function getFibPreparationStatusText(state: FibState): string | null;
+function getFibPreparationStatusText(state: FibState): string | null {
+  switch (state.phase) {
+    case 'preparing':
+      return FIB_PREPARATION_STAGE_MESSAGES[state.pendingRound.stage];
+    case 'preparationFailed':
+      return FIB_PREPARATION_FAILURE_MESSAGES[state.preparationFailure.failureCode];
+    case 'lobby':
+    case 'ongoing':
+    case 'ended':
+      return null;
+  }
 }
 
 interface FibSeatSourceInput {
@@ -211,7 +242,14 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel {
       return {
         kind: 'message',
         icon: 'guide',
-        text: '正在准备本轮词语',
+        text: getFibPreparationStatusText(state),
+        supportingText: null,
+      };
+    case 'preparationFailed':
+      return {
+        kind: 'message',
+        icon: 'guide',
+        text: `词语准备失败：${getFibPreparationStatusText(state)}`,
         supportingText: null,
       };
     case 'ongoing':
@@ -313,6 +351,28 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
         );
       }
       break;
+    case 'preparationFailed':
+      if (input.isHost) {
+        primary.push(
+          enabledButton(
+            'retry-preparation',
+            '重新准备',
+            'primary',
+            TESTIDS.fibStartRoundButton,
+            input.startRound,
+          ),
+        );
+        ghost.push(
+          enabledButton(
+            'return-to-lobby',
+            '返回大厅',
+            'ghost',
+            TESTIDS.fibCancelPreparingButton,
+            input.cancelPreparing,
+          ),
+        );
+      }
+      break;
     case 'ongoing':
       if (input.isHost) {
         primary.push(
@@ -373,6 +433,8 @@ function getPlayerMessage(state: FibState): string | null {
       return '等待房主开始本轮';
     case 'preparing':
       return '房主正在准备本轮';
+    case 'preparationFailed':
+      return '词语准备失败，请等待房主重试';
     case 'ongoing':
     case 'ended':
       return null;

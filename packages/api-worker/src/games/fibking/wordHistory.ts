@@ -8,8 +8,9 @@ import {
 import { z } from 'zod';
 
 import type { fibWordExposures } from './dbSchema';
+import { FIB_WORD_HISTORY_LIMIT } from './wordCatalog';
 
-export const FIB_WORD_HISTORY_LIMIT = 200;
+export { FIB_WORD_HISTORY_LIMIT } from './wordCatalog';
 
 type FibWordExposure = typeof fibWordExposures.$inferSelect;
 
