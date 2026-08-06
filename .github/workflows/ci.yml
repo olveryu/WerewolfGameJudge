@@ -79,7 +79,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       needs.quality.result == 'success' &&
-      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
     needs: quality
     permissions:
       contents: read
