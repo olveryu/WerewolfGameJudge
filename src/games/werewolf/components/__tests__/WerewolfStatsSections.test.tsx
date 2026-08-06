@@ -30,6 +30,7 @@ describe('Werewolf stats sections', () => {
     } as ReturnType<typeof useWerewolfPublicStats>);
 
     const profile = render(<WerewolfProfileDetails userId="user-1" />);
+    expect(profile.getByText('统计 4 局')).toBeTruthy();
     expect(profile.getByText('50%')).toBeTruthy();
     profile.unmount();
 

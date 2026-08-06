@@ -59,5 +59,6 @@ describe('werewolfStats', () => {
       'user-1',
       'stats',
     ]);
+    expect(werewolfPublicStatsOptions('user-1').staleTime).toBe(0);
   });
 });

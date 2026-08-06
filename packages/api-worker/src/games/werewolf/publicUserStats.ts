@@ -23,7 +23,7 @@ export async function getWerewolfPublicUserStats(
     .where(
       and(
         eq(campSettlements.userId, userId),
-        sql`${campSettlements.settledAt} <= datetime('now', ${`-${PUBLIC_VISIBILITY_DELAY_HOURS} hours`})`,
+        sql`datetime(${campSettlements.settledAt}) <= datetime('now', ${`-${PUBLIC_VISIBILITY_DELAY_HOURS} hours`})`,
       ),
     )
     .groupBy(campSettlements.camp);

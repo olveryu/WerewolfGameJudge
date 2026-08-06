@@ -13,10 +13,22 @@ export const WerewolfProfileDetails: React.FC<{ readonly userId: string }> = ({ 
 
   if (isPending) return <ActivityIndicator color={colors.primary} />;
   if (isError) return <Text style={styles.errorText}>阵营统计加载失败</Text>;
-  return <CampDistributionBar campStats={data.campStats} compact />;
+  return (
+    <>
+      <Text style={styles.gameCount}>统计 {data.campStats.total} 局</Text>
+      <CampDistributionBar campStats={data.campStats} compact />
+    </>
+  );
 };
 
 const styles = StyleSheet.create({
+  gameCount: {
+    marginBottom: spacing.small,
+    textAlign: 'right',
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.textMuted,
+  },
   errorText: {
     paddingVertical: spacing.small,
     fontSize: typography.caption,

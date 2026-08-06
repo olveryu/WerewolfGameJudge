@@ -49,11 +49,12 @@ async function insertCampRow(
   camp: string,
   minutesAgo: number,
 ): Promise<void> {
+  const settledAt = new Date(Date.now() - minutesAgo * 60_000).toISOString();
   await env.DB.prepare(
     `INSERT OR REPLACE INTO camp_settlements (user_id, settle_key, camp, settled_at)
-     VALUES (?, ?, ?, datetime('now', ?))`,
+     VALUES (?, ?, ?, ?)`,
   )
-    .bind(userId, settleKey, camp, `-${minutesAgo} minutes`)
+    .bind(userId, settleKey, camp, settledAt)
     .run();
 }
 
@@ -99,6 +100,23 @@ describe('camp statistics visibility', () => {
 
     expect(selfBody.campStats.counts.villager).toBe(1);
     expect(publicBody.campStats.counts.villager).toBe(1);
+  });
+
+  it('counts legacy SQLite and production ISO timestamps together', async () => {
+    await insertCampRow(TARGET_USER_ID, 'r1:0', 'wolf', 121);
+    await env.DB.prepare(
+      `INSERT INTO camp_settlements (user_id, settle_key, camp, settled_at)
+       VALUES (?, ?, ?, datetime('now', '-121 minutes'))`,
+    )
+      .bind(TARGET_USER_ID, 'r2:0', 'god')
+      .run();
+
+    const res = await getJson(werewolfStatsPath, await mintToken(VIEWER_USER_ID));
+    const body = await res.json<CampStatsResponse>();
+
+    expect(body.campStats.total).toBe(2);
+    expect(body.campStats.counts.wolf).toBe(1);
+    expect(body.campStats.counts.god).toBe(1);
   });
 
   it('keeps platform profile and growth payloads free of game statistics', async () => {
