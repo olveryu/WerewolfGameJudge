@@ -2,7 +2,7 @@
  * JWT Auth — custom JWT authentication + Refresh Token
  *
  * Access token: short-lived (1 hour), HS256 signed, contains stable sub/ver claims.
- * Refresh token: random hex string, SHA-256 hashed and stored in D1, 90-day TTL, single-use (rotation).
+ * Refresh token: opaque 256-bit value, SHA-256 hashed in D1, rolling 90-day TTL, family rotation.
  * Token version: users.token_version field, bumped on signout/password change to invalidate all old tokens.
  */
 
@@ -14,13 +14,15 @@ import { z } from 'zod';
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { users } from '../account/dbSchema';
-import { refreshTokens } from './dbSchema';
+import { refreshTokenRotations, refreshTokens } from './dbSchema';
 
 const JWT_ALGORITHM = 'HS256' as const;
 /** Access token expiry: 1 hour */
 const ACCESS_TOKEN_EXPIRY_SECONDS = 60 * 60;
 /** Refresh token expiry: 90 days */
 const REFRESH_TOKEN_EXPIRY_DAYS = 90;
+/** Direct predecessor retry window for a response lost after successful rotation. */
+const REFRESH_TOKEN_REPLAY_WINDOW_MS = 60_000;
 
 const accessTokenClaimsSchema = z.strictObject({
   sub: z.string().min(1),
@@ -44,8 +46,11 @@ type AccessTokenAuthentication =
   | { readonly kind: 'revoked' }
   | { readonly kind: 'userNotFound' };
 
-function getSecret(env: Env): Uint8Array {
-  return new TextEncoder().encode(env.JWT_SECRET);
+function getSecret(env: Env): Uint8Array<ArrayBuffer> {
+  const encodedSecret = new TextEncoder().encode(env.JWT_SECRET);
+  const secret = new Uint8Array(new ArrayBuffer(encodedSecret.byteLength));
+  secret.set(encodedSecret);
+  return secret;
 }
 
 /** SHA-256 hex hash */
@@ -53,7 +58,26 @@ async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** Derive one opaque successor without persisting refresh-token plaintext. */
+async function deriveRotatedRefreshToken(rawToken: string, env: Env): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    getSecret(env),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`refresh-token-rotation:${rawToken}`),
+  );
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -141,22 +165,89 @@ async function createRefreshToken(userId: string, env: Env): Promise<string> {
   return rawToken;
 }
 
+export type RefreshTokenRotationResult =
+  | {
+      readonly kind: 'rotated' | 'replayed';
+      readonly accessToken: string;
+      readonly refreshToken: string;
+      readonly userId: string;
+    }
+  | { readonly kind: 'invalid' }
+  | { readonly kind: 'reuseDetected'; readonly userId: string };
+
+async function signRefreshAccessToken(userId: string, env: Env): Promise<string> {
+  const db = createDb(env.DB);
+  const user = await db
+    .select({ tokenVersion: users.tokenVersion })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  if (user === undefined) throw new Error(`Expected refresh-token user ${userId}`);
+  return signToken(userId, env, user.tokenVersion);
+}
+
+async function replayRotatedRefreshToken(
+  rawToken: string,
+  tokenHash: string,
+  env: Env,
+  nowMs: number,
+): Promise<RefreshTokenRotationResult> {
+  const db = createDb(env.DB);
+  const rotation = await db
+    .select({
+      refreshTokenId: refreshTokenRotations.refreshTokenId,
+      successorTokenHash: refreshTokenRotations.successorTokenHash,
+      rotatedAt: refreshTokenRotations.rotatedAt,
+      currentTokenHash: refreshTokens.tokenHash,
+      userId: refreshTokens.userId,
+      expiresAt: refreshTokens.expiresAt,
+    })
+    .from(refreshTokenRotations)
+    .innerJoin(refreshTokens, eq(refreshTokenRotations.refreshTokenId, refreshTokens.id))
+    .where(eq(refreshTokenRotations.tokenHash, tokenHash))
+    .get();
+
+  if (rotation === undefined || new Date(rotation.expiresAt).getTime() <= nowMs) {
+    return { kind: 'invalid' };
+  }
+
+  const isDirectPredecessor = rotation.successorTokenHash === rotation.currentTokenHash;
+  const isInsideReplayWindow =
+    nowMs - new Date(rotation.rotatedAt).getTime() <= REFRESH_TOKEN_REPLAY_WINDOW_MS;
+  if (!isDirectPredecessor || !isInsideReplayWindow) {
+    await db.delete(refreshTokens).where(eq(refreshTokens.id, rotation.refreshTokenId));
+    return { kind: 'reuseDetected', userId: rotation.userId };
+  }
+
+  const successorToken = await deriveRotatedRefreshToken(rawToken, env);
+  const successorTokenHash = await sha256Hex(successorToken);
+  if (successorTokenHash !== rotation.successorTokenHash) {
+    throw new Error('Refresh-token rotation history does not match its derived successor');
+  }
+
+  return {
+    kind: 'replayed',
+    accessToken: await signRefreshAccessToken(rotation.userId, env),
+    refreshToken: successorToken,
+    userId: rotation.userId,
+  };
+}
+
 /**
- * Verify refresh token and perform rotation.
- * Success: delete old token, issue new access + refresh token pair.
- * Failure: return null.
+ * Verify a refresh token and advance its rotation family.
  *
- * @remarks Uses atomic DELETE-RETURNING: among concurrent requests only one gets the token,
- *   the rest get null. No race condition — single-use is guaranteed by SQL DELETE atomicity.
+ * @remarks D1 batch records the consumed-token relationship and advances the current token
+ *   atomically. A direct predecessor can replay the same derived successor for 60 seconds;
+ *   older or late reuse revokes only that token family.
  */
 export async function rotateRefreshToken(
   rawToken: string,
   env: Env,
-): Promise<{ accessToken: string; refreshToken: string; userId: string } | null> {
+): Promise<RefreshTokenRotationResult> {
   const tokenHash = await sha256Hex(rawToken);
   const db = createDb(env.DB);
+  const nowMs = Date.now();
 
-  // Read token data first (D1 does not support DELETE...RETURNING via .get())
   const row = await db
     .select({
       id: refreshTokens.id,
@@ -167,36 +258,48 @@ export async function rotateRefreshToken(
     .where(eq(refreshTokens.tokenHash, tokenHash))
     .get();
 
-  if (!row) return null;
+  if (row === undefined) return replayRotatedRefreshToken(rawToken, tokenHash, env, nowMs);
+  if (new Date(row.expiresAt).getTime() <= nowMs) return { kind: 'invalid' };
 
-  // Reject if expired before consuming the token
-  if (new Date(row.expiresAt) < new Date()) return null;
+  const successorToken = await deriveRotatedRefreshToken(rawToken, env);
+  const successorTokenHash = await sha256Hex(successorToken);
+  const rotatedAt = new Date(nowMs).toISOString();
+  const successorExpiresAt = new Date(
+    nowMs + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const accessToken = await signRefreshAccessToken(row.userId, env);
+  const batchResults = await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO refresh_token_rotations
+         (token_hash, refresh_token_id, successor_token_hash, rotated_at)
+       SELECT token_hash, id, ?1, ?2
+       FROM refresh_tokens
+       WHERE id = ?3 AND token_hash = ?4 AND expires_at > ?2`,
+    ).bind(successorTokenHash, rotatedAt, row.id, tokenHash),
+    env.DB.prepare(
+      `UPDATE refresh_tokens
+       SET token_hash = ?1, expires_at = ?2, created_at = ?3
+       WHERE id = ?4 AND token_hash = ?5 AND expires_at > ?3`,
+    ).bind(successorTokenHash, successorExpiresAt, rotatedAt, row.id, tokenHash),
+  ]);
+  const historyResult = batchResults[0];
+  const tokenResult = batchResults[1];
+  if (historyResult === undefined || tokenResult === undefined) {
+    throw new Error('Refresh-token rotation batch returned incomplete results');
+  }
+  if (historyResult.meta.changes === 0 && tokenResult.meta.changes === 0) {
+    return replayRotatedRefreshToken(rawToken, tokenHash, env, nowMs);
+  }
+  if (historyResult.meta.changes !== 1 || tokenResult.meta.changes !== 1) {
+    throw new Error('Refresh-token rotation batch violated its atomic update invariant');
+  }
 
-  // Atomic delete — meta.changes === 0 means a concurrent request already consumed it
-  const deleteResult = await db
-    .delete(refreshTokens)
-    .where(eq(refreshTokens.tokenHash, tokenHash))
-    .run();
-
-  if (deleteResult.meta.changes === 0) return null;
-
-  // Load user to get tokenVersion and claims
-  const user = await db
-    .select({
-      id: users.id,
-      tokenVersion: users.tokenVersion,
-    })
-    .from(users)
-    .where(eq(users.id, row.userId))
-    .get();
-
-  if (!user) return null;
-
-  // Issue new token pair
-  const accessToken = await signToken(user.id, env, user.tokenVersion);
-  const newRefreshToken = await createRefreshToken(user.id, env);
-
-  return { accessToken, refreshToken: newRefreshToken, userId: user.id };
+  return {
+    kind: 'rotated',
+    accessToken,
+    refreshToken: successorToken,
+    userId: row.userId,
+  };
 }
 
 /** Revoke all refresh tokens for a user (used on signout, password change) */

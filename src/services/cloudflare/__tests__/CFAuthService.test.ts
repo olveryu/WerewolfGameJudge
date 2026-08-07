@@ -1,7 +1,13 @@
 import { storage } from '@/services/infra/localStorage';
 
 import { CFAuthService } from '../CFAuthService';
-import { cfGet, cfPost, CloudflareHttpError } from '../cfFetch';
+import {
+  cfGet,
+  cfPost,
+  CloudflareHttpError,
+  CloudflareResponseJsonError,
+  CloudflareResponseProtocolError,
+} from '../cfFetch';
 
 jest.mock('../cfFetch', () => {
   const actual = jest.requireActual<typeof import('../cfFetch')>('../cfFetch');
@@ -122,6 +128,66 @@ describe('CFAuthService session restore', () => {
       skipAuthIntercept: true,
       noRetry: true,
     });
+  });
+
+  it.each(['body-read', 'json-parse'] as const)(
+    'retries refresh once when JSON production fails during %s',
+    async (phase) => {
+      seedStoredSession(createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60));
+      const refreshedToken = createUnsignedAccessToken(
+        'user-1',
+        Math.floor(Date.now() / 1000) + 3600,
+      );
+      mockCfPost
+        .mockRejectedValueOnce(
+          new CloudflareResponseJsonError({
+            path: '/auth/refresh',
+            status: 200,
+            phase,
+            cause: new TypeError('body stream terminated'),
+          }),
+        )
+        .mockImplementationOnce(async (_path, _body, decode) =>
+          decode({ access_token: refreshedToken, refresh_token: 'replayed-refresh' }),
+        );
+      mockCfGet.mockImplementationOnce(async (_path, decode) =>
+        decode({
+          data: {
+            user: {
+              id: 'user-1',
+              email: null,
+              is_anonymous: true,
+              has_wechat: false,
+              user_metadata: USER_METADATA,
+            },
+          },
+        }),
+      );
+
+      const service = new CFAuthService();
+      await service.waitForInit();
+
+      expect(mockCfPost).toHaveBeenCalledTimes(2);
+      expect(storage.getString('cf_auth_token')).toBe(refreshedToken);
+      expect(storage.getString('cf_refresh_token')).toBe('replayed-refresh');
+    },
+  );
+
+  it('does not retry a refresh response rejected by its decoder', async () => {
+    seedStoredSession(createUnsignedAccessToken('user-1', Math.floor(Date.now() / 1000) - 60));
+    mockCfPost.mockRejectedValueOnce(
+      new CloudflareResponseProtocolError({
+        path: '/auth/refresh',
+        status: 200,
+        body: { access_token: 'missing-refresh-token' },
+      }),
+    );
+
+    const service = new CFAuthService();
+    await service.waitForInit();
+
+    expect(mockCfPost).toHaveBeenCalledTimes(1);
+    expect(storage.getString('cf_refresh_token')).toBe('stored-refresh');
   });
 
   it('does not invent an offline identity for malformed persisted state', async () => {

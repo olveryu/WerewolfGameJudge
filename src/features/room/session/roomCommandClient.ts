@@ -38,6 +38,7 @@ interface SendPreparedRoomCommandOptions<
   readonly prepared: PreparedRoomCommand<TCommand>;
   readonly codec: GameStateCodec<TState>;
   readonly label: string;
+  readonly signal: AbortSignal;
 }
 
 function freezeCommand(value: unknown, ancestors: Set<object>): void {
@@ -141,8 +142,27 @@ function mapTransportError(
   };
 }
 
-function wait(delayMs: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, delayMs));
+function createRoomCommandAbortError(): DOMException {
+  return new DOMException('Room command cancelled because its session ended', 'AbortError');
+}
+
+function wait(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(createRoomCommandAbortError());
+      return;
+    }
+
+    const handleAbort = () => {
+      clearTimeout(timeout);
+      reject(createRoomCommandAbortError());
+    };
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', handleAbort);
+      resolve();
+    }, delayMs);
+    signal.addEventListener('abort', handleAbort, { once: true });
+  });
 }
 
 /** Send an immutable command without applying its snapshot or changing its ID. */
@@ -153,6 +173,7 @@ export async function sendPreparedRoomCommand<
   prepared,
   codec,
   label,
+  signal,
 }: SendPreparedRoomCommandOptions<TState, TCommand>): Promise<RoomCommandDispatchOutcome<TState>> {
   const request = {
     roomCode: prepared.roomCode,
@@ -164,17 +185,23 @@ export async function sendPreparedRoomCommand<
 
   for (let attempt = 0; ; attempt += 1) {
     try {
-      const decision = await cfPost(COMMAND_PATH, request, (value) => {
-        const parsed = parseRoomCommandResult(value, codec);
-        if (parsed.commandId !== prepared.commandId) {
-          throw new RoomCommandProtocolError(
-            `RoomCommandResult commandId mismatch: expected ${prepared.commandId}, received ${parsed.commandId}`,
-          );
-        }
-        return parsed;
-      });
+      const decision = await cfPost(
+        COMMAND_PATH,
+        request,
+        (value) => {
+          const parsed = parseRoomCommandResult(value, codec);
+          if (parsed.commandId !== prepared.commandId) {
+            throw new RoomCommandProtocolError(
+              `RoomCommandResult commandId mismatch: expected ${prepared.commandId}, received ${parsed.commandId}`,
+            );
+          }
+          return parsed;
+        },
+        { signal },
+      );
       return { kind: 'decided', decision };
     } catch (error) {
+      if (signal.aborted) throw createRoomCommandAbortError();
       const retryDelay = BUSINESS_RETRY_DELAYS_MS[attempt];
       if (retryDelay !== undefined && isBusinessRetryable(error)) {
         roomSessionLog.warn('room command retrying', {
@@ -183,7 +210,7 @@ export async function sendPreparedRoomCommand<
           commandType: 'type' in prepared.command ? prepared.command.type : null,
           attempt: attempt + 1,
         });
-        await wait(retryDelay);
+        await wait(retryDelay, signal);
         continue;
       }
       return mapTransportError(error, label, prepared.commandId);

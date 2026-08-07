@@ -17,8 +17,7 @@ const mockUseServices = jest.mocked(useServices);
 const getRoom = jest.fn<Promise<RoomRecord | null>, [string]>();
 const roomDirectory = { getRoom } as unknown as RoomDirectory;
 const navigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
+  popTo: jest.fn(),
 } as unknown as NativeStackScreenProps<RootStackParamList, 'Room'>['navigation'];
 
 const WerewolfRoom: React.FC<React.ComponentProps<RoomUiModule['roomScreen']>> = ({ room }) => (
@@ -69,7 +68,7 @@ describe('RoomResolverScreen', () => {
     expect(getGameModule).not.toHaveBeenCalled();
 
     fireEvent.press(view.getByText('返回首页'));
-    expect(navigation.navigate).toHaveBeenCalledWith('Home');
+    expect(navigation.popTo).toHaveBeenCalledWith('Home');
   });
 
   it('rejects malformed deep-link codes without issuing a request', async () => {

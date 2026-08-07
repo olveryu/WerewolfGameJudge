@@ -9,7 +9,8 @@
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
-import { createTimeoutSignal } from '@/utils/abortSignal';
+import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
+import { isAbortError } from '@/utils/errorUtils';
 import { cfFetchLog } from '@/utils/logger';
 
 import { isAccessTokenClaimsExpired, parseAccessTokenClaims } from './accessTokenClaims';
@@ -34,6 +35,28 @@ export class CloudflareHttpError extends Error {
     this.status = options.status;
     this.reason = options.reason;
     this.body = options.body;
+  }
+}
+
+/** A successful JSON response that could not produce a parsed JSON value. */
+export class CloudflareResponseJsonError extends Error {
+  readonly path: string;
+  readonly status: number;
+  readonly phase: 'body-read' | 'json-parse';
+
+  constructor(options: {
+    readonly path: string;
+    readonly status: number;
+    readonly phase: 'body-read' | 'json-parse';
+    readonly cause: unknown;
+  }) {
+    super(`Failed to produce JSON response for ${options.path} during ${options.phase}`, {
+      cause: options.cause,
+    });
+    this.name = 'CloudflareResponseJsonError';
+    this.path = options.path;
+    this.status = options.status;
+    this.phase = options.phase;
   }
 }
 
@@ -158,6 +181,41 @@ export async function ensureFreshToken(): Promise<string | null> {
 
 // ── Network-layer retry ─────────────────────────────────────────────────────
 
+interface AbortableRequestInit extends RequestInit {
+  readonly signal: AbortSignal;
+}
+
+interface ActiveFetchResponse {
+  readonly response: Response;
+  dispose(): void;
+}
+
+function getAbortReason(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason;
+  return reason instanceof Error
+    ? reason
+    : new DOMException('The operation was aborted.', 'AbortError');
+}
+
+function waitForRetryDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(getAbortReason(signal));
+      return;
+    }
+
+    const handleAbort = (): void => {
+      clearTimeout(timeout);
+      reject(getAbortReason(signal));
+    };
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', handleAbort);
+      resolve();
+    }, delayMs);
+    signal.addEventListener('abort', handleAbort, { once: true });
+  });
+}
+
 /**
  * Network-layer retry: only retries TypeError thrown by fetch() (DNS/TCP/TLS failure = request likely never reached server).
  * DOMException (AbortError/TimeoutError) and programming errors are thrown immediately, no retry.
@@ -165,13 +223,16 @@ export async function ensureFreshToken(): Promise<string | null> {
  * @throws {TypeError} Still fails after FETCH_RETRY_COUNT retries
  * @throws {DOMException} AbortError/TimeoutError — thrown immediately, no retry
  */
-async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init: AbortableRequestInit,
+): Promise<Response> {
   for (let attempt = 0; attempt <= FETCH_RETRY_COUNT; attempt++) {
     try {
       return await fetch(input, init);
     } catch (error) {
       if (!(error instanceof TypeError)) throw error;
-      if (init?.signal?.aborted) throw error;
+      if (init.signal.aborted) throw getAbortReason(init.signal);
       if (attempt === FETCH_RETRY_COUNT) throw error;
       const delay = FETCH_RETRY_BASE_MS * 2 ** attempt;
       cfFetchLog.debug('fetch network error, retrying', {
@@ -179,7 +240,7 @@ async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Pro
         delay,
         error: error.message,
       });
-      await new Promise((r) => setTimeout(r, delay));
+      await waitForRetryDelay(delay, init.signal);
     }
   }
   throw new Error('fetchWithRetry: unreachable');
@@ -193,6 +254,7 @@ interface RequestOptions<T> {
   body?: string | FormData;
   headers: Record<string, string>;
   timeoutMs: number;
+  signal?: AbortSignal;
   decode: JsonResponseDecoder<T>;
   noRetry?: boolean;
   /** This is the refresh request itself; skip 401 interception */
@@ -201,15 +263,26 @@ interface RequestOptions<T> {
 
 async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
   const url = `${API_BASE_URL}${opts.path}`;
-  const fetchFn = opts.noRetry ? fetch : fetchWithRetry;
 
-  const doFetch = (headers: Record<string, string>) =>
-    fetchFn(url, {
+  const doFetch = async (headers: Record<string, string>): Promise<ActiveFetchResponse> => {
+    const timeoutSignal = createTimeoutSignal(opts.timeoutMs);
+    const composition = composeAbortSignals(
+      opts.signal ? [opts.signal, timeoutSignal] : [timeoutSignal],
+    );
+    const init: AbortableRequestInit = {
       method: opts.method,
       headers,
       body: opts.body,
-      signal: createTimeoutSignal(opts.timeoutMs),
-    });
+      signal: composition.signal,
+    };
+    try {
+      const response = await (opts.noRetry ? fetch(url, init) : fetchWithRetry(url, init));
+      return { response, dispose: () => composition.dispose() };
+    } catch (error) {
+      composition.dispose();
+      throw error;
+    }
+  };
 
   // First request
   const headers = { ...opts.headers };
@@ -218,36 +291,64 @@ async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await doFetch(headers);
+  const activeResponse = await doFetch(headers);
+  try {
+    const { response } = activeResponse;
 
-  // 401 interception: attempt refresh and retry once
-  if (res.status === 401 && !opts.skipAuthIntercept && refreshHandler) {
-    cfFetchLog.debug('401 received, attempting refresh', { path: opts.path });
-    const refreshResult = await refreshWithLock();
-    if (refreshResult === 'refreshed') {
-      // Retry with new token
-      const retryHeaders = { ...opts.headers };
-      const newToken = tokenProvider?.();
-      if (newToken) {
-        retryHeaders['Authorization'] = `Bearer ${newToken}`;
+    // 401 interception: attempt refresh and retry once
+    if (response.status === 401 && !opts.skipAuthIntercept && refreshHandler) {
+      cfFetchLog.debug('401 received, attempting refresh', { path: opts.path });
+      const refreshResult = await waitForRefreshWithSignal(opts.signal);
+      if (refreshResult === 'refreshed') {
+        // Retry with new token
+        const retryHeaders = { ...opts.headers };
+        const newToken = tokenProvider?.();
+        if (newToken) {
+          retryHeaders['Authorization'] = `Bearer ${newToken}`;
+        }
+        activeResponse.dispose();
+        const retryResponse = await doFetch(retryHeaders);
+        try {
+          return await parseJsonResponse(retryResponse.response, opts.path, opts.decode);
+        } finally {
+          retryResponse.dispose();
+        }
       }
-      const retryRes = await doFetch(retryHeaders);
-      return parseJsonResponse(retryRes, opts.path, opts.decode);
+      if (refreshResult === 'expired') {
+        // Session fully dead — notify UI and fail fast
+        onAuthExpired?.();
+        throw new CloudflareHttpError({
+          status: 401,
+          reason: 'AUTH_EXPIRED',
+          body: null,
+        });
+      }
+      // refreshResult === 'offline': network error during refresh, don't sign out
+      // Fall through to parseJsonResponse so TanStack Query can retry
     }
-    if (refreshResult === 'expired') {
-      // Session fully dead — notify UI and fail fast
-      onAuthExpired?.();
-      throw new CloudflareHttpError({
-        status: 401,
-        reason: 'AUTH_EXPIRED',
-        body: null,
-      });
-    }
-    // refreshResult === 'offline': network error during refresh, don't sign out
-    // Fall through to parseJsonResponse so TanStack Query can retry
-  }
 
-  return parseJsonResponse(res, opts.path, opts.decode);
+    return await parseJsonResponse(response, opts.path, opts.decode);
+  } finally {
+    activeResponse.dispose();
+  }
+}
+
+async function waitForRefreshWithSignal(
+  signal: AbortSignal | undefined,
+): Promise<'refreshed' | 'expired' | 'offline'> {
+  if (signal === undefined) return refreshWithLock();
+  if (signal.aborted) throw getAbortReason(signal);
+
+  let handleAbort: (() => void) | null = null;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    handleAbort = () => reject(getAbortReason(signal));
+    signal.addEventListener('abort', handleAbort, { once: true });
+  });
+  try {
+    return await Promise.race([refreshWithLock(), aborted]);
+  } finally {
+    if (handleAbort !== null) signal.removeEventListener('abort', handleAbort);
+  }
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -261,6 +362,7 @@ export async function cfPost<T>(
   decode: JsonResponseDecoder<T>,
   options?: {
     timeoutMs?: number;
+    signal?: AbortSignal;
     extraHeaders?: Record<string, string>;
     noRetry?: boolean;
     skipAuthIntercept?: boolean;
@@ -276,6 +378,7 @@ export async function cfPost<T>(
       ...options?.extraHeaders,
     },
     timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    signal: options?.signal,
     decode,
     noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,
@@ -354,9 +457,30 @@ async function parseJsonResponse<T>(
     });
   }
 
+  let responseText: string;
+  try {
+    responseText = await res.text();
+  } catch (cause) {
+    if (isAbortError(cause)) throw cause;
+    if (!res.ok) {
+      throw new CloudflareHttpError({
+        status: res.status,
+        reason: 'SERVER_ERROR',
+        body: null,
+        cause,
+      });
+    }
+    throw new CloudflareResponseJsonError({
+      path,
+      status: res.status,
+      phase: 'body-read',
+      cause,
+    });
+  }
+
   let data: unknown;
   try {
-    data = await res.json();
+    data = JSON.parse(responseText);
   } catch (cause) {
     if (!res.ok) {
       throw new CloudflareHttpError({
@@ -366,10 +490,10 @@ async function parseJsonResponse<T>(
         cause,
       });
     }
-    throw new CloudflareResponseProtocolError({
+    throw new CloudflareResponseJsonError({
       path,
       status: res.status,
-      body: null,
+      phase: 'json-parse',
       cause,
     });
   }

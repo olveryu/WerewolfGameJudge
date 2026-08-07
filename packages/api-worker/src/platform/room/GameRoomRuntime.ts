@@ -143,7 +143,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     command: AuthorizeRoomDeletionCommand,
   ): Promise<AuthorizeRoomDeletionResult> {
     if (this.#isStorageDeleted) return { success: false, reason: REASON_NO_STATE };
-    const room = this.#readRoomInstance(command);
+    const room = this.#readRoomInitialization(command);
     if (room === null) return { success: false, reason: REASON_NO_STATE };
     if (command.actorUserId !== room.hostUserId) {
       return { success: false, reason: REASON_NOT_HOST };
@@ -158,7 +158,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     this.#assertIdentityFields(command);
     if (this.#isStorageDeleted) return { success: true };
 
-    this.#readRoomInstance(command);
+    this.#readRoomInitialization(command);
     if (this.#outbox.hasOutstandingEffects()) {
       return { success: false, reason: REASON_ROOM_EFFECTS_PENDING };
     }
@@ -388,13 +388,33 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     }
   }
 
+  #assertRoomStorageIdentity(
+    identity: RoomInstanceIdentity,
+    storedIdentity: Pick<RoomInstanceIdentity, 'roomCode' | 'creationId'>,
+  ): void {
+    if (
+      storedIdentity.roomCode !== identity.roomCode ||
+      storedIdentity.creationId !== identity.creationId
+    ) {
+      throw new Error('Room identity does not match Durable Object storage');
+    }
+  }
+
+  #readRoomInitialization(
+    identity: RoomInstanceIdentity,
+  ): ReturnType<RoomRepository['readRoomInitialization']> {
+    this.#assertIdentityFields(identity);
+    const initialization = this.#repository.readRoomInitialization();
+    if (initialization === null) return null;
+    this.#assertRoomStorageIdentity(identity, initialization);
+    return initialization;
+  }
+
   #readRoomInstance(identity: RoomInstanceIdentity): ReturnType<RoomRepository['readRoom']> {
     this.#assertIdentityFields(identity);
     const room = this.#repository.readRoom();
     if (room === null) return null;
-    if (room.roomCode !== identity.roomCode || room.creationId !== identity.creationId) {
-      throw new Error('Room identity does not match Durable Object storage');
-    }
+    this.#assertRoomStorageIdentity(identity, room);
     return room;
   }
 

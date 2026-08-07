@@ -1,11 +1,11 @@
 /** Authentication retention tasks invoked by the application scheduler. */
 
-import { sql } from 'drizzle-orm';
+import { lte, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
 import type { Env } from '../../env';
 import { createLogger } from '../../platform/observability/logger';
-import { loginAttempts, wxClaims } from './dbSchema';
+import { loginAttempts, refreshTokens, wxClaims } from './dbSchema';
 
 const log = createLogger('auth-maintenance');
 const WECHAT_CLAIM_MAX_AGE_MINUTES = 5;
@@ -20,6 +20,22 @@ export async function cleanupOldLoginAttempts(env: Env): Promise<{ deleted: numb
 
   const deleted = result.length;
   log.info('login attempt cleanup complete', { deleted });
+  return { deleted };
+}
+
+/** Delete expired refresh-token families and their cascaded rotation lineage. */
+export async function cleanupExpiredRefreshTokenFamilies(
+  env: Env,
+  nowMs: number,
+): Promise<{ deleted: number }> {
+  const db = createDb(env.DB);
+  const result = await db
+    .delete(refreshTokens)
+    .where(lte(refreshTokens.expiresAt, new Date(nowMs).toISOString()))
+    .returning({ id: refreshTokens.id });
+
+  const deleted = result.length;
+  log.info('expired refresh-token family cleanup complete', { deleted });
   return { deleted };
 }
 

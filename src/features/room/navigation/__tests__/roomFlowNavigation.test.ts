@@ -1,6 +1,7 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
+  exitRoomFlow,
   replaceWithCreatedRoom,
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
@@ -14,6 +15,15 @@ function createNavigation() {
 }
 
 describe('roomFlowNavigation', () => {
+  it('pops the complete room flow before returning Home', () => {
+    const navigation = createNavigation();
+
+    exitRoomFlow(navigation);
+
+    expect(navigation.popTo).toHaveBeenCalledWith('Home');
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
   it('replaces the create flow so it cannot remain below the room', () => {
     const navigation = createNavigation();
 

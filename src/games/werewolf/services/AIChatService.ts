@@ -12,7 +12,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR } from '@/config/errorMessages';
 import { getCurrentToken } from '@/services/cloudflare/cfFetch';
-import { combineSignals, createTimeoutSignal } from '@/utils/abortSignal';
+import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
@@ -183,9 +183,9 @@ export async function* streamChatMessage(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Combine caller abort signal with a 30s TTFB timeout so long inputs don't hang forever
+  // Combine caller cancellation with a 30s request timeout.
   const timeoutSignal = createTimeoutSignal(30_000);
-  const combinedSignal = signal ? combineSignals([signal, timeoutSignal]) : timeoutSignal;
+  const signalComposition = composeAbortSignals(signal ? [signal, timeoutSignal] : [timeoutSignal]);
 
   let response: Response;
   try {
@@ -198,12 +198,13 @@ export async function* streamChatMessage(
         temperature: 0.7,
         stream: true,
       }),
-      signal: combinedSignal,
+      signal: signalComposition.signal,
     });
   } catch (error) {
+    signalComposition.dispose();
     if (error instanceof Error && error.name === 'AbortError') throw error;
     if (error instanceof Error && error.name === 'TimeoutError') {
-      chatLog.warn('Streaming fetch timed out (30s TTFB)');
+      chatLog.warn('Streaming request timed out (30s)');
       yield { type: 'error', content: 'AI 响应超时，请稍后重试' };
       return;
     }
@@ -213,7 +214,7 @@ export async function* streamChatMessage(
   }
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = await response.text().finally(() => signalComposition.dispose());
 
     // Parse structured error code from server
     let errorCode: string | undefined;
@@ -249,6 +250,7 @@ export async function* streamChatMessage(
   // Parse SSE stream
   const reader = response.body?.getReader();
   if (!reader) {
+    signalComposition.dispose();
     yield { type: 'error', content: '浏览器不支持流式响应' };
     return;
   }
@@ -290,6 +292,7 @@ export async function* streamChatMessage(
     }
   } finally {
     reader.releaseLock();
+    signalComposition.dispose();
   }
 
   yield { type: 'done', content: '' };

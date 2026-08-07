@@ -11,6 +11,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
 import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
 import type { RegisteredRoomUiModule } from '@/features/room/model/RoomUiModule';
+import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { log } from '@/utils/logger';
 
@@ -84,7 +85,7 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
   const handleRetry = useCallback(() => {
     setRetryGeneration((generation) => generation + 1);
   }, []);
-  const handleBack = useCallback(() => navigation.navigate('Home'), [navigation]);
+  const handleBack = useCallback(() => exitRoomFlow(navigation), [navigation]);
 
   if (state.kind === 'loading') return <LoadingScreen message="正在查找房间" />;
   if (state.kind === 'error') {

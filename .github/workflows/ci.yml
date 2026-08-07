@@ -79,9 +79,10 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       needs.quality.result == 'success' &&
+      needs.deploy-api-worker.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
-    needs: quality
+    needs: [quality, deploy-api-worker]
     permissions:
       contents: read
       deployments: write

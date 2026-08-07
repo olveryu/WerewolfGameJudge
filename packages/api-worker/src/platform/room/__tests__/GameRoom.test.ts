@@ -9,6 +9,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,
+  REASON_NOT_HOST,
   REASON_SEAT_EMPTY,
 } from '@game-judge/game-engine/platform/protocol/reasons';
 import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
@@ -24,6 +25,7 @@ import type { DispatchRoomResult, InitializeRoomResult } from '../types';
 
 const ROOM_CODE = '1234';
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
+const UNSUPPORTED_WEREWOLF_STATE_VERSION = WEREWOLF_STATE_VERSION - 1;
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();
@@ -417,6 +419,40 @@ describe('GameRoom command receipts', () => {
       .bind(stub.id.toString())
       .first();
     expect(participant).toEqual({ user_id: 'host-1' });
+  });
+
+  it('authorizes and deletes storage whose game state version is no longer supported', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec(
+        `UPDATE room_state
+        SET state_version = ?, game_state = json_set(game_state, '$.stateVersion', ?)
+        WHERE id = 1`,
+        UNSUPPORTED_WEREWOLF_STATE_VERSION,
+        UNSUPPORTED_WEREWOLF_STATE_VERSION,
+      );
+    });
+
+    await runInDurableObject(stub, async (instance: GameRoom) => {
+      await expect(instance.getSnapshot(roomIdentity(stub))).rejects.toThrow(
+        `Unsupported werewolf state version: ${UNSUPPORTED_WEREWOLF_STATE_VERSION}`,
+      );
+      await expect(
+        instance.authorizeRoomDeletion({
+          ...roomIdentity(stub, 'wrong-creation'),
+          actorUserId: 'host-1',
+        }),
+      ).rejects.toThrow('Room identity does not match Durable Object storage');
+    });
+    await expect(
+      stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'player-1' }),
+    ).resolves.toEqual({ success: false, reason: REASON_NOT_HOST });
+    await expect(
+      stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'host-1' }),
+    ).resolves.toEqual({ success: true });
+    await expect(stub.deleteRoomStorage(roomIdentity(stub))).resolves.toEqual({ success: true });
+    await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
   it('refuses deletion while any outbox effect remains', async () => {

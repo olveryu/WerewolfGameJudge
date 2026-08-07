@@ -212,7 +212,56 @@ describe('RoomSession', () => {
     expect(mockCfPost).not.toHaveBeenCalled();
   });
 
-  it('fails fast on a late command response without applying it to a new epoch', async () => {
+  it('cancels an in-flight command when its session disconnects', async () => {
+    const { session } = createSession();
+    await session.connect(IDENTITY);
+    mockCfPost.mockImplementationOnce(
+      (_path, _body, _decode, options) =>
+        new Promise((_resolve, reject) => {
+          const signal = options?.signal;
+          if (signal === undefined) throw new Error('Expected room command cancellation signal');
+          signal.addEventListener(
+            'abort',
+            () => {
+              const error = new Error('The room command request was aborted');
+              error.name = 'AbortError';
+              reject(error);
+            },
+            { once: true },
+          );
+        }),
+    );
+
+    const dispatched = session.dispatch(
+      { type: 'test.increment', amount: 1 },
+      { controlledSeat: null, label: 'test' },
+    );
+    session.disconnect();
+
+    await expect(dispatched).rejects.toMatchObject({
+      name: 'AbortError',
+      message: 'Room command cancelled because its session ended',
+    });
+    expect(session.getSnapshot().phase).toBe('idle');
+  });
+
+  it('cancels a command while it is waiting for a business retry', async () => {
+    const { session } = createSession();
+    await session.connect(IDENTITY);
+    mockCfPost.mockRejectedValueOnce(new DOMException('Signal timed out', 'TimeoutError'));
+
+    const dispatched = session.dispatch(
+      { type: 'test.increment', amount: 1 },
+      { controlledSeat: null, label: 'test' },
+    );
+    await flushAsyncWork();
+    session.disconnect();
+
+    await expect(dispatched).rejects.toMatchObject({ name: 'AbortError' });
+    expect(mockCfPost).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails fast if a non-cooperative command transport returns after disconnect', async () => {
     const { session } = createSession();
     await session.connect(IDENTITY);
     const commandResponse = createDeferred<unknown>();

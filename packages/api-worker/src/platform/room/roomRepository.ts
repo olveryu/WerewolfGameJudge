@@ -39,6 +39,20 @@ interface RawRoomRow extends Record<string, SqlStorageValue> {
   readonly updated_at: SqlStorageValue;
 }
 
+interface RawRoomInitializationRow extends Record<string, SqlStorageValue> {
+  readonly creation_id: SqlStorageValue;
+  readonly initialization_json: SqlStorageValue;
+  readonly game_type: SqlStorageValue;
+}
+
+interface StoredRoomInitialization {
+  readonly roomCode: string;
+  readonly gameType: GameType;
+  readonly hostUserId: string;
+  readonly creationId: string;
+  readonly initializationJson: string;
+}
+
 interface RawCommandReceipt extends Record<string, SqlStorageValue> {
   readonly game_type: SqlStorageValue;
   readonly state_version: SqlStorageValue;
@@ -125,15 +139,7 @@ function actorId(actor: CommandActor): string {
   return actor.kind === 'user' ? actor.userId : actor.effectId;
 }
 
-function parseInitializationJson(
-  value: unknown,
-  expected: {
-    readonly creationId: string;
-    readonly gameType: GameType;
-    readonly roomCode: string;
-    readonly hostUserId: string;
-  },
-): string {
+function parseRoomInitialization(value: unknown): StoredRoomInitialization {
   const initializationJson = parseNonEmptyString(value, 'room_state.initialization_json');
   const parsed: unknown = JSON.parse(initializationJson);
   if (!isRecord(parsed)) {
@@ -147,15 +153,13 @@ function parseInitializationJson(
   ) {
     throw new Error('room_state.initialization_json has unsupported fields');
   }
-  if (
-    parsed.creationId !== expected.creationId ||
-    parsed.gameType !== expected.gameType ||
-    parsed.roomCode !== expected.roomCode ||
-    parsed.hostUserId !== expected.hostUserId
-  ) {
-    throw new Error('room_state initialization does not match persisted state identity');
-  }
-  return initializationJson;
+  return {
+    roomCode: parseNonEmptyString(parsed.roomCode, 'room_state.initialization_json.roomCode'),
+    gameType: parseGameType(parsed.gameType),
+    hostUserId: parseNonEmptyString(parsed.hostUserId, 'room_state.initialization_json.hostUserId'),
+    creationId: parseNonEmptyString(parsed.creationId, 'room_state.initialization_json.creationId'),
+    initializationJson,
+  };
 }
 
 export function serializeCommandRequest(request: DispatchRoomCommand): string {
@@ -181,19 +185,22 @@ function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolv
   const stateJson = parseNonEmptyString(raw.game_state, 'room_state.game_state');
   const state = module.parseState(JSON.parse(stateJson));
   const creationId = parseNonEmptyString(raw.creation_id, 'room_state.creation_id');
-  const initializationJson = parseInitializationJson(raw.initialization_json, {
-    creationId,
-    gameType,
-    roomCode: state.roomCode,
-    hostUserId: state.hostUserId,
-  });
+  const initialization = parseRoomInitialization(raw.initialization_json);
+  if (
+    initialization.creationId !== creationId ||
+    initialization.gameType !== gameType ||
+    initialization.roomCode !== state.roomCode ||
+    initialization.hostUserId !== state.hostUserId
+  ) {
+    throw new Error('room_state initialization does not match persisted state identity');
+  }
 
   return {
     roomCode: state.roomCode,
     gameType,
     hostUserId: state.hostUserId,
     creationId,
-    initializationJson,
+    initializationJson: initialization.initializationJson,
     stateVersion,
     state,
     stateJson,
@@ -228,6 +235,30 @@ export class RoomRepository {
     this.#storage = storage;
     this.#sql = storage.sql;
     this.#resolveGameModule = resolveGameModule;
+  }
+
+  /** Read stable platform metadata without decoding versioned game state. */
+  readRoomInitialization(): StoredRoomInitialization | null {
+    const rows = this.#sql
+      .exec<RawRoomInitializationRow>(
+        `SELECT creation_id, initialization_json, game_type
+        FROM room_state
+        WHERE id = 1`,
+      )
+      .toArray();
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) {
+      throw new Error(`room_state must contain at most one row, received ${rows.length}`);
+    }
+
+    const row = rows[0];
+    const creationId = parseNonEmptyString(row.creation_id, 'room_state.creation_id');
+    const gameType = parseGameType(row.game_type);
+    const initialization = parseRoomInitialization(row.initialization_json);
+    if (initialization.creationId !== creationId || initialization.gameType !== gameType) {
+      throw new Error('room_state initialization does not match persisted platform identity');
+    }
+    return initialization;
   }
 
   readRoom(): StoredRoomRow | null {

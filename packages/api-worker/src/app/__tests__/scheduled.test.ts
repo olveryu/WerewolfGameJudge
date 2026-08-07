@@ -12,7 +12,9 @@ beforeEach(async () => {
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
   await env.DB.prepare('DELETE FROM login_attempts').run();
-  await env.DB.prepare("DELETE FROM users WHERE id IN ('stale-anonymous', 'room-host')").run();
+  await env.DB.prepare(
+    "DELETE FROM users WHERE id IN ('stale-anonymous', 'room-host', 'refresh-owner')",
+  ).run();
 });
 
 describe('runScheduledCron', () => {
@@ -68,5 +70,36 @@ describe('runScheduledCron', () => {
     expect(await env.DB.prepare("SELECT id FROM users WHERE id = 'room-host'").first()).toEqual({
       id: 'room-host',
     });
+  });
+
+  it('deletes expired refresh-token families and preserves active families', async () => {
+    await env.DB.prepare(
+      `INSERT INTO users (id, is_anonymous, created_at, updated_at)
+       VALUES ('refresh-owner', 0, '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z')`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) VALUES
+        ('expired-family', 'refresh-owner', 'expired-current-hash',
+         '2026-07-10T12:00:00.000Z', '2026-07-01T00:00:00.000Z'),
+        ('active-family', 'refresh-owner', 'active-current-hash',
+         '2026-07-11T12:00:00.000Z', '2026-07-01T00:00:00.000Z')`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO refresh_token_rotations
+        (token_hash, refresh_token_id, successor_token_hash, rotated_at)
+       VALUES ('expired-ancestor-hash', 'expired-family', 'expired-current-hash',
+         '2026-07-10T11:59:00.000Z')`,
+    ).run();
+
+    await runScheduledCron(env, '0 3 * * *', NOW_MS);
+
+    expect(await env.DB.prepare('SELECT id FROM refresh_tokens ORDER BY id').all()).toMatchObject({
+      results: [{ id: 'active-family' }],
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT token_hash FROM refresh_token_rotations WHERE token_hash = 'expired-ancestor-hash'",
+      ).first(),
+    ).toBeNull();
   });
 });

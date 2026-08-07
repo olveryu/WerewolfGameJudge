@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 interface AuthSuccessResponse {
   access_token: string;
+  refresh_token: string;
   user: {
     id: string;
     email: string | null;
@@ -30,6 +31,11 @@ interface ResetPasswordSuccessResponse {
   success: boolean;
   access_token: string;
   user: { email: string };
+}
+
+interface TokenPairResponse {
+  access_token: string;
+  refresh_token: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -348,6 +354,108 @@ describe('POST /auth/signout', () => {
   it('returns 401 without token', async () => {
     const res = await postJson('/auth/signout', {});
     expect(res.status).toBe(401);
+  });
+});
+
+// ── POST /auth/refresh ──────────────────────────────────────────────────────
+
+describe('POST /auth/refresh', () => {
+  it('replays the same successor when the first rotation response is lost', async () => {
+    const anonymousResponse = await postJson('/auth/anonymous', {});
+    const initialTokens = await anonymousResponse.json<AuthSuccessResponse>();
+
+    const firstRotationResponse = await postJson('/auth/refresh', {
+      refresh_token: initialTokens.refresh_token,
+    });
+    expect(firstRotationResponse.status).toBe(200);
+    const firstRotation = await firstRotationResponse.json<TokenPairResponse>();
+
+    const replayResponse = await postJson('/auth/refresh', {
+      refresh_token: initialTokens.refresh_token,
+    });
+    expect(replayResponse.status).toBe(200);
+    const replay = await replayResponse.json<TokenPairResponse>();
+
+    expect(replay.refresh_token).toBe(firstRotation.refresh_token);
+    expect(replay.access_token).toBeTruthy();
+  });
+
+  it('returns one successor to concurrent rotation requests', async () => {
+    const anonymousResponse = await postJson('/auth/anonymous', {});
+    const initialTokens = await anonymousResponse.json<AuthSuccessResponse>();
+
+    const [firstResponse, secondResponse] = await Promise.all([
+      postJson('/auth/refresh', { refresh_token: initialTokens.refresh_token }),
+      postJson('/auth/refresh', { refresh_token: initialTokens.refresh_token }),
+    ]);
+    expect(firstResponse.status).toBe(200);
+    expect(secondResponse.status).toBe(200);
+
+    const [firstRotation, secondRotation] = await Promise.all([
+      firstResponse.json<TokenPairResponse>(),
+      secondResponse.json<TokenPairResponse>(),
+    ]);
+    expect(secondRotation.refresh_token).toBe(firstRotation.refresh_token);
+  });
+
+  it('revokes only the reused family when an older ancestor is submitted', async () => {
+    const signupResponse = await postJson('/auth/signup', {
+      email: 'family-isolation@test.local',
+      password: 'pass123',
+    });
+    const initialTokens = await signupResponse.json<AuthSuccessResponse>();
+    const secondFamilyResponse = await postJson('/auth/signin', {
+      email: 'family-isolation@test.local',
+      password: 'pass123',
+    });
+    const secondFamily = await secondFamilyResponse.json<AuthSuccessResponse>();
+    const firstRotationResponse = await postJson('/auth/refresh', {
+      refresh_token: initialTokens.refresh_token,
+    });
+    const firstRotation = await firstRotationResponse.json<TokenPairResponse>();
+    const secondRotationResponse = await postJson('/auth/refresh', {
+      refresh_token: firstRotation.refresh_token,
+    });
+    const secondRotation = await secondRotationResponse.json<TokenPairResponse>();
+
+    const ancestorReuseResponse = await postJson('/auth/refresh', {
+      refresh_token: initialTokens.refresh_token,
+    });
+    expect(ancestorReuseResponse.status).toBe(401);
+
+    const currentTokenResponse = await postJson('/auth/refresh', {
+      refresh_token: secondRotation.refresh_token,
+    });
+    expect(currentTokenResponse.status).toBe(401);
+
+    const independentFamilyResponse = await postJson('/auth/refresh', {
+      refresh_token: secondFamily.refresh_token,
+    });
+    expect(independentFamilyResponse.status).toBe(200);
+  });
+
+  it('revokes the family when its direct predecessor is reused after the overlap window', async () => {
+    const anonymousResponse = await postJson('/auth/anonymous', {});
+    const initialTokens = await anonymousResponse.json<AuthSuccessResponse>();
+    const rotationResponse = await postJson('/auth/refresh', {
+      refresh_token: initialTokens.refresh_token,
+    });
+    const rotation = await rotationResponse.json<TokenPairResponse>();
+    const expiredReplayTimestamp = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const historyUpdate = await env.DB.prepare(`UPDATE refresh_token_rotations SET rotated_at = ?`)
+      .bind(expiredReplayTimestamp)
+      .run();
+    expect(historyUpdate.meta.changes).toBe(1);
+
+    const lateReplayResponse = await postJson('/auth/refresh', {
+      refresh_token: initialTokens.refresh_token,
+    });
+    expect(lateReplayResponse.status).toBe(401);
+
+    const currentTokenResponse = await postJson('/auth/refresh', {
+      refresh_token: rotation.refresh_token,
+    });
+    expect(currentTokenResponse.status).toBe(401);
   });
 });
 

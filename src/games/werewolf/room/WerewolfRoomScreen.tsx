@@ -27,6 +27,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/games/werewolf/components/SkiaShaderWarmup';
@@ -72,7 +73,7 @@ export const WerewolfRoomScreen: React.FC<WerewolfRoomScreenProps> = ({
   navigation,
   client,
 }) => {
-  const handleExit = useCallback(() => navigation.navigate('Home'), [navigation]);
+  const handleExit = useCallback(() => exitRoomFlow(navigation), [navigation]);
 
   return (
     <RoomEntryBoundary room={room} session={client.roomSession} onExit={handleExit}>

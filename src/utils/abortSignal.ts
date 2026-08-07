@@ -21,22 +21,51 @@ export function createTimeoutSignal(ms: number): AbortSignal {
   return controller.signal;
 }
 
+/** One combined signal plus explicit cleanup for compatibility listeners. */
+export interface AbortSignalComposition {
+  readonly signal: AbortSignal;
+  dispose(): void;
+}
+
 /**
- * Combine multiple AbortSignals — aborts when ANY of the inputs abort.
- * Uses native AbortSignal.any when available and explicit listener composition otherwise.
+ * Compose multiple AbortSignals and release fallback listeners when the operation settles.
+ * Native AbortSignal.any manages its own dependent-signal lifetime; older WebViews use
+ * listeners that the caller must dispose after the operation completes.
  */
-export function combineSignals(signals: AbortSignal[]): AbortSignal {
+export function composeAbortSignals(signals: readonly AbortSignal[]): AbortSignalComposition {
   if (typeof AbortSignal.any === 'function') {
-    return AbortSignal.any(signals);
+    return {
+      signal: AbortSignal.any([...signals]),
+      dispose: () => undefined,
+    };
   }
 
   const controller = new AbortController();
+  const listeners: Array<{
+    readonly signal: AbortSignal;
+    readonly handleAbort: () => void;
+  }> = [];
+
+  const dispose = (): void => {
+    for (const listener of listeners) {
+      listener.signal.removeEventListener('abort', listener.handleAbort);
+    }
+    listeners.length = 0;
+  };
+
   for (const signal of signals) {
     if (signal.aborted) {
       controller.abort(signal.reason);
-      return controller.signal;
+      dispose();
+      break;
     }
-    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+    const handleAbort = (): void => {
+      controller.abort(signal.reason);
+      dispose();
+    };
+    listeners.push({ signal, handleAbort });
+    signal.addEventListener('abort', handleAbort, { once: true });
   }
-  return controller.signal;
+
+  return { signal: controller.signal, dispose };
 }

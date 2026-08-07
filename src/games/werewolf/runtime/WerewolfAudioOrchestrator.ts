@@ -123,7 +123,11 @@ export class WerewolfAudioOrchestrator {
         !this.#wasAudioInterrupted
       ) {
         void this.#playPendingAudioEffects(state.pendingAudioEffects).catch((error: unknown) => {
-          werewolfRuntimeLog.error('Reactive audio effect queue failed', error);
+          handleError(error, {
+            label: '音频效果队列',
+            logger: werewolfRuntimeLog,
+            feedback: false,
+          });
         });
       }
 
@@ -214,7 +218,7 @@ export class WerewolfAudioOrchestrator {
             await this.#deps.audio.playBeginning(resolvedKey);
           } finally {
             // After audio completes (or fails), POST audio-ack to release gate + trigger progression
-            await this.#postAudioAckWithRetry();
+            if (!this.#deps.isAborted()) await this.#postAudioAckWithRetry();
           }
         } else {
           // No stepSpec (shouldn't happen), fallback release gate
@@ -397,17 +401,25 @@ export class WerewolfAudioOrchestrator {
     }
     const state = this.#deps.roomSource.getSnapshot()?.state;
     const effects = state?.pendingAudioEffects;
+    let retry: Promise<unknown>;
     if (effects && effects.length > 0) {
       werewolfRuntimeLog.info('Replaying audio effects after reconnect', {
         trigger,
         effectCount: effects.length,
       });
       // #playPendingAudioEffects finally block will postAudioAck
-      void this.#playPendingAudioEffects(effects);
+      retry = this.#playPendingAudioEffects(effects);
     } else {
       werewolfRuntimeLog.info('Retrying postAudioAck (no effects to replay)', { trigger });
-      void this.#dispatchAudioAck(trigger);
+      retry = this.#dispatchAudioAck(trigger);
     }
+    void retry.catch((error: unknown) => {
+      handleError(error, {
+        label: '音频确认重试',
+        logger: werewolfRuntimeLog,
+        feedback: false,
+      });
+    });
   }
 
   // =========================================================================

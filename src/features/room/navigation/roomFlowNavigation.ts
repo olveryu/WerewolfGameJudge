@@ -7,6 +7,11 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type RoomFlowNavigation = NativeStackNavigationProp<RootStackParamList>;
 
+/** Removes the active room flow before returning to the existing Home route. */
+export function exitRoomFlow(navigation: RoomFlowNavigation): void {
+  navigation.popTo('Home');
+}
+
 export function replaceWithCreatedRoom(navigation: RoomFlowNavigation, roomCode: string): void {
   navigation.replace('Room', {
     roomCode: parseRoomCode(roomCode),

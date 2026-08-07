@@ -8,6 +8,7 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
@@ -74,6 +75,10 @@ jest.mock('@/utils/logger', () => ({
 
 jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
+  withScope: jest.fn(
+    (callback: (scope: { setTag: jest.Mock; setFingerprint: jest.Mock }) => void) =>
+      callback({ setTag: jest.fn(), setFingerprint: jest.fn() }),
+  ),
 }));
 
 // ---------------------------------------------------------------------------
@@ -165,6 +170,35 @@ describe('WerewolfAudioOrchestrator reconnect', () => {
   afterEach(() => {
     mockApplyCommittedSnapshot = null;
     jest.useRealTimers();
+  });
+
+  describe('resume after rejoin', () => {
+    it('does not acknowledge audio after the runtime is aborted during playback', async () => {
+      const isAborted = jest.fn().mockReturnValue(false);
+      const audio: WerewolfAudioRuntime = {
+        playNight: jest.fn().mockResolvedValue(undefined),
+        playNightEnd: jest.fn().mockResolvedValue(undefined),
+        playBeginning: jest.fn(async () => {
+          isAborted.mockReturnValue(true);
+        }),
+        playEnding: jest.fn().mockResolvedValue(undefined),
+        preloadRoles: jest.fn().mockResolvedValue(undefined),
+        stopNarration: jest.fn(),
+        stopBgm: jest.fn(),
+        clearPreloaded: jest.fn(),
+      };
+      const { orchestrator, mockStore } = createOrchestrator({ audio, isAborted });
+      mockStore.getState.mockReturnValue(
+        buildWerewolfTestState({ currentStepId: 'wolfKill', isAudioPlaying: true }),
+      );
+      orchestrator.setWasAudioInterrupted(true);
+
+      await orchestrator.resumeAfterRejoin();
+
+      expect(audio.playBeginning).toHaveBeenCalledTimes(1);
+      expect(mockPrepareAudioAck).not.toHaveBeenCalled();
+      expect(mockDispatchPreparedAudioAck).not.toHaveBeenCalled();
+    });
   });
 
   // =========================================================================

@@ -45,6 +45,7 @@ import {
   cfPost,
   cfPut,
   CloudflareHttpError,
+  CloudflareResponseJsonError,
   setOnAuthExpired,
   setRefreshHandler,
   setTokenProvider,
@@ -383,6 +384,13 @@ export class CFAuthService implements IAuthService {
     storage.set(REFRESH_TOKEN_KEY, refreshToken);
   }
 
+  #requestRefreshTokenPair(refreshToken: string) {
+    return cfPost('/auth/refresh', { refresh_token: refreshToken }, parseRefreshResponse, {
+      skipAuthIntercept: true,
+      noRetry: true,
+    });
+  }
+
   #clearStoredSession(): void {
     this.#cachedAccessToken = null;
     this.#cachedRefreshToken = null;
@@ -421,12 +429,14 @@ export class CFAuthService implements IAuthService {
     if (!refreshToken) return 'expired';
 
     try {
-      const data = await cfPost(
-        '/auth/refresh',
-        { refresh_token: refreshToken },
-        parseRefreshResponse,
-        { skipAuthIntercept: true, noRetry: true },
-      );
+      let data;
+      try {
+        data = await this.#requestRefreshTokenPair(refreshToken);
+      } catch (error) {
+        if (!(error instanceof CloudflareResponseJsonError)) throw error;
+        authLog.warn('Refresh response body unreadable, retrying once');
+        data = await this.#requestRefreshTokenPair(refreshToken);
+      }
       this.#saveTokens(data.access_token, data.refresh_token);
       authLog.debug('Token refresh succeeded');
       return 'refreshed';

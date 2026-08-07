@@ -109,6 +109,7 @@ export class RoomSession<
   readonly #pendingCommands = new Map<string, PendingRoomCommand<TState, TCommand>>();
   readonly #userEventDeliveries = new Map<string, UserEventDelivery<TEvent>>();
   #snapshot: RoomSessionSnapshot<TState> = createIdleSnapshot(0);
+  #commandAbortController: AbortController | null = null;
   #snapshotFingerprint: string | null = null;
   #runtimeResetExpected = false;
   #userEventHandler: ((event: TEvent) => void | Promise<void>) | null = null;
@@ -153,8 +154,12 @@ export class RoomSession<
       throw new Error('Room session userId must be non-empty');
     }
     if (isSignalAborted(signal)) return { kind: 'cancelled' };
+    if (this.#commandAbortController !== null) {
+      throw new Error('[FAIL-FAST] Idle room session retained a command abort controller');
+    }
 
     const epoch = this.#snapshot.epoch + 1;
+    this.#commandAbortController = new AbortController();
     this.#snapshotFingerprint = null;
     this.#pendingCommands.clear();
     this.#userEventDeliveries.clear();
@@ -244,6 +249,8 @@ export class RoomSession<
 
   disconnect(): void {
     const nextEpoch = this.#snapshot.epoch + 1;
+    this.#commandAbortController?.abort();
+    this.#commandAbortController = null;
     this.#pendingCommands.clear();
     this.#userEventDeliveries.clear();
     this.#snapshotFingerprint = null;
@@ -304,10 +311,15 @@ export class RoomSession<
     label: string,
   ): Promise<RoomCommandDispatchOutcome<TState>> {
     const current = this.#requirePreparedCommand(prepared);
+    const signal = this.#commandAbortController?.signal;
+    if (signal === undefined) {
+      throw new Error('[FAIL-FAST] Ready room session has no command abort controller');
+    }
     const attempt = await sendPreparedRoomCommand({
       prepared,
       codec: this.#codec,
       label,
+      signal,
     });
     if (this.#snapshot.epoch !== current.epoch) {
       throw new Error(

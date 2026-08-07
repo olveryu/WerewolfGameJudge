@@ -7,6 +7,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 
 import { FibIdentityModal } from './components/FibIdentityModal';
@@ -23,7 +24,7 @@ export const FibRoomScreen: React.FC<FibRoomScreenProps> = ({
   navigation,
   session,
 }) => {
-  const handleExit = useCallback(() => navigation.navigate('Home'), [navigation]);
+  const handleExit = useCallback(() => exitRoomFlow(navigation), [navigation]);
   return (
     <RoomEntryBoundary room={room} session={session} onExit={handleExit}>
       {(entryController) => (

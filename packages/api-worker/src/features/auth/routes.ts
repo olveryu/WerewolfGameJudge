@@ -768,8 +768,15 @@ authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
   const parsed = c.req.valid('json');
 
   const result = await rotateRefreshToken(parsed.refresh_token, env);
-  if (!result) {
+  if (result.kind === 'invalid') {
     return c.json({ success: false, reason: 'INVALID_REFRESH_TOKEN' }, 401);
+  }
+  if (result.kind === 'reuseDetected') {
+    log.warn('refresh token family revoked after reuse', { userId: result.userId });
+    return c.json({ success: false, reason: 'INVALID_REFRESH_TOKEN' }, 401);
+  }
+  if (result.kind === 'replayed') {
+    log.info('refresh token rotation replayed', { userId: result.userId });
   }
 
   return c.json(

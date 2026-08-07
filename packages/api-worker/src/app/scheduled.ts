@@ -2,7 +2,11 @@
 
 import type { Env } from '../env';
 import { cleanupAnonymousUsers } from '../features/account/maintenance';
-import { cleanupExpiredWechatClaims, cleanupOldLoginAttempts } from '../features/auth/maintenance';
+import {
+  cleanupExpiredRefreshTokenFamilies,
+  cleanupExpiredWechatClaims,
+  cleanupOldLoginAttempts,
+} from '../features/auth/maintenance';
 import { cleanupExpiredIdempotencyKeys } from '../features/gacha/maintenance';
 import { createLogger } from '../platform/observability/logger';
 import { expireStaleRooms, reconcileRooms } from '../platform/room/maintenance';
@@ -19,6 +23,10 @@ async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
     { name: 'room reconciliation', run: () => reconcileRooms(env, nowMs) },
     { name: 'anonymous user cleanup', run: () => cleanupAnonymousUsers(env) },
     { name: 'login attempt cleanup', run: () => cleanupOldLoginAttempts(env) },
+    {
+      name: 'refresh-token family cleanup',
+      run: () => cleanupExpiredRefreshTokenFamilies(env, nowMs),
+    },
     { name: 'idempotency cleanup', run: () => cleanupExpiredIdempotencyKeys(env) },
     { name: 'WeChat claim cleanup', run: () => cleanupExpiredWechatClaims(env) },
   ] as const;

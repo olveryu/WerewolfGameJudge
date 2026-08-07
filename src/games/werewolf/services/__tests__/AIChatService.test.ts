@@ -33,9 +33,15 @@ describe('AIChatService - isAIChatReady', () => {
 
 describe('AIChatService - streamChatMessage', () => {
   const originalFetch = global.fetch;
+  const originalAbortSignalAny = AbortSignal.any;
 
   afterEach(() => {
     global.fetch = originalFetch;
+    Object.defineProperty(AbortSignal, 'any', {
+      configurable: true,
+      writable: true,
+      value: originalAbortSignalAny,
+    });
   });
 
   it('yields error on network failure', async () => {
@@ -57,6 +63,69 @@ describe('AIChatService - streamChatMessage', () => {
 
     const gen = streamChatMessage([{ role: 'user', content: 'test' }]);
     await expect(gen.next()).rejects.toThrow('AbortError');
+  });
+
+  it('keeps caller cancellation attached while reading the SSE stream', async () => {
+    Object.defineProperty(AbortSignal, 'any', {
+      configurable: true,
+      writable: true,
+      value: undefined,
+    });
+    const controller = new AbortController();
+    const releaseDetachedRead = new AbortController();
+    const abortError = new DOMException('Streaming request cancelled', 'AbortError');
+    let notifyStreamReadStarted: (() => void) | null = null;
+    const streamReadStarted = new Promise<void>((resolve) => {
+      notifyStreamReadStarted = resolve;
+    });
+    const releaseLock = jest.fn();
+
+    global.fetch = jest.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal;
+      if (signal === null || signal === undefined) {
+        throw new Error('Expected streaming fetch to receive an AbortSignal');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        body: {
+          getReader: () => ({
+            read: () =>
+              new Promise((_resolve, reject) => {
+                if (notifyStreamReadStarted === null) {
+                  throw new Error('Expected stream read observer');
+                }
+                notifyStreamReadStarted();
+                signal.addEventListener('abort', () => reject(abortError), { once: true });
+                releaseDetachedRead.signal.addEventListener('abort', () => reject(abortError), {
+                  once: true,
+                });
+              }),
+            releaseLock,
+          }),
+        },
+      });
+    });
+
+    const generator = streamChatMessage(
+      [{ role: 'user', content: 'test' }],
+      undefined,
+      controller.signal,
+    );
+    const next = generator.next();
+    void next.catch(() => undefined);
+    await streamReadStarted;
+    controller.abort(abortError);
+
+    const requestSignal = jest.mocked(global.fetch).mock.calls[0]?.[1]?.signal;
+    if (requestSignal === null || requestSignal === undefined) {
+      throw new Error('Expected the streaming request signal');
+    }
+    const didRequestAbort = requestSignal.aborted;
+    if (!didRequestAbort) releaseDetachedRead.abort();
+    expect(didRequestAbort).toBe(true);
+    await expect(next).rejects.toMatchObject({ name: 'AbortError' });
+    expect(releaseLock).toHaveBeenCalledTimes(1);
   });
 
   it('yields error on HTTP 401', async () => {
