@@ -6,6 +6,7 @@ import {
   getUserFacingMessage,
   isAbortError,
   isExpectedError,
+  isNetworkError,
   translateReasonCode,
 } from '../errorUtils';
 
@@ -155,11 +156,43 @@ describe('isAbortError', () => {
     expect(isAbortError({ message: 'AbortError: Fetch is aborted' })).toBe(true);
   });
 
+  it('detects AbortError through the standard Error.cause chain', () => {
+    expect(
+      isAbortError(
+        new Error('request wrapper', {
+          cause: new DOMException('aborted', 'AbortError'),
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it('returns false for unrelated errors', () => {
     expect(isAbortError(new TypeError('Failed to fetch'))).toBe(false);
     expect(isAbortError(new Error('INTERNAL_ERROR'))).toBe(false);
     expect(isAbortError({ reason: 'SERVER_ERROR' })).toBe(false);
     expect(isAbortError(null)).toBe(false);
     expect(isAbortError(undefined)).toBe(false);
+  });
+});
+
+describe('isNetworkError', () => {
+  it('detects a fetch failure through the standard Error.cause chain', () => {
+    expect(
+      isNetworkError(
+        new Error('Failed to produce JSON response for /room/state during body-read', {
+          cause: new TypeError('Failed to fetch'),
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when neither the error nor its causes are network failures', () => {
+    expect(
+      isNetworkError(
+        new Error('request wrapper', {
+          cause: new Error('INTERNAL_ERROR'),
+        }),
+      ),
+    ).toBe(false);
   });
 });

@@ -39,6 +39,32 @@ describe('handleError', () => {
     expect(showAlert).not.toHaveBeenCalled();
   });
 
+  it('logs warn and skips Sentry + UI for wrapped AbortError', () => {
+    const err = new Error('request wrapper', {
+      cause: new DOMException('aborted', 'AbortError'),
+    });
+
+    handleError(err, baseOpts);
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('aborted'), err);
+    expect(mockLogger.error).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(showAlert).not.toHaveBeenCalled();
+  });
+
+  it('classifies a wrapped fetch failure as a network error', () => {
+    const err = new Error('Failed to produce JSON response for /room/state during body-read', {
+      cause: new TypeError('Failed to fetch'),
+    });
+
+    handleError(err, baseOpts);
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('network error'), err);
+    expect(mockLogger.error).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '网络异常，请检查网络后重试');
+  });
+
   // ── Unexpected ──
 
   it('logs error + Sentry + showAlert for unexpected errors', () => {

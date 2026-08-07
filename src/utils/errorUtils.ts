@@ -30,6 +30,21 @@ function messageMatchesAbort(message: string): boolean {
   return message.toLowerCase().includes(WECHAT_ABORT_MESSAGE);
 }
 
+function errorOrCauseMatches(err: unknown, matches: (candidate: unknown) => boolean): boolean {
+  let candidate = err;
+  const visitedErrors = new Set<Error>();
+
+  while (candidate instanceof Error) {
+    if (visitedErrors.has(candidate)) return false;
+    visitedErrors.add(candidate);
+
+    if (matches(candidate)) return true;
+    candidate = candidate.cause;
+  }
+
+  return matches(candidate);
+}
+
 /**
  * Detect fetch AbortError or TimeoutError (user cancel / AbortSignal.timeout / network blip).
  *
@@ -38,20 +53,25 @@ function messageMatchesAbort(message: string): boolean {
  * - Standard `Error` instance with `name === 'AbortError'`/`'TimeoutError'`, OR the WeChat WKWebView
  *   wording (it rewrites aborted fetch into `TypeError: AbortError: Fetch is aborted`)
  * - Plain object `{ message, code, details, hint }` carrying the WeChat abort wording
+ * - Any supported shape nested through standard `Error.cause` links
  */
 export function isAbortError(err: unknown): boolean {
-  if (err instanceof DOMException) {
-    return err.name === 'AbortError' || err.name === 'TimeoutError';
-  }
-  if (err instanceof Error) {
-    return (
-      err.name === 'AbortError' || err.name === 'TimeoutError' || messageMatchesAbort(err.message)
-    );
-  }
-  if (err != null && typeof err === 'object' && 'message' in err) {
-    return messageMatchesAbort(String(err.message));
-  }
-  return false;
+  return errorOrCauseMatches(err, (candidate) => {
+    if (candidate instanceof DOMException) {
+      return candidate.name === 'AbortError' || candidate.name === 'TimeoutError';
+    }
+    if (candidate instanceof Error) {
+      return (
+        candidate.name === 'AbortError' ||
+        candidate.name === 'TimeoutError' ||
+        messageMatchesAbort(candidate.message)
+      );
+    }
+    if (candidate != null && typeof candidate === 'object' && 'message' in candidate) {
+      return messageMatchesAbort(String(candidate.message));
+    }
+    return false;
+  });
 }
 
 /**
@@ -84,21 +104,22 @@ const NETWORK_ERROR_PATTERNS = [
  * Network errors are "expected" in the sense that they happen when the user
  * is offline or the server is unreachable — they should NOT be reported to Sentry.
  * Use this alongside `isAbortError()` for complete fetch error classification.
+ * Standard `Error.cause` links are traversed so transport wrappers preserve this classification.
  */
 export function isNetworkError(err: unknown): boolean {
-  if (err == null) return false;
+  return errorOrCauseMatches(err, (candidate) => {
+    // TypeError is the standard error type thrown by fetch() for network failures
+    const message =
+      candidate instanceof Error
+        ? candidate.message.toLowerCase()
+        : candidate != null && typeof candidate === 'object' && 'message' in candidate
+          ? String(candidate.message).toLowerCase()
+          : '';
 
-  // TypeError is the standard error type thrown by fetch() for network failures
-  const message =
-    err instanceof Error
-      ? err.message.toLowerCase()
-      : typeof err === 'object' && 'message' in err
-        ? String(err.message).toLowerCase()
-        : '';
+    if (!message) return false;
 
-  if (!message) return false;
-
-  return NETWORK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+    return NETWORK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+  });
 }
 
 /** Server reason code → user-friendly Chinese message map */
