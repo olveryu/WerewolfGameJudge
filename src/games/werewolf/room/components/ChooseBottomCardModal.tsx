@@ -168,6 +168,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
                   testID={TESTIDS.chooseBottomCardOption(index)}
                   style={[styles.card, isDisabled && styles.cardDisabled]}
                   disabled={isDisabled}
+                  accessibilityRole="button"
                   accessibilityState={{ disabled: isDisabled }}
                   activeOpacity={0.7}
                   onPress={() => handleCardPress(index, card)}

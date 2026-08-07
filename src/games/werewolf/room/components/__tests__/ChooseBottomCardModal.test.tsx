@@ -24,9 +24,15 @@ describe('ChooseBottomCardModal', () => {
     );
 
     expect(view.getByTestId(TESTIDS.chooseBottomCardModal)).toBeTruthy();
+    expect(view.getByTestId(TESTIDS.chooseBottomCardOption(0)).props.accessibilityRole).toBe(
+      'button',
+    );
     expect(view.getByTestId(TESTIDS.chooseBottomCardOption(0)).props.accessibilityState).toEqual({
       disabled: true,
     });
+    expect(view.getByTestId(TESTIDS.chooseBottomCardOption(1)).props.accessibilityRole).toBe(
+      'button',
+    );
     expect(view.getByTestId(TESTIDS.chooseBottomCardOption(1)).props.accessibilityState).toEqual({
       disabled: false,
     });
