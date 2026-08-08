@@ -15,10 +15,11 @@ import type {
   RoomBottomActionModel,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
-import type {
-  RoomCapabilities,
-  RoomCapability,
-  RoomProfileTarget,
+import {
+  createRoomSetupCapabilities,
+  type RoomCapabilities,
+  type RoomCapability,
+  type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomSeatDataSource,
@@ -63,36 +64,29 @@ interface FibCapabilitiesInput {
 export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapabilities {
   const isLobby = input.state.phase === 'lobby';
   const occupiedCount = getFibOccupiedSeatCount(input.state);
+  const setupCapabilities = createRoomSetupCapabilities({
+    isSetup: isLobby,
+    isHost: input.isHost,
+    mySeat: input.mySeat,
+    hasOccupiedSeats: occupiedCount > 0,
+    isRoomFull: isFibRoomFull(input.state),
+    requestTakeSeat: input.requestTakeSeat,
+    requestMoveSeat: input.requestMoveSeat,
+    leaveSeat: input.leaveSeat,
+    kickSeat: input.kickSeat,
+    clearSeats: input.clearSeats,
+    fillBots: input.fillBots,
+    configureGame: input.configureGame,
+    shareRoom: input.shareRoom,
+  });
 
   return {
-    canTakeSeat:
-      isLobby && input.mySeat === null
-        ? allowed(input.requestTakeSeat)
-        : denied('当前阶段不能入座'),
-    canMoveSeat:
-      isLobby && input.mySeat !== null
-        ? allowed(input.requestMoveSeat)
-        : denied('当前阶段不能换座'),
-    canLeaveSeat:
-      isLobby && input.mySeat !== null ? allowed(input.leaveSeat) : denied('当前阶段不能离座'),
-    canKickSeat: input.isHost && isLobby ? allowed(input.kickSeat) : denied('当前阶段不能移出座位'),
-    canClearSeats:
-      input.isHost && isLobby && occupiedCount > 0
-        ? allowed(input.clearSeats)
-        : denied('当前没有可清空的座位'),
-    canFillBots:
-      input.isHost && isLobby && !isFibRoomFull(input.state)
-        ? allowed(input.fillBots)
-        : denied('当前没有可填充的空位'),
-    canConfigureGame:
-      input.isHost && isLobby ? allowed(input.configureGame) : denied('当前阶段不能修改配置'),
+    ...setupCapabilities,
     canViewProfiles: allowed(input.openProfile),
     canTakeOverBots:
       input.isHost && input.state.phase === 'ongoing'
         ? allowed(input.takeOverBot)
         : denied('当前阶段不能接管机器人'),
-    canShareRoom: allowed(input.shareRoom),
-    shouldConfirmExit: true,
   };
 }
 
@@ -272,6 +266,7 @@ interface FibBottomActionsInput {
   readonly startRound: () => void;
   readonly cancelPreparing: () => void;
   readonly revealRound: () => void;
+  readonly endGame: () => void;
   readonly openIdentity: () => void;
   readonly configureGame: () => void;
   readonly onStartDisabled: () => void;
@@ -385,6 +380,9 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
             TESTIDS.fibNextRoundButton,
             input.startRound,
           ),
+        );
+        ghost.push(
+          enabledButton('end-game', '结束游戏', 'ghost', TESTIDS.fibEndGameButton, input.endGame),
         );
       }
       secondary.push(

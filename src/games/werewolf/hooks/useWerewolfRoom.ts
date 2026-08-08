@@ -180,13 +180,7 @@ interface UseWerewolfRoomResult {
   const seatCommands = useWerewolfSeatCommands({ session, user });
 
   // Debug mode: bot control
-  const debug = useWerewolfDebugMode(
-    client,
-    mySeat,
-    gameState,
-    seatCommands.leaveSeat,
-    seatCommands.fillBots,
-  );
+  const debug = useWerewolfDebugMode(client, mySeat, gameState, seatCommands.fillBots);
 
   // Night-phase derived values (pure computation)
   const nightDerived = useWerewolfNightDerived(gameState);

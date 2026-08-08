@@ -105,6 +105,7 @@ export const TESTIDS = {
   fibRevealRoundButton: 'fib-reveal-round-button',
   fibViewIdentityButton: 'fib-view-identity-button',
   fibNextRoundButton: 'fib-next-round-button',
+  fibEndGameButton: 'fib-end-game-button',
   fibViewResultButton: 'fib-view-result-button',
   fibConfigureButton: 'fib-configure-button',
 

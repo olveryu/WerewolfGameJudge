@@ -6,7 +6,7 @@ import type {
   WerewolfGameClient,
 } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
-import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 const state = buildWerewolfTestState();
@@ -27,11 +27,9 @@ function success(): WerewolfCommandDispatchOutcome {
 }
 
 function createSeatCommands(overrides?: {
-  readonly leaveSeat?: () => Promise<WerewolfCommandDispatchOutcome>;
   readonly fillBots?: () => Promise<WerewolfCommandDispatchOutcome>;
 }) {
   return {
-    leaveSeat: jest.fn(overrides?.leaveSeat ?? (async () => success())),
     fillBots: jest.fn(overrides?.fillBots ?? (async () => success())),
   };
 }
@@ -72,7 +70,6 @@ function renderDebugMode(options?: {
       client,
       options?.mySeat === undefined ? 1 : options.mySeat,
       options?.gameState === undefined ? makeGameState() : options.gameState,
-      seatCommands.leaveSeat,
       seatCommands.fillBots,
     ),
   );
@@ -111,14 +108,13 @@ describe('useWerewolfDebugMode', () => {
     expect(result.current.isDebugMode).toBe(true);
   });
 
-  it('leaves the host seat before filling every empty seat with bots', async () => {
+  it('fills empty seats without removing the seated host', async () => {
     const { result, seatCommands } = renderDebugMode({ mySeat: 1 });
 
     await act(async () => {
       await result.current.fillWithBots();
     });
 
-    expect(seatCommands.leaveSeat).toHaveBeenCalledTimes(1);
     expect(seatCommands.fillBots).toHaveBeenCalledTimes(1);
   });
 
@@ -129,29 +125,19 @@ describe('useWerewolfDebugMode', () => {
       await result.current.fillWithBots();
     });
 
-    expect(seatCommands.leaveSeat).not.toHaveBeenCalled();
     expect(seatCommands.fillBots).toHaveBeenCalledTimes(1);
   });
 
-  it('does not fill bots when leave-seat is rejected', async () => {
-    const rejection = domainRejectedRoomCommand(state, 'game_in_progress', 'leave-command');
-    const seatCommands = createSeatCommands({ leaveSeat: async () => rejection });
-    const { result } = renderDebugMode({ seatCommands });
-
-    await expect(result.current.fillWithBots()).resolves.toEqual(rejection);
-    expect(seatCommands.fillBots).not.toHaveBeenCalled();
-  });
-
-  it('propagates an unexpected leave-seat exception', async () => {
+  it('propagates an unexpected fill exception', async () => {
     const seatCommands = createSeatCommands({
-      leaveSeat: async () => {
-        throw new Error('leave failed');
+      fillBots: async () => {
+        throw new Error('fill failed');
       },
     });
     const { result } = renderDebugMode({ seatCommands });
 
-    await expect(result.current.fillWithBots()).rejects.toThrow('leave failed');
-    expect(seatCommands.fillBots).not.toHaveBeenCalled();
+    await expect(result.current.fillWithBots()).rejects.toThrow('fill failed');
+    expect(seatCommands.fillBots).toHaveBeenCalledTimes(1);
   });
 
   it('delegates Werewolf bot progression commands to the client', async () => {

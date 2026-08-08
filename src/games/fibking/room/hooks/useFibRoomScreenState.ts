@@ -188,6 +188,16 @@ export function useFibRoomScreenState({
     });
   }, [submitCommand]);
 
+  const endGame = useCallback(() => {
+    showConfirmAlert(
+      '结束游戏？',
+      '结束后将返回大厅，本轮结果会关闭；座位和已用词记录会保留。',
+      async () => {
+        await submitCommand('结束游戏', { type: 'fib.game.returnToLobby' });
+      },
+    );
+  }, [submitCommand]);
+
   const openIdentity = useCallback(() => {
     if (getFibRoundView(state, effectiveSeat) === null) {
       throw new Error('[FAIL-FAST] FibKing identity requires an active or ended round view');
@@ -371,6 +381,7 @@ export function useFibRoomScreenState({
         startRound,
         cancelPreparing,
         revealRound,
+        endGame,
         openIdentity,
         configureGame,
         onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位。'),
@@ -378,6 +389,7 @@ export function useFibRoomScreenState({
     [
       cancelPreparing,
       configureGame,
+      endGame,
       isHost,
       openIdentity,
       revealRound,

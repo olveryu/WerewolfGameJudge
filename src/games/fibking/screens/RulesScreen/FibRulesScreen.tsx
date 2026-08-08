@@ -106,6 +106,11 @@ export const FibRulesScreen: React.FC = () => {
             title="下一轮"
             description="座位保持不变，系统抽取新词并重新分配身份。"
           />
+          <RuleItem
+            icon="stop-circle-outline"
+            title="结束游戏"
+            description="返回大厅并保留当前座位，可以调整玩家或房间设置。"
+          />
         </View>
 
         <View style={styles.notice}>

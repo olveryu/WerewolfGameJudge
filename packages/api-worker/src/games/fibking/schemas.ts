@@ -37,6 +37,7 @@ const publicCommandOptions = defineFibPublicCommandOptions([
     type: z.literal('fib.config.update'),
     numberOfPlayers: z.int().min(FIB_MIN_PLAYERS),
   }),
+  z.strictObject({ type: z.literal('fib.game.returnToLobby') }),
   z.strictObject({ type: z.literal('fib.round.start') }),
   z.strictObject({ type: z.literal('fib.round.cancelPreparing') }),
   z.strictObject({ type: z.literal('fib.round.reveal') }),

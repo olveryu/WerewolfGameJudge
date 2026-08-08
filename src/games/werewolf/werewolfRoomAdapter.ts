@@ -7,10 +7,11 @@ import type {
   RoomBottomActionLayout,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
-import type {
-  RoomCapabilities,
-  RoomCapability,
-  RoomProfileTarget,
+import {
+  createRoomSetupCapabilities,
+  type RoomCapabilities,
+  type RoomCapability,
+  type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomSeatDataSource,
@@ -64,36 +65,29 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
     input.isHost &&
     input.isDebugMode &&
     !(input.status === GameStatus.Ongoing && input.isAudioPlaying);
+  const setupCapabilities = createRoomSetupCapabilities({
+    isSetup,
+    isHost: input.isHost,
+    mySeat: input.mySeat,
+    hasOccupiedSeats: input.hasOccupiedSeats,
+    isRoomFull: input.status === GameStatus.Seated,
+    requestTakeSeat: input.requestTakeSeat,
+    requestMoveSeat: input.requestMoveSeat,
+    leaveSeat: input.leaveSeat,
+    kickSeat: input.kickSeat,
+    clearSeats: input.clearSeats,
+    fillBots: input.fillBots,
+    configureGame: input.configureGame,
+    shareRoom: input.shareRoom,
+  });
 
   return {
-    canTakeSeat:
-      isSetup && input.mySeat === null
-        ? allowed(input.requestTakeSeat)
-        : denied('当前阶段不能入座'),
-    canMoveSeat:
-      isSetup && input.mySeat !== null
-        ? allowed(input.requestMoveSeat)
-        : denied('当前阶段不能换座'),
-    canLeaveSeat:
-      isSetup && input.mySeat !== null ? allowed(input.leaveSeat) : denied('当前阶段不能离座'),
-    canKickSeat: input.isHost && isSetup ? allowed(input.kickSeat) : denied('当前阶段不能移出座位'),
-    canClearSeats:
-      input.isHost && isSetup && input.hasOccupiedSeats
-        ? allowed(input.clearSeats)
-        : denied('当前没有可清空的座位'),
-    canFillBots:
-      input.isHost && input.status === GameStatus.Unseated
-        ? allowed(input.fillBots)
-        : denied('当前阶段不能填充机器人'),
-    canConfigureGame:
-      input.isHost && isSetup ? allowed(input.configureGame) : denied('当前阶段不能修改配置'),
+    ...setupCapabilities,
     canViewProfiles:
       input.status !== GameStatus.Ongoing
         ? allowed(input.openProfile)
         : denied('游戏进行中不能查看玩家资料'),
     canTakeOverBots: canTakeOver ? allowed(input.takeOverBot) : denied('当前不能接管机器人'),
-    canShareRoom: isSetup ? allowed(input.shareRoom) : denied('当前阶段不能分享房间'),
-    shouldConfirmExit: true,
   };
 }
 

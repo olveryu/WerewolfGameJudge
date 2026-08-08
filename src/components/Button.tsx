@@ -125,6 +125,7 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
     accessibilityLabel,
   } = props;
   const isDisabled = disabled || loading;
+  const isUnavailable = disabled && !loading;
   const pressInteraction = resolvePressInteraction(props, loading);
 
   // ── Computed styles ───────────────────────────────────────────────────────
@@ -213,14 +214,21 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
       }
     }
 
-    if (isDisabled) {
+    if (isUnavailable) {
+      txtColor = colors.textMuted;
+      if (variant === 'primary' || variant === 'danger') {
+        base.backgroundColor = colors.surfaceHover;
+      } else {
+        base.opacity = fixed.disabledOpacity;
+      }
+    } else if (isDisabled) {
       base.opacity = fixed.disabledOpacity;
     }
 
-    const useGradient = variant === 'primary' && !buttonColor;
+    const useGradient = variant === 'primary' && !buttonColor && !isUnavailable;
 
     return { containerStyle: base, resolvedTextColor: txtColor, useGradient };
-  }, [variant, size, buttonColor, textColorProp, isDisabled]);
+  }, [variant, size, buttonColor, textColorProp, isDisabled, isUnavailable]);
 
   // ── Text style ────────────────────────────────────────────────────────────
 

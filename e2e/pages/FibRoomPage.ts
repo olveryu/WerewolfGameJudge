@@ -153,6 +153,21 @@ export class FibRoomPage extends RoomPage {
     });
   }
 
+  async endGame(): Promise<void> {
+    await this.page.getByTestId(TESTIDS.fibEndGameButton).click();
+    await expect(this.page.getByText('结束游戏？', { exact: true })).toBeVisible();
+    await this.page.getByText('确定', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.fibStartRoundButton)).toBeVisible({
+      timeout: 15_000,
+    });
+  }
+
+  async expectLobbySeatOperations(): Promise<void> {
+    await this.page.getByTestId(TESTIDS.roomMenuButton).click();
+    await expect(this.page.getByText('清空座位', { exact: true })).toBeVisible();
+    await expect(this.page.getByText('分享房间', { exact: true })).toBeVisible();
+  }
+
   private async readOpenIdentity(): Promise<FibIdentity> {
     const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
     await expect(modal).toBeVisible();

@@ -126,6 +126,7 @@ describe('FibKing room adapter', () => {
     expect(capabilities.canClearSeats.isAllowed).toBe(false);
     expect(capabilities.canFillBots.isAllowed).toBe(false);
     expect(capabilities.canConfigureGame.isAllowed).toBe(false);
+    expect(capabilities.canShareRoom.isAllowed).toBe(false);
     expect(capabilities.canViewProfiles.isAllowed).toBe(true);
     expect(capabilities.canTakeOverBots.isAllowed).toBe(true);
   });
@@ -233,9 +234,10 @@ describe('FibKing room adapter', () => {
     });
   });
 
-  it('uses next round as the sole ended host progression action', () => {
+  it('offers next round or end game after the answer is revealed', () => {
     const ongoing = createOngoing();
     const ended = { ...ongoing, phase: 'ended' as const };
+    const endGame = jest.fn();
     const actions = createFibBottomActions({
       state: ended,
       isHost: true,
@@ -243,6 +245,7 @@ describe('FibKing room adapter', () => {
       startRound: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound: jest.fn(),
+      endGame,
       openIdentity: jest.fn(),
       configureGame: jest.fn(),
       onStartDisabled: jest.fn(),
@@ -254,7 +257,13 @@ describe('FibKing room adapter', () => {
     expect(actions.layout.secondary).toMatchObject([
       { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
     ]);
-    expect(JSON.stringify(actions)).not.toContain('重新开始');
+    expect(actions.layout.ghost).toMatchObject([
+      { label: '结束游戏', testID: TESTIDS.fibEndGameButton, isEnabled: true },
+    ]);
+    const endGameButton = actions.layout.ghost[0];
+    if (endGameButton?.isEnabled !== true) throw new Error('Expected enabled end-game action');
+    endGameButton.onPress();
+    expect(endGame).toHaveBeenCalledTimes(1);
     expect(createFibStatusRibbon(ended)).toMatchObject({ text: '本轮答案已公布' });
   });
 
@@ -262,6 +271,7 @@ describe('FibKing room adapter', () => {
     const startRound = jest.fn();
     const cancelPreparing = jest.fn();
     const revealRound = jest.fn();
+    const endGame = jest.fn();
     const openIdentity = jest.fn();
     const configureGame = jest.fn();
     const onStartDisabled = jest.fn();
@@ -271,6 +281,7 @@ describe('FibKing room adapter', () => {
       startRound,
       cancelPreparing,
       revealRound,
+      endGame,
       openIdentity,
       configureGame,
       onStartDisabled,
@@ -348,6 +359,7 @@ describe('FibKing room adapter', () => {
       hasPerspective: false,
       startRound,
       cancelPreparing,
+      endGame: jest.fn(),
       revealRound: jest.fn(),
       openIdentity: jest.fn(),
       configureGame: jest.fn(),
@@ -393,6 +405,7 @@ describe('FibKing room adapter', () => {
       startRound: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound: jest.fn(),
+      endGame: jest.fn(),
       openIdentity: jest.fn(),
       configureGame: jest.fn(),
       onStartDisabled: jest.fn(),

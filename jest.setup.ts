@@ -45,8 +45,10 @@ jest.spyOn(console, 'warn').mockImplementation((...args: unknown[]) => {
 const mockColors = {
   background: '#FFFFFF',
   surface: '#F5F5F5',
+  surfaceHover: '#E5E5EA',
   text: '#1A1A1A',
   textSecondary: '#666666',
+  textMuted: '#8E8EA0',
   textInverse: '#FFFFFF',
   primary: '#4A90D9',
   primaryLight: '#7AB3E8',

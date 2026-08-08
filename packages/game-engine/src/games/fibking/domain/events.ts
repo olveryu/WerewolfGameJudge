@@ -57,4 +57,5 @@ export type FibEvent =
       readonly source: FibWordSource;
       readonly roles: FibRoleAssignment;
     })
-  | (GameEvent & { readonly type: 'fib.round.ended' });
+  | (GameEvent & { readonly type: 'fib.round.ended' })
+  | (GameEvent & { readonly type: 'fib.game.returnedToLobby' });

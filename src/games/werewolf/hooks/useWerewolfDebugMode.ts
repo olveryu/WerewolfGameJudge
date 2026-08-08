@@ -15,7 +15,6 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback } from 'react';
 
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type {
   WerewolfCommandDispatchOutcome,
   WerewolfGameClient,
@@ -49,7 +48,6 @@ export function useWerewolfDebugMode(
   client: WerewolfGameClient,
   mySeat: number | null,
   gameState: LocalGameState,
-  leaveSeat: () => Promise<WerewolfCommandDispatchOutcome>,
   fillBots: () => Promise<WerewolfCommandDispatchOutcome>,
 ): WerewolfDebugModeState {
   const botControl = useRoomBotControl();
@@ -67,13 +65,8 @@ export function useWerewolfDebugMode(
 
   // Fill all empty seats with bots
   const fillWithBots = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-    // If Host is seated, leave seat first so the seat can be filled with a bot
-    if (mySeat !== null) {
-      const leaveResult = await leaveSeat();
-      if (!isSuccessfulRoomCommand(leaveResult)) return leaveResult;
-    }
     return fillBots();
-  }, [fillBots, leaveSeat, mySeat]);
+  }, [fillBots]);
 
   // Mark all bot seats as having viewed their roles
   const markAllBotsViewed = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {

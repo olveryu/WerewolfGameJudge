@@ -84,6 +84,7 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
     profile: { displayName: '新名字' },
   },
   'fib.config.update': { type: 'fib.config.update', numberOfPlayers: 8 },
+  'fib.game.returnToLobby': { type: 'fib.game.returnToLobby' },
   'fib.round.start': { type: 'fib.round.start' },
   'fib.round.cancelPreparing': { type: 'fib.round.cancelPreparing' },
   'fib.round.reveal': { type: 'fib.round.reveal' },

@@ -1,5 +1,6 @@
 /** Stable FibKing domain rejection reasons. */
 
+export const REASON_FIB_GAME_NOT_ENDED = 'fib_game_not_ended' as const;
 export const REASON_FIB_ROUND_NOT_FULL = 'fib_round_not_full' as const;
 export const REASON_FIB_ROUND_ALREADY_ONGOING = 'fib_round_already_ongoing' as const;
 export const REASON_FIB_ROUND_NOT_PREPARING = 'fib_round_not_preparing' as const;

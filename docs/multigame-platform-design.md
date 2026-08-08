@@ -1491,11 +1491,11 @@ interface RoomSeatDataSource {
 | `lobby`     | 配置、填 bot、清空座位、开始本轮 | 入座、换座、离座 | 允许        |
 | `preparing` | 需要时取消准备                   | 等待             | 锁定        |
 | `ongoing`   | 公布答案、查看身份、接管 bot     | 查看本人身份     | 锁定        |
-| `ended`     | 下一轮                           | 查看公开结果     | 锁定        |
+| `ended`     | 下一轮、结束游戏                 | 查看公开结果     | 锁定        |
 
-`下一轮` 保留座位和 used-word history，创建新 `roundId`、抽新词、重新分配身份。它是 `ended` 后唯一正常操作，不再同时显示一个含义重复的“重新开始”。
+`下一轮` 保留座位和 used-word history，创建新 `roundId`、抽新词、重新分配身份。`结束游戏` 清除当前公开结果并返回 lobby，同样保留座位和 used-word history，让共享清空座位、移出玩家和房间设置能力恢复。
 
-如果需要 destructive reset，只能作为 `preparing` 或 `ongoing` 的明确恢复操作，文案必须说明会丢弃什么，不能冒充正常下一轮。
+如果需要在 `preparing` 或 `ongoing` 中 destructive reset，必须作为明确恢复操作，文案说明会丢弃什么，不能冒充正常下一轮或 ended 阶段的结束游戏。
 
 ### 22.6 Bot takeover
 
@@ -2444,8 +2444,8 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   seat、当前/历史词条和 round metadata；空座、implicit bot 和普通角色不展开成 N 大小数组。人数统一使用
   `isValidFibPlayerCount` 校验：默认 8、最少 4、最大为 JavaScript safe integer，不添加产品上限。
 - Fib lifecycle 使用 shared `lobby/preparing/ongoing/ended` 映射；`startRound` 先提交 preparing state 和 durable
-  word-generation effect，system completion 才进入 ongoing。主持人可以取消 preparing；ended 只提供“下一轮”，
-  保留 seats 和 used-word history，不再增加语义重复的 restart action。
+  word-generation effect，system completion 才进入 ongoing。主持人可以取消 preparing；ended 提供保留座位与
+  used-word history 的“下一轮”和“结束游戏”，后者返回 lobby 并恢复共享 setup 操作。
 - Fib role assignment 使用常数空间的无偏抽样，权威 round view 统一投影所有视角：大聪明与瞎掰者都能看词，
   只有老实人能在 ongoing 看定义；ended 后所有角色都能看完整答案。bot takeover 只改变客户端控制视角，不把
   controlled seat 写入 room command actor。

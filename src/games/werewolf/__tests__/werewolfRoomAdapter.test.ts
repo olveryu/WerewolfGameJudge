@@ -43,6 +43,7 @@ describe('werewolfRoomAdapter', () => {
     });
     expect('execute' in capabilities.canKickSeat).toBe(false);
     expect('execute' in capabilities.canConfigureGame).toBe(false);
+    expect(capabilities.canShareRoom.isAllowed).toBe(false);
   });
 
   it('binds shared setup capabilities to the shared room controllers', () => {

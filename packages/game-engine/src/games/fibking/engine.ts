@@ -27,6 +27,7 @@ import type { FibCommand } from './commands/types';
 import type { FibEvent } from './domain/events';
 import { evolveFibState } from './domain/evolve';
 import {
+  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -249,6 +250,14 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
     : reject(REASON_FIB_ROUND_NOT_ONGOING);
 }
 
+function decideReturnFibGameToLobby(state: FibState, context: CommandContext): FibDecision {
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  return state.phase === 'ended'
+    ? commitFib([{ type: 'fib.game.returnedToLobby' }])
+    : reject(REASON_FIB_GAME_NOT_ENDED);
+}
+
 function decideUpdateFibPreparationStage(
   state: FibState,
   command: Extract<FibCommand, { readonly type: 'fib.round.updatePreparationStage' }>,
@@ -390,6 +399,8 @@ export function decideFibCommand(
       return decideUpdateFibProfile(state, command.profile, context);
     case 'fib.config.update':
       return decideUpdateFibConfig(state, command.numberOfPlayers, context);
+    case 'fib.game.returnToLobby':
+      return decideReturnFibGameToLobby(state, context);
     case 'fib.round.start':
       return decideStartFibRound(state, context);
     case 'fib.round.cancelPreparing':

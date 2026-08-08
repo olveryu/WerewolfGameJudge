@@ -170,6 +170,13 @@ test.describe('FibKing', () => {
         expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
       }
       await hostRoom.expectOngoing();
+
+      await hostRoom.revealRound();
+      await hostRoom.endGame();
+      for (let seat = 0; seat < 8; seat += 1) {
+        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+      }
+      await hostRoom.expectLobbySeatOperations();
     } finally {
       await coldRoom?.context.close();
       await closeAll(fixture);

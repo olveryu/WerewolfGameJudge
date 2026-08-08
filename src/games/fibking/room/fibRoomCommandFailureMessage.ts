@@ -2,6 +2,7 @@
 
 import {
   type FibState,
+  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_ROUND_ALREADY_ONGOING,
@@ -23,6 +24,8 @@ export function getFibRoomCommandFailureMessage(
   const reason = getRoomCommandFailureReason(result);
 
   switch (reason) {
+    case REASON_FIB_GAME_NOT_ENDED:
+      return '当前游戏尚未结束';
     case REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE:
       return '目标人数之外仍有真人入座，请先让这些玩家离座或换到保留座位';
     case REASON_FIB_PLAYER_COUNT_INVALID:

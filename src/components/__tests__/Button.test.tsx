@@ -1,6 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Button } from '@/components/Button';
+import { colors } from '@/theme';
 
 describe('Button interaction contract', () => {
   it('dispatches an enabled action without compatibility metadata', () => {
@@ -42,6 +44,22 @@ describe('Button interaction contract', () => {
 
     expect(onDisabledPress).toHaveBeenCalledWith();
     expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('renders an unavailable primary action with neutral disabled colors', () => {
+    const {
+      getByTestId,
+      getByText,
+      UNSAFE_queryByType: queryByType,
+    } = render(
+      <Button testID="action" disabled onDisabledPress={jest.fn()}>
+        操作
+      </Button>,
+    );
+
+    expect(getByTestId('action')).toHaveStyle({ backgroundColor: colors.surfaceHover });
+    expect(getByText('操作')).toHaveStyle({ color: colors.textMuted });
+    expect(queryByType(LinearGradient)).toBeNull();
   });
 
   it('blocks every action while loading', () => {

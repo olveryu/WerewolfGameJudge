@@ -133,6 +133,14 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         preparationFailure: null,
         round: state.round,
       };
+    case 'fib.game.returnedToLobby':
+      return {
+        ...state,
+        phase: 'lobby',
+        pendingRound: null,
+        preparationFailure: null,
+        round: null,
+      };
   }
   const exhaustive: never = event;
   return exhaustive;

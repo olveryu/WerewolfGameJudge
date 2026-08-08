@@ -18,6 +18,7 @@ type FibRoomCommand = RoomSeatCommand<FibSeatProfile> | RoomProfileUpdateCommand
 export type FibPublicCommand =
   | FibRoomCommand
   | { readonly type: 'fib.config.update'; readonly numberOfPlayers: number }
+  | { readonly type: 'fib.game.returnToLobby' }
   | { readonly type: 'fib.round.start' }
   | { readonly type: 'fib.round.cancelPreparing' }
   | { readonly type: 'fib.round.reveal' };

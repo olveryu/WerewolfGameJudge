@@ -9,6 +9,7 @@ import { GAME_ENGINE_CATALOG } from '../../catalog';
 import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
 import {
+  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -591,6 +592,38 @@ describe('FibKing recoverable round workflow', () => {
         systemContext(),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_WORD_REUSED });
+  });
+
+  it('returns an ended game to the lobby without duplicating room state', () => {
+    let state = completeRound(
+      startPreparing(createFullLobby()),
+      '灯塔',
+      '建在岸边用于指引船只航行方向的高塔。',
+    );
+    state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
+    const realSeats = state.realSeats;
+    const usedWords = state.usedWords;
+
+    expect(
+      decideFibCommand(state, { type: 'fib.game.returnToLobby' }, userContext('alice')),
+    ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+
+    state = dispatch(state, { type: 'fib.game.returnToLobby' }, userContext('host'));
+
+    expect(state).toMatchObject({
+      phase: 'lobby',
+      fillEmptySeatsWithBots: true,
+      excludedBotSeats: [],
+      pendingRound: null,
+      preparationFailure: null,
+      round: null,
+    });
+    expect(state.realSeats).toBe(realSeats);
+    expect(state.usedWords).toBe(usedWords);
+    expect(getFibLifecycle(state)).toBe('setup');
+    expect(
+      decideFibCommand(state, { type: 'fib.game.returnToLobby' }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_GAME_NOT_ENDED });
   });
 
   it('rejects another start while preparing or ongoing', () => {
