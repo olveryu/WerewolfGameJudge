@@ -71,7 +71,10 @@ export type AuthorizeRoomDeletionResult =
   | { readonly success: true }
   | { readonly success: false; readonly reason: string };
 
-export type DeleteRoomStorageCommand = RoomInstanceIdentity;
+export interface DeleteRoomStorageCommand extends RoomInstanceIdentity {
+  /** Whether scheduled expiry may discard effects that exhausted delivery. */
+  readonly shouldDiscardFailedEffects: boolean;
+}
 
 export type DeleteRoomStorageResult =
   | { readonly success: true }

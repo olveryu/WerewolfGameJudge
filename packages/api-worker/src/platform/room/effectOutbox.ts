@@ -173,6 +173,22 @@ export class EffectOutbox {
     return effectCount > 0;
   }
 
+  hasPendingEffects(): boolean {
+    const row = this.#sql
+      .exec<EffectCountRow>(
+        "SELECT COUNT(*) AS effect_count FROM effect_outbox WHERE status = 'pending'",
+      )
+      .one();
+    const effectCount = parseNonNegativeInteger(row.effect_count, 'pending effect_outbox count');
+    return effectCount > 0;
+  }
+
+  discardFailedEffects(): number {
+    return this.#sql
+      .exec("DELETE FROM effect_outbox WHERE status = 'failed' RETURNING id")
+      .toArray().length;
+  }
+
   markSucceeded(effectId: string): void {
     this.#sql.exec('DELETE FROM effect_outbox WHERE id = ? RETURNING id', effectId).one();
   }

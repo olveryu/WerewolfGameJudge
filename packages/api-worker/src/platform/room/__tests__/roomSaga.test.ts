@@ -10,6 +10,7 @@ import {
   claimRoomCreation,
   findRoomByCreationId,
   type RoomDirectoryRecord,
+  SYSTEM_ROOM_EXPIRY_ACTOR,
 } from '../roomDirectory';
 import { reconcileRoomDirectory, resumeRoomCreation } from '../roomSaga';
 
@@ -91,6 +92,7 @@ describe('room saga reconciliation', () => {
         roomCode: deleting.code,
         roomId: deleting.id,
         creationId: deleting.creationId,
+        shouldDiscardFailedEffects: false,
       }),
     ).resolves.toEqual({ success: true });
     expect((await findRoomByCreationId(env, room.creationId))?.status).toBe('deleting');
@@ -132,6 +134,67 @@ describe('room saga reconciliation', () => {
     });
     await expect(reconcileRoomDirectory(env, NOW_MS + 5 * 60_000 + 1)).resolves.toBe(1);
     expect(await findRoomByCreationId(env, room.creationId)).toBeNull();
+  });
+
+  it('discards terminal outbox failures when a stale room expires', async () => {
+    const claimed = await claim('expired-delete-failed-outbox');
+    const { room } = await resumeRoomCreation(env, claimed, NOW_MS);
+    const deleting = await beginRoomDeletion(env, room, SYSTEM_ROOM_EXPIRY_ACTOR, NOW_MS + 1);
+    const stub = getStub(deleting);
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec(`
+        INSERT INTO effect_outbox (
+          id, origin_command_id, scope, game_type, effect_type, business_key,
+          payload_json, status, attempt_count, available_at, created_revision,
+          created_at, last_error
+        ) VALUES (
+          'expired-failed-effect', 'expired-failed-command', 'platform', 'werewolf',
+          'room.participant.seated', 'expired-failed-business-key', '{}', 'failed',
+          7, 0, 1, 0, 'delivery exhausted'
+        )
+      `);
+    });
+
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toBe(1);
+    expect(await findRoomByCreationId(env, room.creationId)).toBeNull();
+    await expect(
+      stub.getSnapshot({
+        roomCode: deleting.code,
+        roomId: deleting.id,
+        creationId: deleting.creationId,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it('keeps stale-room deletion blocked while outbox delivery is pending', async () => {
+    const claimed = await claim('expired-delete-pending-outbox');
+    const { room } = await resumeRoomCreation(env, claimed, NOW_MS);
+    const deleting = await beginRoomDeletion(env, room, SYSTEM_ROOM_EXPIRY_ACTOR, NOW_MS + 1);
+    const stub = getStub(deleting);
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec(
+        `
+        INSERT INTO effect_outbox (
+          id, origin_command_id, scope, game_type, effect_type, business_key,
+          payload_json, status, attempt_count, available_at, created_revision,
+          created_at, last_error
+        ) VALUES (
+          'expired-pending-effect', 'expired-pending-command', 'platform', 'werewolf',
+          'room.participant.seated', 'expired-pending-business-key', '{}', 'pending',
+          1, ?, 1, 0, NULL
+        )
+      `,
+        NOW_MS + 60_000,
+      );
+    });
+
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).rejects.toThrow(
+      'room saga reconciliation failures',
+    );
+    expect(await findRoomByCreationId(env, room.creationId)).toMatchObject({
+      status: 'deleting',
+      reconciliationAttemptCount: 1,
+    });
   });
 
   it('fails fast when persisted config is valid JSON but not canonical JSON', async () => {

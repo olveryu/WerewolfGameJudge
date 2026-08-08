@@ -26,5 +26,6 @@ export interface IGameRoomRPC {
   authorizeRoomDeletion(
     command: AuthorizeRoomDeletionCommand,
   ): Promise<AuthorizeRoomDeletionResult>;
+  /** @pre Failed effects may be discarded only for scheduled stale-room deletion. */
   deleteRoomStorage(command: DeleteRoomStorageCommand): Promise<DeleteRoomStorageResult>;
 }

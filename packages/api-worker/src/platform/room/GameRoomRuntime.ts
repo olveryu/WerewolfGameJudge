@@ -160,7 +160,14 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
 
     this.#readRoomInitialization(command);
     if (this.#outbox.hasOutstandingEffects()) {
-      return { success: false, reason: REASON_ROOM_EFFECTS_PENDING };
+      if (!command.shouldDiscardFailedEffects || this.#outbox.hasPendingEffects()) {
+        return { success: false, reason: REASON_ROOM_EFFECTS_PENDING };
+      }
+      const discardedFailedEffectCount = this.#outbox.discardFailedEffects();
+      log.warn('discarded failed effects during stale room deletion', {
+        roomCode: command.roomCode,
+        discardedFailedEffectCount,
+      });
     }
 
     for (const socket of this.ctx.getWebSockets()) {

@@ -17,7 +17,8 @@ const ROOM_CODE_ALLOCATION_ATTEMPTS = 64;
 const ROOM_SAGA_FAILURE_THRESHOLD = 5;
 const ROOM_SAGA_RETRY_DELAY_MS = 5 * 60_000;
 
-const SYSTEM_ROOM_EXPIRY_ACTOR = 'system:room-expiry';
+/** Directory actor reserved for scheduled stale-room deletion. */
+export const SYSTEM_ROOM_EXPIRY_ACTOR = 'system:room-expiry';
 
 export type RoomDirectoryRecord = typeof rooms.$inferSelect;
 

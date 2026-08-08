@@ -12,6 +12,7 @@ import {
   listRoomsForReconciliation,
   recordRoomSagaFailure,
   type RoomDirectoryRecord,
+  SYSTEM_ROOM_EXPIRY_ACTOR,
 } from './roomDirectory';
 import { getGameRoomStub } from './roomStub';
 import type { InitializeRoomResult } from './types';
@@ -103,6 +104,7 @@ export async function resumeRoomDeletion(
     roomCode: room.code,
     roomId: room.id,
     creationId: room.creationId,
+    shouldDiscardFailedEffects: room.deleteRequestedBy === SYSTEM_ROOM_EXPIRY_ACTOR,
   });
   if (!deleted.success) {
     return { kind: 'blocked', reason: deleted.reason };

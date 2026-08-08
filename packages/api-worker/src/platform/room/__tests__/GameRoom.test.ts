@@ -451,7 +451,12 @@ describe('GameRoom command receipts', () => {
     await expect(
       stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'host-1' }),
     ).resolves.toEqual({ success: true });
-    await expect(stub.deleteRoomStorage(roomIdentity(stub))).resolves.toEqual({ success: true });
+    await expect(
+      stub.deleteRoomStorage({
+        ...roomIdentity(stub),
+        shouldDiscardFailedEffects: false,
+      }),
+    ).resolves.toEqual({ success: true });
     await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
@@ -513,9 +518,12 @@ describe('GameRoom command receipts', () => {
     await expect(
       stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'host-1' }),
     ).resolves.toEqual({ success: true });
-    await expect(stub.deleteRoomStorage(roomIdentity(stub))).resolves.toEqual({
-      success: true,
-    });
+    await expect(
+      stub.deleteRoomStorage({
+        ...roomIdentity(stub),
+        shouldDiscardFailedEffects: false,
+      }),
+    ).resolves.toEqual({ success: true });
     await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
