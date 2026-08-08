@@ -1,7 +1,7 @@
 /**
  * Werewolf AI chat routes — Gemini (primary) + Workers AI (fallback).
  *
- * Primary: Gemini API (OpenAI-compatible layer), fixed model gemini-3.1-flash-lite.
+ * Primary: Gemini API (OpenAI-compatible layer), fixed model gemini-3.5-flash-lite.
  * Fallback: geo block (400) / quota exhausted (429) / overload (503 after 1 retry)
  *       -> fall back to Workers AI Chat Completions (@cf/google/gemma-4-26b-a4b-it).
  * Workers AI has no geo restriction; 10K Neurons/day budget mainly serves users in restricted regions.
@@ -23,7 +23,7 @@ import { werewolfAiChatRequestSchema } from './schema';
 const log = createLogger('ai-chat');
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
-const GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const MAX_TOKENS_CAP = 10240;
 const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const GEMINI_TIMEOUT_MS = 15_000;

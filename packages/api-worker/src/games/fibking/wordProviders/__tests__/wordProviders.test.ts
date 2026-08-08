@@ -424,6 +424,7 @@ describe('Fib word providers', () => {
     });
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('"additionalProperties":false');
+    expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
     expect(requestBody).toContain('"max_tokens":256');
     expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
     expect(requestBody).toContain('真实含义具体、出人意料');

@@ -8,7 +8,7 @@ import { createFibWordProviderRequestError, FibWordProviderError } from './provi
 import type { FibWordProvider } from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
-const GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 const geminiResponseSchema = z.object({
   choices: z
