@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkerEffectContext } from '../../../../platform/gameModules/workerModule';
 import { handleFibGenerateWordEffect } from '../../effects';
-import { FIB_PREPARATION_TIMEOUT_MS } from '../../wordGenerationResults';
+import { FIB_PREPARATION_TIMEOUT_MS, selectFibWordCategory } from '../../wordGenerationResults';
 import { readRecentFibWords, recordFibWordExposure } from '../../wordHistory';
 import { createConfiguredFibWordProvider, createGeminiPrimaryFibWordProvider } from '..';
 import {
@@ -171,6 +171,15 @@ beforeEach(async () => {
 });
 
 describe('Fib word providers', () => {
+  it('selects first-round categories stably without fixing every room to literary', async () => {
+    const selectionSeeds = Array.from({ length: 32 }, (_, index) => `fib-round:${index}`);
+    const categories = await Promise.all(selectionSeeds.map(selectFibWordCategory));
+
+    await expect(selectFibWordCategory(selectionSeeds[0])).resolves.toBe(categories[0]);
+    expect(new Set(categories)).toEqual(new Set(['literary', 'internet', 'compound', 'niche']));
+    await expect(selectFibWordCategory('')).rejects.toThrow('selection seed must be non-empty');
+  });
+
   it('rejects an unknown deployment provider at the composition boundary', () => {
     expect(() =>
       createConfiguredFibWordProvider({ ...env, FIB_WORD_PROVIDER: 'invented-provider' }),
@@ -416,6 +425,10 @@ describe('Fib word providers', () => {
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('"additionalProperties":false');
     expect(requestBody).toContain('"max_tokens":256');
+    expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
+    expect(requestBody).toContain('真实含义具体、出人意料');
+    expect(requestBody).toContain('禁止多数玩家读不出的生僻字堆');
+    expect(requestBody).toContain('逐字解释就能猜中的透明复合词');
     expect(requestBody).not.toContain('"candidates"');
     expect(requestSignal).toBe(AI_WORD_REQUEST.signal);
 

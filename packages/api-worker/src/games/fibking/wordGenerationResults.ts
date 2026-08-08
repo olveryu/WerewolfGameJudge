@@ -16,11 +16,13 @@ import { FibWordProviderError } from './wordProviders/providerError';
 import {
   FIB_WORD_CATEGORIES,
   type FibWordCandidate,
+  type FibWordCategory,
   type FibWordProvider,
 } from './wordProviders/types';
 
 export const FIB_PREPARATION_TIMEOUT_MS = 8_000;
 const FIB_FINALIZATION_RESERVE_MS = 500;
+const FIB_WORD_CATEGORY_HASH_HEX_LENGTH = 8;
 
 type FibWordGenerationResult = typeof fibWordGenerationResults.$inferSelect;
 
@@ -85,6 +87,27 @@ function createGenerationSignal(generationDeadlineAt: number): AbortSignal {
     throw new FibWordProviderError('Fib word generation deadline expired', 'timedOut');
   }
   return AbortSignal.timeout(remainingDurationMs);
+}
+
+/**
+ * Selects a stable category from a round-specific seed.
+ *
+ * @throws Error when the seed is empty or category selection cannot produce a value.
+ */
+export async function selectFibWordCategory(selectionSeed: string): Promise<FibWordCategory> {
+  if (selectionSeed.length === 0) {
+    throw new Error('Fib word category selection seed must be non-empty');
+  }
+  const selectionHash = await sha256Hex(selectionSeed);
+  const selectionValue = Number.parseInt(
+    selectionHash.slice(0, FIB_WORD_CATEGORY_HASH_HEX_LENGTH),
+    16,
+  );
+  const category = FIB_WORD_CATEGORIES[selectionValue % FIB_WORD_CATEGORIES.length];
+  if (category === undefined) {
+    throw new Error('[FAIL-FAST] Fib word category selection produced no value');
+  }
+  return category;
 }
 
 async function readResult(
@@ -168,11 +191,7 @@ export async function getOrCreateFibWordGenerationResult(
     throw new FibWordProviderError('Fib word generation deadline expired', 'timedOut');
   }
   const recentWords = await readRecentFibWords(db, historyUserIds);
-  const category =
-    FIB_WORD_CATEGORIES[effect.payload.avoidWords.length % FIB_WORD_CATEGORIES.length];
-  if (category === undefined) {
-    throw new Error('[FAIL-FAST] Fib word category selection produced no value');
-  }
+  const category = await selectFibWordCategory(effect.payload.roundId);
   let generated: FibWordCandidate;
   try {
     generated = await provider.generate({
