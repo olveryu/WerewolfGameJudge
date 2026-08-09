@@ -58,11 +58,13 @@ export function createGeminiFibWordProvider(
       if (!response.ok) {
         const body = await response.text();
         const failureKind =
-          response.status === 429
-            ? 'rateLimited'
-            : response.status >= 500
-              ? 'serviceUnavailable'
-              : 'requestFailed';
+          response.status === 401 || response.status === 403
+            ? 'authenticationFailed'
+            : response.status === 429
+              ? 'rateLimited'
+              : response.status >= 500
+                ? 'serviceUnavailable'
+                : 'requestFailed';
         throw new FibWordProviderError(
           `Gemini Fib word request failed (${response.status}): ${body.slice(0, 500)}`,
           failureKind,

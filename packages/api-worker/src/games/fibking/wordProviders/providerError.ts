@@ -2,6 +2,7 @@
 
 export type FibWordProviderFailureKind =
   | 'timedOut'
+  | 'authenticationFailed'
   | 'rateLimited'
   | 'serviceUnavailable'
   | 'invalidOutput'
@@ -22,7 +23,8 @@ export function isFibWordProviderFallbackEligible(error: FibWordProviderError): 
     error.failureKind === 'timedOut' ||
     error.failureKind === 'rateLimited' ||
     error.failureKind === 'serviceUnavailable' ||
-    error.failureKind === 'invalidOutput'
+    error.failureKind === 'invalidOutput' ||
+    error.failureKind === 'requestFailed'
   );
 }
 

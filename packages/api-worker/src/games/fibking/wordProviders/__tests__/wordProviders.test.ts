@@ -236,12 +236,11 @@ describe('Fib word providers', () => {
     expect(workersAiRequests[0]?.signal).not.toBe(request.signal);
   });
 
-  it('does not fall back for a non-eligible Gemini request failure', async () => {
+  it('falls back to Workers AI when Gemini rejects the serving region with HTTP 400', async () => {
     let workersAiCallCount = 0;
-    const geminiProvider: FibWordProvider = {
-      generate: () =>
-        Promise.reject(new FibWordProviderError('Gemini authentication failed', 'requestFailed')),
-    };
+    const geminiProvider = createGeminiFibWordProvider('test-key', () =>
+      Promise.resolve(new Response('free tier unavailable in this region', { status: 400 })),
+    );
     const workersAiProvider: FibWordProvider = {
       generate: () => {
         workersAiCallCount += 1;
@@ -257,8 +256,85 @@ describe('Fib word providers', () => {
       createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
         createWordRequest(),
       ),
-    ).rejects.toMatchObject({ failureKind: 'requestFailed' });
-    expect(workersAiCallCount).toBe(0);
+    ).resolves.toMatchObject({ source: 'workers-ai' });
+    expect(workersAiCallCount).toBe(1);
+  });
+
+  it('falls back to Workers AI when the Gemini transport fails', async () => {
+    let workersAiCallCount = 0;
+    const geminiProvider = createGeminiFibWordProvider('test-key', () =>
+      Promise.reject(new TypeError('network connection failed')),
+    );
+    const workersAiProvider: FibWordProvider = {
+      generate: () => {
+        workersAiCallCount += 1;
+        return Promise.resolve({
+          word: AI_CANDIDATE.word,
+          definition: AI_CANDIDATE.definition,
+          source: 'workers-ai',
+        });
+      },
+    };
+
+    await expect(
+      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
+        createWordRequest(),
+      ),
+    ).resolves.toMatchObject({ source: 'workers-ai' });
+    expect(workersAiCallCount).toBe(1);
+  });
+
+  it.each([401, 403])(
+    'does not fall back for a Gemini authentication failure with HTTP %i',
+    async (status) => {
+      let workersAiCallCount = 0;
+      const geminiProvider = createGeminiFibWordProvider('test-key', () =>
+        Promise.resolve(new Response('authentication failed', { status })),
+      );
+      const workersAiProvider: FibWordProvider = {
+        generate: () => {
+          workersAiCallCount += 1;
+          return Promise.resolve({
+            word: AI_CANDIDATE.word,
+            definition: AI_CANDIDATE.definition,
+            source: 'workers-ai',
+          });
+        },
+      };
+
+      await expect(
+        createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
+          createWordRequest(),
+        ),
+      ).rejects.toMatchObject({ failureKind: 'authenticationFailed' });
+      expect(workersAiCallCount).toBe(0);
+    },
+  );
+
+  it('returns the Workers AI failure when both providers fail', async () => {
+    let workersAiCallCount = 0;
+    const geminiProvider: FibWordProvider = {
+      generate: () =>
+        Promise.reject(new FibWordProviderError('Gemini request failed', 'requestFailed')),
+    };
+    const workersAiProvider: FibWordProvider = {
+      generate: () => {
+        workersAiCallCount += 1;
+        return Promise.reject(
+          new FibWordProviderError('Workers AI quota exhausted', 'rateLimited'),
+        );
+      },
+    };
+
+    await expect(
+      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
+        createWordRequest(),
+      ),
+    ).rejects.toMatchObject({
+      failureKind: 'rateLimited',
+      message: 'Workers AI quota exhausted',
+    });
+    expect(workersAiCallCount).toBe(1);
   });
 
   it('does not invoke either provider after the shared generation deadline', async () => {
@@ -393,7 +469,7 @@ describe('Fib word providers', () => {
     expect(new Set(rotated.map((candidate) => candidate.word)).size).toBeGreaterThan(1);
   });
 
-  it('uses Gemini structured output and rejects transport failures for outbox retry', async () => {
+  it('uses Gemini structured output and classifies service failures for fallback', async () => {
     let requestBody = '';
     let requestSignal: AbortSignal | null = null;
     const fetchImpl: typeof fetch = async (_input, init) => {
@@ -436,7 +512,10 @@ describe('Fib word providers', () => {
     const failingFetch: typeof fetch = async () => new Response('unavailable', { status: 503 });
     await expect(
       createGeminiFibWordProvider('test-key', failingFetch).generate(createWordRequest()),
-    ).rejects.toThrow('Gemini Fib word request failed (503)');
+    ).rejects.toMatchObject({
+      failureKind: 'serviceUnavailable',
+      message: 'Gemini Fib word request failed (503): unavailable',
+    });
   });
 
   it('uses a Workers AI model with a documented JSON Mode contract', async () => {

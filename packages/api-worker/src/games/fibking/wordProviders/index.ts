@@ -1,6 +1,7 @@
 /** Environment-owned Fib word provider selection policy. */
 
 import type { Env } from '../../../env';
+import { createLogger } from '../../../platform/observability/logger';
 import { createGeminiFibWordProvider } from './gemini';
 import { createLocalFibWordProvider } from './local';
 import { FibWordProviderError, isFibWordProviderFallbackEligible } from './providerError';
@@ -10,6 +11,7 @@ import { createWorkersAiFibWordProvider } from './workersAi';
 export type { FibWordCandidate, FibWordProvider, FibWordRequest } from './types';
 
 const GEMINI_PRIMARY_BUDGET_MS = 4_000;
+const log = createLogger('fib-word-provider');
 
 function createBoundedProviderSignal(
   requestSignal: AbortSignal,
@@ -40,9 +42,28 @@ export function createGeminiPrimaryFibWordProvider(
       try {
         return await geminiProvider.generate({ ...request, signal: geminiSignal });
       } catch (error) {
-        if (!(error instanceof FibWordProviderError) || !isFibWordProviderFallbackEligible(error)) {
+        if (!(error instanceof FibWordProviderError)) {
+          log.error('Gemini Fib word provider threw an unexpected error', {
+            provider: 'gemini',
+            error,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
           throw error;
         }
+        if (!isFibWordProviderFallbackEligible(error)) {
+          log.error('Gemini Fib word provider failed without fallback', {
+            provider: 'gemini',
+            failureKind: error.failureKind,
+            error,
+            errorMessage: error.message,
+          });
+          throw error;
+        }
+        log.warn('Gemini Fib word provider failed; falling back to Workers AI', {
+          provider: 'gemini',
+          failureKind: error.failureKind,
+          errorMessage: error.message,
+        });
       }
 
       const remainingDurationMs = request.generationDeadlineAt - Date.now();
@@ -51,7 +72,20 @@ export function createGeminiPrimaryFibWordProvider(
         request.generationDeadlineAt,
         remainingDurationMs,
       );
-      return workersAiProvider.generate({ ...request, signal: workersAiSignal });
+      try {
+        const candidate = await workersAiProvider.generate({ ...request, signal: workersAiSignal });
+        log.info('Workers AI Fib word fallback succeeded', { provider: 'workers-ai' });
+        return candidate;
+      } catch (error) {
+        log.error('Workers AI Fib word fallback failed', {
+          provider: 'workers-ai',
+          failureKind:
+            error instanceof FibWordProviderError ? error.failureKind : 'unexpectedError',
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     },
   };
 }
