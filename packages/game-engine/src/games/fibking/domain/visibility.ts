@@ -7,8 +7,8 @@ import { getFibRole } from '../state/types';
 export interface FibOngoingRoundView {
   readonly phase: 'ongoing';
   readonly roundId: string;
-  readonly viewerSeat: number;
-  readonly viewerRole: FibRole;
+  readonly viewerSeat: number | null;
+  readonly viewerRole: FibRole | null;
   readonly word: string;
   readonly definition: FibWordDefinition | null;
   readonly guesserSeat: number;
@@ -62,7 +62,18 @@ export function getFibRoundView(state: FibState, viewerSeat: number | null): Fib
     };
   }
 
-  if (viewerSeat === null) return null;
+  if (viewerSeat === null) {
+    return {
+      phase: 'ongoing',
+      roundId: state.round.roundId,
+      viewerSeat: null,
+      viewerRole: null,
+      word: state.round.word,
+      definition: state.round.definition,
+      guesserSeat: state.round.roles.guesserSeat,
+      honestSeat: null,
+    };
+  }
   const viewerRole = getFibRole(state.round.roles, viewerSeat);
   return {
     phase: 'ongoing',

@@ -691,7 +691,18 @@ describe('FibKing recoverable round workflow', () => {
       guesserSeat,
       honestSeat: null,
     });
-    expect(getFibRoundView(ongoing, null)).toBeNull();
+    expect(getFibRoundView(ongoing, null)).toMatchObject({
+      phase: 'ongoing',
+      viewerSeat: null,
+      viewerRole: null,
+      word: '山谷',
+      definition: {
+        coreMeaning: '两座山之间低洼而狭长的地带或空间。',
+        usageNote: '常用于说明该词所指事物的具体含义和适用语境。',
+      },
+      guesserSeat,
+      honestSeat: null,
+    });
 
     const ended = dispatch(ongoing, { type: 'fib.round.reveal' }, userContext('host'));
     expect(getFibRoundView(ended, null)).toMatchObject({

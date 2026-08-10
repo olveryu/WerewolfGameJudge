@@ -30,6 +30,7 @@ interface FibIdentityModalProps {
 
 function getRoleInstruction(view: FibRoundView): string {
   if (view.phase === 'ended') return '本轮身份与真实释义已经公开。';
+  if (view.viewerRole === null) return '观战时可以查看本轮词语和真实释义。';
   switch (view.viewerRole) {
     case 'guesser':
       return '听取其他玩家的描述，找出真实释义。';
@@ -41,7 +42,14 @@ function getRoleInstruction(view: FibRoundView): string {
 }
 
 const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({ view, onClose }) => {
-  const roleName = view.viewerRole === null ? '公开结果' : getFibRoleName(view.viewerRole);
+  const isSpectator = view.phase === 'ongoing' && view.viewerRole === null;
+  const roleName =
+    view.phase === 'ended'
+      ? '公开结果'
+      : view.viewerRole === null
+        ? '观战视角'
+        : getFibRoleName(view.viewerRole);
+  const eyebrow = view.phase === 'ended' ? '本轮结果' : isSpectator ? '本轮题目' : '你的身份';
   const wordPinyin = formatFibWordPinyin(view.word);
   return (
     <BaseCenterModal
@@ -57,7 +65,7 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({ view, onCl
             <Ionicons name="eye-outline" size={componentSizes.icon.md} color={colors.primary} />
           </View>
           <View style={styles.headingText}>
-            <Text style={styles.eyebrow}>{view.phase === 'ended' ? '本轮结果' : '你的身份'}</Text>
+            <Text style={styles.eyebrow}>{eyebrow}</Text>
             <Text style={styles.roleName} testID={TESTIDS.fibIdentityRole}>
               {roleName}
             </Text>

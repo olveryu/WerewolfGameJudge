@@ -241,7 +241,7 @@ describe('FibKing room adapter', () => {
     const actions = createFibBottomActions({
       state: ended,
       isHost: true,
-      hasPerspective: true,
+      viewerSeat: null,
       startRound: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound: jest.fn(),
@@ -277,7 +277,7 @@ describe('FibKing room adapter', () => {
     const onStartDisabled = jest.fn();
     const common = {
       isHost: true,
-      hasPerspective: true,
+      viewerSeat: 0,
       startRound,
       cancelPreparing,
       revealRound,
@@ -356,7 +356,7 @@ describe('FibKing room adapter', () => {
       round: null,
     };
     const common = {
-      hasPerspective: false,
+      viewerSeat: null,
       startRound,
       cancelPreparing,
       endGame: jest.fn(),
@@ -414,22 +414,36 @@ describe('FibKing room adapter', () => {
     const lobby = createFibBottomActions({
       state: createLobby(),
       isHost: false,
-      hasPerspective: false,
+      viewerSeat: null,
       ...callbacks,
     });
     expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
     expect(lobby.message).toBe('等待房主开始本轮');
 
-    const ongoing = createFibBottomActions({
+    const ongoingPlayer = createFibBottomActions({
       state: createOngoing(),
       isHost: false,
-      hasPerspective: true,
+      viewerSeat: 0,
       ...callbacks,
     });
-    expect(ongoing.layout.primary).toEqual([]);
-    expect(ongoing.layout.secondary).toMatchObject([
+    expect(ongoingPlayer.layout.primary).toEqual([]);
+    expect(ongoingPlayer.layout.secondary).toMatchObject([
       {
         label: '查看身份',
+        testID: TESTIDS.fibViewIdentityButton,
+        isEnabled: true,
+      },
+    ]);
+
+    const ongoingSpectator = createFibBottomActions({
+      state: createOngoing(),
+      isHost: false,
+      viewerSeat: null,
+      ...callbacks,
+    });
+    expect(ongoingSpectator.layout.secondary).toMatchObject([
+      {
+        label: '查看题目',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },

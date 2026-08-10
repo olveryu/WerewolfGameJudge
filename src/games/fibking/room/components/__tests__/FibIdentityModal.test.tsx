@@ -6,7 +6,7 @@ import { TESTIDS } from '@/testids';
 import { FibIdentityModal } from '../FibIdentityModal';
 
 function createOngoingView(
-  viewerRole: Extract<FibRoundView, { phase: 'ongoing' }>['viewerRole'],
+  viewerRole: Exclude<Extract<FibRoundView, { phase: 'ongoing' }>['viewerRole'], null>,
   word = '山谷',
 ): Extract<FibRoundView, { phase: 'ongoing' }> {
   return {
@@ -56,6 +56,33 @@ describe('FibIdentityModal', () => {
       '两山之间低洼而且狭长的自然地形区域。',
     );
     expect(view.getByText('使用提示')).toBeTruthy();
+    expect(view.getByTestId(TESTIDS.fibIdentityUsageNote)).toHaveTextContent(
+      '常用于描述山地之间可供河流或道路穿行的低地。',
+    );
+  });
+
+  it('shows the word and definition without a player role to a spectator', () => {
+    const spectatorView: Extract<FibRoundView, { phase: 'ongoing' }> = {
+      phase: 'ongoing',
+      roundId: 'round-1',
+      viewerSeat: null,
+      viewerRole: null,
+      word: '山谷',
+      definition: {
+        coreMeaning: '两山之间低洼而且狭长的自然地形区域。',
+        usageNote: '常用于描述山地之间可供河流或道路穿行的低地。',
+      },
+      guesserSeat: 0,
+      honestSeat: null,
+    };
+    const view = render(<FibIdentityModal view={spectatorView} onClose={jest.fn()} />);
+
+    expect(view.getByText('本轮题目')).toBeTruthy();
+    expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent('观战视角');
+    expect(view.getByTestId(TESTIDS.fibIdentityWord)).toHaveTextContent('山谷');
+    expect(view.getByTestId(TESTIDS.fibIdentityCoreMeaning)).toHaveTextContent(
+      '两山之间低洼而且狭长的自然地形区域。',
+    );
     expect(view.getByTestId(TESTIDS.fibIdentityUsageNote)).toHaveTextContent(
       '常用于描述山地之间可供河流或道路穿行的低地。',
     );

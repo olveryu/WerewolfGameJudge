@@ -262,7 +262,7 @@ function enabledButton(
 interface FibBottomActionsInput {
   readonly state: FibState;
   readonly isHost: boolean;
-  readonly hasPerspective: boolean;
+  readonly viewerSeat: number | null;
   readonly startRound: () => void;
   readonly cancelPreparing: () => void;
   readonly revealRound: () => void;
@@ -358,17 +358,15 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
           ),
         );
       }
-      if (input.hasPerspective) {
-        secondary.push(
-          enabledButton(
-            'view-identity',
-            '查看身份',
-            'secondary',
-            TESTIDS.fibViewIdentityButton,
-            input.openIdentity,
-          ),
-        );
-      }
+      secondary.push(
+        enabledButton(
+          'view-identity',
+          input.viewerSeat === null ? '查看题目' : '查看身份',
+          'secondary',
+          TESTIDS.fibViewIdentityButton,
+          input.openIdentity,
+        ),
+      );
       break;
     case 'ended':
       if (input.isHost) {
