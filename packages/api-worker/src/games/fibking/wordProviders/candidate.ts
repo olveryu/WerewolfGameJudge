@@ -32,21 +32,19 @@ const fibWordCandidatePayloadSchema = z.strictObject({
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
   category: z.enum(FIB_WORD_CATEGORIES),
-  evidence: fibDefinitionFieldSchema,
 });
 
 const generatedFibWordCandidatesPayloadSchema = z.strictObject({
   candidates: z
     .array(generatedFibWordCandidatePayloadSchema)
-    .length(FIB_GENERATED_WORD_CANDIDATE_COUNT),
+    .min(1)
+    .max(FIB_GENERATED_WORD_CANDIDATE_COUNT),
 });
-
-export type GeneratedFibWordCandidate = z.output<typeof generatedFibWordCandidatePayloadSchema>;
 
 export const FIB_WORD_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['word', 'definition', 'category', 'evidence'],
+  required: ['word', 'definition', 'category'],
   properties: {
     word: {
       type: 'string',
@@ -72,10 +70,6 @@ export const FIB_WORD_JSON_SCHEMA = {
       enum: FIB_WORD_CATEGORIES,
       description: '候选类别',
     },
-    evidence: {
-      type: 'string',
-      description: '必须逐字等于候选词、中文冒号和核心释义的拼接结果',
-    },
   },
 } as const;
 
@@ -86,8 +80,8 @@ export const FIB_WORD_CANDIDATES_JSON_SCHEMA = {
   properties: {
     candidates: {
       type: 'array',
-      description: `按出题质量从高到低排列的${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选`,
-      minItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
+      description: `按出题质量从高到低排列的1至${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选`,
+      minItems: 1,
       maxItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
       items: FIB_WORD_JSON_SCHEMA,
     },
@@ -159,11 +153,6 @@ export function selectGeneratedFibWordCandidate(
         `Fib word provider ${source} returned category ${candidate.category}, expected ${request.category}`,
       );
     }
-    if (candidate.evidence !== `${candidate.word}：${candidate.definition.coreMeaning}`) {
-      throw new Error(
-        `Fib word provider ${source} returned evidence inconsistent with the core meaning: ${candidate.word}`,
-      );
-    }
   }
   const avoidedWords = new Set(request.avoidWords);
   const recentWords = new Set(request.recentWords);
@@ -174,12 +163,6 @@ export function selectGeneratedFibWordCandidate(
     throw new Error(`Fib word provider ${source} returned no eligible candidate`);
   }
   return { word: selected.word, definition: selected.definition, source };
-}
-
-export function parseGeneratedFibWordCandidatesJson(
-  value: string,
-): readonly GeneratedFibWordCandidate[] {
-  return generatedFibWordCandidatesPayloadSchema.parse(JSON.parse(value)).candidates;
 }
 
 export function selectLocalFibWordCandidate(

@@ -15,10 +15,13 @@ import { z } from 'zod';
 
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { createLogger } from '../../platform/observability/logger';
 import { getOrCreateFibWordGenerationResult } from './wordGenerationResults';
 import { getFibWordHistoryUserIds, recordFibWordExposure } from './wordHistory';
 import { createConfiguredFibWordProvider, type FibWordProvider } from './wordProviders';
 import { FibWordProviderError } from './wordProviders/providerError';
+
+const log = createLogger('fib-word-generation');
 
 export const fibEffectSchema: z.ZodType<FibEffect> = z.strictObject({
   type: z.literal('fib.word.generate'),
@@ -122,6 +125,31 @@ export async function handleFibGenerateWordEffect(
     });
   } catch (error) {
     if (!(error instanceof FibWordProviderError)) throw error;
+    const cause = error.cause;
+    const failureDetails = {
+      error,
+      errorName: error.name,
+      errorMessage: error.message,
+      causeName: cause instanceof Error ? cause.name : undefined,
+      causeMessage:
+        cause instanceof Error
+          ? cause.message
+          : typeof cause === 'string'
+            ? cause
+            : cause === undefined
+              ? undefined
+              : 'Non-Error cause',
+      failureKind: error.failureKind,
+      roomId: context.roomIdentity.roomId,
+      roomCode: context.roomIdentity.roomCode,
+      effectId: context.effectId,
+      roundId: effect.payload.roundId,
+    };
+    if (error.failureKind === 'rateLimited') {
+      log.warn('Fib word generation rate limited', failureDetails);
+    } else {
+      log.error('Fib word generation failed', failureDetails);
+    }
     await dispatchPreparationFailure(
       context,
       effect.payload.roundId,

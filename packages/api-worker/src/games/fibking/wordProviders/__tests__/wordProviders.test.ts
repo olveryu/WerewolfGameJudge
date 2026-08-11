@@ -65,7 +65,6 @@ const AI_CANDIDATE = {
   word: '菡萏',
   definition: AI_DEFINITION,
   category: 'literary',
-  evidence: `菡萏：${AI_DEFINITION.coreMeaning}`,
 } as const;
 
 const AI_CANDIDATES_RESPONSE = {
@@ -75,48 +74,20 @@ const AI_CANDIDATES_RESPONSE = {
       ...AI_CANDIDATE,
       word: '却扇',
       definition: FAN_DEFINITION,
-      evidence: `却扇：${FAN_DEFINITION.coreMeaning}`,
     },
     {
       ...AI_CANDIDATE,
       word: '射覆',
       definition: GUESSING_DEFINITION,
-      evidence: `射覆：${GUESSING_DEFINITION.coreMeaning}`,
     },
   ],
 } as const;
 
-function createGroundedGeminiResponse(
-  annotations: readonly Record<string, unknown>[] | null = null,
-): Record<string, unknown> {
-  const text = JSON.stringify(AI_CANDIDATES_RESPONSE);
-  const groundedAnnotations = AI_CANDIDATES_RESPONSE.candidates.map((candidate, index) => {
-    const startIndex = text.indexOf(candidate.evidence);
-    if (startIndex < 0)
-      throw new Error(`Missing evidence in grounded test response: ${candidate.word}`);
-    return {
-      type: 'url_citation',
-      url: `https://example.com/source-${index + 1}`,
-      title: `source-${index + 1}`,
-      start_index: startIndex,
-      end_index: startIndex + candidate.evidence.length,
-    };
-  });
+function createGeminiResponse(payload: unknown = AI_CANDIDATES_RESPONSE): Record<string, unknown> {
   return {
-    id: 'interaction-test',
-    status: 'completed',
-    steps: [
-      { type: 'google_search_call', arguments: { queries: ['菡萏', '却扇', '射覆'] } },
-      { type: 'google_search_result', call_id: 'search-test', result: [] },
+    choices: [
       {
-        type: 'model_output',
-        content: [
-          {
-            type: 'text',
-            text,
-            annotations: annotations ?? groundedAnnotations,
-          },
-        ],
+        message: { content: JSON.stringify(payload) },
       },
     ],
   };
@@ -327,9 +298,17 @@ describe('Fib word providers', () => {
         AI_WORD_REQUEST,
       ),
     ).toThrow('expected literary');
+    expect(
+      selectGeneratedFibWordCandidate({ candidates: [AI_CANDIDATE] }, 'gemini', AI_WORD_REQUEST),
+    ).toEqual({ word: '菡萏', definition: AI_DEFINITION, source: 'gemini' });
+    expect(() =>
+      selectGeneratedFibWordCandidate({ candidates: [] }, 'gemini', AI_WORD_REQUEST),
+    ).toThrow();
     expect(() =>
       selectGeneratedFibWordCandidate(
-        { candidates: AI_CANDIDATES_RESPONSE.candidates.slice(0, 2) },
+        {
+          candidates: [...AI_CANDIDATES_RESPONSE.candidates, { ...AI_CANDIDATE, word: '氤氲' }],
+        },
         'gemini',
         AI_WORD_REQUEST,
       ),
@@ -363,6 +342,8 @@ describe('Fib word providers', () => {
     ).toThrow('returned duplicate candidate');
     expect(FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates).toMatchObject({
       items: FIB_WORD_JSON_SCHEMA,
+      minItems: 1,
+      maxItems: 3,
     });
   });
 
@@ -393,11 +374,11 @@ describe('Fib word providers', () => {
     expect(new Set(rotated.map((candidate) => candidate.word)).size).toBeGreaterThan(1);
   });
 
-  it('uses one grounded Gemini interaction and accepts independently cited candidates', async () => {
+  it('uses one search-free Gemini request and accepts confidence-gated candidates', async () => {
     let fetchCallCount = 0;
     let requestUrl = '';
     let requestBody = '';
-    let requestApiKey: string | null = null;
+    let requestAuthorization: string | null = null;
     let requestSignal: AbortSignal | null = null;
     const fetchImpl: typeof fetch = async (input, init) => {
       fetchCallCount += 1;
@@ -407,9 +388,9 @@ describe('Fib word providers', () => {
         throw new Error('Expected Gemini request body to be a JSON string');
       }
       requestBody = init.body;
-      requestApiKey = new Headers(init.headers).get('x-goog-api-key');
+      requestAuthorization = new Headers(init.headers).get('authorization');
       requestSignal = init.signal ?? null;
-      return Response.json(createGroundedGeminiResponse());
+      return Response.json(createGeminiResponse());
     };
     const provider = createGeminiFibWordProvider('test-key', fetchImpl);
 
@@ -418,25 +399,28 @@ describe('Fib word providers', () => {
       definition: AI_DEFINITION,
       source: 'gemini',
     });
-    expect(requestUrl).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
-    expect(requestApiKey).toBe('test-key');
-    expect(requestBody).toContain('"tools":[{"type":"google_search"}]');
-    expect(requestBody).toContain('"mime_type":"application/json"');
+    expect(requestUrl).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    );
+    expect(requestAuthorization).toBe('Bearer test-key');
+    expect(requestBody).not.toContain('google_search');
+    expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('"additionalProperties":false');
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
-    expect(requestBody).toContain('"store":false');
-    expect(requestBody).toContain('一次返回恰好3个互不重复的候选');
+    expect(requestBody).not.toContain('"temperature"');
+    expect(requestBody).toContain('一次返回1至3个互不重复的候选');
+    expect(requestBody).toContain('这不是造词任务，而是从你已有的稳定中文知识中回忆现成词项');
+    expect(requestBody).toContain('禁止先组合汉字得到一个听起来像词的字符串');
+    expect(requestBody).toContain('核心释义是否来自已知词义而非字面推导');
+    expect(requestBody).toContain('宁可只返回1个，也不得为了凑数编造');
     expect(requestBody).toContain('按出题质量从高到低排列');
     expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
     expect(requestBody).toContain('真实含义具体、出人意料');
     expect(requestBody).toContain('禁止常见成语、日常高频词');
     expect(requestBody).toContain('多数玩家读不出的生僻字堆');
     expect(requestBody).toContain('逐字解释就能猜中的透明复合词');
-    expect(requestBody).toContain('必须为每个候选分别调用谷歌搜索');
-    expect(requestBody).toContain('必须逐字等于该候选的 word');
-    expect(requestBody).toContain('三个 evidence 必须分别获得该候选自己的搜索引用');
     expect(requestBody).toContain('"candidates"');
-    expect(requestBody).toContain('"evidence"');
+    expect(requestBody).not.toContain('"evidence"');
     expect(fetchCallCount).toBe(1);
     expect(requestSignal).toBe(AI_WORD_REQUEST.signal);
 
@@ -449,91 +433,33 @@ describe('Fib word providers', () => {
     });
   });
 
-  it('accepts citations limited to each candidate core meaning', async () => {
-    const text = JSON.stringify(AI_CANDIDATES_RESPONSE);
-    const meaningCitations = AI_CANDIDATES_RESPONSE.candidates.map((candidate, index) => {
-      const evidenceStart = text.indexOf(candidate.evidence);
-      const meaningStart = evidenceStart + candidate.word.length + 1;
-      return {
-        type: 'url_citation',
-        url: `https://example.com/meaning-source-${index + 1}`,
-        title: `meaning-source-${index + 1}`,
-        start_index: meaningStart,
-        end_index: meaningStart + candidate.definition.coreMeaning.length,
-      };
-    });
+  it('accepts one certain Gemini candidate without forcing filler candidates', async () => {
     const fetchImpl: typeof fetch = () =>
-      Promise.resolve(Response.json(createGroundedGeminiResponse(meaningCitations)));
+      Promise.resolve(Response.json(createGeminiResponse({ candidates: [AI_CANDIDATE] })));
 
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generate(createWordRequest()),
     ).resolves.toMatchObject({ word: '菡萏', source: 'gemini' });
   });
 
-  it('rejects Gemini candidates without independent valid citations', async () => {
-    const text = JSON.stringify(AI_CANDIDATES_RESPONSE);
-    const firstEvidence = AI_CANDIDATES_RESPONSE.candidates[0].evidence;
-    const firstEvidenceStart = text.indexOf(firstEvidence);
-    const onlyFirstCandidateCitation = [
-      {
-        type: 'url_citation',
-        url: 'https://example.com/only-first-candidate',
-        title: 'only-first-candidate',
-        start_index: firstEvidenceStart,
-        end_index: firstEvidenceStart + firstEvidence.length,
-      },
-    ];
+  it('rejects empty and oversized Gemini candidate responses', async () => {
     const fetchImpl: typeof fetch = () =>
-      Promise.resolve(Response.json(createGroundedGeminiResponse(onlyFirstCandidateCitation)));
+      Promise.resolve(Response.json(createGeminiResponse({ candidates: [] })));
 
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generate(createWordRequest()),
     ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
 
-    const outOfBoundsCitation = [
-      {
-        ...onlyFirstCandidateCitation[0],
-        end_index: text.length + 1,
-      },
-    ];
-    const invalidRangeFetch: typeof fetch = () =>
-      Promise.resolve(Response.json(createGroundedGeminiResponse(outOfBoundsCitation)));
+    const oversizedFetch: typeof fetch = () =>
+      Promise.resolve(
+        Response.json(
+          createGeminiResponse({
+            candidates: [...AI_CANDIDATES_RESPONSE.candidates, { ...AI_CANDIDATE, word: '氤氲' }],
+          }),
+        ),
+      );
     await expect(
-      createGeminiFibWordProvider('test-key', invalidRangeFetch).generate(createWordRequest()),
-    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
-
-    const thirdEvidence = AI_CANDIDATES_RESPONSE.candidates[2].evidence;
-    const thirdEvidenceStart = text.indexOf(thirdEvidence);
-    const wrongCandidateCitations = [
-      onlyFirstCandidateCitation[0],
-      { ...onlyFirstCandidateCitation[0], url: 'https://example.com/wrong-second-candidate' },
-      {
-        ...onlyFirstCandidateCitation[0],
-        url: 'https://example.com/third-candidate',
-        start_index: thirdEvidenceStart,
-        end_index: thirdEvidenceStart + thirdEvidence.length,
-      },
-    ];
-    const wrongCandidateFetch: typeof fetch = () =>
-      Promise.resolve(Response.json(createGroundedGeminiResponse(wrongCandidateCitations)));
-    await expect(
-      createGeminiFibWordProvider('test-key', wrongCandidateFetch).generate(createWordRequest()),
-    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
-
-    const secondEvidence = AI_CANDIDATES_RESPONSE.candidates[1].evidence;
-    const secondEvidenceStart = text.indexOf(secondEvidence);
-    const crossCandidateCitations = [
-      {
-        ...onlyFirstCandidateCitation[0],
-        url: 'https://example.com/cross-candidate',
-        end_index: secondEvidenceStart + secondEvidence.length,
-      },
-      wrongCandidateCitations[2],
-    ];
-    const crossCandidateFetch: typeof fetch = () =>
-      Promise.resolve(Response.json(createGroundedGeminiResponse(crossCandidateCitations)));
-    await expect(
-      createGeminiFibWordProvider('test-key', crossCandidateFetch).generate(createWordRequest()),
+      createGeminiFibWordProvider('test-key', oversizedFetch).generate(createWordRequest()),
     ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
   });
 });
