@@ -1,7 +1,7 @@
 #:schema ./node_modules/wrangler/config-schema.json
 # ── Test-only wrangler config ────────────────────────────────────────────────
-# Used by vitest-pool-workers. Excludes remote-only bindings ([ai], routes,
-# triggers) so tests run locally via miniflare without Cloudflare auth.
+# Used by vitest-pool-workers. Excludes remote-only routes and triggers so tests
+# run locally via miniflare without Cloudflare auth.
 name = "werewolf-api"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
@@ -27,6 +27,11 @@ database_id = "f6ddfa17-8a27-442c-b6c0-6abf56f06a43"
 binding = "AVATARS"
 bucket_name = "werewolf-avatars"
 
+# ── Analytics Engine ────────────────────────────────────────────────────────
+[[analytics_engine_datasets]]
+binding = "AI_USAGE"
+dataset = "ai_usage_test"
+
 # ── Durable Objects ─────────────────────────────────────────────────────────
 [durable_objects]
 bindings = [
@@ -40,5 +45,4 @@ binding = "CF_VERSION_METADATA"
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
 
-# NOTE: [ai], [[routes]], [triggers] are intentionally omitted.
-# AI binding requires remote proxy (Cloudflare auth), which is unavailable in CI.
+# NOTE: [[routes]] and [triggers] are intentionally omitted.

@@ -5,13 +5,16 @@ import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from './RoomPage';
 
-export type FibIdentity = {
-  readonly role: '大聪明' | '老实人' | '瞎掰王';
+export type FibWordDetails = {
   readonly word: string;
   readonly definition: {
     readonly coreMeaning: string;
     readonly usageNote: string;
   } | null;
+};
+
+export type FibIdentity = FibWordDetails & {
+  readonly role: '大聪明' | '老实人' | '瞎掰王';
 };
 
 /** FibKing-only actions layered over the shared room page object. */
@@ -113,9 +116,12 @@ export class FibRoomPage extends RoomPage {
     return this.readOpenIdentity();
   }
 
-  async viewResult(): Promise<FibIdentity> {
+  async viewResult(): Promise<FibWordDetails> {
     await this.page.getByTestId(TESTIDS.fibViewResultButton).click();
-    return this.readOpenIdentity();
+    const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
+    await expect(modal).toBeVisible();
+    await expect(modal.getByTestId(TESTIDS.fibIdentityRole)).toHaveText('公开结果');
+    return this.readOpenWordDetails();
   }
 
   async closeIdentity(): Promise<void> {
@@ -175,6 +181,11 @@ export class FibRoomPage extends RoomPage {
     if (roleText !== '大聪明' && roleText !== '老实人' && roleText !== '瞎掰王') {
       throw new Error(`Unknown Fib identity role: ${roleText ?? '<missing>'}`);
     }
+    return { role: roleText, ...(await this.readOpenWordDetails()) };
+  }
+
+  private async readOpenWordDetails(): Promise<FibWordDetails> {
+    const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
     const word = await modal.getByTestId(TESTIDS.fibIdentityWord).textContent();
     if (word === null || word.trim().length === 0) {
       throw new Error('Fib identity modal did not render a word');
@@ -189,7 +200,7 @@ export class FibRoomPage extends RoomPage {
       throw new Error('Fib identity modal rendered a partial definition');
     }
     if (coreMeaningCount === 0) {
-      return { role: roleText, word, definition: null };
+      return { word, definition: null };
     }
     const [coreMeaning, usageNote] = await Promise.all([
       coreMeaningLocator.textContent(),
@@ -203,6 +214,6 @@ export class FibRoomPage extends RoomPage {
     ) {
       throw new Error('Fib identity modal rendered an empty definition field');
     }
-    return { role: roleText, word, definition: { coreMeaning, usageNote } };
+    return { word, definition: { coreMeaning, usageNote } };
   }
 }

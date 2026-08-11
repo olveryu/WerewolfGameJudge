@@ -868,7 +868,6 @@ describe('Worker request boundary: client objects are strict', () => {
       'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
       'packages/api-worker/src/features/feedback/providers/github.ts',
       'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
-      'packages/api-worker/src/games/fibking/wordProviders/workersAi.ts',
     ]);
   });
 

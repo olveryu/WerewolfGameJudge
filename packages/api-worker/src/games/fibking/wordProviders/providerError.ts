@@ -18,16 +18,6 @@ export class FibWordProviderError extends Error {
   }
 }
 
-export function isFibWordProviderFallbackEligible(error: FibWordProviderError): boolean {
-  return (
-    error.failureKind === 'timedOut' ||
-    error.failureKind === 'rateLimited' ||
-    error.failureKind === 'serviceUnavailable' ||
-    error.failureKind === 'invalidOutput' ||
-    error.failureKind === 'requestFailed'
-  );
-}
-
 export function createFibWordProviderRequestError(
   providerName: string,
   signal: AbortSignal,

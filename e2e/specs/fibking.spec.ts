@@ -13,7 +13,7 @@ import {
   createPlayerContexts,
 } from '../fixtures/app.fixture';
 import { FibConfigPage } from '../pages/FibConfigPage';
-import { type FibIdentity, FibRoomPage } from '../pages/FibRoomPage';
+import { type FibIdentity, FibRoomPage, type FibWordDetails } from '../pages/FibRoomPage';
 import { HomePage } from '../pages/HomePage';
 
 test.describe.configure({ mode: 'serial' });
@@ -22,23 +22,27 @@ test.setTimeout(240_000);
 const PURE_HAN_WORD_PATTERN = /^\p{Script=Han}+$/u;
 const LATIN_LETTER_PATTERN = /[A-Za-z]/;
 
-function expectIdentityVisibility(identity: FibIdentity): void {
-  expect(identity.word.length).toBeGreaterThanOrEqual(FIB_WORD_MIN_LENGTH);
-  expect(identity.word.length).toBeLessThanOrEqual(FIB_WORD_MAX_LENGTH);
-  expect(identity.word).toMatch(PURE_HAN_WORD_PATTERN);
-  if (identity.role === '老实人') {
-    expect(identity.definition).not.toBeNull();
-    if (identity.definition === null) {
-      throw new Error('The honest player did not receive the Fib definition');
+function expectWordDetails(details: FibWordDetails, shouldShowDefinition: boolean): void {
+  expect(details.word.length).toBeGreaterThanOrEqual(FIB_WORD_MIN_LENGTH);
+  expect(details.word.length).toBeLessThanOrEqual(FIB_WORD_MAX_LENGTH);
+  expect(details.word).toMatch(PURE_HAN_WORD_PATTERN);
+  if (shouldShowDefinition) {
+    expect(details.definition).not.toBeNull();
+    if (details.definition === null) {
+      throw new Error('The Fib word details did not include the definition');
     }
-    for (const field of [identity.definition.coreMeaning, identity.definition.usageNote]) {
+    for (const field of [details.definition.coreMeaning, details.definition.usageNote]) {
       expect(field.length).toBeGreaterThanOrEqual(FIB_DEFINITION_FIELD_MIN_LENGTH);
       expect(field.length).toBeLessThanOrEqual(FIB_DEFINITION_FIELD_MAX_LENGTH);
       expect(field).not.toMatch(LATIN_LETTER_PATTERN);
     }
     return;
   }
-  expect(identity.definition).toBeNull();
+  expect(details.definition).toBeNull();
+}
+
+function expectIdentityVisibility(identity: FibIdentity): void {
+  expectWordDetails(identity, identity.role === '老实人');
 }
 
 test.describe('FibKing', () => {
@@ -108,7 +112,10 @@ test.describe('FibKing', () => {
       const editConfig = new FibConfigPage(hostPage);
       await editConfig.setPlayerCount(4);
       await editConfig.saveExpectingRejectedShrink();
-      await editConfig.setPlayerCount(8);
+      for (let playerCount = 5; playerCount <= 8; playerCount += 1) {
+        await editConfig.increment();
+        await editConfig.expectPlayerCount(playerCount);
+      }
       await editConfig.save();
       await hostRoom.waitForReady('host');
       await joinerRooms[2]!.moveToSeat(3);
@@ -162,7 +169,7 @@ test.describe('FibKing', () => {
       await hostRoom.screenshot(testInfo, 'fibking-ongoing.png');
       await hostRoom.revealRound();
       const result = await hostRoom.viewResult();
-      expectIdentityVisibility({ ...result, role: '老实人' });
+      expectWordDetails(result, true);
       await hostRoom.closeIdentity();
 
       await hostRoom.startNextRound();

@@ -45,10 +45,6 @@ new_sqlite_classes = ["GameRoom"]
 tag = "v2"
 new_sqlite_classes = ["WeChatAuthProxy"]
 
-# ── Workers AI Binding ───────────────────────────────────────────────────────
-[ai]
-binding = "AI"
-
 # ── Analytics Engine (load timing telemetry, 90-day auto-expiry) ─────────────
 [[analytics_engine_datasets]]
 binding = "LOAD_TIMING"

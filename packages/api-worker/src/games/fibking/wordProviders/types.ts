@@ -7,7 +7,6 @@ import type {
 
 export const FIB_WORD_CATEGORIES = ['literary', 'internet', 'compound', 'niche'] as const;
 export const FIB_GENERATED_WORD_CANDIDATE_COUNT = 3;
-export const FIB_GENERATED_WORD_RESPONSE_MAX_TOKENS = 512;
 
 export type FibWordCategory = (typeof FIB_WORD_CATEGORIES)[number];
 

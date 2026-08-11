@@ -1,8 +1,6 @@
 /** Strict candidate validation shared by every Fib word provider adapter. */
 
 import {
-  FIB_DEFINITION_FIELD_MAX_LENGTH,
-  FIB_DEFINITION_FIELD_MIN_LENGTH,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   type FibWordSource,
@@ -34,6 +32,7 @@ const fibWordCandidatePayloadSchema = z.strictObject({
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
   category: z.enum(FIB_WORD_CATEGORIES),
+  evidence: fibDefinitionFieldSchema,
 });
 
 const generatedFibWordCandidatesPayloadSchema = z.strictObject({
@@ -42,15 +41,15 @@ const generatedFibWordCandidatesPayloadSchema = z.strictObject({
     .length(FIB_GENERATED_WORD_CANDIDATE_COUNT),
 });
 
+export type GeneratedFibWordCandidate = z.output<typeof generatedFibWordCandidatePayloadSchema>;
+
 export const FIB_WORD_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['word', 'definition', 'category'],
+  required: ['word', 'definition', 'category', 'evidence'],
   properties: {
     word: {
       type: 'string',
-      minLength: FIB_WORD_MIN_LENGTH,
-      maxLength: FIB_WORD_MAX_LENGTH,
       description: `${FIB_WORD_MIN_LENGTH}-${FIB_WORD_MAX_LENGTH}个纯汉字组成的中文词语或多字概念`,
     },
     definition: {
@@ -60,14 +59,10 @@ export const FIB_WORD_JSON_SCHEMA = {
       properties: {
         coreMeaning: {
           type: 'string',
-          minLength: FIB_DEFINITION_FIELD_MIN_LENGTH,
-          maxLength: FIB_DEFINITION_FIELD_MAX_LENGTH,
           description: '准确说明词语核心含义的完整中文句子，不得含英文字母',
         },
         usageNote: {
           type: 'string',
-          minLength: FIB_DEFINITION_FIELD_MIN_LENGTH,
-          maxLength: FIB_DEFINITION_FIELD_MAX_LENGTH,
           description: '说明适用对象、语境或容易误解之处的完整中文句子，不得含英文字母',
         },
       },
@@ -76,6 +71,10 @@ export const FIB_WORD_JSON_SCHEMA = {
       type: 'string',
       enum: FIB_WORD_CATEGORIES,
       description: '候选类别',
+    },
+    evidence: {
+      type: 'string',
+      description: '必须逐字等于候选词、中文冒号和核心释义的拼接结果',
     },
   },
 } as const;
@@ -88,6 +87,8 @@ export const FIB_WORD_CANDIDATES_JSON_SCHEMA = {
     candidates: {
       type: 'array',
       description: `按出题质量从高到低排列的${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选`,
+      minItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
+      maxItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
       items: FIB_WORD_JSON_SCHEMA,
     },
   },
@@ -158,6 +159,11 @@ export function selectGeneratedFibWordCandidate(
         `Fib word provider ${source} returned category ${candidate.category}, expected ${request.category}`,
       );
     }
+    if (candidate.evidence !== `${candidate.word}：${candidate.definition.coreMeaning}`) {
+      throw new Error(
+        `Fib word provider ${source} returned evidence inconsistent with the core meaning: ${candidate.word}`,
+      );
+    }
   }
   const avoidedWords = new Set(request.avoidWords);
   const recentWords = new Set(request.recentWords);
@@ -170,12 +176,10 @@ export function selectGeneratedFibWordCandidate(
   return { word: selected.word, definition: selected.definition, source };
 }
 
-export function selectGeneratedFibWordCandidateJson(
+export function parseGeneratedFibWordCandidatesJson(
   value: string,
-  source: FibWordSource,
-  request: FibWordRequest,
-): FibWordCandidate {
-  return selectGeneratedFibWordCandidate(JSON.parse(value), source, request);
+): readonly GeneratedFibWordCandidate[] {
+  return generatedFibWordCandidatesPayloadSchema.parse(JSON.parse(value)).candidates;
 }
 
 export function selectLocalFibWordCandidate(

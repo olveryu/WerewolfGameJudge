@@ -1092,14 +1092,15 @@ interface FibWordProvider {
 }
 ```
 
-Gemini、Workers AI、本地词库都是瞎掰王内部的 provider adapter，不是全 App 的 LLM compatibility API。Provider selection policy 放在 `games/fibking/wordProviders/`，并显式返回 source。
+Gemini 与本地词库都是瞎掰王内部的 provider adapter，不是全 App 的 LLM compatibility API。生产环境只使用
+Gemini；本地词库只用于开发和测试。Provider selection policy 放在 `games/fibking/wordProviders/`，并显式返回 source。
 
 AI provider 每轮生成四个候选并各覆盖一种类别：书面/古典词、仍在使用的网络用语、三字以上的新概念或复合表达、
 可向普通人解释的冷门生活/文化/专业概念。候选允许 2–12 字符的汉字、字母、数字和常见连接符；目标是新鲜且有
 描述空间，不把词库收窄成两字生僻词，也不接受一眼可解释的基础词、过时烂梗或无明确含义的缩写。Worker 使用
 `roundId` 派生的稳定 seed 从合格候选中选择；本地词库使用相同 seeded rotation，不在每个新房间固定从第一项开始。
 
-Provider-facing schema 只使用 Gemini 与 Workers AI 共同支持的 JSON Schema 子集。字符、长度、候选类别完整性、候选
+Provider-facing schema 使用 Gemini structured output 支持的 JSON Schema 子集。字符、长度、候选类别完整性、候选
 重复和历史命中由 Worker 的 Zod/runtime validator 再次严格校验；schema 不支持或语义不合格都作为 effect 失败进入
 既有 outbox retry，不能降级接受低质量结果。
 
@@ -2450,7 +2451,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   只有老实人能在 ongoing 看定义；ended 后所有角色都能看完整答案。bot takeover 只改变客户端控制视角，不把
   controlled seat 写入 room command actor。
 - Worker 通过 exhaustive game catalog 注册 Fib module、exact command/config/state schema 和 post-commit effect。
-  word provider port 支持 local、Gemini structured output 与 Cloudflare Workers AI JSON Mode；provider response
+  word provider port 支持 local 与 Gemini structured output；provider response
   严格解析、trim、去重后才提交 internal completion。effect identity、candidate result 和 retry ledger 持久化，
   alarm 中断后复用同一结果，不重新生成词条；stale effect 和 identity 冲突直接失败。
 - 新增 D1 migration `0037_add_fibking_game_type.sql` 与 `0038_fib_word_generation_results.sql`，并在本地 D1
@@ -2550,7 +2551,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   `games/werewolf/settlement/settleGameResults.ts`。它继续消费产品级 growth 算法，但 effect、camp、participant
   fingerprint、result ledger 与 internal roster command 全部由狼人杀 Worker module 所有。
 - 原 `/gemini-proxy` 连同 generic handler/schema 已删除，客户端和 Worker 在同一次提交切到
-  `/api/games/werewolf/ai-chat`。Gemini 与 Workers AI 仍是狼人杀 AI chat 内部 provider policy；Fib provider
+  `/api/games/werewolf/ai-chat`。Gemini 是狼人杀 AI chat 的内部 provider；Fib provider
   继续只实现自己的 word-generation port，没有建立 app-wide LLM compatibility API，也没有旧 route 转发层。
 - 四组 game-owned Worker tests 随实现归入 `games/*/__tests__`。Vitest 从只扫描根测试目录改为递归发现，生产
   TypeScript 则排除任意层级 `__tests__`，ESLint 对同一递归 glob 使用 `tsconfig.test.json`；目录迁移前后均为
@@ -2886,7 +2887,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 
 - `wrangler.toml` 成为 production binding 名称的唯一权威，提交 Wrangler 4 生成的
   `worker-configuration.d.ts`。`src/env.ts` 只导出 `Env = WorkerBindings` 与 Hono variables，不再手写 D1、R2、DO、
-  Workers AI、Analytics Engine、version metadata 或 secret；第二份 `worker-globals.d.ts` 已删除。
+  provider、Analytics Engine、version metadata 或 secret；第二份 `worker-globals.d.ts` 已删除。
 - 删除从未被 `pnpm dev` 选中的 `[env.dev]`。该 named environment 让 Wrangler 2026 multi-environment type generation
   把只存在于 production config 的资源错误地生成为 optional，却没有为实际 local command 提供任何覆盖。local command
   现在显式传入 `ENVIRONMENT=development`、`FIB_WORD_PROVIDER=local` 与空 Sentry DSN，不复制 resource binding。
@@ -2965,8 +2966,8 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - replay 读取先验证 applied、owner 与 operation，再由 draw/exchange 各自 Zod schema 解析持久化 JSON；语法损坏会被重新分类为
   服务端持久化不变量错误，不能落入 request `INVALID_JSON`，shape 损坏或未知 reward ID 同样立即失败。game-engine reward
   catalog 增加 `REWARD_TYPES/RARITIES` runtime tuple，Zod 与 TypeScript type 从同一来源生成，避免 Worker 再抄一份枚举。
-- Fib Workers AI adapter 只依赖最小 `run(model, input)` port，并在 candidate parser 前验证 required `response` envelope；测试
-  不再把普通 object 双重断言成整个 Cloudflare `Ai`。word effect 的 committed result helper 保留 `FibState`，不再擦成
+- Fib provider adapter 在 candidate parser 前验证 required response envelope；word effect 的 committed result helper
+  保留 `FibState`，不再擦成
   `BaseGameState<'fibking'>`。daily reward 测试用 discriminated Zod output contract 解析实际 response，不以 `unknown` 或泛型
   注解绕过。
 - `tsconfig.test.json` 正式进入 Worker `typecheck` 和 root `quality`，production/test 两套 TypeScript 都必须为零错误。
@@ -3349,7 +3350,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 
 ### 当前提交：Phase 8.12V Fib 词语多样性与玩家历史
 
-- Workers AI 与 Gemini 不再生成单个宽泛的“不太常见”词，而是通过 structured output 一次返回四类候选：
+- Gemini 不再生成单个宽泛的“不太常见”词，而是通过 structured output 一次返回四类候选：
   `literary`、`internet`、`compound`、`niche`。词语允许 2–12 字符的多字表达、网络用语、字母与数字组合；prompt
   排除基础词、过时烂梗、无意义缩写和只有专家能理解的术语，runtime 再验证字符、长度、四类完整性与重复。
 - `roundId` 经 SHA-256 派生稳定选择位置；effect 重试仍读取 D1 memoization ledger，不会因重试换题。本地 provider
@@ -3358,7 +3359,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - migration `0041_fib_word_exposures.sql` 新增 `(user_id, word)` exposure 表。每名真人只保留最近 200 词；本局参与者
   历史并集在 generation 前传入 provider，只有 authoritative round complete success 后才幂等写入。set-based
   `json_each` + window pruning 避免按人数发 N 次 D1 请求，已删除账号不会阻断有效玩家写入。
-- Gemini 与 Workers AI 官方文档确认 array structured output；provider schema 只保留双方共同支持的 JSON Schema
+- Gemini 官方文档确认 array structured output；provider schema 只保留 Gemini 支持的 JSON Schema
   object/array/required/enum/minItems/maxItems 等字段，字符串长度和字符集不依赖 provider 保证。定向 Worker 验证为
   3 files / 18 tests，独立 provider contract 为 1 file / 13 tests，D1 table ownership contract 为 4629 tests。
   完整 `pnpm run quality` 通过：game-engine 88 suites / 2495 tests、Worker 29 files / 177 tests、root 232 suites /

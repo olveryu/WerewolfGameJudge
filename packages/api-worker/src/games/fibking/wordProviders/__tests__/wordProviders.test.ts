@@ -18,7 +18,7 @@ import type { WorkerEffectContext } from '../../../../platform/gameModules/worke
 import { handleFibGenerateWordEffect } from '../../effects';
 import { FIB_PREPARATION_TIMEOUT_MS, selectFibWordCategory } from '../../wordGenerationResults';
 import { readRecentFibWords, recordFibWordExposure } from '../../wordHistory';
-import { createConfiguredFibWordProvider, createGeminiPrimaryFibWordProvider } from '..';
+import { createConfiguredFibWordProvider } from '..';
 import {
   FIB_WORD_CANDIDATES_JSON_SCHEMA,
   FIB_WORD_JSON_SCHEMA,
@@ -30,7 +30,6 @@ import { createLocalFibWordProvider } from '../local';
 import { LOCAL_FIB_WORD_BANK } from '../localWordBank';
 import { FibWordProviderError } from '../providerError';
 import type { FibWordProvider, FibWordRequest } from '../types';
-import { createWorkersAiFibWordProvider } from '../workersAi';
 
 const ROOM_ID = 'fib-provider-room';
 const ROOM_CODE = '9876';
@@ -43,8 +42,18 @@ const EFFECT = {
 } as const;
 
 const AI_DEFINITION = {
-  coreMeaning: '尚未开放的荷花花苞，也可以用来泛指荷花。',
-  usageNote: '多见于书面语和文学描写，常用来营造含蓄雅致的意象。',
+  coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
+  usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
+} as const;
+
+const FAN_DEFINITION = {
+  coreMeaning: '古代婚礼中移去新娘遮面扇子的一种礼俗。',
+  usageNote: '多用于描述传统婚礼仪节，不是泛指把普通扇子收起来。',
+} as const;
+
+const GUESSING_DEFINITION = {
+  coreMeaning: '把物品遮盖起来，再让参与者猜测所藏物品的游戏。',
+  usageNote: '源于古代宴饮和文人游戏语境，不是现代射击活动的名称。',
 } as const;
 
 const MIST_DEFINITION = {
@@ -56,11 +65,62 @@ const AI_CANDIDATE = {
   word: '菡萏',
   definition: AI_DEFINITION,
   category: 'literary',
+  evidence: `菡萏：${AI_DEFINITION.coreMeaning}`,
 } as const;
 
 const AI_CANDIDATES_RESPONSE = {
-  candidates: [AI_CANDIDATE, { ...AI_CANDIDATE, word: '却扇' }, { ...AI_CANDIDATE, word: '射覆' }],
+  candidates: [
+    AI_CANDIDATE,
+    {
+      ...AI_CANDIDATE,
+      word: '却扇',
+      definition: FAN_DEFINITION,
+      evidence: `却扇：${FAN_DEFINITION.coreMeaning}`,
+    },
+    {
+      ...AI_CANDIDATE,
+      word: '射覆',
+      definition: GUESSING_DEFINITION,
+      evidence: `射覆：${GUESSING_DEFINITION.coreMeaning}`,
+    },
+  ],
 } as const;
+
+function createGroundedGeminiResponse(
+  annotations: readonly Record<string, unknown>[] | null = null,
+): Record<string, unknown> {
+  const text = JSON.stringify(AI_CANDIDATES_RESPONSE);
+  const groundedAnnotations = AI_CANDIDATES_RESPONSE.candidates.map((candidate, index) => {
+    const startIndex = text.indexOf(candidate.evidence);
+    if (startIndex < 0)
+      throw new Error(`Missing evidence in grounded test response: ${candidate.word}`);
+    return {
+      type: 'url_citation',
+      url: `https://example.com/source-${index + 1}`,
+      title: `source-${index + 1}`,
+      start_index: startIndex,
+      end_index: startIndex + candidate.evidence.length,
+    };
+  });
+  return {
+    id: 'interaction-test',
+    status: 'completed',
+    steps: [
+      { type: 'google_search_call', arguments: { queries: ['菡萏', '却扇', '射覆'] } },
+      { type: 'google_search_result', call_id: 'search-test', result: [] },
+      {
+        type: 'model_output',
+        content: [
+          {
+            type: 'text',
+            text,
+            annotations: annotations ?? groundedAnnotations,
+          },
+        ],
+      },
+    ],
+  };
+}
 
 function createWordRequest(overrides: Partial<FibWordRequest> = {}): FibWordRequest {
   return {
@@ -189,178 +249,6 @@ describe('Fib word providers', () => {
     expect(() =>
       createConfiguredFibWordProvider({ ...env, FIB_WORD_PROVIDER: 'invented-provider' }),
     ).toThrow('Unknown FIB_WORD_PROVIDER: invented-provider');
-    expect(() =>
-      createConfiguredFibWordProvider({ ...env, FIB_WORD_PROVIDER: 'workers-ai' }),
-    ).toThrow('Unknown FIB_WORD_PROVIDER: workers-ai');
-  });
-
-  it('falls back from Gemini to Workers AI at most once for an eligible failure', async () => {
-    let geminiCallCount = 0;
-    let workersAiCallCount = 0;
-    const geminiRequests: FibWordRequest[] = [];
-    const workersAiRequests: FibWordRequest[] = [];
-    const geminiProvider: FibWordProvider = {
-      generate: (request) => {
-        geminiCallCount += 1;
-        geminiRequests.push(request);
-        return Promise.reject(
-          new FibWordProviderError('Gemini temporarily unavailable', 'serviceUnavailable'),
-        );
-      },
-    };
-    const workersAiProvider: FibWordProvider = {
-      generate: (request) => {
-        workersAiCallCount += 1;
-        workersAiRequests.push(request);
-        return Promise.resolve({
-          word: AI_CANDIDATE.word,
-          definition: AI_CANDIDATE.definition,
-          source: 'workers-ai',
-        });
-      },
-    };
-    const request = createWordRequest();
-
-    await expect(
-      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(request),
-    ).resolves.toEqual({
-      word: AI_CANDIDATE.word,
-      definition: AI_CANDIDATE.definition,
-      source: 'workers-ai',
-    });
-
-    expect(geminiCallCount).toBe(1);
-    expect(workersAiCallCount).toBe(1);
-    expect(geminiRequests[0]).toMatchObject({
-      generationDeadlineAt: request.generationDeadlineAt,
-    });
-    expect(workersAiRequests[0]).toMatchObject({
-      generationDeadlineAt: request.generationDeadlineAt,
-    });
-    expect(geminiRequests[0]?.signal).not.toBe(request.signal);
-    expect(workersAiRequests[0]?.signal).not.toBe(request.signal);
-  });
-
-  it('falls back to Workers AI when Gemini rejects the serving region with HTTP 400', async () => {
-    let workersAiCallCount = 0;
-    const geminiProvider = createGeminiFibWordProvider('test-key', () =>
-      Promise.resolve(new Response('free tier unavailable in this region', { status: 400 })),
-    );
-    const workersAiProvider: FibWordProvider = {
-      generate: () => {
-        workersAiCallCount += 1;
-        return Promise.resolve({
-          word: AI_CANDIDATE.word,
-          definition: AI_CANDIDATE.definition,
-          source: 'workers-ai',
-        });
-      },
-    };
-
-    await expect(
-      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
-        createWordRequest(),
-      ),
-    ).resolves.toMatchObject({ source: 'workers-ai' });
-    expect(workersAiCallCount).toBe(1);
-  });
-
-  it('falls back to Workers AI when the Gemini transport fails', async () => {
-    let workersAiCallCount = 0;
-    const geminiProvider = createGeminiFibWordProvider('test-key', () =>
-      Promise.reject(new TypeError('network connection failed')),
-    );
-    const workersAiProvider: FibWordProvider = {
-      generate: () => {
-        workersAiCallCount += 1;
-        return Promise.resolve({
-          word: AI_CANDIDATE.word,
-          definition: AI_CANDIDATE.definition,
-          source: 'workers-ai',
-        });
-      },
-    };
-
-    await expect(
-      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
-        createWordRequest(),
-      ),
-    ).resolves.toMatchObject({ source: 'workers-ai' });
-    expect(workersAiCallCount).toBe(1);
-  });
-
-  it.each([401, 403])(
-    'does not fall back for a Gemini authentication failure with HTTP %i',
-    async (status) => {
-      let workersAiCallCount = 0;
-      const geminiProvider = createGeminiFibWordProvider('test-key', () =>
-        Promise.resolve(new Response('authentication failed', { status })),
-      );
-      const workersAiProvider: FibWordProvider = {
-        generate: () => {
-          workersAiCallCount += 1;
-          return Promise.resolve({
-            word: AI_CANDIDATE.word,
-            definition: AI_CANDIDATE.definition,
-            source: 'workers-ai',
-          });
-        },
-      };
-
-      await expect(
-        createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
-          createWordRequest(),
-        ),
-      ).rejects.toMatchObject({ failureKind: 'authenticationFailed' });
-      expect(workersAiCallCount).toBe(0);
-    },
-  );
-
-  it('returns the Workers AI failure when both providers fail', async () => {
-    let workersAiCallCount = 0;
-    const geminiProvider: FibWordProvider = {
-      generate: () =>
-        Promise.reject(new FibWordProviderError('Gemini request failed', 'requestFailed')),
-    };
-    const workersAiProvider: FibWordProvider = {
-      generate: () => {
-        workersAiCallCount += 1;
-        return Promise.reject(
-          new FibWordProviderError('Workers AI quota exhausted', 'rateLimited'),
-        );
-      },
-    };
-
-    await expect(
-      createGeminiPrimaryFibWordProvider(geminiProvider, workersAiProvider).generate(
-        createWordRequest(),
-      ),
-    ).rejects.toMatchObject({
-      failureKind: 'rateLimited',
-      message: 'Workers AI quota exhausted',
-    });
-    expect(workersAiCallCount).toBe(1);
-  });
-
-  it('does not invoke either provider after the shared generation deadline', async () => {
-    let providerCallCount = 0;
-    const provider: FibWordProvider = {
-      generate: () => {
-        providerCallCount += 1;
-        return Promise.resolve({
-          word: AI_CANDIDATE.word,
-          definition: AI_CANDIDATE.definition,
-          source: 'gemini',
-        });
-      },
-    };
-
-    await expect(
-      createGeminiPrimaryFibWordProvider(provider, provider).generate(
-        createWordRequest({ generationDeadlineAt: Date.now() - 1 }),
-      ),
-    ).rejects.toMatchObject({ failureKind: 'timedOut' });
-    expect(providerCallCount).toBe(0);
   });
 
   it('strictly validates, trims, and deduplicates every provider candidate', () => {
@@ -435,14 +323,14 @@ describe('Fib word providers', () => {
             { ...AI_CANDIDATE, word: '射覆' },
           ],
         },
-        'workers-ai',
+        'gemini',
         AI_WORD_REQUEST,
       ),
     ).toThrow('expected literary');
     expect(() =>
       selectGeneratedFibWordCandidate(
         { candidates: AI_CANDIDATES_RESPONSE.candidates.slice(0, 2) },
-        'workers-ai',
+        'gemini',
         AI_WORD_REQUEST,
       ),
     ).toThrow();
@@ -457,7 +345,7 @@ describe('Fib word providers', () => {
       ),
     ).toEqual({
       word: '却扇',
-      definition: AI_DEFINITION,
+      definition: FAN_DEFINITION,
       source: 'gemini',
     });
     expect(() =>
@@ -505,29 +393,23 @@ describe('Fib word providers', () => {
     expect(new Set(rotated.map((candidate) => candidate.word)).size).toBeGreaterThan(1);
   });
 
-  it('uses Gemini structured output and classifies service failures for fallback', async () => {
+  it('uses one grounded Gemini interaction and accepts independently cited candidates', async () => {
     let fetchCallCount = 0;
+    let requestUrl = '';
     let requestBody = '';
+    let requestApiKey: string | null = null;
     let requestSignal: AbortSignal | null = null;
-    const fetchImpl: typeof fetch = async (_input, init) => {
+    const fetchImpl: typeof fetch = async (input, init) => {
       fetchCallCount += 1;
+      requestUrl =
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (typeof init?.body !== 'string') {
         throw new Error('Expected Gemini request body to be a JSON string');
       }
       requestBody = init.body;
+      requestApiKey = new Headers(init.headers).get('x-goog-api-key');
       requestSignal = init.signal ?? null;
-      return new Response(
-        JSON.stringify({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify(AI_CANDIDATES_RESPONSE),
-              },
-            },
-          ],
-        }),
-        { status: 200 },
-      );
+      return Response.json(createGroundedGeminiResponse());
     };
     const provider = createGeminiFibWordProvider('test-key', fetchImpl);
 
@@ -536,10 +418,13 @@ describe('Fib word providers', () => {
       definition: AI_DEFINITION,
       source: 'gemini',
     });
-    expect(requestBody).toContain('"type":"json_schema"');
+    expect(requestUrl).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
+    expect(requestApiKey).toBe('test-key');
+    expect(requestBody).toContain('"tools":[{"type":"google_search"}]');
+    expect(requestBody).toContain('"mime_type":"application/json"');
     expect(requestBody).toContain('"additionalProperties":false');
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
-    expect(requestBody).toContain('"max_tokens":512');
+    expect(requestBody).toContain('"store":false');
     expect(requestBody).toContain('一次返回恰好3个互不重复的候选');
     expect(requestBody).toContain('按出题质量从高到低排列');
     expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
@@ -547,7 +432,11 @@ describe('Fib word providers', () => {
     expect(requestBody).toContain('禁止常见成语、日常高频词');
     expect(requestBody).toContain('多数玩家读不出的生僻字堆');
     expect(requestBody).toContain('逐字解释就能猜中的透明复合词');
+    expect(requestBody).toContain('必须为每个候选分别调用谷歌搜索');
+    expect(requestBody).toContain('必须逐字等于该候选的 word');
+    expect(requestBody).toContain('三个 evidence 必须分别获得该候选自己的搜索引用');
     expect(requestBody).toContain('"candidates"');
+    expect(requestBody).toContain('"evidence"');
     expect(fetchCallCount).toBe(1);
     expect(requestSignal).toBe(AI_WORD_REQUEST.signal);
 
@@ -560,40 +449,92 @@ describe('Fib word providers', () => {
     });
   });
 
-  it('uses a Workers AI model with a documented JSON Mode contract', async () => {
-    let runCallCount = 0;
-    let receivedModel = '';
-    let receivedInput: unknown;
-    let receivedSignal: AbortSignal | null = null;
-    const run = (
-      model: string,
-      input: Record<string, unknown>,
-      options: { readonly signal: AbortSignal },
-    ) => {
-      runCallCount += 1;
-      receivedModel = model;
-      receivedInput = input;
-      receivedSignal = options.signal;
-      return Promise.resolve({
-        response: AI_CANDIDATES_RESPONSE,
-      });
-    };
+  it('accepts citations limited to each candidate core meaning', async () => {
+    const text = JSON.stringify(AI_CANDIDATES_RESPONSE);
+    const meaningCitations = AI_CANDIDATES_RESPONSE.candidates.map((candidate, index) => {
+      const evidenceStart = text.indexOf(candidate.evidence);
+      const meaningStart = evidenceStart + candidate.word.length + 1;
+      return {
+        type: 'url_citation',
+        url: `https://example.com/meaning-source-${index + 1}`,
+        title: `meaning-source-${index + 1}`,
+        start_index: meaningStart,
+        end_index: meaningStart + candidate.definition.coreMeaning.length,
+      };
+    });
+    const fetchImpl: typeof fetch = () =>
+      Promise.resolve(Response.json(createGroundedGeminiResponse(meaningCitations)));
 
-    await expect(createWorkersAiFibWordProvider(run).generate(AI_WORD_REQUEST)).resolves.toEqual({
-      word: '菡萏',
-      definition: AI_DEFINITION,
-      source: 'workers-ai',
-    });
-    expect(receivedModel).toBe('@cf/meta/llama-3.1-8b-instruct-fast');
-    expect(receivedInput).toMatchObject({
-      max_tokens: 512,
-      response_format: {
-        type: 'json_schema',
-        json_schema: FIB_WORD_CANDIDATES_JSON_SCHEMA,
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).generate(createWordRequest()),
+    ).resolves.toMatchObject({ word: '菡萏', source: 'gemini' });
+  });
+
+  it('rejects Gemini candidates without independent valid citations', async () => {
+    const text = JSON.stringify(AI_CANDIDATES_RESPONSE);
+    const firstEvidence = AI_CANDIDATES_RESPONSE.candidates[0].evidence;
+    const firstEvidenceStart = text.indexOf(firstEvidence);
+    const onlyFirstCandidateCitation = [
+      {
+        type: 'url_citation',
+        url: 'https://example.com/only-first-candidate',
+        title: 'only-first-candidate',
+        start_index: firstEvidenceStart,
+        end_index: firstEvidenceStart + firstEvidence.length,
       },
-    });
-    expect(runCallCount).toBe(1);
-    expect(receivedSignal).toBe(AI_WORD_REQUEST.signal);
+    ];
+    const fetchImpl: typeof fetch = () =>
+      Promise.resolve(Response.json(createGroundedGeminiResponse(onlyFirstCandidateCitation)));
+
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).generate(createWordRequest()),
+    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
+
+    const outOfBoundsCitation = [
+      {
+        ...onlyFirstCandidateCitation[0],
+        end_index: text.length + 1,
+      },
+    ];
+    const invalidRangeFetch: typeof fetch = () =>
+      Promise.resolve(Response.json(createGroundedGeminiResponse(outOfBoundsCitation)));
+    await expect(
+      createGeminiFibWordProvider('test-key', invalidRangeFetch).generate(createWordRequest()),
+    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
+
+    const thirdEvidence = AI_CANDIDATES_RESPONSE.candidates[2].evidence;
+    const thirdEvidenceStart = text.indexOf(thirdEvidence);
+    const wrongCandidateCitations = [
+      onlyFirstCandidateCitation[0],
+      { ...onlyFirstCandidateCitation[0], url: 'https://example.com/wrong-second-candidate' },
+      {
+        ...onlyFirstCandidateCitation[0],
+        url: 'https://example.com/third-candidate',
+        start_index: thirdEvidenceStart,
+        end_index: thirdEvidenceStart + thirdEvidence.length,
+      },
+    ];
+    const wrongCandidateFetch: typeof fetch = () =>
+      Promise.resolve(Response.json(createGroundedGeminiResponse(wrongCandidateCitations)));
+    await expect(
+      createGeminiFibWordProvider('test-key', wrongCandidateFetch).generate(createWordRequest()),
+    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
+
+    const secondEvidence = AI_CANDIDATES_RESPONSE.candidates[1].evidence;
+    const secondEvidenceStart = text.indexOf(secondEvidence);
+    const crossCandidateCitations = [
+      {
+        ...onlyFirstCandidateCitation[0],
+        url: 'https://example.com/cross-candidate',
+        end_index: secondEvidenceStart + secondEvidence.length,
+      },
+      wrongCandidateCitations[2],
+    ];
+    const crossCandidateFetch: typeof fetch = () =>
+      Promise.resolve(Response.json(createGroundedGeminiResponse(crossCandidateCitations)));
+    await expect(
+      createGeminiFibWordProvider('test-key', crossCandidateFetch).generate(createWordRequest()),
+    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
   });
 });
 

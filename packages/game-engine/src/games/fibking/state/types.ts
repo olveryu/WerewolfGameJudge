@@ -12,7 +12,7 @@ export const FIB_WORD_MIN_LENGTH = 2;
 export const FIB_WORD_MAX_LENGTH = 12;
 export const FIB_DEFINITION_FIELD_MIN_LENGTH = 12;
 export const FIB_DEFINITION_FIELD_MAX_LENGTH = 100;
-export const FIB_WORD_SOURCES = ['gemini', 'workers-ai', 'local'] as const;
+export const FIB_WORD_SOURCES = ['gemini', 'local'] as const;
 export const FIB_PREPARATION_STAGES = {
   queued: 'queued',
   generating: 'generating',

@@ -1,8 +1,7 @@
 /**
- * AI Chat Service — Gemini (primary) + Workers AI (fallback) via Cloudflare Workers
+ * AI Chat Service backed by Gemini through the Cloudflare Worker.
  *
- * The server uses Gemini API as the primary model, falling back to Workers AI (@cf/google/gemma-4-26b-a4b-it) on geo-restrictions/rate limits.
- * The client is only responsible for message assembly and streaming SSE response parsing. Model selection happens server-side.
+ * The client is only responsible for message assembly and streaming SSE response parsing.
  * Does not access third-party APIs directly, store API keys, or mutate game state.
  */
 
@@ -19,7 +18,7 @@ import { log } from '@/utils/logger';
 const chatLog = log.extend('AIChatService');
 
 const API_CONFIG = {
-  /** Workers AI chat endpoint */
+  /** Gemini chat endpoint owned by the API Worker. */
   baseURL: `${API_BASE_URL}/api/games/werewolf/ai-chat`,
   maxTokens: 2048,
 };

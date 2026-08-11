@@ -1,14 +1,9 @@
 /**
- * Werewolf AI chat routes — Gemini (primary) + Workers AI (fallback).
- *
- * Primary: Gemini API (OpenAI-compatible layer), fixed model gemini-3.5-flash-lite.
- * Fallback: geo block (400) / quota exhausted (429) / overload (503 after 1 retry)
- *       -> fall back to Workers AI Chat Completions (@cf/google/gemma-4-26b-a4b-it).
- * Workers AI has no geo restriction; 10K Neurons/day budget mainly serves users in restricted regions.
+ * Werewolf AI chat routes backed exclusively by Gemini.
  *
  * @throws 401 — requireAuth failed
- * @throws 400 — zod validation failed
- * @returns 429 when both provider quotas are exhausted; 503 when both providers are unavailable.
+ * @throws 400 — zod validation failed or Gemini rejected the request
+ * @returns 429 when the Gemini quota is exhausted; 503 when Gemini is unavailable.
  */
 
 import { Hono } from 'hono';
@@ -25,7 +20,6 @@ const log = createLogger('ai-chat');
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const MAX_TOKENS_CAP = 10240;
-const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const GEMINI_TIMEOUT_MS = 15_000;
 
 /** Authenticated Werewolf AI chat routes. */
@@ -39,10 +33,10 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
   const country = readCloudflareRequestMetadata(c.req.raw).country ?? 'unknown';
 
   /** Fire-and-forget: write one data point to AI_USAGE Analytics Engine. */
-  const writeUsage = (model: string, provider: 'gemini' | 'workers-ai', status: 'ok' | 'error') => {
+  const writeUsage = (status: 'ok' | 'error') => {
     env.AI_USAGE.writeDataPoint({
       indexes: [userId],
-      blobs: [userId, model, provider, country, status],
+      blobs: [userId, GEMINI_MODEL, 'gemini', country, status],
       doubles: [Date.now() - startTime],
     });
   };
@@ -54,7 +48,6 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
     ? Math.min(parsed.max_tokens, MAX_TOKENS_CAP)
     : MAX_TOKENS_CAP;
 
-  // ── Primary: Gemini API (fixed model, retry once on 503) ─────────────────
   const geminiBody = JSON.stringify({
     messages,
     model: GEMINI_MODEL,
@@ -77,7 +70,7 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
       });
 
       if (geminiResponse.ok) {
-        writeUsage(GEMINI_MODEL, 'gemini', 'ok');
+        writeUsage('ok');
         if (stream) {
           return new Response(geminiResponse.body, {
             headers: {
@@ -99,58 +92,29 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
         continue;
       }
 
-      // 400 (geo block) / 429 (quota) / other — fall through to Workers AI
       const errorText = await geminiResponse.text();
-      log.info('Gemini failed, falling back to Workers AI', {
+      log.warn('Gemini request failed', {
         model: GEMINI_MODEL,
         status,
         error: errorText.slice(0, 200),
       });
-      break;
+      writeUsage('error');
+      if (status === 429) {
+        return c.json({ success: false, reason: 'QUOTA_EXHAUSTED' }, 429);
+      }
+      if (status >= 500) {
+        return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
+      }
+      return c.json({ success: false, reason: 'GEMINI_REQUEST_REJECTED' }, 400);
     } catch (error) {
-      log.warn('Gemini request error, falling back to Workers AI', {
+      log.error('Gemini request error', {
         model: GEMINI_MODEL,
         error: error instanceof Error ? error.message : String(error),
       });
-      break;
+      writeUsage('error');
+      return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
     }
   }
 
-  // ── Fallback: Workers AI ───────────────────────────────────────────────
-  try {
-    if (stream) {
-      const aiStream = await env.AI.run(WORKERS_AI_MODEL, {
-        messages,
-        stream: true,
-        temperature,
-        max_tokens: maxTokens,
-      });
-      writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
-      return new Response(aiStream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-        },
-      });
-    }
-
-    const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
-      messages,
-      stream: false,
-      temperature,
-      max_tokens: maxTokens,
-    });
-    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
-    return Response.json(aiResponse);
-  } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    const isNeuronsExhausted = /exceeded|neurons|rate limit|too many/i.test(errMsg);
-    if (isNeuronsExhausted) {
-      writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'error');
-      return c.json({ success: false, reason: 'QUOTA_EXHAUSTED' }, 429);
-    }
-    log.error('Workers AI unexpected error', { error: errMsg });
-    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'error');
-    return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
-  }
+  throw new Error('[FAIL-FAST] Gemini retry loop exited without a response');
 });
