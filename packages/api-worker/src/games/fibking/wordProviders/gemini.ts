@@ -2,10 +2,10 @@
 
 import { z } from 'zod';
 
-import { FIB_WORD_JSON_SCHEMA, parseGeneratedFibWordCandidateJson } from './candidate';
+import { FIB_WORD_CANDIDATES_JSON_SCHEMA, selectGeneratedFibWordCandidateJson } from './candidate';
 import { createFibWordMessages } from './prompt';
 import { createFibWordProviderRequestError, FibWordProviderError } from './providerError';
-import type { FibWordProvider } from './types';
+import { FIB_GENERATED_WORD_RESPONSE_MAX_TOKENS, type FibWordProvider } from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
@@ -40,13 +40,13 @@ export function createGeminiFibWordProvider(
             model: GEMINI_MODEL,
             messages: [...createFibWordMessages(request)],
             temperature: 1,
-            max_tokens: 256,
+            max_tokens: FIB_GENERATED_WORD_RESPONSE_MAX_TOKENS,
             response_format: {
               type: 'json_schema',
               json_schema: {
-                name: 'fib_word_candidate',
+                name: 'fib_word_candidates',
                 strict: true,
-                schema: FIB_WORD_JSON_SCHEMA,
+                schema: FIB_WORD_CANDIDATES_JSON_SCHEMA,
               },
             },
           }),
@@ -72,7 +72,7 @@ export function createGeminiFibWordProvider(
       }
       try {
         const parsed = geminiResponseSchema.parse(await response.json());
-        return parseGeneratedFibWordCandidateJson(
+        return selectGeneratedFibWordCandidateJson(
           parsed.choices[0].message.content,
           'gemini',
           request,

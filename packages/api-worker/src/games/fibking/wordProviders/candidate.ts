@@ -12,7 +12,12 @@ import {
 import { z } from 'zod';
 
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
-import { FIB_WORD_CATEGORIES, type FibWordCandidate, type FibWordRequest } from './types';
+import {
+  FIB_GENERATED_WORD_CANDIDATE_COUNT,
+  FIB_WORD_CATEGORIES,
+  type FibWordCandidate,
+  type FibWordRequest,
+} from './types';
 
 const SELECTION_HASH_HEX_LENGTH = 8;
 const generatedFibWordSchema = z.string().trim().refine(isValidFibWord);
@@ -29,6 +34,12 @@ const fibWordCandidatePayloadSchema = z.strictObject({
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
   category: z.enum(FIB_WORD_CATEGORIES),
+});
+
+const generatedFibWordCandidatesPayloadSchema = z.strictObject({
+  candidates: z
+    .array(generatedFibWordCandidatePayloadSchema)
+    .length(FIB_GENERATED_WORD_CANDIDATE_COUNT),
 });
 
 export const FIB_WORD_JSON_SCHEMA = {
@@ -65,6 +76,19 @@ export const FIB_WORD_JSON_SCHEMA = {
       type: 'string',
       enum: FIB_WORD_CATEGORIES,
       description: '候选类别',
+    },
+  },
+} as const;
+
+export const FIB_WORD_CANDIDATES_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['candidates'],
+  properties: {
+    candidates: {
+      type: 'array',
+      description: `按出题质量从高到低排列的${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选`,
+      items: FIB_WORD_JSON_SCHEMA,
     },
   },
 } as const;
@@ -121,32 +145,37 @@ export function parseFibWordCandidate(
   return { ...payload, source };
 }
 
-export function parseGeneratedFibWordCandidate(
+export function selectGeneratedFibWordCandidate(
   value: unknown,
   source: FibWordSource,
   request: FibWordRequest,
 ): FibWordCandidate {
-  const payload = generatedFibWordCandidatePayloadSchema.parse(value);
-  if (payload.category !== request.category) {
-    throw new Error(
-      `Fib word provider ${source} returned category ${payload.category}, expected ${request.category}`,
-    );
+  const payload = generatedFibWordCandidatesPayloadSchema.parse(value);
+  assertDistinctCandidates(payload.candidates);
+  for (const candidate of payload.candidates) {
+    if (candidate.category !== request.category) {
+      throw new Error(
+        `Fib word provider ${source} returned category ${candidate.category}, expected ${request.category}`,
+      );
+    }
   }
-  if (request.avoidWords.includes(payload.word)) {
-    throw new Error(`Fib word provider ${source} returned an avoided word: ${payload.word}`);
+  const avoidedWords = new Set(request.avoidWords);
+  const recentWords = new Set(request.recentWords);
+  const selected = payload.candidates.find(
+    (candidate) => !avoidedWords.has(candidate.word) && !recentWords.has(candidate.word),
+  );
+  if (selected === undefined) {
+    throw new Error(`Fib word provider ${source} returned no eligible candidate`);
   }
-  if (request.recentWords.includes(payload.word)) {
-    throw new Error(`Fib word provider ${source} returned a recent word: ${payload.word}`);
-  }
-  return { word: payload.word, definition: payload.definition, source };
+  return { word: selected.word, definition: selected.definition, source };
 }
 
-export function parseGeneratedFibWordCandidateJson(
+export function selectGeneratedFibWordCandidateJson(
   value: string,
   source: FibWordSource,
   request: FibWordRequest,
 ): FibWordCandidate {
-  return parseGeneratedFibWordCandidate(JSON.parse(value), source, request);
+  return selectGeneratedFibWordCandidate(JSON.parse(value), source, request);
 }
 
 export function selectLocalFibWordCandidate(

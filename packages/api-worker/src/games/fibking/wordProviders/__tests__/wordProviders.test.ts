@@ -20,9 +20,10 @@ import { FIB_PREPARATION_TIMEOUT_MS, selectFibWordCategory } from '../../wordGen
 import { readRecentFibWords, recordFibWordExposure } from '../../wordHistory';
 import { createConfiguredFibWordProvider, createGeminiPrimaryFibWordProvider } from '..';
 import {
+  FIB_WORD_CANDIDATES_JSON_SCHEMA,
   FIB_WORD_JSON_SCHEMA,
   parseFibWordCandidate,
-  parseGeneratedFibWordCandidate,
+  selectGeneratedFibWordCandidate,
 } from '../candidate';
 import { createGeminiFibWordProvider } from '../gemini';
 import { createLocalFibWordProvider } from '../local';
@@ -55,6 +56,10 @@ const AI_CANDIDATE = {
   word: '菡萏',
   definition: AI_DEFINITION,
   category: 'literary',
+} as const;
+
+const AI_CANDIDATES_RESPONSE = {
+  candidates: [AI_CANDIDATE, { ...AI_CANDIDATE, word: '却扇' }, { ...AI_CANDIDATE, word: '射覆' }],
 } as const;
 
 function createWordRequest(overrides: Partial<FibWordRequest> = {}): FibWordRequest {
@@ -420,26 +425,57 @@ describe('Fib word providers', () => {
     ).toThrow();
   });
 
-  it('validates one candidate against the server-selected category and word history', () => {
-    expect(parseGeneratedFibWordCandidate(AI_CANDIDATE, 'workers-ai', AI_WORD_REQUEST)).toEqual({
-      word: AI_CANDIDATE.word,
-      definition: AI_CANDIDATE.definition,
-      source: 'workers-ai',
-    });
+  it('validates every AI candidate against the server-selected category', () => {
     expect(() =>
-      parseGeneratedFibWordCandidate(
-        { ...AI_CANDIDATE, category: 'internet' },
+      selectGeneratedFibWordCandidate(
+        {
+          candidates: [
+            AI_CANDIDATE,
+            { ...AI_CANDIDATE, word: '却扇', category: 'internet' },
+            { ...AI_CANDIDATE, word: '射覆' },
+          ],
+        },
         'workers-ai',
         AI_WORD_REQUEST,
       ),
     ).toThrow('expected literary');
     expect(() =>
-      parseGeneratedFibWordCandidate(
-        { ...AI_CANDIDATE, word: '电子榨菜' },
+      selectGeneratedFibWordCandidate(
+        { candidates: AI_CANDIDATES_RESPONSE.candidates.slice(0, 2) },
         'workers-ai',
         AI_WORD_REQUEST,
       ),
-    ).toThrow('returned a recent word');
+    ).toThrow();
+  });
+
+  it('selects the highest-ranked eligible AI candidate from one generated response', () => {
+    expect(
+      selectGeneratedFibWordCandidate(
+        AI_CANDIDATES_RESPONSE,
+        'gemini',
+        createWordRequest({ recentWords: ['菡萏'] }),
+      ),
+    ).toEqual({
+      word: '却扇',
+      definition: AI_DEFINITION,
+      source: 'gemini',
+    });
+    expect(() =>
+      selectGeneratedFibWordCandidate(
+        {
+          candidates: [
+            AI_CANDIDATE,
+            { ...AI_CANDIDATE, word: '却扇' },
+            { ...AI_CANDIDATE, word: '却扇' },
+          ],
+        },
+        'gemini',
+        createWordRequest(),
+      ),
+    ).toThrow('returned duplicate candidate');
+    expect(FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates).toMatchObject({
+      items: FIB_WORD_JSON_SCHEMA,
+    });
   });
 
   it('keeps the local bank larger than the authoritative used-word window', async () => {
@@ -470,9 +506,11 @@ describe('Fib word providers', () => {
   });
 
   it('uses Gemini structured output and classifies service failures for fallback', async () => {
+    let fetchCallCount = 0;
     let requestBody = '';
     let requestSignal: AbortSignal | null = null;
     const fetchImpl: typeof fetch = async (_input, init) => {
+      fetchCallCount += 1;
       if (typeof init?.body !== 'string') {
         throw new Error('Expected Gemini request body to be a JSON string');
       }
@@ -483,7 +521,7 @@ describe('Fib word providers', () => {
           choices: [
             {
               message: {
-                content: JSON.stringify(AI_CANDIDATE),
+                content: JSON.stringify(AI_CANDIDATES_RESPONSE),
               },
             },
           ],
@@ -501,12 +539,16 @@ describe('Fib word providers', () => {
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('"additionalProperties":false');
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
-    expect(requestBody).toContain('"max_tokens":256');
+    expect(requestBody).toContain('"max_tokens":512');
+    expect(requestBody).toContain('一次返回恰好3个互不重复的候选');
+    expect(requestBody).toContain('按出题质量从高到低排列');
     expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
     expect(requestBody).toContain('真实含义具体、出人意料');
-    expect(requestBody).toContain('禁止多数玩家读不出的生僻字堆');
+    expect(requestBody).toContain('禁止常见成语、日常高频词');
+    expect(requestBody).toContain('多数玩家读不出的生僻字堆');
     expect(requestBody).toContain('逐字解释就能猜中的透明复合词');
-    expect(requestBody).not.toContain('"candidates"');
+    expect(requestBody).toContain('"candidates"');
+    expect(fetchCallCount).toBe(1);
     expect(requestSignal).toBe(AI_WORD_REQUEST.signal);
 
     const failingFetch: typeof fetch = async () => new Response('unavailable', { status: 503 });
@@ -519,6 +561,7 @@ describe('Fib word providers', () => {
   });
 
   it('uses a Workers AI model with a documented JSON Mode contract', async () => {
+    let runCallCount = 0;
     let receivedModel = '';
     let receivedInput: unknown;
     let receivedSignal: AbortSignal | null = null;
@@ -527,11 +570,12 @@ describe('Fib word providers', () => {
       input: Record<string, unknown>,
       options: { readonly signal: AbortSignal },
     ) => {
+      runCallCount += 1;
       receivedModel = model;
       receivedInput = input;
       receivedSignal = options.signal;
       return Promise.resolve({
-        response: AI_CANDIDATE,
+        response: AI_CANDIDATES_RESPONSE,
       });
     };
 
@@ -542,12 +586,13 @@ describe('Fib word providers', () => {
     });
     expect(receivedModel).toBe('@cf/meta/llama-3.1-8b-instruct-fast');
     expect(receivedInput).toMatchObject({
-      max_tokens: 256,
+      max_tokens: 512,
       response_format: {
         type: 'json_schema',
-        json_schema: FIB_WORD_JSON_SCHEMA,
+        json_schema: FIB_WORD_CANDIDATES_JSON_SCHEMA,
       },
     });
+    expect(runCallCount).toBe(1);
     expect(receivedSignal).toBe(AI_WORD_REQUEST.signal);
   });
 });

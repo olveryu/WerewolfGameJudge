@@ -2,10 +2,10 @@
 
 import { z } from 'zod';
 
-import { FIB_WORD_JSON_SCHEMA, parseGeneratedFibWordCandidate } from './candidate';
+import { FIB_WORD_CANDIDATES_JSON_SCHEMA, selectGeneratedFibWordCandidate } from './candidate';
 import { createFibWordMessages } from './prompt';
 import { createFibWordProviderRequestError, FibWordProviderError } from './providerError';
-import type { FibWordProvider } from './types';
+import { FIB_GENERATED_WORD_RESPONSE_MAX_TOKENS, type FibWordProvider } from './types';
 
 const WORKERS_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 const workersAiResponseSchema = z.object({ response: z.unknown() });
@@ -26,10 +26,10 @@ export function createWorkersAiFibWordProvider(run: FibWorkersAiRun): FibWordPro
           {
             messages: [...createFibWordMessages(request)],
             temperature: 1,
-            max_tokens: 256,
+            max_tokens: FIB_GENERATED_WORD_RESPONSE_MAX_TOKENS,
             response_format: {
               type: 'json_schema',
-              json_schema: FIB_WORD_JSON_SCHEMA,
+              json_schema: FIB_WORD_CANDIDATES_JSON_SCHEMA,
             },
           },
           { signal: request.signal },
@@ -39,7 +39,7 @@ export function createWorkersAiFibWordProvider(run: FibWorkersAiRun): FibWordPro
       }
       try {
         const response = workersAiResponseSchema.parse(rawResponse);
-        return parseGeneratedFibWordCandidate(response.response, 'workers-ai', request);
+        return selectGeneratedFibWordCandidate(response.response, 'workers-ai', request);
       } catch (error) {
         throw new FibWordProviderError(
           'Workers AI Fib word response was invalid',
