@@ -6,7 +6,7 @@
  * Embedded inside account card; does not include its own card container.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { getLevelProgress, LEVEL_THRESHOLDS } from '@game-judge/game-engine/product/growth';
+import { getLevelProgress, getLevelThreshold } from '@game-judge/game-engine/product/growth';
 import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
@@ -30,10 +30,7 @@ interface GrowthSectionProps {
 /** Level / XP section. */
 export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressUnlocks }) => {
   const progress = getLevelProgress(stats.xp);
-  const nextThreshold =
-    stats.level < LEVEL_THRESHOLDS.length - 1
-      ? LEVEL_THRESHOLDS[stats.level + 1]
-      : LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  const nextThreshold = getLevelThreshold(stats.level + 1);
 
   const unlockCount = new Set([
     ...stats.unlockedItems,

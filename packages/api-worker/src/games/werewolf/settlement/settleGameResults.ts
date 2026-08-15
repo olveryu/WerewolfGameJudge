@@ -10,7 +10,7 @@ import { type CampBucket, getRoleCamp } from '@game-judge/game-engine/games/were
 import { createSeededRng } from '@game-judge/game-engine/platform/random';
 import {
   getLevel,
-  LEVEL_THRESHOLDS,
+  LEVEL_PROGRESSION_SEGMENTS,
   rollXp,
   XP_BASE,
   XP_RANDOM_BASE,
@@ -20,6 +20,7 @@ import { rollGoldenDraws, rollNormalDraws } from '@game-judge/game-engine/produc
 import type { gameSettlementResults } from '../dbSchema';
 
 const MIN_HUMAN_PLAYERS = 6;
+const LEGACY_MAX_LEVEL = 51;
 
 interface SettlementEnv {
   DB: D1Database;
@@ -80,6 +81,16 @@ function requireNonNegativeInteger(value: unknown, field: string): number {
   return value;
 }
 
+function isRecordedNewLevelValid(previousLevel: number, newLevel: number, newXp: number): boolean {
+  const calculatedNewLevel = getLevel(newXp);
+  return (
+    newLevel === calculatedNewLevel ||
+    (previousLevel === LEGACY_MAX_LEVEL &&
+      newLevel === LEGACY_MAX_LEVEL &&
+      calculatedNewLevel > LEGACY_MAX_LEVEL)
+  );
+}
+
 function requireCamp(value: unknown): CampBucket {
   if (value === 'wolf' || value === 'god' || value === 'villager' || value === 'third') {
     return value;
@@ -121,10 +132,13 @@ async function createParticipantFingerprint(effect: WerewolfGameEndedEffect): Pr
   return sha256Hex(JSON.stringify({ roomCode: effect.payload.roomCode, participants }));
 }
 
-const LEVEL_FROM_NEW_XP_SQL = [...LEVEL_THRESHOLDS]
-  .map((threshold, level) => `WHEN new_xp >= ${threshold} THEN ${level}`)
-  .reverse()
-  .join(' ');
+const LEVEL_FROM_NEW_XP_SQL = LEVEL_PROGRESSION_SEGMENTS.map((segment, index) => {
+  const nextSegment = LEVEL_PROGRESSION_SEGMENTS[index + 1];
+  const levelExpression = `${segment.startingLevel} + CAST((new_xp - ${segment.startingXp}) / ${segment.xpPerLevel} AS INTEGER)`;
+  return nextSegment === undefined
+    ? `ELSE ${levelExpression}`
+    : `WHEN new_xp < ${nextSegment.startingXp} THEN ${levelExpression}`;
+}).join(' ');
 
 function createInsertResultStatement(
   db: D1Database,
@@ -170,7 +184,7 @@ function createInsertResultStatement(
           previous_level,
           xp_earned,
           new_xp,
-          CASE ${LEVEL_FROM_NEW_XP_SQL} ELSE 0 END AS new_level
+          CASE ${LEVEL_FROM_NEW_XP_SQL} END AS new_level
         FROM leveled
       )
       INSERT INTO game_settlement_results (
@@ -384,7 +398,7 @@ async function readSettlementResults(
         : 0;
     if (
       previousXp + xpEarned !== newXp ||
-      getLevel(newXp) !== newLevel ||
+      !isRecordedNewLevelValid(previousLevel, newLevel, newXp) ||
       xpEarned !== expectedXp ||
       normalDrawsEarned !== expectedNormalDraws ||
       goldenDrawsEarned !== expectedGoldenDraws

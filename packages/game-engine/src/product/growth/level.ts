@@ -1,8 +1,8 @@
 /**
  * level — level system
  *
- * 52 levels (Lv.0–Lv.51), level up via cumulative XP. Each level unlocks 1 avatar or avatar frame.
- * XP/game: 50 + random(0~20), expected ~60. Early game ~1 game/level, late game ~2 games/level.
+ * Unbounded levels via cumulative XP. The progression curve is shared with settlement SQL.
+ * XP/game: 50 + random(0~20+level), so rewards continue scaling after Lv.51.
  * Pure function, no side effects.
  */
 
@@ -15,20 +15,15 @@ export const XP_BASE = 50;
 export const XP_RANDOM_BASE = 20;
 
 /**
- * Cumulative XP threshold table. index = level.
- *
- * Lv.0 = 0 (free), Lv.1–20 +60 per level, Lv.21–40 +90 per level, Lv.41–51 +120 per level.
+ * Piecewise cumulative-XP curve. The final segment has no product-level cap.
  */
-export const LEVEL_THRESHOLDS: readonly number[] = /* @__PURE__ */ (() => {
-  const t = [0];
-  for (let lv = 1; lv <= 51; lv++) {
-    const delta = lv <= 20 ? 60 : lv <= 40 ? 90 : 120;
-    t.push(t[lv - 1]! + delta);
-  }
-  return t;
-})();
+export const LEVEL_PROGRESSION_SEGMENTS = [
+  { startingLevel: 0, startingXp: 0, xpPerLevel: 60 },
+  { startingLevel: 20, startingXp: 1_200, xpPerLevel: 90 },
+  { startingLevel: 40, startingXp: 3_000, xpPerLevel: 120 },
+] as const;
 
-const MAX_LEVEL = LEVEL_THRESHOLDS.length - 1;
+type LevelProgressionSegment = (typeof LEVEL_PROGRESSION_SEGMENTS)[number];
 
 function assertNonNegativeSafeInteger(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {
@@ -38,44 +33,70 @@ function assertNonNegativeSafeInteger(value: number, label: string): void {
 
 function assertLevel(level: number): void {
   assertNonNegativeSafeInteger(level, 'Level');
-  if (level > MAX_LEVEL) {
-    throw new Error(`[FAIL-FAST] Level must be between 0 and ${MAX_LEVEL}: ${level}`);
+}
+
+function getProgressionSegmentForLevel(level: number): LevelProgressionSegment {
+  for (let index = LEVEL_PROGRESSION_SEGMENTS.length - 1; index >= 0; index -= 1) {
+    const segment = LEVEL_PROGRESSION_SEGMENTS[index]!;
+    if (level >= segment.startingLevel) return segment;
   }
+  throw new Error(`[FAIL-FAST] Level progression does not cover level: ${level}`);
+}
+
+function getProgressionSegmentForXp(xp: number): LevelProgressionSegment {
+  for (let index = LEVEL_PROGRESSION_SEGMENTS.length - 1; index >= 0; index -= 1) {
+    const segment = LEVEL_PROGRESSION_SEGMENTS[index]!;
+    if (xp >= segment.startingXp) return segment;
+  }
+  throw new Error(`[FAIL-FAST] Level progression does not cover XP: ${xp}`);
+}
+
+/** Return the cumulative XP required to reach a level. */
+export function getLevelThreshold(level: number): number {
+  assertLevel(level);
+  const segment = getProgressionSegmentForLevel(level);
+  const threshold = segment.startingXp + (level - segment.startingLevel) * segment.xpPerLevel;
+  if (!Number.isSafeInteger(threshold)) {
+    throw new Error(`[FAIL-FAST] Level threshold exceeds the safe integer range: ${level}`);
+  }
+  return threshold;
 }
 
 /** Compute level from cumulative XP */
 export function getLevel(xp: number): number {
   assertNonNegativeSafeInteger(xp, 'XP');
-  for (let i = MAX_LEVEL; i >= 0; i--) {
-    if (xp >= LEVEL_THRESHOLDS[i]!) return i;
-  }
-  throw new Error(`[FAIL-FAST] Level thresholds do not cover XP: ${xp}`);
+  const segment = getProgressionSegmentForXp(xp);
+  return segment.startingLevel + Math.floor((xp - segment.startingXp) / segment.xpPerLevel);
 }
 
-/** Current level progress ratio 0–1 (returns 1 at max level) */
+/** Current level progress ratio from 0 inclusive to 1 exclusive. */
 export function getLevelProgress(xp: number): number {
   const level = getLevel(xp);
-  if (level >= MAX_LEVEL) return 1;
-  const currentThreshold = LEVEL_THRESHOLDS[level]!;
-  const nextThreshold = LEVEL_THRESHOLDS[level + 1]!;
+  const currentThreshold = getLevelThreshold(level);
+  const nextThreshold = getLevelThreshold(level + 1);
   return (xp - currentThreshold) / (nextThreshold - currentThreshold);
 }
 
-/** Level titles (bucketed by level range) */
+/** Level titles ordered from highest minimum level to lowest. */
 const LEVEL_TITLES = [
-  { min: 0, max: 5, title: '新手' },
-  { min: 6, max: 10, title: '入门' },
-  { min: 11, max: 20, title: '常客' },
-  { min: 21, max: 30, title: '老手' },
-  { min: 31, max: 40, title: '元老' },
-  { min: 41, max: 51, title: '传奇' },
+  { minimumLevel: 201, title: '无尽' },
+  { minimumLevel: 151, title: '永恒' },
+  { minimumLevel: 101, title: '不朽' },
+  { minimumLevel: 76, title: '超凡' },
+  { minimumLevel: 52, title: '神话' },
+  { minimumLevel: 41, title: '传奇' },
+  { minimumLevel: 31, title: '元老' },
+  { minimumLevel: 21, title: '老手' },
+  { minimumLevel: 11, title: '常客' },
+  { minimumLevel: 6, title: '入门' },
+  { minimumLevel: 0, title: '新手' },
 ] as const;
 
 /** Return the Chinese title for a given level */
 export function getLevelTitle(level: number): string {
   assertLevel(level);
-  for (const { min, max, title } of LEVEL_TITLES) {
-    if (level >= min && level <= max) return title;
+  for (const { minimumLevel, title } of LEVEL_TITLES) {
+    if (level >= minimumLevel) return title;
   }
   throw new Error(`[FAIL-FAST] Level title ranges do not cover level: ${level}`);
 }
@@ -84,5 +105,8 @@ export function getLevelTitle(level: number): string {
 export function rollXp(level: number, rng: Rng = secureRng): number {
   assertLevel(level);
   const range = XP_RANDOM_BASE + level;
+  if (!Number.isSafeInteger(XP_BASE + range)) {
+    throw new Error(`[FAIL-FAST] XP reward exceeds the safe integer range at level: ${level}`);
+  }
   return XP_BASE + randomIntInclusive(0, range, rng);
 }

@@ -53,4 +53,20 @@ describe('accountApi response contracts', () => {
 
     await expect(fetchUserStats()).rejects.toThrow();
   });
+
+  it('accepts random reveal effects and rejects unknown effect IDs', async () => {
+    const profile = {
+      displayName: 'Alice',
+      level: 2,
+      title: '新手',
+      xp: 10,
+      gamesPlayed: 3,
+      unlockedItemCount: 1,
+    };
+    respondWithJson({ ...profile, revealEffect: 'random' });
+    respondWithJson({ ...profile, revealEffect: 'unknown-effect' });
+
+    await expect(fetchUserProfile('user-1')).resolves.toMatchObject({ revealEffect: 'random' });
+    await expect(fetchUserProfile('user-1')).rejects.toThrow();
+  });
 });

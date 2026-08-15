@@ -2589,8 +2589,8 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   gacha 的 9 个读取点不再使用 `JSON.parse(...) as string[]`。unlock query 与 persisted parser 共用必需的
   reward-pool lookup，不再把缺失映射静默当成其他奖励类型。Catalog 从同一份全目录索引派生 rarity、type 与
   drawable pool，并在模块初始化时拒绝重复 ID；unlock target 收到未知或错类型 ID 时失败。外部 profile cosmetic
-  ID 先由精确 Zod enum 拒绝并返回 400，不能把不可信输入推入 engine。XP 必须是非负 safe integer，level 必须在
-  `0..51`，非法值不再投影成 0 级或“传奇”。未知角色名在 engine 查询处失败，过期揭晓特效在
+  ID 先由精确 Zod enum 拒绝并返回 400，不能把不可信输入推入 engine。XP 与 level 必须是非负 safe integer，
+  等级阈值也必须可精确表示，非法值不再投影成 0 级或最高称号。未知角色名在 engine 查询处失败，过期揭晓特效在
   `GameState -> LocalGameState` 投影处失败，RoomScreen 不再把错误数据静默改成 `none`。
 - `seed-local.mjs` 不再用正则读取已删除文件，而是用 TypeScript AST 解析 `product/rewards/catalog.ts` 的字符串
   数组与命名 spread；不支持的表达式、循环 spread 和重复 ID 都会终止 seed。Wrangler 4.95.0 本地 migration

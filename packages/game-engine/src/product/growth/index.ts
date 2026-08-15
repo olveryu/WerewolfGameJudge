@@ -3,8 +3,9 @@
 export {
   getLevel,
   getLevelProgress,
+  getLevelThreshold,
   getLevelTitle,
-  LEVEL_THRESHOLDS,
+  LEVEL_PROGRESSION_SEGMENTS,
   rollXp,
   XP_BASE,
   XP_RANDOM_BASE,

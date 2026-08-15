@@ -15,8 +15,17 @@ jest.mock('@/features/account/queries/useUserProfileQuery', () => ({
 
 const productUi: ClientProductUi = {
   getAvatarDisplayName: (avatarId) => avatarId,
-  getRevealEffectPresentation: () => {
-    throw new Error('[FAIL-FAST] Profile test does not render reveal-effect presentation');
+  getRevealEffectPresentation: (effectId) => {
+    if (effectId !== 'random') {
+      throw new Error(`[FAIL-FAST] Unexpected profile reveal effect: ${effectId}`);
+    }
+    return {
+      id: 'random',
+      label: '随机',
+      icon: 'shuffle-outline',
+      shortDescription: '每局随机一种揭晓动画',
+      Preview: () => null,
+    };
   },
 };
 
@@ -125,5 +134,65 @@ describe('PlayerProfileCard', () => {
 
     expect(view.getByText('Alice')).toBeTruthy();
     expect(view.getByText('狼人杀阵营详情')).toBeTruthy();
+  });
+
+  it('shows the next XP threshold above the former level cap', () => {
+    const profile: UserPublicProfile = {
+      displayName: 'Alice',
+      xp: 4_500,
+      level: 52,
+      title: '神话',
+      gamesPlayed: 100,
+      unlockedItemCount: 3,
+    };
+    mockUseUserProfileQuery.mockReturnValue({
+      data: profile,
+      isLoading: false,
+      isError: false,
+    });
+
+    const view = renderProfile(
+      createModel({
+        target: {
+          seat: 1,
+          userId: 'user-abc',
+          occupantKind: 'human',
+          rosterName: 'Alice',
+        },
+      }),
+    );
+
+    expect(view.getByText('4500 / 4560')).toBeTruthy();
+  });
+
+  it('renders the random reveal-effect selection without treating it as a reward item', () => {
+    const profile: UserPublicProfile = {
+      displayName: 'Alice',
+      revealEffect: 'random',
+      xp: 100,
+      level: 2,
+      title: '新手',
+      gamesPlayed: 5,
+      unlockedItemCount: 3,
+    };
+    mockUseUserProfileQuery.mockReturnValue({
+      data: profile,
+      isLoading: false,
+      isError: false,
+    });
+
+    const view = renderProfile(
+      createModel({
+        target: {
+          seat: 1,
+          userId: 'user-abc',
+          occupantKind: 'human',
+          rosterName: 'Alice',
+        },
+      }),
+    );
+
+    expect(view.getByText('随机')).toBeTruthy();
+    view.unmount();
   });
 });

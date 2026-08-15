@@ -7,8 +7,8 @@
  */
 import {
   getLevelProgress,
+  getLevelThreshold,
   getLevelTitle,
-  LEVEL_THRESHOLDS,
 } from '@game-judge/game-engine/product/growth';
 import { getItemRarity, type Rarity } from '@game-judge/game-engine/product/rewards';
 import { useNavigation } from '@react-navigation/native';
@@ -39,6 +39,7 @@ import { userUnlocksOptions } from '@/features/account/queries/accountQueryOptio
 import { useUserProfileQuery } from '@/features/account/queries/useUserProfileQuery';
 import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
+import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { type RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
@@ -149,8 +150,18 @@ function resolveSeatAnimationSlot(animId: string | undefined): SlotInfo {
   };
 }
 
-function resolveRevealEffectSlot(effectId: string | undefined): SlotInfo {
+function resolveRevealEffectSlot(
+  effectId: UserPublicProfile['revealEffect'],
+  resolvePresentation: ClientProductUi['getRevealEffectPresentation'],
+): SlotInfo {
   if (!effectId) return { name: '', rarity: null, typeLabel: '揭晓特效' };
+  if (effectId === 'random') {
+    return {
+      name: resolvePresentation(effectId).label,
+      rarity: null,
+      typeLabel: '揭晓特效',
+    };
+  }
   return {
     name: getPetByEffectId(effectId)?.name ?? effectId,
     rarity: getItemRarity(effectId),
@@ -202,7 +213,8 @@ EquipmentSlot.displayName = 'EquipmentSlot';
 const EquipmentShowcase: React.FC<{
   readonly profile: UserPublicProfile;
   readonly resolveBuiltinAvatarName: (avatarId: string) => string;
-}> = memo(({ profile, resolveBuiltinAvatarName }) => {
+  readonly resolveRevealEffectPresentation: ClientProductUi['getRevealEffectPresentation'];
+}> = memo(({ profile, resolveBuiltinAvatarName, resolveRevealEffectPresentation }) => {
   const avatarSlot = useMemo(
     () => resolveAvatarSlot(profile.avatarUrl, resolveBuiltinAvatarName),
     [profile.avatarUrl, resolveBuiltinAvatarName],
@@ -211,8 +223,8 @@ const EquipmentShowcase: React.FC<{
   const nameStyleSlot = useMemo(() => resolveNameStyleSlot(profile.nameStyle), [profile.nameStyle]);
   const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
   const revealEffectSlot = useMemo(
-    () => resolveRevealEffectSlot(profile.revealEffect),
-    [profile.revealEffect],
+    () => resolveRevealEffectSlot(profile.revealEffect, resolveRevealEffectPresentation),
+    [profile.revealEffect, resolveRevealEffectPresentation],
   );
   const seatAnimationSlot = useMemo(
     () => resolveSeatAnimationSlot(profile.seatAnimation),
@@ -327,8 +339,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
   const xpProgress = useMemo(() => (profile ? getLevelProgress(profile.xp) : 0), [profile]);
 
   const nextThreshold = useMemo(
-    () =>
-      profile ? LEVEL_THRESHOLDS[Math.min(profile.level + 1, LEVEL_THRESHOLDS.length - 1)] : 0,
+    () => (profile ? getLevelThreshold(profile.level + 1) : 0),
     [profile],
   );
 
@@ -486,6 +497,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
             <EquipmentShowcase
               profile={profile}
               resolveBuiltinAvatarName={productUi.getAvatarDisplayName}
+              resolveRevealEffectPresentation={productUi.getRevealEffectPresentation}
             />
 
             {/* ── Self leave seat button ── */}

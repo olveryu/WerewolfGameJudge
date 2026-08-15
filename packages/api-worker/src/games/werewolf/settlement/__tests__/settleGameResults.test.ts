@@ -9,6 +9,7 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { werewolfEngine } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { getLevel } from '@game-judge/game-engine/product/growth';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -134,6 +135,26 @@ describe('settleGameResults', () => {
     ]);
   });
 
+  it('continues leveling from a persisted Lv.51 account', async () => {
+    const effect = buildEndedEffect('SETTLE-ABOVE-51');
+    await insertEffectUsers(['user-0']);
+    await env.DB.prepare(
+      `INSERT INTO user_stats (user_id, xp, level, updated_at)
+       VALUES (?1, 4439, 51, datetime('now'))`,
+    )
+      .bind('user-0')
+      .run();
+
+    const [result] = await settleGameResults('effect-above-51', effect, env);
+    if (result === undefined) throw new Error('Missing settlement result above Lv.51');
+
+    expect(result.previousLevel).toBe(51);
+    expect(result.newLevel).toBe(getLevel(result.newXp));
+    expect(result.newLevel).toBeGreaterThanOrEqual(52);
+    expect(result.goldenDrawsEarned).toBeGreaterThan(0);
+    expect((await readStats('user-0')).level).toBe(result.newLevel);
+  });
+
   it('does not settle a game with fewer than six distinct human players', async () => {
     const effect = buildEndedEffect('SETTLE-SHORT', 5);
     await insertUser('user-0', false);
@@ -181,6 +202,44 @@ describe('settleGameResults', () => {
       .bind('user-0')
       .all<{ settle_key: string }>();
     expect(settlements.results).toEqual([{ settle_key: 'effect-replay' }]);
+  });
+
+  it('replays a historical result committed under the Lv.51 cap', async () => {
+    const effect = buildEndedEffect('SETTLE-LEGACY-CAP');
+    await insertEffectUsers(['user-0']);
+    await env.DB.prepare(
+      `INSERT INTO user_stats (user_id, xp, level, updated_at)
+       VALUES (?1, 4439, 51, datetime('now'))`,
+    )
+      .bind('user-0')
+      .run();
+    const [committed] = await settleGameResults('effect-legacy-cap', effect, env);
+    if (committed === undefined) throw new Error('Missing legacy-cap settlement result');
+    expect(committed.newLevel).toBeGreaterThanOrEqual(52);
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE game_settlement_results
+           SET new_level = 51, golden_draws_earned = 0
+           WHERE effect_id = ?1 AND user_id = ?2`,
+      ).bind('effect-legacy-cap', 'user-0'),
+      env.DB.prepare(
+        `UPDATE user_stats
+           SET level = 51, golden_draws = 0
+           WHERE user_id = ?1`,
+      ).bind('user-0'),
+    ]);
+
+    const replayed = await settleGameResults('effect-legacy-cap', effect, env);
+
+    expect(replayed).toEqual([
+      {
+        ...committed,
+        newLevel: 51,
+        goldenDrawsEarned: 0,
+      },
+    ]);
+    expect((await readStats('user-0')).games_played).toBe(1);
   });
 
   it('reproduces rewards from effectId and userId after rebuilding persistence', async () => {

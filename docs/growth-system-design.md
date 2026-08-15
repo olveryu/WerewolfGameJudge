@@ -1,7 +1,7 @@
 # 用户成长系统设计
 
 > 状态：已实现
-> 最后核对：2026-07-15
+> 最后核对：2026-08-14
 
 ## 1. 边界与所有权
 
@@ -31,18 +31,21 @@
 
 ### 3.1 等级阈值
 
-`packages/game-engine/src/product/growth/level.ts` 定义 52 个等级（Lv.0 到 Lv.51）：
+`packages/game-engine/src/product/growth/level.ts` 通过分段公式定义无产品上限的等级：
 
 | 等级范围 | 每级累计 XP 增量 |
 | -------- | ---------------- |
 | Lv.1–20  | 60               |
 | Lv.21–40 | 90               |
-| Lv.41–51 | 120              |
+| Lv.41+   | 120              |
 
-`getLevel(xp)`、`getLevelProgress(xp)` 和 `getLevelTitle(level)` 由客户端与 Worker 共用，避免各端重复阈值。
-累计 XP 必须是非负 safe integer，level 必须是 `0..51` 的整数；D1 或调用方破坏该不变量时直接
-`[FAIL-FAST]`，不能把非法 XP 投影成 0 级，也不能把非法 level 显示成“传奇”。超过满级阈值但仍可由
-JavaScript 精确表示的累计 XP 合法，等级保持 51。
+`LEVEL_PROGRESSION_SEGMENTS` 是等级曲线的单一来源。`getLevel(xp)`、`getLevelThreshold(level)`、
+`getLevelProgress(xp)` 和 `getLevelTitle(level)` 由客户端与 Worker 共用；Worker 从同一分段配置生成 D1
+结算公式。累计 XP 与 level 必须是非负 safe integer，计算出的阈值也必须可由 JavaScript 精确表示；调用方破坏
+不变量时直接 `[FAIL-FAST]`，不能把非法 XP 投影成 0 级或把非法 level 显示成最高称号。
+
+称号阶梯为：Lv.0 新手、Lv.6 入门、Lv.11 常客、Lv.21 老手、Lv.31 元老、Lv.41 传奇、Lv.52 神话、
+Lv.76 超凡、Lv.101 不朽、Lv.151 永恒、Lv.201 无尽。最高称号继续覆盖后续等级，等级本身不封顶。
 
 ### 3.2 单局 XP
 
@@ -121,6 +124,10 @@ Werewolf effect
 - `user_stats`：`xp`、`level`、`games_played`、`unlocked_items`、普通/金券余额、两种 pity、碎片、OCC
   `version`、每日奖励时间和最近结算时间。
 - `draw_history`：每次抽取的类型、稀有度、奖励、pity、重复标记和碎片补偿。
+
+历史 Lv.51 封顶用户不通过版本化 migration 自动修改。无限等级代码部署完成后，由一次性生产运维操作按累计
+XP 回算受影响用户的等级，并根据历史 settlement ledger 与确定性奖励算法补发黄金券；操作必须使用旧值条件，
+确保重复执行不会二次补偿。
 
 狼人杀拥有的 `camp_settlements` 与 `game_settlement_results` 位于
 `packages/api-worker/src/games/werewolf/dbSchema.ts`。历史 SQL migration 继续按编号保留在 Worker

@@ -5,6 +5,7 @@
  * Uses cfGet wrapper (auto-injects token + timeout + error handling).
  */
 
+import { ROLE_REVEAL_EFFECT_IDS } from '@game-judge/game-engine/product/rewards';
 import { z } from 'zod';
 
 import { cfGet } from '@/services/cloudflare/cfFetch';
@@ -12,6 +13,7 @@ import { statsLog } from '@/utils/logger';
 
 const nonnegativeIntegerSchema = z.number().int().nonnegative();
 const unlockedItemsSchema = z.array(z.string().min(1));
+const equippedRevealEffectSchema = z.enum(['random', ...ROLE_REVEAL_EFFECT_IDS]);
 
 const userStatsSchema = z.strictObject({
   xp: nonnegativeIntegerSchema,
@@ -26,7 +28,7 @@ const userPublicProfileSchema = z.strictObject({
   avatarFrame: z.string().min(1).optional(),
   seatFlair: z.string().min(1).optional(),
   nameStyle: z.string().min(1).optional(),
-  revealEffect: z.string().min(1).optional(),
+  revealEffect: equippedRevealEffectSchema.optional(),
   seatAnimation: z.string().min(1).optional(),
   level: nonnegativeIntegerSchema,
   title: z.string().min(1),

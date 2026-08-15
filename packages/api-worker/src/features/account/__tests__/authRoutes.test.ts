@@ -192,6 +192,26 @@ describe('PUT /auth/profile', () => {
     expect(publicProfile).not.toHaveProperty('seatAnimation');
   });
 
+  it('preserves the random reveal-effect selection in the public profile', async () => {
+    const email = 'random-effect@test.local';
+    const token = await signUp(email);
+    const response = await updateProfile(token, { equippedEffect: 'random' });
+
+    expect(response.status).toBe(200);
+    const userRow = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
+      .bind(email)
+      .first<{ id: string }>();
+    if (userRow === null) throw new Error('[FAIL-FAST] Missing random effect profile test user');
+
+    const publicProfileResponse = await SELF.fetch(
+      `https://test.local/api/user/${userRow.id}/profile`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    expect(publicProfileResponse.status).toBe(200);
+    await expect(publicProfileResponse.json()).resolves.toMatchObject({ revealEffect: 'random' });
+  });
+
   it.each(['avatarFrame', 'seatFlair', 'nameStyle', 'seatAnimation'] as const)(
     'rejects an unknown %s at the request schema boundary',
     async (field) => {
