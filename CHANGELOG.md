@@ -5,6 +5,123 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.7.0] - 2026-08-17
+
+- docs(announcements): add v2.7.0 What's New entry
+- feat: enforce strict candidate count and improve validation in Fib word provider
+- feat: update growth system to support unbounded levels and enhance level progression logic
+- feat: enhance Gemini word provider with improved error logging and response handling
+- feat: refactor Fib word provider to exclusively use Gemini, removing Workers AI fallback
+- feat: refactor Fib word provider logic to support multiple candidates and enhance validation
+- feat(fibking): update FibRoundView to support spectator roles and enhance UI feedback
+- feat: enhance Gemini word provider error handling and fallback logic
+- feat(fibking): add end game functionality and return to lobby feature
+- feat: enhance room deletion logic to handle failed effects and add related tests
+- feat: update Gemini model to version 3.5-flash-lite in word providers and routes
+- feat: implement stable category selection for Fib word generation and enhance category instructions
+- feat: add accessibility role to card options in ChooseBottomCardModal
+- feat: add tests for error handling and network error classification; enhance stale-tab reload logic
+- feat: enhance abort signal handling and error management in various services
+- feat(ci): enhance npmmirror sync process with improved error handling and status reporting
+- fix(ci): update deploy-frontend condition to allow workflow dispatch
+- fix: update README to remove mention of remote play for clarity
+- fix: remove outdated note about remote play coordination in README
+- feat(fibking): enhance preparation phase with failure handling and word definition structure
+- Revert "fix(fibking): use reviewed catalog and terminal preparation states"
+- fix(fibking): use reviewed catalog and terminal preparation states
+- feat(fibking): implement preparation progress tracking and validation
+- feat: update werewolf stats handling and improve profile details display
+- feat: enhance FibKing game with Chinese definition validation and loading indicators
+- feat(fibking): show word pinyin
+- fix: resolve e2e tests
+- fix(ci): bind worker deploy config
+- Merge pull request #57 from olveryu/feat/multigame-platform-architecture
+- feat(fibking): diversify word generation
+- fix(ci): cover every e2e spec
+- fix(room): restore shared seat behavior
+- fix(worker): bind local seed to worker config
+- refactor(client): eliminate ordinary type assertions
+- refactor(room): preserve authoritative command decisions
+- refactor(platform): enforce canonical command boundaries
+- refactor(game-engine): enforce bottom-card state invariants
+- fix(api-worker): bind wrangler commands to worker config
+- refactor(game-engine): enforce werewolf registry contracts
+- refactor(platform): enforce runtime response contracts
+- refactor(client): remove production type escape hatches
+- refactor(client): remove mobile debug facade
+- refactor(client): make disabled feedback explicit
+- refactor(gacha): enforce canonical reward timestamps
+- refactor(game-engine): unify resolver outcomes
+- refactor(client): replace werewolf facade identity
+- refactor(game-engine): remove aggregate package entrypoint
+- refactor(api-worker): centralize request metadata parsing
+- refactor(api-worker): enforce provider and mutation contracts
+- refactor(auth): centralize access token principal validation
+- refactor(cloudflare): generate runtime binding types
+- refactor(api-worker): enforce request ownership
+- refactor(api-worker): assign persistence ownership
+- refactor(api-worker): centralize game runtime ownership
+- refactor(api-worker): assign vertical route ownership
+- refactor(platform): open game module authoring
+- refactor(catalog): unify game plugin composition
+- refactor(workspace): adopt neutral package scope
+- refactor(client): move product runtime to feature ownership
+- test(architecture): move werewolf engine tests to game ownership
+- refactor(navigation): derive routes from game capabilities
+- refactor(client): centralize room creation and local persistence
+- refactor(game-engine): separate product and platform ownership
+- refactor(api-worker): move game-owned runtime code
+- test(architecture): close multigame import boundary gaps
+- refactor(game-engine): move werewolf domain behind public api
+- feat(fibking): complete multigame vertical slice
+- fix(ci): separate report merge from Pages deployment
+- refactor(client): make Home and navigation game-neutral
+- refactor(client): move werewolf audio and assets into game ownership
+- refactor(client): centralize account and cosmetic capabilities
+- refactor(client): move werewolf ui into game ownership
+- refactor(client): centralize game session composition
+- refactor(game-engine): move room roster into platform ownership
+- refactor(room): centralize room session ownership
+- refactor(platform): isolate game-owned room contracts
+- refactor(werewolf): move room client into game module
+- refactor(room): centralize shared room controllers
+- refactor(room): extract shared room shell
+- feat(platform): add recoverable room directory
+- fix(platform): harden command and event delivery
+- feat(platform): add authoritative room command pipeline
+- feat(engine): add authoritative werewolf engine
+- fix(engine): honor wolf robot progression gate
+- fix(protocol): align command result boundary
+- fix(engine): fail fast on invalid progression
+- refactor(engine): inject deterministic command execution
+- refactor(protocol): define authoritative werewolf commands
+- refactor(engine): define typed game decision contract
+- refactor(transport): unify room snapshot envelopes
+- refactor(store): align broadcast command naming
+- refactor(protocol): add versioned state codecs
+- refactor(protocol): add canonical game state identity
+- refactor(engine): extract shared seating kernel
+- test(platform): lock room behavior contracts
+- docs(architecture): define multigame platform design
+- feat(camp-stats): add 2h settlement delay hint to camp distribution
+- feat(admin): show per-room game-start status in rooms tab
+- feat(BoardCard): update role name hint and remove select hint style
+- feat(BoardPicker): add select hint below select button and remove subtitle hint
+- feat(avatars): use full role avatar in flip card and role detail sheet
+- chore(avatars): regenerate 46 avatars/badges via macos vision background removal
+- chore(assets): replace hiddenWolf avatar with new transparent image
+- docs(prompts): use natural human face proportions, drop pointy chin
+- docs(prompts): switch avatar prompts to pure white background
+- refactor(agents): resolve prettier bin via package.json bin field
+- fix(agents): make sync output prettier-clean and run it once in lint-staged
+- fix(connection): refresh token before ws upgrade and use literal ping/pong
+- feat(rooms): display host country alongside host name in room details
+- fix(gitignore): add Python virtual environment to ignore list
+- feat(stats): add per-player camp distribution with 2h delayed visibility
+- fix(seattile): increase entrance animation loop delay to reduce CPU usage
+- feat(music): add new background music tracks and update announcements
+- Add files via upload
+
 ## [2.6.0] - 2026-06-27
 
 - docs(announcements): add v2.6.0 What's New entry
