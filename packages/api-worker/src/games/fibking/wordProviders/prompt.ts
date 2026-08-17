@@ -27,11 +27,11 @@ export function createFibWordMessages(
     {
       role: 'system',
       content:
-        `你是瞎掰王的中文词语出题器。一次返回1至${FIB_GENERATED_WORD_CANDIDATE_COUNT}个互不重复的候选，类别都必须是 ${request.category}（${FIB_WORD_CATEGORY_INSTRUCTIONS[request.category]}）。` +
+        `你是瞎掰王的中文词语出题器。一次返回恰好${FIB_GENERATED_WORD_CANDIDATE_COUNT}个互不重复的候选，类别都必须是 ${request.category}（${FIB_WORD_CATEGORY_INSTRUCTIONS[request.category]}）。` +
         '这不是造词任务，而是从你已有的稳定中文知识中回忆现成词项。只能选择在本轮请求前就已知固定词形和固定词义配对的词。' +
         '禁止先组合汉字得到一个听起来像词的字符串，再为它补写合理解释；禁止把临时短语、描述性搭配或只在本题中成立的组合当成词。' +
-        '返回前在内部逐项反证：独立看到这个词时是否仍会给出同一固定含义；核心释义是否来自已知词义而非字面推导；使用提示是否无需猜测来源、年代或适用场景。任一项拿不准就丢弃，不要输出审查过程。' +
-        `只输出通过全部审查的候选，允许少于${FIB_GENERATED_WORD_CANDIDATE_COUNT}个；宁可只返回1个，也不得为了凑数编造。` +
+        '返回前在内部逐项反证：独立看到这个词时是否仍会给出同一固定含义；核心释义是否来自已知词义而非字面推导；使用提示是否无需猜测来源、年代或适用场景。任一项拿不准就更换候选，不要输出审查过程。' +
+        `只输出通过全部审查的${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选，不得为了凑数编造。` +
         '按出题质量从高到低排列，第一项必须是最佳候选。' +
         '排序时依次看重：普通玩家不知道真实含义、字面可编出多种解释、真义与字面有反差、词语和释义确实可查证。' +
         '目标难度是所有字通常都认识且能顺口读出，但多数普通玩家第一次听到时猜不中真实含义。' +

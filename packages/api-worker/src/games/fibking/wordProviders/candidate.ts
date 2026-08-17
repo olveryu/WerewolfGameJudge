@@ -37,8 +37,7 @@ const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.ext
 const generatedFibWordCandidatesPayloadSchema = z.strictObject({
   candidates: z
     .array(generatedFibWordCandidatePayloadSchema)
-    .min(1)
-    .max(FIB_GENERATED_WORD_CANDIDATE_COUNT),
+    .length(FIB_GENERATED_WORD_CANDIDATE_COUNT),
 });
 
 export const FIB_WORD_JSON_SCHEMA = {
@@ -80,8 +79,8 @@ export const FIB_WORD_CANDIDATES_JSON_SCHEMA = {
   properties: {
     candidates: {
       type: 'array',
-      description: `按出题质量从高到低排列的1至${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选`,
-      minItems: 1,
+      description: `按出题质量从高到低排列的${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选`,
+      minItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
       maxItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
       items: FIB_WORD_JSON_SCHEMA,
     },

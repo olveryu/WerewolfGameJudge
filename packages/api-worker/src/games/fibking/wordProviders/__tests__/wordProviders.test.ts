@@ -298,9 +298,16 @@ describe('Fib word providers', () => {
         AI_WORD_REQUEST,
       ),
     ).toThrow('expected literary');
-    expect(
+    expect(() =>
       selectGeneratedFibWordCandidate({ candidates: [AI_CANDIDATE] }, 'gemini', AI_WORD_REQUEST),
-    ).toEqual({ word: '菡萏', definition: AI_DEFINITION, source: 'gemini' });
+    ).toThrow();
+    expect(() =>
+      selectGeneratedFibWordCandidate(
+        { candidates: AI_CANDIDATES_RESPONSE.candidates.slice(0, 2) },
+        'gemini',
+        AI_WORD_REQUEST,
+      ),
+    ).toThrow();
     expect(() =>
       selectGeneratedFibWordCandidate({ candidates: [] }, 'gemini', AI_WORD_REQUEST),
     ).toThrow();
@@ -342,7 +349,7 @@ describe('Fib word providers', () => {
     ).toThrow('returned duplicate candidate');
     expect(FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates).toMatchObject({
       items: FIB_WORD_JSON_SCHEMA,
-      minItems: 1,
+      minItems: 3,
       maxItems: 3,
     });
   });
@@ -408,11 +415,11 @@ describe('Fib word providers', () => {
     expect(requestBody).toContain('"additionalProperties":false');
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
     expect(requestBody).not.toContain('"temperature"');
-    expect(requestBody).toContain('一次返回1至3个互不重复的候选');
+    expect(requestBody).toContain('一次返回恰好3个互不重复的候选');
     expect(requestBody).toContain('这不是造词任务，而是从你已有的稳定中文知识中回忆现成词项');
     expect(requestBody).toContain('禁止先组合汉字得到一个听起来像词的字符串');
     expect(requestBody).toContain('核心释义是否来自已知词义而非字面推导');
-    expect(requestBody).toContain('宁可只返回1个，也不得为了凑数编造');
+    expect(requestBody).toContain('只输出通过全部审查的3个候选，不得为了凑数编造');
     expect(requestBody).toContain('按出题质量从高到低排列');
     expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
     expect(requestBody).toContain('真实含义具体、出人意料');
@@ -433,13 +440,13 @@ describe('Fib word providers', () => {
     });
   });
 
-  it('accepts one certain Gemini candidate without forcing filler candidates', async () => {
+  it('rejects a Gemini response with fewer than three candidates', async () => {
     const fetchImpl: typeof fetch = () =>
       Promise.resolve(Response.json(createGeminiResponse({ candidates: [AI_CANDIDATE] })));
 
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generate(createWordRequest()),
-    ).resolves.toMatchObject({ word: '菡萏', source: 'gemini' });
+    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
   });
 
   it('rejects empty and oversized Gemini candidate responses', async () => {
