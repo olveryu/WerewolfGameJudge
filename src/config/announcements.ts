@@ -16,6 +16,17 @@ interface Announcement {
 
 /** Announcements keyed by version. Key format matches APP_VERSION: `v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.7.0': {
+    title: 'v2.7.0 更新内容',
+    items: [
+      '新增瞎掰王，支持多人真假词义对决',
+      '瞎掰王支持词语拼音、观战和返回大厅',
+      '等级成长取消上限，新增高阶称号',
+      '个人资料新增阵营分布统计',
+      '断线重连与房间恢复体验提升',
+      '角色翻牌与图鉴改用完整头像',
+    ],
+  },
   'v2.6.0': {
     title: 'v2.6.0 更新内容',
     items: [
