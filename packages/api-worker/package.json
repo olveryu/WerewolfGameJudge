@@ -19,14 +19,14 @@
     "@game-judge/game-engine": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.23",
-    "jose": "^6.2.3",
+    "hono": "4.13.2",
+    "jose": "6.2.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.0",
     "@cloudflare/vitest-pool-workers": "~0.13.5",
-    "vitest": "~4.1.7",
+    "vitest": "~4.1.10",
     "wrangler": "^4.95.0"
   }
 }
