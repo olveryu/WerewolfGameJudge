@@ -147,7 +147,7 @@ The CI `deploy-frontend` job automatically calls Cloudflare API `purge_everythin
 
 ### 1. Check Frontend
 
-Visit https://werewolfjudge.eu.org (or https://werewolfgamejudge.pages.dev):
+Visit https://werewolfgamer.com (or https://werewolfgamejudge.pages.dev):
 
 - Page loads normally, no white screen
 - Check that JS requests' `Cache-Control` header is `no-cache`
@@ -232,7 +232,7 @@ wrangler pages deployments rollback --project-name=werewolfgamejudge <deployment
 
 | Service                      | URL                                                  |
 | ---------------------------- | ---------------------------------------------------- |
-| **Frontend** (custom domain) | https://werewolfjudge.eu.org                         |
+| **Frontend** (custom domain) | https://werewolfgamer.com                            |
 | **Frontend** (Pages default) | https://werewolfgamejudge.pages.dev                  |
 | **API**                      | https://api.werewolfjudge.eu.org (Cloudflare Worker) |
 | **Crash Monitoring**         | Sentry                                               |

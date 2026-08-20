@@ -5,7 +5,7 @@
 > 线下狼人杀总要有人当法官，法官却不能参与游戏——**这个 App 替你当法官。**
 > 首夜全自动语音引导，所有人（包括房主）都能闭眼参与游戏。
 
-[![Live](https://img.shields.io/badge/▶_Play-werewolfjudge.eu.org-blue?style=for-the-badge)](https://werewolfjudge.eu.org)
+[![Live](https://img.shields.io/badge/▶_Play-werewolfgamer.com-blue?style=for-the-badge)](https://werewolfgamer.com)
 
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TS-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

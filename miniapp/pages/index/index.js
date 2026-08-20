@@ -1,4 +1,4 @@
-var BASE_URL = 'https://werewolfgamejudge.pages.dev/'
+var BASE_URL = 'https://werewolfgamer.com/'
 var API_URL = 'https://api.werewolfjudge.eu.org'
 
 Page({

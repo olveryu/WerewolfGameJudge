@@ -8,7 +8,7 @@
  * Frontend site URL (custom domain).
  * Consumed by native share links, deep link prefix, etc.
  */
-export const SITE_URL: string = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://werewolfjudge.eu.org';
+export const SITE_URL: string = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://werewolfgamer.com';
 
 /**
  * Cloudflare Workers base URL

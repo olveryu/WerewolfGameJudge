@@ -5,7 +5,7 @@
 > In every Werewolf game someone has to be the judge — but the judge can't play.
 > **This app replaces the judge.** Fully automated Night-1 voice narration so everyone (including the host) can close their eyes and play.
 
-[![Live](https://img.shields.io/badge/▶_Play-werewolfjudge.eu.org-blue?style=for-the-badge)](https://werewolfjudge.eu.org)
+[![Live](https://img.shields.io/badge/▶_Play-werewolfgamer.com-blue?style=for-the-badge)](https://werewolfgamer.com)
 
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TS-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

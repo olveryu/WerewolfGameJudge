@@ -105,7 +105,7 @@ function getParentRoomCode(routeName: string, params: unknown): string | null {
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: [SITE_URL, 'https://werewolfgamejudge.pages.dev'],
+  prefixes: [SITE_URL, 'https://werewolfjudge.eu.org', 'https://werewolfgamejudge.pages.dev'],
   config: {
     screens: {
       Home: '',
