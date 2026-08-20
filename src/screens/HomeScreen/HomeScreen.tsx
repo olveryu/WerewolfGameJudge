@@ -376,7 +376,7 @@ export const HomeScreen: React.FC = () => {
         <View style={[styles.topBar, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <View style={styles.topBarBrand}>
             <Pressable onPress={handleTitlePress}>
-              <Text style={styles.topBarTitle}>桌游电子裁判助手</Text>
+              <Text style={styles.topBarTitle}>狼人面杀电子裁判助手</Text>
             </Pressable>
           </View>
           <View style={styles.topBarActions}>

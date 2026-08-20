@@ -241,7 +241,11 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
         }}
         screenLayout={({ children }) => <ErrorBoundary>{children}</ErrorBoundary>}
       >
-        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '桌游电子裁判助手' }} />
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: '狼人面杀电子裁判助手' }}
+        />
         <Stack.Screen
           name="GameConfig"
           component={GameConfigHostRoute}

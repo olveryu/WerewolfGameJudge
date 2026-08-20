@@ -72,7 +72,7 @@ const ERROR_RECOVERY_PATTERNS = [
  * Uses app title as hydration indicator.
  */
 export async function waitForAppReady(page: Page, timeoutMs = 15000): Promise<void> {
-  await page.waitForSelector('text=桌游电子裁判助手', { timeout: timeoutMs });
+  await page.waitForSelector('text=狼人面杀电子裁判助手', { timeout: timeoutMs });
 }
 
 /** Complete the explicit Home create-room mode selection. */
