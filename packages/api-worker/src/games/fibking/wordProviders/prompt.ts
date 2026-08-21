@@ -17,6 +17,17 @@ const FIB_WORD_CATEGORY_INSTRUCTIONS = {
   niche: '来自生活、饮食、民俗、器物、手艺、心理或科技，无需专业背景也能理解的具体概念',
 } as const;
 
+const FIB_WORD_CALIBRATION_EXAMPLES = `
+<calibration_examples>
+以下词语仅用于理解标准，不得作为本次候选：
+- 好题“却扇”：古代婚礼中，新娘以扇遮面并在仪式中移开。汉字常见，真实含义具体且不能靠字面猜中。
+- 好题“打尖”：旧时指旅途中短暂停留、休息或吃饭。容易读出，但固定旧义并不明显。
+- 好题“鸟笼效应”：得到一件物品后继续添置相关配套物品的心理倾向。名称形象，真实含义有反差。
+- 坏题“魑魅魍魉”：读写门槛过高。
+- 坏题“情绪价值”：过于常见且字面容易理解。
+- 坏题“云梦蝶”：无法确认是具有固定词义的现成词项。
+</calibration_examples>`;
+
 export function createFibWordMessages(
   request: FibWordRequest,
 ): readonly [
@@ -26,31 +37,45 @@ export function createFibWordMessages(
   return [
     {
       role: 'system',
-      content:
-        `你是瞎掰王的中文词语出题器。一次返回恰好${FIB_GENERATED_WORD_CANDIDATE_COUNT}个互不重复的候选，类别都必须是 ${request.category}（${FIB_WORD_CATEGORY_INSTRUCTIONS[request.category]}）。` +
-        '这不是造词任务，而是从你已有的稳定中文知识中回忆现成词项。只能选择在本轮请求前就已知固定词形和固定词义配对的词。' +
-        '禁止先组合汉字得到一个听起来像词的字符串，再为它补写合理解释；禁止把临时短语、描述性搭配或只在本题中成立的组合当成词。' +
-        '返回前在内部逐项反证：独立看到这个词时是否仍会给出同一固定含义；核心释义是否来自已知词义而非字面推导；使用提示是否无需猜测来源、年代或适用场景。任一项拿不准就更换候选，不要输出审查过程。' +
-        `只输出通过全部审查的${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选，不得为了凑数编造。` +
-        '按出题质量从高到低排列，第一项必须是最佳候选。' +
-        '排序时依次看重：普通玩家不知道真实含义、字面可编出多种解释、真义与字面有反差、词语和释义确实可查证。' +
-        '目标难度是所有字通常都认识且能顺口读出，但多数普通玩家第一次听到时猜不中真实含义。' +
-        '好题必须同时满足：普通玩家能顺口读出；只看字面或读音就能编出至少三种彼此不同且看似合理的假释义；真实含义具体、出人意料，揭晓后有讨论点。' +
-        '优先选择熟字组成的冷知识词、反直觉概念和具体名物。' +
-        '禁止常见成语、日常高频词、教材高频典故、多数玩家读不出的生僻字堆、逐字解释就能猜中的透明复合词、纯抽象学术名词、已经过时或全国皆知的网络梗。' +
-        '禁止小学基础词、普通人名地名、品牌、无明确含义的字母缩写以及纯专业符号。' +
-        '候选之间不得是近义词、同源词或同一主题的轻微改写；只保留你确信真实存在且释义准确的词，拿不准的必须丢弃。' +
-        `词语长度为${FIB_WORD_MIN_LENGTH}-${FIB_WORD_MAX_LENGTH}个汉字，不得包含字母、数字、空格或符号，` +
-        `核心释义和使用提示都必须为${FIB_DEFINITION_FIELD_MIN_LENGTH}-${FIB_DEFINITION_FIELD_MAX_LENGTH}个字符。` +
-        '核心释义要完整说明词义，使用提示要补充适用对象、语境或容易误解之处，不能只是换句话重复核心释义，并在准确完整的前提下保持简洁。' +
-        '两个字段必须全程使用中文，不得出现英文字母、英文单词或英文句子。' +
-        '不得编造词语或释义。',
+      content: `<role>
+你是中文聚会游戏“瞎掰王”的出题编辑。请选择真实存在、释义准确，同时适合玩家编造假释义的中文词语。这不是造词任务。
+</role>
+
+<priority>
+发生冲突时严格按以下顺序取舍：
+1. 词语和释义必须真实准确，禁止编造。
+2. 不得使用本房间已经出现的词。
+3. 必须符合指定类别和 JSON Schema。
+4. 优先避开玩家近期见过的词；没有足够新词时允许重复近期词。
+5. 在满足以上条件后追求游戏性和候选多样性。
+</priority>
+
+<good_question>
+好题由多数玩家认识且容易读出的汉字组成；真实含义不能通过逐字解释直接猜中；玩家容易编出多个可信的错误释义；揭晓后有反差或讨论价值。
+</good_question>
+
+<reject>
+拒绝临时短语、自造词、常见成语、日常高频词、人名、地名、品牌、生僻字堆、透明复合词和含义不确定的词。候选不得是近义词、同源词或同一主题的轻微改写。
+</reject>
+${FIB_WORD_CALIBRATION_EXAMPLES}
+
+<output_rules>
+返回恰好${FIB_GENERATED_WORD_CANDIDATE_COUNT}个互不重复的候选，按出题质量从高到低排列。
+每个词为${FIB_WORD_MIN_LENGTH}-${FIB_WORD_MAX_LENGTH}个纯汉字。核心释义和使用提示分别为${FIB_DEFINITION_FIELD_MIN_LENGTH}-${FIB_DEFINITION_FIELD_MAX_LENGTH}个字符，只使用中文。
+核心释义准确说明固定词义；使用提示补充适用对象、语境或容易误解之处，不得重复核心释义。
+只返回 JSON Schema 要求的内容，不输出分析或审查过程。
+</output_rules>`,
     },
     {
       role: 'user',
-      content:
-        `当前房间已经使用，绝对不得重复：${JSON.stringify(request.avoidWords)}。` +
-        `参与玩家近期见过，也绝对不得重复：${JSON.stringify(request.recentWords)}。`,
+      content: `<request>
+指定类别：${request.category}
+类别说明：${FIB_WORD_CATEGORY_INSTRUCTIONS[request.category]}
+本房间已使用，绝对禁止：${JSON.stringify(request.avoidWords)}
+玩家近期见过，优先避免但必要时允许：${JSON.stringify(request.recentWords)}
+</request>
+
+请比较一批真实词项，再返回质量最高且彼此不同的候选。`,
     },
   ];
 }

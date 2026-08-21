@@ -84,6 +84,18 @@ const AI_CANDIDATES_RESPONSE = {
       word: '射覆',
       definition: GUESSING_DEFINITION,
     },
+    {
+      ...AI_CANDIDATE,
+      word: '盘桓',
+    },
+    {
+      ...AI_CANDIDATE,
+      word: '纡徐',
+    },
+    {
+      ...AI_CANDIDATE,
+      word: '逡巡',
+    },
   ],
 } as const;
 
@@ -296,6 +308,9 @@ describe('Fib word providers', () => {
             AI_CANDIDATE,
             { ...AI_CANDIDATE, word: '却扇', category: 'internet' },
             { ...AI_CANDIDATE, word: '射覆' },
+            { ...AI_CANDIDATE, word: '盘桓' },
+            { ...AI_CANDIDATE, word: '纡徐' },
+            { ...AI_CANDIDATE, word: '逡巡' },
           ],
         },
         'gemini',
@@ -307,7 +322,7 @@ describe('Fib word providers', () => {
     ).toThrow();
     expect(() =>
       selectGeneratedFibWordCandidate(
-        { candidates: AI_CANDIDATES_RESPONSE.candidates.slice(0, 2) },
+        { candidates: AI_CANDIDATES_RESPONSE.candidates.slice(0, 5) },
         'gemini',
         AI_WORD_REQUEST,
       ),
@@ -338,6 +353,28 @@ describe('Fib word providers', () => {
       definition: FAN_DEFINITION,
       source: 'gemini',
     });
+    expect(
+      selectGeneratedFibWordCandidate(
+        AI_CANDIDATES_RESPONSE,
+        'gemini',
+        createWordRequest({
+          recentWords: AI_CANDIDATES_RESPONSE.candidates.map((candidate) => candidate.word),
+        }),
+      ),
+    ).toEqual({
+      word: '菡萏',
+      definition: AI_DEFINITION,
+      source: 'gemini',
+    });
+    expect(() =>
+      selectGeneratedFibWordCandidate(
+        AI_CANDIDATES_RESPONSE,
+        'gemini',
+        createWordRequest({
+          avoidWords: AI_CANDIDATES_RESPONSE.candidates.map((candidate) => candidate.word),
+        }),
+      ),
+    ).toThrow('returned no eligible candidate');
     expect(() =>
       selectGeneratedFibWordCandidate(
         {
@@ -345,6 +382,9 @@ describe('Fib word providers', () => {
             AI_CANDIDATE,
             { ...AI_CANDIDATE, word: '却扇' },
             { ...AI_CANDIDATE, word: '却扇' },
+            { ...AI_CANDIDATE, word: '盘桓' },
+            { ...AI_CANDIDATE, word: '纡徐' },
+            { ...AI_CANDIDATE, word: '逡巡' },
           ],
         },
         'gemini',
@@ -353,8 +393,8 @@ describe('Fib word providers', () => {
     ).toThrow('returned duplicate candidate');
     expect(FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates).toMatchObject({
       items: FIB_WORD_JSON_SCHEMA,
-      minItems: 3,
-      maxItems: 3,
+      minItems: 6,
+      maxItems: 6,
     });
   });
 
@@ -419,17 +459,12 @@ describe('Fib word providers', () => {
     expect(requestBody).toContain('"additionalProperties":false');
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
     expect(requestBody).not.toContain('"temperature"');
-    expect(requestBody).toContain('一次返回恰好3个互不重复的候选');
-    expect(requestBody).toContain('这不是造词任务，而是从你已有的稳定中文知识中回忆现成词项');
-    expect(requestBody).toContain('禁止先组合汉字得到一个听起来像词的字符串');
-    expect(requestBody).toContain('核心释义是否来自已知词义而非字面推导');
-    expect(requestBody).toContain('只输出通过全部审查的3个候选，不得为了凑数编造');
-    expect(requestBody).toContain('按出题质量从高到低排列');
-    expect(requestBody).toContain('至少三种彼此不同且看似合理的假释义');
-    expect(requestBody).toContain('真实含义具体、出人意料');
-    expect(requestBody).toContain('禁止常见成语、日常高频词');
-    expect(requestBody).toContain('多数玩家读不出的生僻字堆');
-    expect(requestBody).toContain('逐字解释就能猜中的透明复合词');
+    expect(requestBody).toContain('<priority>');
+    expect(requestBody).toContain('返回恰好6个互不重复的候选');
+    expect(requestBody).toContain('没有足够新词时允许重复近期词');
+    expect(requestBody).toContain('好题“却扇”');
+    expect(requestBody).toContain('坏题“云梦蝶”');
+    expect(requestBody).toContain('玩家近期见过，优先避免但必要时允许');
     expect(requestBody).toContain('"candidates"');
     expect(requestBody).not.toContain('"evidence"');
     expect(fetchCallCount).toBe(1);
@@ -444,7 +479,7 @@ describe('Fib word providers', () => {
     });
   });
 
-  it('rejects a Gemini response with fewer than three candidates', async () => {
+  it('rejects a Gemini response with fewer than six candidates', async () => {
     const fetchImpl: typeof fetch = () =>
       Promise.resolve(Response.json(createGeminiResponse({ candidates: [AI_CANDIDATE] })));
 

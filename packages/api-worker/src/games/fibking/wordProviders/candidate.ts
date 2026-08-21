@@ -155,9 +155,11 @@ export function selectGeneratedFibWordCandidate(
   }
   const avoidedWords = new Set(request.avoidWords);
   const recentWords = new Set(request.recentWords);
-  const selected = payload.candidates.find(
+  const unseenCandidate = payload.candidates.find(
     (candidate) => !avoidedWords.has(candidate.word) && !recentWords.has(candidate.word),
   );
+  const selected =
+    unseenCandidate ?? payload.candidates.find((candidate) => !avoidedWords.has(candidate.word));
   if (selected === undefined) {
     throw new Error(`Fib word provider ${source} returned no eligible candidate`);
   }
