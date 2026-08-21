@@ -21,7 +21,7 @@ import {
 } from './wordProviders/types';
 
 export const FIB_PREPARATION_TIMEOUT_MS = 8_000;
-const FIB_FINALIZATION_RESERVE_MS = 500;
+export const FIB_PROVIDER_TIMEOUT_MS = 7_500;
 const FIB_WORD_CATEGORY_HASH_HEX_LENGTH = 8;
 
 type FibWordGenerationResult = typeof fibWordGenerationResults.$inferSelect;
@@ -179,19 +179,19 @@ export async function getOrCreateFibWordGenerationResult(
 ): Promise<FibWordCandidate> {
   const { db, roomIdentity, effectId, effect, provider, historyUserIds, requestedAt } = input;
   const deadlineAt = requestedAt + FIB_PREPARATION_TIMEOUT_MS;
-  const generationDeadlineAt = deadlineAt - FIB_FINALIZATION_RESERVE_MS;
-  if (!Number.isSafeInteger(deadlineAt) || !Number.isSafeInteger(generationDeadlineAt)) {
-    throw new Error('[FAIL-FAST] Fib word generation deadline must be a safe integer');
+  if (!Number.isSafeInteger(deadlineAt)) {
+    throw new Error('[FAIL-FAST] Fib preparation deadline must be a safe integer');
   }
   const requestFingerprint = await createRequestFingerprint(effect, requestedAt, deadlineAt);
   const persisted = await readResult(db, roomIdentity.roomId, effectId);
   if (persisted !== null) return parseMatchingResult(persisted, input, requestFingerprint);
 
-  if (generationDeadlineAt - Date.now() <= 0) {
-    throw new FibWordProviderError('Fib word generation deadline expired', 'timedOut');
-  }
   const recentWords = await readRecentFibWords(db, historyUserIds);
   const category = await selectFibWordCategory(effect.payload.roundId);
+  const generationDeadlineAt = Date.now() + FIB_PROVIDER_TIMEOUT_MS;
+  if (!Number.isSafeInteger(generationDeadlineAt)) {
+    throw new Error('[FAIL-FAST] Fib word generation deadline must be a safe integer');
+  }
   let generated: FibWordCandidate;
   try {
     generated = await provider.generate({

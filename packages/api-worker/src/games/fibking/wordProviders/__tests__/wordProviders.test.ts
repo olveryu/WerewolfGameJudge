@@ -16,7 +16,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { WorkerEffectContext } from '../../../../platform/gameModules/workerModule';
 import { handleFibGenerateWordEffect } from '../../effects';
-import { FIB_PREPARATION_TIMEOUT_MS, selectFibWordCategory } from '../../wordGenerationResults';
+import {
+  FIB_PREPARATION_TIMEOUT_MS,
+  FIB_PROVIDER_TIMEOUT_MS,
+  selectFibWordCategory,
+} from '../../wordGenerationResults';
 import { readRecentFibWords, recordFibWordExposure } from '../../wordHistory';
 import { createConfiguredFibWordProvider } from '..';
 import {
@@ -628,29 +632,42 @@ describe('Fib word-generation effect', () => {
     ).resolves.toBeNull();
   });
 
-  it('times out from the original request without invoking a provider', async () => {
+  it('gives delayed outbox delivery a fresh provider timeout', async () => {
     let providerCallCount = 0;
-    const timeoutProvider: FibWordProvider = {
-      generate: () => {
+    let generationDeadlineAt: number | null = null;
+    const delayedProvider: FibWordProvider = {
+      generate: (request) => {
         providerCallCount += 1;
-        return provider.generate(createWordRequest());
+        generationDeadlineAt = request.generationDeadlineAt;
+        return Promise.resolve({
+          word: '菡萏',
+          definition: AI_DEFINITION,
+          source: 'local',
+        });
       },
     };
     const dispatchedCommands: FibInternalCommand[] = [];
+    const providerStartedAt = Date.now();
     const expiredState = createPreparingState(
       'start-command',
-      Date.now() - FIB_PREPARATION_TIMEOUT_MS - 1,
+      providerStartedAt - FIB_PREPARATION_TIMEOUT_MS - 1,
     );
     const context = createEffectContext((commandId, command) => {
       dispatchedCommands.push(command);
       return Promise.resolve(committedResult(commandId));
     }, expiredState);
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(providerStartedAt);
 
-    await expect(
-      handleFibGenerateWordEffect(EFFECT, context, timeoutProvider),
-    ).resolves.toBeUndefined();
+    try {
+      await expect(
+        handleFibGenerateWordEffect(EFFECT, context, delayedProvider),
+      ).resolves.toBeUndefined();
+    } finally {
+      nowSpy.mockRestore();
+    }
 
-    expect(providerCallCount).toBe(0);
+    expect(providerCallCount).toBe(1);
+    expect(generationDeadlineAt).toBe(providerStartedAt + FIB_PROVIDER_TIMEOUT_MS);
     expect(dispatchedCommands).toEqual([
       {
         type: 'fib.round.updatePreparationStage',
@@ -658,9 +675,16 @@ describe('Fib word-generation effect', () => {
         stage: FIB_PREPARATION_STAGES.generating,
       },
       {
-        type: 'fib.round.failPreparation',
+        type: 'fib.round.updatePreparationStage',
         roundId: 'fib-round:start-command',
-        failureCode: 'timedOut',
+        stage: FIB_PREPARATION_STAGES.finalizing,
+      },
+      {
+        type: 'fib.round.complete',
+        roundId: 'fib-round:start-command',
+        word: '菡萏',
+        definition: AI_DEFINITION,
+        source: 'local',
       },
     ]);
   });
