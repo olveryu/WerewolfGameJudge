@@ -636,6 +636,36 @@ describe('Fib word-generation effect', () => {
     await expect(readRecentFibWords(env.DB, ['host'])).resolves.toEqual(['菡萏', '阒寂']);
   });
 
+  it('persists a recent-word fallback while keeping room words prohibited', async () => {
+    await recordFibWordExposure(env.DB, ['host'], '云监工', '2026-01-01T00:00:00.000Z');
+    const recentFallbackProvider: FibWordProvider = {
+      generate: () =>
+        Promise.resolve({
+          word: '云监工',
+          definition: AI_DEFINITION,
+          source: 'gemini',
+        }),
+    };
+    const dispatchedCommands: FibInternalCommand[] = [];
+    const context = createEffectContext((commandId, command) => {
+      dispatchedCommands.push(command);
+      return Promise.resolve(committedResult(commandId));
+    });
+
+    await handleFibGenerateWordEffect(EFFECT, context, recentFallbackProvider);
+
+    expect(dispatchedCommands).toContainEqual({
+      type: 'fib.round.complete',
+      roundId: 'fib-round:start-command',
+      word: '云监工',
+      definition: AI_DEFINITION,
+      source: 'gemini',
+    });
+    await expect(
+      env.DB.prepare('SELECT word FROM fib_word_generation_results LIMIT 1').first(),
+    ).resolves.toMatchObject({ word: '云监工' });
+  });
+
   it('commits terminal generation failure when provider output validation fails', async () => {
     const failingProvider: FibWordProvider = {
       generate: () =>

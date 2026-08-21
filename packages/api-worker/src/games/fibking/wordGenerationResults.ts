@@ -213,7 +213,7 @@ export async function getOrCreateFibWordGenerationResult(
     candidate = parseFibWordCandidate(
       { word: generated.word, definition: generated.definition },
       generated.source,
-      [...effect.payload.avoidWords, ...recentWords],
+      effect.payload.avoidWords,
     );
   } catch (error) {
     throw new FibWordProviderError('Generated Fib word candidate was invalid', 'invalidOutput', {
