@@ -23,8 +23,8 @@ export const FIB_WORD_SELECTION_TIERS = [
   'local_fallback',
 ] as const;
 
-/** Reusable, reviewed FibKing questions available to every room. */
-const fibWords = sqliteTable(
+/** @public Reusable FibKing questions; retained for the D1 ownership contract. */
+export const fibWords = sqliteTable(
   'fib_words',
   {
     id: text('id').primaryKey(),
@@ -44,6 +44,38 @@ const fibWords = sqliteTable(
   (table) => [
     uniqueIndex('idx_fib_words_word').on(table.word),
     index('idx_fib_words_selection').on(table.status, table.category, table.selectionKey, table.id),
+  ],
+);
+
+/** @public Supply lease state; retained for the D1 ownership contract. */
+export const fibWordSupplyState = sqliteTable('fib_word_supply_state', {
+  id: integer('id').primaryKey(),
+  activeCycleId: text('active_cycle_id'),
+  activeCycleStartedAt: text('active_cycle_started_at'),
+  leaseOwner: text('lease_owner'),
+  leaseExpiresAt: text('lease_expires_at'),
+  lastCompletedAt: text('last_completed_at'),
+  updatedAt: text('updated_at').notNull(),
+});
+
+/** @public Generation audit records; retained for the D1 ownership contract. */
+export const fibWordGenerationCycles = sqliteTable(
+  'fib_word_generation_cycles',
+  {
+    id: text('id').primaryKey(),
+    status: text('status', { enum: ['running', 'completed', 'failed'] }).notNull(),
+    provider: text('provider', { enum: ['gemini'] }).notNull(),
+    model: text('model').notNull(),
+    promptVersion: text('prompt_version').notNull(),
+    requestCount: integer('request_count').notNull().default(0),
+    acceptedCount: integer('accepted_count').notNull().default(0),
+    duplicateCount: integer('duplicate_count').notNull().default(0),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+    errorCode: text('error_code'),
+  },
+  (table) => [
+    index('idx_fib_word_generation_cycles_status_started').on(table.status, table.startedAt),
   ],
 );
 
