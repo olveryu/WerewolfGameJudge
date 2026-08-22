@@ -205,6 +205,17 @@ function createRoundId(commandId: string): string {
   return `fib-round:${commandId}`;
 }
 
+function getFibParticipantUserIds(state: FibState): readonly string[] {
+  return [
+    ...new Set([
+      state.hostUserId,
+      ...Object.values(state.realSeats).flatMap((seat) =>
+        seat === undefined ? [] : [seat.userId],
+      ),
+    ]),
+  ].sort();
+}
+
 function decideStartFibRound(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
@@ -227,7 +238,7 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
     ],
     [
       {
-        type: 'fib.word.generate',
+        type: 'fib.word.select',
         payload: { roundId, avoidWords: [...state.usedWords] },
       },
     ],
@@ -270,8 +281,8 @@ function decideUpdateFibPreparationStage(
 
   const expectedStage =
     state.pendingRound.stage === FIB_PREPARATION_STAGES.queued
-      ? FIB_PREPARATION_STAGES.generating
-      : state.pendingRound.stage === FIB_PREPARATION_STAGES.generating
+      ? FIB_PREPARATION_STAGES.selecting
+      : state.pendingRound.stage === FIB_PREPARATION_STAGES.selecting
         ? FIB_PREPARATION_STAGES.finalizing
         : null;
   if (command.stage !== expectedStage) {
@@ -330,16 +341,30 @@ function decideCompleteFibRound(
   }
   if (state.usedWords.includes(command.word)) return reject(REASON_FIB_WORD_REUSED);
 
-  return commitFib([
-    {
-      type: 'fib.round.started',
-      roundId: command.roundId,
-      word: command.word,
-      definition: command.definition,
-      source: command.source,
-      roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
-    },
-  ]);
+  return commitFib(
+    [
+      {
+        type: 'fib.round.started',
+        roundId: command.roundId,
+        word: command.word,
+        definition: command.definition,
+        source: command.source,
+        roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
+      },
+    ],
+    [
+      {
+        type: 'fib.word.recordUsage',
+        payload: {
+          roundId: command.roundId,
+          word: command.word,
+          source: command.source,
+          usedAt: context.nowMs,
+          participantUserIds: getFibParticipantUserIds(state),
+        },
+      },
+    ],
+  );
 }
 
 function createInitialFibState(config: FibConfig, context: CreateGameContext): FibState {

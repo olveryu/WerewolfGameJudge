@@ -96,12 +96,12 @@ const VALID_FIB_INTERNAL_COMMAND_BY_TYPE = {
   'fib.round.updatePreparationStage': {
     type: 'fib.round.updatePreparationStage',
     roundId: 'round-1',
-    stage: 'generating',
+    stage: 'selecting',
   },
   'fib.round.failPreparation': {
     type: 'fib.round.failPreparation',
     roundId: 'round-1',
-    failureCode: 'timedOut',
+    failureCode: 'selectionFailed',
   },
   'fib.round.complete': {
     type: 'fib.round.complete',

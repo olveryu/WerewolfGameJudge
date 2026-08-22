@@ -11,9 +11,6 @@ export const FIB_GENERATED_WORD_CANDIDATE_COUNT = 6;
 export type FibWordCategory = (typeof FIB_WORD_CATEGORIES)[number];
 
 export interface FibWordRequest {
-  readonly avoidWords: readonly string[];
-  readonly recentWords: readonly string[];
-  readonly selectionSeed: string;
   readonly category: FibWordCategory;
   readonly generationDeadlineAt: number;
   readonly signal: AbortSignal;
@@ -26,5 +23,5 @@ export interface FibWordCandidate {
 }
 
 export interface FibWordProvider {
-  generate(request: FibWordRequest): Promise<FibWordCandidate>;
+  generateBatch(request: FibWordRequest): Promise<readonly FibWordCandidate[]>;
 }

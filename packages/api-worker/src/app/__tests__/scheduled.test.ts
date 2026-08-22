@@ -8,6 +8,13 @@ import { runScheduledCron } from '../scheduled';
 const NOW_MS = Date.parse('2026-07-10T12:00:00.000Z');
 
 beforeEach(async () => {
+  await env.DB.prepare(
+    `UPDATE fib_word_supply_state
+     SET active_cycle_id = NULL, active_cycle_started_at = NULL, lease_owner = NULL,
+         lease_expires_at = NULL, last_completed_at = NULL,
+         updated_at = '1970-01-01T00:00:00.000Z'
+     WHERE id = 1`,
+  ).run();
   await env.DB.prepare('DELETE FROM room_participants').run();
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
@@ -45,6 +52,20 @@ describe('runScheduledCron', () => {
     await expect(runScheduledCron(env, '1 2 3 4 5', NOW_MS)).rejects.toThrow(
       'Unknown cron trigger: 1 2 3 4 5',
     );
+  });
+
+  it('dispatches the Fib word supply cron without generating during cadence cooldown', async () => {
+    const now = new Date(NOW_MS).toISOString();
+    await env.DB.prepare(
+      `UPDATE fib_word_supply_state SET last_completed_at = ?, updated_at = ? WHERE id = 1`,
+    )
+      .bind(now, now)
+      .run();
+
+    await expect(runScheduledCron(env, '0 4 * * *', NOW_MS)).resolves.toBeUndefined();
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_generation_cycles').first(),
+    ).toEqual({ count: 0 });
   });
 
   it('deletes stale anonymous non-hosts and preserves room hosts', async () => {

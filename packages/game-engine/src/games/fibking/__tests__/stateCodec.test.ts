@@ -66,7 +66,7 @@ describe('FibKing compact state and codec', () => {
         roundId: 'fib-round:codec',
         requestedAt: 2,
         failedAt: 8_002,
-        failureCode: 'timedOut',
+        failureCode: 'selectionFailed',
       },
       round: null,
     };

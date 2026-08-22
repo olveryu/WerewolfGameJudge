@@ -348,6 +348,7 @@ describe('Werewolf game-ended effect handler', () => {
         creationId: 'effect-room-creation',
       },
       createdRevision: 12,
+      deliveryAttemptCount: 1,
       dispatchInternal: async (commandId, command): Promise<RoomCommandResult<GameState>> => {
         dispatchCalls.push({ commandId, command });
         if (dispatchOutcome === 'transportRejected') {

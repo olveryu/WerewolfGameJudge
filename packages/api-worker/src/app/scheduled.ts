@@ -8,6 +8,7 @@ import {
   cleanupOldLoginAttempts,
 } from '../features/auth/maintenance';
 import { cleanupExpiredIdempotencyKeys } from '../features/gacha/maintenance';
+import { replenishFibWordPool } from '../games/fibking/wordSupply';
 import { createLogger } from '../platform/observability/logger';
 import { expireStaleRooms, reconcileRooms } from '../platform/room/maintenance';
 
@@ -15,6 +16,7 @@ const log = createLogger('scheduled');
 
 const ROOM_RECONCILIATION_CRON = '*/5 * * * *';
 const DAILY_CLEANUP_CRON = '0 3 * * *';
+const FIB_WORD_SUPPLY_CRON = '0 4 * * *';
 
 /** Run daily retention tasks after marking stale rooms for saga deletion. */
 async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
@@ -56,6 +58,9 @@ export async function runScheduledCron(env: Env, cron: string, nowMs: number): P
       return;
     case DAILY_CLEANUP_CRON:
       await runDailyCleanup(env, nowMs);
+      return;
+    case FIB_WORD_SUPPLY_CRON:
+      await replenishFibWordPool(env, nowMs);
       return;
     default:
       throw new Error(`Unknown cron trigger: ${cron}`);

@@ -351,7 +351,7 @@ describe('FibKing room adapter', () => {
         roundId: 'round-1',
         requestedAt: 1,
         failedAt: 8_001,
-        failureCode: 'timedOut',
+        failureCode: 'selectionFailed',
       },
       round: null,
     };
@@ -392,7 +392,7 @@ describe('FibKing room adapter', () => {
     expect(cancelPreparing).toHaveBeenCalledTimes(1);
     expect(createFibStatusRibbon(failed)).toMatchObject({
       text: '词语准备失败',
-      supportingText: '准备超时，请重新准备',
+      supportingText: '暂无可用词语，请重新准备',
     });
 
     const playerActions = createFibBottomActions({ state: failed, isHost: false, ...common });

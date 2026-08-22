@@ -56,7 +56,7 @@ export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.discrim
       roundId: z.string().min(1),
       stage: z.union([
         z.literal(FIB_PREPARATION_STAGES.queued),
-        z.literal(FIB_PREPARATION_STAGES.generating),
+        z.literal(FIB_PREPARATION_STAGES.selecting),
         z.literal(FIB_PREPARATION_STAGES.finalizing),
       ]),
     }),

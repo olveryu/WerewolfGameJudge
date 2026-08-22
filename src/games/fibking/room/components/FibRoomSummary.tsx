@@ -31,14 +31,13 @@ const PHASE_LABELS = {
 } as const;
 
 const PREPARATION_STAGE_LABELS: Readonly<Record<FibPreparationStage, string>> = {
-  queued: '等待生成词语',
-  generating: '正在生成中文词语',
+  queued: '等待选取词语',
+  selecting: '正在选取中文词语',
   finalizing: '正在检查词语和释义',
 };
 
 const PREPARATION_FAILURE_LABELS: Readonly<Record<FibPreparationFailureCode, string>> = {
-  timedOut: '准备超时，请重新准备',
-  generationFailed: '词语生成失败，请重新准备',
+  selectionFailed: '暂无可用词语，请重新准备',
 };
 
 const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({

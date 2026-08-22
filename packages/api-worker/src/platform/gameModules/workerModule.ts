@@ -42,6 +42,7 @@ export interface WorkerEffectContext<TState extends BaseGameState<string>, TInte
   readonly state: TState;
   readonly roomIdentity: WorkerEffectRoomIdentity;
   readonly createdRevision: number;
+  readonly deliveryAttemptCount: number;
   dispatchInternal(
     commandId: string,
     command: TInternalCommand,
@@ -93,6 +94,7 @@ export interface WorkerModuleRuntimeEffectContext<TState extends BaseGameState<s
   readonly state: TState;
   readonly roomIdentity: WorkerEffectRoomIdentity;
   readonly createdRevision: number;
+  readonly deliveryAttemptCount: number;
   dispatchInternal(commandId: string, command: unknown): Promise<RoomCommandResult<TState>>;
   publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
 }
@@ -378,6 +380,7 @@ export function defineWorkerGameModule<
         state: parseState(context.state),
         roomIdentity: context.roomIdentity,
         createdRevision: context.createdRevision,
+        deliveryAttemptCount: context.deliveryAttemptCount,
         dispatchInternal: (commandId, command) => context.dispatchInternal(commandId, command),
         publishUserEvent: (userId, eventId, message) =>
           context.publishUserEvent(userId, eventId, message),
@@ -434,6 +437,7 @@ export function registerWorkerGameModule<
         state: module.parseState(context.state),
         roomIdentity: context.roomIdentity,
         createdRevision: context.createdRevision,
+        deliveryAttemptCount: context.deliveryAttemptCount,
         dispatchInternal: async (commandId, command) =>
           module.parseCommandResult(await context.dispatchInternal(commandId, command)),
         publishUserEvent: (userId, eventId, message) =>

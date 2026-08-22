@@ -259,6 +259,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       state: room.state,
       roomIdentity: directoryIdentity,
       createdRevision: effect.createdRevision,
+      deliveryAttemptCount: effect.attemptCount,
       dispatchInternal: async (commandId, command) => {
         const dispatched = await dispatchRoomCommand(
           this.#repository,

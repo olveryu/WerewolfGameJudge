@@ -62,6 +62,7 @@ export interface RuntimeWorkerEffectContext {
   readonly state: BaseGameState<GameType>;
   readonly roomIdentity: WorkerEffectRoomIdentity;
   readonly createdRevision: number;
+  readonly deliveryAttemptCount: number;
   dispatchInternal(
     commandId: string,
     command: unknown,

@@ -479,8 +479,12 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['draw_history', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
       ['feedback_replies', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['feedbacks', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
+      ['fib_round_word_selections', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['fib_word_exposures', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
-      ['fib_word_generation_results', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['fib_word_generation_cycles', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['fib_word_supply_state', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['fib_word_usages', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['fib_words', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['game_settlement_results', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
       ['idempotency_keys', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
       ['login_attempts', 'packages/api-worker/src/features/auth/dbSchema.ts'],
@@ -528,10 +532,10 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       'utf-8',
     );
 
-    expect(fibSchema).toContain("'fib_word_generation_results'");
+    expect(fibSchema).toMatch(/'fib_words'[\s\S]*'fib_word_usages'/);
     expect(fibSchema).not.toMatch(/camp_settlements|game_settlement_results/);
     expect(werewolfSchema).toMatch(/'camp_settlements'[\s\S]*'game_settlement_results'/);
-    expect(werewolfSchema).not.toContain('fib_word_generation_results');
+    expect(werewolfSchema).not.toMatch(/fib_words|fib_word_usages/);
   });
 
   it('composes multiple concrete Worker games only in the exhaustive catalog', () => {
@@ -628,7 +632,7 @@ describe('Worker ownership: source tree is exact', () => {
       packageJson.devDependencies,
       'api-worker package.json devDependencies',
     );
-    expect(workerScripts.dev).toContain('--var FIB_WORD_PROVIDER:local');
+    expect(workerScripts.dev).not.toContain('FIB_WORD_PROVIDER');
     expect(workerScripts.types).toContain('--env-interface WorkerBindings');
     expect(workerScripts['types:check']).toContain('--check');
     expect(workerScripts.typecheck).toContain('types:check');

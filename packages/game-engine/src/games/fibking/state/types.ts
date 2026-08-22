@@ -15,10 +15,10 @@ export const FIB_DEFINITION_FIELD_MAX_LENGTH = 100;
 export const FIB_WORD_SOURCES = ['gemini', 'local'] as const;
 export const FIB_PREPARATION_STAGES = {
   queued: 'queued',
-  generating: 'generating',
+  selecting: 'selecting',
   finalizing: 'finalizing',
 } as const;
-export const FIB_PREPARATION_FAILURE_CODES = ['timedOut', 'generationFailed'] as const;
+export const FIB_PREPARATION_FAILURE_CODES = ['selectionFailed'] as const;
 
 export type FibPhase = 'lobby' | 'preparing' | 'preparationFailed' | 'ongoing' | 'ended';
 export type FibRole = 'guesser' | 'honest' | 'fibber';

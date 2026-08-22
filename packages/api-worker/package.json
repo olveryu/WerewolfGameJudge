@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev --config wrangler.toml --var ENVIRONMENT:development --var FIB_WORD_PROVIDER:local --var SENTRY_DSN:",
+    "dev": "wrangler dev --config wrangler.toml --var ENVIRONMENT:development --var SENTRY_DSN:",
     "dev:test": "wrangler dev --config wrangler.e2e.toml",
     "deploy": "wrangler deploy --config wrangler.toml",
     "db:migrate:local": "wrangler d1 migrations apply werewolf-db --local --config wrangler.toml",

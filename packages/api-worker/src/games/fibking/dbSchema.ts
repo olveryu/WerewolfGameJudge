@@ -12,10 +12,77 @@ import {
 
 import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
+import { FIB_WORD_CATEGORIES } from './wordProviders/types';
 
-/** Exact word-provider results used to replay nondeterministic effects. */
-export const fibWordGenerationResults = sqliteTable(
-  'fib_word_generation_results',
+export const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
+export const FIB_WORD_GENERATION_CYCLE_STATUSES = ['running', 'completed', 'failed'] as const;
+export const FIB_WORD_SELECTION_TIERS = [
+  'category_unseen',
+  'any_unseen',
+  'category_recent',
+  'any_active',
+  'local_fallback',
+] as const;
+
+/** Reusable, reviewed FibKing questions available to every room. */
+export const fibWords = sqliteTable(
+  'fib_words',
+  {
+    id: text('id').primaryKey(),
+    word: text('word').notNull(),
+    coreMeaning: text('core_meaning').notNull(),
+    usageNote: text('usage_note').notNull(),
+    category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(),
+    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
+    status: text('status', { enum: FIB_WORD_STATUSES }).notNull(),
+    selectionKey: integer('selection_key').notNull(),
+    generationCycleId: text('generation_cycle_id'),
+    createdAt: text('created_at').notNull(),
+    activatedAt: text('activated_at').notNull(),
+    disabledAt: text('disabled_at'),
+    statusReason: text('status_reason'),
+  },
+  (table) => [
+    uniqueIndex('idx_fib_words_word').on(table.word),
+    index('idx_fib_words_selection').on(table.status, table.category, table.selectionKey, table.id),
+  ],
+);
+
+/** Singleton lease and cadence state for synchronous Gemini replenishment. */
+export const fibWordSupplyState = sqliteTable('fib_word_supply_state', {
+  id: integer('id').primaryKey(),
+  activeCycleId: text('active_cycle_id'),
+  activeCycleStartedAt: text('active_cycle_started_at'),
+  leaseOwner: text('lease_owner'),
+  leaseExpiresAt: text('lease_expires_at'),
+  lastCompletedAt: text('last_completed_at'),
+  updatedAt: text('updated_at').notNull(),
+});
+
+/** Auditable generation cycle counters; raw model output is never replayed online. */
+export const fibWordGenerationCycles = sqliteTable(
+  'fib_word_generation_cycles',
+  {
+    id: text('id').primaryKey(),
+    status: text('status', { enum: FIB_WORD_GENERATION_CYCLE_STATUSES }).notNull(),
+    provider: text('provider', { enum: ['gemini'] }).notNull(),
+    model: text('model').notNull(),
+    promptVersion: text('prompt_version').notNull(),
+    requestCount: integer('request_count').notNull().default(0),
+    acceptedCount: integer('accepted_count').notNull().default(0),
+    duplicateCount: integer('duplicate_count').notNull().default(0),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+    errorCode: text('error_code'),
+  },
+  (table) => [
+    index('idx_fib_word_generation_cycles_status_started').on(table.status, table.startedAt),
+  ],
+);
+
+/** Idempotent question snapshot selected for a room round. */
+export const fibRoundWordSelections = sqliteTable(
+  'fib_round_word_selections',
   {
     roomId: text('room_id')
       .notNull()
@@ -24,18 +91,36 @@ export const fibWordGenerationResults = sqliteTable(
     effectId: text('effect_id').notNull(),
     roundId: text('round_id').notNull(),
     requestFingerprint: text('request_fingerprint').notNull(),
-    requestedAt: integer('requested_at').notNull(),
-    deadlineAt: integer('deadline_at').notNull(),
+    wordId: text('word_id').references(() => fibWords.id, { onDelete: 'restrict' }),
     word: text('word').notNull(),
     coreMeaning: text('core_meaning').notNull(),
     usageNote: text('usage_note').notNull(),
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
-    createdAt: text('created_at').notNull(),
+    selectionTier: text('selection_tier', { enum: FIB_WORD_SELECTION_TIERS }).notNull(),
+    selectedAt: text('selected_at').notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.roomId, table.effectId] }),
-    uniqueIndex('idx_fib_word_generation_results_room_round').on(table.roomId, table.roundId),
-    index('idx_fib_word_generation_results_created').on(table.createdAt),
+    uniqueIndex('idx_fib_round_word_selections_room_round').on(table.roomId, table.roundId),
+    index('idx_fib_round_word_selections_word').on(table.wordId, table.selectedAt),
+  ],
+);
+
+/** Committed round usage ledger; selection alone never counts as usage. */
+export const fibWordUsages = sqliteTable(
+  'fib_word_usages',
+  {
+    roomCreationId: text('room_creation_id').notNull(),
+    roundId: text('round_id').notNull(),
+    wordId: text('word_id').references(() => fibWords.id, { onDelete: 'restrict' }),
+    word: text('word').notNull(),
+    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
+    usedAt: text('used_at').notNull(),
+    participantCount: integer('participant_count').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.roomCreationId, table.roundId] }),
+    index('idx_fib_word_usages_word_used').on(table.wordId, table.usedAt),
   ],
 );
 

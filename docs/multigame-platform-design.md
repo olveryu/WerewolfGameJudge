@@ -1072,12 +1072,12 @@ interface PendingFibRound {
 
 1. Host 发送 `fib.round.start`。
 2. Engine 验证 phase 和满座条件。
-3. Engine 转为 `preparing`，保存 `roundId`，发出 `fib.word.generate` effect。
-4. Outbox worker 调用配置好的 word source。
+3. Engine 转为 `preparing`，保存 `roundId`，发出 `fib.word.select` effect。
+4. Outbox worker 从 D1 全局题库按玩家曝光历史和稳定 seed 选词；空库时使用确定性本地兜底。
 5. 它使用同一个 `roundId` 发送 internal `fib.round.complete`，附带 word、definition、source。
 6. Engine 拒绝过期或重复 `roundId`。
 7. Complete 成功后分配身份并转为 `ongoing`。
-8. Provider 失败通过 outbox retry。
+8. D1 选题失败通过 outbox retry，第七次失败进入显式 `selectionFailed` 终态。
 9. 产品需要恢复操作时，host 可以发送 `fib.round.cancelPreparing`。
 
 不再使用“先 `BEGIN_DRAW`，等待外部调用，再希望第二个 action 成功”的流程。
@@ -1088,34 +1088,32 @@ interface PendingFibRound {
 
 ```ts
 interface FibWordProvider {
-  generate(request: FibWordRequest): Promise<FibWordCandidate>;
+  generateBatch(request: FibWordRequest): Promise<readonly FibWordCandidate[]>;
 }
 ```
 
-Gemini 与本地词库都是瞎掰王内部的 provider adapter，不是全 App 的 LLM compatibility API。生产环境只使用
-Gemini；本地词库只用于开发和测试。Provider selection policy 放在 `games/fibking/wordProviders/`，并显式返回 source。
+Gemini 是后台题库供给 adapter，不是开局链路或全 App 的 LLM compatibility API。Cloudflare Cron 每日只读检查库存；
+低于阈值且距上次完整补货至少 15 天时启动 campaign，每次 invocation 最多 10 个同步请求并以 5 RPM 节流，跨日续跑。
+每次响应的 6 个合法候选全部写入 D1；每类达到 200 个 active 词后完成 campaign。
 
-AI provider 每轮生成四个候选并各覆盖一种类别：书面/古典词、仍在使用的网络用语、三字以上的新概念或复合表达、
-可向普通人解释的冷门生活/文化/专业概念。候选允许 2–12 字符的汉字、字母、数字和常见连接符；目标是新鲜且有
-描述空间，不把词库收窄成两字生僻词，也不接受一眼可解释的基础词、过时烂梗或无明确含义的缩写。Worker 使用
-`roundId` 派生的稳定 seed 从合格候选中选择；本地词库使用相同 seeded rotation，不在每个新房间固定从第一项开始。
+AI provider 每次按指定类别生成 6 个候选：书面/古典词、仍在使用的网络用语、三字以上的新概念或复合表达、
+可向普通人解释的冷门生活/文化/专业概念。候选必须是 2–12 个汉字；目标是新鲜且有描述空间，不接受一眼可解释的
+基础词、过时烂梗或无明确含义的缩写。在线 Worker 使用 `roundId` 派生的稳定 seed 在 active 题库中选择。
 
 Provider-facing schema 使用 Gemini structured output 支持的 JSON Schema 子集。字符、长度、候选类别完整性、候选
-重复和历史命中由 Worker 的 Zod/runtime validator 再次严格校验；schema 不支持或语义不合格都作为 effect 失败进入
-既有 outbox retry，不能降级接受低质量结果。
+重复和类别由 Worker 的 Zod/runtime validator 再次严格校验；不合格批次不写入题库。
 
 客户端不会通过 Gemini proxy 来开始一轮。
 
 ### 18.4 玩家词语历史
 
 当前房间 `usedWords` 仍是 authoritative 50 词硬去重窗口。除此之外，D1 为每名真人保留最近 200 个实际进入
-authoritative round 的词；新一轮读取本局当前真人与 host 的历史并集作为 provider 排除项。词史只在
-`fib.round.complete` committed success 后写入；provider 失败、准备取消、过期 round 或 command rejection 都不写。
+authoritative round 的词；新一轮选题优先使用所有当前真人均未见过的词。词史由 `fib.word.recordUsage` effect 在
+`fib.round.complete` committed success 后写入；选中但未完成的 round 不计入曝光。
 
 `fib_word_exposures` 以 `(user_id, word)` 为主键，重复看到同一词只更新时间。写入与按用户 `ROW_NUMBER()` 裁剪在一个
 D1 batch 中执行，因此表大小按用户有界；已删除账号先与 `users` 相交，不会让一个 stale participant 阻断其他玩家
-的历史。若写入在 command commit 后失败，outbox 重试读取相同 provider ledger 结果和相同 internal command receipt，
-再补写 exposure，不重新抽词。
+的历史。若写入在 command commit 后失败，独立 usage outbox effect 重试相同幂等账本，再补写 exposure。
 
 ## 19. 客户端 Session 架构
 
@@ -2890,7 +2888,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   provider、Analytics Engine、version metadata 或 secret；第二份 `worker-globals.d.ts` 已删除。
 - 删除从未被 `pnpm dev` 选中的 `[env.dev]`。该 named environment 让 Wrangler 2026 multi-environment type generation
   把只存在于 production config 的资源错误地生成为 optional，却没有为实际 local command 提供任何覆盖。local command
-  现在显式传入 `ENVIRONMENT=development`、`FIB_WORD_PROVIDER=local` 与空 Sentry DSN，不复制 resource binding。
+  现在显式传入 `ENVIRONMENT=development` 与空 Sentry DSN，不复制 resource binding。
 - Cloudflare 只读 secret inventory 证明 Worker 消费的十个 secret 已全部配置；`[secrets].required` 现在同时承担部署
   validation 与 type generation。代码删除 R2、WeChat、Resend、GitHub、Gemini 和 Analytics token 的请求期
   `NOT_CONFIGURED` 分支，配置缺失在 Wrangler boundary fail fast，不再伪装成业务 500/503。

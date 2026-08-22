@@ -4,7 +4,7 @@ import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 
 import type { EffectScope, PendingOutboxEffect } from './types';
 
-const OUTBOX_MAX_ATTEMPTS = 7;
+export const OUTBOX_MAX_ATTEMPTS = 7;
 const OUTBOX_DELIVERY_WATCHDOG_MS = 2 * 60_000;
 const OUTBOX_RETRY_BASE_MS = 2_000;
 const OUTBOX_RETRY_MAX_MS = 5 * 60_000;

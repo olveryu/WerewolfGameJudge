@@ -2,13 +2,13 @@
 
 import { z } from 'zod';
 
-import { FIB_WORD_CANDIDATES_JSON_SCHEMA, selectGeneratedFibWordCandidate } from './candidate';
+import { FIB_WORD_CANDIDATES_JSON_SCHEMA, parseGeneratedFibWordCandidates } from './candidate';
 import { createFibWordMessages } from './prompt';
 import { createFibWordProviderRequestError, FibWordProviderError } from './providerError';
 import type { FibWordProvider } from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+export const GEMINI_FIB_WORD_MODEL = 'gemini-3.5-flash-lite';
 
 const geminiResponseSchema = z.object({
   choices: z
@@ -27,7 +27,7 @@ export function createGeminiFibWordProvider(
   if (apiKey.length === 0) throw new Error('Gemini Fib word provider requires an API key');
 
   return {
-    async generate(request) {
+    async generateBatch(request) {
       let response: Response;
       try {
         response = await fetchImpl(`${GEMINI_OPENAI_BASE}/chat/completions`, {
@@ -37,7 +37,7 @@ export function createGeminiFibWordProvider(
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: GEMINI_MODEL,
+            model: GEMINI_FIB_WORD_MODEL,
             messages: [...createFibWordMessages(request)],
             response_format: {
               type: 'json_schema',
@@ -74,7 +74,7 @@ export function createGeminiFibWordProvider(
         if (firstChoice === undefined) {
           throw new Error('[FAIL-FAST] Gemini structured response choice was unavailable');
         }
-        return selectGeneratedFibWordCandidate(
+        return parseGeneratedFibWordCandidates(
           JSON.parse(firstChoice.message.content),
           'gemini',
           request,

@@ -9,7 +9,6 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
-import { sha256Hex } from '../../../platform/crypto/sha256Hex';
 import {
   FIB_GENERATED_WORD_CANDIDATE_COUNT,
   FIB_WORD_CATEGORIES,
@@ -17,7 +16,6 @@ import {
   type FibWordRequest,
 } from './types';
 
-const SELECTION_HASH_HEX_LENGTH = 8;
 const generatedFibWordSchema = z.string().trim().refine(isValidFibWord);
 const fibDefinitionFieldSchema = z.string().trim().refine(isValidFibDefinitionField);
 const fibWordDefinitionSchema = z.strictObject({
@@ -97,36 +95,6 @@ function assertDistinctCandidates(candidates: readonly { readonly word: string }
   }
 }
 
-async function selectCandidate(
-  candidates: readonly z.output<typeof fibWordCandidatePayloadSchema>[],
-  source: FibWordSource,
-  request: FibWordRequest,
-  allowRecentWordFallback: boolean,
-): Promise<FibWordCandidate> {
-  if (request.selectionSeed.length === 0) {
-    throw new Error('Fib word selection seed must be non-empty');
-  }
-  const avoidedWords = new Set(request.avoidWords);
-  const recentWords = new Set(request.recentWords);
-  const unseenCandidates = candidates.filter(
-    (candidate) => !avoidedWords.has(candidate.word) && !recentWords.has(candidate.word),
-  );
-  const eligibleCandidates =
-    unseenCandidates.length > 0 || !allowRecentWordFallback
-      ? unseenCandidates
-      : candidates.filter((candidate) => !avoidedWords.has(candidate.word));
-  if (eligibleCandidates.length === 0) {
-    throw new Error(`Fib word provider ${source} returned no eligible candidate`);
-  }
-  const selectionHash = await sha256Hex(request.selectionSeed);
-  const selectionValue = Number.parseInt(selectionHash.slice(0, SELECTION_HASH_HEX_LENGTH), 16);
-  const selected = eligibleCandidates[selectionValue % eligibleCandidates.length];
-  if (selected === undefined) {
-    throw new Error('[FAIL-FAST] Fib word candidate selection produced no value');
-  }
-  return { word: selected.word, definition: selected.definition, source };
-}
-
 export function parseFibWordCandidate(
   value: unknown,
   source: FibWordSource,
@@ -139,11 +107,11 @@ export function parseFibWordCandidate(
   return { ...payload, source };
 }
 
-export function selectGeneratedFibWordCandidate(
+export function parseGeneratedFibWordCandidates(
   value: unknown,
   source: FibWordSource,
   request: FibWordRequest,
-): FibWordCandidate {
+): readonly FibWordCandidate[] {
   const payload = generatedFibWordCandidatesPayloadSchema.parse(value);
   assertDistinctCandidates(payload.candidates);
   for (const candidate of payload.candidates) {
@@ -153,24 +121,5 @@ export function selectGeneratedFibWordCandidate(
       );
     }
   }
-  const avoidedWords = new Set(request.avoidWords);
-  const recentWords = new Set(request.recentWords);
-  const unseenCandidate = payload.candidates.find(
-    (candidate) => !avoidedWords.has(candidate.word) && !recentWords.has(candidate.word),
-  );
-  const selected =
-    unseenCandidate ?? payload.candidates.find((candidate) => !avoidedWords.has(candidate.word));
-  if (selected === undefined) {
-    throw new Error(`Fib word provider ${source} returned no eligible candidate`);
-  }
-  return { word: selected.word, definition: selected.definition, source };
-}
-
-export function selectLocalFibWordCandidate(
-  values: readonly unknown[],
-  request: FibWordRequest,
-): Promise<FibWordCandidate> {
-  const candidates = values.map((value) => fibWordCandidatePayloadSchema.parse(value));
-  assertDistinctCandidates(candidates);
-  return selectCandidate(candidates, 'local', request, true);
+  return payload.candidates.map(({ word, definition }) => ({ word, definition, source }));
 }

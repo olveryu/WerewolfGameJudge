@@ -16,6 +16,9 @@ const ROOM_CODE = '8642';
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();
+  await env.DB.prepare('DELETE FROM fib_word_usages').run();
+  await env.DB.prepare('DELETE FROM fib_round_word_selections').run();
+  await env.DB.prepare('DELETE FROM fib_word_exposures').run();
   await env.DB.prepare('DELETE FROM room_participants').run();
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
@@ -150,11 +153,11 @@ describe('FibKing generic GameRoom integration', () => {
       const wordEffect = state.storage.sql
         .exec<{ id: string; effect_type: string; business_key: string; status: string }>(
           `SELECT id, effect_type, business_key, status
-          FROM effect_outbox WHERE effect_type = 'fib.word.generate'`,
+          FROM effect_outbox WHERE effect_type = 'fib.word.select'`,
         )
         .one();
       expect(wordEffect).toMatchObject({
-        effect_type: 'fib.word.generate',
+        effect_type: 'fib.word.select',
         business_key: 'fib-round:fib-start-round',
         status: 'pending',
       });
@@ -189,18 +192,38 @@ describe('FibKing generic GameRoom integration', () => {
       .bind(stub.id.toString())
       .first();
     expect(room).toEqual({ games_started: 1 });
-    const generated = await env.DB.prepare(
-      `SELECT round_id, word, core_meaning, usage_note, source
-      FROM fib_word_generation_results WHERE room_id = ?`,
+    const selection = await env.DB.prepare(
+      `SELECT round_id, word, core_meaning, usage_note, source, selection_tier
+       FROM fib_round_word_selections WHERE room_id = ?`,
     )
       .bind(stub.id.toString())
       .first();
-    expect(generated).toEqual({
+    expect(selection).toEqual({
       round_id: ongoing.round.roundId,
       word: ongoing.round.word,
       core_meaning: ongoing.round.definition.coreMeaning,
       usage_note: ongoing.round.definition.usageNote,
       source: ongoing.round.source,
+      selection_tier: 'local_fallback',
+    });
+    expect(
+      await env.DB.prepare(
+        `SELECT round_id, word, source, participant_count
+         FROM fib_word_usages WHERE room_creation_id = 'fib-creation-1'`,
+      ).first(),
+    ).toEqual({
+      round_id: ongoing.round.roundId,
+      word: ongoing.round.word,
+      source: ongoing.round.source,
+      participant_count: 1,
+    });
+    expect(
+      await env.DB.prepare(
+        `SELECT user_id, word FROM fib_word_exposures WHERE user_id = 'fib-host'`,
+      ).first(),
+    ).toEqual({
+      user_id: 'fib-host',
+      word: ongoing.round.word,
     });
   });
 });

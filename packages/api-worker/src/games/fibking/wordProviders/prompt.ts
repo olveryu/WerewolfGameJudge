@@ -9,6 +9,8 @@ import {
 
 import { FIB_GENERATED_WORD_CANDIDATE_COUNT, type FibWordRequest } from './types';
 
+export const FIB_WORD_PROMPT_VERSION = '1';
+
 const FIB_WORD_CATEGORY_INSTRUCTIONS = {
   literary:
     '由常用汉字组成、读音不拗口、字面能引出多种联想且真义有反差的冷门书面或古典词，不得使用常见成语',
@@ -47,7 +49,7 @@ export function createFibWordMessages(
 2. 不得使用本房间已经出现的词。
 3. 必须符合指定类别和 JSON Schema。
 4. 优先避开玩家近期见过的词；没有足够新词时允许重复近期词。
-5. 在满足以上条件后追求游戏性和候选多样性。
+4. 在满足以上条件后追求游戏性和候选多样性。
 </priority>
 
 <good_question>
@@ -71,8 +73,6 @@ ${FIB_WORD_CALIBRATION_EXAMPLES}
       content: `<request>
 指定类别：${request.category}
 类别说明：${FIB_WORD_CATEGORY_INSTRUCTIONS[request.category]}
-本房间已使用，绝对禁止：${JSON.stringify(request.avoidWords)}
-玩家近期见过，优先避免但必要时允许：${JSON.stringify(request.recentWords)}
 </request>
 
 请比较一批真实词项，再返回质量最高且彼此不同的候选。`,

@@ -29,7 +29,7 @@ export {
   getFibRoundView,
   getFibUserSeat,
 } from './domain/visibility';
-export type { FibEffect, FibGenerateWordEffect } from './effects/types';
+export type { FibEffect, FibRecordWordUsageEffect, FibSelectWordEffect } from './effects/types';
 export { decideFibCommand, type FibEngine, fibEngine, getFibLifecycle } from './engine';
 export { type FibPublicStats, parseFibPublicStats } from './publicStats';
 export { FIB_STATE_CODEC } from './state/codec';

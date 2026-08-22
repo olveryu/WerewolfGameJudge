@@ -1,12 +1,14 @@
-/** Worker-side validation and execution for FibKing word-generation effects. */
+/** Worker-side validation and execution for Fibking selection and usage effects. */
 
 import {
   FIB_PREPARATION_STAGES,
   FIB_USED_WORD_LIMIT,
+  FIB_WORD_SOURCES,
   type FibEffect,
-  type FibGenerateWordEffect,
   type FibInternalCommand,
   type FibPreparationFailureCode,
+  type FibRecordWordUsageEffect,
+  type FibSelectWordEffect,
   type FibState,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_PREPARING,
@@ -16,20 +18,36 @@ import { z } from 'zod';
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { createLogger } from '../../platform/observability/logger';
-import { getOrCreateFibWordGenerationResult } from './wordGenerationResults';
-import { getFibWordHistoryUserIds, recordFibWordExposure } from './wordHistory';
-import { createConfiguredFibWordProvider, type FibWordProvider } from './wordProviders';
-import { FibWordProviderError } from './wordProviders/providerError';
+import { OUTBOX_MAX_ATTEMPTS } from '../../platform/room/effectOutbox';
+import { getFibWordHistoryUserIds } from './wordHistory';
+import { getOrCreateFibWordSelection } from './wordSelection';
+import { recordFibWordUsage } from './wordUsage';
 
-const log = createLogger('fib-word-generation');
+const log = createLogger('fib-word-selection');
 
-export const fibEffectSchema: z.ZodType<FibEffect> = z.strictObject({
-  type: z.literal('fib.word.generate'),
+const selectWordEffectSchema = z.strictObject({
+  type: z.literal('fib.word.select'),
   payload: z.strictObject({
     roundId: z.string().min(1),
     avoidWords: z.array(z.string().min(1)).max(FIB_USED_WORD_LIMIT).readonly(),
   }),
-});
+}) satisfies z.ZodType<FibSelectWordEffect>;
+
+const recordWordUsageEffectSchema = z.strictObject({
+  type: z.literal('fib.word.recordUsage'),
+  payload: z.strictObject({
+    roundId: z.string().min(1),
+    word: z.string().min(1),
+    source: z.enum(FIB_WORD_SOURCES),
+    usedAt: z.number().int().nonnegative(),
+    participantUserIds: z.array(z.string().min(1)).min(1).readonly(),
+  }),
+}) satisfies z.ZodType<FibRecordWordUsageEffect>;
+
+export const fibEffectSchema: z.ZodType<FibEffect> = z.discriminatedUnion('type', [
+  selectWordEffectSchema,
+  recordWordUsageEffectSchema,
+]);
 
 function isSupersededRoundRejection(reason: string): boolean {
   return reason === REASON_FIB_ROUND_NOT_PREPARING || reason === REASON_FIB_ROUND_MISMATCH;
@@ -38,7 +56,7 @@ function isSupersededRoundRejection(reason: string): boolean {
 async function dispatchPreparationStage(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
   roundId: string,
-  stage: typeof FIB_PREPARATION_STAGES.generating | typeof FIB_PREPARATION_STAGES.finalizing,
+  stage: (typeof FIB_PREPARATION_STAGES)['selecting' | 'finalizing'],
 ): Promise<boolean> {
   const commandId = await createEffectCommandId(`fib:preparation-stage-${stage}`, context.effectId);
   const result = await context.dispatchInternal(commandId, {
@@ -91,88 +109,18 @@ async function dispatchPreparationFailure(
   }
 }
 
-export async function handleFibGenerateWordEffect(
-  effect: FibGenerateWordEffect,
+async function dispatchRoundCompletion(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
-  provider: FibWordProvider,
+  effect: FibSelectWordEffect,
+  selected: Awaited<ReturnType<typeof getOrCreateFibWordSelection>>,
 ): Promise<void> {
-  if (
-    context.state.phase !== 'preparing' ||
-    context.state.pendingRound.roundId !== effect.payload.roundId
-  ) {
-    return;
-  }
-  if (
-    !(await dispatchPreparationStage(
-      context,
-      effect.payload.roundId,
-      FIB_PREPARATION_STAGES.generating,
-    ))
-  ) {
-    return;
-  }
-  const historyUserIds = getFibWordHistoryUserIds(context.state);
-  let candidate;
-  try {
-    candidate = await getOrCreateFibWordGenerationResult({
-      db: context.bindings.DB,
-      roomIdentity: context.roomIdentity,
-      effectId: context.effectId,
-      effect,
-      provider,
-      historyUserIds,
-      requestedAt: context.state.pendingRound.requestedAt,
-    });
-  } catch (error) {
-    if (!(error instanceof FibWordProviderError)) throw error;
-    const cause = error.cause;
-    const failureDetails = {
-      error,
-      errorName: error.name,
-      errorMessage: error.message,
-      causeName: cause instanceof Error ? cause.name : undefined,
-      causeMessage:
-        cause instanceof Error
-          ? cause.message
-          : typeof cause === 'string'
-            ? cause
-            : cause === undefined
-              ? undefined
-              : 'Non-Error cause',
-      failureKind: error.failureKind,
-      roomId: context.roomIdentity.roomId,
-      roomCode: context.roomIdentity.roomCode,
-      effectId: context.effectId,
-      roundId: effect.payload.roundId,
-    };
-    if (error.failureKind === 'rateLimited') {
-      log.warn('Fib word generation rate limited', failureDetails);
-    } else {
-      log.error('Fib word generation failed', failureDetails);
-    }
-    await dispatchPreparationFailure(
-      context,
-      effect.payload.roundId,
-      error.failureKind === 'timedOut' ? 'timedOut' : 'generationFailed',
-    );
-    return;
-  }
-  if (
-    !(await dispatchPreparationStage(
-      context,
-      effect.payload.roundId,
-      FIB_PREPARATION_STAGES.finalizing,
-    ))
-  ) {
-    return;
-  }
   const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
   const result = await context.dispatchInternal(commandId, {
     type: 'fib.round.complete',
     roundId: effect.payload.roundId,
-    word: candidate.word,
-    definition: candidate.definition,
-    source: candidate.source,
+    word: selected.word,
+    definition: selected.definition,
+    source: selected.source,
   });
   if (result.commandId !== commandId) {
     throw new Error(
@@ -186,21 +134,80 @@ export async function handleFibGenerateWordEffect(
   if (result.outcome.kind !== 'success') {
     throw new Error(`Fib round-complete command ${commandId} failed: ${result.outcome.reason}`);
   }
-  await recordFibWordExposure(
-    context.bindings.DB,
-    historyUserIds,
-    candidate.word,
-    new Date().toISOString(),
-  );
 }
 
+async function handleFibSelectWordEffect(
+  effect: FibSelectWordEffect,
+  context: WorkerEffectContext<FibState, FibInternalCommand>,
+): Promise<void> {
+  if (
+    context.state.phase !== 'preparing' ||
+    context.state.pendingRound.roundId !== effect.payload.roundId
+  ) {
+    return;
+  }
+  if (
+    !(await dispatchPreparationStage(
+      context,
+      effect.payload.roundId,
+      FIB_PREPARATION_STAGES.selecting,
+    ))
+  ) {
+    return;
+  }
+
+  try {
+    const selected = await getOrCreateFibWordSelection({
+      db: context.bindings.DB,
+      roomIdentity: context.roomIdentity,
+      effectId: context.effectId,
+      effect,
+      participantUserIds: getFibWordHistoryUserIds(context.state),
+    });
+    if (
+      !(await dispatchPreparationStage(
+        context,
+        effect.payload.roundId,
+        FIB_PREPARATION_STAGES.finalizing,
+      ))
+    ) {
+      return;
+    }
+    await dispatchRoundCompletion(context, effect, selected);
+  } catch (error) {
+    if (context.deliveryAttemptCount < OUTBOX_MAX_ATTEMPTS) throw error;
+    log.error('Fib word selection failed', {
+      error,
+      roomId: context.roomIdentity.roomId,
+      effectId: context.effectId,
+      roundId: effect.payload.roundId,
+    });
+    await dispatchPreparationFailure(context, effect.payload.roundId, 'selectionFailed');
+  }
+}
+
+async function handleFibRecordWordUsageEffect(
+  effect: FibRecordWordUsageEffect,
+  context: WorkerEffectContext<FibState, FibInternalCommand>,
+): Promise<void> {
+  await recordFibWordUsage({
+    db: context.bindings.DB,
+    roomIdentity: context.roomIdentity,
+    effect,
+  });
+}
+
+/** Deliver one validated Fibking effect through the Worker runtime. */
 export async function handleFibEffect(
   effect: FibEffect,
   context: WorkerEffectContext<FibState, FibInternalCommand>,
 ): Promise<void> {
-  await handleFibGenerateWordEffect(
-    effect,
-    context,
-    createConfiguredFibWordProvider(context.bindings),
-  );
+  switch (effect.type) {
+    case 'fib.word.select':
+      await handleFibSelectWordEffect(effect, context);
+      return;
+    case 'fib.word.recordUsage':
+      await handleFibRecordWordUsageEffect(effect, context);
+      return;
+  }
 }

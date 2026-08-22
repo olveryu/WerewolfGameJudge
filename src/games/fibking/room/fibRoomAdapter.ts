@@ -219,10 +219,7 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel {
         kind: 'message',
         icon: 'guide',
         text: '词语准备失败',
-        supportingText:
-          state.preparationFailure.failureCode === 'timedOut'
-            ? '准备超时，请重新准备'
-            : '暂时无法生成词语，请重新准备',
+        supportingText: '暂无可用词语，请重新准备',
       };
     case 'ongoing':
       return {
