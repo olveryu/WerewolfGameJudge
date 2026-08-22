@@ -14,8 +14,7 @@ import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
 import { FIB_WORD_CATEGORIES } from './wordProviders/types';
 
-export const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
-export const FIB_WORD_GENERATION_CYCLE_STATUSES = ['running', 'completed', 'failed'] as const;
+const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
 export const FIB_WORD_SELECTION_TIERS = [
   'category_unseen',
   'any_unseen',
@@ -25,7 +24,7 @@ export const FIB_WORD_SELECTION_TIERS = [
 ] as const;
 
 /** Reusable, reviewed FibKing questions available to every room. */
-export const fibWords = sqliteTable(
+const fibWords = sqliteTable(
   'fib_words',
   {
     id: text('id').primaryKey(),
@@ -45,38 +44,6 @@ export const fibWords = sqliteTable(
   (table) => [
     uniqueIndex('idx_fib_words_word').on(table.word),
     index('idx_fib_words_selection').on(table.status, table.category, table.selectionKey, table.id),
-  ],
-);
-
-/** Singleton lease and cadence state for synchronous Gemini replenishment. */
-export const fibWordSupplyState = sqliteTable('fib_word_supply_state', {
-  id: integer('id').primaryKey(),
-  activeCycleId: text('active_cycle_id'),
-  activeCycleStartedAt: text('active_cycle_started_at'),
-  leaseOwner: text('lease_owner'),
-  leaseExpiresAt: text('lease_expires_at'),
-  lastCompletedAt: text('last_completed_at'),
-  updatedAt: text('updated_at').notNull(),
-});
-
-/** Auditable generation cycle counters; raw model output is never replayed online. */
-export const fibWordGenerationCycles = sqliteTable(
-  'fib_word_generation_cycles',
-  {
-    id: text('id').primaryKey(),
-    status: text('status', { enum: FIB_WORD_GENERATION_CYCLE_STATUSES }).notNull(),
-    provider: text('provider', { enum: ['gemini'] }).notNull(),
-    model: text('model').notNull(),
-    promptVersion: text('prompt_version').notNull(),
-    requestCount: integer('request_count').notNull().default(0),
-    acceptedCount: integer('accepted_count').notNull().default(0),
-    duplicateCount: integer('duplicate_count').notNull().default(0),
-    startedAt: text('started_at').notNull(),
-    completedAt: text('completed_at'),
-    errorCode: text('error_code'),
-  },
-  (table) => [
-    index('idx_fib_word_generation_cycles_status_started').on(table.status, table.startedAt),
   ],
 );
 
