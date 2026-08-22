@@ -5,6 +5,8 @@ import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from './RoomPage';
 
+const FIB_PREPARATION_STATUS_PATTERN = /等待选取词语|正在选取中文词语|正在检查词语和释义/;
+
 export type FibWordDetails = {
   readonly word: string;
   readonly definition: {
@@ -104,7 +106,7 @@ export class FibRoomPage extends RoomPage {
     await this.page.getByTestId(TESTIDS.fibStartRoundButton).click();
     await expect(this.page.getByText('正在准备本轮词语', { exact: true })).toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toHaveText(
-      /等待生成词语|正在生成中文词语|正在检查词语和释义/,
+      FIB_PREPARATION_STATUS_PATTERN,
     );
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
@@ -152,7 +154,7 @@ export class FibRoomPage extends RoomPage {
   async startNextRound(): Promise<void> {
     await this.page.getByTestId(TESTIDS.fibNextRoundButton).click();
     await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toHaveText(
-      /等待生成词语|正在生成中文词语|正在检查词语和释义/,
+      FIB_PREPARATION_STATUS_PATTERN,
     );
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
