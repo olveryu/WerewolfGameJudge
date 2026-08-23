@@ -215,6 +215,7 @@ export function createWerewolfControlledSeatModel(input: {
 
 export function createWerewolfBottomActionLayout(input: {
   readonly layout: BottomLayout;
+  readonly isActionSubmitting: boolean;
   readonly onIntent: (intent: ActionIntent) => void;
   readonly onStaticAction: (action: StaticButtonAction) => void;
 }): RoomBottomActionLayout {
@@ -239,6 +240,15 @@ export function createWerewolfBottomActionLayout(input: {
       textColor: button.textColor,
       buttonColor: button.buttonColor,
     } as const;
+
+    if (button.isEnabled && input.isActionSubmitting && button.behavior.kind === 'intent') {
+      return {
+        ...base,
+        isEnabled: false,
+        disabledReason: '行动正在确认中',
+        onDisabledPress: null,
+      };
+    }
 
     if (button.isEnabled) {
       return {

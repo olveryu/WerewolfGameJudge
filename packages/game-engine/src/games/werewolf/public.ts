@@ -3,6 +3,7 @@
 export type {
   WerewolfActionInput,
   WerewolfCommand,
+  WerewolfExpectedStep,
   WerewolfInternalCommand,
   WerewolfProfileUpdate,
   WerewolfPublicCommand,

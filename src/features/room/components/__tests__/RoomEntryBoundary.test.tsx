@@ -42,7 +42,11 @@ function createController(isReady: boolean): RoomEntryController {
     isAuthRequired: false,
     loadingMessage: '正在加入房间',
     showRetryButton: false,
-    connection: { status: isReady ? 'live' : 'connecting', onManualReconnect: jest.fn() },
+    connection: {
+      status: isReady ? 'live' : 'connecting',
+      pendingCommandCount: 0,
+      onManualReconnect: jest.fn(),
+    },
     retry: jest.fn(),
     requestExit: jest.fn(),
   };

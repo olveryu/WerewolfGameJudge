@@ -19,6 +19,7 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
       showRetryButton: false,
       connection: {
         status: 'live',
+        pendingCommandCount: 0,
         onManualReconnect: () => {
           throw new Error('Ready room UI test cannot request reconnect');
         },

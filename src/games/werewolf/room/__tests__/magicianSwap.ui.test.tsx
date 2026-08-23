@@ -85,6 +85,7 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         ).GameStatus.Ongoing,
 
         currentActionRole: 'magician',
+        currentStepId: 'magicianSwap',
         currentSchema: (() => {
           const { getSchema } =
             require('@game-judge/game-engine/games/werewolf/public') as typeof import('@game-judge/game-engine/games/werewolf/public');

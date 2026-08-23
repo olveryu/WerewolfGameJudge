@@ -19,6 +19,7 @@ describe('translateReasonCode', () => {
     expect(translateReasonCode('seat_taken')).toBe('座位已被占用');
     expect(translateReasonCode('not_seated')).toBe('你还没有入座');
     expect(translateReasonCode('invalid_status')).toBe('当前状态不允许此操作');
+    expect(translateReasonCode('action_step_changed')).toBe('当前行动步骤已变化，请重新选择');
     expect(translateReasonCode('role_count_mismatch')).toBe('角色数量与座位数不匹配');
     expect(translateReasonCode('forbidden_while_audio_playing')).toBe('请等待语音播放完毕');
     expect(translateReasonCode('command_id_conflict')).toBe('操作标识冲突，请重试');

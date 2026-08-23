@@ -8,6 +8,9 @@
 /** Unacknowledged room creation intents used for exact retry after restart. */
 export const ROOM_CREATION_INTENTS_KEY = '@room_creation_intents';
 
+/** Confirmed room commands awaiting one authoritative decision. */
+export const ROOM_COMMAND_RECOVERY_KEY = '@room_command_recovery';
+
 /** Persisted product-level user settings JSON. */
 export const USER_SETTINGS_KEY = '@user_settings';
 

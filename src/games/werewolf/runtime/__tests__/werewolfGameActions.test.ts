@@ -38,6 +38,7 @@ type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf
 interface DispatchCommandOptions {
   readonly controlledSeat: number | null;
   readonly label: string;
+  readonly isRecoverable?: boolean;
 }
 
 const dispatchMock = jest.fn<
@@ -68,6 +69,15 @@ const STATE = buildWerewolfTestState({
   templateRoles: ['wolf', 'seer'],
 });
 
+const ACTION_STATE = buildWerewolfTestState({
+  roomCode: 'ABCD',
+  status: GameStatus.Ongoing,
+  templateRoles: ['wolf', 'seer'],
+  currentStepId: 'seerCheck',
+  currentStepIndex: 4,
+  roleRevealRandomNonce: 'game-2',
+});
+
 function successfulCommand(): RoomCommandDispatchOutcome<GameState> {
   return successfulRoomCommand(STATE, 'command-id');
 }
@@ -76,9 +86,9 @@ function rejectedCommand(reason: string): RoomCommandDispatchOutcome<GameState> 
   return domainRejectedRoomCommand(STATE, reason, 'command-id');
 }
 
-function createContext(): GameActionsContext {
+function createContext(state: GameState = STATE): GameActionsContext {
   return {
-    getState: jest.fn(() => STATE),
+    getState: jest.fn(() => state),
     audio: {
       playBeginning: jest.fn().mockResolvedValue(undefined),
       playEnding: jest.fn().mockResolvedValue(undefined),
@@ -180,15 +190,36 @@ describe('canonical Werewolf command builders', () => {
     { kind: 'card', cardIndex: 1 },
     { kind: 'skip' },
   ])('maps $kind input without actor seat or role authority', async (input) => {
-    const ctx = createContext();
+    const ctx = createContext(ACTION_STATE);
 
     await submitAction(ctx, input, 5);
 
-    expectCommand({ type: 'werewolf.action.submit', input }, 5);
+    expectCommand(
+      {
+        type: 'werewolf.action.submit',
+        input,
+        expectedStep: {
+          currentStepId: 'seerCheck',
+          currentStepIndex: 4,
+          roleRevealRandomNonce: 'game-2',
+        },
+      },
+      5,
+    );
+    expect(dispatchMock.mock.calls[0]?.[1]).toMatchObject({ isRecoverable: true });
     const command = dispatchMock.mock.calls[0]?.[0];
     expect(command).not.toHaveProperty('userId');
     expect(command).not.toHaveProperty('seat');
     expect(command).not.toHaveProperty('role');
+  });
+
+  it('fails before dispatch when no authoritative action step is active', async () => {
+    const ctx = createContext();
+
+    await expect(submitAction(ctx, { kind: 'skip' }, null)).rejects.toThrow(
+      'requires an active night step',
+    );
+    expect(dispatchMock).not.toHaveBeenCalled();
   });
 
   it('preloads audio only after a successful night start', async () => {

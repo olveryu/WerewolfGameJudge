@@ -22,6 +22,13 @@ export interface RoomUserEvent {
 interface RoomSessionSnapshotBase {
   readonly epoch: number;
   readonly connection: RoomConnectionStatus;
+  /** Confirmed commands whose delivery result remains unknown. */
+  readonly pendingCommandCount: number;
+  /** Latest terminal failure returned by background recovery, without command payload details. */
+  readonly lastRecoveredCommandRejection: {
+    readonly commandId: string;
+    readonly reason: string;
+  } | null;
 }
 
 export type RoomSessionSnapshot<TState extends BaseGameState<string>> =
@@ -64,6 +71,8 @@ export type RoomConnectOutcome =
 export interface RoomCommandDispatchOptions {
   readonly controlledSeat: number | null;
   readonly label: string;
+  /** Persist and replay this exact command while its delivery result remains unknown. */
+  readonly isRecoverable?: boolean;
 }
 
 export interface PreparedRoomCommand<TCommand extends object> {
@@ -115,5 +124,7 @@ export interface RoomSessionClient<
     prepared: PreparedRoomCommand<TPreparedCommand>,
     label: string,
   ): Promise<RoomCommandDispatchOutcome<TState>>;
+  /** Consume one matching background-recovery failure after presenting it. */
+  acknowledgeRecoveredCommandRejection(commandId: string): void;
   setUserEventHandler(handler: (event: TEvent) => void | Promise<void>): () => void;
 }

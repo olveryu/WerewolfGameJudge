@@ -57,6 +57,8 @@ interface UseActionOrchestratorParams {
   imActioner: boolean;
   isAudioPlaying: boolean;
   myUserId: string | null;
+  /** True while a confirmed action is persisted and awaiting an authoritative decision. */
+  hasPendingActionCommand: boolean;
 
   // ── Rejoin overlay ──
   /** When true, ContinueGameOverlay is visible — suppress auto-trigger to avoid z-order conflict. */
@@ -110,6 +112,7 @@ export function useActionOrchestrator({
   imActioner,
   isAudioPlaying,
   myUserId,
+  hasPendingActionCommand,
   needsContinueOverlay,
   firstSwapSeat,
   setFirstSwapSeat,
@@ -162,7 +165,7 @@ export function useActionOrchestrator({
 
   const proceedWithAction = useCallback(
     async (input: WerewolfActionInput): Promise<WerewolfCommandDispatchOutcome> => {
-      if (actionSubmittingRef.current) {
+      if (actionSubmittingRef.current || hasPendingActionCommand) {
         throw new Error('[FAIL-FAST] Werewolf action submitted while another action is pending');
       }
       markActionSubmitting(true);
@@ -184,7 +187,7 @@ export function useActionOrchestrator({
         markActionSubmitting(false);
       }
     },
-    [submitAction, markActionSubmitting],
+    [hasPendingActionCommand, submitAction, markActionSubmitting],
   );
 
   const confirmThenAct = useCallback(
@@ -299,7 +302,7 @@ export function useActionOrchestrator({
     }
 
     // Suppress auto-triggering intent while audio is playing or the continue-game overlay is visible
-    if (!imActioner || isAudioPlaying || needsContinueOverlay) return;
+    if (!imActioner || isAudioPlaying || needsContinueOverlay || hasPendingActionCommand) return;
 
     const autoIntent = getAutoTriggerIntent();
     if (!autoIntent) return;
@@ -332,6 +335,7 @@ export function useActionOrchestrator({
     imActioner,
     isAudioPlaying,
     needsContinueOverlay,
+    hasPendingActionCommand,
     effectiveRole,
     actorSeatForUi,
     firstSwapSeat,
@@ -344,6 +348,6 @@ export function useActionOrchestrator({
 
   return {
     handleActionIntent,
-    isActionSubmitting,
+    isActionSubmitting: isActionSubmitting || hasPendingActionCommand,
   };
 }

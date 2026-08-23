@@ -21,6 +21,8 @@ function createReadySnapshot(isSeated: boolean): RoomSessionSnapshot<GameState> 
       userId: 'u1',
     },
     connection: 'live',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: {
       gameType: 'werewolf',
       stateVersion: WEREWOLF_STATE_VERSION,

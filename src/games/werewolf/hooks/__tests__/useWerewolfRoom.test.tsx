@@ -16,6 +16,7 @@ import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameCl
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 let mockAuthUserId = 'host-user';
+const mockShowErrorAlert = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuthContext: () => ({
@@ -37,6 +38,12 @@ jest.mock('@/contexts/AuthContext', () => ({
     isAuthenticated: true,
     refreshUser: jest.fn(async () => undefined),
   }),
+}));
+jest.mock('@/utils/alertPresets', () => ({
+  ...jest.requireActual<typeof import('@/utils/alertPresets')>('@/utils/alertPresets'),
+  showErrorAlert: (title: string, message: string) => {
+    mockShowErrorAlert(title, message);
+  },
 }));
 
 function createGameState(overrides: Partial<GameState> = {}): GameState {
@@ -70,6 +77,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
 function createRoomSession(
   state: GameState,
   userId: string,
+  lastRecoveredCommandRejection: { readonly commandId: string; readonly reason: string } | null,
 ): RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent> {
   const room = {
     roomCode: state.roomCode,
@@ -78,11 +86,13 @@ function createRoomSession(
     hostUserId: state.hostUserId,
     createdAt: new Date('2026-07-11T12:00:00.000Z'),
   };
-  const snapshot = {
+  let snapshot = {
     phase: 'ready' as const,
     epoch: 1,
     identity: { room, userId },
     connection: 'live' as const,
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection,
     snapshot: createRoomSnapshot(state, 7),
     lastCommand: null,
     error: null,
@@ -96,6 +106,10 @@ function createRoomSession(
     prepare: jest.fn(),
     dispatch: jest.fn(),
     dispatchPrepared: jest.fn(),
+    acknowledgeRecoveredCommandRejection: jest.fn((commandId: string) => {
+      if (snapshot.lastRecoveredCommandRejection?.commandId !== commandId) return;
+      snapshot = { ...snapshot, lastRecoveredCommandRejection: null };
+    }),
     setUserEventHandler: jest.fn(() => () => undefined),
   } as unknown as WerewolfGameClient['roomSession'];
 }
@@ -104,12 +118,20 @@ function createClient(options?: {
   readonly state?: GameState;
   readonly userId?: string;
   readonly wasAudioInterrupted?: boolean;
+  readonly lastRecoveredCommandRejection?: {
+    readonly commandId: string;
+    readonly reason: string;
+  };
 }): WerewolfGameClient {
   const state = options?.state ?? createGameState();
   const success = () => successfulRoomCommand(state);
   mockAuthUserId = options?.userId ?? 'host-user';
   return {
-    roomSession: createRoomSession(state, mockAuthUserId),
+    roomSession: createRoomSession(
+      state,
+      mockAuthUserId,
+      options?.lastRecoveredCommandRejection ?? null,
+    ),
     assignRoles: jest.fn(async () => success()),
     updateTemplate: jest.fn(async () => success()),
     startNight: jest.fn(async () => success()),
@@ -141,6 +163,8 @@ function createWrapper(): React.FC<React.PropsWithChildren> {
 }
 
 describe('useWerewolfRoom shared-session composition', () => {
+  beforeEach(() => mockShowErrorAlert.mockClear());
+
   it('derives identity, seat, role, revision, and connection from one room session', () => {
     const client = createClient();
     const { result } = renderHook(() => useWerewolfRoom(client), {
@@ -184,5 +208,32 @@ describe('useWerewolfRoom shared-session composition', () => {
     });
 
     expect(result.current.needsContinueOverlay).toBe(false);
+  });
+
+  it('tells the player to select again after stale background recovery is rejected', async () => {
+    const client = createClient({
+      lastRecoveredCommandRejection: {
+        commandId: 'recovered-command',
+        reason: 'action_step_changed',
+      },
+    });
+
+    const firstMount = renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
+
+    await waitFor(() =>
+      expect(mockShowErrorAlert).toHaveBeenCalledWith(
+        '行动未提交',
+        '当前行动步骤已变化，请重新选择',
+      ),
+    );
+    expect(client.roomSession.acknowledgeRecoveredCommandRejection).toHaveBeenCalledWith(
+      'recovered-command',
+    );
+
+    firstMount.unmount();
+    renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
+    await act(async () => undefined);
+
+    expect(mockShowErrorAlert).toHaveBeenCalledTimes(1);
   });
 });

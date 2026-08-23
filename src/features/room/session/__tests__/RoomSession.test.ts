@@ -6,16 +6,26 @@ import {
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
+import {
+  type NewRecoverableRoomCommand,
+  type RoomCommandRecoveryRepository,
+  RoomCommandRecoveryStore,
+} from '@/features/room/services/RoomCommandRecoveryStore';
 import { RoomSession } from '@/features/room/session/RoomSession';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
-import { cfPost } from '@/services/cloudflare/cfFetch';
+import { cfPost, CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 import type {
   IRealtimeTransport,
   TransportEventHandlers,
 } from '@/services/types/IRealtimeTransport';
 import type { IRoomStateService } from '@/services/types/IRoomStateService';
 
-jest.mock('@/services/cloudflare/cfFetch', () => ({ cfPost: jest.fn() }));
+jest.mock('@/services/cloudflare/cfFetch', () => ({
+  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
+    '@/services/cloudflare/cfFetch',
+  ),
+  cfPost: jest.fn(),
+}));
 
 interface TestState extends BaseGameState<'werewolf'> {
   readonly counter: number;
@@ -109,6 +119,7 @@ function createTransport(options?: { readonly openOnConnect?: boolean }) {
 function createSession(options?: {
   readonly initialSnapshot?: RoomSnapshot<TestState> | null;
   readonly openOnConnect?: boolean;
+  readonly commandRecovery?: RoomCommandRecoveryRepository;
 }) {
   const transport = createTransport({ openOnConnect: options?.openOnConnect });
   const stateService: IRoomStateService<TestState> = {
@@ -127,6 +138,11 @@ function createSession(options?: {
     stateService,
     transport,
     createCommandId: () => `command-${++commandSequence}`,
+    commandRecovery: options?.commandRecovery ?? {
+      load: () => [],
+      save: () => undefined,
+      remove: () => undefined,
+    },
   });
   createdSessions.push(session);
   return { session, stateService, transport };
@@ -147,6 +163,15 @@ function createDeferred<T>(): {
     resolvePromise = resolve;
   });
   return { promise, resolve: resolvePromise };
+}
+
+function createRecoveryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getString: (key: string) => values.get(key),
+    set: (key: string, value: string) => values.set(key, value),
+    remove: (key: string) => values.delete(key),
+  };
 }
 
 const mockCfPost = jest.mocked(cfPost);
@@ -259,6 +284,200 @@ describe('RoomSession', () => {
 
     await expect(dispatched).rejects.toMatchObject({ name: 'AbortError' });
     expect(mockCfPost).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists a recoverable command before its first send and retains an unknown outcome', async () => {
+    const save = jest.fn<void, [NewRecoverableRoomCommand]>();
+    const remove = jest.fn<void, [string, string, string]>();
+    const commandRecovery: RoomCommandRecoveryRepository = {
+      load: () => [],
+      save,
+      remove,
+    };
+    const { session } = createSession({ commandRecovery });
+    await session.connect(IDENTITY);
+    mockCfPost.mockImplementationOnce(async () => {
+      expect(save).toHaveBeenCalledTimes(1);
+      throw new TypeError('Failed to fetch');
+    });
+
+    await expect(
+      session.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'test', isRecoverable: true },
+      ),
+    ).resolves.toMatchObject({ kind: 'deliveryUnknown', commandId: 'command-1' });
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(session.getSnapshot().pendingCommandCount).toBe(1);
+  });
+
+  it('retries an unknown recoverable command while the connection remains live', async () => {
+    const { session } = createSession();
+    await session.connect(IDENTITY);
+    jest.useFakeTimers();
+    try {
+      mockCfPost.mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce({
+        kind: 'committed',
+        commandId: 'command-1',
+        snapshot: createRoomSnapshot(createTestState(1), 2),
+        outcome: { kind: 'success' },
+      });
+
+      await expect(
+        session.dispatch(
+          { type: 'test.increment', amount: 1 },
+          { controlledSeat: null, label: 'test', isRecoverable: true },
+        ),
+      ).resolves.toMatchObject({ kind: 'deliveryUnknown', commandId: 'command-1' });
+      const firstEnvelope = mockCfPost.mock.calls[0]?.[1];
+
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      expect(mockCfPost).toHaveBeenCalledTimes(2);
+      expect(mockCfPost.mock.calls[1]?.[1]).toEqual(firstEnvelope);
+      expect(session.getSnapshot().pendingCommandCount).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('cancels a scheduled recoverable command retry on disconnect', async () => {
+    const { session } = createSession();
+    await session.connect(IDENTITY);
+    jest.useFakeTimers();
+    try {
+      mockCfPost.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      await session.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'test', isRecoverable: true },
+      );
+
+      session.disconnect();
+      await jest.advanceTimersByTimeAsync(30_000);
+
+      expect(mockCfPost).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('publishes a rejection returned by background command recovery', async () => {
+    const { session } = createSession();
+    await session.connect(IDENTITY);
+    jest.useFakeTimers();
+    try {
+      mockCfPost.mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce({
+        kind: 'rejected',
+        commandId: 'command-1',
+        reason: 'action_step_changed',
+      });
+      await session.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'test', isRecoverable: true },
+      );
+
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      expect(session.getSnapshot()).toMatchObject({
+        pendingCommandCount: 0,
+        lastRecoveredCommandRejection: {
+          commandId: 'command-1',
+          reason: 'action_step_changed',
+        },
+      });
+      session.acknowledgeRecoveredCommandRejection('another-command');
+      expect(session.getSnapshot().lastRecoveredCommandRejection).not.toBeNull();
+      session.acknowledgeRecoveredCommandRejection('command-1');
+      expect(session.getSnapshot().lastRecoveredCommandRejection).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('stops retrying and unlocks after background recovery confirms non-delivery', async () => {
+    const remove = jest.fn<void, [string, string, string]>();
+    const commandRecovery: RoomCommandRecoveryRepository = {
+      load: () => [],
+      save: () => undefined,
+      remove,
+    };
+    const { session } = createSession({ commandRecovery });
+    await session.connect(IDENTITY);
+    jest.useFakeTimers();
+    try {
+      mockCfPost
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockRejectedValueOnce(
+          new CloudflareHttpError({ status: 404, reason: 'no_state', body: null }),
+        );
+      await session.dispatch(
+        { type: 'test.increment', amount: 1 },
+        { controlledSeat: null, label: 'test', isRecoverable: true },
+      );
+
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      expect(session.getSnapshot()).toMatchObject({
+        pendingCommandCount: 0,
+        lastRecoveredCommandRejection: {
+          commandId: 'command-1',
+          reason: 'no_state',
+        },
+      });
+      expect(remove).toHaveBeenCalledWith('room-id-1234', 'host-user', 'command-1');
+
+      await jest.advanceTimersByTimeAsync(30_000);
+      expect(mockCfPost).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('replays the exact persisted command after recreation and removes it after a decision', async () => {
+    const recoveryStorage = createRecoveryStorage();
+    const commandRecovery = new RoomCommandRecoveryStore(recoveryStorage, () => 1_000);
+    const first = createSession({ commandRecovery });
+    await first.session.connect(IDENTITY);
+    mockCfPost.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const command: TestCommand = { type: 'test.increment', amount: 2 };
+
+    await expect(
+      first.session.dispatch(command, {
+        controlledSeat: null,
+        label: 'test',
+        isRecoverable: true,
+      }),
+    ).resolves.toMatchObject({ kind: 'deliveryUnknown', commandId: 'command-1' });
+    expect(commandRecovery.load(IDENTITY.room.roomId, IDENTITY.userId)).toMatchObject([
+      { commandId: 'command-1', command },
+    ]);
+    first.session.disconnect();
+
+    mockCfPost.mockResolvedValueOnce({
+      kind: 'committed',
+      commandId: 'command-1',
+      snapshot: createRoomSnapshot(createTestState(2), 2),
+      outcome: { kind: 'success' },
+    });
+    const recreated = createSession({ commandRecovery });
+    await recreated.session.connect(IDENTITY);
+    await flushAsyncWork();
+
+    expect(mockCfPost).toHaveBeenCalledTimes(2);
+    expect(mockCfPost.mock.calls[1]?.[1]).toMatchObject({
+      roomCode: IDENTITY.room.roomCode,
+      roomId: IDENTITY.room.roomId,
+      commandId: 'command-1',
+      command,
+      controlledSeat: null,
+    });
+    expect(commandRecovery.load(IDENTITY.room.roomId, IDENTITY.userId)).toEqual([]);
+    expect(recreated.session.getSnapshot()).toMatchObject({
+      phase: 'ready',
+      pendingCommandCount: 0,
+      snapshot: { revision: 2 },
+    });
   });
 
   it('fails fast if a non-cooperative command transport returns after disconnect', async () => {

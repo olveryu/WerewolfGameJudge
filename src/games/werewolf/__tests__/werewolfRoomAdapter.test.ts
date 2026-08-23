@@ -137,6 +137,7 @@ describe('werewolfRoomAdapter', () => {
         secondary: [],
         ghost: [],
       },
+      isActionSubmitting: false,
       onIntent: jest.fn(),
       onStaticAction,
     });
@@ -166,6 +167,7 @@ describe('werewolfRoomAdapter', () => {
         secondary: [],
         ghost: [],
       },
+      isActionSubmitting: false,
       onIntent: jest.fn(),
       onStaticAction,
     });
@@ -177,5 +179,35 @@ describe('werewolfRoomAdapter', () => {
     button.onDisabledPress();
 
     expect(onStaticAction).toHaveBeenCalledWith('waitForHost');
+  });
+
+  it('locks an action intent while its authoritative result is pending', () => {
+    const onIntent = jest.fn();
+    const layout = createWerewolfBottomActionLayout({
+      layout: {
+        primary: [
+          {
+            key: 'skip',
+            label: '跳过',
+            variant: 'primary',
+            size: 'lg',
+            isEnabled: true,
+            behavior: { kind: 'intent', intent: { type: 'skip', targetSeat: -1 } },
+          },
+        ],
+        secondary: [],
+        ghost: [],
+      },
+      isActionSubmitting: true,
+      onIntent,
+      onStaticAction: jest.fn(),
+    });
+
+    expect(layout.primary[0]).toMatchObject({
+      isEnabled: false,
+      disabledReason: '行动正在确认中',
+      onDisabledPress: null,
+    });
+    expect(onIntent).not.toHaveBeenCalled();
   });
 });

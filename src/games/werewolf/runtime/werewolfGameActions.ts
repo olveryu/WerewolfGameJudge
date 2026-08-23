@@ -10,6 +10,7 @@ import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   type WerewolfActionInput,
+  type WerewolfExpectedStep,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -41,11 +42,24 @@ async function dispatchWerewolfCommand(
   command: WerewolfPublicCommand,
   controlledSeat: number | null,
   label: string,
+  isRecoverable = false,
 ): Promise<WerewolfCommandDispatchOutcome> {
   return ctx.commands.dispatch(command, {
     controlledSeat,
     label,
+    ...(isRecoverable ? { isRecoverable: true } : {}),
   });
+}
+
+function getExpectedActionStep(state: GameState): WerewolfExpectedStep {
+  if (state.currentStepId === undefined || state.currentStepIndex < 0) {
+    throw new Error('[FAIL-FAST] Recoverable Werewolf action requires an active night step');
+  }
+  return {
+    currentStepId: state.currentStepId,
+    currentStepIndex: state.currentStepIndex,
+    roleRevealRandomNonce: state.roleRevealRandomNonce ?? null,
+  };
 }
 
 function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
@@ -138,11 +152,13 @@ export async function submitAction(
   input: WerewolfActionInput,
   controlledSeat: number | null,
 ): Promise<WerewolfCommandDispatchOutcome> {
+  const expectedStep = getExpectedActionStep(ctx.getState());
   const result = await dispatchWerewolfCommand(
     ctx,
-    { type: 'werewolf.action.submit', input: copyActionInput(input) },
+    { type: 'werewolf.action.submit', input: copyActionInput(input), expectedStep },
     controlledSeat,
     'submitAction',
+    true,
   );
   if (!isSuccessfulRoomCommand(result)) {
     werewolfRuntimeLog.warn('submitAction failed', {

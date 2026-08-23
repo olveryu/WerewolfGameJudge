@@ -5,7 +5,7 @@ import type {
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
-import type { GameRuleOverrides, RoleId } from '../domain/models';
+import type { GameRuleOverrides, RoleId, SchemaId } from '../domain/models';
 
 export type WerewolfSeatProfile = RoomSeatProfile;
 
@@ -23,6 +23,14 @@ export type WerewolfActionInput =
   | { readonly kind: 'card'; readonly cardIndex: number }
   | { readonly kind: 'skip' };
 
+/** Authoritative step identity captured when a player confirms one action. */
+export interface WerewolfExpectedStep {
+  readonly currentStepId: SchemaId;
+  readonly currentStepIndex: number;
+  /** Null identifies the room's first game before any restart nonce exists. */
+  readonly roleRevealRandomNonce: string | null;
+}
+
 type WerewolfRoomCommand =
   | RoomSeatCommand<WerewolfSeatProfile>
   | RoomProfileUpdateCommand<WerewolfProfileUpdate>;
@@ -31,7 +39,12 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.roles.assign' }
   | { readonly type: 'werewolf.game.restart' }
   | { readonly type: 'werewolf.bots.markRolesViewed' }
-  | { readonly type: 'werewolf.action.submit'; readonly input: WerewolfActionInput }
+  | {
+      readonly type: 'werewolf.action.submit';
+      readonly input: WerewolfActionInput;
+      /** Optional only for rolling compatibility with clients predating recoverable actions. */
+      readonly expectedStep?: WerewolfExpectedStep;
+    }
   | { readonly type: 'werewolf.role.view' }
   | {
       readonly type: 'werewolf.config.update';

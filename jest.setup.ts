@@ -6,6 +6,16 @@
 // Reanimated jest mock (must be before any component imports)
 (require('react-native-reanimated') as { setUpTests: () => void }).setUpTests();
 
+const testStorage = (
+  require('react-native-mmkv') as {
+    createMMKV: () => { clearAll: () => void };
+  }
+).createMMKV();
+
+beforeEach(() => {
+  testStorage.clearAll();
+});
+
 // Safe area context — global mock via __mocks__/react-native-safe-area-context.tsx
 // (resolved by moduleNameMapper in jest.config.js)
 

@@ -45,6 +45,8 @@ function createRoomSession() {
     epoch: 0,
     identity: null,
     connection: 'disconnected',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: null,
     lastCommand: null,
     error: null,
@@ -84,6 +86,7 @@ function createRoomSession() {
     dispatchPrepared: jest.fn(async () => {
       throw new Error('dispatchPrepared is not used by this test');
     }),
+    acknowledgeRecoveredCommandRejection: jest.fn(),
     setUserEventHandler: jest.fn(() => () => undefined),
   };
 
@@ -103,6 +106,8 @@ function enteringSnapshot(userId = 'host-user'): RoomSessionSnapshot<GameState> 
     epoch: 1,
     identity: { room, userId },
     connection: 'connecting',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: null,
     lastCommand: null,
     error: null,
@@ -120,6 +125,8 @@ function readySnapshot(status: GameStatus, userId = 'host-user'): RoomSessionSna
     epoch: 1,
     identity: { room, userId },
     connection: 'live',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: createRoomSnapshot(state, 1),
     lastCommand: null,
     error: null,
@@ -177,6 +184,8 @@ describe('WerewolfGameClientRuntime composition', () => {
       epoch: 2,
       identity: null,
       connection: 'disconnected',
+      pendingCommandCount: 0,
+      lastRecoveredCommandRejection: null,
       snapshot: null,
       lastCommand: null,
       error: null,

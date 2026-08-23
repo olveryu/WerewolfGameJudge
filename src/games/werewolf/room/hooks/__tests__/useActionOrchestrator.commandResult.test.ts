@@ -47,6 +47,7 @@ function createParams(
     imActioner: true,
     isAudioPlaying: false,
     myUserId: 'player-0',
+    hasPendingActionCommand: false,
     needsContinueOverlay: false,
     firstSwapSeat: null,
     setFirstSwapSeat: jest.fn(),
@@ -141,5 +142,30 @@ describe('useActionOrchestrator command decisions', () => {
       '',
       expect.any(Function),
     );
+  });
+
+  it('keeps action interactions locked while a persisted command awaits a decision', () => {
+    const dialogs = createDialogs(() => undefined);
+    const params = {
+      ...createParams(successfulRoomCommand(state), dialogs),
+      hasPendingActionCommand: true,
+    };
+
+    const { result } = renderHook(() => useActionOrchestrator(params));
+
+    expect(result.current.isActionSubmitting).toBe(true);
+  });
+
+  it('does not reopen an automatic action prompt while recovery is pending', () => {
+    const dialogs = createDialogs(() => undefined);
+    const params = {
+      ...createParams(successfulRoomCommand(state), dialogs),
+      hasPendingActionCommand: true,
+      getAutoTriggerIntent: () => ({ type: 'actionPrompt' as const, targetSeat: -1 }),
+    };
+
+    renderHook(() => useActionOrchestrator(params));
+
+    expect(dialogs.showRoleActionPrompt).not.toHaveBeenCalled();
   });
 });

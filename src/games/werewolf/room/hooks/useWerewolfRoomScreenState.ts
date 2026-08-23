@@ -56,6 +56,7 @@ import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomModals } from './useRoomModals';
 import { useSpeakingOrder } from './useSpeakingOrder';
 import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
+import { useWerewolfActionDraft } from './useWerewolfActionDraft';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -168,9 +169,7 @@ export function useWerewolfRoomScreenState(
   // Local UI state
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const [firstSwapSeat, setFirstSwapSeat] = useState<number | null>(null);
   const [secondSeat, setSecondSeat] = useState<number | null>(null);
-  const [multiSelectedSeats, setMultiSelectedSeats] = useState<readonly number[]>([]);
   const [isStartingGame, setIsStartingGame] = useState(false);
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
@@ -247,6 +246,34 @@ export function useWerewolfRoomScreenState(
     groupConfirmAcks,
   });
 
+  const actionDraftScope = useMemo(() => {
+    if (
+      !imActioner ||
+      gameState === null ||
+      myUserId === null ||
+      currentStepId === null ||
+      currentStepId === undefined ||
+      actorSeatForUi === null ||
+      gameState.currentStepIndex < 0 ||
+      gameState.template.numberOfPlayers === 0
+    ) {
+      return null;
+    }
+    return {
+      scope: {
+        roomId: room.roomId,
+        userId: myUserId,
+        currentStepId,
+        currentStepIndex: gameState.currentStepIndex,
+        roleRevealRandomNonce: gameState.roleRevealRandomNonce ?? null,
+        actorSeat: actorSeatForUi,
+      },
+      seatCount: gameState.template.numberOfPlayers,
+    };
+  }, [actorSeatForUi, currentStepId, gameState, imActioner, myUserId, room.roomId]);
+  const { firstSwapSeat, multiSelectedSeats, setFirstSwapSeat, setMultiSelectedSeats } =
+    useWerewolfActionDraft(actionDraftScope);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Side effects
   // ═══════════════════════════════════════════════════════════════════════════
@@ -258,14 +285,15 @@ export function useWerewolfRoomScreenState(
       roomScreenLog.debug('Resetting UI state for restart', { roomStatus });
       setIsStartingGame(false);
       setFirstSwapSeat(null);
+      setSecondSeat(null);
       setMultiSelectedSeats([]);
     }
-  }, [gameState, roomStatus]);
+  }, [gameState, roomStatus, setFirstSwapSeat, setMultiSelectedSeats]);
 
-  // Reset multi-select state when night step changes
+  // A confirmation dialog is ephemeral; a restored first target remains editable.
   useEffect(() => {
-    setMultiSelectedSeats([]);
-  }, [currentStepId]);
+    setSecondSeat(null);
+  }, [currentStepId, gameState?.currentStepIndex, gameState?.roleRevealRandomNonce]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Intent Layer: useRoomActions
@@ -363,6 +391,7 @@ export function useWerewolfRoomScreenState(
     imActioner,
     isAudioPlaying,
     myUserId,
+    hasPendingActionCommand: roomConnection.connection.pendingCommandCount > 0,
     needsContinueOverlay,
     firstSwapSeat,
     setFirstSwapSeat,

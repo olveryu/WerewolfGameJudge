@@ -276,7 +276,12 @@ function decideWerewolfCommandRules(
     case 'werewolf.action.submit': {
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      const intent = resolveSubmitActionIntent(state, actor.value.seat, command.input);
+      const intent = resolveSubmitActionIntent(
+        state,
+        actor.value.seat,
+        command.input,
+        command.expectedStep,
+      );
       if (intent.kind === 'rejected') return reject(intent.reason);
       return decideHandler(
         state,

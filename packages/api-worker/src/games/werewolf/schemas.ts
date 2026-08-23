@@ -5,7 +5,12 @@ import type {
   WerewolfInternalCommand,
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  isValidRoleId,
+  isValidSchemaId,
+  type RoleId,
+  type SchemaId,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { validateTemplateRoles } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
@@ -14,6 +19,16 @@ import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas'
 const roleIdSchema = z.custom<RoleId>(
   (value): value is RoleId => typeof value === 'string' && isValidRoleId(value),
 );
+
+const schemaIdSchema = z.custom<SchemaId>(
+  (value): value is SchemaId => typeof value === 'string' && isValidSchemaId(value),
+);
+
+const expectedStepSchema = z.strictObject({
+  currentStepId: schemaIdSchema,
+  currentStepIndex: z.number().int().nonnegative(),
+  roleRevealRandomNonce: z.string().min(1).max(128).nullable(),
+});
 
 const ruleOverridesSchema = z.strictObject({
   isPlagueMode: z.boolean().optional(),
@@ -65,6 +80,7 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
       z.strictObject({ kind: z.literal('card'), cardIndex: z.number().int().nonnegative() }),
       z.strictObject({ kind: z.literal('skip') }),
     ]),
+    expectedStep: expectedStepSchema.optional(),
   }),
   z.strictObject({ type: z.literal('werewolf.role.view') }),
   z.strictObject({

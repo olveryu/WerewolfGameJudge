@@ -10,7 +10,11 @@ import {
 } from '../../../platform/protocol/reasons';
 import { GAME_ENGINE_CATALOG } from '../../catalog';
 import type { WerewolfCommand } from '../commands/types';
-import { REASON_ACTION_INPUT_MISMATCH, resolveSubmitActionIntent } from '../domain/actionInput';
+import {
+  REASON_ACTION_INPUT_MISMATCH,
+  REASON_ACTION_STEP_CHANGED,
+  resolveSubmitActionIntent,
+} from '../domain/actionInput';
 import { resolveEffectiveSeatActor, resolveSystemActor, resolveUserActor } from '../domain/actor';
 import { handlerResultToDecision } from '../domain/decision';
 import { handlerError, handlerRejection, handlerSuccess } from '../domain/handlers/types';
@@ -201,6 +205,28 @@ describe('Werewolf action input adapter', () => {
       kind: 'rejected',
       reason: REASON_ACTION_INPUT_MISMATCH,
     });
+  });
+
+  it('rejects a confirmed action after its authoritative step identity changes', () => {
+    const state = createState({
+      status: GameStatus.Ongoing,
+      currentStepId: 'seerCheck',
+      currentStepIndex: 4,
+      roleRevealRandomNonce: 'game-2',
+    });
+
+    expect(
+      resolveSubmitActionIntent(
+        state,
+        1,
+        { kind: 'target', target: 3 },
+        {
+          currentStepId: 'seerCheck',
+          currentStepIndex: 3,
+          roleRevealRandomNonce: 'game-2',
+        },
+      ),
+    ).toEqual({ kind: 'rejected', reason: REASON_ACTION_STEP_CHANGED });
   });
 
   it.each<[GameState['currentStepId'], RoleId]>([
@@ -435,6 +461,31 @@ describe('Werewolf engine definition and catalog', () => {
         });
       }
     }
+  });
+
+  it('passes the submitted step identity through the engine before action resolution', () => {
+    const state = createState({
+      status: GameStatus.Ongoing,
+      currentStepId: 'seerCheck',
+      currentStepIndex: 4,
+      roleRevealRandomNonce: 'game-2',
+    });
+
+    expect(
+      werewolfEngine.decide(
+        state,
+        {
+          type: 'werewolf.action.submit',
+          input: { kind: 'target', target: 3 },
+          expectedStep: {
+            currentStepId: 'seerCheck',
+            currentStepIndex: 3,
+            roleRevealRandomNonce: 'game-2',
+          },
+        },
+        userContext('user-1'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_ACTION_STEP_CHANGED });
   });
 
   it('creates identified state from config and fails fast on invalid config', () => {

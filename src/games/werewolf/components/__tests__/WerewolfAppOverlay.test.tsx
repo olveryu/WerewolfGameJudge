@@ -47,6 +47,8 @@ function readySnapshot(status: GameStatus): RoomSessionSnapshot<GameState> {
       userId: 'host',
     },
     connection: 'live',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: {
       gameType: 'werewolf',
       stateVersion: WEREWOLF_STATE_VERSION,
@@ -69,6 +71,8 @@ describe('WerewolfAppOverlay', () => {
       epoch: 0,
       identity: null,
       connection: 'disconnected',
+      pendingCommandCount: 0,
+      lastRecoveredCommandRejection: null,
       snapshot: null,
       lastCommand: null,
       error: null,

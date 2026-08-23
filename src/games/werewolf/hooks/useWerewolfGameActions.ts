@@ -221,7 +221,7 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Submitting a Werewolf action requires an effective seat');
       }
       const result = await client.submitAction(input, debug.controlledSeat);
-      handleCommandOutcome(result, '提交行动');
+      if (result.kind !== 'deliveryUnknown') handleCommandOutcome(result, '提交行动');
       return result;
     },
     [debug.controlledSeat, debug.effectiveSeat, client],

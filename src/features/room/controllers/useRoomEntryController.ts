@@ -224,6 +224,7 @@ export function useRoomEntryController<
     showRetryButton: sessionSnapshot.phase === 'failed',
     connection: {
       status: sessionSnapshot.connection,
+      pendingCommandCount: sessionSnapshot.pendingCommandCount,
       onManualReconnect: manualReconnect,
     },
     retry,

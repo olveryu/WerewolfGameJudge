@@ -15,6 +15,8 @@ export type RoomIconName = ComponentProps<typeof Ionicons>['name'];
 
 export interface RoomConnectionViewModel {
   readonly status: RoomConnectionStatus;
+  /** Number of this user's confirmed commands still awaiting a Worker decision. */
+  readonly pendingCommandCount: number;
   readonly onManualReconnect: () => void;
 }
 

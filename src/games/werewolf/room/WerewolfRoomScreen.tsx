@@ -422,6 +422,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           : null,
       layout: createWerewolfBottomActionLayout({
         layout: bottomLayout,
+        isActionSubmitting,
         onIntent: handleSchemaButtonPress,
         onStaticAction: handleStaticButtonPress,
       }),
@@ -434,6 +435,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       isHost,
       actionMessage,
       bottomLayout,
+      isActionSubmitting,
       handleSchemaButtonPress,
       handleStaticButtonPress,
     ],

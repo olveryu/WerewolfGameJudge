@@ -175,7 +175,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
-        mySeat: 12,
+        mySeat: 11,
         gameStateOverrides: { confirmStatus: { role: 'hunter', canShoot: true } },
       });
 

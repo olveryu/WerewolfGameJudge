@@ -1,12 +1,13 @@
 /** Convert canonical Werewolf action commands into the existing pure handler intent. */
 
-import type { WerewolfActionInput } from '../commands/types';
+import type { WerewolfActionInput, WerewolfExpectedStep } from '../commands/types';
 import type { SubmitActionIntent } from './intents/types';
 import { type ActionSchema, SCHEMAS } from './models';
 import type { GameState } from './protocol/types';
 import type { ActionInput } from './resolvers/types';
 
 export const REASON_ACTION_INPUT_MISMATCH = 'action_input_mismatch' as const;
+export const REASON_ACTION_STEP_CHANGED = 'action_step_changed' as const;
 
 export type SubmitActionIntentResolution =
   | { readonly kind: 'resolved'; readonly intent: SubmitActionIntent }
@@ -44,7 +45,17 @@ export function resolveSubmitActionIntent(
   state: GameState,
   actorSeat: number,
   input: WerewolfActionInput,
+  expectedStep?: WerewolfExpectedStep,
 ): SubmitActionIntentResolution {
+  if (
+    expectedStep !== undefined &&
+    (state.currentStepId !== expectedStep.currentStepId ||
+      state.currentStepIndex !== expectedStep.currentStepIndex ||
+      (state.roleRevealRandomNonce ?? null) !== expectedStep.roleRevealRandomNonce)
+  ) {
+    return { kind: 'rejected', reason: REASON_ACTION_STEP_CHANGED };
+  }
+
   const stepId = state.currentStepId;
   if (stepId === undefined) {
     return { kind: 'rejected', reason: 'invalid_step' };

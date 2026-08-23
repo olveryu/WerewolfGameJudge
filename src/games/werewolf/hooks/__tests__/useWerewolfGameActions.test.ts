@@ -52,6 +52,10 @@ function deliveryUnknown(
   return { kind: 'deliveryUnknown', commandId, reason };
 }
 
+function notDecided(reason: string, commandId = 'test-command'): WerewolfCommandDispatchOutcome {
+  return { kind: 'notDecided', commandId, reason };
+}
+
 type MockClient = {
   [K in keyof WerewolfGameClient]: jest.Mock;
 };
@@ -471,7 +475,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('should alert on NETWORK_ERROR even without onBusinessError callback', async () => {
+  it('keeps a recoverable action pending without presenting network uncertainty as failure', async () => {
     const client = createMockClient({
       submitAction: jest.fn().mockResolvedValue(deliveryUnknown('NETWORK_ERROR')),
     });
@@ -483,12 +487,27 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
-    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '网络异常，请检查网络后重试');
+    expect(mockShowAlert).not.toHaveBeenCalled();
   });
 
-  it('should alert on SERVER_ERROR even without onBusinessError callback', async () => {
+  it('keeps a recoverable action pending when the server outcome is unknown', async () => {
     const client = createMockClient({
       submitAction: jest.fn().mockResolvedValue(deliveryUnknown('SERVER_ERROR')),
+    });
+    const deps = createDeps({
+      client,
+      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+    });
+    const { result } = renderHook(() => useWerewolfGameActions(deps));
+
+    await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
+
+    expect(mockShowAlert).not.toHaveBeenCalled();
+  });
+
+  it('presents definitive non-delivery so the player can retry the action', async () => {
+    const client = createMockClient({
+      submitAction: jest.fn().mockResolvedValue(notDecided('no_state')),
     });
     const deps = createDeps({
       client,

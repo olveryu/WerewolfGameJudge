@@ -192,6 +192,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   userId_mismatch: '身份不匹配',
   // Game engine
   invalid_step: '步骤无效',
+  action_step_changed: '当前行动步骤已变化，请重新选择',
   step_mismatch: '步骤不匹配',
   role_mismatch: '角色不匹配',
   no_resolver: '操作处理器不存在',

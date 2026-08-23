@@ -3,6 +3,7 @@
 import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
+import { RoomCommandRecoveryStore } from '@/features/room/services/RoomCommandRecoveryStore';
 import type {
   GameSessionDefinition,
   GameSessionFactory,
@@ -14,6 +15,8 @@ import { CFRoomStateService } from '@/services/cloudflare/CFRoomStateService';
 import type { RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 
 export class CloudflareGameSessionFactory implements GameSessionFactory {
+  readonly #commandRecovery = new RoomCommandRecoveryStore();
+
   create<
     TState extends BaseGameState<string>,
     TCommand extends object,
@@ -26,6 +29,7 @@ export class CloudflareGameSessionFactory implements GameSessionFactory {
       stateService: new CFRoomStateService(definition.stateCodec),
       transport: new CFRealtimeService(definition.stateCodec, definition.userEventCodec),
       createCommandId: newRequestId,
+      commandRecovery: this.#commandRecovery,
     });
   }
 }

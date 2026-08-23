@@ -25,6 +25,8 @@ import { type ConnectionStatusBarStyles } from './styles';
 interface ConnectionStatusBarProps {
   /** Current connection state */
   status: RoomConnectionStatus;
+  /** Confirmed commands retained until the Worker returns a final decision. */
+  pendingCommandCount: number;
   /** Trigger manual reconnect through the shared room entry controller. */
   onManualReconnect: () => void;
   /** Pre-created styles from parent */
@@ -46,6 +48,7 @@ const ANIMATION_DURATION_MS = 1_500;
  */
 const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   status,
+  pendingCommandCount,
   onManualReconnect,
   styles,
 }) => {
@@ -54,11 +57,13 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
 
   const isDisconnected = status !== 'live';
   const isFailed = status === 'failed';
+  const hasPendingCommand = pendingCommandCount > 0;
+  const shouldShowStatus = isDisconnected || hasPendingCommand;
 
   // Start / stop the sliding animation based on connection status
   // Skip animation for Failed state (no auto-retry happening)
   useEffect(() => {
-    if (containerWidth === 0 || !isDisconnected || isFailed) {
+    if (containerWidth === 0 || !shouldShowStatus || isFailed) {
       cancelAnimation(progressValue);
       progressValue.value = 0;
       return;
@@ -66,7 +71,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
     progressValue.value = 0;
     progressValue.value = withRepeat(withTiming(1, { duration: ANIMATION_DURATION_MS }), -1);
     return () => cancelAnimation(progressValue);
-  }, [progressValue, containerWidth, isDisconnected, isFailed]);
+  }, [progressValue, containerWidth, shouldShowStatus, isFailed]);
 
   const barPixelWidth = containerWidth * BAR_WIDTH_RATIO;
 
@@ -79,14 +84,16 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
     ],
   }));
 
-  if (!isDisconnected) return null;
+  if (!shouldShowStatus) return null;
 
   // Failed state: manual reconnect button (auto-retry exhausted)
   if (isFailed) {
     return (
       <View style={styles.container} testID={TESTIDS.connectionStatusContainer}>
         <View style={styles.failedRow}>
-          <Text style={styles.text}>连接失败</Text>
+          <Text style={styles.text}>
+            {hasPendingCommand ? '行动已保存，重连后继续确认' : '连接失败'}
+          </Text>
           <Pressable onPress={onManualReconnect} style={styles.reconnectButton}>
             <Text style={styles.reconnectText}>点击重连</Text>
           </Pressable>
@@ -102,7 +109,13 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
       testID={TESTIDS.connectionStatusContainer}
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
-      <Text style={styles.text}>连接断开，正在重连</Text>
+      <Text style={styles.text}>
+        {hasPendingCommand
+          ? isDisconnected
+            ? '行动已保存，重连后将自动确认'
+            : '正在确认提交结果'
+          : '连接断开，正在重连'}
+      </Text>
       <View style={styles.progressBarTrack}>
         <Animated.View style={[styles.progressBar, progressBarStyle]} />
       </View>

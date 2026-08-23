@@ -39,10 +39,11 @@ const RoomStatusRibbonComponent: React.FC<RoomStatusRibbonProps> = ({
   progressIndicatorStyles,
   hostGuideBannerStyles,
 }) => {
-  if (connection.status !== 'live') {
+  if (connection.status !== 'live' || connection.pendingCommandCount > 0) {
     return (
       <ConnectionStatusBar
         status={connection.status}
+        pendingCommandCount={connection.pendingCommandCount}
         onManualReconnect={connection.onManualReconnect}
         styles={connectionStatusBarStyles}
       />

@@ -31,6 +31,8 @@ import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat'
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import { setAlertBlocked } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
+import { translateReasonCode } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
 import { useWerewolfBgmControl } from './useWerewolfBgmControl';
@@ -157,6 +159,13 @@ interface UseWerewolfRoomResult {
     mySeat,
     isFocused,
   });
+
+  useEffect(() => {
+    const rejection = sessionSnapshot.lastRecoveredCommandRejection;
+    if (!isFocused || rejection === null) return;
+    session.acknowledgeRecoveredCommandRejection(rejection.commandId);
+    showErrorAlert('行动未提交', translateReasonCode(rejection.reason));
+  }, [isFocused, session, sessionSnapshot.lastRecoveredCommandRejection]);
 
   // Toast notifications for XP gain / level-up after valid game settlement
   useWerewolfSettleToast({ session, isFocused });

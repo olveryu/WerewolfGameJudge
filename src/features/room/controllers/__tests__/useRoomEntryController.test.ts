@@ -57,6 +57,8 @@ function idleSnapshot(epoch = 0): RoomSessionSnapshot<TestState> {
     epoch,
     identity: null,
     connection: 'disconnected',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: null,
     lastCommand: null,
     error: null,
@@ -72,6 +74,8 @@ function readySnapshot(
     epoch: 1,
     identity,
     connection,
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: createRoomSnapshot(
       {
         gameType: 'werewolf',
@@ -92,6 +96,8 @@ function failedSnapshot(identity: ActiveRoomIdentity<'werewolf'>): RoomSessionSn
     epoch: 1,
     identity,
     connection: 'failed',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: null,
     lastCommand: null,
     error: new Error('connection failed'),
@@ -135,6 +141,7 @@ function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot())
     dispatchPrepared: jest.fn<Promise<RoomCommandDispatchOutcome<TestState>>, []>(() => {
       throw new Error('not used');
     }),
+    acknowledgeRecoveredCommandRejection: jest.fn(),
     setUserEventHandler: jest.fn(() => () => undefined),
   };
   return { connect, disconnect, emit, reconnect, session };

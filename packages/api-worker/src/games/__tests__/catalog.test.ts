@@ -225,6 +225,36 @@ describe('Worker game catalog', () => {
         input: { kind: 'confirm', confirmed: false },
       }),
     ).toThrow();
+    expect(
+      werewolfPublicCommandSchema.parse({
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 2 },
+        expectedStep: {
+          currentStepId: 'seerCheck',
+          currentStepIndex: 4,
+          roleRevealRandomNonce: null,
+        },
+      }),
+    ).toEqual({
+      type: 'werewolf.action.submit',
+      input: { kind: 'target', target: 2 },
+      expectedStep: {
+        currentStepId: 'seerCheck',
+        currentStepIndex: 4,
+        roleRevealRandomNonce: null,
+      },
+    });
+    expect(() =>
+      werewolfPublicCommandSchema.parse({
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 2 },
+        expectedStep: {
+          currentStepId: 'unknown-step',
+          currentStepIndex: 4,
+          roleRevealRandomNonce: null,
+        },
+      }),
+    ).toThrow();
   });
 
   it('strictly parses Werewolf create config without accepting room identity', () => {

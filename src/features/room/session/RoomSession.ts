@@ -9,6 +9,7 @@ import type {
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
+import type { RoomCommandRecoveryRepository } from '@/features/room/services/RoomCommandRecoveryStore';
 import {
   prepareRoomCommand,
   sendPreparedRoomCommand,
@@ -30,6 +31,8 @@ import type { IRoomStateService } from '@/services/types/IRoomStateService';
 import { handleError } from '@/utils/errorPipeline';
 import { roomSessionLog } from '@/utils/logger';
 
+const RECOVERABLE_COMMAND_RETRY_DELAYS_MS = [1_000, 3_000, 10_000, 30_000] as const;
+
 interface RoomSessionDeps<
   TState extends BaseGameState<string>,
   TEvent extends RoomUserEvent & RealtimeUserEvent,
@@ -38,10 +41,17 @@ interface RoomSessionDeps<
   readonly stateService: IRoomStateService<TState>;
   readonly transport: IRealtimeTransport<TState, TEvent>;
   readonly createCommandId: () => string;
+  readonly commandRecovery: RoomCommandRecoveryRepository;
 }
 
-interface PendingRoomCommand<TState extends BaseGameState<string>, TCommand extends object> {
-  readonly prepared: PreparedRoomCommand<TCommand>;
+interface PendingRoomCommand<TState extends BaseGameState<string>> {
+  readonly prepared: PreparedRoomCommand<object>;
+  readonly userId: string;
+  readonly label: string;
+  readonly isRecoverable: boolean;
+  attemptedConnectionGeneration: number;
+  recoveryAttemptCount: number;
+  nextRecoveryAtMs: number | null;
   inFlight: Promise<RoomCommandDispatchOutcome<TState>> | null;
 }
 
@@ -60,6 +70,8 @@ function createIdleSnapshot<TState extends BaseGameState<string>>(
     epoch,
     identity: null,
     connection: 'disconnected',
+    pendingCommandCount: 0,
+    lastRecoveredCommandRejection: null,
     snapshot: null,
     lastCommand: null,
     error: null,
@@ -84,12 +96,8 @@ function mapConnectionStatus(state: ConnectionState): RoomConnectionStatus {
   }
 }
 
-function createIntentKey<TCommand extends object>(
-  epoch: number,
-  command: TCommand,
-  controlledSeat: number | null,
-): string {
-  return canonicalJson({ epoch, controlledSeat, command });
+function createIntentKey(command: object, controlledSeat: number | null): string {
+  return canonicalJson({ controlledSeat, command });
 }
 
 function isSignalAborted(signal: AbortSignal | undefined): boolean {
@@ -105,8 +113,9 @@ export class RoomSession<
   readonly #codec: GameStateCodec<TState>;
   readonly #connection: ConnectionManager<TState, TEvent>;
   readonly #createCommandId: () => string;
+  readonly #commandRecovery: RoomCommandRecoveryRepository;
   readonly #listeners = new Set<() => void>();
-  readonly #pendingCommands = new Map<string, PendingRoomCommand<TState, TCommand>>();
+  readonly #pendingCommands = new Map<string, PendingRoomCommand<TState>>();
   readonly #userEventDeliveries = new Map<string, UserEventDelivery<TEvent>>();
   #snapshot: RoomSessionSnapshot<TState> = createIdleSnapshot(0);
   #commandAbortController: AbortController | null = null;
@@ -114,10 +123,14 @@ export class RoomSession<
   #runtimeResetExpected = false;
   #userEventHandler: ((event: TEvent) => void | Promise<void>) | null = null;
   #userEventDeliveryChain: Promise<void> = Promise.resolve();
+  #connectionGeneration = 0;
+  #isCommandRecoveryScheduled = false;
+  #commandRecoveryRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(deps: RoomSessionDeps<TState, TEvent>) {
     this.#codec = deps.codec;
     this.#createCommandId = deps.createCommandId;
+    this.#commandRecovery = deps.commandRecovery;
     this.#connection = new ConnectionManager<TState, TEvent>({
       transport: deps.transport,
       fetchStateFromDB: (room) => deps.stateService.getGameState(room),
@@ -169,6 +182,8 @@ export class RoomSession<
         epoch,
         identity,
         connection: 'connecting',
+        pendingCommandCount: 0,
+        lastRecoveredCommandRejection: null,
         snapshot: null,
         lastCommand: null,
         error: null,
@@ -176,6 +191,7 @@ export class RoomSession<
     );
 
     try {
+      this.#restoreRecoverableCommands(identity, epoch);
       const waitResult = await this.#waitForConnection(
         this.#connection.connectAndWait(identity.room),
         epoch,
@@ -197,6 +213,8 @@ export class RoomSession<
           epoch,
           identity,
           connection: 'failed',
+          pendingCommandCount: this.#countRecoverableCommands(),
+          lastRecoveredCommandRejection: null,
           snapshot: null,
           lastCommand: null,
           error: failure,
@@ -254,6 +272,9 @@ export class RoomSession<
     this.#pendingCommands.clear();
     this.#userEventDeliveries.clear();
     this.#snapshotFingerprint = null;
+    this.#connectionGeneration = 0;
+    this.#isCommandRecoveryScheduled = false;
+    this.#clearRecoverableCommandRetry();
     this.#setSnapshot(createIdleSnapshot(nextEpoch));
     this.#resetConnectionRuntime();
   }
@@ -278,29 +299,90 @@ export class RoomSession<
     options: RoomCommandDispatchOptions,
   ): Promise<RoomCommandDispatchOutcome<TState>> {
     const current = this.#requireReadySnapshot();
-    const intentKey = createIntentKey(current.epoch, command, options.controlledSeat);
+    const intentKey = createIntentKey(command, options.controlledSeat);
     let pending = this.#pendingCommands.get(intentKey);
     if (pending === undefined) {
+      this.#clearRecoveredCommandRejection();
+      const prepared = this.prepare(command, options.controlledSeat);
+      const isRecoverable = options.isRecoverable === true;
+      if (isRecoverable) {
+        this.#commandRecovery.save({
+          roomCode: prepared.roomCode,
+          roomId: prepared.roomId,
+          userId: current.identity.userId,
+          commandId: prepared.commandId,
+          command: prepared.command,
+          controlledSeat: prepared.controlledSeat,
+          label: options.label,
+        });
+      }
       pending = {
-        prepared: this.prepare(command, options.controlledSeat),
+        prepared,
+        userId: current.identity.userId,
+        label: options.label,
+        isRecoverable,
+        attemptedConnectionGeneration: -1,
+        recoveryAttemptCount: 0,
+        nextRecoveryAtMs: null,
         inFlight: null,
       };
       this.#pendingCommands.set(intentKey, pending);
+      this.#publishPendingCommandCount();
+    } else if (pending.isRecoverable !== (options.isRecoverable === true)) {
+      throw new Error('[FAIL-FAST] Room command recovery policy changed for one pending intent');
     }
     if (pending.inFlight !== null) {
       return pending.inFlight;
     }
+    return this.#dispatchPendingCommand(intentKey, pending);
+  }
 
-    const entry = pending;
-    const inFlight = this.dispatchPrepared(entry.prepared, options.label)
+  #dispatchPendingCommand(
+    intentKey: string,
+    entry: PendingRoomCommand<TState>,
+  ): Promise<RoomCommandDispatchOutcome<TState>> {
+    if (entry.attemptedConnectionGeneration !== this.#connectionGeneration) {
+      entry.recoveryAttemptCount = 0;
+    }
+    entry.attemptedConnectionGeneration = this.#connectionGeneration;
+    entry.nextRecoveryAtMs = null;
+    const inFlight = this.#sendPreparedCommand(entry.prepared, entry.label)
       .then((outcome) => {
-        if (outcome.kind === 'decided' && this.#pendingCommands.get(intentKey) === entry) {
-          this.#pendingCommands.delete(intentKey);
+        if (this.#pendingCommands.get(intentKey) === entry) {
+          if (outcome.kind === 'decided' || outcome.kind === 'notDecided') {
+            if (entry.isRecoverable) {
+              this.#commandRecovery.remove(
+                entry.prepared.roomId,
+                entry.userId,
+                entry.prepared.commandId,
+              );
+            }
+            this.#pendingCommands.delete(intentKey);
+            this.#publishPendingCommandCount();
+          } else if (entry.isRecoverable) {
+            const delayIndex = Math.min(
+              entry.recoveryAttemptCount,
+              RECOVERABLE_COMMAND_RETRY_DELAYS_MS.length - 1,
+            );
+            entry.recoveryAttemptCount += 1;
+            entry.nextRecoveryAtMs = Date.now() + RECOVERABLE_COMMAND_RETRY_DELAYS_MS[delayIndex]!;
+          }
         }
         return outcome;
       })
       .finally(() => {
-        if (this.#pendingCommands.get(intentKey) === entry) entry.inFlight = null;
+        if (this.#pendingCommands.get(intentKey) !== entry) return;
+        entry.inFlight = null;
+        if (
+          entry.isRecoverable &&
+          entry.attemptedConnectionGeneration < this.#connectionGeneration &&
+          this.#snapshot.phase === 'ready' &&
+          this.#snapshot.connection === 'live'
+        ) {
+          this.#scheduleRecoverableCommandRecovery();
+        } else if (entry.isRecoverable) {
+          this.#scheduleRecoverableCommandRetry();
+        }
       });
     entry.inFlight = inFlight;
     return inFlight;
@@ -308,6 +390,19 @@ export class RoomSession<
 
   async dispatchPrepared<TPreparedCommand extends TCommand>(
     prepared: PreparedRoomCommand<TPreparedCommand>,
+    label: string,
+  ): Promise<RoomCommandDispatchOutcome<TState>> {
+    return this.#sendPreparedCommand(prepared, label);
+  }
+
+  /** Consume a matching background-recovery failure without clearing a newer one. */
+  acknowledgeRecoveredCommandRejection(commandId: string): void {
+    if (this.#snapshot.lastRecoveredCommandRejection?.commandId !== commandId) return;
+    this.#clearRecoveredCommandRejection();
+  }
+
+  async #sendPreparedCommand(
+    prepared: PreparedRoomCommand<object>,
     label: string,
   ): Promise<RoomCommandDispatchOutcome<TState>> {
     const current = this.#requirePreparedCommand(prepared);
@@ -401,6 +496,8 @@ export class RoomSession<
         epoch: current.epoch,
         identity: current.identity,
         connection: mapConnectionStatus(this.#connection.getState()),
+        pendingCommandCount: this.#countRecoverableCommands(),
+        lastRecoveredCommandRejection: current.lastRecoveredCommandRejection,
         snapshot,
         lastCommand:
           lastCommandType === null ? null : { revision: snapshot.revision, type: lastCommandType },
@@ -434,6 +531,8 @@ export class RoomSession<
           epoch: current.epoch,
           identity: current.identity,
           connection: 'failed',
+          pendingCommandCount: this.#countRecoverableCommands(),
+          lastRecoveredCommandRejection: current.lastRecoveredCommandRejection,
           snapshot: null,
           lastCommand: null,
           error,
@@ -441,12 +540,187 @@ export class RoomSession<
       );
       return;
     }
+    if (connection !== 'live') this.#clearRecoverableCommandRetry();
     if (current.connection === connection) return;
 
     this.#setSnapshot(Object.freeze({ ...current, connection }));
     if (state === ConnectionState.Connected) {
+      this.#connectionGeneration += 1;
       this.#acknowledgeDeliveredUserEvents();
+      this.#scheduleRecoverableCommandRecovery();
     }
+  }
+
+  #restoreRecoverableCommands(
+    identity: ActiveRoomIdentity<TState['gameType']>,
+    sessionEpoch: number,
+  ): void {
+    const recoveredCommands = [
+      ...this.#commandRecovery.load(identity.room.roomId, identity.userId),
+    ].sort((first, second) => first.createdAtMs - second.createdAtMs);
+    for (const recovered of recoveredCommands) {
+      if (recovered.roomCode !== identity.room.roomCode) {
+        throw new Error('[FAIL-FAST] Recoverable room command code changed for one room instance');
+      }
+      const prepared = prepareRoomCommand({
+        sessionEpoch,
+        roomCode: recovered.roomCode,
+        roomId: recovered.roomId,
+        commandId: recovered.commandId,
+        command: recovered.command,
+        controlledSeat: recovered.controlledSeat,
+      });
+      const intentKey = createIntentKey(prepared.command, prepared.controlledSeat);
+      if (this.#pendingCommands.has(intentKey)) {
+        throw new Error('[FAIL-FAST] Recoverable room commands contain duplicate intents');
+      }
+      this.#pendingCommands.set(intentKey, {
+        prepared,
+        userId: recovered.userId,
+        label: recovered.label,
+        isRecoverable: true,
+        attemptedConnectionGeneration: -1,
+        recoveryAttemptCount: 0,
+        nextRecoveryAtMs: null,
+        inFlight: null,
+      });
+    }
+    this.#publishPendingCommandCount();
+  }
+
+  #scheduleRecoverableCommandRecovery(): void {
+    this.#clearRecoverableCommandRetry();
+    if (this.#isCommandRecoveryScheduled) return;
+    this.#isCommandRecoveryScheduled = true;
+    const generation = this.#connectionGeneration;
+    void this.#recoverCommandsForConnection(generation)
+      .catch((error: unknown) => {
+        handleError(error, {
+          label: '恢复待确认房间操作',
+          logger: roomSessionLog,
+          feedback: false,
+        });
+      })
+      .finally(() => {
+        this.#isCommandRecoveryScheduled = false;
+        if (this.#hasRecoverableCommandReadyForRecovery()) {
+          this.#scheduleRecoverableCommandRecovery();
+        } else {
+          this.#scheduleRecoverableCommandRetry();
+        }
+      });
+  }
+
+  async #recoverCommandsForConnection(connectionGeneration: number): Promise<void> {
+    while (
+      this.#connectionGeneration === connectionGeneration &&
+      this.#snapshot.phase === 'ready' &&
+      this.#snapshot.connection === 'live'
+    ) {
+      const pending = [...this.#pendingCommands.entries()].find(
+        ([, entry]) =>
+          entry.isRecoverable &&
+          entry.inFlight === null &&
+          (entry.attemptedConnectionGeneration < connectionGeneration ||
+            (entry.attemptedConnectionGeneration === connectionGeneration &&
+              entry.nextRecoveryAtMs !== null &&
+              entry.nextRecoveryAtMs <= Date.now())),
+      );
+      if (pending === undefined) return;
+      const outcome = await this.#dispatchPendingCommand(...pending);
+      if (outcome.kind !== 'decided') {
+        if (outcome.kind === 'notDecided') {
+          this.#publishRecoveredCommandRejection(outcome.commandId, outcome.reason);
+          continue;
+        }
+        return;
+      }
+      const decision = outcome.decision;
+      const reason =
+        decision.kind === 'rejected'
+          ? decision.reason
+          : decision.outcome.kind === 'domainRejected'
+            ? decision.outcome.reason
+            : null;
+      if (reason !== null) {
+        this.#publishRecoveredCommandRejection(decision.commandId, reason);
+      }
+    }
+  }
+
+  #hasRecoverableCommandReadyForRecovery(): boolean {
+    if (this.#snapshot.phase !== 'ready' || this.#snapshot.connection !== 'live') return false;
+    return [...this.#pendingCommands.values()].some(
+      (entry) =>
+        entry.isRecoverable &&
+        entry.inFlight === null &&
+        (entry.attemptedConnectionGeneration < this.#connectionGeneration ||
+          (entry.attemptedConnectionGeneration === this.#connectionGeneration &&
+            entry.nextRecoveryAtMs !== null &&
+            entry.nextRecoveryAtMs <= Date.now())),
+    );
+  }
+
+  #scheduleRecoverableCommandRetry(): void {
+    if (
+      this.#commandRecoveryRetryTimer !== null ||
+      this.#isCommandRecoveryScheduled ||
+      this.#snapshot.phase !== 'ready' ||
+      this.#snapshot.connection !== 'live'
+    ) {
+      return;
+    }
+    const retryTimes = [...this.#pendingCommands.values()].flatMap((entry) => {
+      if (
+        !entry.isRecoverable ||
+        entry.inFlight !== null ||
+        entry.attemptedConnectionGeneration !== this.#connectionGeneration ||
+        entry.nextRecoveryAtMs === null
+      ) {
+        return [];
+      }
+      return [entry.nextRecoveryAtMs];
+    });
+    if (retryTimes.length === 0) return;
+
+    const retryAtMs = Math.min(...retryTimes);
+    this.#commandRecoveryRetryTimer = setTimeout(
+      () => {
+        this.#commandRecoveryRetryTimer = null;
+        this.#scheduleRecoverableCommandRecovery();
+      },
+      Math.max(0, retryAtMs - Date.now()),
+    );
+  }
+
+  #clearRecoverableCommandRetry(): void {
+    if (this.#commandRecoveryRetryTimer === null) return;
+    clearTimeout(this.#commandRecoveryRetryTimer);
+    this.#commandRecoveryRetryTimer = null;
+  }
+
+  #countRecoverableCommands(): number {
+    return [...this.#pendingCommands.values()].filter(({ isRecoverable }) => isRecoverable).length;
+  }
+
+  #publishPendingCommandCount(): void {
+    const pendingCommandCount = this.#countRecoverableCommands();
+    if (this.#snapshot.pendingCommandCount === pendingCommandCount) return;
+    this.#setSnapshot(Object.freeze({ ...this.#snapshot, pendingCommandCount }));
+  }
+
+  #clearRecoveredCommandRejection(): void {
+    if (this.#snapshot.lastRecoveredCommandRejection === null) return;
+    this.#setSnapshot(Object.freeze({ ...this.#snapshot, lastRecoveredCommandRejection: null }));
+  }
+
+  #publishRecoveredCommandRejection(commandId: string, reason: string): void {
+    this.#setSnapshot(
+      Object.freeze({
+        ...this.#snapshot,
+        lastRecoveredCommandRejection: { commandId, reason },
+      }),
+    );
   }
 
   #receiveUserEvent(event: TEvent): void {
@@ -526,8 +800,8 @@ export class RoomSession<
     return this.#snapshot;
   }
 
-  #requirePreparedCommand<TPreparedCommand extends TCommand>(
-    prepared: PreparedRoomCommand<TPreparedCommand>,
+  #requirePreparedCommand(
+    prepared: PreparedRoomCommand<object>,
   ): Extract<RoomSessionSnapshot<TState>, { readonly phase: 'ready' }> {
     const current = this.#requireReadySnapshot();
     if (prepared.sessionEpoch !== current.epoch) {

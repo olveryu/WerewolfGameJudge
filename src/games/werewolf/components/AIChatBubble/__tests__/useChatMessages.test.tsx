@@ -25,6 +25,8 @@ describe('useChatMessages', () => {
         epoch: 0,
         identity: null,
         connection: 'disconnected',
+        pendingCommandCount: 0,
+        lastRecoveredCommandRejection: null,
         snapshot: null,
         lastCommand: null,
         error: null,
