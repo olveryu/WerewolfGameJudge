@@ -130,6 +130,29 @@ describe('WerewolfRoomAccountCapability', () => {
     );
   });
 
+  it('maps the account clear sentinel to the canonical room reveal effect', async () => {
+    const { client, dispatch } = createClient(true);
+    const capability = new WerewolfRoomAccountCapability(client);
+
+    await capability.updateProfile({ revealEffect: '' });
+
+    expect(dispatch).toHaveBeenCalledWith(
+      {
+        type: 'room.profile.update',
+        profile: {
+          displayName: undefined,
+          avatarUrl: undefined,
+          avatarFrame: undefined,
+          seatFlair: undefined,
+          nameStyle: undefined,
+          revealEffect: 'none',
+          seatAnimation: undefined,
+        },
+      },
+      { controlledSeat: null, label: 'updateRoomProfile' },
+    );
+  });
+
   it('fails fast when an unseated user attempts room profile operations', async () => {
     const { client } = createClient(false);
     const capability = new WerewolfRoomAccountCapability(client);

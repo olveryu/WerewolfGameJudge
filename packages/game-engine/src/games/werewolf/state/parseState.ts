@@ -130,6 +130,11 @@ function parsePlayer(value: unknown, path: string): Player {
   );
 }
 
+function parseRevealEffect(value: unknown, path: string): string {
+  const revealEffect = parseString(value, path);
+  return revealEffect === '' ? 'none' : revealEffect;
+}
+
 function parseSeatKey(key: string, path: string): number {
   if (!/^\d+$/.test(key)) return fail(path, 'a non-negative integer key');
   return parseSeat(Number(key), path);
@@ -156,7 +161,7 @@ function parseRosterEntry(value: unknown, path: string): RosterEntry {
       seatFlair: parseOptional(raw.seatFlair, `${path}.seatFlair`, parseString),
       seatAnimation: parseOptional(raw.seatAnimation, `${path}.seatAnimation`, parseString),
       nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
-      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
+      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseRevealEffect),
       level: parseOptional(raw.level, `${path}.level`, parseInteger),
     },
     path,

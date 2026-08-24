@@ -173,9 +173,11 @@ export function createSessionRoomAccountCapability<
       const profile = toRoomProfileUpdate({
         ...patch,
         revealEffect:
-          patch.revealEffect === 'random'
-            ? resolveRandomAnimation(snapshot.identity.room.roomCode + snapshot.identity.userId)
-            : patch.revealEffect,
+          patch.revealEffect === ''
+            ? 'none'
+            : patch.revealEffect === 'random'
+              ? resolveRandomAnimation(snapshot.identity.room.roomCode + snapshot.identity.userId)
+              : patch.revealEffect,
       });
       return updateRoomProfile(profileContext, profile);
     },

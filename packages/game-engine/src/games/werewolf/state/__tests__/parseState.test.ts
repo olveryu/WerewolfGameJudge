@@ -143,6 +143,19 @@ describe('parseWerewolfState', () => {
     expect(parseWerewolfState(encoded)).toEqual(normalizeState(state));
   });
 
+  it('migrates the legacy empty reveal effect to the canonical room value', () => {
+    const state = createFullState();
+    const encoded = {
+      ...state,
+      roster: {
+        ...state.roster,
+        host: { ...state.roster.host, revealEffect: '' },
+      },
+    };
+
+    expect(parseWerewolfState(encoded).roster.host?.revealEffect).toBe('none');
+  });
+
   it('rejects an unknown top-level field', () => {
     const encoded = { ...createFullState(), parallelStatus: 'ongoing' };
 
