@@ -14,12 +14,13 @@ import {
   type FibWordCandidate,
   type FibWordCategory,
   type FibWordProvider,
+  type FibWordReview,
 } from './wordProviders/types';
 
 const FIB_WORD_SUPPLY_MINIMUM_PER_CATEGORY = 80;
 const FIB_WORD_SUPPLY_TARGET_PER_CATEGORY = 200;
 export const FIB_WORD_SUPPLY_CADENCE_MS = 15 * 24 * 60 * 60 * 1_000;
-const FIB_WORD_SUPPLY_MAX_REQUESTS_PER_CYCLE = 160;
+const FIB_WORD_SUPPLY_MAX_REQUESTS_PER_CYCLE = 480;
 export const FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION = 10;
 const FIB_WORD_SUPPLY_REQUEST_INTERVAL_MS = 12_000;
 const FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS = 30_000;
@@ -202,6 +203,7 @@ async function persistCandidates(
   cycle: SupplyCycle,
   category: FibWordCategory,
   candidates: readonly FibWordCandidate[],
+  reviews: readonly FibWordReview[],
   nowMs: number,
 ): Promise<void> {
   if (candidates.length !== FIB_GENERATED_WORD_CANDIDATE_COUNT) {
@@ -209,34 +211,76 @@ async function persistCandidates(
       `[FAIL-FAST] Fib provider returned ${candidates.length} candidates instead of ${FIB_GENERATED_WORD_CANDIDATE_COUNT}`,
     );
   }
+  if (reviews.length !== candidates.length) {
+    throw new Error(
+      `[FAIL-FAST] Fib provider reviewed ${reviews.length} candidates instead of ${candidates.length}`,
+    );
+  }
+  const reviewedCandidates = candidates.map((candidate, index) => {
+    const review = reviews[index];
+    if (review === undefined || review.word !== candidate.word) {
+      throw new Error(`[FAIL-FAST] Fib review did not match candidate at index ${index}`);
+    }
+    return { candidate, review };
+  });
   const now = iso(nowMs);
-  const statements = await Promise.all(
-    candidates.map(async (candidate) => {
-      const wordHash = await sha256Hex(candidate.word);
-      return db
-        .prepare(
-          `INSERT INTO fib_words (
+  const reviewStatements = reviewedCandidates.map(({ candidate, review }) =>
+    db
+      .prepare(
+        `INSERT INTO fib_word_candidate_reviews (
+           word, core_meaning, usage_note, category, source, decision,
+           reason, generation_cycle_id, reviewed_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (word) DO NOTHING`,
+      )
+      .bind(
+        candidate.word,
+        candidate.definition.coreMeaning,
+        candidate.definition.usageNote,
+        category,
+        candidate.source,
+        review.decision,
+        review.reason,
+        cycle.cycleId,
+        now,
+      ),
+  );
+  const acceptedStatements = await Promise.all(
+    reviewedCandidates
+      .filter(({ review }) => review.decision === 'accepted')
+      .map(async ({ candidate }) => {
+        const wordHash = await sha256Hex(candidate.word);
+        return db
+          .prepare(
+            `INSERT INTO fib_words (
              id, word, core_meaning, usage_note, category, source, status,
              selection_key, generation_cycle_id, created_at, activated_at
-           ) VALUES (?, ?, ?, ?, ?, 'gemini', 'active', ?, ?, ?, ?)
+           )
+           SELECT ?, ?, ?, ?, ?, 'gemini', 'active', ?, ?, ?, ?
+           WHERE NOT EXISTS (
+             SELECT 1 FROM fib_word_candidate_reviews
+             WHERE word = ? AND decision = 'rejected'
+           )
            ON CONFLICT (word) DO NOTHING`,
-        )
-        .bind(
-          `fib-word:${wordHash}`,
-          candidate.word,
-          candidate.definition.coreMeaning,
-          candidate.definition.usageNote,
-          category,
-          selectionKeyFromHash(wordHash),
-          cycle.cycleId,
-          now,
-          now,
-        );
-    }),
+          )
+          .bind(
+            `fib-word:${wordHash}`,
+            candidate.word,
+            candidate.definition.coreMeaning,
+            candidate.definition.usageNote,
+            category,
+            selectionKeyFromHash(wordHash),
+            cycle.cycleId,
+            now,
+            now,
+            candidate.word,
+          );
+      }),
   );
   const leaseExpiresAt = iso(nowMs + FIB_WORD_SUPPLY_LEASE_MS);
   await db.batch([
-    ...statements,
+    ...reviewStatements,
+    ...acceptedStatements,
     db
       .prepare(
         `UPDATE fib_word_generation_cycles
@@ -244,12 +288,26 @@ async function persistCandidates(
              accepted_count = (
                SELECT COUNT(*) FROM fib_words WHERE generation_cycle_id = ?
              ),
+             rejected_count = (
+               SELECT COUNT(*) FROM fib_word_candidate_reviews
+               WHERE generation_cycle_id = ? AND decision = 'rejected'
+             ),
              duplicate_count = (request_count + 1) * ? - (
                SELECT COUNT(*) FROM fib_words WHERE generation_cycle_id = ?
+             ) - (
+               SELECT COUNT(*) FROM fib_word_candidate_reviews
+               WHERE generation_cycle_id = ? AND decision = 'rejected'
              )
          WHERE id = ? AND status = 'running'`,
       )
-      .bind(cycle.cycleId, FIB_GENERATED_WORD_CANDIDATE_COUNT, cycle.cycleId, cycle.cycleId),
+      .bind(
+        cycle.cycleId,
+        cycle.cycleId,
+        FIB_GENERATED_WORD_CANDIDATE_COUNT,
+        cycle.cycleId,
+        cycle.cycleId,
+        cycle.cycleId,
+      ),
     db
       .prepare(
         `UPDATE fib_word_supply_state
@@ -290,22 +348,33 @@ async function runSupplyRequests(
   let inventory = await readInventory(db);
   let invocationRequestCount = 0;
   let totalRequestCount = cycle.completedRequestCount;
-  let previousRequestStartedAt: number | null = null;
+  let previousProviderRequestStartedAt: number | null = null;
   let category = nextCategory(inventory);
   while (
     category !== null &&
     invocationRequestCount < FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION &&
     totalRequestCount < FIB_WORD_SUPPLY_MAX_REQUESTS_PER_CYCLE
   ) {
-    await waitForRequestSlot(previousRequestStartedAt, requestIntervalMs);
-    const requestStartedAt = Date.now();
-    previousRequestStartedAt = requestStartedAt;
+    await waitForRequestSlot(previousProviderRequestStartedAt, requestIntervalMs);
+    const generationRequestStartedAt = Date.now();
+    previousProviderRequestStartedAt = generationRequestStartedAt;
     const candidates = await provider.generateBatch({
       category,
-      generationDeadlineAt: requestStartedAt + FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS,
+      deadlineAt: generationRequestStartedAt + FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS,
       signal: AbortSignal.timeout(FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS),
     });
-    await persistCandidates(db, cycle, category, candidates, Date.now());
+    await waitForRequestSlot(previousProviderRequestStartedAt, requestIntervalMs);
+    const reviewRequestStartedAt = Date.now();
+    previousProviderRequestStartedAt = reviewRequestStartedAt;
+    const reviews = await provider.reviewBatch(
+      {
+        category,
+        deadlineAt: reviewRequestStartedAt + FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS,
+        signal: AbortSignal.timeout(FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS),
+      },
+      candidates,
+    );
+    await persistCandidates(db, cycle, category, candidates, reviews, Date.now());
     invocationRequestCount += 1;
     totalRequestCount += 1;
     inventory = await readInventory(db);

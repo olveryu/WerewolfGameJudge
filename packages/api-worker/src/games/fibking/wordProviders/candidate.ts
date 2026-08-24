@@ -12,8 +12,10 @@ import { z } from 'zod';
 import {
   FIB_GENERATED_WORD_CANDIDATE_COUNT,
   FIB_WORD_CATEGORIES,
+  FIB_WORD_REVIEW_DECISIONS,
   type FibWordCandidate,
   type FibWordRequest,
+  type FibWordReview,
 } from './types';
 
 const generatedFibWordSchema = z.string().trim().refine(isValidFibWord);
@@ -35,6 +37,18 @@ const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.ext
 const generatedFibWordCandidatesPayloadSchema = z.strictObject({
   candidates: z
     .array(generatedFibWordCandidatePayloadSchema)
+    .length(FIB_GENERATED_WORD_CANDIDATE_COUNT),
+});
+
+const fibWordReviewsPayloadSchema = z.strictObject({
+  reviews: z
+    .array(
+      z.strictObject({
+        word: generatedFibWordSchema,
+        decision: z.enum(FIB_WORD_REVIEW_DECISIONS),
+        reason: z.string().trim().min(8).max(100),
+      }),
+    )
     .length(FIB_GENERATED_WORD_CANDIDATE_COUNT),
 });
 
@@ -85,6 +99,29 @@ export const FIB_WORD_CANDIDATES_JSON_SCHEMA = {
   },
 } as const;
 
+export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reviews'],
+  properties: {
+    reviews: {
+      type: 'array',
+      minItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
+      maxItems: FIB_GENERATED_WORD_CANDIDATE_COUNT,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['word', 'decision', 'reason'],
+        properties: {
+          word: { type: 'string', description: '与输入候选完全一致的词语' },
+          decision: { type: 'string', enum: FIB_WORD_REVIEW_DECISIONS },
+          reason: { type: 'string', description: '具体说明接受或拒绝依据的中文句子' },
+        },
+      },
+    },
+  },
+} as const;
+
 function assertDistinctCandidates(candidates: readonly { readonly word: string }[]): void {
   const words = new Set<string>();
   for (const candidate of candidates) {
@@ -122,4 +159,24 @@ export function parseGeneratedFibWordCandidates(
     }
   }
   return payload.candidates.map(({ word, definition }) => ({ word, definition, source }));
+}
+
+export function parseFibWordReviews(
+  value: unknown,
+  candidates: readonly FibWordCandidate[],
+): readonly FibWordReview[] {
+  if (candidates.length !== FIB_GENERATED_WORD_CANDIDATE_COUNT) {
+    throw new Error(
+      `Fib word review received ${candidates.length} candidates instead of ${FIB_GENERATED_WORD_CANDIDATE_COUNT}`,
+    );
+  }
+  const payload = fibWordReviewsPayloadSchema.parse(value);
+  assertDistinctCandidates(payload.reviews);
+  for (const [index, review] of payload.reviews.entries()) {
+    const candidate = candidates[index];
+    if (candidate === undefined || review.word !== candidate.word) {
+      throw new Error(`Fib word review did not preserve candidate order at index ${index}`);
+    }
+  }
+  return payload.reviews;
 }

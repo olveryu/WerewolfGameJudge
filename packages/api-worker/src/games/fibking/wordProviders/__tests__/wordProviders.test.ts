@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import {
   FIB_WORD_CANDIDATES_JSON_SCHEMA,
   FIB_WORD_JSON_SCHEMA,
+  FIB_WORD_REVIEWS_JSON_SCHEMA,
+  parseFibWordReviews,
   parseGeneratedFibWordCandidates,
 } from '../candidate';
 import { createGeminiFibWordProvider } from '../gemini';
@@ -22,11 +24,21 @@ const CANDIDATES_RESPONSE = {
     category: 'literary' as const,
   })),
 };
+const REVIEWS_RESPONSE = {
+  reviews: CANDIDATES_RESPONSE.candidates.map(({ word }) => ({
+    word,
+    decision: word === '菡萏' ? ('rejected' as const) : ('accepted' as const),
+    reason:
+      word === '菡萏'
+        ? '词义已被多数玩家熟知，无法形成真假释义悬念。'
+        : '真实含义不透明且便于编造可信释义。',
+  })),
+};
 
 function createWordRequest(): FibWordRequest {
   return {
     category: 'literary',
-    generationDeadlineAt: Date.now() + TEST_GENERATION_BUDGET_MS,
+    deadlineAt: Date.now() + TEST_GENERATION_BUDGET_MS,
     signal: new AbortController().signal,
   };
 }
@@ -98,9 +110,61 @@ describe('Fib word candidate batches', () => {
       ),
     ).toThrow();
   });
+
+  it('requires one ordered review for every generated candidate', () => {
+    const candidates = parseGeneratedFibWordCandidates(
+      CANDIDATES_RESPONSE,
+      'gemini',
+      createWordRequest(),
+    );
+
+    expect(parseFibWordReviews(REVIEWS_RESPONSE, candidates)).toEqual(REVIEWS_RESPONSE.reviews);
+    expect(FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews).toMatchObject({
+      minItems: 6,
+      maxItems: 6,
+    });
+    expect(() =>
+      parseFibWordReviews({ reviews: [...REVIEWS_RESPONSE.reviews].reverse() }, candidates),
+    ).toThrow('preserve candidate order');
+    expect(() =>
+      parseFibWordReviews(
+        {
+          reviews: REVIEWS_RESPONSE.reviews.map((review, index) =>
+            index === 0 ? { ...review, unexpected: true } : review,
+          ),
+        },
+        candidates,
+      ),
+    ).toThrow();
+  });
 });
 
 describe('Gemini Fib word provider', () => {
+  it('reviews every generated candidate in an independent structured request', async () => {
+    let requestBody = '';
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      if (typeof init?.body !== 'string') {
+        throw new Error('Expected Gemini request body to be a JSON string');
+      }
+      requestBody = init.body;
+      return Response.json(createGeminiResponse(REVIEWS_RESPONSE));
+    };
+    const provider = createGeminiFibWordProvider('test-key', fetchImpl);
+    const candidates = parseGeneratedFibWordCandidates(
+      CANDIDATES_RESPONSE,
+      'gemini',
+      createWordRequest(),
+    );
+
+    await expect(provider.reviewBatch(createWordRequest(), candidates)).resolves.toEqual(
+      REVIEWS_RESPONSE.reviews,
+    );
+    expect(requestBody).toContain('独立审核');
+    expect(requestBody).toContain('常见成语');
+    expect(requestBody).toContain('情绪价值');
+    expect(requestBody).not.toContain('previous_interaction_id');
+  });
+
   it('uses one structured request and returns the entire candidate batch', async () => {
     let requestUrl = '';
     let requestBody = '';
@@ -130,6 +194,9 @@ describe('Gemini Fib word provider', () => {
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('返回恰好6个互不重复的候选');
+    expect(requestBody).toContain('多数普通玩家在揭晓前不能准确说出固定真义');
+    expect(requestBody).toContain('不得用较弱候选凑满数量');
+    expect(requestBody).not.toContain('本房间');
     expect(requestBody).not.toContain('google_search');
   });
 

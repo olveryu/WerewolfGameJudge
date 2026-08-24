@@ -12,7 +12,7 @@ import {
 
 import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
-import { FIB_WORD_CATEGORIES } from './wordProviders/types';
+import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_DECISIONS } from './wordProviders/types';
 
 const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
 export const FIB_WORD_SELECTION_TIERS = [
@@ -69,6 +69,7 @@ export const fibWordGenerationCycles = sqliteTable(
     promptVersion: text('prompt_version').notNull(),
     requestCount: integer('request_count').notNull().default(0),
     acceptedCount: integer('accepted_count').notNull().default(0),
+    rejectedCount: integer('rejected_count').notNull().default(0),
     duplicateCount: integer('duplicate_count').notNull().default(0),
     startedAt: text('started_at').notNull(),
     completedAt: text('completed_at'),
@@ -76,6 +77,27 @@ export const fibWordGenerationCycles = sqliteTable(
   },
   (table) => [
     index('idx_fib_word_generation_cycles_status_started').on(table.status, table.startedAt),
+  ],
+);
+
+/** @public Independent editorial decisions for generated FibKing candidates. */
+export const fibWordCandidateReviews = sqliteTable(
+  'fib_word_candidate_reviews',
+  {
+    word: text('word').primaryKey(),
+    coreMeaning: text('core_meaning').notNull(),
+    usageNote: text('usage_note').notNull(),
+    category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(),
+    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
+    decision: text('decision', { enum: FIB_WORD_REVIEW_DECISIONS }).notNull(),
+    reason: text('reason').notNull(),
+    generationCycleId: text('generation_cycle_id')
+      .notNull()
+      .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }),
+    reviewedAt: text('reviewed_at').notNull(),
+  },
+  (table) => [
+    index('idx_fib_word_candidate_reviews_decision_reviewed').on(table.decision, table.reviewedAt),
   ],
 );
 

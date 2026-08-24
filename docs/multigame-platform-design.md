@@ -1089,19 +1089,26 @@ interface PendingFibRound {
 ```ts
 interface FibWordProvider {
   generateBatch(request: FibWordRequest): Promise<readonly FibWordCandidate[]>;
+  reviewBatch(
+    request: FibWordRequest,
+    candidates: readonly FibWordCandidate[],
+  ): Promise<readonly FibWordReview[]>;
 }
 ```
 
 Gemini 是后台题库供给 adapter，不是开局链路或全 App 的 LLM compatibility API。Cloudflare Cron 每日只读检查库存；
-低于阈值且距上次完整补货至少 15 天时启动 campaign，每次 invocation 最多 10 个同步请求并以 5 RPM 节流，跨日续跑。
-每次响应的 6 个合法候选全部写入 D1；每类达到 200 个 active 词后完成 campaign。
+低于阈值且距上次完整补货至少 15 天时启动 campaign，每次 invocation 最多处理 10 个候选批次，所有 Gemini 调用
+统一以 5 RPM 节流并跨日续跑。每批先生成 6 个候选，再发起不继承生成上下文的独立 structured-output 审核；只有
+审核通过的候选进入 active 题库，每类达到 200 个 active 词后完成 campaign。
 
 AI provider 每次按指定类别生成 6 个候选：书面/古典词、仍在使用的网络用语、三字以上的新概念或复合表达、
 可向普通人解释的冷门生活/文化/专业概念。候选必须是 2–12 个汉字；目标是新鲜且有描述空间，不接受一眼可解释的
 基础词、过时烂梗或无明确含义的缩写。在线 Worker 使用 `roundId` 派生的稳定 seed 在 active 题库中选择。
 
 Provider-facing schema 使用 Gemini structured output 支持的 JSON Schema 子集。字符、长度、候选类别完整性、候选
-重复和类别由 Worker 的 Zod/runtime validator 再次严格校验；不合格批次不写入题库。
+重复和类别由 Worker 的 Zod/runtime validator 再次严格校验。审核结果必须与原候选数量、词语和顺序逐项一致；漏项、
+增项、乱序或未知字段都会让整批失败。`fib_word_candidate_reviews` 保存首次审核结论和具体原因，历史 rejected 词即使
+后来被模型接受也不能进入 active 题库；generation cycle 分别记录 accepted、rejected 和 duplicate 数量。
 
 客户端不会通过 Gemini proxy 来开始一轮。
 
