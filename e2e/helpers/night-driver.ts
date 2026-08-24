@@ -377,6 +377,8 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
 /**
  * Drive all wolves to vote on a specific target seat.
  * Waits for each wolf's action message before voting.
+ *
+ * @throws {Error} When a wolf action message or vote confirmation is unavailable.
  */
 export async function driveWolfVote(
   pages: Page[],
@@ -391,7 +393,9 @@ export async function driveWolfVote(
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
     log(`driveWolfVote — P${wIdx} action-message visible, clicking seat`);
-    await clickSeatAndConfirm(wPage, targetSeat);
+    if (!(await clickSeatAndConfirm(wPage, targetSeat))) {
+      throw new Error(`Wolf vote confirmation failed for page ${wIdx}, target seat ${targetSeat}`);
+    }
     log(`driveWolfVote — P${wIdx} vote done`);
   }
 }

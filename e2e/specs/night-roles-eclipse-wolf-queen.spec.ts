@@ -71,7 +71,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
         });
 
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, ['袭击'], pages, 120);
           expect(wolfTurn, 'Wolf vote turn should be detected').toBe(true);
           await driveWolfVote(pages, [ewqIdx, wolfIdx], villagerSeat);
         });
@@ -135,7 +135,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
         });
 
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, ['袭击'], pages, 120);
           expect(wolfTurn, 'Wolf vote turn should be detected').toBe(true);
           await driveWolfVote(pages, [ewqIdx, wolfIdx], villagerSeat);
         });
@@ -203,7 +203,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
         });
 
         await test.step('wolves self-knife', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, ['袭击'], pages, 120);
           expect(wolfTurn, 'Wolf vote turn should be detected').toBe(true);
           await driveWolfVote(pages, [ewqIdx, wolfIdx], wolfSeat);
         });
