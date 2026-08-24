@@ -226,7 +226,7 @@ jobs:
           PKG_VERSION="${{ steps.npm.outputs.version }}"
           CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
           SYNC_ENDPOINT="https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"
-          REGISTRY_URL="https://registry-direct.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}"
+          REGISTRY_URL="https://registry.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}"
           CDN_URL="${CDN_BASE}/index.js"
           CHECK_INTERVAL_SECONDS=5
           SYNC_RETRY_INTERVAL_SECONDS=180
