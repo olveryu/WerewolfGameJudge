@@ -738,7 +738,7 @@ export class RoomSession<
         throw new Error(`Room user event ${event.eventId} changed across deliveries`);
       }
       if (existing.isDelivered) {
-        this.#sendUserEventAcknowledgement(event.eventId);
+        this.#attemptUserEventAcknowledgement(event.eventId);
         return;
       }
     } else {
@@ -774,7 +774,7 @@ export class RoomSession<
       try {
         await handler(delivery.event);
         delivery.isDelivered = true;
-        this.#sendUserEventAcknowledgement(eventId);
+        this.#attemptUserEventAcknowledgement(eventId);
       } finally {
         delivery.isDelivering = false;
       }
@@ -783,14 +783,13 @@ export class RoomSession<
 
   #acknowledgeDeliveredUserEvents(): void {
     for (const [eventId, delivery] of this.#userEventDeliveries) {
-      if (delivery.isDelivered) this.#sendUserEventAcknowledgement(eventId);
+      if (delivery.isDelivered) this.#attemptUserEventAcknowledgement(eventId);
     }
   }
 
-  #sendUserEventAcknowledgement(eventId: string): void {
-    if (!this.#connection.sendUserEventAcknowledgement(eventId)) {
-      throw new Error(`Failed to send acknowledgement for room user event ${eventId}`);
-    }
+  #attemptUserEventAcknowledgement(eventId: string): void {
+    // A closed socket defers the ack; reconnect or server redelivery retries delivered events.
+    void this.#connection.sendUserEventAcknowledgement(eventId);
   }
 
   #requireReadySnapshot(): Extract<RoomSessionSnapshot<TState>, { readonly phase: 'ready' }> {

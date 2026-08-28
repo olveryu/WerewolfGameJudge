@@ -1,8 +1,8 @@
 /**
  * errorUtils - Shared error handling helpers
  *
- * Shared error handling utilities for cross-module reuse, eliminating duplicate error-to-message extraction.
- * Pure function utilities — no React / service / game state / Sentry dependencies.
+ * Shared error value types and classification/message utilities for cross-module reuse.
+ * No React / service / game state / Sentry dependencies.
  */
 
 /**
@@ -13,6 +13,19 @@
  */
 export function getErrorMessage(e: unknown, fallback = '请稍后重试'): string {
   return e instanceof Error ? e.message : fallback;
+}
+
+/** A network operation that exceeded its caller-defined deadline. */
+export class NetworkTimeoutError extends Error {
+  readonly operation: string;
+  readonly timeoutMs: number;
+
+  constructor(operation: string, timeoutMs: number) {
+    super(`${operation} timeout after ${timeoutMs}ms`);
+    this.name = 'NetworkTimeoutError';
+    this.operation = operation;
+    this.timeoutMs = timeoutMs;
+  }
 }
 
 /**
@@ -86,6 +99,7 @@ export function isAbortError(err: unknown): boolean {
  * - `network` / `fetch` (case-insensitive) — SDK error messages
  * - `Operation timed out after` — withTimeout() utility
  * - `subscribe timeout` — RealtimeService channel subscription timeout
+ * - `NetworkTimeoutError` — an explicit caller-defined network operation deadline
  */
 const NETWORK_ERROR_PATTERNS = [
   'failed to fetch',
@@ -108,6 +122,8 @@ const NETWORK_ERROR_PATTERNS = [
  */
 export function isNetworkError(err: unknown): boolean {
   return errorOrCauseMatches(err, (candidate) => {
+    if (candidate instanceof NetworkTimeoutError) return true;
+
     // TypeError is the standard error type thrown by fetch() for network failures
     const message =
       candidate instanceof Error

@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/react-native';
 import { showAlert } from '@/utils/alert';
 
 import { handleError } from '../errorPipeline';
+import { NetworkTimeoutError } from '../errorUtils';
 
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
@@ -56,6 +57,17 @@ describe('handleError', () => {
     const err = new Error('Failed to produce JSON response for /room/state during body-read', {
       cause: new TypeError('Failed to fetch'),
     });
+
+    handleError(err, baseOpts);
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('network error'), err);
+    expect(mockLogger.error).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '网络异常，请检查网络后重试');
+  });
+
+  it('classifies a typed network timeout without reporting it to Sentry', () => {
+    const err = new NetworkTimeoutError('connectAndWait', 15_000);
 
     handleError(err, baseOpts);
 

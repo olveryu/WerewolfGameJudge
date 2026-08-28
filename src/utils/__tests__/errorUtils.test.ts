@@ -7,6 +7,7 @@ import {
   isAbortError,
   isExpectedError,
   isNetworkError,
+  NetworkTimeoutError,
   translateReasonCode,
 } from '../errorUtils';
 
@@ -177,6 +178,18 @@ describe('isAbortError', () => {
 });
 
 describe('isNetworkError', () => {
+  it('detects an explicit network timeout without parsing its message', () => {
+    const error = new NetworkTimeoutError('connectAndWait', 15_000);
+
+    expect(isNetworkError(error)).toBe(true);
+    expect(error).toMatchObject({
+      name: 'NetworkTimeoutError',
+      operation: 'connectAndWait',
+      timeoutMs: 15_000,
+    });
+    expect(isNetworkError(new Error(error.message))).toBe(false);
+  });
+
   it('detects a fetch failure through the standard Error.cause chain', () => {
     expect(
       isNetworkError(

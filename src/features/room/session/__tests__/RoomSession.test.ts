@@ -5,6 +5,7 @@ import {
   createStateUpdateMessage,
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import * as Sentry from '@sentry/react-native';
 
 import {
   type NewRecoverableRoomCommand,
@@ -542,6 +543,56 @@ describe('RoomSession', () => {
     transport.handlers.onUserEvent(event);
     expect(transport.send).toHaveBeenCalledTimes(2);
     clearHandler();
+  });
+
+  it('defers acknowledgement when the socket closes during user-event delivery', async () => {
+    const { session, transport } = createSession();
+    await session.connect(IDENTITY);
+    const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-disconnected', value: 3 };
+    const delivery = createDeferred<void>();
+    const handler = jest.fn(() => delivery.promise);
+    session.setUserEventHandler(handler);
+    const captureException = jest.mocked(Sentry.captureException);
+    captureException.mockClear();
+
+    transport.handlers.onUserEvent(event);
+    await flushAsyncWork();
+    transport.send.mockReturnValue(false);
+    transport.handlers.onClose(1006, '');
+    delivery.resolve();
+    await flushAsyncWork();
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(transport.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'event-disconnected' }),
+    );
+    expect(captureException).not.toHaveBeenCalled();
+
+    transport.send.mockReturnValue(true);
+    transport.handlers.onUserEvent(event);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(transport.send).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports an acknowledgement send exception after user-event delivery', async () => {
+    const { session, transport } = createSession();
+    await session.connect(IDENTITY);
+    const sendError = new Error('WebSocket send failed');
+    transport.send.mockImplementation(() => {
+      throw sendError;
+    });
+    session.setUserEventHandler(jest.fn());
+    const captureException = jest.mocked(Sentry.captureException);
+    captureException.mockClear();
+
+    transport.handlers.onUserEvent({
+      type: 'TEST_EVENT',
+      eventId: 'event-send-error',
+      value: 4,
+    });
+    await flushAsyncWork();
+
+    expect(captureException).toHaveBeenCalledWith(sendError);
   });
 
   it('does not acknowledge a failed handler and retries the same event on redelivery', async () => {

@@ -9,6 +9,7 @@ import type {
   IRealtimeTransport,
   TransportEventHandlers,
 } from '@/services/types/IRealtimeTransport';
+import { NetworkTimeoutError } from '@/utils/errorUtils';
 
 import { ConnectionManager, type ConnectionManagerDeps } from '../ConnectionManager';
 import { ConnectionState, PING_INTERVAL_MS, PONG_TIMEOUT_MS } from '../types';
@@ -114,7 +115,7 @@ describe('ConnectionManager', () => {
       manager.dispose();
     });
 
-    it('rejects on timeout', async () => {
+    it('rejects with a typed network timeout', async () => {
       const { transport: t, deps } = createDeps({
         fetchStateFromDB: jest.fn().mockImplementation(() => new Promise(() => {})), // never resolves
       });
@@ -128,7 +129,7 @@ describe('ConnectionManager', () => {
       // Advance past timeout
       jest.advanceTimersByTime(5000);
 
-      await expect(promise).rejects.toThrow('timeout');
+      await expect(promise).rejects.toBeInstanceOf(NetworkTimeoutError);
 
       manager.dispose();
     });
@@ -343,6 +344,24 @@ describe('ConnectionManager', () => {
       await jest.advanceTimersByTimeAsync(0);
       await reconnect;
 
+      manager.dispose();
+    });
+
+    it('rejects a manual reconnect with a typed network timeout', async () => {
+      const { transport, deps } = createDeps();
+      const manager = new ConnectionManager(deps);
+
+      const connected = manager.connectAndWait(ROOM_1);
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await connected;
+
+      transport.handlers.onClose(1006, '');
+      const reconnect = manager.reconnectAndWait(5000);
+
+      jest.advanceTimersByTime(5000);
+
+      await expect(reconnect).rejects.toBeInstanceOf(NetworkTimeoutError);
       manager.dispose();
     });
   });

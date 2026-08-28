@@ -34,6 +34,7 @@ import { createUserEventAckMessage } from '@game-judge/game-engine/platform/prot
 
 import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
+import { NetworkTimeoutError } from '@/utils/errorUtils';
 import { connectionLog } from '@/utils/logger';
 
 import { createInitialContext, transition } from './ConnectionFSM';
@@ -199,7 +200,8 @@ export class ConnectionManager<
    *
    * @param roomCode - Room to connect to
    * @param timeoutMs - Connection + sync timeout (default 15s)
-   * @throws Error if connection fails or times out
+   * @throws {NetworkTimeoutError} When the connection does not become live before the deadline.
+   * @throws {Error} When called outside the Idle state or the connection fails.
    */
   async connectAndWait(room: RoomLocator, timeoutMs = 15_000): Promise<void> {
     const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
@@ -219,7 +221,7 @@ export class ConnectionManager<
       this.#connectWaitReject = reject;
 
       this.#connectWaitTimeout = setTimeout(() => {
-        this.#settleConnectWait(new Error(`connectAndWait timeout after ${timeoutMs}ms`));
+        this.#settleConnectWait(new NetworkTimeoutError('connectAndWait', timeoutMs));
       }, timeoutMs);
 
       // Dispatch CONNECT → triggers OPEN_WS side effect.
@@ -228,7 +230,12 @@ export class ConnectionManager<
     });
   }
 
-  /** Reconnect an existing room binding and wait for a fresh snapshot/update. */
+  /**
+   * Reconnect an existing room binding and wait for a fresh snapshot/update.
+   *
+   * @throws {NetworkTimeoutError} When the connection does not become live before the deadline.
+   * @throws {Error} When called outside the Disconnected or Failed state.
+   */
   reconnectAndWait(timeoutMs = 15_000): Promise<void> {
     if (
       this.#ctx.state !== ConnectionState.Disconnected &&
@@ -244,7 +251,7 @@ export class ConnectionManager<
       this.#connectWaitResolve = resolve;
       this.#connectWaitReject = reject;
       this.#connectWaitTimeout = setTimeout(() => {
-        this.#settleConnectWait(new Error(`reconnectAndWait timeout after ${timeoutMs}ms`));
+        this.#settleConnectWait(new NetworkTimeoutError('reconnectAndWait', timeoutMs));
       }, timeoutMs);
       this.#dispatch({ type: 'MANUAL_RECONNECT' });
     });

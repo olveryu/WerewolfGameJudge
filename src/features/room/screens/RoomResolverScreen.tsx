@@ -3,7 +3,6 @@
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -13,6 +12,7 @@ import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/features/room/m
 import type { RegisteredRoomUiModule } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
+import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
 type NavigationProps = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -69,11 +69,11 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
           cause instanceof UnsupportedRoomGameTypeError
             ? '暂不支持该游戏类型'
             : '房间加载失败，请重试';
-        resolverLog.error('room metadata resolution failed', {
-          roomCode,
-          error: cause.message,
+        handleError(cause, {
+          label: '加载房间元数据',
+          logger: resolverLog,
+          feedback: false,
         });
-        Sentry.captureException(cause, { extra: { roomCode } });
         setState({ kind: 'error', message });
       });
 

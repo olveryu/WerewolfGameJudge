@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text } from 'react-native';
@@ -10,7 +11,7 @@ import type { RootStackParamList } from '@/navigation/types';
 
 import { RoomResolverScreen } from '../RoomResolverScreen';
 
-jest.mock('@sentry/react-native', () => ({ captureException: jest.fn() }));
+jest.mock('@sentry/react-native');
 jest.mock('@/contexts/ServiceContext', () => ({ useServices: jest.fn() }));
 
 const mockUseServices = jest.mocked(useServices);
@@ -93,5 +94,14 @@ describe('RoomResolverScreen', () => {
     await waitFor(() => expect(view.getByText('狼人杀房间 1234')).toBeTruthy());
     expect(getRoom).toHaveBeenNthCalledWith(1, '1234');
     expect(getRoom).toHaveBeenNthCalledWith(2, '1234');
+  });
+
+  it('shows a retry state without reporting an aborted metadata request', async () => {
+    getRoom.mockRejectedValueOnce(new DOMException('The user aborted a request.', 'AbortError'));
+
+    const view = renderResolver();
+
+    await waitFor(() => expect(view.getByText('房间加载失败，请重试')).toBeTruthy());
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 });
