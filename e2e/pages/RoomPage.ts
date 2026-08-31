@@ -1,5 +1,5 @@
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { extractRoomCode } from '../helpers/home';
@@ -134,14 +134,70 @@ export class RoomPage {
   }
 
   // ---------------------------------------------------------------------------
+  // Host Management
+  // ---------------------------------------------------------------------------
+
+  /** Open the shared Host-management surface and return its visible panel. */
+  async openHostManagement(): Promise<Locator> {
+    const entry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
+    await expect(entry).toBeVisible({ timeout: 15_000 });
+    await entry.click();
+    const panel = this.page.getByTestId(TESTIDS.roomHostManagementPanel);
+    await expect(panel).toBeVisible();
+    return panel;
+  }
+
+  /** Close the shared Host-management surface. */
+  async closeHostManagement(): Promise<void> {
+    await this.page.getByRole('button', { name: '关闭主持管理' }).click();
+    await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
+  }
+
+  /** Run an enabled Host action and wait for the management surface to close. */
+  async clickHostManagementAction(actionTestID: string): Promise<void> {
+    const panel = await this.openHostManagement();
+    const action = panel.getByTestId(actionTestID);
+    await expect(action).toBeVisible({ timeout: 15_000 });
+    await action.click();
+    await expect(panel).not.toBeVisible();
+  }
+
+  /** Probe whether a Host action is currently exposed, then close the management surface. */
+  async isHostManagementActionVisible(actionTestID: string): Promise<boolean> {
+    const panel = await this.openHostManagement();
+    const isVisible = await panel
+      .getByTestId(actionTestID)
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
+    await this.closeHostManagement();
+    return isVisible;
+  }
+
+  /** Click a Host action when available, closing the management surface when absent. */
+  async tryClickHostManagementAction(actionTestID: string): Promise<boolean> {
+    const panel = await this.openHostManagement();
+    const action = panel.getByTestId(actionTestID);
+    const isVisible = await action
+      .waitFor({ state: 'visible', timeout: 2000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!isVisible) {
+      await this.closeHostManagement();
+      return false;
+    }
+    await action.click();
+    await expect(panel).not.toBeVisible();
+    return true;
+  }
+
+  // ---------------------------------------------------------------------------
   // Game Flow
   // ---------------------------------------------------------------------------
 
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
-    const btn = this.page.getByTestId('prepare-to-flip-button');
-    await expect(btn).toBeVisible({ timeout: 5000 });
-    await btn.click();
+    await this.clickHostManagementAction(TESTIDS.prepareToFlipButton);
     await expect(this.page.getByText('分配角色？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
@@ -248,41 +304,38 @@ export class RoomPage {
 
   /** Click "开始游戏" and confirm dialog. */
   async startGame() {
-    const btn = this.page.getByTestId('start-game-button');
     // All players must complete viewRole before this button appears —
     // server-authoritative broadcast propagation can take several seconds.
-    await expect(btn).toBeVisible({ timeout: 15_000 });
-    await btn.click();
+    await this.clickHostManagementAction(TESTIDS.startGameButton);
     await expect(this.page.getByText('开始游戏？', { exact: true })).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
   }
 
   /** Click "重新开始" (restart) and confirm dialog. */
   async restart() {
-    const btn = this.page.getByTestId('restart-button');
-    await expect(btn).toBeVisible({ timeout: 5000 });
-    await btn.click();
+    await this.clickHostManagementAction(TESTIDS.restartButton);
     await expect(this.page.getByText('重新开始游戏？', { exact: true })).toBeVisible({
       timeout: 3000,
     });
     // After first night, dialog offers "分享战报" / "直接开始" / "取消"
     await this.page.getByText('直接开始', { exact: true }).click();
-    // Wait for restart broadcast — "分配角色" reappears when status resets
-    await expect(this.page.getByTestId('prepare-to-flip-button')).toBeVisible({ timeout: 15_000 });
+    // Wait for restart broadcast — the Host preview changes when the room is ready again.
+    await expect(
+      this.page.getByRole('button', {
+        name: '主持管理，下一步：分配角色',
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
   }
 
   /** Click the settings button to open config in edit mode. */
   async openSettings() {
-    await this.page.locator('[data-testid="room-settings-button"]').click();
+    await this.clickHostManagementAction(TESTIDS.roomSettingsButton);
   }
 
   /** Check if "昨夜信息" button is visible (night ended indicator). */
   async isLastNightInfoVisible(): Promise<boolean> {
-    return this.page
-      .getByTestId('last-night-info-button')
-      .waitFor({ state: 'visible', timeout: 3000 })
-      .then(() => true)
-      .catch(() => false);
+    return this.isHostManagementActionVisible(TESTIDS.lastNightInfoButton);
   }
 
   /** Take a screenshot and attach to test info. */

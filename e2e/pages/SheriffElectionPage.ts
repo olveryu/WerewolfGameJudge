@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
+import { RoomPage } from './RoomPage';
 
 /** Page Object for the server-authoritative sheriff-election panel. */
 export class SheriffElectionPage {
@@ -44,22 +45,26 @@ export class SheriffElectionPage {
         ? TESTIDS.sheriffRegisterButton
         : TESTIDS.sheriffCancelRegistrationButton,
     );
-    const advanceLabel = '主持：结束报名';
-    const advanceButton = this.page.getByTestId(TESTIDS.sheriffAdvanceButton);
+    const advanceLabel = '结束报名';
+    const hostManagementButton = this.page.getByTestId(TESTIDS.roomHostManagementButton);
     await expect(personalButton).toHaveText(personalLabel, { timeout: 15_000 });
-    await expect(advanceButton).toHaveAccessibleName(advanceLabel);
-    await expect(advanceButton).toContainText('主持操作');
-    await expect(advanceButton).toContainText('结束报名');
+    await expect(hostManagementButton).toHaveAccessibleName('主持管理，待处理：结束报名');
     await this.expectSingleLineButtonLabel(personalButton, personalLabel);
-    await this.expectSingleLineButtonLabel(advanceButton, '主持操作');
-    await this.expectSingleLineButtonLabel(advanceButton, '结束报名');
+    await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
+    await this.expectSingleLineButtonLabel(hostManagementButton, '待处理：结束报名');
 
     const personalBox = await personalButton.boundingBox();
-    const advanceBox = await advanceButton.boundingBox();
-    if (personalBox === null || advanceBox === null) {
+    const hostManagementBox = await hostManagementButton.boundingBox();
+    if (personalBox === null || hostManagementBox === null) {
       throw new Error('Host registration dock controls must have layout boxes');
     }
-    expect(advanceBox.y).toBeGreaterThanOrEqual(personalBox.y + personalBox.height);
+    expect(hostManagementBox.y).toBeGreaterThanOrEqual(personalBox.y + personalBox.height);
+
+    const room = new RoomPage(this.page);
+    const hostManagementPanel = await room.openHostManagement();
+    const advanceButton = hostManagementPanel.getByTestId(TESTIDS.sheriffAdvanceButton);
+    await expect(advanceButton).toHaveAccessibleName(advanceLabel);
+    await room.closeHostManagement();
   }
 
   private async expectSingleLineButtonLabel(button: Locator, label: string): Promise<void> {
@@ -91,7 +96,7 @@ export class SheriffElectionPage {
   }
 
   async advance(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.sheriffAdvanceButton).click();
+    await new RoomPage(this.page).clickHostManagementAction(TESTIDS.sheriffAdvanceButton);
   }
 
   async voteFor(candidateSeat: number): Promise<void> {

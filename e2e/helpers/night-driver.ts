@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
+import { RoomPage } from '../pages/RoomPage';
 import type { CapturedRole } from './multi-player';
 import { ensureConnected } from './waits';
 
@@ -345,14 +346,12 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
  */
 export async function viewLastNightInfo(hostPage: Page): Promise<void> {
   const alertModal = hostPage.locator('[data-testid="alert-modal"]');
+  const room = new RoomPage(hostPage);
 
   // Dismiss any stale alert, then click "昨夜信息"
   for (let i = 0; i < 3; i++) {
     await dismissAlert(hostPage);
-    // Check if "昨夜信息" is visible now
-    const infoBtn = hostPage.getByTestId('last-night-info-button');
-    if (await infoBtn.isVisible().catch(() => false)) {
-      await infoBtn.click();
+    if (await room.tryClickHostManagementAction(TESTIDS.lastNightInfoButton)) {
       // Wait for confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
       await alertModal.waitFor({ state: 'visible', timeout: 3000 });
       // Click "确定查看" to proceed to the info alert
@@ -370,11 +369,6 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
       }
       return;
     }
-    // Wait for "昨夜信息" button to appear before next attempt
-    await hostPage
-      .getByTestId('last-night-info-button')
-      .waitFor({ state: 'visible', timeout: 2000 })
-      .catch(() => {});
   }
 }
 

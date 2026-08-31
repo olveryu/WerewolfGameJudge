@@ -164,7 +164,12 @@ export class FibRoomPage extends RoomPage {
     await this.expectHostManagementClosed();
     await expect(this.page.getByText('结束游戏？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
-    await expect(this.page.getByText(/等待入座 · \d+\/\d+/)).toBeVisible({ timeout: 15_000 });
+    await expect(
+      this.page.getByRole('button', {
+        name: '主持管理，下一步：开始本轮',
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
   }
 
   async expectLobbySeatOperations(): Promise<void> {
@@ -172,16 +177,6 @@ export class FibRoomPage extends RoomPage {
     await expect(this.page.getByTestId(TESTIDS.roomClearSeatsButton)).toBeVisible();
     await this.closeHostManagement();
     await expect(this.page.getByTestId(TESTIDS.roomShareButton)).toBeVisible();
-  }
-
-  private async openHostManagement(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.roomHostManagementButton).click();
-    await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).toBeVisible();
-  }
-
-  private async closeHostManagement(): Promise<void> {
-    await this.page.getByRole('button', { name: '关闭主持管理' }).click();
-    await this.expectHostManagementClosed();
   }
 
   private async expectHostManagementClosed(): Promise<void> {

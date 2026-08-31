@@ -1,6 +1,7 @@
 import type { Browser } from '@playwright/test';
 import { expect, type Page } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
@@ -70,7 +71,7 @@ const PRESENCE_ESCALATION_ATTEMPT = 25;
 /**
  * Hard gate: Wait for all joiner presence to be reflected on the host page.
  *
- * Polls for "分配角色" button visibility (only appears when all seats are filled).
+ * Polls for the Host-management preview that appears when all seats are filled.
  * Uses "retry with escalation": at the halfway point, reloads the host page to
  * force a fresh `joinRoom → fetchStateFromDB` cycle, compensating for Supabase
  * Realtime broadcast delays in CI environments.
@@ -102,16 +103,17 @@ async function waitForPresenceStable(
     // Ensure all pages are still connected before checking presence
     await ensureConnected([hostPage, ...joinerPages]);
 
-    const isPrepareVisible = await hostPage
-      .getByTestId('prepare-to-flip-button')
-      .isVisible()
+    const isReadyToPrepare = await hostPage
+      .getByTestId(TESTIDS.roomHostManagementButton)
+      .getAttribute('aria-label')
+      .then((label) => label === '主持管理，下一步：分配角色')
       .catch(() => false);
-    if (isPrepareVisible) return;
+    if (isReadyToPrepare) return;
   }
 
   // Hard fail: collect diagnostics for debugging
   const visibleTexts: string[] = [];
-  for (const text of ['分配角色', '等待玩家', '开始游戏']) {
+  for (const text of ['下一步：分配角色', '等待玩家', '开始游戏']) {
     const visible = await hostPage
       .getByText(text)
       .isVisible()
@@ -128,7 +130,7 @@ async function waitForPresenceStable(
       `Expected ${joinerPages.length + 1} players seated. ` +
       `Visible seat tiles: ${seatCount}. ` +
       `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
-      `"分配角色" button never appeared — presence not stable.`,
+      `Host management never showed "下一步：分配角色" — presence not stable.`,
   );
 }
 
