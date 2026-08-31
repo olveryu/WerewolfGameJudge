@@ -29,6 +29,8 @@ interface SetupGameOptions {
   configureTemplate?: (config: ConfigPage) => Promise<void>;
   /** Whether to start the game (prepare → view roles → start). Default: true. */
   startGame?: boolean;
+  /** Whether the night flow should continue into the default-on sheriff election. Default: false. */
+  isSheriffElectionEnabled?: boolean;
 }
 
 interface GameSetupResult {
@@ -209,7 +211,12 @@ export async function setupNPlayerGame(
   browser: Browser,
   opts: SetupGameOptions = {},
 ): Promise<GameSetupResult> {
-  const { playerCount = 2, configureTemplate, startGame = true } = opts;
+  const {
+    playerCount = 2,
+    configureTemplate,
+    startGame = true,
+    isSheriffElectionEnabled = false,
+  } = opts;
 
   // Step 1: Create all player contexts
   const fixture = await createPlayerContexts(browser, playerCount);
@@ -225,6 +232,9 @@ export async function setupNPlayerGame(
 
   if (configureTemplate) {
     await configureTemplate(config);
+  }
+  if (startGame && !isSheriffElectionEnabled) {
+    await config.setSheriffElectionEnabled(false);
   }
 
   await config.clickCreate();
@@ -286,7 +296,7 @@ export async function setupNPlayerGameWithRoles(
   browser: Browser,
   opts: Omit<SetupGameOptions, 'startGame'> = {},
 ): Promise<GameSetupWithRolesResult> {
-  const { playerCount = 2, configureTemplate } = opts;
+  const { playerCount = 2, configureTemplate, isSheriffElectionEnabled = false } = opts;
 
   // Step 1: Create all player contexts
   const fixture = await createPlayerContexts(browser, playerCount);
@@ -302,6 +312,9 @@ export async function setupNPlayerGameWithRoles(
 
   if (configureTemplate) {
     await configureTemplate(config);
+  }
+  if (!isSheriffElectionEnabled) {
+    await config.setSheriffElectionEnabled(false);
   }
 
   await config.clickCreate();

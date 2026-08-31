@@ -9,9 +9,23 @@ import { createStatusPanelStyles } from './statusPanels.styles';
 
 export interface BottomActionPanelStyles {
   container: ViewStyle;
+  dockContainer: ViewStyle;
   message: TextStyle;
   buttonRow: ViewStyle;
+  compactManagementStack: ViewStyle;
   ghostRow: ViewStyle;
+  dockRow: ViewStyle;
+  dockCenter: ViewStyle;
+  dockPrimary: ViewStyle;
+  toolSlot: ViewStyle;
+  infoRow: ViewStyle;
+  infoAction: ViewStyle;
+  hostManagementEntry: ViewStyle;
+  hostManagementContent: ViewStyle;
+  hostManagementTitleRow: ViewStyle;
+  hostManagementTitle: TextStyle;
+  hostManagementPreviewRow: ViewStyle;
+  hostManagementPreview: TextStyle;
 }
 
 export interface ConnectionStatusBarStyles {
@@ -49,15 +63,6 @@ export interface StatusRibbonStyles {
 
 export interface HeaderActionsStyles {
   triggerButton: ViewStyle;
-  triggerText: TextStyle;
-  modalOverlay: ViewStyle;
-  menuArrow: ViewStyle;
-  menuContainer: ViewStyle;
-  menuItem: ViewStyle;
-  menuItemText: TextStyle;
-  menuItemDanger: ViewStyle;
-  menuItemTextDanger: TextStyle;
-  sectionGap: ViewStyle;
   headerRightContainer: ViewStyle;
 }
 

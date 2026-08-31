@@ -174,6 +174,34 @@ export interface EndNightIntent {
 }
 
 // =============================================================================
+// First-day sheriff election intents
+// =============================================================================
+
+export interface RegisterSheriffCandidateIntent {
+  type: 'REGISTER_SHERIFF_CANDIDATE';
+  payload: { seat: number };
+}
+
+export interface CancelSheriffRegistrationIntent {
+  type: 'CANCEL_SHERIFF_REGISTRATION';
+  payload: { seat: number };
+}
+
+export interface WithdrawSheriffCandidateIntent {
+  type: 'WITHDRAW_SHERIFF_CANDIDATE';
+  payload: { seat: number };
+}
+
+export interface CastSheriffVoteIntent {
+  type: 'CAST_SHERIFF_VOTE';
+  payload: { voterSeat: number; targetSeat: number | null };
+}
+
+export interface AdvanceSheriffElectionIntent {
+  type: 'ADVANCE_SHERIFF_ELECTION';
+}
+
+// =============================================================================
 // Debug Bots Intents (Host-only)
 // =============================================================================
 

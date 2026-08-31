@@ -13,7 +13,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { findClosestPresetName } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -24,8 +24,10 @@ import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
@@ -54,10 +56,18 @@ import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { RoleCardModal } from './components/RoleCardModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
+import {
+  SheriffElectionInspector,
+  SheriffElectionSheet,
+} from './components/SheriffElectionDetailsSurfaces';
+import { SheriffElectionHud } from './components/SheriffElectionHud';
+import { createSheriffElectionPanelStyles } from './components/sheriffElectionPanel.styles';
+import { createWerewolfHostManagement } from './createWerewolfHostManagement';
 import type { LayoutContext, StaticButtonAction } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useWerewolfRoomScreenState } from './hooks/useWerewolfRoomScreenState';
-import type { ActionIntent } from './policy/types';
+import type { ActionIntent, HostControlEvent } from './policy/types';
+import { createSheriffElectionDockModel } from './sheriffElectionDockModel';
 import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 
 // ── Strategy Modal ───────────────────────────────────────────────────────────
@@ -106,6 +116,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   const { user } = useAuthContext();
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
+  const sheriffElectionStyles = useMemo(() => createSheriffElectionPanelStyles(colors), []);
+  const { width: viewportWidth } = useWindowDimensions();
 
   // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
   // Moved here from App.tsx -- Skia is now lazy-loaded, so warmup runs when Skia is ready.
@@ -167,6 +179,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     // Board nomination
     boardUpvote,
     boardWithdraw,
+    sheriffElectionPanel,
     // BGM manual control
     isBgmPlaying,
     playBgm,
@@ -179,7 +192,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     specialRoleItems,
     villagerRoleItems,
     nightProgress,
-    speakingOrderText,
     guideMessage,
     actionMessage,
     // Actioner
@@ -233,6 +245,22 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardSubtitle,
   } = useWerewolfRoomScreenState(room, navigation, entryController, client);
 
+  const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
+  const isSheriffInspectorVisible =
+    sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
+  const openSheriffDetails = useCallback(() => {
+    setIsSheriffDetailsVisible(true);
+  }, []);
+  const closeSheriffDetails = useCallback(() => {
+    setIsSheriffDetailsVisible(false);
+  }, []);
+
+  useEffect(() => {
+    if (sheriffElectionPanel === null || isSheriffInspectorVisible) {
+      setIsSheriffDetailsVisible(false);
+    }
+  }, [isSheriffInspectorVisible, sheriffElectionPanel]);
+
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
 
@@ -285,9 +313,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       effectiveSeat,
       imActioner,
       isAudioPlaying,
-      isHostActionSubmitting,
       nightReviewAllowedSeats: gameState?.nightReviewAllowedSeats ?? [],
-      isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
     }),
     [
       roomStatus,
@@ -295,9 +321,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       effectiveSeat,
       imActioner,
       isAudioPlaying,
-      isHostActionSubmitting,
       gameState?.nightReviewAllowedSeats,
-      gameState?.rules?.isPlagueMode,
     ],
   );
   const schemaVM = getBottomAction();
@@ -319,26 +343,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         case 'waitForHost':
           toast.info('等待房主开始分配角色');
           break;
-        case 'settings':
-          if (!capabilities.canConfigureGame.isAllowed) {
-            throw new Error(
-              `Werewolf bottom layout emitted denied settings capability: ${capabilities.canConfigureGame.reason}`,
-            );
-          }
-          capabilities.canConfigureGame.execute();
-          break;
-        case 'prepareToFlip':
-          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' });
-          break;
-        case 'startGame':
-          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' });
-          break;
-        case 'restart':
-          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' });
-          break;
-        case 'lastNightInfo':
-          showLastNightInfo();
-          break;
         case 'nightReview':
           openNightReview();
           break;
@@ -348,7 +352,14 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         }
       }
     },
-    [capabilities.canConfigureGame, dispatchInteraction, showLastNightInfo, openNightReview],
+    [dispatchInteraction, openNightReview],
+  );
+
+  const handleHostControl = useCallback(
+    (action: HostControlEvent['action']) => {
+      dispatchInteraction({ kind: 'HOST_CONTROL', action });
+    },
+    [dispatchInteraction],
   );
 
   const executeMarkAllBotsViewed = useCallback(() => {
@@ -371,22 +382,75 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     });
   }, [markAllBotsGroupConfirmed]);
 
+  const hostManagement = useMemo(
+    () =>
+      createWerewolfHostManagement({
+        isHost,
+        roomStatus,
+        isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
+        isAudioPlaying,
+        isStartingGame,
+        isHostActionSubmitting,
+        canMarkAllBotsViewed: isDebugMode && roomStatus === GameStatus.Assigned,
+        canMarkAllBotsGroupConfirmed:
+          isDebugMode &&
+          !isAudioPlaying &&
+          roomStatus === GameStatus.Ongoing &&
+          currentSchema?.kind === 'groupConfirm',
+        capabilities,
+        sheriffElection: sheriffElectionPanel,
+        onHostControl: handleHostControl,
+        onMusicSettings: handleMusicSettings,
+        onMarkAllBotsViewed: executeMarkAllBotsViewed,
+        onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
+        onNightReview: openNightReview,
+        onLastNightInfo: showLastNightInfo,
+      }),
+    [
+      capabilities,
+      currentSchema?.kind,
+      executeMarkAllBotsGroupConfirmed,
+      executeMarkAllBotsViewed,
+      gameState?.rules?.isPlagueMode,
+      handleHostControl,
+      handleMusicSettings,
+      isAudioPlaying,
+      isDebugMode,
+      isHost,
+      isHostActionSubmitting,
+      isStartingGame,
+      openNightReview,
+      roomStatus,
+      sheriffElectionPanel,
+      showLastNightInfo,
+    ],
+  );
+
   const seatSource = useMemo(
     () =>
       createWerewolfSeatDataSource({
         seats: seatViewModels,
         controlledSeat,
         showBotRoles: isDebugMode && isHost,
-        showLevels: roomStatus !== GameStatus.Ongoing,
-        decorationsEnabled: roomStatus !== GameStatus.Ongoing,
+        showLevels: roomStatus !== GameStatus.Ongoing && roomStatus !== GameStatus.Day,
+        decorationsEnabled: roomStatus !== GameStatus.Ongoing && roomStatus !== GameStatus.Day,
+        sheriffElectionView: sheriffElectionPanel?.view ?? null,
         revision: stateRevision,
       }),
-    [seatViewModels, controlledSeat, isDebugMode, isHost, roomStatus, stateRevision],
+    [
+      seatViewModels,
+      controlledSeat,
+      isDebugMode,
+      isHost,
+      roomStatus,
+      sheriffElectionPanel?.view,
+      stateRevision,
+    ],
   );
 
   const statusRibbon = useMemo(
-    () => createWerewolfStatusRibbon({ nightProgress, speakingOrderText, guideMessage }),
-    [nightProgress, speakingOrderText, guideMessage],
+    () => createWerewolfStatusRibbon({ nightProgress, guideMessage }),
+    [nightProgress, guideMessage],
   );
 
   const controlledSeatModel = useMemo(
@@ -409,87 +473,62 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, releaseBot],
   );
 
-  const bottomActions = useMemo(
-    () => ({
-      message:
-        !isAudioPlaying &&
-        (imActioner ||
-          roomStatus === GameStatus.Ended ||
-          (gameState?.rules?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
-          ? gameState?.rules?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
-            ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
-            : actionMessage
-          : null,
-      layout: createWerewolfBottomActionLayout({
+  const roomBottomActionLayout = useMemo(
+    () =>
+      createWerewolfBottomActionLayout({
         layout: bottomLayout,
         isActionSubmitting,
         onIntent: handleSchemaButtonPress,
         onStaticAction: handleStaticButtonPress,
       }),
-    }),
-    [
-      isAudioPlaying,
-      imActioner,
-      roomStatus,
-      gameState?.rules?.isPlagueMode,
-      isHost,
-      actionMessage,
-      bottomLayout,
-      isActionSubmitting,
-      handleSchemaButtonPress,
-      handleStaticButtonPress,
-    ],
+    [bottomLayout, handleSchemaButtonPress, handleStaticButtonPress, isActionSubmitting],
   );
 
-  const headerMenuItems = useMemo((): readonly RoomHeaderMenuItem[] => {
-    const items: RoomHeaderMenuItem[] = [];
-    if (isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing) {
-      items.push({
-        id: 'music-settings',
-        label: '音乐设置',
-        icon: 'musical-notes-outline',
-        group: 'utility',
-        tone: 'default',
-        onPress: handleMusicSettings,
+  const bottomActions = useMemo((): RoomBottomActionModel => {
+    if (roomStatus === GameStatus.Day && sheriffElectionPanel !== null) {
+      return createSheriffElectionDockModel({
+        election: sheriffElectionPanel,
+        roomTools: roomBottomActionLayout,
+        isInspectorVisible: isSheriffInspectorVisible,
+        openDetails: openSheriffDetails,
       });
     }
-    if (isHost && isDebugMode && roomStatus === GameStatus.Assigned) {
-      items.push({
-        id: 'mark-bots-viewed',
-        label: '标记机器人已查看',
-        icon: 'eye-outline',
-        group: 'operation',
-        tone: 'default',
-        onPress: executeMarkAllBotsViewed,
-      });
+
+    if (roomStatus === GameStatus.Ended) {
+      return {
+        kind: 'info',
+        message: actionMessage,
+        actions: [
+          ...roomBottomActionLayout.primary,
+          ...roomBottomActionLayout.secondary,
+          ...roomBottomActionLayout.ghost,
+        ],
+      };
     }
-    if (
-      isHost &&
-      isDebugMode &&
-      !isAudioPlaying &&
-      roomStatus === GameStatus.Ongoing &&
-      currentSchema?.kind === 'groupConfirm'
-    ) {
-      items.push({
-        id: 'mark-bots-confirmed',
-        label: '标记机器人已确认',
-        icon: 'checkmark-done-outline',
-        group: 'operation',
-        tone: 'default',
-        onPress: executeMarkAllBotsGroupConfirmed,
-      });
-    }
-    return items;
+
+    return {
+      kind: 'stacked',
+      message:
+        !isAudioPlaying &&
+        (imActioner ||
+          (gameState?.rules?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
+          ? gameState?.rules?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
+            ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
+            : actionMessage
+          : null,
+      layout: roomBottomActionLayout,
+    };
   }, [
-    isHost,
-    isStartingGame,
+    sheriffElectionPanel,
+    roomBottomActionLayout,
+    isSheriffInspectorVisible,
+    openSheriffDetails,
     isAudioPlaying,
+    imActioner,
     roomStatus,
-    isDebugMode,
-    currentSchema?.kind,
-    handleMusicSettings,
-    executeMarkAllBotsViewed,
-    executeMarkAllBotsGroupConfirmed,
+    gameState?.rules?.isPlagueMode,
+    isHost,
+    actionMessage,
   ]);
 
   const handleProfileKick = useCallback(() => {
@@ -547,7 +586,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           ticketCount,
           onPress: handleAvatarPress,
         },
-        menuItems: headerMenuItems,
       },
       connection: roomConnection,
       statusRibbon,
@@ -562,6 +600,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       profile,
       share: roomShare,
       bottomActions,
+      hostManagement,
       controlledSeat: controlledSeatModel,
     }),
     [
@@ -571,7 +610,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       user,
       ticketCount,
       handleAvatarPress,
-      headerMenuItems,
       dispatchInteraction,
       roomConnection,
       statusRibbon,
@@ -585,6 +623,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       profile,
       roomShare,
       bottomActions,
+      hostManagement,
       controlledSeatModel,
     ],
   );
@@ -600,6 +639,15 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   return (
     <RoomShell
       model={roomShellModel}
+      contextHeader={
+        sheriffElectionPanel === null ? null : (
+          <SheriffElectionHud
+            model={sheriffElectionPanel}
+            styles={sheriffElectionStyles}
+            onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+          />
+        )
+      }
       leadingExtraActions={
         roomStatus === GameStatus.Ended && !isAudioPlaying ? (
           <Button
@@ -634,7 +682,11 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           specialRoleItems={specialRoleItems}
           villagerCount={villagerCount}
           villagerRoleItems={villagerRoleItems}
-          collapsed={roomStatus === GameStatus.Ongoing || roomStatus === GameStatus.Ended}
+          collapsed={
+            roomStatus === GameStatus.Ongoing ||
+            roomStatus === GameStatus.Day ||
+            roomStatus === GameStatus.Ended
+          }
           onRolePress={handleSkillPreviewOpen}
           onNotepadPress={handleNotepadPress}
           onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
@@ -647,8 +699,22 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         />
       }
       afterSeatBoard={null}
+      sideInspector={
+        sheriffElectionPanel === null ? null : (
+          <SheriffElectionInspector model={sheriffElectionPanel} styles={sheriffElectionStyles} />
+        )
+      }
       gameOverlays={
         <>
+          {sheriffElectionPanel !== null && !isSheriffInspectorVisible && (
+            <SheriffElectionSheet
+              visible={isSheriffDetailsVisible}
+              model={sheriffElectionPanel}
+              styles={sheriffElectionStyles}
+              onClose={closeSheriffDetails}
+            />
+          )}
+
           {/* Continue Game Overlay -- shown after Host rejoin to unlock audio */}
           <AlertModal
             visible={needsContinueOverlay}

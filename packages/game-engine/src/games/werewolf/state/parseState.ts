@@ -29,6 +29,9 @@ import type {
   GameState,
   Player,
   ProtocolAction,
+  SheriffElectionResult,
+  SheriffElectionRoundResult,
+  SheriffElectionState,
 } from '../domain/protocol/types';
 import type { CurrentNightResults } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
@@ -77,6 +80,8 @@ function parseGameStatus(value: unknown, path: string): GameStatus {
       return GameStatus.Ready;
     case GameStatus.Ongoing:
       return GameStatus.Ongoing;
+    case GameStatus.Day:
+      return GameStatus.Day;
     case GameStatus.Ended:
       return GameStatus.Ended;
     default:
@@ -103,6 +108,11 @@ function parseRules(value: unknown, path: string): GameRuleOverrides {
     raw,
     {
       isPlagueMode: parseOptional(raw.isPlagueMode, `${path}.isPlagueMode`, parseBoolean),
+      isSheriffElectionEnabled: parseOptional(
+        raw.isSheriffElectionEnabled,
+        `${path}.isSheriffElectionEnabled`,
+        parseBoolean,
+      ),
       witchCanSelfHeal: parseOptional(
         raw.witchCanSelfHeal,
         `${path}.witchCanSelfHeal`,
@@ -542,6 +552,159 @@ function parseBoardNominations(
   return result;
 }
 
+function parseSheriffBallots(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, number | null>> {
+  const raw = parseObject(value, path);
+  const result: Record<number, number | null> = {};
+  for (const [key, target] of Object.entries(raw)) {
+    const seat = parseSeatKey(key, `${path}.${key}`);
+    result[seat] = parseNullable(target, `${path}.${key}`, parseSeat);
+  }
+  return result;
+}
+
+function parseSheriffVoteCounts(value: unknown, path: string): Readonly<Record<number, number>> {
+  const raw = parseObject(value, path);
+  const result: Record<number, number> = {};
+  for (const [key, countValue] of Object.entries(raw)) {
+    const seat = parseSeatKey(key, `${path}.${key}`);
+    const count = parseInteger(countValue, `${path}.${key}`);
+    if (count < 0) return fail(`${path}.${key}`, 'a non-negative vote count');
+    result[seat] = count;
+  }
+  return result;
+}
+
+function parseSheriffRoundResult(value: unknown, path: string): SheriffElectionRoundResult {
+  const raw = parseObject(value, path);
+  const round = (() => {
+    if (raw.round === 'first' || raw.round === 'runoff') return raw.round;
+    return fail(`${path}.round`, 'first or runoff');
+  })();
+  return finishObject(
+    raw,
+    {
+      round,
+      candidateSeats: parseArray(raw.candidateSeats, `${path}.candidateSeats`, parseSeat),
+      eligibleVoterSeats: parseArray(
+        raw.eligibleVoterSeats,
+        `${path}.eligibleVoterSeats`,
+        parseSeat,
+      ),
+      ballots: parseSheriffBallots(raw.ballots, `${path}.ballots`),
+      voteCounts: parseSheriffVoteCounts(raw.voteCounts, `${path}.voteCounts`),
+      abstainingSeats: parseArray(raw.abstainingSeats, `${path}.abstainingSeats`, parseSeat),
+    },
+    path,
+  );
+}
+
+function parseSheriffElection(value: unknown, path: string): SheriffElectionState {
+  const raw = parseObject(value, path);
+  const common = {
+    registeredSeats: parseArray(raw.registeredSeats, `${path}.registeredSeats`, parseSeat),
+    withdrawnSeats: parseArray(raw.withdrawnSeats, `${path}.withdrawnSeats`, parseSeat),
+    completedRounds: parseArray(
+      raw.completedRounds,
+      `${path}.completedRounds`,
+      parseSheriffRoundResult,
+    ),
+  };
+  switch (raw.phase) {
+    case 'registration':
+    case 'withdrawal':
+    case 'completed':
+      return finishObject(raw, { ...common, phase: raw.phase }, path);
+    case 'candidateSpeech': {
+      const parsed = {
+        ...common,
+        phase: raw.phase,
+        speakingOrder: parseArray(raw.speakingOrder, `${path}.speakingOrder`, parseSeat),
+      };
+      finishObject(
+        raw,
+        {
+          ...parsed,
+          currentSpeakerIndex: parseOptional(
+            raw.currentSpeakerIndex,
+            `${path}.currentSpeakerIndex`,
+            parseInteger,
+          ),
+        },
+        path,
+      );
+      return parsed;
+    }
+    case 'firstVote':
+    case 'runoffVote':
+      return finishObject(
+        raw,
+        {
+          ...common,
+          phase: raw.phase,
+          candidateSeats: parseArray(raw.candidateSeats, `${path}.candidateSeats`, parseSeat),
+          eligibleVoterSeats: parseArray(
+            raw.eligibleVoterSeats,
+            `${path}.eligibleVoterSeats`,
+            parseSeat,
+          ),
+          ballots: parseSheriffBallots(raw.ballots, `${path}.ballots`),
+        },
+        path,
+      );
+    case 'runoffSpeech': {
+      const parsed = {
+        ...common,
+        phase: raw.phase,
+        candidateSeats: parseArray(raw.candidateSeats, `${path}.candidateSeats`, parseSeat),
+        speakingOrder: parseArray(raw.speakingOrder, `${path}.speakingOrder`, parseSeat),
+      };
+      finishObject(
+        raw,
+        {
+          ...parsed,
+          currentSpeakerIndex: parseOptional(
+            raw.currentSpeakerIndex,
+            `${path}.currentSpeakerIndex`,
+            parseInteger,
+          ),
+        },
+        path,
+      );
+      return parsed;
+    }
+    default:
+      return fail(`${path}.phase`, 'a valid sheriff election phase');
+  }
+}
+
+function parseSheriffElectionResult(value: unknown, path: string): SheriffElectionResult {
+  const raw = parseObject(value, path);
+  if (raw.kind === 'elected') {
+    return finishObject(
+      raw,
+      { kind: raw.kind, sheriffSeat: parseSeat(raw.sheriffSeat, `${path}.sheriffSeat`) },
+      path,
+    );
+  }
+  if (raw.kind === 'noSheriff') {
+    const reason = (() => {
+      switch (raw.reason) {
+        case 'noCandidates':
+        case 'noVotes':
+        case 'runoffTie':
+          return raw.reason;
+        default:
+          return fail(`${path}.reason`, 'a valid no-sheriff reason');
+      }
+    })();
+    return finishObject(raw, { kind: raw.kind, reason }, path);
+  }
+  return fail(`${path}.kind`, 'elected or noSheriff');
+}
+
 /** Decode unknown JSON and reject state that does not match the current Werewolf state version. */
 export function parseWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
@@ -588,6 +751,16 @@ export function parseWerewolfState(value: unknown): GameState {
       parseArray(items, p, parseSeat),
     ),
     deathReasons: parseOptional(raw.deathReasons, 'GameState.deathReasons', parseDeathReasons),
+    sheriffElection: parseOptional(
+      raw.sheriffElection,
+      'GameState.sheriffElection',
+      parseSheriffElection,
+    ),
+    sheriffElectionResult: parseOptional(
+      raw.sheriffElectionResult,
+      'GameState.sheriffElectionResult',
+      parseSheriffElectionResult,
+    ),
     nightmareBlockedSeat: parseOptional(
       raw.nightmareBlockedSeat,
       'GameState.nightmareBlockedSeat',

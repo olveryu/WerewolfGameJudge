@@ -47,6 +47,43 @@ function createThiefState(overrides: Partial<GameState> = {}): GameState {
   };
 }
 
+function createSheriffElectionState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    ...WEREWOLF_STATE_IDENTITY,
+    roomCode: 'ROOM',
+    hostUserId: 'host',
+    status: GameStatus.Day,
+    templateRoles: ['wolf', 'seer', 'hunter', 'villager'],
+    rules: { isSheriffElectionEnabled: true },
+    players: {
+      0: { userId: 'host', seat: 0, role: 'wolf', hasViewedRole: true },
+      1: { userId: 'p1', seat: 1, role: 'seer', hasViewedRole: true },
+      2: { userId: 'p2', seat: 2, role: 'hunter', hasViewedRole: true },
+      3: { userId: 'p3', seat: 3, role: 'villager', hasViewedRole: true },
+    },
+    roster: {},
+    currentStepIndex: -1,
+    isAudioPlaying: false,
+    actions: [],
+    currentNightResults: {},
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
+    sheriffElection: {
+      phase: 'firstVote',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [],
+      candidateSeats: [0, 1],
+      eligibleVoterSeats: [2, 3],
+      ballots: { 2: 0 },
+    },
+    ...overrides,
+  };
+}
+
 describe('assertWerewolfStateInvariants', () => {
   it('accepts canonical assigned and ongoing bottom-card states', () => {
     expect(() => assertWerewolfStateInvariants(createTreasureMasterState())).not.toThrow();
@@ -165,5 +202,178 @@ describe('assertWerewolfStateInvariants', () => {
         }),
       ),
     ).not.toThrow();
+  });
+
+  it('accepts an active sheriff election and rejects lifecycle mismatches', () => {
+    expect(() => assertWerewolfStateInvariants(createSheriffElectionState())).not.toThrow();
+    expect(() =>
+      assertWerewolfStateInvariants(createSheriffElectionState({ status: GameStatus.Ended })),
+    ).toThrow('Ended state contains active sheriff election');
+    expect(() =>
+      assertWerewolfStateInvariants(createSheriffElectionState({ sheriffElection: undefined })),
+    ).toThrow('Day state has no sheriffElection');
+  });
+
+  it('rejects withdrawal history before registration closes', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'registration',
+            registeredSeats: [0],
+            withdrawnSeats: [0],
+            completedRounds: [],
+          },
+        }),
+      ),
+    ).toThrow('registration contains withdrawn sheriff candidates');
+  });
+
+  it('accepts reordered sheriff speeches and requires every active candidate exactly once', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'runoffSpeech',
+            registeredSeats: [0, 1, 2],
+            withdrawnSeats: [],
+            completedRounds: [],
+            candidateSeats: [0, 2],
+            speakingOrder: [2, 0],
+          },
+        }),
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'candidateSpeech',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [],
+            speakingOrder: [1],
+          },
+        }),
+      ),
+    ).toThrow('candidate speaking order do not match the expected seat set');
+  });
+
+  it('rejects active ballots from ineligible voters or for non-candidates', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'firstVote',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [],
+            candidateSeats: [0, 1],
+            eligibleVoterSeats: [2, 3],
+            ballots: { 0: 1 },
+          },
+        }),
+      ),
+    ).toThrow('ballot from ineligible voter 0');
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'firstVote',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [],
+            candidateSeats: [0, 1],
+            eligibleVoterSeats: [2, 3],
+            ballots: { 2: 3 },
+          },
+        }),
+      ),
+    ).toThrow('targets non-candidate 3');
+  });
+
+  it('requires phase-specific eligible voters after a candidate withdraws', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'firstVote',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [1],
+            completedRounds: [],
+            candidateSeats: [0],
+            eligibleVoterSeats: [1, 2, 3],
+            ballots: {},
+          },
+        }),
+      ),
+    ).toThrow('firstVote eligible voters do not match the expected seat set');
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          sheriffElection: {
+            phase: 'runoffVote',
+            registeredSeats: [0, 1, 2],
+            withdrawnSeats: [1],
+            completedRounds: [],
+            candidateSeats: [0, 2],
+            eligibleVoterSeats: [3],
+            ballots: {},
+          },
+        }),
+      ),
+    ).toThrow('runoffVote eligible voters do not match the expected seat set');
+  });
+
+  it('rejects closed rounds whose eligible voters violate the phase rule', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          status: GameStatus.Ended,
+          sheriffElection: {
+            phase: 'completed',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [1],
+            completedRounds: [
+              {
+                round: 'first',
+                candidateSeats: [0],
+                eligibleVoterSeats: [1, 2, 3],
+                ballots: { 1: 0, 2: 0, 3: 0 },
+                voteCounts: { 0: 3 },
+                abstainingSeats: [],
+              },
+            ],
+          },
+          sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
+        }),
+      ),
+    ).toThrow('first round eligible voters do not match the expected seat set');
+  });
+
+  it('recomputes closed-round vote counts at the state boundary', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          status: GameStatus.Ended,
+          sheriffElection: {
+            phase: 'completed',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [
+              {
+                round: 'first',
+                candidateSeats: [0, 1],
+                eligibleVoterSeats: [2, 3],
+                ballots: { 2: 0, 3: null },
+                voteCounts: { 0: 2, 1: 0 },
+                abstainingSeats: [3],
+              },
+            ],
+          },
+          sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
+        }),
+      ),
+    ).toThrow('vote count is incorrect for candidate 0');
   });
 });

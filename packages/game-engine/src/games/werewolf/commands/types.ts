@@ -60,6 +60,11 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.board.upvote'; readonly targetUserId: string }
   | { readonly type: 'werewolf.board.withdraw' }
   | { readonly type: 'werewolf.night.start' }
+  | { readonly type: 'werewolf.sheriff.register' }
+  | { readonly type: 'werewolf.sheriff.cancelRegistration' }
+  | { readonly type: 'werewolf.sheriff.withdraw' }
+  | { readonly type: 'werewolf.sheriff.vote'; readonly targetSeat: number | null }
+  | { readonly type: 'werewolf.sheriff.advance' }
   | { readonly type: 'werewolf.audio.ack' }
   | { readonly type: 'werewolf.progress.request' }
   | { readonly type: 'werewolf.reveal.ack' }

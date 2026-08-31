@@ -20,7 +20,7 @@ import { handlerResultToDecision } from '../domain/decision';
 import { handlerError, handlerRejection, handlerSuccess } from '../domain/handlers/types';
 import type { SubmitActionIntent } from '../domain/intents/types';
 import { GameStatus, type GameTemplate, type RoleId } from '../domain/models';
-import type { GameState } from '../domain/protocol/types';
+import type { GameState, SheriffElectionState } from '../domain/protocol/types';
 import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
@@ -68,6 +68,18 @@ function systemContext(): CommandContext {
     commandId: 'command-1',
     randomSeed: 'seed-1',
   };
+}
+
+function evolveCommittedCommand(
+  state: GameState,
+  command: WerewolfCommand,
+  context: CommandContext,
+): GameState {
+  const decision = werewolfEngine.decide(state, command, context);
+  if (decision.kind === 'reject') {
+    throw new Error(`Expected command commit, received ${decision.reason}`);
+  }
+  return decision.events.reduce(werewolfEngine.evolve, state);
 }
 
 describe('Werewolf authoritative actor resolution', () => {
@@ -349,6 +361,11 @@ describe('Werewolf engine definition and catalog', () => {
     },
     'werewolf.board.withdraw': { type: 'werewolf.board.withdraw' },
     'werewolf.night.start': { type: 'werewolf.night.start' },
+    'werewolf.sheriff.register': { type: 'werewolf.sheriff.register' },
+    'werewolf.sheriff.cancelRegistration': { type: 'werewolf.sheriff.cancelRegistration' },
+    'werewolf.sheriff.withdraw': { type: 'werewolf.sheriff.withdraw' },
+    'werewolf.sheriff.vote': { type: 'werewolf.sheriff.vote', targetSeat: null },
+    'werewolf.sheriff.advance': { type: 'werewolf.sheriff.advance' },
     'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
     'werewolf.progress.request': { type: 'werewolf.progress.request' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
@@ -410,6 +427,7 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.config.update',
     'werewolf.review.share',
     'werewolf.night.start',
+    'werewolf.sheriff.advance',
     'werewolf.audio.ack',
     'werewolf.progress.request',
     'werewolf.groupConfirm.ackBots',
@@ -436,13 +454,17 @@ describe('Werewolf engine definition and catalog', () => {
     ).toEqual({ kind: 'reject', reason: REASON_SYSTEM_ACTOR_REQUIRED });
   });
 
-  it('allows controlledSeat only for the five seat-owned commands', () => {
+  it('allows controlledSeat only for seat-owned commands', () => {
     const allowedTypes = new Set<WerewolfCommand['type']>([
       'werewolf.action.submit',
       'werewolf.role.view',
       'werewolf.reveal.ack',
       'werewolf.wolfRobot.ackHunterStatus',
       'werewolf.groupConfirm.ack',
+      'werewolf.sheriff.register',
+      'werewolf.sheriff.cancelRegistration',
+      'werewolf.sheriff.withdraw',
+      'werewolf.sheriff.vote',
     ]);
 
     for (const command of Object.values(commandByType)) {
@@ -506,8 +528,18 @@ describe('Werewolf engine definition and catalog', () => {
       roomCode: '9876',
       hostUserId: 'creator',
       status: GameStatus.Unseated,
+      rules: { isSheriffElectionEnabled: true },
     });
     expect(Object.keys(state.players)).toHaveLength(4);
+    expect(
+      werewolfEngine.createInitialState(
+        {
+          templateRoles: ['wolf', 'seer', 'villager', 'villager'],
+          rules: { isSheriffElectionEnabled: false },
+        },
+        context,
+      ).rules?.isSheriffElectionEnabled,
+    ).toBe(false);
     expect(() => werewolfEngine.createInitialState({ templateRoles: [] }, context)).toThrow(
       'Invalid Werewolf config:',
     );
@@ -519,6 +551,7 @@ describe('Werewolf engine definition and catalog', () => {
     [GameStatus.Assigned, 'setup'],
     [GameStatus.Ready, 'setup'],
     [GameStatus.Ongoing, 'ongoing'],
+    [GameStatus.Day, 'ongoing'],
     [GameStatus.Ended, 'ended'],
   ] as const)('derives %s as %s lifecycle', (status, lifecycle) => {
     expect(getWerewolfLifecycle(createState({ status }))).toBe(lifecycle);
@@ -596,6 +629,367 @@ describe('Werewolf engine definition and catalog', () => {
       werewolfEngine.decide(state, commandByType['werewolf.progress.request'], userContext('host')),
     ).toThrow('[FAIL-FAST] Ended Werewolf game has no assigned role for occupied seat 1');
   });
+
+  it('excludes all registered seats from first voting and only runoff candidates from runoff voting', () => {
+    let state = createState({
+      status: GameStatus.Ongoing,
+      templateRoles: ['wolf', 'seer', 'hunter', 'villager', 'villager'],
+      rules: { isSheriffElectionEnabled: true },
+      roleRevealRandomNonce: 's4',
+      currentStepId: undefined,
+      currentNightResults: {},
+      isAudioPlaying: false,
+      players: {
+        0: { userId: 'host', seat: 0, role: 'wolf', hasViewedRole: true },
+        1: { userId: 'user-1', seat: 1, role: 'seer', hasViewedRole: true },
+        2: { userId: 'bot-2', seat: 2, role: 'hunter', hasViewedRole: true, isBot: true },
+        3: { userId: 'user-3', seat: 3, role: 'villager', hasViewedRole: true },
+        4: { userId: 'user-4', seat: 4, role: 'villager', hasViewedRole: true },
+      },
+      roster: {
+        host: { displayName: 'Host' },
+        'user-1': { displayName: 'User 1' },
+        'bot-2': { displayName: 'Bot 2' },
+        'user-3': { displayName: 'User 3' },
+        'user-4': { displayName: 'User 4' },
+      },
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.progress.request' },
+      userContext('host'),
+    );
+    expect(state).toMatchObject({
+      status: GameStatus.Day,
+      isAudioPlaying: true,
+      pendingAudioEffects: [{ audioKey: 'night_end' }],
+      sheriffElection: { phase: 'registration', registeredSeats: [] },
+    });
+    state = evolveCommittedCommand(state, { type: 'werewolf.audio.ack' }, userContext('host'));
+    expect(state).toMatchObject({
+      status: GameStatus.Day,
+      isAudioPlaying: false,
+      sheriffElection: { phase: 'registration' },
+    });
+    expect(state.pendingAudioEffects).toBeUndefined();
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('host', 2),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('user-1'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('host'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'candidateSpeech',
+      speakingOrder: [0, 1, 2],
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.withdraw' },
+      userContext('user-1'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'firstVote',
+      withdrawnSeats: [1],
+      candidateSeats: [2, 0],
+      eligibleVoterSeats: [3, 4],
+    });
+
+    expect(
+      werewolfEngine.decide(
+        state,
+        { type: 'werewolf.sheriff.vote', targetSeat: 2 },
+        userContext('user-1'),
+      ),
+    ).toEqual({ kind: 'reject', reason: 'not_eligible_voter' });
+    expect(
+      werewolfEngine.decide(state, { type: 'werewolf.sheriff.advance' }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: 'pending_votes' });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+      userContext('user-3'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 2 },
+      userContext('user-4'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'runoffSpeech',
+      candidateSeats: [2, 0],
+      speakingOrder: [2, 0],
+      completedRounds: [
+        {
+          round: 'first',
+          ballots: { 3: 0, 4: 2 },
+          voteCounts: { 0: 1, 2: 1 },
+        },
+      ],
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'runoffVote',
+      candidateSeats: [2, 0],
+      eligibleVoterSeats: [1, 3, 4],
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+      userContext('user-1'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+      userContext('user-3'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+      userContext('user-4'),
+    );
+    const finalDecision = werewolfEngine.decide(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    if (finalDecision.kind === 'reject') {
+      throw new Error(`Expected election completion, received ${finalDecision.reason}`);
+    }
+    state = finalDecision.events.reduce(werewolfEngine.evolve, state);
+
+    expect(state).toMatchObject({
+      status: GameStatus.Ended,
+      sheriffElection: {
+        phase: 'completed',
+        registeredSeats: [2, 1, 0],
+        withdrawnSeats: [1],
+        completedRounds: [{ round: 'first' }, { round: 'runoff', voteCounts: { 0: 3, 2: 0 } }],
+      },
+      sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
+    });
+    expect(finalDecision.effects).toHaveLength(1);
+    expect(finalDecision.effects[0]?.type).toBe('werewolf.game.ended');
+  });
+
+  it('cancels registration without recording withdrawal and allows registration again', () => {
+    let state = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      isAudioPlaying: false,
+      currentNightResults: {},
+      sheriffElection: {
+        phase: 'registration',
+        registeredSeats: [],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('user-1'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.cancelRegistration' },
+      userContext('user-1'),
+    );
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'registration',
+      registeredSeats: [],
+      withdrawnSeats: [],
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('user-1'),
+    );
+    expect(state.sheriffElection).toMatchObject({
+      registeredSeats: [1],
+      withdrawnSeats: [],
+    });
+    expect(
+      werewolfEngine.decide(state, { type: 'werewolf.sheriff.withdraw' }, userContext('user-1')),
+    ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    expect(state.sheriffElection?.phase).toBe('candidateSpeech');
+    expect(
+      werewolfEngine.decide(
+        state,
+        { type: 'werewolf.sheriff.cancelRegistration' },
+        userContext('user-1'),
+      ),
+    ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.withdraw' },
+      userContext('user-1'),
+    );
+    expect(state.sheriffElection?.withdrawnSeats).toEqual([1]);
+  });
+
+  it('uses the seeded counterclockwise table traversal instead of registration order', () => {
+    let state = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      roleRevealRandomNonce: 'game-2',
+      isAudioPlaying: false,
+      sheriffElection: {
+        phase: 'registration',
+        registeredSeats: [],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('host'),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('host', 2),
+    );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+
+    expect(state.sheriffElection).toMatchObject({
+      phase: 'candidateSpeech',
+      registeredSeats: [0, 2],
+      speakingOrder: [2, 0],
+    });
+  });
+
+  it('rejects runoff withdrawal from a registered candidate who did not tie', () => {
+    const state = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      sheriffElection: {
+        phase: 'runoffSpeech',
+        registeredSeats: [0, 1, 2],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0, 2],
+        speakingOrder: [0, 2],
+      },
+    });
+
+    expect(
+      werewolfEngine.decide(state, { type: 'werewolf.sheriff.withdraw' }, userContext('user-1')),
+    ).toEqual({ kind: 'reject', reason: 'not_candidate' });
+  });
+
+  it.each<{
+    command: WerewolfCommand;
+    context: CommandContext;
+    election: SheriffElectionState;
+  }>([
+    {
+      command: { type: 'werewolf.sheriff.register' },
+      context: userContext('user-1'),
+      election: {
+        phase: 'registration',
+        registeredSeats: [],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    },
+    {
+      command: { type: 'werewolf.sheriff.withdraw' },
+      context: userContext('user-1'),
+      election: {
+        phase: 'registration',
+        registeredSeats: [1],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    },
+    {
+      command: { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+      context: userContext('user-1'),
+      election: {
+        phase: 'firstVote',
+        registeredSeats: [0],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0],
+        eligibleVoterSeats: [1, 2],
+        ballots: {},
+      },
+    },
+    {
+      command: { type: 'werewolf.sheriff.advance' },
+      context: userContext('host'),
+      election: {
+        phase: 'registration',
+        registeredSeats: [],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    },
+  ])(
+    'rejects $command.type while the final night audio is playing',
+    ({ command, context, election }) => {
+      const state = createState({
+        status: GameStatus.Day,
+        rules: { isSheriffElectionEnabled: true },
+        isAudioPlaying: true,
+        sheriffElection: election,
+      });
+
+      expect(werewolfEngine.decide(state, command, context)).toEqual({
+        kind: 'reject',
+        reason: 'forbidden_while_audio_playing',
+      });
+    },
+  );
 
   it('is deterministic for identical state, command, and execution context', () => {
     const state = createState({

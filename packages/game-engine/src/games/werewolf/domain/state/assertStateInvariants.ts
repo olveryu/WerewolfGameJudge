@@ -16,7 +16,11 @@ import {
   type RoleId,
   validateTemplateRoles,
 } from '../models';
-import type { GameState } from '../protocol/types';
+import type {
+  GameState,
+  SheriffElectionRoundResult,
+  SheriffElectionState,
+} from '../protocol/types';
 
 function fail(message: string): never {
   throw new Error(`[FAIL-FAST] Invalid Werewolf state: ${message}`);
@@ -119,13 +123,244 @@ function getAssignedRoles(state: GameState): RoleId[] {
   return roles;
 }
 
+function assertUniqueSeats(seats: readonly number[], description: string): void {
+  if (new Set(seats).size !== seats.length) fail(`${description} contain duplicate seats`);
+}
+
+function assertOccupiedSeats(
+  state: GameState,
+  seats: readonly number[],
+  description: string,
+): void {
+  assertUniqueSeats(seats, description);
+  for (const seat of seats) {
+    if (state.players[seat] == null) fail(`${description} contain empty seat ${seat}`);
+  }
+}
+
+function getOccupiedSeats(state: GameState): number[] {
+  return Object.entries(state.players)
+    .filter(([, player]) => player !== null)
+    .map(([seat]) => Number(seat))
+    .sort((left, right) => left - right);
+}
+
+function getExpectedEligibleVoterSeats(
+  state: GameState,
+  round: SheriffElectionRoundResult['round'],
+  registeredSeats: readonly number[],
+  candidateSeats: readonly number[],
+): number[] {
+  const excludedVoterSeats = round === 'first' ? registeredSeats : candidateSeats;
+  return getOccupiedSeats(state).filter((seat) => !excludedVoterSeats.includes(seat));
+}
+
+function assertSameSeats(
+  actual: readonly number[],
+  expected: readonly number[],
+  description: string,
+): void {
+  if (actual.length !== expected.length || actual.some((seat, index) => seat !== expected[index])) {
+    fail(`${description} do not match their ballots`);
+  }
+}
+
+function assertSameSeatSet(
+  actual: readonly number[],
+  expected: readonly number[],
+  description: string,
+): void {
+  if (actual.length !== expected.length || actual.some((seat) => !expected.includes(seat))) {
+    fail(`${description} do not match the expected seat set`);
+  }
+}
+
+function assertSheriffRound(
+  state: GameState,
+  result: SheriffElectionRoundResult,
+  registeredSeats: readonly number[],
+): void {
+  assertOccupiedSeats(state, result.candidateSeats, `${result.round} round candidates`);
+  assertOccupiedSeats(state, result.eligibleVoterSeats, `${result.round} round eligible voters`);
+  for (const seat of result.candidateSeats) {
+    if (!registeredSeats.includes(seat))
+      fail(`${result.round} round contains unregistered candidate`);
+    if (result.eligibleVoterSeats.includes(seat)) {
+      fail(`${result.round} round candidate ${seat} is also an eligible voter`);
+    }
+  }
+  assertSameSeatSet(
+    result.eligibleVoterSeats,
+    getExpectedEligibleVoterSeats(state, result.round, registeredSeats, result.candidateSeats),
+    `${result.round} round eligible voters`,
+  );
+
+  const ballotSeats = Object.keys(result.ballots).map(Number);
+  assertSameSeats(ballotSeats, result.eligibleVoterSeats, `${result.round} round ballot seats`);
+  const calculatedVoteCounts: Record<number, number> = {};
+  for (const candidateSeat of result.candidateSeats) calculatedVoteCounts[candidateSeat] = 0;
+  const calculatedAbstainingSeats: number[] = [];
+  for (const voterSeat of result.eligibleVoterSeats) {
+    const targetSeat = result.ballots[voterSeat];
+    if (targetSeat === undefined) fail(`${result.round} round is missing voter ${voterSeat}`);
+    if (targetSeat === null) {
+      calculatedAbstainingSeats.push(voterSeat);
+      continue;
+    }
+    const currentCount = calculatedVoteCounts[targetSeat];
+    if (currentCount === undefined)
+      fail(`${result.round} round targets non-candidate ${targetSeat}`);
+    calculatedVoteCounts[targetSeat] = currentCount + 1;
+  }
+  const voteCountSeats = Object.keys(result.voteCounts).map(Number);
+  assertSameSeatSet(
+    voteCountSeats,
+    result.candidateSeats,
+    `${result.round} round vote-count seats`,
+  );
+  for (const candidateSeat of result.candidateSeats) {
+    if (result.voteCounts[candidateSeat] !== calculatedVoteCounts[candidateSeat]) {
+      fail(`${result.round} round vote count is incorrect for candidate ${candidateSeat}`);
+    }
+  }
+  assertSameSeats(
+    result.abstainingSeats,
+    calculatedAbstainingSeats,
+    `${result.round} round abstaining seats`,
+  );
+}
+
+function assertActiveSheriffVotingPhase(
+  state: GameState,
+  election: Extract<SheriffElectionState, { phase: 'firstVote' | 'runoffVote' }>,
+): void {
+  assertOccupiedSeats(state, election.candidateSeats, `${election.phase} candidates`);
+  assertOccupiedSeats(state, election.eligibleVoterSeats, `${election.phase} eligible voters`);
+  for (const candidateSeat of election.candidateSeats) {
+    if (!election.registeredSeats.includes(candidateSeat)) {
+      fail(`${election.phase} contains unregistered candidate ${candidateSeat}`);
+    }
+    if (election.withdrawnSeats.includes(candidateSeat)) {
+      fail(`${election.phase} contains withdrawn candidate ${candidateSeat}`);
+    }
+    if (election.eligibleVoterSeats.includes(candidateSeat)) {
+      fail(`${election.phase} candidate ${candidateSeat} is also an eligible voter`);
+    }
+  }
+  assertSameSeatSet(
+    election.eligibleVoterSeats,
+    getExpectedEligibleVoterSeats(
+      state,
+      election.phase === 'firstVote' ? 'first' : 'runoff',
+      election.registeredSeats,
+      election.candidateSeats,
+    ),
+    `${election.phase} eligible voters`,
+  );
+  for (const [voterSeatKey, targetSeat] of Object.entries(election.ballots)) {
+    const voterSeat = Number(voterSeatKey);
+    if (!election.eligibleVoterSeats.includes(voterSeat)) {
+      fail(`${election.phase} contains ballot from ineligible voter ${voterSeat}`);
+    }
+    if (targetSeat !== null && !election.candidateSeats.includes(targetSeat)) {
+      fail(`${election.phase} targets non-candidate ${targetSeat}`);
+    }
+  }
+}
+
+function assertSheriffElectionPhase(state: GameState, election: SheriffElectionState): void {
+  switch (election.phase) {
+    case 'registration':
+    case 'withdrawal':
+    case 'completed':
+      return;
+    case 'candidateSpeech':
+    case 'runoffSpeech':
+      assertOccupiedSeats(state, election.speakingOrder, `${election.phase} speaking order`);
+      if (election.phase === 'candidateSpeech') {
+        const activeSpeakingSeats = election.speakingOrder.filter(
+          (seat) => !election.withdrawnSeats.includes(seat),
+        );
+        const activeCandidateSeats = election.registeredSeats.filter(
+          (seat) => !election.withdrawnSeats.includes(seat),
+        );
+        assertSameSeatSet(activeSpeakingSeats, activeCandidateSeats, 'candidate speaking order');
+      } else {
+        assertSameSeatSet(election.speakingOrder, election.candidateSeats, 'runoff speaking order');
+      }
+      return;
+    case 'firstVote':
+    case 'runoffVote':
+      assertActiveSheriffVotingPhase(state, election);
+      return;
+  }
+  const exhaustive: never = election;
+  return exhaustive;
+}
+
+function assertSheriffElection(state: GameState): void {
+  const election = state.sheriffElection;
+  const result = state.sheriffElectionResult;
+  if (election === undefined) {
+    if (result !== undefined) fail('sheriffElectionResult exists without sheriffElection');
+    if (state.status === GameStatus.Day) fail('Day state has no sheriffElection');
+    if (state.status === GameStatus.Ended && state.rules?.isSheriffElectionEnabled === true) {
+      fail('enabled sheriff election has no completed state');
+    }
+    return;
+  }
+  if (state.rules?.isSheriffElectionEnabled !== true) {
+    fail('sheriffElection exists while the rule is disabled');
+  }
+  if (state.status !== GameStatus.Day && state.status !== GameStatus.Ended) {
+    fail(`sheriffElection exists during ${state.status}`);
+  }
+
+  assertOccupiedSeats(state, election.registeredSeats, 'registered sheriff candidates');
+  assertUniqueSeats(election.withdrawnSeats, 'withdrawn sheriff candidates');
+  for (const seat of election.withdrawnSeats) {
+    if (!election.registeredSeats.includes(seat)) fail(`withdrawn seat ${seat} never registered`);
+  }
+  if (election.phase === 'registration' && election.withdrawnSeats.length > 0) {
+    fail('registration contains withdrawn sheriff candidates');
+  }
+  if (election.completedRounds.length > 2) fail('sheriff election contains more than two rounds');
+  election.completedRounds.forEach((round, index) => {
+    const expectedRound = index === 0 ? 'first' : 'runoff';
+    if (round.round !== expectedRound) fail(`completed round ${index} must be ${expectedRound}`);
+    assertSheriffRound(state, round, election.registeredSeats);
+  });
+  assertSheriffElectionPhase(state, election);
+
+  if (state.status === GameStatus.Day) {
+    if (election.phase === 'completed') fail('Day state contains completed sheriff election');
+    if (result !== undefined) fail('Day state contains sheriffElectionResult');
+    return;
+  }
+  if (election.phase !== 'completed') fail('Ended state contains active sheriff election');
+  if (result === undefined) fail('completed sheriff election has no result');
+  if (result.kind === 'elected') {
+    if (!election.registeredSeats.includes(result.sheriffSeat)) {
+      fail(`elected sheriff seat ${result.sheriffSeat} never registered`);
+    }
+    if (election.withdrawnSeats.includes(result.sheriffSeat)) {
+      fail(`elected sheriff seat ${result.sheriffSeat} withdrew`);
+    }
+  }
+}
+
 /** Reject semantic state combinations that the command pipeline cannot produce. */
 export function assertWerewolfStateInvariants(state: GameState): void {
   const templateError = validateTemplateRoles(state.templateRoles);
   if (templateError !== null) fail(`templateRoles are invalid: ${templateError}`);
 
+  assertSheriffElection(state);
+
   const hasNightResults = state.currentNightResults !== undefined;
-  const isNightState = state.status === GameStatus.Ongoing || state.status === GameStatus.Ended;
+  const isNightState =
+    state.status === GameStatus.Ongoing ||
+    state.status === GameStatus.Day ||
+    state.status === GameStatus.Ended;
   if (isNightState !== hasNightResults) {
     fail(
       isNightState
@@ -139,6 +374,7 @@ export function assertWerewolfStateInvariants(state: GameState): void {
     state.status === GameStatus.Assigned ||
     state.status === GameStatus.Ready ||
     state.status === GameStatus.Ongoing ||
+    state.status === GameStatus.Day ||
     state.status === GameStatus.Ended;
   const isTreasureMasterDisabledByPlague =
     bottomCardRoleId === 'treasureMaster' && state.rules?.isPlagueMode === true;

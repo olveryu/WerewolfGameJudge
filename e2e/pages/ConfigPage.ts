@@ -106,6 +106,30 @@ export class ConfigPage {
     await expect(root.getByText('预女猎白')).toBeVisible();
   }
 
+  /** Set the first-day sheriff-election rule through the real rules screen. */
+  async setSheriffElectionEnabled(isEnabled: boolean): Promise<void> {
+    await this.page.getByTestId(TESTIDS.configGameRulesButton).click();
+    await expect(this.page.getByTestId(TESTIDS.gameRulesScreenRoot)).toBeVisible({
+      timeout: 5000,
+    });
+
+    const electionSwitch = this.page
+      .getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled'))
+      .getByRole('switch');
+    await expect(electionSwitch).toBeVisible();
+    if ((await electionSwitch.isChecked()) !== isEnabled) {
+      await electionSwitch.click();
+    }
+    if (isEnabled) {
+      await expect(electionSwitch).toBeChecked();
+    } else {
+      await expect(electionSwitch).not.toBeChecked();
+    }
+
+    await this.page.getByText('完成', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible({ timeout: 5000 });
+  }
+
   // ---------------------------------------------------------------------------
   // Faction Tabs
   // ---------------------------------------------------------------------------

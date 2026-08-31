@@ -5,7 +5,6 @@
  * WerewolfRoomScreen only needs to call these returned functions.
  */
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { randomBool, randomIntInclusive, type Rng } from '@game-judge/game-engine/platform/random';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useRef, useState } from 'react';
 
@@ -15,24 +14,6 @@ import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-
-/**
- * Generate random speaking order for the start of day phase.
- * @param playerCount - Total number of players
- * @param rng - Optional random number generator for testing
- * @returns Object with starting seat number (1-indexed) and direction
- */
-export function generateSpeakOrder(
-  playerCount: number,
-  rng?: Rng,
-): {
-  startSeat: number;
-  direction: '顺时针' | '逆时针';
-} {
-  const startSeat = randomIntInclusive(1, playerCount, rng);
-  const direction = randomBool(rng) ? '顺时针' : '逆时针';
-  return { startSeat, direction };
-}
 
 interface UseRoomHostDialogsParams {
   gameState: LocalGameState;

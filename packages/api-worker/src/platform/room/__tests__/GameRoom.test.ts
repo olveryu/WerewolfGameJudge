@@ -151,6 +151,7 @@ describe('GameRoom initialization', () => {
       hostUserId: 'host-1',
       status: GameStatus.Unseated,
       templateRoles: TEMPLATE_ROLES,
+      rules: { isSheriffElectionEnabled: true },
     });
   });
 

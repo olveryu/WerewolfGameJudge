@@ -97,6 +97,9 @@ export type {
   GameState,
   Player,
   ProtocolAction,
+  SheriffElectionResult,
+  SheriffElectionRoundResult,
+  SheriffElectionState,
   ShootConfirmStatus,
 } from './domain/protocol/types';
 export { RESOLVERS } from './domain/resolvers';

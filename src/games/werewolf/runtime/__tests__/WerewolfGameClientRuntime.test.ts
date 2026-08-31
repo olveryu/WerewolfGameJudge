@@ -174,6 +174,42 @@ describe('WerewolfGameClientRuntime composition', () => {
     );
   });
 
+  it('delegates sheriff election commands with the correct actor metadata', async () => {
+    const { client, roomSession } = createClient();
+    roomSession.emit(enteringSnapshot());
+    roomSession.emit(readySnapshot(GameStatus.Day));
+
+    await client.registerSheriffCandidate(3);
+    expect(roomSession.dispatch).toHaveBeenLastCalledWith(
+      { type: 'werewolf.sheriff.register' },
+      { controlledSeat: 3, label: 'registerSheriffCandidate' },
+    );
+
+    await client.cancelSheriffRegistration(3);
+    expect(roomSession.dispatch).toHaveBeenLastCalledWith(
+      { type: 'werewolf.sheriff.cancelRegistration' },
+      { controlledSeat: 3, label: 'cancelSheriffRegistration' },
+    );
+
+    await client.withdrawSheriffCandidate(3);
+    expect(roomSession.dispatch).toHaveBeenLastCalledWith(
+      { type: 'werewolf.sheriff.withdraw' },
+      { controlledSeat: 3, label: 'withdrawSheriffCandidate' },
+    );
+
+    await client.castSheriffVote(null, 3);
+    expect(roomSession.dispatch).toHaveBeenLastCalledWith(
+      { type: 'werewolf.sheriff.vote', targetSeat: null },
+      { controlledSeat: 3, label: 'castSheriffVote' },
+    );
+
+    await client.advanceSheriffElection();
+    expect(roomSession.dispatch).toHaveBeenLastCalledWith(
+      { type: 'werewolf.sheriff.advance' },
+      { controlledSeat: null, label: 'advanceSheriffElection' },
+    );
+  });
+
   it('reacts to session teardown without owning disconnect', () => {
     const { roomSession, audio } = createClient();
     roomSession.emit(enteringSnapshot());

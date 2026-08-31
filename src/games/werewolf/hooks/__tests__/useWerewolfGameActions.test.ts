@@ -86,6 +86,21 @@ function createMockClient(overrides: Partial<MockClient> = {}): MockClient {
     sendWolfRobotHunterStatusViewed: jest
       .fn<Promise<MutationResult>, [number | null]>()
       .mockResolvedValue(successfulCommand()),
+    registerSheriffCandidate: jest
+      .fn<Promise<MutationResult>, [number | null]>()
+      .mockResolvedValue(successfulCommand()),
+    cancelSheriffRegistration: jest
+      .fn<Promise<MutationResult>, [number | null]>()
+      .mockResolvedValue(successfulCommand()),
+    withdrawSheriffCandidate: jest
+      .fn<Promise<MutationResult>, [number | null]>()
+      .mockResolvedValue(successfulCommand()),
+    castSheriffVote: jest
+      .fn<Promise<MutationResult>, [number | null, number | null]>()
+      .mockResolvedValue(successfulCommand()),
+    advanceSheriffElection: jest
+      .fn<Promise<MutationResult>, []>()
+      .mockResolvedValue(successfulCommand()),
     postProgression: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     ...overrides,
   } as MockClient;
@@ -377,6 +392,64 @@ describe('useWerewolfGameActions - player night actions', () => {
     await act(() => result.current.sendWolfRobotHunterStatusViewed());
 
     expect(deps.client.sendWolfRobotHunterStatusViewed).toHaveBeenCalledWith(7);
+  });
+});
+
+describe('useWerewolfGameActions - sheriff election', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('passes the controlled bot seat through all player election commands', async () => {
+    const deps = createDeps({
+      debug: createMockDebug({ controlledSeat: 6, effectiveSeat: 6 }),
+    });
+    const { result } = renderHook(() => useWerewolfGameActions(deps));
+
+    await act(() => result.current.registerSheriffCandidate());
+    await act(() => result.current.cancelSheriffRegistration());
+    await act(() => result.current.withdrawSheriffCandidate());
+    await act(() => result.current.castSheriffVote(2));
+    await act(() => result.current.castSheriffVote(null));
+
+    expect(deps.client.registerSheriffCandidate).toHaveBeenCalledWith(6);
+    expect(deps.client.cancelSheriffRegistration).toHaveBeenCalledWith(6);
+    expect(deps.client.withdrawSheriffCandidate).toHaveBeenCalledWith(6);
+    expect(deps.client.castSheriffVote).toHaveBeenNthCalledWith(1, 2, 6);
+    expect(deps.client.castSheriffVote).toHaveBeenNthCalledWith(2, null, 6);
+  });
+
+  it('fails before player election dispatch when there is no effective seat', async () => {
+    const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
+    const { result } = renderHook(() => useWerewolfGameActions(deps));
+
+    await expect(result.current.registerSheriffCandidate()).rejects.toThrow(
+      'requires an effective seat',
+    );
+    await expect(result.current.cancelSheriffRegistration()).rejects.toThrow(
+      'requires an effective seat',
+    );
+    await expect(result.current.withdrawSheriffCandidate()).rejects.toThrow(
+      'requires an effective seat',
+    );
+    await expect(result.current.castSheriffVote(2)).rejects.toThrow('requires an effective seat');
+
+    expect(deps.client.registerSheriffCandidate).not.toHaveBeenCalled();
+    expect(deps.client.cancelSheriffRegistration).not.toHaveBeenCalled();
+    expect(deps.client.withdrawSheriffCandidate).not.toHaveBeenCalled();
+    expect(deps.client.castSheriffVote).not.toHaveBeenCalled();
+  });
+
+  it('allows only the host to advance the election', async () => {
+    const hostDeps = createDeps();
+    const hostHook = renderHook(() => useWerewolfGameActions(hostDeps));
+    await act(() => hostHook.result.current.advanceSheriffElection());
+    expect(hostDeps.client.advanceSheriffElection).toHaveBeenCalledTimes(1);
+
+    const playerDeps = createDeps({ isHost: false });
+    const playerHook = renderHook(() => useWerewolfGameActions(playerDeps));
+    await expect(playerHook.result.current.advanceSheriffElection()).rejects.toThrow(
+      'requires the host',
+    );
+    expect(playerDeps.client.advanceSheriffElection).not.toHaveBeenCalled();
   });
 });
 

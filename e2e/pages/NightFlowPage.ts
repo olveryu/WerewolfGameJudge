@@ -150,6 +150,14 @@ function getSeatTileLocator(page: Page, seat: number) {
 }
 
 async function isNightEnded(page: Page): Promise<boolean> {
+  if (
+    await page
+      .getByTestId(TESTIDS.sheriffElectionPanel)
+      .isVisible()
+      .catch(() => false)
+  ) {
+    return true;
+  }
   for (const kw of UI_TEXT.nightEnd) {
     if (await isTextVisible(page, kw)) return true;
   }
@@ -157,6 +165,14 @@ async function isNightEnded(page: Page): Promise<boolean> {
 }
 
 async function captureNightResult(page: Page): Promise<string> {
+  if (
+    await page
+      .getByTestId(TESTIDS.sheriffElectionPanel)
+      .isVisible()
+      .catch(() => false)
+  ) {
+    return '警长竞选已开始';
+  }
   if (await isTextVisible(page, '平安夜')) return '昨天晚上是平安夜。';
   const deathMsg = page.locator(String.raw`text=/\d+号.*玩家死亡/`);
   if (await deathMsg.isVisible().catch(() => false)) {

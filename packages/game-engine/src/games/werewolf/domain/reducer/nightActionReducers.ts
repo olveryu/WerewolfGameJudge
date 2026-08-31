@@ -72,13 +72,21 @@ export function handleAdvanceToNextAction(
 /** End night (write death results, transition status to Ended). */
 export function handleEndNight(state: GameState, action: EndNightAction): GameState {
   const { deaths, deathReasons } = action.payload;
+  const isSheriffElectionEnabled = state.rules?.isSheriffElectionEnabled === true;
   return {
     ...state,
-    // Terminal state for this app's scope (Night-1-only): results are ready.
-    // This is NOT a winner decision; players decide outcomes offline.
-    status: GameStatus.Ended,
+    status: isSheriffElectionEnabled ? GameStatus.Day : GameStatus.Ended,
     lastNightDeaths: deaths,
     deathReasons,
+    sheriffElection: isSheriffElectionEnabled
+      ? {
+          phase: 'registration',
+          registeredSeats: [],
+          withdrawnSeats: [],
+          completedRounds: [],
+        }
+      : undefined,
+    sheriffElectionResult: undefined,
     currentStepIndex: -1,
     // Clear step state and audio state when night ends.
     currentStepId: undefined,

@@ -209,6 +209,39 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
   }
 
   // =========================================================================
+  // First-day Sheriff Election (delegated to gameActions)
+  // =========================================================================
+
+  async registerSheriffCandidate(
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.registerSheriffCandidate(this.#getActionsContext(), controlledSeat);
+  }
+
+  async cancelSheriffRegistration(
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.cancelSheriffRegistration(this.#getActionsContext(), controlledSeat);
+  }
+
+  async withdrawSheriffCandidate(
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.withdrawSheriffCandidate(this.#getActionsContext(), controlledSeat);
+  }
+
+  async castSheriffVote(
+    targetSeat: number | null,
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.castSheriffVote(this.#getActionsContext(), targetSeat, controlledSeat);
+  }
+
+  async advanceSheriffElection(): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.advanceSheriffElection(this.#getActionsContext());
+  }
+
+  // =========================================================================
   // Night Actions (delegated to gameActions)
   // =========================================================================
 

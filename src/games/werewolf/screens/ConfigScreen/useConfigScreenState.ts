@@ -118,7 +118,9 @@ export function useConfigScreenState({
   const [variantOverrides, setVariantOverrides] = useState<VariantOverrides>(
     () => presetInitial?.variantOverrides ?? {},
   );
-  const [rules, setRules] = useState<GameRuleOverrides>({});
+  const [rules, setRules] = useState<GameRuleOverrides>(() =>
+    isEditMode || isNominateMode ? {} : { isSheriffElectionEnabled: true },
+  );
 
   const totalCount = useMemo(
     () => computeTotalCount(selection, variantOverrides),
@@ -161,8 +163,8 @@ export function useConfigScreenState({
           setVariantOverrides(restored.variantOverrides);
           setSelectedTemplate(restored.matchedPreset ?? '__custom__');
         }
-        if (state?.rules) {
-          setRules(state.rules);
+        if (state) {
+          setRules(state.rules ?? {});
         }
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
@@ -290,7 +292,7 @@ export function useConfigScreenState({
       }
 
       const template = createCustomTemplate(roles);
-      if (Object.values(rules).some(Boolean)) {
+      if (Object.values(rules).some((value) => value !== undefined)) {
         template.rules = rules;
       }
 

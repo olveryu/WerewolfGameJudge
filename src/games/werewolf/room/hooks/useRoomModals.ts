@@ -16,7 +16,7 @@ import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
 /** useRoomModals deps */
 interface UseRoomModalsDeps {
-  /** Whether current user is Host (determines "详细信息" modal options) */
+  /** Whether current user is Host (determines "本局复盘" modal options) */
   isHost: boolean;
   /** Whether current user can share the night-report screenshot (Host or a player shared by Host) */
   canShareReport: boolean;
@@ -100,20 +100,20 @@ export function useRoomModals({
   // ── Night review modal ──
   const [nightReviewVisible, setNightReviewVisible] = useState(false);
 
-  /** Tracks whether the "详细信息" alert is still open (prevents re-showing after dismiss). */
+  /** Tracks whether the "本局复盘" alert is still open (prevents re-showing after dismiss). */
   const detailAlertOpenRef = useRef(false);
 
   const confirmOpenNightReview = useCallback(() => {
     showConfirmAlert(
-      '提示',
-      '请确保你是裁判或观战玩家，再查看详细信息',
+      '查看本局复盘？',
+      '本局复盘包含全员身份和行动记录，请确认本局已经结束。',
       () => setNightReviewVisible(true),
       { confirmText: '确定查看' },
     );
   }, []);
 
   /**
-   * Show the "详细信息" alert with optional loading state on "分享战报" button.
+   * Show the "本局复盘" alert with optional loading state on "分享战报" button.
    * Can be called twice: first with `reportLoading: true`, then with `false`
    * once capture completes — `showAlert` seamlessly updates the existing modal.
    */
@@ -124,7 +124,7 @@ export function useRoomModals({
       };
 
       if (isHost) {
-        showAlert('详细信息', '选择操作', [
+        showAlert('本局复盘', '选择操作', [
           {
             text: '自己查看',
             onPress: () => {
@@ -133,7 +133,7 @@ export function useRoomModals({
             },
           },
           {
-            text: '分享给玩家',
+            text: '授权玩家查看',
             onPress: () => {
               dismiss();
               setShareReviewVisible(true);
@@ -154,7 +154,7 @@ export function useRoomModals({
           },
         ]);
       } else if (canShareReport) {
-        showAlert('详细信息', '选择操作', [
+        showAlert('本局复盘', '选择操作', [
           {
             text: '查看',
             onPress: () => {

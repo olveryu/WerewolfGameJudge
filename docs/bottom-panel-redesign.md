@@ -110,13 +110,13 @@ type StaticButtonId =
 
 ### Non-Ongoing Phases
 
-| Phase        | Host                                                                 | Player (seated)                              | Spectator      |
-| ------------ | -------------------------------------------------------------------- | -------------------------------------------- | -------------- |
-| **Unseated** | P: `房间配置`                                                        | P: `等待房主开始` (disabled)                 | No panel shown |
-| **Seated**   | P: `分配角色` · G: `房间配置`                                        | P: `等待房主开始` (disabled)                 | No panel shown |
-| **Assigned** | P: `查看身份` · G: `重新开始`(danger color)                          | P: `查看身份`                                | No panel shown |
-| **Ready**    | P: `开始游戏` · G: `查看身份` `重新开始`(danger color)               | P: `查看身份`                                | No panel shown |
-| **Ended**    | P: `重新开始`(primary variant) · G: `查看身份` `详细信息` `昨夜信息` | P: `查看身份` · G: `详细信息`(if authorized) | P: `详细信息`  |
+| Phase        | Host                                                   | Player (seated)                         | Spectator      |
+| ------------ | ------------------------------------------------------ | --------------------------------------- | -------------- |
+| **Unseated** | P: `房间配置`                                          | P: `等待房主开始` (disabled)            | No panel shown |
+| **Seated**   | P: `分配角色` · G: `房间配置`                          | P: `等待房主开始` (disabled)            | No panel shown |
+| **Assigned** | P: `查看身份` · G: `重新开始`(danger color)            | P: `查看身份`                           | No panel shown |
+| **Ready**    | P: `开始游戏` · G: `查看身份` `重新开始`(danger color) | P: `查看身份`                           | No panel shown |
+| **Ended**    | P: `查看身份` · H: `重新开始` `本局复盘` `昨夜信息`    | I: `查看身份` `本局复盘`(if authorized) | I: `本局复盘`  |
 
 > P = primary layer, S = secondary layer, G = ghost layer
 

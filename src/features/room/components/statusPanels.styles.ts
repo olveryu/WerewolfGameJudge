@@ -46,6 +46,9 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         overflow: 'hidden',
         ...shadows.lgUpward,
       },
+      dockContainer: {
+        paddingTop: spacing.small,
+      },
       message: {
         textAlign: 'center',
         fontSize: typography.body,
@@ -59,12 +62,79 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         alignItems: 'stretch',
         gap: spacing.small,
       },
+      compactManagementStack: {
+        gap: spacing.small,
+      },
       ghostRow: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         gap: spacing.medium,
         paddingTop: spacing.tight,
+      },
+      dockRow: {
+        minHeight: componentSizes.button.lg,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.small,
+      },
+      dockCenter: {
+        flex: 1,
+        minWidth: 0,
+        alignItems: 'stretch',
+      },
+      dockPrimary: {
+        alignSelf: 'stretch',
+      },
+      toolSlot: {
+        width: componentSizes.menu.compactMinWidth,
+        minHeight: componentSizes.button.lg,
+      },
+      infoRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        gap: spacing.small,
+      },
+      infoAction: {
+        flex: 1,
+        minWidth: 0,
+      },
+      hostManagementEntry: {
+        width: '100%',
+        minHeight: componentSizes.button.md,
+        paddingHorizontal: spacing.small,
+        borderRadius: borderRadius.small,
+      },
+      hostManagementContent: {
+        width: '100%',
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.small,
+      },
+      hostManagementTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.tight,
+      },
+      hostManagementTitle: {
+        ...textStyles.secondarySemibold,
+        color: colors.text,
+      },
+      hostManagementPreviewRow: {
+        flex: 1,
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: spacing.tight,
+      },
+      hostManagementPreview: {
+        ...textStyles.caption,
+        color: colors.textSecondary,
+        flexShrink: 1,
       },
     }),
 

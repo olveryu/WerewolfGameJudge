@@ -67,6 +67,14 @@ async function getActionMsg(page: Page): Promise<string> {
 
 /** Check if any night-end keyword is visible on the page. */
 async function isNightEnded(page: Page): Promise<boolean> {
+  if (
+    await page
+      .getByTestId(TESTIDS.sheriffElectionPanel)
+      .isVisible()
+      .catch(() => false)
+  ) {
+    return true;
+  }
   for (const kw of ['平安夜', '玩家死亡', '昨夜信息']) {
     const visible = await page
       .getByText(kw)

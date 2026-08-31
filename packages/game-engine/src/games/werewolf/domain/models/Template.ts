@@ -111,6 +111,8 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
 export interface GameRuleOverrides {
   /** Plague mode: all wolf-faction roles replaced with villager during dealing */
   isPlagueMode?: boolean;
+  /** Run the first-day sheriff election after the first night (default for new games: true). */
+  isSheriffElectionEnabled?: boolean;
   /** Allow witch to save herself (default: false — witch cannot self-heal) */
   witchCanSelfHeal?: boolean;
 }

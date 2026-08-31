@@ -133,7 +133,10 @@ export function createGame(
 
   const internal: InternalState = {
     state: werewolfEngine.createInitialState(
-      { templateRoles: configuredRoles },
+      {
+        templateRoles: configuredRoles,
+        rules: { isSheriffElectionEnabled: false },
+      },
       {
         roomCode: ROOM_CODE,
         hostUserId: HOST_USER_ID,

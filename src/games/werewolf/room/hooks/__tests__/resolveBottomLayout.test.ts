@@ -1,8 +1,5 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import { TESTIDS } from '@/testids';
-import { colors } from '@/theme';
-
 import type { BottomButton } from '../bottomActionBuilder';
 import type { BottomLayout, LayoutContext } from '../bottomLayoutConfig';
 import { resolveBottomLayout } from '../resolveBottomLayout';
@@ -18,9 +15,7 @@ function makeCtx(overrides: Partial<LayoutContext> = {}): LayoutContext {
     effectiveSeat: null,
     imActioner: false,
     isAudioPlaying: false,
-    isHostActionSubmitting: false,
     nightReviewAllowedSeats: [],
-    isPlagueMode: false,
     ...overrides,
   };
 }
@@ -40,24 +35,20 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Unseated', () => {
-    it('host → primary: settings', () => {
+    it('host → empty player-action layout', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Unseated, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['settings']);
+      expect(keys(layout, 'primary')).toEqual([]);
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
-      // Settings uses info color
-      expect(layout.primary[0]!.buttonColor).toBe(colors.info);
-      expect(layout.primary[0]!.testID).toBe(TESTIDS.roomSettingsButton);
     });
 
-    it('host (not seated yet) → primary: settings', () => {
+    it('host without a seat → empty player-action layout', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Unseated, isHost: true, effectiveSeat: null }),
       );
-      // Host without seat is still 'host' role
-      expect(keys(layout, 'primary')).toEqual(['settings']);
+      expect(keys(layout, 'primary')).toEqual([]);
     });
 
     it('player → primary: waitForHost (disabled)', () => {
@@ -86,13 +77,12 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Seated', () => {
-    it('host → primary: prepareToFlip, ghost: settings', () => {
+    it('host → empty player-action layout', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Seated, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['prepareToFlip']);
-      expect(keys(layout, 'ghost')).toEqual(['settings']);
-      expect(layout.primary[0]!.testID).toBe(TESTIDS.prepareToFlipButton);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('player → primary: waitForHost', () => {
@@ -116,14 +106,12 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Assigned', () => {
-    it('host → primary: viewRole, ghost: restart', () => {
+    it('host → primary: viewRole only', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Assigned, isHost: true, effectiveSeat: 0 }),
       );
       expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual(['restart']);
-      expect(layout.ghost[0]!.textColor).toBe(colors.error);
-      expect(layout.ghost[0]!.testID).toBe(TESTIDS.restartButton);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('player → primary: viewRole only', () => {
@@ -147,28 +135,23 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ready', () => {
-    it('host → primary: startGame, ghost: viewRole + restart', () => {
+    it('host → primary: viewRole', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ready, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['startGame']);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
-      expect(layout.primary[0]!.testID).toBe(TESTIDS.startGameButton);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('host submitting → startGame disabled', () => {
+    it('host and player receive the same personal action', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ready,
           isHost: true,
           effectiveSeat: 0,
-          isHostActionSubmitting: true,
         }),
       );
-      expect(layout.primary[0]).toMatchObject({
-        isEnabled: false,
-        onDisabledBehavior: null,
-      });
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
     });
 
     it('player → primary: viewRole', () => {
@@ -185,7 +168,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ongoing (non-actioner)', () => {
-    it('host → primary: viewRole, ghost: restart', () => {
+    it('host → primary: viewRole only', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -195,7 +178,7 @@ describe('resolveBottomLayout', () => {
         }),
       );
       expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual(['restart']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('player → primary: viewRole', () => {
@@ -300,11 +283,11 @@ describe('resolveBottomLayout', () => {
       });
 
     describe('chooseSeat / swap — single skip button', () => {
-      it('host actioner → secondary: skip, ghost: viewRole + restart', () => {
+      it('host actioner → secondary: skip, ghost: viewRole', () => {
         const layout = resolveBottomLayout(actorCtx(true), [skipButton]);
         expect(keys(layout, 'primary')).toEqual([]);
         expect(keys(layout, 'secondary')).toEqual(['skip']);
-        expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
+        expect(keys(layout, 'ghost')).toEqual(['viewRole']);
         expect(layout.secondary[0]!.variant).toBe('secondary');
         expect(layout.secondary[0]!.size).toBe('md');
       });
@@ -431,13 +414,63 @@ describe('resolveBottomLayout', () => {
     });
 
     describe('no schema buttons (canSkip=false, no selection)', () => {
-      it('host → ghost only: viewRole + restart', () => {
+      it('host → ghost only: viewRole', () => {
         const layout = resolveBottomLayout(actorCtx(true), []);
         // No schema buttons → primary/secondary empty, but ghost still shows
         expect(keys(layout, 'primary')).toEqual([]);
         expect(keys(layout, 'secondary')).toEqual([]);
-        expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
+        expect(keys(layout, 'ghost')).toEqual(['viewRole']);
       });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Day
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Day', () => {
+    it('host → primary: viewRole only', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({ roomStatus: GameStatus.Day, isHost: true, effectiveSeat: 0 }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(layout.primary[0]).toMatchObject({ isEnabled: true });
+    });
+
+    it('host during audio → viewRole remains enabled', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Day,
+          isHost: true,
+          effectiveSeat: 0,
+          isAudioPlaying: true,
+        }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(layout.primary[0]).toMatchObject({ isEnabled: true });
+      expect(keys(layout, 'ghost')).toEqual([]);
+    });
+
+    it('player → primary: viewRole', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: 1 }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
+    });
+
+    it('spectator → empty', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: null }),
+      );
+
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
   });
 
@@ -446,19 +479,16 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Ended', () => {
-    it('host → primary: restart (primary variant), ghost: viewRole + nightReview + lastNightInfo', () => {
+    it('host → secondary: viewRole; review belongs to Host management', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Ended, isHost: true, effectiveSeat: 0 }),
       );
-      expect(keys(layout, 'primary')).toEqual(['restart']);
-      // Ended restart is primary variant, not danger
-      expect(layout.primary[0]!.variant).toBe('primary');
-      expect(layout.primary[0]!.size).toBe('lg');
-      // Ghost buttons
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview', 'lastNightInfo']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('player with nightReview permission → primary: viewRole, ghost: nightReview', () => {
+    it('player with review permission → secondary: viewRole + nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -467,8 +497,10 @@ describe('resolveBottomLayout', () => {
           nightReviewAllowedSeats: [2, 4],
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
-      expect(keys(layout, 'ghost')).toEqual(['nightReview']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole', 'nightReview']);
+      expect(layout.secondary[1]?.label).toBe('本局复盘');
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('player without nightReview permission → primary: viewRole only', () => {
@@ -480,11 +512,12 @@ describe('resolveBottomLayout', () => {
           nightReviewAllowedSeats: [0, 4],
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['viewRole']);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('spectator → primary: nightReview', () => {
+    it('spectator → secondary: nightReview only', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ended,
@@ -492,7 +525,8 @@ describe('resolveBottomLayout', () => {
           effectiveSeat: null,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['nightReview']);
+      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['nightReview']);
     });
   });
 

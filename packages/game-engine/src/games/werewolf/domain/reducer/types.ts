@@ -8,7 +8,14 @@ import type { RosterEntry } from '../../../../platform/room/roster';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
-import type { ConfirmStatus, Player, ProtocolAction } from '../protocol/types';
+import type {
+  ConfirmStatus,
+  Player,
+  ProtocolAction,
+  SheriffElectionResult,
+  SheriffElectionRoundResult,
+  SheriffElectionState,
+} from '../protocol/types';
 import type { AudioEffect, BoardNomination } from '../protocol/types';
 import type { CurrentNightResults } from '../resolvers/types';
 
@@ -120,6 +127,43 @@ export interface EndNightAction {
   payload: {
     deaths: number[];
     deathReasons?: Record<number, DeathReason>;
+  };
+}
+
+// =============================================================================
+// First-day sheriff election actions
+// =============================================================================
+
+export interface RegisterSheriffCandidateAction {
+  type: 'REGISTER_SHERIFF_CANDIDATE';
+  payload: { seat: number };
+}
+
+export interface CancelSheriffRegistrationAction {
+  type: 'CANCEL_SHERIFF_REGISTRATION';
+  payload: { seat: number };
+}
+
+export interface WithdrawSheriffCandidateAction {
+  type: 'WITHDRAW_SHERIFF_CANDIDATE';
+  payload: { seat: number };
+}
+
+export interface CastSheriffVoteAction {
+  type: 'CAST_SHERIFF_VOTE';
+  payload: { voterSeat: number; targetSeat: number | null };
+}
+
+export interface AdvanceSheriffElectionAction {
+  type: 'ADVANCE_SHERIFF_ELECTION';
+  payload: { election: SheriffElectionState };
+}
+
+export interface CompleteSheriffElectionAction {
+  type: 'COMPLETE_SHERIFF_ELECTION';
+  payload: {
+    result: SheriffElectionResult;
+    completedRound?: SheriffElectionRoundResult;
   };
 }
 
@@ -473,6 +517,13 @@ export type StateAction =
   | StartNightAction
   | AdvanceToNextActionAction
   | EndNightAction
+  // First-day sheriff election
+  | RegisterSheriffCandidateAction
+  | CancelSheriffRegistrationAction
+  | WithdrawSheriffCandidateAction
+  | CastSheriffVoteAction
+  | AdvanceSheriffElectionAction
+  | CompleteSheriffElectionAction
   // Night actions
   | RecordActionAction
   | ApplyResolverResultAction

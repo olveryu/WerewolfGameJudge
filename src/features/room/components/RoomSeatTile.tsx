@@ -30,7 +30,11 @@ import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAni
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
-import { formatRoomSeat, type RoomSeatHighlight } from '@/features/room/model/RoomSeatDataSource';
+import {
+  formatRoomSeat,
+  type RoomSeatHighlight,
+  type RoomSeatStatusBadge,
+} from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -89,7 +93,15 @@ export interface RoomSeatTileStyles {
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
   petWrapper: ViewStyle;
-  badgeText: TextStyle;
+  statusBadge: ViewStyle;
+  statusBadgePrimary: ViewStyle;
+  statusBadgeInfo: ViewStyle;
+  statusBadgeSuccess: ViewStyle;
+  statusBadgeWarning: ViewStyle;
+  statusBadgeMuted: ViewStyle;
+  statusBadgeDanger: ViewStyle;
+  statusBadgeText: TextStyle;
+  statusEmphasis: ViewStyle;
   levelBadge: ViewStyle;
   levelBadgeText: TextStyle;
   emptyIndicator: TextStyle;
@@ -128,8 +140,10 @@ export interface RoomSeatTileProps {
   secondaryLabel: string | null;
   /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
   showReadyBadge: boolean;
-  /** Pre-formatted game-owned badge text. */
-  badgeText?: string;
+  /** Game-owned semantic status rendered over the seat. */
+  statusBadge: RoomSeatStatusBadge | null;
+  /** Independent emphasis that does not replace selected / controlled / danger rings. */
+  isStatusEmphasized: boolean;
   /** Player level (from growth system). */
   playerLevel?: number;
   /** Whether to show the level label below the player name (lobby phases only). */
@@ -164,7 +178,8 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   isPlayerAnonymous,
   secondaryLabel,
   showReadyBadge,
-  badgeText,
+  statusBadge,
+  isStatusEmphasized,
   playerLevel,
   showLevel,
   isAppVisible,
@@ -451,6 +466,10 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
 
           {!hasPlayer && <Text style={styles.emptyIndicator}>+</Text>}
 
+          {isStatusEmphasized && hasPlayer && (
+            <View pointerEvents="none" style={styles.statusEmphasis} />
+          )}
+
           {showReadyBadge && hasPlayer && (
             <Animated.View
               style={[styles.readyBadgeContainer, { transform: [{ scale: readyBadgeScale }] }]}
@@ -463,7 +482,14 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
             </Animated.View>
           )}
 
-          {badgeText != null && hasPlayer && <Text style={styles.badgeText}>{badgeText}</Text>}
+          {statusBadge !== null && hasPlayer && (
+            <View
+              style={[styles.statusBadge, getStatusBadgeToneStyle(statusBadge.tone, styles)]}
+              testID={TESTIDS.seatStatusBadge(seat)}
+            >
+              <Text style={styles.statusBadgeText}>{statusBadge.label}</Text>
+            </View>
+          )}
 
           {showLevel && playerLevel != null && hasPlayer && !secondaryLabel && (
             <View style={styles.levelBadge}>
@@ -507,6 +533,26 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
 
 // Memoize with custom comparison
 export const RoomSeatTile = memo(RoomSeatTileComponent);
+
+function getStatusBadgeToneStyle(
+  tone: RoomSeatStatusBadge['tone'],
+  styles: RoomSeatTileStyles,
+): ViewStyle {
+  switch (tone) {
+    case 'primary':
+      return styles.statusBadgePrimary;
+    case 'info':
+      return styles.statusBadgeInfo;
+    case 'success':
+      return styles.statusBadgeSuccess;
+    case 'warning':
+      return styles.statusBadgeWarning;
+    case 'muted':
+      return styles.statusBadgeMuted;
+    case 'danger':
+      return styles.statusBadgeDanger;
+  }
+}
 
 /**
  * Create SeatTile styles. Called once in PlayerGrid and passed to all tiles.
@@ -606,18 +652,47 @@ export function createRoomSeatTileStyles(
       right: -Math.round(tileSize * 0.1),
       pointerEvents: 'none',
     },
-    badgeText: {
+    statusBadge: {
       position: 'absolute',
       bottom: spacing.tight + spacing.micro,
       left: spacing.tight + spacing.micro,
-      backgroundColor: colors.error,
-      color: colors.textInverse,
-      fontSize: typography.caption,
-      fontWeight: typography.weights.bold,
       paddingHorizontal: spacing.tight + spacing.micro,
       paddingVertical: spacing.micro,
       borderRadius: borderRadius.small,
       overflow: 'hidden',
+    },
+    statusBadgePrimary: {
+      backgroundColor: colors.primary,
+    },
+    statusBadgeInfo: {
+      backgroundColor: colors.info,
+    },
+    statusBadgeSuccess: {
+      backgroundColor: colors.success,
+    },
+    statusBadgeWarning: {
+      backgroundColor: colors.warning,
+    },
+    statusBadgeMuted: {
+      backgroundColor: colors.textMuted,
+    },
+    statusBadgeDanger: {
+      backgroundColor: colors.error,
+    },
+    statusBadgeText: {
+      color: colors.textInverse,
+      fontSize: typography.caption,
+      fontWeight: typography.weights.bold,
+    },
+    statusEmphasis: {
+      position: 'absolute',
+      top: -spacing.tight,
+      right: -spacing.tight,
+      bottom: -spacing.tight,
+      left: -spacing.tight,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.info,
+      borderRadius: borderRadius.large,
     },
     levelBadge: {
       position: 'absolute',

@@ -10,10 +10,13 @@ import type {
   RoomCommandDispatchOutcome,
 } from '@/features/room/session/types';
 import {
+  advanceSheriffElection,
   assignRoles,
   boardNominate,
   boardUpvote,
   boardWithdraw,
+  cancelSheriffRegistration,
+  castSheriffVote,
   dispatchPreparedAudioAck,
   type GameActionsContext,
   markAllBotsGroupConfirmed,
@@ -21,6 +24,7 @@ import {
   markViewedRole,
   postProgression,
   prepareAudioAck,
+  registerSheriffCandidate,
   restartGame,
   setWolfRobotHunterStatusViewed,
   shareNightReview,
@@ -29,6 +33,7 @@ import {
   submitGroupConfirmAck,
   submitRevealAck,
   updateTemplate,
+  withdrawSheriffCandidate,
 } from '@/games/werewolf/runtime/werewolfGameActions';
 import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
@@ -160,6 +165,8 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.board.upvote', targetUserId: 'target-user' }, null);
     await boardWithdraw(ctx);
     expectCommand({ type: 'werewolf.board.withdraw' }, null);
+    await advanceSheriffElection(ctx);
+    expectCommand({ type: 'werewolf.sheriff.advance' }, null);
   });
 
   it('passes controlledSeat only for bot-capable player commands', async () => {
@@ -173,6 +180,16 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.groupConfirm.ack' }, 4);
     await setWolfRobotHunterStatusViewed(ctx, 4);
     expectCommand({ type: 'werewolf.wolfRobot.ackHunterStatus' }, 4);
+    await registerSheriffCandidate(ctx, 4);
+    expectCommand({ type: 'werewolf.sheriff.register' }, 4);
+    await cancelSheriffRegistration(ctx, 4);
+    expectCommand({ type: 'werewolf.sheriff.cancelRegistration' }, 4);
+    await withdrawSheriffCandidate(ctx, 4);
+    expectCommand({ type: 'werewolf.sheriff.withdraw' }, 4);
+    await castSheriffVote(ctx, 2, 4);
+    expectCommand({ type: 'werewolf.sheriff.vote', targetSeat: 2 }, 4);
+    await castSheriffVote(ctx, null, 4);
+    expectCommand({ type: 'werewolf.sheriff.vote', targetSeat: null }, 4);
 
     for (const call of dispatchMock.mock.calls) {
       const command = call[0];

@@ -40,6 +40,14 @@ import {
   handleSetWolfRobotHunterStatusViewed,
   handleStartNight,
 } from './nightActionReducers';
+import {
+  handleAdvanceSheriffElection,
+  handleCancelSheriffRegistration,
+  handleCastSheriffVote,
+  handleCompleteSheriffElection,
+  handleRegisterSheriffCandidate,
+  handleWithdrawSheriffCandidate,
+} from './sheriffElectionReducers';
 import type { StateAction } from './types';
 
 /**
@@ -76,6 +84,20 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleAdvanceToNextAction(state, action);
     case 'END_NIGHT':
       return handleEndNight(state, action);
+
+    // ── First-day sheriff election ──────────────────────
+    case 'REGISTER_SHERIFF_CANDIDATE':
+      return handleRegisterSheriffCandidate(state, action);
+    case 'CANCEL_SHERIFF_REGISTRATION':
+      return handleCancelSheriffRegistration(state, action);
+    case 'WITHDRAW_SHERIFF_CANDIDATE':
+      return handleWithdrawSheriffCandidate(state, action);
+    case 'CAST_SHERIFF_VOTE':
+      return handleCastSheriffVote(state, action);
+    case 'ADVANCE_SHERIFF_ELECTION':
+      return handleAdvanceSheriffElection(state, action);
+    case 'COMPLETE_SHERIFF_ELECTION':
+      return handleCompleteSheriffElection(state, action);
     case 'RECORD_ACTION':
       return handleRecordAction(state, action);
     case 'APPLY_RESOLVER_RESULT':
