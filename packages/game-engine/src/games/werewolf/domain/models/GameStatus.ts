@@ -1,7 +1,7 @@
 /**
  * GameStatus - Game status enum
  *
- * Defines all phases of the game lifecycle: unseated → seated → assigned → ready → ongoing → ended.
+ * Defines all phases of the game lifecycle: unseated → seated → assigned → ready → ongoing → day → ended.
  * Contains only enum value definitions. No service dependency, no side effects or business logic.
  */
 
@@ -15,6 +15,7 @@ export enum GameStatus {
   Assigned = 'Assigned', // Roles assigned, players viewing their cards
   Ready = 'Ready', // All players have viewed cards, ready to start
   Ongoing = 'Ongoing', // Night phase in progress
+  Day = 'Day', // Optional first-day sheriff election in progress
   /**
    * Night-1 complete (results ready).
    *

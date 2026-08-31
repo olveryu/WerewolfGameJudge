@@ -64,7 +64,7 @@ export function useWerewolfLastActionToast({
         toast.info('夜幕降临，请等待指示');
         break;
       case 'END_NIGHT':
-        toast.info('天亮了，请查看顶部发言顺序');
+        toast.info('天亮了');
         break;
       case 'RESTART_GAME':
         toast.info('房主已重新开始游戏');

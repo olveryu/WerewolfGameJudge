@@ -70,6 +70,25 @@ export interface WerewolfGameClient {
    */
   boardWithdraw(): Promise<WerewolfCommandDispatchOutcome>;
 
+  // === First-day Sheriff Election ===
+  /** Register the effective seat as a sheriff candidate. */
+  registerSheriffCandidate(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome>;
+
+  /** Cancel the effective seat's registration before registration closes. */
+  cancelSheriffRegistration(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome>;
+
+  /** Withdraw the effective seat from the sheriff election. */
+  withdrawSheriffCandidate(controlledSeat: number | null): Promise<WerewolfCommandDispatchOutcome>;
+
+  /** Cast or replace the effective seat's ballot; null means abstain. */
+  castSheriffVote(
+    targetSeat: number | null,
+    controlledSeat: number | null,
+  ): Promise<WerewolfCommandDispatchOutcome>;
+
+  /** Advance the sheriff election (Host only). */
+  advanceSheriffElection(): Promise<WerewolfCommandDispatchOutcome>;
+
   // === Player Actions ===
   /**
    * Player confirms role viewed

@@ -1,11 +1,8 @@
-import {
-  FIB_PREPARATION_STAGES,
-  FIB_STATE_VERSION,
-  type FibState,
-} from '@game-judge/game-engine/games/fibking/public';
+import { FIB_STATE_VERSION, type FibState } from '@game-judge/game-engine/games/fibking/public';
 
 import {
   createFibBottomActions,
+  createFibHostManagement,
   createFibRoomCapabilities,
   createFibSeatDataSource,
   createFibStatusRibbon,
@@ -234,102 +231,129 @@ describe('FibKing room adapter', () => {
     });
   });
 
-  it('offers next round or end game after the answer is revealed', () => {
+  it('keeps the personal result action after the answer is revealed', () => {
     const ongoing = createOngoing();
     const ended = { ...ongoing, phase: 'ended' as const };
-    const endGame = jest.fn();
     const actions = createFibBottomActions({
       state: ended,
       isHost: true,
       viewerSeat: null,
-      startRound: jest.fn(),
-      cancelPreparing: jest.fn(),
-      revealRound: jest.fn(),
-      endGame,
       openIdentity: jest.fn(),
-      configureGame: jest.fn(),
-      onStartDisabled: jest.fn(),
     });
 
-    expect(actions.layout.primary).toMatchObject([
-      { label: '下一轮', testID: TESTIDS.fibNextRoundButton, isEnabled: true },
-    ]);
+    expect(actions.layout.primary).toEqual([]);
     expect(actions.layout.secondary).toMatchObject([
       { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
     ]);
-    expect(actions.layout.ghost).toMatchObject([
-      { label: '结束游戏', testID: TESTIDS.fibEndGameButton, isEnabled: true },
-    ]);
-    const endGameButton = actions.layout.ghost[0];
-    if (endGameButton?.isEnabled !== true) throw new Error('Expected enabled end-game action');
-    endGameButton.onPress();
-    expect(endGame).toHaveBeenCalledTimes(1);
+    expect(actions.layout.ghost).toEqual([]);
     expect(createFibStatusRibbon(ended)).toMatchObject({ text: '本轮答案已公布' });
   });
 
-  it('derives the complete host bottom-action matrix from Fib phases', () => {
+  it('derives discoverable Host management tasks from Fib phases', () => {
     const startRound = jest.fn();
-    const cancelPreparing = jest.fn();
     const revealRound = jest.fn();
     const endGame = jest.fn();
-    const openIdentity = jest.fn();
-    const configureGame = jest.fn();
     const onStartDisabled = jest.fn();
+    const lobby = createLobby();
+    const lobbyCapabilities = createFibRoomCapabilities({
+      state: lobby,
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+    const lobbyManagement = createFibHostManagement({
+      state: lobby,
+      isHost: true,
+      isCommandSubmitting: false,
+      capabilities: lobbyCapabilities,
+      startRound,
+      cancelPreparing: jest.fn(),
+      revealRound,
+      endGame,
+      onStartDisabled,
+    });
+
+    expect(lobbyManagement?.preview).toBe('下一步：开始本轮');
+    expect(lobbyManagement?.sections.flatMap((section) => section.actions)).toMatchObject([
+      { label: '开始本轮', isEnabled: false, disabledReason: '座位尚未坐满' },
+      { label: '房间设置', isEnabled: true },
+      { label: '填充机器人', isEnabled: true },
+      { label: '清空座位', isEnabled: true },
+    ]);
+    const startAction = lobbyManagement?.sections[0]?.actions[0];
+    if (startAction?.isEnabled !== false || startAction.onDisabledPress === null) {
+      throw new Error('Expected disabled Fib start feedback');
+    }
+    startAction.onDisabledPress();
+    expect(onStartDisabled).toHaveBeenCalledTimes(1);
+
+    const ongoing = createOngoing();
+    const ongoingCapabilities = createFibRoomCapabilities({
+      state: ongoing,
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+    const ongoingManagement = createFibHostManagement({
+      state: ongoing,
+      isHost: true,
+      isCommandSubmitting: false,
+      capabilities: ongoingCapabilities,
+      startRound,
+      cancelPreparing: jest.fn(),
+      revealRound,
+      endGame,
+      onStartDisabled,
+    });
+    expect(ongoingManagement?.preview).toBe('待处理：公布答案');
+    const revealAction = ongoingManagement?.sections[0]?.actions[0];
+    if (revealAction?.isEnabled !== true) throw new Error('Expected enabled reveal action');
+    revealAction.onPress();
+    expect(revealRound).toHaveBeenCalledTimes(1);
+
+    const ended = { ...ongoing, phase: 'ended' as const };
+    const endedCapabilities = createFibRoomCapabilities({
+      state: ended,
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+    const endedManagement = createFibHostManagement({
+      state: ended,
+      isHost: true,
+      isCommandSubmitting: false,
+      capabilities: endedCapabilities,
+      startRound,
+      cancelPreparing: jest.fn(),
+      revealRound,
+      endGame,
+      onStartDisabled,
+    });
+    expect(endedManagement?.preview).toBe('下一步：下一轮');
+    expect(endedManagement?.sections.map((section) => section.title)).toEqual([
+      '当前流程',
+      '危险操作',
+    ]);
+    const endAction = endedManagement?.sections[1]?.actions[0];
+    if (endAction?.isEnabled !== true) throw new Error('Expected enabled end-game action');
+    endAction.onPress();
+    expect(endGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps Fib bottom actions limited to the current player', () => {
+    const openIdentity = jest.fn();
     const common = {
       isHost: true,
       viewerSeat: 0,
-      startRound,
-      cancelPreparing,
-      revealRound,
-      endGame,
       openIdentity,
-      configureGame,
-      onStartDisabled,
     };
 
     const lobby = createFibBottomActions({ state: createLobby(), ...common });
-    expect(lobby.layout.primary).toMatchObject([
-      {
-        label: '开始本轮',
-        testID: TESTIDS.fibStartRoundButton,
-        isEnabled: false,
-        disabledReason: '座位尚未坐满',
-      },
-    ]);
-    expect(lobby.layout.ghost).toMatchObject([
-      { label: '房间设置', testID: TESTIDS.fibConfigureButton, isEnabled: true },
-    ]);
+    expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
 
     const ongoing = createOngoing();
-    const preparing: FibState = {
-      ...createLobby(4),
-      phase: 'preparing',
-      fillEmptySeatsWithBots: true,
-      pendingRound: {
-        roundId: 'round-1',
-        requestedAt: 1,
-        stage: FIB_PREPARATION_STAGES.queued,
-      },
-      preparationFailure: null,
-      round: null,
-    };
-    const preparingActions = createFibBottomActions({ state: preparing, ...common });
-    expect(preparingActions.layout.ghost).toMatchObject([
-      {
-        label: '取消准备',
-        testID: TESTIDS.fibCancelPreparingButton,
-        isEnabled: true,
-      },
-    ]);
-
     const ongoingActions = createFibBottomActions({ state: ongoing, ...common });
-    expect(ongoingActions.layout.primary).toMatchObject([
-      {
-        label: '公布答案',
-        testID: TESTIDS.fibRevealRoundButton,
-        isEnabled: true,
-      },
-    ]);
+    expect(ongoingActions.layout.primary).toEqual([]);
     expect(ongoingActions.layout.secondary).toMatchObject([
       {
         label: '查看身份',
@@ -337,6 +361,10 @@ describe('FibKing room adapter', () => {
         isEnabled: true,
       },
     ]);
+    const identityAction = ongoingActions.layout.secondary[0];
+    if (identityAction?.isEnabled !== true) throw new Error('Expected enabled identity action');
+    identityAction.onPress();
+    expect(openIdentity).toHaveBeenCalledTimes(1);
   });
 
   it('offers recovery actions after preparation fails', () => {
@@ -357,37 +385,37 @@ describe('FibKing room adapter', () => {
     };
     const common = {
       viewerSeat: null,
+      openIdentity: jest.fn(),
+    };
+
+    const capabilities = createFibRoomCapabilities({
+      state: failed,
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+    const hostManagement = createFibHostManagement({
+      state: failed,
+      isHost: true,
+      isCommandSubmitting: false,
+      capabilities,
       startRound,
       cancelPreparing,
       endGame: jest.fn(),
       revealRound: jest.fn(),
-      openIdentity: jest.fn(),
-      configureGame: jest.fn(),
       onStartDisabled: jest.fn(),
-    };
-
-    const hostActions = createFibBottomActions({ state: failed, isHost: true, ...common });
-    expect(hostActions.layout.primary).toMatchObject([
-      {
-        label: '重新准备',
-        testID: TESTIDS.fibRetryPreparationButton,
-        isEnabled: true,
-      },
+    });
+    expect(hostManagement?.sections[0]?.actions).toMatchObject([
+      { label: '重新准备', isEnabled: true },
+      { label: '返回大厅', isEnabled: true },
     ]);
-    expect(hostActions.layout.ghost).toMatchObject([
-      {
-        label: '返回大厅',
-        testID: TESTIDS.fibReturnLobbyButton,
-        isEnabled: true,
-      },
-    ]);
-    const retryButton = hostActions.layout.primary[0];
-    const returnLobbyButton = hostActions.layout.ghost[0];
-    if (retryButton?.isEnabled !== true || returnLobbyButton?.isEnabled !== true) {
-      throw new Error('Expected enabled Fib preparation recovery buttons');
+    const retryAction = hostManagement?.sections[0]?.actions[0];
+    const returnLobbyAction = hostManagement?.sections[0]?.actions[1];
+    if (retryAction?.isEnabled !== true || returnLobbyAction?.isEnabled !== true) {
+      throw new Error('Expected enabled Fib preparation recovery actions');
     }
-    retryButton.onPress();
-    returnLobbyButton.onPress();
+    retryAction.onPress();
+    returnLobbyAction.onPress();
     expect(startRound).toHaveBeenCalledTimes(1);
     expect(cancelPreparing).toHaveBeenCalledTimes(1);
     expect(createFibStatusRibbon(failed)).toMatchObject({
@@ -401,21 +429,13 @@ describe('FibKing room adapter', () => {
   });
 
   it('does not expose host progression actions to a non-host', () => {
-    const callbacks = {
-      startRound: jest.fn(),
-      cancelPreparing: jest.fn(),
-      revealRound: jest.fn(),
-      endGame: jest.fn(),
-      openIdentity: jest.fn(),
-      configureGame: jest.fn(),
-      onStartDisabled: jest.fn(),
-    };
+    const openIdentity = jest.fn();
 
     const lobby = createFibBottomActions({
       state: createLobby(),
       isHost: false,
       viewerSeat: null,
-      ...callbacks,
+      openIdentity,
     });
     expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
     expect(lobby.message).toBe('等待房主开始本轮');
@@ -424,7 +444,7 @@ describe('FibKing room adapter', () => {
       state: createOngoing(),
       isHost: false,
       viewerSeat: 0,
-      ...callbacks,
+      openIdentity,
     });
     expect(ongoingPlayer.layout.primary).toEqual([]);
     expect(ongoingPlayer.layout.secondary).toMatchObject([
@@ -439,7 +459,7 @@ describe('FibKing room adapter', () => {
       state: createOngoing(),
       isHost: false,
       viewerSeat: null,
-      ...callbacks,
+      openIdentity,
     });
     expect(ongoingSpectator.layout.secondary).toMatchObject([
       {

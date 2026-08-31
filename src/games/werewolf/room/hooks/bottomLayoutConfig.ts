@@ -12,7 +12,6 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';
-import { colors } from '@/theme';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Output types
@@ -24,10 +23,6 @@ interface ButtonConfigBase {
   readonly variant: 'primary' | 'secondary' | 'ghost';
   readonly size: 'lg' | 'md';
   readonly testID?: string;
-  /** Text color override (e.g. danger-colored ghost button). */
-  readonly textColor?: string;
-  /** Background color override (e.g. info-colored settings button). */
-  readonly buttonColor?: string;
 }
 
 export type ButtonBehavior =
@@ -59,16 +54,7 @@ export interface BottomLayout {
 // Static button IDs
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type StaticButtonId =
-  | 'viewRole'
-  | 'waitForHost'
-  | 'audioWaiting'
-  | 'settings'
-  | 'prepareToFlip'
-  | 'startGame'
-  | 'restart'
-  | 'lastNightInfo'
-  | 'nightReview';
+export type StaticButtonId = 'viewRole' | 'waitForHost' | 'audioWaiting' | 'nightReview';
 
 /** Static entries that represent real user intent. Display-only entries are excluded. */
 export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting'>;
@@ -80,10 +66,6 @@ export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting'>;
 interface StaticButtonDef {
   label: string;
   testID?: string;
-  /** When rendered as ghost, override text color (e.g. danger). */
-  ghostTextColor?: string;
-  /** When rendered as primary, override button background color. */
-  primaryButtonColor?: string;
 }
 
 export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
@@ -97,30 +79,8 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
     label: '语音播报中…',
     testID: TESTIDS.audioWaitingButton,
   },
-  settings: {
-    label: '房间配置',
-    testID: TESTIDS.roomSettingsButton,
-    primaryButtonColor: colors.info,
-  },
-  prepareToFlip: {
-    label: '分配角色',
-    testID: TESTIDS.prepareToFlipButton,
-  },
-  startGame: {
-    label: '开始游戏',
-    testID: TESTIDS.startGameButton,
-  },
-  restart: {
-    label: '重新开始',
-    testID: TESTIDS.restartButton,
-    ghostTextColor: colors.error,
-  },
-  lastNightInfo: {
-    label: '昨夜信息',
-    testID: TESTIDS.lastNightInfoButton,
-  },
   nightReview: {
-    label: '详细信息',
+    label: '本局复盘',
     testID: TESTIDS.nightReviewButton,
   },
 } as const;
@@ -136,9 +96,7 @@ export interface LayoutContext {
   effectiveSeat: number | null;
   imActioner: boolean;
   isAudioPlaying: boolean;
-  isHostActionSubmitting: boolean;
   nightReviewAllowedSeats: readonly number[];
-  isPlagueMode: boolean;
 }
 
 /** What to put in a button slot. */
@@ -177,7 +135,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Unseated, role: 'host' },
     layout: {
-      primary: [{ source: 'static', button: 'settings' }],
+      primary: [],
       secondary: [],
       ghost: [],
     },
@@ -198,9 +156,9 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Seated, role: 'host' },
     layout: {
-      primary: [{ source: 'static', button: 'prepareToFlip' }],
+      primary: [],
       secondary: [],
-      ghost: [{ source: 'static', button: 'settings' }],
+      ghost: [],
     },
   },
   {
@@ -221,7 +179,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'restart' }],
+      ghost: [],
     },
   },
   {
@@ -238,26 +196,11 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // Ready
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    match: {
-      status: GameStatus.Ready,
-      role: 'host',
-      when: (ctx) => ctx.isPlagueMode,
-    },
+    match: { status: GameStatus.Ready, role: 'host' },
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'restart' }],
-    },
-  },
-  {
-    match: { status: GameStatus.Ready, role: 'host' },
-    layout: {
-      primary: [{ source: 'static', button: 'startGame' }],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'restart' },
-      ],
+      ghost: [],
     },
   },
   {
@@ -313,10 +256,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     layout: {
       primary: [{ source: 'schema', tier: 'primary' }],
       secondary: [{ source: 'schema', tier: 'secondary' }],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'restart' },
-      ],
+      ghost: [{ source: 'static', button: 'viewRole' }],
     },
   },
   {
@@ -340,11 +280,32 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'restart' }],
+      ghost: [],
     },
   },
   {
     match: { status: GameStatus.Ongoing, role: 'player' },
+    layout: {
+      primary: [{ source: 'static', button: 'viewRole' }],
+      secondary: [],
+      ghost: [],
+    },
+  },
+  // spectator: no panel
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Day — sheriff election owns the contextual action; keep room tools visible
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    match: { status: GameStatus.Day, role: 'host' },
+    layout: {
+      primary: [{ source: 'static', button: 'viewRole' }],
+      secondary: [],
+      ghost: [],
+    },
+  },
+  {
+    match: { status: GameStatus.Day, role: 'player' },
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
@@ -359,13 +320,9 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   {
     match: { status: GameStatus.Ended, role: 'host' },
     layout: {
-      primary: [{ source: 'static', button: 'restart' }],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
-        { source: 'static', button: 'lastNightInfo' },
-      ],
+      primary: [],
+      secondary: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
   {
@@ -376,24 +333,27 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
         ctx.effectiveSeat !== null && ctx.nightReviewAllowedSeats.includes(ctx.effectiveSeat),
     },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'nightReview' }],
+      primary: [],
+      secondary: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'nightReview' },
+      ],
+      ghost: [],
     },
   },
   {
     match: { status: GameStatus.Ended, role: 'player' },
     layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
-      secondary: [],
+      primary: [],
+      secondary: [{ source: 'static', button: 'viewRole' }],
       ghost: [],
     },
   },
   {
     match: { status: GameStatus.Ended, role: 'spectator' },
     layout: {
-      primary: [{ source: 'static', button: 'nightReview' }],
-      secondary: [],
+      primary: [],
+      secondary: [{ source: 'static', button: 'nightReview' }],
       ghost: [],
     },
   },

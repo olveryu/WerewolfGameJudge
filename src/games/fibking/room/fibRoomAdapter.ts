@@ -12,8 +12,8 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 
 import type {
-  RoomBottomActionModel,
   RoomBottomButton,
+  RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
 import {
   createRoomSetupCapabilities,
@@ -21,6 +21,11 @@ import {
   type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+  RoomHostManagementSection,
+} from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
@@ -190,7 +195,8 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
         disabledReason:
           player === null && input.state.phase !== 'lobby' ? '当前阶段座位已锁定' : undefined,
         showReadyBadge: false,
-        badgeText: null,
+        statusBadge: null,
+        isStatusEmphasized: false,
         showLevel: input.state.phase === 'lobby',
         decorationsEnabled: input.state.phase === 'lobby',
       };
@@ -238,6 +244,269 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel {
   }
 }
 
+interface FibHostManagementInput {
+  readonly state: FibState;
+  readonly isHost: boolean;
+  readonly isCommandSubmitting: boolean;
+  readonly capabilities: Pick<
+    RoomCapabilities,
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
+  >;
+  readonly startRound: () => void;
+  readonly cancelPreparing: () => void;
+  readonly revealRound: () => void;
+  readonly endGame: () => void;
+  readonly onStartDisabled: () => void;
+}
+
+interface FibHostActionDescriptor {
+  readonly key: string;
+  readonly label: string;
+  readonly icon: RoomHostManagementAction['icon'];
+  readonly variant: RoomHostManagementAction['variant'];
+  readonly testID?: string;
+}
+
+function enabledHostAction(
+  descriptor: FibHostActionDescriptor,
+  onPress: () => void,
+): RoomHostManagementAction {
+  return { ...descriptor, isEnabled: true, onPress };
+}
+
+function commandHostAction(
+  input: FibHostManagementInput,
+  descriptor: FibHostActionDescriptor,
+  onPress: () => void,
+): RoomHostManagementAction {
+  return input.isCommandSubmitting
+    ? {
+        ...descriptor,
+        isLoading: true,
+        isEnabled: false,
+        disabledReason: null,
+        onDisabledPress: null,
+      }
+    : enabledHostAction(descriptor, onPress);
+}
+
+function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
+  switch (input.state.phase) {
+    case 'lobby': {
+      const descriptor: FibHostActionDescriptor = {
+        key: 'start-round',
+        label: '开始本轮',
+        icon: 'play-outline',
+        variant: 'primary',
+        testID: TESTIDS.fibStartRoundButton,
+      };
+      if (input.isCommandSubmitting) {
+        return [commandHostAction(input, descriptor, input.startRound)];
+      }
+      return [
+        isFibRoomFull(input.state)
+          ? enabledHostAction(descriptor, input.startRound)
+          : {
+              ...descriptor,
+              isEnabled: false,
+              disabledReason: '座位尚未坐满',
+              onDisabledPress: input.onStartDisabled,
+            },
+      ];
+    }
+    case 'preparing':
+      return [
+        commandHostAction(
+          input,
+          {
+            key: 'cancel-preparing',
+            label: '取消准备',
+            icon: 'close-circle-outline',
+            variant: 'secondary',
+            testID: TESTIDS.fibCancelPreparingButton,
+          },
+          input.cancelPreparing,
+        ),
+      ];
+    case 'preparationFailed':
+      return [
+        commandHostAction(
+          input,
+          {
+            key: 'retry-preparation',
+            label: '重新准备',
+            icon: 'refresh-outline',
+            variant: 'primary',
+            testID: TESTIDS.fibRetryPreparationButton,
+          },
+          input.startRound,
+        ),
+        commandHostAction(
+          input,
+          {
+            key: 'return-lobby',
+            label: '返回大厅',
+            icon: 'return-down-back-outline',
+            variant: 'secondary',
+            testID: TESTIDS.fibReturnLobbyButton,
+          },
+          input.cancelPreparing,
+        ),
+      ];
+    case 'ongoing':
+      return [
+        commandHostAction(
+          input,
+          {
+            key: 'reveal-round',
+            label: '公布答案',
+            icon: 'eye-outline',
+            variant: 'primary',
+            testID: TESTIDS.fibRevealRoundButton,
+          },
+          input.revealRound,
+        ),
+      ];
+    case 'ended':
+      return [
+        commandHostAction(
+          input,
+          {
+            key: 'next-round',
+            label: '下一轮',
+            icon: 'play-forward-outline',
+            variant: 'primary',
+            testID: TESTIDS.fibNextRoundButton,
+          },
+          input.startRound,
+        ),
+      ];
+  }
+}
+
+function createFibRoomManagementActions(input: FibHostManagementInput): RoomHostManagementAction[] {
+  const actions: RoomHostManagementAction[] = [];
+  if (input.capabilities.canConfigureGame.isAllowed) {
+    actions.push(
+      enabledHostAction(
+        {
+          key: 'configure-game',
+          label: '房间设置',
+          icon: 'options-outline',
+          variant: 'secondary',
+          testID: TESTIDS.fibConfigureButton,
+        },
+        input.capabilities.canConfigureGame.execute,
+      ),
+    );
+  }
+  if (input.capabilities.canFillBots.isAllowed) {
+    actions.push(
+      enabledHostAction(
+        {
+          key: 'fill-bots',
+          label: '填充机器人',
+          icon: 'people-outline',
+          variant: 'secondary',
+          testID: TESTIDS.roomFillBotsButton,
+        },
+        input.capabilities.canFillBots.execute,
+      ),
+    );
+  }
+  if (input.capabilities.canClearSeats.isAllowed) {
+    actions.push(
+      enabledHostAction(
+        {
+          key: 'clear-seats',
+          label: '清空座位',
+          icon: 'trash-outline',
+          variant: 'danger',
+          testID: TESTIDS.roomClearSeatsButton,
+        },
+        input.capabilities.canClearSeats.execute,
+      ),
+    );
+  }
+  return actions;
+}
+
+function createFibDangerActions(input: FibHostManagementInput): RoomHostManagementAction[] {
+  if (input.state.phase !== 'ended') return [];
+  return [
+    commandHostAction(
+      input,
+      {
+        key: 'end-game',
+        label: '结束游戏',
+        icon: 'stop-circle-outline',
+        variant: 'danger',
+        testID: TESTIDS.fibEndGameButton,
+      },
+      input.endGame,
+    ),
+  ];
+}
+
+function createFibHostSection(
+  key: string,
+  title: string,
+  actions: readonly RoomHostManagementAction[],
+): RoomHostManagementSection | null {
+  return actions.length === 0 ? null : { key, title, actions };
+}
+
+function getFibHostPreview(state: FibState): string {
+  switch (state.phase) {
+    case 'lobby':
+      return '下一步：开始本轮';
+    case 'preparing':
+      return '正在准备，可取消';
+    case 'preparationFailed':
+      return '待处理：重新准备';
+    case 'ongoing':
+      return '待处理：公布答案';
+    case 'ended':
+      return '下一步：下一轮';
+  }
+}
+
+function getFibHostStatus(state: FibState): string {
+  switch (state.phase) {
+    case 'lobby':
+      return `等待入座 · ${getFibOccupiedSeatCount(state)}/${state.numberOfPlayers}`;
+    case 'preparing':
+      return '正在准备本轮词语';
+    case 'preparationFailed':
+      return '词语准备失败';
+    case 'ongoing':
+      return '描述进行中';
+    case 'ended':
+      return '本轮答案已公布';
+  }
+}
+
+/** Build the complete FibKing Host-only command surface from current room facts. */
+export function createFibHostManagement(
+  input: FibHostManagementInput,
+): RoomHostManagementModel | null {
+  if (!input.isHost) return null;
+  const sections = [
+    createFibHostSection('current-flow', '当前流程', createFibCurrentFlowActions(input)),
+    createFibHostSection('room-management', '房间管理', createFibRoomManagementActions(input)),
+    createFibHostSection('danger', '危险操作', createFibDangerActions(input)),
+  ].filter((section): section is RoomHostManagementSection => section !== null);
+
+  if (sections.length === 0) {
+    throw new Error('FibKing Host management must expose at least one action');
+  }
+  return {
+    preview: getFibHostPreview(input.state),
+    status: getFibHostStatus(input.state),
+    sections,
+  };
+}
+
 function enabledButton(
   key: string,
   label: string,
@@ -260,101 +529,20 @@ interface FibBottomActionsInput {
   readonly state: FibState;
   readonly isHost: boolean;
   readonly viewerSeat: number | null;
-  readonly startRound: () => void;
-  readonly cancelPreparing: () => void;
-  readonly revealRound: () => void;
-  readonly endGame: () => void;
   readonly openIdentity: () => void;
-  readonly configureGame: () => void;
-  readonly onStartDisabled: () => void;
 }
 
-export function createFibBottomActions(input: FibBottomActionsInput): RoomBottomActionModel {
+export function createFibBottomActions(input: FibBottomActionsInput): RoomBottomStackModel {
   const primary: RoomBottomButton[] = [];
   const secondary: RoomBottomButton[] = [];
   const ghost: RoomBottomButton[] = [];
 
   switch (input.state.phase) {
     case 'lobby':
-      if (input.isHost) {
-        primary.push(
-          isFibRoomFull(input.state)
-            ? enabledButton(
-                'start-round',
-                '开始本轮',
-                'primary',
-                TESTIDS.fibStartRoundButton,
-                input.startRound,
-              )
-            : {
-                key: 'start-round',
-                label: '开始本轮',
-                variant: 'primary',
-                size: 'lg',
-                testID: TESTIDS.fibStartRoundButton,
-                isEnabled: false,
-                disabledReason: '座位尚未坐满',
-                onDisabledPress: input.onStartDisabled,
-              },
-        );
-        ghost.push(
-          enabledButton(
-            'configure-game',
-            '房间设置',
-            'ghost',
-            TESTIDS.fibConfigureButton,
-            input.configureGame,
-          ),
-        );
-      }
-      break;
     case 'preparing':
-      if (input.isHost) {
-        ghost.push(
-          enabledButton(
-            'cancel-preparing',
-            '取消准备',
-            'ghost',
-            TESTIDS.fibCancelPreparingButton,
-            input.cancelPreparing,
-          ),
-        );
-      }
-      break;
     case 'preparationFailed':
-      if (input.isHost) {
-        primary.push(
-          enabledButton(
-            'retry-preparation',
-            '重新准备',
-            'primary',
-            TESTIDS.fibRetryPreparationButton,
-            input.startRound,
-          ),
-        );
-        ghost.push(
-          enabledButton(
-            'return-lobby',
-            '返回大厅',
-            'ghost',
-            TESTIDS.fibReturnLobbyButton,
-            input.cancelPreparing,
-          ),
-        );
-      }
       break;
     case 'ongoing':
-      if (input.isHost) {
-        primary.push(
-          enabledButton(
-            'reveal-round',
-            '公布答案',
-            'primary',
-            TESTIDS.fibRevealRoundButton,
-            input.revealRound,
-          ),
-        );
-      }
       secondary.push(
         enabledButton(
           'view-identity',
@@ -366,20 +554,6 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
       );
       break;
     case 'ended':
-      if (input.isHost) {
-        primary.push(
-          enabledButton(
-            'next-round',
-            '下一轮',
-            'primary',
-            TESTIDS.fibNextRoundButton,
-            input.startRound,
-          ),
-        );
-        ghost.push(
-          enabledButton('end-game', '结束游戏', 'ghost', TESTIDS.fibEndGameButton, input.endGame),
-        );
-      }
       secondary.push(
         enabledButton(
           'view-result',
@@ -393,6 +567,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
   }
 
   return {
+    kind: 'stacked',
     message: input.isHost ? null : getPlayerMessage(input.state),
     layout: { primary, secondary, ghost },
   };

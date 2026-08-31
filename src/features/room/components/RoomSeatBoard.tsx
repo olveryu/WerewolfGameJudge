@@ -141,7 +141,8 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
                 isPlayerAnonymous={seatModel.player?.isAnonymous ?? false}
                 secondaryLabel={seatModel.secondaryLabel}
                 showReadyBadge={seatModel.showReadyBadge}
-                badgeText={seatModel.badgeText ?? undefined}
+                statusBadge={seatModel.statusBadge}
+                isStatusEmphasized={seatModel.isStatusEmphasized}
                 playerLevel={seatModel.player?.level}
                 showLevel={seatModel.showLevel}
                 seatDecorationsEnabled={seatModel.decorationsEnabled}
@@ -240,6 +241,7 @@ const RoomSeatBoardComponent: React.FC<RoomSeatBoardProps> = ({
 
   return (
     <VirtualizedList
+      style={styles.list}
       data={model.source}
       extraData={`${model.source.revision}:${currentPage}`}
       getItem={getRowIndex}
@@ -264,6 +266,9 @@ export const RoomSeatBoard = memo(RoomSeatBoardComponent);
 RoomSeatBoard.displayName = 'RoomSeatBoard';
 
 const styles = StyleSheet.create({
+  list: {
+    flex: 1,
+  },
   contentWidthProbe: {
     alignSelf: 'stretch',
   },

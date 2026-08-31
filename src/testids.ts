@@ -18,6 +18,7 @@ export const TESTIDS = {
   // RoomScreen - Seat Grid (pressable target)
   // Purpose: avoid duplicate testID collisions when the wrapper View also has seatTile.
   seatTilePressable: (seat: number) => `seat-tile-pressable-${seat}`,
+  seatStatusBadge: (seat: number) => `seat-status-badge-${seat}`,
   mySeatBadge: 'my-seat-badge',
 
   // Home / Config / Room readiness gates (stable, non-copy based)
@@ -36,6 +37,7 @@ export const TESTIDS = {
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
   configTemplatePill: 'config-template-pill',
+  configGameRulesButton: 'config-game-rules-button',
 
   boardPickerScreenRoot: 'board-picker-screen-root',
 
@@ -47,6 +49,8 @@ export const TESTIDS = {
   configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,
   configStepperCount: (roleId: string) => `config-stepper-count-${roleId}`,
   configFactionTab: (key: string) => `config-faction-tab-${key}`,
+  gameRulesScreenRoot: 'game-rules-screen-root',
+  gameRuleSwitch: (rule: string) => `game-rule-switch-${rule}`,
   fibPlayerCountInput: 'fib-player-count-input',
   fibConfigSubmitButton: 'fib-config-submit-button',
   fibRulesScreenRoot: 'fib-rules-screen-root',
@@ -60,9 +64,14 @@ export const TESTIDS = {
   roomSeatNextPage: 'room-seat-next-page',
   roomSeatPageInput: 'room-seat-page-input',
   roomEncyclopediaButton: 'room-encyclopedia-button',
-  roomMenuButton: 'room-menu-button',
+  roomShareButton: 'room-share-button',
   roomUserSettingsButton: 'room-user-settings-button',
+  roomHostManagementButton: 'room-host-management-button',
+  roomHostManagementPanel: 'room-host-management-panel',
   roomSettingsButton: 'room-settings-button',
+  roomFillBotsButton: 'room-fill-bots-button',
+  roomClearSeatsButton: 'room-clear-seats-button',
+  roomMusicSettingsButton: 'room-music-settings-button',
   roomSettingsOverlay: 'room-settings-overlay',
   prepareToFlipButton: 'prepare-to-flip-button',
   startGameButton: 'start-game-button',
@@ -73,6 +82,30 @@ export const TESTIDS = {
   chooseBottomCardOption: (cardIndex: number) => `choose-bottom-card-option-${cardIndex}`,
   bgmToggleButton: 'bgm-toggle-button',
   connectionStatusContainer: 'connection-status-container',
+
+  // Werewolf sheriff election
+  sheriffElectionPanel: 'sheriff-election-panel',
+  sheriffElectionHud: 'sheriff-election-hud',
+  sheriffElectionHudPhase: 'sheriff-election-hud-phase',
+  sheriffDetailsButton: 'sheriff-details-button',
+  sheriffDetailsCloseButton: 'sheriff-details-close-button',
+  sheriffElectionSheet: 'sheriff-election-sheet',
+  sheriffElectionInspector: 'sheriff-election-inspector',
+  sheriffElectionPhase: 'sheriff-election-phase',
+  sheriffRegisteredSeats: 'sheriff-registered-seats',
+  sheriffWithdrawnSeats: 'sheriff-withdrawn-seats',
+  sheriffActiveCandidateSeats: 'sheriff-active-candidate-seats',
+  sheriffSpeakingOrder: 'sheriff-speaking-order',
+  sheriffVoteProgress: 'sheriff-vote-progress',
+  sheriffRegisterButton: 'sheriff-register-button',
+  sheriffCancelRegistrationButton: 'sheriff-cancel-registration-button',
+  sheriffWithdrawButton: 'sheriff-withdraw-button',
+  sheriffOpenVoteButton: 'sheriff-open-vote-button',
+  sheriffCandidateButton: (seat: number) => `sheriff-candidate-button-${seat}`,
+  sheriffAbstainButton: 'sheriff-abstain-button',
+  sheriffAdvanceButton: 'sheriff-advance-button',
+  sheriffCompletedRound: (round: string) => `sheriff-completed-round-${round}`,
+  sheriffElectionResult: 'sheriff-election-result',
 
   // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',

@@ -287,6 +287,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
             style={rulesEntryStyles.container}
             activeOpacity={0.7}
             onPress={handleOpenGameRules}
+            testID={TESTIDS.configGameRulesButton}
           >
             <Ionicons
               name="settings-outline"

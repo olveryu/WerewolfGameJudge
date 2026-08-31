@@ -1,6 +1,7 @@
 import type { Browser } from '@playwright/test';
 import { expect, type Page } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
@@ -29,6 +30,8 @@ interface SetupGameOptions {
   configureTemplate?: (config: ConfigPage) => Promise<void>;
   /** Whether to start the game (prepare → view roles → start). Default: true. */
   startGame?: boolean;
+  /** Whether the night flow should continue into the default-on sheriff election. Default: false. */
+  isSheriffElectionEnabled?: boolean;
 }
 
 interface GameSetupResult {
@@ -62,16 +65,16 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 const PRESENCE_MAX_ATTEMPTS = 80;
 /** Poll cadence for presence stability checks (≤300ms per test instructions). */
 const PRESENCE_INTERVAL_MS = 300;
-/** At this attempt, reload host page to force a fresh DB fetch (escalation). */
+/** At this attempt, reload the host page to force a fresh socket state sync (escalation). */
 const PRESENCE_ESCALATION_ATTEMPT = 25;
 
 /**
  * Hard gate: Wait for all joiner presence to be reflected on the host page.
  *
- * Polls for "分配角色" button visibility (only appears when all seats are filled).
+ * Polls for the Host-management preview that appears when all seats are filled.
  * Uses "retry with escalation": at the halfway point, reloads the host page to
- * force a fresh `joinRoom → fetchStateFromDB` cycle, compensating for Supabase
- * Realtime broadcast delays in CI environments.
+ * force a new room lifecycle and correlated WebSocket state sync, compensating
+ * for missed realtime delivery in CI environments.
  *
  * Throws with diagnostic info if presence does not stabilize within the timeout.
  *
@@ -100,16 +103,17 @@ async function waitForPresenceStable(
     // Ensure all pages are still connected before checking presence
     await ensureConnected([hostPage, ...joinerPages]);
 
-    const isPrepareVisible = await hostPage
-      .getByTestId('prepare-to-flip-button')
-      .isVisible()
+    const isReadyToPrepare = await hostPage
+      .getByTestId(TESTIDS.roomHostManagementButton)
+      .getAttribute('aria-label')
+      .then((label) => label === '主持管理，下一步：分配角色')
       .catch(() => false);
-    if (isPrepareVisible) return;
+    if (isReadyToPrepare) return;
   }
 
   // Hard fail: collect diagnostics for debugging
   const visibleTexts: string[] = [];
-  for (const text of ['分配角色', '等待玩家', '开始游戏']) {
+  for (const text of ['下一步：分配角色', '等待玩家', '开始游戏']) {
     const visible = await hostPage
       .getByText(text)
       .isVisible()
@@ -126,7 +130,7 @@ async function waitForPresenceStable(
       `Expected ${joinerPages.length + 1} players seated. ` +
       `Visible seat tiles: ${seatCount}. ` +
       `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
-      `"分配角色" button never appeared — presence not stable.`,
+      `Host management never showed "下一步：分配角色" — presence not stable.`,
   );
 }
 
@@ -209,7 +213,12 @@ export async function setupNPlayerGame(
   browser: Browser,
   opts: SetupGameOptions = {},
 ): Promise<GameSetupResult> {
-  const { playerCount = 2, configureTemplate, startGame = true } = opts;
+  const {
+    playerCount = 2,
+    configureTemplate,
+    startGame = true,
+    isSheriffElectionEnabled = false,
+  } = opts;
 
   // Step 1: Create all player contexts
   const fixture = await createPlayerContexts(browser, playerCount);
@@ -225,6 +234,9 @@ export async function setupNPlayerGame(
 
   if (configureTemplate) {
     await configureTemplate(config);
+  }
+  if (startGame && !isSheriffElectionEnabled) {
+    await config.setSheriffElectionEnabled(false);
   }
 
   await config.clickCreate();
@@ -286,7 +298,7 @@ export async function setupNPlayerGameWithRoles(
   browser: Browser,
   opts: Omit<SetupGameOptions, 'startGame'> = {},
 ): Promise<GameSetupWithRolesResult> {
-  const { playerCount = 2, configureTemplate } = opts;
+  const { playerCount = 2, configureTemplate, isSheriffElectionEnabled = false } = opts;
 
   // Step 1: Create all player contexts
   const fixture = await createPlayerContexts(browser, playerCount);
@@ -302,6 +314,9 @@ export async function setupNPlayerGameWithRoles(
 
   if (configureTemplate) {
     await configureTemplate(config);
+  }
+  if (!isSheriffElectionEnabled) {
+    await config.setSheriffElectionEnabled(false);
   }
 
   await config.clickCreate();

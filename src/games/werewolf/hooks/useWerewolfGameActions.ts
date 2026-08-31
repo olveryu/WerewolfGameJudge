@@ -103,6 +103,13 @@ interface WerewolfGameActionsState {
   boardUpvote: (targetUserId: string) => Promise<void>;
   boardWithdraw: () => Promise<void>;
 
+  // First-day sheriff election
+  registerSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
+  cancelSheriffRegistration: () => Promise<WerewolfCommandDispatchOutcome>;
+  withdrawSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
+  castSheriffVote: (targetSeat: number | null) => Promise<WerewolfCommandDispatchOutcome>;
+  advanceSheriffElection: () => Promise<WerewolfCommandDispatchOutcome>;
+
   // Game state queries
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
@@ -189,7 +196,7 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Sharing Werewolf night review requires the host');
       }
       const result = await client.shareNightReview(allowedSeats);
-      handleCommandOutcome(result, '分享详细信息', toastError);
+      handleCommandOutcome(result, '分享本局复盘', toastError);
       return result;
     },
     [client, isHost],
@@ -294,6 +301,61 @@ interface WerewolfGameActionsDeps {
   }, [client]);
 
   // =========================================================================
+  // First-day Sheriff Election
+  // =========================================================================
+
+  const registerSheriffCandidate =
+    useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+      if (debug.effectiveSeat === null) {
+        throw new Error('[FAIL-FAST] Registering as sheriff candidate requires an effective seat');
+      }
+      const result = await client.registerSheriffCandidate(debug.controlledSeat);
+      handleCommandOutcome(result, '报名上警', toastError);
+      return result;
+    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+
+  const cancelSheriffRegistration =
+    useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+      if (debug.effectiveSeat === null) {
+        throw new Error('[FAIL-FAST] Canceling sheriff registration requires an effective seat');
+      }
+      const result = await client.cancelSheriffRegistration(debug.controlledSeat);
+      handleCommandOutcome(result, '取消报名', toastError);
+      return result;
+    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+
+  const withdrawSheriffCandidate =
+    useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+      if (debug.effectiveSeat === null) {
+        throw new Error('[FAIL-FAST] Withdrawing from sheriff election requires an effective seat');
+      }
+      const result = await client.withdrawSheriffCandidate(debug.controlledSeat);
+      handleCommandOutcome(result, '退水', toastError);
+      return result;
+    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+
+  const castSheriffVote = useCallback(
+    async (targetSeat: number | null): Promise<WerewolfCommandDispatchOutcome> => {
+      if (debug.effectiveSeat === null) {
+        throw new Error('[FAIL-FAST] Casting a sheriff ballot requires an effective seat');
+      }
+      const result = await client.castSheriffVote(targetSeat, debug.controlledSeat);
+      handleCommandOutcome(result, '竞选投票', toastError);
+      return result;
+    },
+    [client, debug.controlledSeat, debug.effectiveSeat],
+  );
+
+  const advanceSheriffElection = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Advancing sheriff election requires the host');
+    }
+    const result = await client.advanceSheriffElection();
+    handleCommandOutcome(result, '推进竞选', toastError);
+    return result;
+  }, [client, isHost]);
+
+  // =========================================================================
   // Game state queries
   // =========================================================================
 
@@ -352,6 +414,11 @@ interface WerewolfGameActionsDeps {
     boardNominate,
     boardUpvote,
     boardWithdraw,
+    registerSheriffCandidate,
+    cancelSheriffRegistration,
+    withdrawSheriffCandidate,
+    castSheriffVote,
+    advanceSheriffElection,
     getLastNightInfo,
     getCurseInfo,
     hasWolfVoted,

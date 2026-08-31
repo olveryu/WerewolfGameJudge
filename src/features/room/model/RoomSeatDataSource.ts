@@ -2,6 +2,11 @@
 
 export type RoomSeatHighlight = 'none' | 'danger' | 'selected' | 'controlled';
 
+export interface RoomSeatStatusBadge {
+  readonly label: string;
+  readonly tone: 'primary' | 'info' | 'success' | 'warning' | 'muted' | 'danger';
+}
+
 export interface RoomSeatPlayer {
   readonly kind: 'human' | 'bot';
   readonly userId: string;
@@ -24,7 +29,8 @@ export interface RoomSeatViewModel {
   readonly secondaryLabel: string | null;
   readonly disabledReason?: string;
   readonly showReadyBadge: boolean;
-  readonly badgeText: string | null;
+  readonly statusBadge: RoomSeatStatusBadge | null;
+  readonly isStatusEmphasized: boolean;
   readonly showLevel: boolean;
   readonly decorationsEnabled: boolean;
 }

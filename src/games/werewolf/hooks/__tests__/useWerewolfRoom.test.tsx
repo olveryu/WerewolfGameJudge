@@ -142,6 +142,11 @@ function createClient(options?: {
     boardNominate: jest.fn(async () => success()),
     boardUpvote: jest.fn(async () => success()),
     boardWithdraw: jest.fn(async () => success()),
+    registerSheriffCandidate: jest.fn(async () => success()),
+    cancelSheriffRegistration: jest.fn(async () => success()),
+    withdrawSheriffCandidate: jest.fn(async () => success()),
+    castSheriffVote: jest.fn(async () => success()),
+    advanceSheriffElection: jest.fn(async () => success()),
     markViewedRole: jest.fn(async () => success()),
     submitAction: jest.fn(async () => success()),
     submitRevealAck: jest.fn(async () => success()),
@@ -177,6 +182,23 @@ describe('useWerewolfRoom shared-session composition', () => {
     expect(result.current.myRole).toBe('wolf');
     expect(result.current.stateRevision).toBe(7);
     expect(result.current.connectionStatus).toBe('live');
+  });
+
+  it('exposes sheriff election commands from the shared game action hook', async () => {
+    const client = createClient({ state: createGameState({ status: GameStatus.Day }) });
+    const { result } = renderHook(() => useWerewolfRoom(client), {
+      wrapper: createWrapper(),
+    });
+
+    await act(() => result.current.registerSheriffCandidate());
+    await act(() => result.current.cancelSheriffRegistration());
+    await act(() => result.current.castSheriffVote(null));
+    await act(() => result.current.advanceSheriffElection());
+
+    expect(client.registerSheriffCandidate).toHaveBeenCalledWith(null);
+    expect(client.cancelSheriffRegistration).toHaveBeenCalledWith(null);
+    expect(client.castSheriffVote).toHaveBeenCalledWith(null, null);
+    expect(client.advanceSheriffElection).toHaveBeenCalledTimes(1);
   });
 
   it('does not infer host authority from the snapshot when the active user is a player', () => {

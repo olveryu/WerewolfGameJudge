@@ -29,10 +29,10 @@ GameFacade
   |                                v
   |                         GameRoom receipt/state/outbox
   |
-  `- ConnectionManager --------- WebSocket + /room/state + /room/revision
-                                   |
-                                   |- STATE_UPDATE
-                                   `- durable user event + USER_EVENT_ACK
+  `- ConnectionManager --------- WebSocket
+                                   |-- STATE_SYNC_REQUEST/STATE_SYNC_RESPONSE
+                                   |-- STATE_UPDATE
+                                   `-- durable user event + USER_EVENT_ACK
 ```
 
 职责边界：
@@ -40,8 +40,8 @@ GameFacade
 - `cfFetch`：JWT 注入、`AbortSignal.timeout()`、网络层 retry、401 single-flight refresh、严格 JSON error。
 - `roomCommandTransport`：只发送已 prepare 的 immutable envelope，解析共享 command result contract。
 - `RoomCommandSession`：拥有 command ID 生命周期、同意图合并、snapshot generation 隔离。
-- `CFRealtimeService`：WebSocket 建连、严格 wire parser、单 socket revision 检查；不负责 reconnect。
-- `ConnectionManager`：纯 FSM 的 imperative shell，负责 reconnect、ping/pong、初始 fetch、revision poll。
+- `CFRealtimeService`：WebSocket 建连、严格 wire parser、广播 revision 检查；不负责 reconnect。
+- `ConnectionManager`：纯 FSM 的 imperative shell，负责 reconnect、ping/pong、关联快照同步和生命周期恢复。
 - Worker `user_event_inbox`：认证用户事件的 durable at-least-once delivery。
 
 ## 3. HTTP 基础层
@@ -101,13 +101,21 @@ decision；同 ID 换身份或 body 返回 `command_id_conflict`，不能在新 
 
 ## 5. State recovery
 
-### 5.1 WebSocket state
+### 5.1 两类状态消息
 
 每个 `STATE_UPDATE` 必须通过共享 parser 验证 game type、state version、revision 和 state。单个 socket 上
 revision 必须严格递增；重复、倒退、未知 message type 或非法 JSON 都关闭 1002 protocol error。
 
-WebSocket 只推 committed snapshot，不承担命令确认的唯一职责。HTTP command response 同样携带 committed
-snapshot，因此任一通路先到都由 store revision 规则收敛。
+`STATE_SYNC_REQUEST` 携带非空 request ID。Worker 从当前 `GameRoom` 同步读取完整 snapshot，并在同一 socket
+返回相同 request ID 的 `STATE_SYNC_RESPONSE`。已初始化房间缺少 snapshot 是服务端完整性错误：记录日志、上报
+Sentry，并关闭 1011 `state_unavailable`。
+
+同步响应和广播使用独立顺序语义。同步响应可能与已经到达的广播 revision 相同，也可能因竞态更旧，因此不更新
+`CFRealtimeService` 的广播 revision 游标。`RoomSession` 统一收敛完整 snapshot：旧 revision 忽略；相同 revision
+要求 canonical payload 一致；新 revision 替换当前状态。
+
+WebSocket 只传 committed snapshot，不承担命令确认的唯一职责。HTTP command response 同样携带 committed
+snapshot，因此任一通路先到都按上述 revision 规则收敛。
 
 ### 5.2 Connection FSM
 
@@ -121,12 +129,15 @@ Idle -> Connecting -> Syncing -> Connected
 
 `ConnectionManager` 的恢复机制：
 
-- connect 时并行启动 WebSocket 和 `/room/state` prefetch，避免串行冷启动。
-- socket open 后完成 authoritative state fetch 才进入 Connected。
-- 每 25 秒 ping，10 秒无 pong 视为断线。
+- connect 只建立 WebSocket；socket open 后立即发送新的 `STATE_SYNC_REQUEST`，并启动 10 秒同步截止时间。
+- 只有 request ID 与当前 pending request 完全一致的 `STATE_SYNC_RESPONSE` 才能进入 Connected。
+- Syncing 期间到达的 `STATE_UPDATE` 可以应用，但不能越过同步屏障；未关联或 ID 不匹配的同步响应是协议错误。
+- 同步请求发送失败或 10 秒内没有响应时关闭 socket，进入统一的断线重连路径。
+- 每 25 秒 ping，10 秒无 pong 时主动关闭 socket 并进入断线重连。
 - reconnect 使用 FSM 生成的 exponential backoff + jitter，最多 15 次；网络恢复、页面可见或手动操作可重启。
-- revision poll 从 5 秒自适应退避到 60 秒；发现服务端 revision 高于本地时重新 fetch state。
-- 每条异步 prefetch/reconnect 都带 generation，过期任务不能写入当前连接。
+- Connected 状态进入后台时暂停 ping；恢复前台后重新进入 Syncing，并在原 socket 请求新的完整 snapshot。
+- Syncing 状态进入后台时关闭 socket 且暂停重连；恢复前台后建立新 socket，再发起新的关联同步。
+- 状态恢复不执行 HTTP snapshot 请求或 revision poll。异步建连带 generation，过期任务不能改变当前连接。
 
 ## 6. Durable user events
 
@@ -170,6 +181,10 @@ Engine commit、receipt 和 effect outbox 在一个 DO transaction 中完成。�
 - terminal decision 才释放 pending envelope。
 - leave/switch 后晚到 response 不应用 snapshot。
 - socket revision 重复或倒退关闭协议连接。
+- broadcast 不能替代关联同步响应进入 Connected。
+- 同步超时或发送失败关闭旧 socket，并通过重连请求完整 snapshot。
+- Syncing 期间进入后台会关闭 socket；页面恢复可见后建立新连接并请求完整 snapshot。
+- Connected 页面恢复可见时在现有 socket 请求完整 snapshot。
 - durable event 在离线后重连 replay，ACK 只能删除认证用户自己的 row。
 - listener 失败不 ACK，重复 event 不重复展示但会再次 ACK。
 - outbox 未清空时房间删除失败。

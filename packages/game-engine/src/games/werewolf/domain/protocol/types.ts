@@ -112,6 +112,63 @@ export interface BoardNomination {
 }
 
 // =============================================================================
+// First-day sheriff election
+// =============================================================================
+
+/** Immutable result of one closed sheriff-election voting round. */
+export interface SheriffElectionRoundResult {
+  readonly round: 'first' | 'runoff';
+  readonly candidateSeats: readonly number[];
+  readonly eligibleVoterSeats: readonly number[];
+  readonly ballots: Readonly<Record<number, number | null>>;
+  readonly voteCounts: Readonly<Record<number, number>>;
+  readonly abstainingSeats: readonly number[];
+}
+
+interface SheriffElectionCommonState {
+  /** Every seat that registered, kept in registration order even after withdrawal. */
+  readonly registeredSeats: readonly number[];
+  /** Seats that withdrew, kept in withdrawal order for the public election record. */
+  readonly withdrawnSeats: readonly number[];
+  /** Closed rounds only. Active-round ballots are not a published result. */
+  readonly completedRounds: readonly SheriffElectionRoundResult[];
+}
+
+/** Server-authoritative active sheriff-election phase. */
+export type SheriffElectionState = SheriffElectionCommonState &
+  (
+    | { readonly phase: 'registration' }
+    | {
+        readonly phase: 'candidateSpeech';
+        readonly speakingOrder: readonly number[];
+      }
+    | { readonly phase: 'withdrawal' }
+    | {
+        readonly phase: 'firstVote';
+        readonly candidateSeats: readonly number[];
+        readonly eligibleVoterSeats: readonly number[];
+        readonly ballots: Readonly<Record<number, number | null>>;
+      }
+    | {
+        readonly phase: 'runoffSpeech';
+        readonly candidateSeats: readonly number[];
+        readonly speakingOrder: readonly number[];
+      }
+    | {
+        readonly phase: 'runoffVote';
+        readonly candidateSeats: readonly number[];
+        readonly eligibleVoterSeats: readonly number[];
+        readonly ballots: Readonly<Record<number, number | null>>;
+      }
+    | { readonly phase: 'completed' }
+  );
+
+/** Final sheriff-election outcome retained with the ended game snapshot. */
+export type SheriffElectionResult =
+  | { readonly kind: 'elected'; readonly sheriffSeat: number }
+  | { readonly kind: 'noSheriff'; readonly reason: 'noCandidates' | 'noVotes' | 'runoffTie' };
+
+// =============================================================================
 // GameState — single authoritative state type
 // =============================================================================
 
@@ -171,6 +228,12 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 
   /** Previous night death reasons (seat -> cause) */
   deathReasons?: Readonly<Record<number, DeathReason>>;
+
+  /** Optional first-day sheriff election; present from Day entry through game end. */
+  sheriffElection?: SheriffElectionState;
+
+  /** Final sheriff election result; present only after an enabled election completes. */
+  sheriffElectionResult?: SheriffElectionResult;
 
   // --- Nightmare blocking ---
   /** Seat blocked by nightmare; cannot act this night (resolver returns skip). Valid for current night only. */

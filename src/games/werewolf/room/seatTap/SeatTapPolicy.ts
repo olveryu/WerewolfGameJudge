@@ -119,6 +119,10 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     return { kind: 'NOOP', reason: 'audio_playing' };
   }
 
+  if (roomStatus === GameStatus.Day) {
+    return { kind: 'NOOP', reason: 'other_status' };
+  }
+
   if (roomStatus !== GameStatus.Ongoing) {
     const profileTarget =
       isSeatOccupiedByOther && targetUserId

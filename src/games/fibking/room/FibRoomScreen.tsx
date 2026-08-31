@@ -62,6 +62,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
   return (
     <RoomShell
       model={screen.shellModel}
+      contextHeader={null}
       leadingExtraActions={null}
       trailingExtraActions={null}
       beforeSeatBoard={
@@ -75,6 +76,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
         />
       }
       afterSeatBoard={null}
+      sideInspector={null}
       gameOverlays={
         screen.isIdentityVisible && screen.roundView !== null ? (
           <FibIdentityModal view={screen.roundView} onClose={screen.closeIdentity} />

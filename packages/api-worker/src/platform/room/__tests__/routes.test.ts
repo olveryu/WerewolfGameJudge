@@ -1,6 +1,5 @@
 /** Generic room HTTP authentication, saga creation, command, and deletion contracts. */
 
-import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   WEREWOLF_STATE_CODEC,
   WEREWOLF_STATE_VERSION,
@@ -29,14 +28,6 @@ interface CreateRoomResponse {
     gameType: 'werewolf';
     hostUserId: string;
     createdAt: string;
-  };
-}
-
-interface StateResponse {
-  snapshot: {
-    gameType: 'werewolf';
-    state: GameState;
-    revision: number;
   };
 }
 
@@ -103,23 +94,33 @@ describe('POST /room/create', () => {
       gameType: 'werewolf',
       hostUserId: auth.user.id,
     });
-    const state = await postJson('/room/state', {
+    const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(body.room.roomId));
+    const snapshot = await stub.getSnapshot({
       roomCode: body.room.roomCode,
       roomId: body.room.roomId,
+      creationId: 'create-generic-1',
     });
-    const stateBody = await state.json<StateResponse>();
-    expect(WEREWOLF_STATE_CODEC.parse(stateBody.snapshot.state)).toMatchObject({
+    if (snapshot === null) throw new Error('Expected initialized room snapshot');
+    expect(WEREWOLF_STATE_CODEC.parse(snapshot.state)).toMatchObject({
       roomCode: body.room.roomCode,
       hostUserId: auth.user.id,
       gameType: 'werewolf',
       stateVersion: WEREWOLF_STATE_VERSION,
       templateRoles: TEMPLATE_ROLES,
     });
-    expect(stateBody.snapshot.revision).toBe(1);
+    expect(snapshot.revision).toBe(1);
 
     const directory = await postJson('/room/get', { roomCode: body.room.roomCode });
     expect(await directory.json()).toEqual({ room: body.room });
-    expect(state.status).toBe(200);
+  });
+
+  it('does not expose the removed HTTP state endpoint', async () => {
+    const response = await postJson('/room/state', {
+      roomCode: '1234',
+      roomId: 'removed-http-state-endpoint',
+    });
+
+    expect(response.status).toBe(404);
   });
 
   it('rejects client routing fields, unknown games, and invalid config before D1 claim', async () => {
@@ -276,34 +277,15 @@ describe('POST /room/command', () => {
       },
       auth.access_token,
     );
-    const state = await postJson('/room/state', staleLocator);
     const deletion = await postJson('/room/delete', staleLocator, auth.access_token);
 
-    for (const response of [command, state, deletion]) {
+    for (const response of [command, deletion]) {
       expect(response.status).toBe(409);
       expect(await response.json()).toEqual({
         success: false,
         reason: 'room_instance_mismatch',
       });
     }
-  });
-
-  it('surfaces an active directory row without DO state as an integrity failure', async () => {
-    const roomId = env.GAME_ROOM.newUniqueId().toString();
-    await env.DB.prepare(
-      `INSERT INTO rooms (
-        id, code, game_type, host_user_id, creation_id, config_json, status,
-        created_at, updated_at, games_started
-      ) VALUES (?, '6789', 'werewolf', 'host-1', 'missing-do-state',
-        '{"templateRoles":["wolf","seer","villager","villager"]}', 'active',
-        '2026-07-10T12:00:00.000Z', '2026-07-10T12:00:00.000Z', 0)`,
-    )
-      .bind(roomId)
-      .run();
-
-    const response = await postJson('/room/state', { roomCode: '6789', roomId });
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ success: false, reason: 'INTERNAL_ERROR' });
   });
 });
 

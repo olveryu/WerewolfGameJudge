@@ -26,7 +26,7 @@ async function isDisconnected(page: Page): Promise<boolean> {
 /**
  * Wait for a single page to reconnect (banner disappears).
  * If the banner doesn't disappear within `RECONNECT_TIMEOUT_MS`, reload the page
- * to trigger DB recovery, then wait for room screen ready.
+ * to trigger a fresh WebSocket snapshot sync, then wait for room screen ready.
  */
 async function waitForPageReconnect(page: Page): Promise<void> {
   const start = Date.now();
@@ -37,7 +37,7 @@ async function waitForPageReconnect(page: Page): Promise<void> {
     await page.waitForTimeout(pollInterval);
   }
 
-  // SDK reconnect failed — force reload for DB recovery
+  // In-place reconnect failed; reload to establish a new socket and snapshot sync.
   await page.reload();
   await waitForRoomScreenReady(page, { role: 'joiner', liveTimeoutMs: 30_000 });
 }

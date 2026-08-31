@@ -8,10 +8,16 @@ import {
 } from '@game-judge/game-engine/platform/protocol/reasons';
 import {
   type BaseGameState,
+  createStateSyncResponseMessage,
   createStateUpdateMessage,
+  parseStateSyncRequestMessage,
   type RoomSnapshot,
+  type StateSyncRequestMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { parseUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
+import {
+  parseUserEventAckMessage,
+  type UserEventAckMessage,
+} from '@game-judge/game-engine/platform/protocol/userEvents';
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -131,12 +137,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     if (this.#isStorageDeleted) return null;
     this.#readRoomInstance(command);
     return this.#repository.readSnapshot();
-  }
-
-  async getRevision(command: ReadRoomCommand): Promise<number | null> {
-    if (this.#isStorageDeleted) return null;
-    this.#readRoomInstance(command);
-    return this.#repository.readRoom()?.revision ?? null;
   }
 
   async authorizeRoomDeletion(
@@ -431,18 +431,44 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       socket.close(1000, 'room_deleted');
       return;
     }
-    let acknowledgement;
+    let clientMessage: StateSyncRequestMessage | UserEventAckMessage;
     try {
       if (typeof message !== 'string') {
         throw new Error('WebSocket client message must be text');
       }
-      acknowledgement = parseUserEventAckMessage(JSON.parse(message));
+      const decodedMessage: unknown = JSON.parse(message);
+      if (
+        typeof decodedMessage === 'object' &&
+        decodedMessage !== null &&
+        !Array.isArray(decodedMessage) &&
+        'type' in decodedMessage &&
+        decodedMessage.type === 'STATE_SYNC_REQUEST'
+      ) {
+        clientMessage = parseStateSyncRequestMessage(decodedMessage);
+      } else {
+        clientMessage = parseUserEventAckMessage(decodedMessage);
+      }
     } catch (error) {
       log.error('invalid websocket client message', {
         error: error instanceof Error ? error.message : String(error),
       });
       Sentry.captureException(error);
       socket.close(1002, 'protocol_error');
+      return;
+    }
+
+    if (clientMessage.type === 'STATE_SYNC_REQUEST') {
+      const snapshot = this.#repository.readSnapshot();
+      if (snapshot === null) {
+        const error = new Error('Initialized room has no authoritative snapshot');
+        log.error('state sync failed', { error: error.message });
+        Sentry.captureException(error);
+        socket.close(1011, 'state_unavailable');
+        return;
+      }
+      socket.send(
+        JSON.stringify(createStateSyncResponseMessage(clientMessage.requestId, snapshot)),
+      );
       return;
     }
 
@@ -457,7 +483,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       throw new Error('WebSocket user tag must contain a user ID');
     }
 
-    await acknowledgeUserEvent(this.env.DB, userId, acknowledgement.eventId);
+    await acknowledgeUserEvent(this.env.DB, userId, clientMessage.eventId);
     await this.#sendNextUserEvent(socket, userId);
   }
 

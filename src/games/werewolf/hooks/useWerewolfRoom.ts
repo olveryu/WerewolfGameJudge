@@ -105,6 +105,13 @@ interface UseWerewolfRoomResult {
   boardUpvote: (targetUserId: string) => Promise<void>;
   boardWithdraw: () => Promise<void>;
 
+  // First-day sheriff election
+  registerSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
+  cancelSheriffRegistration: () => Promise<WerewolfCommandDispatchOutcome>;
+  withdrawSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
+  castSheriffVote: (targetSeat: number | null) => Promise<WerewolfCommandDispatchOutcome>;
+  advanceSheriffElection: () => Promise<WerewolfCommandDispatchOutcome>;
+
   // BGM manual control (for ended-phase UI)
   isBgmPlaying: boolean;
   playBgm: () => void;
@@ -282,6 +289,12 @@ interface UseWerewolfRoomResult {
     boardNominate: actions.boardNominate,
     boardUpvote: actions.boardUpvote,
     boardWithdraw: actions.boardWithdraw,
+    // First-day sheriff election
+    registerSheriffCandidate: actions.registerSheriffCandidate,
+    cancelSheriffRegistration: actions.cancelSheriffRegistration,
+    withdrawSheriffCandidate: actions.withdrawSheriffCandidate,
+    castSheriffVote: actions.castSheriffVote,
+    advanceSheriffElection: actions.advanceSheriffElection,
     // BGM manual control
     isBgmPlaying: bgm.isBgmPlaying,
     playBgm: bgm.playBgm,

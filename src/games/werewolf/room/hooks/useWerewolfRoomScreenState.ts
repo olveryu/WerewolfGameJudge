@@ -54,7 +54,7 @@ import { useRoomActions } from './useRoomActions';
 import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomModals } from './useRoomModals';
-import { useSpeakingOrder } from './useSpeakingOrder';
+import { useSheriffElection } from './useSheriffElection';
 import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
 import { useWerewolfActionDraft } from './useWerewolfActionDraft';
 
@@ -135,6 +135,11 @@ export function useWerewolfRoomScreenState(
     boardNominate,
     boardUpvote,
     boardWithdraw,
+    registerSheriffCandidate,
+    cancelSheriffRegistration,
+    withdrawSheriffCandidate,
+    castSheriffVote,
+    advanceSheriffElection,
     // BGM manual control
     isBgmPlaying,
     playBgm,
@@ -164,6 +169,18 @@ export function useWerewolfRoomScreenState(
     if (!gameState) return false;
     return Array.from(gameState.players.values()).some((p) => p?.isBot);
   }, [gameState]);
+
+  const sheriffElectionPanel = useSheriffElection({
+    gameState,
+    effectiveSeat,
+    isHost,
+    isAudioPlaying,
+    registerSheriffCandidate,
+    cancelSheriffRegistration,
+    withdrawSheriffCandidate,
+    castSheriffVote,
+    advanceSheriffElection,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Local UI state
@@ -420,7 +437,7 @@ export function useWerewolfRoomScreenState(
   const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
   const cachedShareBase64Ref = useRef<string | null>(null);
 
-  // Begin report capture on demand (called when user opens "详细信息" alert).
+  // Begin report capture on demand (called when user opens "本局复盘" alert).
   // Mounts the hidden share card, waits for paint, captures via html2canvas / captureRef.
   const beginReportCapture = useCallback(async (): Promise<string | null> => {
     cachedShareBase64Ref.current = null;
@@ -443,7 +460,7 @@ export function useWerewolfRoomScreenState(
       return false;
     }
 
-    // Use base64 pre-captured by beginReportCapture (triggered when "详细信息" alert opened)
+    // Use base64 pre-captured by beginReportCapture (triggered when "本局复盘" alert opened)
     const base64 = cachedShareBase64Ref.current;
 
     // Mini program web-view: Canvas 2D → upload to R2 → wx.previewImage
@@ -633,12 +650,6 @@ export function useWerewolfRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Speaking order (shown in BoardInfoCard after night ends)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // Guide message (contextual hint bar — host gets detailed tips, others get phase hints)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -673,9 +684,10 @@ export function useWerewolfRoomScreenState(
         case GameStatus.Ready:
           return '全员就绪 → 「开始天黑」🔊';
         case GameStatus.Ongoing:
+        case GameStatus.Day:
           return null;
         case GameStatus.Ended:
-          return '天亮了 →「昨夜信息」查看结果，「详细信息」查看/分享战报';
+          return '天亮了 →「昨夜信息」查看结果，「本局复盘」查看/分享战报';
         default:
           return null;
       }
@@ -698,6 +710,8 @@ export function useWerewolfRoomScreenState(
       }
       case GameStatus.Ready:
         return '准备就绪，等待房主开始';
+      case GameStatus.Day:
+        return null;
       case GameStatus.Ended: {
         let hostSeat: number | null = null;
         for (const [seat, p] of players) {
@@ -707,7 +721,7 @@ export function useWerewolfRoomScreenState(
           }
         }
         const hostLabel = hostSeat !== null ? `${hostSeat + 1}号玩家` : '房主';
-        return `天亮了 → 昨夜信息/详细信息由${hostLabel}操作`;
+        return `天亮了 → 昨夜信息/本局复盘由${hostLabel}操作`;
       }
       default:
         return null;
@@ -817,6 +831,9 @@ export function useWerewolfRoomScreenState(
     boardUpvote,
     boardWithdraw,
 
+    // ── First-day sheriff election ──
+    sheriffElectionPanel,
+
     // ── BGM manual control ──
     isBgmPlaying,
     playBgm,
@@ -825,7 +842,6 @@ export function useWerewolfRoomScreenState(
     // ── Derived view models (from useRoomDerived) ──
     ...derived,
     nightProgress,
-    speakingOrderText,
     guideMessage,
 
     // ── Actioner ──

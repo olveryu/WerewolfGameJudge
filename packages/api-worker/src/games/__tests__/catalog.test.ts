@@ -55,6 +55,11 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   'werewolf.board.upvote': { type: 'werewolf.board.upvote', targetUserId: 'user-1' },
   'werewolf.board.withdraw': { type: 'werewolf.board.withdraw' },
   'werewolf.night.start': { type: 'werewolf.night.start' },
+  'werewolf.sheriff.register': { type: 'werewolf.sheriff.register' },
+  'werewolf.sheriff.cancelRegistration': { type: 'werewolf.sheriff.cancelRegistration' },
+  'werewolf.sheriff.withdraw': { type: 'werewolf.sheriff.withdraw' },
+  'werewolf.sheriff.vote': { type: 'werewolf.sheriff.vote', targetSeat: null },
+  'werewolf.sheriff.advance': { type: 'werewolf.sheriff.advance' },
   'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
   'werewolf.progress.request': { type: 'werewolf.progress.request' },
   'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
@@ -255,17 +260,29 @@ describe('Worker game catalog', () => {
         },
       }),
     ).toThrow();
+    expect(() =>
+      werewolfPublicCommandSchema.parse({
+        type: 'werewolf.sheriff.vote',
+        targetSeat: -1,
+      }),
+    ).toThrow();
+    expect(() =>
+      werewolfPublicCommandSchema.parse({
+        type: 'werewolf.sheriff.register',
+        actorSeat: 2,
+      }),
+    ).toThrow();
   });
 
   it('strictly parses Werewolf create config without accepting room identity', () => {
     expect(
       werewolfCreateConfigSchema.parse({
         templateRoles: ['wolf', 'seer', 'villager', 'villager'],
-        rules: { witchCanSelfHeal: true },
+        rules: { isSheriffElectionEnabled: false, witchCanSelfHeal: true },
       }),
     ).toEqual({
       templateRoles: ['wolf', 'seer', 'villager', 'villager'],
-      rules: { witchCanSelfHeal: true },
+      rules: { isSheriffElectionEnabled: false, witchCanSelfHeal: true },
     });
 
     expect(() =>

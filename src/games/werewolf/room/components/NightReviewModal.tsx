@@ -41,7 +41,7 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
     >
       <CloseButton onPress={onClose} />
 
-      <Text style={styles.title}>夜晚行动回顾</Text>
+      <Text style={styles.title}>本局复盘</Text>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Fair play reminder */}

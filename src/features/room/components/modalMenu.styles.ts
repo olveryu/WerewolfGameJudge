@@ -1,5 +1,5 @@
 /**
- * Modal & menu styles — HeaderActions, SeatConfirmModal.
+ * Modal and header-action styles — HeaderActions, SeatConfirmModal.
  */
 import { StyleSheet } from 'react-native';
 
@@ -7,8 +7,6 @@ import {
   borderRadius,
   componentSizes,
   createSharedStyles,
-  fixed,
-  shadows,
   spacing,
   textStyles,
   type ThemeColors,
@@ -34,60 +32,6 @@ export function createModalMenuStyles(colors: ThemeColors): {
         ...shared.iconButton,
         borderRadius: borderRadius.full,
         overflow: 'hidden',
-      },
-      triggerText: {
-        ...textStyles.headingBold,
-        color: colors.text,
-      },
-      modalOverlay: {
-        flex: 1,
-        backgroundColor: colors.overlayLight,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-end',
-        paddingTop: componentSizes.header + spacing.small,
-        paddingRight: spacing.medium,
-      },
-      menuArrow: {
-        width: 0,
-        height: 0,
-        borderLeftWidth: spacing.small,
-        borderLeftColor: colors.surface + '00', // transparent (CSS triangle technique)
-        borderRightWidth: spacing.small,
-        borderRightColor: colors.surface + '00', // transparent (CSS triangle technique)
-        borderBottomWidth: spacing.small,
-        borderBottomColor: colors.surface,
-        alignSelf: 'flex-end',
-        marginRight: spacing.medium,
-      },
-      menuContainer: {
-        backgroundColor: colors.surface,
-        borderRadius: borderRadius.medium,
-        minWidth: componentSizes.menu.minWidth,
-        paddingVertical: spacing.tight,
-        ...shadows.md,
-        overflow: 'hidden',
-      },
-      menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.small,
-        paddingVertical: spacing.small,
-        paddingHorizontal: spacing.large,
-      },
-      menuItemText: {
-        fontSize: typography.body,
-        lineHeight: typography.lineHeights.body,
-        color: colors.text,
-      },
-      menuItemDanger: {},
-      menuItemTextDanger: {
-        color: colors.error,
-      },
-      sectionGap: {
-        height: fixed.divider,
-        backgroundColor: colors.border,
-        marginHorizontal: spacing.medium,
-        marginVertical: spacing.tight,
       },
     }),
 

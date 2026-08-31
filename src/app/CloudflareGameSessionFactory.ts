@@ -1,4 +1,4 @@
-/** Production room-session factory bound to Cloudflare state and realtime adapters. */
+/** Production room-session factory bound to Cloudflare realtime and command adapters. */
 
 import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
@@ -11,7 +11,6 @@ import type {
 import { RoomSession } from '@/features/room/session/RoomSession';
 import type { RoomSessionClient } from '@/features/room/session/types';
 import { CFRealtimeService } from '@/services/cloudflare/CFRealtimeService';
-import { CFRoomStateService } from '@/services/cloudflare/CFRoomStateService';
 import type { RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 
 export class CloudflareGameSessionFactory implements GameSessionFactory {
@@ -26,7 +25,6 @@ export class CloudflareGameSessionFactory implements GameSessionFactory {
   ): RoomSessionClient<TState, TCommand, TEvent> {
     return new RoomSession<TState, TCommand, TEvent>({
       codec: definition.stateCodec,
-      stateService: new CFRoomStateService(definition.stateCodec),
       transport: new CFRealtimeService(definition.stateCodec, definition.userEventCodec),
       createCommandId: newRequestId,
       commandRecovery: this.#commandRecovery,

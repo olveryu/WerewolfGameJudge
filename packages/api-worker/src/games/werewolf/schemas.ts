@@ -32,8 +32,11 @@ const expectedStepSchema = z.strictObject({
 
 const ruleOverridesSchema = z.strictObject({
   isPlagueMode: z.boolean().optional(),
+  isSheriffElectionEnabled: z.boolean().optional(),
   witchCanSelfHeal: z.boolean().optional(),
 });
+
+const seatSchema = z.coerce.number().int().min(0);
 
 export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z
   .strictObject({
@@ -103,6 +106,14 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
   }),
   z.strictObject({ type: z.literal('werewolf.board.withdraw') }),
   z.strictObject({ type: z.literal('werewolf.night.start') }),
+  z.strictObject({ type: z.literal('werewolf.sheriff.register') }),
+  z.strictObject({ type: z.literal('werewolf.sheriff.cancelRegistration') }),
+  z.strictObject({ type: z.literal('werewolf.sheriff.withdraw') }),
+  z.strictObject({
+    type: z.literal('werewolf.sheriff.vote'),
+    targetSeat: seatSchema.nullable(),
+  }),
+  z.strictObject({ type: z.literal('werewolf.sheriff.advance') }),
   z.strictObject({ type: z.literal('werewolf.audio.ack') }),
   z.strictObject({ type: z.literal('werewolf.progress.request') }),
   z.strictObject({ type: z.literal('werewolf.reveal.ack') }),

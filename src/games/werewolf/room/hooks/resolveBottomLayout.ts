@@ -70,7 +70,6 @@ function classifySchemaButtons(buttons: readonly BottomButton[]): {
 function materializeStaticButton(
   id: StaticButtonId,
   tier: 'primary' | 'secondary' | 'ghost',
-  ctx: LayoutContext,
 ): ButtonConfig {
   const def = STATIC_BUTTONS[id];
   const base = {
@@ -79,8 +78,6 @@ function materializeStaticButton(
     variant: tier,
     size: tier === 'primary' ? 'lg' : 'md',
     testID: def.testID,
-    textColor: tier === 'ghost' ? def.ghostTextColor : undefined,
-    buttonColor: tier === 'primary' ? def.primaryButtonColor : undefined,
   } as const;
 
   switch (id) {
@@ -99,23 +96,6 @@ function materializeStaticButton(
         isEnabled: false,
         disabledReason: null,
         onDisabledBehavior: null,
-      };
-
-    case 'prepareToFlip':
-    case 'startGame':
-    case 'restart':
-      if (ctx.isHostActionSubmitting) {
-        return {
-          ...base,
-          isEnabled: false,
-          disabledReason: null,
-          onDisabledBehavior: null,
-        };
-      }
-      return {
-        ...base,
-        isEnabled: true,
-        behavior: { kind: 'static', action: id },
       };
 
     default:
@@ -143,7 +123,7 @@ function materializeSlots(
     if (slot.source === 'static') {
       // Invariant: viewRole requires a seat (you need a role to view)
       if (slot.button === 'viewRole' && ctx.effectiveSeat === null) continue;
-      result.push(materializeStaticButton(slot.button, tier, ctx));
+      result.push(materializeStaticButton(slot.button, tier));
     } else {
       // Schema slot — pick from classified primary or secondary
       const source =

@@ -23,7 +23,8 @@ function emptySeat(seat: number, disabledReason?: string): RoomSeatViewModel {
     secondaryLabel: null,
     disabledReason,
     showReadyBadge: false,
-    badgeText: null,
+    statusBadge: null,
+    isStatusEmphasized: false,
     showLevel: false,
     decorationsEnabled: false,
   };

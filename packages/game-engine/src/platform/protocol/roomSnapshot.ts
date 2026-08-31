@@ -34,6 +34,18 @@ export interface StateUpdateMessage<
   readonly lastCommandType: string | null;
 }
 
+export interface StateSyncRequestMessage {
+  readonly type: 'STATE_SYNC_REQUEST';
+  readonly requestId: string;
+}
+
+export interface StateSyncResponseMessage<
+  TState extends BaseGameState<string>,
+> extends RoomSnapshot<TState> {
+  readonly type: 'STATE_SYNC_RESPONSE';
+  readonly requestId: string;
+}
+
 function assertPositiveVersion(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw new Error(`${label} must be a positive safe integer`);
@@ -56,6 +68,13 @@ function parsePositiveVersion(value: unknown, label: string): number {
     throw new Error(`${label} must be a positive safe integer`);
   }
   assertPositiveVersion(value, label);
+  return value;
+}
+
+function parseNonEmptyString(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${label} must be a non-empty string`);
+  }
   return value;
 }
 
@@ -105,6 +124,30 @@ export function createStateUpdateMessage<TState extends BaseGameState<string>>(
     type: 'STATE_UPDATE',
     ...snapshot,
     lastCommandType,
+  };
+}
+
+export function createStateSyncRequestMessage(requestId: string): StateSyncRequestMessage {
+  return {
+    type: 'STATE_SYNC_REQUEST',
+    requestId: parseNonEmptyString(requestId, 'requestId'),
+  };
+}
+
+export function createStateSyncResponseMessage<TState extends BaseGameState<string>>(
+  requestId: string,
+  snapshot: RoomSnapshot<TState>,
+): StateSyncResponseMessage<TState> {
+  if (
+    snapshot.gameType !== snapshot.state.gameType ||
+    snapshot.stateVersion !== snapshot.state.stateVersion
+  ) {
+    throw new Error('Snapshot identity does not match its state');
+  }
+  return {
+    type: 'STATE_SYNC_RESPONSE',
+    requestId: parseNonEmptyString(requestId, 'requestId'),
+    ...snapshot,
   };
 }
 
@@ -160,6 +203,47 @@ export function parseStateUpdateMessage<TState extends BaseGameState<string>>(
     type: 'STATE_UPDATE',
     ...snapshot,
     lastCommandType: raw.lastCommandType,
+  };
+}
+
+export function parseStateSyncRequestMessage(value: unknown): StateSyncRequestMessage {
+  const raw = parseRecord(value, 'StateSyncRequestMessage');
+  assertExactKeys(raw, ['type', 'requestId'], 'StateSyncRequestMessage');
+  if (raw.type !== 'STATE_SYNC_REQUEST') {
+    throw new Error(`Unexpected state sync request type: ${String(raw.type)}`);
+  }
+  return {
+    type: raw.type,
+    requestId: parseNonEmptyString(raw.requestId, 'requestId'),
+  };
+}
+
+export function parseStateSyncResponseMessage<TState extends BaseGameState<string>>(
+  value: unknown,
+  codec: GameStateCodec<TState>,
+): StateSyncResponseMessage<TState> {
+  const raw = parseRecord(value, 'StateSyncResponseMessage');
+  assertExactKeys(
+    raw,
+    ['type', 'requestId', 'gameType', 'stateVersion', 'revision', 'state'],
+    'StateSyncResponseMessage',
+  );
+  if (raw.type !== 'STATE_SYNC_RESPONSE') {
+    throw new Error(`Unexpected state sync response type: ${String(raw.type)}`);
+  }
+  const snapshot = parseRoomSnapshot(
+    {
+      gameType: raw.gameType,
+      stateVersion: raw.stateVersion,
+      revision: raw.revision,
+      state: raw.state,
+    },
+    codec,
+  );
+  return {
+    type: raw.type,
+    requestId: parseNonEmptyString(raw.requestId, 'requestId'),
+    ...snapshot,
   };
 }
 

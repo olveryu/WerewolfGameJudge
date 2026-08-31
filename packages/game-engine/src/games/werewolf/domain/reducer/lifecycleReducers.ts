@@ -92,6 +92,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     currentNightResults: undefined,
     lastNightDeaths: undefined,
     deathReasons: undefined,
+    sheriffElection: undefined,
+    sheriffElectionResult: undefined,
     witchContext: undefined,
     seerReveal: undefined,
     mirrorSeerReveal: undefined,

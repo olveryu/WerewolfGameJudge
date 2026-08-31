@@ -5,8 +5,6 @@ import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from './RoomPage';
 
-const FIB_PREPARATION_STATUS_PATTERN = /等待选取词语|正在选取中文词语|正在检查词语和释义/;
-
 export type FibWordDetails = {
   readonly word: string;
   readonly definition: {
@@ -50,7 +48,6 @@ export class FibRoomPage extends RoomPage {
   }
 
   async openUserSettings(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.roomMenuButton).click();
     const userSettingsButton = this.page.getByTestId(TESTIDS.roomUserSettingsButton);
     await expect(userSettingsButton).toBeVisible();
     await userSettingsButton.click();
@@ -77,8 +74,7 @@ export class FibRoomPage extends RoomPage {
   }
 
   async openShare(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.roomMenuButton).click();
-    await this.page.getByText('分享房间', { exact: true }).click();
+    await this.page.getByTestId(TESTIDS.roomShareButton).click();
     await expect(this.page.getByTestId(TESTIDS.qrCodeModal)).toBeVisible();
   }
 
@@ -88,13 +84,15 @@ export class FibRoomPage extends RoomPage {
   }
 
   async openConfig(): Promise<void> {
+    await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibConfigureButton).click();
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible();
   }
 
   async fillEmptySeatsWithBots(playerCount: number): Promise<void> {
-    await this.page.getByTestId(TESTIDS.roomMenuButton).click();
-    await this.page.getByText('填充机器人', { exact: true }).click();
+    await this.openHostManagement();
+    await this.page.getByTestId(TESTIDS.roomFillBotsButton).click();
+    await this.expectHostManagementClosed();
     await expect(this.page.getByText('填充机器人？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
     await expect(
@@ -103,11 +101,9 @@ export class FibRoomPage extends RoomPage {
   }
 
   async startRound(): Promise<void> {
+    await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibStartRoundButton).click();
-    await expect(this.page.getByText('正在准备本轮词语', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toHaveText(
-      FIB_PREPARATION_STATUS_PATTERN,
-    );
+    await this.expectHostManagementClosed();
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -143,37 +139,48 @@ export class FibRoomPage extends RoomPage {
   }
 
   async revealRound(): Promise<void> {
+    await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibRevealRoundButton).click();
+    await this.expectHostManagementClosed();
     await expect(this.page.getByText('公布答案？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
-    await expect(this.page.getByTestId(TESTIDS.fibNextRoundButton)).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.fibViewResultButton)).toBeVisible({
       timeout: 15_000,
     });
   }
 
   async startNextRound(): Promise<void> {
+    await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibNextRoundButton).click();
-    await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toHaveText(
-      FIB_PREPARATION_STATUS_PATTERN,
-    );
+    await this.expectHostManagementClosed();
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
     });
   }
 
   async endGame(): Promise<void> {
+    await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibEndGameButton).click();
+    await this.expectHostManagementClosed();
     await expect(this.page.getByText('结束游戏？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
-    await expect(this.page.getByTestId(TESTIDS.fibStartRoundButton)).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(
+      this.page.getByRole('button', {
+        name: '主持管理，下一步：开始本轮',
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
   }
 
   async expectLobbySeatOperations(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.roomMenuButton).click();
-    await expect(this.page.getByText('清空座位', { exact: true })).toBeVisible();
-    await expect(this.page.getByText('分享房间', { exact: true })).toBeVisible();
+    await this.openHostManagement();
+    await expect(this.page.getByTestId(TESTIDS.roomClearSeatsButton)).toBeVisible();
+    await this.closeHostManagement();
+    await expect(this.page.getByTestId(TESTIDS.roomShareButton)).toBeVisible();
+  }
+
+  private async expectHostManagementClosed(): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
   }
 
   private async readOpenIdentity(): Promise<FibIdentity> {

@@ -215,6 +215,14 @@ const REASON_CODE_MAP: Record<string, string> = {
   wolfrobot_hunter_status_not_viewed: '请先查看猎人状态',
   night_not_complete: '夜晚流程未完成',
   not_learned_hunter: '还未获知猎人信息',
+  // Sheriff election
+  invalid_election_phase: '当前竞选阶段不允许此操作',
+  already_registered: '你已经报名上警',
+  not_candidate: '你当前不是候选人',
+  already_withdrawn: '你已经退水',
+  not_eligible_voter: '你在本轮没有投票权',
+  invalid_vote_target: '该玩家不是本轮候选人',
+  pending_votes: '仍有玩家未完成投票',
   // HTTP routing
   MISSING_PARAMS: '请求参数缺失',
   INVALID_ACTION: '无效操作',

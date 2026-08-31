@@ -11,6 +11,7 @@
 import { WEREWOLF_GAME_TYPE } from '../../../../platform/protocol/gameTypes';
 import { WEREWOLF_STATE_VERSION } from '../../state/version';
 import type { GameState } from '../protocol/types';
+import type { SheriffElectionRoundResult, SheriffElectionState } from '../protocol/types';
 import { assertWerewolfStateInvariants } from './assertStateInvariants';
 
 /**
@@ -52,6 +53,67 @@ function requireIdentity<T>(value: T | undefined, expected: T, fieldName: string
     throw new Error(`normalizeState: unsupported ${fieldName}: ${String(actual)}`);
   }
   return actual;
+}
+
+function canonicalizeRequiredSeatKeyRecord<T>(
+  record: Readonly<Record<number, T>>,
+): Readonly<Record<number, T>> {
+  const result: Record<number, T> = {};
+  for (const [seat, value] of Object.entries(record)) {
+    result[Number(seat)] = value;
+  }
+  return result;
+}
+
+function normalizeSheriffRoundResult(
+  result: SheriffElectionRoundResult,
+): SheriffElectionRoundResult {
+  return {
+    ...result,
+    ballots: canonicalizeRequiredSeatKeyRecord(result.ballots),
+    voteCounts: canonicalizeRequiredSeatKeyRecord(result.voteCounts),
+  };
+}
+
+function normalizeSheriffElection(
+  election: SheriffElectionState | undefined,
+): SheriffElectionState | undefined {
+  if (election === undefined) return undefined;
+  const common = {
+    registeredSeats: [...election.registeredSeats],
+    withdrawnSeats: [...election.withdrawnSeats],
+    completedRounds: election.completedRounds.map(normalizeSheriffRoundResult),
+  };
+  switch (election.phase) {
+    case 'registration':
+    case 'withdrawal':
+    case 'completed':
+      return { ...common, phase: election.phase };
+    case 'candidateSpeech':
+      return {
+        ...common,
+        phase: election.phase,
+        speakingOrder: [...election.speakingOrder],
+      };
+    case 'firstVote':
+    case 'runoffVote':
+      return {
+        ...common,
+        phase: election.phase,
+        candidateSeats: [...election.candidateSeats],
+        eligibleVoterSeats: [...election.eligibleVoterSeats],
+        ballots: canonicalizeRequiredSeatKeyRecord(election.ballots),
+      };
+    case 'runoffSpeech':
+      return {
+        ...common,
+        phase: election.phase,
+        candidateSeats: [...election.candidateSeats],
+        speakingOrder: [...election.speakingOrder],
+      };
+  }
+  const exhaustive: never = election;
+  return exhaustive;
 }
 
 /**
@@ -98,6 +160,8 @@ export function normalizeState(raw: GameState): GameState {
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
     deathReasons: raw.deathReasons,
+    sheriffElection: normalizeSheriffElection(raw.sheriffElection),
+    sheriffElectionResult: raw.sheriffElectionResult,
 
     // Night flow state (critical: currentStepId must be passed through)
     currentStepId: raw.currentStepId,

@@ -10,9 +10,13 @@ function createFullState(): GameState {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'host',
-    status: GameStatus.Ongoing,
+    status: GameStatus.Ended,
     templateRoles: ['treasureMaster', 'wolf', 'seer', 'villager', 'wolf', 'witch', 'villager'],
-    rules: { isPlagueMode: false, witchCanSelfHeal: true },
+    rules: {
+      isPlagueMode: false,
+      isSheriffElectionEnabled: true,
+      witchCanSelfHeal: true,
+    },
     players: {
       0: { userId: 'host', seat: 0, role: 'treasureMaster', hasViewedRole: true },
       1: { userId: 'player', seat: 1, role: 'wolf', hasViewedRole: true, isBot: false },
@@ -68,6 +72,30 @@ function createFullState(): GameState {
     pendingRevealAcks: ['host'],
     lastNightDeaths: [2],
     deathReasons: { 2: 'wolfKill' },
+    sheriffElection: {
+      phase: 'completed',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [
+        {
+          round: 'first',
+          candidateSeats: [0, 1],
+          eligibleVoterSeats: [2, 3],
+          ballots: { 2: 0, 3: 1 },
+          voteCounts: { 0: 1, 1: 1 },
+          abstainingSeats: [],
+        },
+        {
+          round: 'runoff',
+          candidateSeats: [0, 1],
+          eligibleVoterSeats: [2, 3],
+          ballots: { 2: 0, 3: null },
+          voteCounts: { 0: 1, 1: 0 },
+          abstainingSeats: [3],
+        },
+      ],
+    },
+    sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
     nightmareBlockedSeat: 1,
     wolfKillOverride: {
       source: 'poisoner',
@@ -143,6 +171,31 @@ describe('parseWerewolfState', () => {
     expect(parseWerewolfState(encoded)).toEqual(normalizeState(state));
   });
 
+  it('accepts and removes the legacy sheriff speaker index', () => {
+    const state = createFullState();
+    const encoded = {
+      ...state,
+      status: GameStatus.Day,
+      sheriffElection: {
+        phase: 'candidateSpeech',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        speakingOrder: [1, 0],
+        currentSpeakerIndex: 1,
+      },
+      sheriffElectionResult: undefined,
+    };
+
+    expect(parseWerewolfState(encoded).sheriffElection).toEqual({
+      phase: 'candidateSpeech',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [],
+      speakingOrder: [1, 0],
+    });
+  });
+
   it('migrates the legacy empty reveal effect to the canonical room value', () => {
     const state = createFullState();
     const encoded = {
@@ -192,5 +245,55 @@ describe('parseWerewolfState', () => {
     const encoded = { ...createFullState(), stateVersion: 1 };
 
     expect(() => parseWerewolfState(encoded)).toThrow('GameState.stateVersion must be 2');
+  });
+
+  it('rejects an unknown sheriff-election phase', () => {
+    const encoded = {
+      ...createFullState(),
+      sheriffElection: {
+        phase: 'ballotReveal',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.sheriffElection.phase must be a valid sheriff election phase',
+    );
+  });
+
+  it('rejects a sheriff ballot whose target is not a seat or null', () => {
+    const encoded = {
+      ...createFullState(),
+      sheriffElection: {
+        phase: 'firstVote',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2, 3],
+        ballots: { 2: '0' },
+      },
+    };
+
+    expect(() => parseWerewolfState(encoded)).toThrow('GameState.sheriffElection.ballots.2');
+  });
+
+  it('rejects fields from a different sheriff-election phase', () => {
+    const encoded = {
+      ...createFullState(),
+      sheriffElection: {
+        phase: 'registration',
+        registeredSeats: [],
+        withdrawnSeats: [],
+        completedRounds: [],
+        ballots: {},
+      },
+    };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      'GameState.sheriffElection contains unknown field: ballots',
+    );
   });
 });

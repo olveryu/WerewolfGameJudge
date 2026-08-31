@@ -1,7 +1,9 @@
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 import {
+  createStateSyncResponseMessage,
   createStateUpdateMessage,
+  parseStateSyncRequestMessage,
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
@@ -12,10 +14,29 @@ import type {
 import { NetworkTimeoutError } from '@/utils/errorUtils';
 
 import { ConnectionManager, type ConnectionManagerDeps } from '../ConnectionManager';
-import { ConnectionState, PING_INTERVAL_MS, PONG_TIMEOUT_MS } from '../types';
+import {
+  ConnectionState,
+  PING_INTERVAL_MS,
+  PONG_TIMEOUT_MS,
+  STATE_SYNC_TIMEOUT_MS,
+} from '../types';
 
 interface TestUserEvent {
   readonly eventId: string;
+}
+
+function createDeferred<T>(): {
+  readonly promise: Promise<T>;
+  readonly resolve: (value: T) => void;
+  readonly reject: (error: Error) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +54,7 @@ function createMockTransport(): IRealtimeTransport<GameState, TestUserEvent> & {
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
+    onStateSyncResponse: jest.fn(),
     onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
@@ -56,20 +78,20 @@ function createMockTransport(): IRealtimeTransport<GameState, TestUserEvent> & {
 
 const MOCK_STATE = { ...WEREWOLF_STATE_IDENTITY } as unknown as GameState;
 const ROOM_1 = { roomCode: '1234', roomId: 'room-id-1' } as const;
-const ROOM_2 = { roomCode: '5678', roomId: 'room-id-2' } as const;
 
 function createMockSnapshot(revision: number): RoomSnapshot<GameState> {
   return { ...WEREWOLF_STATE_IDENTITY, state: MOCK_STATE, revision };
 }
 
-function createDeps(overrides?: Partial<ConnectionManagerDeps<GameState, TestUserEvent>>) {
+function createDeps(
+  overrides?: Partial<ConnectionManagerDeps<GameState, TestUserEvent>>,
+  shouldAutoRespondToStateSync = true,
+) {
   const transport = createMockTransport();
   const deps: ConnectionManagerDeps<GameState, TestUserEvent> = {
     transport,
-    fetchStateFromDB: jest.fn().mockResolvedValue(createMockSnapshot(1)),
-    getStateRevision: jest.fn().mockResolvedValue(1),
     onStateUpdate: jest.fn(),
-    onFetchedState: jest.fn(),
+    onStateSync: jest.fn(),
     onUserEvent: jest.fn(),
     ...overrides,
   };
@@ -77,7 +99,46 @@ function createDeps(overrides?: Partial<ConnectionManagerDeps<GameState, TestUse
   if (!overrides?.transport) {
     deps.transport = transport;
   }
+  if (shouldAutoRespondToStateSync && !overrides?.transport) {
+    transport.send.mockImplementation((serialized: string) => {
+      if (serialized.startsWith('{')) {
+        const decoded: unknown = JSON.parse(serialized);
+        if (
+          typeof decoded === 'object' &&
+          decoded !== null &&
+          'type' in decoded &&
+          decoded.type === 'STATE_SYNC_REQUEST'
+        ) {
+          const request = parseStateSyncRequestMessage(decoded);
+          queueMicrotask(() => {
+            transport.handlers.onStateSyncResponse(
+              createStateSyncResponseMessage(request.requestId, createMockSnapshot(1)),
+            );
+          });
+        }
+      }
+      return true;
+    });
+  }
   return { transport: deps.transport as ReturnType<typeof createMockTransport>, deps };
+}
+
+function readLatestStateSyncRequestId(transport: ReturnType<typeof createMockTransport>): string {
+  const latestCall: unknown = transport.send.mock.calls.at(-1);
+  if (!Array.isArray(latestCall)) throw new Error('Expected a state sync send call');
+  const serialized: unknown = latestCall[0];
+  if (typeof serialized !== 'string') throw new Error('Expected a text state sync request');
+  const decoded: unknown = JSON.parse(serialized);
+  return parseStateSyncRequestMessage(decoded).requestId;
+}
+
+function completeStateSync(transport: ReturnType<typeof createMockTransport>, revision = 1): void {
+  transport.handlers.onStateSyncResponse(
+    createStateSyncResponseMessage(
+      readLatestStateSyncRequestId(transport),
+      createMockSnapshot(revision),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +164,7 @@ describe('ConnectionManager', () => {
       // Should call transport.connect
       expect(transport.connect).toHaveBeenCalledWith(ROOM_1);
 
-      // Simulate WS open → triggers FETCH_STATE
+      // Simulate WS open and its authoritative state-sync response.
       transport.handlers.onOpen();
 
       // Let the async fetch resolve
@@ -116,9 +177,7 @@ describe('ConnectionManager', () => {
     });
 
     it('rejects with a typed network timeout', async () => {
-      const { transport: t, deps } = createDeps({
-        fetchStateFromDB: jest.fn().mockImplementation(() => new Promise(() => {})), // never resolves
-      });
+      const { transport: t, deps } = createDeps(undefined, false);
       const manager = new ConnectionManager(deps);
 
       const promise = manager.connectAndWait(ROOM_1, 5000);
@@ -181,7 +240,7 @@ describe('ConnectionManager', () => {
         'requires Idle, received Connecting',
       );
 
-      // Resolve new connection: WS_OPEN → Syncing → FETCH_SUCCESS → Connected
+      // Resolve new connection: WS_OPEN → Syncing → STATE_SYNC_SUCCESS → Connected
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await expect(promise1).resolves.toBeUndefined();
@@ -320,6 +379,31 @@ describe('ConnectionManager', () => {
 
       manager.dispose();
     });
+
+    it('ignores a superseded transport connection failure', async () => {
+      const staleTransportConnection = createDeferred<void>();
+      const transport = createMockTransport();
+      transport.connect
+        .mockImplementationOnce(() => staleTransportConnection.promise)
+        .mockResolvedValue(undefined);
+      const { deps } = createDeps({ transport });
+      const manager = new ConnectionManager(deps);
+
+      const staleConnection = manager.connectAndWait(ROOM_1);
+      manager.disconnect();
+      await expect(staleConnection).rejects.toThrow('Connection disconnected');
+
+      const activeConnection = manager.connectAndWait(ROOM_1);
+      transport.handlers.onOpen();
+      completeStateSync(transport);
+      await activeConnection;
+
+      staleTransportConnection.reject(new Error('stale token refresh failed'));
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(manager.getState()).toBe(ConnectionState.Connected);
+      manager.dispose();
+    });
   });
 
   describe('reconnectAndWait', () => {
@@ -366,28 +450,12 @@ describe('ConnectionManager', () => {
     });
   });
 
-  describe('updateRevision', () => {
-    it('updates lastRevision if higher', () => {
-      const { deps } = createDeps();
-      const manager = new ConnectionManager(deps);
-
-      manager.updateRevision(10);
-      expect(manager.getContext().lastRevision).toBe(10);
-
-      // Lower revision — no update
-      manager.updateRevision(5);
-      expect(manager.getContext().lastRevision).toBe(10);
-
-      manager.dispose();
-    });
-  });
-
   describe('dispose', () => {
     it('clears all timers and enters Disposed', async () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      // Get to Connected (has ping + revision poll running)
+      // Get to Connected (has ping timer running)
       const promise = manager.connectAndWait(ROOM_1);
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
@@ -428,181 +496,90 @@ describe('ConnectionManager', () => {
     });
   });
 
-  describe('fetch and onFetchedState', () => {
-    it('calls onFetchedState after successful DB fetch', async () => {
-      const { transport, deps } = createDeps();
-      const manager = new ConnectionManager(deps);
-
-      const promise = manager.connectAndWait(ROOM_1);
-      transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
-      await promise;
-
-      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(1));
-
-      manager.dispose();
-    });
-
-    it('stays in Syncing on fetch failure and retries', async () => {
-      const { transport, deps } = createDeps({
-        fetchStateFromDB: jest.fn().mockRejectedValue(new Error('DB error')),
-      });
-      const manager = new ConnectionManager(deps);
-
-      const promise = manager.connectAndWait(ROOM_1);
-      transport.handlers.onOpen(); // → Syncing → FETCH_STATE
-
-      await jest.advanceTimersByTimeAsync(0);
-
-      // Stays in Syncing (not Disconnected), retry scheduled
-      expect(manager.getState()).toBe(ConnectionState.Syncing);
-      expect(manager.getContext().attempt).toBe(1);
-
-      manager.dispose();
-      await expect(promise).rejects.toThrow('disposed');
-    });
-  });
-
-  describe('prefetch', () => {
-    it('fires prefetch on OPEN_WS and uses result in FETCH_STATE', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(createMockSnapshot(3));
-      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
-      const manager = new ConnectionManager(deps);
-
-      const promise = manager.connectAndWait(ROOM_1);
-
-      // OPEN_WS triggers prefetch + transport.connect
-      // At this point, fetchStateFromDB should already be called (prefetch)
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-
-      // WS opens → Syncing → FETCH_STATE consumes prefetch
-      transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
-      await promise;
-
-      // fetchStateFromDB called once total (prefetch reused, not called again)
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(3));
-      expect(manager.getState()).toBe(ConnectionState.Connected);
-
-      manager.dispose();
-    });
-
-    it('falls back to normal fetch when prefetch returns null', async () => {
-      let callCount = 0;
-      const fetchMock = jest.fn().mockImplementation(() => {
-        callCount++;
-        // First call (prefetch) returns null, second call (fallback) returns state
-        if (callCount === 1) return Promise.resolve(null);
-        return Promise.resolve(createMockSnapshot(2));
-      });
-      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
-      const manager = new ConnectionManager(deps);
-
-      const promise = manager.connectAndWait(ROOM_1);
-
-      transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
-      await promise;
-
-      // Prefetch returned null → fallback fetch called
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(2));
-
-      manager.dispose();
-    });
-
-    it('falls back to normal fetch when prefetch rejects', async () => {
-      let callCount = 0;
-      const fetchMock = jest.fn().mockImplementation(() => {
-        callCount++;
-        // First call (prefetch) rejects, second call (fallback) succeeds
-        if (callCount === 1) return Promise.reject(new Error('network error'));
-        return Promise.resolve(createMockSnapshot(4));
-      });
-      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
-      const manager = new ConnectionManager(deps);
-
-      const promise = manager.connectAndWait(ROOM_1);
-
-      transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
-      await promise;
-
-      // Prefetch error caught → returned null → fallback fetch called
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(4));
-
-      manager.dispose();
-    });
-
-    it('cancels prefetch on disconnect before WS opens', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(createMockSnapshot(1));
-      const { deps } = createDeps({ fetchStateFromDB: fetchMock });
-      const manager = new ConnectionManager(deps);
-
-      const promise = manager.connectAndWait(ROOM_1);
-
-      // Prefetch started
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-
-      // Disconnect before WS opens — should cancel prefetch
-      manager.disconnect();
-
-      await expect(promise).rejects.toThrow('disconnected');
-
-      manager.dispose();
-    });
-
-    it('disconnect cancels the previous prefetch before a new room connects', async () => {
-      const fetchMock = jest.fn().mockResolvedValue(createMockSnapshot(1));
-      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
-      const manager = new ConnectionManager(deps);
-
-      // First connect → prefetch #1
-      const p1 = manager.connectAndWait(ROOM_1);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-
-      manager.disconnect();
-      await expect(p1).rejects.toThrow('disconnected');
-
-      // A new explicit session may now connect to another room.
-      const p2 = manager.connectAndWait(ROOM_2);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-
-      // WS opens for second connection
-      transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
-      await p2;
-
-      // Only the second prefetch result is consumed
-      expect(manager.getState()).toBe(ConnectionState.Connected);
-
-      manager.dispose();
-    });
-  });
-
-  describe('protocol integrity', () => {
-    it('rejects immediately when an active room has no snapshot', async () => {
-      const { transport, deps } = createDeps({
-        fetchStateFromDB: jest.fn().mockResolvedValue(null),
-      });
+  describe('authoritative state sync', () => {
+    it('sends a correlated request and applies the response snapshot', async () => {
+      const { transport, deps } = createDeps(undefined, false);
       const manager = new ConnectionManager(deps);
       const connected = manager.connectAndWait(ROOM_1);
-      const rejected = expect(connected).rejects.toThrow('no authoritative snapshot');
 
       transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
+      const requestId = readLatestStateSyncRequestId(transport);
+      transport.handlers.onStateSyncResponse(
+        createStateSyncResponseMessage(requestId, createMockSnapshot(3)),
+      );
 
-      await rejected;
+      await connected;
+      expect(deps.onStateSync).toHaveBeenCalledWith(createMockSnapshot(3));
+      expect(manager.getState()).toBe(ConnectionState.Connected);
+      manager.dispose();
+    });
+
+    it('does not mark the connection live from a broadcast while sync is pending', async () => {
+      const { transport, deps } = createDeps(undefined, false);
+      const manager = new ConnectionManager(deps);
+      const connected = manager.connectAndWait(ROOM_1);
+
+      transport.handlers.onOpen();
+      transport.handlers.onStateUpdate(
+        createStateUpdateMessage(createMockSnapshot(2), 'test.command'),
+      );
+
+      expect(manager.getState()).toBe(ConnectionState.Syncing);
+      completeStateSync(transport, 2);
+      await connected;
+      expect(manager.getState()).toBe(ConnectionState.Connected);
+      manager.dispose();
+    });
+
+    it('closes the socket and schedules reconnect when the sync deadline expires', async () => {
+      const { transport, deps } = createDeps(undefined, false);
+      const manager = new ConnectionManager(deps);
+      const connected = manager.connectAndWait(ROOM_1);
+
+      transport.handlers.onOpen();
+      jest.advanceTimersByTime(STATE_SYNC_TIMEOUT_MS);
+
+      expect(manager.getState()).toBe(ConnectionState.Disconnected);
+      expect(transport.disconnect).toHaveBeenCalled();
+      manager.dispose();
+      await expect(connected).rejects.toThrow('disposed');
+    });
+
+    it('fails on a response for a different request ID', async () => {
+      const { transport, deps } = createDeps(undefined, false);
+      const manager = new ConnectionManager(deps);
+      const connected = manager.connectAndWait(ROOM_1);
+
+      transport.handlers.onOpen();
+      transport.handlers.onStateSyncResponse(
+        createStateSyncResponseMessage('wrong-request', createMockSnapshot(1)),
+      );
+
+      await expect(connected).rejects.toThrow('does not match');
       expect(manager.getState()).toBe(ConnectionState.Failed);
       manager.dispose();
     });
 
+    it('reconnects when the open socket cannot send the sync request', async () => {
+      const { transport, deps } = createDeps(undefined, false);
+      transport.send.mockReturnValue(false);
+      const manager = new ConnectionManager(deps);
+      const connected = manager.connectAndWait(ROOM_1);
+
+      transport.handlers.onOpen();
+
+      expect(manager.getState()).toBe(ConnectionState.Disconnected);
+      expect(transport.disconnect).toHaveBeenCalled();
+      manager.dispose();
+      await expect(connected).rejects.toThrow('disposed');
+    });
+  });
+
+  describe('protocol integrity', () => {
     it('fails the initial connection when snapshot application rejects metadata', async () => {
       const integrityError = new Error('snapshot identity mismatch');
       const { transport, deps } = createDeps({
-        onFetchedState: jest.fn(() => {
+        onStateSync: jest.fn(() => {
           throw integrityError;
         }),
       });

@@ -104,7 +104,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   const handleButtonPress = useCallback(
     (button: AlertButton, index: number) => {
       // Capture generation BEFORE calling onPress — if onPress synchronously
-      // calls showAlert() (e.g. "详细信息" -> "自己查看" -> showConfirmAlert),
+      // calls showAlert() (e.g. "本局复盘" -> "自己查看" -> showConfirmAlert),
       // generation will have incremented and we must NOT close the new alert.
       const gen = getAlertGeneration();
       const result = button.onPress?.(input ? inputValue : undefined);

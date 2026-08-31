@@ -48,6 +48,13 @@ import {
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from './domain/handlers/seatHandler';
+import {
+  handleAdvanceSheriffElection,
+  handleCancelSheriffRegistration,
+  handleCastSheriffVote,
+  handleRegisterSheriffCandidate,
+  handleWithdrawSheriffCandidate,
+} from './domain/handlers/sheriffElectionHandler';
 import type { HandlerResult } from './domain/handlers/types';
 import { handleViewedRole } from './domain/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from './domain/handlers/wolfRobotHunterGateHandler';
@@ -81,6 +88,10 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.reveal.ack':
     case 'werewolf.wolfRobot.ackHunterStatus':
     case 'werewolf.groupConfirm.ack':
+    case 'werewolf.sheriff.register':
+    case 'werewolf.sheriff.cancelRegistration':
+    case 'werewolf.sheriff.withdraw':
+    case 'werewolf.sheriff.vote':
       return true;
     case 'room.seat.take':
     case 'room.seat.leave':
@@ -97,6 +108,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.board.upvote':
     case 'werewolf.board.withdraw':
     case 'werewolf.night.start':
+    case 'werewolf.sheriff.advance':
     case 'werewolf.audio.ack':
     case 'werewolf.progress.request':
     case 'werewolf.groupConfirm.ackBots':
@@ -139,8 +151,13 @@ function createInitialState(config: WerewolfConfig, context: CreateGameContext):
   }
 
   const baseTemplate = createTemplateFromRoles(templateRoles);
-  const template =
-    config.rules === undefined ? baseTemplate : { ...baseTemplate, rules: { ...config.rules } };
+  const template = {
+    ...baseTemplate,
+    rules: {
+      ...config.rules,
+      isSheriffElectionEnabled: config.rules?.isSheriffElectionEnabled ?? true,
+    },
+  };
   return normalizeState(buildInitialGameState(context.roomCode, context.hostUserId, template));
 }
 
@@ -152,6 +169,7 @@ export function getWerewolfLifecycle(state: GameState): CommonGameLifecycle {
     case GameStatus.Ready:
       return 'setup';
     case GameStatus.Ongoing:
+    case GameStatus.Day:
       return 'ongoing';
     case GameStatus.Ended:
       return 'ended';
@@ -387,6 +405,69 @@ function decideWerewolfCommandRules(
       return decideHandler(
         state,
         handleStartNight({ type: 'START_NIGHT' }, actor.value.handlerContext, context),
+        context,
+      );
+    }
+    case 'werewolf.sheriff.register': {
+      const actor = resolveEffectiveSeatActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleRegisterSheriffCandidate(
+          { type: 'REGISTER_SHERIFF_CANDIDATE', payload: { seat: actor.value.seat } },
+          actor.value.handlerContext,
+        ),
+        context,
+      );
+    }
+    case 'werewolf.sheriff.cancelRegistration': {
+      const actor = resolveEffectiveSeatActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleCancelSheriffRegistration(
+          { type: 'CANCEL_SHERIFF_REGISTRATION', payload: { seat: actor.value.seat } },
+          actor.value.handlerContext,
+        ),
+        context,
+      );
+    }
+    case 'werewolf.sheriff.withdraw': {
+      const actor = resolveEffectiveSeatActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleWithdrawSheriffCandidate(
+          { type: 'WITHDRAW_SHERIFF_CANDIDATE', payload: { seat: actor.value.seat } },
+          actor.value.handlerContext,
+        ),
+        context,
+      );
+    }
+    case 'werewolf.sheriff.vote': {
+      const actor = resolveEffectiveSeatActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleCastSheriffVote(
+          {
+            type: 'CAST_SHERIFF_VOTE',
+            payload: { voterSeat: actor.value.seat, targetSeat: command.targetSeat },
+          },
+          actor.value.handlerContext,
+        ),
+        context,
+      );
+    }
+    case 'werewolf.sheriff.advance': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleAdvanceSheriffElection(
+          { type: 'ADVANCE_SHERIFF_ELECTION' },
+          actor.value.handlerContext,
+        ),
         context,
       );
     }

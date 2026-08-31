@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
+import { TESTIDS } from '@/testids';
 import {
   borderRadius,
   colors,
@@ -66,6 +67,16 @@ const MODE_RULES: RuleItemConfig[] = [
         '• 发牌时，所有狼人牌将暗中替换为平民\n• 玩家看到的板子配置仍显示有狼\n• 发牌后请由房主担任真人法官主持后续流程\n• 建议提前线下安排好"演员"',
       confirmText: '确认开启',
     },
+  },
+];
+
+const FLOW_RULES: RuleItemConfig[] = [
+  {
+    key: 'isSheriffElectionEnabled',
+    icon: 'people-outline',
+    iconColor: colors.primary,
+    label: '首日警长竞选',
+    description: '首夜结束后，由房主推进上警、发言、退水和投票流程',
   },
 ];
 
@@ -136,6 +147,7 @@ export const GameRulesScreen: FC = () => {
             <Ionicons name={item.icon} size={componentSizes.icon.md} color={item.iconColor} />
             <Text style={styles.ruleLabel}>{item.label}</Text>
             <Switch
+              testID={TESTIDS.gameRuleSwitch(item.key)}
               value={isEnabled}
               onValueChange={() => handleToggle(item)}
               trackColor={{ false: colors.border, true: withAlpha(trackColor, 0.4) }}
@@ -150,7 +162,11 @@ export const GameRulesScreen: FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['left', 'right']}
+      testID={TESTIDS.gameRulesScreenRoot}
+    >
       <ScreenHeader title="游戏规则" onBack={handleGoBack} topInset={insets.top} />
       <ScrollView
         style={styles.scrollView}
@@ -160,6 +176,9 @@ export const GameRulesScreen: FC = () => {
         {/* Game Modes section */}
         <Text style={styles.sectionHeader}>游戏模式</Text>
         {MODE_RULES.map(renderRuleItem)}
+
+        <Text style={styles.sectionHeader}>流程规则</Text>
+        {FLOW_RULES.map(renderRuleItem)}
 
         {/* Role Rules section */}
         <Text style={styles.sectionHeader}>角色规则</Text>

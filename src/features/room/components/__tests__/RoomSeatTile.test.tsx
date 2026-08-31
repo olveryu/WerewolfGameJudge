@@ -19,6 +19,8 @@ function createProps(overrides: Partial<RoomSeatTileProps> = {}): RoomSeatTilePr
     isPlayerAnonymous: true,
     secondaryLabel: null,
     showReadyBadge: false,
+    statusBadge: null,
+    isStatusEmphasized: false,
     showLevel: false,
     isAppVisible: true,
     seatDecorationsEnabled: true,
@@ -63,5 +65,20 @@ describe('RoomSeatTile', () => {
     const first = createProps();
     const second = createProps({ seat: 1 });
     expect(first.styles).toBe(second.styles);
+  });
+
+  it('renders a semantic status badge without replacing the seat highlight', () => {
+    const screen = render(
+      <RoomSeatTile
+        {...createProps({
+          highlight: 'danger',
+          statusBadge: { label: '发言', tone: 'info' },
+          isStatusEmphasized: true,
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId('seat-status-badge-0')).toHaveTextContent('发言');
+    expect(screen.getByTestId('seat-tile-pressable-0')).toHaveStyle(styles.dangerRing);
   });
 });

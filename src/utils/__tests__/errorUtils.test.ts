@@ -38,6 +38,16 @@ describe('translateReasonCode', () => {
     expect(translateReasonCode('MISSING_PARAMS')).toBe('请求参数缺失');
   });
 
+  it('translates sheriff-election rejections', () => {
+    expect(translateReasonCode('invalid_election_phase')).toBe('当前竞选阶段不允许此操作');
+    expect(translateReasonCode('already_registered')).toBe('你已经报名上警');
+    expect(translateReasonCode('not_candidate')).toBe('你当前不是候选人');
+    expect(translateReasonCode('already_withdrawn')).toBe('你已经退水');
+    expect(translateReasonCode('not_eligible_voter')).toBe('你在本轮没有投票权');
+    expect(translateReasonCode('invalid_vote_target')).toBe('该玩家不是本轮候选人');
+    expect(translateReasonCode('pending_votes')).toBe('仍有玩家未完成投票');
+  });
+
   it('returns default fallback for unknown reason codes', () => {
     expect(translateReasonCode('unknown_code')).toBe('请稍后重试');
   });

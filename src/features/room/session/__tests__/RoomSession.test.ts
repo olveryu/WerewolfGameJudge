@@ -2,7 +2,9 @@ import type { GameStateCodec } from '@game-judge/game-engine/platform/protocol/r
 import {
   type BaseGameState,
   createRoomSnapshot,
+  createStateSyncResponseMessage,
   createStateUpdateMessage,
+  parseStateSyncRequestMessage,
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import * as Sentry from '@sentry/react-native';
@@ -19,7 +21,6 @@ import type {
   IRealtimeTransport,
   TransportEventHandlers,
 } from '@/services/types/IRealtimeTransport';
-import type { IRoomStateService } from '@/services/types/IRoomStateService';
 
 jest.mock('@/services/cloudflare/cfFetch', () => ({
   ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
@@ -87,12 +88,16 @@ function createTestState(counter = 0, hostUserId = 'host-user'): TestState {
   };
 }
 
-function createTransport(options?: { readonly openOnConnect?: boolean }) {
+function createTransport(options: {
+  readonly initialSnapshot: RoomSnapshot<TestState>;
+  readonly openOnConnect?: boolean;
+}) {
   let handlers: TransportEventHandlers<TestState, TestEvent> = {
     onOpen: jest.fn(),
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
+    onStateSyncResponse: jest.fn(),
     onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
@@ -109,7 +114,25 @@ function createTransport(options?: { readonly openOnConnect?: boolean }) {
       if (options?.openOnConnect !== false) handlers.onOpen();
     }),
     disconnect: jest.fn(),
-    send: jest.fn(() => true),
+    send: jest.fn((serialized: string) => {
+      if (serialized.startsWith('{')) {
+        const decoded: unknown = JSON.parse(serialized);
+        if (
+          typeof decoded === 'object' &&
+          decoded !== null &&
+          'type' in decoded &&
+          decoded.type === 'STATE_SYNC_REQUEST'
+        ) {
+          const request = parseStateSyncRequestMessage(decoded);
+          queueMicrotask(() => {
+            handlers.onStateSyncResponse(
+              createStateSyncResponseMessage(request.requestId, options.initialSnapshot),
+            );
+          });
+        }
+      }
+      return true;
+    }),
     setEventHandlers(next) {
       handlers = next;
     },
@@ -118,25 +141,17 @@ function createTransport(options?: { readonly openOnConnect?: boolean }) {
 }
 
 function createSession(options?: {
-  readonly initialSnapshot?: RoomSnapshot<TestState> | null;
+  readonly initialSnapshot?: RoomSnapshot<TestState>;
   readonly openOnConnect?: boolean;
   readonly commandRecovery?: RoomCommandRecoveryRepository;
 }) {
-  const transport = createTransport({ openOnConnect: options?.openOnConnect });
-  const stateService: IRoomStateService<TestState> = {
-    getGameState: jest
-      .fn<Promise<RoomSnapshot<TestState> | null>, []>()
-      .mockResolvedValue(
-        options && 'initialSnapshot' in options
-          ? (options.initialSnapshot ?? null)
-          : createRoomSnapshot(createTestState(), 1),
-      ),
-    getStateRevision: jest.fn<Promise<number | null>, []>().mockResolvedValue(1),
-  };
+  const transport = createTransport({
+    initialSnapshot: options?.initialSnapshot ?? createRoomSnapshot(createTestState(), 1),
+    openOnConnect: options?.openOnConnect,
+  });
   let commandSequence = 0;
   const session = new RoomSession<TestState, TestCommand, TestEvent>({
     codec: TEST_CODEC,
-    stateService,
     transport,
     createCommandId: () => `command-${++commandSequence}`,
     commandRecovery: options?.commandRecovery ?? {
@@ -146,7 +161,7 @@ function createSession(options?: {
     },
   });
   createdSessions.push(session);
-  return { session, stateService, transport };
+  return { session, transport };
 }
 
 async function flushAsyncWork(): Promise<void> {
@@ -195,15 +210,6 @@ describe('RoomSession', () => {
     expect(session.getSnapshot()).toBe(first);
   });
 
-  it('fails fast when an active directory room has no authoritative snapshot', async () => {
-    const { session } = createSession({ initialSnapshot: null });
-
-    await expect(session.connect(IDENTITY)).rejects.toThrow(
-      'Active room returned no authoritative snapshot',
-    );
-    expect(session.getSnapshot()).toMatchObject({ phase: 'failed', connection: 'failed' });
-  });
-
   it('fails fast when directory metadata and the initial snapshot disagree', async () => {
     const { session } = createSession({
       initialSnapshot: createRoomSnapshot(createTestState(0, 'another-host'), 1),
@@ -214,7 +220,7 @@ describe('RoomSession', () => {
     );
   });
 
-  it('applies command metadata when WS follows an HTTP snapshot at the same revision', async () => {
+  it('applies command metadata when a broadcast follows socket sync at the same revision', async () => {
     const snapshot = createRoomSnapshot(createTestState(), 1);
     const { session, transport } = createSession({ initialSnapshot: snapshot });
     await session.connect(IDENTITY);
@@ -524,6 +530,7 @@ describe('RoomSession', () => {
   it('delivers durable user events before acknowledging and re-acks duplicates', async () => {
     const { session, transport } = createSession();
     await session.connect(IDENTITY);
+    transport.send.mockClear();
     const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-1', value: 1 };
     transport.handlers.onUserEvent(event);
     expect(transport.send).not.toHaveBeenCalled();
@@ -548,6 +555,7 @@ describe('RoomSession', () => {
   it('defers acknowledgement when the socket closes during user-event delivery', async () => {
     const { session, transport } = createSession();
     await session.connect(IDENTITY);
+    transport.send.mockClear();
     const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-disconnected', value: 3 };
     const delivery = createDeferred<void>();
     const handler = jest.fn(() => delivery.promise);
@@ -577,6 +585,7 @@ describe('RoomSession', () => {
   it('reports an acknowledgement send exception after user-event delivery', async () => {
     const { session, transport } = createSession();
     await session.connect(IDENTITY);
+    transport.send.mockClear();
     const sendError = new Error('WebSocket send failed');
     transport.send.mockImplementation(() => {
       throw sendError;
@@ -598,6 +607,7 @@ describe('RoomSession', () => {
   it('does not acknowledge a failed handler and retries the same event on redelivery', async () => {
     const { session, transport } = createSession();
     await session.connect(IDENTITY);
+    transport.send.mockClear();
     const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-2', value: 2 };
     const handler = jest
       .fn<Promise<void>, [TestEvent]>()

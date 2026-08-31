@@ -6,8 +6,12 @@ import {
 } from '../../../games/werewolf/public';
 import {
   createRoomSnapshot,
+  createStateSyncRequestMessage,
+  createStateSyncResponseMessage,
   createStateUpdateMessage,
   parseRoomSnapshot,
+  parseStateSyncRequestMessage,
+  parseStateSyncResponseMessage,
   parseStateUpdateMessage,
 } from '../roomSnapshot';
 
@@ -75,7 +79,7 @@ describe('room snapshot protocol', () => {
     );
   });
 
-  it('decodes the same snapshot envelope used by HTTP reconnects', () => {
+  it('decodes the authoritative room snapshot envelope', () => {
     const state = createState();
     const snapshot = createRoomSnapshot(state, 3);
     const encoded: unknown = JSON.parse(JSON.stringify(snapshot));
@@ -89,6 +93,40 @@ describe('room snapshot protocol', () => {
     const encoded: unknown = JSON.parse(JSON.stringify(message));
 
     expect(parseStateUpdateMessage(encoded, WEREWOLF_STATE_CODEC)).toEqual(message);
+  });
+
+  it('creates and parses a strict correlated state sync request', () => {
+    const request = createStateSyncRequestMessage('sync-request-1');
+
+    expect(request).toEqual({ type: 'STATE_SYNC_REQUEST', requestId: 'sync-request-1' });
+    expect(parseStateSyncRequestMessage(request)).toEqual(request);
+    expect(() => parseStateSyncRequestMessage({ ...request, revision: 1 })).toThrow(
+      'StateSyncRequestMessage contains unknown field: revision',
+    );
+  });
+
+  it('creates and parses an authoritative state sync response', () => {
+    const snapshot = createRoomSnapshot(createState(), 5);
+    const response = createStateSyncResponseMessage('sync-request-2', snapshot);
+
+    expect(response).toEqual({
+      type: 'STATE_SYNC_RESPONSE',
+      requestId: 'sync-request-2',
+      ...snapshot,
+    });
+    expect(parseStateSyncResponseMessage(response, WEREWOLF_STATE_CODEC)).toEqual(response);
+  });
+
+  it('rejects invalid state sync identifiers and response fields', () => {
+    const snapshot = createRoomSnapshot(createState(), 5);
+
+    expect(() => createStateSyncRequestMessage('')).toThrow('requestId must be a non-empty string');
+    expect(() =>
+      parseStateSyncResponseMessage(
+        { ...createStateSyncResponseMessage('sync-request-3', snapshot), lastCommandType: null },
+        WEREWOLF_STATE_CODEC,
+      ),
+    ).toThrow('StateSyncResponseMessage contains unknown field: lastCommandType');
   });
 
   it('rejects unknown envelope fields', () => {

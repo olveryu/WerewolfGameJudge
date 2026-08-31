@@ -12,6 +12,8 @@ import {
   typography,
 } from '@/theme';
 
+const ROOM_SIDE_INSPECTOR_WIDTH = 360;
+
 export function createRoomShellStyles(colors: ThemeColors) {
   const shared = createSharedStyles(colors);
   return StyleSheet.create({
@@ -31,6 +33,16 @@ export function createRoomShellStyles(colors: ThemeColors) {
       borderBottomColor: colors.border,
       overflow: 'hidden',
     },
+    headerStacked: {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: spacing.tight,
+    },
+    headerTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     iconButton: {
       ...shared.iconButton,
       borderRadius: borderRadius.full,
@@ -41,6 +53,15 @@ export function createRoomShellStyles(colors: ThemeColors) {
       ...StyleSheet.absoluteFill,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    headerCenterStacked: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
     },
     headerTitle: {
       fontSize: layout.headerTitleSize,
@@ -53,6 +74,26 @@ export function createRoomShellStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.small,
       zIndex: 1,
+    },
+    roomContent: {
+      flex: 1,
+      minHeight: 0,
+      flexDirection: 'row',
+    },
+    boardColumn: {
+      flex: 1,
+      minWidth: 0,
+    },
+    contextHeaderContainer: {
+      paddingHorizontal: spacing.medium,
+      paddingTop: spacing.small,
+    },
+    sideInspectorContainer: {
+      width: ROOM_SIDE_INSPECTOR_WIDTH,
+      minHeight: 0,
+      backgroundColor: colors.surface,
+      borderLeftWidth: fixed.borderWidth,
+      borderLeftColor: colors.border,
     },
     scrollContent: {
       flexGrow: 1,

@@ -15,6 +15,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomSeatDataSource,
+  RoomSeatStatusBadge,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import type {
@@ -28,6 +29,7 @@ import type {
   StaticButtonAction,
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
+import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
@@ -84,7 +86,7 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
   return {
     ...setupCapabilities,
     canViewProfiles:
-      input.status !== GameStatus.Ongoing
+      input.status !== GameStatus.Ongoing && input.status !== GameStatus.Day
         ? allowed(input.openProfile)
         : denied('游戏进行中不能查看玩家资料'),
     canTakeOverBots: canTakeOver ? allowed(input.takeOverBot) : denied('当前不能接管机器人'),
@@ -97,7 +99,26 @@ interface WerewolfSeatSourceInput {
   readonly showBotRoles: boolean;
   readonly showLevels: boolean;
   readonly decorationsEnabled: boolean;
+  readonly sheriffElectionView: SheriffElectionViewModel | null;
   readonly revision: string | number;
+}
+
+function getSheriffSeatStatusBadge(
+  view: SheriffElectionViewModel | null,
+  seat: number,
+): RoomSeatStatusBadge | null {
+  if (view === null) return null;
+  if (view.finalResult?.kind === 'elected' && view.finalResult.sheriffSeat === seat) {
+    return { label: '警长', tone: 'warning' };
+  }
+
+  const records = view.candidateRecords;
+  if (records === null) return null;
+  if (records.withdrawnSeats.includes(seat)) return { label: '退水', tone: 'muted' };
+  if (!records.activeCandidateSeats.includes(seat)) return null;
+  return view.phase === 'runoffSpeech' || view.phase === 'runoffVote'
+    ? { label: 'PK', tone: 'warning' }
+    : { label: '上警', tone: 'primary' };
 }
 
 export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): RoomSeatDataSource {
@@ -119,6 +140,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
             ? 'danger'
             : 'none';
       const role = seat.player?.role;
+      const sheriffStatusBadge = getSheriffSeatStatusBadge(input.sheriffElectionView, seat.seat);
 
       return {
         seat: seat.seat,
@@ -143,7 +165,10 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
           input.showBotRoles && seat.player?.isBot && role ? getRoleDisplayName(role) : null,
         disabledReason: seat.disabledReason,
         showReadyBadge: seat.showReadyBadge === true,
-        badgeText: seat.wolfVoteBadge ?? null,
+        statusBadge:
+          sheriffStatusBadge ??
+          (seat.wolfVoteBadge === undefined ? null : { label: seat.wolfVoteBadge, tone: 'danger' }),
+        isStatusEmphasized: false,
         showLevel: input.showLevels,
         decorationsEnabled: input.decorationsEnabled,
       };
@@ -157,7 +182,6 @@ interface WerewolfStatusRibbonInput {
     readonly total: number;
     readonly roleName?: string;
   } | null;
-  readonly speakingOrderText?: string;
   readonly guideMessage: string | null;
 }
 
@@ -170,14 +194,6 @@ export function createWerewolfStatusRibbon(
       current: input.nightProgress.current,
       total: input.nightProgress.total,
       label: input.nightProgress.roleName ?? null,
-    };
-  }
-  if (input.speakingOrderText !== undefined) {
-    return {
-      kind: 'message',
-      icon: 'speaking',
-      text: input.speakingOrderText,
-      supportingText: '未参与竞选的玩家自动跳过',
     };
   }
   if (input.guideMessage) {
@@ -237,8 +253,6 @@ export function createWerewolfBottomActionLayout(input: {
       variant: button.variant,
       size: button.size,
       testID: button.testID,
-      textColor: button.textColor,
-      buttonColor: button.buttonColor,
     } as const;
 
     if (button.isEnabled && input.isActionSubmitting && button.behavior.kind === 'intent') {

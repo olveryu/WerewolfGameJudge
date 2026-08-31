@@ -1,5 +1,6 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import {
   createWerewolfBottomActionLayout,
@@ -76,6 +77,20 @@ describe('werewolfRoomAdapter', () => {
     expect(input.kickSeat).toHaveBeenCalledWith(2);
   });
 
+  it('treats the sheriff election as an active game for profile visibility', () => {
+    const capabilities = createWerewolfRoomCapabilities({
+      ...createCapabilityInput(),
+      status: GameStatus.Day,
+      mySeat: 0,
+    });
+
+    expect(capabilities.canViewProfiles).toEqual({
+      isAllowed: false,
+      reason: '游戏进行中不能查看玩家资料',
+    });
+    expect(capabilities.canTakeOverBots.isAllowed).toBe(true);
+  });
+
   it('maps Werewolf-only role data into a neutral lazy seat model', () => {
     const seats: SeatViewModel[] = [
       {
@@ -98,6 +113,7 @@ describe('werewolfRoomAdapter', () => {
       showBotRoles: true,
       showLevels: false,
       decorationsEnabled: false,
+      sheriffElectionView: null,
       revision: 1,
     });
 
@@ -109,11 +125,88 @@ describe('werewolfRoomAdapter', () => {
     expect(() => source.getSeat(1)).toThrow('Werewolf seat source is not contiguous');
   });
 
+  it('derives public sheriff markers without exposing registration identities', () => {
+    const seats: SeatViewModel[] = Array.from({ length: 4 }, (_, seat) => ({
+      seat,
+      role: 'villager',
+      player: {
+        userId: `user-${seat}`,
+        displayName: `玩家${seat + 1}`,
+        isBot: false,
+        role: 'villager',
+      },
+      isMySpot: seat === 0,
+      isWolf: false,
+      isSelected: false,
+    }));
+    const registrationView: SheriffElectionViewModel = {
+      phase: 'registration',
+      phaseTitle: '报名上警',
+      phaseDescription: '玩家可报名',
+      candidateRecords: null,
+      speakingOrder: [],
+      voteProgress: null,
+      myBallot: null,
+      candidateOptions: [],
+      completedRounds: [],
+      finalResult: null,
+      canRegister: false,
+      canCancelRegistration: true,
+      canWithdraw: false,
+      canVote: false,
+      canAdvance: false,
+      advanceLabel: null,
+    };
+    const createSource = (sheriffElectionView: SheriffElectionViewModel) =>
+      createWerewolfSeatDataSource({
+        seats,
+        controlledSeat: null,
+        showBotRoles: false,
+        showLevels: false,
+        decorationsEnabled: false,
+        sheriffElectionView,
+        revision: 1,
+      });
+
+    expect(createSource(registrationView).getSeat(0).statusBadge).toBeNull();
+
+    const speechSource = createSource({
+      ...registrationView,
+      phase: 'candidateSpeech',
+      phaseTitle: '竞选发言',
+      candidateRecords: {
+        registeredSeats: [0, 1, 2],
+        withdrawnSeats: [2],
+        activeCandidateSeats: [0, 1],
+      },
+      speakingOrder: [0, 1],
+      canCancelRegistration: false,
+    });
+    expect(speechSource.getSeat(0).statusBadge).toEqual({ label: '上警', tone: 'primary' });
+    expect(speechSource.getSeat(1)).toMatchObject({
+      statusBadge: { label: '上警', tone: 'primary' },
+      isStatusEmphasized: false,
+    });
+    expect(speechSource.getSeat(2).statusBadge).toEqual({ label: '退水', tone: 'muted' });
+
+    const runoffSource = createSource({
+      ...registrationView,
+      phase: 'runoffVote',
+      phaseTitle: '平票投票',
+      candidateRecords: {
+        registeredSeats: [0, 1, 2],
+        withdrawnSeats: [2],
+        activeCandidateSeats: [0, 1],
+      },
+      voteProgress: { submittedCount: 0, eligibleCount: 2 },
+    });
+    expect(runoffSource.getSeat(0).statusBadge).toEqual({ label: 'PK', tone: 'warning' });
+  });
+
   it('preserves the Werewolf status priority before rendering shared UI', () => {
     expect(
       createWerewolfStatusRibbon({
         nightProgress: { current: 2, total: 8, roleName: '狼人' },
-        speakingOrderText: '1号发言',
         guideMessage: '等待玩家',
       }),
     ).toEqual({ kind: 'progress', current: 2, total: 8, label: '狼人' });

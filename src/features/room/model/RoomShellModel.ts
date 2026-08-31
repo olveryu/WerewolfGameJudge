@@ -1,17 +1,13 @@
 /** Complete game-neutral model rendered by RoomShell. */
 
-import type Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps } from 'react';
-
 import type { RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomCapabilities } from './RoomCapabilities';
 import type { RoomConnectionStatus } from './RoomConnection';
+import type { RoomHostManagementModel } from './RoomHostManagement';
 import type { RoomProfileCardModel } from './RoomProfile';
 import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 import type { RoomShareModel } from './RoomShare';
-
-export type RoomIconName = ComponentProps<typeof Ionicons>['name'];
 
 export interface RoomConnectionViewModel {
   readonly status: RoomConnectionStatus;
@@ -34,16 +30,6 @@ export type RoomStatusRibbonModel =
       readonly supportingText: string | null;
     };
 
-export interface RoomHeaderMenuItem {
-  readonly id: string;
-  readonly label: string;
-  readonly icon: RoomIconName;
-  readonly group: 'utility' | 'operation';
-  readonly tone: 'default' | 'danger';
-  readonly testID?: string;
-  readonly onPress: () => void;
-}
-
 export interface RoomHeaderUserAction {
   readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
   readonly ticketCount: number | null;
@@ -54,7 +40,6 @@ export interface RoomHeaderModel {
   readonly onBack: () => void;
   readonly onTitlePress: (() => void) | null;
   readonly userAction: RoomHeaderUserAction | null;
-  readonly menuItems: readonly RoomHeaderMenuItem[];
 }
 
 export interface RoomSeatBoardModel {
@@ -87,5 +72,6 @@ export interface RoomShellModel {
   readonly profile: RoomProfileCardModel | null;
   readonly share: RoomShareModel;
   readonly bottomActions: RoomBottomActionModel;
+  readonly hostManagement: RoomHostManagementModel | null;
   readonly controlledSeat: RoomControlledSeatModel | null;
 }

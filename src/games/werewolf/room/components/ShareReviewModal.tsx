@@ -1,7 +1,7 @@
 /**
  * ShareReviewModal - Share detail seat-selection modal
  *
- * Host selects seats allowed to view 「详细信息」 during the ended phase.
+ * Host selects seats allowed to view 「本局复盘」 during the ended phase.
  * Pure display component: renders a multi-select seat list + confirm/cancel buttons, reports selection via callback.
  * No service imports, no business logic.
  */
@@ -99,8 +99,8 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
       contentStyle={contentStyle}
       testID={TESTIDS.shareReviewModal}
     >
-      <Text style={styles.title}>分享详细信息</Text>
-      <Text style={styles.subtitle}>选择可查看「详细信息」的玩家</Text>
+      <Text style={styles.title}>授权查看本局复盘</Text>
+      <Text style={styles.subtitle}>选择可以查看「本局复盘」的玩家</Text>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {seats.map(({ seat, displayName }) => {

@@ -404,6 +404,21 @@ describe('SeatTapPolicy', () => {
           expect(result.targetUserId).toBe('user-ended');
         }
       });
+
+      it('reserves Day seat taps for the sheriff election panel', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Day,
+          isAudioPlaying: false,
+          seat: 1,
+          disabledReason: undefined,
+          imActioner: false,
+          isSeatOccupiedByOther: true,
+          isSelfSeated: false,
+          targetUserId: 'user-day',
+        };
+
+        expect(getSeatTapResult(input)).toEqual({ kind: 'NOOP', reason: 'other_status' });
+      });
     });
   });
 

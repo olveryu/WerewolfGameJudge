@@ -35,6 +35,7 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createFibBottomActions,
+  createFibHostManagement,
   createFibRoomCapabilities,
   createFibSeatDataSource,
   createFibStatusRibbon,
@@ -372,31 +373,45 @@ export function useFibRoomScreenState({
     seatController.pendingAction,
   ]);
 
+  const showStartRoundDisabled = useCallback(() => {
+    showErrorAlert('暂时不能开始', '请先坐满所有座位。');
+  }, []);
+
+  const hostManagement = useMemo(
+    () =>
+      createFibHostManagement({
+        state,
+        isHost,
+        isCommandSubmitting,
+        capabilities,
+        startRound,
+        cancelPreparing,
+        revealRound,
+        endGame,
+        onStartDisabled: showStartRoundDisabled,
+      }),
+    [
+      cancelPreparing,
+      capabilities,
+      endGame,
+      isCommandSubmitting,
+      isHost,
+      revealRound,
+      showStartRoundDisabled,
+      startRound,
+      state,
+    ],
+  );
+
   const bottomActions = useMemo(
     () =>
       createFibBottomActions({
         state,
         isHost,
         viewerSeat: effectiveSeat,
-        startRound,
-        cancelPreparing,
-        revealRound,
-        endGame,
         openIdentity,
-        configureGame,
-        onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位。'),
       }),
-    [
-      cancelPreparing,
-      configureGame,
-      endGame,
-      effectiveSeat,
-      isHost,
-      openIdentity,
-      revealRound,
-      startRound,
-      state,
-    ],
+    [effectiveSeat, isHost, openIdentity, state],
   );
 
   const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
@@ -427,7 +442,6 @@ export function useFibRoomScreenState({
           ticketCount,
           onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
         },
-        menuItems: [],
       },
       connection: entryController.connection,
       statusRibbon: createFibStatusRibbon(state),
@@ -441,6 +455,7 @@ export function useFibRoomScreenState({
       profile,
       share,
       bottomActions,
+      hostManagement,
       controlledSeat: controlledSeatModel,
     }),
     [
@@ -452,6 +467,7 @@ export function useFibRoomScreenState({
       onSeatLongPress,
       onSeatPress,
       isCommandSubmitting,
+      hostManagement,
       profile,
       room.roomCode,
       seatConfirmation,

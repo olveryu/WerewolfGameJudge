@@ -22,7 +22,6 @@ export interface IGameRoomRPC {
   initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult>;
   dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult>;
   getSnapshot(command: ReadRoomCommand): Promise<RoomSnapshot<BaseGameState<GameType>> | null>;
-  getRevision(command: ReadRoomCommand): Promise<number | null>;
   authorizeRoomDeletion(
     command: AuthorizeRoomDeletionCommand,
   ): Promise<AuthorizeRoomDeletionResult>;

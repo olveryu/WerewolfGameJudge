@@ -45,6 +45,10 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'lastNightDeaths',
   'deathReasons',
 
+  // First-day sheriff election
+  'sheriffElection',
+  'sheriffElectionResult',
+
   // Nightmare block
   'nightmareBlockedSeat',
   'wolfKillOverride',

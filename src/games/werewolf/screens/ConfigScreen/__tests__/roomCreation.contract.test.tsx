@@ -6,6 +6,7 @@
  * never a pre-generated local code that might differ after 409 retry.
  */
 
+import type { GameRuleOverrides } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
@@ -27,6 +28,9 @@ jest.mock('@/features/room/controllers/useRoomCreationController', () => ({
 // Mock navigation
 const mockNavigate = jest.fn();
 const mockOnRoomCreated = jest.fn();
+let mockRouteParams: { presetName: string; updatedRules?: GameRuleOverrides } = {
+  presetName: '预女猎白',
+};
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
@@ -34,7 +38,7 @@ jest.mock('@react-navigation/native', () => ({
     addListener: jest.fn(() => jest.fn()),
   }),
   useRoute: () => ({
-    params: { presetName: '预女猎白' },
+    params: mockRouteParams,
   }),
 }));
 
@@ -94,6 +98,7 @@ function renderConfigScreen() {
 describe('Room creation → navigation roomCode contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRouteParams = { presetName: '预女猎白' };
 
     // Mutation mock returns the room code allocated by the server saga.
     mockCreateRoom.mockResolvedValue({
@@ -146,8 +151,24 @@ describe('Room creation → navigation roomCode contract', () => {
     expect(createRequest.expectedHostUserId).toBe('test-uid');
     expect(createRequest.gameType).toBe('werewolf');
     expect(Array.isArray(createRequest.config.templateRoles)).toBe(true);
+    expect(createRequest.config.rules).toEqual({ isSheriffElectionEnabled: true });
     expect(createRequest).not.toHaveProperty('buildInitialState');
     expect(createRequest).not.toHaveProperty('initialState');
+  });
+
+  it('serializes an explicitly disabled sheriff election', async () => {
+    mockRouteParams = {
+      presetName: '预女猎白',
+      updatedRules: { isSheriffElectionEnabled: false },
+    };
+    const { getByText } = renderConfigScreen();
+
+    fireEvent.press(getByText('创建房间'));
+
+    await waitFor(() => expect(mockCreateRoom).toHaveBeenCalledTimes(1));
+    expect(mockCreateRoom.mock.calls[0]?.[0].config.rules).toEqual({
+      isSheriffElectionEnabled: false,
+    });
   });
 
   it('should NOT navigate when createRoomRecord fails', async () => {

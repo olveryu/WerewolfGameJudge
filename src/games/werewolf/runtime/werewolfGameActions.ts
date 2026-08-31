@@ -278,3 +278,63 @@ export function boardUpvote(
 export function boardWithdraw(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(ctx, { type: 'werewolf.board.withdraw' }, null, 'boardWithdraw');
 }
+
+export function registerSheriffCandidate(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.sheriff.register' },
+    controlledSeat,
+    'registerSheriffCandidate',
+  );
+}
+
+export function cancelSheriffRegistration(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.sheriff.cancelRegistration' },
+    controlledSeat,
+    'cancelSheriffRegistration',
+  );
+}
+
+export function withdrawSheriffCandidate(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.sheriff.withdraw' },
+    controlledSeat,
+    'withdrawSheriffCandidate',
+  );
+}
+
+export function castSheriffVote(
+  ctx: GameActionsContext,
+  targetSeat: number | null,
+  controlledSeat: number | null,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.sheriff.vote', targetSeat },
+    controlledSeat,
+    'castSheriffVote',
+  );
+}
+
+export function advanceSheriffElection(
+  ctx: GameActionsContext,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.sheriff.advance' },
+    null,
+    'advanceSheriffElection',
+  );
+}
