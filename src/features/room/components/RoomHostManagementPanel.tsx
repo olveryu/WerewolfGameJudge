@@ -134,6 +134,7 @@ const ManagementAction: React.FC<{
     size: 'md' as const,
     loading: action.isLoading,
     icon: <Ionicons name={action.icon} size={componentSizes.icon.sm} color={iconColor} />,
+    accessibilityLabel: action.label,
     testID: action.testID,
     style: styles.actionButton,
   };

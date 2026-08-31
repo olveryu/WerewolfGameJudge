@@ -51,7 +51,8 @@ describe('RoomHostManagementPanel', () => {
 
     expect(screen.getByText('待处理：结束报名')).toBeTruthy();
     expect(screen.getByText('警长竞选 · 报名中')).toBeTruthy();
-    fireEvent.press(screen.getByText('结束报名'));
+    const advanceButton = screen.getByLabelText('结束报名');
+    fireEvent.press(advanceButton);
     expect(calls).toEqual(['close', 'action']);
     expect(advance).toHaveBeenCalledTimes(1);
     expect(restart).not.toHaveBeenCalled();
