@@ -27,7 +27,6 @@ import type {
 import { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
 import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
-import type { IRoomStateService } from '@/services/types/IRoomStateService';
 import { handleError } from '@/utils/errorPipeline';
 import { roomSessionLog } from '@/utils/logger';
 
@@ -38,7 +37,6 @@ interface RoomSessionDeps<
   TEvent extends RoomUserEvent & RealtimeUserEvent,
 > {
   readonly codec: GameStateCodec<TState>;
-  readonly stateService: IRoomStateService<TState>;
   readonly transport: IRealtimeTransport<TState, TEvent>;
   readonly createCommandId: () => string;
   readonly commandRecovery: RoomCommandRecoveryRepository;
@@ -133,10 +131,8 @@ export class RoomSession<
     this.#commandRecovery = deps.commandRecovery;
     this.#connection = new ConnectionManager<TState, TEvent>({
       transport: deps.transport,
-      fetchStateFromDB: (room) => deps.stateService.getGameState(room),
-      getStateRevision: (room) => deps.stateService.getStateRevision(room),
       onStateUpdate: (message) => this.#applyStateUpdate(message),
-      onFetchedState: (snapshot) => this.#applySnapshot(snapshot, null),
+      onStateSync: (snapshot) => this.#applySnapshot(snapshot, null),
       onUserEvent: (event) => this.#receiveUserEvent(event),
     });
     this.#connection.addStateListener((state) => this.#handleConnectionState(state));
@@ -489,7 +485,6 @@ export class RoomSession<
     }
 
     this.#snapshotFingerprint = fingerprint;
-    this.#connection.updateRevision(snapshot.revision);
     this.#setSnapshot(
       Object.freeze({
         phase: 'ready',

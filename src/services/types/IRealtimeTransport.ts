@@ -13,6 +13,7 @@
 import type { RoomLocator } from '@game-judge/game-engine/platform/protocol/roomLocator';
 import type {
   BaseGameState,
+  StateSyncResponseMessage,
   StateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
@@ -37,6 +38,7 @@ export interface TransportEventHandlers<
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
   onStateUpdate(message: StateUpdateMessage<TState>): void;
+  onStateSyncResponse(message: StateSyncResponseMessage<TState>): void;
   onUserEvent(event: TEvent): void;
   onPong(): void;
 }

@@ -7,9 +7,9 @@ import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
- * DB Recovery E2E Tests
+ * WebSocket snapshot recovery E2E tests.
  *
- * Verifies that a player can recover game state from DB after a network
+ * Verifies that a player can recover authoritative game state after a network
  * interruption (simulated via Playwright's `context.setOffline(true/false)`).
  *
  * Flow:
@@ -17,18 +17,18 @@ import { RoomPage } from '../pages/RoomPage';
  * 2. Advance night partially (wolf votes, etc.)
  * 3. Simulate player network disconnect (setOffline)
  * 4. Wait, then restore network
- * 5. Player should auto-recover state from DB (fetchStateFromDB)
+ * 5. Player should recover through correlated WebSocket state sync
  * 6. Night should complete normally
  *
  * This is distinct from rejoin.spec.ts which tests full page reload.
  * This test exercises the auto-heal path: network drops -> WebSocket reconnects
- * -> stale state detected -> fetchStateFromDB -> state restored.
+ * -> STATE_SYNC_RESPONSE applies the authoritative snapshot -> state restored.
  */
 
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
 
-test.describe('DB state recovery after network interruption', () => {
+test.describe('WebSocket state recovery after network interruption', () => {
   test('player recovers state after temporary network loss', async ({ browser }, testInfo) => {
     // Step 1: Setup 2-player game and start night
     const { fixture, roomCode, hostPage, joinerPages } = await setupNPlayerGame(browser, {
@@ -83,7 +83,7 @@ test.describe('DB state recovery after network interruption', () => {
       // Step 5: Restore network
       await joinerContext.setOffline(false);
 
-      // Step 6: Wait for reconnection — player should auto-recover from DB
+      // Step 6: Wait for reconnection and authoritative socket state sync.
       // waitForRoomScreenReady polls for live status and clicks force-sync if needed
       await waitForRoomScreenReady(joinerPage, { role: 'joiner', liveTimeoutMs: 30_000 });
 
@@ -108,7 +108,7 @@ test.describe('DB state recovery after network interruption', () => {
         nightResult.resultText.includes('平安夜') ||
         nightResult.resultText.includes('死亡');
 
-      expect(nightEnded, 'Night should complete after player DB recovery').toBe(true);
+      expect(nightEnded, 'Night should complete after player state recovery').toBe(true);
 
       await room.screenshot(testInfo, 'db-recovery-04-night-ended.png');
 

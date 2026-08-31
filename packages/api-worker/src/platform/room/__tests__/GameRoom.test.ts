@@ -12,6 +12,10 @@ import {
   REASON_NOT_HOST,
   REASON_SEAT_EMPTY,
 } from '@game-judge/game-engine/platform/protocol/reasons';
+import {
+  createStateSyncRequestMessage,
+  parseStateSyncResponseMessage,
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
@@ -115,7 +119,6 @@ describe('GameRoom initialization', () => {
     const stub = getStub();
 
     await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
-    await expect(stub.getRevision(roomIdentity(stub))).resolves.toBeNull();
     await expect(
       dispatch(stub, {
         commandId: 'before-init',
@@ -242,7 +245,7 @@ describe('GameRoom command receipts', () => {
     expect(first.result.snapshot.state.players[0]?.userId).toBe('host-1');
     expect(replay.isReplay).toBe(true);
     expect(replay.result).toEqual(first.result);
-    expect(await stub.getRevision(roomIdentity(stub))).toBe(2);
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(2);
   });
 
   it('advances revision for a committed state event even when JSON values are unchanged', async () => {
@@ -270,7 +273,7 @@ describe('GameRoom command receipts', () => {
     );
 
     expect(update.result.snapshot.revision).toBe(3);
-    expect(await stub.getRevision(roomIdentity(stub))).toBe(3);
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(3);
   });
 
   it('rejects command ID reuse by another actor or request body', async () => {
@@ -551,6 +554,64 @@ describe('GameRoom command receipts', () => {
         "SELECT event_id FROM user_event_inbox WHERE event_id = 'socket-event'",
       ).first(),
     ).toBeNull();
+  });
+
+  it('returns the authoritative snapshot for a correlated socket sync request', async () => {
+    const stub = getStub();
+    await initialize(stub);
+
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      const sockets = new WebSocketPair();
+      state.acceptWebSocket(sockets[1], ['user:host-1']);
+      const received = new Promise<unknown>((resolve, reject) => {
+        sockets[0].addEventListener('message', (event) => {
+          try {
+            if (typeof event.data !== 'string') throw new Error('Expected text sync response');
+            resolve(JSON.parse(event.data));
+          } catch (error) {
+            if (!(error instanceof Error)) throw error;
+            reject(error);
+          }
+        });
+      });
+      sockets[0].accept();
+
+      await instance.webSocketMessage(
+        sockets[1],
+        JSON.stringify(createStateSyncRequestMessage('sync-request-1')),
+      );
+
+      expect(parseStateSyncResponseMessage(await received, WEREWOLF_STATE_CODEC)).toMatchObject({
+        type: 'STATE_SYNC_RESPONSE',
+        requestId: 'sync-request-1',
+        revision: 1,
+      });
+      sockets[0].close();
+    });
+  });
+
+  it('closes with 1011 when an initialized room has no authoritative snapshot', async () => {
+    const stub = getStub();
+    await initialize(stub);
+
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      state.storage.sql.exec('DELETE FROM room_state');
+      const sockets = new WebSocketPair();
+      state.acceptWebSocket(sockets[1], ['user:host-1']);
+      const closed = new Promise<{ code: number; reason: string }>((resolve) => {
+        sockets[0].addEventListener('close', (event) => {
+          resolve({ code: event.code, reason: event.reason });
+        });
+      });
+      sockets[0].accept();
+
+      await instance.webSocketMessage(
+        sockets[1],
+        JSON.stringify(createStateSyncRequestMessage('missing-snapshot-request')),
+      );
+
+      await expect(closed).resolves.toEqual({ code: 1011, reason: 'state_unavailable' });
+    });
   });
 
   it('replays the oldest unacknowledged user event when a socket reconnects', async () => {

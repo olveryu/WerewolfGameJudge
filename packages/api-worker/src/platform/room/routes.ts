@@ -217,47 +217,5 @@ export function createRoomRoutes(
     }
   });
 
-  roomRoutes.post('/state', jsonBody(roomLocatorBodySchema), async (c) => {
-    const { roomCode, roomId } = c.req.valid('json');
-    const resolution = await resolveActiveRoom(c.env, roomCode, roomId);
-    if (resolution.kind === 'missing') return c.json({ snapshot: null }, 200);
-    if (resolution.kind === 'instanceMismatch') {
-      return c.json({ success: false as const, reason: REASON_ROOM_INSTANCE_MISMATCH }, 409);
-    }
-    const { room } = resolution;
-    const snapshot = await callDurableObject(() =>
-      getGameRoomStub(c.env, room.roomId, c.req.raw).getSnapshot({
-        roomCode: room.roomCode,
-        roomId: room.roomId,
-        creationId: room.creationId,
-      }),
-    );
-    if (snapshot === null) {
-      throw new Error(`Active room ${room.roomCode} has no Durable Object snapshot`);
-    }
-    return c.json({ snapshot }, 200);
-  });
-
-  roomRoutes.post('/revision', jsonBody(roomLocatorBodySchema), async (c) => {
-    const { roomCode, roomId } = c.req.valid('json');
-    const resolution = await resolveActiveRoom(c.env, roomCode, roomId);
-    if (resolution.kind === 'missing') return c.json({ revision: null }, 200);
-    if (resolution.kind === 'instanceMismatch') {
-      return c.json({ success: false as const, reason: REASON_ROOM_INSTANCE_MISMATCH }, 409);
-    }
-    const { room } = resolution;
-    const revision = await callDurableObject(() =>
-      getGameRoomStub(c.env, room.roomId, c.req.raw).getRevision({
-        roomCode: room.roomCode,
-        roomId: room.roomId,
-        creationId: room.creationId,
-      }),
-    );
-    if (revision === null) {
-      throw new Error(`Active room ${room.roomCode} has no Durable Object revision`);
-    }
-    return c.json({ revision }, 200);
-  });
-
   return roomRoutes;
 }

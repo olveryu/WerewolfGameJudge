@@ -3,10 +3,9 @@
  *
  * Responsibilities:
  * - Owns ConnectionFSM and drives all state transitions
- * - Prefetch: on OPEN_WS, fire HTTP fetch in parallel (wakes DO + preloads state)
+ * - Requests and correlates authoritative snapshots over the active WebSocket
  * - Ping/pong keepalive + timeout detection
  * - Retry timer (exponential backoff + jitter)
- * - Revision poll (5s polls DB revision to detect missed broadcasts)
  * - Platform event listeners (online/offline, visibilitychange)
  * - connectAndWait(): initial connection with Promise semantics
  *
@@ -21,6 +20,7 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
+import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import {
   parseRoomLocator,
   type RoomLocator,
@@ -28,8 +28,10 @@ import {
 import type {
   BaseGameState,
   RoomSnapshot,
+  StateSyncResponseMessage,
   StateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { createStateSyncRequestMessage } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 
 import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
@@ -44,10 +46,8 @@ import {
   type FSMContext,
   PING_INTERVAL_MS,
   PONG_TIMEOUT_MS,
-  PREFETCH_GRACE_MS,
-  REVISION_POLL_BASE_MS,
-  REVISION_POLL_MAX_MS,
   type SideEffect,
+  STATE_SYNC_TIMEOUT_MS,
 } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,14 +67,10 @@ export interface ConnectionManagerDeps<
 > {
   /** WebSocket transport layer (IRealtimeTransport) */
   transport: IRealtimeTransport<TState, TEvent>;
-  /** Fetch full game state from DB (used by both Host and Player) */
-  fetchStateFromDB: (room: RoomLocator) => Promise<RoomSnapshot<TState> | null>;
-  /** Lightweight revision comparison: read state_revision from DB */
-  getStateRevision: (room: RoomLocator) => Promise<number | null>;
   /** Callback when WS broadcast receives STATE_UPDATE */
   onStateUpdate: (message: StateUpdateMessage<TState>) => void;
-  /** Callback after fetch or WS broadcast yields new state (used for store.applySnapshot) */
-  onFetchedState: (snapshot: RoomSnapshot<TState>) => void;
+  /** Callback after a correlated socket sync yields an authoritative snapshot. */
+  onStateSync: (snapshot: RoomSnapshot<TState>) => void;
   /** Durable user-event callback. */
   onUserEvent: (event: TEvent) => void;
 }
@@ -87,13 +83,10 @@ export interface ConnectionManagerDeps<
  * ConnectionManager — connection lifecycle management (imperative shell).
  *
  * Drives ConnectionFSM state transitions and executes all side effects:
- * WS open/close, ping/pong, retry timer, revision poll, platform event listeners.
+ * WS open/close, ping/pong, retry timer, correlated state recovery, platform event listeners.
  *
- * @remarks prefetch grace race: after WS connects, Promise.race(prefetch, PREFETCH_GRACE_MS=3s).
- *   If prefetch has not settled within the grace window, abandon prefetch and do a fresh fetch
- *   (by then the DO has been woken by the WS upgrade, so a fresh request completes in ~2-3s).
- *   ping/pong keepalive: sends ping every PING_INTERVAL_MS; missing pong within PONG_TIMEOUT_MS is treated as disconnect.
- *   revision poll: polls DB revision every REVISION_POLL_BASE_MS~MAX_MS to detect missed WS broadcasts.
+ * @remarks State synchronization has an explicit request ID and deadline. Missing or mismatched
+ *   responses never mark the connection live. Ping/pong independently detects dead connections.
  */
 export class ConnectionManager<
   TState extends BaseGameState<string>,
@@ -107,8 +100,9 @@ export class ConnectionManager<
   #retryTimer: ReturnType<typeof setTimeout> | null = null;
   #pingInterval: ReturnType<typeof setInterval> | null = null;
   #pongTimeout: ReturnType<typeof setTimeout> | null = null;
-  #revisionPollTimer: ReturnType<typeof setTimeout> | null = null;
-  #revisionPollCurrentMs: number = REVISION_POLL_BASE_MS;
+  #stateSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+  #pendingStateSyncRequestId: string | null = null;
+  #transportGeneration = 0;
 
   // Platform listeners
   #onlineHandler: (() => void) | null = null;
@@ -121,12 +115,6 @@ export class ConnectionManager<
   #connectWaitResolve: (() => void) | null = null;
   #connectWaitReject: ((err: Error) => void) | null = null;
   #connectWaitTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  // Prefetch: fire HTTP fetch in parallel with WS handshake to avoid serial bottleneck.
-  // The HTTP call also wakes the DO, so subsequent WS handshake hits a warm DO.
-  #prefetchPromise: Promise<RoomSnapshot<TState> | null> | null = null;
-  #prefetchGeneration = 0;
-  #connectionGeneration = 0;
 
   constructor(deps: ConnectionManagerDeps<TState, TEvent>) {
     this.#deps = deps;
@@ -151,9 +139,8 @@ export class ConnectionManager<
           return;
         }
         this.#dispatch({ type: 'STATE_UPDATE', revision: message.revision });
-        // Activity detected — reset revision poll to fast interval
-        this.#resetRevisionPollInterval();
       },
+      onStateSyncResponse: (message) => this.#handleStateSyncResponse(message),
       onPong: () => this.#handlePong(),
       onUserEvent: (event) => {
         try {
@@ -214,7 +201,6 @@ export class ConnectionManager<
     this.#assertNoPendingWait();
 
     connectionLog.info('connectAndWait', { roomCode });
-    this.#connectionGeneration += 1;
 
     return new Promise<void>((resolve, reject) => {
       this.#connectWaitResolve = resolve;
@@ -260,8 +246,6 @@ export class ConnectionManager<
   /** Disconnect — clean up connection, return to Idle. Can reconnect later. */
   disconnect(): void {
     connectionLog.info('disconnect');
-    this.#connectionGeneration += 1;
-    this.#cancelPrefetch();
     this.#settleConnectWait(new Error('Connection disconnected'));
     this.#dispatch({ type: 'DISCONNECT' });
   }
@@ -269,19 +253,10 @@ export class ConnectionManager<
   /** Dispose — clean up all resources, stop all timers, ignore all future events */
   dispose(): void {
     connectionLog.info('dispose');
-    this.#connectionGeneration += 1;
-    this.#cancelPrefetch();
     this.#settleConnectWait(new Error('Connection disposed'));
     this.#dispatch({ type: 'DISPOSE' });
     this.#unregisterPlatformListeners();
     this.#stateListeners.clear();
-  }
-
-  /** Update lastRevision from external source (e.g., store applySnapshot) */
-  updateRevision(revision: number): void {
-    if (revision > this.#ctx.lastRevision) {
-      this.#ctx = { ...this.#ctx, lastRevision: revision };
-    }
   }
 
   // =========================================================================
@@ -330,15 +305,18 @@ export class ConnectionManager<
   #executeSideEffect(effect: SideEffect): void {
     switch (effect.type) {
       case 'OPEN_WS':
-        this.#startPrefetch({ roomCode: effect.roomCode, roomId: effect.roomId });
         void this.#openTransport({ roomCode: effect.roomCode, roomId: effect.roomId });
         break;
       case 'CLOSE_WS':
-        this.#cancelPrefetch();
+        this.#cancelStateSync();
+        this.#transportGeneration += 1;
         this.#deps.transport.disconnect();
         break;
-      case 'FETCH_STATE':
-        void this.#fetchState({ roomCode: effect.roomCode, roomId: effect.roomId });
+      case 'REQUEST_STATE_SYNC':
+        this.#requestStateSync();
+        break;
+      case 'CANCEL_STATE_SYNC':
+        this.#cancelStateSync();
         break;
       case 'SCHEDULE_RETRY':
         this.#scheduleRetry(effect.delayMs);
@@ -351,12 +329,6 @@ export class ConnectionManager<
         break;
       case 'STOP_PING':
         this.#stopPing();
-        break;
-      case 'START_REVISION_POLL':
-        this.#startRevisionPoll();
-        break;
-      case 'STOP_REVISION_POLL':
-        this.#stopRevisionPoll();
         break;
       case 'LOG':
         this.#executeLog(effect);
@@ -396,11 +368,11 @@ export class ConnectionManager<
   }
 
   async #openTransport(room: RoomLocator): Promise<void> {
-    const generation = this.#connectionGeneration;
+    const transportGeneration = ++this.#transportGeneration;
     try {
       await this.#deps.transport.connect(room);
     } catch (error) {
-      if (generation !== this.#connectionGeneration) return;
+      if (transportGeneration !== this.#transportGeneration) return;
       handleError(error, {
         label: '实时连接',
         logger: connectionLog,
@@ -450,6 +422,66 @@ export class ConnectionManager<
     this.#cancelPongTimeout();
   }
 
+  // ─── Authoritative State Sync ────────────────────────────────────────────
+
+  #requestStateSync(): void {
+    this.#cancelStateSync();
+    const requestId = newRequestId();
+    this.#pendingStateSyncRequestId = requestId;
+    this.#stateSyncTimeout = setTimeout(() => {
+      if (this.#pendingStateSyncRequestId !== requestId) return;
+      this.#pendingStateSyncRequestId = null;
+      this.#stateSyncTimeout = null;
+      this.#dispatch({ type: 'STATE_SYNC_TIMEOUT' });
+    }, STATE_SYNC_TIMEOUT_MS);
+
+    if (!this.#deps.transport.send(JSON.stringify(createStateSyncRequestMessage(requestId)))) {
+      this.#cancelStateSync();
+      connectionLog.warn('State sync request could not be sent');
+      this.#transportGeneration += 1;
+      this.#deps.transport.disconnect();
+      this.#dispatch({ type: 'WS_CLOSE', code: 1006, reason: 'state_sync_send_failed' });
+    }
+  }
+
+  #cancelStateSync(): void {
+    if (this.#stateSyncTimeout !== null) {
+      clearTimeout(this.#stateSyncTimeout);
+      this.#stateSyncTimeout = null;
+    }
+    this.#pendingStateSyncRequestId = null;
+  }
+
+  #handleStateSyncResponse(message: StateSyncResponseMessage<TState>): void {
+    if (this.#pendingStateSyncRequestId === null) {
+      this.#failProtocol(new Error(`Unexpected state sync response ${message.requestId}`));
+      return;
+    }
+    if (message.requestId !== this.#pendingStateSyncRequestId) {
+      this.#failProtocol(
+        new Error(
+          `State sync response ${message.requestId} does not match ${this.#pendingStateSyncRequestId}`,
+        ),
+      );
+      return;
+    }
+
+    this.#cancelStateSync();
+    const snapshot: RoomSnapshot<TState> = {
+      gameType: message.gameType,
+      stateVersion: message.stateVersion,
+      revision: message.revision,
+      state: message.state,
+    };
+    try {
+      this.#deps.onStateSync(snapshot);
+    } catch (error) {
+      this.#failProtocol(error);
+      return;
+    }
+    this.#dispatch({ type: 'STATE_SYNC_SUCCESS', revision: snapshot.revision });
+  }
+
   // ─── Retry Timer ──────────────────────────────────────────────────────────
 
   #scheduleRetry(delayMs: number): void {
@@ -466,175 +498,6 @@ export class ConnectionManager<
       clearTimeout(this.#retryTimer);
       this.#retryTimer = null;
     }
-  }
-
-  // ─── Prefetch (parallel with WS handshake) ────────────────────────────────
-
-  #startPrefetch(room: RoomLocator): void {
-    this.#cancelPrefetch();
-    const generation = ++this.#prefetchGeneration;
-    const connectionGeneration = this.#connectionGeneration;
-    connectionLog.debug('Starting prefetch', room);
-    this.#prefetchPromise = this.#deps.fetchStateFromDB(room).catch((e: unknown) => {
-      // Prefetch failure is non-fatal — #fetchState will retry via normal path
-      if (
-        generation === this.#prefetchGeneration &&
-        connectionGeneration === this.#connectionGeneration
-      ) {
-        connectionLog.debug('Prefetch failed (will retry in FETCH_STATE)', { error: e });
-      }
-      return null;
-    });
-  }
-
-  #cancelPrefetch(): void {
-    this.#prefetchGeneration++;
-    this.#prefetchPromise = null;
-  }
-
-  // ─── Fetch State ──────────────────────────────────────────────────────────
-
-  async #fetchState(room: RoomLocator): Promise<void> {
-    const connectionGeneration = this.#connectionGeneration;
-    try {
-      // Consume prefetch result if available (same generation = not cancelled).
-      // Race against a grace timer: if prefetch hasn't settled within PREFETCH_GRACE_MS
-      // after WS opens, abandon it and fetch fresh (DO is warm from WS upgrade).
-      const prefetch = this.#prefetchPromise;
-      this.#prefetchPromise = null;
-
-      let result: RoomSnapshot<TState> | null = null;
-
-      if (prefetch) {
-        result = await this.#waitForPrefetch(prefetch);
-        if (connectionGeneration !== this.#connectionGeneration) return;
-        if (!result) {
-          connectionLog.debug('Prefetch did not settle within grace window, fetching fresh');
-        }
-      }
-
-      if (!result) {
-        result = await this.#deps.fetchStateFromDB(room);
-        if (connectionGeneration !== this.#connectionGeneration) return;
-      }
-
-      if (result) {
-        try {
-          this.#deps.onFetchedState(result);
-        } catch (error) {
-          this.#failProtocol(error);
-          return;
-        }
-        this.#dispatch({ type: 'FETCH_SUCCESS', revision: result.revision });
-      } else {
-        this.#failProtocol(new Error('Active room returned no authoritative snapshot'));
-      }
-    } catch (e) {
-      if (connectionGeneration !== this.#connectionGeneration) return;
-      handleError(e, {
-        label: '状态恢复',
-        logger: connectionLog,
-        feedback: false,
-      });
-      this.#dispatch({ type: 'FETCH_FAILURE', error: e });
-    }
-  }
-
-  async #waitForPrefetch(
-    prefetch: Promise<RoomSnapshot<TState> | null>,
-  ): Promise<RoomSnapshot<TState> | null> {
-    let graceTimer: ReturnType<typeof setTimeout> | null = null;
-    try {
-      return await Promise.race([
-        prefetch,
-        new Promise<null>((resolve) => {
-          graceTimer = setTimeout(() => resolve(null), PREFETCH_GRACE_MS);
-        }),
-      ]);
-    } finally {
-      if (graceTimer !== null) clearTimeout(graceTimer);
-    }
-  }
-
-  // ─── Revision Poll (adaptive backoff) ───────────────────────────────────
-
-  /** Generation counter: incremented on start/stop/reset to cancel stale async chains */
-  #revisionPollGeneration = 0;
-
-  #startRevisionPoll(): void {
-    this.#stopRevisionPoll();
-    this.#revisionPollCurrentMs = REVISION_POLL_BASE_MS;
-    this.#scheduleNextRevisionPoll();
-  }
-
-  #stopRevisionPoll(): void {
-    this.#revisionPollGeneration++;
-    if (this.#revisionPollTimer) {
-      clearTimeout(this.#revisionPollTimer);
-      this.#revisionPollTimer = null;
-    }
-  }
-
-  /** Reset poll interval to base (called on STATE_UPDATE activity) */
-  #resetRevisionPollInterval(): void {
-    this.#revisionPollCurrentMs = REVISION_POLL_BASE_MS;
-    // Cancel current chain (including in-flight check) and start fresh
-    this.#stopRevisionPoll();
-    this.#scheduleNextRevisionPoll();
-  }
-
-  #scheduleNextRevisionPoll(): void {
-    const gen = this.#revisionPollGeneration;
-    this.#revisionPollTimer = setTimeout(() => {
-      this.#revisionPollTimer = null;
-      if (gen !== this.#revisionPollGeneration) return; // stale chain
-      // Only poll when visible
-      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
-        this.#scheduleNextRevisionPoll();
-        return;
-      }
-      void this.#checkRevisionAndReschedule(gen);
-    }, this.#revisionPollCurrentMs);
-  }
-
-  #requireRoomIdentity(): RoomLocator {
-    const { roomCode, roomId } = this.#ctx;
-    if (roomCode === null || roomId === null) {
-      throw new Error(`Connection state ${this.#ctx.state} has no room identity`);
-    }
-    return parseRoomLocator({ roomCode, roomId });
-  }
-
-  async #checkRevisionAndReschedule(generation: number): Promise<void> {
-    if (generation !== this.#revisionPollGeneration) return;
-    const room = this.#requireRoomIdentity();
-
-    let hadDrift = false;
-    try {
-      const dbRevision = await this.#deps.getStateRevision(room);
-      if (dbRevision != null && dbRevision > this.#ctx.lastRevision) {
-        hadDrift = true;
-        this.#dispatch({ type: 'REVISION_DRIFT', dbRevision });
-      }
-    } catch (e) {
-      handleError(e, {
-        label: 'revision poll',
-        logger: connectionLog,
-        feedback: false,
-      });
-    }
-
-    // If generation changed during async check, this chain is cancelled
-    if (generation !== this.#revisionPollGeneration) return;
-
-    if (hadDrift) {
-      // Activity: reset to fast polling
-      this.#revisionPollCurrentMs = REVISION_POLL_BASE_MS;
-    } else {
-      // No activity: back off (double interval, capped at max)
-      this.#revisionPollCurrentMs = Math.min(this.#revisionPollCurrentMs * 2, REVISION_POLL_MAX_MS);
-    }
-    this.#scheduleNextRevisionPoll();
   }
 
   // ─── Platform Event Listeners ─────────────────────────────────────────────

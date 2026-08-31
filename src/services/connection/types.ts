@@ -15,13 +15,13 @@ export enum ConnectionState {
   Idle = 'Idle',
   /** Establishing WebSocket connection */
   Connecting = 'Connecting',
-  /** WS connected, syncing initial state from DB */
+  /** WS connected, awaiting a correlated authoritative snapshot */
   Syncing = 'Syncing',
   /** Connection healthy, state synced */
   Connected = 'Connected',
   /** Connection lost, awaiting reconnect */
   Disconnected = 'Disconnected',
-  /** Reconnecting (WS + fetch) */
+  /** Reconnecting the WebSocket before authoritative state synchronization. */
   Reconnecting = 'Reconnecting',
   /** Reconnect attempts exhausted, awaiting manual intervention or network recovery */
   Failed = 'Failed',
@@ -40,8 +40,8 @@ export type ConnectionEvent =
   | { type: 'WS_CLOSE'; code?: number; reason?: string }
   | { type: 'WS_ERROR'; error?: unknown }
   | { type: 'PROTOCOL_FAILURE'; error: unknown }
-  | { type: 'FETCH_SUCCESS'; revision: number }
-  | { type: 'FETCH_FAILURE'; error?: unknown }
+  | { type: 'STATE_SYNC_SUCCESS'; revision: number }
+  | { type: 'STATE_SYNC_TIMEOUT' }
   | { type: 'STATE_UPDATE'; revision: number }
   | { type: 'PING_TIMEOUT' }
   | { type: 'NETWORK_ONLINE' }
@@ -50,7 +50,6 @@ export type ConnectionEvent =
   | { type: 'VISIBILITY_HIDDEN' }
   | { type: 'RETRY_TIMER_FIRED' }
   | { type: 'MANUAL_RECONNECT' }
-  | { type: 'REVISION_DRIFT'; dbRevision: number }
   | { type: 'DISCONNECT' }
   | { type: 'DISPOSE' };
 
@@ -62,13 +61,12 @@ export type ConnectionEvent =
 export type SideEffect =
   | { type: 'OPEN_WS'; roomCode: string; roomId: string }
   | { type: 'CLOSE_WS' }
-  | { type: 'FETCH_STATE'; roomCode: string; roomId: string }
+  | { type: 'REQUEST_STATE_SYNC' }
+  | { type: 'CANCEL_STATE_SYNC' }
   | { type: 'SCHEDULE_RETRY'; delayMs: number }
   | { type: 'CANCEL_RETRY' }
   | { type: 'START_PING' }
   | { type: 'STOP_PING' }
-  | { type: 'START_REVISION_POLL' }
-  | { type: 'STOP_REVISION_POLL' }
   | {
       type: 'LOG';
       level: 'info' | 'warn' | 'error' | 'debug';
@@ -89,8 +87,6 @@ export interface FSMContext {
   readonly attempt: number;
   /** Max reconnect attempts. Enters Failed state when exhausted (awaits manual reconnect or network recovery). */
   readonly maxAttempts: number;
-  /** Last state revision received from server. Used by revision poll to detect missed broadcasts. */
-  readonly lastRevision: number;
   readonly networkOnline: boolean;
   readonly visible: boolean;
 }
@@ -114,15 +110,5 @@ export const PING_INTERVAL_MS = 25_000;
 /** Pong timeout in milliseconds (server → client response deadline) */
 export const PONG_TIMEOUT_MS = 10_000;
 
-/** Revision poll base interval in milliseconds (resets to this on activity) */
-export const REVISION_POLL_BASE_MS = 5_000;
-
-/** Revision poll maximum interval in milliseconds (cap for backoff) */
-export const REVISION_POLL_MAX_MS = 60_000;
-
-/**
- * Max time (ms) to wait for the prefetch promise in #fetchState after WS opens.
- * If prefetch hasn't settled within this window, abandon it and issue a fresh fetch
- * (DO is already warm from WS upgrade, so fresh fetch will be fast).
- */
-export const PREFETCH_GRACE_MS = 3_000;
+/** Maximum time to await the correlated authoritative snapshot response. */
+export const STATE_SYNC_TIMEOUT_MS = 10_000;

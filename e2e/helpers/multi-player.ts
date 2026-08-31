@@ -65,7 +65,7 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 const PRESENCE_MAX_ATTEMPTS = 80;
 /** Poll cadence for presence stability checks (≤300ms per test instructions). */
 const PRESENCE_INTERVAL_MS = 300;
-/** At this attempt, reload host page to force a fresh DB fetch (escalation). */
+/** At this attempt, reload the host page to force a fresh socket state sync (escalation). */
 const PRESENCE_ESCALATION_ATTEMPT = 25;
 
 /**
@@ -73,8 +73,8 @@ const PRESENCE_ESCALATION_ATTEMPT = 25;
  *
  * Polls for the Host-management preview that appears when all seats are filled.
  * Uses "retry with escalation": at the halfway point, reloads the host page to
- * force a fresh `joinRoom → fetchStateFromDB` cycle, compensating for Supabase
- * Realtime broadcast delays in CI environments.
+ * force a new room lifecycle and correlated WebSocket state sync, compensating
+ * for missed realtime delivery in CI environments.
  *
  * Throws with diagnostic info if presence does not stabilize within the timeout.
  *

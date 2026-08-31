@@ -6,6 +6,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
   createRoomSnapshot,
+  createStateSyncResponseMessage,
   createStateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
@@ -68,6 +69,7 @@ function createHandlers(): jest.Mocked<TransportEventHandlers<GameState, Werewol
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
+    onStateSyncResponse: jest.fn(),
     onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
@@ -157,6 +159,21 @@ describe('CFRealtimeService protocol', () => {
     if (!(revisionError instanceof Error)) throw new Error('Expected revision protocol error');
     expect(revisionError.message).toContain('did not advance');
     expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
+  });
+
+  it('emits a correlated sync response without applying broadcast revision ordering', async () => {
+    const { handlers, socket } = await connectService();
+    const snapshot = createRoomSnapshot(createState(), 4);
+    socket.onmessage?.({
+      data: JSON.stringify(createStateUpdateMessage(snapshot, 'room.seat.take')),
+    } as MessageEvent);
+    const response = createStateSyncResponseMessage('sync-request-1', snapshot);
+
+    socket.onmessage?.({ data: JSON.stringify(response) } as MessageEvent);
+
+    expect(handlers.onStateUpdate).toHaveBeenCalledTimes(1);
+    expect(handlers.onStateSyncResponse).toHaveBeenCalledWith(response);
+    expect(socket.close).not.toHaveBeenCalledWith(1002, 'protocol_error');
   });
 
   it('parses every durable settlement delivery for the session acknowledgement owner', async () => {

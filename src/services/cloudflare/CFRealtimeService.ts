@@ -5,8 +5,8 @@
  * - Implements the IRealtimeTransport interface
  * - URL construction (roomCode + token → ws:// URL)
  * - WebSocket creation + 8s connection timeout
- * - Message parsing (STATE_UPDATE / pong / settle_result)
- * - Fires typed events upward (onOpen / onClose / onError / onStateUpdate / onPong)
+ * - Message parsing (STATE_UPDATE / STATE_SYNC_RESPONSE / pong / durable user events)
+ * - Fires typed events upward through IRealtimeTransport callbacks
  *
  * Not responsible for:
  * - Reconnect logic, ping timer, state management, platform event listeners
@@ -24,6 +24,7 @@ import {
 import {
   type BaseGameState,
   type GameStateCodec,
+  parseStateSyncResponseMessage,
   parseStateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
@@ -218,6 +219,13 @@ export class CFRealtimeService<
         this.#lastSocketRevision = message.revision;
         realtimeLog.debug('Transport: STATE_UPDATE', { revision: message.revision });
         this.#requireHandlers().onStateUpdate(message);
+      } else if (data.type === 'STATE_SYNC_RESPONSE') {
+        const message = parseStateSyncResponseMessage(data, this.#stateCodec);
+        realtimeLog.debug('Transport: STATE_SYNC_RESPONSE', {
+          requestId: message.requestId,
+          revision: message.revision,
+        });
+        this.#requireHandlers().onStateSyncResponse(message);
       } else {
         this.#requireHandlers().onUserEvent(this.#userEventCodec.parse(data));
       }

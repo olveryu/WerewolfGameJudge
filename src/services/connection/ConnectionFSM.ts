@@ -36,7 +36,6 @@ export function createInitialContext(
     roomId: null,
     attempt: 0,
     maxAttempts: overrides?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
-    lastRevision: 0,
     networkOnline: true,
     visible: true,
   };
@@ -65,7 +64,7 @@ export function transition(ctx: FSMContext, event: ConnectionEvent): TransitionR
         { type: 'CLOSE_WS' },
         { type: 'CANCEL_RETRY' },
         { type: 'STOP_PING' },
-        { type: 'STOP_REVISION_POLL' },
+        { type: 'CANCEL_STATE_SYNC' },
       ],
     };
   }
@@ -102,7 +101,6 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
       roomCode: event.roomCode,
       roomId: event.roomId,
       attempt: 0,
-      lastRevision: 0,
     };
     return {
       ctx: next,
@@ -129,7 +127,11 @@ function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionRe
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
         ctx: next,
-        effects: [log('info', `Connecting → Syncing`), { type: 'START_PING' }, fetchState(ctx)],
+        effects: [
+          log('info', `Connecting → Syncing`),
+          { type: 'START_PING' },
+          { type: 'REQUEST_STATE_SYNC' },
+        ],
       };
     }
     case 'WS_CLOSE': {
@@ -160,75 +162,42 @@ function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionRe
 
 function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
-    case 'FETCH_SUCCESS': {
+    case 'STATE_SYNC_SUCCESS': {
       const next: FSMContext = {
         ...ctx,
         state: ConnectionState.Connected,
         attempt: 0,
-        lastRevision: Math.max(event.revision, ctx.lastRevision),
       };
       return {
         ctx: next,
         effects: [
           log('info', `Syncing → Connected`, { revision: event.revision }),
+          { type: 'CANCEL_STATE_SYNC' },
           { type: 'CANCEL_RETRY' },
-          { type: 'START_REVISION_POLL' },
         ],
       };
     }
     case 'STATE_UPDATE': {
-      // WS broadcast arrived before fetch — can also transition to Connected
-      const next: FSMContext = {
-        ...ctx,
-        state: ConnectionState.Connected,
-        attempt: 0,
-        lastRevision: Math.max(event.revision, ctx.lastRevision),
-      };
-      return {
-        ctx: next,
-        effects: [
-          log('info', `Syncing → Connected (via STATE_UPDATE)`, { revision: event.revision }),
-          { type: 'CANCEL_RETRY' },
-          { type: 'START_REVISION_POLL' },
-        ],
-      };
-    }
-    case 'FETCH_FAILURE': {
-      // WS still alive, only DB fetch failed — retry fetch in-place without closing WS
-      const nextAttempt = ctx.attempt + 1;
-      if (nextAttempt >= ctx.maxAttempts) {
-        const next: FSMContext = { ...ctx, state: ConnectionState.Failed, attempt: nextAttempt };
-        return {
-          ctx: next,
-          effects: [
-            log('error', `Syncing → Failed (max attempts: ${ctx.maxAttempts})`, {
-              attempt: nextAttempt,
-            }),
-            { type: 'CLOSE_WS' },
-            { type: 'STOP_PING' },
-          ],
-        };
-      }
-      const next: FSMContext = { ...ctx, attempt: nextAttempt };
-      const delay = calculateBackoff(nextAttempt);
-      return {
-        ctx: next,
-        effects: [
-          log('warn', `FETCH_FAILURE in Syncing, scheduling retry`, {
-            attempt: nextAttempt,
-            nextDelay: delay,
-          }),
-          { type: 'SCHEDULE_RETRY', delayMs: delay },
-        ],
-      };
-    }
-    case 'RETRY_TIMER_FIRED': {
-      // Fetch retry timer fired — re-issue fetch, stay in Syncing
       return {
         ctx,
         effects: [
-          log('info', `Syncing: retrying fetch`, { attempt: ctx.attempt }),
-          fetchState(ctx),
+          log('debug', 'STATE_UPDATE while awaiting sync response', {
+            revision: event.revision,
+          }),
+        ],
+      };
+    }
+    case 'STATE_SYNC_TIMEOUT': {
+      const next: FSMContext = { ...ctx, state: ConnectionState.Disconnected };
+      const delay = calculateBackoff(ctx.attempt);
+      return {
+        ctx: next,
+        effects: [
+          log('warn', `Syncing → Disconnected (STATE_SYNC_TIMEOUT)`),
+          { type: 'CLOSE_WS' },
+          { type: 'STOP_PING' },
+          { type: 'CANCEL_STATE_SYNC' },
+          { type: 'SCHEDULE_RETRY', delayMs: delay },
         ],
       };
     }
@@ -240,6 +209,7 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         effects: [
           log('warn', `Syncing → Disconnected (WS_CLOSE)`),
           { type: 'STOP_PING' },
+          { type: 'CANCEL_STATE_SYNC' },
           { type: 'SCHEDULE_RETRY', delayMs: delay },
         ],
       };
@@ -253,7 +223,25 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
           log('warn', `Syncing → Disconnected (PING_TIMEOUT)`),
           { type: 'CLOSE_WS' },
           { type: 'STOP_PING' },
+          { type: 'CANCEL_STATE_SYNC' },
           { type: 'SCHEDULE_RETRY', delayMs: delay },
+        ],
+      };
+    }
+    case 'VISIBILITY_HIDDEN': {
+      const next: FSMContext = {
+        ...ctx,
+        state: ConnectionState.Disconnected,
+        visible: false,
+      };
+      return {
+        ctx: next,
+        effects: [
+          log('info', 'Syncing → Disconnected (background)'),
+          { type: 'CLOSE_WS' },
+          { type: 'STOP_PING' },
+          { type: 'CANCEL_STATE_SYNC' },
+          { type: 'CANCEL_RETRY' },
         ],
       };
     }
@@ -271,11 +259,7 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
 function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'STATE_UPDATE': {
-      const next: FSMContext = {
-        ...ctx,
-        lastRevision: Math.max(event.revision, ctx.lastRevision),
-      };
-      return { ctx: next, effects: [log('debug', 'STATE_UPDATE', { revision: event.revision })] };
+      return { ctx, effects: [log('debug', 'STATE_UPDATE', { revision: event.revision })] };
     }
     case 'WS_CLOSE': {
       const next: FSMContext = { ...ctx, state: ConnectionState.Disconnected };
@@ -288,7 +272,6 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
             reason: event.reason,
           }),
           { type: 'STOP_PING' },
-          { type: 'STOP_REVISION_POLL' },
           { type: 'SCHEDULE_RETRY', delayMs: delay },
         ],
       };
@@ -302,19 +285,17 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
           log('warn', `Connected → Disconnected (PING_TIMEOUT)`),
           { type: 'CLOSE_WS' },
           { type: 'STOP_PING' },
-          { type: 'STOP_REVISION_POLL' },
           { type: 'SCHEDULE_RETRY', delayMs: delay },
         ],
       };
     }
     case 'VISIBILITY_VISIBLE': {
-      const next: FSMContext = { ...ctx, visible: true };
+      const next: FSMContext = { ...ctx, state: ConnectionState.Syncing, visible: true };
       return {
         ctx: next,
         effects: [
-          log('info', 'Foreground: fetching state from DB'),
-          fetchState(ctx),
-          { type: 'START_REVISION_POLL' },
+          log('info', 'Connected → Syncing (foreground)'),
+          { type: 'REQUEST_STATE_SYNC' },
           { type: 'START_PING' },
         ],
       };
@@ -323,11 +304,7 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
       const next: FSMContext = { ...ctx, visible: false };
       return {
         ctx: next,
-        effects: [
-          log('info', 'Background: pausing revision poll + ping'),
-          { type: 'STOP_REVISION_POLL' },
-          { type: 'STOP_PING' },
-        ],
+        effects: [log('info', 'Background: pausing ping'), { type: 'STOP_PING' }],
       };
     }
     case 'NETWORK_OFFLINE': {
@@ -338,29 +315,6 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
       const next: FSMContext = { ...ctx, networkOnline: true };
       return { ctx: next, effects: [log('info', 'Network online (Connected)')] };
     }
-    case 'REVISION_DRIFT': {
-      return {
-        ctx,
-        effects: [
-          log('info', 'Revision drift detected, fetching full state', {
-            dbRevision: event.dbRevision,
-            localRevision: ctx.lastRevision,
-          }),
-          fetchState(ctx),
-        ],
-      };
-    }
-    case 'FETCH_SUCCESS': {
-      // Revision poll fetch success — just update revision
-      const next: FSMContext = {
-        ...ctx,
-        lastRevision: Math.max(event.revision, ctx.lastRevision),
-      };
-      return { ctx: next, effects: [] };
-    }
-    case 'FETCH_FAILURE':
-      // Non-critical in Connected state — log and continue
-      return { ctx, effects: [log('warn', 'Revision fetch failed (Connected)')] };
     case 'CONNECT':
       return toConnecting(ctx, event);
     case 'DISCONNECT':
@@ -511,14 +465,14 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
 function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'WS_OPEN': {
-      // Preserve attempt — only reset to 0 when FETCH_SUCCESS/STATE_UPDATE transitions to Connected
+      // Preserve attempt until the correlated sync response transitions to Connected.
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
         ctx: next,
         effects: [
           log('info', `Reconnecting → Syncing`, { attempt: ctx.attempt }),
           { type: 'START_PING' },
-          fetchState(ctx),
+          { type: 'REQUEST_STATE_SYNC' },
         ],
       };
     }
@@ -622,10 +576,6 @@ function requireRoomIdentity(ctx: FSMContext): { roomCode: string; roomId: strin
   return { roomCode: ctx.roomCode, roomId: ctx.roomId };
 }
 
-function fetchState(ctx: FSMContext): SideEffect {
-  return { type: 'FETCH_STATE', ...requireRoomIdentity(ctx) };
-}
-
 function openWebSocket(ctx: FSMContext): SideEffect {
   return { type: 'OPEN_WS', ...requireRoomIdentity(ctx) };
 }
@@ -641,7 +591,7 @@ function toIdle(ctx: FSMContext): TransitionResult {
     { type: 'CLOSE_WS' },
     { type: 'CANCEL_RETRY' },
     { type: 'STOP_PING' },
-    { type: 'STOP_REVISION_POLL' },
+    { type: 'CANCEL_STATE_SYNC' },
   ];
   return { ctx: next, effects };
 }
@@ -652,7 +602,7 @@ function toDisposed(ctx: FSMContext): TransitionResult {
     { type: 'CLOSE_WS' },
     { type: 'CANCEL_RETRY' },
     { type: 'STOP_PING' },
-    { type: 'STOP_REVISION_POLL' },
+    { type: 'CANCEL_STATE_SYNC' },
   ];
   return { ctx: { ...ctx, state: ConnectionState.Disposed }, effects };
 }
@@ -672,7 +622,6 @@ function toConnecting(
     roomCode: event.roomCode,
     roomId: event.roomId,
     attempt: 0,
-    lastRevision: 0,
   };
   return {
     ctx: next,
@@ -681,7 +630,7 @@ function toConnecting(
       { type: 'CLOSE_WS' },
       { type: 'CANCEL_RETRY' },
       { type: 'STOP_PING' },
-      { type: 'STOP_REVISION_POLL' },
+      { type: 'CANCEL_STATE_SYNC' },
       openWebSocket(next),
     ],
   };

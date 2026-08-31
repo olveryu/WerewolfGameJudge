@@ -24,11 +24,12 @@ export const roomCommandSchema = z.strictObject({
   controlledSeat: z.number().int().nonnegative().nullable(),
 });
 
-/** POST /room/get, /room/delete, /room/state, /room/revision */
+/** POST /room/get */
 export const roomCodeBodySchema = z.strictObject({
   roomCode: roomCodeSchema,
 });
 
+/** POST /room/delete */
 export const roomLocatorBodySchema = z.strictObject({
   roomCode: roomCodeSchema,
   roomId: roomIdSchema,

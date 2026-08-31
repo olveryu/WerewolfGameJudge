@@ -2242,17 +2242,17 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   与 user-event ACK。Seat command 只使用 `room.seat.take/leave/kick/clear/fillBots` 一套协议名，
   狼人杀不再保留 `takeSeat/leaveSeat` 等平行 transport。Command outcome 明确区分 committed、
   domain rejected、not decided、delivery unknown 和 superseded，不用 boolean 猜测服务端是否提交。
-- `ConnectionManager` 只重试可恢复的网络故障。WebSocket 1002、无效 snapshot、active room 返回
-  null state、state/event callback 破坏 contract 都立即进入 protocol failure，关闭 socket 并停止 retry；
-  prefetch grace race 会清理未命中 timer，不留 open handle。Abort 会立即使 connect/reconnect 失效并
-  断开当前 epoch，不等待底层 request 自行结束。
+- `ConnectionManager` 只重试可恢复的网络故障。WebSocket 1002、无效 snapshot、同步 request ID 不匹配、
+  state/event callback 破坏 contract 都立即进入 protocol failure，关闭 socket 并停止 retry；同步发送失败或
+  10 秒无响应会关闭 socket 并进入统一重连。异步建连使用 generation 隔离，旧 token refresh 失败不能改变
+  当前连接。
 - `useRoomEntryController` 和 `RoomEntryBoundary` 是唯一 auth/entry/retry/reconnect/exit 边界。
   等价 `RoomRecord` 按所有 identity field 稳定化，不因 React object identity 重连；并发手动重连
   直接 fail fast。Game-owned hooks 只在 boundary ready 后 mount，因此狼人杀 `gameState` 和 status 是必填，
   已删除 `no_game_state` 分支与为未初始化状态准备的 fallback UI/policy。
-- Room directory 与 state 读取拆成 `IRoomDirectoryService` / `IRoomStateService` 及对应 Cloudflare
-  adapter。`/room/create` 只返回 directory metadata，creation saga 内部校验 state；游戏 codec 不再泄漏到
-  game-neutral directory port。
+- Room directory 使用 `IRoomDirectoryService`；权威 state 恢复不再暴露 HTTP port 或 adapter，只通过
+  WebSocket `STATE_SYNC_REQUEST/STATE_SYNC_RESPONSE` 返回完整 snapshot。`/room/create` 只返回 directory
+  metadata，creation saga 内部校验 state；游戏 codec 不再泄漏到 game-neutral directory port。
 - 原 app-wide `GameFacadeContext`、`IGameFacade`、`src/services/facade`、`IRoomService`、
   `CFRoomService`、`useRoomConnection`、`useConnectionStatus` 和 `useWerewolfRoomLifecycle` 已删除，没有
   alias、re-export 或 compatibility adapter。狼人杀 command/audio orchestration、client contract 与 context 全部归入
