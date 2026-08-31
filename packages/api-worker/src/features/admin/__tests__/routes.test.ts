@@ -8,7 +8,7 @@
  */
 
 import { env, SELF } from 'cloudflare:test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
 const HOST_USER_ID = 'admin-rooms-host-user';
@@ -44,6 +44,10 @@ beforeEach(async () => {
   )
     .bind(HOST_USER_ID)
     .run();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 /** Insert a room row with explicit game-start fields. */
@@ -98,5 +102,85 @@ describe('GET /admin/rooms game-start visibility', () => {
 
     const res = await SELF.fetch('https://test.local/admin/rooms');
     expect(res.status).toBe(401);
+  });
+});
+
+describe('GET /admin/request-traffic', () => {
+  it('combines platform, HTTP, and WebSocket analytics behind admin authentication', async () => {
+    const externalFetch = vi.fn<typeof fetch>(async (input, init) => {
+      const request = new Request(input, init);
+      if (request.url === 'https://api.cloudflare.com/client/v4/graphql') {
+        return Response.json({
+          data: {
+            viewer: {
+              accounts: [
+                {
+                  workersInvocationsAdaptive: [{ sum: { requests: 9, errors: 1, subrequests: 3 } }],
+                },
+              ],
+            },
+          },
+          errors: null,
+        });
+      }
+
+      const sqlQuery = await request.text();
+      if (sqlQuery.includes("blob1 = 'HTTP_REQUEST'")) {
+        return Response.json({
+          data: [
+            {
+              bucket: 1788134400,
+              method: 'POST',
+              route: '/room/command',
+              status: 200,
+              requestCount: 7,
+              durationTotalMs: 70,
+            },
+          ],
+        });
+      }
+      if (sqlQuery.includes("blob1 = 'WEBSOCKET_MESSAGE'")) {
+        return Response.json({
+          data: [{ messageType: 'STATE_SYNC_REQUEST', messageCount: 2 }],
+        });
+      }
+      throw new Error(`Unexpected external analytics request: ${request.url}`);
+    });
+    vi.stubGlobal('fetch', externalFetch);
+
+    const response = await SELF.fetch(
+      'https://test.local/admin/request-traffic?from=2026-08-31T00%3A00%3A00Z&to=2026-08-31T01%3A00%3A00Z',
+      { headers: { 'X-Admin-Token': ADMIN_TOKEN } },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      platform: { requests: 9, errors: 1, subrequests: 3 },
+      requestCountDelta: 2,
+      http: { totalRequests: 7 },
+      realtime: { stateSyncRequests: 2 },
+    });
+    expect(externalFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects ranges over 30 days before querying analytics providers', async () => {
+    const externalFetch = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', externalFetch);
+
+    const response = await SELF.fetch(
+      'https://test.local/admin/request-traffic?from=2026-07-01T00%3A00%3A00Z&to=2026-08-31T00%3A00%3A00Z',
+      { headers: { 'X-Admin-Token': ADMIN_TOKEN } },
+    );
+
+    expect(response.status).toBe(400);
+    expect(externalFetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects unauthenticated request-traffic queries', async () => {
+    const response = await SELF.fetch(
+      'https://test.local/admin/request-traffic?from=2026-08-31T00%3A00%3A00Z&to=2026-08-31T01%3A00%3A00Z',
+    );
+
+    expect(response.status).toBe(401);
   });
 });

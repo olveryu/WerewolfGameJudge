@@ -1,7 +1,7 @@
 /**
  * AdminScreen — Admin portal dashboard
  *
- * Password verification → 5-tab dashboard (users/rooms/stats/analytics/AI).
+ * Password verification → 6-tab dashboard (users/rooms/stats/analytics/requests/AI).
  * Password is cached in MMKV and auto-verified on next entry.
  * Does not use JWT auth; uses a standalone X-Admin-Token for authentication.
  */
@@ -26,17 +26,19 @@ import { log } from '@/utils/logger';
 
 import { AITab } from './tabs/AITab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
+import { RequestTrafficTab } from './tabs/RequestTrafficTab';
 import { RoomsTab } from './tabs/RoomsTab';
 import { StatsTab } from './tabs/StatsTab';
 import { UsersTab } from './tabs/UsersTab';
 
-type TabId = 'users' | 'rooms' | 'stats' | 'analytics' | 'ai';
+type TabId = 'users' | 'rooms' | 'stats' | 'analytics' | 'requests' | 'ai';
 
 const TABS: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { id: 'users', label: '用户', icon: 'people-outline' },
   { id: 'rooms', label: '房间', icon: 'home-outline' },
   { id: 'stats', label: '统计', icon: 'bar-chart-outline' },
   { id: 'analytics', label: '性能', icon: 'speedometer-outline' },
+  { id: 'requests', label: '请求', icon: 'pulse-outline' },
   { id: 'ai', label: 'AI', icon: 'sparkles-outline' },
 ];
 const adminScreenLog = log.extend('AdminScreen');
@@ -174,6 +176,7 @@ export const AdminScreen: React.FC = () => {
         {activeTab === 'rooms' && <RoomsTab />}
         {activeTab === 'stats' && <StatsTab />}
         {activeTab === 'analytics' && <AnalyticsTab />}
+        {activeTab === 'requests' && <RequestTrafficTab />}
         {activeTab === 'ai' && <AITab />}
       </View>
     </SafeAreaView>

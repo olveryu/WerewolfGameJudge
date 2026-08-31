@@ -40,6 +40,11 @@ import { readCloudflareRequestMetadata } from './platform/http/requestMetadata';
 import { createLogger } from './platform/observability/logger';
 import { createRoomRoutes } from './platform/room/routes';
 import { createRoomWebSocketHandler } from './platform/room/webSocketRoutes';
+import {
+  recordHttpRequestTraffic,
+  resolveHttpRequestRoute,
+  UNKNOWN_TRAFFIC_DIMENSION,
+} from './platform/telemetry/requestTraffic';
 import { telemetryRoutes } from './platform/telemetry/routes';
 
 // Re-export Durable Object class for wrangler
@@ -57,6 +62,49 @@ const roomWebSocketHandler = createRoomWebSocketHandler(async (token, env) => {
 
 const log = createLogger('worker');
 
+function resolveContextRequestRoute(
+  method: string,
+  requestPath: string,
+  registeredRoutePath: string,
+): string {
+  return resolveHttpRequestRoute({
+    method,
+    requestPath,
+    registeredRoutePath,
+  });
+}
+
+// ── Request telemetry and logging middleware ────────────────────────────────
+
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  await next();
+  const metadata = readCloudflareRequestMetadata(c.req.raw);
+  const durationMs = Date.now() - start;
+  const requestRoute = resolveContextRequestRoute(
+    c.req.method,
+    c.req.path,
+    c.req.matchedRoutes.at(-1)?.path ?? '',
+  );
+  log.info('request', {
+    method: c.req.method,
+    route: requestRoute,
+    status: c.res.status,
+    country: metadata.country,
+    colo: metadata.colo,
+    ms: durationMs,
+  });
+  recordHttpRequestTraffic(c.env.REQUEST_TRAFFIC, {
+    method: c.req.method,
+    route: requestRoute,
+    status: c.res.status,
+    durationMs,
+    country: metadata.country ?? UNKNOWN_TRAFFIC_DIMENSION,
+    colo: metadata.colo ?? UNKNOWN_TRAFFIC_DIMENSION,
+    deploymentId: c.env.CF_VERSION_METADATA.id,
+  });
+});
+
 // ── CORS middleware ─────────────────────────────────────────────────────────
 
 app.use(
@@ -68,22 +116,6 @@ app.use(
     maxAge: 3600,
   }),
 );
-
-// ── Request logging middleware ──────────────────────────────────────────────
-
-app.use('*', async (c, next) => {
-  const start = Date.now();
-  await next();
-  const metadata = readCloudflareRequestMetadata(c.req.raw);
-  log.info('request', {
-    method: c.req.method,
-    path: c.req.path,
-    status: c.res.status,
-    country: metadata.country,
-    colo: metadata.colo,
-    ms: Date.now() - start,
-  });
-});
 
 // ── Error handler ───────────────────────────────────────────────────────────
 
@@ -97,7 +129,14 @@ app.onError((err, c) => {
   log.warn('unhandled error', { error: err instanceof Error ? err.message : String(err) });
   // Capture the original Error object to preserve stack trace in Sentry
   Sentry.captureException(err, {
-    tags: { path: c.req.path, method: c.req.method },
+    tags: {
+      route: resolveContextRequestRoute(
+        c.req.method,
+        c.req.path,
+        c.req.matchedRoutes.at(-1)?.path ?? '',
+      ),
+      method: c.req.method,
+    },
   });
   return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
 });

@@ -72,7 +72,7 @@ export const AnalyticsTab: React.FC = () => {
               icon="flash-outline"
             />
           </View>
-          <Text style={styles.totalRequests}>总请求: {data.totalRequests.toLocaleString()}</Text>
+          <Text style={styles.totalRequests}>加载样本: {data.totalRequests.toLocaleString()}</Text>
 
           <BarChart title="按国家平均加载时间" items={countryItems} />
           <BarChart title="按 Colo 请求数" items={coloItems} />

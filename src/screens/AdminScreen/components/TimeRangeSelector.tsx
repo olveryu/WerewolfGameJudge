@@ -17,20 +17,28 @@ import { borderRadius, colors, spacing, typography } from '@/theme';
 import { AdminPill } from './AdminPill';
 
 const PRESET_LABELS: Record<TimePreset, string> = {
+  '1h': '1小时',
+  '24h': '24小时',
   today: '今天',
   '7d': '近7天',
   '30d': '近30天',
   custom: '自定义',
 } as const;
 
-const PRESETS: readonly TimePreset[] = ['today', '7d', '30d', 'custom'] as const;
+const DEFAULT_PRESETS: readonly TimePreset[] = ['today', '7d', '30d', 'custom'] as const;
 
 interface TimeRangeSelectorProps {
   onRangeChange: (range: { from: string; to: string }) => void | Promise<void>;
+  presets?: readonly TimePreset[];
+  initialPreset?: TimePreset;
 }
 
-const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({ onRangeChange }) => {
-  const [preset, setPreset] = useState<TimePreset>('today');
+const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({
+  onRangeChange,
+  presets = DEFAULT_PRESETS,
+  initialPreset = 'today',
+}) => {
+  const [preset, setPreset] = useState<TimePreset>(initialPreset);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
@@ -56,7 +64,7 @@ const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({ onRangeC
   return (
     <View>
       <View style={styles.pillRow}>
-        {PRESETS.map((p) => (
+        {presets.map((p) => (
           <AdminPill
             key={p}
             label={PRESET_LABELS[p]}

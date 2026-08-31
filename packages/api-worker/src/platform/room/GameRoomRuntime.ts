@@ -27,6 +27,7 @@ import type {
   WorkerGameModuleResolver,
 } from '../gameModules/runtimeGameModule';
 import { createLogger } from '../observability/logger';
+import { recordRealtimeTraffic } from '../telemetry/realtimeTraffic';
 import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
 import { EffectOutbox } from './effectOutbox';
@@ -449,6 +450,11 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         clientMessage = parseUserEventAckMessage(decodedMessage);
       }
     } catch (error) {
+      recordRealtimeTraffic(
+        this.env.REQUEST_TRAFFIC,
+        'INVALID_CLIENT_MESSAGE',
+        this.env.CF_VERSION_METADATA.id,
+      );
       log.error('invalid websocket client message', {
         error: error instanceof Error ? error.message : String(error),
       });
@@ -456,6 +462,12 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       socket.close(1002, 'protocol_error');
       return;
     }
+
+    recordRealtimeTraffic(
+      this.env.REQUEST_TRAFFIC,
+      clientMessage.type,
+      this.env.CF_VERSION_METADATA.id,
+    );
 
     if (clientMessage.type === 'STATE_SYNC_REQUEST') {
       const snapshot = this.#repository.readSnapshot();

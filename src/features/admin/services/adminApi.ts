@@ -12,6 +12,7 @@ import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
   parseAdminErrorResponse,
+  parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
@@ -19,7 +20,8 @@ import {
 } from '@/features/admin/services/adminResponseCodec';
 import { createTimeoutSignal } from '@/utils/abortSignal';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 function getAdminToken(): string {
   const token = readAdminCredential();
@@ -71,6 +73,10 @@ export function getTimeRange(preset: Exclude<TimePreset, 'custom'>): { from: str
   const now = new Date();
   const to = now.toISOString();
   switch (preset) {
+    case '1h':
+      return { from: new Date(now.getTime() - HOUR_MS).toISOString(), to };
+    case '24h':
+      return { from: new Date(now.getTime() - DAY_MS).toISOString(), to };
     case 'today': {
       const start = new Date(now);
       start.setUTCHours(0, 0, 0, 0);
@@ -130,6 +136,10 @@ export function fetchAnalytics(from: string, to: string) {
 
 export function fetchAIUsage(from: string, to: string) {
   return adminFetch('/admin/ai-usage', parseAdminAIUsageResponse, { from, to });
+}
+
+export function fetchRequestTraffic(from: string, to: string) {
+  return adminFetch('/admin/request-traffic', parseAdminRequestTrafficResponse, { from, to });
 }
 
 /**

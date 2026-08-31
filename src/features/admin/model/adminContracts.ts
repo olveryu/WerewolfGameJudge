@@ -73,6 +73,40 @@ export interface AdminAIUsage {
   topUsers: Array<{ userId: string; displayName: string | null; count: number }>;
 }
 
+export interface AdminRequestTraffic {
+  generatedAt: string;
+  platform: {
+    requests: number;
+    errors: number;
+    subrequests: number;
+  };
+  /** Platform request estimate minus application-instrumented HTTP requests. */
+  requestCountDelta: number;
+  http: {
+    totalRequests: number;
+    clientErrorRequests: number;
+    serverErrorRequests: number;
+    legacyRoomStateRequests: number;
+    successfulWebSocketConnections: number;
+    failedWebSocketConnections: number;
+    routes: Array<{
+      method: string;
+      route: string;
+      count: number;
+      errorCount: number;
+      avgDurationMs: number;
+      sharePercent: number;
+      statusCounts: Array<{ status: number; count: number }>;
+    }>;
+    series: Array<{ timestamp: string; count: number }>;
+  };
+  realtime: {
+    stateSyncRequests: number;
+    userEventAcks: number;
+    invalidClientMessages: number;
+  };
+}
+
 export interface AdminUsersResponse {
   users: AdminUser[];
   total: number;
@@ -91,4 +125,4 @@ export interface AdminRoomPlayersResponse {
   players: AdminRoomPlayer[];
 }
 
-export type TimePreset = 'today' | '7d' | '30d' | 'custom';
+export type TimePreset = '1h' | '24h' | 'today' | '7d' | '30d' | 'custom';

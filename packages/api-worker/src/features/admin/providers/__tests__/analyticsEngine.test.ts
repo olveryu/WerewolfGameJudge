@@ -3,7 +3,12 @@
 import { env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
-import { queryAIUsageAnalytics, queryLoadTimingAnalytics } from '../analyticsEngine';
+import {
+  queryAIUsageAnalytics,
+  queryLoadTimingAnalytics,
+  queryRealtimeTrafficAnalytics,
+  queryRequestTrafficAnalytics,
+} from '../analyticsEngine';
 
 describe('Analytics Engine provider', () => {
   it('parses documented JSON envelopes and normalizes numeric columns', async () => {
@@ -78,5 +83,57 @@ describe('Analytics Engine provider', () => {
     await expect(queryLoadTimingAnalytics(env, 'SELECT 1', fetchImpl)).rejects.toThrow(
       'ANALYTICS_QUERY_FAILED',
     );
+  });
+
+  it('normalizes invalid JSON into the provider failure code', async () => {
+    const fetchImpl: typeof fetch = async () => new Response('<html>bad gateway</html>');
+
+    await expect(queryLoadTimingAnalytics(env, 'SELECT 1', fetchImpl)).rejects.toThrow(
+      'ANALYTICS_QUERY_FAILED',
+    );
+  });
+
+  it('parses sampling-aware HTTP traffic aggregates', async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              bucket: '1788134400',
+              method: 'POST',
+              route: '/room/command',
+              status: '200',
+              requestCount: '12',
+              durationTotalMs: '240',
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+
+    await expect(queryRequestTrafficAnalytics(env, 'SELECT 1', fetchImpl)).resolves.toEqual([
+      {
+        bucket: 1788134400,
+        method: 'POST',
+        route: '/room/command',
+        status: 200,
+        requestCount: 12,
+        durationTotalMs: 240,
+      },
+    ]);
+  });
+
+  it('parses sampling-aware WebSocket message aggregates', async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          data: [{ messageType: 'STATE_SYNC_REQUEST', messageCount: '7' }],
+        }),
+        { status: 200 },
+      );
+
+    await expect(queryRealtimeTrafficAnalytics(env, 'SELECT 1', fetchImpl)).resolves.toEqual([
+      { messageType: 'STATE_SYNC_REQUEST', messageCount: 7 },
+    ]);
   });
 });

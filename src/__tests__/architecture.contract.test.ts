@@ -869,6 +869,7 @@ describe('Worker request boundary: client objects are strict', () => {
 
     expect(permissiveSchemaFiles).toEqual([
       'packages/api-worker/src/features/admin/providers/analyticsEngine.ts',
+      'packages/api-worker/src/features/admin/providers/workerAnalytics.ts',
       'packages/api-worker/src/features/auth/wechat/WeChatAuthProxy.ts',
       'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
       'packages/api-worker/src/features/feedback/providers/github.ts',

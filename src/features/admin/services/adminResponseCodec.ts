@@ -6,6 +6,7 @@ import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCod
 import type {
   AdminAIUsage,
   AdminAnalytics,
+  AdminRequestTraffic,
   AdminRoom,
   AdminRoomPlayer,
   AdminRoomPlayersResponse,
@@ -69,6 +70,25 @@ function parseNonnegativeNumber(value: unknown, label: string): number {
     throw new Error(`${label} must be a finite non-negative number`);
   }
   return value;
+}
+
+function parseSafeInteger(value: unknown, label: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+    throw new Error(`${label} must be a safe integer`);
+  }
+  return value;
+}
+
+function parseHttpStatus(value: unknown, label: string): number {
+  const status = parseSafeInteger(value, label);
+  if (status < 100 || status > 599) throw new Error(`${label} must be an HTTP status code`);
+  return status;
+}
+
+function parsePercentage(value: unknown, label: string): number {
+  const percentage = parseNonnegativeNumber(value, label);
+  if (percentage > 100) throw new Error(`${label} must not exceed 100`);
+  return percentage;
 }
 
 function parseArray<T>(
@@ -335,5 +355,142 @@ export function parseAdminAIUsageResponse(value: unknown): AdminAIUsage {
         count: parseNonnegativeInteger(topUser.count, `${label}.count`),
       };
     }),
+  };
+}
+
+export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTraffic {
+  const object = requireObject(value, 'Admin request traffic response');
+  assertExactKeys(
+    object,
+    ['generatedAt', 'platform', 'requestCountDelta', 'http', 'realtime'],
+    'Admin request traffic response',
+  );
+
+  const platform = requireObject(object.platform, 'Admin request traffic platform');
+  assertExactKeys(
+    platform,
+    ['requests', 'errors', 'subrequests'],
+    'Admin request traffic platform',
+  );
+  const http = requireObject(object.http, 'Admin request traffic HTTP');
+  assertExactKeys(
+    http,
+    [
+      'totalRequests',
+      'clientErrorRequests',
+      'serverErrorRequests',
+      'legacyRoomStateRequests',
+      'successfulWebSocketConnections',
+      'failedWebSocketConnections',
+      'routes',
+      'series',
+    ],
+    'Admin request traffic HTTP',
+  );
+  const realtime = requireObject(object.realtime, 'Admin request traffic realtime');
+  assertExactKeys(
+    realtime,
+    ['stateSyncRequests', 'userEventAcks', 'invalidClientMessages'],
+    'Admin request traffic realtime',
+  );
+
+  return {
+    generatedAt: parseNonEmptyString(object.generatedAt, 'Admin request traffic generatedAt'),
+    platform: {
+      requests: parseNonnegativeInteger(platform.requests, 'Admin request traffic requests'),
+      errors: parseNonnegativeInteger(platform.errors, 'Admin request traffic errors'),
+      subrequests: parseNonnegativeInteger(
+        platform.subrequests,
+        'Admin request traffic subrequests',
+      ),
+    },
+    requestCountDelta: parseSafeInteger(
+      object.requestCountDelta,
+      'Admin request traffic requestCountDelta',
+    ),
+    http: {
+      totalRequests: parseNonnegativeInteger(
+        http.totalRequests,
+        'Admin request traffic totalRequests',
+      ),
+      clientErrorRequests: parseNonnegativeInteger(
+        http.clientErrorRequests,
+        'Admin request traffic clientErrorRequests',
+      ),
+      serverErrorRequests: parseNonnegativeInteger(
+        http.serverErrorRequests,
+        'Admin request traffic serverErrorRequests',
+      ),
+      legacyRoomStateRequests: parseNonnegativeInteger(
+        http.legacyRoomStateRequests,
+        'Admin request traffic legacyRoomStateRequests',
+      ),
+      successfulWebSocketConnections: parseNonnegativeInteger(
+        http.successfulWebSocketConnections,
+        'Admin request traffic successfulWebSocketConnections',
+      ),
+      failedWebSocketConnections: parseNonnegativeInteger(
+        http.failedWebSocketConnections,
+        'Admin request traffic failedWebSocketConnections',
+      ),
+      routes: parseArray(http.routes, 'Admin request traffic routes', (item, label) => {
+        const route = requireObject(item, label);
+        assertExactKeys(
+          route,
+          [
+            'method',
+            'route',
+            'count',
+            'errorCount',
+            'avgDurationMs',
+            'sharePercent',
+            'statusCounts',
+          ],
+          label,
+        );
+        return {
+          method: parseNonEmptyString(route.method, `${label}.method`),
+          route: parseNonEmptyString(route.route, `${label}.route`),
+          count: parseNonnegativeInteger(route.count, `${label}.count`),
+          errorCount: parseNonnegativeInteger(route.errorCount, `${label}.errorCount`),
+          avgDurationMs: parseNonnegativeNumber(route.avgDurationMs, `${label}.avgDurationMs`),
+          sharePercent: parsePercentage(route.sharePercent, `${label}.sharePercent`),
+          statusCounts: parseArray(
+            route.statusCounts,
+            `${label}.statusCounts`,
+            (item, itemLabel) => {
+              const statusCount = requireObject(item, itemLabel);
+              assertExactKeys(statusCount, ['status', 'count'], itemLabel);
+              return {
+                status: parseHttpStatus(statusCount.status, `${itemLabel}.status`),
+                count: parseNonnegativeInteger(statusCount.count, `${itemLabel}.count`),
+              };
+            },
+          ),
+        };
+      }),
+      series: parseArray(http.series, 'Admin request traffic series', (item, label) => {
+        const point = requireObject(item, label);
+        assertExactKeys(point, ['timestamp', 'count'], label);
+        return {
+          timestamp: parseNonEmptyString(point.timestamp, `${label}.timestamp`),
+          count: parseNonnegativeInteger(point.count, `${label}.count`),
+        };
+      }),
+    },
+    realtime: {
+      stateSyncRequests: parseNonnegativeInteger(
+        realtime.stateSyncRequests,
+        'Admin request traffic stateSyncRequests',
+      ),
+      userEventAcks: parseNonnegativeInteger(
+        realtime.userEventAcks,
+        'Admin request traffic userEventAcks',
+      ),
+      invalidClientMessages: parseNonnegativeInteger(
+        realtime.invalidClientMessages,
+        'Admin request traffic invalidClientMessages',
+      ),
+    },
   };
 }

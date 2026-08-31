@@ -2,6 +2,7 @@ import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
   parseAdminErrorResponse,
+  parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
@@ -111,6 +112,42 @@ describe('adminResponseCodec', () => {
       }).providers[0]?.label,
     ).toBe('provider');
 
+    expect(
+      parseAdminRequestTrafficResponse({
+        generatedAt: '2026-08-31T00:02:00.000Z',
+        platform: { requests: 25, errors: 1, subrequests: 6 },
+        requestCountDelta: -2,
+        http: {
+          totalRequests: 27,
+          clientErrorRequests: 2,
+          serverErrorRequests: 1,
+          legacyRoomStateRequests: 0,
+          successfulWebSocketConnections: 4,
+          failedWebSocketConnections: 1,
+          routes: [
+            {
+              method: 'POST',
+              route: '/room/command',
+              count: 12,
+              errorCount: 1,
+              avgDurationMs: 17,
+              sharePercent: 44.4,
+              statusCounts: [
+                { status: 200, count: 11 },
+                { status: 500, count: 1 },
+              ],
+            },
+          ],
+          series: [{ timestamp: '2026-08-31T00:00:00.000Z', count: 12 }],
+        },
+        realtime: {
+          stateSyncRequests: 6,
+          userEventAcks: 2,
+          invalidClientMessages: 1,
+        },
+      }).requestCountDelta,
+    ).toBe(-2);
+
     expect(parseAdminErrorResponse({ success: false, reason: 'INTERNAL_ERROR' })).toBe(
       'INTERNAL_ERROR',
     );
@@ -134,6 +171,50 @@ describe('adminResponseCodec', () => {
         countries: [],
         colos: [],
         isps: [],
+      }),
+    () =>
+      parseAdminRequestTrafficResponse({
+        generatedAt: '2026-08-31T00:02:00.000Z',
+        platform: { requests: 1, errors: 0, subrequests: 0 },
+        requestCountDelta: 0,
+        http: {
+          totalRequests: -1,
+          clientErrorRequests: 0,
+          serverErrorRequests: 0,
+          legacyRoomStateRequests: 0,
+          successfulWebSocketConnections: 0,
+          failedWebSocketConnections: 0,
+          routes: [],
+          series: [],
+        },
+        realtime: { stateSyncRequests: 0, userEventAcks: 0, invalidClientMessages: 0 },
+      }),
+    () =>
+      parseAdminRequestTrafficResponse({
+        generatedAt: '2026-08-31T00:02:00.000Z',
+        platform: { requests: 1, errors: 0, subrequests: 0 },
+        requestCountDelta: 0,
+        http: {
+          totalRequests: 1,
+          clientErrorRequests: 0,
+          serverErrorRequests: 0,
+          legacyRoomStateRequests: 0,
+          successfulWebSocketConnections: 0,
+          failedWebSocketConnections: 0,
+          routes: [
+            {
+              method: 'GET',
+              route: '/health',
+              count: 1,
+              errorCount: 0,
+              avgDurationMs: 1,
+              sharePercent: 100,
+              statusCounts: [{ status: 99, count: 1 }],
+            },
+          ],
+          series: [],
+        },
+        realtime: { stateSyncRequests: 0, userEventAcks: 0, invalidClientMessages: 0 },
       }),
   ])('fails fast for malformed payloads', (decode) => {
     expect(decode).toThrow();

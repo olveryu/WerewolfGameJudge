@@ -13,6 +13,7 @@ JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
 ADMIN_PASSWORD = "test-admin-token-do-not-use-in-production"
 ENVIRONMENT = "test"
 CLOUDFLARE_ACCOUNT_ID = "test-cloudflare-account"
+CLOUDFLARE_WORKER_SCRIPT_NAME = "werewolf-api"
 SENTRY_DSN = ""
 
 # ── D1 Database (local miniflare) ───────────────────────────────────────────
@@ -30,6 +31,10 @@ bucket_name = "werewolf-avatars"
 [[analytics_engine_datasets]]
 binding = "AI_USAGE"
 dataset = "ai_usage_test"
+
+[[analytics_engine_datasets]]
+binding = "REQUEST_TRAFFIC"
+dataset = "request_traffic_test"
 
 # ── Durable Objects ─────────────────────────────────────────────────────────
 [durable_objects]

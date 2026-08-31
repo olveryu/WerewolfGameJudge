@@ -2,12 +2,13 @@
  * Admin feature routes.
  *
  * Password-protected admin endpoints. Provides user list, room list, active stats,
- * and load-performance telemetry queries.
+ * load-performance telemetry, and request-traffic queries.
  * Auth uses X-Admin-Token header + timing-safe compare.
  * Bypasses the JWT auth system entirely.
  *
  * @throws 401 — X-Admin-Token missing or mismatched
  * @throws 400 — invalid query parameters
+ * @throws 502 — Cloudflare analytics provider failed or returned an invalid response
  */
 
 import { and, count, desc, eq, inArray, like, sql } from 'drizzle-orm';
@@ -20,7 +21,19 @@ import type { AppEnv, Env } from '../../env';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
-import { queryAIUsageAnalytics, queryLoadTimingAnalytics } from './providers/analyticsEngine';
+import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
+import {
+  queryAIUsageAnalytics,
+  queryLoadTimingAnalytics,
+  queryRealtimeTrafficAnalytics,
+  queryRequestTrafficAnalytics,
+} from './providers/analyticsEngine';
+import { queryWorkerInvocationAnalytics } from './providers/workerAnalytics';
+import {
+  createAdminRequestTrafficSummary,
+  createRequestTrafficQueryPlan,
+  REQUEST_TRAFFIC_MAX_RANGE_MS,
+} from './requestTrafficSummary';
 
 const log = createLogger('admin');
 
@@ -335,25 +348,10 @@ adminRoutes.get('/analytics', async (c) => {
     throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
   }
 
-  // Analytics Engine toDateTime() accepts 'YYYY-MM-DDTHH:MM:SS' only (no Z, no ms)
-  const aeFrom = fromDate.toISOString().slice(0, 19);
-  const aeTo = toDate.toISOString().slice(0, 19);
-
-  const sqlQuery = `
-    SELECT
-      blob3 as country,
-      blob4 as colo,
-      blob5 as isp,
-      count() as cnt,
-      avg(double1) as avg_load_ms,
-      avg(double7) as avg_ttfb_ms
-    FROM load_timing
-    WHERE timestamp >= toDateTime('${aeFrom}') AND timestamp < toDateTime('${aeTo}')
-    GROUP BY country, colo, isp
-    ORDER BY cnt DESC
-  `;
-
-  const rows = await queryLoadTimingAnalytics(c.env, sqlQuery);
+  const rows = await queryLoadTimingAnalytics(
+    c.env,
+    createLoadTimingAnalyticsQuery(fromDate, toDate),
+  );
 
   // Aggregate by country
   const countryMap = new Map<string, { count: number; totalLoadMs: number; totalTtfbMs: number }>();
@@ -423,6 +421,45 @@ adminRoutes.get('/analytics', async (c) => {
   return c.json({ avgLoadMs, avgTtfbMs, totalRequests: totalCount, countries, colos, isps });
 });
 
+// ── GET /admin/request-traffic ──────────────────────────────────────────────
+
+adminRoutes.get('/request-traffic', async (c) => {
+  const from = c.req.query('from');
+  const to = c.req.query('to');
+  if (!from || !to) {
+    throw new HTTPException(400, { message: 'MISSING_TIME_RANGE' });
+  }
+
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const durationMs = toDate.getTime() - fromDate.getTime();
+  if (
+    Number.isNaN(fromDate.getTime()) ||
+    Number.isNaN(toDate.getTime()) ||
+    durationMs <= 0 ||
+    durationMs > REQUEST_TRAFFIC_MAX_RANGE_MS
+  ) {
+    throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
+  }
+
+  const queryPlan = createRequestTrafficQueryPlan(fromDate, toDate);
+  const [platform, httpRows, realtimeRows] = await Promise.all([
+    queryWorkerInvocationAnalytics(c.env, fromDate.toISOString(), toDate.toISOString()),
+    queryRequestTrafficAnalytics(c.env, queryPlan.httpSql),
+    queryRealtimeTrafficAnalytics(c.env, queryPlan.realtimeSql),
+  ]);
+
+  return c.json(
+    createAdminRequestTrafficSummary(
+      platform,
+      httpRows,
+      realtimeRows,
+      { fromDate, toDate, bucketSeconds: queryPlan.bucketSeconds },
+      new Date().toISOString(),
+    ),
+  );
+});
+
 // ── GET /admin/ai-usage ─────────────────────────────────────────────────────
 
 adminRoutes.get('/ai-usage', async (c) => {
@@ -438,27 +475,9 @@ adminRoutes.get('/ai-usage', async (c) => {
     throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
   }
 
-  const aeFrom = fromDate.toISOString().slice(0, 19);
-  const aeTo = toDate.toISOString().slice(0, 19);
-
   // blob1=userId, blob2=model, blob3=provider, blob4=country, blob5=status
   // double1=ttfrMs
-  const sqlQuery = `
-    SELECT
-      blob1 as userId,
-      blob2 as model,
-      blob3 as provider,
-      blob4 as country,
-      blob5 as status,
-      count() as cnt,
-      avg(double1) as avgTtfrMs
-    FROM ai_usage
-    WHERE timestamp >= toDateTime('${aeFrom}') AND timestamp < toDateTime('${aeTo}')
-    GROUP BY userId, model, provider, country, status
-    ORDER BY cnt DESC
-  `;
-
-  const rows = await queryAIUsageAnalytics(c.env, sqlQuery);
+  const rows = await queryAIUsageAnalytics(c.env, createAIUsageAnalyticsQuery(fromDate, toDate));
 
   // Aggregate into dimensions
   let totalRequests = 0;
