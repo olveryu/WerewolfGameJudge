@@ -1,7 +1,6 @@
 ---
 name: new-role
 description: 'Add a new werewolf role end-to-end: spec, night step, resolver, audio, badge, config, tests. Use when: adding a role, creating a character, new role SOP.'
-argument-hint: 'Role name + faction + skill summary (e.g., Fox, God faction, can check one player each night)'
 ---
 
 # New Role Skill (V2 Architecture)

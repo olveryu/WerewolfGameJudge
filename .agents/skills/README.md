@@ -1,7 +1,8 @@
-# Project skills (source)
+# Project skills (canonical source)
 
 Each subdirectory contains a `SKILL.md` (Agent Skills open standard).
 
-After editing, run `pnpm run sync:agents` then commit. Mirrors: `skills/`, `.github/skills/`, `.claude/skills/`, `.cursor/skills/`.
+GitHub Copilot, Cursor, and Gemini CLI discover this directory directly. `pnpm run sync:agents`
+validates every skill and mirrors it to `.claude/skills/` for Claude Code.
 
-Install locally: `pnpm run agent:install` (GitHub CLI ≥ 2.90).
+After editing, run `pnpm run sync:agents`, then `pnpm run sync:agents:check` before committing.

@@ -1,313 +1,151 @@
-# E2E Test Suite
+# Playwright E2E Guide
 
-Layered test helpers and Page Objects for Playwright E2E tests.
+The E2E suite exercises the web client against a local Cloudflare Worker, Durable Objects, and D1 database. It never uses production data.
+
+## Runtime Topology
+
+`playwright.config.ts` starts two servers and waits for both health checks before collecting tests:
+
+| Server | Local command                                                                         | Readiness URL                  | CI behavior                                      |
+| ------ | ------------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------ |
+| API    | `node scripts/setup-e2e-api.mjs && pnpm --filter @game-judge/api-worker run dev:test` | `http://127.0.0.1:8787/health` | Starts a new local Wrangler process              |
+| Web    | `npx expo start --web --port 8081`                                                    | `E2E_BASE_URL`                 | Exports Expo Web, then serves `dist/` statically |
+
+Local runs reuse a server already listening at a readiness URL. CI always starts isolated processes.
+
+Before Playwright starts the API, `scripts/setup-e2e-api.mjs`:
+
+1. Applies all D1 migrations to Wrangler's local SQLite database.
+2. Writes `packages/api-worker/.dev.vars` with an E2E-only `JWT_SECRET`.
+
+Do not place production credentials in `.dev.vars`. If Playwright reuses an existing local API process, the preflight command does not run; that process must already have a migrated local database.
+
+The web server always receives:
+
+```text
+EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787
+EXPO_PUBLIC_SENTRY_DSN=
+```
+
+Sentry is disabled so E2E failures do not enter production telemetry.
 
 ## Configuration
 
-### E2E_BASE_URL — Single Source of Truth
+### `E2E_BASE_URL`
 
-| Layer                     | Role                                                                                    |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `playwright.config.ts`    | **DEFINES** `E2E_BASE_URL` (default: `http://localhost:8081`), exports to `process.env` |
-| `scripts/run-e2e-web.mjs` | **WRITES** `.env.local`, starts Edge Functions + Expo web                               |
-| `e2e/helpers/ui.ts`       | **READS** from `process.env.E2E_BASE_URL` (fail-fast if not set)                        |
+`playwright.config.ts` is the only place allowed to define the default browser URL:
 
-**Rule: NEVER hardcode `http://localhost:8081` in E2E code. Only `playwright.config.ts` may have a default.**
-
-### Running E2E Tests
-
-| Command                                        | Supabase                        | Web Server      | Use Case                      |
-| ---------------------------------------------- | ------------------------------- | --------------- | ----------------------------- |
-| `pnpm run e2e:core`                            | Local (`127.0.0.1:54321`)       | Local (`:8081`) | Default dev                   |
-| `pnpm run e2e:remote`                          | Remote (from `e2e.remote.json`) | Local (`:8081`) | Test with production Supabase |
-| `E2E_BASE_URL=https://... pnpm run e2e:remote` | Remote                          | Remote URL      | CI / staging                  |
-
-### Environment Variables
-
-| Variable                     | Purpose                              | Default                 |
-| ---------------------------- | ------------------------------------ | ----------------------- |
-| `E2E_ENV`                    | Supabase config: `local` or `remote` | `local`                 |
-| `E2E_BASE_URL`               | Web server URL for tests             | `http://localhost:8081` |
-| `EXPO_PUBLIC_API_TIMEOUT_MS` | API request timeout (ms)             | `8000`                  |
-
----
-
-## Architecture
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│  Spec Files (e2e/specs/*.spec.ts)                                │
-│    ↓ import                                                      │
-├───────────────────────────────────────────────────────────────────┤
-│  Fixtures & Page Objects                                         │
-│  ├── fixtures/app.fixture.ts → login/nav boilerplate fixture     │
-│  ├── pages/HomePage.ts       → Home screen PO                   │
-│  ├── pages/ConfigPage.ts     → Config/template screen PO        │
-│  ├── pages/RoomPage.ts       → Room screen PO                   │
-│  └── pages/NightFlowPage.ts  → Night flow loop orchestrator     │
-│    ↓ import                                                      │
-├───────────────────────────────────────────────────────────────────┤
-│  Orchestrators                                                   │
-│  ├── helpers/diagnostics.ts  → dev server diagnostics logging    │
-│  ├── helpers/night-driver.ts → night flow test driver             │
-│  ├── helpers/night-setup.ts  → shared night-role test harness    │
-│  └── helpers/multi-player.ts → N-player game setup               │
-│    ↓ import                                                      │
-├───────────────────────────────────────────────────────────────────┤
-│  Domain Helpers                                                  │
-│  ├── helpers/home.ts   → Home screen / login / room create-join  │
-│  └── helpers/waits.ts  → Room screen readiness / sync            │
-│    ↓ import                                                      │
-├───────────────────────────────────────────────────────────────────┤
-│  Generic Primitives                                              │
-│  └── helpers/ui.ts     → Visibility, click, retry, evidence      │
-└───────────────────────────────────────────────────────────────────┘
+```text
+http://localhost:8081
 ```
 
-### Directory Structure
+It exports the resolved value to `process.env.E2E_BASE_URL`. Helpers read that environment variable and fail fast when it is absent. Specs and helpers must not hardcode the default URL.
 
-```
+Changing `E2E_BASE_URL` changes browser navigation and the web readiness probe. It does not switch the API to a remote backend; the configured API remains local Wrangler on port `8787`.
+
+### Other Variables
+
+| Variable                     | Purpose                              | Default             |
+| ---------------------------- | ------------------------------------ | ------------------- |
+| `WEB_PORT`                   | Port used by the web-server command  | `8081`              |
+| `EXPO_PUBLIC_API_TIMEOUT_MS` | Optional client API timeout override | Application default |
+
+No per-environment E2E JSON configuration is used.
+
+## Commands
+
+| Command                                            | Behavior                                                               |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm run e2e`                                     | Standard suite with the list reporter                                  |
+| `pnpm run e2e:core`                                | Single worker, line reporter, full trace, stop after the first failure |
+| `pnpm run e2e:night`                               | Night-flow subset with the list reporter                               |
+| `pnpm run e2e:ui`                                  | Playwright UI mode                                                     |
+| `pnpm exec playwright test e2e/specs/home.spec.ts` | One spec using the standard config                                     |
+
+Playwright runs Chromium desktop tests in parallel. Home, configuration, and FibKing responsive coverage also run in a `320 x 640` Chromium project. Each spec must create an independent room so parallel workers cannot share state.
+
+CI assigns the suite to five measured groups in `.github/workflows/ci.yml`. Each group uploads a blob report; `merge-reports` combines them into one HTML report.
+
+## Helper Ownership
+
+```text
 e2e/
 ├── fixtures/
-│   └── app.fixture.ts        ← login/navigation boilerplate fixture
-├── pages/
-│   ├── HomePage.ts            ← Home screen Page Object
-│   ├── ConfigPage.ts          ← Config/template screen Page Object
-│   ├── RoomPage.ts            ← Room screen Page Object
-│   └── NightFlowPage.ts       ← Night flow loop orchestrator
+│   └── app.fixture.ts
 ├── helpers/
-│   ├── README.md              ← you are here
-│   ├── ui.ts                  ← generic Playwright primitives (zero app logic)
-│   ├── home.ts                ← app entry: hydration, login, room create/join
-│   ├── waits.ts               ← room screen readiness waits
-│   ├── diagnostics.ts         ← dev server diagnostics logging
-│   ├── night-driver.ts        ← night flow test driver
-│   ├── night-setup.ts         ← shared night-role test setup/teardown
-│   └── multi-player.ts        ← N-player game setup orchestrator
+│   ├── diagnostics.ts
+│   ├── home.ts
+│   ├── multi-player.ts
+│   ├── night-driver.ts
+│   ├── night-setup.ts
+│   ├── ui.ts
+│   └── waits.ts
+├── pages/
+│   ├── BoardPickerPage.ts
+│   ├── ConfigPage.ts
+│   ├── FibConfigPage.ts
+│   ├── FibRoomPage.ts
+│   ├── HomePage.ts
+│   ├── NightFlowPage.ts
+│   ├── RoomPage.ts
+│   └── SheriffElectionPage.ts
 └── specs/
-    ├── home.spec.ts            ← home navigation smoke
-    ├── config.spec.ts          ← config / template smoke
-    ├── seating.spec.ts         ← seating assignment / broadcast
-    ├── night-2p.spec.ts        ← 2-player night-1 flow
-    ├── night-6p.spec.ts        ← 6-player night-1 flow
-    ├── night-roles-block.spec.ts  ← night role blocking tests
-    ├── night-roles-check.spec.ts  ← night role checking tests
-    ├── night-roles-kill.spec.ts   ← night role killing tests
-    ├── night-roles-protect.spec.ts ← night role protection tests
-    ├── night-verify.spec.ts    ← night verification tests
-    ├── db-recovery.spec.ts     ← DB-backed state recovery
-   ├── offline-recovery-canary.spec.ts ← minimal offline/online recovery health check
-    ├── rejoin.spec.ts          ← host & player rejoin mid-game
-    ├── restart.spec.ts         ← restart + settings change
-    └── room-lifecycle.spec.ts  ← room lifecycle management
 ```
 
-**Rules:**
+| Layer                               | Responsibility                                           |
+| ----------------------------------- | -------------------------------------------------------- |
+| Fixtures                            | Browser-context lifecycle and shared test setup          |
+| Page Objects                        | Screen locators and user actions                         |
+| `ui.ts`                             | Generic Playwright primitives with no application rules  |
+| `home.ts`, `waits.ts`               | Application entry, login, room navigation, and readiness |
+| `multi-player.ts`                   | Multi-context room and game setup                        |
+| `night-setup.ts`, `night-driver.ts` | Role setup and Night-1 action orchestration              |
+| `diagnostics.ts`                    | Browser diagnostics allowed by the test policy           |
+| Specs                               | Scenario intent and assertions                           |
 
-- `ui.ts` has **zero app-specific logic** — pure Playwright utilities
-- `home.ts` and `waits.ts` import from `ui.ts`, never the reverse
-- Specs import Page Objects and fixtures; avoid reaching into `ui.ts` / `home.ts` directly
-- Page Objects encapsulate all selector logic; specs should not use raw locators
-- `multi-player.ts` orchestrates N-player game setup using fixtures + Page Objects
+Keep dependencies flowing from scenarios toward lower-level helpers. `ui.ts` must not import application helpers. Prefer Page Objects for selector ownership; shared business flows belong in the domain helpers, not generic primitives.
 
----
+## Required Test Patterns
 
-## ui.ts — Generic Primitives
+- Navigate with `gotoWithRetry()` rather than direct `page.goto()` calls in specs.
+- Wait for room readiness with `waitForRoomScreenReady()`.
+- Use Playwright locators and assertions instead of fixed sleeps. Polling cadence is the only allowed `page.waitForTimeout()` use and must be at most 300 ms.
+- Never use `force: true` to bypass actionability for normal user interactions.
+- Do not swallow assertion or state-transition failures with `.catch(() => {})`.
+- Mark scenario phases with `test.step()`.
+- Do not use `console.log`. Attach structured evidence with `testInfo.attach()`.
+- Do not commit `test.skip`, `describe.skip`, `test.only`, or temporary `[DIAG]` output.
 
-Low-level utilities with no app-specific knowledge.
+## Room Creation Contract
 
-| Function                                 | Purpose                                                   |
-| ---------------------------------------- | --------------------------------------------------------- |
-| `gotoWithRetry(page, url, opts)`         | Navigate with auto-retry on ERR_CONNECTION_REFUSED        |
-| `getVisibleText(page, text)`             | Locate visible text element (filters aria-hidden screens) |
-| `waitForAnyVisible(page, targets, opts)` | Poll until any target is visible; returns winner index    |
-| `waitForAllVisible(page, targets, opts)` | Wait for all targets to be visible                        |
-| `clickIfVisible(page, target, opts)`     | Click if visible, return false otherwise (no throw)       |
-| `waitForTextGone(page, text, opts)`      | Wait for text to disappear                                |
-| `retry(fn, opts)`                        | Retry with exponential backoff                            |
-| `screenshotOnFail(page, label)`          | Save screenshot; never throws                             |
-| `withStep(name, page, fn, timeoutMs)`    | Wrap step with timeout + evidence on failure              |
+The Worker allocates public four-digit room codes. The client keeps one `creationId` for a creation intent and retries that same identity after unknown delivery or application restart. D1 owns code-collision retries, and the create/delete saga reconciler resumes interrupted storage operations.
 
-### `gotoWithRetry(page, url?, opts?)`
+Tests must never generate room codes or retry one creation intent with a new identity.
 
-**Purpose:** Navigate to URL with automatic retry on connection errors.
+## Failure Investigation
 
-**TRUE MITIGATION:** Before each navigation attempt, probes server readiness using
-Playwright's `page.request.get()` (same network stack as `page.goto()`).
+The standard configuration retains a trace and screenshot on failure. Start with the trace:
 
-**Probe target:** `/` (the actual navigation target — guarantees no false-positive)
+```bash
+pnpm exec playwright show-trace test-results/<test>/trace.zip
+```
 
-|                       |                                                      |
-| --------------------- | ---------------------------------------------------- |
-| **Success condition** | Page navigates successfully (DOMContentLoaded)       |
-| **Probe timeout**     | 10s (Expo cold start can be slow)                    |
-| **Retry strategy**    | Exponential backoff: 2s → 4s → 8s → 16s (capped)     |
-| **Timeout behavior**  | Throws after maxRetries with grep-friendly signature |
+The trace contains DOM snapshots, requests, browser logs, and action timing. Use `testInfo.attach()` when a scenario needs extra state in the HTML report.
 
-**Evidence on failure (grep-friendly categories):**
+### `ERR_CONNECTION_REFUSED`
 
-- `REFUSED`: Connection refused - server not listening
-- `TIMEOUT`: Server slow to respond (cold start/compile)
-- `DNS`: DNS resolution failed
-- `UNKNOWN`: Other network error
-- Screenshot: `test-results/fail-goto-refused-*.png`
-- Final error: `ERR_CONNECTION_REFUSED: Failed to navigate to... [probe: <category>]`
+`gotoWithRetry()` probes the actual navigation target before calling `page.goto()` and retries connection failures with bounded backoff. If it still fails:
 
-**When to use:** Always use `gotoWithRetry` instead of `page.goto` in specs.
+1. Check the Playwright `API` and `Web` server output.
+2. Confirm `/health` responds on port `8787` and the web root responds on port `8081`.
+3. Check whether a reused local process is stale or bound to the wrong port.
+4. Inspect the retained trace and screenshot before rerunning.
 
-**Grep gate:** No spec should contain direct `page.goto(` calls.
+### Flake Evidence
 
----
+"Rerun passed" is not a diagnosis. Record the exact error type and message, then identify either:
 
-## home.ts — Home/Login/Room Entry
+- The code path that mitigates the failure and the assertion proving it.
+- An external failure that remains unmitigated.
 
-Handles app entry stabilization: hydration, login, home screen readiness.
-
-### `waitForAppReady(page, timeoutMs?)`
-
-**Purpose:** Wait for React Native Web hydration.
-
-|                       |                                        |
-| --------------------- | -------------------------------------- |
-| **Success condition** | `text=狼人面杀电子裁判助手` visible    |
-| **Recovery actions**  | None (passive wait)                    |
-| **Timeout behavior**  | Throws after `timeoutMs` (default 15s) |
-
----
-
-### `ensureHomeReady(page, opts?)`
-
-**Purpose:** Reach stable home screen where "创建房间" / "进入房间" are clickable.
-
-|                       |                                                                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Success condition** | Home buttons visible + NO blocking modals + NO transient states                                                                              |
-| **Recovery actions**  | 1. Handle error dialogs (click 重试/确定) <br> 2. Wait out transient states (创建中/加载中) <br> 3. Dismiss blocking modals (取消/确定/关闭) |
-| **Timeout behavior**  | Throws after `maxRetries` (default 5) or `timeoutMs` (default 30s); saves screenshot                                                         |
-
-**Blocking modals:** `请先登录`, `👤 匿名登录`, `登录失败`, `加载超时`, `提示`
-
-**Transient states:** `创建中`, `加载中`, `连接中`
-
----
-
-### `ensureAnonLogin(page)`
-
-**Purpose:** Complete anonymous login if not logged in, then return to stable home.
-
-|                       |                                                                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Success condition** | `匿名用户` visible AND home stable                                                                                                                                  |
-| **Recovery actions**  | 1. If `匿名用户` visible → skip <br> 2. If `点击登录` visible → click → complete login → ensureHomeReady <br> 3. Fallback: click `创建房间` to trigger login dialog |
-| **Timeout behavior**  | Inherits from sub-calls (waitForAppReady, ensureHomeReady)                                                                                                          |
-
-**Important:** Does NOT click `创建房间` as primary trigger — that would start room creation after login.
-
----
-
-### `createRoom(page): Promise<string>`
-
-**Purpose:** Create a new room from home screen.
-
-|                       |                                                    |
-| --------------------- | -------------------------------------------------- |
-| **Precondition**      | Logged in, on home screen                          |
-| **Success condition** | Room screen visible with "房间 XXXX" header        |
-| **Recovery actions**  | Delegates to `waitForRoomScreenReady(role='host')` |
-| **Returns**           | 4-digit room code                                  |
-| **Timeout behavior**  | Inherits from waitForRoomScreenReady               |
-
----
-
-### `joinRoom(page, roomCode)`
-
-**Purpose:** Join an existing room by code.
-
-|                       |                                                                                  |
-| --------------------- | -------------------------------------------------------------------------------- |
-| **Precondition**      | Logged in, on home screen                                                        |
-| **Success condition** | Room screen visible + joiner is live (disconnected banner hidden)                |
-| **Recovery actions**  | Delegates to `waitForRoomScreenReady(role='joiner')` which handles 强制同步 loop |
-| **Timeout behavior**  | Inherits from waitForRoomScreenReady                                             |
-
----
-
-### Other exports
-
-| Function                        | Purpose                                                      |
-| ------------------------------- | ------------------------------------------------------------ |
-| `getCurrentRoomCode(page)`      | Returns room code if on room screen, null otherwise          |
-| `ensureInRoomOrHomeReady(page)` | Returns room code if in room, otherwise ensures home ready   |
-| `extractRoomCode(page)`         | Extract room code from header (throws if not on room screen) |
-
----
-
-## waits.ts — Room Screen Readiness
-
-Specialized waits for RoomScreen after creation or joining.
-
-### `waitForRoomScreenReady(page, opts?)`
-
-**Purpose:** Wait for RoomScreen to be fully ready.
-
-|                                |                                                                                                             |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| **Options**                    | `role`: 'host' \| 'joiner' <br> `maxRetries`: number (default 3) <br> `liveTimeoutMs`: number (default 20s) |
-| **Success condition (host)**   | Room header "房间 XXXX" visible                                                                             |
-| **Success condition (joiner)** | Room header visible + disconnected banner hidden                                                            |
-| **Recovery actions (host)**    | Click 重试 if room load times out                                                                           |
-| **Recovery actions (joiner)**  | 1. Click 重试 for room load <br> 2. Poll until disconnected banner disappears                               |
-| **Timeout behavior**           | Throws after maxRetries (room) or liveTimeoutMs (joiner sync)                                               |
-
----
-
-## Connection Refused Handling (ERR_CONNECTION_REFUSED)
-
-**Failure Signature:** `ERR_CONNECTION_REFUSED: Failed to navigate to...`
-
-**Root Cause:** Dev server (localhost:8081) not ready or crashed.
-
-### Mitigation (IMPLEMENTED)
-
-1. **HTTP health check in gotoWithRetry:**
-   - Before each navigation, `isServerReady(baseURL)` makes an HTTP GET request
-   - Only attempts `page.goto()` when server actually responds (not just port-reachable)
-   - 5 retries with 2s delay = up to ~10s of server wait
-
-2. **Playwright webServer config:**
-   - `webServer.url` check waits for server to be accessible
-   - `webServer.timeout: 120000` — wait up to 2min for server start
-   - `stdout: 'pipe'` — capture server output for debugging
-
-3. **Evidence on failure:**
-   - Attempt number, URL, baseURL, error logged
-   - Screenshot saved to `test-results/fail-goto-refused-*.png`
-   - Diagnostic hints printed
-
-**Status:** ✅ MITIGATED at code level. Server availability is verified via HTTP before navigation.
-
----
-
-## Room Creation Retry Contract
-
-Public four-digit codes are allocated by the Worker. The client persists one `creationId` for the
-canonical creation intent and retries that exact identity after unknown delivery or app restart.
-D1 owns code-collision retry and the create/delete saga reconciler resumes interrupted cross-storage
-steps. Tests must never generate a room code or retry a creation with a new identity.
-
----
-
-## Flake Reporting Rules
-
-Per `AGENTS.md`:
-
-> "Re-run and it passed" is NOT evidence. If a test fails during validation:
->
-> - Record the exact failure signature (error type/message)
-> - State whether it's mitigated by code in this PR (and where)
-> - Or explicitly mark as "unmitigated external flake"
-
-**Known mitigated flakes:**
-
-- `ERR_CONNECTION_REFUSED` → `gotoWithRetry()` with HTTP health check
-- `HTTP 409 room conflict` → `createRoom()` retry logic in RoomService
+Known structural mitigations include `gotoWithRetry()` for startup connection races and the room-creation idempotency contract for unknown delivery. Do not classify a new failure under either category without matching evidence.

@@ -43,7 +43,7 @@ yarn-error.*
 .env*.local
 .env.local.backup
 
-# E2E env configs (may contain keys)
+# Local E2E config remnants may contain credentials
 env/e2e.local.json
 env/e2e.remote.json
 

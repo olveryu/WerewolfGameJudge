@@ -228,6 +228,9 @@ importers:
       wrangler:
         specifier: ^4.95.0
         version: 4.95.0(@cloudflare/workers-types@4.20260528.1)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   packages/api-worker:
     dependencies:
@@ -8551,7 +8554,9 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.74.89': {}
 

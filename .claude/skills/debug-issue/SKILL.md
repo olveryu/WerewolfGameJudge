@@ -1,7 +1,6 @@
 ---
 name: debug-issue
 description: 'Structured debugging workflow: diagnose bugs/abnormal behavior, locate root cause, verify fix. Use when: debugging, bug, issue investigation, error, crash, not working, not rendering, timeout, disconnect.'
-argument-hint: 'Symptom description (e.g., seats not showing after entering room, WebSocket frequent disconnects, E2E hunter spec timeout)'
 ---
 
 # Structured Debugging Skill

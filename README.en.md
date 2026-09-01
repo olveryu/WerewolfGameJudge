@@ -1,6 +1,6 @@
 # 🐺 Werewolf Game Judge
 
-[简体中文](./README.md) | **English**
+[简体中文](./README.md) | **English** | [Privacy Notice](PRIVACY.md#english)
 
 > In every Werewolf game someone has to be the judge — but the judge can't play.
 > **This app replaces the judge.** Fully automated Night-1 voice narration so everyone (including the host) can close their eyes and play.
@@ -8,7 +8,7 @@
 [![Live](https://img.shields.io/badge/▶_Play-werewolfgamer.com-blue?style=for-the-badge)](https://werewolfgamer.com)
 
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TS-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TS-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Expo](https://img.shields.io/badge/Expo_SDK-56-000020?style=flat-square&logo=expo)](https://expo.dev/)
 [![Cloudflare](https://img.shields.io/badge/CF-Workers%20+%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
@@ -69,7 +69,7 @@ Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and 
 
 ### 🤖 AI Assistant
 
-Unsure about a rule? Tap the AI bubble on any role card for instant skill details and strategy tips. Powered by Gemini 3.1 Flash Lite via a Worker proxy.
+Unsure about a rule? Tap the AI bubble on any role card for instant skill details and strategy tips. Powered by Gemini 3.5 Flash Lite via a Worker proxy.
 
 ### 🎰 Gacha Collection & Progression
 
@@ -147,7 +147,7 @@ See [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) for detailed a
 ```bash
 pnpm install          # Install dependencies
 pnpm run dev          # Worker + Expo Web concurrently (localhost:8787 + :8081)
-pnpm run quality      # typecheck + lint + format + test:all
+pnpm run quality      # Full gate: types, build, Knip, config drift, lint, format, tests
 pnpm run e2e          # Playwright E2E
 
 # Local D1 seed — dev user (dev@test.local / dev123) with all items unlocked
@@ -173,9 +173,9 @@ src/
 
 |                  |                                                            |
 | ---------------- | ---------------------------------------------------------- |
-| **Client**       | React Native 0.85 · Expo SDK 56 · TypeScript ~5.9          |
+| **Client**       | React Native 0.85 · Expo SDK 56 · TypeScript ~6.0          |
 | **Server**       | Cloudflare Workers · D1 · R2 · Durable Objects             |
-| **AI**           | Gemini 3.1 Flash Lite (Worker proxy)                       |
+| **AI**           | Gemini 3.5 Flash Lite (Worker proxy)                       |
 | **Test**         | Jest · Testing Library · Playwright                        |
 | **Deploy**       | Cloudflare Pages (Web) + Workers (API) · GitHub Actions CI |
 | **Mini Program** | WeChat Mini Program web-view shell · miniprogram-ci        |
@@ -215,7 +215,7 @@ iOS, Android, WeChat Mini Program, and any modern browser (Chrome, Safari, Firef
 <details>
 <summary><b>Where is game data stored?</b></summary>
 
-All game state is stored in Cloudflare Durable Objects (edge SQLite), with room metadata in D1. Your data is never sent to any third party. Rooms are automatically cleaned up after 24 hours of inactivity.
+Game state is stored in Cloudflare Durable Objects (edge SQLite), with room metadata in D1. Rooms are automatically cleaned up 24 hours after creation. Features such as AI, error monitoring, email, and feedback use external services; see the [Privacy Notice](PRIVACY.md#english) for the data processed, purposes, and retention rules.
 
 </details>
 
@@ -246,6 +246,7 @@ Absolutely. Beyond the 25 preset templates, you can freely combine roles to crea
 - [Gacha System Design](docs/gacha-system-design.md)
 - [Growth System Design](docs/growth-system-design.md)
 - [Offline Game Guide](docs/offline-sop.md)
+- [Privacy Notice](PRIVACY.md#english)
 
 ## Contributing
 

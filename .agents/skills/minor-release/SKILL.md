@@ -1,7 +1,6 @@
 ---
 name: minor-release
 description: 'Execute a minor release end-to-end: collect changes, write announcement, bump version, commit, tag, push. Use when: minor-release, minor release, new version, release minor.'
-argument-hint: 'Main changes description (optional, used to generate announcement)'
 ---
 
 # minor-release Skill

@@ -1,7 +1,6 @@
 ---
 name: new-e2e-spec
 description: 'Add a new Playwright E2E spec for a night role, flow, or feature. Use when: adding an e2e test, new playwright spec.'
-argument-hint: 'Test target description (e.g., guard protection prevents death, 6-player magician swap)'
 ---
 
 # New E2E Spec Skill

@@ -1,6 +1,6 @@
 # 🐺 狼人杀电子法官
 
-**[English](./README.en.md)** | 简体中文
+**[English](./README.en.md)** | 简体中文 | [隐私说明](PRIVACY.md)
 
 > 线下狼人杀总要有人当法官，法官却不能参与游戏——**这个 App 替你当法官。**
 > 首夜全自动语音引导，所有人（包括房主）都能闭眼参与游戏。
@@ -8,7 +8,7 @@
 [![Live](https://img.shields.io/badge/▶_Play-werewolfgamer.com-blue?style=for-the-badge)](https://werewolfgamer.com)
 
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TS-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TS-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Expo](https://img.shields.io/badge/Expo_SDK-56-000020?style=flat-square&logo=expo)](https://expo.dev/)
 [![Cloudflare](https://img.shields.io/badge/CF-Workers%20+%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
@@ -69,7 +69,7 @@
 
 ### 🤖 AI 助手
 
-遇到不确定的规则？点击角色卡上的 AI 气泡，随时询问技能细节和策略建议。基于 Gemini 3.1 Flash Lite，通过 Worker 代理安全访问。
+遇到不确定的规则？点击角色卡上的 AI 气泡，随时询问技能细节和策略建议。基于 Gemini 3.5 Flash Lite，通过 Worker 代理访问。
 
 ### 🎰 扭蛋收集 · 等级成长
 
@@ -147,7 +147,7 @@ iOS · Android · Web · 微信小程序 四端支持。Web 版即开即用，�
 ```bash
 pnpm install          # 安装依赖
 pnpm run dev          # Worker + Expo Web 同时启动 (localhost:8787 + :8081)
-pnpm run quality      # typecheck + lint + format + test:all
+pnpm run quality      # 完整质量门禁（类型、构建、Knip、配置漂移、lint、格式、测试）
 pnpm run e2e          # Playwright E2E
 
 # 本地 D1 seed — dev 用户 (dev@test.local / dev123) + 全物品解锁
@@ -173,9 +173,9 @@ src/
 
 |            |                                                            |
 | ---------- | ---------------------------------------------------------- |
-| **客户端** | React Native 0.85 · Expo SDK 56 · TypeScript ~5.9          |
+| **客户端** | React Native 0.85 · Expo SDK 56 · TypeScript ~6.0          |
 | **服务端** | Cloudflare Workers · D1 · R2 · Durable Objects             |
-| **AI**     | Gemini 3.1 Flash Lite（Worker 代理）                       |
+| **AI**     | Gemini 3.5 Flash Lite（Worker 代理）                       |
 | **测试**   | Jest · Testing Library · Playwright                        |
 | **部署**   | Cloudflare Pages (Web) + Workers (API) · GitHub Actions CI |
 | **小程序** | 微信小程序 web-view 壳 · miniprogram-ci 上传               |
@@ -215,7 +215,7 @@ iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Fire
 <details>
 <summary><b>游戏数据存储在哪里？</b></summary>
 
-所有游戏状态存储在 Cloudflare Durable Objects（边缘 SQLite），房间元数据存储在 D1。你的数据不会发送到任何第三方。房间在 24 小时无活动后自动清理。
+游戏状态存储在 Cloudflare Durable Objects（边缘 SQLite），房间元数据存储在 D1。房间在创建满 24 小时后自动清理。AI、错误监控、邮件和反馈等功能会使用外部服务；处理的数据、用途和保留规则详见[隐私说明](PRIVACY.md)。
 
 </details>
 
@@ -246,6 +246,7 @@ iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Fire
 - [扭蛋系统设计](docs/gacha-system-design.md)
 - [等级成长系统](docs/growth-system-design.md)
 - [线下玩法 SOP](docs/offline-sop.md)
+- [隐私说明](PRIVACY.md)
 
 ## 贡献
 

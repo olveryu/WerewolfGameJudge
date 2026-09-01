@@ -1,4 +1,0 @@
-{
-  "_comment": "Copy to e2e.local.json. Cloudflare mode uses wrangler dev --local, no config needed.",
-  "EXPO_PUBLIC_API_TIMEOUT_MS": "8000"
-}

@@ -12,12 +12,12 @@
 #   3. 后处理：PWA / 字体 / _expo→assets/js / 自定义 index.html / SW 版本
 #
 # 调用方：
-#   - Cloudflare Pages Build（Git Integration 自动部署）
-#   - scripts/deploy.sh（本地手动部署）
+#   - GitHub Actions deploy-frontend job
+#   - 本地 Web 构建验证
 #
 # ✅ 跨平台兼容（macOS + Linux），用 perl 替代 sed -i
-# ❌ 不处理环境变量（Cloudflare Pages Dashboard 负责）
-# ❌ 不执行部署（Cloudflare Pages 自动部署）
+# ❌ 不发布 npm CDN 包
+# ❌ 不执行 Cloudflare Pages 部署
 #
 # ============================================
 

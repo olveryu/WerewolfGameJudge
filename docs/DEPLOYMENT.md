@@ -1,238 +1,278 @@
-# 🚀 Deployment Guide
+# Deployment Guide
 
-This document covers the complete deployment process from zero to production, including Cloudflare Pages frontend deployment and Cloudflare Worker (DO + D1 + R2) API deployment.
-
----
+This guide documents the official production path for the Cloudflare Worker API, Cloudflare Pages frontend, versioned npmmirror assets, WeChat Mini Program, and Playwright report site.
 
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
-2. [Environment Variables](#environment-variables)
-3. [Web Build & Deploy](#web-build--deploy)
-4. [Caching Strategy](#caching-strategy)
-5. [Verify Deployment](#verify-deployment)
-6. [FAQ](#faq)
-
----
+2. [Configuration and Secrets](#configuration-and-secrets)
+3. [CI Deployment Pipeline](#ci-deployment-pipeline)
+4. [Frontend CDN and Caching](#frontend-cdn-and-caching)
+5. [Release Process](#release-process)
+6. [Local Verification](#local-verification)
+7. [Production Verification](#production-verification)
+8. [Rollback](#rollback)
+9. [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
-### Tool Installation
+### Toolchain
+
+- Node.js `22.22.1` from `.nvmrc`; `package.json` accepts Node.js `>=22.13.0`.
+- pnpm `10.32.1` through the `packageManager` field.
+- Wrangler is a workspace dependency. Do not install a separate global copy.
 
 ```bash
-# Node.js (>= 20.20.1)
-node --version
-
-# pnpm (workspace monorepo)
-pnpm --version
-
-# Wrangler CLI (Cloudflare Workers / Pages)
-pnpm add -g wrangler
-wrangler --version
+corepack enable
+pnpm install --frozen-lockfile
+pnpm exec wrangler --version
 ```
 
-### Account Setup
+### Service Setup
 
-- [Cloudflare](https://dash.cloudflare.com) account
+The official deployment requires:
 
----
+- A Cloudflare account with the D1 database, R2 bucket, Durable Object namespaces, Analytics Engine datasets, Worker custom domain, and Pages project named in the Wrangler configuration.
+- A GitHub repository with Actions enabled and the deployment secrets listed below.
+- The npm package `werewolf-judge-cdn` configured with a GitHub Actions trusted publisher for this repository and workflow `ci.yml`.
+- GitHub Pages configured to deploy from GitHub Actions for the merged Playwright report.
+- A WeChat Mini Program whose AppID and upload key match the workflow configuration.
 
-## Environment Variables
+Forks and self-hosted deployments must replace the official account IDs, database IDs, bucket and project names, custom domains, npm package name, Sentry project, GitHub feedback repository, and WeChat AppID. Do not point a fork at the official production resources.
 
-The project follows Expo community standard `.env` layering conventions:
+## Configuration and Secrets
 
-| File         | Purpose            | Git Status    |
-| ------------ | ------------------ | ------------- |
-| `.env`       | Production default | **Committed** |
-| `.env.local` | Local override     | gitignored    |
+### Client Build Environment
 
-> Expo load priority: `.env.local` > `.env` ([Expo official docs](https://docs.expo.dev/guides/environment-variables/)).
->
-> `EXPO_PUBLIC_*` are not secrets — they get inlined into the JS bundle and are visible to clients.
-> `EXPO_PUBLIC_SENTRY_DSN` (Sentry crash reporting) is configured in `.env` (public value).
+The committed `.env` contains public Expo build defaults. Any `EXPO_PUBLIC_*` value is embedded in the client bundle and must never contain a secret. Use gitignored `.env.local` for local overrides; Expo gives `.env.local` precedence over `.env`.
 
-### Zero-Config Start
+The frontend CI build provides these values directly:
 
-Run directly after clone — `.env` already contains production config in git:
+| Variable                 | Purpose                                                               |
+| ------------------------ | --------------------------------------------------------------------- |
+| `CF_PAGES_BRANCH`        | Selects `EXPO_PUBLIC_DEPLOY_ENV`; `main` maps to `production`         |
+| `EXPO_PUBLIC_SENTRY_DSN` | Public client DSN embedded in the web bundle                          |
+| `SENTRY_AUTH_TOKEN`      | Build-only source-map upload credential; never embedded in the bundle |
+
+### Worker Runtime Secrets
+
+`packages/api-worker/wrangler.toml` declares the required Worker secrets:
+
+| Secret                  | Purpose                                                |
+| ----------------------- | ------------------------------------------------------ |
+| `ADMIN_PASSWORD`        | Admin API authentication                               |
+| `CF_API_TOKEN`          | Cloudflare Analytics API queries from the admin API    |
+| `GEMINI_API_KEY`        | Gemini AI requests                                     |
+| `GITHUB_REPO_OWNER`     | GitHub feedback integration configuration              |
+| `GITHUB_TOKEN`          | Create and update feedback issues and comments         |
+| `GITHUB_WEBHOOK_SECRET` | Verify feedback webhook signatures                     |
+| `JWT_SECRET`            | Sign access tokens and derive refresh-token successors |
+| `RESEND_API_KEY`        | Send password-reset email through Resend               |
+| `WECHAT_APP_ID`         | WeChat `code2Session` client identifier                |
+| `WECHAT_APP_SECRET`     | WeChat `code2Session` credential                       |
+
+Set each value through Wrangler's interactive prompt. Never put secret values in a command, shell history, committed file, or documentation.
 
 ```bash
-git clone <repo>
+cd packages/api-worker
+pnpm exec wrangler secret put JWT_SECRET --config wrangler.toml
+pnpm exec wrangler secret list --config wrangler.toml
+```
+
+### GitHub Actions Secrets
+
+| Secret                  | Job                         |
+| ----------------------- | --------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Worker and Pages deployment |
+| `CLOUDFLARE_ACCOUNT_ID` | Worker and Pages deployment |
+| `SENTRY_DSN`            | Frontend production build   |
+| `SENTRY_AUTH_TOKEN`     | Frontend source-map upload  |
+| `MINIAPP_UPLOAD_KEY`    | WeChat Mini Program upload  |
+
+`GITHUB_TOKEN` is supplied by GitHub Actions. Frontend asset publication uses npm trusted publishing with OIDC and `id-token: write`; there is no `NPM_TOKEN`. The workflow upgrades to npm 11 because trusted publishing requires npm `>=11.5.1`.
+
+## CI Deployment Pipeline
+
+`.github/workflows/ci.yml` runs on pushes to `main`, pull requests targeting `main`, and manual dispatches.
+
+```text
+quality
+├── e2e (five balanced groups) → merge-reports
+│                              └── deploy-e2e-report (main only)
+├── deploy-api-worker (main only)
+│   └── deploy-frontend (main only; waits for API deployment)
+└── deploy-miniapp (main push only; conditional upload)
+```
+
+E2E uses local Wrangler/D1 and a local web build. It validates the commit independently of the production deployment and does not wait for the deploy jobs.
+
+### Quality
+
+`pnpm run quality` is the single local quality entry point. CI executes the same stages in this order:
+
+1. Type generation and TypeScript checks.
+2. `game-engine` build.
+3. Knip unused-code and dependency check.
+4. Agent adapter drift check.
+5. ESLint.
+6. Prettier check.
+7. All workspace unit and integration tests.
+
+### API Worker
+
+After `quality` succeeds on `main`, `deploy-api-worker`:
+
+1. Builds `@game-judge/game-engine`.
+2. Applies remote D1 migrations with the API package's `db:migrate:remote` script.
+3. Deploys `werewolf-api` with the API package's `deploy` script.
+
+Migrations run before Worker deployment. A migration failure stops the job and leaves the previous Worker deployed.
+
+### Frontend
+
+`deploy-frontend` waits for both `quality` and `deploy-api-worker`, then:
+
+1. Runs `scripts/build.sh` to build `game-engine`, export Expo Web, add PWA files, fix font and bundle paths, inject the custom HTML shell, and upload Sentry source maps.
+2. Rewrites HTML and JavaScript asset references to a versioned npmmirror URL.
+3. Packages assets and compressed CanvasKit WASM as `werewolf-judge-cdn@0.0.0-g<sha8>`.
+4. Publishes that package to npm with OIDC trusted publishing.
+5. Waits for npm registry visibility.
+6. Triggers npmmirror synchronization and polls both npmmirror registry metadata and the CDN `index.js` artifact for up to 15 minutes.
+7. Deploys `dist/` to the `werewolfgamejudge` Cloudflare Pages project only after both CDN checks pass.
+
+This order prevents production HTML from referencing an asset package that the CDN cannot yet serve.
+
+### WeChat Mini Program
+
+`deploy-miniapp` runs only on a push to `main`. It uploads when either condition is true:
+
+- The commit subject starts with `release:`.
+- Files under `miniapp/` changed in the commit.
+
+The workflow reads the version from `package.json` and removes the temporary upload-key file after `miniprogram-ci` finishes.
+
+### Playwright E2E
+
+CI divides the E2E suite into five measured groups. Each group uses the local Cloudflare Worker and D1 database created by `scripts/setup-e2e-api.mjs`; it does not connect to production data. Blob reports are retained for one day, merged into an HTML report retained for 30 days, and published to GitHub Pages for successful `main` runs.
+
+## Frontend CDN and Caching
+
+Production HTML points to assets under a commit-specific URL:
+
+```text
+https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-g<sha8>/files/
+```
+
+Each deployment therefore references an immutable package version. The pipeline does not perform a blanket Cloudflare cache purge and does not require a long-lived npm token.
+
+`web/_headers` controls files served by Cloudflare Pages:
+
+| Path                                                      | Cache-Control                         | Reason                                                 |
+| --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| `/assets/fonts/*`                                         | `public, max-age=31536000, immutable` | Content-hashed fonts                                   |
+| `/assets/audio/*`, `/assets/audio_end/*`, `/assets/pwa/*` | `public, max-age=31536000, immutable` | Versioned static assets                                |
+| `/assets/js/*`                                            | `no-cache`                            | Safe fallback when a bundle is served from Pages       |
+| `/`, `/index.html`                                        | `no-cache`                            | HTML must revalidate before selecting an asset package |
+| `/HVChYlYloJ.txt`                                         | `no-cache, no-store, must-revalidate` | WeChat domain verification                             |
+
+The same file sets `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` response headers.
+
+## Release Process
+
+`package.json` and `pnpm-lock.yaml` are the authoritative version sources. Run the release script only from a clean, reviewed worktree:
+
+```bash
+pnpm run quality
+pnpm run release            # patch
+pnpm run release -- minor   # minor
+pnpm run release -- major   # major
+```
+
+`scripts/release.sh`:
+
+1. Refuses unsupported bump types and asks before including unrelated changes.
+2. Bumps `package.json` and `pnpm-lock.yaml`.
+3. Synchronizes `app.json`.
+4. Requires a matching entry in `src/config/announcements.ts`.
+5. Updates `CHANGELOG.md` from commits since the previous tag.
+6. Creates commit `release: v<version>` and tag `v<version>`.
+7. Pushes the commit and tags, which triggers CI and the GitHub Release workflow.
+
+Do not bypass Git hooks with `--no-verify`.
+
+## Local Verification
+
+```bash
 pnpm install
-pnpm start
+pnpm run dev       # Worker on :8787 and Expo Web on :8081
+pnpm run quality   # Complete non-E2E quality gate
+pnpm run e2e       # Playwright starts isolated local API and web servers
 ```
 
----
-
-## Web Build & Deploy
-
-### Architecture Overview
-
-| Component                             | Platform                                  | Deployment Method                                                       |
-| ------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| **Frontend** (Expo Web static assets) | Cloudflare Pages                          | CI `deploy-frontend` job (`scripts/build.sh` + `wrangler pages deploy`) |
-| **API** (Game logic + Auth)           | Cloudflare Worker (`packages/api-worker`) | CI `deploy-api-worker` job                                              |
-
-### CI Auto-Deploy Pipeline
-
-```
-git push main
-  → quality (typecheck + lint + test)
-  → deploy-api-worker (Cloudflare Worker)
-  + deploy-frontend (Cloudflare Pages + CDN cache purge)
-  → e2e (Playwright)
-```
-
-GitHub CI (`.github/workflows/ci.yml`) auto-executes on push to `main`:
-
-1. **`quality`** — `pnpm run quality` (typecheck + lint + format + test)
-2. **`deploy-api-worker`** — Build game-engine → `wrangler deploy` (`packages/api-worker`)
-3. **`deploy-frontend`** — `scripts/build.sh` → `wrangler pages deploy dist` → Purge CDN cache (`purge_everything`)
-4. **`e2e`** — Playwright end-to-end tests (4 shards in parallel)
-
-### Separation of Concerns
-
-| Script                        | Responsibility                                            | Command            |
-| ----------------------------- | --------------------------------------------------------- | ------------------ |
-| `scripts/release.sh`          | Version bump + CHANGELOG + commit + tag + push            | `pnpm run release` |
-| GitHub CI `deploy-frontend`   | Auto build + deploy to Cloudflare Pages + purge CDN cache | Automatic          |
-| GitHub CI `deploy-api-worker` | Auto deploy API Worker                                    | Automatic          |
-
-### Standard Process (Recommended)
+For a new local D1 state or after adding a migration:
 
 ```bash
-# 1. Release (bump version → CHANGELOG → commit → tag → push)
-pnpm run release              # default: patch
-pnpm run release -- minor     # or minor / major
-
-# 2. Deployment happens automatically
-# git push auto-triggers GitHub CI:
-#   - deploy-frontend: build.sh → Cloudflare Pages → purge CDN cache
-#   - deploy-api-worker: packages/api-worker → Cloudflare Worker
-# No manual action needed
+pnpm --filter @game-judge/api-worker run db:migrate:local
+pnpm --filter @game-judge/api-worker run db:seed:local
 ```
 
-### What `release.sh` Does
+Production frontend deployment must use CI because URL rewriting, npm publication, npmmirror propagation checks, and Pages deployment form one ordered operation. A direct local Pages upload skips those gates.
 
-1. `pnpm version patch` (or minor/major)
-2. Syncs version number to `app.json`
-3. Detects changes beyond version files, prompts for interactive confirmation
-4. `git commit -m "release: vX.Y.Z"` + `git tag vX.Y.Z`
-5. `git push --tags`
+## Production Verification
 
----
+1. Confirm `quality`, `deploy-api-worker`, and `deploy-frontend` succeeded in GitHub Actions.
+2. Confirm the frontend job recorded the expected npm package version and both npmmirror checks passed.
+3. Visit [werewolfgamer.com](https://werewolfgamer.com) and confirm the document and versioned CDN assets load without errors.
+4. Request [api.werewolfjudge.eu.org/health](https://api.werewolfjudge.eu.org/health) and confirm the Worker is healthy.
+5. Create a room, join it from a second browser or device, and confirm WebSocket state synchronization.
+6. Open the merged Playwright report artifact or the GitHub Pages report for the run.
 
-## Caching Strategy
+## Rollback
 
-### `web/_headers` (Cloudflare Pages Custom Headers)
+### Frontend
 
-Frontend caching is controlled via the `web/_headers` file (copied to `dist/` at build time):
+In Cloudflare Dashboard, open **Workers & Pages -> werewolfgamejudge -> Deployments**, select the menu for a previous successful production deployment, and choose **Rollback to this deployment**. Preview deployments cannot be rollback targets.
 
-| Path                                     | Cache-Control                         | Reason                                                                            |
-| ---------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
-| `/assets/fonts/*`                        | `immutable, max-age=31536000`         | Content-hashed filenames, never change                                            |
-| `/assets/audio/*`, `/assets/audio_end/*` | `immutable, max-age=31536000`         | Same as above                                                                     |
-| `/assets/js/*`                           | `no-cache`                            | Metro uses source-hash (not content-hash); same filename may differ across builds |
-| `/`, `/index.html`                       | `no-cache`                            | HTML must revalidate every time, otherwise references deleted JS → white screen   |
-| `/sw.js`                                 | `no-cache, no-store, must-revalidate` | Service Worker must always be fresh                                               |
+An older HTML deployment continues to reference its immutable npm/npmmirror asset version. Do not unpublish historical `werewolf-judge-cdn` versions that may still be rollback targets.
 
-### CDN Cache Purge
+### API Worker
 
-The CI `deploy-frontend` job automatically calls Cloudflare API `purge_everything` after deployment, ensuring Zone CDN cache updates immediately.
-
-> ⚠️ Cloudflare Dashboard → Zone → Caching → Browser Cache TTL must be set to **Respect Existing Headers**, otherwise Zone CDN will override the policies defined in `_headers`.
-
----
-
-## Verify Deployment
-
-### 1. Check Frontend
-
-Visit https://werewolfgamer.com (or https://werewolfgamejudge.pages.dev):
-
-- Page loads normally, no white screen
-- Check that JS requests' `Cache-Control` header is `no-cache`
-
-### 2. Check API Connection
-
-- Tap "创建房间"
-- If a room is created successfully, the API connection is working
-
-### 3. Test Multi-Device Sync
-
-1. Create a room on Device A, note the room code
-2. Enter the room code on Device B to join
-3. If Device B can see the room state, WebSocket is working
-
-### 4. Check Anonymous Login
-
-- Can create/join rooms without registration ✓
-
----
-
-## FAQ
-
-### Q1: White Screen After Deployment
-
-**Possible causes**:
-
-1. **CDN cache not purged** — CI auto-purges on normal deployment. After manual deployment, purge manually:
-
-   ```bash
-   curl -sf -X POST \
-     "https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/purge_cache" \
-     -H "Authorization: Bearer <API_TOKEN>" \
-     -H "Content-Type: application/json" \
-     --data '{"purge_everything":true}'
-   ```
-
-2. **Browser Cache TTL misconfigured** — Confirm Cloudflare Dashboard → Caching → Browser Cache TTL is **Respect Existing Headers**.
-
-### Q2: Realtime Not Working (No Updates After Joining Room)
-
-**Cause**: WebSocket connection failure
-
-**Solution**: Check Cloudflare Worker Durable Objects deployment status, confirm `deploy-api-worker` CI job succeeded.
-
-### Q3: How to Update Deployment?
+Use Cloudflare's Worker version rollback from the dashboard or Wrangler:
 
 ```bash
-pnpm run release    # version bump + CHANGELOG + commit + tag + push
-# git push auto-triggers CI: deploy-frontend + deploy-api-worker
+cd packages/api-worker
+pnpm exec wrangler versions list --config wrangler.toml
+pnpm exec wrangler rollback <VERSION_ID> --config wrangler.toml
 ```
 
-### Q4: How to Rollback?
+D1 migrations are not reverted by a Worker rollback. Database rollback requires a separately reviewed forward migration that preserves compatibility with the selected Worker version.
 
-```bash
-# Cloudflare Pages supports per-deployment rollback:
-# Dashboard → Pages → werewolfgamejudge → Deployments → Select old deployment → Rollback
+## Troubleshooting
 
-# Or via wrangler CLI:
-wrangler pages deployments list --project-name=werewolfgamejudge
-wrangler pages deployments rollback --project-name=werewolfgamejudge <deployment-id>
-```
+### npm publish reports `ENEEDAUTH`
 
----
+Verify the npm trusted publisher uses the exact GitHub owner, repository, and workflow filename `ci.yml`; confirm the job runs on a GitHub-hosted runner with `id-token: write`. Do not add `NPM_TOKEN` as a workaround.
 
-## Quick Reference
+### npmmirror propagation times out
 
-| Action                | Command                                                  |
-| --------------------- | -------------------------------------------------------- |
-| **Local Dev**         |                                                          |
-| Start dev server      | `pnpm start`                                             |
-| **Production**        |                                                          |
-| Release               | `pnpm run release` (patch) / `pnpm run release -- minor` |
-| Frontend + API deploy | `git push` auto-triggers GitHub CI                       |
-| Full quality check    | `pnpm run quality`                                       |
-| Purge CDN cache       | CI auto-executes; manual see Q1                          |
-| Rollback frontend     | Cloudflare Pages Dashboard → Rollback                    |
+The workflow retriggers synchronization and polls for up to 15 minutes. If either registry metadata or the CDN artifact is still missing, Pages deployment correctly stops. Inspect the reported sync task and artifact URLs, then rerun the failed job after npmmirror recovers.
 
----
+### Frontend loads a white screen
 
-## Current Production Environment
+Inspect `index.html` to identify its `0.0.0-g<sha8>` asset version, then verify that version's JavaScript and CanvasKit artifacts on npmmirror. Also confirm HTML responses use `no-cache`. A blanket Cloudflare cache purge is not part of this architecture.
 
-| Service                      | URL                                                  |
-| ---------------------------- | ---------------------------------------------------- |
-| **Frontend** (custom domain) | https://werewolfgamer.com                            |
-| **Frontend** (Pages default) | https://werewolfgamejudge.pages.dev                  |
-| **API**                      | https://api.werewolfjudge.eu.org (Cloudflare Worker) |
-| **Crash Monitoring**         | Sentry                                               |
+### API deployment fails after a migration
+
+Inspect the `Apply D1 migrations` step first. Do not deploy the new Worker manually around a failed migration. Correct the migration or compatibility issue, verify it locally, and rerun the CI job.
+
+### Realtime updates fail
+
+Confirm the Worker deployment is healthy, the `GAME_ROOM` Durable Object binding exists, and the browser can establish a WebSocket to the API custom domain.
+
+## Current Production Endpoints
+
+| Service                  | URL                                   |
+| ------------------------ | ------------------------------------- |
+| Frontend                 | <https://werewolfgamer.com>           |
+| Cloudflare Pages default | <https://werewolfgamejudge.pages.dev> |
+| API Worker               | <https://api.werewolfjudge.eu.org>    |

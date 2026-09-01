@@ -85,6 +85,7 @@ jest.mock('./src/theme', () => {
       large: 24,
       xlarge: 32,
       xxlarge: 48,
+      screenH: 20,
     },
     typography: {
       captionSmall: 10,
@@ -149,6 +150,7 @@ jest.mock('./src/theme', () => {
       headerHeight: 56,
       tabBarHeight: 56,
       screenPaddingH: 16,
+      headerTitleSize: 20,
       screenPaddingV: 24,
       cardPadding: 16,
       listItemGap: 8,

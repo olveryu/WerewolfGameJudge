@@ -35,6 +35,12 @@ jobs:
       - name: Build game-engine
         run: pnpm --filter @game-judge/game-engine run build
 
+      - name: Check unused files and dependencies
+        run: pnpm run knip
+
+      - name: Check agent configuration drift
+        run: pnpm run sync:agents:check
+
       - name: Lint
         run: pnpm run lint
 

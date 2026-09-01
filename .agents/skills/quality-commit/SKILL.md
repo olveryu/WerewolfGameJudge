@@ -1,7 +1,6 @@
 ---
 name: quality-commit
 description: 'Run full quality pipeline, auto-fix lint/format issues, then commit and push. Use when: quality fix commit push, run quality, fix lint, fix format, quality commit push.'
-argument-hint: 'commit message (optional, auto-generated if not provided)'
 ---
 
 # quality-commit Skill

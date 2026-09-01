@@ -1,7 +1,6 @@
 ---
 name: delegate-expert
 description: Generate delegation prompts for specialist agents. Use when delegating tasks, writing expert prompts, or finding a specialist workflow.
-disable-model-invocation: true
 ---
 
 > **输出语言：执行本 prompt 过程中，所有面向用户的输出（草稿、询问、确认、生成的 prompt 本体）一律使用中文。**

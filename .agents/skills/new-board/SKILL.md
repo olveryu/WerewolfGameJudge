@@ -1,7 +1,6 @@
 ---
 name: new-board
 description: 'Add a new preset board to PRESET_TEMPLATES. Use when: adding a board, creating a template, new preset.'
-argument-hint: 'Board name + role list (e.g., Wolf King Seer 4villagers 4wolves seer+witch+hunter+guard)'
 ---
 
 # New Board Skill

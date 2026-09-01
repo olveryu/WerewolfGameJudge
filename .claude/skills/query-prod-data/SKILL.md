@@ -1,7 +1,6 @@
 ---
 name: query-prod-data
 description: 'Query production D1 database and Analytics Engine telemetry. Use when: looking up users, rooms, player geo, load timing, telemetry.'
-argument-hint: 'Query description (e.g., where are players in room 8817 from, recent registrations, load performance in a time range)'
 ---
 
 # Query Production Data Skill
