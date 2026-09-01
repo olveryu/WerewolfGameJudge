@@ -10,6 +10,7 @@
 
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { roomScreenLog } from '@/utils/logger';
 
@@ -95,6 +96,29 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
   const dialogTitle = statusUi.statusDialogTitle;
   let statusMessage: string;
 
+  if (statusUi.kind === 'infection') {
+    if (confirmStatus?.role !== 'seedWolf') {
+      throw new Error('[FAIL-FAST] Seed Wolf confirm step requires infection status');
+    }
+    if (effectiveSeat === null) {
+      throw new Error('[FAIL-FAST] confirmTrigger requires an effective actor seat');
+    }
+    if (confirmStatus.availability === 'unavailable') {
+      actionDialogs.showRoleActionPrompt(dialogTitle, statusUi.unavailableText, () => {});
+      return;
+    }
+    statusMessage = statusUi.targetTemplate.replace('{seat}', formatSeat(confirmStatus.targetSeat));
+    actionDialogs.showRoleActionPrompt(
+      dialogTitle,
+      statusMessage,
+      async () => {
+        await proceedWithAction({ kind: 'confirm' });
+      },
+      currentSchema.ui?.bottomActionText,
+    );
+    return;
+  }
+
   if (statusUi.kind === 'wolfTeammates') {
     // HiddenWolf: show wolf teammates seat numbers (convert 0-based → 1-based display)
     const wolfTeammates = confirmStatus?.role === 'hiddenWolf' ? confirmStatus.wolfTeammates : [];
@@ -118,6 +142,7 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
       confirmStatus &&
       confirmStatus.role !== 'avenger' &&
       confirmStatus.role !== 'hiddenWolf' &&
+      confirmStatus.role !== 'seedWolf' &&
       confirmStatus.role === effectiveRole
     ) {
       canShoot = confirmStatus.canShoot;

@@ -28,7 +28,17 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
   let personalMessage: string;
   let dialogTitle: string;
 
-  if (schemaId === 'awakenedGargoyleConvertReveal') {
+  if (schemaId === 'seedWolfInfectReveal') {
+    const infectionResult = gameState?.seedWolfInfectionResult;
+    const isConverted =
+      mySeat !== null &&
+      infectionResult?.outcome === 'converted' &&
+      infectionResult.targetSeat === mySeat;
+    personalMessage = isConverted
+      ? gcSchema!.ui!.hypnotizedText!
+      : gcSchema!.ui!.notHypnotizedText!;
+    dialogTitle = '感染信息';
+  } else if (schemaId === 'awakenedGargoyleConvertReveal') {
     // Awakened Gargoyle: single convertedSeat
     const isConverted = mySeat !== null && gameState?.convertedSeat === mySeat;
     personalMessage = isConverted

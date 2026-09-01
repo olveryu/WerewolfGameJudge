@@ -417,6 +417,26 @@ describe('Werewolf engine definition and catalog', () => {
     }
   });
 
+  it('allows the original actor to acknowledge a reveal released in a later step', () => {
+    const state = createState({
+      status: GameStatus.Ongoing,
+      currentStepId: 'seedWolfInfectReveal',
+      pendingRevealAcks: ['seerCheck'],
+      actions: [{ schemaId: 'seerCheck', actorSeat: 1, targetSeat: 0, timestamp: 1 }],
+    });
+
+    const decision = werewolfEngine.decide(
+      state,
+      { type: 'werewolf.reveal.ack' },
+      userContext('user-1'),
+    );
+
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit') {
+      expect(decision.events).toContainEqual({ type: 'CLEAR_REVEAL_ACKS' });
+    }
+  });
+
   it.each([
     'room.seat.kick',
     'room.seat.clear',

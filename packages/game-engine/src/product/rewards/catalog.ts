@@ -33,7 +33,7 @@ export interface RewardItem {
  * When no avatar is set, the default wolf-paw icon is shown (not in this list).
  */
 // prettier-ignore
-/** Hand-drawn avatar IDs (43, Rare+ tier) */
+/** Hand-drawn avatar IDs (47, Rare+ tier) */
 const HAND_DRAWN_AVATAR_IDS = [
   'avenger',
   'awakenedGargoyle',
@@ -62,6 +62,7 @@ const HAND_DRAWN_AVATAR_IDS = [
   'poisoner',
   'psychic',
   'pureWhite',
+  'seedWolf',
   'seer',
   'sequencePrince',
   'shadow',
@@ -549,7 +550,7 @@ export const FREE_SEAT_ANIMATION_IDS: ReadonlySet<string> = new Set<string>();
 
 /** Avatar rarity mapping */
 const AVATAR_RARITY: Record<string, Rarity> = {
-  // Legendary (10) — original 3 legendary + 7 promoted from epic
+  // Legendary (11)
   darkWolfKing: 'legendary',
   nightmare: 'legendary',
   masquerade: 'legendary',
@@ -561,7 +562,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
   eclipseWolfQueen: 'legendary',
   witch: 'legendary',
   seer: 'legendary',
-  // Epic (33) — 14 promoted from rare + 19 promoted from common
+  // Epic (36)
   hunter: 'epic',
   guard: 'epic',
   knight: 'epic',
@@ -585,6 +586,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
   idiot: 'epic',
   maskedMan: 'epic',
   pureWhite: 'epic',
+  seedWolf: 'epic',
   shadow: 'epic',
   silenceElder: 'epic',
   slacker: 'epic',

@@ -16,7 +16,13 @@
  */
 
 import type { Rng } from '../../../../platform/random';
-import type { NightActions, ReflectionSource, RoleSeatMap } from '../DeathCalculator';
+import {
+  calculateDeathsDetailed,
+  type DeathsDetailed,
+  type NightActions,
+  type ReflectionSource,
+  type RoleSeatMap,
+} from '../DeathCalculator';
 import { type RoleId, type SchemaId } from '../models';
 import type { WitchAction } from '../models/actions/WitchAction';
 import {
@@ -26,6 +32,7 @@ import {
   makeWitchSave,
 } from '../models/actions/WitchAction';
 import { getRoleSpec } from '../models/roles/spec/specs';
+import { Team } from '../models/roles/spec/types';
 import { buildSeatRoleMap } from '../playerHelpers';
 import type { GameState, ProtocolAction } from '../protocol/types';
 import { getRoleAfterSwap } from '../resolvers/types';
@@ -42,7 +49,7 @@ import { resolveWolfVotes } from '../resolveWolfVotes';
  * Constraint validation still uses the original players map (players don't know about
  * swap; action legality is judged by known information).
  */
-export function buildEffectiveRoleSeatMap(state: GameState): Map<RoleId, number> {
+function buildEffectiveRoleSeatMap(state: GameState): Map<RoleId, number> {
   const swappedSeats = state.currentNightResults?.swappedSeats;
   const players = buildSeatRoleMap(state.players);
 
@@ -63,7 +70,7 @@ export function buildEffectiveRoleSeatMap(state: GameState): Map<RoleId, number>
  * replacing the previous hardcoded lookup of 7 roleId strings.
  * reflectionSources is built by buildReflectionSources then injected.
  */
-export function buildRoleSeatMap(
+function buildRoleSeatMap(
   effectiveRoleSeatMap: Map<RoleId, number>,
   reflectionSources: readonly ReflectionSource[],
   isBonded: boolean,
@@ -149,7 +156,7 @@ export function buildRoleSeatMap(
  * Scans roles with deathCalcRole='checkSource', extracts actual check targets from ProtocolAction.
  * Used to compute checkDeathTargetSeats (intersection with checkDeathVulnerable).
  */
-export function buildCheckedSeats(
+function buildCheckedSeats(
   effectiveRoleSeatMap: Map<RoleId, number>,
   protocolActions: readonly ProtocolAction[],
   nightActions: NightActions,
@@ -185,7 +192,7 @@ export function buildCheckedSeats(
  *
  * Sources blocked by nightmare are excluded here (sourceSeat === nightmareBlock -> no entry generated).
  */
-export function buildReflectionSources(
+function buildReflectionSources(
   effectiveRoleSeatMap: Map<RoleId, number>,
   protocolActions: readonly ProtocolAction[],
   nightActions: NightActions,
@@ -301,6 +308,10 @@ export function buildNightActions(state: GameState, rng: Rng): NightActions {
     nightActions.isWolfBlockedByNightmare = true;
   }
 
+  if (state.seedWolfInfectionResult?.outcome === 'converted') {
+    nightActions.seedWolfInfectedSeat = state.seedWolfInfectionResult.targetSeat;
+  }
+
   // Guard protect
   const guardAction = findActionBySchemaId(actions, 'guardProtect');
   if (guardAction?.targetSeat !== undefined) {
@@ -335,4 +346,20 @@ export function buildNightActions(state: GameState, rng: Rng): NightActions {
   }
 
   return nightActions;
+}
+
+/** Build all death-calculation inputs from authoritative state and settle the night. */
+export function calculateNightDeaths(state: GameState, rng: Rng): DeathsDetailed {
+  const nightActions = buildNightActions(state, rng);
+  const effectiveMap = buildEffectiveRoleSeatMap(state);
+  const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
+  const checkedSeats = buildCheckedSeats(effectiveMap, state.actions, nightActions);
+  const roleSeatMap = buildRoleSeatMap(
+    effectiveMap,
+    reflectionSources,
+    state.currentNightResults?.avengerFaction === Team.Third,
+    state.loverSeats ?? null,
+    checkedSeats,
+  );
+  return calculateDeathsDetailed(nightActions, roleSeatMap);
 }

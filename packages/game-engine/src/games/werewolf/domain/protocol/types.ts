@@ -15,7 +15,7 @@ import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
-import type { CurrentNightResults } from '../resolvers/types';
+import type { CurrentNightResults, ResolverReveal } from '../resolvers/types';
 
 // =============================================================================
 // Confirm Status (discriminated union, role tag)
@@ -42,8 +42,64 @@ export interface WolfTeammatesConfirmStatus {
   readonly wolfTeammates: readonly number[];
 }
 
+/** Seed Wolf: authoritative wolf-kill target available for infection. */
+export type SeedWolfConfirmStatus =
+  | {
+      readonly role: 'seedWolf';
+      readonly availability: 'available';
+      readonly targetSeat: number;
+    }
+  | {
+      readonly role: 'seedWolf';
+      readonly availability: 'unavailable';
+      readonly reason: 'noTarget' | 'wolfTarget';
+    };
+
 /** Discriminated union (discriminant: role). */
-export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus | WolfTeammatesConfirmStatus;
+export type ConfirmStatus =
+  | ShootConfirmStatus
+  | FactionConfirmStatus
+  | WolfTeammatesConfirmStatus
+  | SeedWolfConfirmStatus;
+
+/** Seed Wolf's final infection outcome, decided before the final group-confirm step. */
+export type SeedWolfInfectionResult =
+  | { readonly outcome: 'notUsed' }
+  | { readonly outcome: 'failed'; readonly targetSeat: number }
+  | { readonly outcome: 'converted'; readonly targetSeat: number };
+
+/** A private role reveal held until Seed Wolf's infection outcome is known. */
+export interface SeedWolfDeferredReveal {
+  readonly actorSeat: number;
+  readonly schemaId: SchemaId;
+  readonly targetSeat: number;
+  readonly reveal: ResolverReveal;
+}
+
+/** Resolver payload retained with its source so one actor's effects can be replayed away. */
+export interface ResolvedNightEffect {
+  readonly sourceSeat: number;
+  readonly updates?: Partial<CurrentNightResults>;
+  readonly seerReveal?: { readonly targetSeat: number; readonly result: '好人' | '狼人' };
+  readonly mirrorSeerReveal?: {
+    readonly targetSeat: number;
+    readonly result: '好人' | '狼人';
+  };
+  readonly drunkSeerReveal?: { readonly targetSeat: number; readonly result: '好人' | '狼人' };
+  readonly psychicReveal?: { readonly targetSeat: number; readonly result: string };
+  readonly gargoyleReveal?: { readonly targetSeat: number; readonly result: string };
+  readonly pureWhiteReveal?: { readonly targetSeat: number; readonly result: string };
+  readonly wolfWitchReveal?: { readonly targetSeat: number; readonly result: string };
+  readonly wolfRobotReveal?: {
+    readonly targetSeat: number;
+    readonly result: string;
+    readonly learnedRoleId: RoleId;
+    readonly canShootAsHunter?: boolean;
+  };
+  readonly wolfRobotContext?: { readonly learnedSeat: number; readonly disguisedRole: RoleId };
+  readonly wolfRobotHunterStatusViewed?: boolean;
+  readonly seedWolfDeferredReveal?: SeedWolfDeferredReveal;
+}
 
 // =============================================================================
 // Protocol Action Record (ProtocolAction) — wire-safe, stable
@@ -219,6 +275,9 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 
   /** Current night accumulated results (type-only from resolver types, single source of truth) */
   currentNightResults?: CurrentNightResults;
+
+  /** Resolver outputs with their actor seat, used to invalidate one converted actor atomically. */
+  resolvedNightEffects?: readonly ResolvedNightEffect[];
 
   /** Pending reveal ack userId[] (normalizeState guarantees non-undefined). Cleared and progresses after all ack. */
   pendingRevealAcks: string[];
@@ -485,6 +544,16 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * Initialized as `[]`, server guarantees non-undefined.
    */
   conversionRevealAcks: readonly number[];
+
+  // --- Seed Wolf ---
+  /** Final infection outcome, available only when entering seedWolfInfectReveal. */
+  seedWolfInfectionResult?: SeedWolfInfectionResult;
+
+  /** Check result withheld from the potential infection target until finalization. */
+  seedWolfDeferredReveal?: SeedWolfDeferredReveal;
+
+  /** Seats that acknowledged seedWolfInfectReveal. */
+  seedWolfInfectionRevealAcks: readonly number[];
 
   // --- Bottom-card actors ---
   /**

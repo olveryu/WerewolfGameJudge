@@ -63,9 +63,9 @@ Share a 4-digit room code after creating a room. Everyone joins via browser or a
 
 Game state is persisted in Cloudflare Durable Objects (edge SQLite). Reconnecting after a network drop automatically restores the latest state — zero progress lost.
 
-### 🎭 46 Roles · 25 Preset Boards
+### 🎭 47 Roles · 26 Preset Boards
 
-Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 25 preset templates for 12 players, plus custom board creation.
+Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Seed Wolf, Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 26 preset templates for 12 players, plus custom board creation.
 
 ### 🤖 AI Assistant
 
@@ -127,13 +127,13 @@ iOS · Android · Web · WeChat Mini Program. The web version works instantly wi
 ---
 
 <details>
-<summary><strong>🎭 46 Roles at a Glance</strong></summary>
+<summary><strong>🎭 47 Roles at a Glance</strong></summary>
 
 | Faction             | Roles                                                                                                                                                                                                                             |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Villager** (3)    | Civilian · Mirror Seer · Drunk Seer                                                                                                                                                                                               |
 | **God** (19)        | Seer · Witch · Poisoner · Hunter · Guard · Fool · Knight · Magician · Demon Hunter · Psychic · Dream Weaver · Graveyard Keeper · Pure White Maiden · Dancer · Silence Elder · Voteban Elder · Crow · Masked Man · Sequence Prince |
-| **Wolf** (15)       | Werewolf · Wolf Queen · Wolf King · Dark Wolf King · Nightmare · Gargoyle · Awakened Gargoyle · Blood Moon · Mechanical Werewolf · Ghost Knight · Wolf Witch · Masquerade · Warden · Eclipse Wolf Queen · Hidden Wolf             |
+| **Wolf** (16)       | Werewolf · Seed Wolf · Wolf Queen · Wolf King · Dark Wolf King · Nightmare · Gargoyle · Awakened Gargoyle · Blood Moon · Mechanical Werewolf · Ghost Knight · Wolf Witch · Masquerade · Warden · Eclipse Wolf Queen · Hidden Wolf |
 | **Third Party** (9) | Hybrid · Wild Child · Piper · Shadow · Avenger · Thief · Cupid · Treasure Master · Cursed Fox                                                                                                                                     |
 
 See [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) for detailed abilities.
@@ -229,7 +229,7 @@ Yes, the app automates Night-1 — identity reveals, skill actions, and dawn res
 <details>
 <summary><b>Can I create custom boards?</b></summary>
 
-Absolutely. Beyond the 25 preset templates, you can freely combine roles to create custom templates and save them for future use.
+Absolutely. Beyond the 26 preset templates, you can freely combine roles to create custom templates and save them for future use.
 
 </details>
 

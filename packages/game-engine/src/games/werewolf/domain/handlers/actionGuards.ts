@@ -235,9 +235,9 @@ export function checkNightmareBlockGuard(
   const isBlocked = blockedSeat === seat;
   const isSkip = isSkipAction(schema, actionInput);
 
-  // Special rule for confirm kind: skip not allowed when not blocked
+  // Confirm steps may opt into skip; blocked actors can only skip.
   if (schema.kind === 'confirm') {
-    if (!isBlocked && isSkip) {
+    if (!isBlocked && isSkip && !schema.canSkip) {
       return '当前无法跳过，请执行行动';
     }
     if (isBlocked && !isSkip) {

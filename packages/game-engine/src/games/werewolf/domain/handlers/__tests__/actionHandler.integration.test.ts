@@ -34,6 +34,7 @@ const baseContext: HandlerContext = {
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     currentStepIndex: 0,
     isAudioPlaying: false,
     currentStepId: 'seerCheck',

@@ -32,10 +32,12 @@ export function buildInitialGameState(
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
   };
 }

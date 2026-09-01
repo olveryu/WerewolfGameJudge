@@ -36,6 +36,7 @@ function createGameState(restartNonce: string | undefined): GameState {
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     ...(restartNonce === undefined ? {} : { roleRevealRandomNonce: restartNonce }),
   };
 }

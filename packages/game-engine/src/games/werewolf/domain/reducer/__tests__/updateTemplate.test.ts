@@ -63,6 +63,7 @@ function createStateWithPlayers(
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
 }

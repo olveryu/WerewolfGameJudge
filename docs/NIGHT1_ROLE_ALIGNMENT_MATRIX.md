@@ -28,28 +28,30 @@ This document records the complete behavioral alignment of all Night-1 roles/ste
 | 14    | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (same)                          |
 | 15    | `crowCurse`                     | `crow`             | `crow`                          | (same)                          |
 | 16    | `wolfKill`                      | `wolf`             | `wolf`                          | (same)                          |
-| 17    | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (same)                          |
-| 18    | `hiddenWolfReveal`              | `hiddenWolf`       | `hiddenWolf`                    | (same)                          |
-| 19    | `witchAction`                   | `witch`            | `witch`                         | (same)                          |
-| 20    | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (same)                          |
-| 21    | `hunterConfirm`                 | `hunter`           | `hunter`                        | (same)                          |
-| 22    | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (same)                          |
-| 23    | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (same)                          |
-| 24    | `seerCheck`                     | `seer`             | `seer`                          | (same)                          |
-| 25    | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (same)                          |
-| 26    | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (same)                          |
-| 27    | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (same)                          |
-| 28    | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (same)                          |
-| 29    | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (same)                          |
-| 30    | `psychicCheck`                  | `psychic`          | `psychic`                       | (same)                          |
-| 31    | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (same)                          |
-| 32    | `piperHypnotize`                | `piper`            | `piper`                         | (same)                          |
-| 33    | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
-| 34    | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| 17    | `seedWolfInfect`                | `seedWolf`         | `seedWolf`                      | (same)                          |
+| 18    | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (same)                          |
+| 19    | `hiddenWolfReveal`              | `hiddenWolf`       | `hiddenWolf`                    | (same)                          |
+| 20    | `witchAction`                   | `witch`            | `witch`                         | (same)                          |
+| 21    | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (same)                          |
+| 22    | `hunterConfirm`                 | `hunter`           | `hunter`                        | (same)                          |
+| 23    | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (same)                          |
+| 24    | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (same)                          |
+| 25    | `seerCheck`                     | `seer`             | `seer`                          | (same)                          |
+| 26    | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (same)                          |
+| 27    | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (same)                          |
+| 28    | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (same)                          |
+| 29    | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (same)                          |
+| 30    | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (same)                          |
+| 31    | `psychicCheck`                  | `psychic`          | `psychic`                       | (same)                          |
+| 32    | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (same)                          |
+| 33    | `piperHypnotize`                | `piper`            | `piper`                         | (same)                          |
+| 34    | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 35    | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| 36    | `seedWolfInfectReveal`          | `seedWolf`         | `seedWolfInfectReveal`          | `seedWolfInfectReveal`          |
 
 **Contract guarantees**:
 
-- Most steps have `audioKey === roleId`; exceptions: `piperHypnotizedReveal`, `awakenedGargoyleConvertReveal` (independent audio)
+- Most steps have `audioKey === roleId`; exceptions: `piperHypnotizedReveal`, `awakenedGargoyleConvertReveal`, `seedWolfInfectReveal` (independent audio)
 - stepId is unique and order-stable (snapshot tested)
 
 ---
@@ -308,6 +310,22 @@ This document records the complete behavioral alignment of all Night-1 roles/ste
 | **UI target limit**           | All seats (including wolf teammates/self) |                                                                                                                    |
 | **Host authoritative reject** | ✅                                        | Immune targets rejected by Host/Resolver; unified "action invalid" hint via `actionRejected` (UI does not disable) |
 | **failure reason**            | `目标玩家不存在`                          |                                                                                                                    |
+
+### 10b. seedWolfInfect (Seed Wolf Infection)
+
+| Property               | Value                                                 | Description                                                      |
+| ---------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
+| **schemaId**           | `seedWolfInfect`                                      |                                                                  |
+| **kind**               | `confirm`                                             | Confirm infection of the authoritative wolf-kill target          |
+| **canSkip**            | `true`                                                | Seed Wolf may retain the skill                                   |
+| **prompt**             | "请查看狼人袭击目标并选择是否发动感染"                |                                                                  |
+| **availability**       | Non-wolf target selected by the wolf vote             | No target and wolf targets cannot be infected                    |
+| **nightmare block**    | ✅ Supported                                          |                                                                  |
+| **result slot**        | `currentNightResults.seedWolfInfectionTarget`         | Records intent; final outcome is deferred                        |
+| **final resolution**   | Target must retain `wolfKill` as a final death source | Guard or Witch save makes infection fail                         |
+| **conversion effect**  | Cancel wolf-kill death, change target role to `wolf`  | Target's Night-1 action, effects, and private reveal are removed |
+| **poison interaction** | Poison remains independent                            | A converted target still dies when it also has a poison source   |
+| **failure reason**     | `本夜没有可感染的狼人袭击目标`                        |                                                                  |
 
 ### 11. wolfQueenCharm (Wolf Queen)
 
@@ -611,3 +629,18 @@ This document records the complete behavioral alignment of all Night-1 roles/ste
 | **confirmButtonText** | "我知道了"                             |                             |
 | **nightmare block**   | ❌ N/A                                 | groupConfirm needs no check |
 | **failure reason**    | None                                   | Always valid                |
+
+### 27. seedWolfInfectReveal (Seed Wolf Infection Reveal)
+
+| Property              | Value                                  | Description                                    |
+| --------------------- | -------------------------------------- | ---------------------------------------------- |
+| **schemaId**          | `seedWolfInfectReveal`                 |                                                |
+| **kind**              | `groupConfirm`                         | Final Night-1 step                             |
+| **requireAllAcks**    | `true`                                 | Every seated player must confirm               |
+| **prompt**            | "所有玩家请睁眼，请看手机确认感染信息" |                                                |
+| **outcomes**          | `notUsed` / `failed` / `converted`     | Computed immediately before entering this step |
+| **convertedText**     | "你已被种狼感染并转化为普通狼人"       | Shown only to the converted player             |
+| **notConvertedText**  | "你未被感染"                           | Shown to all other players                     |
+| **confirmButtonText** | "知道了"                               |                                                |
+| **nightmare block**   | ❌ N/A                                 | Group confirm needs no check                   |
+| **failure reason**    | None                                   | Always valid                                   |

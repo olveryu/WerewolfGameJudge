@@ -98,6 +98,7 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
           ? (() => {
               const acksMap: Record<string, readonly number[]> = {
                 awakenedGargoyleConvertReveal: gameState.conversionRevealAcks,
+                seedWolfInfectReveal: gameState.seedWolfInfectionRevealAcks,
                 cupidLoversReveal: gameState.cupidLoversRevealAcks,
                 piperHypnotizedReveal: gameState.piperRevealAcks,
               };

@@ -292,6 +292,7 @@ describe('toGameRoomLike', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Seated,
     };
 
@@ -354,6 +355,7 @@ describe('buildSeatViewModels', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -438,6 +440,7 @@ describe('buildSeatViewModels', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -496,6 +499,7 @@ describe('buildSeatViewModels', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -558,6 +562,7 @@ describe('buildSeatViewModels', () => {
         piperRevealAcks: [],
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         status: GameStatus.Ongoing,
       };
 
@@ -626,6 +631,7 @@ describe('buildSeatViewModels', () => {
         piperRevealAcks: [],
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         status: GameStatus.Ongoing,
       };
 
@@ -696,6 +702,7 @@ describe('buildSeatViewModels', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Ongoing,
     });
 
@@ -789,6 +796,7 @@ describe('buildSeatViewModels', () => {
         piperRevealAcks: [],
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         status: GameStatus.Assigned,
       };
 
@@ -823,6 +831,7 @@ describe('buildSeatViewModels', () => {
         piperRevealAcks: [],
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         status: GameStatus.Assigned,
       };
 
@@ -866,6 +875,7 @@ describe('buildSeatViewModels', () => {
         piperRevealAcks: [],
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         status: GameStatus.Assigned,
       };
 
@@ -897,6 +907,7 @@ describe('buildSeatViewModels', () => {
         piperRevealAcks: [],
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         status: GameStatus.Ongoing,
       };
 
@@ -1030,6 +1041,7 @@ describe('toGameRoomLike — canonical local projection', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -1055,6 +1067,7 @@ describe('toGameRoomLike — canonical local projection', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 

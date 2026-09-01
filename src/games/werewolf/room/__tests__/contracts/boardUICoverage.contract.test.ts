@@ -2,7 +2,7 @@
  * Board UI Coverage Contract Test
  *
  * UNBYPASSABLE GATE TEST that enforces:
- * 1. All 10 12P boards have corresponding UI test files
+ * 1. All preset boards have corresponding UI test files
  * 2. Each test file must have REAL UI interactions (render + interaction + assertCoverage)
  * 3. No placeholder/cheating patterns allowed
  * 4. Coverage must match board requirements (UI-triggerable types)
@@ -308,9 +308,9 @@ describe('Board UI Coverage Contract', () => {
   const boards = getAll12PBoards();
 
   describe('File Existence', () => {
-    it('should have exactly 25 board UI test files', () => {
+    it('should have exactly 26 board UI test files', () => {
       const files = getBoardUITestFiles();
-      expect(files.length).toBe(25);
+      expect(files.length).toBe(26);
     });
 
     it('should have a test file mapping for every 12P board', () => {

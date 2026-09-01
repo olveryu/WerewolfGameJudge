@@ -70,9 +70,11 @@ function isStepComplete(state: GameState): boolean {
     const acks =
       stepId === 'awakenedGargoyleConvertReveal'
         ? (state.conversionRevealAcks ?? [])
-        : stepId === 'cupidLoversReveal'
-          ? (state.cupidLoversRevealAcks ?? [])
-          : (state.piperRevealAcks ?? []);
+        : stepId === 'seedWolfInfectReveal'
+          ? state.seedWolfInfectionRevealAcks
+          : stepId === 'cupidLoversReveal'
+            ? (state.cupidLoversRevealAcks ?? [])
+            : (state.piperRevealAcks ?? []);
     // All seated (non-null) players must ack
     const seatedCount = Object.values(state.players).filter((p) => p !== null).length;
     return acks.length >= seatedCount;

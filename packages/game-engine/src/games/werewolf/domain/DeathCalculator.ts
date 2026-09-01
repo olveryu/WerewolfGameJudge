@@ -50,6 +50,8 @@ export interface DeathsDetailed {
   deaths: number[];
   /** Map of seat → primary death reason */
   deathReasons: Record<number, DeathReason>;
+  /** Every contributing source, retained when later rules replace the primary reason. */
+  deathSources: Record<number, readonly DeathReason[]>;
 }
 
 /**
@@ -86,6 +88,9 @@ export interface NightActions {
    * When true, the wolf kill is nullified (wolves cannot kill).
    */
   isWolfBlockedByNightmare?: boolean;
+
+  /** Converted target whose wolf-kill damage is replaced by infection. */
+  seedWolfInfectedSeat?: number;
 }
 
 /**
@@ -200,46 +205,49 @@ export function calculateDeathsDetailed(
 ): DeathsDetailed {
   const deaths = new Set<number>();
   const reasons = new Map<number, DeathReason>();
+  const sources = new Map<number, Set<DeathReason>>();
 
   // Order matters: some effects depend on prior death state
 
   // 1. Process wolf kill (with guard/witch/nightmare interaction)
-  processWolfKill(actions, roleSeatMap, deaths, reasons);
+  processWolfKill(actions, roleSeatMap, deaths, reasons, sources);
 
   // 1.5. Process check death (cursedFox: dies when checked by seer family)
-  processCheckDeath(roleSeatMap, deaths, reasons);
+  processCheckDeath(roleSeatMap, deaths, reasons, sources);
 
   // 2. Process poison death (witch or poisoner, with immunity and nightmare block)
-  processPoisonDeath(actions, roleSeatMap, deaths, reasons);
+  processPoisonDeath(actions, roleSeatMap, deaths, reasons, sources);
 
   // 3. Process wolf queen link death
-  processWolfQueenLink(actions, roleSeatMap, deaths, reasons);
+  processWolfQueenLink(actions, roleSeatMap, deaths, reasons, sources);
 
   // 3.5. Process bonded link death (shadow ↔ avenger)
-  processBondedLink(roleSeatMap, deaths, reasons);
+  processBondedLink(roleSeatMap, deaths, reasons, sources);
 
   // 3.6. Process couple link death (cupid lovers — lover suicide)
-  processCoupleLink(roleSeatMap, deaths, reasons);
+  processCoupleLink(roleSeatMap, deaths, reasons, sources);
 
   // 4. Process dreamcatcher effect (protection + link death)
-  processDreamcatcherEffect(actions, roleSeatMap, deaths, reasons);
+  processDreamcatcherEffect(actions, roleSeatMap, deaths, reasons, sources);
 
   // 5. Process damage reflection (seer/witch attacking reflectsDamage target dies)
-  processReflection(actions, roleSeatMap, deaths, reasons);
+  processReflection(actions, roleSeatMap, deaths, reasons, sources);
 
   // 6. Process magician swap (swap death between two targets)
-  processMagicianSwap(actions, deaths, reasons);
+  processMagicianSwap(actions, deaths, reasons, sources);
 
   const sortedDeaths = Array.from(deaths).sort((a, b) => a - b);
   const deathReasons: Record<number, DeathReason> = {};
+  const deathSources: Record<number, readonly DeathReason[]> = {};
   for (const seat of sortedDeaths) {
     const reason = reasons.get(seat);
     if (reason !== undefined) {
       deathReasons[seat] = reason;
     }
+    deathSources[seat] = [...(sources.get(seat) ?? [])];
   }
 
-  return { deaths: sortedDeaths, deathReasons };
+  return { deaths: sortedDeaths, deathReasons, deathSources };
 }
 
 // =============================================================================
@@ -252,6 +260,46 @@ export function calculateDeathsDetailed(
  */
 function isBlockedByNightmare(roleSeat: number, nightmareBlock: number | undefined): boolean {
   return nightmareBlock !== undefined && roleSeat !== -1 && nightmareBlock === roleSeat;
+}
+
+function recordDeath(
+  seat: number,
+  reason: DeathReason,
+  deaths: Set<number>,
+  reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
+): void {
+  deaths.add(seat);
+  reasons.set(seat, reason);
+  const seatSources = sources.get(seat) ?? new Set<DeathReason>();
+  seatSources.add(reason);
+  sources.set(seat, seatSources);
+}
+
+function clearDeath(
+  seat: number,
+  deaths: Set<number>,
+  reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
+): void {
+  deaths.delete(seat);
+  reasons.delete(seat);
+  sources.delete(seat);
+}
+
+function transferDeath(
+  fromSeat: number,
+  toSeat: number,
+  deaths: Set<number>,
+  reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
+): void {
+  const transferredSources = new Set(sources.get(fromSeat) ?? []);
+  transferredSources.add('magicianSwap');
+  clearDeath(fromSeat, deaths, reasons, sources);
+  deaths.add(toSeat);
+  reasons.set(toSeat, 'magicianSwap');
+  sources.set(toSeat, transferredSources);
 }
 
 // =============================================================================
@@ -275,8 +323,16 @@ function processWolfKill(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
-  const { wolfKill, guardProtect, witchAction, nightmareBlock, isWolfBlockedByNightmare } = actions;
+  const {
+    wolfKill,
+    guardProtect,
+    witchAction,
+    nightmareBlock,
+    isWolfBlockedByNightmare,
+    seedWolfInfectedSeat,
+  } = actions;
   const { guardProtectorSeat, poisonSourceSeat } = roleSeatMap;
 
   // Nightmare blocked a wolf on night 1: wolves cannot kill
@@ -284,6 +340,8 @@ function processWolfKill(
 
   // No wolf kill or empty kill
   if (wolfKill === undefined) return;
+
+  if (seedWolfInfectedSeat === wolfKill) return;
 
   // Silent wolf kill immunity (cursedFox): wolves CAN target, but kill is silently negated.
   // Unlike regular immunity (which prevents targeting), this lets the kill go through the
@@ -312,8 +370,7 @@ function processWolfKill(
   const diesFromWolf = (isSaved && isGuarded) || (!isSaved && !isGuarded);
 
   if (diesFromWolf) {
-    deaths.add(wolfKill);
-    reasons.set(wolfKill, 'wolfKill');
+    recordDeath(wolfKill, 'wolfKill', deaths, reasons, sources);
   }
 }
 
@@ -329,10 +386,10 @@ function processCheckDeath(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   for (const seat of roleSeatMap.checkDeathTargetSeats) {
-    deaths.add(seat);
-    reasons.set(seat, 'checkDeath');
+    recordDeath(seat, 'checkDeath', deaths, reasons, sources);
   }
 }
 
@@ -349,6 +406,7 @@ function processPoisonDeath(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { nightmareBlock } = actions;
   const { poisonSourceSeat, poisonImmuneSeats } = roleSeatMap;
@@ -365,8 +423,7 @@ function processPoisonDeath(
     return;
   }
 
-  deaths.add(witchPoisonTarget);
-  reasons.set(witchPoisonTarget, 'poison');
+  recordDeath(witchPoisonTarget, 'poison', deaths, reasons, sources);
 }
 
 /**
@@ -380,6 +437,7 @@ function processWolfQueenLink(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { wolfQueenCharm } = actions;
   const { wolfQueenLinkSeat: queenSeat } = roleSeatMap;
@@ -389,8 +447,7 @@ function processWolfQueenLink(
 
   // If queen is dead, charmed target also dies
   if (deaths.has(queenSeat)) {
-    deaths.add(wolfQueenCharm);
-    reasons.set(wolfQueenCharm, 'wolfQueenLink');
+    recordDeath(wolfQueenCharm, 'wolfQueenLink', deaths, reasons, sources);
   }
 }
 
@@ -406,6 +463,7 @@ function processBondedLink(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { bondedLinkSeats } = roleSeatMap;
 
@@ -417,11 +475,9 @@ function processBondedLink(
 
   // If either is dead, the other dies too
   if (aDead && !bDead) {
-    deaths.add(seatB);
-    reasons.set(seatB, 'bondedLink');
+    recordDeath(seatB, 'bondedLink', deaths, reasons, sources);
   } else if (bDead && !aDead) {
-    deaths.add(seatA);
-    reasons.set(seatA, 'bondedLink');
+    recordDeath(seatA, 'bondedLink', deaths, reasons, sources);
   }
 }
 
@@ -437,6 +493,7 @@ function processCoupleLink(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { coupleLinkSeats } = roleSeatMap;
   if (!coupleLinkSeats) return;
@@ -446,11 +503,9 @@ function processCoupleLink(
   const bDead = deaths.has(seatB);
 
   if (aDead && !bDead) {
-    deaths.add(seatB);
-    reasons.set(seatB, 'coupleLink');
+    recordDeath(seatB, 'coupleLink', deaths, reasons, sources);
   } else if (bDead && !aDead) {
-    deaths.add(seatA);
-    reasons.set(seatA, 'coupleLink');
+    recordDeath(seatA, 'coupleLink', deaths, reasons, sources);
   }
 }
 
@@ -466,6 +521,7 @@ function processDreamcatcherEffect(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { dreamcatcherDream } = actions;
   const { dreamcatcherLinkSeat: dreamcatcherSeat } = roleSeatMap;
@@ -473,13 +529,11 @@ function processDreamcatcherEffect(
   if (dreamcatcherDream === undefined) return;
 
   // Dreamcatcher dream target is protected from night deaths
-  deaths.delete(dreamcatcherDream);
-  reasons.delete(dreamcatcherDream);
+  clearDeath(dreamcatcherDream, deaths, reasons, sources);
 
   // If dreamcatcher dies, dream target also dies
   if (dreamcatcherSeat !== -1 && deaths.has(dreamcatcherSeat)) {
-    deaths.add(dreamcatcherDream);
-    reasons.set(dreamcatcherDream, 'dreamcatcherLink');
+    recordDeath(dreamcatcherDream, 'dreamcatcherLink', deaths, reasons, sources);
   }
 }
 
@@ -495,6 +549,7 @@ function processReflection(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { reflectsDamageSeats, reflectionSources } = roleSeatMap;
 
@@ -502,8 +557,7 @@ function processReflection(
 
   for (const { sourceSeat, targetSeat } of reflectionSources) {
     if (reflectsDamageSeats.includes(targetSeat)) {
-      deaths.add(sourceSeat);
-      reasons.set(sourceSeat, 'reflection');
+      recordDeath(sourceSeat, 'reflection', deaths, reasons, sources);
     }
   }
 }
@@ -519,6 +573,7 @@ function processMagicianSwap(
   actions: NightActions,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
+  sources: Map<number, Set<DeathReason>>,
 ): void {
   const { magicianSwap } = actions;
 
@@ -530,15 +585,9 @@ function processMagicianSwap(
 
   // Swap only if exactly one is dead
   if (firstDead && !secondDead) {
-    deaths.delete(first);
-    reasons.delete(first);
-    deaths.add(second);
-    reasons.set(second, 'magicianSwap');
+    transferDeath(first, second, deaths, reasons, sources);
   } else if (!firstDead && secondDead) {
-    deaths.delete(second);
-    reasons.delete(second);
-    deaths.add(first);
-    reasons.set(first, 'magicianSwap');
+    transferDeath(second, first, deaths, reasons, sources);
   }
   // If both dead or both alive, no change
 }

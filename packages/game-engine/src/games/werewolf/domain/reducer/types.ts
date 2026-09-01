@@ -12,12 +12,13 @@ import type {
   ConfirmStatus,
   Player,
   ProtocolAction,
+  ResolvedNightEffect,
+  SeedWolfInfectionResult,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
 } from '../protocol/types';
 import type { AudioEffect, BoardNomination } from '../protocol/types';
-import type { CurrentNightResults } from '../resolvers/types';
 
 // =============================================================================
 // Game lifecycle actions
@@ -180,34 +181,13 @@ export interface RecordActionAction {
 
 export interface ApplyResolverResultAction {
   type: 'APPLY_RESOLVER_RESULT';
-  payload: {
-    updates?: Partial<CurrentNightResults>;
-    seerReveal?: { targetSeat: number; result: '好人' | '狼人' };
-    mirrorSeerReveal?: { targetSeat: number; result: '好人' | '狼人' };
-    drunkSeerReveal?: { targetSeat: number; result: '好人' | '狼人' };
-    psychicReveal?: { targetSeat: number; result: string };
-    gargoyleReveal?: { targetSeat: number; result: string };
-    pureWhiteReveal?: { targetSeat: number; result: string };
-    wolfWitchReveal?: { targetSeat: number; result: string };
-    wolfRobotReveal?: {
-      targetSeat: number;
-      result: string;
-      /**
-       * The learned role ID (strict RoleId) - REQUIRED for hunter gate check and disguise.
-       * This is never optional when wolfRobotReveal exists.
-       */
-      learnedRoleId: RoleId;
-      /** When learned hunter, whether wolfRobot can shoot as hunter */
-      canShootAsHunter?: boolean;
-    };
-    /** Wolf Robot disguise context - written when wolfRobot learns a target */
-    wolfRobotContext?: { learnedSeat: number; disguisedRole: RoleId };
-    /**
-     * Gate: wolfRobot learned hunter and must view status before proceeding.
-     * Set to false when wolfRobotLearn reveal shows hunter.
-     */
-    wolfRobotHunterStatusViewed?: boolean;
-  };
+  payload: ResolvedNightEffect;
+}
+
+/** Atomically finalize Seed Wolf's result and invalidate a converted actor's night effects. */
+export interface FinalizeSeedWolfInfectionAction {
+  type: 'FINALIZE_SEED_WOLF_INFECTION';
+  payload: { result: SeedWolfInfectionResult };
 }
 
 export interface SetWitchContextAction {
@@ -445,6 +425,12 @@ export interface AddConversionRevealAckAction {
   };
 }
 
+/** Record a seat's acknowledgement of the Seed Wolf infection result. */
+export interface AddSeedWolfInfectionRevealAckAction {
+  type: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK';
+  payload: { seat: number };
+}
+
 // =============================================================================
 // Cupid groupConfirm ACK
 // =============================================================================
@@ -527,6 +513,7 @@ export type StateAction =
   // Night actions
   | RecordActionAction
   | ApplyResolverResultAction
+  | FinalizeSeedWolfInfectionAction
   | SetWitchContextAction
   | SetConfirmStatusAction
   | ClearRevealStateAction
@@ -561,6 +548,7 @@ export type StateAction =
   | AddPiperRevealAckAction
   // Awakened Gargoyle groupConfirm ACK
   | AddConversionRevealAckAction
+  | AddSeedWolfInfectionRevealAckAction
   // Cupid groupConfirm ACK
   | AddCupidLoversRevealAckAction
   // Board Nomination

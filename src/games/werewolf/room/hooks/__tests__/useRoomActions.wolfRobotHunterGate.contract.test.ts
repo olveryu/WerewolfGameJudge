@@ -39,6 +39,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
 }

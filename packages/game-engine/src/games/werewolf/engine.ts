@@ -131,14 +131,11 @@ function decideHandler(
 function validateRevealAckActor(state: GameState, actorSeat: number): string | null {
   if (state.pendingRevealAcks.length === 0) return null;
 
-  const stepId = state.currentStepId;
-  if (stepId === undefined || !state.pendingRevealAcks.includes(stepId)) {
-    throw new Error('[FAIL-FAST] Reveal acknowledgement does not match the current step');
-  }
-
-  const action = [...state.actions].reverse().find((candidate) => candidate.schemaId === stepId);
+  const action = [...state.actions]
+    .reverse()
+    .find((candidate) => state.pendingRevealAcks.includes(candidate.schemaId));
   if (action === undefined) {
-    throw new Error(`[FAIL-FAST] Reveal acknowledgement has no action for step ${stepId}`);
+    throw new Error('[FAIL-FAST] Reveal acknowledgement has no matching action');
   }
   return action.actorSeat === actorSeat ? null : 'not_my_seat';
 }

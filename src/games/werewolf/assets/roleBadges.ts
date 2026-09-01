@@ -35,6 +35,7 @@ import badge_piper from '../../../../assets/badges/png/512/role_piper.png';
 import badge_poisoner from '../../../../assets/badges/png/512/role_poisoner.png';
 import badge_psychic from '../../../../assets/badges/png/512/role_psychic.png';
 import badge_pureWhite from '../../../../assets/badges/png/512/role_pureWhite.png';
+import badge_seedWolf from '../../../../assets/badges/png/512/role_seedWolf.png';
 import badge_seer from '../../../../assets/badges/png/512/role_seer.png';
 import badge_sequencePrince from '../../../../assets/badges/png/512/role_sequencePrince.png';
 import badge_shadow from '../../../../assets/badges/png/512/role_shadow.png';
@@ -82,6 +83,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   sequencePrince: badge_sequencePrince,
   // ── Wolf ──
   wolf: badge_wolf,
+  seedWolf: badge_seedWolf,
   wolfQueen: badge_wolfQueen,
   wolfKing: badge_wolfKing,
   darkWolfKing: badge_darkWolfKing,

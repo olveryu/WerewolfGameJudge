@@ -86,6 +86,55 @@ function assertSameRoleMultiset(
   }
 }
 
+function assertAssignedRolesMatchDeal(
+  state: GameState,
+  actualRoles: readonly RoleId[],
+  expectedRoles: readonly RoleId[],
+  description: string,
+): void {
+  const infectionResult = state.seedWolfInfectionResult;
+  if (infectionResult?.outcome !== 'converted') {
+    assertSameRoleMultiset(actualRoles, expectedRoles, description);
+    return;
+  }
+
+  if (!state.templateRoles.includes('seedWolf')) {
+    fail('converted Seed Wolf infection exists without seedWolf in templateRoles');
+  }
+  if (state.players[infectionResult.targetSeat]?.role !== 'wolf') {
+    fail(`converted Seed Wolf target seat ${infectionResult.targetSeat} is not a wolf`);
+  }
+
+  const actual = countRoles(actualRoles);
+  const expected = countRoles(expectedRoles);
+  const roleIds = new Set([...actual.keys(), ...expected.keys()]);
+  let replacedRoleId: RoleId | undefined;
+
+  for (const roleId of roleIds) {
+    const difference = (actual.get(roleId) ?? 0) - (expected.get(roleId) ?? 0);
+    if (roleId === 'wolf') {
+      if (difference !== 1) {
+        fail(`${description} do not contain exactly one converted wolf`);
+      }
+      continue;
+    }
+    if (difference === -1 && replacedRoleId === undefined) {
+      if (getRoleSpec(roleId).faction === Faction.Wolf) {
+        fail(`Seed Wolf infection replaced wolf-faction role ${roleId}`);
+      }
+      replacedRoleId = roleId;
+      continue;
+    }
+    if (difference !== 0) {
+      fail(`${description} do not match the role deal pool at ${roleId}`);
+    }
+  }
+
+  if (replacedRoleId === undefined) {
+    fail('converted Seed Wolf infection did not replace a non-wolf role');
+  }
+}
+
 function assertRoleMultisetSubset(
   actualRoles: readonly RoleId[],
   expectedPool: readonly RoleId[],
@@ -388,7 +437,7 @@ export function assertWerewolfStateInvariants(state: GameState): void {
       if (isTreasureMasterDisabledByPlague) {
         assertRoleMultisetSubset(assignedRoles, roleDealPool, 'assigned roles');
       } else {
-        assertSameRoleMultiset(assignedRoles, roleDealPool, 'assigned roles');
+        assertAssignedRolesMatchDeal(state, assignedRoles, roleDealPool, 'assigned roles');
       }
     }
     return;
@@ -402,7 +451,8 @@ export function assertWerewolfStateInvariants(state: GameState): void {
   if (assignedRoles === null || roleDealPool === null) {
     fail(`${bottomCardRoleId} deal exists before role assignment`);
   }
-  assertSameRoleMultiset(
+  assertAssignedRolesMatchDeal(
+    state,
     [...assignedRoles, ...bottomCards],
     roleDealPool,
     'assigned roles and bottomCards',

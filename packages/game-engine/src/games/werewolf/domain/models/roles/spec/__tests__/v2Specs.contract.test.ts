@@ -19,8 +19,8 @@ import {
 const allIds = Object.keys(ROLE_SPECS).sort() as RoleId[];
 
 describe('ROLE_SPECS registry', () => {
-  it('should have exactly 43 roles', () => {
-    expect(allIds).toHaveLength(46);
+  it('should have exactly 47 roles', () => {
+    expect(allIds).toHaveLength(47);
   });
 });
 

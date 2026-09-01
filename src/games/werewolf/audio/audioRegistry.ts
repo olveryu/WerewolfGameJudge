@@ -31,6 +31,8 @@ import piperHypnotizedRevealBegin from '../../../../assets/audio/piper_hypnotize
 import poisonerBegin from '../../../../assets/audio/poisoner.mp3';
 import psychicBegin from '../../../../assets/audio/psychic.mp3';
 import pureWhiteBegin from '../../../../assets/audio/pure_white.mp3';
+import seedWolfBegin from '../../../../assets/audio/seed_wolf.mp3';
+import seedWolfInfectRevealBegin from '../../../../assets/audio/seed_wolf_infect_reveal.mp3';
 import seerBegin from '../../../../assets/audio/seer.mp3';
 import seer1Begin from '../../../../assets/audio/seer_1.mp3';
 import seer2Begin from '../../../../assets/audio/seer_2.mp3';
@@ -66,6 +68,8 @@ import piperHypnotizedRevealEnd from '../../../../assets/audio_end/piper_hypnoti
 import poisonerEnd from '../../../../assets/audio_end/poisoner.mp3';
 import psychicEnd from '../../../../assets/audio_end/psychic.mp3';
 import pureWhiteEnd from '../../../../assets/audio_end/pure_white.mp3';
+import seedWolfEnd from '../../../../assets/audio_end/seed_wolf.mp3';
+import seedWolfInfectRevealEnd from '../../../../assets/audio_end/seed_wolf_infect_reveal.mp3';
 import seerEnd from '../../../../assets/audio_end/seer.mp3';
 import seer1End from '../../../../assets/audio_end/seer_1.mp3';
 import seer2End from '../../../../assets/audio_end/seer_2.mp3';
@@ -177,6 +181,13 @@ const ROLE_AUDIO_ENTRIES = [
     {
       begin: wolfBegin,
       end: wolfEnd,
+    },
+  ],
+  [
+    'seedWolf',
+    {
+      begin: seedWolfBegin,
+      end: seedWolfEnd,
     },
   ],
   [
@@ -384,6 +395,13 @@ const STEP_AUDIO = new Map<string, WerewolfRoleAudioEntry>([
     {
       begin: cupidLoversRevealBegin,
       end: cupidLoversRevealEnd,
+    },
+  ],
+  [
+    'seedWolfInfectReveal',
+    {
+      begin: seedWolfInfectRevealBegin,
+      end: seedWolfInfectRevealEnd,
     },
   ],
 ]);

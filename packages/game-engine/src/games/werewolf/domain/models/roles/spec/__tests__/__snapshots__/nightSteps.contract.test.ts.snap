@@ -19,6 +19,7 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "votebanElderBan",
   "crowCurse",
   "wolfKill",
+  "seedWolfInfect",
   "wolfQueenCharm",
   "hiddenWolfReveal",
   "witchAction",
@@ -37,5 +38,6 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "piperHypnotize",
   "piperHypnotizedReveal",
   "awakenedGargoyleConvertReveal",
+  "seedWolfInfectReveal",
 ]
 `;

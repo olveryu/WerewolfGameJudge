@@ -22,6 +22,7 @@ import type {
   AdvanceToNextActionAction,
   ApplyResolverResultAction,
   EndNightAction,
+  FinalizeSeedWolfInfectionAction,
   RecordActionAction,
   SetAudioPlayingAction,
   SetConfirmStatusAction,
@@ -42,7 +43,11 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
     // Audio queue events own isAudioPlaying; step transitions never infer it.
     actions: [],
     currentNightResults: {},
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
+    seedWolfInfectionResult: undefined,
+    seedWolfDeferredReveal: undefined,
+    seedWolfInfectionRevealAcks: [],
   };
 }
 
@@ -109,6 +114,17 @@ export function handleApplyResolverResult(
   state: GameState,
   action: ApplyResolverResultAction,
 ): GameState {
+  const appliedState = applyResolvedNightEffect(state, action.payload);
+  return {
+    ...appliedState,
+    resolvedNightEffects: [...(state.resolvedNightEffects ?? []), action.payload],
+  };
+}
+
+function applyResolvedNightEffect(
+  state: GameState,
+  effect: ApplyResolverResultAction['payload'],
+): GameState {
   const {
     updates,
     seerReveal,
@@ -121,7 +137,8 @@ export function handleApplyResolverResult(
     wolfRobotReveal,
     wolfRobotContext,
     wolfRobotHunterStatusViewed,
-  } = action.payload;
+    seedWolfDeferredReveal,
+  } = effect;
 
   const currentNightResults = updates
     ? {
@@ -171,6 +188,69 @@ export function handleApplyResolverResult(
     wolfRobotContext: wolfRobotContext ?? state.wolfRobotContext,
     // Gate: wolfRobot learned hunter - must view status before proceeding
     wolfRobotHunterStatusViewed: wolfRobotHunterStatusViewed ?? state.wolfRobotHunterStatusViewed,
+    seedWolfDeferredReveal: seedWolfDeferredReveal ?? state.seedWolfDeferredReveal,
+  };
+}
+
+/** Finalize Seed Wolf infection and replay all resolver effects except the converted actor's. */
+export function handleFinalizeSeedWolfInfection(
+  state: GameState,
+  action: FinalizeSeedWolfInfectionAction,
+): GameState {
+  const { result } = action.payload;
+  if (result.outcome !== 'converted') {
+    return {
+      ...state,
+      seedWolfInfectionResult: result,
+      seedWolfDeferredReveal: undefined,
+      seedWolfInfectionRevealAcks: [],
+    };
+  }
+
+  const targetPlayer = state.players[result.targetSeat];
+  if (!targetPlayer?.role) {
+    throw new Error(
+      `[FAIL-FAST] Seed Wolf infection target seat ${result.targetSeat} has no assigned role`,
+    );
+  }
+
+  const retainedEffects = (state.resolvedNightEffects ?? []).filter(
+    (effect) => effect.sourceSeat !== result.targetSeat,
+  );
+  let replayedState: GameState = {
+    ...state,
+    currentNightResults: {},
+    nightmareBlockedSeat: undefined,
+    wolfKillOverride: undefined,
+    hypnotizedSeats: [],
+    convertedSeat: undefined,
+    loverSeats: undefined,
+    seerReveal: undefined,
+    mirrorSeerReveal: undefined,
+    drunkSeerReveal: undefined,
+    psychicReveal: undefined,
+    gargoyleReveal: undefined,
+    pureWhiteReveal: undefined,
+    wolfWitchReveal: undefined,
+    wolfRobotReveal: undefined,
+    wolfRobotContext: undefined,
+    wolfRobotHunterStatusViewed: undefined,
+    seedWolfDeferredReveal: undefined,
+  };
+  for (const effect of retainedEffects) {
+    replayedState = applyResolvedNightEffect(replayedState, effect);
+  }
+
+  return {
+    ...replayedState,
+    players: {
+      ...replayedState.players,
+      [result.targetSeat]: { ...targetPlayer, role: 'wolf' },
+    },
+    actions: replayedState.actions.filter((record) => record.actorSeat !== result.targetSeat),
+    resolvedNightEffects: retainedEffects,
+    seedWolfInfectionResult: result,
+    seedWolfInfectionRevealAcks: [],
   };
 }
 

@@ -302,6 +302,11 @@ export function createGenericResolver(roleId: RoleId, abilityIndex = 0): Resolve
   }
 
   return (context: ResolverContext, input: ActionInput): ResolverResult => {
+    if (effectKind === 'confirm') {
+      if (input.confirmed !== true) return handleSkip(activeAbility, context);
+      return processConfirm(activeAbility, context, input, context.actorSeat);
+    }
+
     // --- Handle skip ---
     const target = getTarget(activeAbility, input);
 

@@ -238,75 +238,83 @@ Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fai
 
 ---
 
+### 35. Seed Wolf (seedWolf)
+
+```
+Official Werewolf trading-card illustration, dark whimsical fairytale aesthetic, vintage hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic proportions, dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. An ancient werewolf sower draped in a moss-covered cloak, wolf silhouette intertwined with vine-like arms, one hand holding a young sprout glowing vivid green, its roots becoming fine dark wolf markings around the wrist, a dormant wolf seed hidden at the chest, restrained yet dangerous expression, symbolizing the transformation of prey into a packmate. Color palette: moss green, wolf grey, dark brown, with clear green sprout glow.
+```
+
+---
+
 ## IV. Third-Party Faction
 
-### 35. Slacker (slacker)
+### 36. Slacker (slacker)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A lazy good-for-nothing drifter, a listless indifferent vagrant leaning against an invisible wall, eyes half-open half-closed and full of drowsiness, sloppy messy clothes, tousled hair, one hand lazily spinning a die, an utterly careless attitude, no faction allegiance. Color palette: amber, dark earthy brown, dark olive.
 ```
 
-### 36. Wild Child (wildChild)
+### 37. Wild Child (wildChild)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A wild child raised by wolves, a young untamed boy wearing animal hides and fur garments, barefoot, wild tangled hair, one hand playing with a small wolf-cub companion, innocent big eyes flickering with a dangerous wildness that could turn ferocious at any moment. Color palette: wild green, earthy brown, wolf-grey fur tones.
 ```
 
-### 37. Piper (piper)
+### 38. Piper (piper)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A sinister pied-piper hypnotist, a dark bard playing an ornate magic flute, golden and purple musical notes and hypnotic spiral sound-waves flowing from the instrument, wearing a dark version of a colorful bard-jester costume, eyes radiating hypnotic spiral patterns. Color palette: deep purple, dark gold, amber, with hypnotic spiral accents.
 ```
 
-### 38. Shadow (shadow)
+### 39. Shadow (shadow)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic proportions, dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. An eerie shadow mimic, a mysterious figure with a blurred indistinct form, face hidden in the shadow of a deep black hood with only a pair of peering eyes visible, draped in an ink-black cloak whose edges dissolve into flowing shadow smoke, one hand reaching out in a mimicking gesture, shadowy black threads trailing from the fingertips, the body outline faint like a living shadow. Color palette: pure black, deep grey, dark purple shadow.
 ```
 
-### 39. Avenger (avenger)
+### 40. Avenger (avenger)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. An enraged vengeful warrior, a scarred lone fighter wearing broken tattered dark red leather armor and bloodstained bandages, one hand gripping a serrated short sword inscribed with vows of vengeance, the other clenched into a fist, fierce determined eyes burning with an undying flame of revenge, a deep scar across the corner of the eye, dark red threads of fated bonds coiling around the body. Color palette: dark red, charred black, rust, with fiery orange-red highlights.
 ```
 
-### 40. Crow (crow)
+### 41. Crow (crow)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A gloomy crow messenger curser, a gaunt somber dark messenger draped in a black feather cloak woven of real crow feathers, a large crow perched on the shoulder, all black with eyes glowing eerie purple, one hand raising a crow-quill pen radiating dark purple curse light, ink-black curse runes dripping from the tip, a pale gaunt face, a sinister gaze in deep-set eye sockets, a hooked nose like a beak. Color palette: pitch black, dark purple, crow blue-black sheen.
 ```
 
-### 41. Masked Man (maskedMan)
+### 42. Masked Man (maskedMan)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A mysterious masked warrior guardian, a burly resolute man wearing a dark silver iron mask covering the entire face, ancient guardian runes carved on the mask, only a pair of calm steady eyes visible through the mask slits radiating faint silver light, wearing heavy dark leather armor with a deep grey long cape, an old healed dark scar faintly visible on the chest, one hand resting on the chest scar, the other holding a small iron shield engraved with thorn patterns, an overall steady mountain-like posture. Color palette: dark silver, deep grey, rust red, with faint blue rune glow.
 ```
 
-### 42. Poisoner (poisoner)
+### 43. Poisoner (poisoner)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A cold dark poison-master, a gaunt male alchemist wearing a leather gas mask covering half the face, revealing a pair of calm calculating eyes, wearing a deep grey robe covered in chemical stains and burn marks, one hand carefully raising a skull-marked poison vial fuming with venomous green smoke, the other wearing corroded blackened leather gloves, vials and grinding tools of various sizes hanging at the waist, poison smoke curling up from the vial mouth. Color palette: venomous green, dark grey, charred black, with skull-white accents.
 ```
 
-### 43. Treasure Master (treasureMaster)
+### 44. Treasure Master (treasureMaster)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A cunning master-thief treasure hunter, an agile phantom thief wearing a black eye-mask covering the upper face, revealing a confident sly smile, wearing tight dark leather armor with a flowing dark red cape, one hand deftly flipping three glowing mysterious identity cards between the fingers, the cards radiating golden and purple magic light, the other hand hidden under the cape, exquisite lockpicking tools and a gem pouch at the waist. Color palette: dark gold, deep red, black, with jewel-like purple and emerald green accents.
 ```
 
-### 44. Thief (thief)
+### 45. Thief (thief)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A sneaky night thief, a lean agile masked pickpocket wearing a dark face cloth covering the lower face, revealing only a pair of sly alert eyes, wearing tight dark grey leather armor with a short cape, one hand deftly drawing two glowing identity cards from the shadows while hesitating to choose, the other hand hidden behind holding a curved blade, lockpicking tools and a small grappling hook at the waist, moving lightly like a cat. Color palette: dark grey, deep brown, moonlight silver, with faint golden card-magic glow.
 ```
 
-### 45. Cupid (cupid)
+### 46. Cupid (cupid)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A dark version of Cupid the love god, a mischievous yet dangerous little-angel figure with a pair of broken tattered dark wings, wearing a worn classical short tunic, one hand drawing a delicate small bow and arrow, the arrowhead radiating deep red fate-light, the other hand with dark red threads symbolizing lovers' bonds coiling between the fingers, an innocent yet scheming smile, messy curly hair, a crooked little halo faintly flickering above the head. Color palette: deep red, dark pink, dark gold, with rose-red glow of fate threads.
 ```
 
-### 46. Cursed Fox (cursedFox)
+### 47. Cursed Fox (cursedFox)
 
 ```
 Official Werewolf trading-card illustration, Tim Burton-style dark whimsical fairytale aesthetic, vintage American hand-drawn illustration, loose pencil linework, watercolor wash coloring, distressed rough paper texture, fine film-grain noise, naturalistic realistic proportions, normal balanced human features (rounded chin, no pointed/elongated face), dramatic expression, coarse hand-drawn hatching, dark eerie yet playful mood, high detail. Isolated on a pure white background, clean flat solid white backdrop, no scene, no texture, crisp edges for cut-out. 1:1 square, centered, tight half-body bust crop, subject fills ~80% of frame. A cunning curse-fox spirit (victory-stealer), a half-human half-fox eerie creature with erect pointed ears and a fluffy dark red fox tail showing beneath the cloak, wearing a deep red and dark gold Eastern-style robe, a charming yet sinister face, a malicious smile at the corner of the mouth, vertical pupils radiating amber demonic light, one palm hovering a fox-fire orb encircled by dark red curse runes, the other hand gracefully tucked in a wide sleeve, faint curse characters and fox-fire floating around the body. Color palette: dark red, amber gold, deep purple, with orange-red fox-fire glow.

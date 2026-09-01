@@ -467,18 +467,15 @@ describe('canSkip behavior alignment', () => {
     // Note: slackerChooseIdol has canSkip=false but blocked slacker can skip (special case)
   ];
 
-  const confirmSchemasShouldHaveCanSkip = [
+  const confirmSchemasShouldNotSkip = [
     { schemaId: 'hunterConfirm' as SchemaId },
     { schemaId: 'darkWolfKingConfirm' as SchemaId },
   ];
 
-  describe('confirm schemas should have canSkip=true (blocked can skip)', () => {
-    it.each(confirmSchemasShouldHaveCanSkip)(
-      '$schemaId: should have canSkip=true',
-      ({ schemaId }) => {
-        expect(getSchemaCanSkip(schemaId)).toBe(true);
-      },
-    );
+  describe('status confirm schemas should reject ordinary skip', () => {
+    it.each(confirmSchemasShouldNotSkip)('$schemaId: should have canSkip=false', ({ schemaId }) => {
+      expect(getSchemaCanSkip(schemaId)).toBe(false);
+    });
   });
 
   describe('schemas without canSkip', () => {
@@ -494,8 +491,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 35 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(35);
+  it('should have exactly 37 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(37);
   });
 
   it('step order should match expected sequence', () => {
@@ -517,6 +514,7 @@ describe('NIGHT_STEPS order stability', () => {
       'votebanElderBan',
       'crowCurse',
       'wolfKill',
+      'seedWolfInfect',
       'wolfQueenCharm',
       'hiddenWolfReveal',
       'witchAction',
@@ -535,6 +533,7 @@ describe('NIGHT_STEPS order stability', () => {
       'piperHypnotize',
       'piperHypnotizedReveal',
       'awakenedGargoyleConvertReveal',
+      'seedWolfInfectReveal',
     ];
 
     const actualOrder = NIGHT_STEPS.map((s) => s.id);

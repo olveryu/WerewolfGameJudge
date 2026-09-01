@@ -41,6 +41,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     roster: {},
     ...overrides,
   };

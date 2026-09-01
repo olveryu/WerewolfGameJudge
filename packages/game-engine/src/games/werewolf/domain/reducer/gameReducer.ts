@@ -32,6 +32,7 @@ import {
   handleAdvanceToNextAction,
   handleApplyResolverResult,
   handleEndNight,
+  handleFinalizeSeedWolfInfection,
   handleRecordAction,
   handleSetAudioPlaying,
   handleSetConfirmStatus,
@@ -102,6 +103,8 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleRecordAction(state, action);
     case 'APPLY_RESOLVER_RESULT':
       return handleApplyResolverResult(state, action);
+    case 'FINALIZE_SEED_WOLF_INFECTION':
+      return handleFinalizeSeedWolfInfection(state, action);
     case 'SET_WITCH_CONTEXT':
       return handleSetWitchContext(state, action);
     case 'SET_CONFIRM_STATUS':
@@ -175,6 +178,13 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       // Idempotent: ignore duplicate ack
       if (acks.includes(seat)) return state;
       return { ...state, conversionRevealAcks: [...acks, seat] };
+    }
+
+    case 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK': {
+      const acks = state.seedWolfInfectionRevealAcks;
+      const seat = action.payload.seat;
+      if (acks.includes(seat)) return state;
+      return { ...state, seedWolfInfectionRevealAcks: [...acks, seat] };
     }
 
     case 'ADD_CUPID_LOVERS_REVEAL_ACK': {

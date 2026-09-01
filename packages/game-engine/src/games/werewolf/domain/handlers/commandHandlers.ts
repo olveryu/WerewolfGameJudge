@@ -64,20 +64,25 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
   }
 
   const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
+  const isSeedWolfInfectionReveal = stepId === 'seedWolfInfectReveal';
   const isCupidLoversReveal = stepId === 'cupidLoversReveal';
   const acks = isConversionReveal
     ? state.conversionRevealAcks
-    : isCupidLoversReveal
-      ? state.cupidLoversRevealAcks
-      : state.piperRevealAcks;
+    : isSeedWolfInfectionReveal
+      ? state.seedWolfInfectionRevealAcks
+      : isCupidLoversReveal
+        ? state.cupidLoversRevealAcks
+        : state.piperRevealAcks;
 
   if (acks.includes(seat)) return handlerSuccess([]);
 
   const actions: StateAction[] = isConversionReveal
     ? [{ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } }]
-    : isCupidLoversReveal
-      ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } }]
-      : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
+    : isSeedWolfInfectionReveal
+      ? [{ type: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK', payload: { seat } }]
+      : isCupidLoversReveal
+        ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } }]
+        : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
 
   return handlerSuccess(actions);
 }
@@ -102,12 +107,15 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
   }
 
   const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
+  const isSeedWolfInfectionReveal = stepId === 'seedWolfInfectReveal';
   const isCupidLoversReveal = stepId === 'cupidLoversReveal';
   const existingAcks = isConversionReveal
     ? state.conversionRevealAcks
-    : isCupidLoversReveal
-      ? state.cupidLoversRevealAcks
-      : state.piperRevealAcks;
+    : isSeedWolfInfectionReveal
+      ? state.seedWolfInfectionRevealAcks
+      : isCupidLoversReveal
+        ? state.cupidLoversRevealAcks
+        : state.piperRevealAcks;
 
   const actions: StateAction[] = [];
   for (const player of Object.values(state.players)) {
@@ -118,6 +126,8 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
 
     if (isConversionReveal) {
       actions.push({ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } });
+    } else if (isSeedWolfInfectionReveal) {
+      actions.push({ type: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK', payload: { seat } });
     } else if (isCupidLoversReveal) {
       actions.push({ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } });
     } else {

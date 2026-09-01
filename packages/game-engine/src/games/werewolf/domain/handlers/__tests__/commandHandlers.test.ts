@@ -48,10 +48,12 @@ function createState(overrides: Partial<GameState> = {}): GameState {
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     ...overrides,
   };
@@ -89,6 +91,18 @@ const GROUP_CONFIRM_CASES = [
     botState: {
       currentStepId: 'awakenedGargoyleConvertReveal',
       conversionRevealAcks: [ACKED_BOT_SEAT],
+    },
+  },
+  {
+    stepId: 'seedWolfInfectReveal',
+    actionType: 'ADD_SEED_WOLF_INFECTION_REVEAL_ACK',
+    ackedState: {
+      currentStepId: 'seedWolfInfectReveal',
+      seedWolfInfectionRevealAcks: [PLAYER_SEAT],
+    },
+    botState: {
+      currentStepId: 'seedWolfInfectReveal',
+      seedWolfInfectionRevealAcks: [ACKED_BOT_SEAT],
     },
   },
   {

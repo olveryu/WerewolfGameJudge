@@ -23,21 +23,19 @@
 import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
-import { calculateDeathsDetailed } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
 import { type SchemaId } from '../models';
 import { buildNightPlan, getStepSpec } from '../models/roles/spec';
-import { Team } from '../models/roles/spec/types';
 import type { AudioEffect } from '../protocol/types';
-import type { AdvanceToNextActionAction, EndNightAction, StateAction } from '../reducer/types';
+import type {
+  AdvanceToNextActionAction,
+  EndNightAction,
+  FinalizeSeedWolfInfectionAction,
+  StateAction,
+} from '../reducer/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import {
-  buildCheckedSeats,
-  buildEffectiveRoleSeatMap,
-  buildNightActions,
-  buildReflectionSources,
-  buildRoleSeatMap,
-} from './deathResolution';
+import { buildNightActions, calculateNightDeaths } from './deathResolution';
+import { buildRevealPayload } from './revealPayload';
 import { validateNightFlowPreconditions } from './stepTransitionGuards';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
@@ -96,6 +94,10 @@ export function handleAdvanceNight(
   // Collect all actions to return
   const actions: StateAction[] = [advanceAction];
 
+  if (nextStepId === 'seedWolfInfectReveal') {
+    actions.push(...createSeedWolfFinalizationActions(state, execution.randomSeed));
+  }
+
   // Unified entry: if about to enter witchAction, set witchContext
   // Guard: nextStepId must exist (undefined at night end — should not set witchContext)
   const witchContextAction = nextStepId
@@ -110,7 +112,12 @@ export function handleAdvanceNight(
   }
 
   // Unified entry: if about to enter hunterConfirm / darkWolfKingConfirm, set confirmStatus
-  const confirmStatusAction = nextStepId ? maybeCreateConfirmStatusAction(nextStepId, state) : null;
+  const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
+  const wolfKillTarget =
+    nextStepId === 'seedWolfInfect' ? buildNightActions(state, wolfVoteRng).wolfKill : undefined;
+  const confirmStatusAction = nextStepId
+    ? maybeCreateConfirmStatusAction(nextStepId, state, wolfKillTarget)
+    : null;
   if (confirmStatusAction) {
     actions.push(confirmStatusAction);
   }
@@ -158,6 +165,44 @@ export function handleAdvanceNight(
   return handlerSuccess(actions);
 }
 
+function createSeedWolfFinalizationActions(
+  state: HandlerContext['state'],
+  randomSeed: string,
+): StateAction[] {
+  const targetSeat = state.currentNightResults?.seedWolfInfectionTarget;
+  if (targetSeat === undefined) {
+    return [
+      {
+        type: 'FINALIZE_SEED_WOLF_INFECTION',
+        payload: { result: { outcome: 'notUsed' } },
+      },
+    ];
+  }
+
+  const { deathSources } = calculateNightDeaths(state, createSeededRng(`${randomSeed}:wolf-vote`));
+  const outcome = deathSources[targetSeat]?.includes('wolfKill') ? 'converted' : 'failed';
+  const finalizeAction: FinalizeSeedWolfInfectionAction = {
+    type: 'FINALIZE_SEED_WOLF_INFECTION',
+    payload: { result: { outcome, targetSeat } },
+  };
+  const deferredReveal = state.seedWolfDeferredReveal;
+  if (outcome !== 'failed' || !deferredReveal) return [finalizeAction];
+
+  const revealPayload = buildRevealPayload(
+    { valid: true, reveal: deferredReveal.reveal },
+    deferredReveal.schemaId,
+    deferredReveal.targetSeat,
+  );
+  return [
+    finalizeAction,
+    {
+      type: 'APPLY_RESOLVER_RESULT',
+      payload: { sourceSeat: deferredReveal.actorSeat, ...revealPayload },
+    },
+    { type: 'ADD_REVEAL_ACK', payload: { ackKey: deferredReveal.schemaId } },
+  ];
+}
+
 // =============================================================================
 // END_NIGHT Handler
 // =============================================================================
@@ -196,34 +241,10 @@ export function handleEndNight(
     return handlerError('night_not_complete');
   }
 
-  // Build NightActions
-  const nightActions = buildNightActions(
+  const { deaths, deathReasons } = calculateNightDeaths(
     state,
     createSeededRng(`${execution.randomSeed}:wolf-vote`),
   );
-
-  // Build effective role → seat mapping (shared with buildRoleSeatMap + buildReflectionSources)
-  const effectiveMap = buildEffectiveRoleSeatMap(state);
-
-  // Build reflection sources (scanned from spec.deathCalcRole + ProtocolAction)
-  const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
-
-  // Build the set of seats checked tonight (used for check-induced death determination)
-  const checkedSeats = buildCheckedSeats(effectiveMap, state.actions, nightActions);
-
-  // Build RoleSeatMap (driven by deathCalcRole)
-  const isBonded = state.currentNightResults?.avengerFaction === Team.Third;
-  const coupleLinkSeats = state.loverSeats ?? null;
-  const roleSeatMap = buildRoleSeatMap(
-    effectiveMap,
-    reflectionSources,
-    isBonded,
-    coupleLinkSeats,
-    checkedSeats,
-  );
-
-  // Call DeathCalculator (reuse, do not reimplement)
-  const { deaths, deathReasons } = calculateDeathsDetailed(nightActions, roleSeatMap);
 
   const endNightAction: EndNightAction = {
     type: 'END_NIGHT',

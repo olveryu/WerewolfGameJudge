@@ -29,6 +29,7 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     bottomCards: ['wolf', 'seer', 'villager'],
     treasureMasterSeat: 0,
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
 }
@@ -71,6 +72,7 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     sheriffElection: {
       phase: 'firstVote',
       registeredSeats: [0, 1],
@@ -104,6 +106,40 @@ describe('assertWerewolfStateInvariants', () => {
     expect(() =>
       assertWerewolfStateInvariants(createTreasureMasterState({ currentNightResults: {} })),
     ).toThrow('Assigned state contains currentNightResults');
+  });
+
+  it('accepts one non-wolf role converted into a wolf by Seed Wolf', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
+          players: {
+            0: { userId: 'host', seat: 0, role: 'seedWolf', hasViewedRole: true },
+            1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
+            2: { userId: 'p2', seat: 2, role: 'wolf', hasViewedRole: true },
+            3: { userId: 'p3', seat: 3, role: 'villager', hasViewedRole: true },
+          },
+          seedWolfInfectionResult: { outcome: 'converted', targetSeat: 2 },
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it('rejects a converted Seed Wolf target that is not a wolf', () => {
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createSheriffElectionState({
+          templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
+          players: {
+            0: { userId: 'host', seat: 0, role: 'seedWolf', hasViewedRole: true },
+            1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
+            2: { userId: 'p2', seat: 2, role: 'seer', hasViewedRole: true },
+            3: { userId: 'p3', seat: 3, role: 'villager', hasViewedRole: true },
+          },
+          seedWolfInfectionResult: { outcome: 'converted', targetSeat: 2 },
+        }),
+      ),
+    ).toThrow('converted Seed Wolf target seat 2 is not a wolf');
   });
 
   it('requires a legal deck and the matching seated actor after assignment', () => {

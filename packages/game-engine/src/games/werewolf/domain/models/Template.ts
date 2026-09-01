@@ -694,4 +694,22 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'crow',
     ],
   },
+  {
+    name: '种狼骑士',
+    category: TemplateCategory.Advanced,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'seedWolf',
+      'seer',
+      'witch',
+      'knight',
+      'guard',
+    ],
+  },
 ];

@@ -51,6 +51,7 @@ function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
 }

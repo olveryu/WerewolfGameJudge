@@ -152,6 +152,7 @@ function createFullState(): GameState {
     loverSeats: [0, 1],
     cupidSeat: 2,
     cupidLoversRevealAcks: [0, 1],
+    seedWolfInfectionRevealAcks: [0, 1],
     boardNominations: {
       host: {
         userId: 'host',

@@ -28,9 +28,11 @@ const WEREWOLF_BOARD_VERSION_BY_NAME: Readonly<Record<string, string>> = {
   孤注一掷: 'v2.1.0',
   永序之轮: 'v2.2.0',
   隐狼乌鸦: 'v2.5.0',
+  种狼骑士: 'v2.7.0',
 };
 
 export const WEREWOLF_BOARD_VERSIONS_DESC = [
+  'v2.7.0',
   'v2.5.0',
   'v2.2.0',
   'v2.1.0',

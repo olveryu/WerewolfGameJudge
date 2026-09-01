@@ -146,7 +146,7 @@ export interface ChooseLoversEffect {
  */
 export interface ConfirmEffect {
   readonly kind: 'confirm';
-  readonly confirmType: 'shoot' | 'faction' | 'wolfTeammates';
+  readonly confirmType: 'shoot' | 'faction' | 'wolfTeammates' | 'infection';
 }
 
 /** All possible effects (discriminated by `kind`) */

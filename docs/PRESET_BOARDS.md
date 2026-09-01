@@ -4,7 +4,7 @@
 > [`packages/game-engine/src/games/werewolf/domain/models/Template.ts`](../packages/game-engine/src/games/werewolf/domain/models/Template.ts)
 > — `PRESET_TEMPLATES`
 >
-> Currently **25** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
+> Currently **26** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
 
 ---
 
@@ -19,7 +19,7 @@ Classic configurations suitable for beginners.
 | Wolf King+Guard         | ×4       | wolf ×3, darkWolfKing | seer, witch, hunter, guard |
 | White Wolf King+Guard   | ×4       | wolf ×3, wolfKing     | seer, witch, hunter, guard |
 
-## Advanced — 9 boards
+## Advanced — 10 boards
 
 Includes advanced roles, requires some gameplay experience.
 
@@ -34,6 +34,7 @@ Includes advanced roles, requires some gameplay experience.
 | Spirit Knight            | ×4       | wolf ×3, spiritKnight     | seer, witch, hunter, guard           |
 | Eternal Order            | ×4       | wolf ×3, eclipseWolfQueen | seer, witch, guard, sequencePrince   |
 | Hidden Wolf+Crow         | ×4       | wolf ×3, hiddenWolf       | seer, witch, hunter, crow            |
+| Seed Wolf+Knight         | ×4       | wolf ×3, seedWolf         | seer, witch, knight, guard           |
 
 ## Special — 5 boards
 

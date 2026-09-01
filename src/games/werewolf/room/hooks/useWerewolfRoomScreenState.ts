@@ -248,6 +248,9 @@ export function useWerewolfRoomScreenState(
   const groupConfirmAcks = useMemo((): readonly number[] => {
     if (currentSchema?.kind !== 'groupConfirm' || !gameState) return EMPTY_ACKS;
     if (currentSchema.id === 'awakenedGargoyleConvertReveal') return gameState.conversionRevealAcks;
+    if (currentSchema.id === 'seedWolfInfectReveal') {
+      return gameState.seedWolfInfectionRevealAcks;
+    }
     if (currentSchema.id === 'cupidLoversReveal') return gameState.cupidLoversRevealAcks;
     return gameState.piperRevealAcks;
   }, [currentSchema, gameState]);

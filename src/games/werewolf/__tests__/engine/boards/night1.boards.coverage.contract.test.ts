@@ -1,9 +1,9 @@
 /**
  * Night-1 Boards Coverage Contract Test
  *
- * Gate test: enforces that all 10 12-player boards have integration test coverage.
+ * Gate test: enforces that all 14 required 12-player boards have integration test coverage.
  *
- * A. Enforce that all 10 boards have test files
+ * A. Enforce that all 14 boards have test files
  * B. Prevent "empty shell / deaths-only" tests
  */
 
@@ -13,7 +13,7 @@ import * as path from 'node:path';
 import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/public';
 
 // =============================================================================
-// Authoritative list: 10 12-player boards (from PRESET_TEMPLATES)
+// Authoritative list: required 12-player boards from PRESET_TEMPLATES
 // =============================================================================
 
 const REQUIRED_12P_TEMPLATES = [
@@ -30,6 +30,7 @@ const REQUIRED_12P_TEMPLATES = [
   '纯白夜影',
   '灯影预言家',
   '永序之轮',
+  '种狼骑士',
 ] as const;
 
 // =============================================================================
@@ -54,6 +55,7 @@ const TEMPLATE_TO_TEST_PATTERN: Record<string, RegExp> = {
   纯白夜影: /TEMPLATE_NAME\s*=\s*['"]纯白夜影['"]/,
   灯影预言家: /TEMPLATE_NAME\s*=\s*['"]灯影预言家['"]/,
   永序之轮: /TEMPLATE_NAME\s*=\s*['"]永序之轮['"]/,
+  种狼骑士: /TEMPLATE_NAME\s*=\s*['"]种狼骑士['"]/,
 };
 
 // =============================================================================
@@ -124,9 +126,9 @@ function fileMentionsStepId(content: string, stepId: string): boolean {
 describe('Night-1 Boards Coverage Contract', () => {
   const testFiles = getIntegrationTestFiles();
 
-  describe('A. Enforce that all 10 boards have test files', () => {
-    it('should find at least 10 night1.*.12p.integration.test.ts files', () => {
-      expect(testFiles.length).toBeGreaterThanOrEqual(10);
+  describe('A. Enforce that all 14 boards have test files', () => {
+    it('should find at least 14 night1.*.12p.integration.test.ts files', () => {
+      expect(testFiles.length).toBeGreaterThanOrEqual(14);
     });
 
     it.each(REQUIRED_12P_TEMPLATES)(

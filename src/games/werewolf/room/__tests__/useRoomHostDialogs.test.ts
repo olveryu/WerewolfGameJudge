@@ -60,6 +60,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
   };
 };
 

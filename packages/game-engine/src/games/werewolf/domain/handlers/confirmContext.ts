@@ -1,5 +1,5 @@
 /**
- * Confirm Context - Confirm-context computation for Hunter / DarkWolfKing / Avenger / HiddenWolf
+ * Confirm Context - Confirm-context computation for status-driven role steps
  *
  * Pure-function module, responsible for:
  * - Computing canShoot before entering hunterConfirm / darkWolfKingConfirm steps
@@ -22,18 +22,25 @@
 import { type RoleId, type SchemaId } from '../models/roles/spec';
 import { getAllRoleIds, getRoleSpec } from '../models/roles/spec/specs';
 import { Faction } from '../models/roles/spec/types';
-import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
-import type { ConfirmStatus, GameState, WolfTeammatesConfirmStatus } from '../protocol/types';
+import { buildSeatRoleMap, isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
+import type {
+  ConfirmStatus,
+  GameState,
+  SeedWolfConfirmStatus,
+  WolfTeammatesConfirmStatus,
+} from '../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
+import { getRoleAfterSwap } from '../resolvers/types';
 
-type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf';
+type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf' | 'seedWolf';
 
 function isConfirmRole(roleId: RoleId): roleId is ConfirmRole {
   return (
     roleId === 'hunter' ||
     roleId === 'darkWolfKing' ||
     roleId === 'avenger' ||
-    roleId === 'hiddenWolf'
+    roleId === 'hiddenWolf' ||
+    roleId === 'seedWolf'
   );
 }
 
@@ -85,12 +92,19 @@ export function computeCanShootForSeat(seat: number, state: GameState): boolean 
  *
  * Avenger: faction is precomputed by the shadow resolver and stored in currentNightResults.avengerFaction; read directly here.
  */
-function computeConfirmStatus(role: ConfirmRole, state: GameState): ConfirmStatus {
+function computeConfirmStatus(
+  role: ConfirmRole,
+  state: GameState,
+  wolfKillTarget?: number,
+): ConfirmStatus {
   if (role === 'avenger') {
     return computeAvengerConfirmStatus(state);
   }
   if (role === 'hiddenWolf') {
     return computeHiddenWolfConfirmStatus(state);
+  }
+  if (role === 'seedWolf') {
+    return computeSeedWolfConfirmStatus(state, wolfKillTarget);
   }
 
   // Hunter / DarkWolfKing
@@ -101,6 +115,29 @@ function computeConfirmStatus(role: ConfirmRole, state: GameState): ConfirmStatu
   }
 
   return { role, canShoot: computeCanShootForSeat(roleActor.seat, state) };
+}
+
+function computeSeedWolfConfirmStatus(
+  state: GameState,
+  wolfKillTarget?: number,
+): SeedWolfConfirmStatus {
+  if (wolfKillTarget === undefined) {
+    return { role: 'seedWolf', availability: 'unavailable', reason: 'noTarget' };
+  }
+
+  const roleAtTarget = getRoleAfterSwap(
+    wolfKillTarget,
+    buildSeatRoleMap(state.players),
+    state.currentNightResults?.swappedSeats,
+  );
+  if (!roleAtTarget) {
+    throw new Error(`[FAIL-FAST] Seed Wolf target seat ${wolfKillTarget} has no assigned role`);
+  }
+  if (getRoleSpec(roleAtTarget).faction === Faction.Wolf) {
+    return { role: 'seedWolf', availability: 'unavailable', reason: 'wolfTarget' };
+  }
+
+  return { role: 'seedWolf', availability: 'available', targetSeat: wolfKillTarget };
 }
 
 /**
@@ -222,6 +259,7 @@ function isWolfQueenCharmVictim(seat: number, state: GameState): boolean {
 export function maybeCreateConfirmStatusAction(
   nextStepId: SchemaId,
   state: GameState,
+  wolfKillTarget?: number,
 ): SetConfirmStatusAction | null {
   const role = CONFIRM_STEP_ROLE[nextStepId];
   if (!role) {
@@ -236,6 +274,6 @@ export function maybeCreateConfirmStatusAction(
 
   return {
     type: 'SET_CONFIRM_STATUS',
-    payload: computeConfirmStatus(role, state),
+    payload: computeConfirmStatus(role, state, wolfKillTarget),
   };
 }

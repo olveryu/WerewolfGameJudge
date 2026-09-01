@@ -90,6 +90,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     currentStepId: undefined, // clear night step
     actions: [],
     currentNightResults: undefined,
+    resolvedNightEffects: [],
     lastNightDeaths: undefined,
     deathReasons: undefined,
     sheriffElection: undefined,
@@ -119,6 +120,9 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     piperRevealAcks: [],
     convertedSeat: undefined,
     conversionRevealAcks: [],
+    seedWolfInfectionResult: undefined,
+    seedWolfDeferredReveal: undefined,
+    seedWolfInfectionRevealAcks: [],
 
     // Treasure Master
     bottomCards: undefined,

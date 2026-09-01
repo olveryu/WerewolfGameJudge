@@ -57,6 +57,7 @@ export type DialogType =
   // Special dialogs
   | 'magicianFirst' // Magician first target selected
   | 'confirmTrigger' // Hunter/DarkWolfKing confirm trigger
+  | 'seedWolfInfectionResult' // Personal result in the final all-player acknowledgement
 
   // Role info dialogs
   | 'roleCard' // View role card
@@ -164,7 +165,19 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
-  // Confirm trigger (hunter/darkWolfKing/avenger/hiddenWolf status): schema-driven confirmStatusUi.
+  // Seed Wolf final infection result
+  {
+    type: 'seedWolfInfectionResult',
+    match: (t, m) => {
+      const infectionRevealUi = SCHEMAS.seedWolfInfectReveal.ui;
+      return (
+        t === '感染信息' &&
+        (m === infectionRevealUi?.hypnotizedText || m === infectionRevealUi?.notHypnotizedText)
+      );
+    },
+  },
+
+  // Confirm trigger status dialogs: schema-driven confirmStatusUi.
   {
     type: 'confirmTrigger',
     match: (t, m) => {
@@ -172,6 +185,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
       const darkUi = SCHEMAS.darkWolfKingConfirm.ui?.confirmStatusUi;
       const avengerUi = SCHEMAS.avengerConfirm.ui?.confirmStatusUi;
       const hiddenWolfUi = SCHEMAS.hiddenWolfReveal.ui?.confirmStatusUi;
+      const seedWolfUi = SCHEMAS.seedWolfInfect.ui?.confirmStatusUi;
 
       const isHunterConfirm =
         hunterUi?.kind === 'shoot' &&
@@ -187,8 +201,16 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
         (m === avengerUi.goodText || m === avengerUi.wolfText || m === avengerUi.bondedText);
       const isHiddenWolfConfirm =
         hiddenWolfUi?.kind === 'wolfTeammates' && t === hiddenWolfUi.statusDialogTitle;
+      const isSeedWolfConfirm =
+        seedWolfUi?.kind === 'infection' && t === seedWolfUi.statusDialogTitle;
 
-      return isHunterConfirm || isDarkWolfKingConfirm || isAvengerConfirm || isHiddenWolfConfirm;
+      return (
+        isHunterConfirm ||
+        isDarkWolfKingConfirm ||
+        isAvengerConfirm ||
+        isHiddenWolfConfirm ||
+        isSeedWolfConfirm
+      );
     },
   },
 
@@ -198,6 +220,12 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Seat errors
   { type: 'seatError', match: (t) => t === '入座失败' },
   { type: 'seatDisabled', match: (t) => t === '不可选择' },
+
+  // Seed Wolf prompt includes “是否”, so classify its exact schema prompt before generic confirms.
+  {
+    type: 'actionPrompt',
+    match: (t, m) => t.endsWith('行动') && m === SCHEMAS.seedWolfInfect.ui?.prompt,
+  },
 
   // Skip confirmation
   { type: 'skipConfirm', match: (t) => t === '跳过本次行动？' },

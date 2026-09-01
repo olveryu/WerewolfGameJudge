@@ -1,17 +1,17 @@
 /**
- * Role Specs Registry — declarative definitions for all 46 roles
+ * Role Specs Registry — declarative definitions for all 47 roles
  *
  * Single source of truth: role intrinsic properties + behavior (abilities / effects) + night steps + UI metadata
  * Owns role properties, behavior, night steps, and UI metadata.
  *
- * 46 roles total:
+ * 47 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
  *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow, maskedMan,
  *   sequencePrince (19)
- * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
+ * - Wolf faction: wolf, seedWolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
  *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden,
- *   eclipseWolfQueen, hiddenWolf (15)
+ *   eclipseWolfQueen, hiddenWolf (16)
  * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster, cursedFox (9)
  *
  * Pure data, JSON-serializable. No business logic, side effects, or platform dependencies.
@@ -335,7 +335,7 @@ const ROLE_SPEC_DEFINITIONS = {
         type: 'active',
         timing: 'night',
         actionKind: 'confirm',
-        canSkip: true,
+        canSkip: false,
         effects: [{ kind: 'confirm', confirmType: 'shoot' }],
         activeOnNight1: true,
       },
@@ -939,6 +939,70 @@ const ROLE_SPEC_DEFINITIONS = {
     ],
   },
 
+  seedWolf: {
+    id: 'seedWolf',
+    displayName: '种狼',
+    shortName: '种',
+    emoji: '🌱🐺',
+    faction: Faction.Wolf,
+    team: Team.Wolf,
+    description:
+      '首夜在狼人袭击后可感染袭击目标；若目标最终因狼人袭击出局，则取消该次袭击并将其转化为普通狼人，当夜原技能失效；狼人目标不能感染',
+    structuredDescription: {
+      skill: '首夜在狼人袭击后可感染袭击目标',
+      special: '若目标最终因狼人袭击出局，则取消该次袭击并将其转化为普通狼人，当夜原技能失效',
+      restriction: '狼人目标不能感染',
+    },
+    tags: ['transform'],
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'confirm',
+        canSkip: true,
+        effects: [{ kind: 'confirm', confirmType: 'infection' }],
+        activeOnNight1: true,
+        customResolver: 'seedWolfInfect',
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'seedWolfInfect',
+        displayName: '感染',
+        audioKey: 'seedWolf',
+        actionKind: 'confirm',
+        ui: {
+          confirmTitle: '确认感染',
+          prompt: '请查看狼人袭击目标并选择是否发动感染',
+          confirmText: '感染狼人袭击目标？',
+          bottomActionText: '感染',
+          confirmStatusUi: {
+            kind: 'infection',
+            statusDialogTitle: '感染目标',
+            targetTemplate: '狼人选择袭击{seat}玩家，是否发动感染？',
+            unavailableText: '本夜没有可感染的狼人袭击目标',
+            skipButtonText: '不用技能',
+          },
+        },
+      },
+      {
+        stepId: 'seedWolfInfectReveal',
+        displayName: '感染确认',
+        audioKey: 'seedWolfInfectReveal',
+        audioEndKey: 'seedWolfInfectReveal',
+        actionKind: 'groupConfirm',
+        ui: {
+          prompt: '所有玩家请睁眼，请看手机确认感染信息',
+          bottomActionText: '感染状态',
+          hypnotizedText: '你已被种狼感染并转化为普通狼人',
+          notHypnotizedText: '你未被感染',
+          confirmButtonText: '知道了',
+        },
+      },
+    ],
+  },
+
   wolfQueen: {
     id: 'wolfQueen',
     displayName: '狼美人',
@@ -1034,7 +1098,7 @@ const ROLE_SPEC_DEFINITIONS = {
         type: 'active',
         timing: 'night',
         actionKind: 'confirm',
-        canSkip: true,
+        canSkip: false,
         effects: [{ kind: 'confirm', confirmType: 'shoot' }],
         activeOnNight1: true,
       },
@@ -1490,7 +1554,7 @@ const ROLE_SPEC_DEFINITIONS = {
         type: 'active',
         timing: 'night',
         actionKind: 'confirm',
-        canSkip: true,
+        canSkip: false,
         effects: [{ kind: 'confirm', confirmType: 'wolfTeammates' }],
         activeOnNight1: true,
       },
@@ -1749,7 +1813,7 @@ const ROLE_SPEC_DEFINITIONS = {
         type: 'active',
         timing: 'night',
         actionKind: 'confirm',
-        canSkip: true,
+        canSkip: false,
         effects: [{ kind: 'confirm', confirmType: 'faction' }],
         activeOnNight1: true,
       },

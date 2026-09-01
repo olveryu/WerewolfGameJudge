@@ -30,6 +30,7 @@ import type {
   GameState,
   Player,
 } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type { EndNightAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 import { createSeededRng } from '@game-judge/game-engine/platform/random';
@@ -80,11 +81,13 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     currentStepId: NIGHT_STEPS[0]?.id,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     currentNightResults: {},
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
@@ -135,6 +138,131 @@ describe('nightFlowHandler', () => {
     });
 
     describe('Happy path', () => {
+      it('finalizes a fatal infection before entering the final reveal step', () => {
+        const templateRoles: RoleId[] = ['wolf', 'seedWolf', 'seer'];
+        const nightPlan = buildNightPlan(templateRoles);
+        const revealIndex = nightPlan.steps.findIndex(
+          (step) => step.stepId === 'seedWolfInfectReveal',
+        );
+        const state = createOngoingState({
+          templateRoles,
+          players: {
+            0: createPlayer(0, 'wolf'),
+            1: createPlayer(1, 'seedWolf'),
+            2: createPlayer(2, 'seer'),
+          },
+          currentStepIndex: revealIndex - 1,
+          currentStepId: nightPlan.steps[revealIndex - 1]!.stepId,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 2, '1': 2 },
+            seedWolfInfectionTarget: 2,
+          },
+        });
+
+        const result = handleAdvanceNight(intent, {
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        });
+        const success = expectSuccess(result);
+        const finalizeAction = success.actions.find(
+          (action) => action.type === 'FINALIZE_SEED_WOLF_INFECTION',
+        );
+        expect(finalizeAction).toEqual({
+          type: 'FINALIZE_SEED_WOLF_INFECTION',
+          payload: { result: { outcome: 'converted', targetSeat: 2 } },
+        });
+
+        const finalized = success.actions.reduce(gameReducer, state);
+        expect(finalized.currentStepId).toBe('seedWolfInfectReveal');
+        expect(finalized.players[2]?.role).toBe('wolf');
+      });
+
+      it('keeps infection failed when guard protection prevents wolf-kill damage', () => {
+        const templateRoles: RoleId[] = ['wolf', 'seedWolf', 'guard', 'villager'];
+        const nightPlan = buildNightPlan(templateRoles);
+        const revealIndex = nightPlan.steps.findIndex(
+          (step) => step.stepId === 'seedWolfInfectReveal',
+        );
+        const state = createOngoingState({
+          templateRoles,
+          players: {
+            0: createPlayer(0, 'wolf'),
+            1: createPlayer(1, 'seedWolf'),
+            2: createPlayer(2, 'guard'),
+            3: createPlayer(3, 'villager'),
+          },
+          currentStepIndex: revealIndex - 1,
+          currentStepId: nightPlan.steps[revealIndex - 1]!.stepId,
+          actions: [{ schemaId: 'guardProtect', actorSeat: 2, targetSeat: 3, timestamp: 1 }],
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 3, '1': 3 },
+            guardedSeat: 3,
+            seedWolfInfectionTarget: 3,
+          },
+        });
+
+        const success = expectSuccess(
+          handleAdvanceNight(intent, { state, myUserId: 'host-uid', mySeat: null }),
+        );
+        expect(
+          success.actions.find((action) => action.type === 'FINALIZE_SEED_WOLF_INFECTION'),
+        ).toEqual({
+          type: 'FINALIZE_SEED_WOLF_INFECTION',
+          payload: { result: { outcome: 'failed', targetSeat: 3 } },
+        });
+      });
+
+      it('releases a deferred reveal only after infection fails', () => {
+        const templateRoles: RoleId[] = ['wolf', 'seedWolf', 'guard', 'seer'];
+        const nightPlan = buildNightPlan(templateRoles);
+        const revealIndex = nightPlan.steps.findIndex(
+          (step) => step.stepId === 'seedWolfInfectReveal',
+        );
+        const state = createOngoingState({
+          templateRoles,
+          players: {
+            0: createPlayer(0, 'wolf'),
+            1: createPlayer(1, 'seedWolf'),
+            2: createPlayer(2, 'guard'),
+            3: createPlayer(3, 'seer'),
+          },
+          currentStepIndex: revealIndex - 1,
+          currentStepId: nightPlan.steps[revealIndex - 1]!.stepId,
+          actions: [
+            { schemaId: 'guardProtect', actorSeat: 2, targetSeat: 3, timestamp: 1 },
+            { schemaId: 'seerCheck', actorSeat: 3, targetSeat: 0, timestamp: 2 },
+          ],
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 3, '1': 3 },
+            guardedSeat: 3,
+            seedWolfInfectionTarget: 3,
+          },
+          seedWolfDeferredReveal: {
+            actorSeat: 3,
+            schemaId: 'seerCheck',
+            targetSeat: 0,
+            reveal: { kind: 'factionCheck', checkResult: '狼人' },
+          },
+        });
+
+        const success = expectSuccess(
+          handleAdvanceNight(intent, { state, myUserId: 'host-uid', mySeat: null }),
+        );
+        expect(success.actions).toContainEqual({
+          type: 'APPLY_RESOLVER_RESULT',
+          payload: {
+            sourceSeat: 3,
+            updates: undefined,
+            seerReveal: { targetSeat: 0, result: '狼人' },
+          },
+        });
+        expect(success.actions).toContainEqual({
+          type: 'ADD_REVEAL_ACK',
+          payload: { ackKey: 'seerCheck' },
+        });
+      });
+
       it('should advance to next action index and stepId', () => {
         // Test template: wolf, wolf, seer, witch, villager, villager
         // buildNightPlan will filter to: wolfKill → witchAction → seerCheck
@@ -244,6 +372,7 @@ describe('nightFlowHandler', () => {
           currentStepIndex: 0,
           currentStepId: undefined,
           actions: [],
+          resolvedNightEffects: [],
           currentNightResults: {
             wolfVotesBySeat: { '0': -1, '1': 0 },
           },
@@ -252,6 +381,7 @@ describe('nightFlowHandler', () => {
           hypnotizedSeats: [],
           piperRevealAcks: [],
           conversionRevealAcks: [],
+          seedWolfInfectionRevealAcks: [],
           cupidLoversRevealAcks: [],
           roster: {},
         },

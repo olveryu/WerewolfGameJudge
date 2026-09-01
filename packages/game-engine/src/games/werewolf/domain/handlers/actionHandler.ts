@@ -16,7 +16,12 @@ import { ROLE_SPECS, type RoleId, type SchemaId, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';
 import type { GameState, ProtocolAction } from '../protocol/types';
 import { gameReducer } from '../reducer/gameReducer';
-import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
+import type {
+  ActionRejectedAction,
+  ApplyResolverResultAction,
+  RecordActionAction,
+  StateAction,
+} from '../reducer/types';
 import { RESOLVERS } from '../resolvers';
 import type { ActionInput, ResolverContext, ResolverSuccess } from '../resolvers/types';
 import {
@@ -62,6 +67,17 @@ function buildResolverContext(
       isWolfVoteUnanimityRequired: state.templateRoles.includes('cupid'),
       hypnotizedSeats: state.hypnotizedSeats ?? [],
       witchCanSelfHeal: state.rules?.witchCanSelfHeal ?? false,
+      ...(state.confirmStatus?.role === 'seedWolf'
+        ? {
+            seedWolfInfectionContext:
+              state.confirmStatus.availability === 'available'
+                ? {
+                    availability: state.confirmStatus.availability,
+                    targetSeat: state.confirmStatus.targetSeat,
+                  }
+                : { availability: state.confirmStatus.availability },
+          }
+        : {}),
     },
     ...(state.bottomCards && bottomCardActorSeat != null
       ? {
@@ -217,6 +233,7 @@ export function handleSubmitAction(
     effectiveTarget,
     result,
     execution.nowMs,
+    state.currentNightResults?.seedWolfInfectionTarget === seat,
   );
 
   // Wolf vote timer: manages stepDeadline after a wolfVote step is submitted
@@ -283,6 +300,7 @@ function buildSuccessResult(
   target: number | null,
   result: ResolverSuccess,
   timestamp: number,
+  shouldDeferReveal: boolean,
 ): HandlerResult {
   const protocolAction: ProtocolAction = {
     schemaId,
@@ -306,12 +324,27 @@ function buildSuccessResult(
 
   if (target !== null && (result.updates || result.reveal)) {
     const revealPayload = buildRevealPayload(result, schemaId, target);
+    const payload: ApplyResolverResultAction['payload'] =
+      result.reveal && shouldDeferReveal
+        ? {
+            sourceSeat: seat,
+            updates: revealPayload.updates,
+            wolfRobotContext: revealPayload.wolfRobotContext,
+            wolfRobotHunterStatusViewed: revealPayload.wolfRobotHunterStatusViewed,
+            seedWolfDeferredReveal: {
+              actorSeat: seat,
+              schemaId,
+              targetSeat: target,
+              reveal: result.reveal,
+            },
+          }
+        : { sourceSeat: seat, ...revealPayload };
     actions.push({
       type: 'APPLY_RESOLVER_RESULT',
-      payload: revealPayload,
+      payload,
     });
 
-    if (result.reveal) {
+    if (result.reveal && !shouldDeferReveal) {
       actions.push({
         type: 'ADD_REVEAL_ACK',
         payload: { ackKey: schemaId },
@@ -321,7 +354,7 @@ function buildSuccessResult(
     // Updates can exist without a target (e.g. skip/blocked); keep them.
     actions.push({
       type: 'APPLY_RESOLVER_RESULT',
-      payload: { updates: result.updates },
+      payload: { sourceSeat: seat, updates: result.updates },
     });
   }
 

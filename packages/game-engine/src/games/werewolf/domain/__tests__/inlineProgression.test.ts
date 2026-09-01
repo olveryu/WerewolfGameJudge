@@ -47,10 +47,12 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
     currentStepId: firstStep?.stepId,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
@@ -77,10 +79,12 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
     currentStepId: firstStep?.stepId,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
@@ -116,6 +120,18 @@ describe('runInlineProgression', () => {
         actions: [{ schemaId: 'wolfKill', actorSeat: 0, timestamp: 1 }],
       });
       const result = runInlineProgression(state, 'host');
+      expect(result.stepsAdvanced).toBe(0);
+    });
+
+    it('种狼最终确认只读取独立 ACK 数组', () => {
+      const state = make2PlayerState({
+        currentStepId: 'seedWolfInfectReveal',
+        piperRevealAcks: [0, 1],
+        seedWolfInfectionRevealAcks: [0],
+      });
+
+      const result = runInlineProgression(state, 'host');
+
       expect(result.stepsAdvanced).toBe(0);
     });
 
@@ -319,10 +335,12 @@ describe('runInlineProgression', () => {
         currentStepId: 'witchAction',
         isAudioPlaying: false,
         actions: [],
+        resolvedNightEffects: [],
         pendingRevealAcks: [],
         hypnotizedSeats: [],
         piperRevealAcks: [],
         conversionRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {},
         currentNightResults: { treasureMasterChosenCard: 'villager' },
@@ -371,10 +389,12 @@ describe('runInlineProgression', () => {
         currentStepId: 'witchAction',
         isAudioPlaying: false,
         actions: [],
+        resolvedNightEffects: [],
         pendingRevealAcks: [],
         hypnotizedSeats: [],
         piperRevealAcks: [],
         conversionRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {},
         currentNightResults: { treasureMasterChosenCard: 'villager' },
@@ -426,10 +446,12 @@ describe('runInlineProgression', () => {
         currentStepId: 'wolfKill',
         isAudioPlaying: false,
         actions: [{ schemaId: 'wolfKill', actorSeat: 1, timestamp: 1 }],
+        resolvedNightEffects: [],
         pendingRevealAcks: [],
         hypnotizedSeats: [],
         piperRevealAcks: [],
         conversionRevealAcks: [],
+        seedWolfInfectionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {},
         currentNightResults: {

@@ -106,6 +106,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
       {
         title: '技能狼',
         roles: [
+          { roleId: 'seedWolf' },
           { roleId: 'wolfQueen' },
           { roleId: 'wolfKing' },
           { roleId: 'darkWolfKing' },

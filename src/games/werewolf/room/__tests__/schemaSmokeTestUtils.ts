@@ -89,6 +89,7 @@ export function createBaseWerewolfRoomMock({
     piperRevealAcks: [] as number[],
     conversionRevealAcks: [] as number[],
     cupidLoversRevealAcks: [] as number[],
+    seedWolfInfectionRevealAcks: [] as number[],
     currentNightResults: {} as CurrentNightResults,
     ...(gameStateOverrides ?? {}),
   };

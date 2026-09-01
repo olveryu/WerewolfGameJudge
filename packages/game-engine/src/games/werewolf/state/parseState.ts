@@ -29,11 +29,14 @@ import type {
   GameState,
   Player,
   ProtocolAction,
+  ResolvedNightEffect,
+  SeedWolfDeferredReveal,
+  SeedWolfInfectionResult,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
 } from '../domain/protocol/types';
-import type { CurrentNightResults } from '../domain/resolvers/types';
+import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
 import { WEREWOLF_STATE_VERSION } from './version';
 
@@ -250,6 +253,11 @@ function parseCurrentNightResults(value: unknown, path: string): CurrentNightRes
       parseArray(seats, p, parseSeat),
     ),
     convertedSeat: parseOptional(raw.convertedSeat, `${path}.convertedSeat`, parseSeat),
+    seedWolfInfectionTarget: parseOptional(
+      raw.seedWolfInfectionTarget,
+      `${path}.seedWolfInfectionTarget`,
+      parseSeat,
+    ),
     shadowMimicTarget: parseOptional(raw.shadowMimicTarget, `${path}.shadowMimicTarget`, parseSeat),
     avengerFaction: parseOptional(raw.avengerFaction, `${path}.avengerFaction`, parseTeam),
     treasureMasterChosenCard: parseOptional(
@@ -412,7 +420,157 @@ function parseConfirmStatus(value: unknown, path: string): ConfirmStatus {
       path,
     );
   }
+  if (raw.role === 'seedWolf') {
+    if (raw.availability === 'available') {
+      return finishObject(
+        raw,
+        {
+          role: 'seedWolf',
+          availability: raw.availability,
+          targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
+        },
+        path,
+      );
+    }
+    if (raw.availability === 'unavailable') {
+      if (raw.reason !== 'noTarget' && raw.reason !== 'wolfTarget') {
+        return fail(`${path}.reason`, 'noTarget or wolfTarget');
+      }
+      return finishObject(
+        raw,
+        { role: 'seedWolf', availability: raw.availability, reason: raw.reason },
+        path,
+      );
+    }
+    return fail(`${path}.availability`, 'available or unavailable');
+  }
   return fail(`${path}.role`, 'a supported confirmation role');
+}
+
+function parseResolverReveal(value: unknown, path: string): ResolverReveal {
+  const raw = parseObject(value, path);
+  if (raw.kind === 'factionCheck') {
+    const checkResult = (() => {
+      if (raw.checkResult === '好人' || raw.checkResult === '狼人') return raw.checkResult;
+      return fail(`${path}.checkResult`, '好人 or 狼人');
+    })();
+    return finishObject(raw, { kind: raw.kind, checkResult }, path);
+  }
+  if (raw.kind === 'identityCheck') {
+    return finishObject(
+      raw,
+      { kind: raw.kind, roleId: parseRoleId(raw.roleId, `${path}.roleId`) },
+      path,
+    );
+  }
+  if (raw.kind === 'wolfRobotLearn') {
+    return finishObject(
+      raw,
+      {
+        kind: raw.kind,
+        learnedRoleId: parseRoleId(raw.learnedRoleId, `${path}.learnedRoleId`),
+        canShootAsHunter: parseOptional(
+          raw.canShootAsHunter,
+          `${path}.canShootAsHunter`,
+          parseBoolean,
+        ),
+      },
+      path,
+    );
+  }
+  return fail(`${path}.kind`, 'a supported resolver reveal');
+}
+
+function parseSeedWolfDeferredReveal(value: unknown, path: string): SeedWolfDeferredReveal {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      actorSeat: parseSeat(raw.actorSeat, `${path}.actorSeat`),
+      schemaId: parseSchemaId(raw.schemaId, `${path}.schemaId`),
+      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
+      reveal: parseResolverReveal(raw.reveal, `${path}.reveal`),
+    },
+    path,
+  );
+}
+
+function parseResolvedNightEffect(value: unknown, path: string): ResolvedNightEffect {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      sourceSeat: parseSeat(raw.sourceSeat, `${path}.sourceSeat`),
+      updates: parseOptional(raw.updates, `${path}.updates`, parseCurrentNightResults),
+      seerReveal: parseOptional(raw.seerReveal, `${path}.seerReveal`, parseTargetFactionReveal),
+      mirrorSeerReveal: parseOptional(
+        raw.mirrorSeerReveal,
+        `${path}.mirrorSeerReveal`,
+        parseTargetFactionReveal,
+      ),
+      drunkSeerReveal: parseOptional(
+        raw.drunkSeerReveal,
+        `${path}.drunkSeerReveal`,
+        parseTargetFactionReveal,
+      ),
+      psychicReveal: parseOptional(
+        raw.psychicReveal,
+        `${path}.psychicReveal`,
+        parseTargetStringReveal,
+      ),
+      gargoyleReveal: parseOptional(
+        raw.gargoyleReveal,
+        `${path}.gargoyleReveal`,
+        parseTargetStringReveal,
+      ),
+      pureWhiteReveal: parseOptional(
+        raw.pureWhiteReveal,
+        `${path}.pureWhiteReveal`,
+        parseTargetStringReveal,
+      ),
+      wolfWitchReveal: parseOptional(
+        raw.wolfWitchReveal,
+        `${path}.wolfWitchReveal`,
+        parseTargetStringReveal,
+      ),
+      wolfRobotReveal: parseOptional(
+        raw.wolfRobotReveal,
+        `${path}.wolfRobotReveal`,
+        parseWolfRobotReveal,
+      ),
+      wolfRobotContext: parseOptional(
+        raw.wolfRobotContext,
+        `${path}.wolfRobotContext`,
+        parseWolfRobotContext,
+      ),
+      wolfRobotHunterStatusViewed: parseOptional(
+        raw.wolfRobotHunterStatusViewed,
+        `${path}.wolfRobotHunterStatusViewed`,
+        parseBoolean,
+      ),
+      seedWolfDeferredReveal: parseOptional(
+        raw.seedWolfDeferredReveal,
+        `${path}.seedWolfDeferredReveal`,
+        parseSeedWolfDeferredReveal,
+      ),
+    },
+    path,
+  );
+}
+
+function parseSeedWolfInfectionResult(value: unknown, path: string): SeedWolfInfectionResult {
+  const raw = parseObject(value, path);
+  if (raw.outcome === 'notUsed') {
+    return finishObject(raw, { outcome: raw.outcome }, path);
+  }
+  if (raw.outcome === 'failed' || raw.outcome === 'converted') {
+    return finishObject(
+      raw,
+      { outcome: raw.outcome, targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`) },
+      path,
+    );
+  }
+  return fail(`${path}.outcome`, 'notUsed, failed, or converted');
 }
 
 function parseActionRejected(
@@ -742,6 +900,11 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.currentNightResults',
       parseCurrentNightResults,
     ),
+    resolvedNightEffects: parseOptional(
+      raw.resolvedNightEffects,
+      'GameState.resolvedNightEffects',
+      (effects, p) => parseArray(effects, p, parseResolvedNightEffect),
+    ),
     pendingRevealAcks: parseArray(
       raw.pendingRevealAcks,
       'GameState.pendingRevealAcks',
@@ -848,6 +1011,21 @@ export function parseWerewolfState(value: unknown): GameState {
     conversionRevealAcks: parseArray(
       raw.conversionRevealAcks,
       'GameState.conversionRevealAcks',
+      parseSeat,
+    ),
+    seedWolfInfectionResult: parseOptional(
+      raw.seedWolfInfectionResult,
+      'GameState.seedWolfInfectionResult',
+      parseSeedWolfInfectionResult,
+    ),
+    seedWolfDeferredReveal: parseOptional(
+      raw.seedWolfDeferredReveal,
+      'GameState.seedWolfDeferredReveal',
+      parseSeedWolfDeferredReveal,
+    ),
+    seedWolfInfectionRevealAcks: parseArray(
+      raw.seedWolfInfectionRevealAcks,
+      'GameState.seedWolfInfectionRevealAcks',
       parseSeat,
     ),
     bottomCards: parseOptional(raw.bottomCards, 'GameState.bottomCards', parseRoleIds),

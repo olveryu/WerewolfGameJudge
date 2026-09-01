@@ -409,7 +409,7 @@ jobs:
           - shard: 2
             specs: 'reconnect.spec.ts night-roles-block.spec.ts'
           - shard: 3
-            specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts'
+            specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts night-roles-seed-wolf.spec.ts'
           - shard: 4
             specs: 'entry-flow.spec.ts db-recovery.spec.ts seating.spec.ts night-roles-eclipse-wolf-queen.spec.ts night-roles-thief-cupid.spec.ts night-roles-treasure.spec.ts night-verify.spec.ts night-2p.spec.ts night-6p.spec.ts offline-recovery-canary.spec.ts rejoin.spec.ts restart.spec.ts room-lifecycle.spec.ts home.spec.ts config.spec.ts sheriff-election.spec.ts'
           - shard: 5

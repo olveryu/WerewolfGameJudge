@@ -34,6 +34,7 @@ import piper from '../../assets/avatars/web/piper.webp';
 import poisoner from '../../assets/avatars/web/poisoner.webp';
 import psychic from '../../assets/avatars/web/psychic.webp';
 import pureWhite from '../../assets/avatars/web/pureWhite.webp';
+import seedWolf from '../../assets/avatars/web/seedWolf.webp';
 import seer from '../../assets/avatars/web/seer.webp';
 import sequencePrince from '../../assets/avatars/web/sequencePrince.webp';
 import shadow from '../../assets/avatars/web/shadow.webp';
@@ -81,6 +82,7 @@ import thumb_piper from '../../assets/badges/web/role_piper.webp';
 import thumb_poisoner from '../../assets/badges/web/role_poisoner.webp';
 import thumb_psychic from '../../assets/badges/web/role_psychic.webp';
 import thumb_pureWhite from '../../assets/badges/web/role_pureWhite.webp';
+import thumb_seedWolf from '../../assets/badges/web/role_seedWolf.webp';
 import thumb_seer from '../../assets/badges/web/role_seer.webp';
 import thumb_sequencePrince from '../../assets/badges/web/role_sequencePrince.webp';
 import thumb_shadow from '../../assets/badges/web/role_shadow.webp';
@@ -130,6 +132,7 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   poisoner,
   psychic,
   pureWhite,
+  seedWolf,
   seer,
   sequencePrince,
   shadow,
@@ -180,6 +183,7 @@ export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   poisoner: thumb_poisoner,
   psychic: thumb_psychic,
   pureWhite: thumb_pureWhite,
+  seedWolf: thumb_seedWolf,
   seer: thumb_seer,
   sequencePrince: thumb_sequencePrince,
   shadow: thumb_shadow,

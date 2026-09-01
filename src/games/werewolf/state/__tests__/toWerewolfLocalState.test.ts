@@ -25,6 +25,7 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     roster: {
       p0: { displayName: 'P1' },
       p1: { displayName: 'P2' },

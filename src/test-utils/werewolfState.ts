@@ -20,6 +20,7 @@ export function buildWerewolfTestState(overrides: Partial<GameState> = {}): Game
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
 }

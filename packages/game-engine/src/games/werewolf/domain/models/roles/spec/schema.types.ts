@@ -35,8 +35,21 @@ export interface WolfTeammatesConfirmUi {
   readonly messageTemplate: string;
 }
 
+/** Seed Wolf: display the authoritative wolf-kill target before choosing infection. */
+export interface InfectionConfirmUi {
+  readonly kind: 'infection';
+  readonly statusDialogTitle: string;
+  readonly targetTemplate: string;
+  readonly unavailableText: string;
+  readonly skipButtonText: string;
+}
+
 /** Confirm status dialog UI (discriminant: kind). */
-export type ConfirmStatusUi = ShootConfirmUi | FactionConfirmUi | WolfTeammatesConfirmUi;
+export type ConfirmStatusUi =
+  | ShootConfirmUi
+  | FactionConfirmUi
+  | WolfTeammatesConfirmUi
+  | InfectionConfirmUi;
 
 /**
  * Default UI text for nightmare-blocked actions.

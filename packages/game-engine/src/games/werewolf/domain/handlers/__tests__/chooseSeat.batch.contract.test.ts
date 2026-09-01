@@ -154,6 +154,7 @@ function createMinimalState(
     piperRevealAcks: [],
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     roster: {},
     currentNightResults: {},
     currentStepId: schemaId,

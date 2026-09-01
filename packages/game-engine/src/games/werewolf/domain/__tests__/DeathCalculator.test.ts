@@ -921,6 +921,37 @@ describe('DeathCalculator', () => {
 // =============================================================================
 
 describe('calculateDeathsDetailed', () => {
+  it('retains wolf-kill and poison as independent sources on the same seat', () => {
+    const result = calculateDeathsDetailed({
+      wolfKill: 3,
+      witchAction: makeWitchPoison(3),
+    });
+
+    expect(result.deathReasons).toEqual({ 3: 'poison' });
+    expect(result.deathSources).toEqual({ 3: ['wolfKill', 'poison'] });
+  });
+
+  it('moves wolf-kill provenance away from the original target after magician swap', () => {
+    const result = calculateDeathsDetailed({
+      wolfKill: 3,
+      magicianSwap: { first: 3, second: 7 },
+    });
+
+    expect(result.deathSources[3]).toBeUndefined();
+    expect(result.deathSources[7]).toEqual(['wolfKill', 'magicianSwap']);
+  });
+
+  it('removes only wolf-kill damage from a converted target', () => {
+    const result = calculateDeathsDetailed({
+      wolfKill: 3,
+      seedWolfInfectedSeat: 3,
+      witchAction: makeWitchPoison(3),
+    });
+
+    expect(result.deaths).toEqual([3]);
+    expect(result.deathSources).toEqual({ 3: ['poison'] });
+  });
+
   it('wolf kill → reason wolfKill', () => {
     const result = calculateDeathsDetailed({ wolfKill: 3 });
     expect(result.deaths).toEqual([3]);

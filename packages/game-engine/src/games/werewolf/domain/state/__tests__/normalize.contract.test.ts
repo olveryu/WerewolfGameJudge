@@ -41,6 +41,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Execution state
   'actions',
   'currentNightResults',
+  'resolvedNightEffects',
   'pendingRevealAcks',
   'lastNightDeaths',
   'deathReasons',
@@ -60,6 +61,11 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Awakened Gargoyle
   'convertedSeat',
   'conversionRevealAcks',
+
+  // Seed Wolf
+  'seedWolfInfectionResult',
+  'seedWolfDeferredReveal',
+  'seedWolfInfectionRevealAcks',
 
   // Wolf Robot disguise context
   'wolfRobotContext',
@@ -142,6 +148,7 @@ describe('normalizeState contract', () => {
       // Execution state
       actions: [{ schemaId: 'wolfKill', actorSeat: 1, targetSeat: 2, timestamp: Date.now() }],
       currentNightResults: { wolfVotesBySeat: { '1': 2 } },
+      resolvedNightEffects: [{ sourceSeat: 1, updates: { guardedSeat: 2 } }],
       pendingRevealAcks: ['seer-1'],
       lastNightDeaths: [3],
 
@@ -159,6 +166,15 @@ describe('normalizeState contract', () => {
       // Awakened Gargoyle
       convertedSeat: 2,
       conversionRevealAcks: [0, 1],
+
+      // Seed Wolf
+      seedWolfInfectionResult: { outcome: 'failed', targetSeat: 1 },
+      seedWolfDeferredReveal: {
+        actorSeat: 0,
+        schemaId: 'seerCheck',
+        targetSeat: 1,
+        reveal: { kind: 'factionCheck', checkResult: '狼人' },
+      },
 
       // Wolf Robot disguise context
       wolfRobotContext: { learnedSeat: 4, disguisedRole: 'seer' },
@@ -196,6 +212,8 @@ describe('normalizeState contract', () => {
       loverSeats: [1, 3] as readonly [number, number],
       cupidSeat: 4,
       cupidLoversRevealAcks: [1],
+
+      seedWolfInfectionRevealAcks: [0, 1],
 
       // Board nominations
       boardNominations: {
@@ -268,6 +286,7 @@ describe('normalizeState contract', () => {
       piperRevealAcks: [],
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
+      seedWolfInfectionRevealAcks: [],
       roster: {},
     };
 

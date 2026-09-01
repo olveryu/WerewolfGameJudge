@@ -58,7 +58,10 @@ function acknowledgeReveal(ctx: GameContext): boolean {
   if (stepId === undefined) {
     throw new Error('[FAIL-FAST] Reveal acknowledgement exists without a current step');
   }
-  const action = [...state.actions].reverse().find((candidate) => candidate.schemaId === stepId);
+  const reversedActions = [...state.actions].reverse();
+  const action =
+    reversedActions.find((candidate) => candidate.schemaId === stepId) ??
+    reversedActions.find((candidate) => state.pendingRevealAcks.includes(candidate.schemaId));
   if (action === undefined) {
     throw new Error(`[FAIL-FAST] Reveal acknowledgement has no action for ${stepId}`);
   }
@@ -248,7 +251,8 @@ function submitActionForStep(
   if (
     stepId === 'hunterConfirm' ||
     stepId === 'darkWolfKingConfirm' ||
-    stepId === 'avengerConfirm'
+    stepId === 'avengerConfirm' ||
+    stepId === 'seedWolfInfect'
   ) {
     const shouldConfirm =
       value === null || typeof value !== 'object' || !('confirmed' in value) || value.confirmed;

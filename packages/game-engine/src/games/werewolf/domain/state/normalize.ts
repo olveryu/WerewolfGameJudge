@@ -157,6 +157,7 @@ export function normalizeState(raw: GameState): GameState {
     // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
     actions: raw.actions ?? [],
     currentNightResults,
+    resolvedNightEffects: raw.resolvedNightEffects ?? [],
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
     deathReasons: raw.deathReasons,
@@ -211,6 +212,11 @@ export function normalizeState(raw: GameState): GameState {
     // Awakened Gargoyle (pass-through)
     convertedSeat: raw.convertedSeat,
     conversionRevealAcks: raw.conversionRevealAcks,
+
+    // Seed Wolf (pass-through)
+    seedWolfInfectionResult: raw.seedWolfInfectionResult,
+    seedWolfDeferredReveal: raw.seedWolfDeferredReveal,
+    seedWolfInfectionRevealAcks: raw.seedWolfInfectionRevealAcks,
 
     // Treasure Master (pass-through)
     bottomCards: raw.bottomCards,

@@ -120,12 +120,8 @@ function handleWolfRobotReveal(
       learnedSeat: targetSeat,
       disguisedRole: learnedRoleId,
     },
+    ...(hasShootStatus ? { wolfRobotHunterStatusViewed: false } : {}),
   };
-
-  // Gate: if learned a gate-triggering role, set gate to false (requires viewing before advancing)
-  if (WOLF_ROBOT_GATE_ROLES.includes(learnedRoleId)) {
-    payload.wolfRobotHunterStatusViewed = false;
-  }
 
   return payload;
 }
@@ -161,8 +157,8 @@ export function buildRevealPayload(
   result: ResolverSuccess,
   schemaId: SchemaId,
   targetSeat: number,
-): ApplyResolverResultAction['payload'] {
-  const payload: ApplyResolverResultAction['payload'] = {
+): Omit<ApplyResolverResultAction['payload'], 'sourceSeat'> {
+  const payload: Omit<ApplyResolverResultAction['payload'], 'sourceSeat'> = {
     updates: result.updates,
   };
 

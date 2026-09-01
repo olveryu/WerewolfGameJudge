@@ -45,10 +45,12 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     currentNightResults: {},
@@ -217,6 +219,29 @@ describe('handleSubmitAction', () => {
     const actionTypes = success.actions.map((a) => a.type);
     expect(actionTypes).toContain('RECORD_ACTION');
     expect(actionTypes).toContain('APPLY_RESOLVER_RESULT');
+  });
+
+  it('defers a reveal and its acknowledgement for the infection target', () => {
+    const state = createOngoingState({
+      currentNightResults: { seedWolfInfectionTarget: 2 },
+    });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
+    };
+
+    const success = expectSuccess(handleSubmitAction(intent, createContext(state)));
+    expect(success.actions.some((action) => action.type === 'ADD_REVEAL_ACK')).toBe(false);
+    const effect = success.actions.find(
+      (action): action is ApplyResolverResultAction => action.type === 'APPLY_RESOLVER_RESULT',
+    );
+    expect(effect?.payload.seerReveal).toBeUndefined();
+    expect(effect?.payload.seedWolfDeferredReveal).toEqual({
+      actorSeat: 2,
+      schemaId: 'seerCheck',
+      targetSeat: 0,
+      reveal: { kind: 'factionCheck', checkResult: '好人' },
+    });
   });
 
   // === Gate: invalid_status ===

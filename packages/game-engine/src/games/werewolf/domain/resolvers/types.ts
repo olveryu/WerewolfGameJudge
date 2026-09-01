@@ -73,6 +73,9 @@ export interface CurrentNightResults {
   /** Seat converted by awakenedGargoyle */
   readonly convertedSeat?: number;
 
+  /** Wolf-kill target that Seed Wolf chose to infect; outcome is decided at the final step. */
+  readonly seedWolfInfectionTarget?: number;
+
   /** Seat chosen by shadow as mimicry target */
   readonly shadowMimicTarget?: number;
 
@@ -123,6 +126,10 @@ export interface ResolverContext {
     readonly hypnotizedSeats?: readonly number[];
     /** Whether witch is allowed to save herself (house rule override) */
     readonly witchCanSelfHeal?: boolean;
+    /** Authoritative Seed Wolf step context, derived when the step is entered. */
+    readonly seedWolfInfectionContext?:
+      | { readonly availability: 'available'; readonly targetSeat: number }
+      | { readonly availability: 'unavailable' };
   };
 
   /** Bottom-card context (only present when game includes treasureMaster or thief role) */

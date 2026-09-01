@@ -16,6 +16,7 @@ import { cupidChooseLoversResolver, cupidLoversRevealResolver } from './cupid';
 import { createGenericResolver } from './genericResolver';
 import { magicianSwapResolver } from './magician';
 import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
+import { seedWolfInfectResolver, seedWolfInfectRevealResolver } from './seedWolf';
 import { shadowChooseMimicResolver } from './shadow';
 import { thiefChooseResolver } from './thief';
 import { treasureMasterChooseResolver } from './treasureMaster';
@@ -61,6 +62,8 @@ export const RESOLVERS: ResolverRegistry = {
   awakenedGargoyleConvertReveal: awakenedGargoyleConvertRevealResolver,
   piperHypnotize: piperHypnotizeResolver,
   piperHypnotizedReveal: piperHypnotizedRevealResolver,
+  seedWolfInfect: seedWolfInfectResolver,
+  seedWolfInfectReveal: seedWolfInfectRevealResolver,
   treasureMasterChoose: treasureMasterChooseResolver,
   thiefChoose: thiefChooseResolver,
   cupidChooseLovers: cupidChooseLoversResolver,

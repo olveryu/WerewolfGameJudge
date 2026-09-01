@@ -38,10 +38,12 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     currentStepId: 'hunterConfirm',
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     currentNightResults: {},
@@ -54,6 +56,49 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
 // =============================================================================
 
 describe('maybeCreateConfirmStatusAction', () => {
+  describe('seedWolf infection target', () => {
+    it('exposes the authoritative non-wolf attack target', () => {
+      const state = createOngoingState({
+        templateRoles: ['wolf', 'seedWolf', 'villager'],
+        players: {
+          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
+          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seedWolf' },
+          2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
+        },
+      });
+
+      expect(maybeCreateConfirmStatusAction('seedWolfInfect', state, 2)).toEqual({
+        type: 'SET_CONFIRM_STATUS',
+        payload: { role: 'seedWolf', availability: 'available', targetSeat: 2 },
+      });
+    });
+
+    it('rejects wolf-faction targets without changing wolf-kill neutrality', () => {
+      const state = createOngoingState({
+        templateRoles: ['wolf', 'seedWolf', 'villager'],
+        players: {
+          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
+          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seedWolf' },
+          2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
+        },
+      });
+
+      expect(maybeCreateConfirmStatusAction('seedWolfInfect', state, 0)).toEqual({
+        type: 'SET_CONFIRM_STATUS',
+        payload: { role: 'seedWolf', availability: 'unavailable', reason: 'wolfTarget' },
+      });
+    });
+
+    it('reports no target after an empty wolf vote', () => {
+      const state = createOngoingState({ templateRoles: ['wolf', 'seedWolf', 'villager'] });
+
+      expect(maybeCreateConfirmStatusAction('seedWolfInfect', state)).toEqual({
+        type: 'SET_CONFIRM_STATUS',
+        payload: { role: 'seedWolf', availability: 'unavailable', reason: 'noTarget' },
+      });
+    });
+  });
+
   // ---- hunter canShoot correctness ----
 
   it('猎人未被毒 → canShoot = true', () => {

@@ -34,10 +34,12 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
+    resolvedNightEffects: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
@@ -438,6 +440,7 @@ describe('gameReducer', () => {
       const action: ApplyResolverResultAction = {
         type: 'APPLY_RESOLVER_RESULT',
         payload: {
+          sourceSeat: 1,
           updates: { guardedSeat: 1 },
         },
       };
@@ -454,6 +457,7 @@ describe('gameReducer', () => {
       const action: ApplyResolverResultAction = {
         type: 'APPLY_RESOLVER_RESULT',
         payload: {
+          sourceSeat: 2,
           seerReveal: { targetSeat: 1, result: '狼人' },
         },
       };
@@ -474,6 +478,7 @@ describe('gameReducer', () => {
       const action: ApplyResolverResultAction = {
         type: 'APPLY_RESOLVER_RESULT',
         payload: {
+          sourceSeat: 1,
           updates: {
             wolfVotesBySeat: { '1': 0 },
           },
@@ -856,7 +861,7 @@ describe('gameReducer', () => {
         } satisfies AdvanceToNextActionAction,
         {
           type: 'APPLY_RESOLVER_RESULT',
-          payload: { updates: { wolfVotesBySeat: { '1': 0 } } },
+          payload: { sourceSeat: 1, updates: { wolfVotesBySeat: { '1': 0 } } },
         } satisfies ApplyResolverResultAction,
         {
           type: 'CLEAR_REVEAL_STATE',

@@ -477,6 +477,20 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     );
   }
 
+  // 10. Seed Wolf final infection outcome
+  const seedWolfSeat = findSeatByRole(gameState.players, 'seedWolf');
+  if (seedWolfSeat !== undefined) {
+    const result = gameState.seedWolfInfectionResult;
+    const prefix = `${getRoleEmoji('seedWolf')} ${getRoleDisplayName('seedWolf')}`;
+    if (result?.outcome === 'converted') {
+      lines.push(`${prefix}成功感染了 ${formatSeat(result.targetSeat)}`);
+    } else if (result?.outcome === 'failed') {
+      lines.push(`${prefix}感染 ${formatSeat(result.targetSeat)}失败`);
+    } else {
+      lines.push(`${prefix}未使用感染`);
+    }
+  }
+
   // ── Interaction annotations ──
 
   // Same-guard-same-save warning

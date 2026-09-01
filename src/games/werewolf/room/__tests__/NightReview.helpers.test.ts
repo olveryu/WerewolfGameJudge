@@ -26,6 +26,7 @@ function makeGameState(
     thiefChosenCard: RoleId;
     witchContext: { killedSeat: number; canSave: boolean; canPoison: boolean };
     loverSeats: readonly [number, number];
+    seedWolfInfectionResult: LocalGameState['seedWolfInfectionResult'];
   }> = {},
 ): LocalGameState {
   return {
@@ -45,6 +46,7 @@ function makeGameState(
     bottomCards: overrides.bottomCards,
     witchContext: overrides.witchContext,
     loverSeats: overrides.loverSeats,
+    seedWolfInfectionResult: overrides.seedWolfInfectionResult,
   } as unknown as LocalGameState;
 }
 
@@ -212,6 +214,36 @@ describe('NightReview.helpers', () => {
       ]);
       const lines = buildActionLines(makeGameState({ actions }));
       expect(lines).toContainEqual(expect.stringContaining('狼美人魅惑了 5号'));
+    });
+
+    it('shows successful Seed Wolf infection', () => {
+      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          seedWolfInfectionResult: { outcome: 'converted', targetSeat: 3 },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('种狼成功感染了 4号'));
+    });
+
+    it('shows failed Seed Wolf infection', () => {
+      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          seedWolfInfectionResult: { outcome: 'failed', targetSeat: 3 },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('种狼感染 4号失败'));
+    });
+
+    it('shows unused Seed Wolf infection', () => {
+      const players = new Map<number, LocalPlayer | null>([[0, makePlayer(0, 'seedWolf')]]);
+      const lines = buildActionLines(
+        makeGameState({ players, seedWolfInfectionResult: { outcome: 'notUsed' } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('种狼未使用感染'));
     });
 
     it('shows hunter can shoot when not poisoned', () => {
@@ -589,6 +621,7 @@ describe('NightReview.helpers', () => {
         [29, makePlayer(29, 'cupid')],
         [30, makePlayer(30, 'eclipseWolfQueen')],
         [31, makePlayer(31, 'hiddenWolf')],
+        [32, makePlayer(32, 'seedWolf')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([

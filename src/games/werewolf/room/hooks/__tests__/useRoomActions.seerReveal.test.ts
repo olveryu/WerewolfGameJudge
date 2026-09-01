@@ -35,6 +35,7 @@ const makeGameState = (): LocalGameState => ({
   piperRevealAcks: [],
   conversionRevealAcks: [],
   cupidLoversRevealAcks: [],
+  seedWolfInfectionRevealAcks: [],
 });
 
 const makeSeerSchema = (): ActionSchema => SCHEMAS.seerCheck;
