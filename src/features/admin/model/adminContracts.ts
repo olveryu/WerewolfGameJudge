@@ -86,7 +86,6 @@ export interface AdminRequestTraffic {
     totalRequests: number;
     clientErrorRequests: number;
     serverErrorRequests: number;
-    legacyRoomStateRequests: number;
     successfulWebSocketConnections: number;
     failedWebSocketConnections: number;
     routes: Array<{

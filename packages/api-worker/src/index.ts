@@ -62,14 +62,9 @@ const roomWebSocketHandler = createRoomWebSocketHandler(async (token, env) => {
 
 const log = createLogger('worker');
 
-function resolveContextRequestRoute(
-  method: string,
-  requestPath: string,
-  registeredRoutePath: string,
-): string {
+function resolveContextRequestRoute(method: string, registeredRoutePath: string): string {
   return resolveHttpRequestRoute({
     method,
-    requestPath,
     registeredRoutePath,
   });
 }
@@ -83,7 +78,6 @@ app.use('*', async (c, next) => {
   const durationMs = Date.now() - start;
   const requestRoute = resolveContextRequestRoute(
     c.req.method,
-    c.req.path,
     c.req.matchedRoutes.at(-1)?.path ?? '',
   );
   log.info('request', {
@@ -130,11 +124,7 @@ app.onError((err, c) => {
   // Capture the original Error object to preserve stack trace in Sentry
   Sentry.captureException(err, {
     tags: {
-      route: resolveContextRequestRoute(
-        c.req.method,
-        c.req.path,
-        c.req.matchedRoutes.at(-1)?.path ?? '',
-      ),
+      route: resolveContextRequestRoute(c.req.method, c.req.matchedRoutes.at(-1)?.path ?? ''),
       method: c.req.method,
     },
   });

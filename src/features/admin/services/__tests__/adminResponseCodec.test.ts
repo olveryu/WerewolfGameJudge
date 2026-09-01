@@ -121,7 +121,6 @@ describe('adminResponseCodec', () => {
           totalRequests: 27,
           clientErrorRequests: 2,
           serverErrorRequests: 1,
-          legacyRoomStateRequests: 0,
           successfulWebSocketConnections: 4,
           failedWebSocketConnections: 1,
           routes: [
@@ -181,7 +180,6 @@ describe('adminResponseCodec', () => {
           totalRequests: -1,
           clientErrorRequests: 0,
           serverErrorRequests: 0,
-          legacyRoomStateRequests: 0,
           successfulWebSocketConnections: 0,
           failedWebSocketConnections: 0,
           routes: [],
@@ -198,7 +196,6 @@ describe('adminResponseCodec', () => {
           totalRequests: 1,
           clientErrorRequests: 0,
           serverErrorRequests: 0,
-          legacyRoomStateRequests: 0,
           successfulWebSocketConnections: 0,
           failedWebSocketConnections: 0,
           routes: [

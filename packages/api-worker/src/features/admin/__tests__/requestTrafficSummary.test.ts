@@ -21,7 +21,7 @@ describe('request traffic summary', () => {
     expect(plan.realtimeSql).toContain("blob1 = 'WEBSOCKET_MESSAGE'");
   });
 
-  it('aggregates routes, errors, legacy polling, WebSocket traffic, and empty buckets', () => {
+  it('aggregates routes, errors, WebSocket traffic, and empty buckets', () => {
     const fromDate = new Date('2026-08-31T00:00:00.000Z');
     const toDate = new Date('2026-08-31T00:02:00.000Z');
     const firstBucket = fromDate.getTime() / 1_000;
@@ -47,7 +47,7 @@ describe('request traffic summary', () => {
         {
           bucket: firstBucket,
           method: 'POST',
-          route: '/room/state',
+          route: '__unmatched__',
           status: 404,
           requestCount: 3,
           durationTotalMs: 30,
@@ -86,7 +86,6 @@ describe('request traffic summary', () => {
         totalRequests: 20,
         clientErrorRequests: 4,
         serverErrorRequests: 2,
-        legacyRoomStateRequests: 3,
         successfulWebSocketConnections: 4,
         failedWebSocketConnections: 1,
       },

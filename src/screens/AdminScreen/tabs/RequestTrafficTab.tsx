@@ -68,22 +68,10 @@ function routeMetricKey(route: RouteMetric): string {
 }
 
 const TrafficStatus = memo(function TrafficStatus({ data }: { data: AdminRequestTraffic }) {
-  const hasLegacyPolling = data.http.legacyRoomStateRequests > 0;
   const hasInvalidMessages = data.realtime.invalidClientMessages > 0;
   return (
     <View style={styles.statusSection}>
       <Text style={styles.sectionTitle}>架构守卫</Text>
-      <View style={styles.statusRow}>
-        <Ionicons
-          name={hasLegacyPolling ? 'close-circle' : 'checkmark-circle'}
-          size={componentSizes.icon.md}
-          color={hasLegacyPolling ? colors.error : colors.success}
-        />
-        <Text style={styles.statusLabel}>旧 /room/state 轮询</Text>
-        <Text style={[styles.statusValue, hasLegacyPolling && styles.statusValueError]}>
-          {data.http.legacyRoomStateRequests.toLocaleString()}
-        </Text>
-      </View>
       <View style={styles.statusRow}>
         <Ionicons
           name={hasInvalidMessages ? 'alert-circle' : 'checkmark-circle'}
@@ -382,9 +370,6 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
     color: colors.success,
-  },
-  statusValueError: {
-    color: colors.error,
   },
   statusValueWarning: {
     color: colors.warning,

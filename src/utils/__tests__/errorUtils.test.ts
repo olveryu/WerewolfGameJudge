@@ -203,7 +203,7 @@ describe('isNetworkError', () => {
   it('detects a fetch failure through the standard Error.cause chain', () => {
     expect(
       isNetworkError(
-        new Error('Failed to produce JSON response for /room/state during body-read', {
+        new Error('Failed to produce JSON response for /room/get during body-read', {
           cause: new TypeError('Failed to fetch'),
         }),
       ),

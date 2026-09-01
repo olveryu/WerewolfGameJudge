@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   HTTP_REQUEST_EVENT_KIND,
-  LEGACY_ROOM_STATE_ROUTE,
   PREFLIGHT_REQUEST_ROUTE,
   recordHttpRequestTraffic,
   resolveHttpRequestRoute,
@@ -17,25 +16,14 @@ describe('request traffic metrics', () => {
       label: 'preflight requests',
       input: {
         method: 'OPTIONS',
-        requestPath: '/admin/rooms/private-room-code/players',
         registeredRoutePath: '*',
       },
       expected: PREFLIGHT_REQUEST_ROUTE,
     },
     {
-      label: 'the removed HTTP state endpoint',
-      input: {
-        method: 'POST',
-        requestPath: LEGACY_ROOM_STATE_ROUTE,
-        registeredRoutePath: '*',
-      },
-      expected: LEGACY_ROOM_STATE_ROUTE,
-    },
-    {
       label: 'unknown paths',
       input: {
         method: 'GET',
-        requestPath: '/unknown/private-value',
         registeredRoutePath: '*',
       },
       expected: UNMATCHED_REQUEST_ROUTE,
@@ -44,7 +32,6 @@ describe('request traffic metrics', () => {
       label: 'registered dynamic routes',
       input: {
         method: 'GET',
-        requestPath: '/admin/rooms/private-room-code/players',
         registeredRoutePath: '/admin/rooms/:roomCode/players',
       },
       expected: '/admin/rooms/:roomCode/players',

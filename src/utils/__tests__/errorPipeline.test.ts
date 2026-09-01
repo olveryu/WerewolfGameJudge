@@ -54,7 +54,7 @@ describe('handleError', () => {
   });
 
   it('classifies a wrapped fetch failure as a network error', () => {
-    const err = new Error('Failed to produce JSON response for /room/state during body-read', {
+    const err = new Error('Failed to produce JSON response for /room/get during body-read', {
       cause: new TypeError('Failed to fetch'),
     });
 

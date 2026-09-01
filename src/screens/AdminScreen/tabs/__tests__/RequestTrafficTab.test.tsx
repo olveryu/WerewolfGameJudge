@@ -26,7 +26,6 @@ const EMPTY_TRAFFIC: AdminRequestTraffic = {
     totalRequests: 0,
     clientErrorRequests: 0,
     serverErrorRequests: 0,
-    legacyRoomStateRequests: 0,
     successfulWebSocketConnections: 0,
     failedWebSocketConnections: 0,
     routes: [],

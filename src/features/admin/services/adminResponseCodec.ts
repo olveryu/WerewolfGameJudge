@@ -379,7 +379,6 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
       'totalRequests',
       'clientErrorRequests',
       'serverErrorRequests',
-      'legacyRoomStateRequests',
       'successfulWebSocketConnections',
       'failedWebSocketConnections',
       'routes',
@@ -420,10 +419,6 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
       serverErrorRequests: parseNonnegativeInteger(
         http.serverErrorRequests,
         'Admin request traffic serverErrorRequests',
-      ),
-      legacyRoomStateRequests: parseNonnegativeInteger(
-        http.legacyRoomStateRequests,
-        'Admin request traffic legacyRoomStateRequests',
       ),
       successfulWebSocketConnections: parseNonnegativeInteger(
         http.successfulWebSocketConnections,

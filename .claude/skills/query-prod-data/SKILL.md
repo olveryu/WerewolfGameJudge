@@ -67,7 +67,6 @@ Client-side load performance telemetry. Query via Cloudflare SQL API (requires O
 Real-time game state within rooms (player list, role assignments, night actions) is stored in DO memory/SQLite.
 
 - DO auto-recycles after idle, data is lost.
-- Active rooms can be queried via API: `curl -s "https://api.werewolfjudge.eu.org/room/state?roomCode=XXXX"`
 - Closed rooms cannot have their participants queried.
 
 ## Common Query Templates

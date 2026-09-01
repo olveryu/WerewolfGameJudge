@@ -114,15 +114,6 @@ describe('POST /room/create', () => {
     expect(await directory.json()).toEqual({ room: body.room });
   });
 
-  it('does not expose the removed HTTP state endpoint', async () => {
-    const response = await postJson('/room/state', {
-      roomCode: '1234',
-      roomId: 'removed-http-state-endpoint',
-    });
-
-    expect(response.status).toBe(404);
-  });
-
   it('rejects client routing fields, unknown games, and invalid config before D1 claim', async () => {
     const auth = await createAnonymousUser();
     const clientRouting = await postJson(

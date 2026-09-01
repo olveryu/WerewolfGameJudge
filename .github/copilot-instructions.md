@@ -215,7 +215,7 @@ When in doubt, ask first. Do not fabricate repository facts.
 - **Cloudflare Pages** �?Frontend static assets. CDN details in `ci-deploy.instructions.md`.
 - **WeChat mini-program** �?web-view shell, loads Web version hosted on Pages. Details in `ci-deploy.instructions.md`.
 - **Client** �?HTTP submit + WebSocket receive + `applySnapshot` + audio (Host).
-- No P2P messages. Reconnection recovery reads from DO uniformly (`/room/state` �?`stub.getState()`).
+- No P2P messages. Reconnection recovery requests a correlated authoritative snapshot from the DO over WebSocket.
 
 ### Logging
 

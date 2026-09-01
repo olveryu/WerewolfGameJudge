@@ -1,10 +1,7 @@
 /** Sampling-aware request traffic query planning and Admin response aggregation. */
 
 import { WEBSOCKET_MESSAGE_EVENT_KIND } from '../../platform/telemetry/realtimeTraffic';
-import {
-  HTTP_REQUEST_EVENT_KIND,
-  LEGACY_ROOM_STATE_ROUTE,
-} from '../../platform/telemetry/requestTraffic';
+import { HTTP_REQUEST_EVENT_KIND } from '../../platform/telemetry/requestTraffic';
 import type {
   RealtimeTrafficAnalyticsRow,
   RequestTrafficAnalyticsRow,
@@ -38,7 +35,6 @@ export interface AdminRequestTrafficSummary {
     readonly totalRequests: number;
     readonly clientErrorRequests: number;
     readonly serverErrorRequests: number;
-    readonly legacyRoomStateRequests: number;
     readonly successfulWebSocketConnections: number;
     readonly failedWebSocketConnections: number;
     readonly routes: ReadonlyArray<{
@@ -157,7 +153,6 @@ export function createAdminRequestTrafficSummary(
   let totalRequests = 0;
   let clientErrorRequests = 0;
   let serverErrorRequests = 0;
-  let legacyRoomStateRequests = 0;
   let successfulWebSocketConnections = 0;
   let failedWebSocketConnections = 0;
   const routesByKey = new Map<string, MutableRouteMetric>();
@@ -168,7 +163,6 @@ export function createAdminRequestTrafficSummary(
     countsByBucket.set(row.bucket, (countsByBucket.get(row.bucket) ?? 0) + row.requestCount);
     if (row.status >= 400 && row.status < 500) clientErrorRequests += row.requestCount;
     if (row.status >= 500) serverErrorRequests += row.requestCount;
-    if (row.route === LEGACY_ROOM_STATE_ROUTE) legacyRoomStateRequests += row.requestCount;
     if (row.route === WEBSOCKET_ROUTE) {
       if (row.status === WEBSOCKET_UPGRADE_STATUS) {
         successfulWebSocketConnections += row.requestCount;
@@ -240,7 +234,6 @@ export function createAdminRequestTrafficSummary(
       totalRequests,
       clientErrorRequests,
       serverErrorRequests,
-      legacyRoomStateRequests,
       successfulWebSocketConnections,
       failedWebSocketConnections,
       routes,
