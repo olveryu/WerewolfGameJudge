@@ -2,18 +2,18 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { Children, useCallback, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import {
+  resolveRoomHeaderLayout,
   usesRoomSideInspector,
-  usesStackedRoomHeader,
 } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout } from '@/theme';
+import { colors, componentSizes, layout, spacing } from '@/theme';
 
 import { ControlledSeatBanner } from './ControlledSeatBanner';
 import { PlayerProfileCard } from './PlayerProfileCard';
@@ -26,6 +26,19 @@ import { RoomSeatConfirmModal } from './RoomSeatConfirmModal';
 import { createRoomShellStyles } from './RoomShell.styles';
 import { RoomStatusRibbon } from './RoomStatusRibbon';
 import { createRoomFeatureStyles } from './styles';
+
+const ROOM_HEADER_TITLE_RESERVED_FONT_UNITS = 5;
+const ROOM_HEADER_CENTER_CONTENT_WIDTH =
+  layout.headerTitleSize * ROOM_HEADER_TITLE_RESERVED_FONT_UNITS +
+  spacing.tight +
+  componentSizes.button.sm;
+const ROOM_HEADER_BASE_SIDE_WIDTH = componentSizes.avatar.md;
+const ROOM_HEADER_EXTRA_ACTION_WIDTH = componentSizes.avatar.md + spacing.small;
+const ROOM_HEADER_HORIZONTAL_PADDING_WIDTH = spacing.screenH * 2;
+
+function getRoomHeaderSideWidth(extraActionCount: number): number {
+  return ROOM_HEADER_BASE_SIDE_WIDTH + extraActionCount * ROOM_HEADER_EXTRA_ACTION_WIDTH;
+}
 
 export interface RoomShellProps {
   readonly model: RoomShellModel;
@@ -54,7 +67,18 @@ export const RoomShell: React.FC<RoomShellProps> = ({
   const styles = useMemo(() => createRoomShellStyles(colors), []);
   const componentStyles = useMemo(() => createRoomFeatureStyles(colors), []);
   const isWideLayout = usesRoomSideInspector(viewportWidth);
-  const isHeaderStacked = usesStackedRoomHeader(viewportWidth);
+  const headerLayout = resolveRoomHeaderLayout(viewportWidth, {
+    centerContentWidth: ROOM_HEADER_CENTER_CONTENT_WIDTH,
+    horizontalPaddingWidth: ROOM_HEADER_HORIZONTAL_PADDING_WIDTH,
+    leadingWidth: getRoomHeaderSideWidth(Children.count(leadingExtraActions)),
+    trailingWidth: getRoomHeaderSideWidth(Children.count(trailingExtraActions)),
+  });
+  const isHeaderStacked = headerLayout === 'stacked';
+  const headerCenterStyle = {
+    centered: styles.headerCenter,
+    compact: styles.headerCenterCompact,
+    stacked: styles.headerCenterStacked,
+  }[headerLayout];
   const openHostManagement = useCallback(() => {
     if (model.hostManagement === null) {
       throw new Error('Cannot open unavailable Host management');
@@ -101,7 +125,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
     </View>
   );
   const centeredHeader = (
-    <View style={isHeaderStacked ? styles.headerCenterStacked : styles.headerCenter}>
+    <View style={headerCenterStyle}>
       <View style={styles.headerTitleRow}>
         {model.header.onTitlePress ? (
           <TouchableOpacity onPress={model.header.onTitlePress} activeOpacity={1}>

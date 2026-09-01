@@ -54,6 +54,12 @@ export function createRoomShellStyles(colors: ThemeColors) {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    headerCenterCompact: {
+      flex: 1,
+      minWidth: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     headerCenterStacked: {
       alignItems: 'center',
       justifyContent: 'center',
