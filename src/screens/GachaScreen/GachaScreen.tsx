@@ -9,6 +9,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PITY_THRESHOLD } from '@game-judge/game-engine/product/rewards';
+import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +33,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useDrawMutation, useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
+import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
 import { getUserFacingMessage } from '@/utils/errorUtils';
@@ -54,6 +56,9 @@ export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
+  const isFocused = useIsFocused();
+  const isAppVisible = useAppVisibility();
+  const isAmbientAnimationActive = isFocused && isAppVisible;
   const queryClient = useQueryClient();
   const { user } = useAuthContext();
   const isAnon = !user || user.isAnonymous;
@@ -314,6 +319,7 @@ export function GachaScreen({ navigation }: Props) {
                 threshold={PITY_THRESHOLD}
                 golden={isGoldenTab}
                 reducedMotion={reducedMotion}
+                isAnimationActive={isAmbientAnimationActive}
               />
             </View>
           </View>
@@ -343,6 +349,7 @@ export function GachaScreen({ navigation }: Props) {
             golden={isGoldenTab}
             multiPullCount={isAnon ? undefined : activeDraws}
             reducedMotion={reducedMotion}
+            isAnimationActive={isAmbientAnimationActive}
           />
 
           {/* Hint + rate disclosure */}

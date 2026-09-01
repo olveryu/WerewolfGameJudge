@@ -18,11 +18,13 @@ export function audioAssetToUrl(asset: AudioAsset): string {
  * Maximum time to wait for native audio playback completion before auto-resolving.
  *
  * Native-only safety net: expo-audio on buggy Android firmware may never fire
- * `didJustFinish`. Web does not use this — WebAudioStrategy waits for
- * `canplaythrough` then relies on `onended` (which is reliable once data is
- * fully buffered).
+ * `didJustFinish`. Web uses a separate bounded load deadline before relying on
+ * `onended` once data is fully buffered.
  */
 export const NATIVE_AUDIO_TIMEOUT_MS = 15000;
+
+/** Maximum time to buffer Web narration before reporting a load failure. */
+export const WEB_AUDIO_LOAD_TIMEOUT_MS = 15000;
 
 /**
  * Platform-specific audio playback strategy.
@@ -32,7 +34,7 @@ export const NATIVE_AUDIO_TIMEOUT_MS = 15000;
  * appropriate strategy at construction time and delegates all IO through it.
  */
 export interface AudioPlaybackStrategy {
-  /** Play `asset` and resolve when playback completes (or errors / times out). */
+  /** Play `asset` and settle when playback completes, is cancelled, or fails. */
   play(asset: AudioAsset, label: string): Promise<void>;
   /** Stop current playback and settle any pending promise. */
   stop(): void;

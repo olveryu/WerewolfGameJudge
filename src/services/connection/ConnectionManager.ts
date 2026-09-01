@@ -6,7 +6,7 @@
  * - Requests and correlates authoritative snapshots over the active WebSocket
  * - Ping/pong keepalive + timeout detection
  * - Retry timer (exponential backoff + jitter)
- * - Platform event listeners (online/offline, visibilitychange)
+ * - Platform event listeners (online/offline, foreground visibility)
  * - connectAndWait(): initial connection with Promise semantics
  *
  * Not responsible for:
@@ -34,6 +34,7 @@ import type {
 import { createStateSyncRequestMessage } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 
+import type { AppVisibilityStore } from '@/services/infra/appVisibility';
 import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
 import { NetworkTimeoutError } from '@/utils/errorUtils';
@@ -73,6 +74,8 @@ export interface ConnectionManagerDeps<
   onStateSync: (snapshot: RoomSnapshot<TState>) => void;
   /** Durable user-event callback. */
   onUserEvent: (event: TEvent) => void;
+  /** Shared Web/Native foreground visibility source. */
+  appVisibilityStore: AppVisibilityStore;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,9 +110,7 @@ export class ConnectionManager<
   // Platform listeners
   #onlineHandler: (() => void) | null = null;
   #offlineHandler: (() => void) | null = null;
-  #visibilityHandler: (() => void) | null = null;
-  #pageshowHandler: ((e: PageTransitionEvent) => void) | null = null;
-  #focusHandler: (() => void) | null = null;
+  #appVisibilityUnsubscribe: (() => void) | null = null;
 
   // connectAndWait() pending promise resolution
   #connectWaitResolve: (() => void) | null = null;
@@ -118,7 +119,7 @@ export class ConnectionManager<
 
   constructor(deps: ConnectionManagerDeps<TState, TEvent>) {
     this.#deps = deps;
-    this.#ctx = createInitialContext();
+    this.#ctx = createInitialContext({ visible: deps.appVisibilityStore.getSnapshot() });
 
     // Wire transport events → FSM events
     deps.transport.setEventHandlers({
@@ -387,6 +388,7 @@ export class ConnectionManager<
 
   #startPing(): void {
     this.#stopPing();
+    if (!this.#ctx.visible) return;
     this.#pingInterval = setInterval(() => {
       // Literal 'ping' matches the DO's setWebSocketAutoResponse('ping' → 'pong'),
       // so the keepalive is answered at the edge without waking the DO.
@@ -511,42 +513,15 @@ export class ConnectionManager<
       globalThis.window.addEventListener('offline', this.#offlineHandler);
     }
 
-    // Visibility change
-    if (typeof document !== 'undefined') {
-      this.#visibilityHandler = () => {
-        if (document.visibilityState === 'visible') {
-          this.#dispatch({ type: 'VISIBILITY_VISIBLE' });
-        } else {
-          this.#dispatch({ type: 'VISIBILITY_HIDDEN' });
-        }
-      };
-      document.addEventListener('visibilitychange', this.#visibilityHandler);
-    }
-
-    // Fallback: pageshow (fires on BFCache restore & WKWebView resume where
-    // visibilitychange may not fire reliably)
-    if (typeof globalThis.window?.addEventListener === 'function') {
-      this.#pageshowHandler = (e: PageTransitionEvent) => {
-        // Only act if FSM thinks we're hidden but the page is actually visible
-        if (e.persisted && !this.#ctx.visible && document.visibilityState === 'visible') {
-          connectionLog.debug('pageshow fallback → VISIBILITY_VISIBLE');
-          this.#dispatch({ type: 'VISIBILITY_VISIBLE' });
-        }
-      };
-      globalThis.window.addEventListener('pageshow', this.#pageshowHandler);
-    }
-
-    // Fallback: focus (Android WebView sometimes fires focus before visibilitychange
-    // on resume from background; WKWebView may only fire focus without visibilitychange)
-    if (typeof globalThis.window?.addEventListener === 'function') {
-      this.#focusHandler = () => {
-        if (!this.#ctx.visible && document.visibilityState === 'visible') {
-          connectionLog.debug('focus fallback → VISIBILITY_VISIBLE');
-          this.#dispatch({ type: 'VISIBILITY_VISIBLE' });
-        }
-      };
-      globalThis.window.addEventListener('focus', this.#focusHandler);
-    }
+    const handleAppVisibilityChange = (): void => {
+      this.#dispatch({
+        type: this.#deps.appVisibilityStore.getSnapshot()
+          ? 'VISIBILITY_VISIBLE'
+          : 'VISIBILITY_HIDDEN',
+      });
+    };
+    this.#appVisibilityUnsubscribe =
+      this.#deps.appVisibilityStore.subscribe(handleAppVisibilityChange);
   }
 
   #unregisterPlatformListeners(): void {
@@ -559,18 +534,10 @@ export class ConnectionManager<
         globalThis.window.removeEventListener('offline', this.#offlineHandler);
         this.#offlineHandler = null;
       }
-      if (this.#pageshowHandler) {
-        globalThis.window.removeEventListener('pageshow', this.#pageshowHandler);
-        this.#pageshowHandler = null;
-      }
-      if (this.#focusHandler) {
-        globalThis.window.removeEventListener('focus', this.#focusHandler);
-        this.#focusHandler = null;
-      }
     }
-    if (typeof document !== 'undefined' && this.#visibilityHandler) {
-      document.removeEventListener('visibilitychange', this.#visibilityHandler);
-      this.#visibilityHandler = null;
+    if (this.#appVisibilityUnsubscribe) {
+      this.#appVisibilityUnsubscribe();
+      this.#appVisibilityUnsubscribe = null;
     }
   }
 

@@ -31,7 +31,16 @@ const EMPTY_TRAFFIC: AdminRequestTraffic = {
     routes: [],
     series: [],
   },
-  realtime: { stateSyncRequests: 0, userEventAcks: 0, invalidClientMessages: 0 },
+  realtime: {
+    stateSyncRequests: 0,
+    stateUpdateBroadcasts: 0,
+    stateUpdateDeliveries: 0,
+    stateUpdateBytes: 0,
+    downlinkDeliveries: 0,
+    downlinkBytes: 0,
+    userEventAcks: 0,
+    invalidClientMessages: 0,
+  },
 };
 
 const TRAFFIC_WITH_ROUTE: AdminRequestTraffic = {
@@ -57,6 +66,14 @@ const TRAFFIC_WITH_ROUTE: AdminRequestTraffic = {
         ],
       },
     ],
+  },
+  realtime: {
+    ...EMPTY_TRAFFIC.realtime,
+    stateUpdateBroadcasts: 3,
+    stateUpdateDeliveries: 12,
+    stateUpdateBytes: 2400,
+    downlinkDeliveries: 17,
+    downlinkBytes: 3300,
   },
 };
 
@@ -109,6 +126,11 @@ describe('RequestTrafficTab', () => {
     expect(screen.getByText('12 · 60.0%')).toBeTruthy();
     expect(screen.getByText('200: 10  ·  500: 2')).toBeTruthy();
     expect(screen.getByText('0 / 0（无成功连接，无法计算）')).toBeTruthy();
+    expect(screen.getByText('状态广播')).toBeTruthy();
+    expect(screen.getByText('状态推送帧')).toBeTruthy();
+    expect(screen.getByText('2.3 KB')).toBeTruthy();
+    expect(screen.getByText('全部下行帧')).toBeTruthy();
+    expect(screen.getByText('3.2 KB')).toBeTruthy();
     expect(screen.getByText('1小时')).toBeTruthy();
     expect(screen.getByText('24小时')).toBeTruthy();
     expect(screen.queryByText('今天')).toBeNull();

@@ -47,6 +47,8 @@ const requestTrafficRowSchema = z.strictObject({
 const realtimeTrafficRowSchema = z.strictObject({
   messageType: z.enum(REALTIME_TRAFFIC_MESSAGE_TYPES),
   messageCount: analyticsCountSchema.pipe(z.number().positive()),
+  deliveryCount: analyticsCountSchema,
+  transferredBytes: analyticsCountSchema,
 });
 
 export type LoadTimingAnalyticsRow = z.infer<typeof loadTimingRowSchema>;

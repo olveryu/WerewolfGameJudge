@@ -127,13 +127,25 @@ describe('Analytics Engine provider', () => {
     const fetchImpl: typeof fetch = async () =>
       new Response(
         JSON.stringify({
-          data: [{ messageType: 'STATE_SYNC_REQUEST', messageCount: '7' }],
+          data: [
+            {
+              messageType: 'STATE_UPDATE',
+              messageCount: '7',
+              deliveryCount: '21',
+              transferredBytes: '8192',
+            },
+          ],
         }),
         { status: 200 },
       );
 
     await expect(queryRealtimeTrafficAnalytics(env, 'SELECT 1', fetchImpl)).resolves.toEqual([
-      { messageType: 'STATE_SYNC_REQUEST', messageCount: 7 },
+      {
+        messageType: 'STATE_UPDATE',
+        messageCount: 7,
+        deliveryCount: 21,
+        transferredBytes: 8192,
+      },
     ]);
   });
 });

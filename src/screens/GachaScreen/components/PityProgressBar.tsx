@@ -8,6 +8,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -29,6 +30,7 @@ interface PityProgressBarProps {
   threshold: number;
   golden?: boolean;
   reducedMotion?: boolean | null;
+  isAnimationActive: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -37,6 +39,7 @@ interface PityProgressBarProps {
   threshold,
   golden,
   reducedMotion,
+  isAnimationActive,
 }: PityProgressBarProps) {
   const ratio = threshold > 0 ? pity / threshold : 0;
   const isNearPity = ratio >= NEAR_PITY_RATIO;
@@ -45,12 +48,12 @@ interface PityProgressBarProps {
   const pulseOpacity = useSharedValue(1);
 
   useEffect(() => {
-    if (isNearPity && !reducedMotion) {
+    if (isAnimationActive && isNearPity && !reducedMotion) {
       pulseOpacity.value = withRepeat(withTiming(0.7, { duration: 800 }), -1, true);
-    } else {
-      pulseOpacity.value = 1;
+      return () => cancelAnimation(pulseOpacity);
     }
-  }, [isNearPity, reducedMotion, pulseOpacity]);
+    pulseOpacity.value = 1;
+  }, [isAnimationActive, isNearPity, reducedMotion, pulseOpacity]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseOpacity.value,

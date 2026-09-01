@@ -389,7 +389,16 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
   const realtime = requireObject(object.realtime, 'Admin request traffic realtime');
   assertExactKeys(
     realtime,
-    ['stateSyncRequests', 'userEventAcks', 'invalidClientMessages'],
+    [
+      'stateSyncRequests',
+      'stateUpdateBroadcasts',
+      'stateUpdateDeliveries',
+      'stateUpdateBytes',
+      'downlinkDeliveries',
+      'downlinkBytes',
+      'userEventAcks',
+      'invalidClientMessages',
+    ],
     'Admin request traffic realtime',
   );
 
@@ -477,6 +486,26 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
       stateSyncRequests: parseNonnegativeInteger(
         realtime.stateSyncRequests,
         'Admin request traffic stateSyncRequests',
+      ),
+      stateUpdateBroadcasts: parseNonnegativeInteger(
+        realtime.stateUpdateBroadcasts,
+        'Admin request traffic stateUpdateBroadcasts',
+      ),
+      stateUpdateDeliveries: parseNonnegativeInteger(
+        realtime.stateUpdateDeliveries,
+        'Admin request traffic stateUpdateDeliveries',
+      ),
+      stateUpdateBytes: parseNonnegativeInteger(
+        realtime.stateUpdateBytes,
+        'Admin request traffic stateUpdateBytes',
+      ),
+      downlinkDeliveries: parseNonnegativeInteger(
+        realtime.downlinkDeliveries,
+        'Admin request traffic downlinkDeliveries',
+      ),
+      downlinkBytes: parseNonnegativeInteger(
+        realtime.downlinkBytes,
+        'Admin request traffic downlinkBytes',
       ),
       userEventAcks: parseNonnegativeInteger(
         realtime.userEventAcks,

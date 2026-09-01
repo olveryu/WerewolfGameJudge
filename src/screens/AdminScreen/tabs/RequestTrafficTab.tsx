@@ -23,6 +23,10 @@ type TrafficRange = Readonly<{ from: string; to: string }>;
 type RouteMetric = AdminRequestTraffic['http']['routes'][number];
 
 const REQUEST_TIME_PRESETS: readonly TimePreset[] = ['1h', '24h', '7d', '30d'] as const;
+const BYTES_PER_KILOBYTE = 1024;
+const BYTES_PER_MEGABYTE = BYTES_PER_KILOBYTE * 1024;
+const BYTES_PER_GIGABYTE = BYTES_PER_MEGABYTE * 1024;
+const BYTES_PER_TERABYTE = BYTES_PER_GIGABYTE * 1024;
 
 const requestTrafficTabLog = log.extend('RequestTrafficTab');
 
@@ -35,6 +39,20 @@ function formatStateSyncRatio(stateSyncRequests: number, successfulConnections: 
     return `${stateSyncRequests.toLocaleString()} / 0（无成功连接，无法计算）`;
   }
   return `${(stateSyncRequests / successfulConnections).toFixed(2)} 次/连接`;
+}
+
+function formatByteCount(bytes: number): string {
+  if (bytes < BYTES_PER_KILOBYTE) return `${bytes.toLocaleString()} B`;
+  if (bytes < BYTES_PER_MEGABYTE) {
+    return `${(bytes / BYTES_PER_KILOBYTE).toFixed(1)} KB`;
+  }
+  if (bytes < BYTES_PER_GIGABYTE) {
+    return `${(bytes / BYTES_PER_MEGABYTE).toFixed(1)} MB`;
+  }
+  if (bytes < BYTES_PER_TERABYTE) {
+    return `${(bytes / BYTES_PER_GIGABYTE).toFixed(1)} GB`;
+  }
+  return `${(bytes / BYTES_PER_TERABYTE).toFixed(1)} TB`;
 }
 
 const RouteMetricRow = memo(function RouteMetricRow({ route }: { route: RouteMetric }) {
@@ -205,6 +223,35 @@ const TrafficOverview = memo(function TrafficOverview({ data }: { data: AdminReq
           label="事件确认"
           icon="checkmark-done-outline"
         />
+      </View>
+      <Text style={styles.sectionTitle}>WebSocket 下行</Text>
+      <View style={styles.metricsRow}>
+        <MetricCard
+          value={data.realtime.stateUpdateBroadcasts.toLocaleString()}
+          label="状态广播"
+          icon="radio-outline"
+        />
+        <MetricCard
+          value={data.realtime.stateUpdateDeliveries.toLocaleString()}
+          label="状态推送帧"
+          icon="paper-plane-outline"
+        />
+      </View>
+      <View style={styles.metricsRow}>
+        <MetricCard
+          value={formatByteCount(data.realtime.stateUpdateBytes)}
+          label="状态下行流量"
+          icon="download-outline"
+        />
+        <MetricCard
+          value={data.realtime.downlinkDeliveries.toLocaleString()}
+          label="全部下行帧"
+          icon="layers-outline"
+        />
+      </View>
+      <View style={styles.deltaRow}>
+        <Text style={styles.deltaLabel}>下行总流量</Text>
+        <Text style={styles.deltaValue}>{formatByteCount(data.realtime.downlinkBytes)}</Text>
       </View>
       <Text style={styles.sectionTitle}>HTTP 路由</Text>
     </>

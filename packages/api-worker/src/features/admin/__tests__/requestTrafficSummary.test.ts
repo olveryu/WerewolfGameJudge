@@ -19,6 +19,8 @@ describe('request traffic summary', () => {
     expect(plan.httpSql).toContain('SUM(_sample_interval * double1) AS durationTotalMs');
     expect(plan.httpSql).toContain("blob1 = 'HTTP_REQUEST'");
     expect(plan.realtimeSql).toContain("blob1 = 'WEBSOCKET_MESSAGE'");
+    expect(plan.realtimeSql).toContain('SUM(_sample_interval * double2) AS deliveryCount');
+    expect(plan.realtimeSql).toContain('SUM(_sample_interval * double3) AS transferredBytes');
   });
 
   it('aggregates routes, errors, WebSocket traffic, and empty buckets', () => {
@@ -70,9 +72,42 @@ describe('request traffic summary', () => {
         },
       ],
       [
-        { messageType: 'STATE_SYNC_REQUEST', messageCount: 6 },
-        { messageType: 'USER_EVENT_ACK', messageCount: 2 },
-        { messageType: 'INVALID_CLIENT_MESSAGE', messageCount: 1 },
+        {
+          messageType: 'STATE_SYNC_REQUEST',
+          messageCount: 6,
+          deliveryCount: 6,
+          transferredBytes: 600,
+        },
+        {
+          messageType: 'STATE_UPDATE',
+          messageCount: 3,
+          deliveryCount: 12,
+          transferredBytes: 2400,
+        },
+        {
+          messageType: 'STATE_SYNC_RESPONSE',
+          messageCount: 2,
+          deliveryCount: 2,
+          transferredBytes: 600,
+        },
+        {
+          messageType: 'USER_EVENT_DELIVERY',
+          messageCount: 1,
+          deliveryCount: 3,
+          transferredBytes: 300,
+        },
+        {
+          messageType: 'USER_EVENT_ACK',
+          messageCount: 2,
+          deliveryCount: 2,
+          transferredBytes: 100,
+        },
+        {
+          messageType: 'INVALID_CLIENT_MESSAGE',
+          messageCount: 1,
+          deliveryCount: 1,
+          transferredBytes: 20,
+        },
       ],
       { fromDate, toDate, bucketSeconds: 60 },
       '2026-08-31T00:02:00.000Z',
@@ -91,6 +126,11 @@ describe('request traffic summary', () => {
       },
       realtime: {
         stateSyncRequests: 6,
+        stateUpdateBroadcasts: 3,
+        stateUpdateDeliveries: 12,
+        stateUpdateBytes: 2400,
+        downlinkDeliveries: 17,
+        downlinkBytes: 3300,
         userEventAcks: 2,
         invalidClientMessages: 1,
       },

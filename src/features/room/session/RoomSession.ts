@@ -26,6 +26,7 @@ import type {
 } from '@/features/room/session/types';
 import { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
+import { appVisibilityStore } from '@/services/infra/appVisibility';
 import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
 import { roomSessionLog } from '@/utils/logger';
@@ -134,6 +135,7 @@ export class RoomSession<
       onStateUpdate: (message) => this.#applyStateUpdate(message),
       onStateSync: (snapshot) => this.#applySnapshot(snapshot, null),
       onUserEvent: (event) => this.#receiveUserEvent(event),
+      appVisibilityStore,
     });
     this.#connection.addStateListener((state) => this.#handleConnectionState(state));
   }

@@ -6,9 +6,17 @@
  * (skips network/abort/expected errors).
  */
 import * as Sentry from '@sentry/react-native';
-import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+import { focusManager, MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
+import { appVisibilityStore } from '@/services/infra/appVisibility';
 import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
+
+focusManager.setEventListener((setFocused) => {
+  const syncFocus = (): void => setFocused(appVisibilityStore.getSnapshot());
+  const unsubscribe = appVisibilityStore.subscribe(syncFocus);
+  syncFocus();
+  return unsubscribe;
+});
 
 /** Global QueryClient instance, injected by QueryClientProvider in App.tsx. */
 export const queryClient = new QueryClient({

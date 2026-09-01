@@ -38,6 +38,8 @@ Sentry.init({
   // Session Replay — always capture on error, sample 10% of normal sessions
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
+  // Native screenshot capture is CPU/network intensive; low is Sentry's mobile recommendation.
+  replaysSessionQuality: Platform.OS === 'web' ? undefined : 'low',
   integrations: getSentryIntegrations(),
   // Allow Relay to infer browser.name / IP from User-Agent for Structured Logs
   sendDefaultPii: true,

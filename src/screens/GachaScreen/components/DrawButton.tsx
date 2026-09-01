@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -38,6 +39,7 @@ interface DrawButtonProps {
   /** Actual draw count (e.g. 6 when only 6 tickets remain). Shows "仅剩 N 抽" hint. */
   multiPullCount?: number;
   reducedMotion?: boolean | null;
+  isAnimationActive: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -50,16 +52,21 @@ export function DrawButton({
   golden,
   multiPullCount,
   reducedMotion,
+  isAnimationActive,
 }: DrawButtonProps) {
   const pressScale = useSharedValue(1);
   const shimmerX = useSharedValue(-1);
 
   // Shimmer loop — continuous translateX sweep
   useEffect(() => {
-    if (reducedMotion || disabled) return;
+    if (!isAnimationActive || reducedMotion || disabled) {
+      shimmerX.value = -1;
+      return;
+    }
     shimmerX.value = -1;
     shimmerX.value = withRepeat(withTiming(2, { duration: golden ? 2200 : 3000 }), -1, false);
-  }, [shimmerX, reducedMotion, disabled, golden]);
+    return () => cancelAnimation(shimmerX);
+  }, [shimmerX, reducedMotion, disabled, golden, isAnimationActive]);
 
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressScale.value }],

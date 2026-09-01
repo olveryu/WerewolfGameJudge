@@ -141,7 +141,14 @@ describe('GET /admin/request-traffic', () => {
       }
       if (sqlQuery.includes("blob1 = 'WEBSOCKET_MESSAGE'")) {
         return Response.json({
-          data: [{ messageType: 'STATE_SYNC_REQUEST', messageCount: 2 }],
+          data: [
+            {
+              messageType: 'STATE_SYNC_REQUEST',
+              messageCount: 2,
+              deliveryCount: 2,
+              transferredBytes: 160,
+            },
+          ],
         });
       }
       throw new Error(`Unexpected external analytics request: ${request.url}`);

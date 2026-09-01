@@ -7,6 +7,7 @@ import {
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
+import type { AppVisibilityStore } from '@/services/infra/appVisibility';
 import type {
   IRealtimeTransport,
   TransportEventHandlers,
@@ -23,6 +24,30 @@ import {
 
 interface TestUserEvent {
   readonly eventId: string;
+}
+
+interface TestAppVisibility {
+  readonly store: AppVisibilityStore;
+  setIsVisible(isVisible: boolean): void;
+}
+
+function createTestAppVisibility(): TestAppVisibility {
+  let isVisible = true;
+  const listeners = new Set<() => void>();
+  return {
+    store: {
+      getSnapshot: () => isVisible,
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    setIsVisible(nextIsVisible) {
+      if (nextIsVisible === isVisible) return;
+      isVisible = nextIsVisible;
+      listeners.forEach((listener) => listener());
+    },
+  };
 }
 
 function createDeferred<T>(): {
@@ -88,11 +113,13 @@ function createDeps(
   shouldAutoRespondToStateSync = true,
 ) {
   const transport = createMockTransport();
+  const appVisibility = createTestAppVisibility();
   const deps: ConnectionManagerDeps<GameState, TestUserEvent> = {
     transport,
     onStateUpdate: jest.fn(),
     onStateSync: jest.fn(),
     onUserEvent: jest.fn(),
+    appVisibilityStore: appVisibility.store,
     ...overrides,
   };
   // Re-assign transport if overrides didn't provide one
@@ -120,7 +147,11 @@ function createDeps(
       return true;
     });
   }
-  return { transport: deps.transport as ReturnType<typeof createMockTransport>, deps };
+  return {
+    transport: deps.transport as ReturnType<typeof createMockTransport>,
+    deps,
+    appVisibility,
+  };
 }
 
 function readLatestStateSyncRequestId(transport: ReturnType<typeof createMockTransport>): string {
@@ -350,6 +381,93 @@ describe('ConnectionManager', () => {
       jest.advanceTimersByTime(PONG_TIMEOUT_MS);
 
       expect(manager.getState()).toBe(ConnectionState.Disconnected);
+
+      manager.dispose();
+    });
+
+    it('pauses ping in background and resynchronizes before resuming in foreground', async () => {
+      const { transport, deps, appVisibility } = createDeps();
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait(ROOM_1);
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+      transport.send.mockClear();
+
+      appVisibility.setIsVisible(false);
+      jest.advanceTimersByTime(PING_INTERVAL_MS);
+
+      expect(manager.getContext().visible).toBe(false);
+      expect(transport.send).not.toHaveBeenCalled();
+
+      appVisibility.setIsVisible(true);
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(manager.getState()).toBe(ConnectionState.Connected);
+      expect(deps.onStateSync).toHaveBeenCalledTimes(2);
+
+      transport.send.mockClear();
+      jest.advanceTimersByTime(PING_INTERVAL_MS);
+      expect(transport.send).toHaveBeenCalledWith('ping');
+
+      manager.dispose();
+    });
+
+    it('does not start ping when constructed in the background', async () => {
+      const { transport, deps, appVisibility } = createDeps();
+      appVisibility.setIsVisible(false);
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait(ROOM_1);
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+      transport.send.mockClear();
+
+      jest.advanceTimersByTime(PING_INTERVAL_MS);
+
+      expect(manager.getContext().visible).toBe(false);
+      expect(transport.send).not.toHaveBeenCalled();
+
+      manager.dispose();
+    });
+
+    it('does not start ping when backgrounded while opening the connection', async () => {
+      const { transport, deps, appVisibility } = createDeps();
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait(ROOM_1);
+      appVisibility.setIsVisible(false);
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+      transport.send.mockClear();
+
+      jest.advanceTimersByTime(PING_INTERVAL_MS);
+
+      expect(manager.getContext().visible).toBe(false);
+      expect(transport.send).not.toHaveBeenCalled();
+
+      manager.dispose();
+    });
+
+    it('starts ping when foregrounded while the initial sync is pending', async () => {
+      const { transport, deps, appVisibility } = createDeps();
+      appVisibility.setIsVisible(false);
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait(ROOM_1);
+      transport.handlers.onOpen();
+      appVisibility.setIsVisible(true);
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+      transport.send.mockClear();
+
+      jest.advanceTimersByTime(PING_INTERVAL_MS);
+
+      expect(manager.getContext().visible).toBe(true);
+      expect(transport.send).toHaveBeenCalledWith('ping');
 
       manager.dispose();
     });

@@ -141,6 +141,11 @@ describe('adminResponseCodec', () => {
         },
         realtime: {
           stateSyncRequests: 6,
+          stateUpdateBroadcasts: 3,
+          stateUpdateDeliveries: 12,
+          stateUpdateBytes: 2400,
+          downlinkDeliveries: 17,
+          downlinkBytes: 3300,
           userEventAcks: 2,
           invalidClientMessages: 1,
         },
@@ -185,7 +190,16 @@ describe('adminResponseCodec', () => {
           routes: [],
           series: [],
         },
-        realtime: { stateSyncRequests: 0, userEventAcks: 0, invalidClientMessages: 0 },
+        realtime: {
+          stateSyncRequests: 0,
+          stateUpdateBroadcasts: 0,
+          stateUpdateDeliveries: 0,
+          stateUpdateBytes: 0,
+          downlinkDeliveries: 0,
+          downlinkBytes: 0,
+          userEventAcks: 0,
+          invalidClientMessages: 0,
+        },
       }),
     () =>
       parseAdminRequestTrafficResponse({
@@ -211,7 +225,16 @@ describe('adminResponseCodec', () => {
           ],
           series: [],
         },
-        realtime: { stateSyncRequests: 0, userEventAcks: 0, invalidClientMessages: 0 },
+        realtime: {
+          stateSyncRequests: 0,
+          stateUpdateBroadcasts: 0,
+          stateUpdateDeliveries: 0,
+          stateUpdateBytes: 0,
+          downlinkDeliveries: 0,
+          downlinkBytes: 0,
+          userEventAcks: 0,
+          invalidClientMessages: 0,
+        },
       }),
   ])('fails fast for malformed payloads', (decode) => {
     expect(decode).toThrow();

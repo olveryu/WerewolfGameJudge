@@ -101,6 +101,13 @@ export interface AdminRequestTraffic {
   };
   realtime: {
     stateSyncRequests: number;
+    stateUpdateBroadcasts: number;
+    stateUpdateDeliveries: number;
+    /** STATE_UPDATE UTF-8 payload bytes after WebSocket fanout. */
+    stateUpdateBytes: number;
+    downlinkDeliveries: number;
+    /** All business downlink UTF-8 payload bytes after WebSocket fanout. */
+    downlinkBytes: number;
     userEventAcks: number;
     invalidClientMessages: number;
   };

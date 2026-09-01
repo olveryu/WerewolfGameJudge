@@ -47,6 +47,27 @@ describe('createInitialContext', () => {
     const c = createInitialContext({ maxAttempts: 5 });
     expect(c.maxAttempts).toBe(5);
   });
+
+  it('accepts the platform visibility snapshot', () => {
+    const c = createInitialContext({ visible: false });
+    expect(c.visible).toBe(false);
+  });
+});
+
+describe('environment snapshots', () => {
+  it.each([
+    ConnectionState.Idle,
+    ConnectionState.Connecting,
+    ConnectionState.Syncing,
+    ConnectionState.Reconnecting,
+    ConnectionState.Failed,
+  ])('tracks offline and online events while %s', (state) => {
+    const offline = transition(ctx(state), { type: 'NETWORK_OFFLINE' });
+    const online = transition(offline.ctx, { type: 'NETWORK_ONLINE' });
+
+    expect(offline.ctx.networkOnline).toBe(false);
+    expect(online.ctx.networkOnline).toBe(true);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,6 +121,15 @@ describe('Connecting state', () => {
     const types = effectTypes(result);
     expect(types).toContain('START_PING');
     expect(types).toContain('REQUEST_STATE_SYNC');
+  });
+
+  it('does not request ping when the socket opens in the background', () => {
+    const hidden = transition(connecting, { type: 'VISIBILITY_HIDDEN' });
+    const result = transition(hidden.ctx, { type: 'WS_OPEN' });
+
+    expect(result.ctx.visible).toBe(false);
+    expect(effectTypes(result)).not.toContain('START_PING');
+    expect(effectTypes(result)).toContain('REQUEST_STATE_SYNC');
   });
 
   it('WS_CLOSE → Disconnected + STOP_PING + SCHEDULE_RETRY', () => {
@@ -193,6 +223,15 @@ describe('Syncing state', () => {
     expect(types).toContain('CANCEL_STATE_SYNC');
     expect(types).toContain('CANCEL_RETRY');
     expect(types).not.toContain('SCHEDULE_RETRY');
+  });
+
+  it('VISIBILITY_VISIBLE starts ping for a sync opened in the background', () => {
+    const result = transition(ctx(ConnectionState.Syncing, { visible: false }), {
+      type: 'VISIBILITY_VISIBLE',
+    });
+
+    expect(result.ctx.visible).toBe(true);
+    expect(effectTypes(result)).toContain('START_PING');
   });
 
   it('DISPOSE → Disposed', () => {
@@ -301,6 +340,15 @@ describe('Disconnected state', () => {
     expect(effectTypes(result)).not.toContain('OPEN_WS');
   });
 
+  it('RETRY_TIMER_FIRED while offline → suppressed + CANCEL_RETRY', () => {
+    const offline = ctx(ConnectionState.Disconnected, { networkOnline: false });
+    const result = transition(offline, { type: 'RETRY_TIMER_FIRED' });
+
+    expect(result.ctx.state).toBe(ConnectionState.Disconnected);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
+    expect(effectTypes(result)).not.toContain('OPEN_WS');
+  });
+
   it('RETRY_TIMER_FIRED at maxAttempts → Failed', () => {
     const d = ctx(ConnectionState.Disconnected, { attempt: DEFAULT_MAX_ATTEMPTS });
     const result = transition(d, { type: 'RETRY_TIMER_FIRED' });
@@ -314,6 +362,19 @@ describe('Disconnected state', () => {
     const types = effectTypes(result);
     expect(types).toContain('CANCEL_RETRY');
     expect(types).toContain('OPEN_WS');
+  });
+
+  it('NETWORK_ONLINE while background → updates network state without reconnecting', () => {
+    const background = ctx(ConnectionState.Disconnected, {
+      networkOnline: false,
+      visible: false,
+    });
+    const result = transition(background, { type: 'NETWORK_ONLINE' });
+
+    expect(result.ctx.state).toBe(ConnectionState.Disconnected);
+    expect(result.ctx.networkOnline).toBe(true);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
+    expect(effectTypes(result)).not.toContain('OPEN_WS');
   });
 
   it('NETWORK_ONLINE at maxAttempts → Failed', () => {
@@ -338,6 +399,19 @@ describe('Disconnected state', () => {
     const types = effectTypes(result);
     expect(types).toContain('CANCEL_RETRY');
     expect(types).toContain('OPEN_WS');
+  });
+
+  it('VISIBILITY_VISIBLE while offline → updates visibility without reconnecting', () => {
+    const offline = ctx(ConnectionState.Disconnected, {
+      networkOnline: false,
+      visible: false,
+    });
+    const result = transition(offline, { type: 'VISIBILITY_VISIBLE' });
+
+    expect(result.ctx.state).toBe(ConnectionState.Disconnected);
+    expect(result.ctx.visible).toBe(true);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
+    expect(effectTypes(result)).not.toContain('OPEN_WS');
   });
 
   it('MANUAL_RECONNECT → Reconnecting with attempt=1', () => {
@@ -384,6 +458,15 @@ describe('Reconnecting state', () => {
     const types = effectTypes(result);
     expect(types).toContain('START_PING');
     expect(types).toContain('REQUEST_STATE_SYNC');
+  });
+
+  it('does not request ping when a reconnect opens in the background', () => {
+    const hidden = transition(reconnecting, { type: 'VISIBILITY_HIDDEN' });
+    const result = transition(hidden.ctx, { type: 'WS_OPEN' });
+
+    expect(result.ctx.visible).toBe(false);
+    expect(effectTypes(result)).not.toContain('START_PING');
+    expect(effectTypes(result)).toContain('REQUEST_STATE_SYNC');
   });
 
   it('WS_CLOSE under maxAttempts → Disconnected + SCHEDULE_RETRY', () => {
@@ -434,6 +517,17 @@ describe('Failed state', () => {
     expect(effectTypes(result)).toContain('OPEN_WS');
   });
 
+  it('NETWORK_ONLINE while background → updates network state without reconnecting', () => {
+    const hidden = transition(failed, { type: 'VISIBILITY_HIDDEN' });
+    const offline = transition(hidden.ctx, { type: 'NETWORK_OFFLINE' });
+    const result = transition(offline.ctx, { type: 'NETWORK_ONLINE' });
+
+    expect(result.ctx.state).toBe(ConnectionState.Failed);
+    expect(result.ctx.visible).toBe(false);
+    expect(result.ctx.networkOnline).toBe(true);
+    expect(effectTypes(result)).not.toContain('OPEN_WS');
+  });
+
   it('VISIBILITY_VISIBLE → Reconnecting with attempt=1', () => {
     const f = ctx(ConnectionState.Failed, { attempt: DEFAULT_MAX_ATTEMPTS, visible: false });
     const result = transition(f, { type: 'VISIBILITY_VISIBLE' });
@@ -441,6 +535,19 @@ describe('Failed state', () => {
     expect(result.ctx.attempt).toBe(1);
     expect(result.ctx.visible).toBe(true);
     expect(effectTypes(result)).toContain('OPEN_WS');
+  });
+
+  it('VISIBILITY_VISIBLE while offline → updates visibility without reconnecting', () => {
+    const offline = ctx(ConnectionState.Failed, {
+      attempt: DEFAULT_MAX_ATTEMPTS,
+      networkOnline: false,
+      visible: false,
+    });
+    const result = transition(offline, { type: 'VISIBILITY_VISIBLE' });
+
+    expect(result.ctx.state).toBe(ConnectionState.Failed);
+    expect(result.ctx.visible).toBe(true);
+    expect(effectTypes(result)).not.toContain('OPEN_WS');
   });
 
   it('DISPOSE → Disposed', () => {

@@ -52,6 +52,9 @@ function resolveAvatarPrefetchUrl(avatarUrl: string | null | undefined): string 
 /** Font load timeout — don't block boot forever if CDN is unreachable. */
 const FONT_TIMEOUT_MS = 5_000;
 
+/** Avatar prefetch timeout — the rendered image can retry after boot. */
+export const AVATAR_PREFETCH_TIMEOUT_MS = 5_000;
+
 /**
  * Tracks app boot progress (auth + avatar prefetch + font loading).
  *
@@ -59,8 +62,8 @@ const FONT_TIMEOUT_MS = 5_000;
  */
 export function useBootProgress(): BootProgress {
   const { user, loading: authLoading, error: authError, retryInit } = useAuthContext();
-  // Avatar prefetch: skip on native, mark done immediately when no avatar to prefetch
-  const [avatarPrefetched, setAvatarPrefetched] = useState(Platform.OS !== 'web');
+  const avatarPrefetchUrl = resolveAvatarPrefetchUrl(user?.avatarUrl);
+  const [prefetchedAvatarUrl, setPrefetchedAvatarUrl] = useState<string | null>(null);
   // Icon font: skip on native (expo-splash-screen handles it)
   const [fontLoaded, setFontLoaded] = useState(Platform.OS !== 'web');
 
@@ -101,25 +104,50 @@ export function useBootProgress(): BootProgress {
     if (Platform.OS !== 'web') return;
     if (authLoading) return; // Wait for auth to settle
 
-    const url = resolveAvatarPrefetchUrl(user?.avatarUrl);
-    if (!url) {
-      // No image to prefetch (no user, generated avatar, or default icon)
-      setAvatarPrefetched(true);
-      return;
-    }
+    if (avatarPrefetchUrl === null) return;
 
-    bootLog.debug('Prefetching avatar', url);
-    const img = new window.Image();
-    img.onload = () => {
+    bootLog.debug('Prefetching avatar', avatarPrefetchUrl);
+    const image = new window.Image();
+    let isPending = true;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const dispose = (): boolean => {
+      if (!isPending) return false;
+      isPending = false;
+      if (timeout !== null) clearTimeout(timeout);
+      image.onload = null;
+      image.onerror = null;
+      return true;
+    };
+
+    image.onload = () => {
+      if (!dispose()) return;
       bootLog.debug('Avatar prefetched');
-      setAvatarPrefetched(true);
+      setPrefetchedAvatarUrl(avatarPrefetchUrl);
     };
-    img.onerror = () => {
+    image.onerror = () => {
+      if (!dispose()) return;
       bootLog.warn('Avatar prefetch failed (graceful degradation)');
-      setAvatarPrefetched(true);
+      setPrefetchedAvatarUrl(avatarPrefetchUrl);
     };
-    img.src = url;
-  }, [authLoading, user?.avatarUrl]);
+
+    timeout = setTimeout(() => {
+      if (!dispose()) return;
+      bootLog.warn('Avatar prefetch timed out — continuing boot');
+      image.removeAttribute('src');
+      setPrefetchedAvatarUrl(avatarPrefetchUrl);
+    }, AVATAR_PREFETCH_TIMEOUT_MS);
+    image.src = avatarPrefetchUrl;
+
+    return () => {
+      if (!dispose()) return;
+      image.removeAttribute('src');
+    };
+  }, [authLoading, avatarPrefetchUrl]);
+
+  const avatarPrefetched =
+    Platform.OS !== 'web' ||
+    (!authLoading && (avatarPrefetchUrl === null || prefetchedAvatarUrl === avatarPrefetchUrl));
 
   const isReady = !authLoading && authError == null && avatarPrefetched && fontLoaded;
   return { isReady, error: authError, retry: retryInit };

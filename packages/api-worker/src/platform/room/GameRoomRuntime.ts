@@ -27,7 +27,11 @@ import type {
   WorkerGameModuleResolver,
 } from '../gameModules/runtimeGameModule';
 import { createLogger } from '../observability/logger';
-import { recordRealtimeTraffic } from '../telemetry/realtimeTraffic';
+import {
+  getWebSocketMessageByteLength,
+  type RealtimeTrafficMessageType,
+  recordRealtimeTraffic,
+} from '../telemetry/realtimeTraffic';
 import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
 import { EffectOutbox } from './effectOutbox';
@@ -303,24 +307,42 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     }
   }
 
+  #recordRealtimeTraffic(
+    messageType: RealtimeTrafficMessageType,
+    message: string | ArrayBuffer,
+    deliveryCount: number,
+  ): void {
+    recordRealtimeTraffic(this.env.REQUEST_TRAFFIC, {
+      messageType,
+      payloadBytes: getWebSocketMessageByteLength(message),
+      deliveryCount,
+      deploymentId: this.env.CF_VERSION_METADATA.id,
+    });
+  }
+
   #broadcast(snapshot: RoomSnapshot<BaseGameState<GameType>>, commandType: string | null): void {
     const message = JSON.stringify(createStateUpdateMessage(snapshot, commandType));
+    let deliveryCount = 0;
     for (const socket of this.ctx.getWebSockets()) {
       try {
         socket.send(message);
+        deliveryCount += 1;
       } catch (error) {
         log.warn('state broadcast skipped closed socket', {
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
+    this.#recordRealtimeTraffic('STATE_UPDATE', message, deliveryCount);
   }
 
   #pushUserEventToConnectedSockets(userId: string, message: object): void {
     const serialized = JSON.stringify(message);
+    let deliveryCount = 0;
     for (const socket of this.ctx.getWebSockets(userSocketTag(userId))) {
       try {
         socket.send(serialized);
+        deliveryCount += 1;
       } catch (error) {
         log.warn('unicast skipped closed socket', {
           userId,
@@ -328,6 +350,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         });
       }
     }
+    this.#recordRealtimeTraffic('USER_EVENT_DELIVERY', serialized, deliveryCount);
   }
 
   async #publishUserEvent(userId: string, eventId: string, message: object): Promise<void> {
@@ -338,8 +361,11 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
   async #sendNextUserEvent(socket: WebSocket, userId: string): Promise<void> {
     const pending = await readNextUserEvent(this.env.DB, userId);
     if (pending === null) return;
+    const serialized = JSON.stringify(pending.message);
+    let deliveryCount = 0;
     try {
-      socket.send(JSON.stringify(pending.message));
+      socket.send(serialized);
+      deliveryCount = 1;
     } catch (error) {
       log.warn('pending user event skipped closed socket', {
         userId,
@@ -347,6 +373,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         error: error instanceof Error ? error.message : String(error),
       });
     }
+    this.#recordRealtimeTraffic('USER_EVENT_DELIVERY', serialized, deliveryCount);
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -450,11 +477,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         clientMessage = parseUserEventAckMessage(decodedMessage);
       }
     } catch (error) {
-      recordRealtimeTraffic(
-        this.env.REQUEST_TRAFFIC,
-        'INVALID_CLIENT_MESSAGE',
-        this.env.CF_VERSION_METADATA.id,
-      );
+      this.#recordRealtimeTraffic('INVALID_CLIENT_MESSAGE', message, 1);
       log.error('invalid websocket client message', {
         error: error instanceof Error ? error.message : String(error),
       });
@@ -463,11 +486,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       return;
     }
 
-    recordRealtimeTraffic(
-      this.env.REQUEST_TRAFFIC,
-      clientMessage.type,
-      this.env.CF_VERSION_METADATA.id,
-    );
+    this.#recordRealtimeTraffic(clientMessage.type, message, 1);
 
     if (clientMessage.type === 'STATE_SYNC_REQUEST') {
       const snapshot = this.#repository.readSnapshot();
@@ -478,9 +497,11 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         socket.close(1011, 'state_unavailable');
         return;
       }
-      socket.send(
-        JSON.stringify(createStateSyncResponseMessage(clientMessage.requestId, snapshot)),
+      const response = JSON.stringify(
+        createStateSyncResponseMessage(clientMessage.requestId, snapshot),
       );
+      socket.send(response);
+      this.#recordRealtimeTraffic('STATE_SYNC_RESPONSE', response, 1);
       return;
     }
 

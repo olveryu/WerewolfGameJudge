@@ -25,10 +25,10 @@ import {
 /**
  * Creates the initial FSM context.
  *
- * @param overrides - optionally override maxAttempts
+ * @param overrides - optionally override environment-derived initial context
  */
 export function createInitialContext(
-  overrides?: Partial<Pick<FSMContext, 'maxAttempts'>>,
+  overrides?: Partial<Pick<FSMContext, 'maxAttempts' | 'visible'>>,
 ): FSMContext {
   return {
     state: ConnectionState.Idle,
@@ -37,8 +37,24 @@ export function createInitialContext(
     attempt: 0,
     maxAttempts: overrides?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     networkOnline: true,
-    visible: true,
+    visible: overrides?.visible ?? true,
   };
+}
+
+function applyEnvironmentSnapshot(ctx: FSMContext, event: ConnectionEvent): FSMContext {
+  if (ctx.state === ConnectionState.Disposed) return ctx;
+  switch (event.type) {
+    case 'NETWORK_OFFLINE':
+      return { ...ctx, networkOnline: false };
+    case 'NETWORK_ONLINE':
+      return { ...ctx, networkOnline: true };
+    case 'VISIBILITY_HIDDEN':
+      return { ...ctx, visible: false };
+    case 'VISIBILITY_VISIBLE':
+      return { ...ctx, visible: true };
+    default:
+      return ctx;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,23 +85,24 @@ export function transition(ctx: FSMContext, event: ConnectionEvent): TransitionR
     };
   }
 
-  switch (ctx.state) {
+  const currentContext = applyEnvironmentSnapshot(ctx, event);
+  switch (currentContext.state) {
     case ConnectionState.Idle:
-      return handleIdle(ctx, event);
+      return handleIdle(currentContext, event);
     case ConnectionState.Connecting:
-      return handleConnecting(ctx, event);
+      return handleConnecting(currentContext, event);
     case ConnectionState.Syncing:
-      return handleSyncing(ctx, event);
+      return handleSyncing(currentContext, event);
     case ConnectionState.Connected:
-      return handleConnected(ctx, event);
+      return handleConnected(currentContext, event);
     case ConnectionState.Disconnected:
-      return handleDisconnected(ctx, event);
+      return handleDisconnected(currentContext, event);
     case ConnectionState.Reconnecting:
-      return handleReconnecting(ctx, event);
+      return handleReconnecting(currentContext, event);
     case ConnectionState.Failed:
-      return handleFailed(ctx, event);
+      return handleFailed(currentContext, event);
     case ConnectionState.Disposed:
-      return noop(ctx);
+      return noop(currentContext);
   }
 }
 
@@ -94,6 +111,12 @@ export function transition(ctx: FSMContext, event: ConnectionEvent): TransitionR
 // ─────────────────────────────────────────────────────────────────────────────
 
 function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
+  if (event.type === 'VISIBILITY_HIDDEN') {
+    return { ctx: { ...ctx, visible: false }, effects: [] };
+  }
+  if (event.type === 'VISIBILITY_VISIBLE') {
+    return { ctx: { ...ctx, visible: true }, effects: [] };
+  }
   if (event.type === 'CONNECT') {
     const next: FSMContext = {
       ...ctx,
@@ -125,13 +148,12 @@ function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionRe
       return toConnecting(ctx, event);
     case 'WS_OPEN': {
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
+      const effects: SideEffect[] = [log('info', `Connecting → Syncing`)];
+      if (next.visible) effects.push({ type: 'START_PING' });
+      effects.push({ type: 'REQUEST_STATE_SYNC' });
       return {
         ctx: next,
-        effects: [
-          log('info', `Connecting → Syncing`),
-          { type: 'START_PING' },
-          { type: 'REQUEST_STATE_SYNC' },
-        ],
+        effects,
       };
     }
     case 'WS_CLOSE': {
@@ -151,6 +173,10 @@ function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionRe
     }
     case 'WS_ERROR':
       return { ctx, effects: [log('warn', 'WS_ERROR during Connecting (waiting for WS_CLOSE)')] };
+    case 'VISIBILITY_HIDDEN':
+      return { ctx: { ...ctx, visible: false }, effects: [] };
+    case 'VISIBILITY_VISIBLE':
+      return { ctx: { ...ctx, visible: true }, effects: [] };
     case 'DISCONNECT':
       return toIdle(ctx);
     case 'DISPOSE':
@@ -245,6 +271,13 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         ],
       };
     }
+    case 'VISIBILITY_VISIBLE': {
+      const next: FSMContext = { ...ctx, visible: true };
+      return {
+        ctx: next,
+        effects: [log('info', 'Foreground while syncing: resuming ping'), { type: 'START_PING' }],
+      };
+    }
     case 'CONNECT':
       return toConnecting(ctx, event);
     case 'DISCONNECT':
@@ -329,12 +362,11 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
 function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'RETRY_TIMER_FIRED': {
-      if (!ctx.visible) {
-        // Background: suppress reconnection, wait for VISIBILITY_VISIBLE
+      if (!ctx.visible || !ctx.networkOnline) {
         return {
           ctx,
           effects: [
-            log('info', 'Disconnected: suppressing retry (background)'),
+            log('info', 'Disconnected: waiting for foreground and network'),
             { type: 'CANCEL_RETRY' },
           ],
         };
@@ -361,6 +393,15 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
       };
     }
     case 'NETWORK_ONLINE': {
+      if (!ctx.visible) {
+        return {
+          ctx: { ...ctx, networkOnline: true },
+          effects: [
+            log('info', 'Network online (Disconnected), waiting for foreground'),
+            { type: 'CANCEL_RETRY' },
+          ],
+        };
+      }
       if (ctx.attempt >= ctx.maxAttempts) {
         const next: FSMContext = { ...ctx, state: ConnectionState.Failed, networkOnline: true };
         return {
@@ -389,6 +430,15 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
       };
     }
     case 'VISIBILITY_VISIBLE': {
+      if (!ctx.networkOnline) {
+        return {
+          ctx,
+          effects: [
+            log('info', 'Foreground (Disconnected), waiting for network'),
+            { type: 'CANCEL_RETRY' },
+          ],
+        };
+      }
       if (ctx.attempt >= ctx.maxAttempts) {
         const next: FSMContext = { ...ctx, state: ConnectionState.Failed, visible: true };
         return {
@@ -467,13 +517,14 @@ function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): Transition
     case 'WS_OPEN': {
       // Preserve attempt until the correlated sync response transitions to Connected.
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
+      const effects: SideEffect[] = [
+        log('info', `Reconnecting → Syncing`, { attempt: ctx.attempt }),
+      ];
+      if (next.visible) effects.push({ type: 'START_PING' });
+      effects.push({ type: 'REQUEST_STATE_SYNC' });
       return {
         ctx: next,
-        effects: [
-          log('info', `Reconnecting → Syncing`, { attempt: ctx.attempt }),
-          { type: 'START_PING' },
-          { type: 'REQUEST_STATE_SYNC' },
-        ],
+        effects,
       };
     }
     case 'WS_CLOSE': {
@@ -505,6 +556,10 @@ function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): Transition
     }
     case 'WS_ERROR':
       return { ctx, effects: [log('warn', 'WS_ERROR during Reconnecting')] };
+    case 'VISIBILITY_HIDDEN':
+      return { ctx: { ...ctx, visible: false }, effects: [] };
+    case 'VISIBILITY_VISIBLE':
+      return { ctx: { ...ctx, visible: true }, effects: [] };
     case 'CONNECT':
       return toConnecting(ctx, event);
     case 'DISCONNECT':
@@ -526,6 +581,12 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
       };
     }
     case 'NETWORK_ONLINE': {
+      if (!ctx.visible) {
+        return {
+          ctx: { ...ctx, networkOnline: true },
+          effects: [log('info', 'Network online (Failed), waiting for foreground')],
+        };
+      }
       const next: FSMContext = {
         ...ctx,
         state: ConnectionState.Reconnecting,
@@ -538,6 +599,12 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
       };
     }
     case 'VISIBILITY_VISIBLE': {
+      if (!ctx.networkOnline) {
+        return {
+          ctx,
+          effects: [log('info', 'Foreground (Failed), waiting for network')],
+        };
+      }
       const next: FSMContext = {
         ...ctx,
         state: ConnectionState.Reconnecting,

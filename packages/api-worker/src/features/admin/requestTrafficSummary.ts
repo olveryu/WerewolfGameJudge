@@ -53,6 +53,11 @@ export interface AdminRequestTrafficSummary {
   };
   readonly realtime: {
     readonly stateSyncRequests: number;
+    readonly stateUpdateBroadcasts: number;
+    readonly stateUpdateDeliveries: number;
+    readonly stateUpdateBytes: number;
+    readonly downlinkDeliveries: number;
+    readonly downlinkBytes: number;
     readonly userEventAcks: number;
     readonly invalidClientMessages: number;
   };
@@ -116,7 +121,9 @@ export function createRequestTrafficQueryPlan(
     realtimeSql: `
       SELECT
         blob2 AS messageType,
-        SUM(_sample_interval) AS messageCount
+        SUM(_sample_interval) AS messageCount,
+        SUM(_sample_interval * double2) AS deliveryCount,
+        SUM(_sample_interval * double3) AS transferredBytes
       FROM request_traffic
       WHERE blob1 = '${WEBSOCKET_MESSAGE_EVENT_KIND}' AND ${rangePredicate}
       GROUP BY messageType
@@ -195,6 +202,11 @@ export function createAdminRequestTrafficSummary(
 
   const realtime = {
     stateSyncRequests: 0,
+    stateUpdateBroadcasts: 0,
+    stateUpdateDeliveries: 0,
+    stateUpdateBytes: 0,
+    downlinkDeliveries: 0,
+    downlinkBytes: 0,
     userEventAcks: 0,
     invalidClientMessages: 0,
   };
@@ -202,6 +214,18 @@ export function createAdminRequestTrafficSummary(
     switch (row.messageType) {
       case 'STATE_SYNC_REQUEST':
         realtime.stateSyncRequests += row.messageCount;
+        break;
+      case 'STATE_UPDATE':
+        realtime.stateUpdateBroadcasts += row.messageCount;
+        realtime.stateUpdateDeliveries += row.deliveryCount;
+        realtime.stateUpdateBytes += row.transferredBytes;
+        realtime.downlinkDeliveries += row.deliveryCount;
+        realtime.downlinkBytes += row.transferredBytes;
+        break;
+      case 'STATE_SYNC_RESPONSE':
+      case 'USER_EVENT_DELIVERY':
+        realtime.downlinkDeliveries += row.deliveryCount;
+        realtime.downlinkBytes += row.transferredBytes;
         break;
       case 'USER_EVENT_ACK':
         realtime.userEventAcks += row.messageCount;
