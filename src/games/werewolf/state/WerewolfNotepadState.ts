@@ -9,6 +9,14 @@ export interface RoleTagInfo {
   readonly faction: Faction;
 }
 
+/** Public sheriff-election status for one 1-based notepad seat. */
+export type NotepadSheriffCandidateStatus = 'registered' | 'withdrawn';
+
+/** Public sheriff-election statuses keyed by 1-based notepad seat. */
+export type NotepadSheriffCandidateStatuses = Readonly<
+  Record<number, NotepadSheriffCandidateStatus>
+>;
+
 export interface WerewolfNotepadState {
   readonly playerNotes: Readonly<Record<number, string>>;
   readonly handStates: Readonly<Record<number, boolean>>;

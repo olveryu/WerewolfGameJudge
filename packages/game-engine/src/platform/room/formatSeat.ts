@@ -6,7 +6,12 @@
  * Engine-internal logic stays 0-based and does not call this function.
  */
 
+/** Convert a 0-based engine seat index to its 1-based user-facing number. */
+export function getDisplaySeatNumber(seat: number): number {
+  return seat + 1;
+}
+
 /** 0-based seat index → "N号" display string (1-indexed). */
 export function formatSeat(seat: number): string {
-  return `${seat + 1}号`;
+  return `${getDisplaySeatNumber(seat)}号`;
 }

@@ -8,7 +8,11 @@
 
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { WerewolfNotepadState } from '@/games/werewolf/state/WerewolfNotepadState';
+import type {
+  NotepadSheriffCandidateStatus,
+  NotepadSheriffCandidateStatuses,
+  WerewolfNotepadState,
+} from '@/games/werewolf/state/WerewolfNotepadState';
 
 /** Max total text length (truncates public note section) */
 const MAX_SUMMARY_LENGTH = 1500;
@@ -19,6 +23,15 @@ interface NotepadRoleInfo {
   roleName: string;
 }
 
+function getSheriffCandidateStatus(
+  state: WerewolfNotepadState,
+  sheriffCandidateStatuses: NotepadSheriffCandidateStatuses | undefined,
+  seat: number,
+): NotepadSheriffCandidateStatus | undefined {
+  if (sheriffCandidateStatuses !== undefined) return sheriffCandidateStatuses[seat];
+  return state.handStates[seat] === true ? 'registered' : undefined;
+}
+
 /**
  * Build notepad state into AI analysis request text.
  * Returns null for empty notepad.
@@ -27,19 +40,22 @@ export function buildNotepadSummary(
   state: WerewolfNotepadState,
   playerCount: number,
   myRoleInfo?: NotepadRoleInfo,
+  sheriffCandidateStatuses?: NotepadSheriffCandidateStatuses,
 ): string | null {
   const seatLines: string[] = [];
-  const handSeats: number[] = [];
+  const registeredSeats: number[] = [];
+  const withdrawnSeats: number[] = [];
 
   for (let seat = 1; seat <= playerCount; seat++) {
     const note = state.playerNotes[seat]?.trim();
-    const hand = state.handStates[seat];
+    const sheriffCandidateStatus = getSheriffCandidateStatus(state, sheriffCandidateStatuses, seat);
     const roleGuess = state.roleGuesses[seat];
 
-    if (hand) handSeats.push(seat);
+    if (sheriffCandidateStatus !== undefined) registeredSeats.push(seat);
+    if (sheriffCandidateStatus === 'withdrawn') withdrawnSeats.push(seat);
 
     // Skip seats with no information at all
-    if (!note && !hand && !roleGuess) continue;
+    if (!note && sheriffCandidateStatus === undefined && !roleGuess) continue;
 
     const parts: string[] = [];
 
@@ -53,9 +69,11 @@ export function buildNotepadSummary(
       parts[parts.length - 1] += `（猜测：${roleName}）`;
     }
 
-    // Hand state
-    if (hand) {
+    // Sheriff-election status
+    if (sheriffCandidateStatus === 'registered') {
       parts[parts.length - 1] += '[上警]';
+    } else if (sheriffCandidateStatus === 'withdrawn') {
+      parts[parts.length - 1] += '[退水]';
     }
 
     // Note text
@@ -95,8 +113,11 @@ export function buildNotepadSummary(
 
   if (seatLines.length > 0) {
     sections.push('## 玩家笔记');
-    if (handSeats.length > 0) {
-      sections.push(`上警玩家：${handSeats.map((s) => `${s}号`).join('、')}`);
+    if (registeredSeats.length > 0) {
+      sections.push(`上警玩家：${registeredSeats.map((seat) => `${seat}号`).join('、')}`);
+    }
+    if (withdrawnSeats.length > 0) {
+      sections.push(`退水玩家：${withdrawnSeats.map((seat) => `${seat}号`).join('、')}`);
     }
     sections.push(...seatLines, '');
   }

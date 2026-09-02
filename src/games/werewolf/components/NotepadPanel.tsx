@@ -1,7 +1,7 @@
 /**
  * NotepadPanel - Notepad panel (single-column 12-row embed in NotepadScreen)
  *
- * Renders a player card list: each row has seat number (tap to select role) + role badge + hand-up tag + note input.
+ * Renders a player card list: each row has seat number (tap to select role) + role badge + sheriff status + note input.
  * Tapping the seat number opens a role-picker popover; selection shows a role badge next to the seat number.
  * Card background color follows the role guess (4-color distinction: wolf / god / villager / third party).
  * Receives notepad state and action callbacks, plus a styles prop.
@@ -27,6 +27,8 @@ import {
 
 import { Modal } from '@/components/AppModal';
 import type {
+  NotepadSheriffCandidateStatus,
+  NotepadSheriffCandidateStatuses,
   RoleTagInfo,
   WerewolfNotepadState,
 } from '@/games/werewolf/state/WerewolfNotepadState';
@@ -113,7 +115,8 @@ function getFactionStyleKey(faction: Faction): 'Wolf' | 'God' | 'Villager' | 'Th
 
 interface NotepadCardProps {
   seat: number;
-  hand: boolean;
+  sheriffCandidateStatus: NotepadSheriffCandidateStatus | null;
+  isSheriffCandidateStatusAuthoritative: boolean;
   selectedRoleId: RoleId | null;
   noteText: string;
   roleTags: readonly RoleTagInfo[];
@@ -126,7 +129,8 @@ interface NotepadCardProps {
 const NotepadCard: React.FC<NotepadCardProps> = React.memo(
   ({
     seat,
-    hand,
+    sheriffCandidateStatus,
+    isSheriffCandidateStatusAuthoritative,
     selectedRoleId,
     noteText,
     roleTags,
@@ -173,6 +177,12 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
               Third: styles.roleBadgeTextThird,
             }[factionKey],
           };
+    const isRegisteredSheriffCandidate = sheriffCandidateStatus === 'registered';
+    let sheriffStatusLabel = '上警';
+    if (sheriffCandidateStatus === 'withdrawn') sheriffStatusLabel = '退水';
+    else if (isSheriffCandidateStatusAuthoritative && sheriffCandidateStatus === null) {
+      sheriffStatusLabel = '未上警';
+    }
 
     return (
       <View style={[styles.card, factionStyles?.card]}>
@@ -197,12 +207,16 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             </View>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => onToggleHand(seat)}
-            style={[styles.handTag, hand && styles.handTagActive]}
+            onPress={isSheriffCandidateStatusAuthoritative ? undefined : () => onToggleHand(seat)}
+            style={[styles.handTag, isRegisteredSheriffCandidate && styles.handTagActive]}
             hitSlop={6}
-            activeOpacity={fixed.activeOpacity}
+            activeOpacity={isSheriffCandidateStatusAuthoritative ? 1 : fixed.activeOpacity}
           >
-            <Text style={[styles.handTagText, hand && styles.handTagTextActive]}>上警</Text>
+            <Text
+              style={[styles.handTagText, isRegisteredSheriffCandidate && styles.handTagTextActive]}
+            >
+              {sheriffStatusLabel}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -299,6 +313,8 @@ interface NotepadPanelProps {
   state: WerewolfNotepadState;
   playerCount: number;
   roleTags: readonly RoleTagInfo[];
+  sheriffCandidateStatuses: NotepadSheriffCandidateStatuses;
+  isSheriffCandidateStatusAuthoritative: boolean;
   onNoteChange: (seat: number, text: string) => void;
   onToggleHand: (seat: number) => void;
   onSetRole: (seat: number, roleId: RoleId | null) => void;
@@ -317,6 +333,8 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
   state,
   playerCount,
   roleTags,
+  sheriffCandidateStatuses,
+  isSheriffCandidateStatusAuthoritative,
   onNoteChange,
   onToggleHand,
   onSetRole,
@@ -356,7 +374,8 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
       return (
         <NotepadCard
           seat={seat}
-          hand={state.handStates[seat] ?? false}
+          sheriffCandidateStatus={sheriffCandidateStatuses[seat] ?? null}
+          isSheriffCandidateStatusAuthoritative={isSheriffCandidateStatusAuthoritative}
           selectedRoleId={state.roleGuesses[seat] ?? null}
           noteText={state.playerNotes[seat] ?? ''}
           roleTags={roleTags}
@@ -367,7 +386,16 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
         />
       );
     },
-    [state, onToggleHand, handleSeatPress, onNoteChange, styles, roleTags],
+    [
+      state,
+      sheriffCandidateStatuses,
+      isSheriffCandidateStatusAuthoritative,
+      onToggleHand,
+      handleSeatPress,
+      onNoteChange,
+      styles,
+      roleTags,
+    ],
   );
 
   const pickerSelectedRoleId = pickerSeat !== null ? (state.roleGuesses[pickerSeat] ?? null) : null;

@@ -79,7 +79,12 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
         ? { seat: mySeat + 1, roleName: ROLE_SPECS[myRole].displayName }
         : undefined;
 
-    const summary = buildNotepadSummary(notepad.state, notepad.playerCount, myRoleInfo);
+    const summary = buildNotepadSummary(
+      notepad.state,
+      notepad.playerCount,
+      myRoleInfo,
+      notepad.sheriffCandidateStatuses,
+    );
     if (!summary) {
       showErrorAlert('笔记为空', '请先记录一些笔记再进行分析');
       return;
@@ -92,7 +97,13 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
         maxTokens: 10000,
       });
     });
-  }, [activeNotepadRoom?.userId, gameState, notepad.state, notepad.playerCount]);
+  }, [
+    activeNotepadRoom?.userId,
+    gameState,
+    notepad.playerCount,
+    notepad.sheriffCandidateStatuses,
+    notepad.state,
+  ]);
 
   const panelStyles = useMemo(
     () => ({
@@ -187,6 +198,8 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
         state={notepad.state}
         playerCount={notepad.playerCount}
         roleTags={notepad.roleTags}
+        sheriffCandidateStatuses={notepad.sheriffCandidateStatuses}
+        isSheriffCandidateStatusAuthoritative={notepad.isSheriffCandidateStatusAuthoritative}
         onNoteChange={notepad.setNote}
         onToggleHand={notepad.toggleHand}
         onSetRole={notepad.setRole}

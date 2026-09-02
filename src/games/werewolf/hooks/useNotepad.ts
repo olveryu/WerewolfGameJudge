@@ -2,6 +2,7 @@
 
 import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { ROLE_SPECS, Team } from '@game-judge/game-engine/games/werewolf/public';
+import { getDisplaySeatNumber } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -14,6 +15,7 @@ import {
 } from '@/games/werewolf/services/notepadRepository';
 import {
   createEmptyWerewolfNotepadState,
+  type NotepadSheriffCandidateStatuses,
   type RoleTagInfo,
   type WerewolfNotepadState,
 } from '@/games/werewolf/state/WerewolfNotepadState';
@@ -28,6 +30,8 @@ interface UseNotepadReturn {
   readonly state: WerewolfNotepadState;
   readonly playerCount: number;
   readonly roleTags: readonly RoleTagInfo[];
+  readonly sheriffCandidateStatuses: NotepadSheriffCandidateStatuses;
+  readonly isSheriffCandidateStatusAuthoritative: boolean;
   readonly setNote: (seat: number, text: string) => void;
   readonly setPublicNoteLeft: (text: string) => void;
   readonly setPublicNoteRight: (text: string) => void;
@@ -68,6 +72,31 @@ function requireNotepadSeat(seat: number, seatCount: number): void {
   }
 }
 
+function createAuthoritativeSheriffCandidateStatuses(
+  gameState: GameState | null,
+): NotepadSheriffCandidateStatuses | null {
+  const election = gameState?.sheriffElection;
+  if (election === undefined || election.phase === 'registration') return null;
+
+  const withdrawnSeats = new Set(election.withdrawnSeats);
+  const statuses: Record<number, NotepadSheriffCandidateStatuses[number]> = {};
+  for (const seat of election.registeredSeats) {
+    statuses[getDisplaySeatNumber(seat)] = withdrawnSeats.has(seat) ? 'withdrawn' : 'registered';
+  }
+  return statuses;
+}
+
+function createManualSheriffCandidateStatuses(
+  state: WerewolfNotepadState,
+  seatCount: number,
+): NotepadSheriffCandidateStatuses {
+  const statuses: Record<number, NotepadSheriffCandidateStatuses[number]> = {};
+  for (let seat = 1; seat <= seatCount; seat += 1) {
+    if (state.handStates[seat] === true) statuses[seat] = 'registered';
+  }
+  return statuses;
+}
+
 /** Manage notes for one immutable room and one Werewolf round generation. */
 export function useNotepad(room: ActiveWerewolfNotepadRoom | null): UseNotepadReturn {
   const userId = room?.userId ?? null;
@@ -101,6 +130,10 @@ export function useNotepad(room: ActiveWerewolfNotepadRoom | null): UseNotepadRe
   const state = isCurrentScope(scopedState, userId, roomId, roundId, seatCount)
     ? scopedState.state
     : loadedState;
+  const authoritativeSheriffCandidateStatuses =
+    createAuthoritativeSheriffCandidateStatuses(gameState);
+  const sheriffCandidateStatuses =
+    authoritativeSheriffCandidateStatuses ?? createManualSheriffCandidateStatuses(state, seatCount);
 
   useEffect(() => {
     if (stored.kind === 'stale' && owner !== null) {
@@ -241,6 +274,8 @@ export function useNotepad(room: ActiveWerewolfNotepadRoom | null): UseNotepadRe
     state,
     playerCount,
     roleTags,
+    sheriffCandidateStatuses,
+    isSheriffCandidateStatusAuthoritative: authoritativeSheriffCandidateStatuses !== null,
     setNote,
     setPublicNoteLeft,
     setPublicNoteRight,

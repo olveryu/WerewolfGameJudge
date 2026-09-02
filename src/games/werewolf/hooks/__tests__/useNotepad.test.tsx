@@ -1,4 +1,7 @@
-import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  GameState,
+  SheriffElectionState,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
@@ -19,7 +22,10 @@ jest.mock('@/services/infra/localStorage', () => ({
   },
 }));
 
-function createGameState(restartNonce: string | undefined): GameState {
+function createGameState(
+  restartNonce: string | undefined,
+  sheriffElection?: SheriffElectionState,
+): GameState {
   return {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: '1234',
@@ -38,11 +44,16 @@ function createGameState(restartNonce: string | undefined): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     ...(restartNonce === undefined ? {} : { roleRevealRandomNonce: restartNonce }),
+    ...(sheriffElection === undefined ? {} : { sheriffElection }),
   };
 }
 
-function createRoom(roomId: string, restartNonce: string | undefined): ActiveWerewolfNotepadRoom {
-  return { userId: 'user-1', roomId, gameState: createGameState(restartNonce) };
+function createRoom(
+  roomId: string,
+  restartNonce: string | undefined,
+  sheriffElection?: SheriffElectionState,
+): ActiveWerewolfNotepadRoom {
+  return { userId: 'user-1', roomId, gameState: createGameState(restartNonce, sheriffElection) };
 }
 
 describe('useNotepad', () => {
@@ -108,5 +119,57 @@ describe('useNotepad', () => {
         kind: 'missing',
       }),
     );
+  });
+
+  it('keeps registrations private while the sheriff registration phase is active', () => {
+    const { result } = renderHook(() =>
+      useNotepad(
+        createRoom('room-1', 'round-a', {
+          phase: 'registration',
+          registeredSeats: [0],
+          withdrawnSeats: [],
+          completedRounds: [],
+        }),
+      ),
+    );
+
+    expect(result.current.isSheriffCandidateStatusAuthoritative).toBe(false);
+    expect(result.current.sheriffCandidateStatuses).toEqual({});
+
+    act(() => result.current.toggleHand(1));
+    expect(result.current.sheriffCandidateStatuses).toEqual({ 1: 'registered' });
+  });
+
+  it('projects published registrations and withdrawals with 1-based notepad seats', () => {
+    const publishedElection: SheriffElectionState = {
+      phase: 'candidateSpeech',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [1],
+      completedRounds: [],
+      speakingOrder: [0, 1],
+    };
+    const completedElection: SheriffElectionState = {
+      phase: 'completed',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [1],
+      completedRounds: [],
+    };
+    const { result, rerender } = renderHook(
+      ({ election }: { election: SheriffElectionState }) =>
+        useNotepad(createRoom('room-1', 'round-a', election)),
+      { initialProps: { election: publishedElection } },
+    );
+
+    expect(result.current.isSheriffCandidateStatusAuthoritative).toBe(true);
+    expect(result.current.sheriffCandidateStatuses).toEqual({
+      1: 'registered',
+      2: 'withdrawn',
+    });
+
+    rerender({ election: completedElection });
+    expect(result.current.sheriffCandidateStatuses).toEqual({
+      1: 'registered',
+      2: 'withdrawn',
+    });
   });
 });

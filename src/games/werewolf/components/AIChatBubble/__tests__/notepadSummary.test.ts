@@ -57,6 +57,21 @@ describe('buildNotepadSummary', () => {
     expect(result).toContain('上警玩家：1号、3号');
   });
 
+  it('uses synchronized sheriff statuses instead of stale manual flags', () => {
+    const state = { ...emptyState(), handStates: { 2: true } };
+    const result = buildNotepadSummary(state, 6, undefined, {
+      1: 'registered',
+      3: 'withdrawn',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result).toContain('1号位[上警]');
+    expect(result).toContain('3号位[退水]');
+    expect(result).toContain('上警玩家：1号、3号');
+    expect(result).toContain('退水玩家：3号');
+    expect(result).not.toContain('2号位');
+  });
+
   it('includes public notes', () => {
     const state = { ...emptyState(), publicNoteLeft: '3号被查杀' };
     const result = buildNotepadSummary(state, 6);
