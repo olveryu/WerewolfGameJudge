@@ -149,6 +149,34 @@ export class FibRoomPage extends RoomPage {
     });
   }
 
+  async redrawRound(): Promise<void> {
+    await this.openHostManagement();
+    await this.page.getByTestId(TESTIDS.fibRedrawRoundButton).click();
+    await this.expectHostManagementClosed();
+    await expect(this.page.getByText('重新抽词？', { exact: true })).toBeVisible();
+    await this.page.getByText('确定', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
+      timeout: 15_000,
+    });
+  }
+
+  async abandonGame(): Promise<void> {
+    await this.openHostManagement();
+    await this.page.getByTestId(TESTIDS.fibAbandonGameButton).click();
+    await this.expectHostManagementClosed();
+    await expect(this.page.getByText('放弃游戏？', { exact: true })).toBeVisible();
+    await this.page.getByText('确定', { exact: true }).click();
+    await expect(
+      this.page.getByRole('button', {
+        name: '主持管理，下一步：开始本轮',
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
+  }
+
   async startNextRound(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibNextRoundButton).click();

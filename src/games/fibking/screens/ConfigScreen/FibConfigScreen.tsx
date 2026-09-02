@@ -103,7 +103,7 @@ export const FibConfigScreen: React.FC<FibConfigScreenProps> = ({ session }) => 
             <View style={styles.ruleText}>
               <Text style={styles.ruleTitle}>下一轮保留座位</Text>
               <Text style={styles.ruleDescription}>
-                公布答案后可直接进入下一轮，也可结束游戏返回大厅。
+                进行中可重新抽词或放弃游戏；公布答案后可直接进入下一轮，也可结束游戏返回大厅。
               </Text>
             </View>
           </View>

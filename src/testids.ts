@@ -136,6 +136,8 @@ export const TESTIDS = {
   fibRetryPreparationButton: 'fib-retry-preparation-button',
   fibReturnLobbyButton: 'fib-return-lobby-button',
   fibRevealRoundButton: 'fib-reveal-round-button',
+  fibRedrawRoundButton: 'fib-redraw-round-button',
+  fibAbandonGameButton: 'fib-abandon-game-button',
   fibViewIdentityButton: 'fib-view-identity-button',
   fibNextRoundButton: 'fib-next-round-button',
   fibEndGameButton: 'fib-end-game-button',

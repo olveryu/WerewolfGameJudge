@@ -252,6 +252,8 @@ describe('FibKing room adapter', () => {
   it('derives discoverable Host management tasks from Fib phases', () => {
     const startRound = jest.fn();
     const revealRound = jest.fn();
+    const redrawRound = jest.fn();
+    const abandonGame = jest.fn();
     const endGame = jest.fn();
     const onStartDisabled = jest.fn();
     const lobby = createLobby();
@@ -269,6 +271,8 @@ describe('FibKing room adapter', () => {
       startRound,
       cancelPreparing: jest.fn(),
       revealRound,
+      redrawRound,
+      abandonGame,
       endGame,
       onStartDisabled,
     });
@@ -302,14 +306,38 @@ describe('FibKing room adapter', () => {
       startRound,
       cancelPreparing: jest.fn(),
       revealRound,
+      redrawRound,
+      abandonGame,
       endGame,
       onStartDisabled,
     });
-    expect(ongoingManagement?.preview).toBe('待处理：公布答案');
-    const revealAction = ongoingManagement?.sections[0]?.actions[0];
-    if (revealAction?.isEnabled !== true) throw new Error('Expected enabled reveal action');
+    expect(ongoingManagement?.preview).toBe('可公布答案、重新抽词');
+    expect(ongoingManagement?.sections.map((section) => section.title)).toEqual([
+      '当前流程',
+      '危险操作',
+    ]);
+    const ongoingActions = ongoingManagement?.sections.flatMap((section) => section.actions);
+    expect(ongoingActions).toMatchObject([
+      { label: '公布答案', isEnabled: true },
+      { label: '重新抽词', isEnabled: true },
+      { label: '放弃游戏', isEnabled: true },
+    ]);
+    const revealAction = ongoingActions?.[0];
+    const redrawAction = ongoingActions?.[1];
+    const abandonAction = ongoingActions?.[2];
+    if (
+      revealAction?.isEnabled !== true ||
+      redrawAction?.isEnabled !== true ||
+      abandonAction?.isEnabled !== true
+    ) {
+      throw new Error('Expected enabled ongoing Fib Host actions');
+    }
     revealAction.onPress();
+    redrawAction.onPress();
+    abandonAction.onPress();
     expect(revealRound).toHaveBeenCalledTimes(1);
+    expect(redrawRound).toHaveBeenCalledTimes(1);
+    expect(abandonGame).toHaveBeenCalledTimes(1);
 
     const ended = { ...ongoing, phase: 'ended' as const };
     const endedCapabilities = createFibRoomCapabilities({
@@ -326,6 +354,8 @@ describe('FibKing room adapter', () => {
       startRound,
       cancelPreparing: jest.fn(),
       revealRound,
+      redrawRound,
+      abandonGame,
       endGame,
       onStartDisabled,
     });
@@ -403,6 +433,8 @@ describe('FibKing room adapter', () => {
       cancelPreparing,
       endGame: jest.fn(),
       revealRound: jest.fn(),
+      redrawRound: jest.fn(),
+      abandonGame: jest.fn(),
       onStartDisabled: jest.fn(),
     });
     expect(hostManagement?.sections[0]?.actions).toMatchObject([

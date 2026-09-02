@@ -255,6 +255,8 @@ interface FibHostManagementInput {
   readonly startRound: () => void;
   readonly cancelPreparing: () => void;
   readonly revealRound: () => void;
+  readonly redrawRound: () => void;
+  readonly abandonGame: () => void;
   readonly endGame: () => void;
   readonly onStartDisabled: () => void;
 }
@@ -366,6 +368,17 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           },
           input.revealRound,
         ),
+        commandHostAction(
+          input,
+          {
+            key: 'redraw-round',
+            label: '重新抽词',
+            icon: 'refresh-outline',
+            variant: 'secondary',
+            testID: TESTIDS.fibRedrawRoundButton,
+          },
+          input.redrawRound,
+        ),
       ];
     case 'ended':
       return [
@@ -432,20 +445,40 @@ function createFibRoomManagementActions(input: FibHostManagementInput): RoomHost
 }
 
 function createFibDangerActions(input: FibHostManagementInput): RoomHostManagementAction[] {
-  if (input.state.phase !== 'ended') return [];
-  return [
-    commandHostAction(
-      input,
-      {
-        key: 'end-game',
-        label: '结束游戏',
-        icon: 'stop-circle-outline',
-        variant: 'danger',
-        testID: TESTIDS.fibEndGameButton,
-      },
-      input.endGame,
-    ),
-  ];
+  switch (input.state.phase) {
+    case 'ongoing':
+      return [
+        commandHostAction(
+          input,
+          {
+            key: 'abandon-game',
+            label: '放弃游戏',
+            icon: 'stop-circle-outline',
+            variant: 'danger',
+            testID: TESTIDS.fibAbandonGameButton,
+          },
+          input.abandonGame,
+        ),
+      ];
+    case 'ended':
+      return [
+        commandHostAction(
+          input,
+          {
+            key: 'end-game',
+            label: '结束游戏',
+            icon: 'stop-circle-outline',
+            variant: 'danger',
+            testID: TESTIDS.fibEndGameButton,
+          },
+          input.endGame,
+        ),
+      ];
+    case 'lobby':
+    case 'preparing':
+    case 'preparationFailed':
+      return [];
+  }
 }
 
 function createFibHostSection(
@@ -465,7 +498,7 @@ function getFibHostPreview(state: FibState): string {
     case 'preparationFailed':
       return '待处理：重新准备';
     case 'ongoing':
-      return '待处理：公布答案';
+      return '可公布答案、重新抽词';
     case 'ended':
       return '下一步：下一轮';
   }

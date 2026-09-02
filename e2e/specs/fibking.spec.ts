@@ -166,6 +166,25 @@ test.describe('FibKing', () => {
       expect(identities.filter((identity) => identity.role === '老实人')).toHaveLength(1);
       expect(identities.filter((identity) => identity.role === '瞎掰王')).toHaveLength(6);
 
+      const firstWord = identities[0]!.word;
+      await hostRoom.redrawRound();
+      const redrawnIdentity = await hostRoom.viewIdentity();
+      expectIdentityVisibility(redrawnIdentity);
+      expect(redrawnIdentity.word).not.toBe(firstWord);
+      await hostRoom.closeIdentity();
+
+      await hostRoom.abandonGame();
+      for (let seat = 0; seat < 8; seat += 1) {
+        expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
+      }
+      await hostRoom.expectLobbySeatOperations();
+
+      await hostRoom.startRound();
+      const restartedIdentity = await hostRoom.viewIdentity();
+      expectIdentityVisibility(restartedIdentity);
+      expect([firstWord, redrawnIdentity.word]).not.toContain(restartedIdentity.word);
+      await hostRoom.closeIdentity();
+
       await hostRoom.screenshot(testInfo, 'fibking-ongoing.png');
       await hostRoom.revealRound();
       const result = await hostRoom.viewResult();

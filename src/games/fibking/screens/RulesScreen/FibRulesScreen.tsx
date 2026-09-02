@@ -97,6 +97,11 @@ export const FibRulesScreen: React.FC = () => {
             description="玩家围绕词语给出解释，大聪明公开身份并听取所有描述。"
           />
           <RuleItem
+            icon="refresh-outline"
+            title="重新抽词（可选）"
+            description="当前词语不合适时，房主可作废本轮并重新抽词、分配身份；已出现的词语不会重复。"
+          />
+          <RuleItem
             icon="flag-outline"
             title="公布答案"
             description="房主结束本轮，公开真实释义、老实人与所有身份。"
@@ -109,7 +114,12 @@ export const FibRulesScreen: React.FC = () => {
           <RuleItem
             icon="stop-circle-outline"
             title="结束游戏"
-            description="返回大厅并保留当前座位，可以调整玩家或房间设置。"
+            description="答案公布后返回大厅并保留当前座位，可以调整玩家或房间设置。"
+          />
+          <RuleItem
+            icon="stop-circle-outline"
+            title="放弃游戏（可选）"
+            description="答案公布前也可返回大厅；当前座位和已出现的词语记录都会保留。"
           />
         </View>
 

@@ -189,6 +189,22 @@ export function useFibRoomScreenState({
     });
   }, [submitCommand]);
 
+  const redrawRound = useCallback(() => {
+    showConfirmAlert(
+      '重新抽词？',
+      '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
+      async () => {
+        await submitCommand('重新抽词', { type: 'fib.round.start' });
+      },
+    );
+  }, [submitCommand]);
+
+  const abandonGame = useCallback(() => {
+    showConfirmAlert('放弃游戏？', '放弃后将返回大厅；座位和已用词记录会保留。', async () => {
+      await submitCommand('放弃游戏', { type: 'fib.game.returnToLobby' });
+    });
+  }, [submitCommand]);
+
   const endGame = useCallback(() => {
     showConfirmAlert(
       '结束游戏？',
@@ -387,15 +403,19 @@ export function useFibRoomScreenState({
         startRound,
         cancelPreparing,
         revealRound,
+        redrawRound,
+        abandonGame,
         endGame,
         onStartDisabled: showStartRoundDisabled,
       }),
     [
+      abandonGame,
       cancelPreparing,
       capabilities,
       endGame,
       isCommandSubmitting,
       isHost,
+      redrawRound,
       revealRound,
       showStartRoundDisabled,
       startRound,
