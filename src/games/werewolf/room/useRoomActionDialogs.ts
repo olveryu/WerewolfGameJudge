@@ -12,6 +12,7 @@ import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useCallback } from 'react';
 
+import type { AlertButton } from '@/utils/alert';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
@@ -74,6 +75,10 @@ export interface UseRoomActionDialogsResult {
     actionMessage: string,
     onDismiss: () => void | Promise<void>,
     buttonLabel?: string,
+    alternativeAction?: {
+      label: string;
+      onPress: () => void | Promise<void>;
+    },
   ) => void;
 }
 
@@ -201,10 +206,21 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       actionMessage: string,
       onDismiss: () => void | Promise<void>,
       buttonLabel?: string,
+      alternativeAction?: {
+        label: string;
+        onPress: () => void | Promise<void>;
+      },
     ) => {
-      showAlert(title, actionMessage, [
-        { text: buttonLabel ?? '知道了', style: 'default', onPress: onDismiss },
-      ]);
+      const buttons: AlertButton[] = [];
+      if (alternativeAction) {
+        buttons.push({
+          text: alternativeAction.label,
+          style: 'cancel',
+          onPress: alternativeAction.onPress,
+        });
+      }
+      buttons.push({ text: buttonLabel ?? '知道了', style: 'default', onPress: onDismiss });
+      showAlert(title, actionMessage, buttons);
     },
     [],
   );

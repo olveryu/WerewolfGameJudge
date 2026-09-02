@@ -638,15 +638,65 @@ describe('FibKing recoverable round workflow', () => {
     ).toEqual({ kind: 'reject', reason: REASON_FIB_GAME_NOT_ENDED });
   });
 
-  it('rejects another start while preparing or ongoing', () => {
-    const preparing = startPreparing(createFullLobby());
-    expect(decideFibCommand(preparing, { type: 'fib.round.start' }, userContext('host'))).toEqual({
-      kind: 'reject',
-      reason: REASON_FIB_ROUND_ALREADY_ONGOING,
+  it('abandons an ongoing game without losing seats or used words', () => {
+    const ongoing = completeRound(
+      startPreparing(createFullLobby()),
+      '灯塔',
+      '建在岸边用于指引船只航行方向的高塔。',
+    );
+    const realSeats = ongoing.realSeats;
+    const usedWords = ongoing.usedWords;
+
+    const lobby = dispatch(ongoing, { type: 'fib.game.returnToLobby' }, userContext('host'));
+
+    expect(lobby).toMatchObject({
+      phase: 'lobby',
+      pendingRound: null,
+      preparationFailure: null,
+      round: null,
+    });
+    expect(lobby.realSeats).toBe(realSeats);
+    expect(lobby.usedWords).toBe(usedWords);
+  });
+
+  it('redraws an ongoing round while preserving seats and used-word exclusion', () => {
+    const ongoing = completeRound(
+      startPreparing(createFullLobby()),
+      '山谷',
+      '两座山之间低洼而狭长的地带或空间。',
+    );
+    const realSeats = ongoing.realSeats;
+    const usedWords = ongoing.usedWords;
+
+    const redrawDecision = decideFibCommand(
+      ongoing,
+      { type: 'fib.round.start' },
+      userContext('host', { commandId: 'redraw-round' }),
+    );
+    expect(redrawDecision).toMatchObject({
+      kind: 'commit',
+      effects: [
+        {
+          type: 'fib.word.select',
+          payload: { roundId: 'fib-round:redraw-round', avoidWords: ['山谷'] },
+        },
+      ],
     });
 
-    const ongoing = completeRound(preparing, '山谷', '两座山之间低洼而狭长的地带或空间。');
-    expect(decideFibCommand(ongoing, { type: 'fib.round.start' }, userContext('host'))).toEqual({
+    const preparing = applyDecision(ongoing, redrawDecision);
+    expect(preparing).toMatchObject({
+      phase: 'preparing',
+      pendingRound: { roundId: 'fib-round:redraw-round' },
+      preparationFailure: null,
+      round: null,
+    });
+    expect(preparing.realSeats).toBe(realSeats);
+    expect(preparing.usedWords).toBe(usedWords);
+  });
+
+  it('rejects another start while preparing', () => {
+    const preparing = startPreparing(createFullLobby());
+    expect(decideFibCommand(preparing, { type: 'fib.round.start' }, userContext('host'))).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_ALREADY_ONGOING,
     });

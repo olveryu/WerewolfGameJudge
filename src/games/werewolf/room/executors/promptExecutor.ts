@@ -115,6 +115,12 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
         await proceedWithAction({ kind: 'confirm' });
       },
       currentSchema.ui?.bottomActionText,
+      {
+        label: statusUi.skipButtonText,
+        onPress: async () => {
+          await proceedWithAction({ kind: 'skip' });
+        },
+      },
     );
     return;
   }

@@ -241,27 +241,14 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
 
   // confirm schema (hunterConfirm/darkWolfKingConfirm)
   if (currentSchema.kind === 'confirm') {
-    const buttons: BottomButton[] = [
-      {
-        key: 'confirm',
-        label: currentSchema.ui!.bottomActionText!,
-        intent: { type: 'confirmTrigger', targetSeat: -1 },
-      },
-    ];
-    const statusUi = currentSchema.ui?.confirmStatusUi;
-    if (currentSchema.canSkip && statusUi?.kind === 'infection') {
-      buttons.push({
-        key: 'skip',
-        label: statusUi.skipButtonText,
-        intent: {
-          type: 'skip',
-          targetSeat: -1,
-          message: statusUi.skipButtonText,
-        },
-      });
-    }
     return {
-      buttons,
+      buttons: [
+        {
+          key: 'confirm',
+          label: currentSchema.ui!.bottomActionText!,
+          intent: { type: 'confirmTrigger', targetSeat: -1 },
+        },
+      ],
     };
   }
 

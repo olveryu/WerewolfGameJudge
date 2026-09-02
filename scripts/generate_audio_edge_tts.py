@@ -49,6 +49,12 @@ TRAILING_SILENCE: dict[str, int] = {
     "night": 5,
 }
 
+# Edge TTS does not expose pronunciation markup; use a phonetic homophone only
+# in synthesized input while keeping the canonical role name in source text.
+TTS_PRONUNCIATION_SUBSTITUTIONS: dict[str, str] = {
+    "种狼": "肿狼",
+}
+
 # Keep text single-source-of-truth here.
 BEGIN_TEXT: dict[str, str] = {
     "night": "天黑请闭眼。",
@@ -131,6 +137,13 @@ END_TEXT: dict[str, str] = {
     "eclipse_wolf_queen": "蚀时狼妃请闭眼。",    "hidden_wolf": "隐狼请闭眼。",}
 
 
+def _apply_pronunciation_substitutions(text: str) -> str:
+    synthesized_text = text
+    for written_text, spoken_text in TTS_PRONUNCIATION_SUBSTITUTIONS.items():
+        synthesized_text = synthesized_text.replace(written_text, spoken_text)
+    return synthesized_text
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--voice", default=DEFAULT_VOICE, help=f"Edge TTS voice short name (default: {DEFAULT_VOICE})")
@@ -168,13 +181,14 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, v
 
     silence_seconds = TRAILING_SILENCE.get(key, 0)
     needs_ffmpeg = silence_seconds > 0 or boost_db > 0
+    synthesized_text = _apply_pronunciation_substitutions(text)
 
     if needs_ffmpeg:
         # Generate to temp file, then post-process with ffmpeg (boost + optional silence)
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
             tmp_path = Path(tmp.name)
         try:
-            communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate, volume=volume)
+            communicate = edge_tts.Communicate(synthesized_text, voice, pitch=pitch, rate=rate, volume=volume)
             await communicate.save(str(tmp_path))
 
             cmd: list[str] = ["ffmpeg", "-y", "-i", str(tmp_path)]
@@ -205,7 +219,7 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, v
         finally:
             tmp_path.unlink(missing_ok=True)
     else:
-        communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate, volume=volume)
+        communicate = edge_tts.Communicate(synthesized_text, voice, pitch=pitch, rate=rate, volume=volume)
         await communicate.save(str(out_path))
         print(f"Generated {out_path}")
 

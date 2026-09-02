@@ -177,9 +177,12 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
     );
     const skipScreen = renderRoom();
     await waitForRoomScreen(skipScreen.getByTestId);
-    fireEvent.press(skipScreen.getByText('不用技能'));
-    await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-    harness.pressPrimaryOnType('skipConfirm');
+    expect(skipScreen.queryByText('不用技能')).toBeNull();
+    fireEvent.press(skipScreen.getByText('感染'));
+    await waitFor(() =>
+      expect(harness.getLastEventOfType('confirmTrigger')?.buttons).toEqual(['不用技能', '感染']),
+    );
+    harness.pressButtonOnType('confirmTrigger', '不用技能');
     await waitFor(() => expect(skipInfectionAction).toHaveBeenCalledWith({ kind: 'skip' }));
     skipScreen.unmount();
 

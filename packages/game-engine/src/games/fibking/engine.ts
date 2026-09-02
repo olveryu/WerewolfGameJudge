@@ -219,7 +219,7 @@ function getFibParticipantUserIds(state: FibState): readonly string[] {
 function decideStartFibRound(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase === 'preparing' || state.phase === 'ongoing') {
+  if (state.phase === 'preparing') {
     return reject(REASON_FIB_ROUND_ALREADY_ONGOING);
   }
   if (!isFibRoomFull(state)) return reject(REASON_FIB_ROUND_NOT_FULL);
@@ -264,7 +264,7 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
 function decideReturnFibGameToLobby(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return state.phase === 'ended'
+  return state.phase === 'ongoing' || state.phase === 'ended'
     ? commitFib([{ type: 'fib.game.returnedToLobby' }])
     : reject(REASON_FIB_GAME_NOT_ENDED);
 }
