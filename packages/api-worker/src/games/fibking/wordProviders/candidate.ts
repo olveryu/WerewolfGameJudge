@@ -12,7 +12,6 @@ import { z } from 'zod';
 import {
   FIB_GENERATED_WORD_CANDIDATE_COUNT,
   FIB_WORD_CATEGORIES,
-  FIB_WORD_REVIEW_DECISIONS,
   type FibWordCandidate,
   type FibWordRequest,
   type FibWordReview,
@@ -45,7 +44,15 @@ const fibWordReviewsPayloadSchema = z.strictObject({
     .array(
       z.strictObject({
         word: generatedFibWordSchema,
-        decision: z.enum(FIB_WORD_REVIEW_DECISIONS),
+        qualityChecks: z.strictObject({
+          isEstablishedTerm: z.boolean(),
+          isDefinitionAccurate: z.boolean(),
+          isEasyToReadAloud: z.boolean(),
+          isMeaningUnfamiliarToMostPlayers: z.boolean(),
+          isMeaningDistinctFromLiteralReading: z.boolean(),
+          hasMultiplePlausibleWrongDefinitions: z.boolean(),
+          hasRevealValue: z.boolean(),
+        }),
         reason: z.string().trim().min(8).max(100),
       }),
     )
@@ -111,10 +118,52 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['word', 'decision', 'reason'],
+        required: ['word', 'qualityChecks', 'reason'],
         properties: {
           word: { type: 'string', description: '与输入候选完全一致的词语' },
-          decision: { type: 'string', enum: FIB_WORD_REVIEW_DECISIONS },
+          qualityChecks: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'isEstablishedTerm',
+              'isDefinitionAccurate',
+              'isEasyToReadAloud',
+              'isMeaningUnfamiliarToMostPlayers',
+              'isMeaningDistinctFromLiteralReading',
+              'hasMultiplePlausibleWrongDefinitions',
+              'hasRevealValue',
+            ],
+            properties: {
+              isEstablishedTerm: {
+                type: 'boolean',
+                description: '是否为已有固定含义的真实词项，而非临时短语或自造词',
+              },
+              isDefinitionAccurate: {
+                type: 'boolean',
+                description: '核心释义是否真实准确且没有混入错误义项',
+              },
+              isEasyToReadAloud: {
+                type: 'boolean',
+                description: '多数普通玩家是否能自然认读并口述词面',
+              },
+              isMeaningUnfamiliarToMostPlayers: {
+                type: 'boolean',
+                description: '多数普通玩家是否无法在揭晓前准确说出固定真义',
+              },
+              isMeaningDistinctFromLiteralReading: {
+                type: 'boolean',
+                description: '逐字理解或词面意象是否无法推出接近标准释义的答案',
+              },
+              hasMultiplePlausibleWrongDefinitions: {
+                type: 'boolean',
+                description: '是否容易编造至少两种彼此不同且可信的错误释义',
+              },
+              hasRevealValue: {
+                type: 'boolean',
+                description: '真义揭晓后是否具有反差或讨论价值',
+              },
+            },
+          },
           reason: { type: 'string', description: '具体说明接受或拒绝依据的中文句子' },
         },
       },
@@ -178,5 +227,19 @@ export function parseFibWordReviews(
       throw new Error(`Fib word review did not preserve candidate order at index ${index}`);
     }
   }
-  return payload.reviews;
+  return payload.reviews.map(({ word, qualityChecks, reason }) => ({
+    word,
+    qualityChecks,
+    decision:
+      qualityChecks.isEstablishedTerm &&
+      qualityChecks.isDefinitionAccurate &&
+      qualityChecks.isEasyToReadAloud &&
+      qualityChecks.isMeaningUnfamiliarToMostPlayers &&
+      qualityChecks.isMeaningDistinctFromLiteralReading &&
+      qualityChecks.hasMultiplePlausibleWrongDefinitions &&
+      qualityChecks.hasRevealValue
+        ? 'accepted'
+        : 'rejected',
+    reason,
+  }));
 }

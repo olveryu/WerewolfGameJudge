@@ -6,7 +6,7 @@ import type { Env } from '../../env';
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
-import { FIB_WORD_PROMPT_VERSION } from './wordProviders/prompt';
+import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import { FibWordProviderError } from './wordProviders/providerError';
 import {
   FIB_GENERATED_WORD_CANDIDATE_COUNT,
@@ -26,6 +26,7 @@ const FIB_WORD_SUPPLY_REQUEST_INTERVAL_MS = 12_000;
 const FIB_WORD_SUPPLY_REQUEST_TIMEOUT_MS = 30_000;
 
 const FIB_WORD_SUPPLY_LEASE_MS = 20 * 60 * 1_000;
+const FIB_WORD_REJECTED_STATUS_REASON = 'quality_review: rejected';
 const MAX_SELECTION_KEY = 0x7fffffff;
 const SELECTION_HASH_HEX_LENGTH = 8;
 
@@ -224,27 +225,55 @@ async function persistCandidates(
     return { candidate, review };
   });
   const now = iso(nowMs);
-  const reviewStatements = reviewedCandidates.map(({ candidate, review }) =>
-    db
+  const reviewStatements = reviewedCandidates.map(({ candidate, review }) => {
+    const reviewId = crypto.randomUUID();
+    return db
       .prepare(
         `INSERT INTO fib_word_candidate_reviews (
-           word, core_meaning, usage_note, category, source, decision,
-           reason, generation_cycle_id, reviewed_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT (word) DO NOTHING`,
+           id, word, core_meaning, usage_note, category, source,
+           is_established_term, is_definition_accurate, is_easy_to_read_aloud,
+           is_meaning_unfamiliar_to_most_players,
+           is_meaning_distinct_from_literal_reading,
+           has_multiple_plausible_wrong_definitions, has_reveal_value,
+           decision, reason, review_version, generation_cycle_id, reviewed_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
+        reviewId,
         candidate.word,
         candidate.definition.coreMeaning,
         candidate.definition.usageNote,
         category,
         candidate.source,
+        review.qualityChecks.isEstablishedTerm ? 1 : 0,
+        review.qualityChecks.isDefinitionAccurate ? 1 : 0,
+        review.qualityChecks.isEasyToReadAloud ? 1 : 0,
+        review.qualityChecks.isMeaningUnfamiliarToMostPlayers ? 1 : 0,
+        review.qualityChecks.isMeaningDistinctFromLiteralReading ? 1 : 0,
+        review.qualityChecks.hasMultiplePlausibleWrongDefinitions ? 1 : 0,
+        review.qualityChecks.hasRevealValue ? 1 : 0,
         review.decision,
         review.reason,
+        FIB_WORD_REVIEW_VERSION,
         cycle.cycleId,
         now,
-      ),
-  );
+      );
+  });
+  const rejectedWordStatements = reviewedCandidates
+    .filter(({ review }) => review.decision === 'rejected')
+    .map(({ candidate }) =>
+      db
+        .prepare(
+          `UPDATE fib_words
+           SET status = 'disabled', disabled_at = ?, status_reason = ?
+           WHERE word = ? AND status = 'active'
+             AND EXISTS (
+               SELECT 1 FROM fib_word_candidate_reviews
+               WHERE word = ? AND decision = 'rejected'
+             )`,
+        )
+        .bind(now, FIB_WORD_REJECTED_STATUS_REASON, candidate.word, candidate.word),
+    );
   const acceptedStatements = await Promise.all(
     reviewedCandidates
       .filter(({ review }) => review.decision === 'accepted')
@@ -280,6 +309,7 @@ async function persistCandidates(
   const leaseExpiresAt = iso(nowMs + FIB_WORD_SUPPLY_LEASE_MS);
   await db.batch([
     ...reviewStatements,
+    ...rejectedWordStatements,
     ...acceptedStatements,
     db
       .prepare(

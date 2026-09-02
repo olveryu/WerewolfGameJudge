@@ -24,10 +24,22 @@ const CANDIDATES_RESPONSE = {
     category: 'literary' as const,
   })),
 };
+const PASSING_QUALITY_CHECKS = {
+  isEstablishedTerm: true,
+  isDefinitionAccurate: true,
+  isEasyToReadAloud: true,
+  isMeaningUnfamiliarToMostPlayers: true,
+  isMeaningDistinctFromLiteralReading: true,
+  hasMultiplePlausibleWrongDefinitions: true,
+  hasRevealValue: true,
+} as const;
 const REVIEWS_RESPONSE = {
-  reviews: CANDIDATES_RESPONSE.candidates.map(({ word }) => ({
+  reviews: CANDIDATES_RESPONSE.candidates.map(({ word }, candidateIndex) => ({
     word,
-    decision: word === '菡萏' ? ('rejected' as const) : ('accepted' as const),
+    qualityChecks: {
+      ...PASSING_QUALITY_CHECKS,
+      isMeaningUnfamiliarToMostPlayers: candidateIndex !== 0,
+    },
     reason:
       word === '菡萏'
         ? '词义已被多数玩家熟知，无法形成真假释义悬念。'
@@ -118,7 +130,14 @@ describe('Fib word candidate batches', () => {
       createWordRequest(),
     );
 
-    expect(parseFibWordReviews(REVIEWS_RESPONSE, candidates)).toEqual(REVIEWS_RESPONSE.reviews);
+    expect(parseFibWordReviews(REVIEWS_RESPONSE, candidates)).toEqual(
+      REVIEWS_RESPONSE.reviews.map(({ word, qualityChecks, reason }, candidateIndex) => ({
+        word,
+        qualityChecks,
+        decision: candidateIndex === 0 ? 'rejected' : 'accepted',
+        reason,
+      })),
+    );
     expect(FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews).toMatchObject({
       minItems: 6,
       maxItems: 6,
@@ -136,6 +155,53 @@ describe('Fib word candidate batches', () => {
         candidates,
       ),
     ).toThrow();
+  });
+
+  it.each([
+    {
+      failedCheck: 'isEstablishedTerm',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, isEstablishedTerm: false },
+    },
+    {
+      failedCheck: 'isDefinitionAccurate',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, isDefinitionAccurate: false },
+    },
+    {
+      failedCheck: 'isEasyToReadAloud',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, isEasyToReadAloud: false },
+    },
+    {
+      failedCheck: 'isMeaningUnfamiliarToMostPlayers',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, isMeaningUnfamiliarToMostPlayers: false },
+    },
+    {
+      failedCheck: 'isMeaningDistinctFromLiteralReading',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, isMeaningDistinctFromLiteralReading: false },
+    },
+    {
+      failedCheck: 'hasMultiplePlausibleWrongDefinitions',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, hasMultiplePlausibleWrongDefinitions: false },
+    },
+    {
+      failedCheck: 'hasRevealValue',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, hasRevealValue: false },
+    },
+  ])('derives rejection when $failedCheck fails', ({ qualityChecks }) => {
+    const candidates = parseGeneratedFibWordCandidates(
+      CANDIDATES_RESPONSE,
+      'gemini',
+      createWordRequest(),
+    );
+    const response = {
+      reviews: REVIEWS_RESPONSE.reviews.map((review, candidateIndex) =>
+        candidateIndex === 0 ? { ...review, qualityChecks } : review,
+      ),
+    };
+
+    expect(parseFibWordReviews(response, candidates)[0]).toMatchObject({
+      word: '菡萏',
+      decision: 'rejected',
+    });
   });
 });
 
@@ -157,11 +223,18 @@ describe('Gemini Fib word provider', () => {
     );
 
     await expect(provider.reviewBatch(createWordRequest(), candidates)).resolves.toEqual(
-      REVIEWS_RESPONSE.reviews,
+      REVIEWS_RESPONSE.reviews.map(({ word, qualityChecks, reason }, candidateIndex) => ({
+        word,
+        qualityChecks,
+        decision: candidateIndex === 0 ? 'rejected' : 'accepted',
+        reason,
+      })),
     );
     expect(requestBody).toContain('独立审核');
     expect(requestBody).toContain('常见成语');
     expect(requestBody).toContain('情绪价值');
+    expect(requestBody).toContain('isMeaningDistinctFromLiteralReading');
+    expect(requestBody).not.toContain('"decision"');
     expect(requestBody).not.toContain('previous_interaction_id');
   });
 

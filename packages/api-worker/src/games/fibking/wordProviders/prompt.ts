@@ -13,7 +13,8 @@ import {
   type FibWordRequest,
 } from './types';
 
-export const FIB_WORD_PROMPT_VERSION = '2';
+export const FIB_WORD_PROMPT_VERSION = '3';
+export const FIB_WORD_REVIEW_VERSION = '3';
 
 const FIB_WORD_CATEGORY_INSTRUCTIONS = {
   literary:
@@ -34,6 +35,7 @@ const FIB_WORD_CALIBRATION_EXAMPLES = `
 - 坏题“内卷”“社恐”“躺平”：当代高频表达，多数玩家已经知道真义。
 - 坏题“压岁钱”“工具箱”“白眼”：日常事物或常用词，没有释义悬念。
 - 坏题“胸有成竹”“走马观花”“望梅止渴”：常见成语，标准含义广为人知。
+- 坏题“捉刀代笔”“敲冰求火”“敲边鼓”“雁过留声”：即使并非人人熟悉，词面动作、对象或比喻方向已经暴露了接近标准释义的答案。
 - 坏题“云梦蝶”：无法确认是具有固定词义的现成词项。
 </calibration_examples>`;
 
@@ -46,6 +48,7 @@ const FIB_WORD_REVIEW_CALIBRATION_EXAMPLES = `
 - 拒绝“情绪价值”“内卷”“社恐”“躺平”：当代高频表达，多数玩家已经知道真义。
 - 拒绝“压岁钱”“工具箱”“白眼”：日常事物或常用词，词义没有悬念。
 - 拒绝“胸有成竹”“走马观花”“望梅止渴”：常见成语，标准含义广为人知。
+- 拒绝“捉刀代笔”“敲冰求火”“敲边鼓”“雁过留声”：词面已经暴露接近标准释义的答案，冷门不能抵消字面透明。
 - 拒绝“魑魅魍魉”：虽然不简单，但读写门槛过高，无法自然口述。
 </calibration_examples>`;
 
@@ -75,7 +78,7 @@ export function createFibWordMessages(
 </good_question>
 
 <reject>
-拒绝临时短语、自造词、常见成语、日常高频词、人名、地名、品牌、生僻字堆、透明复合词和含义不确定的词。候选不得是近义词、同源词或同一主题的轻微改写。
+拒绝临时短语、自造词、常见成语、日常高频词、人名、地名、品牌、生僻字堆、透明复合词和含义不确定的词。成语即使冷门，只要词面动作、对象或比喻方向足以推出接近标准释义的答案，也必须拒绝。候选不得是近义词、同源词或同一主题的轻微改写。
 </reject>
 ${FIB_WORD_CALIBRATION_EXAMPLES}
 
@@ -118,13 +121,25 @@ export function createFibWordReviewMessages(
 </accept>
 
 <reject>
-出现任一情况必须拒绝：当代高频流行语、常见成语、日常事物或动作、常用动词或形容词、字面透明的复合词、主要含义已广为人知、只靠冷僻字制造难度、需要专业知识、词义或释义不确定。不要为了凑数量而接受边缘候选，允许全部拒绝。
+出现任一情况必须拒绝：当代高频流行语、常见成语、日常事物或动作、常用动词或形容词、字面透明的复合词、主要含义已广为人知、只靠冷僻字制造难度、需要专业知识、词义或释义不确定。成语即使冷门，只要词面足以让玩家说出接近标准释义的答案，也属于字面透明。不要为了凑数量而接受边缘候选，允许全部拒绝。
 </reject>
 ${FIB_WORD_REVIEW_CALIBRATION_EXAMPLES}
 
+<quality_checks>
+每项必须独立判断，不得用一项优点抵消另一项失败：
+- isEstablishedTerm：是已有固定含义的真实词项，不是临时短语或自造词。
+- isDefinitionAccurate：核心释义真实准确，没有混入错误义项。
+- isEasyToReadAloud：多数普通玩家能自然认读并口述词面。
+- isMeaningUnfamiliarToMostPlayers：多数普通玩家无法在揭晓前准确说出固定真义。
+- isMeaningDistinctFromLiteralReading：逐字理解和词面意象都无法推出接近标准释义的答案。
+- hasMultiplePlausibleWrongDefinitions：玩家容易编出至少两种彼此不同且可信的错误释义。
+- hasRevealValue：真义揭晓后具有反差或讨论价值。
+任一项为 false，程序都会拒绝该候选；不得输出折中结论。
+</quality_checks>
+
 <output_rules>
 逐项审核输入中的全部${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选，保持原顺序且每词恰好出现一次。
-decision 只能是 accepted 或 rejected；reason 用一句具体中文说明最关键的接受或拒绝依据。
+qualityChecks 中七项布尔值必须全部给出。reason 用一句具体中文说明最关键的证据；存在 false 时必须说明最关键的失败项，不得使用“虽然不合格但仍可接受”的权衡。
 只返回 JSON Schema 要求的内容，不输出额外分析。
 </output_rules>`,
     },

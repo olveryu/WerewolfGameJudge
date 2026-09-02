@@ -16,6 +16,21 @@ import {
 } from '../wordSupply';
 
 const NOW_MS = Date.parse('2026-08-21T12:00:00.000Z');
+const PASSING_QUALITY_CHECKS = {
+  isEstablishedTerm: true,
+  isDefinitionAccurate: true,
+  isEasyToReadAloud: true,
+  isMeaningUnfamiliarToMostPlayers: true,
+  isMeaningDistinctFromLiteralReading: true,
+  hasMultiplePlausibleWrongDefinitions: true,
+  hasRevealValue: true,
+} as const;
+
+interface DisabledWordRow {
+  readonly status: string;
+  readonly disabled_at: string | null;
+  readonly status_reason: string | null;
+}
 
 function createUniqueProvider(
   reviewDecision: (candidateIndex: number) => FibWordReviewDecision = () => 'accepted',
@@ -45,14 +60,21 @@ function createUniqueProvider(
         if (request.signal.aborted) throw new Error('Test review request was unexpectedly aborted');
         reviewCount += 1;
         return Promise.resolve(
-          candidates.map((candidate, candidateIndex) => ({
-            word: candidate.word,
-            decision: reviewDecision(candidateIndex),
-            reason:
-              reviewDecision(candidateIndex) === 'accepted'
-                ? '真实含义不透明且适合编造错误释义。'
-                : '词义过于常见，无法形成真假释义悬念。',
-          })),
+          candidates.map((candidate, candidateIndex) => {
+            const decision = reviewDecision(candidateIndex);
+            return {
+              word: candidate.word,
+              qualityChecks: {
+                ...PASSING_QUALITY_CHECKS,
+                isMeaningUnfamiliarToMostPlayers: decision === 'accepted',
+              },
+              decision,
+              reason:
+                decision === 'accepted'
+                  ? '真实含义不透明且适合编造错误释义。'
+                  : '词义过于常见，无法形成真假释义悬念。',
+            };
+          }),
         );
       },
     },
@@ -76,6 +98,43 @@ async function seedCategory(category: (typeof FIB_WORD_CATEGORIES)[number]): Pro
   )
     .bind(`seed-${category}-`, `种子-${category}-`, category)
     .run();
+}
+
+async function seedAcceptedActiveWord(word: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (
+         id, status, provider, model, prompt_version, request_count,
+         accepted_count, rejected_count, duplicate_count, started_at, completed_at
+       ) VALUES (
+         'historic-cycle', 'completed', 'gemini', 'test-model', '3', 1,
+         1, 0, 5, '2026-08-01T00:00:00.000Z', '2026-08-01T00:01:00.000Z'
+       )`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO fib_words (
+         id, word, core_meaning, usage_note, category, source, status,
+         selection_key, generation_cycle_id, created_at, activated_at
+       ) VALUES (
+         'existing-active-word', ?, '测试含义', '测试说明', 'literary', 'gemini', 'active',
+         1, 'historic-cycle', '2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z'
+       )`,
+    ).bind(word),
+    env.DB.prepare(
+      `INSERT INTO fib_word_candidate_reviews (
+         id, word, core_meaning, usage_note, category, source,
+         is_established_term, is_definition_accurate, is_easy_to_read_aloud,
+         is_meaning_unfamiliar_to_most_players,
+         is_meaning_distinct_from_literal_reading,
+         has_multiple_plausible_wrong_definitions, has_reveal_value,
+         decision, reason, review_version, generation_cycle_id, reviewed_at
+       ) VALUES (
+         'historic-review', ?, '测试含义', '测试说明', 'literary', 'gemini',
+         1, 1, 1, 1, 1, 1, 1, 'accepted',
+         '审核接受该测试词。', '3', 'historic-cycle', '2026-08-01T00:00:00.000Z'
+       )`,
+    ).bind(word),
+  ]);
 }
 
 async function seedRunningCycle(): Promise<void> {
@@ -112,6 +171,7 @@ beforeEach(async () => {
 
 describe('replenishFibWordPool', () => {
   it('records rejections and never reactivates them after a later acceptance', async () => {
+    await seedAcceptedActiveWord('一词');
     const generated = createUniqueProvider((candidateIndex) =>
       candidateIndex === 0 ? 'rejected' : 'accepted',
     );
@@ -123,9 +183,21 @@ describe('replenishFibWordPool', () => {
 
     expect(generated.requestCount()).toBe(FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION);
     expect(generated.reviewCount()).toBe(FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION);
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
-      count: FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION * 5,
-    });
+    const disabledWord = await env.DB.prepare(
+      `SELECT status, disabled_at, status_reason FROM fib_words
+       WHERE id = 'existing-active-word'`,
+    ).first<DisabledWordRow>();
+    if (disabledWord === null || disabledWord.disabled_at === null) {
+      throw new Error('Expected the rejected word to have a disabled timestamp');
+    }
+    expect(disabledWord.status).toBe('disabled');
+    expect(disabledWord.status_reason).toBe('quality_review: rejected');
+    expect(Number.isNaN(Date.parse(disabledWord.disabled_at))).toBe(false);
+    expect(
+      await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM fib_words WHERE status = 'active'`,
+      ).first(),
+    ).toEqual({ count: FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION * 5 });
     expect(
       await env.DB.prepare(
         `SELECT COUNT(*) AS count FROM fib_word_candidate_reviews
@@ -135,7 +207,7 @@ describe('replenishFibWordPool', () => {
     expect(
       await env.DB.prepare(
         `SELECT request_count, accepted_count, rejected_count, duplicate_count
-         FROM fib_word_generation_cycles`,
+         FROM fib_word_generation_cycles WHERE status = 'running'`,
       ).first(),
     ).toEqual({
       request_count: FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION,
@@ -150,21 +222,37 @@ describe('replenishFibWordPool', () => {
       requestIntervalMs: 0,
     });
 
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
-      count: FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION * 5,
-    });
+    expect(
+      await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM fib_words WHERE status = 'active'`,
+      ).first(),
+    ).toEqual({ count: FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION * 5 });
     expect(
       await env.DB.prepare(
         `SELECT COUNT(*) AS count
          FROM fib_word_candidate_reviews AS review
          INNER JOIN fib_words AS word_entry ON word_entry.word = review.word
-         WHERE review.decision = 'rejected'`,
+         WHERE review.decision = 'rejected' AND word_entry.status = 'active'`,
       ).first(),
     ).toEqual({ count: 0 });
     expect(
       await env.DB.prepare(
+        `SELECT decision, COUNT(*) AS review_count
+         FROM fib_word_candidate_reviews
+         WHERE word = '一词' AND review_version = '3'
+         GROUP BY decision
+         ORDER BY decision`,
+      ).all(),
+    ).toMatchObject({
+      results: [
+        { decision: 'accepted', review_count: 2 },
+        { decision: 'rejected', review_count: 1 },
+      ],
+    });
+    expect(
+      await env.DB.prepare(
         `SELECT request_count, accepted_count, rejected_count, duplicate_count
-         FROM fib_word_generation_cycles`,
+         FROM fib_word_generation_cycles WHERE status = 'running'`,
       ).first(),
     ).toEqual({
       request_count: 2 * FIB_WORD_SUPPLY_MAX_REQUESTS_PER_INVOCATION,

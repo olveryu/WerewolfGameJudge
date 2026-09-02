@@ -80,24 +80,43 @@ export const fibWordGenerationCycles = sqliteTable(
   ],
 );
 
-/** @public Independent editorial decisions for generated FibKing candidates. */
+/** @public Immutable editorial-review events for generated FibKing candidates. */
 export const fibWordCandidateReviews = sqliteTable(
   'fib_word_candidate_reviews',
   {
-    word: text('word').primaryKey(),
+    id: text('id').primaryKey(),
+    word: text('word').notNull(),
     coreMeaning: text('core_meaning').notNull(),
     usageNote: text('usage_note').notNull(),
     category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(),
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
+    isEstablishedTerm: integer('is_established_term', { mode: 'boolean' }).notNull(),
+    isDefinitionAccurate: integer('is_definition_accurate', { mode: 'boolean' }).notNull(),
+    isEasyToReadAloud: integer('is_easy_to_read_aloud', { mode: 'boolean' }).notNull(),
+    isMeaningUnfamiliarToMostPlayers: integer('is_meaning_unfamiliar_to_most_players', {
+      mode: 'boolean',
+    }).notNull(),
+    isMeaningDistinctFromLiteralReading: integer('is_meaning_distinct_from_literal_reading', {
+      mode: 'boolean',
+    }).notNull(),
+    hasMultiplePlausibleWrongDefinitions: integer('has_multiple_plausible_wrong_definitions', {
+      mode: 'boolean',
+    }).notNull(),
+    hasRevealValue: integer('has_reveal_value', { mode: 'boolean' }).notNull(),
     decision: text('decision', { enum: FIB_WORD_REVIEW_DECISIONS }).notNull(),
     reason: text('reason').notNull(),
+    reviewVersion: text('review_version').notNull(),
     generationCycleId: text('generation_cycle_id')
       .notNull()
       .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }),
     reviewedAt: text('reviewed_at').notNull(),
   },
   (table) => [
-    index('idx_fib_word_candidate_reviews_decision_reviewed').on(table.decision, table.reviewedAt),
+    index('idx_fib_word_candidate_reviews_word_decision').on(table.word, table.decision),
+    index('idx_fib_word_candidate_reviews_cycle_decision').on(
+      table.generationCycleId,
+      table.decision,
+    ),
   ],
 );
 

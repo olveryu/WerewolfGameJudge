@@ -24,8 +24,19 @@ export interface FibWordCandidate {
   readonly source: FibWordSource;
 }
 
+export interface FibWordQualityChecks {
+  readonly isEstablishedTerm: boolean;
+  readonly isDefinitionAccurate: boolean;
+  readonly isEasyToReadAloud: boolean;
+  readonly isMeaningUnfamiliarToMostPlayers: boolean;
+  readonly isMeaningDistinctFromLiteralReading: boolean;
+  readonly hasMultiplePlausibleWrongDefinitions: boolean;
+  readonly hasRevealValue: boolean;
+}
+
 export interface FibWordReview {
   readonly word: string;
+  readonly qualityChecks: FibWordQualityChecks;
   readonly decision: FibWordReviewDecision;
   readonly reason: string;
 }
