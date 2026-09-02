@@ -105,6 +105,8 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         minHeight: componentSizes.button.md,
         paddingHorizontal: spacing.small,
         borderRadius: borderRadius.small,
+        backgroundColor: colors.text,
+        borderColor: colors.text,
       },
       hostManagementContent: {
         width: '100%',
@@ -121,7 +123,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
       hostManagementTitle: {
         ...textStyles.secondarySemibold,
-        color: colors.text,
+        color: colors.textInverse,
       },
       hostManagementPreviewRow: {
         flex: 1,
@@ -133,7 +135,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
       hostManagementPreview: {
         ...textStyles.caption,
-        color: colors.textSecondary,
+        color: withAlpha(colors.textInverse, 0.78),
         flexShrink: 1,
       },
     }),

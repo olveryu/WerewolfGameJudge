@@ -221,7 +221,7 @@ const HostManagementEntry: React.FC<{
         <Ionicons
           name="shield-checkmark-outline"
           size={componentSizes.icon.sm}
-          color={colors.textSecondary}
+          color={colors.textInverse}
         />
         <Text style={styles.hostManagementTitle} numberOfLines={1}>
           主持管理
@@ -231,11 +231,7 @@ const HostManagementEntry: React.FC<{
         <Text style={styles.hostManagementPreview} numberOfLines={1}>
           {model.preview}
         </Text>
-        <Ionicons
-          name="chevron-forward"
-          size={componentSizes.icon.sm}
-          color={colors.textSecondary}
-        />
+        <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textInverse} />
       </View>
     </View>
   </Button>

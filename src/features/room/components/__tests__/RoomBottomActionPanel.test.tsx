@@ -162,7 +162,7 @@ describe('RoomBottomActionPanel', () => {
     expect(screen.queryByTestId(TESTIDS.actionMessage)).toBeNull();
   });
 
-  it('opens Host management from a preview entry without executing a Host command', () => {
+  it('opens Host management from a high-contrast preview entry without executing a command', () => {
     const openHostManagement = jest.fn();
     const model: RoomBottomActionModel = {
       kind: 'stacked',
@@ -197,6 +197,11 @@ describe('RoomBottomActionPanel', () => {
     );
 
     expect(screen.getByText('下一步：开始游戏')).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toHaveStyle({
+      backgroundColor: colors.text,
+      borderColor: colors.text,
+    });
+    expect(screen.getByText('主持管理')).toHaveStyle({ color: colors.textInverse });
     fireEvent.press(screen.getByLabelText('主持管理，下一步：开始游戏'));
     expect(openHostManagement).toHaveBeenCalledTimes(1);
   });
