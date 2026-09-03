@@ -13,6 +13,7 @@ import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResu
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 /** useRoomModals deps */
 interface UseRoomModalsDeps {
@@ -189,6 +190,11 @@ export function useRoomModals({
     }
 
     detailAlertOpenRef.current = true;
+
+    if (isMiniProgram()) {
+      showDetailAlert(false);
+      return;
+    }
 
     // Start capture in background; update alert to enable "分享战报" on completion
     void beginReportCapture().then(() => {
