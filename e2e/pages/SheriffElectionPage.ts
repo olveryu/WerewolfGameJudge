@@ -39,6 +39,9 @@ export class SheriffElectionPage {
 
   /** Assert the Host's personal registration action and distinct phase-advance command. */
   async expectHostRegistrationActions(personalAction: 'register' | 'cancel'): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.audioWaitingButton)).not.toBeVisible({
+      timeout: 30_000,
+    });
     const personalLabel = personalAction === 'register' ? '报名上警' : '取消报名';
     const personalButton = this.page.getByTestId(
       personalAction === 'register'
