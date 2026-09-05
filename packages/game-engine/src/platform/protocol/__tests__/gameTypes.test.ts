@@ -1,4 +1,5 @@
 import {
+  FASHION_SHADOW_GAME_TYPE,
   FIBKING_GAME_TYPE,
   GAME_TYPES,
   isGameType,
@@ -17,8 +18,10 @@ describe('game type protocol', () => {
   it('uses canonical identifiers for every registered game', () => {
     expect(WEREWOLF_GAME_TYPE).toBe('werewolf');
     expect(FIBKING_GAME_TYPE).toBe('fibking');
+    expect(FASHION_SHADOW_GAME_TYPE).toBe('fashion-shadow');
     expect(GAME_TYPES).toContain(WEREWOLF_GAME_TYPE);
     expect(GAME_TYPES).toContain(FIBKING_GAME_TYPE);
+    expect(GAME_TYPES).toContain(FASHION_SHADOW_GAME_TYPE);
   });
 
   it.each([undefined, null, '', 'pictionary', 1, {}])('rejects unknown input %p', (value) => {

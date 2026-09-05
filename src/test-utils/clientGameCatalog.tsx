@@ -96,5 +96,30 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
     },
+    'fashion-shadow': {
+      gameType: 'fashion-shadow',
+      home: {
+        mode: {
+          displayName: '时尚追凶',
+          subtitle: '供应链暗影 · ESG 多人推理',
+          iconName: 'search-outline',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG['fashion-shadow'].navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('fashion-shadow'),
+      productUi: {
+        getAvatarDisplayName: () => null,
+        getRevealEffectPresentation: () => null,
+      },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
   };
 }

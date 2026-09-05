@@ -1,4 +1,8 @@
 import {
+  FASHION_PUBLIC_STATE_CODEC,
+  fashionEngine,
+} from '@game-judge/game-engine/games/fashion-shadow/public';
+import {
   FIB_STATE_CODEC,
   fibEngine,
   type FibInternalCommand,
@@ -13,6 +17,12 @@ import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes'
 import { describe, expect, it } from 'vitest';
 
 import { WORKER_GAME_CATALOG, WORKER_GAME_HTTP_ROUTES } from '../catalog';
+import { fashionEffectSchema } from '../fashion-shadow/effects';
+import {
+  fashionCreateConfigSchema,
+  fashionInternalCommandSchema,
+  fashionPublicCommandSchema,
+} from '../fashion-shadow/schemas';
 import { fibEffectSchema } from '../fibking/effects';
 import {
   fibCreateConfigSchema,
@@ -177,6 +187,32 @@ describe('Worker game catalog', () => {
       gameType: 'fibking',
       phase: 'lobby',
       numberOfPlayers: 8,
+    });
+  });
+
+  it('binds the Fashion Shadow engine, redacted projection, and schemas', () => {
+    const module = WORKER_GAME_CATALOG['fashion-shadow'];
+
+    expect(module.gameType).toBe('fashion-shadow');
+    expect(module.engine).toBe(fashionEngine);
+    expect(module.createConfigSchema).toBe(fashionCreateConfigSchema);
+    expect(module.publicCommandSchema).toBe(fashionPublicCommandSchema);
+    expect(module.internalCommandSchema).toBe(fashionInternalCommandSchema);
+    expect(module.effectSchema).toBe(fashionEffectSchema);
+    expect(module.httpRoutes).toEqual([]);
+
+    const created = module.createInitialState(
+      { numberOfPlayers: 7 },
+      { roomCode: '7654', hostUserId: 'host', nowMs: 1, commandId: 'create-fashion' },
+    );
+    if (created.kind !== 'created') throw new Error(created.reason);
+    expect(
+      FASHION_PUBLIC_STATE_CODEC.parse(module.projectStateForUser(created.state, 'host')),
+    ).toMatchObject({
+      gameType: 'fashion-shadow',
+      phase: 'lobby',
+      numberOfPlayers: 7,
+      privateIdentity: null,
     });
   });
 

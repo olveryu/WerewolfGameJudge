@@ -133,6 +133,18 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     ) {
       this.#broadcast(pipeline.rpc.result.snapshot, pipeline.commandType);
     }
+    if (pipeline.rpc.kind === 'decided' && pipeline.rpc.result.kind === 'committed') {
+      return {
+        ...pipeline.rpc,
+        result: {
+          ...pipeline.rpc.result,
+          snapshot: this.#projectSnapshotForUser(
+            pipeline.rpc.result.snapshot,
+            command.actorUserId,
+          ),
+        },
+      };
+    }
     return pipeline.rpc;
   }
 
@@ -320,20 +332,49 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     });
   }
 
+  #projectSnapshotForUser(
+    snapshot: RoomSnapshot<BaseGameState<GameType>>,
+    userId: string | null,
+  ): RoomSnapshot<BaseGameState<GameType>> {
+    const module = this.#gameModuleResolver(snapshot.gameType);
+    return {
+      ...snapshot,
+      state: module.projectStateForUser(snapshot.state, userId),
+    };
+  }
+
+  #getSocketUserId(socket: WebSocket): string {
+    const userTags = this.ctx
+      .getTags(socket)
+      .filter((tag) => tag.startsWith(USER_SOCKET_TAG_PREFIX));
+    if (userTags.length !== 1) {
+      throw new Error(`WebSocket must have exactly one user tag, received ${userTags.length}`);
+    }
+    const userId = userTags[0]?.slice(USER_SOCKET_TAG_PREFIX.length);
+    if (userId === undefined || userId.length === 0) {
+      throw new Error('WebSocket user tag must contain a user ID');
+    }
+    return userId;
+  }
+
   #broadcast(snapshot: RoomSnapshot<BaseGameState<GameType>>, commandType: string | null): void {
-    const message = JSON.stringify(createStateUpdateMessage(snapshot, commandType));
-    let deliveryCount = 0;
+    const deliveryCounts = new Map<string, number>();
     for (const socket of this.ctx.getWebSockets()) {
       try {
+        const userId = this.#getSocketUserId(socket);
+        const projectedSnapshot = this.#projectSnapshotForUser(snapshot, userId);
+        const message = JSON.stringify(createStateUpdateMessage(projectedSnapshot, commandType));
         socket.send(message);
-        deliveryCount += 1;
+        deliveryCounts.set(message, (deliveryCounts.get(message) ?? 0) + 1);
       } catch (error) {
-        log.warn('state broadcast skipped closed socket', {
+        log.warn('state broadcast skipped closed or invalid socket', {
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
-    this.#recordRealtimeTraffic('STATE_UPDATE', message, deliveryCount);
+    for (const [message, deliveryCount] of deliveryCounts) {
+      this.#recordRealtimeTraffic('STATE_UPDATE', message, deliveryCount);
+    }
   }
 
   #pushUserEventToConnectedSockets(userId: string, message: object): void {
@@ -487,6 +528,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     }
 
     this.#recordRealtimeTraffic(clientMessage.type, message, 1);
+    const userId = this.#getSocketUserId(socket);
 
     if (clientMessage.type === 'STATE_SYNC_REQUEST') {
       const snapshot = this.#repository.readSnapshot();
@@ -497,23 +539,13 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         socket.close(1011, 'state_unavailable');
         return;
       }
+      const projectedSnapshot = this.#projectSnapshotForUser(snapshot, userId);
       const response = JSON.stringify(
-        createStateSyncResponseMessage(clientMessage.requestId, snapshot),
+        createStateSyncResponseMessage(clientMessage.requestId, projectedSnapshot),
       );
       socket.send(response);
       this.#recordRealtimeTraffic('STATE_SYNC_RESPONSE', response, 1);
       return;
-    }
-
-    const userTags = this.ctx
-      .getTags(socket)
-      .filter((tag) => tag.startsWith(USER_SOCKET_TAG_PREFIX));
-    if (userTags.length !== 1) {
-      throw new Error(`WebSocket must have exactly one user tag, received ${userTags.length}`);
-    }
-    const userId = userTags[0]?.slice(USER_SOCKET_TAG_PREFIX.length);
-    if (userId === undefined || userId.length === 0) {
-      throw new Error('WebSocket user tag must contain a user ID');
     }
 
     await acknowledgeUserEvent(this.env.DB, userId, clientMessage.eventId);

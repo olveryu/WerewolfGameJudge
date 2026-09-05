@@ -151,6 +151,10 @@ export interface WorkerGameModuleDefinition<
   readonly internalCommandSchema: ZodType<TInternalCommand>;
   readonly effectSchema: ZodType<TEffect>;
   readonly httpRoutes: readonly WorkerGameHttpRoute<TGameType>[];
+  readonly projectStateForUser?: (
+    state: TState,
+    userId: string | null,
+  ) => BaseGameState<TGameType>;
   parsePublicUserStats(value: unknown): TPublicUserStats;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: TEffect, context: WorkerEffectBusinessContext): string;
@@ -425,6 +429,22 @@ export function registerWorkerGameModule<
     parseCreateConfig: (config) => module.parseCreateConfig(config),
     createInitialState: (config, context) => module.createInitialState(config, context),
     parseState: (value) => module.parseState(value),
+    projectStateForUser: (state, userId) => {
+      const authoritativeState = module.parseState(state);
+      const projectedState =
+        module.projectStateForUser?.(authoritativeState, userId) ?? authoritativeState;
+      if (projectedState.gameType !== module.gameType) {
+        throw new Error(
+          `Game module ${module.gameType} projected state for ${String(projectedState.gameType)}`,
+        );
+      }
+      if (projectedState.stateVersion !== module.stateVersion) {
+        throw new Error(
+          `Game module ${module.gameType} projected unsupported state version ${projectedState.stateVersion}`,
+        );
+      }
+      return projectedState;
+    },
     parseCommandResult: (value) => module.parseCommandResult(value),
     decidePublic: (state, command, context) => module.decidePublic(state, command, context),
     decideInternal: (state, command, context) => module.decideInternal(state, command, context),
