@@ -84,7 +84,7 @@ function createSheriffAdvanceAction(
   };
   return pendingAwareAction(
     descriptor,
-    election.isInteractionDisabled || election.pendingAction !== null,
+    election.pendingAction !== null,
     () => void election.advance(),
   );
 }
@@ -105,7 +105,7 @@ function createSheriffSelfDestructAction(
   };
   return pendingAwareAction(
     descriptor,
-    election.isInteractionDisabled || election.pendingAction !== null,
+    election.pendingAction !== null,
     election.requestEndBySelfDestruct,
   );
 }

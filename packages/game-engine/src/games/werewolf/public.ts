@@ -100,6 +100,7 @@ export type {
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
+  SheriffSpeakingDirection,
   ShootConfirmStatus,
 } from './domain/protocol/types';
 export { RESOLVERS } from './domain/resolvers';

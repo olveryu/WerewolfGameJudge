@@ -719,7 +719,8 @@ describe('Werewolf engine definition and catalog', () => {
     );
     expect(state.sheriffElection).toMatchObject({
       phase: 'candidateSpeech',
-      speakingOrder: [0, 1, 2],
+      speakingStartSeat: 0,
+      speakingDirection: 'clockwise',
     });
 
     state = evolveCommittedCommand(
@@ -768,7 +769,8 @@ describe('Werewolf engine definition and catalog', () => {
     expect(state.sheriffElection).toMatchObject({
       phase: 'runoffSpeech',
       candidateSeats: [2, 0],
-      speakingOrder: [2, 0],
+      speakingStartSeat: 2,
+      speakingDirection: 'counterclockwise',
       completedRounds: [
         {
           round: 'first',
@@ -838,13 +840,15 @@ describe('Werewolf engine definition and catalog', () => {
       {
         ...commonElectionState,
         phase: 'candidateSpeech',
-        speakingOrder: [0, 1],
+        speakingStartSeat: 0,
+        speakingDirection: 'clockwise',
       },
       {
         ...commonElectionState,
         phase: 'runoffSpeech',
         candidateSeats: [0, 1],
-        speakingOrder: [1, 0],
+        speakingStartSeat: 1,
+        speakingDirection: 'counterclockwise',
       },
     ];
     const votingStates: readonly SheriffElectionState[] = [
@@ -964,7 +968,7 @@ describe('Werewolf engine definition and catalog', () => {
     expect(state.sheriffElection?.withdrawnSeats).toEqual([1]);
   });
 
-  it('uses the seeded counterclockwise table traversal instead of registration order', () => {
+  it('publishes the seeded counterclockwise starting seat instead of registration order', () => {
     let state = createState({
       status: GameStatus.Day,
       rules: { isSheriffElectionEnabled: true },
@@ -997,7 +1001,8 @@ describe('Werewolf engine definition and catalog', () => {
     expect(state.sheriffElection).toMatchObject({
       phase: 'candidateSpeech',
       registeredSeats: [0, 2],
-      speakingOrder: [2, 0],
+      speakingStartSeat: 2,
+      speakingDirection: 'counterclockwise',
     });
   });
 
@@ -1011,7 +1016,8 @@ describe('Werewolf engine definition and catalog', () => {
         withdrawnSeats: [],
         completedRounds: [],
         candidateSeats: [0, 2],
-        speakingOrder: [0, 2],
+        speakingStartSeat: 0,
+        speakingDirection: 'clockwise',
       },
     });
 
@@ -1020,70 +1026,40 @@ describe('Werewolf engine definition and catalog', () => {
     ).toEqual({ kind: 'reject', reason: 'not_candidate' });
   });
 
-  it.each<{
-    command: WerewolfCommand;
-    context: CommandContext;
-    election: SheriffElectionState;
-  }>([
-    {
-      command: { type: 'werewolf.sheriff.register' },
-      context: userContext('user-1'),
-      election: {
+  it('allows players and the Host to operate the election during final night audio', () => {
+    let state = createState({
+      status: GameStatus.Day,
+      rules: { isSheriffElectionEnabled: true },
+      isAudioPlaying: true,
+      pendingAudioEffects: [{ audioKey: 'night_end' }],
+      sheriffElection: {
         phase: 'registration',
         registeredSeats: [],
         withdrawnSeats: [],
         completedRounds: [],
       },
-    },
-    {
-      command: { type: 'werewolf.sheriff.withdraw' },
-      context: userContext('user-1'),
-      election: {
-        phase: 'registration',
-        registeredSeats: [1],
-        withdrawnSeats: [],
-        completedRounds: [],
-      },
-    },
-    {
-      command: { type: 'werewolf.sheriff.vote', targetSeat: 0 },
-      context: userContext('user-1'),
-      election: {
-        phase: 'firstVote',
-        registeredSeats: [0],
-        withdrawnSeats: [],
-        completedRounds: [],
-        candidateSeats: [0],
-        eligibleVoterSeats: [1, 2],
-        ballots: {},
-      },
-    },
-    {
-      command: { type: 'werewolf.sheriff.advance' },
-      context: userContext('host'),
-      election: {
-        phase: 'registration',
-        registeredSeats: [],
-        withdrawnSeats: [],
-        completedRounds: [],
-      },
-    },
-  ])(
-    'rejects $command.type while the final night audio is playing',
-    ({ command, context, election }) => {
-      const state = createState({
-        status: GameStatus.Day,
-        rules: { isSheriffElectionEnabled: true },
-        isAudioPlaying: true,
-        sheriffElection: election,
-      });
+    });
 
-      expect(werewolfEngine.decide(state, command, context)).toEqual({
-        kind: 'reject',
-        reason: 'forbidden_while_audio_playing',
-      });
-    },
-  );
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.register' },
+      userContext('user-1'),
+    );
+    expect(state).toMatchObject({
+      isAudioPlaying: true,
+      sheriffElection: { phase: 'registration', registeredSeats: [1] },
+    });
+
+    state = evolveCommittedCommand(
+      state,
+      { type: 'werewolf.sheriff.advance' },
+      userContext('host'),
+    );
+    expect(state).toMatchObject({
+      isAudioPlaying: true,
+      sheriffElection: { phase: 'candidateSpeech', registeredSeats: [1] },
+    });
+  });
 
   it('is deterministic for identical state, command, and execution context', () => {
     const state = createState({

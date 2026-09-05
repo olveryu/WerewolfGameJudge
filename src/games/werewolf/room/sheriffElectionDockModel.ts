@@ -74,7 +74,7 @@ function createCommandButton(
     buttonColor: action.tone === 'danger' ? colors.error : undefined,
     isLoading,
   };
-  if (!model.isInteractionDisabled && model.pendingAction === null) {
+  if (model.pendingAction === null) {
     return { ...base, isEnabled: true, onPress: action.execute };
   }
   return {
@@ -192,25 +192,6 @@ export function createSheriffElectionDockModel(
     '本局复盘',
     'default',
   );
-
-  if (input.election.isInteractionDisabled) {
-    return {
-      kind: 'dock',
-      message: null,
-      leading,
-      primary: {
-        key: 'sheriff-audio-waiting',
-        label: '语音播报中…',
-        variant: 'primary',
-        size: 'lg',
-        testID: TESTIDS.audioWaitingButton,
-        isEnabled: false,
-        disabledReason: null,
-        onDisabledPress: null,
-      },
-      trailing,
-    };
-  }
 
   const personalAction = getPersonalAction(input);
   const primary =

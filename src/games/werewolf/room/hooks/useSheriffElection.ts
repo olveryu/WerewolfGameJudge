@@ -28,7 +28,6 @@ export type SheriffElectionPendingAction =
 export interface SheriffElectionPanelModel {
   readonly view: SheriffElectionViewModel;
   readonly pendingAction: SheriffElectionPendingAction | null;
-  readonly isInteractionDisabled: boolean;
   readonly register: () => Promise<void>;
   readonly cancelRegistration: () => Promise<void>;
   readonly withdraw: () => Promise<void>;
@@ -41,7 +40,6 @@ interface UseSheriffElectionInput {
   readonly gameState: LocalGameState;
   readonly effectiveSeat: number | null;
   readonly isHost: boolean;
-  readonly isAudioPlaying: boolean;
   readonly registerSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
   readonly cancelSheriffRegistration: () => Promise<WerewolfCommandDispatchOutcome>;
   readonly withdrawSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -61,7 +59,6 @@ export function useSheriffElection(
     endSheriffElectionBySelfDestruct,
     effectiveSeat,
     gameState,
-    isAudioPlaying,
     isHost,
     registerSheriffCandidate,
     withdrawSheriffCandidate,
@@ -145,7 +142,6 @@ export function useSheriffElection(
         : {
             view,
             pendingAction,
-            isInteractionDisabled: isAudioPlaying,
             register,
             cancelRegistration,
             withdraw,
@@ -156,7 +152,6 @@ export function useSheriffElection(
     [
       advance,
       cancelRegistration,
-      isAudioPlaying,
       pendingAction,
       register,
       requestEndBySelfDestruct,

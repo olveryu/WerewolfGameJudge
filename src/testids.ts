@@ -95,7 +95,7 @@ export const TESTIDS = {
   sheriffRegisteredSeats: 'sheriff-registered-seats',
   sheriffWithdrawnSeats: 'sheriff-withdrawn-seats',
   sheriffActiveCandidateSeats: 'sheriff-active-candidate-seats',
-  sheriffSpeakingOrder: 'sheriff-speaking-order',
+  sheriffSpeakingInstruction: 'sheriff-speaking-instruction',
   sheriffVoteProgress: 'sheriff-vote-progress',
   sheriffRegisterButton: 'sheriff-register-button',
   sheriffCancelRegistrationButton: 'sheriff-cancel-registration-button',

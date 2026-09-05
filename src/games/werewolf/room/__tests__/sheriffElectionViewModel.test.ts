@@ -79,7 +79,8 @@ describe('createSheriffElectionViewModel', () => {
         registeredSeats: [1, 0],
         withdrawnSeats: [],
         completedRounds: [],
-        speakingOrder: [0, 1],
+        speakingStartSeat: 0,
+        speakingDirection: 'clockwise',
       },
     });
 
@@ -94,6 +95,7 @@ describe('createSheriffElectionViewModel', () => {
       withdrawnSeats: [],
       activeCandidateSeats: [1, 0],
     });
+    expect(viewModel?.speakingInstruction).toBe('从 1号开始，顺时针发言');
   });
 
   it('hides open ballot directions while showing progress and the effective player own ballot', () => {
@@ -177,7 +179,8 @@ describe('createSheriffElectionViewModel', () => {
         withdrawnSeats: [],
         completedRounds: [],
         candidateSeats: [0, 2],
-        speakingOrder: [2, 0],
+        speakingStartSeat: 2,
+        speakingDirection: 'counterclockwise',
       },
     });
 
@@ -194,8 +197,8 @@ describe('createSheriffElectionViewModel', () => {
 
     expect(losingCandidate?.canWithdraw).toBe(false);
     expect(tiedCandidate).toMatchObject({
-      phaseDescription: '平票候选人按下方顺序依次发言，发言期间可退水',
-      speakingOrder: [2, 0],
+      phaseDescription: '平票候选人依次发言，发言期间可退水',
+      speakingInstruction: '从 3号开始，逆时针发言',
       canWithdraw: true,
       canAdvance: true,
       advanceLabel: '结束发言',
@@ -210,7 +213,8 @@ describe('createSheriffElectionViewModel', () => {
         withdrawnSeats: [2],
         completedRounds: [],
         candidateSeats: [0, 2],
-        speakingOrder: [0, 2],
+        speakingStartSeat: 0,
+        speakingDirection: 'clockwise',
       },
     });
 
@@ -221,6 +225,6 @@ describe('createSheriffElectionViewModel', () => {
     });
 
     expect(viewModel?.candidateRecords?.activeCandidateSeats).toEqual([0]);
-    expect(viewModel?.speakingOrder).toEqual([0, 2]);
+    expect(viewModel?.speakingInstruction).toBe('从 1号开始，顺时针发言');
   });
 });

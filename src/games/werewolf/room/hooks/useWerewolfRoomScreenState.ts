@@ -175,7 +175,6 @@ export function useWerewolfRoomScreenState(
     gameState,
     effectiveSeat,
     isHost,
-    isAudioPlaying,
     registerSheriffCandidate,
     cancelSheriffRegistration,
     withdrawSheriffCandidate,

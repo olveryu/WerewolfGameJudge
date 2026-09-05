@@ -4,7 +4,10 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
 import { createSheriffElectionPanelStyles } from '@/games/werewolf/room/components/sheriffElectionPanel.styles';
-import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import type {
+  SheriffElectionPanelModel,
+  SheriffElectionPendingAction,
+} from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -12,9 +15,10 @@ import { colors } from '@/theme';
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'registration',
   phaseTitle: '报名上警',
-  phaseDescription: '玩家可报名，房主结束报名后随机确定发言顺序',
+  phaseDescription:
+    '房主请点击“结束报名”按钮（位于“主持管理”中）。想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
   candidateRecords: null,
-  speakingOrder: [],
+  speakingInstruction: null,
   voteProgress: null,
   myBallot: null,
   candidateOptions: [],
@@ -30,12 +34,11 @@ const BASE_VIEW: SheriffElectionViewModel = {
 
 function createModel(
   viewOverrides: Partial<SheriffElectionViewModel> = {},
-  isInteractionDisabled = false,
+  pendingAction: SheriffElectionPendingAction | null = null,
 ): SheriffElectionPanelModel {
   return {
     view: { ...BASE_VIEW, ...viewOverrides },
-    pendingAction: null,
-    isInteractionDisabled,
+    pendingAction,
     register: jest.fn(async () => undefined),
     cancelRegistration: jest.fn(async () => undefined),
     withdraw: jest.fn(async () => undefined),
@@ -122,22 +125,24 @@ describe('SheriffElectionPanel', () => {
     const model = createModel({
       phase: 'candidateSpeech',
       phaseTitle: '竞选发言',
-      phaseDescription: '候选人按随机桌面顺序发言，发言期间仍可退水',
+      phaseDescription: '候选人依次发言，发言期间可退水',
       candidateRecords: {
         registeredSeats: [2, 0, 1],
         withdrawnSeats: [],
         activeCandidateSeats: [2, 0, 1],
       },
-      speakingOrder: [0, 1, 2],
+      speakingInstruction: '从 1号开始，顺时针发言',
     });
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
-    expect(screen.getByTestId(TESTIDS.sheriffSpeakingOrder)).toHaveTextContent('1号 · 2号 · 3号');
+    expect(screen.getByTestId(TESTIDS.sheriffSpeakingInstruction)).toHaveTextContent(
+      '从 1号开始，顺时针发言',
+    );
     expect(screen.queryByText(/当前发言/)).toBeNull();
     expect(screen.queryByText(/Alice|Bob|Chen|Dana/)).toBeNull();
   });
 
-  it('disables every visible action while authoritative audio is playing', () => {
+  it('disables every visible action while a vote command is pending', () => {
     const model = createModel(
       {
         phase: 'firstVote',
@@ -148,7 +153,7 @@ describe('SheriffElectionPanel', () => {
         myBallot: { kind: 'notSubmitted' },
         candidateOptions: [{ seat: 0, isSelected: false }],
       },
-      true,
+      { kind: 'vote', targetSeat: 0 },
     );
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
@@ -157,7 +162,7 @@ describe('SheriffElectionPanel', () => {
     expect(candidateButton.props.accessibilityState).toMatchObject({
       disabled: true,
       checked: false,
-      busy: false,
+      busy: true,
     });
     expect(abstainButton.props.accessibilityState).toMatchObject({
       disabled: true,

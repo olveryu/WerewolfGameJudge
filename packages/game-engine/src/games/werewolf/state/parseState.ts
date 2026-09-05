@@ -35,6 +35,7 @@ import type {
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
+  SheriffSpeakingDirection,
 } from '../domain/protocol/types';
 import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
@@ -62,6 +63,11 @@ function parseRoleId(value: unknown, path: string): RoleId {
 
 function parseRoleIds(value: unknown, path: string): RoleId[] {
   return parseArray(value, path, parseRoleId);
+}
+
+function parseSheriffSpeakingDirection(value: unknown, path: string): SheriffSpeakingDirection {
+  if (value === 'clockwise' || value === 'counterclockwise') return value;
+  return fail(path, 'clockwise or counterclockwise');
 }
 
 function parseSchemaId(value: unknown, path: string): ProtocolAction['schemaId'] {
@@ -776,24 +782,19 @@ function parseSheriffElection(value: unknown, path: string): SheriffElectionStat
     case 'completed':
       return finishObject(raw, { ...common, phase: raw.phase }, path);
     case 'candidateSpeech': {
-      const parsed = {
-        ...common,
-        phase: raw.phase,
-        speakingOrder: parseArray(raw.speakingOrder, `${path}.speakingOrder`, parseSeat),
-      };
-      finishObject(
+      return finishObject(
         raw,
         {
-          ...parsed,
-          currentSpeakerIndex: parseOptional(
-            raw.currentSpeakerIndex,
-            `${path}.currentSpeakerIndex`,
-            parseInteger,
+          ...common,
+          phase: raw.phase,
+          speakingStartSeat: parseSeat(raw.speakingStartSeat, `${path}.speakingStartSeat`),
+          speakingDirection: parseSheriffSpeakingDirection(
+            raw.speakingDirection,
+            `${path}.speakingDirection`,
           ),
         },
         path,
       );
-      return parsed;
     }
     case 'firstVote':
     case 'runoffVote':
@@ -813,25 +814,20 @@ function parseSheriffElection(value: unknown, path: string): SheriffElectionStat
         path,
       );
     case 'runoffSpeech': {
-      const parsed = {
-        ...common,
-        phase: raw.phase,
-        candidateSeats: parseArray(raw.candidateSeats, `${path}.candidateSeats`, parseSeat),
-        speakingOrder: parseArray(raw.speakingOrder, `${path}.speakingOrder`, parseSeat),
-      };
-      finishObject(
+      return finishObject(
         raw,
         {
-          ...parsed,
-          currentSpeakerIndex: parseOptional(
-            raw.currentSpeakerIndex,
-            `${path}.currentSpeakerIndex`,
-            parseInteger,
+          ...common,
+          phase: raw.phase,
+          candidateSeats: parseArray(raw.candidateSeats, `${path}.candidateSeats`, parseSeat),
+          speakingStartSeat: parseSeat(raw.speakingStartSeat, `${path}.speakingStartSeat`),
+          speakingDirection: parseSheriffSpeakingDirection(
+            raw.speakingDirection,
+            `${path}.speakingDirection`,
           ),
         },
         path,
       );
-      return parsed;
     }
     default:
       return fail(`${path}.phase`, 'a valid sheriff election phase');

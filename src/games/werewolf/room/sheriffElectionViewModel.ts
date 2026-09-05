@@ -10,7 +10,9 @@ import type {
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
+  SheriffSpeakingDirection,
 } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
@@ -45,7 +47,7 @@ export interface SheriffElectionViewModel {
   readonly phaseDescription: string;
   /** Null while registration identities are not yet public. */
   readonly candidateRecords: SheriffCandidateRecordsViewModel | null;
-  readonly speakingOrder: readonly number[];
+  readonly speakingInstruction: string | null;
   readonly voteProgress: {
     readonly submittedCount: number;
     readonly eligibleCount: number;
@@ -71,17 +73,23 @@ interface SheriffElectionViewModelInput {
 
 type VotingElection = Extract<SheriffElectionState, { readonly phase: 'firstVote' | 'runoffVote' }>;
 
+const SPEAKING_DIRECTION_LABELS = {
+  clockwise: '顺时针',
+  counterclockwise: '逆时针',
+} satisfies Record<SheriffSpeakingDirection, string>;
+
 const PHASE_CONTENT: Record<
   SheriffElectionState['phase'],
   { readonly title: string; readonly description: string }
 > = {
   registration: {
     title: '报名上警',
-    description: '玩家可报名，房主结束报名后随机确定发言顺序',
+    description:
+      '房主请点击“结束报名”按钮（位于“主持管理”中）。想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
   },
   candidateSpeech: {
     title: '竞选发言',
-    description: '候选人按下方顺序依次发言，发言期间可退水',
+    description: '候选人依次发言，发言期间可退水',
   },
   withdrawal: {
     title: '退水确认',
@@ -93,7 +101,7 @@ const PHASE_CONTENT: Record<
   },
   runoffSpeech: {
     title: '平票发言',
-    description: '平票候选人按下方顺序依次发言，发言期间可退水',
+    description: '平票候选人依次发言，发言期间可退水',
   },
   runoffVote: {
     title: '平票投票',
@@ -143,10 +151,14 @@ function createCandidateRecords(
   };
 }
 
-function getSpeakingOrder(election: SheriffElectionState): readonly number[] {
-  return election.phase === 'candidateSpeech' || election.phase === 'runoffSpeech'
-    ? election.speakingOrder
-    : [];
+function getSpeakingInstruction(
+  gameState: LocalGameState,
+  election: SheriffElectionState,
+): string | null {
+  if (election.phase !== 'candidateSpeech' && election.phase !== 'runoffSpeech') return null;
+  assertOccupiedSeat(gameState, election.speakingStartSeat);
+  const direction = SPEAKING_DIRECTION_LABELS[election.speakingDirection];
+  return `从 ${formatSeat(election.speakingStartSeat)}开始，${direction}发言`;
 }
 
 function getAdvanceLabel(election: SheriffElectionState): string | null {
@@ -219,12 +231,11 @@ export function createSheriffElectionViewModel(
   const phaseContent = PHASE_CONTENT[election.phase];
   const activeCandidateSeats = getActiveCandidateSeats(election);
   const candidateRecords = createCandidateRecords(election, activeCandidateSeats);
-  const speakingOrder = getSpeakingOrder(election);
+  const speakingInstruction = getSpeakingInstruction(input.gameState, election);
   const votingState = getVotingState(election);
   assertOccupiedSeats(input.gameState, election.registeredSeats);
   assertOccupiedSeats(input.gameState, election.withdrawnSeats);
   assertOccupiedSeats(input.gameState, activeCandidateSeats);
-  assertOccupiedSeats(input.gameState, speakingOrder);
 
   let myBallot: SheriffBallotSelectionViewModel | null = null;
   if (
@@ -267,7 +278,7 @@ export function createSheriffElectionViewModel(
     phaseTitle: phaseContent.title,
     phaseDescription: phaseContent.description,
     candidateRecords,
-    speakingOrder,
+    speakingInstruction,
     voteProgress:
       votingState === null
         ? null

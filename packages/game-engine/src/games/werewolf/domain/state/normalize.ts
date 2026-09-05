@@ -93,7 +93,8 @@ function normalizeSheriffElection(
       return {
         ...common,
         phase: election.phase,
-        speakingOrder: [...election.speakingOrder],
+        speakingStartSeat: election.speakingStartSeat,
+        speakingDirection: election.speakingDirection,
       };
     case 'firstVote':
     case 'runoffVote':
@@ -109,7 +110,8 @@ function normalizeSheriffElection(
         ...common,
         phase: election.phase,
         candidateSeats: [...election.candidateSeats],
-        speakingOrder: [...election.speakingOrder],
+        speakingStartSeat: election.speakingStartSeat,
+        speakingDirection: election.speakingDirection,
       };
   }
   const exhaustive: never = election;

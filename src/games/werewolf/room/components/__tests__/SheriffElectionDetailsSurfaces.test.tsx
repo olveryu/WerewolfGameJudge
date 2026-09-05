@@ -16,9 +16,10 @@ const model: SheriffElectionPanelModel = {
   view: {
     phase: 'registration',
     phaseTitle: '报名上警',
-    phaseDescription: '玩家可报名，房主结束报名后随机确定发言顺序',
+    phaseDescription:
+      '房主请点击“结束报名”按钮（位于“主持管理”中）。想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
     candidateRecords: null,
-    speakingOrder: [],
+    speakingInstruction: null,
     voteProgress: null,
     myBallot: null,
     candidateOptions: [],
@@ -32,7 +33,6 @@ const model: SheriffElectionPanelModel = {
     advanceLabel: null,
   },
   pendingAction: null,
-  isInteractionDisabled: false,
   register: jest.fn(async () => undefined),
   cancelRegistration: jest.fn(async () => undefined),
   withdraw: jest.fn(async () => undefined),

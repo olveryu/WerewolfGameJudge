@@ -65,7 +65,6 @@ function createInput(overrides: Partial<HookInput> = {}): HookInput {
     gameState: local,
     effectiveSeat: 0,
     isHost: true,
-    isAudioPlaying: false,
     registerSheriffCandidate: jest.fn(success),
     cancelSheriffRegistration: jest.fn(success),
     withdrawSheriffCandidate: jest.fn(success),
@@ -89,14 +88,6 @@ describe('useSheriffElection', () => {
     const { result } = renderHook(() => useSheriffElection(input));
 
     expect(result.current).toBeNull();
-  });
-
-  it('disables panel interaction while authoritative audio is playing', () => {
-    const input = createInput({ isAudioPlaying: true });
-
-    const { result } = renderHook(() => useSheriffElection(input));
-
-    expect(result.current?.isInteractionDisabled).toBe(true);
   });
 
   it('tracks the exact pending vote and clears it after the command settles', async () => {

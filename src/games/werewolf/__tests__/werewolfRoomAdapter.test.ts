@@ -144,7 +144,7 @@ describe('werewolfRoomAdapter', () => {
       phaseTitle: '报名上警',
       phaseDescription: '玩家可报名',
       candidateRecords: null,
-      speakingOrder: [],
+      speakingInstruction: null,
       voteProgress: null,
       myBallot: null,
       candidateOptions: [],
@@ -179,7 +179,7 @@ describe('werewolfRoomAdapter', () => {
         withdrawnSeats: [2],
         activeCandidateSeats: [0, 1],
       },
-      speakingOrder: [0, 1],
+      speakingInstruction: '从 1号开始，顺时针发言',
       canCancelRegistration: false,
     });
     expect(speechSource.getSeat(0).statusBadge).toEqual({ label: '上警', tone: 'primary' });

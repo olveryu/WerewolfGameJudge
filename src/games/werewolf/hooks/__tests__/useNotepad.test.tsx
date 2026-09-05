@@ -146,7 +146,8 @@ describe('useNotepad', () => {
       registeredSeats: [0, 1],
       withdrawnSeats: [1],
       completedRounds: [],
-      speakingOrder: [0, 1],
+      speakingStartSeat: 0,
+      speakingDirection: 'clockwise',
     };
     const completedElection: SheriffElectionState = {
       phase: 'completed',

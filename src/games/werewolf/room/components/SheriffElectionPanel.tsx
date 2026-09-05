@@ -32,19 +32,18 @@ interface BallotChoiceProps {
   readonly targetSeat: number | null;
   readonly isSelected: boolean;
   readonly pendingAction: SheriffElectionPendingAction | null;
-  readonly isInteractionDisabled: boolean;
   readonly onVote: (targetSeat: number | null) => Promise<void>;
   readonly testID: string;
   readonly styles: SheriffElectionPanelStyles;
 }
 
 const BallotChoice: React.FC<BallotChoiceProps> = memo(
-  ({ targetSeat, isSelected, pendingAction, isInteractionDisabled, onVote, testID, styles }) => {
+  ({ targetSeat, isSelected, pendingAction, onVote, testID, styles }) => {
     const handlePress = useCallback(() => {
       void onVote(targetSeat);
     }, [onVote, targetSeat]);
     const isLoading = pendingAction?.kind === 'vote' && pendingAction.targetSeat === targetSeat;
-    const isDisabled = isInteractionDisabled || pendingAction !== null;
+    const isDisabled = pendingAction !== null;
     const label = targetSeat === null ? '弃票' : formatSeat(targetSeat);
 
     return (
@@ -118,7 +117,7 @@ function getFinalResultText(result: SheriffElectionResult): string {
 }
 
 const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ model, styles }) => {
-  const { view, pendingAction, isInteractionDisabled } = model;
+  const { view, pendingAction } = model;
   const myBallotText = getMyBallotText(view.myBallot);
   const { candidateRecords } = view;
   const shouldShowActiveCandidates =
@@ -167,11 +166,11 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
               </Text>
             </View>
           )}
-          {view.speakingOrder.length > 0 && (
+          {view.speakingInstruction !== null && (
             <View style={styles.recordRow}>
               <Text style={styles.recordLabel}>发言顺序</Text>
-              <Text style={styles.recordValue} testID={TESTIDS.sheriffSpeakingOrder}>
-                {formatSeatList(view.speakingOrder)}
+              <Text style={styles.recordValue} testID={TESTIDS.sheriffSpeakingInstruction}>
+                {view.speakingInstruction}
               </Text>
             </View>
           )}
@@ -199,7 +198,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
                     targetSeat={option.seat}
                     isSelected={option.isSelected}
                     pendingAction={pendingAction}
-                    isInteractionDisabled={isInteractionDisabled}
                     onVote={model.vote}
                     testID={TESTIDS.sheriffCandidateButton(option.seat)}
                     styles={styles}
@@ -209,7 +207,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
                   targetSeat={null}
                   isSelected={view.myBallot?.kind === 'abstained'}
                   pendingAction={pendingAction}
-                  isInteractionDisabled={isInteractionDisabled}
                   onVote={model.vote}
                   testID={TESTIDS.sheriffAbstainButton}
                   styles={styles}

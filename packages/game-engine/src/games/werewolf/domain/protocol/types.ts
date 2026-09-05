@@ -190,13 +190,17 @@ interface SheriffElectionCommonState {
   readonly completedRounds: readonly SheriffElectionRoundResult[];
 }
 
+/** Physical table direction followed by sheriff candidates while speaking. */
+export type SheriffSpeakingDirection = 'clockwise' | 'counterclockwise';
+
 /** Server-authoritative active sheriff-election phase. */
 export type SheriffElectionState = SheriffElectionCommonState &
   (
     | { readonly phase: 'registration' }
     | {
         readonly phase: 'candidateSpeech';
-        readonly speakingOrder: readonly number[];
+        readonly speakingStartSeat: number;
+        readonly speakingDirection: SheriffSpeakingDirection;
       }
     | { readonly phase: 'withdrawal' }
     | {
@@ -208,7 +212,8 @@ export type SheriffElectionState = SheriffElectionCommonState &
     | {
         readonly phase: 'runoffSpeech';
         readonly candidateSeats: readonly number[];
-        readonly speakingOrder: readonly number[];
+        readonly speakingStartSeat: number;
+        readonly speakingDirection: SheriffSpeakingDirection;
       }
     | {
         readonly phase: 'runoffVote';

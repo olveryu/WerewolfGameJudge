@@ -23,6 +23,7 @@ import type {
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
+  SheriffSpeakingDirection,
 } from '../protocol/types';
 import type {
   AdvanceSheriffElectionAction,
@@ -50,12 +51,19 @@ type SheriffElectionGate =
   | { readonly kind: 'allowed'; readonly election: SheriffElectionState }
   | { readonly kind: 'rejected'; readonly error: HandlerError };
 
+interface GeneratedSheriffSpeakingOrder {
+  readonly seats: readonly number[];
+  readonly direction: SheriffSpeakingDirection;
+}
+
+interface SheriffSpeakingInstruction {
+  readonly speakingStartSeat: number;
+  readonly speakingDirection: SheriffSpeakingDirection;
+}
+
 function resolveSheriffElectionGate(context: HandlerContext): SheriffElectionGate {
   if (context.state.status !== GameStatus.Day) {
     return { kind: 'rejected', error: handlerError('invalid_status') };
-  }
-  if (context.state.isAudioPlaying) {
-    return { kind: 'rejected', error: handlerError('forbidden_while_audio_playing') };
   }
   const election = context.state.sheriffElection;
   if (election === undefined) {
@@ -75,11 +83,15 @@ function getActiveCandidateSeats(election: SheriffElectionState): number[] {
   return election.registeredSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
 }
 
-function createSheriffSpeakingOrder(state: GameState, candidateSeats: readonly number[]): number[] {
+function createSheriffSpeakingOrder(
+  state: GameState,
+  candidateSeats: readonly number[],
+): GeneratedSheriffSpeakingOrder {
   const seatCount = Object.keys(state.players).length;
   const random = createSeededRng(state.roleRevealRandomNonce ?? state.roomCode);
   const startSeat = randomIntInclusive(1, seatCount, random) - 1;
   const directionStep = randomBool(random) ? 1 : -1;
+  const direction = directionStep === 1 ? 'clockwise' : 'counterclockwise';
   const candidateSeatSet = new Set(candidateSeats);
   const speakingOrder: number[] = [];
 
@@ -91,7 +103,22 @@ function createSheriffSpeakingOrder(state: GameState, candidateSeats: readonly n
   if (speakingOrder.length !== candidateSeats.length) {
     throw new Error('[FAIL-FAST] Sheriff candidates must map to unique table seats');
   }
-  return speakingOrder;
+  return { seats: speakingOrder, direction };
+}
+
+function getSheriffSpeakingInstruction(
+  speakingOrder: GeneratedSheriffSpeakingOrder,
+  isReversed: boolean,
+): SheriffSpeakingInstruction {
+  const speakingStartSeat = isReversed
+    ? speakingOrder.seats[speakingOrder.seats.length - 1]!
+    : speakingOrder.seats[0]!;
+  const speakingDirection = isReversed
+    ? speakingOrder.direction === 'clockwise'
+      ? 'counterclockwise'
+      : 'clockwise'
+    : speakingOrder.direction;
+  return { speakingStartSeat, speakingDirection };
 }
 
 function createAdvanceAction(election: SheriffElectionState): AdvanceSheriffElectionAction {
@@ -223,14 +250,17 @@ function closeFirstVote(
       completedRound,
     );
   }
-  const speakingOrder = createSheriffSpeakingOrder(state, leadingCandidateSeats).reverse();
+  const speakingInstruction = getSheriffSpeakingInstruction(
+    createSheriffSpeakingOrder(state, leadingCandidateSeats),
+    true,
+  );
   return createAdvanceAction({
     phase: 'runoffSpeech',
     registeredSeats: election.registeredSeats,
     withdrawnSeats: election.withdrawnSeats,
     completedRounds: [...election.completedRounds, completedRound],
     candidateSeats: leadingCandidateSeats,
-    speakingOrder,
+    ...speakingInstruction,
   });
 }
 
@@ -361,12 +391,16 @@ export function handleAdvanceSheriffElection(
         action = createCompleteAction({ kind: 'noSheriff', reason: 'noCandidates' });
         break;
       }
+      const speakingInstruction = getSheriffSpeakingInstruction(
+        createSheriffSpeakingOrder(context.state, candidateSeats),
+        false,
+      );
       action = createAdvanceAction({
         phase: 'candidateSpeech',
         registeredSeats: election.registeredSeats,
         withdrawnSeats: election.withdrawnSeats,
         completedRounds: election.completedRounds,
-        speakingOrder: createSheriffSpeakingOrder(context.state, candidateSeats),
+        ...speakingInstruction,
       });
       break;
     }

@@ -26,9 +26,7 @@ function getResultSummary(result: SheriffElectionResult): string {
 function getHudSummary(model: SheriffElectionPanelModel): string {
   const { view } = model;
   if (view.finalResult !== null) return getResultSummary(view.finalResult);
-  if (view.speakingOrder.length > 0) {
-    return `发言顺序：${view.speakingOrder.map(formatSeat).join(' → ')}`;
-  }
+  if (view.speakingInstruction !== null) return `发言顺序：${view.speakingInstruction}`;
   if (view.voteProgress !== null) {
     return `${view.voteProgress.submittedCount}/${view.voteProgress.eligibleCount} 人已投票`;
   }

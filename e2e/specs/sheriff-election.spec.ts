@@ -64,10 +64,10 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await hostElection.advance();
     await Promise.all(elections.map((election) => election.waitForPhase('竞选发言')));
     await Promise.all(elections.map((election) => election.expectRegisteredOrder([3, 1, 2])));
-    const candidateSpeakingOrder = await hostElection.getSpeakingOrder();
-    expect([...candidateSpeakingOrder].sort((left, right) => left - right)).toEqual([1, 2, 3]);
+    const candidateSpeakingInstruction = await hostElection.getSpeakingInstruction();
+    expect(candidateSpeakingInstruction).toMatch(/^从 [123]号开始，(顺时针|逆时针)发言$/);
     await Promise.all(
-      elections.map((election) => election.expectSpeakingOrder(candidateSpeakingOrder)),
+      elections.map((election) => election.expectSpeakingInstruction(candidateSpeakingInstruction)),
     );
 
     await thirdElection.withdraw();
@@ -99,10 +99,10 @@ test('first-day sheriff election resolves a tie with public authoritative histor
         election.expectClosedRound('first', ['1号', '1票', '2号', '4号', '→', '5号']),
       ),
     );
-    const runoffSpeakingOrder = await hostElection.getSpeakingOrder();
-    expect([...runoffSpeakingOrder].sort((left, right) => left - right)).toEqual([1, 2]);
+    const runoffSpeakingInstruction = await hostElection.getSpeakingInstruction();
+    expect(runoffSpeakingInstruction).toMatch(/^从 [12]号开始，(顺时针|逆时针)发言$/);
     await Promise.all(
-      elections.map((election) => election.expectSpeakingOrder(runoffSpeakingOrder)),
+      elections.map((election) => election.expectSpeakingInstruction(runoffSpeakingInstruction)),
     );
     await hostElection.advance();
     await Promise.all(elections.map((election) => election.waitForPhase('平票投票')));

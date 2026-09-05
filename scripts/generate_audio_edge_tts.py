@@ -58,7 +58,7 @@ TTS_PRONUNCIATION_SUBSTITUTIONS: dict[str, str] = {
 # Keep text single-source-of-truth here.
 BEGIN_TEXT: dict[str, str] = {
     "night": "天黑请闭眼。",
-    "night_end": "天亮了，所有玩家请睁眼，然后在手机上报名。报名完成后，房主在主持管理中点击结束报名。候选人按手机顺序发言完毕后，房主请点击结束发言。",
+    "night_end": "天亮了，请睁眼。竞选警长的玩家请在手机上报名。报名后，房主点击结束报名按钮。候选人按手机显示顺序发言，结束后房主点击结束发言按钮。",
     "wolf": "狼人请睁眼，互相确认身份后，请选择要袭击的玩家。",
     "wolf_queen": "狼美人请睁眼，请选择魅惑的对象。",
     "dark_wolf_king": "狼王请睁眼，请确认开枪状态。",

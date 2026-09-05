@@ -172,7 +172,7 @@ describe('parseWerewolfState', () => {
     expect(parseWerewolfState(encoded)).toEqual(normalizeState(state));
   });
 
-  it('accepts and removes the legacy sheriff speaker index', () => {
+  it('decodes the sheriff speaking start and direction', () => {
     const state = createFullState();
     const encoded = {
       ...state,
@@ -182,8 +182,8 @@ describe('parseWerewolfState', () => {
         registeredSeats: [0, 1],
         withdrawnSeats: [],
         completedRounds: [],
-        speakingOrder: [1, 0],
-        currentSpeakerIndex: 1,
+        speakingStartSeat: 1,
+        speakingDirection: 'counterclockwise',
       },
       sheriffElectionResult: undefined,
     };
@@ -193,7 +193,8 @@ describe('parseWerewolfState', () => {
       registeredSeats: [0, 1],
       withdrawnSeats: [],
       completedRounds: [],
-      speakingOrder: [1, 0],
+      speakingStartSeat: 1,
+      speakingDirection: 'counterclockwise',
     });
   });
 
@@ -243,9 +244,14 @@ describe('parseWerewolfState', () => {
   });
 
   it('rejects a different state version', () => {
-    const encoded = { ...createFullState(), stateVersion: 1 };
+    const encoded = {
+      ...createFullState(),
+      stateVersion: WEREWOLF_STATE_IDENTITY.stateVersion - 1,
+    };
 
-    expect(() => parseWerewolfState(encoded)).toThrow('GameState.stateVersion must be 2');
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      `GameState.stateVersion must be ${WEREWOLF_STATE_IDENTITY.stateVersion}`,
+    );
   });
 
   it('rejects an unknown sheriff-election phase', () => {

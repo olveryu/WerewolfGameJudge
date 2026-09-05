@@ -265,7 +265,7 @@ describe('assertWerewolfStateInvariants', () => {
     ).toThrow('registration contains withdrawn sheriff candidates');
   });
 
-  it('accepts reordered sheriff speeches and requires every active candidate exactly once', () => {
+  it('requires the sheriff speaking start to identify a candidate in that round', () => {
     expect(() =>
       assertWerewolfStateInvariants(
         createSheriffElectionState({
@@ -275,7 +275,8 @@ describe('assertWerewolfStateInvariants', () => {
             withdrawnSeats: [],
             completedRounds: [],
             candidateSeats: [0, 2],
-            speakingOrder: [2, 0],
+            speakingStartSeat: 2,
+            speakingDirection: 'counterclockwise',
           },
         }),
       ),
@@ -288,11 +289,12 @@ describe('assertWerewolfStateInvariants', () => {
             registeredSeats: [0, 1],
             withdrawnSeats: [],
             completedRounds: [],
-            speakingOrder: [1],
+            speakingStartSeat: 2,
+            speakingDirection: 'clockwise',
           },
         }),
       ),
-    ).toThrow('candidate speaking order do not match the expected seat set');
+    ).toThrow('candidate speech starts from unregistered seat 2');
   });
 
   it('rejects active ballots from ineligible voters or for non-candidates', () => {

@@ -39,9 +39,6 @@ export class SheriffElectionPage {
 
   /** Assert the Host's personal registration action and distinct phase-advance command. */
   async expectHostRegistrationActions(personalAction: 'register' | 'cancel'): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.audioWaitingButton)).not.toBeVisible({
-      timeout: 30_000,
-    });
     const personalLabel = personalAction === 'register' ? '报名上警' : '取消报名';
     const personalButton = this.page.getByTestId(
       personalAction === 'register'
@@ -51,6 +48,7 @@ export class SheriffElectionPage {
     const advanceLabel = '结束报名';
     const hostManagementButton = this.page.getByTestId(TESTIDS.roomHostManagementButton);
     await expect(personalButton).toHaveText(personalLabel, { timeout: 15_000 });
+    await expect(personalButton).toBeEnabled();
     await expect(hostManagementButton).toHaveAccessibleName('主持管理，待处理：结束报名');
     await this.expectSingleLineButtonLabel(personalButton, personalLabel);
     await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
@@ -67,6 +65,7 @@ export class SheriffElectionPage {
     const hostManagementPanel = await room.openHostManagement();
     const advanceButton = hostManagementPanel.getByTestId(TESTIDS.sheriffAdvanceButton);
     await expect(advanceButton).toHaveAccessibleName(advanceLabel);
+    await expect(advanceButton).toBeEnabled();
     await room.closeHostManagement();
   }
 
@@ -144,23 +143,17 @@ export class SheriffElectionPage {
     );
   }
 
-  /** Read the displayed authoritative speaking order as 1-based seat numbers. */
-  async getSpeakingOrder(): Promise<readonly number[]> {
-    const order = this.page.getByTestId(TESTIDS.sheriffSpeakingOrder);
-    await expect(order).toBeVisible({ timeout: 15_000 });
-    const text = await order.textContent();
-    if (text === null) throw new Error('Sheriff speaking-order record has no text');
-    const displaySeats = [...text.matchAll(/(\d+)号/g)].map((match) => Number(match[1]));
-    if (displaySeats.length === 0) {
-      throw new Error(`Sheriff speaking-order record contains no seats: ${text}`);
-    }
-    return displaySeats;
+  /** Read the displayed authoritative speaking instruction. */
+  async getSpeakingInstruction(): Promise<string> {
+    const instruction = this.page.getByTestId(TESTIDS.sheriffSpeakingInstruction);
+    await expect(instruction).toBeVisible({ timeout: 15_000 });
+    return instruction.innerText();
   }
 
-  /** Assert that this client displays the exact authoritative speaking order. */
-  async expectSpeakingOrder(displaySeats: readonly number[]): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.sheriffSpeakingOrder)).toHaveText(
-      displaySeats.map((seat) => `${seat}号`).join(' · '),
+  /** Assert that this client displays the same authoritative speaking instruction. */
+  async expectSpeakingInstruction(instruction: string): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.sheriffSpeakingInstruction)).toHaveText(
+      instruction,
       { timeout: 15_000 },
     );
   }

@@ -2,7 +2,7 @@
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 2;
+export const WEREWOLF_STATE_VERSION = 3;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

@@ -10,7 +10,7 @@ const BASE_VIEW: SheriffElectionViewModel = {
   phaseTitle: '报名上警',
   phaseDescription: '玩家可报名',
   candidateRecords: null,
-  speakingOrder: [],
+  speakingInstruction: null,
   voteProgress: null,
   myBallot: null,
   candidateOptions: [],
@@ -31,7 +31,6 @@ function createElection(
   return {
     view: { ...BASE_VIEW, ...view },
     pendingAction: null,
-    isInteractionDisabled: false,
     register: jest.fn(async () => undefined),
     cancelRegistration: jest.fn(async () => undefined),
     withdraw: jest.fn(async () => undefined),
@@ -288,19 +287,5 @@ describe('createSheriffElectionDockModel', () => {
     });
 
     expect(dock.primary).toMatchObject({ label: '请在右侧投票', isEnabled: false });
-  });
-
-  it('shows the audio state while retaining ordinary room tools', () => {
-    const election = createElection({ canRegister: true }, { isInteractionDisabled: true });
-    const dock = createSheriffElectionDockModel({
-      election,
-      roomTools: ROOM_TOOLS,
-      isInspectorVisible: false,
-      openDetails: jest.fn(),
-    });
-
-    expect(dock.primary).toMatchObject({ label: '语音播报中…', isEnabled: false });
-    expect(dock.leading).toMatchObject({ label: '查看身份', isEnabled: true });
-    expect(dock.trailing).toBeNull();
   });
 });

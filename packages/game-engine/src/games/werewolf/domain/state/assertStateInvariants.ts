@@ -324,18 +324,15 @@ function assertSheriffElectionPhase(state: GameState, election: SheriffElectionS
     case 'completed':
       return;
     case 'candidateSpeech':
+      assertOccupiedSeats(state, [election.speakingStartSeat], 'candidate speech starting seat');
+      if (!election.registeredSeats.includes(election.speakingStartSeat)) {
+        fail(`candidate speech starts from unregistered seat ${election.speakingStartSeat}`);
+      }
+      return;
     case 'runoffSpeech':
-      assertOccupiedSeats(state, election.speakingOrder, `${election.phase} speaking order`);
-      if (election.phase === 'candidateSpeech') {
-        const activeSpeakingSeats = election.speakingOrder.filter(
-          (seat) => !election.withdrawnSeats.includes(seat),
-        );
-        const activeCandidateSeats = election.registeredSeats.filter(
-          (seat) => !election.withdrawnSeats.includes(seat),
-        );
-        assertSameSeatSet(activeSpeakingSeats, activeCandidateSeats, 'candidate speaking order');
-      } else {
-        assertSameSeatSet(election.speakingOrder, election.candidateSeats, 'runoff speaking order');
+      assertOccupiedSeats(state, [election.speakingStartSeat], 'runoff speech starting seat');
+      if (!election.candidateSeats.includes(election.speakingStartSeat)) {
+        fail(`runoff speech starts from non-candidate seat ${election.speakingStartSeat}`);
       }
       return;
     case 'firstVote':
