@@ -295,6 +295,7 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     withdrawSheriffCandidate: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     castSheriffVote: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
     advanceSheriffElection: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
+    endSheriffElectionBySelfDestruct: jest.fn().mockResolvedValue(successfulWerewolfCommand()),
 
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
