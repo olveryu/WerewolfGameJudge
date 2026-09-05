@@ -115,7 +115,7 @@ describe('createWerewolfHostManagement', () => {
 
     expect(model?.preview).toBe('待处理：结束报名');
     expect(model?.status).toBe('警长竞选 · 报名上警');
-    expect(actionLabels(model!)).toEqual(['结束报名', '重新开始']);
+    expect(actionLabels(model!)).toEqual(['结束报名', '本局复盘', '昨夜信息', '重新开始']);
     const advanceAction = model?.sections[0]?.actions[0];
     if (advanceAction?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
     advanceAction.onPress();
