@@ -39,7 +39,10 @@ jest.mock('../useRoomHostDialogs', () => ({
   }),
 }));
 
-function createDayRoomMock(sheriffElection: SheriffElectionState) {
+function createDayRoomMock(
+  sheriffElection: SheriffElectionState,
+  nightReviewAllowedSeats: readonly number[] = [],
+) {
   return createWerewolfRoomMock({
     schemaId: 'seerCheck',
     currentActionRole: 'seer',
@@ -50,6 +53,7 @@ function createDayRoomMock(sheriffElection: SheriffElectionState) {
       status: GameStatus.Day,
       rules: { isSheriffElectionEnabled: true },
       sheriffElection,
+      nightReviewAllowedSeats,
     },
     hookOverrides: { roomStatus: GameStatus.Day },
   });
@@ -122,6 +126,27 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     await waitFor(() => {
       expect(mockUseWerewolfRoomReturn.castSheriffVote).toHaveBeenCalledWith(0);
     });
+  });
+
+  it('shows the shared night-review action to an authorized player during voting', async () => {
+    mockUseWerewolfRoomReturn = createDayRoomMock(
+      {
+        phase: 'firstVote',
+        registeredSeats: [0, 1],
+        withdrawnSeats: [],
+        completedRounds: [],
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2, 3],
+        ballots: {},
+      },
+      [3],
+    );
+
+    const screen = renderRoom();
+    await waitForRoomScreen(screen.getByTestId);
+
+    expect(screen.getByTestId(TESTIDS.sheriffOpenVoteButton)).toBeTruthy();
+    expect(screen.getByTestId(TESTIDS.nightReviewButton)).toBeTruthy();
   });
 
   it('restores Ended controls while retaining the completed election Inspector', async () => {

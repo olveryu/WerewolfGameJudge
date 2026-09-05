@@ -17,7 +17,9 @@ export interface BottomActionPanelStyles {
   dockRow: ViewStyle;
   dockCenter: ViewStyle;
   dockPrimary: ViewStyle;
+  dockToolRow: ViewStyle;
   toolSlot: ViewStyle;
+  dockExpandedToolSlot: ViewStyle;
   infoRow: ViewStyle;
   infoAction: ViewStyle;
   hostManagementEntry: ViewStyle;

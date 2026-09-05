@@ -250,6 +250,55 @@ describe('RoomBottomActionPanel', () => {
     expect(trailingAction).not.toHaveBeenCalled();
   });
 
+  it('stacks the primary action above two equally available dock tools', () => {
+    const model: RoomBottomActionModel = {
+      kind: 'dock',
+      message: null,
+      leading: {
+        key: 'view-role',
+        label: '查看身份',
+        tone: 'default',
+        testID: 'view-role-action',
+        isEnabled: true,
+        onPress: jest.fn(),
+      },
+      primary: {
+        key: 'sheriff-action',
+        label: '选择投票',
+        variant: 'primary',
+        size: 'lg',
+        testID: 'sheriff-player-action',
+        isEnabled: true,
+        onPress: jest.fn(),
+      },
+      trailing: {
+        key: 'night-review',
+        label: '本局复盘',
+        tone: 'default',
+        testID: 'night-review-action',
+        isEnabled: true,
+        onPress: jest.fn(),
+      },
+    };
+    const screen = render(
+      <RoomBottomActionPanel
+        model={model}
+        hostManagement={null}
+        onOpenHostManagement={jest.fn()}
+        styles={styles}
+        bottomInset={0}
+      />,
+    );
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(3);
+    expect(buttons[0]).toHaveProp('testID', 'sheriff-player-action');
+    expect(buttons[1]).toHaveProp('testID', 'view-role-action');
+    expect(buttons[2]).toHaveProp('testID', 'night-review-action');
+    expect(screen.getByTestId('view-role-action')).toHaveStyle({ alignSelf: 'stretch' });
+    expect(screen.getByTestId('night-review-action')).toHaveStyle({ alignSelf: 'stretch' });
+  });
+
   it('keeps the Host review out of the information row and renders management last', () => {
     const screen = render(
       <RoomBottomActionPanel

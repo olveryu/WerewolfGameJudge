@@ -2,6 +2,7 @@ import type { RoomBottomActionLayout } from '@/features/room/model/RoomBottomAct
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
+import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
 const BASE_VIEW: SheriffElectionViewModel = {
@@ -229,6 +230,46 @@ describe('createSheriffElectionDockModel', () => {
     dock.primary.onPress();
     expect(openDetails).toHaveBeenCalledTimes(1);
     expect(election.vote).not.toHaveBeenCalled();
+  });
+
+  it('retains an authorized player night-review action while voting', () => {
+    const openNightReview = jest.fn();
+    const dock = createSheriffElectionDockModel({
+      election: createElection({
+        phase: 'firstVote',
+        canVote: true,
+        myBallot: { kind: 'notSubmitted' },
+        voteProgress: { submittedCount: 0, eligibleCount: 2 },
+      }),
+      roomTools: {
+        ...ROOM_TOOLS,
+        secondary: [
+          {
+            key: 'nightReview',
+            label: '本局复盘',
+            variant: 'secondary',
+            size: 'md',
+            testID: TESTIDS.nightReviewButton,
+            isEnabled: true,
+            onPress: openNightReview,
+          },
+        ],
+      },
+      isInspectorVisible: false,
+      openDetails: jest.fn(),
+    });
+
+    expect(dock.trailing).toMatchObject({
+      key: 'nightReview',
+      label: '本局复盘',
+      tone: 'default',
+      isEnabled: true,
+    });
+    if (dock.trailing === null || !dock.trailing.isEnabled) {
+      throw new Error('Expected executable night-review action');
+    }
+    dock.trailing.onPress();
+    expect(openNightReview).toHaveBeenCalledTimes(1);
   });
 
   it('directs wide-layout voting to the persistent inspector', () => {

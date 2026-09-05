@@ -87,8 +87,18 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       dockPrimary: {
         alignSelf: 'stretch',
       },
+      dockToolRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        gap: spacing.small,
+      },
       toolSlot: {
         width: componentSizes.menu.compactMinWidth,
+        minHeight: componentSizes.button.lg,
+      },
+      dockExpandedToolSlot: {
+        flex: 1,
+        minWidth: 0,
         minHeight: componentSizes.button.lg,
       },
       infoRow: {

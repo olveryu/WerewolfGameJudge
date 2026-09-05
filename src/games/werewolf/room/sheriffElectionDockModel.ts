@@ -187,7 +187,11 @@ export function createSheriffElectionDockModel(
   input: SheriffElectionDockInput,
 ): RoomBottomDockModel {
   const leading = createRoomTool(findRoomTool(input.roomTools, 'viewRole'), '查看身份', 'default');
-  const trailing = null;
+  const trailing = createRoomTool(
+    findRoomTool(input.roomTools, 'nightReview'),
+    '本局复盘',
+    'default',
+  );
 
   if (input.election.isInteractionDisabled) {
     return {

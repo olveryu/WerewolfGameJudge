@@ -124,19 +124,31 @@ const DockActions: React.FC<{
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
 }> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
-  const dockRow = (
+  const shouldStackTools =
+    hostManagement === null && model.leading !== null && model.trailing !== null;
+  const dockContent = shouldStackTools ? (
+    <View style={styles.compactManagementStack}>
+      <LayoutButton model={model.primary} style={styles.dockPrimary} />
+      <View style={styles.dockToolRow}>
+        <DockTool model={model.leading} isExpanded styles={styles} />
+        <DockTool model={model.trailing} isExpanded styles={styles} />
+      </View>
+    </View>
+  ) : (
     <View style={styles.dockRow}>
-      <DockTool model={model.leading} styles={styles} />
+      <DockTool model={model.leading} isExpanded={false} styles={styles} />
       <View style={styles.dockCenter}>
         <LayoutButton model={model.primary} style={styles.dockPrimary} />
       </View>
-      {hostManagement === null && <DockTool model={model.trailing} styles={styles} />}
+      {hostManagement === null && (
+        <DockTool model={model.trailing} isExpanded={false} styles={styles} />
+      )}
     </View>
   );
-  if (hostManagement === null) return dockRow;
+  if (hostManagement === null) return dockContent;
   return (
     <View style={styles.compactManagementStack}>
-      {dockRow}
+      {dockContent}
       <HostManagementEntry model={hostManagement} onPress={onOpenHostManagement} styles={styles} />
     </View>
   );
@@ -239,8 +251,9 @@ const HostManagementEntry: React.FC<{
 
 const DockTool: React.FC<{
   readonly model: RoomBottomToolButton | null;
+  readonly isExpanded: boolean;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, styles }) => {
+}> = ({ model, isExpanded, styles }) => {
   if (model === null) return null;
 
   const iconColor = model.tone === 'danger' ? colors.error : colors.textSecondary;
@@ -250,10 +263,11 @@ const DockTool: React.FC<{
     testID: model.testID,
     accessibilityLabel: model.label,
     textColor: iconColor,
+    style: isExpanded ? styles.dockPrimary : undefined,
   };
 
   return (
-    <View style={styles.toolSlot}>
+    <View style={isExpanded ? styles.dockExpandedToolSlot : styles.toolSlot}>
       {model.isEnabled ? (
         <Button {...buttonProps} onPress={model.onPress}>
           {model.label}
