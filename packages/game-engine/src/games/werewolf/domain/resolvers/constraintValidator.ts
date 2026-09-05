@@ -24,6 +24,8 @@ interface ConstraintValidationContext {
   totalSeats?: number;
   /** True when the target was rewritten by shelter redirect — bypasses NotSelf */
   shelterRedirected?: boolean;
+  /** Seat whose pending Seed Wolf infection is known to succeed. */
+  seedWolfInfectedSeat?: number;
 }
 
 type ConstraintValidationResult =
@@ -57,7 +59,10 @@ export function validateConstraints(
           );
         }
         const targetRoleId = players.get(target);
-        if (targetRoleId && ROLE_SPECS[targetRoleId]?.team === Team.Wolf) {
+        if (
+          target === context.seedWolfInfectedSeat ||
+          (targetRoleId && ROLE_SPECS[targetRoleId]?.team === Team.Wolf)
+        ) {
           return { valid: false, rejectReason: '不能选择狼人阵营的玩家' };
         }
         break;
@@ -77,7 +82,10 @@ export function validateConstraints(
         const wolfSeats: number[] = [];
         for (const [seat] of players) {
           const effectiveRole = getRoleAfterSwap(seat, players, swappedSeats);
-          if (effectiveRole && ROLE_SPECS[effectiveRole]?.team === Team.Wolf) {
+          if (
+            seat === context.seedWolfInfectedSeat ||
+            (effectiveRole && ROLE_SPECS[effectiveRole]?.team === Team.Wolf)
+          ) {
             wolfSeats.push(seat);
           }
         }

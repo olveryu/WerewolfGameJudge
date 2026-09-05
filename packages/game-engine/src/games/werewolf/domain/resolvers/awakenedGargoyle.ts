@@ -31,6 +31,7 @@ export const awakenedGargoyleConvertResolver: ResolverFn = (context: ResolverCon
     players,
     swappedSeats: currentNightResults.swappedSeats,
     totalSeats,
+    seedWolfInfectedSeat: context.gameState.seedWolfInfectedSeat,
   });
   if (!constraintResult.valid) {
     return { valid: false, rejectReason: constraintResult.rejectReason };

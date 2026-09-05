@@ -130,6 +130,8 @@ export interface ResolverContext {
     readonly seedWolfInfectionContext?:
       | { readonly availability: 'available'; readonly targetSeat: number }
       | { readonly availability: 'unavailable' };
+    /** Successful pending infection is already an ordinary wolf for later checks. */
+    readonly seedWolfInfectedSeat?: number;
   };
 
   /** Bottom-card context (only present when game includes treasureMaster or thief role) */
@@ -251,6 +253,20 @@ export interface BottomCardContext {
 // Unified Role Resolution for Checks (SERVER-ONLY, Single Source of Truth)
 // =============================================================================
 
+/** Resolve the post-swap role, then apply a successful pending Seed Wolf infection. */
+export function resolveRoleAfterSwapAndSeedWolfInfection(
+  context: ResolverContext,
+  seat: number,
+): RoleId | undefined {
+  const effectiveRole = getRoleAfterSwap(
+    seat,
+    context.players,
+    context.currentNightResults.swappedSeats,
+  );
+  if (!effectiveRole) return undefined;
+  return context.gameState.seedWolfInfectedSeat === seat ? 'wolf' : effectiveRole;
+}
+
 /**
  * Resolve the effective role at a seat for check/reveal actions.
  *
@@ -259,31 +275,32 @@ export interface BottomCardContext {
  *
  * Resolution order:
  * 1. Apply magician swap (if any)
- * 2. If the effective role is 'wolfRobot' AND wolfRobotContext.disguisedRole exists,
+ * 2. Treat a successfully infected seat as an ordinary wolf
+ * 3. If the effective role is 'wolfRobot' AND wolfRobotContext.disguisedRole exists,
  *    return the disguised role instead.
- * 3. If the seat is the treasureMaster seat AND treasureMasterChosenCard exists,
+ * 4. If the seat is the treasureMaster seat AND treasureMasterChosenCard exists,
  *    return the chosen card's role instead.
- * 4. Otherwise return the effective role.
+ * 5. Otherwise return the effective role.
  *
  * @param context - The resolver context (contains players, currentNightResults, wolfRobotContext, bottomCardContext)
  * @param seat - The seat to check
  * @returns The role to use for checks (after swap, disguise, and card selection)
  */
 export function resolveRoleForChecks(context: ResolverContext, seat: number): RoleId | undefined {
-  const { players, currentNightResults, wolfRobotContext, bottomCardContext } = context;
+  const { currentNightResults, wolfRobotContext, bottomCardContext } = context;
 
-  // Step 1: Get role after magician swap
-  const effectiveRole = getRoleAfterSwap(seat, players, currentNightResults.swappedSeats);
+  // Steps 1-2: Apply magician swap and successful Seed Wolf infection
+  const effectiveRole = resolveRoleAfterSwapAndSeedWolfInfection(context, seat);
   if (!effectiveRole) {
     return undefined;
   }
 
-  // Step 2: Apply wolfRobot disguise if applicable
+  // Step 3: Apply wolfRobot disguise if applicable
   if (wolfRobotContext && effectiveRole === 'wolfRobot') {
     return wolfRobotContext.disguisedRole;
   }
 
-  // Step 3: Apply treasureMaster identity masquerade if applicable
+  // Step 4: Apply treasureMaster identity masquerade if applicable
   if (
     bottomCardContext &&
     effectiveRole === 'treasureMaster' &&
@@ -292,7 +309,7 @@ export function resolveRoleForChecks(context: ResolverContext, seat: number): Ro
     return currentNightResults.treasureMasterChosenCard;
   }
 
-  // Step 4: Apply thief identity masquerade if applicable
+  // Step 5: Apply thief identity masquerade if applicable
   if (effectiveRole === 'thief' && currentNightResults.thiefChosenCard) {
     return currentNightResults.thiefChosenCard;
   }

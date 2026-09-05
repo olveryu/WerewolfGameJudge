@@ -244,6 +244,55 @@ describe('handleSubmitAction', () => {
     });
   });
 
+  it('reveals a successfully infected target as an ordinary wolf', () => {
+    const state = createOngoingState({
+      currentNightResults: { seedWolfInfectionTarget: 0 },
+    });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
+    };
+
+    const success = expectSuccess(handleSubmitAction(intent, createContext(state)));
+    const effect = success.actions.find(
+      (action): action is ApplyResolverResultAction => action.type === 'APPLY_RESOLVER_RESULT',
+    );
+    expect(effect?.payload.seerReveal).toEqual({ targetSeat: 0, result: '狼人' });
+  });
+
+  it('reveals the original role when Witch antidote makes infection fail', () => {
+    const state = createOngoingState({
+      currentNightResults: { seedWolfInfectionTarget: 0, savedSeat: 0 },
+    });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
+    };
+
+    const success = expectSuccess(handleSubmitAction(intent, createContext(state)));
+    const effect = success.actions.find(
+      (action): action is ApplyResolverResultAction => action.type === 'APPLY_RESOLVER_RESULT',
+    );
+    expect(effect?.payload.seerReveal).toEqual({ targetSeat: 0, result: '好人' });
+  });
+
+  it('reveals the original role when Guard makes infection fail', () => {
+    const state = createOngoingState({
+      currentNightResults: { seedWolfInfectionTarget: 0 },
+      actions: [{ schemaId: 'guardProtect', actorSeat: 1, targetSeat: 0, timestamp: 1 }],
+    });
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
+    };
+
+    const success = expectSuccess(handleSubmitAction(intent, createContext(state)));
+    const effect = success.actions.find(
+      (action): action is ApplyResolverResultAction => action.type === 'APPLY_RESOLVER_RESULT',
+    );
+    expect(effect?.payload.seerReveal).toEqual({ targetSeat: 0, result: '好人' });
+  });
+
   // === Gate: invalid_status ===
 
   it('should fail when status is not ongoing (gate: invalid_status)', () => {

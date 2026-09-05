@@ -34,7 +34,7 @@ import {
 import { getRoleSpec } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
 import { buildSeatRoleMap } from '../playerHelpers';
-import type { GameState, ProtocolAction } from '../protocol/types';
+import type { GameState, ProtocolAction, SeedWolfInfectionResult } from '../protocol/types';
 import { getRoleAfterSwap } from '../resolvers/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 
@@ -274,7 +274,14 @@ function extractWitchAction(currentNightResults?: {
  *
  * All seat numbers are physical seats (0-based), consistent coordinate space.
  */
-export function buildNightActions(state: GameState, rng: Rng): NightActions {
+type WolfKillResolution =
+  | { readonly kind: 'votes'; readonly rng: Rng }
+  | { readonly kind: 'fixed'; readonly targetSeat: number };
+
+export function buildNightActions(
+  state: GameState,
+  wolfKillResolution: WolfKillResolution,
+): NightActions {
   const actions = state.actions;
   const nightActions: NightActions = {};
 
@@ -294,12 +301,16 @@ export function buildNightActions(state: GameState, rng: Rng): NightActions {
       votes.set(seat, targetSeat);
     }
 
-    const resolved = resolveWolfVotes(votes, {
-      requireUnanimity: state.templateRoles.includes('cupid'),
-      rng,
-    });
-    if (typeof resolved === 'number') {
-      nightActions.wolfKill = resolved;
+    if (wolfKillResolution.kind === 'fixed') {
+      nightActions.wolfKill = wolfKillResolution.targetSeat;
+    } else {
+      const resolved = resolveWolfVotes(votes, {
+        requireUnanimity: state.templateRoles.includes('cupid'),
+        rng: wolfKillResolution.rng,
+      });
+      if (typeof resolved === 'number') {
+        nightActions.wolfKill = resolved;
+      }
     }
   }
 
@@ -349,8 +360,10 @@ export function buildNightActions(state: GameState, rng: Rng): NightActions {
 }
 
 /** Build all death-calculation inputs from authoritative state and settle the night. */
-export function calculateNightDeaths(state: GameState, rng: Rng): DeathsDetailed {
-  const nightActions = buildNightActions(state, rng);
+function calculateNightDeathsFromActions(
+  state: GameState,
+  nightActions: NightActions,
+): DeathsDetailed {
   const effectiveMap = buildEffectiveRoleSeatMap(state);
   const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
   const checkedSeats = buildCheckedSeats(effectiveMap, state.actions, nightActions);
@@ -362,4 +375,23 @@ export function calculateNightDeaths(state: GameState, rng: Rng): DeathsDetailed
     checkedSeats,
   );
   return calculateDeathsDetailed(nightActions, roleSeatMap);
+}
+
+/** Build all death-calculation inputs from authoritative state and settle the night. */
+export function calculateNightDeaths(state: GameState, rng: Rng): DeathsDetailed {
+  return calculateNightDeathsFromActions(state, buildNightActions(state, { kind: 'votes', rng }));
+}
+
+/** Resolve Seed Wolf infection against its already-confirmed wolf-kill target. */
+export function resolveSeedWolfInfectionResult(state: GameState): SeedWolfInfectionResult {
+  if (state.seedWolfInfectionResult) return state.seedWolfInfectionResult;
+
+  const targetSeat = state.currentNightResults?.seedWolfInfectionTarget;
+  if (targetSeat === undefined) return { outcome: 'notUsed' };
+
+  const nightActions = buildNightActions(state, { kind: 'fixed', targetSeat });
+  const { deathSources } = calculateNightDeathsFromActions(state, nightActions);
+  return deathSources[targetSeat]?.includes('wolfKill')
+    ? { outcome: 'converted', targetSeat }
+    : { outcome: 'failed', targetSeat };
 }

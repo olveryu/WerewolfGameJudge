@@ -69,6 +69,17 @@ describe('constraintValidator', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should reject a successfully infected target as wolf faction', () => {
+      const result = validateConstraints([TargetConstraint.NotWolfFaction], {
+        actorSeat: 4,
+        target: 0,
+        players,
+        seedWolfInfectedSeat: 0,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('狼人阵营');
+    });
+
     it('should throw if players map is missing', () => {
       expect(() => {
         validateConstraints([TargetConstraint.NotWolfFaction], { actorSeat: 4, target: 0 });

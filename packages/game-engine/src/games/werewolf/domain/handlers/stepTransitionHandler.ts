@@ -34,7 +34,11 @@ import type {
   StateAction,
 } from '../reducer/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import { buildNightActions, calculateNightDeaths } from './deathResolution';
+import {
+  buildNightActions,
+  calculateNightDeaths,
+  resolveSeedWolfInfectionResult,
+} from './deathResolution';
 import { buildRevealPayload } from './revealPayload';
 import { validateNightFlowPreconditions } from './stepTransitionGuards';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
@@ -95,7 +99,7 @@ export function handleAdvanceNight(
   const actions: StateAction[] = [advanceAction];
 
   if (nextStepId === 'seedWolfInfectReveal') {
-    actions.push(...createSeedWolfFinalizationActions(state, execution.randomSeed));
+    actions.push(...createSeedWolfFinalizationActions(state));
   }
 
   // Unified entry: if about to enter witchAction, set witchContext
@@ -114,7 +118,9 @@ export function handleAdvanceNight(
   // Unified entry: if about to enter hunterConfirm / darkWolfKingConfirm, set confirmStatus
   const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
   const wolfKillTarget =
-    nextStepId === 'seedWolfInfect' ? buildNightActions(state, wolfVoteRng).wolfKill : undefined;
+    nextStepId === 'seedWolfInfect'
+      ? buildNightActions(state, { kind: 'votes', rng: wolfVoteRng }).wolfKill
+      : undefined;
   const confirmStatusAction = nextStepId
     ? maybeCreateConfirmStatusAction(nextStepId, state, wolfKillTarget)
     : null;
@@ -165,28 +171,14 @@ export function handleAdvanceNight(
   return handlerSuccess(actions);
 }
 
-function createSeedWolfFinalizationActions(
-  state: HandlerContext['state'],
-  randomSeed: string,
-): StateAction[] {
-  const targetSeat = state.currentNightResults?.seedWolfInfectionTarget;
-  if (targetSeat === undefined) {
-    return [
-      {
-        type: 'FINALIZE_SEED_WOLF_INFECTION',
-        payload: { result: { outcome: 'notUsed' } },
-      },
-    ];
-  }
-
-  const { deathSources } = calculateNightDeaths(state, createSeededRng(`${randomSeed}:wolf-vote`));
-  const outcome = deathSources[targetSeat]?.includes('wolfKill') ? 'converted' : 'failed';
+function createSeedWolfFinalizationActions(state: HandlerContext['state']): StateAction[] {
+  const result = resolveSeedWolfInfectionResult(state);
   const finalizeAction: FinalizeSeedWolfInfectionAction = {
     type: 'FINALIZE_SEED_WOLF_INFECTION',
-    payload: { result: { outcome, targetSeat } },
+    payload: { result },
   };
   const deferredReveal = state.seedWolfDeferredReveal;
-  if (outcome !== 'failed' || !deferredReveal) return [finalizeAction];
+  if (result.outcome !== 'failed' || !deferredReveal) return [finalizeAction];
 
   const revealPayload = buildRevealPayload(
     { valid: true, reveal: deferredReveal.reveal },

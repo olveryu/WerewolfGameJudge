@@ -33,7 +33,7 @@ import type {
   ResolverFn,
   ResolverResult,
 } from './types';
-import { getRoleAfterSwap, resolveRoleForChecks } from './types';
+import { resolveRoleAfterSwapAndSeedWolfInfection, resolveRoleForChecks } from './types';
 
 // =============================================================================
 // Constants
@@ -216,13 +216,9 @@ function processLearn(
     throw new Error(`[FAIL-FAST] Expected learn effect, got ${effect?.kind}`);
   }
 
-  // Learn uses getRoleAfterSwap (magician swap only, no wolfRobot disguise)
-  // Wolf Robot learns the real role after a magician swap.
-  const effectiveRoleId = getRoleAfterSwap(
-    target,
-    context.players,
-    context.currentNightResults.swappedSeats,
-  );
+  // Wolf Robot learns the real post-swap role, except a successful pending
+  // Seed Wolf infection is already an ordinary wolf.
+  const effectiveRoleId = resolveRoleAfterSwapAndSeedWolfInfection(context, target);
   if (!effectiveRoleId) {
     return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
   }
@@ -387,6 +383,7 @@ function buildConstraintContext(
   swappedSeats?: readonly [number, number];
   totalSeats?: number;
   shelterRedirected?: boolean;
+  seedWolfInfectedSeat?: number;
 } {
   const constraints = ability.target?.constraints ?? [];
   const needsPlayers = constraints.some(
@@ -402,6 +399,7 @@ function buildConstraintContext(
     swappedSeats?: readonly [number, number];
     totalSeats?: number;
     shelterRedirected?: boolean;
+    seedWolfInfectedSeat?: number;
   } = {
     actorSeat: context.actorSeat,
     target,
@@ -409,6 +407,9 @@ function buildConstraintContext(
 
   if (needsPlayers) {
     result.players = context.players;
+    if (context.gameState.seedWolfInfectedSeat !== undefined) {
+      result.seedWolfInfectedSeat = context.gameState.seedWolfInfectedSeat;
+    }
   }
 
   if (needsAdjacency) {

@@ -30,6 +30,7 @@ import {
   validateActionPreconditions,
 } from './actionGuards';
 import { computeCanShootForSeat } from './confirmContext';
+import { resolveSeedWolfInfectionResult } from './deathResolution';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload, WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
@@ -53,6 +54,7 @@ function buildResolverContext(
   }
 
   const bottomCardActorSeat = state.treasureMasterSeat ?? state.thiefSeat;
+  const seedWolfInfectionResult = resolveSeedWolfInfectionResult(state);
 
   return {
     rng,
@@ -77,6 +79,9 @@ function buildResolverContext(
                   }
                 : { availability: state.confirmStatus.availability },
           }
+        : {}),
+      ...(seedWolfInfectionResult.outcome === 'converted'
+        ? { seedWolfInfectedSeat: seedWolfInfectionResult.targetSeat }
         : {}),
     },
     ...(state.bottomCards && bottomCardActorSeat != null

@@ -103,6 +103,42 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
     expect(result.deaths).not.toContain(8);
   });
 
+  it('shows an infected villager as an ordinary wolf to the Seer', () => {
+    context = createGame(TEMPLATE_NAME, createRoleAssignment());
+
+    const result = executeFullNight(context, {
+      guard: 1,
+      wolf: 0,
+      seedWolf: { confirmed: true },
+      witch: { save: null, poison: null },
+      seer: 0,
+    });
+
+    const state = context.getGameState();
+    expect(result.completed).toBe(true);
+    expect(state.seedWolfInfectionResult).toEqual({ outcome: 'converted', targetSeat: 0 });
+    expect(state.players[0]?.role).toBe('wolf');
+    expect(state.seerReveal).toEqual({ targetSeat: 0, result: '狼人' });
+  });
+
+  it('shows the original faction when Guard makes infection fail', () => {
+    context = createGame(TEMPLATE_NAME, createRoleAssignment());
+
+    const result = executeFullNight(context, {
+      guard: 0,
+      wolf: 0,
+      seedWolf: { confirmed: true },
+      witch: { save: null, poison: null },
+      seer: 0,
+    });
+
+    const state = context.getGameState();
+    expect(result.completed).toBe(true);
+    expect(state.seedWolfInfectionResult).toEqual({ outcome: 'failed', targetSeat: 0 });
+    expect(state.players[0]?.role).toBe('villager');
+    expect(state.seerReveal).toEqual({ targetSeat: 0, result: '好人' });
+  });
+
   it('removes wolf-kill damage but preserves poison on a converted target', () => {
     context = createGame(TEMPLATE_NAME, createRoleAssignment());
 

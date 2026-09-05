@@ -261,6 +261,21 @@ describe('genericResolver: check effect', () => {
       expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
     });
 
+    it('should return 狼人 for a successfully infected target', () => {
+      const ctx = createContext({
+        actorSeat: 1,
+        actorRoleId: 'seer' as RoleId,
+        gameState: {
+          isNight1: true,
+          isWolfVoteUnanimityRequired: false,
+          seedWolfInfectedSeat: 4,
+        },
+      });
+      const result = resolver(ctx, createInput('seerCheck', 4)); // original villager
+      expect(result.valid).toBe(true);
+      expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
+    });
+
     it('should reject self-target', () => {
       const ctx = createContext({ actorSeat: 1, actorRoleId: 'seer' as RoleId });
       const result = resolver(ctx, createInput('seerCheck', 1));
@@ -341,6 +356,21 @@ describe('genericResolver: check effect', () => {
       expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'villager' });
     });
 
+    it('should return ordinary wolf for a successfully infected target', () => {
+      const ctx = createContext({
+        actorSeat: 9,
+        actorRoleId: 'psychic' as RoleId,
+        gameState: {
+          isNight1: true,
+          isWolfVoteUnanimityRequired: false,
+          seedWolfInfectedSeat: 4,
+        },
+      });
+      const result = resolver(ctx, createInput('psychicCheck', 4)); // original villager
+      expect(result.valid).toBe(true);
+      expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
+    });
+
     it('should be swap-aware', () => {
       const ctx = createContext({
         actorSeat: 9,
@@ -398,6 +428,23 @@ describe('genericResolver: check effect', () => {
         players,
       });
       const result = resolver(ctx, createInput('wolfWitchCheck', 2)); // wolf
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toBe('不能选择狼人阵营的玩家');
+    });
+
+    it('should reject a successfully infected target as wolf faction', () => {
+      const players = createPlayers({ 5: 'wolfWitch' });
+      const ctx = createContext({
+        actorSeat: 5,
+        actorRoleId: 'wolfWitch' as RoleId,
+        players,
+        gameState: {
+          isNight1: true,
+          isWolfVoteUnanimityRequired: false,
+          seedWolfInfectedSeat: 4,
+        },
+      });
+      const result = resolver(ctx, createInput('wolfWitchCheck', 4)); // original villager
       expect(result.valid).toBe(false);
       expect(result.rejectReason).toBe('不能选择狼人阵营的玩家');
     });
@@ -468,6 +515,23 @@ describe('genericResolver: learn effect', () => {
     const result = resolver(ctx, createInput('wolfRobotLearn', 4)); // villager
     expect(result.valid).toBe(true);
     expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'villager' });
+  });
+
+  it('should learn ordinary wolf for a successfully infected target', () => {
+    const players = createPlayers({ 5: 'wolfRobot' });
+    const ctx = createContext({
+      actorSeat: 5,
+      actorRoleId: 'wolfRobot' as RoleId,
+      players,
+      gameState: {
+        isNight1: true,
+        isWolfVoteUnanimityRequired: false,
+        seedWolfInfectedSeat: 4,
+      },
+    });
+    const result = resolver(ctx, createInput('wolfRobotLearn', 4)); // original villager
+    expect(result.valid).toBe(true);
+    expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'wolf' });
   });
 
   it('should leave authoritative hunter status to the action handler', () => {
