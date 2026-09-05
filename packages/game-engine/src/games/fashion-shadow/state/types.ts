@@ -84,6 +84,12 @@ export interface FashionContract {
   readonly status: FashionContractStatus;
 }
 
+export interface FashionIdentityGuessHistory {
+  readonly guesserSeat: number;
+  readonly targetSeat: number;
+  readonly round: FashionRound;
+}
+
 export interface FashionIdentityGuessPenalty {
   readonly seat: number;
   readonly blockedRound: FashionRound;
@@ -107,6 +113,7 @@ export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly interrogation: FashionInterrogation | null;
   readonly contracts: readonly FashionContract[];
   readonly identityGuessPenalties: readonly FashionIdentityGuessPenalty[];
+  readonly identityGuessHistory: readonly FashionIdentityGuessHistory[];
   readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
   readonly finalVotes: Readonly<Record<number, number>>;
   readonly winners: readonly number[];

@@ -23,6 +23,7 @@ import {
   type FashionContractPromise,
   type FashionContractStatus,
   type FashionHumanSeat,
+  type FashionIdentityGuessHistory,
   type FashionIdentityGuessPenalty,
   type FashionInterrogation,
   type FashionPhase,
@@ -201,6 +202,22 @@ function parseIdentityGuessPenalty(
   );
 }
 
+function parseIdentityGuessHistory(
+  value: unknown,
+  path: string,
+): FashionIdentityGuessHistory {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      guesserSeat: parseFashionSeat(raw.guesserSeat, `${path}.guesserSeat`),
+      targetSeat: parseFashionSeat(raw.targetSeat, `${path}.targetSeat`),
+      round: parseRound(raw.round, `${path}.round`),
+    },
+    path,
+  );
+}
+
 function parseVote(value: unknown, path: string) {
   if (!isFashionInvestigationVote(value)) return failDecode(path, 'Fashion investigation vote');
   return value;
@@ -274,6 +291,11 @@ export function parseFashionState(value: unknown): FashionState {
           raw.identityGuessPenalties,
           'FashionState.identityGuessPenalties',
           parseIdentityGuessPenalty,
+        ),
+        identityGuessHistory: parseArray(
+          raw.identityGuessHistory,
+          'FashionState.identityGuessHistory',
+          parseIdentityGuessHistory,
         ),
         revealedSecrets: parseSeatRecord(
           raw.revealedSecrets,

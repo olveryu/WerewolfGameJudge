@@ -39,7 +39,9 @@ const PHASE_LABELS: Readonly<Record<FashionPublicState['phase'], string>> = {
   crossExamination: '交叉质询',
   discussion: '自由讨论',
   vote: '调查投票',
-  ended: '第 1 轮结束',
+  roundTransition: '轮次结算',
+  hearing: '最终听证',
+  ended: '游戏结束',
 };
 
 function findUserSeat(state: FashionPublicState, userId: string): number | null {

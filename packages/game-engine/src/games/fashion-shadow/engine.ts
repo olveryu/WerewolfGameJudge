@@ -36,6 +36,8 @@ import {
   REASON_FASHION_BOTS_NOT_SUPPORTED,
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
   REASON_FASHION_DISCUSSION_LIMIT_REACHED,
+  REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT,
+  REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED,
   REASON_FASHION_PHASE_INVALID,
   REASON_FASHION_ROLE_ALREADY_CONFIRMED,
   REASON_FASHION_ROLE_NOT_ASSIGNED,
@@ -382,6 +384,16 @@ function decideIdentityGuess(
   if (getActionTokens(state, guesserSeat) < 1 || state.realSeats[targetSeat] === undefined) {
     return reject(REASON_FASHION_ACTION_TOKEN_REQUIRED);
   }
+  const guessHistory = state.identityGuessHistory.filter(
+    (entry) => entry.guesserSeat === guesserSeat,
+  );
+  if (guessHistory.some((entry) => entry.round === state.currentRound)) {
+    return reject(REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT);
+  }
+  const previousGuess = guessHistory[guessHistory.length - 1];
+  if (previousGuess !== undefined && previousGuess.targetSeat === targetSeat) {
+    return reject(REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED);
+  }
   const actualSecret = state.secrets[targetSeat];
   const success = actualSecret === guessedSecretId;
   return commitFashion([{
@@ -455,6 +467,7 @@ function createInitialFashionState(config: FashionConfig, context: CreateGameCon
     interrogation: null,
     contracts: [],
     identityGuessPenalties: [],
+    identityGuessHistory: [],
     revealedSecrets: {},
     finalVotes: {},
     winners: [],

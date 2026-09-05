@@ -11,5 +11,9 @@ export const REASON_FASHION_CROSS_EXAM_NOT_FINISHED =
   'fashion_cross_exam_not_finished' as const;
 export const REASON_FASHION_DISCUSSION_LIMIT_REACHED =
   'fashion_discussion_limit_reached' as const;
+export const REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT =
+  'fashion_identity_guess_round_limit' as const;
+export const REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED =
+  'fashion_identity_guess_target_repeated' as const;
 export const REASON_FASHION_ALREADY_VOTED = 'fashion_already_voted' as const;
 export const REASON_FASHION_VOTES_INCOMPLETE = 'fashion_votes_incomplete' as const;

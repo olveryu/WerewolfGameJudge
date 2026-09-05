@@ -145,6 +145,14 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
         identityGuessPenalties: event.success
           ? state.identityGuessPenalties
           : [...state.identityGuessPenalties, { seat: event.guesserSeat, blockedRound: state.currentRound }],
+        identityGuessHistory: [
+          ...state.identityGuessHistory,
+          {
+            guesserSeat: event.guesserSeat,
+            targetSeat: event.targetSeat,
+            round: state.currentRound,
+          },
+        ],
       };
     case 'fashion.hearing.vote':
       return {

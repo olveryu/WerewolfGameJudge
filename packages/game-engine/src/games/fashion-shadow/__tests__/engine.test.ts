@@ -5,6 +5,8 @@ import type { FashionCommand } from '../commands/types';
 import { FASHION_ROUND_BY_NUMBER } from '../domain/content';
 import {
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
+  REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT,
+  REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED,
   REASON_FASHION_VOTES_INCOMPLETE,
 } from '../domain/reasons';
 import { fashionEngine } from '../engine';
@@ -42,6 +44,16 @@ function dispatch(
   let next = state;
   for (const event of decision.events) next = fashionEngine.evolve(next, event);
   return fashionEngine.normalize(next);
+}
+
+function expectReject(
+  state: FashionState,
+  command: FashionCommand,
+  context: CommandContext,
+): string {
+  const decision = fashionEngine.decide(state, command, context);
+  if (decision.kind !== 'reject') throw new Error('Expected command rejection');
+  return decision.reason;
 }
 
 function createFullLobby(): FashionState {
@@ -92,6 +104,38 @@ function advanceToVote(): FashionState {
   );
 }
 
+function castVotes(state: FashionState, approveCount: number, nowMs: number): FashionState {
+  let next = state;
+  for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+    next = dispatch(
+      next,
+      { type: 'fashion.vote.cast', vote: seat < approveCount ? 'approve' : 'reject' },
+      userContext(`user-${seat}`, nowMs + seat),
+    );
+  }
+  return next;
+}
+
+function finishVoteRound(state: FashionState, nowMs: number): FashionState {
+  return dispatch(state, { type: 'fashion.vote.finish' }, userContext('user-0', nowMs));
+}
+
+function playRoundToTransition(state: FashionState, baseMs: number): FashionState {
+  let next = dispatch(state, { type: 'fashion.crossExam.start' }, userContext('user-0', baseMs));
+  next = dispatch(
+    next,
+    { type: 'fashion.crossExam.finish' },
+    userContext('user-0', baseMs + FASHION_CROSS_EXAM_DURATION_MS),
+  );
+  next = dispatch(
+    next,
+    { type: 'fashion.discussion.finish' },
+    userContext('user-0', baseMs + FASHION_CROSS_EXAM_DURATION_MS + 10_000),
+  );
+  next = castVotes(next, 4, baseMs + FASHION_CROSS_EXAM_DURATION_MS + 100_000);
+  return finishVoteRound(next, baseMs + FASHION_CROSS_EXAM_DURATION_MS + 100_000 + FASHION_PLAYER_COUNT);
+}
+
 describe('Fashion Shadow contracts', () => {
   it('allows a worker to propose, accept, and fulfill a secret contract', () => {
     let state = startAndConfirmRoles();
@@ -135,6 +179,8 @@ describe('Fashion Shadow identity guess', () => {
     if (guessedSecretId === undefined) throw new Error('Expected target secret');
 
     const before = state.actionTokens[0];
+    if (before === undefined) throw new Error('Expected seat 0 action tokens');
+
     state = dispatch(
       state,
       { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId },
@@ -162,6 +208,46 @@ describe('Fashion Shadow identity guess', () => {
 
     expect(state.revealedSecrets[targetSeat]).toBeUndefined();
     expect(state.identityGuessPenalties).toContainEqual({ seat: 0, blockedRound: 1 });
+  });
+
+  it('rejects a second identity guess within the same round', () => {
+    let state = startAndConfirmRoles();
+    const targetSeat = 1;
+    const secret = state.secrets[targetSeat];
+    if (secret === undefined) throw new Error('Expected target secret');
+
+    state = dispatch(
+      state,
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId: secret },
+      userContext('user-0', 4_500),
+    );
+
+    const reason = expectReject(
+      state,
+      { type: 'fashion.identityGuess.cast', targetSeat: 2, guessedSecretId: secret },
+      userContext('user-0', 4_600),
+    );
+    expect(reason).toBe(REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT);
+  });
+
+  it('rejects guessing the same target in consecutive guesses', () => {
+    const base = startAndConfirmRoles();
+    const targetSeat = 1;
+    const secret = base.secrets[targetSeat];
+    if (secret === undefined) throw new Error('Expected target secret');
+
+    const state: FashionState = {
+      ...base,
+      currentRound: 2,
+      identityGuessHistory: [{ guesserSeat: 0, targetSeat, round: 1 }],
+    };
+
+    const reason = expectReject(
+      state,
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId: secret },
+      userContext('user-0', 5_500),
+    );
+    expect(reason).toBe(REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED);
   });
 });
 
@@ -230,13 +316,30 @@ describe('Fashion Shadow round-one vertical slice', () => {
   });
 
   it('advances through all four rounds using configured events', () => {
-    let state = advanceToVote();
+    // 第 1 轮投票结束，进入 roundTransition
+    let state = castVotes(advanceToVote(), 4, 191_000);
+    state = finishVoteRound(state, 192_000);
+    expect(state.phase).toBe('roundTransition');
 
+    // 后续每轮：round.advance 只允许在 roundTransition 发起（引擎相位机），
+    // 推进后需走完本轮 crossExam → discussion → 投票 才能再次推进。
+    let nowMs = 500_000;
     for (const round of [2, 3, 4] as const) {
-      state = dispatch(state, { type: 'fashion.round.advance' }, userContext('user-0', 200_000 + round));
+      nowMs += FASHION_CROSS_EXAM_DURATION_MS + 200_000;
+      state = dispatch(
+        state,
+        { type: 'fashion.round.advance' },
+        userContext('user-0', nowMs),
+      );
       expect(state.currentRound).toBe(round);
       expect(state.currentEvent).toBe(FASHION_ROUND_BY_NUMBER[round].eventId);
       expect(state.phase).toBe('event');
+
+      if (round < 4) {
+        nowMs += 1_000;
+        state = playRoundToTransition(state, nowMs);
+        expect(state.phase).toBe('roundTransition');
+      }
     }
   });
 
@@ -299,9 +402,9 @@ describe('Fashion Shadow identity guess', () => {
 
 describe('Fashion Shadow final hearing', () => {
   it('uses VictoryEvaluator instead of raw highest vote', () => {
-    const state = {
+    const state: FashionState = {
       ...startAndConfirmRoles(),
-      phase: 'hearing' as const,
+      phase: 'hearing',
       finalVotes: {
         0: 1,
         1: 1,
@@ -316,7 +419,7 @@ describe('Fashion Shadow final hearing', () => {
     );
 
     if (decision.kind === 'reject') throw new Error(decision.reason);
-    const next = decision.events.reduce(
+    const next = decision.events.reduce<FashionState>(
       (current, event) => fashionEngine.evolve(current, event),
       state,
     );
