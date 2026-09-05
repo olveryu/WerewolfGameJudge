@@ -431,10 +431,10 @@ export function handleMarkAllBotsViewed(
 }
 
 /**
- * Handle share details (Host-only, ended phase)
+ * Handle night-review access sharing.
  *
- * Host selects seats allowed to view "detailed info", writes to state and broadcasts.
- * Preconditions: Host only + status === GameStatus.Ended
+ * Host selects seats allowed to view the review, writes to state and broadcasts.
+ * @pre The room is in an active sheriff election or has ended.
  */
 export function handleShareNightReview(
   intent: ShareNightReviewIntent,
@@ -442,7 +442,7 @@ export function handleShareNightReview(
 ): HandlerResult {
   const { state } = context;
 
-  if (state.status !== GameStatus.Ended) {
+  if (state.status !== GameStatus.Day && state.status !== GameStatus.Ended) {
     return handlerError('invalid_status');
   }
 

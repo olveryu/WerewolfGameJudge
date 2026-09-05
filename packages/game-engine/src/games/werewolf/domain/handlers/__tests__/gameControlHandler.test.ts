@@ -497,17 +497,20 @@ describe('handleShareNightReview', () => {
     allowedSeats: [0, 2],
   };
 
-  it('should succeed for host in ended phase', () => {
-    const context = createContext(endedState);
-    const result = handleShareNightReview(intent, context);
+  it.each([GameStatus.Day, GameStatus.Ended] as const)(
+    'should succeed for host when status is %s',
+    (status) => {
+      const context = createContext({ ...endedState, status });
+      const result = handleShareNightReview(intent, context);
 
-    const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]).toEqual({
-      type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
-      allowedSeats: [0, 2],
-    });
-  });
+      const success = expectSuccess(result);
+      expect(success.actions).toHaveLength(1);
+      expect(success.actions[0]).toEqual({
+        type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
+        allowedSeats: [0, 2],
+      });
+    },
+  );
 
   it.each([
     GameStatus.Unseated,
