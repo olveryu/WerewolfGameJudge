@@ -114,6 +114,7 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
     targetSeat: seatSchema.nullable(),
   }),
   z.strictObject({ type: z.literal('werewolf.sheriff.advance') }),
+  z.strictObject({ type: z.literal('werewolf.sheriff.endBySelfDestruct') }),
   z.strictObject({ type: z.literal('werewolf.audio.ack') }),
   z.strictObject({ type: z.literal('werewolf.progress.request') }),
   z.strictObject({ type: z.literal('werewolf.reveal.ack') }),

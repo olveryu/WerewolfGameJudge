@@ -13,6 +13,7 @@ import type {
   AdvanceSheriffElectionIntent,
   CancelSheriffRegistrationIntent,
   CastSheriffVoteIntent,
+  EndSheriffElectionBySelfDestructIntent,
   RegisterSheriffCandidateIntent,
   WithdrawSheriffCandidateIntent,
 } from '../intents/types';
@@ -390,4 +391,18 @@ export function handleAdvanceSheriffElection(
       return handlerError('invalid_election_phase');
   }
   return handlerSuccess([action]);
+}
+
+/** @pre `state.status === GameStatus.Day`, actor is Host, and candidates are speaking. */
+export function handleEndSheriffElectionBySelfDestruct(
+  _intent: EndSheriffElectionBySelfDestructIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const gate = resolveSheriffElectionGate(context);
+  if (gate.kind === 'rejected') return gate.error;
+  const { election } = gate;
+  if (election.phase !== 'candidateSpeech' && election.phase !== 'runoffSpeech') {
+    return handlerError('invalid_election_phase');
+  }
+  return handlerSuccess([createCompleteAction({ kind: 'noSheriff', reason: 'selfDestruct' })]);
 }

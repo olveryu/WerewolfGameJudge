@@ -52,6 +52,7 @@ import {
   handleAdvanceSheriffElection,
   handleCancelSheriffRegistration,
   handleCastSheriffVote,
+  handleEndSheriffElectionBySelfDestruct,
   handleRegisterSheriffCandidate,
   handleWithdrawSheriffCandidate,
 } from './domain/handlers/sheriffElectionHandler';
@@ -109,6 +110,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.board.withdraw':
     case 'werewolf.night.start':
     case 'werewolf.sheriff.advance':
+    case 'werewolf.sheriff.endBySelfDestruct':
     case 'werewolf.audio.ack':
     case 'werewolf.progress.request':
     case 'werewolf.groupConfirm.ackBots':
@@ -463,6 +465,18 @@ function decideWerewolfCommandRules(
         state,
         handleAdvanceSheriffElection(
           { type: 'ADVANCE_SHERIFF_ELECTION' },
+          actor.value.handlerContext,
+        ),
+        context,
+      );
+    }
+    case 'werewolf.sheriff.endBySelfDestruct': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleEndSheriffElectionBySelfDestruct(
+          { type: 'END_SHERIFF_ELECTION_BY_SELF_DESTRUCT' },
           actor.value.handlerContext,
         ),
         context,

@@ -201,6 +201,10 @@ export interface AdvanceSheriffElectionIntent {
   type: 'ADVANCE_SHERIFF_ELECTION';
 }
 
+export interface EndSheriffElectionBySelfDestructIntent {
+  type: 'END_SHERIFF_ELECTION_BY_SELF_DESTRUCT';
+}
+
 // =============================================================================
 // Debug Bots Intents (Host-only)
 // =============================================================================

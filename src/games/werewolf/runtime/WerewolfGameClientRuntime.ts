@@ -241,6 +241,10 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
     return gameActions.advanceSheriffElection(this.#getActionsContext());
   }
 
+  async endSheriffElectionBySelfDestruct(): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.endSheriffElectionBySelfDestruct(this.#getActionsContext());
+  }
+
   // =========================================================================
   // Night Actions (delegated to gameActions)
   // =========================================================================

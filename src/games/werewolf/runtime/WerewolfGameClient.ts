@@ -89,6 +89,9 @@ export interface WerewolfGameClient {
   /** Advance the sheriff election (Host only). */
   advanceSheriffElection(): Promise<WerewolfCommandDispatchOutcome>;
 
+  /** End the sheriff election after a wolf self-destructs during candidate speeches (Host only). */
+  endSheriffElectionBySelfDestruct(): Promise<WerewolfCommandDispatchOutcome>;
+
   // === Player Actions ===
   /**
    * Player confirms role viewed

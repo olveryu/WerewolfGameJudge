@@ -112,6 +112,8 @@ function getFinalResultText(result: SheriffElectionResult): string {
       return '无人得票，本局没有警长';
     case 'runoffTie':
       return '平票未决，本局没有警长';
+    case 'selfDestruct':
+      return '因狼人自爆，警长竞选已结束且没有警长';
   }
 }
 

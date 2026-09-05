@@ -109,6 +109,7 @@ interface WerewolfGameActionsState {
   withdrawSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
   castSheriffVote: (targetSeat: number | null) => Promise<WerewolfCommandDispatchOutcome>;
   advanceSheriffElection: () => Promise<WerewolfCommandDispatchOutcome>;
+  endSheriffElectionBySelfDestruct: () => Promise<WerewolfCommandDispatchOutcome>;
 
   // Game state queries
   getLastNightInfo: () => string;
@@ -355,6 +356,16 @@ interface WerewolfGameActionsDeps {
     return result;
   }, [client, isHost]);
 
+  const endSheriffElectionBySelfDestruct =
+    useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+      if (!isHost) {
+        throw new Error('[FAIL-FAST] Ending sheriff election by self-destruct requires the host');
+      }
+      const result = await client.endSheriffElectionBySelfDestruct();
+      handleCommandOutcome(result, '自爆结束竞选', toastError);
+      return result;
+    }, [client, isHost]);
+
   // =========================================================================
   // Game state queries
   // =========================================================================
@@ -419,6 +430,7 @@ interface WerewolfGameActionsDeps {
     withdrawSheriffCandidate,
     castSheriffVote,
     advanceSheriffElection,
+    endSheriffElectionBySelfDestruct,
     getLastNightInfo,
     getCurseInfo,
     hasWolfVoted,

@@ -463,13 +463,13 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
     });
 
-    it('spectator → empty', () => {
+    it('spectator → secondary: nightReview', () => {
       const layout = resolveBottomLayout(
         makeCtx({ roomStatus: GameStatus.Day, isHost: false, effectiveSeat: null }),
       );
 
       expect(keys(layout, 'primary')).toEqual([]);
-      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'secondary')).toEqual(['nightReview']);
       expect(keys(layout, 'ghost')).toEqual([]);
     });
   });

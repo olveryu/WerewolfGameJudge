@@ -222,7 +222,10 @@ export type SheriffElectionState = SheriffElectionCommonState &
 /** Final sheriff-election outcome retained with the ended game snapshot. */
 export type SheriffElectionResult =
   | { readonly kind: 'elected'; readonly sheriffSeat: number }
-  | { readonly kind: 'noSheriff'; readonly reason: 'noCandidates' | 'noVotes' | 'runoffTie' };
+  | {
+      readonly kind: 'noSheriff';
+      readonly reason: 'noCandidates' | 'noVotes' | 'runoffTie' | 'selfDestruct';
+    };
 
 // =============================================================================
 // GameState — single authoritative state type

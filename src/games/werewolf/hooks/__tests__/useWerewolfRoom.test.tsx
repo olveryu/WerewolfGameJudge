@@ -148,6 +148,7 @@ function createClient(options?: {
     withdrawSheriffCandidate: jest.fn(async () => success()),
     castSheriffVote: jest.fn(async () => success()),
     advanceSheriffElection: jest.fn(async () => success()),
+    endSheriffElectionBySelfDestruct: jest.fn(async () => success()),
     markViewedRole: jest.fn(async () => success()),
     submitAction: jest.fn(async () => success()),
     submitRevealAck: jest.fn(async () => success()),

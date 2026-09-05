@@ -366,6 +366,9 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.sheriff.withdraw': { type: 'werewolf.sheriff.withdraw' },
     'werewolf.sheriff.vote': { type: 'werewolf.sheriff.vote', targetSeat: null },
     'werewolf.sheriff.advance': { type: 'werewolf.sheriff.advance' },
+    'werewolf.sheriff.endBySelfDestruct': {
+      type: 'werewolf.sheriff.endBySelfDestruct',
+    },
     'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
     'werewolf.progress.request': { type: 'werewolf.progress.request' },
     'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
@@ -823,6 +826,77 @@ describe('Werewolf engine definition and catalog', () => {
     });
     expect(finalDecision.effects).toHaveLength(1);
     expect(finalDecision.effects[0]?.type).toBe('werewolf.game.ended');
+  });
+
+  it('ends the election by self-destruct during speeches but rejects voting phases', () => {
+    const commonElectionState = {
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [],
+    } as const;
+    const speakingStates: readonly SheriffElectionState[] = [
+      {
+        ...commonElectionState,
+        phase: 'candidateSpeech',
+        speakingOrder: [0, 1],
+      },
+      {
+        ...commonElectionState,
+        phase: 'runoffSpeech',
+        candidateSeats: [0, 1],
+        speakingOrder: [1, 0],
+      },
+    ];
+    const votingStates: readonly SheriffElectionState[] = [
+      {
+        ...commonElectionState,
+        phase: 'firstVote',
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2],
+        ballots: {},
+      },
+      {
+        ...commonElectionState,
+        phase: 'runoffVote',
+        candidateSeats: [0, 1],
+        eligibleVoterSeats: [2],
+        ballots: {},
+      },
+    ];
+
+    for (const sheriffElection of speakingStates) {
+      const state = evolveCommittedCommand(
+        createState({
+          status: GameStatus.Day,
+          rules: { isSheriffElectionEnabled: true },
+          isAudioPlaying: false,
+          sheriffElection,
+        }),
+        { type: 'werewolf.sheriff.endBySelfDestruct' },
+        userContext('host'),
+      );
+      expect(state).toMatchObject({
+        status: GameStatus.Ended,
+        sheriffElection: { phase: 'completed' },
+        sheriffElectionResult: { kind: 'noSheriff', reason: 'selfDestruct' },
+      });
+    }
+
+    for (const sheriffElection of votingStates) {
+      const state = createState({
+        status: GameStatus.Day,
+        rules: { isSheriffElectionEnabled: true },
+        isAudioPlaying: false,
+        sheriffElection,
+      });
+      expect(
+        werewolfEngine.decide(
+          state,
+          { type: 'werewolf.sheriff.endBySelfDestruct' },
+          userContext('host'),
+        ),
+      ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
+    }
   });
 
   it('cancels registration without recording withdrawal and allows registration again', () => {

@@ -18,6 +18,7 @@ import {
   cancelSheriffRegistration,
   castSheriffVote,
   dispatchPreparedAudioAck,
+  endSheriffElectionBySelfDestruct,
   type GameActionsContext,
   markAllBotsGroupConfirmed,
   markAllBotsViewed,
@@ -167,6 +168,8 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.board.withdraw' }, null);
     await advanceSheriffElection(ctx);
     expectCommand({ type: 'werewolf.sheriff.advance' }, null);
+    await endSheriffElectionBySelfDestruct(ctx);
+    expectCommand({ type: 'werewolf.sheriff.endBySelfDestruct' }, null);
   });
 
   it('passes controlledSeat only for bot-capable player commands', async () => {

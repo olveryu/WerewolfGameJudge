@@ -104,6 +104,7 @@ export const TESTIDS = {
   sheriffCandidateButton: (seat: number) => `sheriff-candidate-button-${seat}`,
   sheriffAbstainButton: 'sheriff-abstain-button',
   sheriffAdvanceButton: 'sheriff-advance-button',
+  sheriffSelfDestructButton: 'sheriff-self-destruct-button',
   sheriffCompletedRound: (round: string) => `sheriff-completed-round-${round}`,
   sheriffElectionResult: 'sheriff-election-result',
 

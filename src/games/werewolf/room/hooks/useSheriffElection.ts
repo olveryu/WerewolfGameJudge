@@ -13,6 +13,7 @@ import {
 } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -21,7 +22,8 @@ export type SheriffElectionPendingAction =
   | { readonly kind: 'cancelRegistration' }
   | { readonly kind: 'withdraw' }
   | { readonly kind: 'vote'; readonly targetSeat: number | null }
-  | { readonly kind: 'advance' };
+  | { readonly kind: 'advance' }
+  | { readonly kind: 'endBySelfDestruct' };
 
 export interface SheriffElectionPanelModel {
   readonly view: SheriffElectionViewModel;
@@ -32,6 +34,7 @@ export interface SheriffElectionPanelModel {
   readonly withdraw: () => Promise<void>;
   readonly vote: (targetSeat: number | null) => Promise<void>;
   readonly advance: () => Promise<void>;
+  readonly requestEndBySelfDestruct: () => void;
 }
 
 interface UseSheriffElectionInput {
@@ -44,6 +47,7 @@ interface UseSheriffElectionInput {
   readonly withdrawSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
   readonly castSheriffVote: (targetSeat: number | null) => Promise<WerewolfCommandDispatchOutcome>;
   readonly advanceSheriffElection: () => Promise<WerewolfCommandDispatchOutcome>;
+  readonly endSheriffElectionBySelfDestruct: () => Promise<WerewolfCommandDispatchOutcome>;
 }
 
 /** Build the state-driven sheriff-election panel and command callbacks. */
@@ -54,6 +58,7 @@ export function useSheriffElection(
     advanceSheriffElection,
     cancelSheriffRegistration,
     castSheriffVote,
+    endSheriffElectionBySelfDestruct,
     effectiveSeat,
     gameState,
     isAudioPlaying,
@@ -115,6 +120,23 @@ export function useSheriffElection(
     () => executeCommand({ kind: 'advance' }, '推进竞选', advanceSheriffElection),
     [advanceSheriffElection, executeCommand],
   );
+  const endBySelfDestruct = useCallback(
+    () =>
+      executeCommand(
+        { kind: 'endBySelfDestruct' },
+        '自爆结束竞选',
+        endSheriffElectionBySelfDestruct,
+      ),
+    [endSheriffElectionBySelfDestruct, executeCommand],
+  );
+  const requestEndBySelfDestruct = useCallback(() => {
+    showDestructiveAlert(
+      '确认结束警长竞选？',
+      '确认后，本次警长竞选将直接结束且不产生警长。单爆、双爆，以及单爆后是否在下一天退水并直接投票，请按本局规则线下决定；应用不判断或记录自爆次数。',
+      '确认结束',
+      endBySelfDestruct,
+    );
+  }, [endBySelfDestruct]);
 
   return useMemo(
     () =>
@@ -129,7 +151,18 @@ export function useSheriffElection(
             withdraw,
             vote,
             advance,
+            requestEndBySelfDestruct,
           },
-    [advance, cancelRegistration, isAudioPlaying, pendingAction, register, view, vote, withdraw],
+    [
+      advance,
+      cancelRegistration,
+      isAudioPlaying,
+      pendingAction,
+      register,
+      requestEndBySelfDestruct,
+      view,
+      vote,
+      withdraw,
+    ],
   );
 }

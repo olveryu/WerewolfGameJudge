@@ -338,3 +338,14 @@ export function advanceSheriffElection(
     'advanceSheriffElection',
   );
 }
+
+export function endSheriffElectionBySelfDestruct(
+  ctx: GameActionsContext,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.sheriff.endBySelfDestruct' },
+    null,
+    'endSheriffElectionBySelfDestruct',
+  );
+}

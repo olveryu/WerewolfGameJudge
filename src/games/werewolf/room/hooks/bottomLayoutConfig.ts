@@ -325,7 +325,14 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
       ghost: [],
     },
   },
-  // spectator: no panel
+  {
+    match: { status: GameStatus.Day, role: 'spectator' },
+    layout: {
+      primary: [],
+      secondary: [{ source: 'static', button: 'nightReview' }],
+      ghost: [],
+    },
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Ended

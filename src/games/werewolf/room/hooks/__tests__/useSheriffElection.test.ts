@@ -10,10 +10,18 @@ import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 const mockHandleError = jest.fn();
+const mockShowDestructiveAlert = jest.fn<
+  boolean,
+  [string, string, string, () => void | Promise<void>]
+>(() => true);
 jest.mock('@/utils/errorPipeline', () => ({
   handleError: (...args: unknown[]) => {
     mockHandleError(...args);
   },
+}));
+jest.mock('@/utils/alertPresets', () => ({
+  showDestructiveAlert: (...args: [string, string, string, () => void | Promise<void>]) =>
+    mockShowDestructiveAlert(...args),
 }));
 
 function createDayState() {
@@ -63,12 +71,16 @@ function createInput(overrides: Partial<HookInput> = {}): HookInput {
     withdrawSheriffCandidate: jest.fn(success),
     castSheriffVote: jest.fn(success),
     advanceSheriffElection: jest.fn(success),
+    endSheriffElectionBySelfDestruct: jest.fn(success),
     ...overrides,
   };
 }
 
 describe('useSheriffElection', () => {
-  beforeEach(() => mockHandleError.mockClear());
+  beforeEach(() => {
+    mockHandleError.mockClear();
+    mockShowDestructiveAlert.mockClear();
+  });
 
   it('returns null when no authoritative election exists', () => {
     const state = buildWerewolfTestState();
@@ -135,6 +147,27 @@ describe('useSheriffElection', () => {
     deferred.resolve(successfulRoomCommand(createDayState().protocol));
     await act(async () => cancelPromise);
     expect(result.current?.pendingAction).toBeNull();
+  });
+
+  it('explains table rules before ending the election by self-destruct', async () => {
+    const endSheriffElectionBySelfDestruct = jest.fn(async () =>
+      successfulRoomCommand(createDayState().protocol),
+    );
+    const input = createInput({ endSheriffElectionBySelfDestruct });
+    const { result } = renderHook(() => useSheriffElection(input));
+
+    act(() => result.current!.requestEndBySelfDestruct());
+
+    expect(mockShowDestructiveAlert).toHaveBeenCalledWith(
+      '确认结束警长竞选？',
+      '确认后，本次警长竞选将直接结束且不产生警长。单爆、双爆，以及单爆后是否在下一天退水并直接投票，请按本局规则线下决定；应用不判断或记录自爆次数。',
+      '确认结束',
+      expect.any(Function),
+    );
+    const confirmSelfDestruct = mockShowDestructiveAlert.mock.calls[0]?.[3];
+    if (confirmSelfDestruct === undefined) throw new Error('Expected self-destruct confirmation');
+    await act(async () => confirmSelfDestruct());
+    expect(endSheriffElectionBySelfDestruct).toHaveBeenCalledTimes(1);
   });
 
   it('reports unexpected command errors and always releases the mutex', async () => {

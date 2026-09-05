@@ -65,6 +65,7 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.sheriff.withdraw' }
   | { readonly type: 'werewolf.sheriff.vote'; readonly targetSeat: number | null }
   | { readonly type: 'werewolf.sheriff.advance' }
+  | { readonly type: 'werewolf.sheriff.endBySelfDestruct' }
   | { readonly type: 'werewolf.audio.ack' }
   | { readonly type: 'werewolf.progress.request' }
   | { readonly type: 'werewolf.reveal.ack' }

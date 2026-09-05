@@ -853,6 +853,7 @@ function parseSheriffElectionResult(value: unknown, path: string): SheriffElecti
         case 'noCandidates':
         case 'noVotes':
         case 'runoffTie':
+        case 'selfDestruct':
           return raw.reason;
         default:
           return fail(`${path}.reason`, 'a valid no-sheriff reason');

@@ -111,6 +111,7 @@ interface UseWerewolfRoomResult {
   withdrawSheriffCandidate: () => Promise<WerewolfCommandDispatchOutcome>;
   castSheriffVote: (targetSeat: number | null) => Promise<WerewolfCommandDispatchOutcome>;
   advanceSheriffElection: () => Promise<WerewolfCommandDispatchOutcome>;
+  endSheriffElectionBySelfDestruct: () => Promise<WerewolfCommandDispatchOutcome>;
 
   // BGM manual control (for ended-phase UI)
   isBgmPlaying: boolean;
@@ -295,6 +296,7 @@ interface UseWerewolfRoomResult {
     withdrawSheriffCandidate: actions.withdrawSheriffCandidate,
     castSheriffVote: actions.castSheriffVote,
     advanceSheriffElection: actions.advanceSheriffElection,
+    endSheriffElectionBySelfDestruct: actions.endSheriffElectionBySelfDestruct,
     // BGM manual control
     isBgmPlaying: bgm.isBgmPlaying,
     playBgm: bgm.playBgm,

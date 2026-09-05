@@ -37,6 +37,7 @@ function createElection(
     withdraw: jest.fn(async () => undefined),
     vote: jest.fn(async () => undefined),
     advance: jest.fn(async () => undefined),
+    requestEndBySelfDestruct: jest.fn(),
     ...overrides,
   };
 }

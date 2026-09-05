@@ -38,6 +38,7 @@ const model: SheriffElectionPanelModel = {
   withdraw: jest.fn(async () => undefined),
   vote: jest.fn(async () => undefined),
   advance: jest.fn(async () => undefined),
+  requestEndBySelfDestruct: jest.fn(),
 };
 const styles = createSheriffElectionPanelStyles(colors);
 

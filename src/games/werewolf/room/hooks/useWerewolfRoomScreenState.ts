@@ -140,6 +140,7 @@ export function useWerewolfRoomScreenState(
     withdrawSheriffCandidate,
     castSheriffVote,
     advanceSheriffElection,
+    endSheriffElectionBySelfDestruct,
     // BGM manual control
     isBgmPlaying,
     playBgm,
@@ -180,6 +181,7 @@ export function useWerewolfRoomScreenState(
     withdrawSheriffCandidate,
     castSheriffVote,
     advanceSheriffElection,
+    endSheriffElectionBySelfDestruct,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

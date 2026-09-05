@@ -89,6 +89,27 @@ function createSheriffAdvanceAction(
   );
 }
 
+function createSheriffSelfDestructAction(
+  election: SheriffElectionPanelModel,
+): RoomHostManagementAction | null {
+  const canEndBySelfDestruct =
+    election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech';
+  if (!canEndBySelfDestruct) return null;
+  const descriptor: ActionDescriptor = {
+    key: 'sheriff-self-destruct',
+    label: '自爆结束竞选',
+    icon: 'warning-outline',
+    variant: 'danger',
+    testID: TESTIDS.sheriffSelfDestructButton,
+    isLoading: election.pendingAction?.kind === 'endBySelfDestruct',
+  };
+  return pendingAwareAction(
+    descriptor,
+    election.isInteractionDisabled || election.pendingAction !== null,
+    election.requestEndBySelfDestruct,
+  );
+}
+
 function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   switch (input.roomStatus) {
     case GameStatus.Seated:
@@ -116,9 +137,13 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
             }),
           ];
     case GameStatus.Day: {
-      const sheriffAction =
-        input.sheriffElection === null ? null : createSheriffAdvanceAction(input.sheriffElection);
-      return sheriffAction === null ? [] : [sheriffAction];
+      if (input.sheriffElection === null) return [];
+      const actions: RoomHostManagementAction[] = [];
+      const advanceAction = createSheriffAdvanceAction(input.sheriffElection);
+      const selfDestructAction = createSheriffSelfDestructAction(input.sheriffElection);
+      if (advanceAction !== null) actions.push(advanceAction);
+      if (selfDestructAction !== null) actions.push(selfDestructAction);
+      return actions;
     }
     case GameStatus.Ended:
       return [

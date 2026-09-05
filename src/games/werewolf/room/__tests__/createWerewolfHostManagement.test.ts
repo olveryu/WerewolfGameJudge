@@ -42,6 +42,42 @@ function actionLabels(model: NonNullable<ReturnType<typeof createWerewolfHostMan
   return model.sections.flatMap((section) => section.actions.map((action) => action.label));
 }
 
+function createSheriffElection(
+  viewOverrides: Partial<SheriffElectionPanelModel['view']> = {},
+  callbacks: Partial<Pick<SheriffElectionPanelModel, 'advance' | 'requestEndBySelfDestruct'>> = {},
+): SheriffElectionPanelModel {
+  return {
+    view: {
+      phase: 'registration',
+      canAdvance: true,
+      advanceLabel: '结束报名',
+      phaseTitle: '报名上警',
+      phaseDescription: '玩家报名上警',
+      candidateRecords: null,
+      speakingOrder: [],
+      voteProgress: null,
+      myBallot: null,
+      candidateOptions: [],
+      completedRounds: [],
+      finalResult: null,
+      canRegister: false,
+      canCancelRegistration: false,
+      canWithdraw: false,
+      canVote: false,
+      ...viewOverrides,
+    },
+    pendingAction: null,
+    isInteractionDisabled: false,
+    register: jest.fn().mockResolvedValue(undefined),
+    cancelRegistration: jest.fn().mockResolvedValue(undefined),
+    withdraw: jest.fn().mockResolvedValue(undefined),
+    vote: jest.fn().mockResolvedValue(undefined),
+    advance: jest.fn().mockResolvedValue(undefined),
+    requestEndBySelfDestruct: jest.fn(),
+    ...callbacks,
+  };
+}
+
 describe('createWerewolfHostManagement', () => {
   it('returns null for a non-Host player', () => {
     expect(createWerewolfHostManagement(createInput({ isHost: false }))).toBeNull();
@@ -78,33 +114,7 @@ describe('createWerewolfHostManagement', () => {
 
   it('surfaces sheriff advancement as the current task and keeps restart separate', () => {
     const advance = jest.fn().mockResolvedValue(undefined);
-    const sheriffElection = {
-      view: {
-        phase: 'registration',
-        canAdvance: true,
-        advanceLabel: '结束报名',
-        phaseTitle: '报名上警',
-        phaseDescription: '玩家报名上警',
-        candidateRecords: null,
-        speakingOrder: [],
-        voteProgress: null,
-        myBallot: null,
-        candidateOptions: [],
-        completedRounds: [],
-        finalResult: null,
-        canRegister: false,
-        canCancelRegistration: false,
-        canWithdraw: false,
-        canVote: false,
-      },
-      pendingAction: null,
-      isInteractionDisabled: false,
-      register: jest.fn().mockResolvedValue(undefined),
-      cancelRegistration: jest.fn().mockResolvedValue(undefined),
-      withdraw: jest.fn().mockResolvedValue(undefined),
-      vote: jest.fn().mockResolvedValue(undefined),
-      advance,
-    } satisfies SheriffElectionPanelModel;
+    const sheriffElection = createSheriffElection({}, { advance });
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Day,
@@ -120,6 +130,39 @@ describe('createWerewolfHostManagement', () => {
     if (advanceAction?.isEnabled !== true) throw new Error('Expected enabled sheriff advancement');
     advanceAction.onPress();
     expect(advance).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['candidateSpeech', true],
+    ['runoffSpeech', true],
+    ['firstVote', false],
+    ['runoffVote', false],
+  ] as const)('shows self-destruct only during sheriff speech phase %s', (phase, isVisible) => {
+    const requestEndBySelfDestruct = jest.fn();
+    const sheriffElection = createSheriffElection(
+      { phase, advanceLabel: '推进竞选' },
+      { requestEndBySelfDestruct },
+    );
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        sheriffElection,
+        capabilities: deniedRoomCapabilities,
+      }),
+    );
+    const selfDestructAction = model?.sections
+      .flatMap((section) => section.actions)
+      .find((action) => action.testID === 'sheriff-self-destruct-button');
+
+    if (!isVisible) {
+      expect(selfDestructAction).toBeUndefined();
+      return;
+    }
+    if (selfDestructAction?.isEnabled !== true) {
+      throw new Error(`Expected enabled self-destruct action during ${phase}`);
+    }
+    selfDestructAction.onPress();
+    expect(requestEndBySelfDestruct).toHaveBeenCalledTimes(1);
   });
 
   it('does not invent a start command for plague mode', () => {

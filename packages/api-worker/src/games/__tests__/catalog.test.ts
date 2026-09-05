@@ -60,6 +60,9 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   'werewolf.sheriff.withdraw': { type: 'werewolf.sheriff.withdraw' },
   'werewolf.sheriff.vote': { type: 'werewolf.sheriff.vote', targetSeat: null },
   'werewolf.sheriff.advance': { type: 'werewolf.sheriff.advance' },
+  'werewolf.sheriff.endBySelfDestruct': {
+    type: 'werewolf.sheriff.endBySelfDestruct',
+  },
   'werewolf.audio.ack': { type: 'werewolf.audio.ack' },
   'werewolf.progress.request': { type: 'werewolf.progress.request' },
   'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
