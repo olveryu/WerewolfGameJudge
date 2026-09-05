@@ -107,7 +107,7 @@ export function useRoomModals({
   const confirmOpenNightReview = useCallback(() => {
     showConfirmAlert(
       '查看本局复盘？',
-      '本局复盘包含全员身份和行动记录，请确认本局已经结束。',
+      '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认继续。',
       () => setNightReviewVisible(true),
       { confirmText: '确定查看' },
     );
@@ -223,7 +223,7 @@ export function useRoomModals({
   const showLastNightInfo = useCallback(() => {
     showConfirmAlert(
       '提示',
-      '请在警长竞选结束后再查看，请勿作弊',
+      '昨夜信息可能影响警长竞选，请确认现在查看。',
       () => {
         const info = getLastNightInfo();
         const curseInfo = getCurseInfo();

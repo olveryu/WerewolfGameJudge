@@ -305,6 +305,19 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
   },
   {
+    match: {
+      status: GameStatus.Day,
+      role: 'player',
+      when: (ctx) =>
+        ctx.effectiveSeat !== null && ctx.nightReviewAllowedSeats.includes(ctx.effectiveSeat),
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'viewRole' }],
+      secondary: [{ source: 'static', button: 'nightReview' }],
+      ghost: [],
+    },
+  },
+  {
     match: { status: GameStatus.Day, role: 'player' },
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],

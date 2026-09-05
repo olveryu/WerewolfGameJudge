@@ -433,7 +433,7 @@ export function useWerewolfRoomScreenState(
 
   const nightReviewData = useMemo(() => {
     if (!gameState?.currentNightResults) return null;
-    if (gameState.status !== GameStatus.Ended) return null;
+    if (gameState.status !== GameStatus.Day && gameState.status !== GameStatus.Ended) return null;
     return buildNightReviewData(gameState);
   }, [gameState]);
   const nightReviewShareCardRef = useRef<View>(null);

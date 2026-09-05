@@ -238,7 +238,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
 }
 
 function createPostGameActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
-  if (input.roomStatus !== GameStatus.Ended) return [];
+  if (input.roomStatus !== GameStatus.Day && input.roomStatus !== GameStatus.Ended) return [];
   return [
     enabledAction(
       {
