@@ -71,4 +71,11 @@ describe('Fashion Shadow visibility', () => {
     const projected = getFashionPublicState(createStartedState(), null);
     expect(projected.privateIdentity).toBeNull();
   });
+
+  it('does not expose round progression private maps', () => {
+    const projected = getFashionPublicState(createStartedState(), 'user-0');
+    expect('roles' in projected).toBe(false);
+    expect('secrets' in projected).toBe(false);
+    expect('votes' in projected).toBe(false);
+  });
 });

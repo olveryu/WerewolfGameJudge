@@ -26,9 +26,10 @@ import {
   type SeatOperationResult,
 } from '../../platform/room/seating';
 import type { FashionCommand } from './commands/types';
-import { FASHION_ROUND_BY_NUMBER } from './domain/content';
+import { FASHION_NEXT_ROUND, FASHION_ROUND_BY_NUMBER } from './domain/content';
 import type { FashionEvent } from './domain/events';
 import { evolveFashionState } from './domain/evolve';
+import { evaluateFashionVictory } from './domain/victoryEvaluator';
 import {
   REASON_FASHION_ACTION_TOKEN_REQUIRED,
   REASON_FASHION_ALREADY_VOTED,
@@ -51,9 +52,11 @@ import {
   FASHION_MAX_DISCUSSION_SPEAKS,
   FASHION_PLAYER_COUNT,
   type FashionConfig,
+  type FashionContractPromise,
   type FashionHumanSeat,
   type FashionProfileUpdate,
   type FashionRoleId,
+  type FashionSecretId,
   type FashionSeatProfile,
   type FashionState,
   isFashionRoomFull,
@@ -312,6 +315,122 @@ function decideFinishFashionVote(state: FashionState, context: CommandContext): 
   ]);
 }
 
+
+function decideProposeContract(
+  state: FashionState,
+  contractId: string,
+  buyerSeat: number,
+  promise: FashionContractPromise,
+  context: CommandContext,
+): FashionDecision {
+  const sellerSeat = getActorSeat(state, context);
+  if (typeof sellerSeat !== 'number') return sellerSeat;
+  if (state.secrets[sellerSeat] === undefined) return reject(REASON_FASHION_ROLE_NOT_ASSIGNED);
+  if (state.realSeats[buyerSeat] === undefined || buyerSeat === sellerSeat) {
+    return reject(REASON_FASHION_PHASE_INVALID);
+  }
+  return commitFashion([
+    {
+      type: 'fashion.contract.proposed',
+      contract: {
+        id: contractId,
+        sellerSeat,
+        buyerSeat,
+        promise,
+        status: 'proposed',
+      },
+    },
+  ]);
+}
+
+function decideAcceptContract(
+  state: FashionState,
+  contractId: string,
+  context: CommandContext,
+): FashionDecision {
+  const seat = getActorSeat(state, context);
+  if (typeof seat !== 'number') return seat;
+  const contract = state.contracts.find((item) => item.id === contractId);
+  if (contract === undefined || contract.buyerSeat !== seat || contract.status !== 'proposed') {
+    return reject(REASON_FASHION_PHASE_INVALID);
+  }
+  return commitFashion([{ type: 'fashion.contract.accepted', contractId }]);
+}
+
+function decideFulfillContract(
+  state: FashionState,
+  contractId: string,
+  context: CommandContext,
+): FashionDecision {
+  const seat = getActorSeat(state, context);
+  if (typeof seat !== 'number') return seat;
+  const contract = state.contracts.find((item) => item.id === contractId);
+  if (contract === undefined || contract.sellerSeat !== seat || contract.status !== 'accepted') {
+    return reject(REASON_FASHION_PHASE_INVALID);
+  }
+  return commitFashion([{ type: 'fashion.contract.fulfilled', contractId }]);
+}
+
+function decideIdentityGuess(
+  state: FashionState,
+  targetSeat: number,
+  guessedSecretId: FashionSecretId,
+  context: CommandContext,
+): FashionDecision {
+  const guesserSeat = getActorSeat(state, context);
+  if (typeof guesserSeat !== 'number') return guesserSeat;
+  if (getActionTokens(state, guesserSeat) < 1 || state.realSeats[targetSeat] === undefined) {
+    return reject(REASON_FASHION_ACTION_TOKEN_REQUIRED);
+  }
+  const actualSecret = state.secrets[targetSeat];
+  const success = actualSecret === guessedSecretId;
+  return commitFashion([{
+    type: 'fashion.identityGuess.cast',
+    guesserSeat,
+    targetSeat,
+    guessedSecretId,
+    success,
+    revealedSecretId: success ? actualSecret : null,
+  }]);
+}
+
+function decideAdvanceRound(state: FashionState, context: CommandContext): FashionDecision {
+  if (state.phase !== 'roundTransition') return reject(REASON_FASHION_PHASE_INVALID);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  const nextRound = FASHION_NEXT_ROUND[state.currentRound];
+  if (nextRound === null) return reject(REASON_FASHION_PHASE_INVALID);
+  return commitFashion([
+    {
+      type: 'fashion.round.advanced',
+      round: nextRound,
+      eventId: FASHION_ROUND_BY_NUMBER[nextRound].eventId,
+    },
+  ]);
+}
+
+function decideStartHearing(state: FashionState, context: CommandContext): FashionDecision {
+  if (state.currentRound !== 4 || state.phase !== 'roundTransition') return reject(REASON_FASHION_PHASE_INVALID);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  return commitFashion([{ type: 'fashion.hearing.started' }]);
+}
+
+function decideHearingVote(state: FashionState, targetSeat: number, context: CommandContext): FashionDecision {
+  if (state.phase !== 'hearing') return reject(REASON_FASHION_PHASE_INVALID);
+  const seat = getActorSeat(state, context);
+  if (typeof seat !== 'number') return seat;
+  return commitFashion([{ type: 'fashion.hearing.vote', seat, targetSeat }]);
+}
+
+function decideFinishHearing(state: FashionState, context: CommandContext): FashionDecision {
+  if (state.phase !== 'hearing') return reject(REASON_FASHION_PHASE_INVALID);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  const { winners } = evaluateFashionVictory(state);
+  return commitFashion([{ type: 'fashion.hearing.finished', winners }]);
+}
+
 function createInitialFashionState(config: FashionConfig, context: CreateGameContext): FashionState {
   if (config.numberOfPlayers !== FASHION_PLAYER_COUNT) {
     throw new Error(`Invalid Fashion config: numberOfPlayers must be ${FASHION_PLAYER_COUNT}`);
@@ -334,6 +453,11 @@ function createInitialFashionState(config: FashionConfig, context: CreateGameCon
     votes: {},
     discussionSpeakCounts: {},
     interrogation: null,
+    contracts: [],
+    identityGuessPenalties: [],
+    revealedSecrets: {},
+    finalVotes: {},
+    winners: [],
   });
 }
 
@@ -378,6 +502,22 @@ export function decideFashionCommand(
       return decideCastFashionVote(state, command.vote, context);
     case 'fashion.vote.finish':
       return decideFinishFashionVote(state, context);
+    case 'fashion.identityGuess.cast':
+      return decideIdentityGuess(state, command.targetSeat, command.guessedSecretId, context);
+    case 'fashion.round.advance':
+      return decideAdvanceRound(state, context);
+    case 'fashion.hearing.start':
+      return decideStartHearing(state, context);
+    case 'fashion.hearing.vote':
+      return decideHearingVote(state, command.targetSeat, context);
+    case 'fashion.hearing.finish':
+      return decideFinishHearing(state, context);
+    case 'fashion.contract.propose':
+      return decideProposeContract(state, command.contractId, command.buyerSeat, command.promise, context);
+    case 'fashion.contract.accept':
+      return decideAcceptContract(state, command.contractId, context);
+    case 'fashion.contract.fulfill':
+      return decideFulfillContract(state, command.contractId, context);
   }
   const exhaustive: never = command;
   return exhaustive;

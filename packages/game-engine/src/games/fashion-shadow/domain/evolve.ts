@@ -97,7 +97,7 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
     case 'fashion.vote.finished':
       return {
         ...state,
-        phase: 'ended',
+        phase: state.currentRound === 4 ? 'hearing' : 'roundTransition',
         publicEvidence: event.approved
           ? [...state.publicEvidence, event.evidenceId]
           : state.publicEvidence,
@@ -105,6 +105,54 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
           ? state.destroyedEvidence
           : [...state.destroyedEvidence, event.evidenceId],
       };
+    case 'fashion.round.advanced':
+      return {
+        ...state,
+        currentRound: event.round,
+        phase: 'event',
+        currentEvent: event.eventId,
+        votes: {},
+        discussionSpeakCounts: {},
+      };
+    case 'fashion.hearing.started':
+      return { ...state, phase: 'hearing', finalVotes: {} };
+    case 'fashion.contract.proposed':
+      return { ...state, contracts: [...state.contracts, event.contract] };
+    case 'fashion.contract.accepted':
+      return {
+        ...state,
+        contracts: state.contracts.map((contract) =>
+          contract.id === event.contractId ? { ...contract, status: 'accepted' } : contract,
+        ),
+      };
+    case 'fashion.contract.fulfilled':
+      return {
+        ...state,
+        contracts: state.contracts.map((contract) =>
+          contract.id === event.contractId ? { ...contract, status: 'fulfilled' } : contract,
+        ),
+      };
+    case 'fashion.identityGuess.cast':
+      return {
+        ...state,
+        actionTokens: {
+          ...state.actionTokens,
+          [event.guesserSeat]: state.actionTokens[event.guesserSeat]! - 1,
+        },
+        revealedSecrets: event.success && event.revealedSecretId !== null
+          ? { ...state.revealedSecrets, [event.targetSeat]: event.revealedSecretId }
+          : state.revealedSecrets,
+        identityGuessPenalties: event.success
+          ? state.identityGuessPenalties
+          : [...state.identityGuessPenalties, { seat: event.guesserSeat, blockedRound: state.currentRound }],
+      };
+    case 'fashion.hearing.vote':
+      return {
+        ...state,
+        finalVotes: { ...state.finalVotes, [event.seat]: event.targetSeat },
+      };
+    case 'fashion.hearing.finished':
+      return { ...state, phase: 'ended', winners: [...event.winners] };
   }
   const exhaustive: never = event;
   return exhaustive;

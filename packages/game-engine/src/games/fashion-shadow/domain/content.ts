@@ -144,6 +144,13 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
   },
 };
 
+export const FASHION_NEXT_ROUND: Readonly<Record<FashionRound, FashionRound | null>> = {
+  1: 2,
+  2: 3,
+  3: 4,
+  4: null,
+};
+
 export function getFashionRoleDefinition(roleId: FashionRoleId): FashionRoleDefinition {
   return FASHION_ROLE_BY_ID[roleId];
 }

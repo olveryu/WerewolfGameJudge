@@ -45,6 +45,8 @@ export type FashionPhase =
   | 'crossExamination'
   | 'discussion'
   | 'vote'
+  | 'roundTransition'
+  | 'hearing'
   | 'ended';
 
 export type FashionRound = 1 | 2 | 3 | 4;
@@ -64,6 +66,29 @@ export interface FashionInterrogation {
   readonly endsAt: number;
 }
 
+export type FashionContractPromise =
+  | 'compensation'
+  | 'protection'
+  | 'legalImmunity';
+
+export type FashionContractStatus =
+  | 'proposed'
+  | 'accepted'
+  | 'fulfilled';
+
+export interface FashionContract {
+  readonly id: string;
+  readonly sellerSeat: number;
+  readonly buyerSeat: number;
+  readonly promise: FashionContractPromise;
+  readonly status: FashionContractStatus;
+}
+
+export interface FashionIdentityGuessPenalty {
+  readonly seat: number;
+  readonly blockedRound: FashionRound;
+}
+
 export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly phase: FashionPhase;
   readonly currentRound: FashionRound;
@@ -80,6 +105,11 @@ export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly votes: Readonly<Record<number, FashionInvestigationVote>>;
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
+  readonly contracts: readonly FashionContract[];
+  readonly identityGuessPenalties: readonly FashionIdentityGuessPenalty[];
+  readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
+  readonly finalVotes: Readonly<Record<number, number>>;
+  readonly winners: readonly number[];
 }
 
 export interface FashionConfig {

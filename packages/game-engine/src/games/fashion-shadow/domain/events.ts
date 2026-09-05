@@ -48,4 +48,26 @@ export type FashionEvent =
       readonly type: 'fashion.vote.finished';
       readonly approved: boolean;
       readonly evidenceId: FashionEvidenceId;
+    }
+  | {
+      readonly type: 'fashion.round.advanced';
+      readonly round: 1 | 2 | 3 | 4;
+      readonly eventId: FashionEventId;
+    }
+  | { readonly type: 'fashion.hearing.started' }
+  | { readonly type: 'fashion.hearing.vote'; readonly seat: number; readonly targetSeat: number }
+  | { readonly type: 'fashion.hearing.finished'; readonly winners: readonly number[] }
+  | {
+      readonly type: 'fashion.contract.proposed';
+      readonly contract: import('../state/types').FashionContract;
+    }
+  | { readonly type: 'fashion.contract.accepted'; readonly contractId: string }
+  | { readonly type: 'fashion.contract.fulfilled'; readonly contractId: string }
+  | {
+      readonly type: 'fashion.identityGuess.cast';
+      readonly guesserSeat: number;
+      readonly targetSeat: number;
+      readonly guessedSecretId: FashionSecretId;
+      readonly success: boolean;
+      readonly revealedSecretId: FashionSecretId | null;
     };

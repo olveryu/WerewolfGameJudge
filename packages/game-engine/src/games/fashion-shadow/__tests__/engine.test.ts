@@ -92,6 +92,79 @@ function advanceToVote(): FashionState {
   );
 }
 
+describe('Fashion Shadow contracts', () => {
+  it('allows a worker to propose, accept, and fulfill a secret contract', () => {
+    let state = startAndConfirmRoles();
+    const buyerSeat = 1;
+    state = dispatch(
+      state,
+      {
+        type: 'fashion.contract.propose',
+        contractId: 'contract-1',
+        buyerSeat,
+        promise: 'protection',
+      },
+      userContext('user-0', 4_000),
+    );
+    expect(state.contracts[0]).toEqual({
+      id: 'contract-1',
+      sellerSeat: 0,
+      buyerSeat,
+      promise: 'protection',
+      status: 'proposed',
+    });
+    state = dispatch(
+      state,
+      { type: 'fashion.contract.accept', contractId: 'contract-1' },
+      userContext('user-1', 4_100),
+    );
+    state = dispatch(
+      state,
+      { type: 'fashion.contract.fulfill', contractId: 'contract-1' },
+      userContext('user-0', 4_200),
+    );
+    expect(state.contracts[0]?.status).toBe('fulfilled');
+  });
+});
+
+describe('Fashion Shadow identity guess', () => {
+  it('reveals a secret and consumes a token on a correct identity guess', () => {
+    let state = startAndConfirmRoles();
+    const targetSeat = 1;
+    const guessedSecretId = state.secrets[targetSeat];
+    if (guessedSecretId === undefined) throw new Error('Expected target secret');
+
+    const before = state.actionTokens[0];
+    state = dispatch(
+      state,
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId },
+      userContext('user-0', 4_500),
+    );
+
+    expect(state.revealedSecrets[targetSeat]).toBe(guessedSecretId);
+    expect(state.actionTokens[0]).toBe(before - 1);
+    expect(state.identityGuessPenalties).toEqual([]);
+  });
+
+  it('records a blocked round after an incorrect identity guess', () => {
+    let state = startAndConfirmRoles();
+    const targetSeat = 1;
+    const targetSecret = state.secrets[targetSeat];
+    if (targetSecret === undefined) throw new Error('Expected target secret');
+    const wrongSecret = Object.values(state.secrets).find((secret) => secret !== targetSecret);
+    if (wrongSecret === undefined) throw new Error('Expected wrong secret');
+
+    state = dispatch(
+      state,
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId: wrongSecret },
+      userContext('user-0', 4_500),
+    );
+
+    expect(state.revealedSecrets[targetSeat]).toBeUndefined();
+    expect(state.identityGuessPenalties).toContainEqual({ seat: 0, blockedRound: 1 });
+  });
+});
+
 describe('Fashion Shadow round-one vertical slice', () => {
   it('assigns all seven roles and three action tokens per player', () => {
     const state = dispatch(
@@ -151,9 +224,20 @@ describe('Fashion Shadow round-one vertical slice', () => {
       );
     }
     state = dispatch(state, { type: 'fashion.vote.finish' }, userContext('user-0', 192_000));
-    expect(state.phase).toBe('ended');
+    expect(state.phase).toBe('roundTransition');
     expect(state.publicEvidence).toEqual([FASHION_ROUND_BY_NUMBER[1].evidenceId]);
     expect(state.destroyedEvidence).toEqual([]);
+  });
+
+  it('advances through all four rounds using configured events', () => {
+    let state = advanceToVote();
+
+    for (const round of [2, 3, 4] as const) {
+      state = dispatch(state, { type: 'fashion.round.advance' }, userContext('user-0', 200_000 + round));
+      expect(state.currentRound).toBe(round);
+      expect(state.currentEvent).toBe(FASHION_ROUND_BY_NUMBER[round].eventId);
+      expect(state.phase).toBe('event');
+    }
   });
 
   it('destroys V1 when only three of seven players approve', () => {
@@ -168,5 +252,78 @@ describe('Fashion Shadow round-one vertical slice', () => {
     state = dispatch(state, { type: 'fashion.vote.finish' }, userContext('user-0', 192_000));
     expect(state.publicEvidence).toEqual([]);
     expect(state.destroyedEvidence).toEqual(['V1']);
+  });
+});
+
+describe('Fashion Shadow identity guess', () => {
+  it('reveals the target secret and consumes a token on a successful guess', () => {
+    let state = startAndConfirmRoles();
+    state = dispatch(
+      state,
+      {
+        type: 'fashion.identityGuess.cast',
+        targetSeat: 1,
+        guessedSecretId: state.secrets[1]!,
+      },
+      userContext('user-0', 4_000),
+    );
+
+    expect(state.revealedSecrets[1]).toBe(state.secrets[1]);
+    expect(state.actionTokens[0]).toBe(FASHION_INITIAL_ACTION_TOKENS - 1);
+  });
+
+  it('blocks the guesser from cross examination after a failed guess', () => {
+    let state = startAndConfirmRoles();
+    const wrongSecret = Object.values(state.secrets).find(
+      (secret) => secret !== state.secrets[1],
+    );
+    if (wrongSecret === undefined) throw new Error('Expected another secret');
+
+    state = dispatch(
+      state,
+      {
+        type: 'fashion.identityGuess.cast',
+        targetSeat: 1,
+        guessedSecretId: wrongSecret,
+      },
+      userContext('user-0', 4_000),
+    );
+
+    expect(state.revealedSecrets[1]).toBeUndefined();
+    expect(state.identityGuessPenalties).toContainEqual({
+      seat: 0,
+      blockedRound: state.currentRound,
+    });
+  });
+});
+
+describe('Fashion Shadow final hearing', () => {
+  it('uses VictoryEvaluator instead of raw highest vote', () => {
+    const state = {
+      ...startAndConfirmRoles(),
+      phase: 'hearing' as const,
+      finalVotes: {
+        0: 1,
+        1: 1,
+        2: 1,
+      },
+    };
+
+    const decision = fashionEngine.decide(
+      state,
+      { type: 'fashion.hearing.finish' },
+      userContext('user-0', 9_000),
+    );
+
+    if (decision.kind === 'reject') throw new Error(decision.reason);
+    const next = decision.events.reduce(
+      (current, event) => fashionEngine.evolve(current, event),
+      state,
+    );
+
+    const villainSeat = Number(
+      Object.entries(state.roles).find(([, role]) => role === 'villainProcurementDirector')?.[0],
+    );
+    expect(next.winners).toContain(villainSeat);
   });
 });

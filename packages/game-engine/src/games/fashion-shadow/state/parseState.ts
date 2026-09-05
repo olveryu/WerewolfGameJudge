@@ -19,7 +19,11 @@ import type { RosterEntry } from '../../../platform/room/roster';
 import { normalizeFashionState } from './normalize';
 import {
   FASHION_PLAYER_COUNT,
+  type FashionContract,
+  type FashionContractPromise,
+  type FashionContractStatus,
   type FashionHumanSeat,
+  type FashionIdentityGuessPenalty,
   type FashionInterrogation,
   type FashionPhase,
   type FashionRound,
@@ -107,6 +111,8 @@ function parsePhase(value: unknown, path: string): FashionPhase {
     case 'crossExamination':
     case 'discussion':
     case 'vote':
+    case 'roundTransition':
+    case 'hearing':
     case 'ended':
       return value;
     default:
@@ -141,6 +147,58 @@ function parseEventOrNull(value: unknown, path: string) {
 function parseEvidence(value: unknown, path: string) {
   if (!isFashionEvidenceId(value)) return failDecode(path, 'Fashion evidence id');
   return value;
+}
+
+function parseContractPromise(value: unknown, path: string): FashionContractPromise {
+  switch (value) {
+    case 'compensation':
+    case 'protection':
+    case 'legalImmunity':
+      return value;
+    default:
+      return failDecode(path, 'valid Fashion contract promise');
+  }
+}
+
+function parseContractStatus(value: unknown, path: string): FashionContractStatus {
+  switch (value) {
+    case 'proposed':
+    case 'accepted':
+    case 'fulfilled':
+      return value;
+    default:
+      return failDecode(path, 'valid Fashion contract status');
+  }
+}
+
+function parseContract(value: unknown, path: string): FashionContract {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      id: parseNonEmptyString(raw.id, `${path}.id`),
+      sellerSeat: parseFashionSeat(raw.sellerSeat, `${path}.sellerSeat`),
+      buyerSeat: parseFashionSeat(raw.buyerSeat, `${path}.buyerSeat`),
+      promise: parseContractPromise(raw.promise, `${path}.promise`),
+      status: parseContractStatus(raw.status, `${path}.status`),
+    },
+    path,
+  );
+}
+
+function parseIdentityGuessPenalty(
+  value: unknown,
+  path: string,
+): FashionIdentityGuessPenalty {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      blockedRound: parseRound(raw.blockedRound, `${path}.blockedRound`),
+    },
+    path,
+  );
 }
 
 function parseVote(value: unknown, path: string) {
@@ -211,6 +269,23 @@ export function parseFashionState(value: unknown): FashionState {
           parseInteger,
         ),
         interrogation: parseInterrogation(raw.interrogation, 'FashionState.interrogation'),
+        contracts: parseArray(raw.contracts, 'FashionState.contracts', parseContract),
+        identityGuessPenalties: parseArray(
+          raw.identityGuessPenalties,
+          'FashionState.identityGuessPenalties',
+          parseIdentityGuessPenalty,
+        ),
+        revealedSecrets: parseSeatRecord(
+          raw.revealedSecrets,
+          'FashionState.revealedSecrets',
+          parseSecret,
+        ),
+        finalVotes: parseSeatRecord(
+          raw.finalVotes,
+          'FashionState.finalVotes',
+          parseFashionSeat,
+        ),
+        winners: parseArray(raw.winners, 'FashionState.winners', parseFashionSeat),
       },
       'FashionState',
     ),
