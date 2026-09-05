@@ -3,7 +3,7 @@
 > 状态：目标架构提案  
 > 基线：`main`，commit `caf6d25b`  
 > 已核对的参考实现：`feat/fibking-engine-registry`，commit `fd6d4a96`  
-> 最后更新：2026-07-15
+> 最后更新：2026-09-05
 > 范围：game-engine、API Worker、Durable Object、客户端服务、导航、共享房间 UI、瞎掰王及未来游戏
 
 ## 1. 文档目的
@@ -21,7 +21,7 @@
 目标必须支持：
 
 - 狼人杀现有行为零回归。
-- 瞎掰王默认 8 人、最少 4 人、没有人为设置的产品人数上限。
+- 瞎掰王默认 8 人，支持 4–20 人。
 - 以后加入你画我猜时，不再复制房间连接、座位、分享、用户卡片、header 或机器人接管代码。
 - 只有一条服务端权威的命令执行路径。
 - 所有游戏的房间第一眼都保持狼人杀现有房间的布局、位置和交互语言。
@@ -1397,7 +1397,7 @@ Config screen 也使用统一 screen shell。数值使用 stepper + numeric inpu
 
 - Werewolf lobby：desktop、mobile。
 - Werewolf ongoing：desktop、mobile。
-- Fib lobby 4 人、8 人、大人数窗口：desktop、mobile。
+- Fib lobby 4 人、8 人、20 人：desktop、mobile。
 - Fib ongoing：本人为 guesser、honest、fibber。
 - Fib bot takeover banner。
 - Header menu、seat modal、profile card、QR modal、rules、config。
@@ -1418,11 +1418,11 @@ Config screen 也使用统一 screen shell。数值使用 stepper + numeric inpu
 
 - 默认人数：8。
 - 最少人数：4。
-- 无人为设置的产品最大人数。
+- 最大人数：20。
 - 只有 `lobby` 可以修改配置。
 - 缩容时，如果被移除范围中存在真人座位，直接失败。
 - UI 使用 stepper + numeric input。
-- Server 要求 finite safe integer 且不小于 4。Safe integer 是数据表示不变量，不是产品人数上限。
+- Engine、Worker 与客户端统一复用 `FIB_MIN_PLAYERS` 和 `FIB_MAX_PLAYERS`，只接受 4–20 的整数。
 
 ### 22.2 身份
 
@@ -1453,7 +1453,7 @@ interface FibRoleAssignment {
 
 ### 22.3 Sparse seats 与 implicit bots
 
-为了满足无产品人数上限，state size 不能随空座或填充 bot 数量线性增长：
+座位仍使用 sparse human map 与 implicit bot，避免保存可从配置推导出的空座和 bot：
 
 ```ts
 interface FibSeatingState {
@@ -1488,7 +1488,7 @@ interface RoomSeatDataSource {
 
 `RoomSeatBoard` 按 seat index lazy 生成 row。Adapter 不创建完整 `RoomSeatViewModel[]`。
 
-人数非常大时，board 在相同 contract 后面使用 windowed page 或 indexed range，避免 native/web scroll dimension 超出表示范围。
+Fib 上限为 20，adapter 仍通过同一个 lazy source contract 投影座位，不额外维护完整 view-model 数组。
 
 ### 22.5 Phase 与按钮
 
@@ -1630,6 +1630,8 @@ games/<game>/
 
 ## 25. 以后加入你画我猜
 
+玩法、计时、媒体与实施契约见[你画我猜接龙设计](./pictionary-game-design.md)。
+
 新增游戏需要：
 
 1. 把 ID 加入 `GAME_TYPES`。
@@ -1734,8 +1736,8 @@ Metrics 区分：
 
 瞎掰王额外覆盖：
 
-- 最少 4、默认 8。
-- 大人数 initial state 大小保持 bounded。
+- 最少 4、默认 8、最多 20；20 接受而 21 拒绝。
+- 20 人 initial state 大小保持 bounded。
 - 不存在 N 大小的 empty-seat、bot、role structure。
 - 恰好一个 guesser 和一个 honest seat。
 - 大聪明 word visibility。
@@ -2030,7 +2032,7 @@ pnpm run e2e
 | Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | -                    |
 | Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | -                    |
 | Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | -                    |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | -                    |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、20 人边界与 320px 响应式 E2E                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | -                    |
 | Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁、严格 request boundary、Wrangler binding 单一权威、JWT principal 单一认证边界、provider payload runtime parsing、Worker test type-honesty、gacha atomic mutation ledger、Cloudflare request metadata 单一边界、game-engine 精确 subpath exports、client facade 身份删除、resolver 单一 outcome/reveal contract、daily reward canonical timestamp、显式 disabled-feedback button contract、debug log 单一 store、production 普通类型断言清零、shared view capture、HTTP response runtime contract、canonical auth session、共享 gacha response contract、狼人杀 role/night-step/action registry 闭包、Worker Wrangler 命令配置归属、底牌物理发牌与 v2 状态不变量、handler 纯 event contract、canonical board harness、exact recent-room projection、lossless client command decision、exact acceptance/reveal snapshot、测试 fixture 命名收口、local migration/seed、shared seat 视觉与 profile 行为基线、Fib sparse bot exclusion v2、CI E2E spec coverage gate、Fib 四类候选与 bounded player word history、Fib 客户端拼音展示 | CI 完整 E2E 最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
@@ -2448,7 +2450,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 
 - game-engine 新增 `games/fibking` concrete module。权威状态只保存真实玩家的 sparse seat map、两个特殊角色
   seat、当前/历史词条和 round metadata；空座、implicit bot 和普通角色不展开成 N 大小数组。人数统一使用
-  `isValidFibPlayerCount` 校验：默认 8、最少 4、最大为 JavaScript safe integer，不添加产品上限。
+  `isValidFibPlayerCount` 校验：默认 8，范围 4–20。
 - Fib lifecycle 使用 shared `lobby/preparing/ongoing/ended` 映射；`startRound` 先提交 preparing state 和 durable
   word-generation effect，system completion 才进入 ongoing。主持人可以取消 preparing；ended 提供保留座位与
   used-word history 的“下一轮”和“结束游戏”，后者返回 lobby 并恢复共享 setup 操作。
@@ -2463,7 +2465,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   实际执行。Worker integration test 覆盖 catalog 建房、sparse state、outbox alarm 中断恢复和 provider replay。
 - 客户端新增 Fib module、config、rules、summary、identity 与 room adapter，但不增加 Fib facade/context/store。
   Fib 和狼人杀共用同一个 `RoomSession`、`RoomShell`、seat/profile/share/header/status/bottom controllers；游戏层只
-  投影 Fib phase action、身份内容和规则。百万级人数使用 lazy seat source 分页，DOM 不按总人数展开。
+  投影 Fib phase action、身份内容和规则。座位使用 lazy seat source，DOM 只渲染当前可见内容。
 - 建房和房内编辑统一使用 shared room-flow navigation：创建成功以 `replace` 移除 Config，编辑完成以 `popTo`
   返回当前 Room。真实 navigator contract 同时覆盖狼人杀，避免 root stack 残留两个 Config screen。
 - Playwright 新增 Fib 专用 page object，只保留 Fib phase/identity 操作；seat、profile 和直接踢人沿用 shared room
@@ -2472,7 +2474,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - E2E Worker 使用独立 composition root：第一次 provider effect 把真实 local provider 结果写入 D1 ledger 后，
   在 internal completion 前中断；alarm 重放必须读取同一持久结果并推进 `preparing -> ongoing`。该故障注入只存在于
   E2E `GameRoom` 装配，不在 production module 中增加环境分支、retry helper 或吞错。
-- 定向 Playwright 验证通过 3 条用例：1,000,001 人稀疏建房、8 人四个真人加 implicit bot 的完整 round，以及
+- 定向 Playwright 覆盖 20 人产品边界、8 人四个真人加 implicit bot 的完整 round，以及
   320×640 配置/房间/规则/身份布局。完整 round 同时覆盖缩容拒绝、换座、离座、直接踢人、机器人填充与接管、
   三种身份 visibility、公布和保留座位的下一轮；没有 force click、定时等待或失败后自动重试。
 - 窄屏检查发现 AI chat pulse 的视觉缩放超出可拖动边界。bubble 样式、动画 scale 和 drag clamp 现在共用同一
@@ -3330,7 +3332,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   profile 再直接提交，不出现 seat confirmation。`useRoomSeatController` 删除 `leave` 分支，`useRoomProfileController`
   统一拥有 direct leave/kick 的 single-flight、authoritative rejection 与异常反馈。
 - Fib state 升至 exact v2，新增严格升序、去重的 sparse `excludedBotSeats`。房主踢 implicit bot 或 bot-fill 下的真人时，
-  只让目标座位为空；其他 implicit bot 不受影响。再次填充 bot 清空排除，配置缩容移除越界排除，百万座位 bulk fill
+  只让目标座位为空；其他 implicit bot 不受影响。再次填充 bot 清空排除，配置缩容移除越界排除，20 人 bulk fill
   仍不 materialize 空座或 bot。v1 和 malformed exclusion payload 由 codec fail fast，不保留 compatibility reader。
 - Playwright `RoomPage` 已改为离座/踢出后直接等待 authoritative seat update，并断言没有 seat confirmation；Werewolf
   seating 覆盖 direct leave，Fib 完整 flow 覆盖单 bot 踢出、其他 bot 保留及重新填充。按验收约定不在本地运行 E2E，

@@ -8,6 +8,7 @@ import type {
 import {
   FIB_DEFINITION_FIELD_MAX_LENGTH,
   FIB_DEFINITION_FIELD_MIN_LENGTH,
+  FIB_MAX_PLAYERS,
   FIB_MIN_PLAYERS,
   FIB_PREPARATION_FAILURE_CODES,
   FIB_PREPARATION_STAGES,
@@ -20,7 +21,7 @@ import { z } from 'zod';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 export const fibCreateConfigSchema: z.ZodType<FibConfig> = z.strictObject({
-  numberOfPlayers: z.int().min(FIB_MIN_PLAYERS),
+  numberOfPlayers: z.int().min(FIB_MIN_PLAYERS).max(FIB_MAX_PLAYERS),
 });
 
 function defineFibPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
@@ -35,7 +36,7 @@ const publicCommandOptions = defineFibPublicCommandOptions([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({
     type: z.literal('fib.config.update'),
-    numberOfPlayers: z.int().min(FIB_MIN_PLAYERS),
+    numberOfPlayers: z.int().min(FIB_MIN_PLAYERS).max(FIB_MAX_PLAYERS),
   }),
   z.strictObject({ type: z.literal('fib.game.returnToLobby') }),
   z.strictObject({ type: z.literal('fib.round.start') }),

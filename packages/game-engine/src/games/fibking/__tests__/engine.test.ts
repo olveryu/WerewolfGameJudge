@@ -22,6 +22,7 @@ import { getFibRoundView, getFibUserSeat } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine, getFibLifecycle } from '../engine';
 import {
+  FIB_MAX_PLAYERS,
   FIB_PREPARATION_STAGES,
   type FibState,
   type FibWordDefinition,
@@ -173,6 +174,9 @@ describe('FibKing engine configuration and seating', () => {
       'Invalid Fib config',
     );
     expect(() =>
+      fibEngine.createInitialState({ numberOfPlayers: FIB_MAX_PLAYERS + 1 }, CREATE_CONTEXT),
+    ).toThrow('Invalid Fib config');
+    expect(() =>
       fibEngine.createInitialState({ numberOfPlayers: Number.POSITIVE_INFINITY }, CREATE_CONTEXT),
     ).toThrow('Invalid Fib config');
   });
@@ -245,16 +249,16 @@ describe('FibKing engine configuration and seating', () => {
   });
 
   it('keeps implicit bot fill and idempotent no-op commands free of N-sized state', () => {
-    let state = createLobby(Number.MAX_SAFE_INTEGER);
+    let state = createLobby(FIB_MAX_PLAYERS);
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
-    expect(getFibOccupiedSeatCount(state)).toBe(Number.MAX_SAFE_INTEGER);
+    expect(getFibOccupiedSeatCount(state)).toBe(FIB_MAX_PLAYERS);
     expect(Object.keys(state.realSeats)).toHaveLength(0);
     expect(JSON.stringify(state).length).toBeLessThan(300);
 
-    const excludedSeat = Number.MAX_SAFE_INTEGER - 1;
+    const excludedSeat = FIB_MAX_PLAYERS - 1;
     state = dispatch(state, { type: 'room.seat.kick', seat: excludedSeat }, userContext('host'));
     expect(state.excludedBotSeats).toEqual([excludedSeat]);
-    expect(getFibOccupiedSeatCount(state)).toBe(Number.MAX_SAFE_INTEGER - 1);
+    expect(getFibOccupiedSeatCount(state)).toBe(FIB_MAX_PLAYERS - 1);
     expect(isFibImplicitBotSeat(state, excludedSeat - 1)).toBe(true);
     expect(JSON.stringify(state).length).toBeLessThan(350);
 
@@ -269,7 +273,7 @@ describe('FibKing engine configuration and seating', () => {
     });
   });
 
-  it('supports safe-integer growth without a product max and rejects destructive shrink', () => {
+  it('supports growth through the product maximum and rejects invalid changes', () => {
     let state = takeSeat(createLobby(8), 7, 'alice');
     expect(
       decideFibCommand(
@@ -282,14 +286,21 @@ describe('FibKing engine configuration and seating', () => {
     state = dispatch(state, { type: 'room.seat.clear' }, userContext('host'));
     state = dispatch(
       state,
-      { type: 'fib.config.update', numberOfPlayers: Number.MAX_SAFE_INTEGER },
+      { type: 'fib.config.update', numberOfPlayers: FIB_MAX_PLAYERS },
       userContext('host'),
     );
-    expect(state.numberOfPlayers).toBe(Number.MAX_SAFE_INTEGER);
+    expect(state.numberOfPlayers).toBe(FIB_MAX_PLAYERS);
     expect(
       decideFibCommand(
         state,
         { type: 'fib.config.update', numberOfPlayers: 3 },
+        userContext('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_PLAYER_COUNT_INVALID });
+    expect(
+      decideFibCommand(
+        state,
+        { type: 'fib.config.update', numberOfPlayers: FIB_MAX_PLAYERS + 1 },
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_PLAYER_COUNT_INVALID });

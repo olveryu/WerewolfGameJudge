@@ -43,6 +43,7 @@ import { assignFibRoles } from './domain/roles';
 import type { FibEffect } from './effects/types';
 import { normalizeFibState } from './state/normalize';
 import {
+  FIB_MAX_PLAYERS,
   FIB_MIN_PLAYERS,
   FIB_PREPARATION_STAGES,
   type FibConfig,
@@ -370,7 +371,7 @@ function decideCompleteFibRound(
 function createInitialFibState(config: FibConfig, context: CreateGameContext): FibState {
   if (!isValidFibPlayerCount(config.numberOfPlayers)) {
     throw new Error(
-      `Invalid Fib config: numberOfPlayers must be a safe integer >= ${FIB_MIN_PLAYERS}`,
+      `Invalid Fib config: numberOfPlayers must be an integer between ${FIB_MIN_PLAYERS} and ${FIB_MAX_PLAYERS}`,
     );
   }
   return normalizeFibState({

@@ -1,6 +1,11 @@
-/** O(1) deterministic FibKing role assignment over the full safe-integer range. */
+/** O(1) deterministic FibKing role assignment within the configured player range. */
 
-import { FIB_MIN_PLAYERS, type FibRoleAssignment, isValidFibPlayerCount } from '../state/types';
+import {
+  FIB_MAX_PLAYERS,
+  FIB_MIN_PLAYERS,
+  type FibRoleAssignment,
+  isValidFibPlayerCount,
+} from '../state/types';
 
 const UINT64_RANGE = 1n << 64n;
 const UINT64_MASK = UINT64_RANGE - 1n;
@@ -41,7 +46,7 @@ function sampleSafeInteger(bound: number, rng: Uint64Rng): number {
 
 export function assignFibRoles(numberOfPlayers: number, randomSeed: string): FibRoleAssignment {
   if (!isValidFibPlayerCount(numberOfPlayers)) {
-    throw new Error(`Fib role assignment requires at least ${FIB_MIN_PLAYERS} seats`);
+    throw new Error(`Fib role assignment requires ${FIB_MIN_PLAYERS}-${FIB_MAX_PLAYERS} seats`);
   }
   if (randomSeed.length === 0) {
     throw new Error('Fib role assignment requires a non-empty random seed');

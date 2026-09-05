@@ -1,3 +1,4 @@
+import { FIB_MAX_PLAYERS, FIB_MIN_PLAYERS } from '@game-judge/game-engine/games/fibking/public';
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
@@ -16,8 +17,10 @@ export class FibConfigPage {
   }
 
   async setPlayerCount(count: number): Promise<void> {
-    if (!Number.isSafeInteger(count) || count < 4) {
-      throw new Error(`FibConfigPage requires a safe player count >= 4, received ${count}`);
+    if (!Number.isSafeInteger(count) || count < FIB_MIN_PLAYERS || count > FIB_MAX_PLAYERS) {
+      throw new Error(
+        `FibConfigPage requires ${FIB_MIN_PLAYERS}-${FIB_MAX_PLAYERS} players, received ${count}`,
+      );
     }
     const input = this.page.getByTestId(TESTIDS.fibPlayerCountInput);
     await input.fill(String(count));
@@ -26,6 +29,15 @@ export class FibConfigPage {
 
   async increment(): Promise<void> {
     await this.page.getByRole('button', { name: '增加人数' }).click();
+  }
+
+  async expectMaximumPlayerCountAlert(): Promise<void> {
+    await expect(this.page.getByText('人数设置有误', { exact: true })).toBeVisible();
+    await expect(
+      this.page.getByText(`最多支持 ${FIB_MAX_PLAYERS} 人`, { exact: true }),
+    ).toBeVisible();
+    await this.page.getByText('确定', { exact: true }).click();
+    await expect(this.page.getByTestId(TESTIDS.alertModalOverlay)).not.toBeVisible();
   }
 
   async expectPlayerCount(count: number): Promise<void> {

@@ -2,6 +2,7 @@
 
 import { FIBKING_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import {
+  FIB_MAX_PLAYERS,
   FIB_MIN_PLAYERS,
   FIB_USED_WORD_LIMIT,
   FIB_WORD_MAX_LENGTH,
@@ -118,7 +119,9 @@ export function normalizeFibState(state: FibState): FibState {
   assertNonEmpty(state.roomCode, 'Fib roomCode');
   assertNonEmpty(state.hostUserId, 'Fib hostUserId');
   if (!isValidFibPlayerCount(state.numberOfPlayers)) {
-    throw new Error(`Fib numberOfPlayers must be a safe integer >= ${FIB_MIN_PLAYERS}`);
+    throw new Error(
+      `Fib numberOfPlayers must be an integer between ${FIB_MIN_PLAYERS} and ${FIB_MAX_PLAYERS}`,
+    );
   }
   assertRealSeats(state);
   assertExcludedBotSeats(state);

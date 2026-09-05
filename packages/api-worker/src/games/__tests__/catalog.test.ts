@@ -1,4 +1,5 @@
 import {
+  FIB_MAX_PLAYERS,
   FIB_STATE_CODEC,
   fibEngine,
   type FibInternalCommand,
@@ -296,14 +297,21 @@ describe('Worker game catalog', () => {
     ).toThrow();
   });
 
-  it('accepts every safe Fib player count without a product max', () => {
-    expect(fibCreateConfigSchema.parse({ numberOfPlayers: Number.MAX_SAFE_INTEGER })).toEqual({
-      numberOfPlayers: Number.MAX_SAFE_INTEGER,
+  it('accepts the Fib player range and rejects values outside it', () => {
+    expect(fibCreateConfigSchema.parse({ numberOfPlayers: FIB_MAX_PLAYERS })).toEqual({
+      numberOfPlayers: FIB_MAX_PLAYERS,
     });
     expect(() => fibCreateConfigSchema.parse({ numberOfPlayers: 3 })).toThrow();
+    expect(() => fibCreateConfigSchema.parse({ numberOfPlayers: FIB_MAX_PLAYERS + 1 })).toThrow();
     expect(() => fibCreateConfigSchema.parse({ numberOfPlayers: 8.5 })).toThrow();
     expect(() =>
       fibCreateConfigSchema.parse({ numberOfPlayers: Number.MAX_SAFE_INTEGER + 1 }),
+    ).toThrow();
+    expect(() =>
+      fibPublicCommandSchema.parse({
+        type: 'fib.config.update',
+        numberOfPlayers: FIB_MAX_PLAYERS + 1,
+      }),
     ).toThrow();
     expect(() =>
       fibCreateConfigSchema.parse({ numberOfPlayers: 8, roomCode: 'client-owned' }),

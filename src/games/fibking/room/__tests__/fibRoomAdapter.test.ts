@@ -1,4 +1,8 @@
-import { FIB_STATE_VERSION, type FibState } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_MAX_PLAYERS,
+  FIB_STATE_VERSION,
+  type FibState,
+} from '@game-judge/game-engine/games/fibking/public';
 
 import {
   createFibBottomActions,
@@ -128,24 +132,24 @@ describe('FibKing room adapter', () => {
     expect(capabilities.canTakeOverBots.isAllowed).toBe(true);
   });
 
-  it('projects sparse human seats and implicit bots without materializing the configured count', () => {
+  it('projects sparse human seats and implicit bots at the product maximum', () => {
     const state = {
-      ...createLobby(Number.MAX_SAFE_INTEGER),
+      ...createLobby(FIB_MAX_PLAYERS),
       fillEmptySeatsWithBots: true,
     } satisfies FibState;
     const source = createFibSeatDataSource({
       state,
       revision: 7,
       myUserId: 'host',
-      controlledSeat: Number.MAX_SAFE_INTEGER - 1,
+      controlledSeat: FIB_MAX_PLAYERS - 1,
     });
 
-    expect(source.count).toBe(Number.MAX_SAFE_INTEGER);
+    expect(source.count).toBe(FIB_MAX_PLAYERS);
     expect(source.getSeat(0)).toMatchObject({
       player: { kind: 'human', userId: 'host' },
       isSelf: true,
     });
-    expect(source.getSeat(Number.MAX_SAFE_INTEGER - 1)).toMatchObject({
+    expect(source.getSeat(FIB_MAX_PLAYERS - 1)).toMatchObject({
       player: { kind: 'bot' },
       highlight: 'controlled',
     });

@@ -1,4 +1,8 @@
-import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_DEFAULT_PLAYERS,
+  FIB_MAX_PLAYERS,
+  FIB_MIN_PLAYERS,
+} from '@game-judge/game-engine/games/fibking/public';
 
 import { parseFibPlayerCountInput } from '../fibPlayerCount';
 
@@ -12,14 +16,18 @@ describe('parseFibPlayerCountInput', () => {
     });
   });
 
-  it('accepts large safe integers without an arbitrary product maximum', () => {
-    expect(parseFibPlayerCountInput('1000000')).toEqual({
+  it('accepts the product maximum', () => {
+    expect(FIB_MAX_PLAYERS).toBe(20);
+    expect(parseFibPlayerCountInput(String(FIB_MAX_PLAYERS))).toEqual({
       kind: 'valid',
-      value: 1_000_000,
+      value: FIB_MAX_PLAYERS,
     });
-    expect(parseFibPlayerCountInput(String(Number.MAX_SAFE_INTEGER))).toEqual({
-      kind: 'valid',
-      value: Number.MAX_SAFE_INTEGER,
+  });
+
+  it('rejects counts above the product maximum', () => {
+    expect(parseFibPlayerCountInput(String(FIB_MAX_PLAYERS + 1))).toEqual({
+      kind: 'invalid',
+      reason: '最多支持 20 人',
     });
   });
 

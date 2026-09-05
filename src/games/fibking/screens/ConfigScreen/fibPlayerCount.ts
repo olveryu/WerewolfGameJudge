@@ -1,6 +1,7 @@
-/** Parse editable FibKing player counts without imposing a product maximum. */
+/** Parse editable FibKing player counts against the domain range. */
 
 import {
+  FIB_MAX_PLAYERS,
   FIB_MIN_PLAYERS,
   isValidFibPlayerCount,
 } from '@game-judge/game-engine/games/fibking/public';
@@ -19,7 +20,9 @@ export function parseFibPlayerCountInput(value: string): FibPlayerCountInput {
     return { kind: 'invalid', reason: '人数超出当前设备可精确表示的范围' };
   }
   if (!isValidFibPlayerCount(count)) {
-    return { kind: 'invalid', reason: `至少需要 ${FIB_MIN_PLAYERS} 人` };
+    return count < FIB_MIN_PLAYERS
+      ? { kind: 'invalid', reason: `至少需要 ${FIB_MIN_PLAYERS} 人` }
+      : { kind: 'invalid', reason: `最多支持 ${FIB_MAX_PLAYERS} 人` };
   }
   return { kind: 'valid', value: count };
 }

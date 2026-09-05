@@ -39,7 +39,7 @@ export const FibConfigScreen: React.FC<FibConfigScreenProps> = ({ session }) => 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionLabel}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
         <Text style={styles.title}>选择本局人数</Text>
-        <Text style={styles.description}>默认 8 人，最少 4 人。</Text>
+        <Text style={styles.description}>默认 8 人，支持 4–20 人。</Text>
 
         <View style={styles.controlPanel}>
           <Text style={styles.controlLabel}>玩家人数</Text>

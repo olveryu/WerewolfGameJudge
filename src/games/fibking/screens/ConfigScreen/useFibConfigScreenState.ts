@@ -1,6 +1,10 @@
 /** FibKing config form and create/edit command orchestration. */
 
-import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_DEFAULT_PLAYERS,
+  FIB_MAX_PLAYERS,
+  FIB_MIN_PLAYERS,
+} from '@game-judge/game-engine/games/fibking/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
 
@@ -81,8 +85,8 @@ export function useFibConfigScreenState({
   const increment = useCallback(() => {
     const count = getPlayerCount();
     if (count === null) return;
-    if (count === Number.MAX_SAFE_INTEGER) {
-      showErrorAlert('人数设置有误', '人数超出当前设备可精确表示的范围');
+    if (count === FIB_MAX_PLAYERS) {
+      showErrorAlert('人数设置有误', `最多支持 ${FIB_MAX_PLAYERS} 人`);
       return;
     }
     setPlayerCountText(String(count + 1));

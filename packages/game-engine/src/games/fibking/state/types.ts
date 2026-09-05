@@ -7,6 +7,7 @@ import type { SeatOccupant } from '../../../platform/room/seating';
 
 export const FIB_MIN_PLAYERS = 4;
 export const FIB_DEFAULT_PLAYERS = 8;
+export const FIB_MAX_PLAYERS = 20;
 export const FIB_USED_WORD_LIMIT = 50;
 export const FIB_WORD_MIN_LENGTH = 2;
 export const FIB_WORD_MAX_LENGTH = 12;
@@ -61,7 +62,7 @@ export function isValidFibDefinitionField(value: string): boolean {
 }
 
 export function isValidFibPlayerCount(value: number): boolean {
-  return Number.isSafeInteger(value) && value >= FIB_MIN_PLAYERS;
+  return Number.isSafeInteger(value) && value >= FIB_MIN_PLAYERS && value <= FIB_MAX_PLAYERS;
 }
 
 export type FibSeatProfile = RoomSeatProfile;

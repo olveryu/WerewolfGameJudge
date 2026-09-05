@@ -46,7 +46,9 @@ function expectIdentityVisibility(identity: FibIdentity): void {
 }
 
 test.describe('FibKing', () => {
-  test('large player count stays compact and has no arbitrary UI maximum', async ({ browser }) => {
+  test('supports 20 players and blocks incrementing past the product maximum', async ({
+    browser,
+  }) => {
     const fixture = await createPlayerContexts(browser, 1);
     const [page] = fixture.pages;
 
@@ -54,17 +56,17 @@ test.describe('FibKing', () => {
       await new HomePage(page).clickCreateRoom('fibking');
       const config = new FibConfigPage(page);
       await config.waitForCreateMode();
-      await config.setPlayerCount(1_000_000);
+      await config.setPlayerCount(20);
       await config.increment();
-      await config.expectPlayerCount(1_000_001);
+      await config.expectMaximumPlayerCountAlert();
+      await config.expectPlayerCount(20);
       await config.createRoom();
 
       const room = new FibRoomPage(page);
       await room.waitForReady('host');
       await room.expectNoWerewolfOverlay();
-      await room.expectPlayerCountHeading(1_000_001);
-      await room.expectPaginationVisible();
-      expect(await room.getSeatCount()).toBeLessThan(100);
+      await room.expectPlayerCountHeading(20);
+      expect(await room.getSeatCount()).toBe(20);
     } finally {
       await closeAll(fixture);
     }

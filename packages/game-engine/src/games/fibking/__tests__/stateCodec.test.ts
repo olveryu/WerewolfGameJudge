@@ -1,7 +1,7 @@
 import { assignFibRoles } from '../domain/roles';
 import { fibEngine } from '../engine';
 import { parseFibState } from '../state/parseState';
-import { FIB_PREPARATION_STAGES } from '../state/types';
+import { FIB_MAX_PLAYERS, FIB_PREPARATION_STAGES } from '../state/types';
 import { FIB_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT = {
@@ -12,17 +12,16 @@ const CREATE_CONTEXT = {
 } as const;
 
 describe('FibKing compact state and codec', () => {
-  it('assigns two distinct deterministic roles in O(1) for an unbounded product size', () => {
-    const first = assignFibRoles(Number.MAX_SAFE_INTEGER, 'same-seed');
-    const second = assignFibRoles(Number.MAX_SAFE_INTEGER, 'same-seed');
+  it('assigns two distinct deterministic roles without materializing every role', () => {
+    const first = assignFibRoles(FIB_MAX_PLAYERS, 'same-seed');
+    const second = assignFibRoles(FIB_MAX_PLAYERS, 'same-seed');
 
     expect(first).toEqual(second);
     expect(first.guesserSeat).toBeGreaterThanOrEqual(0);
-    expect(first.guesserSeat).toBeLessThan(Number.MAX_SAFE_INTEGER);
+    expect(first.guesserSeat).toBeLessThan(FIB_MAX_PLAYERS);
     expect(first.honestSeat).toBeGreaterThanOrEqual(0);
-    expect(first.honestSeat).toBeLessThan(Number.MAX_SAFE_INTEGER);
+    expect(first.honestSeat).toBeLessThan(FIB_MAX_PLAYERS);
     expect(first.guesserSeat).not.toBe(first.honestSeat);
-    expect(Math.max(first.guesserSeat, first.honestSeat)).toBeGreaterThan(2 ** 32);
     expect(Object.keys(first)).toEqual(['guesserSeat', 'honestSeat']);
   });
 
