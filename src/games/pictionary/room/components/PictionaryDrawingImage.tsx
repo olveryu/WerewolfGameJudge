@@ -18,6 +18,7 @@ interface PictionaryDrawingImageProps {
   readonly roomCode: string;
   readonly entryId: string;
   readonly accessibilityLabel: string;
+  readonly controlledSeat: number | null;
 }
 
 type DrawingImageState =
@@ -29,6 +30,7 @@ export const PictionaryDrawingImage: React.FC<PictionaryDrawingImageProps> = ({
   roomCode,
   entryId,
   accessibilityLabel,
+  controlledSeat,
 }) => {
   const [attempt, setAttempt] = useState(0);
   const [imageState, setImageState] = useState<DrawingImageState>({ kind: 'loading' });
@@ -37,7 +39,7 @@ export const PictionaryDrawingImage: React.FC<PictionaryDrawingImageProps> = ({
   useEffect(() => {
     const controller = new AbortController();
     setImageState({ kind: 'loading' });
-    void readPictionaryDrawingDataUri(roomCode, entryId, controller.signal).then(
+    void readPictionaryDrawingDataUri(roomCode, entryId, controlledSeat, controller.signal).then(
       (uri) => setImageState({ kind: 'loaded', uri }),
       (error: unknown) => {
         if (controller.signal.aborted) return;
@@ -46,7 +48,7 @@ export const PictionaryDrawingImage: React.FC<PictionaryDrawingImageProps> = ({
       },
     );
     return () => controller.abort();
-  }, [attempt, entryId, roomCode]);
+  }, [attempt, controlledSeat, entryId, roomCode]);
 
   const openFullscreen = useCallback(() => setIsFullscreenVisible(true), []);
   const closeFullscreen = useCallback(() => setIsFullscreenVisible(false), []);

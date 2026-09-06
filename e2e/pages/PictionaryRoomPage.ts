@@ -32,6 +32,39 @@ export class PictionaryRoomPage extends RoomPage {
     });
   }
 
+  /** Fill every empty lobby seat with an implicit bot. */
+  async fillEmptySeatsWithBots(playerCount: number): Promise<void> {
+    await this.clickHostManagementAction(TESTIDS.roomFillBotsButton);
+    await expect(this.page.getByText('填充机器人？', { exact: true })).toBeVisible();
+    await this.page.getByText('确定', { exact: true }).click();
+    await expect(
+      this.page.getByText(`等待入座 · ${playerCount}/${playerCount}`, { exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
+  }
+
+  /** Long-press an implicit bot and wait for the shared controlled-seat banner. */
+  async takeOverBot(seat: number): Promise<void> {
+    await this.getSeatTile(seat).click({ delay: 650 });
+    const banner = this.page.getByTestId(TESTIDS.controlledSeatBanner);
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText(`机器人${seat + 1}号`);
+  }
+
+  /** Release the currently controlled bot identity. */
+  async releaseBot(): Promise<void> {
+    await this.page.getByTestId(TESTIDS.controlledSeatReleaseButton).click();
+    await expect(this.page.getByTestId(TESTIDS.controlledSeatBanner)).not.toBeVisible();
+  }
+
+  /** Wait until the current effective seat has submitted its task. */
+  async expectSubmittedTask(): Promise<void> {
+    await expect(
+      this.page.getByTestId(TESTIDS.pictionaryStageFrame).getByText('这一棒已交卷', {
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 30_000 });
+  }
+
   /** Assert the current drawing task and its opening-context contract. */
   async expectDrawingStep(step: number, totalSteps: number, isOpening: boolean): Promise<void> {
     const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);

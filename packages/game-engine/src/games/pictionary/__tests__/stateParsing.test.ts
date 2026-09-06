@@ -4,6 +4,7 @@ import type { CreateGameContext } from '../../../platform/engine';
 import { pictionaryEngine } from '../engine';
 import { parsePictionaryState } from '../state/parseState';
 import { DEFAULT_PICTIONARY_CONFIG } from '../state/types';
+import { PICTIONARY_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT: CreateGameContext = {
   roomCode: '2468',
@@ -41,5 +42,13 @@ describe('Pictionary state parsing', () => {
     expect(() => parsePictionaryState(invalidState)).toThrow(
       'PictionaryState.config.galleryItemDurationSeconds must be a supported Pictionary duration',
     );
+  });
+
+  it('rejects rooms persisted with the previous state version', () => {
+    const state = pictionaryEngine.createInitialState(DEFAULT_PICTIONARY_CONFIG, CREATE_CONTEXT);
+
+    expect(() =>
+      parsePictionaryState({ ...state, stateVersion: PICTIONARY_STATE_VERSION - 1 }),
+    ).toThrow(`PictionaryState.stateVersion must be state version ${PICTIONARY_STATE_VERSION}`);
   });
 });

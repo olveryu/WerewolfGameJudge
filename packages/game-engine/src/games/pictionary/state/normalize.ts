@@ -84,6 +84,22 @@ function assertSeats(state: PictionaryState): void {
   }
 }
 
+function assertExcludedBotSeats(state: PictionaryState): void {
+  if (!state.fillEmptySeatsWithBots && state.excludedBotSeats.length > 0) {
+    throw new Error('Pictionary excludedBotSeats requires bot fill to be enabled');
+  }
+  let previousSeat = -1;
+  for (const seat of state.excludedBotSeats) {
+    if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers) {
+      throw new Error(`Pictionary excluded bot seat ${seat} is outside the configured room`);
+    }
+    if (seat <= previousSeat) {
+      throw new Error('Pictionary excludedBotSeats must be unique and strictly ascending');
+    }
+    previousSeat = seat;
+  }
+}
+
 function assertRound(state: PictionaryState): void {
   if (state.roundId === null) throw new Error('Pictionary active phase requires a roundId');
   if (!isPictionaryRoomFull(state)) throw new Error('Pictionary active phase requires a full room');
@@ -126,6 +142,7 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   }
   assertSafeTimestamp(state.deadlineAt, 'Pictionary deadlineAt');
   assertSeats(state);
+  assertExcludedBotSeats(state);
 
   if (state.phase === 'lobby') {
     if (

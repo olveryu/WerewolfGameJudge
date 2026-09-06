@@ -7,7 +7,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TESTIDS } from '@/testids';
 import { colors, fixed, spacing, textStyles, typography } from '@/theme';
 
-const PHONE_STAGE_MAX_WIDTH = 430;
+export const PICTIONARY_STAGE_MAX_WIDTH = 430;
 
 interface PictionaryStageFrameProps {
   readonly eyebrow: string;
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, padding: spacing.medium },
   content: {
     width: '100%',
-    maxWidth: PHONE_STAGE_MAX_WIDTH,
+    maxWidth: PICTIONARY_STAGE_MAX_WIDTH,
     alignSelf: 'center',
     gap: spacing.medium,
   },

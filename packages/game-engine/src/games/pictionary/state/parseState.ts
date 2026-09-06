@@ -272,6 +272,15 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         phaseRevision: parseInteger(raw.phaseRevision, 'PictionaryState.phaseRevision'),
         config: parseConfig(raw.config, 'PictionaryState.config'),
         realSeats: parseRealSeats(raw.realSeats, 'PictionaryState.realSeats'),
+        fillEmptySeatsWithBots: parseBoolean(
+          raw.fillEmptySeatsWithBots,
+          'PictionaryState.fillEmptySeatsWithBots',
+        ),
+        excludedBotSeats: parseArray(
+          raw.excludedBotSeats,
+          'PictionaryState.excludedBotSeats',
+          parseSeat,
+        ),
         roundNumber: parseInteger(raw.roundNumber, 'PictionaryState.roundNumber'),
         roundId: parseNullable(raw.roundId, 'PictionaryState.roundId', parseNonEmptyString),
         seatOrder: parseArray(raw.seatOrder, 'PictionaryState.seatOrder', parseSeat),

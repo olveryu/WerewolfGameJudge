@@ -5,28 +5,34 @@ import type React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { colors, fixed, spacing } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { usePictionaryStageDeadline } from '../hooks/usePictionaryStageDeadline';
+import { PictionaryBotControlStrip } from './PictionaryBotControlStrip';
 import { PictionaryEndedStage, PictionaryGalleryStage } from './PictionaryGalleryStage';
 import { PictionaryTaskStage } from './PictionaryTaskStage';
 
 interface PictionaryStageProps {
   readonly state: PictionaryState;
-  readonly mySeat: number | null;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
   readonly userId: string;
   readonly isHost: boolean;
+  readonly seatModel: RoomSeatBoardModel;
   readonly session: PictionaryRoomSession;
 }
 
 export const PictionaryStage: React.FC<PictionaryStageProps> = ({
   state,
-  mySeat,
+  effectiveSeat,
+  controlledSeat,
   userId,
   isHost,
+  seatModel,
   session,
 }) => {
   if (state.phase === 'lobby') {
@@ -35,10 +41,10 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
   const deadline = usePictionaryStageDeadline({
     deadlineAt: state.deadlineAt,
     phaseRevision: state.phaseRevision,
-    canExpire: mySeat !== null,
+    canExpire: effectiveSeat !== null,
     session,
   });
-  const command = usePictionaryStageCommand(session);
+  const command = usePictionaryStageCommand(session, null);
 
   if (state.phase === 'gallery') {
     return (
@@ -68,9 +74,11 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
 
   return (
     <View style={styles.container}>
+      <PictionaryBotControlStrip model={seatModel} />
       <PictionaryTaskStage
         state={state}
-        mySeat={mySeat}
+        effectiveSeat={effectiveSeat}
+        controlledSeat={controlledSeat}
         userId={userId}
         session={session}
         remainingSeconds={deadline.remainingSeconds}

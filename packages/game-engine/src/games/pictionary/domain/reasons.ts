@@ -1,6 +1,5 @@
 /** Stable Pictionary domain rejection reasons. */
 
-export const REASON_PICTIONARY_BOTS_UNSUPPORTED = 'pictionary_bots_unsupported' as const;
 export const REASON_PICTIONARY_CONFIG_INVALID = 'pictionary_config_invalid' as const;
 export const REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE =
   'pictionary_occupied_seat_out_of_range' as const;

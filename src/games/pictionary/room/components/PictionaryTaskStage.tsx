@@ -52,7 +52,8 @@ import { PictionaryStageFrame } from './PictionaryStageFrame';
 
 interface PictionaryTaskStageProps {
   readonly state: PictionaryState;
-  readonly mySeat: number | null;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
   readonly userId: string;
   readonly session: PictionaryRoomSession;
   readonly remainingSeconds: number | null;
@@ -63,12 +64,13 @@ interface TaskViewProps {
   readonly state: PictionaryState;
   readonly task: PictionaryTask;
   readonly session: PictionaryRoomSession;
+  readonly controlledSeat: number | null;
   readonly remainingSeconds: number | null;
   readonly isExpired: boolean;
 }
 
 interface DrawingTaskProps extends TaskViewProps {
-  readonly mySeat: number;
+  readonly effectiveSeat: number;
   readonly userId: string;
   readonly reservation: PictionaryDrawingReservation | null;
 }
@@ -89,7 +91,8 @@ function getTextValidationMessage(text: string): string | null {
 const PreviousDrawing: React.FC<{
   readonly state: PictionaryState;
   readonly task: PictionaryTask;
-}> = ({ state, task }) => {
+  readonly controlledSeat: number | null;
+}> = ({ state, task, controlledSeat }) => {
   const previousEntry = task.previousEntry;
   if (previousEntry === null) {
     throw new Error('[FAIL-FAST] Pictionary text task requires a previous entry');
@@ -114,6 +117,7 @@ const PreviousDrawing: React.FC<{
         roomCode={state.roomCode}
         entryId={previousEntry.id}
         accessibilityLabel="上一棒画作"
+        controlledSeat={controlledSeat}
       />
     </View>
   );
@@ -123,11 +127,12 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   state,
   task,
   session,
+  controlledSeat,
   remainingSeconds,
   isExpired,
 }) => {
   const [text, setText] = useState('');
-  const command = usePictionaryStageCommand(session);
+  const command = usePictionaryStageCommand(session, controlledSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);
 
@@ -143,7 +148,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
       description="只根据画面作答，不要向作者确认。"
       remainingSeconds={remainingSeconds}
     >
-      <PreviousDrawing state={state} task={task} />
+      <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
       <View style={styles.composer}>
         <TextInput
           value={text}
@@ -368,18 +373,19 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
 
 function findReservation(
   state: PictionaryState,
-  mySeat: number,
+  seat: number,
 ): PictionaryDrawingReservation | null {
-  return state.reservations.find((item) => item.authorSeat === mySeat) ?? null;
+  return state.reservations.find((item) => item.authorSeat === seat) ?? null;
 }
 
 const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
   state,
   task,
-  mySeat,
+  effectiveSeat,
   userId,
   reservation,
   session,
+  controlledSeat,
   remainingSeconds,
   isExpired,
 }) => {
@@ -408,7 +414,7 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
     reservation?.uploadDeadlineAt ?? null,
   );
   const uploadAbortController = useRef<AbortController | null>(null);
-  const command = usePictionaryStageCommand(session);
+  const command = usePictionaryStageCommand(session, controlledSeat);
   const uploadRemainingSeconds = usePictionaryRemainingSeconds(
     reservation?.uploadDeadlineAt ?? reservedUploadDeadlineAt,
   );
@@ -455,7 +461,10 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
           setUploadState('idle');
           return;
         }
-        const nextReservation = findReservation(reserveResult.decision.snapshot.state, mySeat);
+        const nextReservation = findReservation(
+          reserveResult.decision.snapshot.state,
+          effectiveSeat,
+        );
         if (nextReservation === null) {
           throw new Error('[FAIL-FAST] Successful drawing reservation is missing from snapshot');
         }
@@ -471,6 +480,7 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
         state.roomCode,
         submissionId,
         png,
+        controlledSeat,
         controller.signal,
       );
       if (uploadResult.kind !== 'committed' || uploadResult.outcome.kind !== 'success') {
@@ -619,7 +629,8 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
 
 export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
   state,
-  mySeat,
+  effectiveSeat,
+  controlledSeat,
   userId,
   session,
   remainingSeconds,
@@ -635,7 +646,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       />
     );
   }
-  if (mySeat === null) {
+  if (effectiveSeat === null) {
     return (
       <PictionaryWaitingStage
         state={state}
@@ -645,12 +656,12 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       />
     );
   }
-  const task = getPictionaryTaskForSeat(state, mySeat);
+  const task = getPictionaryTaskForSeat(state, effectiveSeat);
   if (task === null) {
     throw new Error('[FAIL-FAST] Seated Pictionary player has no task');
   }
   const isSubmitted = task.chain.entries.length > state.stepIndex;
-  const reservation = findReservation(state, mySeat);
+  const reservation = findReservation(state, effectiveSeat);
 
   if (
     state.phase === 'settling' &&
@@ -662,10 +673,11 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       <PictionaryDrawingTask
         state={state}
         task={task}
-        mySeat={mySeat}
+        effectiveSeat={effectiveSeat}
         userId={userId}
         reservation={reservation}
         session={session}
+        controlledSeat={controlledSeat}
         remainingSeconds={remainingSeconds}
         isExpired={isExpired}
       />
@@ -696,6 +708,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       state={state}
       task={task}
       session={session}
+      controlledSeat={controlledSeat}
       remainingSeconds={remainingSeconds}
       isExpired={isExpired}
     />
@@ -703,10 +716,11 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
     <PictionaryDrawingTask
       state={state}
       task={task}
-      mySeat={mySeat}
+      effectiveSeat={effectiveSeat}
       userId={userId}
       reservation={reservation}
       session={session}
+      controlledSeat={controlledSeat}
       remainingSeconds={remainingSeconds}
       isExpired={isExpired}
     />

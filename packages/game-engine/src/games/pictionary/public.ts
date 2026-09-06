@@ -6,7 +6,6 @@ export type {
   PictionaryPublicCommand,
 } from './commands/types';
 export {
-  REASON_PICTIONARY_BOTS_UNSUPPORTED,
   REASON_PICTIONARY_CONFIG_INVALID,
   REASON_PICTIONARY_GALLERY_MANUAL,
   REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE,
@@ -30,11 +29,14 @@ export { PICTIONARY_STATE_CODEC } from './state/codec';
 export { parsePictionaryState } from './state/parseState';
 export {
   DEFAULT_PICTIONARY_CONFIG,
+  getPictionaryBotDisplayName,
+  getPictionaryBotUserId,
   getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,
   getPictionaryTaskForSeat,
   getPictionaryTextGraphemeCount,
   hasPictionaryForbiddenControlCharacter,
+  isPictionaryImplicitBotSeat,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   isValidPictionaryPlayerCount,

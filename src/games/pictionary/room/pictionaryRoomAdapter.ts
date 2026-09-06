@@ -1,8 +1,11 @@
 /** Pictionary-owned derivation of game-neutral RoomShell models. */
 
 import {
+  getPictionaryBotDisplayName,
+  getPictionaryBotUserId,
   getPictionaryOccupiedSeatCount,
   getPictionaryTaskForSeat,
+  isPictionaryImplicitBotSeat,
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -46,8 +49,10 @@ interface PictionaryCapabilitiesInput {
   readonly leaveSeat: () => void;
   readonly kickSeat: (seat: number) => void;
   readonly clearSeats: () => void;
+  readonly fillBots: () => void;
   readonly configureGame: () => void;
   readonly openProfile: (target: RoomProfileTarget) => void;
+  readonly takeOverBot: (seat: number) => void;
   readonly shareRoom: () => void;
 }
 
@@ -58,7 +63,7 @@ export function createPictionaryRoomCapabilities(
   const setupCapabilities = createRoomSetupCapabilities({
     isSetup: isLobby,
     isHost: input.isHost,
-    supportsBots: false,
+    supportsBots: true,
     mySeat: input.mySeat,
     hasOccupiedSeats: getPictionaryOccupiedSeatCount(input.state) > 0,
     isRoomFull: isPictionaryRoomFull(input.state),
@@ -67,38 +72,47 @@ export function createPictionaryRoomCapabilities(
     leaveSeat: input.leaveSeat,
     kickSeat: input.kickSeat,
     clearSeats: input.clearSeats,
-    fillBots: () => {
-      throw new Error('[FAIL-FAST] Pictionary does not support bot seats');
-    },
+    fillBots: input.fillBots,
     configureGame: input.configureGame,
     shareRoom: input.shareRoom,
   });
   return {
     ...setupCapabilities,
     canViewProfiles: isLobby ? allowed(input.openProfile) : denied('游戏进行中不能查看玩家资料'),
-    canTakeOverBots: denied('你画我猜接龙不支持机器人'),
+    canTakeOverBots:
+      input.isHost && (input.state.phase === 'answering' || input.state.phase === 'settling')
+        ? allowed(input.takeOverBot)
+        : denied('当前阶段不能接管机器人'),
   };
 }
 
-function getPictionaryProfileTarget(
+export function getPictionaryProfileTarget(
   state: PictionaryState,
   seat: number,
 ): RoomProfileTarget | null {
   const occupant = state.realSeats[seat];
-  return occupant === undefined
-    ? null
-    : {
-        seat,
-        userId: occupant.userId,
-        occupantKind: 'human',
-        rosterName: occupant.profile.displayName,
-      };
+  if (occupant !== undefined) {
+    return {
+      seat,
+      userId: occupant.userId,
+      occupantKind: 'human',
+      rosterName: occupant.profile.displayName,
+    };
+  }
+  if (!isPictionaryImplicitBotSeat(state, seat)) return null;
+  return {
+    seat,
+    userId: getPictionaryBotUserId(state.roomCode, seat),
+    occupantKind: 'bot',
+    rosterName: getPictionaryBotDisplayName(seat),
+  };
 }
 
 interface PictionarySeatSourceInput {
   readonly state: PictionaryState;
   readonly revision: number;
   readonly myUserId: string;
+  readonly controlledSeat: number | null;
 }
 
 function getPictionarySeatStatus(
@@ -122,7 +136,7 @@ export function createPictionarySeatDataSource(
 ): RoomSeatDataSource {
   return {
     count: input.state.config.numberOfPlayers,
-    revision: input.revision,
+    revision: `${input.revision}:${input.controlledSeat ?? 'self'}`,
     getSeat(index): RoomSeatViewModel {
       if (
         !Number.isSafeInteger(index) ||
@@ -132,10 +146,10 @@ export function createPictionarySeatDataSource(
         throw new Error(`Pictionary seat source index is out of range: ${index}`);
       }
       const occupant = input.state.realSeats[index];
+      const isBot = occupant === undefined && isPictionaryImplicitBotSeat(input.state, index);
       const player =
-        occupant === undefined
-          ? null
-          : {
+        occupant !== undefined
+          ? {
               kind: 'human' as const,
               userId: occupant.userId,
               displayName: occupant.profile.displayName,
@@ -147,12 +161,20 @@ export function createPictionarySeatDataSource(
               seatPetId: occupant.profile.revealEffect,
               level: occupant.profile.level,
               isAnonymous: occupant.profile.avatarUrl === undefined,
-            };
+            }
+          : isBot
+            ? {
+                kind: 'bot' as const,
+                userId: getPictionaryBotUserId(input.state.roomCode, index),
+                displayName: getPictionaryBotDisplayName(index),
+                isAnonymous: true,
+              }
+            : null;
       return {
         seat: index,
         player,
         isSelf: occupant?.userId === input.myUserId,
-        highlight: 'none',
+        highlight: input.controlledSeat === index ? 'controlled' : 'none',
         secondaryLabel: null,
         disabledReason:
           player === null && input.state.phase !== 'lobby' ? '游戏进行中不能入座' : undefined,
@@ -242,7 +264,10 @@ interface PictionaryLobbyHostManagementInput {
   readonly state: PictionaryState;
   readonly isHost: boolean;
   readonly isCommandSubmitting: boolean;
-  readonly capabilities: Pick<RoomCapabilities, 'canConfigureGame' | 'canClearSeats'>;
+  readonly capabilities: Pick<
+    RoomCapabilities,
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
+  >;
   readonly startRound: () => void;
   readonly onStartDisabled: () => void;
 }
@@ -299,6 +324,18 @@ export function createPictionaryLobbyHostManagement(
         input.capabilities.canConfigureGame.execute,
       ),
     );
+  }
+  if (input.capabilities.canFillBots.isAllowed) {
+    roomActions.push({
+      ...hostAction(
+        'fill-bots',
+        '填充机器人',
+        'people-outline',
+        'secondary',
+        input.capabilities.canFillBots.execute,
+      ),
+      testID: TESTIDS.roomFillBotsButton,
+    });
   }
   if (input.capabilities.canClearSeats.isAllowed) {
     roomActions.push(

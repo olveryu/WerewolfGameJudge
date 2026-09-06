@@ -19,6 +19,14 @@ function encodePathSegment(value: string): string {
   return encodeURIComponent(value);
 }
 
+function controlledSeatQuery(controlledSeat: number | null): string {
+  if (controlledSeat === null) return '';
+  if (!Number.isSafeInteger(controlledSeat) || controlledSeat < 0) {
+    throw new Error(`[FAIL-FAST] Invalid controlled Pictionary seat: ${controlledSeat}`);
+  }
+  return `?controlledSeat=${controlledSeat}`;
+}
+
 function parseUploadResponse(
   value: unknown,
   expectedCommandId: string,
@@ -41,11 +49,12 @@ export async function uploadPictionaryDrawing(
   roomCode: string,
   submissionId: string,
   png: Blob,
+  controlledSeat: number | null,
   signal?: AbortSignal,
 ): Promise<RoomCommandResult<PictionaryState>> {
   const commandId = `pictionary-media-commit:${submissionId}`;
   return cfPutBinary(
-    `/api/games/pictionary/rooms/${encodePathSegment(roomCode)}/submissions/${encodePathSegment(submissionId)}`,
+    `/api/games/pictionary/rooms/${encodePathSegment(roomCode)}/submissions/${encodePathSegment(submissionId)}${controlledSeatQuery(controlledSeat)}`,
     png,
     PNG_CONTENT_TYPE,
     (value) => parseUploadResponse(value, commandId),
@@ -71,10 +80,11 @@ function encodeBase64(buffer: ArrayBuffer): string {
 export async function readPictionaryDrawingDataUri(
   roomCode: string,
   entryId: string,
+  controlledSeat: number | null,
   signal?: AbortSignal,
 ): Promise<string> {
   const bytes = await cfGetBinary(
-    `/api/games/pictionary/rooms/${encodePathSegment(roomCode)}/media/${encodePathSegment(entryId)}`,
+    `/api/games/pictionary/rooms/${encodePathSegment(roomCode)}/media/${encodePathSegment(entryId)}${controlledSeatQuery(controlledSeat)}`,
     PNG_CONTENT_TYPE,
     { signal },
   );

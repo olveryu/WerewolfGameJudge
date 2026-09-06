@@ -11,9 +11,15 @@ import {
   resolveHostActorId,
   resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
+  resolveUserActorId,
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
-import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
+import {
+  REASON_CONTROLLED_SEAT_NOT_BOT,
+  REASON_GAME_IN_PROGRESS,
+  REASON_NOT_HOST,
+  REASON_NOT_SEATED,
+} from '../../platform/protocol/reasons';
 import { createSeededRng, shuffleArray } from '../../platform/random';
 import {
   decideClearSeats,
@@ -28,7 +34,6 @@ import type { PictionaryCommand } from './commands/types';
 import type { PictionaryEvent } from './domain/events';
 import { evolvePictionaryState } from './domain/evolve';
 import {
-  REASON_PICTIONARY_BOTS_UNSUPPORTED,
   REASON_PICTIONARY_CONFIG_INVALID,
   REASON_PICTIONARY_GALLERY_MANUAL,
   REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE,
@@ -46,6 +51,7 @@ import { normalizePictionaryState } from './state/normalize';
 import {
   getPictionaryExpectedKind,
   getPictionaryTaskForSeat,
+  isPictionaryImplicitBotSeat,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   isValidPictionaryText,
@@ -135,10 +141,16 @@ function decideKickPictionarySeat(
   if (lobbyRejection !== null) return lobbyRejection;
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
+  if (isPictionaryImplicitBotSeat(state, seat)) {
+    return commitPictionary([{ type: 'pictionary.botSeat.excluded', seat }]);
+  }
   const result = decideKickSeat(state.realSeats, state.config.numberOfPlayers, seat);
-  return result.kind === 'rejected'
-    ? rejectSeatOperation(result)
-    : commitPictionary([seatChangesEvent(result.changes)]);
+  if (result.kind === 'rejected') return rejectSeatOperation(result);
+  const events: PictionaryEvent[] = [seatChangesEvent(result.changes)];
+  if (state.fillEmptySeatsWithBots && !state.excludedBotSeats.includes(seat)) {
+    events.push({ type: 'pictionary.botSeat.excluded', seat });
+  }
+  return commitPictionary(events);
 }
 
 function decideClearPictionarySeats(
@@ -150,9 +162,26 @@ function decideClearPictionarySeats(
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
   const result = decideClearSeats(state.realSeats, state.config.numberOfPlayers);
-  return result.kind === 'rejected'
-    ? rejectSeatOperation(result)
-    : commitPictionary([seatChangesEvent(result.changes)]);
+  if (result.kind === 'rejected') return rejectSeatOperation(result);
+  const events: PictionaryEvent[] = [];
+  if (result.changes.length > 0) events.push(seatChangesEvent(result.changes));
+  if (state.fillEmptySeatsWithBots) {
+    events.push({ type: 'pictionary.botFill.changed', isEnabled: false });
+  }
+  return commitPictionary(events);
+}
+
+function decideFillPictionaryBots(
+  state: PictionaryState,
+  context: CommandContext,
+): PictionaryDecision {
+  const lobbyRejection = requireLobby(state);
+  if (lobbyRejection !== null) return lobbyRejection;
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  return state.fillEmptySeatsWithBots && state.excludedBotSeats.length === 0
+    ? commitPictionary([])
+    : commitPictionary([{ type: 'pictionary.botFill.changed', isEnabled: true }]);
 }
 
 function decideUpdatePictionaryProfile(
@@ -240,9 +269,18 @@ function resolveSeatTask(
   if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt) {
     return reject(REASON_PICTIONARY_PHASE_NOT_EXPIRED);
   }
-  const actor = resolveUncontrolledUserActorId(context);
+  const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  const seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+  let seat: number | null;
+  if (context.controlledSeat === null) {
+    seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+  } else {
+    if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
+    if (!isPictionaryImplicitBotSeat(state, context.controlledSeat)) {
+      return reject(REASON_CONTROLLED_SEAT_NOT_BOT);
+    }
+    seat = context.controlledSeat;
+  }
   if (seat === null) return reject(REASON_NOT_SEATED);
   const task = getPictionaryTaskForSeat(state, seat);
   if (task === null) return reject(REASON_PICTIONARY_TASK_INVALID);
@@ -639,6 +677,8 @@ function createInitialPictionaryState(
     phaseRevision: 0,
     config,
     realSeats: {},
+    fillEmptySeatsWithBots: false,
+    excludedBotSeats: [],
     roundNumber: 0,
     roundId: null,
     seatOrder: [],
@@ -671,7 +711,7 @@ export function decidePictionaryCommand(
     case 'room.seat.clear':
       return decideClearPictionarySeats(state, context);
     case 'room.seat.fillBots':
-      return reject(REASON_PICTIONARY_BOTS_UNSUPPORTED);
+      return decideFillPictionaryBots(state, context);
     case 'room.profile.update':
       return decideUpdatePictionaryProfile(state, command.profile, context);
     case 'pictionary.config.update':

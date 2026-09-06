@@ -2,6 +2,7 @@
 
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { HomePage } from '../pages/HomePage';
 import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
@@ -40,6 +41,57 @@ test.describe.configure({ mode: 'serial' });
 test.setTimeout(300_000);
 
 test.describe('Pictionary', () => {
+  test('one host manually completes drawing and guessing tasks through bot takeover', async ({
+    browser,
+  }) => {
+    const fixture = await createPlayerContexts(browser, 1);
+    const hostPage = fixture.pages[0];
+    const hostRoom = new PictionaryRoomPage(hostPage);
+
+    try {
+      await test.step('create a four-seat room and fill the empty seats with bots', async () => {
+        await new HomePage(hostPage).clickCreateRoom('pictionary');
+        const config = new PictionaryConfigPage(hostPage);
+        await config.waitForCreateMode();
+        await config.configureFourPlayerManualGame();
+        await config.createRoom();
+        await hostRoom.waitForReady('host');
+        await hostRoom.seatAt(0);
+        await hostRoom.fillEmptySeatsWithBots(PLAYER_COUNT);
+        await hostRoom.startRound();
+      });
+
+      await test.step('submit real drawings for the host and every controlled bot', async () => {
+        await hostRoom.expectDrawingStep(1, PLAYER_COUNT, true);
+        await hostRoom.drawStroke(0);
+        await hostRoom.submitDrawing();
+        await hostRoom.expectSubmittedTask();
+
+        for (let seat = 1; seat < PLAYER_COUNT; seat += 1) {
+          await hostRoom.takeOverBot(seat);
+          await hostRoom.expectDrawingStep(1, PLAYER_COUNT, true);
+          await hostRoom.drawStroke(seat);
+          await hostRoom.submitDrawing();
+          if (seat < PLAYER_COUNT - 1) await hostRoom.expectSubmittedTask();
+        }
+
+        await hostRoom.expectGuessStep(2, PLAYER_COUNT);
+        await expect(hostPage.getByTestId(TESTIDS.controlledSeatBanner)).not.toBeVisible();
+      });
+
+      await test.step('read and submit the next task as a controlled bot', async () => {
+        await hostRoom.takeOverBot(1);
+        await hostRoom.expectGuessStep(2, PLAYER_COUNT);
+        await hostRoom.expectFullscreenDrawingPreview();
+        await hostRoom.submitGuess('机器人猜测');
+        await hostRoom.expectSubmittedTask();
+        await hostRoom.releaseBot();
+      });
+    } finally {
+      await closeAll(fixture);
+    }
+  });
+
   test('four real players complete a drawing-first relay and synchronized gallery', async ({
     browser,
   }) => {

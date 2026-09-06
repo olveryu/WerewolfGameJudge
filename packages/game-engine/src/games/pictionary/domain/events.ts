@@ -24,6 +24,14 @@ export type PictionaryEvent =
       readonly profile: PictionaryProfileUpdate;
     })
   | (GameEvent & {
+      readonly type: 'pictionary.botFill.changed';
+      readonly isEnabled: boolean;
+    })
+  | (GameEvent & {
+      readonly type: 'pictionary.botSeat.excluded';
+      readonly seat: number;
+    })
+  | (GameEvent & {
       readonly type: 'pictionary.config.updated';
       readonly config: PictionaryConfig;
     })

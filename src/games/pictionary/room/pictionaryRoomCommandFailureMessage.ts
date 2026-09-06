@@ -2,7 +2,6 @@
 
 import {
   type PictionaryState,
-  REASON_PICTIONARY_BOTS_UNSUPPORTED,
   REASON_PICTIONARY_CONFIG_INVALID,
   REASON_PICTIONARY_GALLERY_MANUAL,
   REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE,
@@ -25,8 +24,6 @@ export function getPictionaryRoomCommandFailureMessage(
 ): string {
   const reason = getRoomCommandFailureReason(result);
   switch (reason) {
-    case REASON_PICTIONARY_BOTS_UNSUPPORTED:
-      return '你画我猜接龙只支持真人玩家';
     case REASON_PICTIONARY_CONFIG_INVALID:
       return '房间设置不符合玩法范围';
     case REASON_PICTIONARY_GALLERY_MANUAL:

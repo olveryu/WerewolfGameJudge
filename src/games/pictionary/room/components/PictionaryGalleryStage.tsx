@@ -42,6 +42,7 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, chain, entry
         roomCode={state.roomCode}
         entryId={entry.id}
         accessibilityLabel={`${getPictionarySeatDisplayName(state, entry.authorSeat)} 的画作`}
+        controlledSeat={null}
       />
     ) : entry.kind === 'text' ? (
       <View style={styles.textReveal}>
@@ -97,7 +98,7 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   if (chain === undefined) throw new Error('[FAIL-FAST] Pictionary gallery chain is missing');
   const entry = chain.entries[gallery.entryIndex];
   if (entry === undefined) throw new Error('[FAIL-FAST] Pictionary gallery entry is missing');
-  const command = usePictionaryStageCommand(session);
+  const command = usePictionaryStageCommand(session, null);
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
   const isFinalEntry =
     gallery.chainIndex === state.chains.length - 1 &&
@@ -198,7 +199,7 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
   if (current === undefined) {
     throw new Error('[FAIL-FAST] Completed Pictionary round has no gallery entries');
   }
-  const command = usePictionaryStageCommand(session);
+  const command = usePictionaryStageCommand(session, null);
 
   return (
     <PictionaryStageFrame

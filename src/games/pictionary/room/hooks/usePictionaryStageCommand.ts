@@ -32,7 +32,10 @@ interface InFlightStageCommand {
 }
 
 /** Keep task and gallery controls single-flight while preserving the full command snapshot. */
-export function usePictionaryStageCommand(session: PictionaryRoomSession): PictionaryStageCommand {
+export function usePictionaryStageCommand(
+  session: PictionaryRoomSession,
+  controlledSeat: number | null,
+): PictionaryStageCommand {
   const inFlight = useRef<InFlightStageCommand | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,7 +51,7 @@ export function usePictionaryStageCommand(session: PictionaryRoomSession): Picti
         );
       }
       const operation = session
-        .dispatch(command, { controlledSeat: null, label })
+        .dispatch(command, { controlledSeat, label })
         .then((result) => {
           if (isSuccessfulRoomCommand(result)) return result;
           const reason = getRoomCommandFailureReason(result);
@@ -75,7 +78,7 @@ export function usePictionaryStageCommand(session: PictionaryRoomSession): Picti
       setIsSubmitting(true);
       return operation;
     },
-    [session],
+    [controlledSeat, session],
   );
 
   return useMemo(() => ({ isSubmitting, submit }), [isSubmitting, submit]);

@@ -45,9 +45,11 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
         isLobby ? null : (
           <PictionaryStage
             state={screen.state}
-            mySeat={screen.mySeat}
+            effectiveSeat={screen.effectiveSeat}
+            controlledSeat={screen.controlledSeat}
             userId={screen.userId}
             isHost={screen.isHost}
+            seatModel={screen.shellModel.seats}
             session={screen.session}
           />
         )

@@ -8,6 +8,7 @@
 
 import {
   getPictionaryTaskForSeat,
+  isPictionaryImplicitBotSeat,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
@@ -18,6 +19,7 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import type { AppEnv, Env } from '../../env';
 import { requireAuth } from '../../features/auth/tokenAuth';
@@ -29,6 +31,12 @@ const PNG_CONTENT_TYPE = 'image/png';
 const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 const PNG_IHDR_CHUNK_TYPE = [73, 72, 68, 82] as const;
+const controlledSeatQuerySchema = z
+  .string()
+  .regex(/^(0|[1-9]\d*)$/)
+  .transform(Number)
+  .pipe(z.number().int().min(0))
+  .optional();
 
 interface PictionaryRoomContext {
   readonly room: ActiveRoomDirectoryEntry;
@@ -73,12 +81,30 @@ function findUserSeat(state: PictionaryState, userId: string): number | null {
   return null;
 }
 
-function requireUploadReservation(
+function parseControlledSeat(value: string | undefined): number | null {
+  const parsed = controlledSeatQuerySchema.safeParse(value);
+  if (!parsed.success) return fail(400, 'CONTROLLED_SEAT_INVALID');
+  return parsed.data ?? null;
+}
+
+function resolveMediaSeat(
   state: PictionaryState,
   userId: string,
+  controlledSeat: number | null,
+): number | null {
+  if (controlledSeat === null) return findUserSeat(state, userId);
+  if (userId !== state.hostUserId) return fail(403, 'NOT_HOST');
+  if (!isPictionaryImplicitBotSeat(state, controlledSeat)) {
+    return fail(403, 'CONTROLLED_SEAT_NOT_BOT');
+  }
+  return controlledSeat;
+}
+
+function requireUploadReservation(
+  state: PictionaryState,
+  seat: number | null,
   submissionId: string,
 ): PictionaryDrawingReservation {
-  const seat = findUserSeat(state, userId);
   if (seat === null) return fail(403, 'NOT_SEATED');
   const reservation = state.reservations.find(
     (candidate) => candidate.submissionId === submissionId && candidate.authorSeat === seat,
@@ -204,10 +230,16 @@ function findDrawingEntry(state: PictionaryState, entryId: string): PictionaryDr
   return null;
 }
 
-function canReadDrawing(state: PictionaryState, userId: string, entryId: string): boolean {
-  const seat = findUserSeat(state, userId);
+function canReadDrawing(
+  state: PictionaryState,
+  userId: string,
+  seat: number | null,
+  entryId: string,
+): boolean {
+  if (state.phase === 'gallery' || state.phase === 'ended') {
+    return seat !== null || userId === state.hostUserId;
+  }
   if (seat === null) return false;
-  if (state.phase === 'gallery' || state.phase === 'ended') return true;
   if (state.phase !== 'answering' && state.phase !== 'settling') return false;
   return getPictionaryTaskForSeat(state, seat)?.previousEntry?.id === entryId;
 }
@@ -216,9 +248,11 @@ export const pictionaryMediaRoutes = new Hono<AppEnv>();
 
 pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, async (c) => {
   const roomContext = await readPictionaryRoom(c.env, c.req.raw, c.req.param('roomCode'));
+  const controlledSeat = parseControlledSeat(c.req.query('controlledSeat'));
+  const seat = resolveMediaSeat(roomContext.state, c.var.userId, controlledSeat);
   const reservation = requireUploadReservation(
     roomContext.state,
-    c.var.userId,
+    seat,
     c.req.param('submissionId'),
   );
   const upload = await readDrawingUpload(c.req.raw);
@@ -259,10 +293,12 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
 
 pictionaryMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) => {
   const roomContext = await readPictionaryRoom(c.env, c.req.raw, c.req.param('roomCode'));
+  const controlledSeat = parseControlledSeat(c.req.query('controlledSeat'));
+  const seat = resolveMediaSeat(roomContext.state, c.var.userId, controlledSeat);
   const entryId = c.req.param('entryId');
   const entry = findDrawingEntry(roomContext.state, entryId);
   if (entry === null) return fail(404, 'PICTIONARY_MEDIA_NOT_FOUND');
-  if (!canReadDrawing(roomContext.state, c.var.userId, entryId)) {
+  if (!canReadDrawing(roomContext.state, c.var.userId, seat, entryId)) {
     return fail(403, 'PICTIONARY_MEDIA_FORBIDDEN');
   }
   const object = await c.env.GAME_MEDIA.get(entry.media.objectKey);

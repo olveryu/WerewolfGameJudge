@@ -48,8 +48,29 @@ export function evolvePictionaryState(
         },
       };
     }
+    case 'pictionary.botFill.changed':
+      return { ...state, fillEmptySeatsWithBots: event.isEnabled, excludedBotSeats: [] };
+    case 'pictionary.botSeat.excluded':
+      if (!state.fillEmptySeatsWithBots) {
+        throw new Error('Pictionary bot-seat exclusion requires bot fill to be enabled');
+      }
+      if (state.excludedBotSeats.includes(event.seat)) {
+        throw new Error(`Pictionary bot seat ${event.seat} is already excluded`);
+      }
+      return {
+        ...state,
+        excludedBotSeats: [...state.excludedBotSeats, event.seat].sort(
+          (left, right) => left - right,
+        ),
+      };
     case 'pictionary.config.updated':
-      return { ...state, config: event.config };
+      return {
+        ...state,
+        config: event.config,
+        excludedBotSeats: state.excludedBotSeats.filter(
+          (seat) => seat < event.config.numberOfPlayers,
+        ),
+      };
     case 'pictionary.round.started':
       return {
         ...state,
