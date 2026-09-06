@@ -7,7 +7,7 @@ import type {
 } from '@game-judge/game-engine/games/fashion-shadow/public';
 import {
   FASHION_PLAYER_COUNT,
-  FASHION_SECRET_IDS,
+  FASHION_ROLE_IDS,
 } from '@game-judge/game-engine/games/fashion-shadow/public';
 import { z } from 'zod';
 
@@ -37,6 +37,7 @@ const publicCommandOptions = defineFashionPublicCommandOptions([
   z.strictObject({ type: z.literal('fashion.role.confirm') }),
   z.strictObject({ type: z.literal('fashion.event.reveal') }),
   z.strictObject({ type: z.literal('fashion.crossExam.start') }),
+  z.strictObject({ type: z.literal('fashion.secret.revealSelf') }),
   z.strictObject({ type: z.literal('fashion.crossExam.award'), seat: fashionSeatSchema }),
   z.strictObject({ type: z.literal('fashion.crossExam.finish') }),
   z.strictObject({ type: z.literal('fashion.discussion.speak') }),
@@ -61,7 +62,7 @@ const publicCommandOptions = defineFashionPublicCommandOptions([
   z.strictObject({
     type: z.literal('fashion.identityGuess.cast'),
     targetSeat: fashionSeatSchema,
-    guessedSecretId: z.enum(FASHION_SECRET_IDS),
+    guessedRoleId: z.enum(FASHION_ROLE_IDS),
   }),
 ]);
 

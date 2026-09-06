@@ -51,6 +51,7 @@ export function normalizeFashionState(state: FashionState): FashionState {
   assertSeatRecord(state.actionTokens, 'Fashion actionTokens');
   assertSeatRecord(state.votes, 'Fashion votes');
   assertSeatRecord(state.discussionSpeakCounts, 'Fashion discussionSpeakCounts');
+  assertSeatRecord(state.crossExamAwardVotes, 'Fashion crossExamAwardVotes');
   assertSeatRecord(state.revealedSecrets, 'Fashion revealedSecrets');
   assertSeatRecord(state.finalVotes, 'Fashion finalVotes');
 
@@ -139,6 +140,22 @@ export function normalizeFashionState(state: FashionState): FashionState {
     investigationVoteKeys.add(key);
   }
 
+  let previousCrossExamParticipant = -1;
+  for (const seat of state.crossExamParticipantSeats) {
+    assertSeat(seat, 'Fashion cross exam participant seat');
+    if (seat <= previousCrossExamParticipant) {
+      throw new Error('Fashion cross exam participant seats must be unique and ascending');
+    }
+    previousCrossExamParticipant = seat;
+  }
+  for (const [rawVoterSeat, candidateSeat] of Object.entries(state.crossExamAwardVotes)) {
+    assertSeat(Number(rawVoterSeat), 'Fashion cross exam award voter');
+    assertSeat(candidateSeat, 'Fashion cross exam award candidate');
+    if (!state.crossExamParticipantSeats.includes(candidateSeat)) {
+      throw new Error(`Fashion cross exam award candidate ${candidateSeat} did not participate`);
+    }
+  }
+
   const awardRounds = new Set<number>();
   for (const award of state.crossExamAwards) {
     assertSeat(award.seat, 'Fashion cross exam award seat');
@@ -189,6 +206,9 @@ export function normalizeFashionState(state: FashionState): FashionState {
   }
 
   if (state.interrogation !== null) {
+    if (state.interrogation.match !== 1 && state.interrogation.match !== 2) {
+      throw new Error('Fashion interrogation match must be 1 or 2');
+    }
     assertSeat(state.interrogation.attackerSeat, 'Fashion interrogation attacker');
     assertSeat(state.interrogation.defenderSeat, 'Fashion interrogation defender');
     if (state.interrogation.attackerSeat === state.interrogation.defenderSeat) {

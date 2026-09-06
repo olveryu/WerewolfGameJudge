@@ -2,6 +2,7 @@
 
 import { findSeatByUserId } from '../../../platform/room/seating';
 import type {
+  FashionContract,
   FashionCrossExamAward,
   FashionEventId,
   FashionEvidenceId,
@@ -42,10 +43,14 @@ export interface FashionPublicState {
   readonly destroyedEvidence: readonly FashionEvidenceId[];
   readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
   readonly crossExamAwards: readonly FashionCrossExamAward[];
+  readonly crossExamParticipantSeats: readonly number[];
+  readonly crossExamAwardVotedSeats: readonly number[];
   readonly votedSeats: readonly number[];
   readonly finalVotedSeats: readonly number[];
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
+  readonly hasGuessedThisRound: boolean;
+  readonly myContracts: readonly FashionContract[];
   readonly winners: readonly number[];
   readonly privateIdentity: FashionPrivateIdentityView | null;
 }
@@ -82,6 +87,10 @@ export function getFashionPublicState(
     destroyedEvidence: state.destroyedEvidence,
     revealedSecrets: state.revealedSecrets,
     crossExamAwards: state.crossExamAwards,
+    crossExamParticipantSeats: state.crossExamParticipantSeats,
+    crossExamAwardVotedSeats: Object.keys(state.crossExamAwardVotes)
+      .map(Number)
+      .sort((left, right) => left - right),
     votedSeats: Object.keys(state.votes)
       .map(Number)
       .sort((left, right) => left - right),
@@ -90,6 +99,17 @@ export function getFashionPublicState(
       .sort((left, right) => left - right),
     discussionSpeakCounts: state.discussionSpeakCounts,
     interrogation: state.interrogation,
+    hasGuessedThisRound:
+      viewerSeat !== null &&
+      state.identityGuessHistory.some(
+        (entry) => entry.guesserSeat === viewerSeat && entry.round === state.currentRound,
+      ),
+    myContracts:
+      viewerSeat === null
+        ? []
+        : state.contracts.filter(
+            (contract) => contract.sellerSeat === viewerSeat || contract.buyerSeat === viewerSeat,
+          ),
     winners: state.winners,
     privateIdentity:
       viewerSeat === null || roleId === undefined || role === undefined || secretId === undefined

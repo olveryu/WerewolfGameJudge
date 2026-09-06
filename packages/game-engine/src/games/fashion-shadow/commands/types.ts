@@ -7,8 +7,8 @@ import type {
 import type {
   FashionInvestigationVote,
   FashionProfileUpdate,
+  FashionRoleId,
   FashionSeatProfile,
-  FashionSecretId,
 } from '../state/types';
 
 type FashionRoomCommand =
@@ -21,6 +21,7 @@ export type FashionPublicCommand =
   | { readonly type: 'fashion.role.confirm' }
   | { readonly type: 'fashion.event.reveal' }
   | { readonly type: 'fashion.crossExam.start' }
+  | { readonly type: 'fashion.secret.revealSelf' }
   | { readonly type: 'fashion.crossExam.award'; readonly seat: number }
   | { readonly type: 'fashion.crossExam.finish' }
   | { readonly type: 'fashion.discussion.speak' }
@@ -42,7 +43,7 @@ export type FashionPublicCommand =
   | {
       readonly type: 'fashion.identityGuess.cast';
       readonly targetSeat: number;
-      readonly guessedSecretId: FashionSecretId;
+      readonly guessedRoleId: FashionRoleId;
     };
 
 export type FashionInternalCommand = never;

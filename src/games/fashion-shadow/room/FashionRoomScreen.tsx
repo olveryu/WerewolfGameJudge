@@ -2,9 +2,13 @@
 
 import {
   FASHION_PLAYER_COUNT,
+  FASHION_ROLE_BY_ID,
+  FASHION_ROLE_IDS,
   FASHION_ROUND_BY_NUMBER,
+  type FashionContractPromise,
   type FashionPublicCommand,
   type FashionPublicState,
+  type FashionRoleId,
   isFashionBotUserId,
 } from '@game-judge/game-engine/games/fashion-shadow/public';
 import type React from 'react';
@@ -22,6 +26,11 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { FashionRoomSession } from '@/games/fashion-shadow/model/FashionRoomSession';
+import { FashionTutorial } from '@/games/fashion-shadow/tutorial/FashionTutorial';
+import {
+  hasCompletedFashionTutorial,
+  markFashionTutorialCompleted,
+} from '@/games/fashion-shadow/tutorial/tutorialProgress';
 import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 import { getFashionRoomCommandFailureMessage } from './fashionRoomCommandFailureMessage';
@@ -63,6 +72,56 @@ function getEvidenceTitle(evidenceId: FashionPublicState['publicEvidence'][numbe
     if (round.evidenceId === evidenceId) return round.evidenceTitle;
   }
   return evidenceId;
+}
+
+const CONTRACT_PROMISE_LABELS: Readonly<Record<FashionContractPromise, string>> = {
+  compensation: '经济补偿',
+  protection: '人身保护',
+  legalImmunity: '法律豁免',
+};
+
+function getSecretText(secretId: FashionPublicState['revealedSecrets'][number]): string {
+  const role = Object.values(FASHION_ROLE_BY_ID).find((entry) => entry.secretId === secretId);
+  return role?.secret ?? secretId;
+}
+
+function getCrossExamTask(round: 1 | 2 | 3 | 4, roleId: FashionRoleId): string | null {
+  switch (round) {
+    case 1:
+      if (roleId === 'factoryWorker') return '攻击任务：用更换标签指令追问品牌方为何声称不知情。';
+      if (roleId === 'brandExecutive') return '防守任务：解释高层为何不知情，并回应采购部门责任。';
+      if (roleId === 'supplierOwner')
+        return '攻击任务：用原始订单与发票追问采购总监的签名与改标要求。';
+      if (roleId === 'villainProcurementDirector')
+        return '防守任务：回应供应商指控，并解释订单与签名。';
+      return null;
+    case 2:
+      if (roleId === 'governmentOfficial') return '攻击任务：围绕排污报告与过往稽查记录追问反派。';
+      if (roleId === 'villainProcurementDirector')
+        return '防守任务：解释排污问题是否属于工厂层面的失误。';
+      if (roleId === 'consumerRepresentative')
+        return '攻击任务：用废水超标证据质疑品牌的永续承诺。';
+      if (roleId === 'brandExecutive') return '防守任务：回应污染证据，并说明品牌方是否已整改。';
+      return null;
+    case 3:
+      if (roleId === 'journalist') return '攻击任务：用货柜纪录追问品牌高层是否知情系统性瞒报。';
+      if (roleId === 'brandExecutive') return '防守任务：解释物流申报异常为何不代表公司政策。';
+      if (roleId === 'consumerRepresentative')
+        return '攻击任务：追问采购总监为何多次出现约 70% 的申报重量。';
+      if (roleId === 'villainProcurementDirector')
+        return '防守任务：回应货柜造假是否只是报关或操作失误。';
+      return null;
+    case 4:
+      if (roleId === 'journalist')
+        return '攻击任务：用 80 万顾问费与空壳公司金流追问是否存在行贿。';
+      if (roleId === 'villainProcurementDirector')
+        return '防守任务：解释顾问费、空壳公司与离岸转账的商业理由。';
+      if (roleId === 'governmentOfficial')
+        return '攻击任务：追问品牌方这笔顾问费与环保署稽查之间的关系。';
+      if (roleId === 'brandExecutive')
+        return '防守任务：说明品牌方是否知晓或授权这笔环境合规顾问费。';
+      return null;
+  }
 }
 
 export const FashionRoomScreen: React.FC<FashionRoomScreenProps> = ({
@@ -112,6 +171,11 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
   const seatCommands = useFashionSeatCommands({ session, user });
   const { isSubmitting, submit } = useRoomCommandSubmission(getFashionRoomCommandFailureMessage);
   const [nowMs, setNowMs] = useState(0);
+  const [tutorialCompleted, setTutorialCompleted] = useState(() =>
+    hasCompletedFashionTutorial(user.id),
+  );
+  const [selectedGuessTarget, setSelectedGuessTarget] = useState<number | null>(null);
+  const [contractPromise, setContractPromise] = useState<FashionContractPromise>('compensation');
 
   useEffect(() => {
     if (state.phase !== 'crossExamination' || state.interrogation === null) return undefined;
@@ -138,6 +202,13 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
   );
   const myTokens = mySeat === null ? null : (state.actionTokens[mySeat] ?? null);
   const mySpeakCount = mySeat === null ? 0 : (state.discussionSpeakCounts[mySeat] ?? 0);
+  const hasCrossExamAwardVoted = mySeat !== null && state.crossExamAwardVotedSeats.includes(mySeat);
+  const isCurrentCrossExamParticipant =
+    mySeat !== null && state.interrogation?.participantSeats.includes(mySeat) === true;
+  const myCrossExamTask =
+    state.privateIdentity === null || !isCurrentCrossExamParticipant
+      ? null
+      : getCrossExamTask(state.currentRound, state.privateIdentity.roleId);
 
   const seatCards = useMemo(
     () =>
@@ -170,6 +241,19 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       }),
     [isSubmitting, seatCommands, state.phase, state.realSeats, submit, user.id],
   );
+
+  if (!tutorialCompleted) {
+    return (
+      <FashionTutorial
+        topInset={insets.top}
+        onBack={() => exitRoomFlow(navigation)}
+        onComplete={() => {
+          markFashionTutorialCompleted(user.id);
+          setTutorialCompleted(true);
+        }}
+      />
+    );
+  }
 
   const renderIdentity = () => {
     if (state.privateIdentity === null) return null;
@@ -265,53 +349,69 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
           </View>
         );
       case 'event':
-        return isHost ? (
-          <Button
-            variant="primary"
-            size="lg"
-            onPress={() => void submitCommand('开始交叉质询', { type: 'fashion.crossExam.start' })}
-            loading={isSubmitting}
-          >
-            开始 3 分钟交叉质询
-          </Button>
-        ) : (
-          <Text style={styles.statusText}>等待房主开始交叉质询</Text>
+        return (
+          <View style={styles.actions}>
+            <Text style={styles.statusText}>
+              本轮共有两组交叉质询，每组 3 分钟，共 4 名玩家参与。
+            </Text>
+            {isHost ? (
+              <Button
+                variant="primary"
+                size="lg"
+                onPress={() =>
+                  void submitCommand('开始交叉质询', { type: 'fashion.crossExam.start' })
+                }
+                loading={isSubmitting}
+              >
+                开始第 1 组交叉质询
+              </Button>
+            ) : (
+              <Text style={styles.statusText}>等待房主开始第 1 组交叉质询</Text>
+            )}
+          </View>
         );
       case 'crossExamination':
         return (
           <View style={styles.actions}>
+            <Text style={styles.statusText}>
+              第 {state.interrogation?.match ?? 1} / 2 组交叉质询
+            </Text>
             <Text style={styles.timer}>{formatRemaining(remainingMs)}</Text>
             <Text style={styles.statusText}>
               {state.interrogation === null
                 ? '质询状态同步中'
-                : `${state.interrogation.attackerSeat + 1}号质询 ${state.interrogation.defenderSeat + 1}号`}
+                : `${state.interrogation.attackerSeat + 1}号（攻击） vs ${state.interrogation.defenderSeat + 1}号（防守）`}
             </Text>
-            {currentCrossExamAward === undefined && isHost ? (
-              <>
-                <Text style={styles.statusText}>可授予 1 名玩家本轮交叉质询奖励：</Text>
-                <View style={styles.choiceGrid}>
-                  {Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => (
-                    <View key={seat} style={styles.choiceCell}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onPress={() =>
-                          void submitCommand('授予交叉质询奖励', {
-                            type: 'fashion.crossExam.award',
-                            seat,
-                          })
-                        }
-                        disabled={isSubmitting}
-                      >
-                        {seat + 1}号
-                      </Button>
-                    </View>
-                  ))}
-                </View>
-              </>
-            ) : currentCrossExamAward !== undefined ? (
-              <Text style={styles.statusText}>本轮奖励：{currentCrossExamAward.seat + 1}号</Text>
-            ) : null}
+            {isCurrentCrossExamParticipant ? (
+              <View style={[styles.card, styles.privateCard]}>
+                <Text style={styles.eyebrow}>你的质询任务</Text>
+                <Text style={styles.body}>
+                  {myCrossExamTask ??
+                    `你被指定为代理出战。按当前${state.interrogation?.attackerSeat === mySeat ? '攻击方' : '防守方'}位置回应，并使用证据、自己的秘密或合理逻辑完成攻防。`}
+                </Text>
+                <Text style={styles.statusText}>本组参与会消耗 1 枚行动代币。</Text>
+                {mySeat !== null && state.revealedSecrets[mySeat] === undefined ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={() =>
+                      void submitCommand('公开自己的隐藏秘密', {
+                        type: 'fashion.secret.revealSelf',
+                      })
+                    }
+                    disabled={isSubmitting}
+                  >
+                    公开我的隐藏秘密作为攻防武器
+                  </Button>
+                ) : (
+                  <Text style={styles.statusText}>你的隐藏秘密已经公开。</Text>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.statusText}>
+                你本组作为旁听陪审团，记录双方论点，稍后参与最佳攻防评选。
+              </Text>
+            )}
             {isHost ? (
               <Button
                 variant="primary"
@@ -320,7 +420,13 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 }
                 disabled={(remainingMs > 0 && !hasBots) || isSubmitting}
               >
-                {hasBots && remainingMs > 0 ? '体验模式：立即进入讨论' : '时间结束，进入讨论'}
+                {state.interrogation?.match === 1
+                  ? hasBots && remainingMs > 0
+                    ? '体验模式：立即进入第 2 组'
+                    : '时间结束，进入第 2 组'
+                  : hasBots && remainingMs > 0
+                    ? '体验模式：立即进入讨论与评选'
+                    : '两组完成，进入讨论与评选'}
               </Button>
             ) : null}
           </View>
@@ -328,6 +434,35 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       case 'discussion':
         return (
           <View style={styles.actions}>
+            <Text style={styles.label}>最佳攻防者评选</Text>
+            <Text style={styles.statusText}>
+              全体 7 名玩家各投 1 票，只能选择本轮两组质询的实际参与者。已提交{' '}
+              {state.crossExamAwardVotedSeats.length}/7。
+            </Text>
+            {mySeat !== null && !hasCrossExamAwardVoted ? (
+              <View style={styles.choiceGrid}>
+                {state.crossExamParticipantSeats.map((seat) => (
+                  <View key={seat} style={styles.choiceCell}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onPress={() =>
+                        void submitCommand('投最佳攻防者', {
+                          type: 'fashion.crossExam.award',
+                          seat,
+                        })
+                      }
+                      disabled={isSubmitting}
+                    >
+                      {seat + 1}号
+                    </Button>
+                  </View>
+                ))}
+              </View>
+            ) : hasCrossExamAwardVoted ? (
+              <Text style={styles.statusText}>你的最佳攻防者票已提交。</Text>
+            ) : null}
+            <Text style={styles.label}>公开讨论</Text>
             <Text style={styles.statusText}>
               主动发言会消耗 1 枚行动代币。你本轮已主动发言 {mySpeakCount} 次。
             </Text>
@@ -346,9 +481,11 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 onPress={() =>
                   void submitCommand('结束讨论', { type: 'fashion.discussion.finish' })
                 }
-                loading={isSubmitting}
+                disabled={
+                  state.crossExamAwardVotedSeats.length !== FASHION_PLAYER_COUNT || isSubmitting
+                }
               >
-                结束讨论，开始投票
+                全员完成评选后进入调查投票
               </Button>
             ) : null}
           </View>
@@ -356,6 +493,65 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       case 'vote':
         return (
           <View style={styles.actions}>
+            {currentCrossExamAward !== undefined ? (
+              <Text style={styles.statusText}>
+                本轮最佳攻防者：{currentCrossExamAward.seat + 1}号
+              </Text>
+            ) : (
+              <Text style={styles.statusText}>最佳攻防评选出现并列，本轮无人获得奖励。</Text>
+            )}
+            {mySeat !== null && !state.hasGuessedThisRound && (myTokens ?? 0) > 0 ? (
+              <>
+                <Text style={styles.label}>猜身份（可选，消耗 1 枚代币）</Text>
+                <Text style={styles.statusText}>
+                  先选一名其他玩家，再猜他的真实角色。猜对会公开该玩家隐藏秘密；猜错则你下轮不能参加交叉质询。
+                </Text>
+                <View style={styles.choiceGrid}>
+                  {Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) =>
+                    seat === mySeat ? null : (
+                      <View key={seat} style={styles.choiceCell}>
+                        <Button
+                          variant={selectedGuessTarget === seat ? 'primary' : 'secondary'}
+                          size="sm"
+                          onPress={() => setSelectedGuessTarget(seat)}
+                        >
+                          {seat + 1}号
+                        </Button>
+                      </View>
+                    ),
+                  )}
+                </View>
+                {selectedGuessTarget !== null ? (
+                  <View style={styles.choiceGrid}>
+                    {FASHION_ROLE_IDS.filter(
+                      (roleId) => roleId !== state.privateIdentity?.roleId,
+                    ).map((roleId) => (
+                      <View key={roleId} style={styles.choiceCell}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => {
+                            void submitCommand('猜身份', {
+                              type: 'fashion.identityGuess.cast',
+                              targetSeat: selectedGuessTarget,
+                              guessedRoleId: roleId,
+                            }).then((ok) => {
+                              if (ok) setSelectedGuessTarget(null);
+                            });
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          {FASHION_ROLE_BY_ID[roleId].name}
+                        </Button>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            ) : state.hasGuessedThisRound ? (
+              <Text style={styles.statusText}>你本轮已经使用过猜身份。</Text>
+            ) : null}
+            <Text style={styles.label}>调查表决</Text>
             <Text style={styles.statusText}>已投票：{state.votedSeats.length}/7</Text>
             {mySeat !== null && !hasVoted ? (
               <View style={styles.voteRow}>
@@ -392,6 +588,10 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
         );
       case 'roundTransition': {
         const isPublic = state.publicEvidence.includes(round.evidenceId);
+        const isWorker = state.privateIdentity?.roleId === 'factoryWorker';
+        const proposedToMe = state.myContracts.filter(
+          (contract) => contract.buyerSeat === mySeat && contract.status === 'proposed',
+        );
         return (
           <View style={styles.actions}>
             <View style={[styles.card, isPublic ? styles.resultPublic : styles.resultDestroyed]}>
@@ -404,6 +604,87 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                   : `${round.evidenceId}「${round.evidenceTitle}」已永久销毁。`}
               </Text>
             </View>
+            <Text style={styles.label}>自由交易时间</Text>
+            <Text style={styles.statusText}>
+              主动提出交易邀请者消耗 1 枚行动代币；回应与签约不额外消耗代币。
+            </Text>
+            {isWorker && mySeat !== null ? (
+              <>
+                <Text style={styles.statusText}>
+                  你是工厂工人，可选择买家与契约承诺。买家最终获胜且契约已接受时，你的契约胜利条件生效。
+                </Text>
+                <View style={styles.choiceGrid}>
+                  {(Object.keys(CONTRACT_PROMISE_LABELS) as FashionContractPromise[]).map(
+                    (promise) => (
+                      <View key={promise} style={styles.choiceCell}>
+                        <Button
+                          variant={contractPromise === promise ? 'primary' : 'secondary'}
+                          size="sm"
+                          onPress={() => setContractPromise(promise)}
+                        >
+                          {CONTRACT_PROMISE_LABELS[promise]}
+                        </Button>
+                      </View>
+                    ),
+                  )}
+                </View>
+                <Text style={styles.statusText}>选择买家：</Text>
+                <View style={styles.choiceGrid}>
+                  {Array.from({ length: FASHION_PLAYER_COUNT }, (_, buyerSeat) =>
+                    buyerSeat === mySeat ? null : (
+                      <View key={buyerSeat} style={styles.choiceCell}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onPress={() =>
+                            void submitCommand('提出契约', {
+                              type: 'fashion.contract.propose',
+                              contractId: `r${state.currentRound}-s${mySeat}-b${buyerSeat}-${contractPromise}`,
+                              buyerSeat,
+                              promise: contractPromise,
+                            })
+                          }
+                          disabled={(myTokens ?? 0) < 1 || isSubmitting}
+                        >
+                          {buyerSeat + 1}号
+                        </Button>
+                      </View>
+                    ),
+                  )}
+                </View>
+              </>
+            ) : null}
+            {proposedToMe.map((contract) => (
+              <View key={contract.id} style={[styles.card, styles.privateCard]}>
+                <Text style={styles.eyebrow}>仅你可见 · 契约邀请</Text>
+                <Text style={styles.body}>
+                  {contract.sellerSeat + 1}号向你提出契约：
+                  {CONTRACT_PROMISE_LABELS[contract.promise]}
+                </Text>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={() =>
+                    void submitCommand('接受契约', {
+                      type: 'fashion.contract.accept',
+                      contractId: contract.id,
+                    })
+                  }
+                  disabled={isSubmitting}
+                >
+                  接受并签署契约
+                </Button>
+              </View>
+            ))}
+            {state.myContracts
+              .filter((contract) => contract.status !== 'proposed')
+              .map((contract) => (
+                <Text key={contract.id} style={styles.statusText}>
+                  契约：{contract.sellerSeat + 1}号 ↔ {contract.buyerSeat + 1}号 ·{' '}
+                  {CONTRACT_PROMISE_LABELS[contract.promise]} ·{' '}
+                  {contract.status === 'fulfilled' ? '已履行' : '已签署'}
+                </Text>
+              ))}
             {isHost ? (
               state.currentRound < 4 ? (
                 <Button
@@ -437,6 +718,11 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       case 'hearing':
         return (
           <View style={styles.actions}>
+            <Text style={styles.label}>结案陈词</Text>
+            <Text style={styles.statusText}>
+              每人最多 1 分钟。陈词时请至少引用 1 张公共证据；公开证据达到 2
+              张以上，且最终唯一被指认者确为反派，才会定罪。
+            </Text>
             <Text style={styles.statusText}>已提交最终指控：{state.finalVotedSeats.length}/7</Text>
             {mySeat !== null && !hasFinalVoted ? (
               <>
@@ -561,6 +847,17 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
           <Text style={styles.cardTitle}>当前操作</Text>
           {renderPhaseAction()}
         </View>
+
+        {Object.keys(state.revealedSecrets).length > 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>已公开秘密</Text>
+            {Object.entries(state.revealedSecrets).map(([seat, secretId]) => (
+              <Text key={seat} style={styles.body}>
+                {Number(seat) + 1}号：{getSecretText(secretId)}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         {state.publicEvidence.length > 0 ? (
           <View style={styles.card}>

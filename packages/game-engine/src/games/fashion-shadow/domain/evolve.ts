@@ -63,6 +63,8 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
         votes: {},
         discussionSpeakCounts: {},
         interrogation: null,
+        crossExamParticipantSeats: [],
+        crossExamAwardVotes: {},
       };
     case 'fashion.role.confirmed':
       return {
@@ -73,6 +75,11 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
       };
     case 'fashion.event.revealed':
       return { ...state, phase: 'event', currentEvent: event.eventId };
+    case 'fashion.secret.revealed':
+      return {
+        ...state,
+        revealedSecrets: { ...state.revealedSecrets, [event.seat]: event.secretId },
+      };
     case 'fashion.crossExam.started':
       return {
         ...state,
@@ -86,12 +93,24 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
             ? { [event.defenderSeat]: state.actionTokens[event.defenderSeat]! - 1 }
             : {}),
         },
+        crossExamParticipantSeats: [
+          ...new Set([...state.crossExamParticipantSeats, ...event.participantSeats]),
+        ].sort((left, right) => left - right),
         interrogation: {
+          match: event.match,
           attackerSeat: event.attackerSeat,
           defenderSeat: event.defenderSeat,
           participantSeats: [...event.participantSeats],
           startedAt: event.startedAt,
           endsAt: event.endsAt,
+        },
+      };
+    case 'fashion.crossExam.awardVoted':
+      return {
+        ...state,
+        crossExamAwardVotes: {
+          ...state.crossExamAwardVotes,
+          [event.voterSeat]: event.candidateSeat,
         },
       };
     case 'fashion.crossExam.awarded':
@@ -140,11 +159,20 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
         currentEvent: event.eventId,
         votes: {},
         discussionSpeakCounts: {},
+        crossExamParticipantSeats: [],
+        crossExamAwardVotes: {},
       };
     case 'fashion.hearing.started':
       return { ...state, phase: 'hearing', finalVotes: {} };
     case 'fashion.contract.proposed':
-      return { ...state, contracts: [...state.contracts, event.contract] };
+      return {
+        ...state,
+        actionTokens: {
+          ...state.actionTokens,
+          [event.contract.sellerSeat]: state.actionTokens[event.contract.sellerSeat]! - 1,
+        },
+        contracts: [...state.contracts, event.contract],
+      };
     case 'fashion.contract.accepted':
       return {
         ...state,

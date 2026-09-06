@@ -69,6 +69,7 @@ export interface FashionHumanSeat extends SeatOccupant {
 }
 
 export interface FashionInterrogation {
+  readonly match: 1 | 2;
   readonly attackerSeat: number;
   readonly defenderSeat: number;
   readonly participantSeats: readonly number[];
@@ -127,6 +128,8 @@ export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly investigationVoteHistory: readonly FashionInvestigationVoteRecord[];
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
+  readonly crossExamParticipantSeats: readonly number[];
+  readonly crossExamAwardVotes: Readonly<Record<number, number>>;
   readonly contracts: readonly FashionContract[];
   readonly identityGuessPenalties: readonly FashionIdentityGuessPenalty[];
   readonly identityGuessHistory: readonly FashionIdentityGuessHistory[];

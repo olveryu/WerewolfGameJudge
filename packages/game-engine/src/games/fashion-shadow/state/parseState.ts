@@ -131,6 +131,11 @@ function parseRound(value: unknown, path: string): FashionRound {
   return round;
 }
 
+function parseCrossExamMatch(value: unknown, path: string): 1 | 2 {
+  if (value === 1 || value === 2) return value;
+  return failDecode(path, 'Fashion cross exam match 1-2');
+}
+
 function parseRole(value: unknown, path: string) {
   if (!isFashionRoleId(value)) return failDecode(path, 'Fashion role id');
   return value;
@@ -253,6 +258,7 @@ function parseInterrogation(value: unknown, path: string): FashionInterrogation 
   return finishObject(
     raw,
     {
+      match: raw.match === undefined ? 1 : parseCrossExamMatch(raw.match, `${path}.match`),
       attackerSeat: parseFashionSeat(raw.attackerSeat, `${path}.attackerSeat`),
       defenderSeat: parseFashionSeat(raw.defenderSeat, `${path}.defenderSeat`),
       participantSeats:
@@ -318,6 +324,22 @@ export function parseFashionState(value: unknown): FashionState {
           parseInteger,
         ),
         interrogation: parseInterrogation(raw.interrogation, 'FashionState.interrogation'),
+        crossExamParticipantSeats:
+          raw.crossExamParticipantSeats === undefined
+            ? []
+            : parseArray(
+                raw.crossExamParticipantSeats,
+                'FashionState.crossExamParticipantSeats',
+                parseFashionSeat,
+              ),
+        crossExamAwardVotes:
+          raw.crossExamAwardVotes === undefined
+            ? {}
+            : parseSeatRecord(
+                raw.crossExamAwardVotes,
+                'FashionState.crossExamAwardVotes',
+                parseFashionSeat,
+              ),
         contracts: parseArray(raw.contracts, 'FashionState.contracts', parseContract),
         identityGuessPenalties: parseArray(
           raw.identityGuessPenalties,

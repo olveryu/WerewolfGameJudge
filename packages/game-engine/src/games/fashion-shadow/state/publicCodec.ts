@@ -21,6 +21,9 @@ import { FASHION_ROLE_BY_ID } from '../domain/content';
 import type { FashionPrivateIdentityView, FashionPublicState } from '../domain/visibility';
 import {
   FASHION_PLAYER_COUNT,
+  type FashionContract,
+  type FashionContractPromise,
+  type FashionContractStatus,
   type FashionCrossExamAward,
   type FashionHumanSeat,
   type FashionInterrogation,
@@ -125,6 +128,11 @@ function parseRound(value: unknown, path: string): FashionRound {
   return round;
 }
 
+function parseCrossExamMatch(value: unknown, path: string): 1 | 2 {
+  if (value === 1 || value === 2) return value;
+  return failDecode(path, 'Fashion cross exam match 1-2');
+}
+
 function parseEventOrNull(value: unknown, path: string) {
   if (value === null) return null;
   if (!isFashionEventId(value)) return failDecode(path, 'Fashion event id or null');
@@ -138,6 +146,43 @@ function parseNullableString(value: unknown, path: string): string | null {
 function parseEvidence(value: unknown, path: string) {
   if (!isFashionEvidenceId(value)) return failDecode(path, 'Fashion evidence id');
   return value;
+}
+
+function parseContractPromise(value: unknown, path: string): FashionContractPromise {
+  switch (value) {
+    case 'compensation':
+    case 'protection':
+    case 'legalImmunity':
+      return value;
+    default:
+      return failDecode(path, 'valid Fashion contract promise');
+  }
+}
+
+function parseContractStatus(value: unknown, path: string): FashionContractStatus {
+  switch (value) {
+    case 'proposed':
+    case 'accepted':
+    case 'fulfilled':
+      return value;
+    default:
+      return failDecode(path, 'valid Fashion contract status');
+  }
+}
+
+function parseContract(value: unknown, path: string): FashionContract {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      id: parseNonEmptyString(raw.id, `${path}.id`),
+      sellerSeat: parseFashionSeat(raw.sellerSeat, `${path}.sellerSeat`),
+      buyerSeat: parseFashionSeat(raw.buyerSeat, `${path}.buyerSeat`),
+      promise: parseContractPromise(raw.promise, `${path}.promise`),
+      status: parseContractStatus(raw.status, `${path}.status`),
+    },
+    path,
+  );
 }
 
 function parseCrossExamAward(value: unknown, path: string): FashionCrossExamAward {
@@ -158,6 +203,7 @@ function parseInterrogation(value: unknown, path: string): FashionInterrogation 
   return finishObject(
     raw,
     {
+      match: parseCrossExamMatch(raw.match, `${path}.match`),
       attackerSeat: parseFashionSeat(raw.attackerSeat, `${path}.attackerSeat`),
       defenderSeat: parseFashionSeat(raw.defenderSeat, `${path}.defenderSeat`),
       participantSeats:
@@ -220,9 +266,27 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
     'FashionPublicState.finalVotedSeats',
     parseFashionSeat,
   );
+  const crossExamParticipantSeats = parseArray(
+    raw.crossExamParticipantSeats,
+    'FashionPublicState.crossExamParticipantSeats',
+    parseFashionSeat,
+  );
+  const crossExamAwardVotedSeats = parseArray(
+    raw.crossExamAwardVotedSeats,
+    'FashionPublicState.crossExamAwardVotedSeats',
+    parseFashionSeat,
+  );
   assertUniqueAscendingSeats(roleConfirmedSeats, 'FashionPublicState.roleConfirmedSeats');
   assertUniqueAscendingSeats(votedSeats, 'FashionPublicState.votedSeats');
   assertUniqueAscendingSeats(finalVotedSeats, 'FashionPublicState.finalVotedSeats');
+  assertUniqueAscendingSeats(
+    crossExamParticipantSeats,
+    'FashionPublicState.crossExamParticipantSeats',
+  );
+  assertUniqueAscendingSeats(
+    crossExamAwardVotedSeats,
+    'FashionPublicState.crossExamAwardVotedSeats',
+  );
 
   const result = finishObject(
     raw,
@@ -270,6 +334,8 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
         'FashionPublicState.crossExamAwards',
         parseCrossExamAward,
       ),
+      crossExamParticipantSeats,
+      crossExamAwardVotedSeats,
       votedSeats,
       finalVotedSeats,
       discussionSpeakCounts: parseSeatRecord(
@@ -278,6 +344,11 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
         parseInteger,
       ),
       interrogation: parseInterrogation(raw.interrogation, 'FashionPublicState.interrogation'),
+      hasGuessedThisRound:
+        typeof raw.hasGuessedThisRound === 'boolean'
+          ? raw.hasGuessedThisRound
+          : failDecode('FashionPublicState.hasGuessedThisRound', 'boolean'),
+      myContracts: parseArray(raw.myContracts, 'FashionPublicState.myContracts', parseContract),
       winners: parseArray(raw.winners, 'FashionPublicState.winners', parseFashionSeat),
       privateIdentity: parsePrivateIdentity(
         raw.privateIdentity,

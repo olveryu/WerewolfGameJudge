@@ -110,7 +110,25 @@ function advanceToVote(): FashionState {
     { type: 'fashion.crossExam.finish' },
     userContext('user-0', 5_000 + FASHION_CROSS_EXAM_DURATION_MS),
   );
-  return dispatch(state, { type: 'fashion.discussion.finish' }, userContext('user-0', 190_100));
+  state = dispatch(
+    state,
+    { type: 'fashion.crossExam.finish' },
+    userContext('user-0', 5_000 + FASHION_CROSS_EXAM_DURATION_MS * 2),
+  );
+  const candidateSeat = state.crossExamParticipantSeats[0];
+  if (candidateSeat === undefined) throw new Error('Expected cross exam participant');
+  for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+    state = dispatch(
+      state,
+      { type: 'fashion.crossExam.award', seat: candidateSeat },
+      userContext(`user-${seat}`, 5_100 + FASHION_CROSS_EXAM_DURATION_MS * 2 + seat),
+    );
+  }
+  return dispatch(
+    state,
+    { type: 'fashion.discussion.finish' },
+    userContext('user-0', 5_200 + FASHION_CROSS_EXAM_DURATION_MS * 2),
+  );
 }
 
 function castVotes(state: FashionState, approveCount: number, nowMs: number): FashionState {
@@ -138,13 +156,27 @@ function playRoundToTransition(state: FashionState, baseMs: number): FashionStat
   );
   next = dispatch(
     next,
-    { type: 'fashion.discussion.finish' },
-    userContext('user-0', baseMs + FASHION_CROSS_EXAM_DURATION_MS + 10_000),
+    { type: 'fashion.crossExam.finish' },
+    userContext('user-0', baseMs + FASHION_CROSS_EXAM_DURATION_MS * 2),
   );
-  next = castVotes(next, 4, baseMs + FASHION_CROSS_EXAM_DURATION_MS + 100_000);
+  const candidateSeat = next.crossExamParticipantSeats[0];
+  if (candidateSeat === undefined) throw new Error('Expected cross exam participant');
+  for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+    next = dispatch(
+      next,
+      { type: 'fashion.crossExam.award', seat: candidateSeat },
+      userContext(`user-${seat}`, baseMs + FASHION_CROSS_EXAM_DURATION_MS * 2 + 100 + seat),
+    );
+  }
+  next = dispatch(
+    next,
+    { type: 'fashion.discussion.finish' },
+    userContext('user-0', baseMs + FASHION_CROSS_EXAM_DURATION_MS * 2 + 10_000),
+  );
+  next = castVotes(next, 4, baseMs + FASHION_CROSS_EXAM_DURATION_MS * 2 + 100_000);
   return finishVoteRound(
     next,
-    baseMs + FASHION_CROSS_EXAM_DURATION_MS + 100_000 + FASHION_PLAYER_COUNT,
+    baseMs + FASHION_CROSS_EXAM_DURATION_MS * 2 + 100_000 + FASHION_PLAYER_COUNT,
   );
 }
 
@@ -174,6 +206,16 @@ describe('Fashion Shadow solo experience', () => {
     state = dispatch(state, { type: 'fashion.event.reveal' }, userContext('user-0', 3_200));
     state = dispatch(state, { type: 'fashion.crossExam.start' }, userContext('user-0', 3_300));
     state = dispatch(state, { type: 'fashion.crossExam.finish' }, userContext('user-0', 3_301));
+    expect(state.interrogation?.match).toBe(2);
+    state = dispatch(state, { type: 'fashion.crossExam.finish' }, userContext('user-0', 3_302));
+    expect(Object.keys(state.crossExamAwardVotes)).toHaveLength(6);
+    const candidateSeat = state.crossExamParticipantSeats[0];
+    if (candidateSeat === undefined) throw new Error('Expected cross exam participant');
+    state = dispatch(
+      state,
+      { type: 'fashion.crossExam.award', seat: candidateSeat },
+      userContext('user-0', 3_350),
+    );
     state = dispatch(state, { type: 'fashion.discussion.finish' }, userContext('user-0', 3_400));
 
     expect(Object.keys(state.votes)).toHaveLength(6);
@@ -206,12 +248,13 @@ describe('Fashion Shadow solo experience', () => {
 });
 
 describe('Fashion Shadow contracts', () => {
-  it('allows a worker to propose, accept, and fulfill a secret contract', () => {
-    let state = startAndConfirmRoles();
+  it('allows a worker to propose, accept, and fulfill a secret contract during free trading', () => {
+    let state = finishVoteRound(castVotes(advanceToVote(), 4, 800_000), 800_100);
     const workerEntry = Object.entries(state.roles).find(([, role]) => role === 'factoryWorker');
     if (workerEntry === undefined) throw new Error('Expected factory worker');
     const workerSeat = Number(workerEntry[0]);
     const buyerSeat = workerSeat === 0 ? 1 : 0;
+    const beforeTokens = state.actionTokens[workerSeat];
     state = dispatch(
       state,
       {
@@ -222,6 +265,7 @@ describe('Fashion Shadow contracts', () => {
       },
       userContext(`user-${workerSeat}`, 4_000),
     );
+    expect(state.actionTokens[workerSeat]).toBe((beforeTokens ?? 1) - 1);
     expect(state.contracts[0]).toEqual({
       id: 'contract-1',
       sellerSeat: workerSeat,
@@ -245,36 +289,38 @@ describe('Fashion Shadow contracts', () => {
 
 describe('Fashion Shadow identity guess', () => {
   it('reveals a secret and consumes a token on a correct identity guess', () => {
-    let state = startAndConfirmRoles();
+    let state = advanceToVote();
     const targetSeat = 1;
-    const guessedSecretId = state.secrets[targetSeat];
-    if (guessedSecretId === undefined) throw new Error('Expected target secret');
+    const targetRole = state.roles[targetSeat];
+    const targetSecret = state.secrets[targetSeat];
+    if (targetRole === undefined || targetSecret === undefined)
+      throw new Error('Expected target identity');
 
     const before = state.actionTokens[0];
     if (before === undefined) throw new Error('Expected seat 0 action tokens');
 
     state = dispatch(
       state,
-      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId },
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedRoleId: targetRole },
       userContext('user-0', 4_500),
     );
 
-    expect(state.revealedSecrets[targetSeat]).toBe(guessedSecretId);
+    expect(state.revealedSecrets[targetSeat]).toBe(targetSecret);
     expect(state.actionTokens[0]).toBe(before - 1);
     expect(state.identityGuessPenalties).toEqual([]);
   });
 
   it('records a blocked round after an incorrect identity guess', () => {
-    let state = startAndConfirmRoles();
+    let state = advanceToVote();
     const targetSeat = 1;
-    const targetSecret = state.secrets[targetSeat];
-    if (targetSecret === undefined) throw new Error('Expected target secret');
-    const wrongSecret = Object.values(state.secrets).find((secret) => secret !== targetSecret);
-    if (wrongSecret === undefined) throw new Error('Expected wrong secret');
+    const targetRole = state.roles[targetSeat];
+    if (targetRole === undefined) throw new Error('Expected target role');
+    const wrongRole = Object.values(state.roles).find((role) => role !== targetRole);
+    if (wrongRole === undefined) throw new Error('Expected wrong role');
 
     state = dispatch(
       state,
-      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId: wrongSecret },
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedRoleId: wrongRole },
       userContext('user-0', 4_500),
     );
 
@@ -283,20 +329,20 @@ describe('Fashion Shadow identity guess', () => {
   });
 
   it('rejects a second identity guess within the same round', () => {
-    let state = startAndConfirmRoles();
+    let state = advanceToVote();
     const targetSeat = 1;
-    const secret = state.secrets[targetSeat];
-    if (secret === undefined) throw new Error('Expected target secret');
+    const role = state.roles[targetSeat];
+    if (role === undefined) throw new Error('Expected target role');
 
     state = dispatch(
       state,
-      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId: secret },
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedRoleId: role },
       userContext('user-0', 4_500),
     );
 
     const reason = expectReject(
       state,
-      { type: 'fashion.identityGuess.cast', targetSeat: 2, guessedSecretId: secret },
+      { type: 'fashion.identityGuess.cast', targetSeat: 2, guessedRoleId: role },
       userContext('user-0', 4_600),
     );
     expect(reason).toBe(REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT);
@@ -305,18 +351,19 @@ describe('Fashion Shadow identity guess', () => {
   it('rejects guessing the same target in consecutive guesses', () => {
     const base = startAndConfirmRoles();
     const targetSeat = 1;
-    const secret = base.secrets[targetSeat];
-    if (secret === undefined) throw new Error('Expected target secret');
+    const role = base.roles[targetSeat];
+    if (role === undefined) throw new Error('Expected target role');
 
     const state: FashionState = {
       ...base,
       currentRound: 2,
+      phase: 'vote',
       identityGuessHistory: [{ guesserSeat: 0, targetSeat, round: 1 }],
     };
 
     const reason = expectReject(
       state,
-      { type: 'fashion.identityGuess.cast', targetSeat, guessedSecretId: secret },
+      { type: 'fashion.identityGuess.cast', targetSeat, guessedRoleId: role },
       userContext('user-0', 5_500),
     );
     expect(reason).toBe(REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED);
@@ -356,14 +403,21 @@ describe('Fashion Shadow round-one vertical slice', () => {
     const workerSeat = Number(workerEntry[0]);
     const brandSeat = Number(brandEntry[0]);
     expect(state.interrogation).toEqual({
+      match: 1,
       attackerSeat: workerSeat,
       defenderSeat: brandSeat,
-      participantSeats: Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat),
+      participantSeats: [workerSeat, brandSeat],
       startedAt: 5_000,
       endsAt: 5_000 + FASHION_CROSS_EXAM_DURATION_MS,
     });
     expect(state.actionTokens[workerSeat]).toBe(FASHION_INITIAL_ACTION_TOKENS - 1);
     expect(state.actionTokens[brandSeat]).toBe(FASHION_INITIAL_ACTION_TOKENS - 1);
+    state = dispatch(
+      state,
+      { type: 'fashion.secret.revealSelf' },
+      userContext(`user-${workerSeat}`, 5_100),
+    );
+    expect(state.revealedSecrets[workerSeat]).toBe(state.secrets[workerSeat]);
     expect(
       fashionEngine.decide(
         state,
@@ -380,40 +434,51 @@ describe('Fashion Shadow round-one vertical slice', () => {
     expect(state.investigationVoteHistory).toContainEqual({ round: 1, seat: 6, vote: 'reject' });
   });
 
-  it('lets the host award exactly one eligible cross-examination participant', () => {
+  it('runs two cross-exam matches and resolves the best debater by seven-player vote', () => {
     let state = startAndConfirmRoles();
-    const blockedSeat = 0;
-    state = { ...state, identityGuessPenalties: [{ seat: blockedSeat, blockedRound: 1 }] };
     state = dispatch(state, { type: 'fashion.event.reveal' }, userContext('user-0', 4_000));
     state = dispatch(state, { type: 'fashion.crossExam.start' }, userContext('user-0', 5_000));
-    if (state.interrogation === null) throw new Error('Expected interrogation');
-    const validSeat = state.interrogation.participantSeats[0];
-    if (validSeat === undefined) throw new Error('Expected eligible participant');
-    expect(state.interrogation.participantSeats).not.toContain(blockedSeat);
+    expect(state.interrogation?.match).toBe(1);
+    state = dispatch(
+      state,
+      { type: 'fashion.crossExam.finish' },
+      userContext('user-0', 5_000 + FASHION_CROSS_EXAM_DURATION_MS),
+    );
+    expect(state.interrogation?.match).toBe(2);
+    state = dispatch(
+      state,
+      { type: 'fashion.crossExam.finish' },
+      userContext('user-0', 5_000 + FASHION_CROSS_EXAM_DURATION_MS * 2),
+    );
+    expect(state.phase).toBe('discussion');
+    expect(state.crossExamParticipantSeats).toHaveLength(4);
+    const candidateSeat = state.crossExamParticipantSeats[0];
+    if (candidateSeat === undefined) throw new Error('Expected eligible participant');
 
     expect(
       expectReject(
         state,
-        { type: 'fashion.crossExam.award', seat: blockedSeat },
-        userContext('user-0', 5_100),
+        { type: 'fashion.crossExam.award', seat: 99 },
+        userContext('user-0', 400_000),
       ),
     ).toBe(REASON_FASHION_CROSS_EXAM_AWARD_INVALID);
 
-    state = dispatch(
-      state,
-      { type: 'fashion.crossExam.award', seat: validSeat },
-      userContext('user-0', 5_200),
-    );
-    expect(state.crossExamAwards).toEqual([{ round: 1, seat: validSeat }]);
-    const anotherSeat = state.interrogation?.participantSeats.find((seat) => seat !== validSeat);
-    if (anotherSeat === undefined) throw new Error('Expected second eligible participant');
+    for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'fashion.crossExam.award', seat: candidateSeat },
+        userContext(`user-${seat}`, 400_100 + seat),
+      );
+    }
     expect(
       expectReject(
         state,
-        { type: 'fashion.crossExam.award', seat: anotherSeat },
-        userContext('user-0', 5_300),
+        { type: 'fashion.crossExam.award', seat: candidateSeat },
+        userContext('user-0', 400_200),
       ),
     ).toBe(REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET);
+    state = dispatch(state, { type: 'fashion.discussion.finish' }, userContext('user-0', 400_300));
+    expect(state.crossExamAwards).toContainEqual({ round: 1, seat: candidateSeat });
   });
 
   it('publishes V1 when four of seven players approve', () => {
@@ -474,34 +539,36 @@ describe('Fashion Shadow round-one vertical slice', () => {
   });
 });
 
-describe('Fashion Shadow identity guess', () => {
+describe('Fashion Shadow identity guess during investigation vote', () => {
   it('reveals the target secret and consumes a token on a successful guess', () => {
-    let state = startAndConfirmRoles();
+    let state = advanceToVote();
+    const beforeTokens = state.actionTokens[0];
+    if (beforeTokens === undefined) throw new Error('Expected seat 0 action tokens');
     state = dispatch(
       state,
       {
         type: 'fashion.identityGuess.cast',
         targetSeat: 1,
-        guessedSecretId: state.secrets[1]!,
+        guessedRoleId: state.roles[1]!,
       },
       userContext('user-0', 4_000),
     );
 
     expect(state.revealedSecrets[1]).toBe(state.secrets[1]);
-    expect(state.actionTokens[0]).toBe(FASHION_INITIAL_ACTION_TOKENS - 1);
+    expect(state.actionTokens[0]).toBe(beforeTokens - 1);
   });
 
   it('blocks the guesser from cross examination after a failed guess', () => {
-    let state = startAndConfirmRoles();
-    const wrongSecret = Object.values(state.secrets).find((secret) => secret !== state.secrets[1]);
-    if (wrongSecret === undefined) throw new Error('Expected another secret');
+    let state = advanceToVote();
+    const wrongRole = Object.values(state.roles).find((role) => role !== state.roles[1]);
+    if (wrongRole === undefined) throw new Error('Expected another role');
 
     state = dispatch(
       state,
       {
         type: 'fashion.identityGuess.cast',
         targetSeat: 1,
-        guessedSecretId: wrongSecret,
+        guessedRoleId: wrongRole,
       },
       userContext('user-0', 4_000),
     );

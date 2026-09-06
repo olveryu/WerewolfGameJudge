@@ -31,12 +31,23 @@ export type FashionEvent =
   | { readonly type: 'fashion.role.confirmed'; readonly seat: number }
   | { readonly type: 'fashion.event.revealed'; readonly eventId: FashionEventId }
   | {
+      readonly type: 'fashion.secret.revealed';
+      readonly seat: number;
+      readonly secretId: FashionSecretId;
+    }
+  | {
       readonly type: 'fashion.crossExam.started';
+      readonly match: 1 | 2;
       readonly attackerSeat: number;
       readonly defenderSeat: number;
       readonly participantSeats: readonly number[];
       readonly startedAt: number;
       readonly endsAt: number;
+    }
+  | {
+      readonly type: 'fashion.crossExam.awardVoted';
+      readonly voterSeat: number;
+      readonly candidateSeat: number;
     }
   | { readonly type: 'fashion.crossExam.awarded'; readonly award: FashionCrossExamAward }
   | { readonly type: 'fashion.crossExam.finished' }
@@ -70,7 +81,7 @@ export type FashionEvent =
       readonly type: 'fashion.identityGuess.cast';
       readonly guesserSeat: number;
       readonly targetSeat: number;
-      readonly guessedSecretId: FashionSecretId;
+      readonly guessedRoleId: FashionRoleId;
       readonly success: boolean;
       readonly revealedSecretId: FashionSecretId | null;
     };

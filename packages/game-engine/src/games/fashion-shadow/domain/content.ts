@@ -89,6 +89,7 @@ export interface FashionRoundDefinition {
   readonly evidenceTitle: string;
   readonly implicatedRoles: readonly FashionRoleId[];
   readonly mainCrossExam: readonly [FashionRoleId, FashionRoleId];
+  readonly secondaryCrossExam: readonly [FashionRoleId, FashionRoleId];
 }
 
 export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRoundDefinition>> = {
@@ -105,6 +106,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     evidenceTitle: '裁縫師傅的證詞',
     implicatedRoles: [],
     mainCrossExam: ['factoryWorker', 'brandExecutive'],
+    secondaryCrossExam: ['supplierOwner', 'villainProcurementDirector'],
   },
   2: {
     round: 2,
@@ -118,6 +120,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     evidenceTitle: '廢水超標化驗單',
     implicatedRoles: [],
     mainCrossExam: ['governmentOfficial', 'villainProcurementDirector'],
+    secondaryCrossExam: ['consumerRepresentative', 'brandExecutive'],
   },
   3: {
     round: 3,
@@ -131,6 +134,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     evidenceTitle: '貨櫃入閘紀錄',
     implicatedRoles: [],
     mainCrossExam: ['journalist', 'brandExecutive'],
+    secondaryCrossExam: ['consumerRepresentative', 'villainProcurementDirector'],
   },
   4: {
     round: 4,
@@ -144,6 +148,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     evidenceTitle: '顧問費轉賬記錄',
     implicatedRoles: [],
     mainCrossExam: ['journalist', 'villainProcurementDirector'],
+    secondaryCrossExam: ['governmentOfficial', 'brandExecutive'],
   },
 };
 

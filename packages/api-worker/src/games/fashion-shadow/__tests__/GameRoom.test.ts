@@ -121,6 +121,25 @@ async function getAuthoritativeState(stub: DurableObjectStub<GameRoom>): Promise
   return FASHION_STATE_CODEC.parse(snapshot.state);
 }
 
+async function setAuthoritativePhase(
+  stub: DurableObjectStub<GameRoom>,
+  phase: 'vote' | 'roundTransition',
+): Promise<void> {
+  const current = await getAuthoritativeState(stub);
+  const next: FashionState = {
+    ...current,
+    phase,
+    currentEvent: 'E1',
+    roleConfirmedSeats: Array.from({ length: 7 }, (_, seat) => seat),
+  };
+  await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+    state.storage.sql.exec(
+      'UPDATE room_state SET game_state = ?, updated_at = updated_at + 1 WHERE id = 1',
+      JSON.stringify(next),
+    );
+  });
+}
+
 describe('Fashion Shadow private state transport', () => {
   it('persists full authority but returns only the actor projection from commands', async () => {
     const stub = getStub();
@@ -135,6 +154,32 @@ describe('Fashion Shadow private state transport', () => {
     const workerSeat = Number(workerEntry[0]);
     const buyerSeat = workerSeat === 0 ? 1 : 0;
 
+    await setAuthoritativePhase(stub, 'vote');
+    const targetSeat = 1;
+    const targetSecret = initialAuthority.secrets[targetSeat];
+    const targetRole = initialAuthority.roles[targetSeat];
+    if (targetSecret === undefined || targetRole === undefined) {
+      throw new Error('Expected target identity');
+    }
+    const guessResult = requireCommitted(
+      await dispatch(stub, stub, 'fashion-host', 'fashion-reveal-secret', {
+        type: 'fashion.identityGuess.cast',
+        targetSeat,
+        guessedRoleId: targetRole,
+      }),
+    );
+    const hostView = FASHION_PUBLIC_STATE_CODEC.parse(guessResult.snapshot.state);
+    expect(hostView.privateIdentity?.seat).toBe(0);
+    expect(hostView.revealedSecrets).toEqual({ [targetSeat]: targetSecret });
+    expect(hostView.hasGuessedThisRound).toBe(true);
+    expect('roles' in hostView).toBe(false);
+    expect('secrets' in hostView).toBe(false);
+    expect('votes' in hostView).toBe(false);
+    expect('finalVotes' in hostView).toBe(false);
+    expect('investigationVoteHistory' in hostView).toBe(false);
+    expect('contracts' in hostView).toBe(false);
+
+    await setAuthoritativePhase(stub, 'roundTransition');
     const contractResult = requireCommitted(
       await dispatch(stub, stub, userIdForSeat(workerSeat), 'fashion-contract-propose', {
         type: 'fashion.contract.propose',
@@ -145,27 +190,8 @@ describe('Fashion Shadow private state transport', () => {
     );
     const contractView = FASHION_PUBLIC_STATE_CODEC.parse(contractResult.snapshot.state);
     expect(contractView.privateIdentity?.seat).toBe(workerSeat);
+    expect(contractView.myContracts).toHaveLength(1);
     expect('contracts' in contractView).toBe(false);
-
-    const targetSeat = 1;
-    const targetSecret = initialAuthority.secrets[targetSeat];
-    if (targetSecret === undefined) throw new Error('Expected target secret');
-    const guessResult = requireCommitted(
-      await dispatch(stub, stub, 'fashion-host', 'fashion-reveal-secret', {
-        type: 'fashion.identityGuess.cast',
-        targetSeat,
-        guessedSecretId: targetSecret,
-      }),
-    );
-    const hostView = FASHION_PUBLIC_STATE_CODEC.parse(guessResult.snapshot.state);
-    expect(hostView.privateIdentity?.seat).toBe(0);
-    expect(hostView.revealedSecrets).toEqual({ [targetSeat]: targetSecret });
-    expect('roles' in hostView).toBe(false);
-    expect('secrets' in hostView).toBe(false);
-    expect('votes' in hostView).toBe(false);
-    expect('finalVotes' in hostView).toBe(false);
-    expect('investigationVoteHistory' in hostView).toBe(false);
-    expect('contracts' in hostView).toBe(false);
 
     const authoritative = await getAuthoritativeState(stub);
     expect(Object.keys(authoritative.roles)).toHaveLength(7);
@@ -187,22 +213,27 @@ describe('Fashion Shadow private state transport', () => {
     if (workerEntry === undefined) throw new Error('Expected factory worker');
     const workerSeat = Number(workerEntry[0]);
     const buyerSeat = workerSeat === 0 ? 1 : 0;
+    await setAuthoritativePhase(stub, 'vote');
+    const targetSeat = 1;
+    const targetSecret = authority.secrets[targetSeat];
+    const targetRole = authority.roles[targetSeat];
+    if (targetSecret === undefined || targetRole === undefined) {
+      throw new Error('Expected target identity');
+    }
+    requireCommitted(
+      await dispatch(stub, stub, 'fashion-host', 'fashion-sync-reveal-secret', {
+        type: 'fashion.identityGuess.cast',
+        targetSeat,
+        guessedRoleId: targetRole,
+      }),
+    );
+    await setAuthoritativePhase(stub, 'roundTransition');
     requireCommitted(
       await dispatch(stub, stub, userIdForSeat(workerSeat), 'fashion-sync-private-contract', {
         type: 'fashion.contract.propose',
         contractId: 'sync-private-contract',
         buyerSeat,
         promise: 'compensation',
-      }),
-    );
-    const targetSeat = 1;
-    const targetSecret = authority.secrets[targetSeat];
-    if (targetSecret === undefined) throw new Error('Expected target secret');
-    requireCommitted(
-      await dispatch(stub, stub, 'fashion-host', 'fashion-sync-reveal-secret', {
-        type: 'fashion.identityGuess.cast',
-        targetSeat,
-        guessedSecretId: targetSecret,
       }),
     );
 
