@@ -1,4 +1,4 @@
-// First-round vertical-slice tests for Fashion Shadow.
+// Authoritative multiplayer and solo-experience tests for Fashion Shadow.
 
 import type { CommandContext, CreateGameContext } from '../../../platform/engine';
 import type { FashionCommand } from '../commands/types';
@@ -17,6 +17,7 @@ import {
   FASHION_INITIAL_ACTION_TOKENS,
   FASHION_PLAYER_COUNT,
   type FashionState,
+  isFashionBotUserId,
 } from '../state/types';
 
 const createContext: CreateGameContext = {
@@ -72,6 +73,16 @@ function createFullLobby(): FashionState {
     );
   }
   return state;
+}
+
+function createSoloLobby(): FashionState {
+  let state = fashionEngine.createInitialState({ numberOfPlayers: 7 }, createContext);
+  state = dispatch(
+    state,
+    { type: 'room.seat.take', seat: 0, profile: { displayName: 'Solo Player' } },
+    userContext('user-0', 2_000),
+  );
+  return dispatch(state, { type: 'room.seat.fillBots' }, userContext('user-0', 2_100));
 }
 
 function startAndConfirmRoles(): FashionState {
@@ -136,6 +147,63 @@ function playRoundToTransition(state: FashionState, baseMs: number): FashionStat
     baseMs + FASHION_CROSS_EXAM_DURATION_MS + 100_000 + FASHION_PLAYER_COUNT,
   );
 }
+
+describe('Fashion Shadow solo experience', () => {
+  it('fills empty seats with six marked test players', () => {
+    const state = createSoloLobby();
+    expect(Object.keys(state.realSeats)).toHaveLength(FASHION_PLAYER_COUNT);
+    expect(state.realSeats[0]?.userId).toBe('user-0');
+    for (let seat = 1; seat < FASHION_PLAYER_COUNT; seat += 1) {
+      const occupant = state.realSeats[seat];
+      expect(occupant).toBeDefined();
+      if (occupant === undefined) throw new Error(`Expected bot seat ${seat}`);
+      expect(isFashionBotUserId(occupant.userId)).toBe(true);
+      expect(occupant.profile.displayName).toBe(`测试玩家 ${seat + 1}`);
+    }
+  });
+
+  it('auto-confirms bots and lets the human cast the decisive seventh investigation vote', () => {
+    let state = dispatch(
+      createSoloLobby(),
+      { type: 'fashion.game.start' },
+      userContext('user-0', 3_000),
+    );
+    expect(state.roleConfirmedSeats).toEqual([1, 2, 3, 4, 5, 6]);
+
+    state = dispatch(state, { type: 'fashion.role.confirm' }, userContext('user-0', 3_100));
+    state = dispatch(state, { type: 'fashion.event.reveal' }, userContext('user-0', 3_200));
+    state = dispatch(state, { type: 'fashion.crossExam.start' }, userContext('user-0', 3_300));
+    state = dispatch(state, { type: 'fashion.crossExam.finish' }, userContext('user-0', 3_301));
+    state = dispatch(state, { type: 'fashion.discussion.finish' }, userContext('user-0', 3_400));
+
+    expect(Object.keys(state.votes)).toHaveLength(6);
+    expect(Object.values(state.votes).filter((vote) => vote === 'approve')).toHaveLength(3);
+    expect(Object.values(state.votes).filter((vote) => vote === 'reject')).toHaveLength(3);
+
+    state = dispatch(
+      state,
+      { type: 'fashion.vote.cast', vote: 'approve' },
+      userContext('user-0', 3_500),
+    );
+    expect(Object.keys(state.votes)).toHaveLength(FASHION_PLAYER_COUNT);
+    state = dispatch(state, { type: 'fashion.vote.finish' }, userContext('user-0', 3_600));
+    expect(state.publicEvidence).toContain('V1');
+  });
+
+  it('auto-submits six bot accusations when the final hearing starts', () => {
+    let state = dispatch(
+      createSoloLobby(),
+      { type: 'fashion.game.start' },
+      userContext('user-0', 3_000),
+    );
+    state = dispatch(state, { type: 'fashion.role.confirm' }, userContext('user-0', 3_100));
+    state = { ...state, currentRound: 4, phase: 'roundTransition' };
+
+    state = dispatch(state, { type: 'fashion.hearing.start' }, userContext('user-0', 4_000));
+    expect(Object.keys(state.finalVotes)).toHaveLength(6);
+    expect(state.finalVotes[0]).toBeUndefined();
+  });
+});
 
 describe('Fashion Shadow contracts', () => {
   it('allows a worker to propose, accept, and fulfill a secret contract', () => {

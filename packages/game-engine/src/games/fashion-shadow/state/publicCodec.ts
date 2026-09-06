@@ -215,8 +215,14 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
     parseFashionSeat,
   );
   const votedSeats = parseArray(raw.votedSeats, 'FashionPublicState.votedSeats', parseFashionSeat);
+  const finalVotedSeats = parseArray(
+    raw.finalVotedSeats,
+    'FashionPublicState.finalVotedSeats',
+    parseFashionSeat,
+  );
   assertUniqueAscendingSeats(roleConfirmedSeats, 'FashionPublicState.roleConfirmedSeats');
   assertUniqueAscendingSeats(votedSeats, 'FashionPublicState.votedSeats');
+  assertUniqueAscendingSeats(finalVotedSeats, 'FashionPublicState.finalVotedSeats');
 
   const result = finishObject(
     raw,
@@ -265,6 +271,7 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
         parseCrossExamAward,
       ),
       votedSeats,
+      finalVotedSeats,
       discussionSpeakCounts: parseSeatRecord(
         raw.discussionSpeakCounts,
         'FashionPublicState.discussionSpeakCounts',

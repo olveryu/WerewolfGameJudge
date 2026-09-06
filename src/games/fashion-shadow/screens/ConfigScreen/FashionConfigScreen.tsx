@@ -1,5 +1,6 @@
-// Fixed seven-player room creation screen for Fashion Shadow v1.
+// Fixed seven-player room creation screen for Fashion Shadow.
 
+import { FASHION_ROUND_BY_NUMBER } from '@game-judge/game-engine/games/fashion-shadow/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
@@ -53,18 +54,29 @@ export const FashionConfigScreen: React.FC = () => {
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
-          <Text style={styles.eyebrow}>正式多人模式</Text>
-          <Text style={styles.title}>固定 7 人 · 4 轮 ESG 推理</Text>
+          <Text style={styles.eyebrow}>正式 7 人规则 · 支持单人体验</Text>
+          <Text style={styles.title}>固定 7 人 · 4 轮 ESG 推理 · 最终听证</Text>
           <Text style={styles.body}>
-            7 个角色各有公开立场、隐藏秘密和独立胜利条件。第一版先跑通第 1 轮深水埗 Vertical Slice。
+            7 个角色各有公开立场、隐藏秘密和独立胜利条件。单人体验时，先入座，再由系统补满 6
+            个自动测试玩家；测试玩家会自动完成身份确认和投票。
           </Text>
         </View>
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>第 1 轮</Text>
-          <Text style={styles.body}>深水埗 · 社会 S · 布料采购 / 标签造假</Text>
-          <Text style={styles.body}>E1 深水埗布市场的线人 → V1 裁缝师傅的证词</Text>
-          <Text style={styles.body}>交叉质询：工厂工人 VS 品牌方高层 · 3 分钟</Text>
-        </View>
+        {([1, 2, 3, 4] as const).map((roundNumber) => {
+          const round = FASHION_ROUND_BY_NUMBER[roundNumber];
+          return (
+            <View key={roundNumber} style={styles.card}>
+              <Text style={styles.sectionTitle}>
+                第 {roundNumber} 轮 · {round.location} · {round.esg}
+              </Text>
+              <Text style={styles.body}>
+                {round.eventId} {round.eventTitle}
+              </Text>
+              <Text style={styles.body}>
+                调查结果：{round.evidenceId} {round.evidenceTitle}
+              </Text>
+            </View>
+          );
+        })}
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.medium) }]}>
         <Button variant="primary" size="lg" onPress={create} loading={isCreating}>

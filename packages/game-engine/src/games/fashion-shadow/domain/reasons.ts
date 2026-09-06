@@ -2,7 +2,6 @@
 
 export const REASON_FASHION_ROOM_NOT_FULL = 'fashion_room_not_full' as const;
 export const REASON_FASHION_PHASE_INVALID = 'fashion_phase_invalid' as const;
-export const REASON_FASHION_BOTS_NOT_SUPPORTED = 'fashion_bots_not_supported' as const;
 export const REASON_FASHION_ROLE_NOT_ASSIGNED = 'fashion_role_not_assigned' as const;
 export const REASON_FASHION_ROLE_ALREADY_CONFIRMED = 'fashion_role_already_confirmed' as const;
 export const REASON_FASHION_ROLES_NOT_CONFIRMED = 'fashion_roles_not_confirmed' as const;

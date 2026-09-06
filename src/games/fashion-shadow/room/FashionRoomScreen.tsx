@@ -5,8 +5,8 @@ import {
   FASHION_ROUND_BY_NUMBER,
   type FashionPublicCommand,
   type FashionPublicState,
+  isFashionBotUserId,
 } from '@game-judge/game-engine/games/fashion-shadow/public';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -17,12 +17,11 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { FashionRoomSession } from '@/games/fashion-shadow/model/FashionRoomSession';
-import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 import { getFashionRoomCommandFailureMessage } from './fashionRoomCommandFailureMessage';
@@ -58,6 +57,14 @@ function formatRemaining(milliseconds: number): string {
   return `${minutesPart}:${String(secondsPart).padStart(2, '0')}`;
 }
 
+function getEvidenceTitle(evidenceId: FashionPublicState['publicEvidence'][number]): string {
+  for (const roundNumber of [1, 2, 3, 4] as const) {
+    const round = FASHION_ROUND_BY_NUMBER[roundNumber];
+    if (round.evidenceId === evidenceId) return round.evidenceTitle;
+  }
+  return evidenceId;
+}
+
 export const FashionRoomScreen: React.FC<FashionRoomScreenProps> = ({
   room,
   entryReason,
@@ -84,11 +91,7 @@ interface FashionRoomContentProps extends FashionRoomScreenProps {
   readonly entryController: RoomEntryController;
 }
 
-const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
-  room,
-  navigation,
-  session,
-}) => {
+const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigation, session }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuthContext();
   if (user === null) {
@@ -101,15 +104,20 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
   const state = sessionSnapshot.snapshot.state;
   const mySeat = findUserSeat(state, user.id);
   const isHost = state.hostUserId === user.id;
-  const occupiedCount = Object.values(state.realSeats).filter((seat) => seat !== undefined).length;
+  const occupiedSeats = Object.values(state.realSeats).filter((seat) => seat !== undefined);
+  const occupiedCount = occupiedSeats.length;
+  const botCount = occupiedSeats.filter((seat) => isFashionBotUserId(seat.userId)).length;
+  const hasBots = botCount > 0;
+  const humanCount = occupiedCount - botCount;
   const seatCommands = useFashionSeatCommands({ session, user });
   const { isSubmitting, submit } = useRoomCommandSubmission(getFashionRoomCommandFailureMessage);
-  const [nowMs, setNowMs] = useState(Date.now());
+  const [nowMs, setNowMs] = useState(0);
 
   useEffect(() => {
     if (state.phase !== 'crossExamination' || state.interrogation === null) return undefined;
-    setNowMs(Date.now());
-    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    const updateNow = () => setNowMs(Date.now());
+    updateNow();
+    const timer = setInterval(updateNow, 1000);
     return () => clearInterval(timer);
   }, [state.interrogation, state.phase]);
 
@@ -124,35 +132,42 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
     state.interrogation === null ? 0 : Math.max(0, state.interrogation.endsAt - nowMs);
   const hasConfirmedRole = mySeat !== null && state.roleConfirmedSeats.includes(mySeat);
   const hasVoted = mySeat !== null && state.votedSeats.includes(mySeat);
-  const myTokens = mySeat === null ? null : state.actionTokens[mySeat] ?? null;
-  const mySpeakCount = mySeat === null ? 0 : state.discussionSpeakCounts[mySeat] ?? 0;
+  const hasFinalVoted = mySeat !== null && state.finalVotedSeats.includes(mySeat);
+  const currentCrossExamAward = state.crossExamAwards.find(
+    (award) => award.round === state.currentRound,
+  );
+  const myTokens = mySeat === null ? null : (state.actionTokens[mySeat] ?? null);
+  const mySpeakCount = mySeat === null ? 0 : (state.discussionSpeakCounts[mySeat] ?? 0);
 
   const seatCards = useMemo(
-    () => Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => {
-      const occupant = state.realSeats[seat];
-      const isSelf = occupant?.userId === user.id;
-      const canTake = state.phase === 'lobby' && occupant === undefined && !isSubmitting;
-      const label = occupant === undefined
-        ? `${seat + 1}号 · 空位`
-        : `${seat + 1}号 · ${occupant.profile.displayName}${isSelf ? '（你）' : ''}`;
-      return (
-        <View key={seat} style={styles.seatCell}>
-          {canTake ? (
-            <Button
-              variant="secondary"
-              size="md"
-              onPress={() => void submit('入座', () => seatCommands.takeSeat(seat))}
-            >
-              {label}
-            </Button>
-          ) : (
-            <Button variant={isSelf ? 'primary' : 'secondary'} size="md" disabled>
-              {label}
-            </Button>
-          )}
-        </View>
-      );
-    }),
+    () =>
+      Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => {
+        const occupant = state.realSeats[seat];
+        const isSelf = occupant?.userId === user.id;
+        const isBot = occupant !== undefined && isFashionBotUserId(occupant.userId);
+        const canTake = state.phase === 'lobby' && occupant === undefined && !isSubmitting;
+        const label =
+          occupant === undefined
+            ? `${seat + 1}号 · 空位`
+            : `${seat + 1}号 · ${occupant.profile.displayName}${isSelf ? '（你）' : isBot ? '（自动）' : ''}`;
+        return (
+          <View key={seat} style={styles.seatCell}>
+            {canTake ? (
+              <Button
+                variant="secondary"
+                size="md"
+                onPress={() => void submit('入座', () => seatCommands.takeSeat(seat))}
+              >
+                {label}
+              </Button>
+            ) : (
+              <Button variant={isSelf ? 'primary' : 'secondary'} size="md" disabled>
+                {label}
+              </Button>
+            )}
+          </View>
+        );
+      }),
     [isSubmitting, seatCommands, state.phase, state.realSeats, submit, user.id],
   );
 
@@ -180,12 +195,29 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
         return (
           <View style={styles.actions}>
             {mySeat !== null ? (
-              <Button variant="secondary" onPress={() => void submit('离座', seatCommands.leaveSeat)}>
+              <Button
+                variant="secondary"
+                onPress={() => void submit('离座', seatCommands.leaveSeat)}
+              >
                 离开座位
               </Button>
             ) : null}
             {isHost ? (
               <>
+                {mySeat !== null && occupiedCount < FASHION_PLAYER_COUNT ? (
+                  <Button
+                    variant="secondary"
+                    onPress={() => void submit('补满测试玩家', seatCommands.fillBots)}
+                    disabled={isSubmitting}
+                  >
+                    单人体验：补满测试玩家
+                  </Button>
+                ) : null}
+                {mySeat === null && occupiedCount < FASHION_PLAYER_COUNT ? (
+                  <Text style={styles.statusText}>
+                    先选择一个座位，再可一键补满 6 个自动测试玩家。
+                  </Text>
+                ) : null}
                 <Button
                   variant="primary"
                   size="lg"
@@ -195,7 +227,10 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
                   开始第 1 轮
                 </Button>
                 {occupiedCount > 0 ? (
-                  <Button variant="ghost" onPress={() => void submit('清空座位', seatCommands.clearSeats)}>
+                  <Button
+                    variant="ghost"
+                    onPress={() => void submit('清空座位', seatCommands.clearSeats)}
+                  >
                     清空座位
                   </Button>
                 ) : null}
@@ -224,7 +259,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
                 onPress={() => void submitCommand('公开事件', { type: 'fashion.event.reveal' })}
                 disabled={state.roleConfirmedSeats.length !== FASHION_PLAYER_COUNT || isSubmitting}
               >
-                全员确认后公开 E1
+                全员确认后公开本轮事件
               </Button>
             ) : null}
           </View>
@@ -239,7 +274,9 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
           >
             开始 3 分钟交叉质询
           </Button>
-        ) : <Text style={styles.statusText}>等待房主开始交叉质询</Text>;
+        ) : (
+          <Text style={styles.statusText}>等待房主开始交叉质询</Text>
+        );
       case 'crossExamination':
         return (
           <View style={styles.actions}>
@@ -249,13 +286,41 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
                 ? '质询状态同步中'
                 : `${state.interrogation.attackerSeat + 1}号质询 ${state.interrogation.defenderSeat + 1}号`}
             </Text>
+            {currentCrossExamAward === undefined && isHost ? (
+              <>
+                <Text style={styles.statusText}>可授予 1 名玩家本轮交叉质询奖励：</Text>
+                <View style={styles.choiceGrid}>
+                  {Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => (
+                    <View key={seat} style={styles.choiceCell}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onPress={() =>
+                          void submitCommand('授予交叉质询奖励', {
+                            type: 'fashion.crossExam.award',
+                            seat,
+                          })
+                        }
+                        disabled={isSubmitting}
+                      >
+                        {seat + 1}号
+                      </Button>
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : currentCrossExamAward !== undefined ? (
+              <Text style={styles.statusText}>本轮奖励：{currentCrossExamAward.seat + 1}号</Text>
+            ) : null}
             {isHost ? (
               <Button
                 variant="primary"
-                onPress={() => void submitCommand('结束交叉质询', { type: 'fashion.crossExam.finish' })}
-                disabled={remainingMs > 0 || isSubmitting}
+                onPress={() =>
+                  void submitCommand('结束交叉质询', { type: 'fashion.crossExam.finish' })
+                }
+                disabled={(remainingMs > 0 && !hasBots) || isSubmitting}
               >
-                时间结束，进入讨论
+                {hasBots && remainingMs > 0 ? '体验模式：立即进入讨论' : '时间结束，进入讨论'}
               </Button>
             ) : null}
           </View>
@@ -263,7 +328,9 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
       case 'discussion':
         return (
           <View style={styles.actions}>
-            <Text style={styles.statusText}>主动发言会消耗 1 枚行动代币。你本轮已主动发言 {mySpeakCount} 次。</Text>
+            <Text style={styles.statusText}>
+              主动发言会消耗 1 枚行动代币。你本轮已主动发言 {mySpeakCount} 次。
+            </Text>
             {mySeat !== null ? (
               <Button
                 variant="secondary"
@@ -276,7 +343,9 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
             {isHost ? (
               <Button
                 variant="primary"
-                onPress={() => void submitCommand('结束讨论', { type: 'fashion.discussion.finish' })}
+                onPress={() =>
+                  void submitCommand('结束讨论', { type: 'fashion.discussion.finish' })
+                }
                 loading={isSubmitting}
               >
                 结束讨论，开始投票
@@ -292,40 +361,138 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
               <View style={styles.voteRow}>
                 <Button
                   variant="primary"
-                  onPress={() => void submitCommand('赞成调查', { type: 'fashion.vote.cast', vote: 'approve' })}
+                  onPress={() =>
+                    void submitCommand('赞成调查', { type: 'fashion.vote.cast', vote: 'approve' })
+                  }
                 >
                   赞成调查
                 </Button>
                 <Button
                   variant="secondary"
-                  onPress={() => void submitCommand('反对调查', { type: 'fashion.vote.cast', vote: 'reject' })}
+                  onPress={() =>
+                    void submitCommand('反对调查', { type: 'fashion.vote.cast', vote: 'reject' })
+                  }
                 >
                   反对调查
                 </Button>
               </View>
-            ) : hasVoted ? <Text style={styles.statusText}>你的投票已提交，具体选择不会在投票结束前公开。</Text> : null}
+            ) : hasVoted ? (
+              <Text style={styles.statusText}>你的投票已提交，具体选择不会在投票结束前公开。</Text>
+            ) : null}
             {isHost ? (
               <Button
                 variant="primary"
                 onPress={() => void submitCommand('结算投票', { type: 'fashion.vote.finish' })}
                 disabled={state.votedSeats.length !== FASHION_PLAYER_COUNT || isSubmitting}
               >
-                全员投票后结算 V1
+                全员投票后结算 {round.evidenceId}
+              </Button>
+            ) : null}
+          </View>
+        );
+      case 'roundTransition': {
+        const isPublic = state.publicEvidence.includes(round.evidenceId);
+        return (
+          <View style={styles.actions}>
+            <View style={[styles.card, isPublic ? styles.resultPublic : styles.resultDestroyed]}>
+              <Text style={styles.cardTitle}>
+                第 {state.currentRound} 轮 · {isPublic ? '调查通过' : '调查失败'}
+              </Text>
+              <Text style={styles.body}>
+                {isPublic
+                  ? `${round.evidenceId}「${round.evidenceTitle}」已进入公共证据区。`
+                  : `${round.evidenceId}「${round.evidenceTitle}」已永久销毁。`}
+              </Text>
+            </View>
+            {isHost ? (
+              state.currentRound < 4 ? (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onPress={() =>
+                    void submitCommand('进入下一轮', { type: 'fashion.round.advance' })
+                  }
+                  loading={isSubmitting}
+                >
+                  进入第 {state.currentRound + 1} 轮
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onPress={() =>
+                    void submitCommand('开始最终听证', { type: 'fashion.hearing.start' })
+                  }
+                  loading={isSubmitting}
+                >
+                  开始最终听证
+                </Button>
+              )
+            ) : (
+              <Text style={styles.statusText}>等待房主推进流程</Text>
+            )}
+          </View>
+        );
+      }
+      case 'hearing':
+        return (
+          <View style={styles.actions}>
+            <Text style={styles.statusText}>已提交最终指控：{state.finalVotedSeats.length}/7</Text>
+            {mySeat !== null && !hasFinalVoted ? (
+              <>
+                <Text style={styles.statusText}>选择你认为应被最终定罪的座位：</Text>
+                <View style={styles.choiceGrid}>
+                  {Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => (
+                    <View key={seat} style={styles.choiceCell}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onPress={() =>
+                          void submitCommand('提交最终指控', {
+                            type: 'fashion.hearing.vote',
+                            targetSeat: seat,
+                          })
+                        }
+                        disabled={isSubmitting}
+                      >
+                        {seat + 1}号
+                      </Button>
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : hasFinalVoted ? (
+              <Text style={styles.statusText}>你的最终指控已提交。</Text>
+            ) : null}
+            {isHost ? (
+              <Button
+                variant="primary"
+                size="lg"
+                onPress={() =>
+                  void submitCommand('结算最终听证', { type: 'fashion.hearing.finish' })
+                }
+                disabled={state.finalVotedSeats.length !== FASHION_PLAYER_COUNT || isSubmitting}
+              >
+                全员指控后结算胜负
               </Button>
             ) : null}
           </View>
         );
       case 'ended': {
-        const isPublic = state.publicEvidence.includes(round.evidenceId);
+        const winnerLabels = state.winners.map((seat) => {
+          const occupant = state.realSeats[seat];
+          return occupant === undefined
+            ? `${seat + 1}号`
+            : `${seat + 1}号 ${occupant.profile.displayName}`;
+        });
+        const didWin = mySeat !== null && state.winners.includes(mySeat);
         return (
-          <View style={[styles.card, isPublic ? styles.resultPublic : styles.resultDestroyed]}>
-            <Text style={styles.cardTitle}>{isPublic ? '调查通过' : '调查失败'}</Text>
+          <View style={[styles.card, didWin ? styles.resultPublic : styles.resultDestroyed]}>
+            <Text style={styles.cardTitle}>{didWin ? '你达成了胜利条件' : '本局结束'}</Text>
             <Text style={styles.body}>
-              {isPublic
-                ? `${round.evidenceId}「${round.evidenceTitle}」已进入公共证据区。`
-                : `${round.evidenceId}「${round.evidenceTitle}」已永久销毁。`}
+              胜者：{winnerLabels.length > 0 ? winnerLabels.join('、') : '无'}
             </Text>
-            <Text style={styles.statusText}>第 1 轮 Vertical Slice 完成。</Text>
+            <Text style={styles.statusText}>4 轮调查与最终听证已全部完成。</Text>
           </View>
         );
       }
@@ -341,7 +508,12 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
         headerRight={
           <Button
             variant="ghost"
-            onPress={() => navigation.navigate('GameGuide', { gameType: 'fashion-shadow', roomCode: room.roomCode })}
+            onPress={() =>
+              navigation.navigate('GameGuide', {
+                gameType: 'fashion-shadow',
+                roomCode: room.roomCode,
+              })
+            }
           >
             规则
           </Button>
@@ -349,9 +521,13 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>房间 {room.roomCode} · 第 {state.currentRound} 轮</Text>
+          <Text style={styles.eyebrow}>
+            房间 {room.roomCode} · 第 {state.currentRound} 轮
+          </Text>
           <Text style={styles.heroTitle}>{PHASE_LABELS[state.phase]}</Text>
-          <Text style={styles.body}>真人入座 {occupiedCount}/7</Text>
+          <Text style={styles.body}>
+            入座 {occupiedCount}/7 · 真人 {humanCount} · 测试玩家 {botCount}
+          </Text>
         </View>
 
         {state.phase === 'lobby' ? (
@@ -365,8 +541,12 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
 
         {state.currentEvent !== null ? (
           <View style={styles.card}>
-            <Text style={styles.eyebrow}>{round.location} · {round.esg}</Text>
-            <Text style={styles.cardTitle}>{round.eventId} · {round.eventTitle}</Text>
+            <Text style={styles.eyebrow}>
+              {round.location} · {round.esg}
+            </Text>
+            <Text style={styles.cardTitle}>
+              {round.eventId} · {round.eventTitle}
+            </Text>
             <Text style={styles.body}>{round.eventDescription}</Text>
             {state.voteQuestion !== null ? (
               <>
@@ -386,7 +566,9 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>公共证据区</Text>
             {state.publicEvidence.map((evidenceId) => (
-              <Text key={evidenceId} style={styles.body}>{evidenceId} · {round.evidenceTitle}</Text>
+              <Text key={evidenceId} style={styles.body}>
+                {evidenceId} · {getEvidenceTitle(evidenceId)}
+              </Text>
             ))}
           </View>
         ) : null}
@@ -457,6 +639,8 @@ const styles = StyleSheet.create({
   },
   seatGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   seatCell: { width: '48%' },
+  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
+  choiceCell: { width: '31%' },
   actions: { gap: spacing.small },
   voteRow: { gap: spacing.small },
 });

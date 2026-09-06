@@ -15,7 +15,6 @@ export {
 export {
   REASON_FASHION_ACTION_TOKEN_REQUIRED,
   REASON_FASHION_ALREADY_VOTED,
-  REASON_FASHION_BOTS_NOT_SUPPORTED,
   REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET,
   REASON_FASHION_CROSS_EXAM_AWARD_INVALID,
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
@@ -48,6 +47,7 @@ export { FASHION_STATE_CODEC } from './state/codec';
 export { parseFashionState } from './state/parseState';
 export { FASHION_PUBLIC_STATE_CODEC, parseFashionPublicState } from './state/publicCodec';
 export {
+  FASHION_BOT_USER_ID_PREFIX,
   FASHION_CROSS_EXAM_DURATION_MS,
   FASHION_EVENT_IDS,
   FASHION_EVIDENCE_IDS,
@@ -71,6 +71,8 @@ export {
   type FashionSeatProfile,
   type FashionSecretId,
   type FashionState,
+  getFashionBotUserId,
+  isFashionBotUserId,
   isFashionEventId,
   isFashionEvidenceId,
   isFashionInvestigationVote,

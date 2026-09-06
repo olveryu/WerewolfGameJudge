@@ -43,6 +43,7 @@ export interface FashionPublicState {
   readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
   readonly crossExamAwards: readonly FashionCrossExamAward[];
   readonly votedSeats: readonly number[];
+  readonly finalVotedSeats: readonly number[];
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
   readonly winners: readonly number[];
@@ -82,6 +83,9 @@ export function getFashionPublicState(
     revealedSecrets: state.revealedSecrets,
     crossExamAwards: state.crossExamAwards,
     votedSeats: Object.keys(state.votes)
+      .map(Number)
+      .sort((left, right) => left - right),
+    finalVotedSeats: Object.keys(state.finalVotes)
       .map(Number)
       .sort((left, right) => left - right),
     discussionSpeakCounts: state.discussionSpeakCounts,

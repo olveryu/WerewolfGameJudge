@@ -9,6 +9,15 @@ export const FASHION_PLAYER_COUNT = 7 as const;
 export const FASHION_INITIAL_ACTION_TOKENS = 3 as const;
 export const FASHION_CROSS_EXAM_DURATION_MS = 180_000 as const;
 export const FASHION_MAX_DISCUSSION_SPEAKS = 2 as const;
+export const FASHION_BOT_USER_ID_PREFIX = 'fashion-bot:' as const;
+
+export function getFashionBotUserId(seat: number): string {
+  return `${FASHION_BOT_USER_ID_PREFIX}${seat}`;
+}
+
+export function isFashionBotUserId(userId: string): boolean {
+  return userId.startsWith(FASHION_BOT_USER_ID_PREFIX);
+}
 
 export const FASHION_ROLE_IDS = [
   'journalist',

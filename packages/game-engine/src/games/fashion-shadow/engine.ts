@@ -32,7 +32,6 @@ import { evolveFashionState } from './domain/evolve';
 import {
   REASON_FASHION_ACTION_TOKEN_REQUIRED,
   REASON_FASHION_ALREADY_VOTED,
-  REASON_FASHION_BOTS_NOT_SUPPORTED,
   REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET,
   REASON_FASHION_CROSS_EXAM_AWARD_INVALID,
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
@@ -63,6 +62,8 @@ import {
   type FashionSeatProfile,
   type FashionSecretId,
   type FashionState,
+  getFashionBotUserId,
+  isFashionBotUserId,
   isFashionRoomFull,
 } from './state/types';
 import { FASHION_STATE_IDENTITY, FASHION_STATE_VERSION } from './state/version';
@@ -149,6 +150,57 @@ function decideClearFashionSeats(state: FashionState, context: CommandContext): 
   return commitFashion(result.changes.length === 0 ? [] : [seatChangesEvent(result.changes)]);
 }
 
+function getFashionBotSeats(state: FashionState): number[] {
+  return Object.entries(state.realSeats)
+    .filter(([, occupant]) => occupant !== undefined && isFashionBotUserId(occupant.userId))
+    .map(([seat]) => Number(seat))
+    .sort((left, right) => left - right);
+}
+
+function hasFashionBots(state: FashionState): boolean {
+  return getFashionBotSeats(state).length > 0;
+}
+
+function createFashionBotSeat(seat: number): FashionHumanSeat {
+  return {
+    userId: getFashionBotUserId(seat),
+    seat,
+    profile: { displayName: `测试玩家 ${seat + 1}` },
+  };
+}
+
+function decideFillFashionBots(state: FashionState, context: CommandContext): FashionDecision {
+  const lobbyRejection = requireLobby(state);
+  if (lobbyRejection !== null) return lobbyRejection;
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+
+  const changes: SeatChange<FashionHumanSeat>[] = [];
+  for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+    if (state.realSeats[seat] !== undefined) continue;
+    changes.push({ seat, previous: null, next: createFashionBotSeat(seat) });
+  }
+  return commitFashion(changes.length === 0 ? [] : [seatChangesEvent(changes)]);
+}
+
+function createFashionBotInvestigationVotes(state: FashionState): FashionEvent[] {
+  const botSeats = getFashionBotSeats(state);
+  const approveCount = Math.floor(botSeats.length / 2);
+  return botSeats.map((seat, index) => ({
+    type: 'fashion.vote.cast',
+    seat,
+    vote: index < approveCount ? 'approve' : 'reject',
+  }));
+}
+
+function createFashionBotHearingVotes(state: FashionState): FashionEvent[] {
+  return getFashionBotSeats(state).map((seat, index) => ({
+    type: 'fashion.hearing.vote',
+    seat,
+    targetSeat: index % FASHION_PLAYER_COUNT,
+  }));
+}
+
 function decideUpdateFashionProfile(
   state: FashionState,
   profile: FashionProfileUpdate,
@@ -195,6 +247,9 @@ function decideStartFashionGame(state: FashionState, context: CommandContext): F
       secrets: assignments.secrets,
       actionTokens,
     },
+    ...getFashionBotSeats(state).map(
+      (seat): FashionEvent => ({ type: 'fashion.role.confirmed', seat }),
+    ),
   ]);
 }
 
@@ -298,7 +353,7 @@ function decideFinishCrossExam(state: FashionState, context: CommandContext): Fa
   if (interrogation === null) {
     throw new Error('Fashion crossExamination phase is missing interrogation state');
   }
-  if (context.nowMs < interrogation.endsAt) {
+  if (context.nowMs < interrogation.endsAt && !hasFashionBots(state)) {
     return reject(REASON_FASHION_CROSS_EXAM_NOT_FINISHED);
   }
   return commitFashion([{ type: 'fashion.crossExam.finished' }]);
@@ -321,7 +376,10 @@ function decideFinishDiscussion(state: FashionState, context: CommandContext): F
   if (state.phase !== 'discussion') return reject(REASON_FASHION_PHASE_INVALID);
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return commitFashion([{ type: 'fashion.discussion.finished' }]);
+  return commitFashion([
+    { type: 'fashion.discussion.finished' },
+    ...createFashionBotInvestigationVotes(state),
+  ]);
 }
 
 function decideCastFashionVote(
@@ -475,7 +533,10 @@ function decideStartHearing(state: FashionState, context: CommandContext): Fashi
     return reject(REASON_FASHION_PHASE_INVALID);
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return commitFashion([{ type: 'fashion.hearing.started' }]);
+  return commitFashion([
+    { type: 'fashion.hearing.started' },
+    ...createFashionBotHearingVotes(state),
+  ]);
 }
 
 function decideHearingVote(
@@ -558,7 +619,7 @@ export function decideFashionCommand(
     case 'room.seat.clear':
       return decideClearFashionSeats(state, context);
     case 'room.seat.fillBots':
-      return reject(REASON_FASHION_BOTS_NOT_SUPPORTED);
+      return decideFillFashionBots(state, context);
     case 'room.profile.update':
       return decideUpdateFashionProfile(state, command.profile, context);
     case 'fashion.game.start':
