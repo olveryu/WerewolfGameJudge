@@ -1,8 +1,8 @@
 // Data-driven Fashion Shadow roles, events, and evidence from the supplied rule documents.
 
 import type {
-  FashionEvidenceId,
   FashionEventId,
+  FashionEvidenceId,
   FashionRoleId,
   FashionRound,
   FashionSecretId,
@@ -72,8 +72,7 @@ export const FASHION_ROLE_BY_ID: Readonly<Record<FashionRoleId, FashionRoleDefin
     name: '供應商（布行老闆）',
     publicStance: '自保，不成為代罪羔羊',
     secretId: 'supplierOwnerOriginalOrdersAndBreach',
-    secret:
-      '持有「原始訂單與發票」，可證明 VELA 長期要求改標；自己有供應次級布的違約歷史。',
+    secret: '持有「原始訂單與發票」，可證明 VELA 長期要求改標；自己有供應次級布的違約歷史。',
     victoryCondition: '最後一次投票立場與最終結果一致，且自己的違約歷史未被公開。',
   },
 };
@@ -88,6 +87,7 @@ export interface FashionRoundDefinition {
   readonly voteQuestion: string;
   readonly evidenceId: FashionEvidenceId;
   readonly evidenceTitle: string;
+  readonly implicatedRoles: readonly FashionRoleId[];
   readonly mainCrossExam: readonly [FashionRoleId, FashionRoleId];
 }
 
@@ -103,6 +103,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     voteQuestion: '是否派出調查小組前往深水埗，取得根叔手上的訂單與布辦樣本？',
     evidenceId: 'V1',
     evidenceTitle: '裁縫師傅的證詞',
+    implicatedRoles: [],
     mainCrossExam: ['factoryWorker', 'brandExecutive'],
   },
   2: {
@@ -111,11 +112,11 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     esg: 'E',
     eventId: 'E2',
     eventTitle: '大埔工業邨的排污報告',
-    eventDescription:
-      'VELA 二號廠房的內部排污檢測報告顯示多項污染物嚴重超標，但從未公開。',
+    eventDescription: 'VELA 二號廠房的內部排污檢測報告顯示多項污染物嚴重超標，但從未公開。',
     voteQuestion: '是否正式要求環保署公開 VELA 二號廠房的排污檢測報告？',
     evidenceId: 'V2',
     evidenceTitle: '廢水超標化驗單',
+    implicatedRoles: [],
     mainCrossExam: ['governmentOfficial', 'villainProcurementDirector'],
   },
   3: {
@@ -128,6 +129,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     voteQuestion: '是否授權調查小組調閱葵涌貨櫃碼頭的 VELA 貨櫃出入記錄？',
     evidenceId: 'V3',
     evidenceTitle: '貨櫃入閘紀錄',
+    implicatedRoles: [],
     mainCrossExam: ['journalist', 'brandExecutive'],
   },
   4: {
@@ -140,6 +142,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     voteQuestion: '是否要求銀行提供 VELA 可疑轉賬的詳細記錄？',
     evidenceId: 'V4',
     evidenceTitle: '顧問費轉賬記錄',
+    implicatedRoles: [],
     mainCrossExam: ['journalist', 'villainProcurementDirector'],
   },
 };

@@ -29,11 +29,12 @@ import type { FashionCommand } from './commands/types';
 import { FASHION_NEXT_ROUND, FASHION_ROUND_BY_NUMBER } from './domain/content';
 import type { FashionEvent } from './domain/events';
 import { evolveFashionState } from './domain/evolve';
-import { evaluateFashionVictory } from './domain/victoryEvaluator';
 import {
   REASON_FASHION_ACTION_TOKEN_REQUIRED,
   REASON_FASHION_ALREADY_VOTED,
   REASON_FASHION_BOTS_NOT_SUPPORTED,
+  REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET,
+  REASON_FASHION_CROSS_EXAM_AWARD_INVALID,
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
   REASON_FASHION_DISCUSSION_LIMIT_REACHED,
   REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT,
@@ -46,6 +47,7 @@ import {
   REASON_FASHION_VOTES_INCOMPLETE,
 } from './domain/reasons';
 import { assignFashionRoles } from './domain/roles';
+import { evaluateFashionVictory } from './domain/victoryEvaluator';
 import type { FashionEffect } from './effects/types';
 import { normalizeFashionState } from './state/normalize';
 import {
@@ -58,8 +60,8 @@ import {
   type FashionHumanSeat,
   type FashionProfileUpdate,
   type FashionRoleId,
-  type FashionSecretId,
   type FashionSeatProfile,
+  type FashionSecretId,
   type FashionState,
   isFashionRoomFull,
 } from './state/types';
@@ -239,7 +241,18 @@ function decideStartCrossExam(state: FashionState, context: CommandContext): Fas
   const [attackerRole, defenderRole] = FASHION_ROUND_BY_NUMBER[state.currentRound].mainCrossExam;
   const attackerSeat = findSeatWithRole(state, attackerRole);
   const defenderSeat = findSeatWithRole(state, defenderRole);
-  if (getActionTokens(state, attackerSeat) < 1 || getActionTokens(state, defenderSeat) < 1) {
+  const blockedSeats = new Set(
+    state.identityGuessPenalties
+      .filter((penalty) => penalty.blockedRound === state.currentRound)
+      .map((penalty) => penalty.seat),
+  );
+  const participantSeats = Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat).filter(
+    (seat) => !blockedSeats.has(seat),
+  );
+  if (
+    (participantSeats.includes(attackerSeat) && getActionTokens(state, attackerSeat) < 1) ||
+    (participantSeats.includes(defenderSeat) && getActionTokens(state, defenderSeat) < 1)
+  ) {
     return reject(REASON_FASHION_ACTION_TOKEN_REQUIRED);
   }
   return commitFashion([
@@ -247,9 +260,33 @@ function decideStartCrossExam(state: FashionState, context: CommandContext): Fas
       type: 'fashion.crossExam.started',
       attackerSeat,
       defenderSeat,
+      participantSeats,
       startedAt: context.nowMs,
       endsAt: context.nowMs + FASHION_CROSS_EXAM_DURATION_MS,
     },
+  ]);
+}
+
+function decideAwardCrossExam(
+  state: FashionState,
+  seat: number,
+  context: CommandContext,
+): FashionDecision {
+  if (state.phase !== 'crossExamination') return reject(REASON_FASHION_PHASE_INVALID);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  const interrogation = state.interrogation;
+  if (interrogation === null) {
+    throw new Error('Fashion crossExamination phase is missing interrogation state');
+  }
+  if (!interrogation.participantSeats.includes(seat)) {
+    return reject(REASON_FASHION_CROSS_EXAM_AWARD_INVALID);
+  }
+  if (state.crossExamAwards.some((award) => award.round === state.currentRound)) {
+    return reject(REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET);
+  }
+  return commitFashion([
+    { type: 'fashion.crossExam.awarded', award: { round: state.currentRound, seat } },
   ]);
 }
 
@@ -317,7 +354,6 @@ function decideFinishFashionVote(state: FashionState, context: CommandContext): 
   ]);
 }
 
-
 function decideProposeContract(
   state: FashionState,
   contractId: string,
@@ -327,8 +363,15 @@ function decideProposeContract(
 ): FashionDecision {
   const sellerSeat = getActorSeat(state, context);
   if (typeof sellerSeat !== 'number') return sellerSeat;
-  if (state.secrets[sellerSeat] === undefined) return reject(REASON_FASHION_ROLE_NOT_ASSIGNED);
-  if (state.realSeats[buyerSeat] === undefined || buyerSeat === sellerSeat) {
+  if (state.secrets[sellerSeat] === undefined || state.roles[sellerSeat] !== 'factoryWorker') {
+    return reject(REASON_FASHION_ROLE_NOT_ASSIGNED);
+  }
+  if (
+    contractId.length === 0 ||
+    state.contracts.some((contract) => contract.id === contractId) ||
+    state.realSeats[buyerSeat] === undefined ||
+    buyerSeat === sellerSeat
+  ) {
     return reject(REASON_FASHION_PHASE_INVALID);
   }
   return commitFashion([
@@ -391,19 +434,25 @@ function decideIdentityGuess(
     return reject(REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT);
   }
   const previousGuess = guessHistory[guessHistory.length - 1];
-  if (previousGuess !== undefined && previousGuess.targetSeat === targetSeat) {
+  if (
+    previousGuess !== undefined &&
+    previousGuess.round === state.currentRound - 1 &&
+    previousGuess.targetSeat === targetSeat
+  ) {
     return reject(REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED);
   }
   const actualSecret = state.secrets[targetSeat];
   const success = actualSecret === guessedSecretId;
-  return commitFashion([{
-    type: 'fashion.identityGuess.cast',
-    guesserSeat,
-    targetSeat,
-    guessedSecretId,
-    success,
-    revealedSecretId: success ? actualSecret : null,
-  }]);
+  return commitFashion([
+    {
+      type: 'fashion.identityGuess.cast',
+      guesserSeat,
+      targetSeat,
+      guessedSecretId,
+      success,
+      revealedSecretId: success ? actualSecret : null,
+    },
+  ]);
 }
 
 function decideAdvanceRound(state: FashionState, context: CommandContext): FashionDecision {
@@ -422,16 +471,23 @@ function decideAdvanceRound(state: FashionState, context: CommandContext): Fashi
 }
 
 function decideStartHearing(state: FashionState, context: CommandContext): FashionDecision {
-  if (state.currentRound !== 4 || state.phase !== 'roundTransition') return reject(REASON_FASHION_PHASE_INVALID);
+  if (state.currentRound !== 4 || state.phase !== 'roundTransition')
+    return reject(REASON_FASHION_PHASE_INVALID);
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
   return commitFashion([{ type: 'fashion.hearing.started' }]);
 }
 
-function decideHearingVote(state: FashionState, targetSeat: number, context: CommandContext): FashionDecision {
+function decideHearingVote(
+  state: FashionState,
+  targetSeat: number,
+  context: CommandContext,
+): FashionDecision {
   if (state.phase !== 'hearing') return reject(REASON_FASHION_PHASE_INVALID);
   const seat = getActorSeat(state, context);
   if (typeof seat !== 'number') return seat;
+  if (state.realSeats[targetSeat] === undefined) return reject(REASON_FASHION_PHASE_INVALID);
+  if (state.finalVotes[seat] !== undefined) return reject(REASON_FASHION_ALREADY_VOTED);
   return commitFashion([{ type: 'fashion.hearing.vote', seat, targetSeat }]);
 }
 
@@ -439,11 +495,17 @@ function decideFinishHearing(state: FashionState, context: CommandContext): Fash
   if (state.phase !== 'hearing') return reject(REASON_FASHION_PHASE_INVALID);
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
+  if (Object.keys(state.finalVotes).length !== FASHION_PLAYER_COUNT) {
+    return reject(REASON_FASHION_VOTES_INCOMPLETE);
+  }
   const { winners } = evaluateFashionVictory(state);
   return commitFashion([{ type: 'fashion.hearing.finished', winners }]);
 }
 
-function createInitialFashionState(config: FashionConfig, context: CreateGameContext): FashionState {
+function createInitialFashionState(
+  config: FashionConfig,
+  context: CreateGameContext,
+): FashionState {
   if (config.numberOfPlayers !== FASHION_PLAYER_COUNT) {
     throw new Error(`Invalid Fashion config: numberOfPlayers must be ${FASHION_PLAYER_COUNT}`);
   }
@@ -463,12 +525,14 @@ function createInitialFashionState(config: FashionConfig, context: CreateGameCon
     publicEvidence: [],
     destroyedEvidence: [],
     votes: {},
+    investigationVoteHistory: [],
     discussionSpeakCounts: {},
     interrogation: null,
     contracts: [],
     identityGuessPenalties: [],
     identityGuessHistory: [],
     revealedSecrets: {},
+    crossExamAwards: [],
     finalVotes: {},
     winners: [],
   });
@@ -505,6 +569,8 @@ export function decideFashionCommand(
       return decideRevealFashionEvent(state, context);
     case 'fashion.crossExam.start':
       return decideStartCrossExam(state, context);
+    case 'fashion.crossExam.award':
+      return decideAwardCrossExam(state, command.seat, context);
     case 'fashion.crossExam.finish':
       return decideFinishCrossExam(state, context);
     case 'fashion.discussion.speak':
@@ -526,7 +592,13 @@ export function decideFashionCommand(
     case 'fashion.hearing.finish':
       return decideFinishHearing(state, context);
     case 'fashion.contract.propose':
-      return decideProposeContract(state, command.contractId, command.buyerSeat, command.promise, context);
+      return decideProposeContract(
+        state,
+        command.contractId,
+        command.buyerSeat,
+        command.promise,
+        context,
+      );
     case 'fashion.contract.accept':
       return decideAcceptContract(state, command.contractId, context);
     case 'fashion.contract.fulfill':

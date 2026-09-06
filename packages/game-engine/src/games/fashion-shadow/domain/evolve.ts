@@ -1,7 +1,20 @@
 // Pure event evolution for Fashion Shadow.
 
+import type { FashionHumanSeat, FashionRound, FashionState } from '../state/types';
 import type { FashionEvent } from './events';
-import type { FashionHumanSeat, FashionState } from '../state/types';
+
+function getNextFashionRound(round: FashionRound): FashionRound | null {
+  switch (round) {
+    case 1:
+      return 2;
+    case 2:
+      return 3;
+    case 3:
+      return 4;
+    case 4:
+      return null;
+  }
+}
 
 function applyFashionSeatChanges(
   seats: FashionState['realSeats'],
@@ -66,16 +79,23 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
         phase: 'crossExamination',
         actionTokens: {
           ...state.actionTokens,
-          [event.attackerSeat]: state.actionTokens[event.attackerSeat]! - 1,
-          [event.defenderSeat]: state.actionTokens[event.defenderSeat]! - 1,
+          ...(event.participantSeats.includes(event.attackerSeat)
+            ? { [event.attackerSeat]: state.actionTokens[event.attackerSeat]! - 1 }
+            : {}),
+          ...(event.participantSeats.includes(event.defenderSeat)
+            ? { [event.defenderSeat]: state.actionTokens[event.defenderSeat]! - 1 }
+            : {}),
         },
         interrogation: {
           attackerSeat: event.attackerSeat,
           defenderSeat: event.defenderSeat,
+          participantSeats: [...event.participantSeats],
           startedAt: event.startedAt,
           endsAt: event.endsAt,
         },
       };
+    case 'fashion.crossExam.awarded':
+      return { ...state, crossExamAwards: [...state.crossExamAwards, event.award] };
     case 'fashion.crossExam.finished':
       return { ...state, phase: 'discussion', interrogation: null, discussionSpeakCounts: {} };
     case 'fashion.discussion.spoken':
@@ -93,11 +113,18 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
     case 'fashion.discussion.finished':
       return { ...state, phase: 'vote', votes: {} };
     case 'fashion.vote.cast':
-      return { ...state, votes: { ...state.votes, [event.seat]: event.vote } };
+      return {
+        ...state,
+        votes: { ...state.votes, [event.seat]: event.vote },
+        investigationVoteHistory: [
+          ...state.investigationVoteHistory,
+          { round: state.currentRound, seat: event.seat, vote: event.vote },
+        ],
+      };
     case 'fashion.vote.finished':
       return {
         ...state,
-        phase: state.currentRound === 4 ? 'hearing' : 'roundTransition',
+        phase: 'roundTransition',
         publicEvidence: event.approved
           ? [...state.publicEvidence, event.evidenceId]
           : state.publicEvidence,
@@ -132,19 +159,22 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
           contract.id === event.contractId ? { ...contract, status: 'fulfilled' } : contract,
         ),
       };
-    case 'fashion.identityGuess.cast':
+    case 'fashion.identityGuess.cast': {
+      const blockedRound = getNextFashionRound(state.currentRound);
       return {
         ...state,
         actionTokens: {
           ...state.actionTokens,
           [event.guesserSeat]: state.actionTokens[event.guesserSeat]! - 1,
         },
-        revealedSecrets: event.success && event.revealedSecretId !== null
-          ? { ...state.revealedSecrets, [event.targetSeat]: event.revealedSecretId }
-          : state.revealedSecrets,
-        identityGuessPenalties: event.success
-          ? state.identityGuessPenalties
-          : [...state.identityGuessPenalties, { seat: event.guesserSeat, blockedRound: state.currentRound }],
+        revealedSecrets:
+          event.success && event.revealedSecretId !== null
+            ? { ...state.revealedSecrets, [event.targetSeat]: event.revealedSecretId }
+            : state.revealedSecrets,
+        identityGuessPenalties:
+          event.success || blockedRound === null
+            ? state.identityGuessPenalties
+            : [...state.identityGuessPenalties, { seat: event.guesserSeat, blockedRound }],
         identityGuessHistory: [
           ...state.identityGuessHistory,
           {
@@ -154,6 +184,7 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
           },
         ],
       };
+    }
     case 'fashion.hearing.vote':
       return {
         ...state,

@@ -51,6 +51,8 @@ export function normalizeFashionState(state: FashionState): FashionState {
   assertSeatRecord(state.actionTokens, 'Fashion actionTokens');
   assertSeatRecord(state.votes, 'Fashion votes');
   assertSeatRecord(state.discussionSpeakCounts, 'Fashion discussionSpeakCounts');
+  assertSeatRecord(state.revealedSecrets, 'Fashion revealedSecrets');
+  assertSeatRecord(state.finalVotes, 'Fashion finalVotes');
 
   const userIds = new Set<string>();
   for (const [rawSeat, occupant] of Object.entries(state.realSeats)) {
@@ -127,6 +129,58 @@ export function normalizeFashionState(state: FashionState): FashionState {
     previousConfirmedSeat = seat;
   }
 
+  const investigationVoteKeys = new Set<string>();
+  for (const record of state.investigationVoteHistory) {
+    assertSeat(record.seat, 'Fashion investigation vote seat');
+    const key = `${record.round}:${record.seat}`;
+    if (investigationVoteKeys.has(key)) {
+      throw new Error(`Fashion investigation vote history duplicates ${key}`);
+    }
+    investigationVoteKeys.add(key);
+  }
+
+  const awardRounds = new Set<number>();
+  for (const award of state.crossExamAwards) {
+    assertSeat(award.seat, 'Fashion cross exam award seat');
+    if (awardRounds.has(award.round)) {
+      throw new Error(`Fashion cross exam round ${award.round} has multiple awards`);
+    }
+    if (
+      state.identityGuessPenalties.some(
+        (penalty) => penalty.seat === award.seat && penalty.blockedRound === award.round,
+      )
+    ) {
+      throw new Error(`Fashion blocked seat ${award.seat} cannot receive a cross exam award`);
+    }
+    awardRounds.add(award.round);
+  }
+
+  for (const penalty of state.identityGuessPenalties) {
+    assertSeat(penalty.seat, 'Fashion identity guess penalty seat');
+  }
+
+  const contractIds = new Set<string>();
+  for (const contract of state.contracts) {
+    if (contract.id.length === 0 || contractIds.has(contract.id)) {
+      throw new Error(`Fashion contract id ${contract.id} must be non-empty and unique`);
+    }
+    contractIds.add(contract.id);
+    assertSeat(contract.sellerSeat, 'Fashion contract seller');
+    assertSeat(contract.buyerSeat, 'Fashion contract buyer');
+    if (contract.sellerSeat === contract.buyerSeat) {
+      throw new Error('Fashion contract seller and buyer must differ');
+    }
+    const sellerRole = state.roles[contract.sellerSeat];
+    if (sellerRole !== undefined && sellerRole !== 'factoryWorker') {
+      throw new Error('Fashion contract seller must be the factory worker');
+    }
+  }
+
+  for (const [rawSeat, targetSeat] of Object.entries(state.finalVotes)) {
+    assertSeat(Number(rawSeat), 'Fashion hearing voter');
+    assertSeat(targetSeat, 'Fashion hearing target');
+  }
+
   for (const [rawSeat, count] of Object.entries(state.discussionSpeakCounts)) {
     const seat = Number(rawSeat);
     if (!Number.isSafeInteger(count) || count < 1 || count > FASHION_MAX_DISCUSSION_SPEAKS) {
@@ -139,6 +193,23 @@ export function normalizeFashionState(state: FashionState): FashionState {
     assertSeat(state.interrogation.defenderSeat, 'Fashion interrogation defender');
     if (state.interrogation.attackerSeat === state.interrogation.defenderSeat) {
       throw new Error('Fashion interrogation seats must differ');
+    }
+    const participantSeats = [...state.interrogation.participantSeats].sort(
+      (left, right) => left - right,
+    );
+    for (let index = 0; index < participantSeats.length; index += 1) {
+      const seat = participantSeats[index]!;
+      assertSeat(seat, 'Fashion interrogation participant');
+      if (index > 0 && participantSeats[index - 1] === seat) {
+        throw new Error('Fashion interrogation participants must be unique');
+      }
+      if (
+        state.identityGuessPenalties.some(
+          (penalty) => penalty.seat === seat && penalty.blockedRound === state.currentRound,
+        )
+      ) {
+        throw new Error(`Fashion blocked seat ${seat} cannot participate in cross examination`);
+      }
     }
     if (state.interrogation.endsAt <= state.interrogation.startedAt) {
       throw new Error('Fashion interrogation timestamps are invalid');

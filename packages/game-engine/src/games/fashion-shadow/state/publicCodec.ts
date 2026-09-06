@@ -18,12 +18,10 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
 import { FASHION_ROLE_BY_ID } from '../domain/content';
-import type {
-  FashionPrivateIdentityView,
-  FashionPublicState,
-} from '../domain/visibility';
+import type { FashionPrivateIdentityView, FashionPublicState } from '../domain/visibility';
 import {
   FASHION_PLAYER_COUNT,
+  type FashionCrossExamAward,
   type FashionHumanSeat,
   type FashionInterrogation,
   type FashionPhase,
@@ -110,6 +108,8 @@ function parsePhase(value: unknown, path: string): FashionPhase {
     case 'crossExamination':
     case 'discussion':
     case 'vote':
+    case 'roundTransition':
+    case 'hearing':
     case 'ended':
       return value;
     default:
@@ -140,6 +140,18 @@ function parseEvidence(value: unknown, path: string) {
   return value;
 }
 
+function parseCrossExamAward(value: unknown, path: string): FashionCrossExamAward {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+    },
+    path,
+  );
+}
+
 function parseInterrogation(value: unknown, path: string): FashionInterrogation | null {
   if (value === null) return null;
   const raw = parseObject(value, path);
@@ -148,6 +160,10 @@ function parseInterrogation(value: unknown, path: string): FashionInterrogation 
     {
       attackerSeat: parseFashionSeat(raw.attackerSeat, `${path}.attackerSeat`),
       defenderSeat: parseFashionSeat(raw.defenderSeat, `${path}.defenderSeat`),
+      participantSeats:
+        raw.participantSeats === undefined
+          ? Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat)
+          : parseArray(raw.participantSeats, `${path}.participantSeats`, parseFashionSeat),
       startedAt: parseInteger(raw.startedAt, `${path}.startedAt`),
       endsAt: parseInteger(raw.endsAt, `${path}.endsAt`),
     },
@@ -189,10 +205,7 @@ function assertUniqueAscendingSeats(seats: readonly number[], label: string): vo
 
 export function parseFashionPublicState(value: unknown): FashionPublicState {
   const raw = parseObject(value, 'FashionPublicState');
-  const numberOfPlayers = parseInteger(
-    raw.numberOfPlayers,
-    'FashionPublicState.numberOfPlayers',
-  );
+  const numberOfPlayers = parseInteger(raw.numberOfPlayers, 'FashionPublicState.numberOfPlayers');
   if (numberOfPlayers !== FASHION_PLAYER_COUNT) {
     return failDecode('FashionPublicState.numberOfPlayers', '7');
   }
@@ -238,6 +251,19 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
         'FashionPublicState.destroyedEvidence',
         parseEvidence,
       ),
+      revealedSecrets: parseSeatRecord(
+        raw.revealedSecrets,
+        'FashionPublicState.revealedSecrets',
+        (entry, path) => {
+          if (!isFashionSecretId(entry)) return failDecode(path, 'Fashion secret id');
+          return entry;
+        },
+      ),
+      crossExamAwards: parseArray(
+        raw.crossExamAwards,
+        'FashionPublicState.crossExamAwards',
+        parseCrossExamAward,
+      ),
       votedSeats,
       discussionSpeakCounts: parseSeatRecord(
         raw.discussionSpeakCounts,
@@ -245,6 +271,7 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
         parseInteger,
       ),
       interrogation: parseInterrogation(raw.interrogation, 'FashionPublicState.interrogation'),
+      winners: parseArray(raw.winners, 'FashionPublicState.winners', parseFashionSeat),
       privateIdentity: parsePrivateIdentity(
         raw.privateIdentity,
         'FashionPublicState.privateIdentity',

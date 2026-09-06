@@ -1,10 +1,10 @@
 // Per-user Fashion Shadow projection that never exposes another player's secret identity.
 
 import { findSeatByUserId } from '../../../platform/room/seating';
-import { FASHION_ROLE_BY_ID, FASHION_ROUND_BY_NUMBER } from './content';
 import type {
-  FashionEvidenceId,
+  FashionCrossExamAward,
   FashionEventId,
+  FashionEvidenceId,
   FashionHumanSeat,
   FashionInterrogation,
   FashionPhase,
@@ -12,6 +12,7 @@ import type {
   FashionSecretId,
   FashionState,
 } from '../state/types';
+import { FASHION_ROLE_BY_ID, FASHION_ROUND_BY_NUMBER } from './content';
 
 export interface FashionPrivateIdentityView {
   readonly seat: number;
@@ -39,9 +40,12 @@ export interface FashionPublicState {
   readonly voteQuestion: string | null;
   readonly publicEvidence: readonly FashionEvidenceId[];
   readonly destroyedEvidence: readonly FashionEvidenceId[];
+  readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
+  readonly crossExamAwards: readonly FashionCrossExamAward[];
   readonly votedSeats: readonly number[];
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
+  readonly winners: readonly number[];
   readonly privateIdentity: FashionPrivateIdentityView | null;
 }
 
@@ -49,7 +53,10 @@ export function getFashionUserSeat(state: FashionState, userId: string): number 
   return findSeatByUserId(state.realSeats, state.numberOfPlayers, userId);
 }
 
-export function getFashionPublicState(state: FashionState, userId: string | null): FashionPublicState {
+export function getFashionPublicState(
+  state: FashionState,
+  userId: string | null,
+): FashionPublicState {
   const viewerSeat = userId === null ? null : getFashionUserSeat(state, userId);
   const roleId = viewerSeat === null ? undefined : state.roles[viewerSeat];
   const secretId = viewerSeat === null ? undefined : state.secrets[viewerSeat];
@@ -72,11 +79,14 @@ export function getFashionPublicState(state: FashionState, userId: string | null
     voteQuestion: state.currentEvent === null ? null : round.voteQuestion,
     publicEvidence: state.publicEvidence,
     destroyedEvidence: state.destroyedEvidence,
+    revealedSecrets: state.revealedSecrets,
+    crossExamAwards: state.crossExamAwards,
     votedSeats: Object.keys(state.votes)
       .map(Number)
       .sort((left, right) => left - right),
     discussionSpeakCounts: state.discussionSpeakCounts,
     interrogation: state.interrogation,
+    winners: state.winners,
     privateIdentity:
       viewerSeat === null || roleId === undefined || role === undefined || secretId === undefined
         ? null

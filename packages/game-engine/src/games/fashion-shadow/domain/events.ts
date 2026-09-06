@@ -2,8 +2,9 @@
 
 import type { SeatChange } from '../../../platform/room/seating';
 import type {
-  FashionEvidenceId,
+  FashionCrossExamAward,
   FashionEventId,
+  FashionEvidenceId,
   FashionHumanSeat,
   FashionInvestigationVote,
   FashionProfileUpdate,
@@ -33,9 +34,11 @@ export type FashionEvent =
       readonly type: 'fashion.crossExam.started';
       readonly attackerSeat: number;
       readonly defenderSeat: number;
+      readonly participantSeats: readonly number[];
       readonly startedAt: number;
       readonly endsAt: number;
     }
+  | { readonly type: 'fashion.crossExam.awarded'; readonly award: FashionCrossExamAward }
   | { readonly type: 'fashion.crossExam.finished' }
   | { readonly type: 'fashion.discussion.spoken'; readonly seat: number }
   | { readonly type: 'fashion.discussion.finished' }

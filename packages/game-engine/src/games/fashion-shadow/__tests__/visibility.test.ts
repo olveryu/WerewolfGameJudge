@@ -24,7 +24,11 @@ function context(userId: string, nowMs: number): CommandContext {
   };
 }
 
-function dispatch(state: FashionState, command: FashionCommand, actor: CommandContext): FashionState {
+function dispatch(
+  state: FashionState,
+  command: FashionCommand,
+  actor: CommandContext,
+): FashionState {
   const decision = fashionEngine.decide(state, command, actor);
   if (decision.kind === 'reject') throw new Error(decision.reason);
   let next = state;
@@ -59,11 +63,39 @@ describe('Fashion Shadow visibility', () => {
     expect(first.privateIdentity).not.toEqual(second.privateIdentity);
   });
 
-  it('never carries authoritative role, secret, or vote maps in a client projection', () => {
-    const projected = getFashionPublicState(createStartedState(), 'user-0');
+  it('redacts private maps while exposing only explicitly revealed secrets', () => {
+    const base = createStartedState();
+    const workerEntry = Object.entries(base.roles).find(([, role]) => role === 'factoryWorker');
+    if (workerEntry === undefined) throw new Error('Expected factory worker');
+    const workerSeat = Number(workerEntry[0]);
+    const buyerSeat = workerSeat === 0 ? 1 : 0;
+    const revealedSeat = buyerSeat;
+    const revealedSecret = base.secrets[revealedSeat];
+    if (revealedSecret === undefined) throw new Error('Expected revealed secret');
+    const state: FashionState = {
+      ...base,
+      contracts: [
+        {
+          id: 'private-contract',
+          sellerSeat: workerSeat,
+          buyerSeat,
+          promise: 'protection',
+          status: 'accepted',
+        },
+      ],
+      investigationVoteHistory: [{ round: 1, seat: 0, vote: 'approve' }],
+      finalVotes: { 0: buyerSeat },
+      revealedSecrets: { [revealedSeat]: revealedSecret },
+    };
+
+    const projected = getFashionPublicState(state, 'user-0');
     expect('roles' in projected).toBe(false);
     expect('secrets' in projected).toBe(false);
     expect('votes' in projected).toBe(false);
+    expect('finalVotes' in projected).toBe(false);
+    expect('investigationVoteHistory' in projected).toBe(false);
+    expect('contracts' in projected).toBe(false);
+    expect(projected.revealedSecrets).toEqual({ [revealedSeat]: revealedSecret });
     expect(FASHION_PUBLIC_STATE_CODEC.parse(projected)).toEqual(projected);
   });
 
@@ -72,10 +104,10 @@ describe('Fashion Shadow visibility', () => {
     expect(projected.privateIdentity).toBeNull();
   });
 
-  it('does not expose round progression private maps', () => {
+  it('does not expose identity-guess history or contract state', () => {
     const projected = getFashionPublicState(createStartedState(), 'user-0');
-    expect('roles' in projected).toBe(false);
-    expect('secrets' in projected).toBe(false);
-    expect('votes' in projected).toBe(false);
+    expect('identityGuessHistory' in projected).toBe(false);
+    expect('identityGuessPenalties' in projected).toBe(false);
+    expect('contracts' in projected).toBe(false);
   });
 });

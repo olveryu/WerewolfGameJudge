@@ -5,7 +5,10 @@ import type {
   FashionInternalCommand,
   FashionPublicCommand,
 } from '@game-judge/game-engine/games/fashion-shadow/public';
-import { FASHION_PLAYER_COUNT } from '@game-judge/game-engine/games/fashion-shadow/public';
+import {
+  FASHION_PLAYER_COUNT,
+  FASHION_SECRET_IDS,
+} from '@game-judge/game-engine/games/fashion-shadow/public';
 import { z } from 'zod';
 
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
@@ -22,12 +25,19 @@ function defineFashionPublicCommandOptions<const TOptions extends readonly z.Zod
   return options;
 }
 
+const fashionSeatSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(FASHION_PLAYER_COUNT - 1);
+
 const publicCommandOptions = defineFashionPublicCommandOptions([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('fashion.game.start') }),
   z.strictObject({ type: z.literal('fashion.role.confirm') }),
   z.strictObject({ type: z.literal('fashion.event.reveal') }),
   z.strictObject({ type: z.literal('fashion.crossExam.start') }),
+  z.strictObject({ type: z.literal('fashion.crossExam.award'), seat: fashionSeatSchema }),
   z.strictObject({ type: z.literal('fashion.crossExam.finish') }),
   z.strictObject({ type: z.literal('fashion.discussion.speak') }),
   z.strictObject({ type: z.literal('fashion.discussion.finish') }),
@@ -36,6 +46,23 @@ const publicCommandOptions = defineFashionPublicCommandOptions([
     vote: z.enum(['approve', 'reject']),
   }),
   z.strictObject({ type: z.literal('fashion.vote.finish') }),
+  z.strictObject({ type: z.literal('fashion.round.advance') }),
+  z.strictObject({ type: z.literal('fashion.hearing.start') }),
+  z.strictObject({ type: z.literal('fashion.hearing.vote'), targetSeat: fashionSeatSchema }),
+  z.strictObject({ type: z.literal('fashion.hearing.finish') }),
+  z.strictObject({
+    type: z.literal('fashion.contract.propose'),
+    contractId: z.string().min(1),
+    buyerSeat: fashionSeatSchema,
+    promise: z.enum(['compensation', 'protection', 'legalImmunity']),
+  }),
+  z.strictObject({ type: z.literal('fashion.contract.accept'), contractId: z.string().min(1) }),
+  z.strictObject({ type: z.literal('fashion.contract.fulfill'), contractId: z.string().min(1) }),
+  z.strictObject({
+    type: z.literal('fashion.identityGuess.cast'),
+    targetSeat: fashionSeatSchema,
+    guessedSecretId: z.enum(FASHION_SECRET_IDS),
+  }),
 ]);
 
 export const fashionPublicCommandSchema: z.ZodType<FashionPublicCommand> = z.discriminatedUnion(

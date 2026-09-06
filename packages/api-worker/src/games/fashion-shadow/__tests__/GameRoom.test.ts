@@ -4,6 +4,7 @@ import {
   FASHION_PUBLIC_STATE_CODEC,
   FASHION_STATE_CODEC,
   type FashionPublicCommand,
+  type FashionState,
 } from '@game-judge/game-engine/games/fashion-shadow/public';
 import {
   createStateSyncRequestMessage,
@@ -37,6 +38,10 @@ afterEach(deleteCurrentRoomAlarms);
 
 function getStub(): DurableObjectStub<GameRoom> {
   return env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
+}
+
+function userIdForSeat(seat: number): string {
+  return seat === 0 ? 'fashion-host' : `fashion-player-${seat}`;
 }
 
 function roomIdentity(stub: DurableObjectStub<GameRoom>) {
@@ -94,7 +99,7 @@ function requireCommitted(result: DispatchRoomResult) {
 
 async function seatAndStart(stub: DurableObjectStub<GameRoom>): Promise<void> {
   for (let seat = 0; seat < 7; seat += 1) {
-    const userId = seat === 0 ? 'fashion-host' : `fashion-player-${seat}`;
+    const userId = userIdForSeat(seat);
     requireCommitted(
       await dispatch(stub, stub, userId, `fashion-seat-${seat}`, {
         type: 'room.seat.take',
@@ -110,43 +115,96 @@ async function seatAndStart(stub: DurableObjectStub<GameRoom>): Promise<void> {
   );
 }
 
+async function getAuthoritativeState(stub: DurableObjectStub<GameRoom>): Promise<FashionState> {
+  const snapshot = await stub.getSnapshot(roomIdentity(stub));
+  if (snapshot === null) throw new Error('Expected authoritative Fashion snapshot');
+  return FASHION_STATE_CODEC.parse(snapshot.state);
+}
+
 describe('Fashion Shadow private state transport', () => {
   it('persists full authority but returns only the actor projection from commands', async () => {
     const stub = getStub();
     await initialize(stub);
     await seatAndStart(stub);
 
-    const hostResult = requireCommitted(
-      await dispatch(stub, stub, 'fashion-host', 'fashion-host-confirm', {
-        type: 'fashion.role.confirm',
+    const initialAuthority = await getAuthoritativeState(stub);
+    const workerEntry = Object.entries(initialAuthority.roles).find(
+      ([, role]) => role === 'factoryWorker',
+    );
+    if (workerEntry === undefined) throw new Error('Expected factory worker');
+    const workerSeat = Number(workerEntry[0]);
+    const buyerSeat = workerSeat === 0 ? 1 : 0;
+
+    const contractResult = requireCommitted(
+      await dispatch(stub, stub, userIdForSeat(workerSeat), 'fashion-contract-propose', {
+        type: 'fashion.contract.propose',
+        contractId: 'worker-private-contract',
+        buyerSeat,
+        promise: 'protection',
       }),
     );
-    const hostView = FASHION_PUBLIC_STATE_CODEC.parse(hostResult.snapshot.state);
+    const contractView = FASHION_PUBLIC_STATE_CODEC.parse(contractResult.snapshot.state);
+    expect(contractView.privateIdentity?.seat).toBe(workerSeat);
+    expect('contracts' in contractView).toBe(false);
+
+    const targetSeat = 1;
+    const targetSecret = initialAuthority.secrets[targetSeat];
+    if (targetSecret === undefined) throw new Error('Expected target secret');
+    const guessResult = requireCommitted(
+      await dispatch(stub, stub, 'fashion-host', 'fashion-reveal-secret', {
+        type: 'fashion.identityGuess.cast',
+        targetSeat,
+        guessedSecretId: targetSecret,
+      }),
+    );
+    const hostView = FASHION_PUBLIC_STATE_CODEC.parse(guessResult.snapshot.state);
     expect(hostView.privateIdentity?.seat).toBe(0);
+    expect(hostView.revealedSecrets).toEqual({ [targetSeat]: targetSecret });
     expect('roles' in hostView).toBe(false);
     expect('secrets' in hostView).toBe(false);
     expect('votes' in hostView).toBe(false);
+    expect('finalVotes' in hostView).toBe(false);
+    expect('investigationVoteHistory' in hostView).toBe(false);
+    expect('contracts' in hostView).toBe(false);
 
-    const playerResult = requireCommitted(
-      await dispatch(stub, stub, 'fashion-player-1', 'fashion-player-1-confirm', {
-        type: 'fashion.role.confirm',
-      }),
-    );
-    const playerView = FASHION_PUBLIC_STATE_CODEC.parse(playerResult.snapshot.state);
-    expect(playerView.privateIdentity?.seat).toBe(1);
-    expect(playerView.privateIdentity).not.toEqual(hostView.privateIdentity);
-
-    const authoritativeSnapshot = await stub.getSnapshot(roomIdentity(stub));
-    if (authoritativeSnapshot === null) throw new Error('Expected authoritative Fashion snapshot');
-    const authoritative = FASHION_STATE_CODEC.parse(authoritativeSnapshot.state);
+    const authoritative = await getAuthoritativeState(stub);
     expect(Object.keys(authoritative.roles)).toHaveLength(7);
     expect(Object.keys(authoritative.secrets)).toHaveLength(7);
+    expect(authoritative.contracts).toHaveLength(1);
+    expect(authoritative.revealedSecrets[targetSeat]).toBe(targetSecret);
+    expect(authoritative.investigationVoteHistory).toEqual([]);
+    expect(authoritative.finalVotes).toEqual({});
   });
 
   it('projects reconnect state sync for the socket user', async () => {
     const stub = getStub();
     await initialize(stub);
     await seatAndStart(stub);
+    const authority = await getAuthoritativeState(stub);
+    const workerEntry = Object.entries(authority.roles).find(
+      ([, role]) => role === 'factoryWorker',
+    );
+    if (workerEntry === undefined) throw new Error('Expected factory worker');
+    const workerSeat = Number(workerEntry[0]);
+    const buyerSeat = workerSeat === 0 ? 1 : 0;
+    requireCommitted(
+      await dispatch(stub, stub, userIdForSeat(workerSeat), 'fashion-sync-private-contract', {
+        type: 'fashion.contract.propose',
+        contractId: 'sync-private-contract',
+        buyerSeat,
+        promise: 'compensation',
+      }),
+    );
+    const targetSeat = 1;
+    const targetSecret = authority.secrets[targetSeat];
+    if (targetSecret === undefined) throw new Error('Expected target secret');
+    requireCommitted(
+      await dispatch(stub, stub, 'fashion-host', 'fashion-sync-reveal-secret', {
+        type: 'fashion.identityGuess.cast',
+        targetSeat,
+        guessedSecretId: targetSecret,
+      }),
+    );
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
       const sockets = new WebSocketPair();
@@ -157,7 +215,7 @@ describe('Fashion Shadow private state transport', () => {
             if (typeof event.data !== 'string') throw new Error('Expected text sync response');
             resolve(JSON.parse(event.data));
           } catch (error) {
-            reject(error);
+            reject(error instanceof Error ? error : new Error(String(error)));
           }
         });
       });
@@ -168,15 +226,16 @@ describe('Fashion Shadow private state transport', () => {
         JSON.stringify(createStateSyncRequestMessage('fashion-sync-1')),
       );
 
-      const response = parseStateSyncResponseMessage(
-        await received,
-        FASHION_PUBLIC_STATE_CODEC,
-      );
+      const response = parseStateSyncResponseMessage(await received, FASHION_PUBLIC_STATE_CODEC);
       expect(response.requestId).toBe('fashion-sync-1');
       expect(response.state.privateIdentity?.seat).toBe(2);
       expect('roles' in response.state).toBe(false);
       expect('secrets' in response.state).toBe(false);
       expect('votes' in response.state).toBe(false);
+      expect('finalVotes' in response.state).toBe(false);
+      expect('investigationVoteHistory' in response.state).toBe(false);
+      expect('contracts' in response.state).toBe(false);
+      expect(response.state.revealedSecrets).toEqual({ [targetSeat]: targetSecret });
       sockets[0].close();
     });
   });

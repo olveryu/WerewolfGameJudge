@@ -62,19 +62,14 @@ export interface FashionHumanSeat extends SeatOccupant {
 export interface FashionInterrogation {
   readonly attackerSeat: number;
   readonly defenderSeat: number;
+  readonly participantSeats: readonly number[];
   readonly startedAt: number;
   readonly endsAt: number;
 }
 
-export type FashionContractPromise =
-  | 'compensation'
-  | 'protection'
-  | 'legalImmunity';
+export type FashionContractPromise = 'compensation' | 'protection' | 'legalImmunity';
 
-export type FashionContractStatus =
-  | 'proposed'
-  | 'accepted'
-  | 'fulfilled';
+export type FashionContractStatus = 'proposed' | 'accepted' | 'fulfilled';
 
 export interface FashionContract {
   readonly id: string;
@@ -95,6 +90,17 @@ export interface FashionIdentityGuessPenalty {
   readonly blockedRound: FashionRound;
 }
 
+export interface FashionInvestigationVoteRecord {
+  readonly round: FashionRound;
+  readonly seat: number;
+  readonly vote: FashionInvestigationVote;
+}
+
+export interface FashionCrossExamAward {
+  readonly round: FashionRound;
+  readonly seat: number;
+}
+
 export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly phase: FashionPhase;
   readonly currentRound: FashionRound;
@@ -109,12 +115,14 @@ export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly publicEvidence: readonly FashionEvidenceId[];
   readonly destroyedEvidence: readonly FashionEvidenceId[];
   readonly votes: Readonly<Record<number, FashionInvestigationVote>>;
+  readonly investigationVoteHistory: readonly FashionInvestigationVoteRecord[];
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
   readonly contracts: readonly FashionContract[];
   readonly identityGuessPenalties: readonly FashionIdentityGuessPenalty[];
   readonly identityGuessHistory: readonly FashionIdentityGuessHistory[];
   readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
+  readonly crossExamAwards: readonly FashionCrossExamAward[];
   readonly finalVotes: Readonly<Record<number, number>>;
   readonly winners: readonly number[];
 }

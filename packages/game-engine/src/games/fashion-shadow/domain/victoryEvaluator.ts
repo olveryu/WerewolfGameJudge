@@ -1,4 +1,10 @@
-import type { FashionRoleId, FashionState } from '../state/types';
+import type {
+  FashionEvidenceId,
+  FashionInvestigationVoteRecord,
+  FashionRoleId,
+  FashionState,
+} from '../state/types';
+import { FASHION_ROUND_BY_NUMBER } from './content';
 
 export interface FashionVictoryResult {
   readonly winners: readonly number[];
@@ -14,67 +20,138 @@ function villainSeats(state: FashionState): readonly number[] {
   return seatsWithRole(state, 'villainProcurementDirector');
 }
 
+function getFinalAccusedSeat(state: FashionState): number | null {
+  const counts = new Map<number, number>();
+  for (const targetSeat of Object.values(state.finalVotes)) {
+    counts.set(targetSeat, (counts.get(targetSeat) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+
+  let highestCount = 0;
+  let highestSeats: number[] = [];
+  for (const [seat, count] of counts) {
+    if (count > highestCount) {
+      highestCount = count;
+      highestSeats = [seat];
+    } else if (count === highestCount) {
+      highestSeats.push(seat);
+    }
+  }
+  return highestSeats.length === 1 ? highestSeats[0]! : null;
+}
+
 function isVillainConvicted(state: FashionState): boolean {
-  const villains = new Set(villainSeats(state));
-  const votes = Object.values(state.finalVotes);
-  return votes.some((target) => villains.has(target));
+  if (state.publicEvidence.length < 2) return false;
+  const accusedSeat = getFinalAccusedSeat(state);
+  return accusedSeat !== null && villainSeats(state).includes(accusedSeat);
 }
 
-function hasRevealedSecret(state: FashionState, role: FashionRoleId): boolean {
-  return seatsWithRole(state, role).some((seat) => state.revealedSecrets[seat] !== undefined);
+function voteHistoryForSeat(
+  state: FashionState,
+  seat: number,
+): readonly FashionInvestigationVoteRecord[] {
+  return state.investigationVoteHistory.filter((record) => record.seat === seat);
 }
 
-/**
- * 合同结算判定（仅在整个判定已排除 villainWon 分支后调用，即反派已被定罪）。
- * 工人（factoryWorker）的 victoryCondition（见 domain/content.ts）：
- * 「成功与买家签订契约卡；最终结算时买家获胜且契约卡生效」。
- * 本实现收敛为当前可判定的子集：以该工人为卖方、且已被买家接受的契约视为生效
- * （accepted = 买家已同意；fulfilled = 已履行完毕，同样生效）。
- * TODO(product): 「买家获胜」需跨角色递归判定，仓库内无规则文档，暂未绑定。
- */
-function workerContractSettles(state: FashionState, seat: number): boolean {
-  return state.contracts.some(
-    (contract) =>
-      contract.sellerSeat === seat &&
-      (contract.status === 'accepted' || contract.status === 'fulfilled'),
+function governmentOfficialWins(
+  state: FashionState,
+  seat: number,
+  villainConvicted: boolean,
+): boolean {
+  if (state.revealedSecrets[seat] !== undefined) return false;
+  const history = voteHistoryForSeat(state, seat);
+  if (history.length !== 4 || new Set(history.map((record) => record.round)).size !== 4)
+    return false;
+
+  const approveCount = history.filter((record) => record.vote === 'approve').length;
+  const rejectCount = history.length - approveCount;
+  let expectsConviction: boolean;
+  if (approveCount === rejectCount) {
+    const finalTarget = state.finalVotes[seat];
+    if (finalTarget === undefined) return false;
+    expectsConviction = villainSeats(state).includes(finalTarget);
+  } else {
+    expectsConviction = approveCount > rejectCount;
+  }
+  return expectsConviction === villainConvicted;
+}
+
+function supplierOwnerWins(state: FashionState, seat: number, villainConvicted: boolean): boolean {
+  if (state.revealedSecrets[seat] !== undefined) return false;
+  const history = voteHistoryForSeat(state, seat);
+  const lastVote = history[history.length - 1];
+  if (lastVote === undefined) return false;
+  return (lastVote.vote === 'approve') === villainConvicted;
+}
+
+function evidenceImplicatesRole(evidenceId: FashionEvidenceId, roleId: FashionRoleId): boolean {
+  return Object.values(FASHION_ROUND_BY_NUMBER).some(
+    (round) => round.evidenceId === evidenceId && round.implicatedRoles.includes(roleId),
   );
 }
 
-/**
- * Domain-only victory evaluation. The evaluator consumes authoritative state
- * and is independent from UI projections.
- */
-export function evaluateFashionVictory(state: FashionState): FashionVictoryResult {
+function evaluateBaseWinners(state: FashionState, villainConvicted: boolean): number[] {
   const winners: number[] = [];
-  const villainWon = !isVillainConvicted(state);
 
-  if (villainWon) {
-    winners.push(...villainSeats(state));
-    return { winners };
-  }
-
-  if (state.publicEvidence.length >= 2) {
+  if (villainConvicted) {
     winners.push(...seatsWithRole(state, 'journalist'));
+  } else {
+    winners.push(...villainSeats(state));
   }
 
-  if (!hasRevealedSecret(state, 'governmentOfficial')) {
-    winners.push(...seatsWithRole(state, 'governmentOfficial'));
-  }
+  winners.push(
+    ...seatsWithRole(state, 'governmentOfficial').filter((seat) =>
+      governmentOfficialWins(state, seat, villainConvicted),
+    ),
+  );
 
-  if (!hasRevealedSecret(state, 'consumerRepresentative')) {
-    winners.push(...seatsWithRole(state, 'consumerRepresentative'));
-  }
+  winners.push(
+    ...seatsWithRole(state, 'consumerRepresentative').filter(
+      (seat) =>
+        state.crossExamAwards.some((award) => award.seat === seat) &&
+        state.revealedSecrets[seat] === undefined,
+    ),
+  );
 
-  if (!hasRevealedSecret(state, 'brandExecutive')) {
+  if (
+    villainConvicted &&
+    !state.publicEvidence.some((evidenceId) => evidenceImplicatesRole(evidenceId, 'brandExecutive'))
+  ) {
     winners.push(...seatsWithRole(state, 'brandExecutive'));
   }
 
-  winners.push(...seatsWithRole(state, 'supplierOwner').filter(() => !hasRevealedSecret(state, 'supplierOwner')));
-
-  // 合同结算：仅持有自身为卖方且生效契约的工人获胜（见 workerContractSettles）。
   winners.push(
-    ...seatsWithRole(state, 'factoryWorker').filter((seat) => workerContractSettles(state, seat)),
+    ...seatsWithRole(state, 'supplierOwner').filter((seat) =>
+      supplierOwnerWins(state, seat, villainConvicted),
+    ),
   );
 
-  return { winners: [...new Set(winners)].sort((a, b) => a - b) };
+  return winners;
+}
+
+function workerContractSettles(
+  state: FashionState,
+  workerSeat: number,
+  baseWinners: ReadonlySet<number>,
+): boolean {
+  return state.contracts.some(
+    (contract) =>
+      contract.sellerSeat === workerSeat &&
+      contract.status !== 'proposed' &&
+      baseWinners.has(contract.buyerSeat),
+  );
+}
+
+/** Domain-only victory evaluation over authoritative state. */
+export function evaluateFashionVictory(state: FashionState): FashionVictoryResult {
+  const villainConvicted = isVillainConvicted(state);
+  const baseWinners = evaluateBaseWinners(state, villainConvicted);
+  const baseWinnerSet = new Set(baseWinners);
+  const contractWinners = seatsWithRole(state, 'factoryWorker').filter((seat) =>
+    workerContractSettles(state, seat, baseWinnerSet),
+  );
+
+  return {
+    winners: [...new Set([...baseWinners, ...contractWinners])].sort((left, right) => left - right),
+  };
 }

@@ -22,10 +22,12 @@ import {
   type FashionContract,
   type FashionContractPromise,
   type FashionContractStatus,
+  type FashionCrossExamAward,
   type FashionHumanSeat,
   type FashionIdentityGuessHistory,
   type FashionIdentityGuessPenalty,
   type FashionInterrogation,
+  type FashionInvestigationVoteRecord,
   type FashionPhase,
   type FashionRound,
   type FashionState,
@@ -187,10 +189,7 @@ function parseContract(value: unknown, path: string): FashionContract {
   );
 }
 
-function parseIdentityGuessPenalty(
-  value: unknown,
-  path: string,
-): FashionIdentityGuessPenalty {
+function parseIdentityGuessPenalty(value: unknown, path: string): FashionIdentityGuessPenalty {
   const raw = parseObject(value, path);
   return finishObject(
     raw,
@@ -202,10 +201,7 @@ function parseIdentityGuessPenalty(
   );
 }
 
-function parseIdentityGuessHistory(
-  value: unknown,
-  path: string,
-): FashionIdentityGuessHistory {
+function parseIdentityGuessHistory(value: unknown, path: string): FashionIdentityGuessHistory {
   const raw = parseObject(value, path);
   return finishObject(
     raw,
@@ -223,6 +219,34 @@ function parseVote(value: unknown, path: string) {
   return value;
 }
 
+function parseInvestigationVoteRecord(
+  value: unknown,
+  path: string,
+): FashionInvestigationVoteRecord {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      vote: parseVote(raw.vote, `${path}.vote`),
+    },
+    path,
+  );
+}
+
+function parseCrossExamAward(value: unknown, path: string): FashionCrossExamAward {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+    },
+    path,
+  );
+}
+
 function parseInterrogation(value: unknown, path: string): FashionInterrogation | null {
   if (value === null) return null;
   const raw = parseObject(value, path);
@@ -231,6 +255,10 @@ function parseInterrogation(value: unknown, path: string): FashionInterrogation 
     {
       attackerSeat: parseFashionSeat(raw.attackerSeat, `${path}.attackerSeat`),
       defenderSeat: parseFashionSeat(raw.defenderSeat, `${path}.defenderSeat`),
+      participantSeats:
+        raw.participantSeats === undefined
+          ? Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat)
+          : parseArray(raw.participantSeats, `${path}.participantSeats`, parseFashionSeat),
       startedAt: parseInteger(raw.startedAt, `${path}.startedAt`),
       endsAt: parseInteger(raw.endsAt, `${path}.endsAt`),
     },
@@ -263,11 +291,7 @@ export function parseFashionState(value: unknown): FashionState {
           'FashionState.roleConfirmedSeats',
           parseFashionSeat,
         ),
-        actionTokens: parseSeatRecord(
-          raw.actionTokens,
-          'FashionState.actionTokens',
-          parseInteger,
-        ),
+        actionTokens: parseSeatRecord(raw.actionTokens, 'FashionState.actionTokens', parseInteger),
         currentEvent: parseEventOrNull(raw.currentEvent, 'FashionState.currentEvent'),
         publicEvidence: parseArray(
           raw.publicEvidence,
@@ -280,6 +304,14 @@ export function parseFashionState(value: unknown): FashionState {
           parseEvidence,
         ),
         votes: parseSeatRecord(raw.votes, 'FashionState.votes', parseVote),
+        investigationVoteHistory:
+          raw.investigationVoteHistory === undefined
+            ? []
+            : parseArray(
+                raw.investigationVoteHistory,
+                'FashionState.investigationVoteHistory',
+                parseInvestigationVoteRecord,
+              ),
         discussionSpeakCounts: parseSeatRecord(
           raw.discussionSpeakCounts,
           'FashionState.discussionSpeakCounts',
@@ -302,11 +334,11 @@ export function parseFashionState(value: unknown): FashionState {
           'FashionState.revealedSecrets',
           parseSecret,
         ),
-        finalVotes: parseSeatRecord(
-          raw.finalVotes,
-          'FashionState.finalVotes',
-          parseFashionSeat,
-        ),
+        crossExamAwards:
+          raw.crossExamAwards === undefined
+            ? []
+            : parseArray(raw.crossExamAwards, 'FashionState.crossExamAwards', parseCrossExamAward),
+        finalVotes: parseSeatRecord(raw.finalVotes, 'FashionState.finalVotes', parseFashionSeat),
         winners: parseArray(raw.winners, 'FashionState.winners', parseFashionSeat),
       },
       'FashionState',
