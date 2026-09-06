@@ -62,6 +62,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
   return (
     <RoomShell
       model={screen.shellModel}
+      gameWorkspace={null}
       contextHeader={null}
       leadingExtraActions={null}
       trailingExtraActions={null}

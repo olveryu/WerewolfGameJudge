@@ -1,4 +1,5 @@
 import { fibEngine } from '../../../games/fibking/engine';
+import { pictionaryEngine } from '../../../games/pictionary/engine';
 import { WEREWOLF_GAME_TYPE } from '../../protocol/gameTypes';
 import type { BaseGameState } from '../../protocol/roomSnapshot';
 import { defineGameEngineCatalog } from '../catalog';
@@ -111,23 +112,38 @@ describe('typed game engine contract', () => {
   });
 
   it('retains concrete engines in an exhaustive catalog', () => {
-    const catalog = defineGameEngineCatalog({ werewolf: counterEngine, fibking: fibEngine });
+    const catalog = defineGameEngineCatalog({
+      werewolf: counterEngine,
+      fibking: fibEngine,
+      pictionary: pictionaryEngine,
+    });
 
     expect(catalog.werewolf).toBe(counterEngine);
     expect(catalog.fibking).toBe(fibEngine);
+    expect(catalog.pictionary).toBe(pictionaryEngine);
   });
 
   it('rejects incomplete, extra, and structurally invalid catalogs at compile time', () => {
     // @ts-expect-error every canonical game key is required
     defineGameEngineCatalog({ werewolf: counterEngine });
-    // @ts-expect-error catalog key must match the engine's literal game identity
-    defineGameEngineCatalog({ werewolf: counterEngine, fibking: counterEngine });
-    // @ts-expect-error keys outside GameType are forbidden
-    defineGameEngineCatalog({ werewolf: counterEngine, fibking: fibEngine, pictionary: fibEngine });
+    defineGameEngineCatalog({
+      werewolf: counterEngine,
+      // @ts-expect-error catalog key must match the engine's literal game identity
+      fibking: counterEngine,
+      pictionary: pictionaryEngine,
+    });
+    defineGameEngineCatalog({
+      werewolf: counterEngine,
+      fibking: fibEngine,
+      pictionary: pictionaryEngine,
+      // @ts-expect-error keys outside GameType are forbidden
+      unregisteredExample: pictionaryEngine,
+    });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
       werewolf: { gameType: WEREWOLF_GAME_TYPE, stateVersion: 1 },
       fibking: fibEngine,
+      pictionary: pictionaryEngine,
     });
   });
 });

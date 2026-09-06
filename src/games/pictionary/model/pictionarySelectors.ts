@@ -1,0 +1,26 @@
+/** Client-only projections over authoritative Pictionary room state. */
+
+import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
+
+export function getPictionaryUserSeat(state: PictionaryState, userId: string): number | null {
+  for (const occupant of Object.values(state.realSeats)) {
+    if (occupant?.userId === userId) return occupant.seat;
+  }
+  return null;
+}
+
+export function getPictionarySubmittedCount(state: PictionaryState): number {
+  if (state.stepIndex < 0) return 0;
+  return state.chains.reduce(
+    (count, chain) => count + (chain.entries.length > state.stepIndex ? 1 : 0),
+    0,
+  );
+}
+
+export function getPictionarySeatDisplayName(state: PictionaryState, seat: number): string {
+  const occupant = state.realSeats[seat];
+  if (occupant === undefined) {
+    throw new Error(`[FAIL-FAST] Pictionary state references empty seat ${seat}`);
+  }
+  return occupant.profile.displayName;
+}

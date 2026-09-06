@@ -1,4 +1,4 @@
-/** Compile-only Worker plugin for the unregistered Pictionary engine fixture. */
+/** Compile-only Worker plugin for the unregistered game-engine fixture. */
 
 import { z } from 'zod';
 
@@ -9,7 +9,7 @@ import {
   type PictionaryInternalCommand,
   type PictionaryPublicCommand,
   pictionaryStateCodec,
-  PICTURE_DICTIONARY_GAME_TYPE,
+  UNREGISTERED_GAME_TYPE,
 } from '../../game-engine/type-tests/pictionaryModule';
 import { WORKER_GAME_CATALOG } from '../src/games/catalog';
 import {
@@ -18,7 +18,7 @@ import {
 } from '../src/platform/gameModules/workerModule';
 
 interface PictionaryPublicUserStats {
-  readonly gameType: typeof PICTURE_DICTIONARY_GAME_TYPE;
+  readonly gameType: typeof UNREGISTERED_GAME_TYPE;
 }
 
 const createConfigSchema: z.ZodType<PictionaryConfig> = z.strictObject({
@@ -40,11 +40,11 @@ const effectSchema: z.ZodType<PictionaryEffect> = z.strictObject({
 });
 
 const publicUserStatsSchema: z.ZodType<PictionaryPublicUserStats> = z.strictObject({
-  gameType: z.literal(PICTURE_DICTIONARY_GAME_TYPE),
+  gameType: z.literal(UNREGISTERED_GAME_TYPE),
 });
 
 const pictionaryWorkerModule = defineWorkerGameModule({
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+  gameType: UNREGISTERED_GAME_TYPE,
   engine: pictionaryEngine,
   stateCodec: pictionaryStateCodec,
   createConfigSchema,
@@ -53,7 +53,7 @@ const pictionaryWorkerModule = defineWorkerGameModule({
   effectSchema,
   httpRoutes: [],
   parsePublicUserStats: (value) => publicUserStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: PICTURE_DICTIONARY_GAME_TYPE }),
+  getPublicUserStats: () => Promise.resolve({ gameType: UNREGISTERED_GAME_TYPE }),
   getEffectBusinessKey: (effect) => effect.roundId,
   handleEffect: () => Promise.resolve(),
 });
@@ -64,4 +64,4 @@ void pictionaryWorkerModule;
 registerWorkerGameModule(pictionaryWorkerModule);
 
 // @ts-expect-error compile-only plugins are not members of the production Worker catalog
-void WORKER_GAME_CATALOG.pictionary;
+void WORKER_GAME_CATALOG.unregisteredExample;

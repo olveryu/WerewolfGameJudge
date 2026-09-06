@@ -6,7 +6,7 @@ import {
   type PictionaryCommand,
   type PictionaryState,
   pictionaryStateCodec,
-  PICTURE_DICTIONARY_GAME_TYPE,
+  UNREGISTERED_GAME_TYPE,
 } from '../../packages/game-engine/type-tests/pictionaryModule';
 import {
   bindGameNavigation,
@@ -27,13 +27,12 @@ interface PictionaryUserEvent {
   readonly eventId: string;
 }
 
-const PictionaryRoomScreen: React.FC<
-  GameRoomScreenProps<typeof PICTURE_DICTIONARY_GAME_TYPE>
-> = () => null;
+const PictionaryRoomScreen: React.FC<GameRoomScreenProps<typeof UNREGISTERED_GAME_TYPE>> = () =>
+  null;
 const EmptyScreen: React.FC = () => null;
 
 const pictionaryNavigationDefinition = defineGameNavigation({
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+  gameType: UNREGISTERED_GAME_TYPE,
   config: {
     kind: 'screen',
     parseParams: (): never => {
@@ -48,10 +47,10 @@ const pictionaryNavigation = bindGameNavigation(pictionaryNavigationDefinition, 
   config: EmptyScreen,
 });
 
-const pictionaryRoomAccount: RoomAccountCapability<typeof PICTURE_DICTIONARY_GAME_TYPE> = {
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+const pictionaryRoomAccount: RoomAccountCapability<typeof UNREGISTERED_GAME_TYPE> = {
+  gameType: UNREGISTERED_GAME_TYPE,
   getSnapshot: () => ({
-    gameType: PICTURE_DICTIONARY_GAME_TYPE,
+    gameType: UNREGISTERED_GAME_TYPE,
     phase: 'idle',
     isSeated: false,
     canSwitchAccount: true,
@@ -79,7 +78,7 @@ const pictionaryRoomAccount: RoomAccountCapability<typeof PICTURE_DICTIONARY_GAM
 };
 
 const pictionaryClientModule = {
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+  gameType: UNREGISTERED_GAME_TYPE,
   roomScreen: PictionaryRoomScreen,
   home: {
     mode: {
@@ -99,7 +98,7 @@ const pictionaryClientModule = {
   audioPreview: null,
   accountStatsSection: EmptyScreen,
   appOverlay: null,
-} satisfies ClientGameModule<typeof PICTURE_DICTIONARY_GAME_TYPE>;
+} satisfies ClientGameModule<typeof UNREGISTERED_GAME_TYPE>;
 
 const pictionaryUserEventCodec: RealtimeUserEventCodec<PictionaryUserEvent> = {
   parse: (): never => {
@@ -108,7 +107,7 @@ const pictionaryUserEventCodec: RealtimeUserEventCodec<PictionaryUserEvent> = {
 };
 
 const pictionaryClientPlugin = {
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+  gameType: UNREGISTERED_GAME_TYPE,
   navigation: pictionaryNavigationDefinition,
   createModule: (dependencies) => {
     const session = dependencies.sessionFactory.create<
@@ -122,7 +121,7 @@ const pictionaryClientPlugin = {
     void session;
     return pictionaryClientModule;
   },
-} satisfies ClientGamePluginDefinition<typeof PICTURE_DICTIONARY_GAME_TYPE>;
+} satisfies ClientGamePluginDefinition<typeof UNREGISTERED_GAME_TYPE>;
 
 void pictionaryClientPlugin;
 
@@ -130,4 +129,4 @@ void pictionaryClientPlugin;
 registerClientGameModule(pictionaryClientModule);
 
 // @ts-expect-error compile-only plugins are not members of the production client catalog
-void CLIENT_GAME_PLUGIN_CATALOG.pictionary;
+void CLIENT_GAME_PLUGIN_CATALOG.unregisteredExample;

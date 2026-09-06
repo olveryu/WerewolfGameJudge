@@ -45,6 +45,8 @@ import type {
   AuthorizeRoomDeletionResult,
   DeleteRoomStorageCommand,
   DeleteRoomStorageResult,
+  DispatchInternalRoomCommand,
+  DispatchRoomCommand,
   DispatchRoomResult,
   DispatchUserRoomCommand,
   InitializeRoomCommand,
@@ -103,26 +105,46 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
   }
 
   async dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult> {
+    if (command.actorUserId.length === 0) {
+      throw new Error('dispatchUserCommand.actorUserId must be non-empty');
+    }
+    return this.#dispatchCommand(command, {
+      roomCode: command.roomCode,
+      commandId: command.commandId,
+      actor: { kind: 'user', userId: command.actorUserId },
+      controlledSeat: command.controlledSeat,
+      command: command.command,
+    });
+  }
+
+  async dispatchInternalCommand(command: DispatchInternalRoomCommand): Promise<DispatchRoomResult> {
+    if (command.systemActorId.length === 0) {
+      throw new Error('dispatchInternalCommand.systemActorId must be non-empty');
+    }
+    return this.#dispatchCommand(command, {
+      roomCode: command.roomCode,
+      commandId: command.commandId,
+      actor: { kind: 'system', effectId: command.systemActorId },
+      controlledSeat: null,
+      command: command.command,
+    });
+  }
+
+  async #dispatchCommand(
+    identity: RoomInstanceIdentity,
+    command: DispatchRoomCommand,
+  ): Promise<DispatchRoomResult> {
     if (this.#isStorageDeleted) {
       return { kind: 'unavailable', reason: REASON_NO_STATE };
     }
-    const room = this.#readRoomInstance(command);
+    const room = this.#readRoomInstance(identity);
     if (room === null) {
       return { kind: 'unavailable', reason: REASON_NO_STATE };
-    }
-    if (command.actorUserId.length === 0) {
-      throw new Error('dispatchUserCommand.actorUserId must be non-empty');
     }
     const pipeline = await dispatchRoomCommand(
       this.#repository,
       this.#gameModuleResolver,
-      {
-        roomCode: command.roomCode,
-        commandId: command.commandId,
-        actor: { kind: 'user', userId: command.actorUserId },
-        controlledSeat: command.controlledSeat,
-        command: command.command,
-      },
+      command,
       Date.now(),
     );
     if (

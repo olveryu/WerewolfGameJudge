@@ -70,6 +70,7 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
   const setupCapabilities = createRoomSetupCapabilities({
     isSetup,
     isHost: input.isHost,
+    supportsBots: true,
     mySeat: input.mySeat,
     hasOccupiedSeats: input.hasOccupiedSeats,
     isRoomFull: input.status === GameStatus.Seated,

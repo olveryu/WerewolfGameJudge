@@ -42,6 +42,7 @@ function getRoomHeaderSideWidth(extraActionCount: number): number {
 
 export interface RoomShellProps {
   readonly model: RoomShellModel;
+  readonly gameWorkspace: React.ReactElement | null;
   readonly contextHeader: React.ReactElement | null;
   readonly beforeSeatBoard: React.ReactElement;
   readonly afterSeatBoard: React.ReactElement | null;
@@ -53,6 +54,7 @@ export interface RoomShellProps {
 
 export const RoomShell: React.FC<RoomShellProps> = ({
   model,
+  gameWorkspace,
   contextHeader,
   beforeSeatBoard,
   afterSeatBoard,
@@ -201,22 +203,26 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         />
       )}
 
-      <View style={styles.roomContent}>
-        <View style={styles.boardColumn}>
-          {contextHeader !== null && (
-            <View style={styles.contextHeaderContainer}>{contextHeader}</View>
+      {gameWorkspace === null ? (
+        <View style={styles.roomContent}>
+          <View style={styles.boardColumn}>
+            {contextHeader !== null && (
+              <View style={styles.contextHeaderContainer}>{contextHeader}</View>
+            )}
+            <RoomSeatBoard
+              model={model.seats}
+              header={beforeSeatBoard}
+              footer={afterSeatBoard}
+              contentContainerStyle={styles.scrollContent}
+            />
+          </View>
+          {shouldRenderSideInspector && (
+            <View style={styles.sideInspectorContainer}>{activeSideInspector}</View>
           )}
-          <RoomSeatBoard
-            model={model.seats}
-            header={beforeSeatBoard}
-            footer={afterSeatBoard}
-            contentContainerStyle={styles.scrollContent}
-          />
         </View>
-        {shouldRenderSideInspector && (
-          <View style={styles.sideInspectorContainer}>{activeSideInspector}</View>
-        )}
-      </View>
+      ) : (
+        <View style={styles.gameWorkspace}>{gameWorkspace}</View>
+      )}
 
       <RoomBottomActionPanel
         model={model.bottomActions}

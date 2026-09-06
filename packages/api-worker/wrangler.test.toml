@@ -27,6 +27,10 @@ database_id = "f6ddfa17-8a27-442c-b6c0-6abf56f06a43"
 binding = "AVATARS"
 bucket_name = "werewolf-avatars"
 
+[[r2_buckets]]
+binding = "GAME_MEDIA"
+bucket_name = "werewolf-game-media"
+
 # ── Analytics Engine ────────────────────────────────────────────────────────
 [[analytics_engine_datasets]]
 binding = "AI_USAGE"

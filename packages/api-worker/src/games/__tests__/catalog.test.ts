@@ -20,6 +20,7 @@ import {
   fibInternalCommandSchema,
   fibPublicCommandSchema,
 } from '../fibking/schemas';
+import { pictionaryMediaRoutes } from '../pictionary/mediaRoutes';
 import { werewolfAiChatRoutes } from '../werewolf/aiChat/routes';
 import { werewolfEffectSchema } from '../werewolf/effects';
 import {
@@ -140,6 +141,11 @@ describe('Worker game catalog', () => {
         gameType: 'werewolf',
         path: '/api/games/werewolf/ai-chat',
         router: werewolfAiChatRoutes,
+      },
+      {
+        gameType: 'pictionary',
+        path: '/api/games/pictionary/rooms',
+        router: pictionaryMediaRoutes,
       },
     ]);
     expect(WORKER_GAME_CATALOG.fibking.httpRoutes).toEqual([]);

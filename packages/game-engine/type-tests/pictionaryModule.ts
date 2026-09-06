@@ -1,4 +1,4 @@
-/** Compile-only third-game engine proving that authoring is independent of production identity. */
+/** Compile-only game engine proving that authoring is independent of production identity. */
 
 import { reject } from '../src/platform/engine/decision';
 import type { GameEngineDefinition } from '../src/platform/engine/types';
@@ -6,9 +6,9 @@ import type { GameType } from '../src/platform/protocol/gameTypes';
 import type { GameStateCodec } from '../src/platform/protocol/roomSnapshot';
 import type { BaseGameState } from '../src/platform/protocol/roomSnapshot';
 
-export const PICTURE_DICTIONARY_GAME_TYPE = 'pictionary' as const;
+export const UNREGISTERED_GAME_TYPE = 'unregistered-example' as const;
 
-export interface PictionaryState extends BaseGameState<typeof PICTURE_DICTIONARY_GAME_TYPE> {
+export interface PictionaryState extends BaseGameState<typeof UNREGISTERED_GAME_TYPE> {
   readonly round: number;
 }
 
@@ -42,7 +42,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function parsePictionaryState(value: unknown): PictionaryState {
   if (!isRecord(value)) throw new Error('Pictionary state must be an object');
-  if (value.gameType !== PICTURE_DICTIONARY_GAME_TYPE) {
+  if (value.gameType !== UNREGISTERED_GAME_TYPE) {
     throw new Error('Pictionary state has an invalid game type');
   }
   if (value.stateVersion !== 1) throw new Error('Pictionary state has an invalid version');
@@ -56,7 +56,7 @@ function parsePictionaryState(value: unknown): PictionaryState {
     throw new Error('Pictionary state has an invalid round');
   }
   return {
-    gameType: PICTURE_DICTIONARY_GAME_TYPE,
+    gameType: UNREGISTERED_GAME_TYPE,
     stateVersion: 1,
     roomCode: value.roomCode,
     hostUserId: value.hostUserId,
@@ -65,17 +65,17 @@ function parsePictionaryState(value: unknown): PictionaryState {
 }
 
 export const pictionaryStateCodec = {
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+  gameType: UNREGISTERED_GAME_TYPE,
   stateVersion: 1,
   parse: parsePictionaryState,
 } satisfies GameStateCodec<PictionaryState>;
 
 export const pictionaryEngine = {
-  gameType: PICTURE_DICTIONARY_GAME_TYPE,
+  gameType: UNREGISTERED_GAME_TYPE,
   stateVersion: 1,
   createInitialState(_config, context) {
     return {
-      gameType: PICTURE_DICTIONARY_GAME_TYPE,
+      gameType: UNREGISTERED_GAME_TYPE,
       stateVersion: 1,
       roomCode: context.roomCode,
       hostUserId: context.hostUserId,
@@ -95,7 +95,7 @@ export const pictionaryEngine = {
     return 'setup' as const;
   },
 } satisfies GameEngineDefinition<
-  typeof PICTURE_DICTIONARY_GAME_TYPE,
+  typeof UNREGISTERED_GAME_TYPE,
   PictionaryState,
   PictionaryConfig,
   PictionaryCommand,
@@ -104,5 +104,5 @@ export const pictionaryEngine = {
 >;
 
 // @ts-expect-error compile-only game identity is not a registered production GameType
-const productionGameType: GameType = PICTURE_DICTIONARY_GAME_TYPE;
+const productionGameType: GameType = UNREGISTERED_GAME_TYPE;
 void productionGameType;

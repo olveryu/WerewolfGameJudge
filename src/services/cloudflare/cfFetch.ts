@@ -18,6 +18,8 @@ import { isAccessTokenClaimsExpired, parseAccessTokenClaims } from './accessToke
 /** Runtime decoder owned by the endpoint consumer. */
 export type JsonResponseDecoder<T> = (value: unknown) => T;
 
+type ResponseParser<T> = (response: Response, path: string) => Promise<T>;
+
 /** A non-successful HTTP response with one normalized server reason. */
 export class CloudflareHttpError extends Error {
   readonly status: number;
@@ -251,11 +253,11 @@ async function fetchWithRetry(
 interface RequestOptions<T> {
   method: string;
   path: string;
-  body?: string | FormData;
+  body?: BodyInit;
   headers: Record<string, string>;
   timeoutMs: number;
   signal?: AbortSignal;
-  decode: JsonResponseDecoder<T>;
+  parseResponse: ResponseParser<T>;
   noRetry?: boolean;
   /** This is the refresh request itself; skip 401 interception */
   skipAuthIntercept?: boolean;
@@ -309,7 +311,7 @@ async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
         activeResponse.dispose();
         const retryResponse = await doFetch(retryHeaders);
         try {
-          return await parseJsonResponse(retryResponse.response, opts.path, opts.decode);
+          return await opts.parseResponse(retryResponse.response, opts.path);
         } finally {
           retryResponse.dispose();
         }
@@ -327,7 +329,7 @@ async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
       // Fall through to parseJsonResponse so TanStack Query can retry
     }
 
-    return await parseJsonResponse(response, opts.path, opts.decode);
+    return await opts.parseResponse(response, opts.path);
   } finally {
     activeResponse.dispose();
   }
@@ -379,7 +381,7 @@ export async function cfPost<T>(
     },
     timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
     signal: options?.signal,
-    decode,
+    parseResponse: (response, requestPath) => parseJsonResponse(response, requestPath, decode),
     noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,
   });
@@ -399,7 +401,7 @@ export async function cfGet<T>(
     path,
     headers: {},
     timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
-    decode,
+    parseResponse: (response, requestPath) => parseJsonResponse(response, requestPath, decode),
     noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,
   });
@@ -422,7 +424,54 @@ export async function cfPut<T>(
       'Content-Type': 'application/json',
     },
     timeoutMs: API_TIMEOUT_MS,
-    decode,
+    parseResponse: (response, requestPath) => parseJsonResponse(response, requestPath, decode),
+  });
+}
+
+/**
+ * Upload a replayable binary body to the Workers API and decode its JSON response.
+ *
+ * @throws {CloudflareHttpError} When the server rejects the upload.
+ */
+export async function cfPutBinary<T>(
+  path: string,
+  body: Blob,
+  contentType: string,
+  decode: JsonResponseDecoder<T>,
+  options?: { timeoutMs?: number; signal?: AbortSignal },
+): Promise<T> {
+  cfFetchLog.debug('PUT BINARY', { path, byteLength: body.size });
+  return executeRequest({
+    method: 'PUT',
+    path,
+    body,
+    headers: { 'Content-Type': contentType },
+    timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    signal: options?.signal,
+    parseResponse: (response, requestPath) => parseJsonResponse(response, requestPath, decode),
+  });
+}
+
+/**
+ * Download an authenticated binary response from the Workers API.
+ *
+ * @throws {CloudflareHttpError} When the server rejects the request.
+ * @throws {CloudflareResponseProtocolError} When a successful response has an unexpected type.
+ */
+export async function cfGetBinary(
+  path: string,
+  expectedContentType: string,
+  options?: { timeoutMs?: number; signal?: AbortSignal },
+): Promise<ArrayBuffer> {
+  cfFetchLog.debug('GET BINARY', { path });
+  return executeRequest({
+    method: 'GET',
+    path,
+    headers: {},
+    timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    signal: options?.signal,
+    parseResponse: (response, requestPath) =>
+      parseBinaryResponse(response, requestPath, expectedContentType),
   });
 }
 
@@ -528,6 +577,39 @@ async function parseJsonResponse<T>(
   }
 }
 
+async function parseBinaryResponse(
+  response: Response,
+  path: string,
+  expectedContentType: string,
+): Promise<ArrayBuffer> {
+  if (!response.ok) {
+    return parseJsonResponse(response, path, () => {
+      throw new Error(`[FAIL-FAST] Binary error response unexpectedly succeeded for ${path}`);
+    });
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType !== expectedContentType) {
+    throw new CloudflareResponseProtocolError({
+      path,
+      status: response.status,
+      body: { expectedContentType, contentType },
+    });
+  }
+
+  try {
+    return await response.arrayBuffer();
+  } catch (cause) {
+    if (isAbortError(cause)) throw cause;
+    throw new CloudflareResponseProtocolError({
+      path,
+      status: response.status,
+      body: null,
+      cause,
+    });
+  }
+}
+
 function readErrorReason(value: unknown): string | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
   const reason =
@@ -558,6 +640,6 @@ export async function cfUpload<T>(
     body: formData, // FormData handled by fetch natively
     headers: {}, // No Content-Type — let browser set multipart boundary
     timeoutMs: timeoutMs ?? API_TIMEOUT_MS,
-    decode,
+    parseResponse: (response, requestPath) => parseJsonResponse(response, requestPath, decode),
   });
 }

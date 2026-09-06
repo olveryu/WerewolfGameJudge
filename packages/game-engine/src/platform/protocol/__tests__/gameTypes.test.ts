@@ -3,6 +3,7 @@ import {
   GAME_TYPES,
   isGameType,
   parseGameType,
+  PICTIONARY_GAME_TYPE,
   WEREWOLF_GAME_TYPE,
 } from '../gameTypes';
 
@@ -17,11 +18,13 @@ describe('game type protocol', () => {
   it('uses canonical identifiers for every registered game', () => {
     expect(WEREWOLF_GAME_TYPE).toBe('werewolf');
     expect(FIBKING_GAME_TYPE).toBe('fibking');
+    expect(PICTIONARY_GAME_TYPE).toBe('pictionary');
     expect(GAME_TYPES).toContain(WEREWOLF_GAME_TYPE);
     expect(GAME_TYPES).toContain(FIBKING_GAME_TYPE);
+    expect(GAME_TYPES).toContain(PICTIONARY_GAME_TYPE);
   });
 
-  it.each([undefined, null, '', 'pictionary', 1, {}])('rejects unknown input %p', (value) => {
+  it.each([undefined, null, '', 'unknown-game', 1, {}])('rejects unknown input %p', (value) => {
     expect(isGameType(value)).toBe(false);
     expect(() => parseGameType(value)).toThrow('Unknown game type:');
   });

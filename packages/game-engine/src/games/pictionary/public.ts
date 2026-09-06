@@ -1,0 +1,75 @@
+/** Public pure API for the Pictionary game module. */
+
+export type {
+  PictionaryCommand,
+  PictionaryInternalCommand,
+  PictionaryPublicCommand,
+} from './commands/types';
+export {
+  REASON_PICTIONARY_BOTS_UNSUPPORTED,
+  REASON_PICTIONARY_CONFIG_INVALID,
+  REASON_PICTIONARY_GALLERY_MANUAL,
+  REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE,
+  REASON_PICTIONARY_PHASE_INVALID,
+  REASON_PICTIONARY_PHASE_NOT_EXPIRED,
+  REASON_PICTIONARY_ROOM_NOT_FULL,
+  REASON_PICTIONARY_TASK_ALREADY_SUBMITTED,
+  REASON_PICTIONARY_TASK_INVALID,
+  REASON_PICTIONARY_TEXT_INVALID,
+  REASON_PICTIONARY_UPLOAD_EXPIRED,
+  REASON_PICTIONARY_UPLOAD_INVALID,
+} from './domain/reasons';
+export type { PictionaryEffect } from './effects/types';
+export {
+  decidePictionaryCommand,
+  getPictionaryLifecycle,
+  type PictionaryEngine,
+  pictionaryEngine,
+} from './engine';
+export { PICTIONARY_STATE_CODEC } from './state/codec';
+export { parsePictionaryState } from './state/parseState';
+export {
+  DEFAULT_PICTIONARY_CONFIG,
+  getPictionaryExpectedKind,
+  getPictionaryOccupiedSeatCount,
+  getPictionaryTaskForSeat,
+  getPictionaryTextGraphemeCount,
+  hasPictionaryForbiddenControlCharacter,
+  isPictionaryRoomFull,
+  isValidPictionaryConfig,
+  isValidPictionaryPlayerCount,
+  isValidPictionaryText,
+  PICTIONARY_DEFAULT_PLAYERS,
+  PICTIONARY_DRAWING_DURATIONS,
+  PICTIONARY_DRAWING_HEIGHT,
+  PICTIONARY_DRAWING_MAX_BYTES,
+  PICTIONARY_DRAWING_WIDTH,
+  PICTIONARY_GALLERY_ITEM_DURATIONS,
+  PICTIONARY_GUESS_DURATIONS,
+  PICTIONARY_MAX_PLAYERS,
+  PICTIONARY_MIN_PLAYERS,
+  PICTIONARY_TEXT_MAX_LENGTH,
+  PICTIONARY_TRANSITION_DURATIONS,
+  PICTIONARY_UPLOAD_GRACE_SECONDS,
+  type PictionaryChain,
+  type PictionaryConfig,
+  type PictionaryDrawingDuration,
+  type PictionaryDrawingEntry,
+  type PictionaryDrawingReservation,
+  type PictionaryEntry,
+  type PictionaryExpectedEntryKind,
+  type PictionaryGalleryItemDuration,
+  type PictionaryGalleryState,
+  type PictionaryGuessDuration,
+  type PictionaryHumanSeat,
+  type PictionaryMedia,
+  type PictionaryMissedEntry,
+  type PictionaryPhase,
+  type PictionaryProfileUpdate,
+  type PictionarySeatProfile,
+  type PictionaryState,
+  type PictionaryTask,
+  type PictionaryTextEntry,
+  type PictionaryTransitionDuration,
+} from './state/types';
+export { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';

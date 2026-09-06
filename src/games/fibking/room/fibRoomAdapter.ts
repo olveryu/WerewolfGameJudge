@@ -72,6 +72,7 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
   const setupCapabilities = createRoomSetupCapabilities({
     isSetup: isLobby,
     isHost: input.isHost,
+    supportsBots: true,
     mySeat: input.mySeat,
     hasOccupiedSeats: occupiedCount > 0,
     isRoomFull: isFibRoomFull(input.state),

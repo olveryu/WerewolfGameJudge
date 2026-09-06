@@ -30,6 +30,11 @@ bucket_name = "werewolf-avatars"
 #   - share/ prefix: expire after 1 day (temporary share images)
 #   - all prefixes: abort incomplete multipart uploads after 7 days
 
+[[r2_buckets]]
+binding = "GAME_MEDIA"
+bucket_name = "werewolf-game-media"
+# Lifecycle rule managed with Wrangler: pictionary/ objects expire after 2 days.
+
 # ── Durable Objects (Phase 2: realtime) ──────────────────────────────────────
 [durable_objects]
 bindings = [

@@ -9,6 +9,8 @@ import type {
   ClientGameModuleDependencies,
   ClientGamePluginDefinition,
 } from '@/games/model/ClientGamePlugin';
+import { createPictionaryUiModule } from '@/games/pictionary/module';
+import { pictionaryGameNavigation } from '@/games/pictionary/navigation/pictionaryGameNavigation';
 import { createWerewolfUiModule } from '@/games/werewolf/module';
 import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
 
@@ -29,6 +31,11 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
     navigation: fibGameNavigation,
     createModule: ({ sessionFactory }) => createFibUiModule({ sessionFactory }),
   },
+  pictionary: {
+    gameType: 'pictionary',
+    navigation: pictionaryGameNavigation,
+    createModule: ({ sessionFactory }) => createPictionaryUiModule({ sessionFactory }),
+  },
 } satisfies ClientGamePluginCatalogShape;
 
 export function createClientGameCatalog(
@@ -40,6 +47,9 @@ export function createClientGameCatalog(
     ),
     fibking: registerClientGameModule(
       CLIENT_GAME_PLUGIN_CATALOG.fibking.createModule(dependencies),
+    ),
+    pictionary: registerClientGameModule(
+      CLIENT_GAME_PLUGIN_CATALOG.pictionary.createModule(dependencies),
     ),
   };
 }

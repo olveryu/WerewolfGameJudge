@@ -47,6 +47,21 @@ export interface ThemeColors {
   transparent: 'transparent';
 }
 
+export const PICTIONARY_CANVAS_BACKGROUND = '#FFFFFF';
+
+export const PICTIONARY_DRAWING_PALETTE = [
+  { name: '黑色', value: '#171717' },
+  { name: '白色', value: PICTIONARY_CANVAS_BACKGROUND },
+  { name: '红色', value: '#E5484D' },
+  { name: '橙色', value: '#F28C28' },
+  { name: '黄色', value: '#F5C542' },
+  { name: '绿色', value: '#2E9D63' },
+  { name: '青色', value: '#19A7AE' },
+  { name: '蓝色', value: '#3478F6' },
+  { name: '紫色', value: '#7C5CE7' },
+  { name: '粉色', value: '#E56B9F' },
+] as const;
+
 /** 月白 — restrained, translucent, elegant indigo with gaming atmosphere */
 export const colors: ThemeColors = {
   primary: '#4F46E5',

@@ -86,6 +86,10 @@ export function createRoomShellStyles(colors: ThemeColors) {
       minHeight: 0,
       flexDirection: 'row',
     },
+    gameWorkspace: {
+      flex: 1,
+      minHeight: 0,
+    },
     boardColumn: {
       flex: 1,
       minWidth: 0,

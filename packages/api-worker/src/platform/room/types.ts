@@ -53,6 +53,12 @@ export interface DispatchUserRoomCommand extends RoomInstanceIdentity {
   readonly command: unknown;
 }
 
+export interface DispatchInternalRoomCommand extends RoomInstanceIdentity {
+  readonly commandId: string;
+  readonly systemActorId: string;
+  readonly command: unknown;
+}
+
 export type DispatchRoomResult =
   | { readonly kind: 'unavailable'; readonly reason: typeof REASON_NO_STATE }
   | {

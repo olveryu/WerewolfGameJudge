@@ -96,5 +96,30 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
     },
+    pictionary: {
+      gameType: 'pictionary',
+      home: {
+        mode: {
+          displayName: '你画我猜接龙',
+          subtitle: '画与猜轮流传递',
+          iconName: 'brush-outline',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.pictionary.navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('pictionary'),
+      productUi: {
+        getAvatarDisplayName: () => null,
+        getRevealEffectPresentation: () => null,
+      },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
   };
 }

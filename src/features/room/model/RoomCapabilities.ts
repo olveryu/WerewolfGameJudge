@@ -47,6 +47,7 @@ export type RoomSetupCapabilities = Pick<
 export interface RoomSetupCapabilitiesInput {
   readonly isSetup: boolean;
   readonly isHost: boolean;
+  readonly supportsBots: boolean;
   readonly mySeat: number | null;
   readonly hasOccupiedSeats: boolean;
   readonly isRoomFull: boolean;
@@ -96,9 +97,9 @@ export function createRoomSetupCapabilities(
         ? allowed(input.clearSeats)
         : denied('当前没有可清空的座位'),
     canFillBots:
-      input.isHost && input.isSetup && !input.isRoomFull
+      input.supportsBots && input.isHost && input.isSetup && !input.isRoomFull
         ? allowed(input.fillBots)
-        : denied('当前没有可填充的空位'),
+        : denied(input.supportsBots ? '当前没有可填充的空位' : '当前游戏不支持机器人'),
     canConfigureGame:
       input.isHost && input.isSetup ? allowed(input.configureGame) : denied('当前阶段不能修改配置'),
     canShareRoom: input.isSetup ? allowed(input.shareRoom) : denied('当前阶段不能分享房间'),

@@ -21,7 +21,12 @@
  */
 
 // Colors
-export { colors, type ThemeColors } from './colors';
+export {
+  colors,
+  PICTIONARY_CANVAS_BACKGROUND,
+  PICTIONARY_DRAWING_PALETTE,
+  type ThemeColors,
+} from './colors';
 
 // Tokens (importable directly)
 export {

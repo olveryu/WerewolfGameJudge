@@ -11,6 +11,7 @@ import type {
   AuthorizeRoomDeletionResult,
   DeleteRoomStorageCommand,
   DeleteRoomStorageResult,
+  DispatchInternalRoomCommand,
   DispatchRoomResult,
   DispatchUserRoomCommand,
   InitializeRoomCommand,
@@ -21,6 +22,8 @@ import type {
 export interface IGameRoomRPC {
   initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult>;
   dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult>;
+  /** @pre Caller authenticated and authorized a game-owned HTTP capability. */
+  dispatchInternalCommand(command: DispatchInternalRoomCommand): Promise<DispatchRoomResult>;
   getSnapshot(command: ReadRoomCommand): Promise<RoomSnapshot<BaseGameState<GameType>> | null>;
   authorizeRoomDeletion(
     command: AuthorizeRoomDeletionCommand,

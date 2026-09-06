@@ -639,6 +639,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   return (
     <RoomShell
       model={roomShellModel}
+      gameWorkspace={null}
       contextHeader={
         sheriffElectionPanel === null ? null : (
           <SheriffElectionHud

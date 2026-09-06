@@ -8,6 +8,7 @@ function createInput(
   return {
     isSetup: true,
     isHost: true,
+    supportsBots: true,
     mySeat: null,
     hasOccupiedSeats: true,
     isRoomFull: false,
