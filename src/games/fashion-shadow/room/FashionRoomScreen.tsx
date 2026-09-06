@@ -294,7 +294,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                     onPress={() => void submit('补满测试玩家', seatCommands.fillBots)}
                     disabled={isSubmitting}
                   >
-                    单人体验：补满测试玩家
+                    测试模式：用自动玩家补满空位
                   </Button>
                 ) : null}
                 {mySeat === null && occupiedCount < FASHION_PLAYER_COUNT ? (
@@ -549,7 +549,16 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 ) : null}
               </>
             ) : state.hasGuessedThisRound ? (
-              <Text style={styles.statusText}>你本轮已经使用过猜身份。</Text>
+              <View style={styles.actions}>
+                <Text style={styles.statusText}>你本轮已经使用过猜身份。</Text>
+                {state.myIdentityGuessResult !== null ? (
+                  <Text style={styles.statusText}>
+                    {state.myIdentityGuessResult.success
+                      ? `猜对：${state.myIdentityGuessResult.targetSeat + 1}号确实是${FASHION_ROLE_BY_ID[state.myIdentityGuessResult.guessedRoleId].name}，其隐藏秘密已公开。`
+                      : `猜错：${state.myIdentityGuessResult.targetSeat + 1}号不是${FASHION_ROLE_BY_ID[state.myIdentityGuessResult.guessedRoleId].name}。${state.myIdentityGuessResult.blockedNextRound ? '你下一轮不能参加交叉质询。' : '这是最后一轮，不再产生后续质询处罚。'}`}
+                  </Text>
+                ) : null}
+              </View>
             ) : null}
             <Text style={styles.label}>调查表决</Text>
             <Text style={styles.statusText}>已投票：{state.votedSeats.length}/7</Text>

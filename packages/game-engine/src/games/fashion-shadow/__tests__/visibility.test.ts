@@ -110,4 +110,36 @@ describe('Fashion Shadow visibility', () => {
     expect('identityGuessPenalties' in projected).toBe(false);
     expect('contracts' in projected).toBe(false);
   });
+
+  it('exposes an identity-guess result only to the player who made that guess', () => {
+    const base = createStartedState();
+    const state: FashionState = {
+      ...base,
+      phase: 'vote',
+      identityGuessHistory: [
+        {
+          guesserSeat: 0,
+          targetSeat: 1,
+          round: 1,
+          guessedRoleId: 'journalist',
+          success: false,
+        },
+      ],
+      identityGuessPenalties: [{ seat: 0, blockedRound: 2 }],
+    };
+
+    const guesser = getFashionPublicState(state, 'user-0');
+    const target = getFashionPublicState(state, 'user-1');
+    const spectator = getFashionPublicState(state, null);
+
+    expect(guesser.myIdentityGuessResult).toEqual({
+      targetSeat: 1,
+      guessedRoleId: 'journalist',
+      success: false,
+      blockedNextRound: true,
+    });
+    expect(target.myIdentityGuessResult).toBeNull();
+    expect(spectator.myIdentityGuessResult).toBeNull();
+    expect(FASHION_PUBLIC_STATE_CODEC.parse(guesser)).toEqual(guesser);
+  });
 });

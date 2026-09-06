@@ -8,6 +8,7 @@ import {
   failDecode,
   finishObject,
   parseArray,
+  parseBoolean,
   parseInteger,
   parseNonEmptyString,
   parseObject,
@@ -214,6 +215,15 @@ function parseIdentityGuessHistory(value: unknown, path: string): FashionIdentit
       guesserSeat: parseFashionSeat(raw.guesserSeat, `${path}.guesserSeat`),
       targetSeat: parseFashionSeat(raw.targetSeat, `${path}.targetSeat`),
       round: parseRound(raw.round, `${path}.round`),
+      guessedRoleId: parseOptional(
+        raw.guessedRoleId,
+        `${path}.guessedRoleId`,
+        (entry, rolePath) => {
+          if (!isFashionRoleId(entry)) return failDecode(rolePath, 'Fashion role id');
+          return entry;
+        },
+      ),
+      success: parseOptional(raw.success, `${path}.success`, parseBoolean),
     },
     path,
   );

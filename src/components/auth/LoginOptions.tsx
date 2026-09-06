@@ -72,7 +72,12 @@ export const LoginOptions = memo<LoginOptionsProps>(
             {`绑定邮箱，解锁 ${AVATAR_IMAGES.length} 款暗黑头像、自定义昵称和头像框`}
           </Text>
           {onBrowseAvatars != null && (
-            <TouchableOpacity onPress={onBrowseAvatars} activeOpacity={fixed.activeOpacity}>
+            <TouchableOpacity
+              onPress={onBrowseAvatars}
+              activeOpacity={fixed.activeOpacity}
+              accessibilityRole="button"
+              accessibilityLabel="浏览全部头像"
+            >
               <Text style={styles.avatarStripLink}>浏览全部头像 ›</Text>
             </TouchableOpacity>
           )}
@@ -83,6 +88,8 @@ export const LoginOptions = memo<LoginOptionsProps>(
           style={styles.primaryButton}
           onPress={onEmailSignUp}
           activeOpacity={fixed.activeOpacity}
+          accessibilityRole="button"
+          accessibilityLabel={isUpgrade ? '绑定邮箱' : '邮箱注册'}
         >
           <Text style={styles.primaryButtonText}>
             <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
@@ -101,6 +108,8 @@ export const LoginOptions = memo<LoginOptionsProps>(
           style={styles.outlineButton}
           onPress={onEmailSignIn}
           activeOpacity={fixed.activeOpacity}
+          accessibilityRole="button"
+          accessibilityLabel="邮箱登录"
         >
           <Text style={styles.outlineButtonText}>
             <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
@@ -117,6 +126,9 @@ export const LoginOptions = memo<LoginOptionsProps>(
             disabled={authLoading}
             activeOpacity={fixed.activeOpacity}
             testID={TESTIDS.homeAnonLoginButton}
+            accessibilityRole="button"
+            accessibilityLabel={authLoading ? '匿名登录处理中' : '匿名登录'}
+            accessibilityState={{ disabled: authLoading }}
           >
             <Text style={styles.outlineButtonText}>
               {authLoading ? (
@@ -137,6 +149,8 @@ export const LoginOptions = memo<LoginOptionsProps>(
             style={styles.secondaryButton}
             onPress={onCancel}
             activeOpacity={fixed.activeOpacity}
+            accessibilityRole="button"
+            accessibilityLabel="取消"
           >
             <Text style={styles.secondaryButtonText}>取消</Text>
           </TouchableOpacity>

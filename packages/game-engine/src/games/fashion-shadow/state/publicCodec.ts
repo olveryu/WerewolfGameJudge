@@ -9,6 +9,7 @@ import {
   failDecode,
   finishObject,
   parseArray,
+  parseBoolean,
   parseInteger,
   parseNonEmptyString,
   parseObject,
@@ -18,7 +19,11 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
 import { FASHION_ROLE_BY_ID } from '../domain/content';
-import type { FashionPrivateIdentityView, FashionPublicState } from '../domain/visibility';
+import type {
+  FashionIdentityGuessResultView,
+  FashionPrivateIdentityView,
+  FashionPublicState,
+} from '../domain/visibility';
 import {
   FASHION_PLAYER_COUNT,
   type FashionContract,
@@ -217,6 +222,27 @@ function parseInterrogation(value: unknown, path: string): FashionInterrogation 
   );
 }
 
+function parseIdentityGuessResult(
+  value: unknown,
+  path: string,
+): FashionIdentityGuessResultView | null {
+  if (value === null) return null;
+  const raw = parseObject(value, path);
+  if (!isFashionRoleId(raw.guessedRoleId)) {
+    return failDecode(`${path}.guessedRoleId`, 'Fashion role id');
+  }
+  return finishObject(
+    raw,
+    {
+      targetSeat: parseFashionSeat(raw.targetSeat, `${path}.targetSeat`),
+      guessedRoleId: raw.guessedRoleId,
+      success: parseBoolean(raw.success, `${path}.success`),
+      blockedNextRound: parseBoolean(raw.blockedNextRound, `${path}.blockedNextRound`),
+    },
+    path,
+  );
+}
+
 function parsePrivateIdentity(value: unknown, path: string): FashionPrivateIdentityView | null {
   if (value === null) return null;
   const raw = parseObject(value, path);
@@ -348,6 +374,10 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
         typeof raw.hasGuessedThisRound === 'boolean'
           ? raw.hasGuessedThisRound
           : failDecode('FashionPublicState.hasGuessedThisRound', 'boolean'),
+      myIdentityGuessResult: parseIdentityGuessResult(
+        raw.myIdentityGuessResult,
+        'FashionPublicState.myIdentityGuessResult',
+      ),
       myContracts: parseArray(raw.myContracts, 'FashionPublicState.myContracts', parseContract),
       winners: parseArray(raw.winners, 'FashionPublicState.winners', parseFashionSeat),
       privateIdentity: parsePrivateIdentity(

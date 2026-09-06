@@ -31,6 +31,7 @@ export {
 } from './domain/reasons';
 export { assignFashionRoles, type FashionAssignments } from './domain/roles';
 export {
+  type FashionIdentityGuessResultView,
   type FashionPrivateIdentityView,
   type FashionPublicState,
   getFashionPublicState,

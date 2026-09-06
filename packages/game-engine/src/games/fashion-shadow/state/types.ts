@@ -93,6 +93,9 @@ export interface FashionIdentityGuessHistory {
   readonly guesserSeat: number;
   readonly targetSeat: number;
   readonly round: FashionRound;
+  // Optional for backwards compatibility with already-persisted Fashion rooms.
+  readonly guessedRoleId?: FashionRoleId;
+  readonly success?: boolean;
 }
 
 export interface FashionIdentityGuessPenalty {

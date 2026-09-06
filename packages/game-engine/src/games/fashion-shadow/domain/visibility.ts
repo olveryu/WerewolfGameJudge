@@ -15,6 +15,13 @@ import type {
 } from '../state/types';
 import { FASHION_ROLE_BY_ID, FASHION_ROUND_BY_NUMBER } from './content';
 
+export interface FashionIdentityGuessResultView {
+  readonly targetSeat: number;
+  readonly guessedRoleId: FashionRoleId;
+  readonly success: boolean;
+  readonly blockedNextRound: boolean;
+}
+
 export interface FashionPrivateIdentityView {
   readonly seat: number;
   readonly roleId: FashionRoleId;
@@ -50,6 +57,7 @@ export interface FashionPublicState {
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
   readonly interrogation: FashionInterrogation | null;
   readonly hasGuessedThisRound: boolean;
+  readonly myIdentityGuessResult: FashionIdentityGuessResultView | null;
   readonly myContracts: readonly FashionContract[];
   readonly winners: readonly number[];
   readonly privateIdentity: FashionPrivateIdentityView | null;
@@ -68,6 +76,18 @@ export function getFashionPublicState(
   const secretId = viewerSeat === null ? undefined : state.secrets[viewerSeat];
   const role = roleId === undefined ? undefined : FASHION_ROLE_BY_ID[roleId];
   const round = FASHION_ROUND_BY_NUMBER[state.currentRound];
+  const myIdentityGuess =
+    viewerSeat === null
+      ? undefined
+      : [...state.identityGuessHistory]
+          .reverse()
+          .find(
+            (entry) =>
+              entry.guesserSeat === viewerSeat &&
+              entry.round === state.currentRound &&
+              entry.guessedRoleId !== undefined &&
+              entry.success !== undefined,
+          );
 
   return {
     gameType: 'fashion-shadow',
@@ -104,6 +124,15 @@ export function getFashionPublicState(
       state.identityGuessHistory.some(
         (entry) => entry.guesserSeat === viewerSeat && entry.round === state.currentRound,
       ),
+    myIdentityGuessResult:
+      myIdentityGuess?.guessedRoleId === undefined || myIdentityGuess.success === undefined
+        ? null
+        : {
+            targetSeat: myIdentityGuess.targetSeat,
+            guessedRoleId: myIdentityGuess.guessedRoleId,
+            success: myIdentityGuess.success,
+            blockedNextRound: !myIdentityGuess.success && state.currentRound < 4,
+          },
     myContracts:
       viewerSeat === null
         ? []

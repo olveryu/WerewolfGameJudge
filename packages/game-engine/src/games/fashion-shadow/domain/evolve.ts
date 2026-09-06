@@ -209,6 +209,8 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
             guesserSeat: event.guesserSeat,
             targetSeat: event.targetSeat,
             round: state.currentRound,
+            guessedRoleId: event.guessedRoleId,
+            success: event.success,
           },
         ],
       };

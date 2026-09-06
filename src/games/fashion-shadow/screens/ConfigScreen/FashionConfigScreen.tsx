@@ -131,7 +131,12 @@ export const FashionConfigScreen: React.FC = () => {
             创建 7 人房间
           </Button>
         ) : (
-          <Button variant="primary" size="lg" onPress={() => setTutorialActive(true)}>
+          <Button
+            variant="primary"
+            size="lg"
+            disabled
+            accessibilityLabel="完成新手关卡后才能创建 7 人房间"
+          >
             完成新手关卡后创建 7 人房间
           </Button>
         )}
