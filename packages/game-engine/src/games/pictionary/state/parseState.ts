@@ -72,8 +72,9 @@ function parseDuration<T extends number | null>(
   options: readonly T[],
 ): T {
   const parsed = value === null ? null : parseInteger(value, path);
-  const match = options.find((option) => option === parsed);
-  return match ?? failDecode(path, 'a supported Pictionary duration');
+  const matchIndex = options.findIndex((option) => option === parsed);
+  if (matchIndex < 0) return failDecode(path, 'a supported Pictionary duration');
+  return options[matchIndex]!;
 }
 
 function parseConfig(value: unknown, path: string): PictionaryConfig {

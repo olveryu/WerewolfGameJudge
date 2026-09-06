@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
 import { colors, fixed, spacing, textStyles, typography } from '@/theme';
 
 const PHONE_STAGE_MAX_WIDTH = 430;
@@ -36,7 +37,7 @@ export const PictionaryStageFrame: React.FC<PictionaryStageFrameProps> = ({
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.content}>
+      <View style={styles.content} testID={TESTIDS.pictionaryStageFrame}>
         <View style={styles.headingRow}>
           <View style={styles.headingCopy}>
             <Text style={styles.eyebrow}>{eyebrow}</Text>

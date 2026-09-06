@@ -38,6 +38,7 @@ import {
 } from '@/games/pictionary/services/PictionaryDrawingDraftStore';
 import { uploadPictionaryDrawing } from '@/games/pictionary/services/pictionaryMediaApi';
 import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
+import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles, typography } from '@/theme';
 import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -154,6 +155,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           placeholderTextColor={colors.textMuted}
           style={styles.textInput}
           accessibilityLabel="看图猜词答案"
+          testID={TESTIDS.pictionaryTextInput}
         />
         <View style={styles.composerMeta}>
           <Text
@@ -182,6 +184,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
         loading={command.isSubmitting}
         size="lg"
         accessibilityLabel="提交文字"
+        testID={TESTIDS.pictionaryTextSubmitButton}
       >
         提交文字
       </Button>
@@ -565,6 +568,7 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
         loading={isBusy}
         size="lg"
         accessibilityLabel={isLocked ? '重试上传画作' : '提交画作'}
+        testID={TESTIDS.pictionaryDrawingSubmitButton}
       >
         {uploadState === 'uploaded'
           ? '已上传，正在同步'

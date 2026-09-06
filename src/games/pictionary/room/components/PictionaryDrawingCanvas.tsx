@@ -7,6 +7,7 @@ import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 
+import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, PICTIONARY_CANVAS_BACKGROUND } from '@/theme';
 
 import type {
@@ -151,7 +152,12 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
 
   return (
     <GestureDetector gesture={gesture}>
-      <View style={styles.frame} onLayout={handleLayout} accessibilityLabel="绘画画布">
+      <View
+        style={styles.frame}
+        onLayout={handleLayout}
+        accessibilityLabel="绘画画布"
+        testID={TESTIDS.pictionaryDrawingCanvas}
+      >
         <Canvas style={styles.canvas}>
           {renderedStrokes.map(({ stroke, path }) => (
             <Path

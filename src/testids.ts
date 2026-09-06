@@ -145,6 +145,22 @@ export const TESTIDS = {
   fibViewResultButton: 'fib-view-result-button',
   fibConfigureButton: 'fib-configure-button',
 
+  // Pictionary
+  pictionaryConfigPlayerCount: 'pictionary-config-player-count',
+  pictionaryConfigDurationOption: (setting: string, value: number | 'unlimited') =>
+    `pictionary-config-${setting}-${value}`,
+  pictionaryConfigSubmitButton: 'pictionary-config-submit-button',
+  pictionaryStartRoundButton: 'pictionary-start-round-button',
+  pictionaryStageFrame: 'pictionary-stage-frame',
+  pictionaryDrawingCanvas: 'pictionary-drawing-canvas',
+  pictionaryDrawingSubmitButton: 'pictionary-drawing-submit-button',
+  pictionaryTextInput: 'pictionary-text-input',
+  pictionaryTextSubmitButton: 'pictionary-text-submit-button',
+  pictionaryDrawingImageButton: 'pictionary-drawing-image-button',
+  pictionaryDrawingFullscreenPreview: 'pictionary-drawing-fullscreen-preview',
+  pictionaryGalleryEntry: 'pictionary-gallery-entry',
+  pictionaryGalleryAdvanceButton: 'pictionary-gallery-advance-button',
+
   // AlertModal
   alertModalOverlay: 'alert-modal-overlay',
   alertModal: 'alert-modal',

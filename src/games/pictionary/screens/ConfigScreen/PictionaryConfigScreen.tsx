@@ -20,6 +20,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { parsePictionaryConfigRouteParams } from '@/games/pictionary/navigation/pictionaryConfigRoute';
 import type { RootStackParamList } from '@/navigation/types';
+import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
 import { pictionaryConfigStyles as styles } from './PictionaryConfigScreen.styles';
@@ -35,21 +36,25 @@ interface PictionaryConfigScreenProps {
 interface DurationOptionProps<TDuration extends number | null> {
   readonly value: TDuration;
   readonly selected: boolean;
+  readonly testID: string;
   readonly onSelect: (value: TDuration) => void;
 }
 
 function DurationOption<TDuration extends number | null>({
   value,
   selected,
+  testID,
   onSelect,
 }: DurationOptionProps<TDuration>): React.ReactElement {
   const handlePress = useCallback(() => onSelect(value), [onSelect, value]);
   return (
     <Pressable
       onPress={handlePress}
+      testID={testID}
       style={[styles.option, selected && styles.optionSelected]}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      aria-checked={selected}
     >
       <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
         {value === null ? '不限时' : `${value} 秒`}
@@ -59,6 +64,7 @@ function DurationOption<TDuration extends number | null>({
 }
 
 interface DurationSectionProps<TDuration extends number | null> {
+  readonly setting: 'drawing' | 'guess' | 'transition' | 'gallery';
   readonly title: string;
   readonly hint: string;
   readonly values: readonly TDuration[];
@@ -67,6 +73,7 @@ interface DurationSectionProps<TDuration extends number | null> {
 }
 
 function DurationSection<TDuration extends number | null>({
+  setting,
   title,
   hint,
   values,
@@ -83,6 +90,7 @@ function DurationSection<TDuration extends number | null>({
             key={value ?? 'unlimited'}
             value={value}
             selected={value === selected}
+            testID={TESTIDS.pictionaryConfigDurationOption(setting, value ?? 'unlimited')}
             onSelect={onSelect}
           />
         ))}
@@ -149,7 +157,11 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
   const durations = useDurationHandlers(state);
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['left', 'right']}
+      testID={TESTIDS.configScreenRoot}
+    >
       <ScreenHeader title="接龙设置" onBack={state.goBack} topInset={insets.top} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
@@ -167,7 +179,9 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
             >
               <Ionicons name="remove" size={componentSizes.icon.md} color={colors.text} />
             </Button>
-            <Text style={styles.count}>{state.config.numberOfPlayers} 人</Text>
+            <Text style={styles.count} testID={TESTIDS.pictionaryConfigPlayerCount}>
+              {state.config.numberOfPlayers} 人
+            </Text>
             <Button
               variant="icon"
               size="lg"
@@ -179,6 +193,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           </View>
         </View>
         <DurationSection
+          setting="drawing"
           title="绘画时间"
           hint="默认 120 秒，足够画清重点"
           values={PICTIONARY_DRAWING_DURATIONS}
@@ -186,6 +201,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           onSelect={durations.drawing}
         />
         <DurationSection
+          setting="guess"
           title="猜词时间"
           hint="只看上一幅画，不能翻看前文"
           values={PICTIONARY_GUESS_DURATIONS}
@@ -193,6 +209,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           onSelect={durations.guess}
         />
         <DurationSection
+          setting="transition"
           title="每棒间隔"
           hint="给大家留一点换手时间"
           values={PICTIONARY_TRANSITION_DURATIONS}
@@ -200,6 +217,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           onSelect={durations.transition}
         />
         <DurationSection
+          setting="gallery"
           title="结果播放"
           hint="不限时会改为房主手动翻页"
           values={PICTIONARY_GALLERY_ITEM_DURATIONS}
@@ -215,6 +233,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           onPress={state.submit}
           loading={state.isSubmitting}
           style={styles.submit}
+          testID={TESTIDS.pictionaryConfigSubmitButton}
         >
           {state.isEditMode ? '保存设置' : '创建房间'}
         </Button>

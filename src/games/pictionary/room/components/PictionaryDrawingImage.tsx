@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { readPictionaryDrawingDataUri } from '@/games/pictionary/services/pictionaryMediaApi';
+import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -57,6 +58,7 @@ export const PictionaryDrawingImage: React.FC<PictionaryDrawingImageProps> = ({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${accessibilityLabel}，全屏查看`}
+            testID={TESTIDS.pictionaryDrawingImageButton}
             onPress={openFullscreen}
             style={({ pressed }) => [styles.imageButton, pressed && styles.pressed]}
           >
@@ -83,6 +85,7 @@ export const PictionaryDrawingImage: React.FC<PictionaryDrawingImageProps> = ({
                 style={styles.fullscreenImage}
                 contentFit="contain"
                 accessibilityLabel={`${accessibilityLabel}全屏预览`}
+                testID={TESTIDS.pictionaryDrawingFullscreenPreview}
               />
               <CloseButton
                 onPress={closeFullscreen}

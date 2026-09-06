@@ -13,6 +13,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
+import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
@@ -27,7 +28,7 @@ interface GalleryEntryViewProps {
 }
 
 const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, chain, entry, entryIndex }) => (
-  <View style={styles.revealSection}>
+  <View style={styles.revealSection} testID={TESTIDS.pictionaryGalleryEntry}>
     <View style={styles.revealMeta}>
       <Text style={styles.chainName}>
         {getPictionarySeatDisplayName(state, chain.originSeat)} 发起的接龙
@@ -150,6 +151,7 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
               })
             }
             accessibilityLabel={isFinalEntry ? '结束揭晓' : '下一项'}
+            testID={TESTIDS.pictionaryGalleryAdvanceButton}
           >
             <Ionicons name="play-skip-forward" size={20} color={colors.text} />
           </Button>

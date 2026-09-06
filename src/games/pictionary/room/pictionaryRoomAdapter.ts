@@ -25,6 +25,7 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { TESTIDS } from '@/testids';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
 
@@ -268,17 +269,22 @@ export function createPictionaryLobbyHostManagement(
         variant: 'primary',
         isLoading: true,
         isEnabled: false,
+        testID: TESTIDS.pictionaryStartRoundButton,
         disabledReason: null,
         onDisabledPress: null,
       }
     : isPictionaryRoomFull(input.state)
-      ? hostAction('start-round', '开始游戏', 'play-outline', 'primary', input.startRound)
+      ? {
+          ...hostAction('start-round', '开始游戏', 'play-outline', 'primary', input.startRound),
+          testID: TESTIDS.pictionaryStartRoundButton,
+        }
       : {
           key: 'start-round',
           label: '开始游戏',
           icon: 'play-outline',
           variant: 'primary',
           isEnabled: false,
+          testID: TESTIDS.pictionaryStartRoundButton,
           disabledReason: '座位尚未坐满',
           onDisabledPress: input.onStartDisabled,
         };
