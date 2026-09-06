@@ -58,7 +58,7 @@ async function main() {
     // the client via DecompressionStream. This cuts 8 MB → ~3.2 MB over
     // China CDN nodes.
     // CI rewrites this placeholder to the versioned npmmirror CDN URL.
-    // Local dev falls back to the uncompressed canvaskit-wasm from node_modules.
+    // Local dev uses the generated /public/canvaskit.wasm copied from node_modules.
     const wasmGzUrl = '__CANVASKIT_WASM_GZ_URL__';
     const useCompressedWasm = !wasmGzUrl.startsWith('__');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -71,7 +71,7 @@ async function main() {
       locateFile: (file: string) =>
         useCompressedWasm
           ? `https://cdn.npmmirror.com/packages/canvaskit-wasm/${version}/files/bin/full/${file}`
-          : `https://unpkg.com/canvaskit-wasm@${version}/bin/full/${file}`,
+          : `/${file}`,
       ...(useCompressedWasm && {
         instantiateWasm(
           importObject: WebAssembly.Imports,
