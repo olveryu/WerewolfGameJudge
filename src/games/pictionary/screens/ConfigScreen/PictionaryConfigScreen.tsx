@@ -2,7 +2,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
-  getPictionaryExpectedKind,
+  getPictionaryRelayStepCount,
   PICTIONARY_DRAWING_DURATIONS,
   PICTIONARY_GALLERY_ITEM_DURATIONS,
   PICTIONARY_GUESS_DURATIONS,
@@ -127,15 +127,11 @@ function useDurationHandlers(state: PictionaryConfigScreenState) {
 }
 
 function getEstimatedMinutes(config: PictionaryConfig): string {
-  const stageKinds = Array.from({ length: config.numberOfPlayers }, (_, stepIndex) =>
-    getPictionaryExpectedKind(stepIndex),
-  );
-  const drawingStageCount = stageKinds.filter((kind) => kind === 'drawing').length;
-  const textStageCount = stageKinds.length - drawingStageCount;
+  const relayStepCount = getPictionaryRelayStepCount(config.numberOfPlayers);
   const answeringSeconds =
-    drawingStageCount * (config.drawingDurationSeconds ?? 0) +
-    textStageCount * (config.guessDurationSeconds ?? 0) +
-    config.numberOfPlayers * config.transitionDurationSeconds;
+    config.numberOfPlayers * (config.drawingDurationSeconds ?? 0) +
+    config.numberOfPlayers * (config.guessDurationSeconds ?? 0) +
+    relayStepCount * config.transitionDurationSeconds;
   if (
     config.drawingDurationSeconds === null ||
     config.guessDurationSeconds === null ||
@@ -143,7 +139,8 @@ function getEstimatedMinutes(config: PictionaryConfig): string {
   ) {
     return '含不限时阶段，实际时长由房主推进';
   }
-  const gallerySeconds = config.numberOfPlayers ** 2 * config.galleryItemDurationSeconds;
+  const gallerySeconds =
+    config.numberOfPlayers * relayStepCount * config.galleryItemDurationSeconds;
   const answeringMinutes = Math.max(1, Math.ceil(answeringSeconds / 60));
   const galleryMinutes = Math.max(1, Math.ceil(gallerySeconds / 60));
   return `预计整局约 ${answeringMinutes + galleryMinutes} 分钟（作答 ${answeringMinutes} 分钟，揭晓 ${galleryMinutes} 分钟）`;
@@ -170,7 +167,9 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
         <Text style={styles.title}>让每一棒都来不及想太多</Text>
-        <Text style={styles.description}>4–20 人，默认 6 人。每个人先出题，再轮流画和猜。</Text>
+        <Text style={styles.description}>
+          4–20 人，默认 6 人。人数决定轮数，每轮全员先写题或猜词，再接续作画。
+        </Text>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>玩家人数</Text>
           <View style={styles.playerRow}>

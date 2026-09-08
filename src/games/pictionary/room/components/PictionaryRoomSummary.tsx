@@ -44,7 +44,7 @@ export const PictionaryRoomSummary: React.FC<PictionaryRoomSummaryProps> = ({
       <Ionicons name="book-outline" size={componentSizes.icon.sm} color={colors.primary} />
       <View style={styles.rulesText}>
         <Text style={styles.rulesTitle}>玩法说明</Text>
-        <Text style={styles.rulesSubtitle}>写题、作画、猜词，再一起揭晓</Text>
+        <Text style={styles.rulesSubtitle}>人数决定轮数，每轮写题或猜词后作画</Text>
       </View>
       <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textMuted} />
     </TouchableOpacity>

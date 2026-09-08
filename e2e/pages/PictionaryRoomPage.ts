@@ -155,15 +155,20 @@ export class PictionaryRoomPage extends RoomPage {
   }
 
   /** Assert the authoritative chain and entry cursors shown on this player. */
-  async expectGalleryPosition(chain: number, entry: number, total: number): Promise<void> {
+  async expectGalleryPosition(
+    chain: number,
+    entry: number,
+    chainTotal: number,
+    entryTotal: number,
+  ): Promise<void> {
     const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
-    await expect(stage.getByText(`第 ${chain} / ${total} 条接龙`, { exact: true })).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(
+      stage.getByText(`第 ${chain} / ${chainTotal} 条接龙`, { exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
     await expect(
       this.page
         .getByTestId(TESTIDS.pictionaryGalleryEntry)
-        .getByText(`第 ${entry} / ${total} 棒`, { exact: true }),
+        .getByText(`第 ${entry} / ${entryTotal} 棒`, { exact: true }),
     ).toBeVisible();
   }
 

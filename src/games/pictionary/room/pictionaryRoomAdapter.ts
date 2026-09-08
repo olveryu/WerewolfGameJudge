@@ -4,6 +4,7 @@ import {
   getPictionaryBotDisplayName,
   getPictionaryBotUserId,
   getPictionaryOccupiedSeatCount,
+  getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   isPictionaryImplicitBotSeat,
   isPictionaryRoomFull,
@@ -203,6 +204,7 @@ export function getPictionarySeatTapIntent(input: {
 }
 
 export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatusRibbonModel {
+  const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
   switch (state.phase) {
     case 'lobby':
       return {
@@ -215,7 +217,7 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
       return {
         kind: 'progress',
         current: state.stepIndex + 1,
-        total: state.config.numberOfPlayers,
+        total: relayStepCount,
         label: state.stepIndex === 0 ? '全员出题中' : '接龙作答中',
       };
     case 'settling':
@@ -224,7 +226,7 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
       return {
         kind: 'progress',
         current: state.stepIndex + 1,
-        total: state.config.numberOfPlayers,
+        total: relayStepCount,
         label: '准备下一棒',
       };
     case 'gallery': {
@@ -233,9 +235,8 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
       }
       return {
         kind: 'progress',
-        current:
-          state.gallery.chainIndex * state.config.numberOfPlayers + state.gallery.entryIndex + 1,
-        total: state.config.numberOfPlayers ** 2,
+        current: state.gallery.chainIndex * relayStepCount + state.gallery.entryIndex + 1,
+        total: state.config.numberOfPlayers * relayStepCount,
         label: '接龙揭晓中',
       };
     }

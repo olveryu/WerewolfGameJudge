@@ -1,5 +1,6 @@
 /** Full-browser Pictionary relay from room creation through synchronized results. */
 
+import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import { expect, test } from '@playwright/test';
 
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
@@ -8,8 +9,14 @@ import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
 import { PictionaryRoomPage } from '../pages/PictionaryRoomPage';
 
 const PLAYER_COUNT = 4;
+const RELAY_STEP_COUNT = getPictionaryRelayStepCount(PLAYER_COUNT);
+const TOTAL_GALLERY_ENTRIES = PLAYER_COUNT * RELAY_STEP_COUNT;
 const OPENING_PROMPTS = ['月球上的猫', '云端城堡', '跳舞的花', '海上火车'] as const;
-const FIRST_GUESSES = ['太阳', '小屋', '花朵', '帆船'] as const;
+const GUESS_SUBMISSIONS = [
+  ['太阳', '小屋', '花朵', '帆船'],
+  ['发光的球', '山顶房子', '旋转花园', '海边列车'],
+  ['金色月亮', '漂浮村庄', '风中的花', '远航列车'],
+] as const;
 
 async function promptForEveryPlayer(
   rooms: readonly PictionaryRoomPage[],
@@ -40,7 +47,9 @@ async function expectGalleryPositionForEveryPlayer(
   chain: number,
   entry: number,
 ): Promise<void> {
-  await Promise.all(rooms.map((room) => room.expectGalleryPosition(chain, entry, PLAYER_COUNT)));
+  await Promise.all(
+    rooms.map((room) => room.expectGalleryPosition(chain, entry, PLAYER_COUNT, RELAY_STEP_COUNT)),
+  );
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -75,10 +84,10 @@ test.describe('Pictionary', () => {
 
       await test.step('start with a private prompt from every player', async () => {
         await hostRoom.startRound();
-        await Promise.all(rooms.map((room) => room.expectPromptStep(1, PLAYER_COUNT)));
+        await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
         await hostRoom.expectPhoneSizedStage();
         await promptForEveryPlayer(rooms, OPENING_PROMPTS);
-        await Promise.all(rooms.map((room) => room.expectDrawingStep(2, PLAYER_COUNT)));
+        await Promise.all(rooms.map((room) => room.expectDrawingStep(2, RELAY_STEP_COUNT)));
       });
 
       await test.step('exercise all tools and upload every first drawing', async () => {
@@ -87,31 +96,35 @@ test.describe('Pictionary', () => {
           await rooms[playerIndex]!.drawStroke(playerIndex);
         }
         await Promise.all(rooms.map((room) => room.submitDrawing()));
-        await Promise.all(rooms.map((room) => room.expectGuessStep(3, PLAYER_COUNT)));
       });
 
-      await test.step('inspect the received image and submit every guess', async () => {
-        await rooms[1]!.expectFullscreenDrawingPreview();
-        await guessForEveryPlayer(rooms, FIRST_GUESSES);
-        await Promise.all(rooms.map((room) => room.expectDrawingStep(4, PLAYER_COUNT)));
-      });
+      for (const [guessIndex, guesses] of GUESS_SUBMISSIONS.entries()) {
+        const guessStep = guessIndex * 2 + 3;
+        const drawingStep = guessStep + 1;
+        await test.step(`complete guess and drawing stages ${guessStep}-${drawingStep}`, async () => {
+          await Promise.all(rooms.map((room) => room.expectGuessStep(guessStep, RELAY_STEP_COUNT)));
+          if (guessIndex === 0) await rooms[1]!.expectFullscreenDrawingPreview();
+          await guessForEveryPlayer(rooms, guesses);
+          await Promise.all(
+            rooms.map((room) => room.expectDrawingStep(drawingStep, RELAY_STEP_COUNT)),
+          );
+          await drawForEveryPlayer(rooms, PLAYER_COUNT * (guessIndex + 1));
+        });
+      }
 
-      await test.step('complete the final drawing stage', async () => {
-        await drawForEveryPlayer(rooms, PLAYER_COUNT);
-        await Promise.all(rooms.map((room) => room.expectGallery()));
-      });
+      await Promise.all(rooms.map((room) => room.expectGallery()));
 
       await test.step('keep every player on the authoritative gallery cursor', async () => {
         await expectGalleryPositionForEveryPlayer(rooms, 1, 1);
 
         for (
           let globalEntryIndex = 1;
-          globalEntryIndex < PLAYER_COUNT ** 2;
+          globalEntryIndex < TOTAL_GALLERY_ENTRIES;
           globalEntryIndex += 1
         ) {
           await hostRoom.advanceGallery();
-          const chain = Math.floor(globalEntryIndex / PLAYER_COUNT) + 1;
-          const entry = (globalEntryIndex % PLAYER_COUNT) + 1;
+          const chain = Math.floor(globalEntryIndex / RELAY_STEP_COUNT) + 1;
+          const entry = (globalEntryIndex % RELAY_STEP_COUNT) + 1;
           await expectGalleryPositionForEveryPlayer(rooms, chain, entry);
           if (globalEntryIndex === 1) await hostRoom.expectFullscreenDrawingPreview();
 

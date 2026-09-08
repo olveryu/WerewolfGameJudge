@@ -50,6 +50,7 @@ import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
 import {
   getPictionaryExpectedKind,
+  getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   isPictionaryImplicitBotSeat,
   isPictionaryRoomFull,
@@ -494,7 +495,7 @@ function expireTransitionPhase(
   context: CommandContext,
 ): PictionaryDecision {
   const nextStepIndex = state.stepIndex + 1;
-  return nextStepIndex === state.config.numberOfPlayers
+  return nextStepIndex === getPictionaryRelayStepCount(state.config.numberOfPlayers)
     ? commitPictionary([galleryStartEvent(state, context.nowMs)])
     : commitPictionary([
         phaseChangedEvent(
@@ -511,13 +512,14 @@ function nextGalleryPosition(
   direction: 1 | -1,
 ): PictionaryGalleryState | null {
   if (state.gallery === null) return null;
-  const length = state.config.numberOfPlayers;
-  const current = state.gallery.chainIndex * length + state.gallery.entryIndex;
+  const chainCount = state.config.numberOfPlayers;
+  const entryCount = getPictionaryRelayStepCount(chainCount);
+  const current = state.gallery.chainIndex * entryCount + state.gallery.entryIndex;
   const next = current + direction;
-  if (next < 0 || next >= length * length) return null;
+  if (next < 0 || next >= chainCount * entryCount) return null;
   return {
-    chainIndex: Math.floor(next / length),
-    entryIndex: next % length,
+    chainIndex: Math.floor(next / entryCount),
+    entryIndex: next % entryCount,
     isPlaying: state.gallery.isPlaying,
   };
 }

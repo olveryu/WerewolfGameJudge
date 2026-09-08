@@ -194,6 +194,10 @@ export function getPictionaryExpectedKind(stepIndex: number): PictionaryExpected
   return stepIndex % 2 === 0 ? 'text' : 'drawing';
 }
 
+export function getPictionaryRelayStepCount(numberOfPlayers: number): number {
+  return numberOfPlayers * 2;
+}
+
 export function getPictionaryOccupiedSeatCount(state: PictionaryState): number {
   if (!state.fillEmptySeatsWithBots) return Object.keys(state.realSeats).length;
   const excludedEmptySeatCount = state.excludedBotSeats.reduce(
@@ -233,8 +237,9 @@ export function getPictionaryTaskForSeat(
   if (state.roundId === null || state.stepIndex < 0) return null;
   const seatIndex = state.seatOrder.indexOf(seat);
   if (seatIndex < 0) return null;
+  const seatOffset = state.stepIndex % state.config.numberOfPlayers;
   const chainIndex =
-    (seatIndex - state.stepIndex + state.config.numberOfPlayers) % state.config.numberOfPlayers;
+    (seatIndex - seatOffset + state.config.numberOfPlayers) % state.config.numberOfPlayers;
   const chain = state.chains[chainIndex];
   if (chain === undefined) return null;
   return {

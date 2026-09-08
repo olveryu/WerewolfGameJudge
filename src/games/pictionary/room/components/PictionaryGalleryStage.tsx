@@ -6,6 +6,7 @@ import type {
   PictionaryEntry,
   PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -34,7 +35,7 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, chain, entry
         {getPictionarySeatDisplayName(state, chain.originSeat)} 发起的接龙
       </Text>
       <Text style={styles.entryPosition}>
-        第 {entryIndex + 1} / {state.config.numberOfPlayers} 棒
+        第 {entryIndex + 1} / {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
       </Text>
     </View>
     {entry.kind === 'drawing' ? (

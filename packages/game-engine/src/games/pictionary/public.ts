@@ -33,6 +33,7 @@ export {
   getPictionaryBotUserId,
   getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,
+  getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   getPictionaryTextGraphemeCount,
   hasPictionaryForbiddenControlCharacter,

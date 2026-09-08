@@ -2,6 +2,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   getPictionaryTextGraphemeCount,
   hasPictionaryForbiddenControlCharacter,
@@ -157,7 +158,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
 
   return (
     <PictionaryStageFrame
-      eyebrow={`第 ${state.stepIndex + 1} / ${state.config.numberOfPlayers} 棒`}
+      eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
       title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
       description={
         isOpeningPrompt
@@ -581,7 +582,7 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
 
   return (
     <PictionaryStageFrame
-      eyebrow={`第 ${state.stepIndex + 1} / ${state.config.numberOfPlayers} 棒`}
+      eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
       title="把这句话画出来"
       description="画面会传给下一位玩家，不能添加文字提示。"
       remainingSeconds={isLocked ? uploadRemainingSeconds : remainingSeconds}
@@ -667,7 +668,7 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
   const pendingCount = Math.max(0, state.config.numberOfPlayers - submittedCount);
   return (
     <PictionaryStageFrame
-      eyebrow={`第 ${state.stepIndex + 1} / ${state.config.numberOfPlayers} 棒`}
+      eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
       title={title}
       description={description}
       remainingSeconds={remainingSeconds}

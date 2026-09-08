@@ -3,6 +3,7 @@
 import { PICTIONARY_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import {
   getPictionaryExpectedKind,
+  getPictionaryRelayStepCount,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   isValidPictionaryText,
@@ -113,11 +114,12 @@ function assertRound(state: PictionaryState): void {
   if (state.chains.length !== numberOfPlayers) {
     throw new Error('Pictionary round must contain one chain per player');
   }
+  const relayStepCount = getPictionaryRelayStepCount(numberOfPlayers);
   state.chains.forEach((chain, chainIndex) => {
     if (chain.originSeat !== state.seatOrder[chainIndex]) {
       throw new Error('Pictionary chain order must match seatOrder');
     }
-    if (chain.entries.length > numberOfPlayers) {
+    if (chain.entries.length > relayStepCount) {
       throw new Error('Pictionary chain exceeds the relay length');
     }
     chain.entries.forEach((entry, entryIndex) => assertEntry(state, entry, chainIndex, entryIndex));
@@ -160,11 +162,12 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   }
 
   assertRound(state);
-  if (state.stepIndex < 0 || state.stepIndex >= state.config.numberOfPlayers) {
+  const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
+  if (state.stepIndex < 0 || state.stepIndex >= relayStepCount) {
     throw new Error('Pictionary stepIndex is outside the round');
   }
   if (state.phase === 'gallery' || state.phase === 'ended') {
-    if (state.chains.some((chain) => chain.entries.length !== state.config.numberOfPlayers)) {
+    if (state.chains.some((chain) => chain.entries.length !== relayStepCount)) {
       throw new Error('Pictionary gallery requires complete chains');
     }
     if (state.gallery === null) throw new Error('Pictionary gallery state is required');
