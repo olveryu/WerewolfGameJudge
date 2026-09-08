@@ -191,7 +191,7 @@ export function isValidPictionaryConfig(config: PictionaryConfig): boolean {
 }
 
 export function getPictionaryExpectedKind(stepIndex: number): PictionaryExpectedEntryKind {
-  return stepIndex % 2 === 0 ? 'drawing' : 'text';
+  return stepIndex % 2 === 0 ? 'text' : 'drawing';
 }
 
 export function getPictionaryOccupiedSeatCount(state: PictionaryState): number {

@@ -1,5 +1,10 @@
 /** Strict MMKV persistence for the current user's unsubmitted Pictionary drawing. */
 
+import {
+  PICTIONARY_DRAWING_HEIGHT,
+  PICTIONARY_DRAWING_WIDTH,
+} from '@game-judge/game-engine/games/pictionary/public';
+
 import { storage } from '@/services/infra/localStorage';
 
 import {
@@ -7,16 +12,18 @@ import {
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
   type PictionaryDrawingDraft,
+  type PictionaryDrawingElement,
+  type PictionaryDrawingFillRectangle,
   type PictionaryDrawingPoint,
-  type PictionaryDrawingStroke,
   type PictionaryDrawingTool,
   type PictionaryDrawingWidth,
 } from '../model/pictionaryDrawing';
 
 const STORAGE_KEY_PREFIX = '@pictionary:drawing-draft:';
-const STORAGE_VERSION = 1;
-const MAX_STROKE_COUNT = 2_000;
+const STORAGE_VERSION = 2;
+const MAX_ELEMENT_COUNT = 2_000;
 const MAX_POINTS_PER_STROKE = 20_000;
+const MAX_FILL_RECTANGLE_COUNT = PICTIONARY_DRAWING_WIDTH * PICTIONARY_DRAWING_HEIGHT;
 const MAX_IDENTIFIER_LENGTH = 256;
 
 interface DrawingDraftStorage {
@@ -33,7 +40,7 @@ export interface PictionaryDrawingDraftScope {
 }
 
 interface StoredPictionaryDrawingDraft {
-  readonly version: 1;
+  readonly version: 2;
   readonly scope: PictionaryDrawingDraftScope;
   readonly draft: PictionaryDrawingDraft;
 }
@@ -105,10 +112,17 @@ function parsePoint(value: unknown): PictionaryDrawingPoint {
 }
 
 function parseTool(value: unknown): PictionaryDrawingTool {
-  if (value !== 'brush' && value !== 'eraser') {
-    throw new Error('Stored Pictionary drawing tool is invalid');
+  switch (value) {
+    case 'brush':
+    case 'eraser':
+    case 'line':
+    case 'rectangle':
+    case 'ellipse':
+    case 'fill':
+      return value;
+    default:
+      throw new Error('Stored Pictionary drawing tool is invalid');
   }
-  return value;
 }
 
 function parseColor(value: unknown): PictionaryDrawingColor {
@@ -123,46 +137,111 @@ function parseWidth(value: unknown): PictionaryDrawingWidth {
   return width;
 }
 
-function parseStroke(value: unknown): PictionaryDrawingStroke {
-  const stroke = requireRecord(value, 'Stored Pictionary drawing stroke');
-  assertExactKeys(
-    stroke,
-    ['id', 'tool', 'color', 'width', 'points'],
-    'Stored Pictionary drawing stroke',
-  );
+function parseFillRectangle(value: unknown): PictionaryDrawingFillRectangle {
+  const rectangle = requireRecord(value, 'Stored Pictionary fill rectangle');
+  assertExactKeys(rectangle, ['height', 'width', 'x', 'y'], 'Stored Pictionary fill rectangle');
+  const { x, y, width, height } = rectangle;
   if (
-    !Array.isArray(stroke.points) ||
-    stroke.points.length === 0 ||
-    stroke.points.length > MAX_POINTS_PER_STROKE
+    typeof x !== 'number' ||
+    typeof y !== 'number' ||
+    typeof width !== 'number' ||
+    typeof height !== 'number' ||
+    !Number.isSafeInteger(x) ||
+    !Number.isSafeInteger(y) ||
+    !Number.isSafeInteger(width) ||
+    !Number.isSafeInteger(height) ||
+    x < 0 ||
+    y < 0 ||
+    width <= 0 ||
+    height <= 0 ||
+    x + width > PICTIONARY_DRAWING_WIDTH ||
+    y + height > PICTIONARY_DRAWING_HEIGHT
   ) {
-    throw new Error('Stored Pictionary drawing stroke points are invalid');
+    throw new Error('Stored Pictionary fill rectangle is outside the canonical canvas');
   }
-  return {
-    id: requireIdentifier(stroke.id, 'Pictionary drawing stroke ID'),
-    tool: parseTool(stroke.tool),
-    color: parseColor(stroke.color),
-    width: parseWidth(stroke.width),
-    points: stroke.points.map(parsePoint),
-  };
+  return { x, y, width, height };
 }
 
-function parseStrokeList(value: unknown, label: string): readonly PictionaryDrawingStroke[] {
-  if (!Array.isArray(value) || value.length > MAX_STROKE_COUNT) {
+function parseElement(value: unknown): PictionaryDrawingElement {
+  const element = requireRecord(value, 'Stored Pictionary drawing element');
+  const kind = parseTool(element.kind);
+  switch (kind) {
+    case 'brush':
+    case 'eraser':
+      assertExactKeys(
+        element,
+        ['color', 'id', 'kind', 'points', 'width'],
+        'Stored Pictionary freehand element',
+      );
+      if (
+        !Array.isArray(element.points) ||
+        element.points.length === 0 ||
+        element.points.length > MAX_POINTS_PER_STROKE
+      ) {
+        throw new Error('Stored Pictionary drawing points are invalid');
+      }
+      return {
+        id: requireIdentifier(element.id, 'Pictionary drawing element ID'),
+        kind,
+        color: parseColor(element.color),
+        width: parseWidth(element.width),
+        points: element.points.map(parsePoint),
+      };
+    case 'line':
+    case 'rectangle':
+    case 'ellipse':
+      assertExactKeys(
+        element,
+        ['color', 'end', 'id', 'kind', 'start', 'width'],
+        'Stored Pictionary shape element',
+      );
+      return {
+        id: requireIdentifier(element.id, 'Pictionary drawing element ID'),
+        kind,
+        color: parseColor(element.color),
+        width: parseWidth(element.width),
+        start: parsePoint(element.start),
+        end: parsePoint(element.end),
+      };
+    case 'fill':
+      assertExactKeys(
+        element,
+        ['color', 'id', 'kind', 'rectangles'],
+        'Stored Pictionary fill element',
+      );
+      if (
+        !Array.isArray(element.rectangles) ||
+        element.rectangles.length === 0 ||
+        element.rectangles.length > MAX_FILL_RECTANGLE_COUNT
+      ) {
+        throw new Error('Stored Pictionary fill rectangles are invalid');
+      }
+      return {
+        id: requireIdentifier(element.id, 'Pictionary drawing element ID'),
+        kind,
+        color: parseColor(element.color),
+        rectangles: element.rectangles.map(parseFillRectangle),
+      };
+  }
+}
+
+function parseElementList(value: unknown, label: string): readonly PictionaryDrawingElement[] {
+  if (!Array.isArray(value) || value.length > MAX_ELEMENT_COUNT) {
     throw new Error(`${label} is invalid`);
   }
-  const strokes = value.map(parseStroke);
-  if (new Set(strokes.map((stroke) => stroke.id)).size !== strokes.length) {
-    throw new Error(`${label} contains duplicate stroke IDs`);
+  const elements = value.map(parseElement);
+  if (new Set(elements.map((element) => element.id)).size !== elements.length) {
+    throw new Error(`${label} contains duplicate element IDs`);
   }
-  return strokes;
+  return elements;
 }
 
 function parseDraft(value: unknown): PictionaryDrawingDraft {
   const draft = requireRecord(value, 'Stored Pictionary drawing draft');
-  assertExactKeys(draft, ['redoStrokes', 'strokes'], 'Stored Pictionary drawing draft');
+  assertExactKeys(draft, ['elements', 'redoElements'], 'Stored Pictionary drawing draft');
   return {
-    strokes: parseStrokeList(draft.strokes, 'Stored Pictionary strokes'),
-    redoStrokes: parseStrokeList(draft.redoStrokes, 'Stored Pictionary redo strokes'),
+    elements: parseElementList(draft.elements, 'Stored Pictionary elements'),
+    redoElements: parseElementList(draft.redoElements, 'Stored Pictionary redo elements'),
   };
 }
 
@@ -198,6 +277,10 @@ class PictionaryDrawingDraftStore {
     const storedValue: unknown = JSON.parse(raw);
     const stored = requireRecord(storedValue, 'Stored Pictionary draft envelope');
     assertExactKeys(stored, ['draft', 'scope', 'version'], 'Stored Pictionary draft envelope');
+    if (stored.version === 1) {
+      this.#storage.remove(getStorageKey(canonicalScope));
+      return null;
+    }
     if (stored.version !== STORAGE_VERSION) {
       throw new Error('Stored Pictionary draft has an unsupported version');
     }
@@ -213,7 +296,7 @@ class PictionaryDrawingDraftStore {
   write(scope: PictionaryDrawingDraftScope, draft: PictionaryDrawingDraft): void {
     const canonicalScope = parseScope(scope);
     const canonicalDraft = parseDraft(draft);
-    if (canonicalDraft.strokes.length === 0 && canonicalDraft.redoStrokes.length === 0) {
+    if (canonicalDraft.elements.length === 0 && canonicalDraft.redoElements.length === 0) {
       this.clear(canonicalScope);
       return;
     }

@@ -22,7 +22,8 @@ import {
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
   type PictionaryDrawingDraftAction,
-  type PictionaryDrawingStroke,
+  type PictionaryDrawingElement,
+  type PictionaryDrawingPoint,
   type PictionaryDrawingTool,
   type PictionaryDrawingWidth,
   reducePictionaryDrawingDraft,
@@ -37,7 +38,10 @@ import {
   pictionaryDrawingDraftStore,
 } from '@/games/pictionary/services/PictionaryDrawingDraftStore';
 import { uploadPictionaryDrawing } from '@/games/pictionary/services/pictionaryMediaApi';
-import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
+import {
+  createPictionaryFillElement,
+  renderPictionaryDrawing,
+} from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles, typography } from '@/theme';
 import { showDestructiveAlert } from '@/utils/alertPresets';
@@ -135,20 +139,36 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   const command = usePictionaryStageCommand(session, controlledSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);
+  const isOpeningPrompt = state.stepIndex === 0;
+  if (isOpeningPrompt && task.previousEntry !== null) {
+    throw new Error('[FAIL-FAST] Opening Pictionary prompt cannot have previous context');
+  }
+  if (!isOpeningPrompt && task.previousEntry === null) {
+    throw new Error('[FAIL-FAST] Pictionary guess requires previous context');
+  }
 
   const submitText = async (): Promise<void> => {
     if (!isValidPictionaryText(text)) return;
-    await command.submit('提交文字', { type: 'pictionary.text.submit', text });
+    await command.submit(isOpeningPrompt ? '提交题目' : '提交猜测', {
+      type: 'pictionary.text.submit',
+      text,
+    });
   };
 
   return (
     <PictionaryStageFrame
       eyebrow={`第 ${state.stepIndex + 1} / ${state.config.numberOfPlayers} 棒`}
-      title="猜猜画的是什么"
-      description="只根据画面作答，不要向作者确认。"
+      title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
+      description={
+        isOpeningPrompt
+          ? '题目会交给下一位玩家作画，提交前不要告诉其他人。'
+          : '只根据画面作答，不要向作者确认。'
+      }
       remainingSeconds={remainingSeconds}
     >
-      <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
+      {!isOpeningPrompt && (
+        <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
+      )}
       <View style={styles.composer}>
         <TextInput
           value={text}
@@ -156,10 +176,10 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           editable={!command.isSubmitting && !isExpired}
           multiline
           autoFocus
-          placeholder="写下你的猜测"
+          placeholder={isOpeningPrompt ? '例如：月球上的猫' : '写下你的猜测'}
           placeholderTextColor={colors.textMuted}
           style={styles.textInput}
-          accessibilityLabel="看图猜词答案"
+          accessibilityLabel={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
           testID={TESTIDS.pictionaryTextInput}
         />
         <View style={styles.composerMeta}>
@@ -188,10 +208,10 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
         disabled={validationMessage !== null || isExpired}
         loading={command.isSubmitting}
         size="lg"
-        accessibilityLabel="提交文字"
+        accessibilityLabel={isOpeningPrompt ? '提交题目' : '提交猜测'}
         testID={TESTIDS.pictionaryTextSubmitButton}
       >
-        提交文字
+        {isOpeningPrompt ? '提交题目' : '提交猜测'}
       </Button>
     </PictionaryStageFrame>
   );
@@ -224,7 +244,10 @@ const ToolButton: React.FC<ToolButtonProps> = ({ label, icon, isSelected, disabl
       size={18}
       color={isSelected ? colors.textInverse : colors.textSecondary}
     />
-    <Text style={[styles.toolButtonText, isSelected && styles.selectedToolButtonText]}>
+    <Text
+      numberOfLines={1}
+      style={[styles.toolButtonText, isSelected && styles.selectedToolButtonText]}
+    >
       {label}
     </Text>
   </Pressable>
@@ -294,32 +317,60 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
         />
         <ToolButton
           label="橡皮"
-          icon="remove-outline"
+          icon="backspace-outline"
           isSelected={tool === 'eraser'}
           disabled={disabled}
           onPress={() => onToolChange('eraser')}
         />
+        <ToolButton
+          label="直线"
+          icon="remove-outline"
+          isSelected={tool === 'line'}
+          disabled={disabled}
+          onPress={() => onToolChange('line')}
+        />
+        <ToolButton
+          label="矩形"
+          icon="square-outline"
+          isSelected={tool === 'rectangle'}
+          disabled={disabled}
+          onPress={() => onToolChange('rectangle')}
+        />
+        <ToolButton
+          label="椭圆"
+          icon="ellipse-outline"
+          isSelected={tool === 'ellipse'}
+          disabled={disabled}
+          onPress={() => onToolChange('ellipse')}
+        />
+        <ToolButton
+          label="填充"
+          icon="color-fill-outline"
+          isSelected={tool === 'fill'}
+          disabled={disabled}
+          onPress={() => onToolChange('fill')}
+        />
       </View>
-      <View style={styles.historyActions}>
-        <IconAction
-          label="撤销"
-          icon="arrow-undo-outline"
-          disabled={disabled || !canUndo}
-          onPress={onUndo}
-        />
-        <IconAction
-          label="重做"
-          icon="arrow-redo-outline"
-          disabled={disabled || !canRedo}
-          onPress={onRedo}
-        />
-        <IconAction
-          label="清空画布"
-          icon="trash-outline"
-          disabled={disabled || !canUndo}
-          onPress={onClear}
-        />
-      </View>
+    </View>
+    <View style={styles.historyActions}>
+      <IconAction
+        label="撤销"
+        icon="arrow-undo-outline"
+        disabled={disabled || !canUndo}
+        onPress={onUndo}
+      />
+      <IconAction
+        label="重做"
+        icon="arrow-redo-outline"
+        disabled={disabled || !canRedo}
+        onPress={onRedo}
+      />
+      <IconAction
+        label="清空画布"
+        icon="trash-outline"
+        disabled={disabled || !canUndo}
+        onPress={onClear}
+      />
     </View>
     <View style={styles.optionRow} accessibilityLabel="画笔颜色">
       {PICTIONARY_DRAWING_PALETTE.map((swatch) => (
@@ -437,13 +488,29 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
     [draftScope],
   );
 
-  const addStroke = useCallback(
-    (stroke: PictionaryDrawingStroke) => updateDraft({ type: 'stroke.add', stroke }),
+  const addElement = useCallback(
+    (element: PictionaryDrawingElement) => updateDraft({ type: 'element.add', element }),
     [updateDraft],
   );
 
+  const fillDrawing = useCallback(
+    (point: PictionaryDrawingPoint): void => {
+      try {
+        const element = createPictionaryFillElement(draft.elements, point, color);
+        if (element !== null) addElement(element);
+      } catch (error: unknown) {
+        handleError(error, {
+          label: '填充画布',
+          logger: roomScreenLog,
+          alertMessage: '无法填充这个区域，请稍后重试。',
+        });
+      }
+    },
+    [addElement, color, draft.elements],
+  );
+
   const clearDrawing = (): void => {
-    showDestructiveAlert('清空画布？', '所有笔画都会被删除。', '清空', () =>
+    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', () =>
       updateDraft({ type: 'drawing.clear' }),
     );
   };
@@ -451,7 +518,7 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
   const submitDrawing = async (): Promise<void> => {
     setUploadState('rendering');
     try {
-      const png = renderPictionaryDrawing(draft.strokes);
+      const png = renderPictionaryDrawing(draft.elements);
       let submissionId = reservation?.submissionId ?? reservedSubmissionId.current;
       if (submissionId === null) {
         const reserveResult = await command.submit('预留画作上传', {
@@ -502,11 +569,7 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
   };
 
   const previousEntry = task.previousEntry;
-  const isOpeningDrawing = state.stepIndex === 0;
-  if (isOpeningDrawing && previousEntry !== null) {
-    throw new Error('[FAIL-FAST] Opening Pictionary drawing cannot have previous context');
-  }
-  if (!isOpeningDrawing && (previousEntry === null || previousEntry.kind === 'drawing')) {
+  if (previousEntry === null || previousEntry.kind === 'drawing') {
     throw new Error('[FAIL-FAST] Pictionary drawing task requires a text or missed context');
   }
   const isLocked = reservation !== null || reservedSubmissionId.current !== null;
@@ -514,57 +577,52 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
   const isBusy = command.isSubmitting || uploadState === 'rendering' || uploadState === 'uploading';
   const canEdit = !isLocked && !isBusy && !isExpired;
   const canSubmit =
-    draft.strokes.length > 0 && !isBusy && (isLocked ? !isUploadExpired : !isExpired);
+    draft.elements.length > 0 && !isBusy && (isLocked ? !isUploadExpired : !isExpired);
 
   return (
     <PictionaryStageFrame
       eyebrow={`第 ${state.stepIndex + 1} / ${state.config.numberOfPlayers} 棒`}
-      title={isOpeningDrawing ? '自由画一幅画' : '把这句话画出来'}
-      description={
-        isOpeningDrawing
-          ? '不用根据题目，想到什么就画什么。画面会传给下一位玩家。'
-          : '画面会传给下一位玩家，不能添加文字提示。'
-      }
+      title="把这句话画出来"
+      description="画面会传给下一位玩家，不能添加文字提示。"
       remainingSeconds={isLocked ? uploadRemainingSeconds : remainingSeconds}
     >
-      {!isOpeningDrawing && previousEntry !== null && previousEntry.kind !== 'drawing' && (
-        <View style={styles.promptStrip}>
-          <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
-          <View style={styles.promptCopy}>
-            <Text style={styles.contextLabel}>上一棒</Text>
-            <Text style={styles.promptText}>
-              {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
-            </Text>
-          </View>
+      <View style={styles.promptStrip}>
+        <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
+        <View style={styles.promptCopy}>
+          <Text style={styles.contextLabel}>上一棒</Text>
+          <Text style={styles.promptText}>
+            {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
+          </Text>
         </View>
-      )}
+      </View>
       <DrawingToolbar
         tool={tool}
         color={color}
         strokeWidth={strokeWidth}
-        canUndo={draft.strokes.length > 0}
-        canRedo={draft.redoStrokes.length > 0}
+        canUndo={draft.elements.length > 0}
+        canRedo={draft.redoElements.length > 0}
         disabled={!canEdit}
         onToolChange={setTool}
         onColorChange={setColor}
         onWidthChange={setStrokeWidth}
-        onUndo={() => updateDraft({ type: 'stroke.undo' })}
-        onRedo={() => updateDraft({ type: 'stroke.redo' })}
+        onUndo={() => updateDraft({ type: 'element.undo' })}
+        onRedo={() => updateDraft({ type: 'element.redo' })}
         onClear={clearDrawing}
       />
       <PictionaryDrawingCanvas
-        strokes={draft.strokes}
+        elements={draft.elements}
         tool={tool}
         color={color}
         strokeWidth={strokeWidth}
         isEnabled={canEdit}
-        onStrokeComplete={addStroke}
+        onElementComplete={addElement}
+        onFill={fillDrawing}
       />
       {isLocked && uploadState !== 'uploaded' && (
         <View style={styles.uploadNotice}>
           <Ionicons name="lock-closed-outline" size={18} color={colors.info} />
           <Text style={styles.uploadNoticeText}>
-            {draft.strokes.length === 0
+            {draft.elements.length === 0
               ? '本机没有可恢复的画稿，本棒会在宽限期后结束'
               : isUploadExpired
                 ? '上传宽限期已结束'
@@ -797,7 +855,9 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   segmentedControl: {
+    width: '100%',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
     borderRadius: borderRadius.small,
@@ -805,10 +865,12 @@ const styles = StyleSheet.create({
   },
   toolButton: {
     minHeight: fixed.minTouchTarget,
+    width: '33.333%',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.tight,
-    paddingHorizontal: spacing.medium,
+    paddingHorizontal: spacing.tight,
     backgroundColor: colors.surface,
   },
   selectedToolButton: { backgroundColor: colors.primary },

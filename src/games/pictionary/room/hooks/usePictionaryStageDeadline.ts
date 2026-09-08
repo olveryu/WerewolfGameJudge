@@ -48,8 +48,8 @@ export function usePictionaryRemainingSeconds(deadlineAt: number | null): number
 /**
  * Recomputes remaining time from the server deadline instead of accumulating local ticks.
  *
- * @remarks All seated clients may request expiry. The phase revision makes those requests
- * idempotent, while the local lock prevents concurrent requests from one client.
+ * @remarks Seated clients and the room host may request expiry. The phase revision makes those
+ * requests idempotent, while the local lock prevents concurrent requests from one client.
  */
 export function usePictionaryStageDeadline({
   deadlineAt,

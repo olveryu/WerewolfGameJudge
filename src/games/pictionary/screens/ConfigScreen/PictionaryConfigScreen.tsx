@@ -2,6 +2,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  getPictionaryExpectedKind,
   PICTIONARY_DRAWING_DURATIONS,
   PICTIONARY_GALLERY_ITEM_DURATIONS,
   PICTIONARY_GUESS_DURATIONS,
@@ -126,11 +127,14 @@ function useDurationHandlers(state: PictionaryConfigScreenState) {
 }
 
 function getEstimatedMinutes(config: PictionaryConfig): string {
-  const drawingStageCount = Math.ceil(config.numberOfPlayers / 2);
-  const guessingStageCount = Math.floor(config.numberOfPlayers / 2);
+  const stageKinds = Array.from({ length: config.numberOfPlayers }, (_, stepIndex) =>
+    getPictionaryExpectedKind(stepIndex),
+  );
+  const drawingStageCount = stageKinds.filter((kind) => kind === 'drawing').length;
+  const textStageCount = stageKinds.length - drawingStageCount;
   const answeringSeconds =
     drawingStageCount * (config.drawingDurationSeconds ?? 0) +
-    guessingStageCount * (config.guessDurationSeconds ?? 0) +
+    textStageCount * (config.guessDurationSeconds ?? 0) +
     config.numberOfPlayers * config.transitionDurationSeconds;
   if (
     config.drawingDurationSeconds === null ||
@@ -166,7 +170,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
         <Text style={styles.title}>让每一棒都来不及想太多</Text>
-        <Text style={styles.description}>4–20 人，默认 6 人。每个人都从自由作画开始。</Text>
+        <Text style={styles.description}>4–20 人，默认 6 人。每个人先出题，再轮流画和猜。</Text>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>玩家人数</Text>
           <View style={styles.playerRow}>
@@ -202,8 +206,8 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
         />
         <DurationSection
           setting="guess"
-          title="猜词时间"
-          hint="只看上一幅画，不能翻看前文"
+          title="文字作答时间"
+          hint="用于开场出题和看图猜词"
           values={PICTIONARY_GUESS_DURATIONS}
           selected={state.config.guessDurationSeconds}
           onSelect={durations.guess}

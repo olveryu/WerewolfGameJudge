@@ -11,6 +11,7 @@ import type { PictionaryEffect } from '../effects/types';
 import { decidePictionaryCommand, pictionaryEngine } from '../engine';
 import {
   DEFAULT_PICTIONARY_CONFIG,
+  getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,
   isPictionaryImplicitBotSeat,
   type PictionaryState,
@@ -23,12 +24,16 @@ const CREATE_CONTEXT: CreateGameContext = {
   commandId: 'create-room',
 };
 
-function userContext(userId: string, controlledSeat: number | null = null): CommandContext {
+function userContext(
+  userId: string,
+  controlledSeat: number | null = null,
+  nowMs = 2_000,
+): CommandContext {
   return {
     actor: { kind: 'user', userId },
     controlledSeat,
-    nowMs: 2_000,
-    commandId: `${userId}:${controlledSeat ?? 'self'}`,
+    nowMs,
+    commandId: `${userId}:${controlledSeat ?? 'self'}:${nowMs}`,
     randomSeed: 'pictionary-bot-seed',
   };
 }
@@ -66,6 +71,26 @@ function createBotRound(): PictionaryState {
   );
   state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
   return dispatch(state, { type: 'pictionary.round.start' }, userContext('host'));
+}
+
+function advanceToDrawingStep(state: PictionaryState): PictionaryState {
+  let nextState = dispatch(
+    state,
+    { type: 'pictionary.text.submit', text: '房主题目' },
+    userContext('host'),
+  );
+  for (let seat = 1; seat < 4; seat += 1) {
+    nextState = dispatch(
+      nextState,
+      { type: 'pictionary.text.submit', text: `机器人题目 ${seat}` },
+      userContext('host', seat),
+    );
+  }
+  return dispatch(
+    nextState,
+    { type: 'pictionary.phase.expire', phaseRevision: nextState.phaseRevision },
+    userContext('host', null, 7_000),
+  );
 }
 
 describe('Pictionary bot control', () => {
@@ -108,7 +133,7 @@ describe('Pictionary bot control', () => {
   });
 
   it('allows the host to reserve a drawing for a controlled bot seat', () => {
-    const state = createBotRound();
+    const state = advanceToDrawingStep(createBotRound());
     const decision = decidePictionaryCommand(
       state,
       { type: 'pictionary.drawing.reserve' },
@@ -123,7 +148,7 @@ describe('Pictionary bot control', () => {
 
   it('rejects controlled bot submissions from a non-host user', () => {
     const decision = decidePictionaryCommand(
-      createBotRound(),
+      advanceToDrawingStep(createBotRound()),
       { type: 'pictionary.drawing.reserve' },
       userContext('guest', 1),
     );
@@ -133,11 +158,38 @@ describe('Pictionary bot control', () => {
 
   it('rejects controlling a real player seat', () => {
     const decision = decidePictionaryCommand(
-      createBotRound(),
+      advanceToDrawingStep(createBotRound()),
       { type: 'pictionary.drawing.reserve' },
       userContext('host', 0),
     );
 
     expect(decision).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_BOT });
+  });
+
+  it('allows an unseated host to advance an all-bot room after takeover is released', () => {
+    let state = pictionaryEngine.createInitialState(
+      { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4 },
+      CREATE_CONTEXT,
+    );
+    state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
+    state = dispatch(state, { type: 'pictionary.round.start' }, userContext('host'));
+    for (let seat = 0; seat < 4; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'pictionary.text.submit', text: `机器人题目 ${seat + 1}` },
+        userContext('host', seat),
+      );
+    }
+
+    expect(state.phase).toBe('transition');
+    state = dispatch(
+      state,
+      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+      userContext('host', null, 7_000),
+    );
+
+    expect(state.phase).toBe('answering');
+    expect(state.stepIndex).toBe(1);
+    expect(getPictionaryExpectedKind(state.stepIndex)).toBe('drawing');
   });
 });

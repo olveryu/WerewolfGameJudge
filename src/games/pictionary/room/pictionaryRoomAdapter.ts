@@ -216,7 +216,7 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
         kind: 'progress',
         current: state.stepIndex + 1,
         total: state.config.numberOfPlayers,
-        label: state.stepIndex === 0 ? '自由作画中' : '接龙作答中',
+        label: state.stepIndex === 0 ? '全员出题中' : '接龙作答中',
       };
     case 'settling':
       return { kind: 'message', icon: 'guide', text: '正在接收画作', supportingText: null };

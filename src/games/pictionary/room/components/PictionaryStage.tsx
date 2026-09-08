@@ -41,7 +41,7 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
   const deadline = usePictionaryStageDeadline({
     deadlineAt: state.deadlineAt,
     phaseRevision: state.phaseRevision,
-    canExpire: effectiveSeat !== null,
+    canExpire: isHost || effectiveSeat !== null,
     session,
   });
   const command = usePictionaryStageCommand(session, null);

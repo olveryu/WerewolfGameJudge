@@ -1,4 +1,4 @@
-/** Interactive 4:3 Skia canvas that records portable normalized Pictionary strokes. */
+/** Interactive 4:3 Skia canvas for normalized freehand, shape, and fill operations. */
 
 import { Canvas, Path, Skia, type SkPathBuilder } from '@shopify/react-native-skia';
 import type React from 'react';
@@ -12,23 +12,25 @@ import { borderRadius, colors, fixed, PICTIONARY_CANVAS_BACKGROUND } from '@/the
 
 import type {
   PictionaryDrawingColor,
+  PictionaryDrawingElement,
   PictionaryDrawingPoint,
-  PictionaryDrawingStroke,
+  PictionaryDrawingShapeElement,
   PictionaryDrawingTool,
   PictionaryDrawingWidth,
 } from '../../model/pictionaryDrawing';
-import { createPictionaryStrokePath } from '../../services/renderPictionaryDrawing';
+import { createPictionaryElementPath } from '../../services/renderPictionaryDrawing';
 
 const CANONICAL_CANVAS_WIDTH = 1024;
 const MIN_POINT_DISTANCE_SQUARED = 0.000_001;
 
 interface PictionaryDrawingCanvasProps {
-  readonly strokes: readonly PictionaryDrawingStroke[];
+  readonly elements: readonly PictionaryDrawingElement[];
   readonly tool: PictionaryDrawingTool;
   readonly color: PictionaryDrawingColor;
   readonly strokeWidth: PictionaryDrawingWidth;
   readonly isEnabled: boolean;
-  readonly onStrokeComplete: (stroke: PictionaryDrawingStroke) => void;
+  readonly onElementComplete: (element: PictionaryDrawingElement) => void;
+  readonly onFill: (point: PictionaryDrawingPoint) => void;
 }
 
 interface CanvasSize {
@@ -51,17 +53,20 @@ function isDistinctPoint(
 }
 
 export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = ({
-  strokes,
+  elements,
   tool,
   color,
   strokeWidth,
   isEnabled,
-  onStrokeComplete,
+  onElementComplete,
+  onFill,
 }) => {
   const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
   const activePath = useSharedValue(Skia.Path.Make());
   const activeBuilder = useRef<SkPathBuilder | null>(null);
   const activePoints = useRef<PictionaryDrawingPoint[]>([]);
+  const activeShapeStart = useRef<PictionaryDrawingPoint | null>(null);
+  const activeShapeEnd = useRef<PictionaryDrawingPoint | null>(null);
 
   const normalizedPoint = useCallback(
     (x: number, y: number): PictionaryDrawingPoint => {
@@ -76,20 +81,70 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
     [canvasSize.height, canvasSize.width],
   );
 
-  const beginStroke = useCallback(
+  const beginElement = useCallback(
     (x: number, y: number): void => {
       const point = normalizedPoint(x, y);
+      if (tool === 'fill') {
+        onFill(point);
+        return;
+      }
+      if (tool === 'line' || tool === 'rectangle' || tool === 'ellipse') {
+        activeShapeStart.current = point;
+        activeShapeEnd.current = point;
+        activePath.value = createPictionaryElementPath(
+          {
+            id: 'active-shape',
+            kind: tool,
+            color,
+            width: strokeWidth,
+            start: point,
+            end: point,
+          },
+          canvasSize.width,
+          canvasSize.height,
+        );
+        return;
+      }
       const builder = Skia.PathBuilder.Make();
       builder.moveTo(point.x * canvasSize.width, point.y * canvasSize.height);
       activeBuilder.current = builder;
       activePoints.current = [point];
       activePath.value = builder.build();
     },
-    [activePath, canvasSize.height, canvasSize.width, normalizedPoint],
+    [
+      activePath,
+      canvasSize.height,
+      canvasSize.width,
+      color,
+      normalizedPoint,
+      onFill,
+      strokeWidth,
+      tool,
+    ],
   );
 
-  const continueStroke = useCallback(
+  const continueElement = useCallback(
     (x: number, y: number): void => {
+      if (tool === 'fill') return;
+      if (tool === 'line' || tool === 'rectangle' || tool === 'ellipse') {
+        const start = activeShapeStart.current;
+        if (start === null) return;
+        const end = normalizedPoint(x, y);
+        activeShapeEnd.current = end;
+        activePath.value = createPictionaryElementPath(
+          {
+            id: 'active-shape',
+            kind: tool,
+            color,
+            width: strokeWidth,
+            start,
+            end,
+          },
+          canvasSize.width,
+          canvasSize.height,
+        );
+        return;
+      }
       const builder = activeBuilder.current;
       if (builder === null) return;
       const point = normalizedPoint(x, y);
@@ -98,23 +153,41 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
       builder.lineTo(point.x * canvasSize.width, point.y * canvasSize.height);
       activePath.value = builder.build();
     },
-    [activePath, canvasSize.height, canvasSize.width, normalizedPoint],
+    [activePath, canvasSize.height, canvasSize.width, color, normalizedPoint, strokeWidth, tool],
   );
 
-  const finishStroke = useCallback((): void => {
+  const finishElement = useCallback((): void => {
+    if (tool === 'fill') return;
+    if (tool === 'line' || tool === 'rectangle' || tool === 'ellipse') {
+      const start = activeShapeStart.current;
+      const end = activeShapeEnd.current;
+      if (start === null || end === null || !isDistinctPoint(start, end)) return;
+      const element: PictionaryDrawingShapeElement = {
+        id: crypto.randomUUID(),
+        kind: tool,
+        color,
+        width: strokeWidth,
+        start,
+        end,
+      };
+      onElementComplete(element);
+      return;
+    }
     if (activeBuilder.current === null || activePoints.current.length === 0) return;
-    onStrokeComplete({
+    onElementComplete({
       id: crypto.randomUUID(),
-      tool,
+      kind: tool,
       color,
       width: strokeWidth,
       points: activePoints.current,
     });
-  }, [color, onStrokeComplete, strokeWidth, tool]);
+  }, [color, onElementComplete, strokeWidth, tool]);
 
-  const clearActiveStroke = useCallback((): void => {
+  const clearActiveElement = useCallback((): void => {
     activeBuilder.current = null;
     activePoints.current = [];
+    activeShapeStart.current = null;
+    activeShapeEnd.current = null;
     activePath.value = Skia.Path.Make();
   }, [activePath]);
 
@@ -124,22 +197,22 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
         .enabled(isEnabled)
         .runOnJS(true)
         .minDistance(0)
-        .onBegin((event) => beginStroke(event.x, event.y))
-        .onUpdate((event) => continueStroke(event.x, event.y))
-        .onEnd(finishStroke)
-        .onFinalize(clearActiveStroke),
-    [beginStroke, clearActiveStroke, continueStroke, finishStroke, isEnabled],
+        .onBegin((event) => beginElement(event.x, event.y))
+        .onUpdate((event) => continueElement(event.x, event.y))
+        .onEnd(finishElement)
+        .onFinalize(clearActiveElement),
+    [beginElement, clearActiveElement, continueElement, finishElement, isEnabled],
   );
 
-  const renderedStrokes = useMemo(
+  const renderedElements = useMemo(
     () =>
       canvasSize.width === 0
         ? []
-        : strokes.map((stroke) => ({
-            stroke,
-            path: createPictionaryStrokePath(stroke.points, canvasSize.width, canvasSize.height),
+        : elements.map((element) => ({
+            element,
+            path: createPictionaryElementPath(element, canvasSize.width, canvasSize.height),
           })),
-    [canvasSize.height, canvasSize.width, strokes],
+    [canvasSize.height, canvasSize.width, elements],
   );
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
@@ -159,15 +232,16 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
         testID={TESTIDS.pictionaryDrawingCanvas}
       >
         <Canvas style={styles.canvas}>
-          {renderedStrokes.map(({ stroke, path }) => (
+          {renderedElements.map(({ element, path }) => (
             <Path
-              key={stroke.id}
+              key={element.id}
               path={path}
-              color={stroke.tool === 'eraser' ? PICTIONARY_CANVAS_BACKGROUND : stroke.color}
-              style="stroke"
-              strokeWidth={stroke.width * displayScale}
+              color={element.kind === 'eraser' ? PICTIONARY_CANVAS_BACKGROUND : element.color}
+              style={element.kind === 'fill' ? 'fill' : 'stroke'}
+              strokeWidth={element.kind === 'fill' ? undefined : element.width * displayScale}
               strokeCap="round"
               strokeJoin="round"
+              antiAlias={element.kind !== 'fill'}
             />
           ))}
           <Path

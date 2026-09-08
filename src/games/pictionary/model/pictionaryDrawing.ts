@@ -1,42 +1,71 @@
-/** Pure local drawing model for Pictionary strokes, tools, and undo history. */
+/** Pure local drawing model for Pictionary elements, tools, and undo history. */
 
-import type { PICTIONARY_DRAWING_PALETTE } from '@/theme';
+import { PICTIONARY_DRAWING_PALETTE } from '@/theme/colors';
 
-export { PICTIONARY_DRAWING_PALETTE } from '@/theme';
+export { PICTIONARY_DRAWING_PALETTE };
 
 export const PICTIONARY_DRAWING_WIDTHS = [5, 14, 30] as const;
 
 export type PictionaryDrawingColor = (typeof PICTIONARY_DRAWING_PALETTE)[number]['value'];
 export type PictionaryDrawingWidth = (typeof PICTIONARY_DRAWING_WIDTHS)[number];
-export type PictionaryDrawingTool = 'brush' | 'eraser';
+export type PictionaryDrawingTool = 'brush' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'fill';
 
 export interface PictionaryDrawingPoint {
   readonly x: number;
   readonly y: number;
 }
 
-export interface PictionaryDrawingStroke {
+export interface PictionaryDrawingFreehandElement {
   readonly id: string;
-  readonly tool: PictionaryDrawingTool;
+  readonly kind: 'brush' | 'eraser';
   readonly color: PictionaryDrawingColor;
   readonly width: PictionaryDrawingWidth;
   readonly points: readonly PictionaryDrawingPoint[];
 }
 
+export interface PictionaryDrawingShapeElement {
+  readonly id: string;
+  readonly kind: 'line' | 'rectangle' | 'ellipse';
+  readonly color: PictionaryDrawingColor;
+  readonly width: PictionaryDrawingWidth;
+  readonly start: PictionaryDrawingPoint;
+  readonly end: PictionaryDrawingPoint;
+}
+
+export interface PictionaryDrawingFillRectangle {
+  /** Integer coordinates in the canonical 1024x768 export canvas. */
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export interface PictionaryDrawingFillElement {
+  readonly id: string;
+  readonly kind: 'fill';
+  readonly color: PictionaryDrawingColor;
+  readonly rectangles: readonly PictionaryDrawingFillRectangle[];
+}
+
+export type PictionaryDrawingElement =
+  | PictionaryDrawingFreehandElement
+  | PictionaryDrawingShapeElement
+  | PictionaryDrawingFillElement;
+
 export interface PictionaryDrawingDraft {
-  readonly strokes: readonly PictionaryDrawingStroke[];
-  readonly redoStrokes: readonly PictionaryDrawingStroke[];
+  readonly elements: readonly PictionaryDrawingElement[];
+  readonly redoElements: readonly PictionaryDrawingElement[];
 }
 
 export type PictionaryDrawingDraftAction =
-  | { readonly type: 'stroke.add'; readonly stroke: PictionaryDrawingStroke }
-  | { readonly type: 'stroke.undo' }
-  | { readonly type: 'stroke.redo' }
+  | { readonly type: 'element.add'; readonly element: PictionaryDrawingElement }
+  | { readonly type: 'element.undo' }
+  | { readonly type: 'element.redo' }
   | { readonly type: 'drawing.clear' };
 
 export const EMPTY_PICTIONARY_DRAWING_DRAFT: PictionaryDrawingDraft = {
-  strokes: [],
-  redoStrokes: [],
+  elements: [],
+  redoElements: [],
 };
 
 export function reducePictionaryDrawingDraft(
@@ -44,24 +73,24 @@ export function reducePictionaryDrawingDraft(
   action: PictionaryDrawingDraftAction,
 ): PictionaryDrawingDraft {
   switch (action.type) {
-    case 'stroke.add':
-      return { strokes: [...draft.strokes, action.stroke], redoStrokes: [] };
-    case 'stroke.undo': {
-      const stroke = draft.strokes.at(-1);
-      return stroke === undefined
+    case 'element.add':
+      return { elements: [...draft.elements, action.element], redoElements: [] };
+    case 'element.undo': {
+      const element = draft.elements.at(-1);
+      return element === undefined
         ? draft
         : {
-            strokes: draft.strokes.slice(0, -1),
-            redoStrokes: [...draft.redoStrokes, stroke],
+            elements: draft.elements.slice(0, -1),
+            redoElements: [...draft.redoElements, element],
           };
     }
-    case 'stroke.redo': {
-      const stroke = draft.redoStrokes.at(-1);
-      return stroke === undefined
+    case 'element.redo': {
+      const element = draft.redoElements.at(-1);
+      return element === undefined
         ? draft
         : {
-            strokes: [...draft.strokes, stroke],
-            redoStrokes: draft.redoStrokes.slice(0, -1),
+            elements: [...draft.elements, element],
+            redoElements: draft.redoElements.slice(0, -1),
           };
     }
     case 'drawing.clear':

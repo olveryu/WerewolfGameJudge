@@ -239,7 +239,7 @@ function createRound(state: PictionaryState, context: CommandContext): Pictionar
     roundId,
     seatOrder,
     chains,
-    deadlineAt: durationDeadline(context.nowMs, state.config.drawingDurationSeconds),
+    deadlineAt: durationDeadline(context.nowMs, getAnswerDuration(state, 0)),
   };
 }
 
@@ -549,7 +549,8 @@ function decideExpirePictionaryPhase(
 ): PictionaryDecision {
   const actor = resolveUncontrolledUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  if (findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value) === null) {
+  const actorSeat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+  if (actor.value !== state.hostUserId && actorSeat === null) {
     return reject(REASON_NOT_SEATED);
   }
   if (phaseRevision !== state.phaseRevision) return commitPictionary([]);

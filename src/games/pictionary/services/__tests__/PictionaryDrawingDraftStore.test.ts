@@ -1,0 +1,81 @@
+/** Pictionary drawing draft storage version and element-union contracts. */
+
+import type { PictionaryDrawingDraft } from '../../model/pictionaryDrawing';
+import {
+  type PictionaryDrawingDraftScope,
+  pictionaryDrawingDraftStore,
+} from '../PictionaryDrawingDraftStore';
+
+const mockStoredValues = new Map<string, string>();
+
+jest.mock('@/services/infra/localStorage', () => ({
+  storage: {
+    getString: (key: string): string | undefined => mockStoredValues.get(key),
+    set: (key: string, value: string): void => {
+      mockStoredValues.set(key, value);
+    },
+    remove: (key: string): void => {
+      mockStoredValues.delete(key);
+    },
+  },
+}));
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseStoredRecord(rawValue: string): Record<string, unknown> {
+  const parsedValue: unknown = JSON.parse(rawValue);
+  if (!isRecord(parsedValue)) {
+    throw new Error('Expected the stored Pictionary draft to be an object');
+  }
+  return parsedValue;
+}
+
+const SCOPE: PictionaryDrawingDraftScope = {
+  roomCode: '2468',
+  roundId: 'round-1',
+  taskId: 'chain-1:1',
+  userId: 'user-1',
+};
+
+const DRAFT: PictionaryDrawingDraft = {
+  elements: [
+    {
+      id: 'ellipse-1',
+      kind: 'ellipse',
+      color: '#3478F6',
+      width: 14,
+      start: { x: 0.1, y: 0.2 },
+      end: { x: 0.7, y: 0.8 },
+    },
+    {
+      id: 'fill-1',
+      kind: 'fill',
+      color: '#F5C542',
+      rectangles: [{ x: 10, y: 20, width: 30, height: 40 }],
+    },
+  ],
+  redoElements: [],
+};
+
+describe('PictionaryDrawingDraftStore', () => {
+  beforeEach(() => mockStoredValues.clear());
+
+  it('round-trips shape and fill elements in storage version 2', () => {
+    pictionaryDrawingDraftStore.write(SCOPE, DRAFT);
+
+    expect(pictionaryDrawingDraftStore.read(SCOPE)).toEqual(DRAFT);
+    expect(parseStoredRecord([...mockStoredValues.values()][0]!).version).toBe(2);
+  });
+
+  it('removes an incompatible version-1 stroke draft', () => {
+    pictionaryDrawingDraftStore.write(SCOPE, DRAFT);
+    const [storageKey, rawValue] = [...mockStoredValues.entries()][0]!;
+    const storedValue = parseStoredRecord(rawValue);
+    mockStoredValues.set(storageKey, JSON.stringify({ ...storedValue, version: 1 }));
+
+    expect(pictionaryDrawingDraftStore.read(SCOPE)).toBeNull();
+    expect(mockStoredValues.has(storageKey)).toBe(false);
+  });
+});

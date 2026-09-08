@@ -20,7 +20,7 @@ import {
 } from '@/theme';
 
 const RULES = [
-  ['brush-outline', '自由起笔', '第一棒不用看题目，每个人随便画一幅画。'],
+  ['create-outline', '各自出题', '第一棒每个人写下一个题目，交给下一位玩家作画。'],
   ['brush-outline', '只看上一棒', '看到文字就画画，看到画就猜词，不能回看更早的内容。'],
   ['swap-horizontal-outline', '轮流传递', '每一棒都会换到下一位玩家，直到所有接龙走完一圈。'],
   ['images-outline', '一起揭晓', '最后按顺序播放每条接龙，看题目如何一路变形。'],
@@ -37,7 +37,7 @@ export const PictionaryRulesScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScreenHeader title="你画我猜接龙玩法" onBack={goBack} topInset={insets.top} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>一人一幅开场画，最后一起看答案</Text>
+        <Text style={styles.eyebrow}>一人一道开场题，最后一起看答案</Text>
         <Text style={styles.heading}>画得像不像不重要，传得离谱才有趣</Text>
         <Text style={styles.intro}>支持 4–20 人。每一棒限时进行，没提交也会留下空缺并继续。</Text>
         <View style={styles.ruleList}>

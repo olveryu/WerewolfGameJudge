@@ -167,6 +167,23 @@ describe('Pictionary controlled bot media', () => {
       { type: 'pictionary.round.start' },
       null,
     );
+    for (let seat = 0; seat < 4; seat += 1) {
+      state = await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.text.submit', text: `测试题目 ${seat + 1}` },
+        seat === 0 ? null : seat,
+      );
+    }
+    expect(state.phase).toBe('transition');
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+      null,
+    );
+    expect(state).toMatchObject({ phase: 'answering', stepIndex: 1 });
+
     state = await dispatchCommand(
       room,
       host.access_token,
@@ -197,7 +214,7 @@ describe('Pictionary controlled bot media', () => {
       { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
       null,
     );
-    expect(state).toMatchObject({ phase: 'answering', stepIndex: 1 });
+    expect(state).toMatchObject({ phase: 'answering', stepIndex: 2 });
 
     const botTask = getPictionaryTaskForSeat(state, 1);
     const previousEntry = botTask?.previousEntry;

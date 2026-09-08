@@ -32,54 +32,40 @@ export class PictionaryRoomPage extends RoomPage {
     });
   }
 
-  /** Fill every empty lobby seat with an implicit bot. */
-  async fillEmptySeatsWithBots(playerCount: number): Promise<void> {
-    await this.clickHostManagementAction(TESTIDS.roomFillBotsButton);
-    await expect(this.page.getByText('填充机器人？', { exact: true })).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
-    await expect(
-      this.page.getByText(`等待入座 · ${playerCount}/${playerCount}`, { exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
-  }
-
-  /** Long-press an implicit bot and wait for the shared controlled-seat banner. */
-  async takeOverBot(seat: number): Promise<void> {
-    await this.getSeatTile(seat).click({ delay: 650 });
-    const banner = this.page.getByTestId(TESTIDS.controlledSeatBanner);
-    await expect(banner).toBeVisible();
-    await expect(banner).toContainText(`机器人${seat + 1}号`);
-  }
-
-  /** Release the currently controlled bot identity. */
-  async releaseBot(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.controlledSeatReleaseButton).click();
-    await expect(this.page.getByTestId(TESTIDS.controlledSeatBanner)).not.toBeVisible();
-  }
-
-  /** Wait until the current effective seat has submitted its task. */
-  async expectSubmittedTask(): Promise<void> {
-    await expect(
-      this.page.getByTestId(TESTIDS.pictionaryStageFrame).getByText('这一棒已交卷', {
-        exact: true,
-      }),
-    ).toBeVisible({ timeout: 30_000 });
-  }
-
-  /** Assert the current drawing task and its opening-context contract. */
-  async expectDrawingStep(step: number, totalSteps: number, isOpening: boolean): Promise<void> {
+  /** Wait for the opening prompt composer with no inherited context. */
+  async expectPromptStep(step: number, totalSteps: number): Promise<void> {
     const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
     await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(
-      stage.getByText(isOpening ? '自由画一幅画' : '把这句话画出来', { exact: true }),
-    ).toBeVisible();
+    await expect(stage.getByText('写下一个题目', { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryTextInput)).toBeVisible();
+    await expect(stage.getByText('上一棒', { exact: true })).toHaveCount(0);
+  }
+
+  /** Submit one opening prompt through the visible composer. */
+  async submitPrompt(text: string): Promise<void> {
+    await this.page.getByTestId(TESTIDS.pictionaryTextInput).fill(text);
+    const submitButton = this.page.getByTestId(TESTIDS.pictionaryTextSubmitButton);
+    await expect(submitButton).toHaveAccessibleName('提交题目');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+  }
+
+  /** Assert a drawing task with its inherited text context and complete tool set. */
+  async expectDrawingStep(step: number, totalSteps: number): Promise<void> {
+    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+    await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(stage.getByText('把这句话画出来', { exact: true })).toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
-    if (isOpening) {
-      await expect(stage.getByText('上一棒', { exact: true })).toHaveCount(0);
-    } else {
-      await expect(stage.getByText('上一棒', { exact: true })).toBeVisible();
-    }
+    await expect(stage.getByText('上一棒', { exact: true })).toBeVisible();
+    await Promise.all(
+      ['画笔', '橡皮', '直线', '矩形', '椭圆', '填充'].map((tool) =>
+        expect(stage.getByRole('button', { name: tool, exact: true })).toBeVisible(),
+      ),
+    );
   }
 
   /** Draw one non-empty stroke through browser pointer events. */
@@ -106,6 +92,23 @@ export class PictionaryRoomPage extends RoomPage {
     } finally {
       await this.page.mouse.up();
     }
+    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
+  }
+
+  /** Exercise each drawing operation against the real Skia canvas. */
+  async exerciseDrawingTools(): Promise<void> {
+    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+    await this.drawStroke(0);
+    for (const [toolIndex, tool] of ['直线', '矩形', '椭圆', '橡皮'].entries()) {
+      await stage.getByRole('button', { name: tool, exact: true }).click();
+      await this.drawStroke(toolIndex + 1);
+    }
+    await stage.getByRole('button', { name: '红色', exact: true }).click();
+    await stage.getByRole('button', { name: '填充', exact: true }).click();
+    const canvas = this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas);
+    const bounds = await canvas.boundingBox();
+    if (bounds === null) throw new Error('Pictionary canvas has no browser layout box');
+    await this.page.mouse.click(bounds.x + bounds.width * 0.05, bounds.y + bounds.height * 0.05);
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
   }
 

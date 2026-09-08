@@ -1,4 +1,4 @@
-/** Pictionary drawing-first sequence contracts through the public engine transition path. */
+/** Pictionary prompt-first sequence contracts through the public engine transition path. */
 
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
 import type { PictionaryCommand } from '../commands/types';
@@ -53,7 +53,12 @@ function dispatch(
 
 function createFullLobby(): PictionaryState {
   let state = pictionaryEngine.createInitialState(
-    { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4, drawingDurationSeconds: 90 },
+    {
+      ...DEFAULT_PICTIONARY_CONFIG,
+      numberOfPlayers: 4,
+      drawingDurationSeconds: 90,
+      guessDurationSeconds: 30,
+    },
     CREATE_CONTEXT,
   );
   for (let seat = 0; seat < 4; seat += 1) {
@@ -67,13 +72,14 @@ function createFullLobby(): PictionaryState {
 }
 
 describe('Pictionary task sequence', () => {
-  it('starts with free drawing and then alternates guessing and drawing', () => {
-    expect(getPictionaryExpectedKind(0)).toBe('drawing');
-    expect(getPictionaryExpectedKind(1)).toBe('text');
-    expect(getPictionaryExpectedKind(2)).toBe('drawing');
+  it('alternates prompt, drawing, guess, and drawing', () => {
+    expect(getPictionaryExpectedKind(0)).toBe('text');
+    expect(getPictionaryExpectedKind(1)).toBe('drawing');
+    expect(getPictionaryExpectedKind(2)).toBe('text');
+    expect(getPictionaryExpectedKind(3)).toBe('drawing');
   });
 
-  it('starts every player with an unprompted drawing task and the drawing deadline', () => {
+  it('starts every player with a prompt task and the text deadline', () => {
     const startTime = 10_000;
     const state = dispatch(
       createFullLobby(),
@@ -83,10 +89,10 @@ describe('Pictionary task sequence', () => {
 
     expect(state.phase).toBe('answering');
     expect(state.stepIndex).toBe(0);
-    expect(state.deadlineAt).toBe(startTime + 90_000);
+    expect(state.deadlineAt).toBe(startTime + 30_000);
     for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
       expect(getPictionaryTaskForSeat(state, seat)).toMatchObject({
-        expectedKind: 'drawing',
+        expectedKind: 'text',
         previousEntry: null,
       });
     }
