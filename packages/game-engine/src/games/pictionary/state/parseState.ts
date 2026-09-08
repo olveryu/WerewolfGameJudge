@@ -286,6 +286,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         seatOrder: parseArray(raw.seatOrder, 'PictionaryState.seatOrder', parseSeat),
         stepIndex: parseInteger(raw.stepIndex, 'PictionaryState.stepIndex'),
         deadlineAt: parseNullable(raw.deadlineAt, 'PictionaryState.deadlineAt', parseInteger),
+        readySeats: parseArray(raw.readySeats, 'PictionaryState.readySeats', parseSeat),
         reservations: parseArray(
           raw.reservations,
           'PictionaryState.reservations',

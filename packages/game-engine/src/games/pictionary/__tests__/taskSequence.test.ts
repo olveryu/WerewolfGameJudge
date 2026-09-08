@@ -3,6 +3,7 @@
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
 import type { PictionaryCommand } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
+import { REASON_PICTIONARY_PHASE_INVALID } from '../domain/reasons';
 import type { PictionaryEffect } from '../effects/types';
 import { decidePictionaryCommand, pictionaryEngine } from '../engine';
 import {
@@ -84,7 +85,9 @@ function expireCurrentPhase(state: PictionaryState): PictionaryState {
 }
 
 function advancePastAnsweringStep(state: PictionaryState): PictionaryState {
-  const transitionState = expireCurrentPhase(state);
+  const settlingState = expireCurrentPhase(state);
+  expect(settlingState.phase).toBe('settling');
+  const transitionState = expireCurrentPhase(settlingState);
   expect(transitionState.phase).toBe('transition');
   return expireCurrentPhase(transitionState);
 }
@@ -115,6 +118,74 @@ describe('Pictionary task sequence', () => {
         previousEntry: null,
       });
     }
+  });
+
+  it('keeps final content out of the relay during the editable answering phase', () => {
+    const state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0', 10_000),
+    );
+
+    expect(
+      decidePictionaryCommand(
+        state,
+        { type: 'pictionary.text.submit', text: '仍可修改的草稿' },
+        userContext('user-0', 11_000),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_PICTIONARY_PHASE_INVALID });
+  });
+
+  it('collects final content only after every player marks the local draft ready', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0', 10_000),
+    );
+
+    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'pictionary.task.ready.set', isReady: true },
+        userContext(`user-${seat}`, 11_000 + seat),
+      );
+      expect(state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
+    }
+    expect(state.phase).toBe('settling');
+    expect(state.readySeats).toEqual([]);
+
+    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'pictionary.text.submit', text: `最终题目 ${seat + 1}` },
+        userContext(`user-${seat}`, 12_000 + seat),
+      );
+    }
+    expect(state.phase).toBe('transition');
+    expect(state.chains.every((chain) => chain.entries.length === 1)).toBe(true);
+  });
+
+  it('lets a player resume editing before collection starts', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0', 10_000),
+    );
+
+    state = dispatch(
+      state,
+      { type: 'pictionary.task.ready.set', isReady: true },
+      userContext('user-0', 11_000),
+    );
+    expect(state.readySeats).toEqual([0]);
+
+    state = dispatch(
+      state,
+      { type: 'pictionary.task.ready.set', isReady: false },
+      userContext('user-0', 12_000),
+    );
+    expect(state).toMatchObject({ phase: 'answering', readySeats: [] });
+    expect(state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
   });
 
   it('runs all eight four-player stages before starting the gallery', () => {

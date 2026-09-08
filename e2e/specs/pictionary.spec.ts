@@ -22,7 +22,9 @@ async function promptForEveryPlayer(
   rooms: readonly PictionaryRoomPage[],
   prompts: readonly string[],
 ): Promise<void> {
-  await Promise.all(rooms.map((room, playerIndex) => room.submitPrompt(prompts[playerIndex]!)));
+  await Promise.all(
+    rooms.map((room, playerIndex) => room.completePromptEditing(prompts[playerIndex]!)),
+  );
 }
 
 async function drawForEveryPlayer(
@@ -32,14 +34,16 @@ async function drawForEveryPlayer(
   for (const [playerIndex, room] of rooms.entries()) {
     await room.drawStroke(strokeOffset + playerIndex);
   }
-  await Promise.all(rooms.map((room) => room.submitDrawing()));
+  await Promise.all(rooms.map((room) => room.completeDrawingEditing()));
 }
 
 async function guessForEveryPlayer(
   rooms: readonly PictionaryRoomPage[],
   guesses: readonly string[],
 ): Promise<void> {
-  await Promise.all(rooms.map((room, playerIndex) => room.submitGuess(guesses[playerIndex]!)));
+  await Promise.all(
+    rooms.map((room, playerIndex) => room.completeGuessEditing(guesses[playerIndex]!)),
+  );
 }
 
 async function expectGalleryPositionForEveryPlayer(
@@ -86,7 +90,8 @@ test.describe('Pictionary', () => {
         await hostRoom.startRound();
         await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
         await hostRoom.expectPhoneSizedStage();
-        await promptForEveryPlayer(rooms, OPENING_PROMPTS);
+        await hostRoom.reviseReadyPrompt('月球上的狗', OPENING_PROMPTS[0]);
+        await promptForEveryPlayer(rooms.slice(1), OPENING_PROMPTS.slice(1));
         await Promise.all(rooms.map((room) => room.expectDrawingStep(2, RELAY_STEP_COUNT)));
       });
 
@@ -95,7 +100,7 @@ test.describe('Pictionary', () => {
         for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
           await rooms[playerIndex]!.drawStroke(playerIndex);
         }
-        await Promise.all(rooms.map((room) => room.submitDrawing()));
+        await Promise.all(rooms.map((room) => room.completeDrawingEditing()));
       });
 
       for (const [guessIndex, guesses] of GUESS_SUBMISSIONS.entries()) {
@@ -131,7 +136,7 @@ test.describe('Pictionary', () => {
           await expect
             .poll(async () => {
               const entryTexts = await Promise.all(
-                rooms.map((room) => room.readGalleryEntryText()),
+                rooms.map((room) => room.readLatestGalleryEntryText()),
               );
               return new Set(entryTexts).size;
             })

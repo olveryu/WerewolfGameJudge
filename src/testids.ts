@@ -158,6 +158,7 @@ export const TESTIDS = {
   pictionaryTextSubmitButton: 'pictionary-text-submit-button',
   pictionaryDrawingImageButton: 'pictionary-drawing-image-button',
   pictionaryDrawingFullscreenPreview: 'pictionary-drawing-fullscreen-preview',
+  pictionaryGalleryAlbum: 'pictionary-gallery-album',
   pictionaryGalleryEntry: 'pictionary-gallery-entry',
   pictionaryGalleryAdvanceButton: 'pictionary-gallery-advance-button',
 

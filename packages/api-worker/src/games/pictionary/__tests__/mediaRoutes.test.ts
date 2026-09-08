@@ -138,6 +138,24 @@ async function commitSeatDrawing(
   return result.snapshot.state;
 }
 
+async function markEverySeatReady(
+  room: RoomIdentity,
+  token: string,
+  state: PictionaryState,
+): Promise<PictionaryState> {
+  let nextState = state;
+  for (let seat = 0; seat < nextState.config.numberOfPlayers; seat += 1) {
+    nextState = await dispatchCommand(
+      room,
+      token,
+      { type: 'pictionary.task.ready.set', isReady: true },
+      seat === 0 ? null : seat,
+    );
+  }
+  expect(nextState.phase).toBe('settling');
+  return nextState;
+}
+
 beforeEach(async () => {
   commandSequence = 0;
   await env.DB.exec(
@@ -167,6 +185,7 @@ describe('Pictionary controlled bot media', () => {
       { type: 'pictionary.round.start' },
       null,
     );
+    state = await markEverySeatReady(room, host.access_token, state);
     for (let seat = 0; seat < 4; seat += 1) {
       state = await dispatchCommand(
         room,
@@ -183,6 +202,7 @@ describe('Pictionary controlled bot media', () => {
       null,
     );
     expect(state).toMatchObject({ phase: 'answering', stepIndex: 1 });
+    state = await markEverySeatReady(room, host.access_token, state);
 
     state = await dispatchCommand(
       room,

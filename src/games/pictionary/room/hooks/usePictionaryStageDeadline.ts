@@ -28,7 +28,7 @@ function getRemainingMilliseconds(deadlineAt: number | null): number | null {
 }
 
 /** Recompute a display countdown from an absolute deadline after timer throttling or app resume. */
-export function usePictionaryRemainingSeconds(deadlineAt: number | null): number | null {
+function usePictionaryRemainingSeconds(deadlineAt: number | null): number | null {
   const isAppVisible = useAppVisibility();
   const [remainingMilliseconds, setRemainingMilliseconds] = useState(() =>
     getRemainingMilliseconds(deadlineAt),

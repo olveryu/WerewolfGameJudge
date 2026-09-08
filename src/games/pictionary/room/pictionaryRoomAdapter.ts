@@ -221,7 +221,7 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
         label: state.stepIndex === 0 ? '全员出题中' : '接龙作答中',
       };
     case 'settling':
-      return { kind: 'message', icon: 'guide', text: '正在接收画作', supportingText: null };
+      return { kind: 'message', icon: 'guide', text: '正在收取最终内容', supportingText: null };
     case 'transition':
       return {
         kind: 'progress',

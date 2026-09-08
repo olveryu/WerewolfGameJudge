@@ -43,6 +43,7 @@ const publicCommandOptions = definePictionaryPublicCommandOptions([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('pictionary.config.update'), config: pictionaryConfigSchema }),
   z.strictObject({ type: z.literal('pictionary.round.start') }),
+  z.strictObject({ type: z.literal('pictionary.task.ready.set'), isReady: z.boolean() }),
   z.strictObject({
     type: z.literal('pictionary.text.submit'),
     text: z.string().trim().min(1).max(PICTIONARY_TEXT_MAX_LENGTH),
@@ -73,17 +74,12 @@ const pictionaryMediaSchema = z.strictObject({
   sha256: z.string().min(1),
 });
 
-export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalCommand> =
-  z.discriminatedUnion('type', [
-    z.strictObject({
-      type: z.literal('pictionary.drawing.commit'),
-      submissionId: z.string().min(1),
-      media: pictionaryMediaSchema,
-    }),
-    z.strictObject({
-      type: z.literal('pictionary.upload.expire'),
-      submissionId: z.string().min(1),
-    }),
-  ]);
+export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalCommand> = z.strictObject(
+  {
+    type: z.literal('pictionary.drawing.commit'),
+    submissionId: z.string().min(1),
+    media: pictionaryMediaSchema,
+  },
+);
 
 export const pictionaryEffectSchema = z.never();

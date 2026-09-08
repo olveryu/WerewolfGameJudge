@@ -19,6 +19,7 @@ export type PictionaryPublicCommand =
   | PictionaryRoomCommand
   | { readonly type: 'pictionary.config.update'; readonly config: PictionaryConfig }
   | { readonly type: 'pictionary.round.start' }
+  | { readonly type: 'pictionary.task.ready.set'; readonly isReady: boolean }
   | { readonly type: 'pictionary.text.submit'; readonly text: string }
   | { readonly type: 'pictionary.drawing.reserve' }
   | { readonly type: 'pictionary.phase.expire'; readonly phaseRevision: number }
@@ -30,15 +31,10 @@ export type PictionaryPublicCommand =
   | { readonly type: 'pictionary.round.next' }
   | { readonly type: 'pictionary.game.returnToLobby' };
 
-export type PictionaryInternalCommand =
-  | {
-      readonly type: 'pictionary.drawing.commit';
-      readonly submissionId: string;
-      readonly media: PictionaryMedia;
-    }
-  | {
-      readonly type: 'pictionary.upload.expire';
-      readonly submissionId: string;
-    };
+export type PictionaryInternalCommand = {
+  readonly type: 'pictionary.drawing.commit';
+  readonly submissionId: string;
+  readonly media: PictionaryMedia;
+};
 
 export type PictionaryCommand = PictionaryPublicCommand | PictionaryInternalCommand;

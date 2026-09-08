@@ -13,8 +13,9 @@ export function getPictionaryUserSeat(state: PictionaryState, userId: string): n
   return null;
 }
 
-export function getPictionarySubmittedCount(state: PictionaryState): number {
+export function getPictionaryCompletedCount(state: PictionaryState): number {
   if (state.stepIndex < 0) return 0;
+  if (state.phase === 'answering') return state.readySeats.length;
   return state.chains.reduce(
     (count, chain) => count + (chain.entries.length > state.stepIndex ? 1 : 0),
     0,

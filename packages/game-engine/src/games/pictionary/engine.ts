@@ -56,10 +56,10 @@ import {
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   isValidPictionaryText,
+  PICTIONARY_COLLECTION_DURATION_SECONDS,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
-  PICTIONARY_UPLOAD_GRACE_SECONDS,
   type PictionaryChain,
   type PictionaryConfig,
   type PictionaryDrawingReservation,
@@ -260,13 +260,14 @@ function decideStartPictionaryRound(
 function resolveSeatTask(
   state: PictionaryState,
   context: CommandContext,
+  requiredPhase: 'answering' | 'settling',
 ):
   | {
       readonly seat: number;
       readonly task: NonNullable<ReturnType<typeof getPictionaryTaskForSeat>>;
     }
   | PictionaryDecision {
-  if (state.phase !== 'answering') return reject(REASON_PICTIONARY_PHASE_INVALID);
+  if (state.phase !== requiredPhase) return reject(REASON_PICTIONARY_PHASE_INVALID);
   if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt) {
     return reject(REASON_PICTIONARY_PHASE_NOT_EXPIRED);
   }
@@ -322,12 +323,40 @@ function transitionEvent(state: PictionaryState, nowMs: number): PictionaryEvent
   );
 }
 
+function settlingEvent(state: PictionaryState, nowMs: number): PictionaryEvent {
+  return phaseChangedEvent(
+    state,
+    'settling',
+    state.stepIndex,
+    durationDeadline(nowMs, PICTIONARY_COLLECTION_DURATION_SECONDS),
+  );
+}
+
+function decideSetPictionaryTaskReadiness(
+  state: PictionaryState,
+  isReady: boolean,
+  context: CommandContext,
+): PictionaryDecision {
+  const resolved = resolveSeatTask(state, context, 'answering');
+  if (isDecision(resolved)) return resolved;
+  const wasReady = state.readySeats.includes(resolved.seat);
+  if (wasReady === isReady) return commitPictionary([]);
+  const events: PictionaryEvent[] = [
+    { type: 'pictionary.task.readiness.changed', seat: resolved.seat, isReady },
+  ];
+  const readySeatCount = state.readySeats.length + (isReady ? 1 : -1);
+  if (readySeatCount === state.config.numberOfPlayers) {
+    events.push(settlingEvent(state, context.nowMs));
+  }
+  return commitPictionary(events);
+}
+
 function decideSubmitPictionaryText(
   state: PictionaryState,
   text: string,
   context: CommandContext,
 ): PictionaryDecision {
-  const resolved = resolveSeatTask(state, context);
+  const resolved = resolveSeatTask(state, context, 'settling');
   if (isDecision(resolved)) return resolved;
   if (resolved.task.expectedKind !== 'text') return reject(REASON_PICTIONARY_TASK_INVALID);
   if (!isValidPictionaryText(text)) return reject(REASON_PICTIONARY_TEXT_INVALID);
@@ -353,9 +382,12 @@ function decideReservePictionaryDrawing(
   state: PictionaryState,
   context: CommandContext,
 ): PictionaryDecision {
-  const resolved = resolveSeatTask(state, context);
+  const resolved = resolveSeatTask(state, context, 'settling');
   if (isDecision(resolved)) return resolved;
   if (resolved.task.expectedKind !== 'drawing') return reject(REASON_PICTIONARY_TASK_INVALID);
+  if (state.deadlineAt === null) {
+    throw new Error('[FAIL-FAST] Pictionary settling phase requires a deadline');
+  }
   if (state.reservations.some((reservation) => reservation.authorSeat === resolved.seat)) {
     return reject(REASON_PICTIONARY_TASK_ALREADY_SUBMITTED);
   }
@@ -365,7 +397,7 @@ function decideReservePictionaryDrawing(
     chainId: resolved.task.chain.id,
     authorSeat: resolved.seat,
     reservedAt: context.nowMs,
-    uploadDeadlineAt: context.nowMs + PICTIONARY_UPLOAD_GRACE_SECONDS * 1_000,
+    uploadDeadlineAt: state.deadlineAt,
   };
   return commitPictionary([{ type: 'pictionary.drawing.reserved', reservation }]);
 }
@@ -391,7 +423,7 @@ function decideCommitPictionaryDrawing(
 ): PictionaryDecision {
   const actor = resolveSystemActorEffectId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase !== 'answering' && state.phase !== 'settling') {
+  if (state.phase !== 'settling') {
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
   const reservation = state.reservations.find((item) => item.submissionId === submissionId);
@@ -422,13 +454,9 @@ function decideCommitPictionaryDrawing(
 function createMissedEntries(
   state: PictionaryState,
   context: CommandContext,
-  onlySubmissionId?: string,
 ): readonly { readonly chainId: string; readonly entry: PictionaryEntry }[] {
   return state.chains.flatMap((chain) => {
     if (chain.entries.length > state.stepIndex) return [];
-    const reservation = state.reservations.find((item) => item.chainId === chain.id);
-    if (onlySubmissionId !== undefined && reservation?.submissionId !== onlySubmissionId) return [];
-    if (onlySubmissionId === undefined && reservation !== undefined) return [];
     const authorSeat =
       state.seatOrder[
         (state.chains.indexOf(chain) + state.stepIndex) % state.config.numberOfPlayers
@@ -449,26 +477,11 @@ function createMissedEntries(
 }
 
 function expireAnsweringPhase(state: PictionaryState, context: CommandContext): PictionaryDecision {
-  const missedEntries = createMissedEntries(state, context);
-  const events: PictionaryEvent[] = [];
-  if (missedEntries.length > 0) {
-    events.push({ type: 'pictionary.tasks.missed', entries: missedEntries, submissionIds: [] });
-  }
-  if (state.reservations.length > 0) {
-    const uploadDeadlineAt = Math.max(
-      ...state.reservations.map((reservation) => reservation.uploadDeadlineAt),
-    );
-    events.push(phaseChangedEvent(state, 'settling', state.stepIndex, uploadDeadlineAt));
-  } else {
-    events.push(transitionEvent(state, context.nowMs));
-  }
-  return commitPictionary(events);
+  return commitPictionary([settlingEvent(state, context.nowMs)]);
 }
 
 function expireSettlingPhase(state: PictionaryState, context: CommandContext): PictionaryDecision {
-  const entries = state.reservations.flatMap((reservation) =>
-    createMissedEntries(state, context, reservation.submissionId),
-  );
+  const entries = createMissedEntries(state, context);
   return commitPictionary([
     {
       type: 'pictionary.tasks.missed',
@@ -636,26 +649,6 @@ function decideMovePictionaryGallery(
   return updateGallery(state, context, direction);
 }
 
-function decideExpirePictionaryUpload(
-  state: PictionaryState,
-  submissionId: string,
-  context: CommandContext,
-): PictionaryDecision {
-  const actor = resolveSystemActorEffectId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const reservation = state.reservations.find((item) => item.submissionId === submissionId);
-  if (reservation === undefined) return commitPictionary([]);
-  if (context.nowMs < reservation.uploadDeadlineAt) {
-    return reject(REASON_PICTIONARY_PHASE_NOT_EXPIRED);
-  }
-  const entries = createMissedEntries(state, context, submissionId);
-  const events: PictionaryEvent[] = [
-    { type: 'pictionary.tasks.missed', entries, submissionIds: [submissionId] },
-  ];
-  if (state.reservations.length === 1) events.push(transitionEvent(state, context.nowMs));
-  return commitPictionary(events);
-}
-
 function decideReturnPictionaryToLobby(
   state: PictionaryState,
   context: CommandContext,
@@ -687,6 +680,7 @@ function createInitialPictionaryState(
     seatOrder: [],
     stepIndex: -1,
     deadlineAt: null,
+    readySeats: [],
     reservations: [],
     chains: [],
     gallery: null,
@@ -722,6 +716,8 @@ export function decidePictionaryCommand(
     case 'pictionary.round.start':
     case 'pictionary.round.next':
       return decideStartPictionaryRound(state, context);
+    case 'pictionary.task.ready.set':
+      return decideSetPictionaryTaskReadiness(state, command.isReady, context);
     case 'pictionary.text.submit':
       return decideSubmitPictionaryText(state, command.text, context);
     case 'pictionary.drawing.reserve':
@@ -740,8 +736,6 @@ export function decidePictionaryCommand(
       return decideMovePictionaryGallery(state, context, 1);
     case 'pictionary.gallery.rewind':
       return decideMovePictionaryGallery(state, context, -1);
-    case 'pictionary.upload.expire':
-      return decideExpirePictionaryUpload(state, command.submissionId, context);
     case 'pictionary.game.returnToLobby':
       return decideReturnPictionaryToLobby(state, context);
   }

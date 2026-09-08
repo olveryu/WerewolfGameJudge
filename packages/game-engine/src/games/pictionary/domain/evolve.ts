@@ -81,9 +81,17 @@ export function evolvePictionaryState(
         seatOrder: event.seatOrder,
         stepIndex: 0,
         deadlineAt: event.deadlineAt,
+        readySeats: [],
         reservations: [],
         chains: event.chains,
         gallery: null,
+      };
+    case 'pictionary.task.readiness.changed':
+      return {
+        ...state,
+        readySeats: event.isReady
+          ? [...state.readySeats, event.seat].sort((left, right) => left - right)
+          : state.readySeats.filter((seat) => seat !== event.seat),
       };
     case 'pictionary.task.submitted':
       return {
@@ -119,6 +127,7 @@ export function evolvePictionaryState(
         phaseRevision: state.phaseRevision + 1,
         stepIndex: event.stepIndex,
         deadlineAt: event.deadlineAt,
+        readySeats: [],
         gallery: event.gallery,
       };
     case 'pictionary.game.returnedToLobby':
@@ -130,6 +139,7 @@ export function evolvePictionaryState(
         seatOrder: [],
         stepIndex: -1,
         deadlineAt: null,
+        readySeats: [],
         reservations: [],
         chains: [],
         gallery: null,

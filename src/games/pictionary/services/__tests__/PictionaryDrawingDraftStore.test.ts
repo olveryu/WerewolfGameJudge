@@ -1,10 +1,8 @@
 /** Pictionary drawing draft storage version and element-union contracts. */
 
 import type { PictionaryDrawingDraft } from '../../model/pictionaryDrawing';
-import {
-  type PictionaryDrawingDraftScope,
-  pictionaryDrawingDraftStore,
-} from '../PictionaryDrawingDraftStore';
+import { pictionaryDrawingDraftStore } from '../PictionaryDrawingDraftStore';
+import type { PictionaryTaskDraftScope } from '../pictionaryTaskDraftScope';
 
 const mockStoredValues = new Map<string, string>();
 
@@ -32,7 +30,7 @@ function parseStoredRecord(rawValue: string): Record<string, unknown> {
   return parsedValue;
 }
 
-const SCOPE: PictionaryDrawingDraftScope = {
+const SCOPE: PictionaryTaskDraftScope = {
   roomCode: '2468',
   roundId: 'round-1',
   taskId: 'chain-1:1',
@@ -67,6 +65,23 @@ describe('PictionaryDrawingDraftStore', () => {
 
     expect(pictionaryDrawingDraftStore.read(SCOPE)).toEqual(DRAFT);
     expect(parseStoredRecord([...mockStoredValues.values()][0]!).version).toBe(2);
+  });
+
+  it('keeps independent drafts for multiple tasks controlled by one user', () => {
+    const secondScope: PictionaryTaskDraftScope = {
+      ...SCOPE,
+      taskId: 'chain-2:1',
+    };
+    const secondDraft: PictionaryDrawingDraft = {
+      elements: [DRAFT.elements[0]!],
+      redoElements: [],
+    };
+
+    pictionaryDrawingDraftStore.write(SCOPE, DRAFT);
+    pictionaryDrawingDraftStore.write(secondScope, secondDraft);
+
+    expect(pictionaryDrawingDraftStore.read(SCOPE)).toEqual(DRAFT);
+    expect(pictionaryDrawingDraftStore.read(secondScope)).toEqual(secondDraft);
   });
 
   it('removes an incompatible version-1 stroke draft', () => {

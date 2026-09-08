@@ -10,6 +10,7 @@ import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryR
 import { colors, fixed, spacing } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+import { usePictionaryDraftFinalizer } from '../hooks/usePictionaryDraftFinalizer';
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { usePictionaryStageDeadline } from '../hooks/usePictionaryStageDeadline';
 import { PictionaryBotControlStrip } from './PictionaryBotControlStrip';
@@ -45,6 +46,7 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
     session,
   });
   const command = usePictionaryStageCommand(session, null);
+  const draftFinalizer = usePictionaryDraftFinalizer(state, userId, session);
 
   if (state.phase === 'gallery') {
     return (
@@ -63,8 +65,8 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
   const showManualFinish = isHost && state.phase === 'answering' && state.deadlineAt === null;
   const finishPhase = (): void => {
     showConfirmAlert(
-      '结束这一棒？',
-      '尚未完成的玩家会被记为未作答。',
+      '结束编辑并收稿？',
+      '将立即收取每位玩家本机保存的最终内容；没有有效草稿的任务会在收稿结束后记为未完成。',
       async () => {
         await command.submit('结束这一棒', { type: 'pictionary.phase.finish' });
       },
@@ -83,6 +85,7 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
         session={session}
         remainingSeconds={deadline.remainingSeconds}
         isExpired={deadline.isExpired}
+        draftFinalizer={draftFinalizer}
       />
       {showManualFinish && (
         <View style={styles.manualControl}>

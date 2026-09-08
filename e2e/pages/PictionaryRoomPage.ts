@@ -43,13 +43,28 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(stage.getByText('上一棒', { exact: true })).toHaveCount(0);
   }
 
-  /** Submit one opening prompt through the visible composer. */
-  async submitPrompt(text: string): Promise<void> {
+  /** Mark one locally persisted opening prompt ready for final collection. */
+  async completePromptEditing(text: string): Promise<void> {
     await this.page.getByTestId(TESTIDS.pictionaryTextInput).fill(text);
     const submitButton = this.page.getByTestId(TESTIDS.pictionaryTextSubmitButton);
-    await expect(submitButton).toHaveAccessibleName('提交题目');
+    await expect(submitButton).toHaveAccessibleName('完成编辑');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
+  }
+
+  /** Prove that a ready text draft can return to editing before collection. */
+  async reviseReadyPrompt(initialText: string, finalText: string): Promise<void> {
+    const input = this.page.getByTestId(TESTIDS.pictionaryTextInput);
+    const completionButton = this.page.getByTestId(TESTIDS.pictionaryTextSubmitButton);
+    await input.fill(initialText);
+    await completionButton.click();
+    await expect(input).not.toBeEditable();
+    await expect(completionButton).toHaveAccessibleName('继续编辑');
+    await completionButton.click();
+    await expect(input).toBeEditable();
+    await input.fill(finalText);
+    await completionButton.click();
+    await expect(input).not.toBeEditable();
   }
 
   /** Assert a drawing task with its inherited text context and complete tool set. */
@@ -112,9 +127,11 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
   }
 
-  /** Reserve, render, upload, and commit the current drawing. */
-  async submitDrawing(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton).click();
+  /** Mark the locally persisted drawing ready for final collection. */
+  async completeDrawingEditing(): Promise<void> {
+    const completionButton = this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton);
+    await expect(completionButton).toHaveAccessibleName('完成编辑');
+    await completionButton.click();
   }
 
   /** Wait for a guess task and its protected source drawing. */
@@ -139,10 +156,11 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(preview).not.toBeVisible();
   }
 
-  /** Submit one valid guess through the visible composer. */
-  async submitGuess(text: string): Promise<void> {
+  /** Mark one locally persisted guess ready for final collection. */
+  async completeGuessEditing(text: string): Promise<void> {
     await this.page.getByTestId(TESTIDS.pictionaryTextInput).fill(text);
     const submitButton = this.page.getByTestId(TESTIDS.pictionaryTextSubmitButton);
+    await expect(submitButton).toHaveAccessibleName('完成编辑');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
   }
@@ -150,8 +168,11 @@ export class PictionaryRoomPage extends RoomPage {
   /** Wait until synchronized manual gallery playback begins. */
   async expectGallery(): Promise<void> {
     const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
-    await expect(stage.getByText('接龙揭晓', { exact: true })).toBeVisible({ timeout: 30_000 });
-    await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryEntry)).toBeVisible();
+    await expect(stage.getByText('第 1 / 4 本画册', { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryAlbum)).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryEntry)).toHaveCount(1);
   }
 
   /** Assert the authoritative chain and entry cursors shown on this player. */
@@ -163,19 +184,19 @@ export class PictionaryRoomPage extends RoomPage {
   ): Promise<void> {
     const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
     await expect(
-      stage.getByText(`第 ${chain} / ${chainTotal} 条接龙`, { exact: true }),
+      stage.getByText(`第 ${chain} / ${chainTotal} 本画册`, { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
+    const revealedEntries = this.page.getByTestId(TESTIDS.pictionaryGalleryEntry);
+    await expect(revealedEntries).toHaveCount(entry);
     await expect(
-      this.page
-        .getByTestId(TESTIDS.pictionaryGalleryEntry)
-        .getByText(`第 ${entry} / ${entryTotal} 棒`, { exact: true }),
+      revealedEntries.last().getByText(`第 ${entry} / ${entryTotal} 棒`, { exact: true }),
     ).toBeVisible();
   }
 
-  /** Read the current reveal block for cross-player synchronization assertions. */
-  async readGalleryEntryText(): Promise<string> {
-    const text = await this.page.getByTestId(TESTIDS.pictionaryGalleryEntry).textContent();
-    if (text === null) throw new Error('Pictionary gallery entry has no text content');
+  /** Read the cumulative album for cross-player synchronization assertions. */
+  async readLatestGalleryEntryText(): Promise<string> {
+    const text = await this.page.getByTestId(TESTIDS.pictionaryGalleryEntry).last().textContent();
+    if (text === null) throw new Error('Current Pictionary gallery entry has no text content');
     return text;
   }
 
@@ -186,9 +207,10 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait until all synchronized reveals finish and local browsing begins. */
   async expectEnded(): Promise<void> {
-    await expect(
-      this.page.getByTestId(TESTIDS.pictionaryStageFrame).getByText('自由回看', { exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(this.page.getByRole('button', { name: '下一本' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryEntry)).toHaveCount(8);
   }
 
   /** Assert that desktop viewports retain the product's phone-sized stage. */

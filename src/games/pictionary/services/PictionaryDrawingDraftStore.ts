@@ -18,6 +18,12 @@ import {
   type PictionaryDrawingTool,
   type PictionaryDrawingWidth,
 } from '../model/pictionaryDrawing';
+import {
+  createPictionaryTaskDraftStorageKey,
+  hasSamePictionaryTaskDraftScope,
+  parsePictionaryTaskDraftScope,
+  type PictionaryTaskDraftScope,
+} from './pictionaryTaskDraftScope';
 
 const STORAGE_KEY_PREFIX = '@pictionary:drawing-draft:';
 const STORAGE_VERSION = 2;
@@ -32,16 +38,9 @@ interface DrawingDraftStorage {
   remove(key: string): void;
 }
 
-export interface PictionaryDrawingDraftScope {
-  readonly roomCode: string;
-  readonly roundId: string;
-  readonly taskId: string;
-  readonly userId: string;
-}
-
 interface StoredPictionaryDrawingDraft {
   readonly version: 2;
-  readonly scope: PictionaryDrawingDraftScope;
+  readonly scope: PictionaryTaskDraftScope;
   readonly draft: PictionaryDrawingDraft;
 }
 
@@ -76,21 +75,6 @@ function requireIdentifier(value: unknown, label: string): string {
     throw new Error(`${label} is invalid`);
   }
   return value;
-}
-
-function parseScope(value: unknown): PictionaryDrawingDraftScope {
-  const scope = requireRecord(value, 'Stored Pictionary draft scope');
-  assertExactKeys(
-    scope,
-    ['roomCode', 'roundId', 'taskId', 'userId'],
-    'Stored Pictionary draft scope',
-  );
-  return {
-    roomCode: requireIdentifier(scope.roomCode, 'Pictionary draft room code'),
-    roundId: requireIdentifier(scope.roundId, 'Pictionary draft round ID'),
-    taskId: requireIdentifier(scope.taskId, 'Pictionary draft task ID'),
-    userId: requireIdentifier(scope.userId, 'Pictionary draft user ID'),
-  };
 }
 
 function parsePoint(value: unknown): PictionaryDrawingPoint {
@@ -245,23 +229,7 @@ function parseDraft(value: unknown): PictionaryDrawingDraft {
   };
 }
 
-function hasSameScope(
-  first: PictionaryDrawingDraftScope,
-  second: PictionaryDrawingDraftScope,
-): boolean {
-  return (
-    first.roomCode === second.roomCode &&
-    first.roundId === second.roundId &&
-    first.taskId === second.taskId &&
-    first.userId === second.userId
-  );
-}
-
-function getStorageKey(scope: PictionaryDrawingDraftScope): string {
-  return `${STORAGE_KEY_PREFIX}${encodeURIComponent(scope.userId)}:${encodeURIComponent(scope.roomCode)}`;
-}
-
-/** Persists at most one active drawing per room and user. */
+/** Persists independent active drawings for each user-owned relay task. */
 class PictionaryDrawingDraftStore {
   readonly #storage: DrawingDraftStorage;
 
@@ -270,31 +238,31 @@ class PictionaryDrawingDraftStore {
   }
 
   /** Read only a draft whose room, round, task, and user identity still match. */
-  read(scope: PictionaryDrawingDraftScope): PictionaryDrawingDraft | null {
-    const canonicalScope = parseScope(scope);
-    const raw = this.#storage.getString(getStorageKey(canonicalScope));
+  read(scope: PictionaryTaskDraftScope): PictionaryDrawingDraft | null {
+    const canonicalScope = parsePictionaryTaskDraftScope(scope);
+    const storageKey = createPictionaryTaskDraftStorageKey(STORAGE_KEY_PREFIX, canonicalScope);
+    const raw = this.#storage.getString(storageKey);
     if (raw === undefined) return null;
     const storedValue: unknown = JSON.parse(raw);
     const stored = requireRecord(storedValue, 'Stored Pictionary draft envelope');
     assertExactKeys(stored, ['draft', 'scope', 'version'], 'Stored Pictionary draft envelope');
     if (stored.version === 1) {
-      this.#storage.remove(getStorageKey(canonicalScope));
+      this.#storage.remove(storageKey);
       return null;
     }
     if (stored.version !== STORAGE_VERSION) {
       throw new Error('Stored Pictionary draft has an unsupported version');
     }
-    const storedScope = parseScope(stored.scope);
-    if (!hasSameScope(storedScope, canonicalScope)) {
-      this.#storage.remove(getStorageKey(canonicalScope));
-      return null;
+    const storedScope = parsePictionaryTaskDraftScope(stored.scope);
+    if (!hasSamePictionaryTaskDraftScope(storedScope, canonicalScope)) {
+      throw new Error('Stored Pictionary drawing draft scope does not match its key');
     }
     return parseDraft(stored.draft);
   }
 
   /** Replace the current drawing draft, removing storage for an empty draft. */
-  write(scope: PictionaryDrawingDraftScope, draft: PictionaryDrawingDraft): void {
-    const canonicalScope = parseScope(scope);
+  write(scope: PictionaryTaskDraftScope, draft: PictionaryDrawingDraft): void {
+    const canonicalScope = parsePictionaryTaskDraftScope(scope);
     const canonicalDraft = parseDraft(draft);
     if (canonicalDraft.elements.length === 0 && canonicalDraft.redoElements.length === 0) {
       this.clear(canonicalScope);
@@ -305,12 +273,17 @@ class PictionaryDrawingDraftStore {
       scope: canonicalScope,
       draft: canonicalDraft,
     };
-    this.#storage.set(getStorageKey(canonicalScope), JSON.stringify(stored));
+    this.#storage.set(
+      createPictionaryTaskDraftStorageKey(STORAGE_KEY_PREFIX, canonicalScope),
+      JSON.stringify(stored),
+    );
   }
 
   /** Remove the active drawing draft for this room and user. */
-  clear(scope: PictionaryDrawingDraftScope): void {
-    this.#storage.remove(getStorageKey(parseScope(scope)));
+  clear(scope: PictionaryTaskDraftScope): void {
+    this.#storage.remove(
+      createPictionaryTaskDraftStorageKey(STORAGE_KEY_PREFIX, parsePictionaryTaskDraftScope(scope)),
+    );
   }
 }
 

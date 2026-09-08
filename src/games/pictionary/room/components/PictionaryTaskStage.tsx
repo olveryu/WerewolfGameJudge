@@ -8,12 +8,11 @@ import {
   hasPictionaryForbiddenControlCharacter,
   isValidPictionaryText,
   PICTIONARY_TEXT_MAX_LENGTH,
-  type PictionaryDrawingReservation,
   type PictionaryState,
   type PictionaryTask,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -31,26 +30,27 @@ import {
 } from '@/games/pictionary/model/pictionaryDrawing';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import {
+  getPictionaryCompletedCount,
   getPictionarySeatDisplayName,
-  getPictionarySubmittedCount,
 } from '@/games/pictionary/model/pictionarySelectors';
+import { pictionaryDrawingDraftStore } from '@/games/pictionary/services/PictionaryDrawingDraftStore';
 import {
-  type PictionaryDrawingDraftScope,
-  pictionaryDrawingDraftStore,
-} from '@/games/pictionary/services/PictionaryDrawingDraftStore';
-import { uploadPictionaryDrawing } from '@/games/pictionary/services/pictionaryMediaApi';
+  createPictionaryTaskDraftScope,
+  type PictionaryTaskDraftScope,
+} from '@/games/pictionary/services/pictionaryTaskDraftScope';
 import {
-  createPictionaryFillElement,
-  renderPictionaryDrawing,
-} from '@/games/pictionary/services/renderPictionaryDrawing';
+  PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS,
+  pictionaryTextDraftStore,
+} from '@/games/pictionary/services/PictionaryTextDraftStore';
+import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles, typography } from '@/theme';
 import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+import type { PictionaryDraftFinalizationStatus } from '../hooks/usePictionaryDraftFinalizer';
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
-import { usePictionaryRemainingSeconds } from '../hooks/usePictionaryStageDeadline';
 import { PictionaryDrawingCanvas } from './PictionaryDrawingCanvas';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageFrame } from './PictionaryStageFrame';
@@ -63,24 +63,22 @@ interface PictionaryTaskStageProps {
   readonly session: PictionaryRoomSession;
   readonly remainingSeconds: number | null;
   readonly isExpired: boolean;
+  readonly draftFinalizer: {
+    readonly status: PictionaryDraftFinalizationStatus;
+    readonly retry: () => void;
+  };
 }
 
 interface TaskViewProps {
   readonly state: PictionaryState;
   readonly task: PictionaryTask;
+  readonly effectiveSeat: number;
+  readonly userId: string;
   readonly session: PictionaryRoomSession;
   readonly controlledSeat: number | null;
   readonly remainingSeconds: number | null;
   readonly isExpired: boolean;
 }
-
-interface DrawingTaskProps extends TaskViewProps {
-  readonly effectiveSeat: number;
-  readonly userId: string;
-  readonly reservation: PictionaryDrawingReservation | null;
-}
-
-type DrawingUploadState = 'idle' | 'rendering' | 'uploading' | 'failed' | 'uploaded';
 
 function getTextValidationMessage(text: string): string | null {
   const graphemeCount = getPictionaryTextGraphemeCount(text);
@@ -131,16 +129,20 @@ const PreviousDrawing: React.FC<{
 const PictionaryTextTask: React.FC<TaskViewProps> = ({
   state,
   task,
+  effectiveSeat,
+  userId,
   session,
   controlledSeat,
   remainingSeconds,
   isExpired,
 }) => {
-  const [text, setText] = useState('');
+  const draftScope = createPictionaryTaskDraftScope(state, task, userId);
+  const [text, setText] = useState(() => pictionaryTextDraftStore.read(draftScope) ?? '');
   const command = usePictionaryStageCommand(session, controlledSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);
   const isOpeningPrompt = state.stepIndex === 0;
+  const isReady = state.readySeats.includes(effectiveSeat);
   if (isOpeningPrompt && task.previousEntry !== null) {
     throw new Error('[FAIL-FAST] Opening Pictionary prompt cannot have previous context');
   }
@@ -148,11 +150,16 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
     throw new Error('[FAIL-FAST] Pictionary guess requires previous context');
   }
 
-  const submitText = async (): Promise<void> => {
-    if (!isValidPictionaryText(text)) return;
-    await command.submit(isOpeningPrompt ? '提交题目' : '提交猜测', {
-      type: 'pictionary.text.submit',
-      text,
+  const updateText = (nextText: string): void => {
+    setText(nextText);
+    pictionaryTextDraftStore.write(draftScope, nextText);
+  };
+
+  const toggleReady = async (): Promise<void> => {
+    if (!isReady && !isValidPictionaryText(text)) return;
+    await command.submit(isReady ? '继续编辑' : '完成编辑', {
+      type: 'pictionary.task.ready.set',
+      isReady: !isReady,
     });
   };
 
@@ -162,8 +169,8 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
       title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
       description={
         isOpeningPrompt
-          ? '题目会交给下一位玩家作画，提交前不要告诉其他人。'
-          : '只根据画面作答，不要向作者确认。'
+          ? '题目会在编辑结束后交给下一位玩家，期间不要告诉其他人。'
+          : '只根据画面作答；编辑结束前仍可修改。'
       }
       remainingSeconds={remainingSeconds}
     >
@@ -173,8 +180,9 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
       <View style={styles.composer}>
         <TextInput
           value={text}
-          onChangeText={setText}
-          editable={!command.isSubmitting && !isExpired}
+          onChangeText={updateText}
+          editable={!isReady && !command.isSubmitting && !isExpired}
+          maxLength={PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS}
           multiline
           autoFocus
           placeholder={isOpeningPrompt ? '例如：月球上的猫' : '写下你的猜测'}
@@ -192,7 +200,9 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           >
             {text.length > 0 && validationMessage !== null
               ? validationMessage
-              : '内容提交后不可修改'}
+              : isReady
+                ? '已完成编辑，可在倒计时结束前继续修改'
+                : '倒计时结束后才会发送最终内容'}
           </Text>
           <Text
             style={[
@@ -205,14 +215,15 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
         </View>
       </View>
       <Button
-        onPress={() => void submitText()}
-        disabled={validationMessage !== null || isExpired}
+        variant={isReady ? 'secondary' : 'primary'}
+        onPress={() => void toggleReady()}
+        disabled={(!isReady && validationMessage !== null) || isExpired}
         loading={command.isSubmitting}
         size="lg"
-        accessibilityLabel={isOpeningPrompt ? '提交题目' : '提交猜测'}
+        accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
         testID={TESTIDS.pictionaryTextSubmitButton}
       >
-        {isOpeningPrompt ? '提交题目' : '提交猜测'}
+        {isReady ? '继续编辑' : '完成编辑'}
       </Button>
     </PictionaryStageFrame>
   );
@@ -423,60 +434,24 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
   </View>
 );
 
-function findReservation(
-  state: PictionaryState,
-  seat: number,
-): PictionaryDrawingReservation | null {
-  return state.reservations.find((item) => item.authorSeat === seat) ?? null;
-}
-
-const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
+const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   state,
   task,
   effectiveSeat,
   userId,
-  reservation,
   session,
   controlledSeat,
   remainingSeconds,
   isExpired,
 }) => {
-  const roundId = state.roundId;
-  if (roundId === null) {
-    throw new Error('[FAIL-FAST] Pictionary drawing task requires an active round');
-  }
-  const draftScope = useMemo(
-    (): PictionaryDrawingDraftScope => ({
-      roomCode: state.roomCode,
-      roundId,
-      taskId: `${task.chain.id}:${state.stepIndex}`,
-      userId,
-    }),
-    [roundId, state.roomCode, state.stepIndex, task.chain.id, userId],
-  );
+  const draftScope: PictionaryTaskDraftScope = createPictionaryTaskDraftScope(state, task, userId);
   const [draft, setDraft] = useState(
     () => pictionaryDrawingDraftStore.read(draftScope) ?? EMPTY_PICTIONARY_DRAWING_DRAFT,
   );
   const [tool, setTool] = useState<PictionaryDrawingTool>('brush');
   const [color, setColor] = useState<PictionaryDrawingColor>(PICTIONARY_DRAWING_PALETTE[0].value);
   const [strokeWidth, setStrokeWidth] = useState<PictionaryDrawingWidth>(14);
-  const [uploadState, setUploadState] = useState<DrawingUploadState>('idle');
-  const reservedSubmissionId = useRef<string | null>(reservation?.submissionId ?? null);
-  const [reservedUploadDeadlineAt, setReservedUploadDeadlineAt] = useState<number | null>(
-    reservation?.uploadDeadlineAt ?? null,
-  );
-  const uploadAbortController = useRef<AbortController | null>(null);
   const command = usePictionaryStageCommand(session, controlledSeat);
-  const uploadRemainingSeconds = usePictionaryRemainingSeconds(
-    reservation?.uploadDeadlineAt ?? reservedUploadDeadlineAt,
-  );
-
-  useEffect(
-    () => () => {
-      uploadAbortController.current?.abort();
-    },
-    [],
-  );
 
   const updateDraft = useCallback(
     (action: PictionaryDrawingDraftAction): void => {
@@ -516,76 +491,29 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
     );
   };
 
-  const submitDrawing = async (): Promise<void> => {
-    setUploadState('rendering');
-    try {
-      const png = renderPictionaryDrawing(draft.elements);
-      let submissionId = reservation?.submissionId ?? reservedSubmissionId.current;
-      if (submissionId === null) {
-        const reserveResult = await command.submit('预留画作上传', {
-          type: 'pictionary.drawing.reserve',
-        });
-        if (reserveResult === null) {
-          setUploadState('idle');
-          return;
-        }
-        const nextReservation = findReservation(
-          reserveResult.decision.snapshot.state,
-          effectiveSeat,
-        );
-        if (nextReservation === null) {
-          throw new Error('[FAIL-FAST] Successful drawing reservation is missing from snapshot');
-        }
-        submissionId = nextReservation.submissionId;
-        reservedSubmissionId.current = submissionId;
-        setReservedUploadDeadlineAt(nextReservation.uploadDeadlineAt);
-      }
-
-      setUploadState('uploading');
-      const controller = new AbortController();
-      uploadAbortController.current = controller;
-      const uploadResult = await uploadPictionaryDrawing(
-        state.roomCode,
-        submissionId,
-        png,
-        controlledSeat,
-        controller.signal,
-      );
-      if (uploadResult.kind !== 'committed' || uploadResult.outcome.kind !== 'success') {
-        throw new Error('服务器未接受这幅画作');
-      }
-      pictionaryDrawingDraftStore.clear(draftScope);
-      setUploadState('uploaded');
-    } catch (error: unknown) {
-      setUploadState('failed');
-      handleError(error, {
-        label: '提交画作',
-        logger: roomScreenLog,
-        expectedCodes: [401, 403, 409, 413, 429],
-        alertMessage: '画作未能提交，请在上传时间内重试。',
-      });
-    } finally {
-      uploadAbortController.current = null;
-    }
+  const isReady = state.readySeats.includes(effectiveSeat);
+  const toggleReady = async (): Promise<void> => {
+    if (!isReady && draft.elements.length === 0) return;
+    await command.submit(isReady ? '继续编辑' : '完成编辑', {
+      type: 'pictionary.task.ready.set',
+      isReady: !isReady,
+    });
   };
 
   const previousEntry = task.previousEntry;
   if (previousEntry === null || previousEntry.kind === 'drawing') {
     throw new Error('[FAIL-FAST] Pictionary drawing task requires a text or missed context');
   }
-  const isLocked = reservation !== null || reservedSubmissionId.current !== null;
-  const isUploadExpired = isLocked && uploadRemainingSeconds === 0;
-  const isBusy = command.isSubmitting || uploadState === 'rendering' || uploadState === 'uploading';
-  const canEdit = !isLocked && !isBusy && !isExpired;
-  const canSubmit =
-    draft.elements.length > 0 && !isBusy && (isLocked ? !isUploadExpired : !isExpired);
+  const isBusy = command.isSubmitting;
+  const canEdit = !isReady && !isBusy && !isExpired;
+  const canComplete = draft.elements.length > 0 && !isBusy && !isExpired;
 
   return (
     <PictionaryStageFrame
       eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
       title="把这句话画出来"
-      description="画面会传给下一位玩家，不能添加文字提示。"
-      remainingSeconds={isLocked ? uploadRemainingSeconds : remainingSeconds}
+      description="画面会在编辑结束后传给下一位玩家，不能添加文字提示。"
+      remainingSeconds={remainingSeconds}
     >
       <View style={styles.promptStrip}>
         <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
@@ -619,33 +547,22 @@ const PictionaryDrawingTask: React.FC<DrawingTaskProps> = ({
         onElementComplete={addElement}
         onFill={fillDrawing}
       />
-      {isLocked && uploadState !== 'uploaded' && (
+      {isReady && (
         <View style={styles.uploadNotice}>
-          <Ionicons name="lock-closed-outline" size={18} color={colors.info} />
-          <Text style={styles.uploadNoticeText}>
-            {draft.elements.length === 0
-              ? '本机没有可恢复的画稿，本棒会在宽限期后结束'
-              : isUploadExpired
-                ? '上传宽限期已结束'
-                : '画稿已锁定，只会重试同一份内容'}
-          </Text>
+          <Ionicons name="checkmark-circle-outline" size={18} color={colors.info} />
+          <Text style={styles.uploadNoticeText}>画稿已保存在本机，可在倒计时结束前继续修改</Text>
         </View>
       )}
       <Button
-        onPress={() => void submitDrawing()}
-        disabled={!canSubmit || uploadState === 'uploaded'}
+        variant={isReady ? 'secondary' : 'primary'}
+        onPress={() => void toggleReady()}
+        disabled={isReady ? isExpired || isBusy : !canComplete}
         loading={isBusy}
         size="lg"
-        accessibilityLabel={isLocked ? '重试上传画作' : '提交画作'}
+        accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
         testID={TESTIDS.pictionaryDrawingSubmitButton}
       >
-        {uploadState === 'uploaded'
-          ? '已上传，正在同步'
-          : isUploadExpired
-            ? '上传已结束'
-            : uploadState === 'failed' || isLocked
-              ? '重试上传'
-              : '提交画作'}
+        {isReady ? '继续编辑' : '完成编辑'}
       </Button>
     </PictionaryStageFrame>
   );
@@ -656,6 +573,7 @@ interface WaitingStageProps {
   readonly remainingSeconds: number | null;
   readonly title: string;
   readonly description: string;
+  readonly children?: React.ReactNode;
 }
 
 const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
@@ -663,9 +581,11 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
   remainingSeconds,
   title,
   description,
+  children,
 }) => {
-  const submittedCount = getPictionarySubmittedCount(state);
-  const pendingCount = Math.max(0, state.config.numberOfPlayers - submittedCount);
+  const completedCount = getPictionaryCompletedCount(state);
+  const pendingCount = Math.max(0, state.config.numberOfPlayers - completedCount);
+  const completedLabel = state.phase === 'answering' ? '人已完成编辑' : '人已送达';
   return (
     <PictionaryStageFrame
       eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
@@ -675,12 +595,15 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
     >
       <View style={styles.waitingBody}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.waitingCount}>{submittedCount} 人已完成</Text>
+        <Text style={styles.waitingCount}>
+          {completedCount} {completedLabel}
+        </Text>
         <View style={styles.progressTrack}>
-          {submittedCount > 0 && <View style={[styles.progressDone, { flex: submittedCount }]} />}
+          {completedCount > 0 && <View style={[styles.progressDone, { flex: completedCount }]} />}
           {pendingCount > 0 && <View style={{ flex: pendingCount }} />}
         </View>
         <Text style={styles.waitingHint}>所有人完成后会自动交换任务</Text>
+        {children}
       </View>
     </PictionaryStageFrame>
   );
@@ -694,6 +617,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
   session,
   remainingSeconds,
   isExpired,
+  draftFinalizer,
 }) => {
   if (state.phase === 'transition') {
     return (
@@ -703,6 +627,28 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
         title="这一棒完成"
         description="马上交换任务，请不要透露刚才看到的内容。"
       />
+    );
+  }
+  if (state.phase === 'settling') {
+    const description =
+      draftFinalizer.status === 'failed'
+        ? '本机最终内容发送失败，草稿仍保存在本机。'
+        : draftFinalizer.status === 'waiting'
+          ? '本机最终内容已处理，正在等待其他玩家。'
+          : '正在发送本机保存的最终内容，请保持页面打开。';
+    return (
+      <PictionaryWaitingStage
+        state={state}
+        remainingSeconds={remainingSeconds}
+        title="正在收取最终内容"
+        description={description}
+      >
+        {draftFinalizer.status === 'failed' && (
+          <Button variant="secondary" onPress={draftFinalizer.retry}>
+            重试发送
+          </Button>
+        )}
+      </PictionaryWaitingStage>
     );
   }
   if (effectiveSeat === null) {
@@ -719,53 +665,13 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
   if (task === null) {
     throw new Error('[FAIL-FAST] Seated Pictionary player has no task');
   }
-  const isSubmitted = task.chain.entries.length > state.stepIndex;
-  const reservation = findReservation(state, effectiveSeat);
-
-  if (
-    state.phase === 'settling' &&
-    task.expectedKind === 'drawing' &&
-    reservation !== null &&
-    !isSubmitted
-  ) {
-    return (
-      <PictionaryDrawingTask
-        state={state}
-        task={task}
-        effectiveSeat={effectiveSeat}
-        userId={userId}
-        reservation={reservation}
-        session={session}
-        controlledSeat={controlledSeat}
-        remainingSeconds={remainingSeconds}
-        isExpired={isExpired}
-      />
-    );
-  }
-  if (state.phase === 'settling') {
-    return (
-      <PictionaryWaitingStage
-        state={state}
-        remainingSeconds={remainingSeconds}
-        title="正在接收画作"
-        description="已预留的画作还有一点时间完成上传。"
-      />
-    );
-  }
-  if (isSubmitted) {
-    return (
-      <PictionaryWaitingStage
-        state={state}
-        remainingSeconds={remainingSeconds}
-        title="这一棒已交卷"
-        description="正在等待其他玩家完成。"
-      />
-    );
-  }
   return task.expectedKind === 'text' ? (
     <PictionaryTextTask
+      key={`${state.roundId}:${state.stepIndex}:${task.chain.id}:${userId}`}
       state={state}
       task={task}
+      effectiveSeat={effectiveSeat}
+      userId={userId}
       session={session}
       controlledSeat={controlledSeat}
       remainingSeconds={remainingSeconds}
@@ -773,11 +679,11 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
     />
   ) : (
     <PictionaryDrawingTask
+      key={`${state.roundId}:${state.stepIndex}:${task.chain.id}:${userId}`}
       state={state}
       task={task}
       effectiveSeat={effectiveSeat}
       userId={userId}
-      reservation={reservation}
       session={session}
       controlledSeat={controlledSeat}
       remainingSeconds={remainingSeconds}

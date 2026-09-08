@@ -43,6 +43,11 @@ export type PictionaryEvent =
       readonly deadlineAt: number | null;
     })
   | (GameEvent & {
+      readonly type: 'pictionary.task.readiness.changed';
+      readonly seat: number;
+      readonly isReady: boolean;
+    })
+  | (GameEvent & {
       readonly type: 'pictionary.task.submitted';
       readonly chainId: string;
       readonly entry: PictionaryEntry;

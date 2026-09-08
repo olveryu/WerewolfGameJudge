@@ -101,6 +101,22 @@ function assertExcludedBotSeats(state: PictionaryState): void {
   }
 }
 
+function assertReadySeats(state: PictionaryState): void {
+  let previousSeat = -1;
+  for (const seat of state.readySeats) {
+    if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers) {
+      throw new Error(`Pictionary ready seat ${seat} is outside the configured room`);
+    }
+    if (seat <= previousSeat) {
+      throw new Error('Pictionary readySeats must be unique and strictly ascending');
+    }
+    previousSeat = seat;
+  }
+  if (state.phase !== 'answering' && state.readySeats.length > 0) {
+    throw new Error('Pictionary readySeats are only valid during answering');
+  }
+}
+
 function assertRound(state: PictionaryState): void {
   if (state.roundId === null) throw new Error('Pictionary active phase requires a roundId');
   if (!isPictionaryRoomFull(state)) throw new Error('Pictionary active phase requires a full room');
@@ -145,6 +161,7 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   assertSafeTimestamp(state.deadlineAt, 'Pictionary deadlineAt');
   assertSeats(state);
   assertExcludedBotSeats(state);
+  assertReadySeats(state);
 
   if (state.phase === 'lobby') {
     if (
@@ -152,6 +169,7 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
       state.seatOrder.length > 0 ||
       state.stepIndex !== -1 ||
       state.deadlineAt !== null ||
+      state.readySeats.length > 0 ||
       state.reservations.length > 0 ||
       state.chains.length > 0 ||
       state.gallery !== null
@@ -174,8 +192,11 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   } else if (state.gallery !== null) {
     throw new Error('Pictionary gallery state is only valid during reveal');
   }
-  if (state.phase !== 'answering' && state.phase !== 'settling' && state.reservations.length > 0) {
-    throw new Error('Pictionary reservations are only valid while resolving drawings');
+  if (state.phase === 'settling' && state.deadlineAt === null) {
+    throw new Error('Pictionary settling phase requires a deadline');
+  }
+  if (state.phase !== 'settling' && state.reservations.length > 0) {
+    throw new Error('Pictionary reservations are only valid while collecting final drawings');
   }
   return state;
 }

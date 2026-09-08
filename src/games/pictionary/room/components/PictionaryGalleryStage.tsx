@@ -8,8 +8,8 @@ import type {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
@@ -19,20 +19,19 @@ import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
-import { PictionaryStageFrame } from './PictionaryStageFrame';
+import { PICTIONARY_STAGE_MAX_WIDTH, PictionaryStageHeading } from './PictionaryStageFrame';
 
 interface GalleryEntryViewProps {
   readonly state: PictionaryState;
-  readonly chain: PictionaryChain;
   readonly entry: PictionaryEntry;
   readonly entryIndex: number;
 }
 
-const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, chain, entry, entryIndex }) => (
+const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, entry, entryIndex }) => (
   <View style={styles.revealSection} testID={TESTIDS.pictionaryGalleryEntry}>
     <View style={styles.revealMeta}>
-      <Text style={styles.chainName}>
-        {getPictionarySeatDisplayName(state, chain.originSeat)} 发起的接龙
+      <Text style={styles.entryKind}>
+        {entry.kind === 'drawing' ? '画作' : entry.kind === 'text' ? '文字' : '未完成'}
       </Text>
       <Text style={styles.entryPosition}>
         第 {entryIndex + 1} / {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
@@ -67,16 +66,73 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, chain, entry
       />
       <Text style={styles.authorText}>{getPictionarySeatDisplayName(state, entry.authorSeat)}</Text>
     </View>
-    <View style={styles.entryTrack}>
-      {chain.entries.map((candidate, index) => (
-        <View
-          key={candidate.id}
-          style={[styles.entryTrackItem, index === entryIndex && styles.activeEntryTrackItem]}
-        />
-      ))}
-    </View>
   </View>
 );
+
+interface PictionaryAlbumStageProps {
+  readonly state: PictionaryState;
+  readonly chain: PictionaryChain;
+  readonly entries: readonly PictionaryEntry[];
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly description: string;
+  readonly remainingSeconds: number | null;
+  readonly shouldFollowLatestEntry: boolean;
+  readonly controls: React.ReactNode;
+}
+
+const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
+  state,
+  chain,
+  entries,
+  eyebrow,
+  title,
+  description,
+  remainingSeconds,
+  shouldFollowLatestEntry,
+  controls,
+}) => {
+  const listRef = useRef<FlatList<PictionaryEntry>>(null);
+  const renderEntry = useCallback(
+    ({ item, index }: ListRenderItemInfo<PictionaryEntry>) => (
+      <GalleryEntryView state={state} entry={item} entryIndex={index} />
+    ),
+    [state],
+  );
+  const getEntryKey = useCallback((entry: PictionaryEntry) => entry.id, []);
+  const followLatestEntry = useCallback(() => {
+    if (shouldFollowLatestEntry && entries.length > 1) {
+      listRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [entries.length, shouldFollowLatestEntry]);
+
+  useEffect(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [chain.id]);
+
+  return (
+    <View style={styles.albumStage} testID={TESTIDS.pictionaryStageFrame}>
+      <FlatList
+        ref={listRef}
+        testID={TESTIDS.pictionaryGalleryAlbum}
+        data={entries}
+        renderItem={renderEntry}
+        keyExtractor={getEntryKey}
+        onContentSizeChange={followLatestEntry}
+        contentContainerStyle={styles.albumContent}
+        ListHeaderComponent={
+          <PictionaryStageHeading
+            eyebrow={eyebrow}
+            title={title}
+            description={description}
+            remainingSeconds={remainingSeconds}
+          />
+        }
+      />
+      <View style={styles.controlsDock}>{controls}</View>
+    </View>
+  );
+};
 
 interface PictionaryGalleryStageProps {
   readonly state: PictionaryState;
@@ -97,88 +153,77 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   const gallery = state.gallery;
   const chain = state.chains[gallery.chainIndex];
   if (chain === undefined) throw new Error('[FAIL-FAST] Pictionary gallery chain is missing');
-  const entry = chain.entries[gallery.entryIndex];
-  if (entry === undefined) throw new Error('[FAIL-FAST] Pictionary gallery entry is missing');
+  if (chain.entries[gallery.entryIndex] === undefined) {
+    throw new Error('[FAIL-FAST] Pictionary gallery entry is missing');
+  }
   const command = usePictionaryStageCommand(session, null);
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
   const isFinalEntry =
     gallery.chainIndex === state.chains.length - 1 &&
     gallery.entryIndex === chain.entries.length - 1;
+  const visibleEntries = chain.entries.slice(0, gallery.entryIndex + 1);
+  const controls = isHost ? (
+    <View style={styles.galleryControls}>
+      <Button
+        variant="icon"
+        size="md"
+        disabled={isFirstEntry || command.isSubmitting}
+        onPress={() => void command.submit('上一项', { type: 'pictionary.gallery.rewind' })}
+        accessibilityLabel="上一项"
+      >
+        <Ionicons name="play-skip-back" size={20} color={colors.text} />
+      </Button>
+      <Button
+        variant="secondary"
+        size="md"
+        disabled={command.isSubmitting}
+        onPress={() =>
+          void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
+            type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
+          })
+        }
+        icon={
+          <Ionicons name={gallery.isPlaying ? 'pause' : 'play'} size={20} color={colors.primary} />
+        }
+      >
+        {gallery.isPlaying ? '暂停' : '播放'}
+      </Button>
+      <Button
+        variant="icon"
+        size="md"
+        disabled={command.isSubmitting}
+        onPress={() =>
+          void command.submit(isFinalEntry ? '结束揭晓' : '下一项', {
+            type: 'pictionary.gallery.advance',
+          })
+        }
+        accessibilityLabel={isFinalEntry ? '结束揭晓' : '下一项'}
+        testID={TESTIDS.pictionaryGalleryAdvanceButton}
+      >
+        <Ionicons name="play-skip-forward" size={20} color={colors.text} />
+      </Button>
+    </View>
+  ) : (
+    <View style={styles.viewerNotice}>
+      <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
+      <Text style={styles.viewerNoticeText}>全员正在观看同一本画册</Text>
+    </View>
+  );
 
   return (
-    <PictionaryStageFrame
-      eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 条接龙`}
-      title="接龙揭晓"
+    <PictionaryAlbumStage
+      state={state}
+      chain={chain}
+      entries={visibleEntries}
+      eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
+      title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
       description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
       remainingSeconds={remainingSeconds}
-    >
-      <GalleryEntryView state={state} chain={chain} entry={entry} entryIndex={gallery.entryIndex} />
-      {isHost ? (
-        <View style={styles.galleryControls}>
-          <Button
-            variant="icon"
-            size="md"
-            disabled={isFirstEntry || command.isSubmitting}
-            onPress={() => void command.submit('上一项', { type: 'pictionary.gallery.rewind' })}
-            accessibilityLabel="上一项"
-          >
-            <Ionicons name="play-skip-back" size={20} color={colors.text} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            disabled={command.isSubmitting}
-            onPress={() =>
-              void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
-                type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
-              })
-            }
-            icon={
-              <Ionicons
-                name={gallery.isPlaying ? 'pause' : 'play'}
-                size={20}
-                color={colors.primary}
-              />
-            }
-          >
-            {gallery.isPlaying ? '暂停' : '播放'}
-          </Button>
-          <Button
-            variant="icon"
-            size="md"
-            disabled={command.isSubmitting}
-            onPress={() =>
-              void command.submit(isFinalEntry ? '结束揭晓' : '下一项', {
-                type: 'pictionary.gallery.advance',
-              })
-            }
-            accessibilityLabel={isFinalEntry ? '结束揭晓' : '下一项'}
-            testID={TESTIDS.pictionaryGalleryAdvanceButton}
-          >
-            <Ionicons name="play-skip-forward" size={20} color={colors.text} />
-          </Button>
-        </View>
-      ) : (
-        <View style={styles.viewerNotice}>
-          <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
-          <Text style={styles.viewerNoticeText}>全员正在观看同一项</Text>
-        </View>
-      )}
-    </PictionaryStageFrame>
+      shouldFollowLatestEntry
+      controls={controls}
+    />
   );
 };
-
-interface FlattenedGalleryEntry {
-  readonly chain: PictionaryChain;
-  readonly entry: PictionaryEntry;
-  readonly entryIndex: number;
-}
-
-function flattenGallery(state: PictionaryState): readonly FlattenedGalleryEntry[] {
-  return state.chains.flatMap((chain) =>
-    chain.entries.map((entry, entryIndex) => ({ chain, entry, entryIndex })),
-  );
-}
 
 interface PictionaryEndedStageProps {
   readonly state: PictionaryState;
@@ -194,52 +239,39 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
   if (state.phase !== 'ended') {
     throw new Error('[FAIL-FAST] Ended stage requires completed Pictionary state');
   }
-  const entries = flattenGallery(state);
-  const [localIndex, setLocalIndex] = useState(0);
-  const current = entries[localIndex];
-  if (current === undefined) {
-    throw new Error('[FAIL-FAST] Completed Pictionary round has no gallery entries');
-  }
+  const [localChainIndex, setLocalChainIndex] = useState(0);
+  const chain = state.chains[localChainIndex];
+  if (chain === undefined) throw new Error('[FAIL-FAST] Completed Pictionary album is missing');
   const command = usePictionaryStageCommand(session, null);
-
-  return (
-    <PictionaryStageFrame
-      eyebrow={`第 ${state.roundNumber} 轮完成`}
-      title="自由回看"
-      description="现在每个人都可以按自己的节奏翻看整场接龙。"
-      remainingSeconds={null}
-    >
-      <GalleryEntryView
-        state={state}
-        chain={current.chain}
-        entry={current.entry}
-        entryIndex={current.entryIndex}
-      />
+  const controls = (
+    <View style={styles.endedControls}>
       <View style={styles.localBrowserControls}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="上一项"
-          disabled={localIndex === 0}
-          onPress={() => setLocalIndex((index) => Math.max(0, index - 1))}
+          accessibilityLabel="上一本"
+          disabled={localChainIndex === 0}
+          onPress={() => setLocalChainIndex((index) => Math.max(0, index - 1))}
           style={({ pressed }) => [
             styles.localBrowserButton,
-            localIndex === 0 && styles.disabled,
+            localChainIndex === 0 && styles.disabled,
             pressed && styles.pressed,
           ]}
         >
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
         <Text style={styles.localPosition}>
-          {localIndex + 1} / {entries.length}
+          {localChainIndex + 1} / {state.chains.length}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="下一项"
-          disabled={localIndex === entries.length - 1}
-          onPress={() => setLocalIndex((index) => Math.min(entries.length - 1, index + 1))}
+          accessibilityLabel="下一本"
+          disabled={localChainIndex === state.chains.length - 1}
+          onPress={() =>
+            setLocalChainIndex((index) => Math.min(state.chains.length - 1, index + 1))
+          }
           style={({ pressed }) => [
             styles.localBrowserButton,
-            localIndex === entries.length - 1 && styles.disabled,
+            localChainIndex === state.chains.length - 1 && styles.disabled,
             pressed && styles.pressed,
           ]}
         >
@@ -265,19 +297,57 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
           </Button>
         </View>
       )}
-    </PictionaryStageFrame>
+    </View>
+  );
+
+  return (
+    <PictionaryAlbumStage
+      state={state}
+      chain={chain}
+      entries={chain.entries}
+      eyebrow={`第 ${localChainIndex + 1} / ${state.chains.length} 本画册`}
+      title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
+      description={`第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`}
+      remainingSeconds={null}
+      shouldFollowLatestEntry={false}
+      controls={controls}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  revealSection: { gap: spacing.small },
+  albumStage: {
+    width: '100%',
+    maxWidth: PICTIONARY_STAGE_MAX_WIDTH,
+    minHeight: 0,
+    flex: 1,
+    alignSelf: 'center',
+  },
+  albumContent: {
+    flexGrow: 1,
+    gap: spacing.large,
+    padding: spacing.medium,
+  },
+  controlsDock: {
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.small,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.borderLight,
+    backgroundColor: colors.surface,
+  },
+  revealSection: {
+    gap: spacing.small,
+    paddingTop: spacing.medium,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.borderLight,
+  },
   revealMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.small,
   },
-  chainName: { ...textStyles.bodySemibold, flex: 1, color: colors.text },
+  entryKind: { ...textStyles.bodySemibold, flex: 1, color: colors.primary },
   entryPosition: { ...textStyles.caption, color: colors.textSecondary },
   textReveal: {
     minHeight: 260,
@@ -305,9 +375,6 @@ const styles = StyleSheet.create({
   missedDescription: { ...textStyles.secondary, color: colors.textSecondary },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tight },
   authorText: { ...textStyles.secondary, color: colors.textSecondary },
-  entryTrack: { height: 4, flexDirection: 'row', gap: spacing.tight },
-  entryTrackItem: { flex: 1, backgroundColor: colors.border },
-  activeEntryTrackItem: { backgroundColor: colors.primary },
   galleryControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -322,6 +389,7 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   viewerNoticeText: { ...textStyles.secondary, color: colors.textSecondary },
+  endedControls: { gap: spacing.small },
   localBrowserControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,7 +412,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
-  roundActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.small },
+  roundActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: spacing.small,
+  },
   disabled: { opacity: fixed.disabledOpacity },
   pressed: { opacity: fixed.activeOpacity },
 });

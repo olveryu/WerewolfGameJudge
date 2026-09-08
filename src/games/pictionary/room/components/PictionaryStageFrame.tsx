@@ -17,11 +17,56 @@ interface PictionaryStageFrameProps {
   readonly children: React.ReactNode;
 }
 
+interface PictionaryStageHeadingProps {
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly description: string;
+  readonly remainingSeconds: number | null;
+}
+
 function formatRemainingTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds % 60;
   return `${minutes}:${String(remainder).padStart(2, '0')}`;
 }
+
+export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
+  eyebrow,
+  title,
+  description,
+  remainingSeconds,
+}) => {
+  const isUrgent = remainingSeconds !== null && remainingSeconds <= 10;
+  return (
+    <View style={styles.headingRow}>
+      <View style={styles.headingCopy}>
+        <Text style={styles.eyebrow}>{eyebrow}</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{description}</Text>
+      </View>
+      <View
+        style={[styles.timer, isUrgent && styles.urgentTimer]}
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={
+          remainingSeconds === null ? '本阶段不限时' : `剩余 ${remainingSeconds} 秒`
+        }
+      >
+        <Ionicons
+          name={remainingSeconds === 0 ? 'sync-outline' : 'time-outline'}
+          size={18}
+          color={isUrgent ? colors.error : colors.textSecondary}
+        />
+        <Text style={[styles.timerText, isUrgent && styles.urgentTimerText]}>
+          {remainingSeconds === null
+            ? '不限时'
+            : remainingSeconds === 0
+              ? '切换中'
+              : formatRemainingTime(remainingSeconds)}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 export const PictionaryStageFrame: React.FC<PictionaryStageFrameProps> = ({
   eyebrow,
@@ -30,7 +75,6 @@ export const PictionaryStageFrame: React.FC<PictionaryStageFrameProps> = ({
   remainingSeconds,
   children,
 }) => {
-  const isUrgent = remainingSeconds !== null && remainingSeconds <= 10;
   return (
     <ScrollView
       style={styles.scroll}
@@ -38,33 +82,12 @@ export const PictionaryStageFrame: React.FC<PictionaryStageFrameProps> = ({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.content} testID={TESTIDS.pictionaryStageFrame}>
-        <View style={styles.headingRow}>
-          <View style={styles.headingCopy}>
-            <Text style={styles.eyebrow}>{eyebrow}</Text>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.description}>{description}</Text>
-          </View>
-          <View
-            style={[styles.timer, isUrgent && styles.urgentTimer]}
-            accessibilityLiveRegion="polite"
-            accessibilityLabel={
-              remainingSeconds === null ? '本阶段不限时' : `剩余 ${remainingSeconds} 秒`
-            }
-          >
-            <Ionicons
-              name={remainingSeconds === 0 ? 'sync-outline' : 'time-outline'}
-              size={18}
-              color={isUrgent ? colors.error : colors.textSecondary}
-            />
-            <Text style={[styles.timerText, isUrgent && styles.urgentTimerText]}>
-              {remainingSeconds === null
-                ? '不限时'
-                : remainingSeconds === 0
-                  ? '切换中'
-                  : formatRemainingTime(remainingSeconds)}
-            </Text>
-          </View>
-        </View>
+        <PictionaryStageHeading
+          eyebrow={eyebrow}
+          title={title}
+          description={description}
+          remainingSeconds={remainingSeconds}
+        />
         {children}
       </View>
     </ScrollView>

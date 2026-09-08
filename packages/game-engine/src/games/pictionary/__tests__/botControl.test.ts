@@ -73,23 +73,45 @@ function createBotRound(): PictionaryState {
   return dispatch(state, { type: 'pictionary.round.start' }, userContext('host'));
 }
 
-function advanceToDrawingStep(state: PictionaryState): PictionaryState {
-  let nextState = dispatch(
-    state,
-    { type: 'pictionary.text.submit', text: '房主题目' },
-    userContext('host'),
-  );
-  for (let seat = 1; seat < 4; seat += 1) {
+function markEverySeatReady(state: PictionaryState): PictionaryState {
+  let nextState = state;
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
     nextState = dispatch(
       nextState,
-      { type: 'pictionary.text.submit', text: `机器人题目 ${seat}` },
-      userContext('host', seat),
+      { type: 'pictionary.task.ready.set', isReady: true },
+      userContext('host', seat === 0 && state.realSeats[0] !== undefined ? null : seat),
     );
   }
-  return dispatch(
+  return nextState;
+}
+
+function advanceToDrawingCollection(state: PictionaryState): PictionaryState {
+  let nextState = markEverySeatReady(state);
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    nextState = dispatch(
+      nextState,
+      { type: 'pictionary.text.submit', text: `题目 ${seat + 1}` },
+      userContext('host', seat === 0 && state.realSeats[0] !== undefined ? null : seat),
+    );
+  }
+  if (nextState.deadlineAt === null) throw new Error('Pictionary transition deadline is missing');
+  nextState = dispatch(
     nextState,
     { type: 'pictionary.phase.expire', phaseRevision: nextState.phaseRevision },
-    userContext('host', null, 7_000),
+    userContext('host', null, nextState.deadlineAt),
+  );
+  nextState = markEverySeatReady(nextState);
+  expect(nextState.phase).toBe('settling');
+  expect(getPictionaryExpectedKind(nextState.stepIndex)).toBe('drawing');
+  return nextState;
+}
+
+function expireCurrentPhase(state: PictionaryState): PictionaryState {
+  if (state.deadlineAt === null) throw new Error('Pictionary phase deadline is missing');
+  return dispatch(
+    state,
+    { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+    userContext('host', null, state.deadlineAt),
   );
 }
 
@@ -133,7 +155,7 @@ describe('Pictionary bot control', () => {
   });
 
   it('allows the host to reserve a drawing for a controlled bot seat', () => {
-    const state = advanceToDrawingStep(createBotRound());
+    const state = advanceToDrawingCollection(createBotRound());
     const decision = decidePictionaryCommand(
       state,
       { type: 'pictionary.drawing.reserve' },
@@ -148,7 +170,7 @@ describe('Pictionary bot control', () => {
 
   it('rejects controlled bot submissions from a non-host user', () => {
     const decision = decidePictionaryCommand(
-      advanceToDrawingStep(createBotRound()),
+      advanceToDrawingCollection(createBotRound()),
       { type: 'pictionary.drawing.reserve' },
       userContext('guest', 1),
     );
@@ -158,7 +180,7 @@ describe('Pictionary bot control', () => {
 
   it('rejects controlling a real player seat', () => {
     const decision = decidePictionaryCommand(
-      advanceToDrawingStep(createBotRound()),
+      advanceToDrawingCollection(createBotRound()),
       { type: 'pictionary.drawing.reserve' },
       userContext('host', 0),
     );
@@ -173,20 +195,12 @@ describe('Pictionary bot control', () => {
     );
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
     state = dispatch(state, { type: 'pictionary.round.start' }, userContext('host'));
-    for (let seat = 0; seat < 4; seat += 1) {
-      state = dispatch(
-        state,
-        { type: 'pictionary.text.submit', text: `机器人题目 ${seat + 1}` },
-        userContext('host', seat),
-      );
-    }
 
+    state = expireCurrentPhase(state);
+    expect(state.phase).toBe('settling');
+    state = expireCurrentPhase(state);
     expect(state.phase).toBe('transition');
-    state = dispatch(
-      state,
-      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-      userContext('host', null, 7_000),
-    );
+    state = expireCurrentPhase(state);
 
     expect(state.phase).toBe('answering');
     expect(state.stepIndex).toBe(1);

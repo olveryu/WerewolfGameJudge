@@ -9,7 +9,7 @@ export const PICTIONARY_MIN_PLAYERS = 4;
 export const PICTIONARY_DEFAULT_PLAYERS = 6;
 export const PICTIONARY_MAX_PLAYERS = 20;
 export const PICTIONARY_TEXT_MAX_LENGTH = 80;
-export const PICTIONARY_UPLOAD_GRACE_SECONDS = 15;
+export const PICTIONARY_COLLECTION_DURATION_SECONDS = 15;
 export const PICTIONARY_DRAWING_WIDTH = 1024;
 export const PICTIONARY_DRAWING_HEIGHT = 768;
 export const PICTIONARY_DRAWING_MAX_BYTES = 2 * 1024 * 1024;
@@ -123,6 +123,8 @@ export interface PictionaryState extends BaseGameState<PictionaryGameType> {
   readonly seatOrder: readonly number[];
   readonly stepIndex: number;
   readonly deadlineAt: number | null;
+  /** Seats that marked their local draft ready during the current answering phase. */
+  readonly readySeats: readonly number[];
   readonly reservations: readonly PictionaryDrawingReservation[];
   readonly chains: readonly PictionaryChain[];
   readonly gallery: PictionaryGalleryState | null;
