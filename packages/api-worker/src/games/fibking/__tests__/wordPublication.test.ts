@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { FibWordCandidate } from '../wordProviders/types';
 import {
   claimFibWordProviderRequest,
+  getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
 } from '../wordPublication';
@@ -48,6 +49,9 @@ describe('Fib word publication', () => {
     }));
     await publishFibWordPack(env.DB, pack, candidates, reviews, ['https://example.com/words']);
     await publishFibWordPack(env.DB, pack, candidates, reviews, ['https://example.com/words']);
+    expect(await getFibWordReviewCandidates(env.DB, pack, [...candidates].reverse())).toEqual(
+      [...candidates].reverse(),
+    );
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
       { count: 6 },
     );

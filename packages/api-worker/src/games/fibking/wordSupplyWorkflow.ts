@@ -13,6 +13,7 @@ import {
   claimFibWordProviderRequest,
   failFibWordPack,
   FIB_WORD_DAILY_BATCH_LIMIT,
+  getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
 } from './wordPublication';
@@ -81,14 +82,21 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           );
         });
         if (discovery.length === 0) throw new Error('Fib word discovery returned no evidence');
-        const candidates = await step.do(`generate-${batchIndex}`, EXTERNAL_STEP, async () => {
-          await claimFibWordProviderRequest(this.env.DB, pack, 'generation');
-          return [
-            ...(await createConfiguredFibWordProvider(this.env).generateBatch(
-              createRequest(pack.category, discovery),
-            )),
-          ];
-        });
+        const generatedCandidates = await step.do(
+          `generate-${batchIndex}`,
+          EXTERNAL_STEP,
+          async () => {
+            await claimFibWordProviderRequest(this.env.DB, pack, 'generation');
+            return [
+              ...(await createConfiguredFibWordProvider(this.env).generateBatch(
+                createRequest(pack.category, discovery),
+              )),
+            ];
+          },
+        );
+        const candidates = await step.do(`review-candidates-${batchIndex}`, () =>
+          getFibWordReviewCandidates(this.env.DB, pack, generatedCandidates),
+        );
         const evidence: FibWordEvidence[] = [];
         for (const [candidateIndex, candidate] of candidates.entries()) {
           const sources = await step.do(

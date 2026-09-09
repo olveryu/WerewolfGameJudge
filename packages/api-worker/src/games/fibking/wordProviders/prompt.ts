@@ -13,8 +13,8 @@ import {
   type FibWordRequest,
 } from './types';
 
-export const FIB_WORD_PROMPT_VERSION = '4';
-export const FIB_WORD_REVIEW_VERSION = '4';
+export const FIB_WORD_PROMPT_VERSION = '5';
+export const FIB_WORD_REVIEW_VERSION = '5';
 
 const FIB_WORD_CATEGORY_INSTRUCTIONS = {
   literary:
@@ -25,31 +25,32 @@ const FIB_WORD_CATEGORY_INSTRUCTIONS = {
 } as const;
 
 const FIB_WORD_CALIBRATION_EXAMPLES = `
+<difficulty_rejection>
+以经常阅读中文、接触影视和大众科普的普通聚会玩家为参照，不以词汇量最低的玩家为参照。“不是日常口语”不等于“固定词义陌生”。
+以下任一条件成立就淘汰，真实性、趣味性和冷门出处不能抵消：
+- 常见固定词义：常见书面语、教材表达或影视对白中，认识词面就通常知道意思。
+- 熟语直接提示：通过常见成语、搭配或典故，就能推出接近核心释义的答案。
+- 大众科普概念：固定含义已常见于大众科普或公共讨论，不因属于心理学、科技类别而放宽。
+- 字面泄露答案：逐字解释、词面意象或组合关系足以猜到核心意思，不要求逐字复述标准答案。
+- 仅认读困难：难点只是生僻字或读音；去掉认读门槛后，释义没有悬念。
+检索用于核实词义、常见搭配和实际使用语境；搜索结果少不能证明冷门，模型知道或不知道也不能代替玩家熟悉度判断。无法支持合格判断时拒绝，不得默认通过。
+</difficulty_rejection>
+
 <calibration_examples>
 以下词语仅用于理解标准，不得作为本次候选：
 - 好题“却扇”：古代婚礼中，新娘以扇遮面并在仪式中移开。汉字常见，真实含义具体且不能靠字面猜中。
-- 好题“打尖”：旧时指旅途中短暂停留、休息或吃饭。容易读出，但固定旧义并不明显。
-- 好题“鸟笼效应”：得到一件物品后继续添置相关配套物品的心理倾向。名称形象，真实含义有反差。
-- 坏题“魑魅魍魉”：读写门槛过高。
+- 坏题“觊觎”：常见书面词，认识词面通常就知道非分企图或贪求的意思，认读困难不算释义悬念。
+- 坏题“琼浆”：常见搭配“琼浆玉液”直接提示美酒，即使说不全标准释义也已猜中核心。
+- 坏题“幸存者偏差”：大众科普中的常见概念，词面也提示只看幸存样本产生偏差，不能因专业名称而通过。
+- 坏题“打尖”：旅途中歇脚吃饭的含义常见于古装影视，不能因为是旧时用语就认定陌生。
+- “鸟笼效应”等心理效应名称不预设合格，必须独立核实熟悉度和字面泄底，不得按类别直接放行。
+- 坏题“魑魅魍魉”：很简单，认识词面通常就知道意思。
 - 坏题“情绪价值”：过于常见且字面容易理解。
 - 坏题“内卷”“社恐”“躺平”：当代高频表达，多数玩家已经知道真义。
 - 坏题“压岁钱”“工具箱”“白眼”：日常事物或常用词，没有释义悬念。
 - 坏题“胸有成竹”“走马观花”“望梅止渴”：常见成语，标准含义广为人知。
 - 坏题“捉刀代笔”“敲冰求火”“敲边鼓”“雁过留声”：即使并非人人熟悉，词面动作、对象或比喻方向已经暴露了接近标准释义的答案。
 - 坏题“云梦蝶”：无法确认是具有固定词义的现成词项。
-</calibration_examples>`;
-
-const FIB_WORD_REVIEW_CALIBRATION_EXAMPLES = `
-<calibration_examples>
-以下词语仅用于理解审核标准：
-- 接受“却扇”：汉字容易读，固定旧义不能从字面直接推出。
-- 接受“打尖”：词面熟悉，但多数玩家不知道其固定旧义。
-- 接受“鸟笼效应”：名称形象，真实心理含义有反差且便于编造。
-- 拒绝“情绪价值”“内卷”“社恐”“躺平”：当代高频表达，多数玩家已经知道真义。
-- 拒绝“压岁钱”“工具箱”“白眼”：日常事物或常用词，词义没有悬念。
-- 拒绝“胸有成竹”“走马观花”“望梅止渴”：常见成语，标准含义广为人知。
-- 拒绝“捉刀代笔”“敲冰求火”“敲边鼓”“雁过留声”：词面已经暴露接近标准释义的答案，冷门不能抵消字面透明。
-- 拒绝“魑魅魍魉”：虽然不简单，但读写门槛过高，无法自然口述。
 </calibration_examples>`;
 
 export function createFibWordMessages(
@@ -124,15 +125,15 @@ export function createFibWordReviewMessages(
 <reject>
 出现任一情况必须拒绝：当代高频流行语、常见成语、日常事物或动作、常用动词或形容词、字面透明的复合词、主要含义已广为人知、只靠冷僻字制造难度、需要专业知识、词义或释义不确定。成语即使冷门，只要词面足以让玩家说出接近标准释义的答案，也属于字面透明。不要为了凑数量而接受边缘候选，允许全部拒绝。
 </reject>
-${FIB_WORD_REVIEW_CALIBRATION_EXAMPLES}
+${FIB_WORD_CALIBRATION_EXAMPLES}
 
 <quality_checks>
 每项必须独立判断，不得用一项优点抵消另一项失败：
 - isEstablishedTerm：是已有固定含义的真实词项，不是临时短语或自造词。
 - isDefinitionAccurate：核心释义真实准确，没有混入错误义项。
 - isEasyToReadAloud：多数普通玩家能自然认读并口述词面。
-- isMeaningUnfamiliarToMostPlayers：多数普通玩家无法在揭晓前准确说出固定真义。
-- isMeaningDistinctFromLiteralReading：逐字理解和词面意象都无法推出接近标准释义的答案。
+- isMeaningUnfamiliarToMostPlayers：多数普通玩家无法在揭晓前说出核心真义。常见书面语、教材表达、影视用语或大众科普概念设为 false，不能把不常口述当作陌生。
+- isMeaningDistinctFromLiteralReading：逐字理解、词面意象及常见熟语搭配都无法推出接近核心释义的答案；任何一种能泄底就设为 false。
 - hasMultiplePlausibleWrongDefinitions：玩家容易编出至少两种彼此不同且可信的错误释义。
 - hasRevealValue：真义揭晓后具有反差或讨论价值。
 任一项为 false，程序都会拒绝该候选；不得输出折中结论。
@@ -140,7 +141,8 @@ ${FIB_WORD_REVIEW_CALIBRATION_EXAMPLES}
 
 <output_rules>
 逐项审核输入中的全部${FIB_GENERATED_WORD_CANDIDATE_COUNT}个候选，保持原顺序且每词恰好出现一次。
-qualityChecks 中七项布尔值必须全部给出。reason 用一句具体中文说明最关键的证据；存在 false 时必须说明最关键的失败项，不得使用“虽然不合格但仍可接受”的权衡。
+qualityChecks 中七项布尔值必须全部给出。仅认读困难时 isEasyToReadAloud 设为 false，不得靠提高其他项补偿。
+reason 用八至一百字中文记录具体审核依据：常见搭配或使用语境、词面可能让玩家猜到的意思、除认读之外是否仍有释义悬念。拒绝时优先说明命中的淘汰条件及证据；接受时说明为何未泄底且真义陌生，不能只写“冷门有趣”。不得使用“虽然不合格但仍可接受”的权衡。
 只返回 JSON Schema 要求的内容，不输出额外分析。
 </output_rules>`,
     },

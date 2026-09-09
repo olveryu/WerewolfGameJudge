@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import { parseFibWordCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import {
@@ -21,6 +22,54 @@ const packSchema = z.strictObject({
   request_token: z.string(),
 });
 export type FibWordPack = z.output<typeof packSchema>;
+
+/** Prioritize active inventory awaiting the current rubric without changing its sequence. */
+export async function getFibWordReviewCandidates(
+  db: D1Database,
+  pack: FibWordPack,
+  generatedCandidates: readonly FibWordCandidate[],
+): Promise<FibWordCandidate[]> {
+  if (generatedCandidates.length !== FIB_GENERATED_WORD_CANDIDATE_COUNT) {
+    throw new Error('Fib review candidate batch size mismatch');
+  }
+  const inventoryRows = await db
+    .prepare(
+      `SELECT word, core_meaning, usage_note, source FROM fib_words AS inventory
+       WHERE status = 'active' AND category = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM fib_word_candidate_reviews AS review
+           WHERE review.word = inventory.word AND review.review_version = ?
+             AND review.decision = 'accepted'
+             AND review.core_meaning = inventory.core_meaning
+             AND review.usage_note = inventory.usage_note
+             AND review.reviewed_at >= inventory.activated_at
+         )
+       ORDER BY activated_at, word LIMIT ?`,
+    )
+    .bind(pack.category, FIB_WORD_REVIEW_VERSION, FIB_GENERATED_WORD_CANDIDATE_COUNT)
+    .all<{
+      word: string;
+      core_meaning: string;
+      usage_note: string;
+      source: FibWordCandidate['source'];
+    }>();
+  const inventoryCandidates = inventoryRows.results.map((row) =>
+    parseFibWordCandidate(
+      {
+        word: row.word,
+        definition: { coreMeaning: row.core_meaning, usageNote: row.usage_note },
+      },
+      row.source,
+      [],
+    ),
+  );
+  return [
+    ...inventoryCandidates,
+    ...generatedCandidates.filter(
+      (candidate) => !inventoryCandidates.some((inventory) => inventory.word === candidate.word),
+    ),
+  ].slice(0, FIB_GENERATED_WORD_CANDIDATE_COUNT);
+}
 
 /** An uncertain provider operation is consumed permanently, including after Workflow restart. */
 export async function claimFibWordProviderRequest(

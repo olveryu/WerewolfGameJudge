@@ -2,6 +2,8 @@
 import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FIB_WORD_CATEGORIES } from '../wordProviders/types';
+
 beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
@@ -15,10 +17,12 @@ beforeEach(async () => {
 });
 
 describe('Fib word supply workflow', () => {
-  it('publishes once through durable steps and skips unreserved batches', async () => {
+  it.each([false, true])('publishes with inventory re-review: %s', async (hasInventory) => {
     const day = new Date().toISOString().slice(0, 10);
     const id = crypto.randomUUID();
-    const words = ['射覆', '却扇', '打尖', '测试甲', '测试乙', '测试丙'];
+    const words = hasInventory
+      ? ['幸存者偏差', '琼浆', '觊觎', '测试甲', '测试乙', '测试丙']
+      : ['射覆', '却扇', '打尖', '测试甲', '测试乙', '测试丙'];
     const candidates = words.map((word) => ({
       word,
       source: 'gemini',
@@ -27,15 +31,42 @@ describe('Fib word supply workflow', () => {
         usageNote: '用于测试的具体使用语境。',
       },
     }));
-    const reviews = words.map((word) => ({
+    if (hasInventory) {
+      const category = FIB_WORD_CATEGORIES[Number(day.slice(-2)) % FIB_WORD_CATEGORIES.length];
+      if (category === undefined) throw new Error('Expected batch category');
+      for (const candidate of candidates.slice(0, 3)) {
+        await env.DB.prepare(
+          `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source,
+           status, selection_key, created_at, activated_at)
+           VALUES (?, ?, ?, ?, ?, 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
+        )
+          .bind(
+            candidate.word,
+            candidate.word,
+            candidate.definition.coreMeaning,
+            candidate.definition.usageNote,
+            category,
+          )
+          .run();
+        await env.DB.prepare(
+          "INSERT INTO fib_word_sequence (word, published_at) VALUES (?, '2026-01-01')",
+        )
+          .bind(candidate.word)
+          .run();
+      }
+    }
+    const reviews = words.map((word, index) => ({
       word,
-      decision: 'accepted',
-      reason: '有资料支持且符合游戏性标准。',
+      decision: hasInventory && index < 3 ? 'rejected' : 'accepted',
+      reason:
+        hasInventory && index < 3
+          ? '常见词义或熟语已经暴露核心答案。'
+          : '有资料支持且符合游戏性标准。',
       qualityChecks: {
         isEstablishedTerm: true,
         isDefinitionAccurate: true,
         isEasyToReadAloud: true,
-        isMeaningUnfamiliarToMostPlayers: true,
+        isMeaningUnfamiliarToMostPlayers: !(hasInventory && index < 3),
         isMeaningDistinctFromLiteralReading: true,
         hasMultiplePlausibleWrongDefinitions: true,
         hasRevealValue: true,
@@ -53,7 +84,15 @@ describe('Fib word supply workflow', () => {
           content: words.join(' '),
         },
       ]);
-      await modifier.mockStepResult({ name: 'generate-0' }, candidates);
+      await modifier.mockStepResult(
+        { name: 'generate-0' },
+        hasInventory
+          ? ['测试甲', '测试乙', '测试丙', '测试丁', '测试戊', '测试己'].map((word) => ({
+              ...candidates[0],
+              word,
+            }))
+          : candidates,
+      );
       for (const [index, word] of words.entries()) {
         await modifier.mockStepResult({ name: `verify-0-${index}` }, [
           {
@@ -77,7 +116,20 @@ describe('Fib word supply workflow', () => {
       await env.DB.prepare(
         'SELECT requests_reserved, published_count FROM fib_word_supply_months',
       ).first(),
-    ).toEqual({ requests_reserved: 1, published_count: 6 });
+    ).toEqual({ requests_reserved: 1, published_count: hasInventory ? 3 : 6 });
+    if (hasInventory) {
+      expect(
+        (
+          await env.DB.prepare(
+            "SELECT word FROM fib_words WHERE status = 'disabled' ORDER BY word",
+          ).all()
+        ).results,
+      ).toEqual(words.slice(0, 3).map((word) => ({ word })));
+      expect(
+        (await env.DB.prepare('SELECT word FROM fib_word_sequence ORDER BY id LIMIT 3').all())
+          .results,
+      ).toEqual(words.slice(0, 3).map((word) => ({ word })));
+    }
   });
 
   it('makes a failed external call terminal without refunding the budget', async () => {

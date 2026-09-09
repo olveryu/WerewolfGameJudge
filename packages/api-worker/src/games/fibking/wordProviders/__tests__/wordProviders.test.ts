@@ -234,6 +234,13 @@ describe('Gemini Fib word provider', () => {
     expect(requestBody).toContain('独立审核');
     expect(requestBody).toContain('常见成语');
     expect(requestBody).toContain('情绪价值');
+    expect(requestBody).toContain('坏题“觊觎”');
+    expect(requestBody).toContain('坏题“琼浆”');
+    expect(requestBody).toContain('坏题“幸存者偏差”');
+    expect(requestBody).toContain('常见熟语搭配');
+    expect(requestBody).toContain('reason 用八至一百字中文记录具体审核依据');
+    expect(requestBody).not.toContain('接受“打尖”');
+    expect(requestBody).not.toContain('接受“鸟笼效应”');
     expect(requestBody).toContain('isMeaningDistinctFromLiteralReading');
     expect(requestBody).not.toContain('"decision"');
     expect(requestBody).not.toContain('previous_interaction_id');
@@ -270,6 +277,12 @@ describe('Gemini Fib word provider', () => {
     expect(requestBody).toContain('返回恰好6个互不重复的候选');
     expect(requestBody).toContain('多数普通玩家在揭晓前不能准确说出固定真义');
     expect(requestBody).toContain('不得用较弱候选凑满数量');
+    expect(requestBody).toContain('坏题“觊觎”');
+    expect(requestBody).toContain('坏题“琼浆”');
+    expect(requestBody).toContain('坏题“幸存者偏差”');
+    expect(requestBody).toContain('搜索结果少不能证明冷门');
+    expect(requestBody).not.toContain('好题“打尖”');
+    expect(requestBody).not.toContain('好题“鸟笼效应”');
     expect(requestBody).not.toContain('本房间');
     expect(requestBody).not.toContain('google_search');
   });
