@@ -56,7 +56,7 @@
 
 ## 上线前置条件
 
-当前 `FIB_WORD_SUPPLY_ENABLED=false`，未自动启用外部调用，也没有执行远程迁移或部署。
+生产配置已设为 `FIB_WORD_SUPPLY_ENABLED=true`，部署生效后每日 UTC 04:00 自动供题；测试配置保持关闭。修改配置不等于已完成线上部署，以下条件仍须在部署前确认。
 
 1. 确认 Cloudflare Workers/Workflows 使用 Free；Tavily 使用免费专用密钥且关闭 PAYG；Gemini 项目未关联付费结算，并核对 AI Studio 的实际项目配额。
 2. 在维护窗口结束正在进行的 Fib 回合，应用 `0051_fib_word_progress.sql`，部署 Worker 和网页客户端。只支持当前客户端和协议，不提供旧任务解析、旧客户端兜底或双版本运行；历史业务数据通过一次性迁移保留。
