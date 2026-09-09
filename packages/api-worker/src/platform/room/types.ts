@@ -69,6 +69,15 @@ export type DispatchRoomResult =
 
 export type ReadRoomCommand = RoomInstanceIdentity;
 
+export interface ReadEffectReplayCommand extends RoomInstanceIdentity {
+  readonly id: string;
+}
+
+export interface ReplayFailedEffectCommand extends ReadEffectReplayCommand {
+  readonly effectId: string;
+  readonly reason: string;
+}
+
 export interface AuthorizeRoomDeletionCommand extends RoomInstanceIdentity {
   readonly actorUserId: string;
 }

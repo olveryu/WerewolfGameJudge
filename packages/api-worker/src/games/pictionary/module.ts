@@ -20,6 +20,8 @@ const pictionaryPublicStatsSchema = z.strictObject({
 });
 
 export const pictionaryWorkerModule = defineWorkerGameModule({
+  getEffectFailureCommand: () => null,
+  canReplayFailedEffect: () => false,
   gameType: 'pictionary',
   engine: pictionaryEngine,
   stateCodec: PICTIONARY_STATE_CODEC,

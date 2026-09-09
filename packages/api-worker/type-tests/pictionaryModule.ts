@@ -44,6 +44,8 @@ const publicUserStatsSchema: z.ZodType<PictionaryPublicUserStats> = z.strictObje
 });
 
 const pictionaryWorkerModule = defineWorkerGameModule({
+  getEffectFailureCommand: () => null,
+  canReplayFailedEffect: () => false,
   gameType: UNREGISTERED_GAME_TYPE,
   engine: pictionaryEngine,
   stateCodec: pictionaryStateCodec,

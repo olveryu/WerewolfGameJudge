@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { WorkerEffectContext } from '../../../platform/gameModules/workerModule';
 import { OUTBOX_MAX_ATTEMPTS } from '../../../platform/room/effectOutbox';
-import { handleFibEffect } from '../effects';
+import { getFibEffectFailureCommand, handleFibEffect } from '../effects';
 
 const EFFECT: FibSelectWordEffect = {
   type: 'fib.word.select',
@@ -96,23 +96,23 @@ describe('handleFibEffect selection retries', () => {
     ]);
   });
 
-  it('commits a visible failure on the final delivery attempt', async () => {
+  it('propagates the final failure and defines its separate domain terminal command', async () => {
     const commands: FibInternalCommand[] = [];
 
     await expect(
       handleFibEffect(EFFECT, createContext(OUTBOX_MAX_ATTEMPTS, commands)),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('selection was not persisted');
     expect(commands).toEqual([
       {
         type: 'fib.round.updatePreparationStage',
         roundId: EFFECT.payload.roundId,
         stage: 'selecting',
       },
-      {
-        type: 'fib.round.failPreparation',
-        roundId: EFFECT.payload.roundId,
-        failureCode: 'selectionFailed',
-      },
     ]);
+    expect(getFibEffectFailureCommand(EFFECT, createPreparingState())).toEqual({
+      type: 'fib.round.failPreparation',
+      roundId: EFFECT.payload.roundId,
+      failureCode: 'selectionFailed',
+    });
   });
 });

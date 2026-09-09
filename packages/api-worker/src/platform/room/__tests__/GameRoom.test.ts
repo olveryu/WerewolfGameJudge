@@ -17,7 +17,7 @@ import {
   parseStateSyncResponseMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
-import { runInDurableObject } from 'cloudflare:test';
+import { runInDurableObject, SELF } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -168,7 +168,88 @@ describe('GameRoom initialization', () => {
 
       expect(
         state.storage.sql.exec('SELECT id FROM _sql_schema_migrations ORDER BY id').toArray(),
-      ).toEqual([{ id: 1 }]);
+      ).toEqual([{ id: 1 }, { id: 2 }]);
+    });
+  });
+
+  it('upgrades schema one without replacing the room or receipts', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      const before = state.storage.sql.exec('SELECT * FROM room_state').one();
+      state.storage.sql.exec('DROP TABLE effect_replays');
+      state.storage.sql.exec('DELETE FROM _sql_schema_migrations WHERE id = 2');
+      initializeRoomStorage(state.storage, Date.now());
+      expect(state.storage.sql.exec('SELECT * FROM room_state').one()).toEqual(before);
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_replays').one()).toEqual({
+        count: 0,
+      });
+    });
+  });
+
+  it('requires admin authorization and records an idempotent settlement replay through completion', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    const effectId = 'failed-settlement';
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec(
+        `INSERT INTO effect_outbox (
+        id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
+        status, attempt_count, available_at, created_revision, created_at, last_error
+      ) VALUES (?, 'ended', 'game', 'werewolf', 'werewolf.game.ended', 'settlement', ?, 'failed', 7, 0, 1, 0, 'dependency unavailable')`,
+        effectId,
+        JSON.stringify({
+          type: 'werewolf.game.ended',
+          payload: {
+            roomCode: ROOM_CODE,
+            participants: [{ userId: 'host-1', role: 'wolf', isBot: false }],
+          },
+        }),
+      );
+    });
+    const command = {
+      ...roomIdentity(stub),
+      id: crypto.randomUUID(),
+      effectId,
+      reason: 'dependency repaired',
+    };
+    const request = (token?: string) =>
+      SELF.fetch('https://test.local/admin/effect-replays', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token === undefined ? {} : { 'X-Admin-Token': token }),
+        },
+        body: JSON.stringify(command),
+      });
+    expect((await request()).status).toBe(401);
+    expect((await request('invalid')).status).toBe(403);
+    const token = 'test-admin-token-do-not-use-in-production';
+    expect((await request(token)).status).toBe(202);
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      await instance.alarm();
+      const replay = await instance.readEffectReplay(command);
+      expect(replay).toMatchObject({
+        id: command.id,
+        effect_id: effectId,
+        reason: command.reason,
+        requested_by: 'admin-token',
+        status: 'succeeded',
+      });
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
+        count: 0,
+      });
+      await state.storage.deleteAlarm();
+    });
+    expect((await request(token)).status).toBe(202);
+    const response = await SELF.fetch('https://test.local/admin/effect-replays/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+      body: JSON.stringify({ ...roomIdentity(stub), id: command.id }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      replay: { id: command.id, status: 'succeeded' },
     });
   });
 
@@ -213,11 +294,11 @@ describe('GameRoom initialization', () => {
           id INTEGER PRIMARY KEY,
           applied_at INTEGER NOT NULL
         ) STRICT;
-        INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (2, 0);
+        INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (3, 0);
       `);
 
       expect(() => initializeRoomStorage(state.storage, Date.now())).toThrow(
-        'Unsupported Durable Object schema version: 2',
+        'Unsupported Durable Object schema version: 3',
       );
     });
   });

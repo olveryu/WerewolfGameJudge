@@ -122,6 +122,8 @@ export interface WorkerModuleRuntime<
   ): WorkerModuleDecision<TState, TEffect>;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
+  getEffectFailureCommand(effect: unknown, state: unknown): GameCommand | null;
+  canReplayFailedEffect(effect: unknown): boolean;
   handleEffect(effect: unknown, context: WorkerModuleRuntimeEffectContext<TState>): Promise<void>;
 }
 
@@ -154,6 +156,8 @@ export interface WorkerGameModuleDefinition<
   parsePublicUserStats(value: unknown): TPublicUserStats;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: TEffect, context: WorkerEffectBusinessContext): string;
+  getEffectFailureCommand(effect: TEffect, state: TState): TInternalCommand | null;
+  canReplayFailedEffect(effect: TEffect): boolean;
   handleEffect(
     effect: TEffect,
     context: WorkerEffectContext<TState, TInternalCommand>,
@@ -189,7 +193,11 @@ export type WorkerGameModule<
     TEngine,
     TPublicUserStats
   >,
-  'getPublicUserStats' | 'getEffectBusinessKey' | 'handleEffect'
+  | 'getPublicUserStats'
+  | 'getEffectBusinessKey'
+  | 'getEffectFailureCommand'
+  | 'canReplayFailedEffect'
+  | 'handleEffect'
 > &
   WorkerModuleRuntime<TState, TConfig, TEffect, TPublicUserStats>;
 
@@ -373,6 +381,15 @@ export function defineWorkerGameModule<
       }
       return businessKey;
     },
+    getEffectFailureCommand: (rawEffect, rawState) => {
+      const command = definition.getEffectFailureCommand(
+        definition.effectSchema.parse(rawEffect),
+        parseState(rawState),
+      );
+      return command === null ? null : definition.internalCommandSchema.parse(command);
+    },
+    canReplayFailedEffect: (rawEffect) =>
+      definition.canReplayFailedEffect(definition.effectSchema.parse(rawEffect)),
     handleEffect: (rawEffect, context) =>
       definition.handleEffect(definition.effectSchema.parse(rawEffect), {
         bindings: context.bindings,
@@ -430,6 +447,8 @@ export function registerWorkerGameModule<
     decideInternal: (state, command, context) => module.decideInternal(state, command, context),
     getPublicUserStats: (userId, bindings) => module.getPublicUserStats(userId, bindings),
     getEffectBusinessKey: (effect, context) => module.getEffectBusinessKey(effect, context),
+    getEffectFailureCommand: (effect, state) => module.getEffectFailureCommand(effect, state),
+    canReplayFailedEffect: (effect) => module.canReplayFailedEffect(effect),
     handleEffect: (effect, context) =>
       module.handleEffect(effect, {
         bindings: context.bindings,

@@ -1,6 +1,6 @@
 /** Durable Object SQLite schema bootstrap and strict version validation. */
 
-const ROOM_STORAGE_SCHEMA_VERSION = 1;
+const ROOM_STORAGE_SCHEMA_VERSION = 2;
 
 const TARGET_ROOM_STATE_COLUMNS = [
   'id',
@@ -174,13 +174,36 @@ export function initializeRoomStorage(storage: DurableObjectStorage, nowMs: numb
         throw new Error(`Unsupported unversioned room_state schema: ${existingColumns.join(',')}`);
       }
       createFreshSchema(sql);
-      sql.exec(
-        'INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (?, ?)',
-        ROOM_STORAGE_SCHEMA_VERSION,
-        nowMs,
-      );
+      sql.exec('INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (?, ?)', 1, nowMs);
+    }
+
+    if (currentVersion < 2) {
+      sql.exec(`CREATE TABLE effect_replays (
+        id TEXT PRIMARY KEY,
+        effect_id TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        requested_by TEXT NOT NULL,
+        requested_at INTEGER NOT NULL,
+        original_effect_json TEXT NOT NULL CHECK (json_valid(original_effect_json)),
+        status TEXT NOT NULL CHECK (status IN ('pending', 'succeeded', 'failed')),
+        completed_at INTEGER,
+        last_error TEXT
+      ) STRICT;
+      CREATE UNIQUE INDEX effect_replays_pending_idx ON effect_replays(effect_id) WHERE status = 'pending'`);
+      sql.exec('INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (2, ?)', nowMs);
     }
 
     assertTargetSchema(sql);
+    assertExactColumns(sql, 'effect_replays', [
+      'id',
+      'effect_id',
+      'reason',
+      'requested_by',
+      'requested_at',
+      'original_effect_json',
+      'status',
+      'completed_at',
+      'last_error',
+    ]);
   });
 }

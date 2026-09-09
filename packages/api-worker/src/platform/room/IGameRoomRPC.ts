@@ -16,10 +16,18 @@ import type {
   DispatchUserRoomCommand,
   InitializeRoomCommand,
   InitializeRoomResult,
+  ReadEffectReplayCommand,
   ReadRoomCommand,
+  ReplayFailedEffectCommand,
 } from './types';
 
 export interface IGameRoomRPC {
+  /** @pre Caller authenticated with the administrator credential. */
+  replayFailedEffect(command: ReplayFailedEffectCommand): Promise<void>;
+  /** @pre Caller authenticated with the administrator credential. */
+  readEffectReplay(
+    command: ReadEffectReplayCommand,
+  ): Promise<Record<string, SqlStorageValue> | null>;
   initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult>;
   dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult>;
   /** @pre Caller authenticated and authorized a game-owned HTTP capability. */

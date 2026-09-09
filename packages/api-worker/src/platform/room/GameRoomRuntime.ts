@@ -22,6 +22,7 @@ import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';
+import { createEffectCommandId } from '../gameModules/effectCommandId';
 import type {
   RuntimeWorkerGameModule,
   WorkerGameModuleResolver,
@@ -34,7 +35,7 @@ import {
 } from '../telemetry/realtimeTraffic';
 import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
-import { EffectOutbox } from './effectOutbox';
+import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from './effectOutbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
 import { handlePlatformRoomEffect, parsePlatformRoomEffect } from './platformEffects';
 import { assertRoomEffectDirectory } from './roomDirectory';
@@ -52,7 +53,9 @@ import type {
   InitializeRoomCommand,
   InitializeRoomResult,
   PendingOutboxEffect,
+  ReadEffectReplayCommand,
   ReadRoomCommand,
+  ReplayFailedEffectCommand,
   RoomInstanceIdentity,
 } from './types';
 
@@ -158,6 +161,32 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     return pipeline.rpc;
   }
 
+  /** Requeue only effects whose owning game explicitly permits audited recovery. */
+  async replayFailedEffect(command: ReplayFailedEffectCommand): Promise<void> {
+    const room = this.#readRoomInstance(command);
+    if (room === null) throw new Error('Cannot replay an effect without its room');
+    if (command.id.trim().length === 0 || command.reason.trim().length === 0)
+      throw new Error('Replay requires a request ID and reason');
+    await this.#outbox.replayFailedEffect(
+      command.id,
+      command.effectId,
+      command.reason,
+      (effect) => {
+        if (effect.scope !== 'game' || effect.gameType !== room.gameType) return false;
+        assertEffectType(effect);
+        return this.#gameModuleResolver(room.gameType).canReplayFailedEffect(effect.payload);
+      },
+    );
+  }
+
+  /** Read recovery audit data for the exact immutable room instance. */
+  async readEffectReplay(
+    command: ReadEffectReplayCommand,
+  ): Promise<Record<string, SqlStorageValue> | null> {
+    this.#readRoomInstance(command);
+    return this.#outbox.readReplay(command.id);
+  }
+
   async getSnapshot(
     command: ReadRoomCommand,
   ): Promise<RoomSnapshot<BaseGameState<GameType>> | null> {
@@ -227,6 +256,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
           },
           extra: { effectId: claim.effect.id },
         });
+        await this.#terminalizeEffect(claim.effect, exhausted);
         continue;
       }
       const { effect } = claim;
@@ -248,10 +278,65 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
           },
           extra: { effectId: effect.id, attemptCount: effect.attemptCount },
         });
-        this.#outbox.markFailed(effect, cause, Date.now());
+        if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
+          await this.#terminalizeEffect(effect, cause);
+        } else {
+          this.#outbox.markFailed(effect, cause, Date.now());
+        }
       }
     }
     await this.#schedulePendingOutbox();
+  }
+
+  async #terminalizeEffect(effect: PendingOutboxEffect, cause: Error): Promise<void> {
+    const commandId = await createEffectCommandId('outbox:terminal-failure', effect.id);
+    const dispatched = await this.ctx.storage.transaction(async () => {
+      assertEffectType(effect);
+      const room = this.#repository.readRoom();
+      if (room === null || room.gameType !== effect.gameType)
+        throw new Error(`Cannot terminalize effect ${effect.id} without its room`);
+      const command =
+        effect.scope === 'game'
+          ? this.#gameModuleResolver(room.gameType).getEffectFailureCommand(
+              effect.payload,
+              room.state,
+            )
+          : null;
+      const result =
+        command === null
+          ? null
+          : await dispatchRoomCommand(
+              this.#repository,
+              this.#gameModuleResolver,
+              {
+                roomCode: room.roomCode,
+                commandId,
+                actor: { kind: 'system', effectId: effect.id },
+                controlledSeat: null,
+                command,
+              },
+              Date.now(),
+            );
+      if (
+        result !== null &&
+        (result.rpc.kind !== 'decided' ||
+          result.rpc.result.kind !== 'committed' ||
+          result.rpc.result.outcome.kind !== 'success')
+      ) {
+        throw new Error(`Outbox terminal command ${commandId} did not commit successfully`);
+      }
+      this.#outbox.markFailed(effect, cause, Date.now());
+      return result;
+    });
+    if (
+      dispatched !== null &&
+      dispatched.rpc.kind === 'decided' &&
+      dispatched.rpc.result.kind === 'committed' &&
+      !dispatched.rpc.isReplay &&
+      dispatched.broadcast === 'state'
+    ) {
+      this.#broadcast(dispatched.rpc.result.snapshot, dispatched.commandType);
+    }
   }
 
   async #executeEffect(effect: PendingOutboxEffect): Promise<void> {

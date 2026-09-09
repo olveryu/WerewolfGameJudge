@@ -5,6 +5,7 @@ import type {
   CommittedCommandOutcome,
   CommonGameLifecycle,
   CreateGameContext,
+  GameCommand,
   GameEffect,
 } from '@game-judge/game-engine/platform/engine';
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
@@ -82,6 +83,8 @@ export interface RuntimeWorkerGameModule {
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   getPublicUserStats(userId: string, bindings: Env): Promise<unknown>;
   getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
+  getEffectFailureCommand(effect: unknown, state: unknown): GameCommand | null;
+  canReplayFailedEffect(effect: unknown): boolean;
   handleEffect(effect: unknown, context: RuntimeWorkerEffectContext): Promise<void>;
 }
 

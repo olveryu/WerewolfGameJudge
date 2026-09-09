@@ -22,6 +22,7 @@ import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
+import { effectRecoveryRoutes } from './effectRecovery';
 import {
   queryAIUsageAnalytics,
   queryLoadTimingAnalytics,
@@ -72,6 +73,7 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
   new Hono<AppEnv>();
 
 adminRoutes.use('*', requireAdmin);
+adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 
 // ── GET /admin/users ────────────────────────────────────────────────────────
 

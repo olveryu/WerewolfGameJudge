@@ -6,7 +6,11 @@ import type {
   FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
-import { fibEffectSchema, handleFibEffect } from '../games/fibking/effects';
+import {
+  fibEffectSchema,
+  getFibEffectFailureCommand,
+  handleFibEffect,
+} from '../games/fibking/effects';
 import { fibWorkerModule } from '../games/fibking/module';
 import { getFibWordHistoryUserIds } from '../games/fibking/wordHistory';
 import { getOrCreateFibWordSelection } from '../games/fibking/wordSelection';
@@ -53,6 +57,7 @@ async function handleRecoverableFibEffect(
 
 const e2eFibWorkerModuleDefinition = defineWorkerGameModule({
   ...fibWorkerModule,
+  getEffectFailureCommand: getFibEffectFailureCommand,
   effectSchema: fibEffectSchema,
   handleEffect: handleRecoverableFibEffect,
 });

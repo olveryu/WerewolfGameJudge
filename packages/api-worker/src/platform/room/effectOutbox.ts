@@ -116,18 +116,21 @@ export class EffectOutbox {
 
       const effect = parseOutboxEffect(rows[0]);
       if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
+        const watchdogAt = nowMs + OUTBOX_DELIVERY_WATCHDOG_MS;
         this.#sql
           .exec(
             `UPDATE effect_outbox
-          SET status = 'failed', last_error = ?
+          SET available_at = ?, last_error = ?
           WHERE id = ? AND status = 'pending' AND attempt_count = ?
           RETURNING id`,
+            watchdogAt,
             'delivery interrupted at maximum attempt',
             effect.id,
             effect.attemptCount,
           )
           .one();
-        return { kind: 'exhausted', effect };
+        await this.#storage.setAlarm(watchdogAt);
+        return { kind: 'exhausted', effect: { ...effect, availableAt: watchdogAt } };
       }
 
       const attemptCount = effect.attemptCount + 1;
@@ -190,7 +193,63 @@ export class EffectOutbox {
   }
 
   markSucceeded(effectId: string): void {
-    this.#sql.exec('DELETE FROM effect_outbox WHERE id = ? RETURNING id', effectId).one();
+    this.#storage.transactionSync(() => {
+      this.#sql.exec(
+        "UPDATE effect_replays SET status = 'succeeded', completed_at = ? WHERE effect_id = ? AND status = 'pending'",
+        Date.now(),
+        effectId,
+      );
+      this.#sql.exec('DELETE FROM effect_outbox WHERE id = ? RETURNING id', effectId).one();
+    });
+  }
+
+  /** Requeue the original failed effect, atomically recording the administrator's request. */
+  async replayFailedEffect(
+    id: string,
+    effectId: string,
+    reason: string,
+    canReplay: (effect: PendingOutboxEffect) => boolean,
+  ): Promise<void> {
+    await this.#storage.transaction(async () => {
+      const previous = this.#sql
+        .exec('SELECT effect_id, reason FROM effect_replays WHERE id = ?', id)
+        .toArray()[0];
+      if (previous !== undefined) {
+        if (previous.effect_id !== effectId || previous.reason !== reason)
+          throw new Error('Replay request identity conflict');
+        return;
+      }
+      const row = this.#sql
+        .exec<RawOutboxEffect>(
+          "SELECT * FROM effect_outbox WHERE id = ? AND status = 'failed'",
+          effectId,
+        )
+        .one();
+      const effect = parseOutboxEffect(row);
+      if (!canReplay(effect)) throw new Error('Game effect does not allow administrative replay');
+      const nowMs = Date.now();
+      this.#sql.exec(
+        "INSERT INTO effect_replays (id, effect_id, reason, requested_by, requested_at, original_effect_json, status) VALUES (?, ?, ?, 'admin-token', ?, ?, 'pending')",
+        id,
+        effectId,
+        reason,
+        nowMs,
+        JSON.stringify(row),
+      );
+      this.#sql
+        .exec(
+          "UPDATE effect_outbox SET status = 'pending', attempt_count = 0, available_at = ?, last_error = NULL WHERE id = ? AND status = 'failed' RETURNING id",
+          nowMs,
+          effectId,
+        )
+        .one();
+      await this.#storage.setAlarm(nowMs);
+    });
+  }
+
+  /** Read an audit entry without allowing callers to alter its original effect. */
+  readReplay(id: string) {
+    return this.#sql.exec('SELECT * FROM effect_replays WHERE id = ?', id).toArray()[0] ?? null;
   }
 
   markFailed(effect: PendingOutboxEffect, error: Error, nowMs: number): void {
@@ -221,6 +280,14 @@ export class EffectOutbox {
               effect.attemptCount,
             );
       cursor.one();
+      if (effect.attemptCount >= OUTBOX_MAX_ATTEMPTS) {
+        this.#sql.exec(
+          "UPDATE effect_replays SET status = 'failed', completed_at = ?, last_error = ? WHERE effect_id = ? AND status = 'pending'",
+          nowMs,
+          lastError,
+          effect.id,
+        );
+      }
     });
   }
 }

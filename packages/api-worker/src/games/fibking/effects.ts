@@ -6,7 +6,6 @@ import {
   FIB_WORD_SOURCES,
   type FibEffect,
   type FibInternalCommand,
-  type FibPreparationFailureCode,
   type FibRecordWordUsageEffect,
   type FibSelectWordEffect,
   type FibState,
@@ -17,13 +16,9 @@ import { z } from 'zod';
 
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
-import { createLogger } from '../../platform/observability/logger';
-import { OUTBOX_MAX_ATTEMPTS } from '../../platform/room/effectOutbox';
 import { getFibWordHistoryUserIds } from './wordHistory';
 import { getOrCreateFibWordSelection } from './wordSelection';
 import { recordFibWordUsage } from './wordUsage';
-
-const log = createLogger('fib-word-selection');
 
 const selectWordEffectSchema = z.strictObject({
   type: z.literal('fib.word.select'),
@@ -79,34 +74,22 @@ async function dispatchPreparationStage(
   return true;
 }
 
-async function dispatchPreparationFailure(
-  context: WorkerEffectContext<FibState, FibInternalCommand>,
-  roundId: string,
-  failureCode: FibPreparationFailureCode,
-): Promise<void> {
-  const commandId = await createEffectCommandId(
-    `fib:preparation-failed-${failureCode}`,
-    context.effectId,
-  );
-  const result = await context.dispatchInternal(commandId, {
+/** Decide the domain terminal transition without I/O; the runtime commits it with the outbox. */
+export function getFibEffectFailureCommand(
+  effect: FibEffect,
+  state: FibState,
+): FibInternalCommand | null {
+  if (
+    effect.type !== 'fib.word.select' ||
+    state.phase !== 'preparing' ||
+    state.pendingRound.roundId !== effect.payload.roundId
+  )
+    return null;
+  return {
     type: 'fib.round.failPreparation',
-    roundId,
-    failureCode,
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Fib preparation-failure receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededRoundRejection(result.reason)) return;
-    throw new Error(`Fib preparation-failure command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(
-      `Fib preparation-failure command ${commandId} failed: ${result.outcome.reason}`,
-    );
-  }
+    roundId: effect.payload.roundId,
+    failureCode: 'selectionFailed',
+  };
 }
 
 async function dispatchRoundCompletion(
@@ -156,34 +139,23 @@ async function handleFibSelectWordEffect(
     return;
   }
 
-  try {
-    const selected = await getOrCreateFibWordSelection({
-      db: context.bindings.DB,
-      roomIdentity: context.roomIdentity,
-      effectId: context.effectId,
-      effect,
-      participantUserIds: getFibWordHistoryUserIds(context.state),
-    });
-    if (
-      !(await dispatchPreparationStage(
-        context,
-        effect.payload.roundId,
-        FIB_PREPARATION_STAGES.finalizing,
-      ))
-    ) {
-      return;
-    }
-    await dispatchRoundCompletion(context, effect, selected);
-  } catch (error) {
-    if (context.deliveryAttemptCount < OUTBOX_MAX_ATTEMPTS) throw error;
-    log.error('Fib word selection failed', {
-      error,
-      roomId: context.roomIdentity.roomId,
-      effectId: context.effectId,
-      roundId: effect.payload.roundId,
-    });
-    await dispatchPreparationFailure(context, effect.payload.roundId, 'selectionFailed');
+  const selected = await getOrCreateFibWordSelection({
+    db: context.bindings.DB,
+    roomIdentity: context.roomIdentity,
+    effectId: context.effectId,
+    effect,
+    participantUserIds: getFibWordHistoryUserIds(context.state),
+  });
+  if (
+    !(await dispatchPreparationStage(
+      context,
+      effect.payload.roundId,
+      FIB_PREPARATION_STAGES.finalizing,
+    ))
+  ) {
+    return;
   }
+  await dispatchRoundCompletion(context, effect, selected);
 }
 
 async function handleFibRecordWordUsageEffect(
