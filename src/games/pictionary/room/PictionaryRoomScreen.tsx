@@ -41,31 +41,38 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
   return (
     <RoomShell
       model={screen.shellModel}
-      gameWorkspace={
-        isLobby ? null : (
-          <PictionaryStage
-            state={screen.state}
-            effectiveSeat={screen.effectiveSeat}
-            controlledSeat={screen.controlledSeat}
-            userId={screen.userId}
-            isHost={screen.isHost}
-            seatModel={screen.shellModel.seats}
-            session={screen.session}
-          />
-        )
+      content={
+        isLobby
+          ? {
+              kind: 'seats',
+              contextHeader: null,
+              afterSeatBoard: null,
+              sideInspector: null,
+              beforeSeatBoard: (
+                <PictionaryRoomSummary
+                  config={screen.state.config}
+                  occupiedSeatCount={getPictionaryOccupiedSeatCount(screen.state)}
+                  onOpenRules={screen.openRules}
+                />
+              ),
+            }
+          : {
+              kind: 'workspace',
+              element: (
+                <PictionaryStage
+                  state={screen.state}
+                  effectiveSeat={screen.effectiveSeat}
+                  controlledSeat={screen.controlledSeat}
+                  userId={screen.userId}
+                  isHost={screen.isHost}
+                  seatModel={screen.shellModel.seats}
+                  session={screen.session}
+                />
+              ),
+            }
       }
-      contextHeader={null}
       leadingExtraActions={null}
       trailingExtraActions={null}
-      beforeSeatBoard={
-        <PictionaryRoomSummary
-          config={screen.state.config}
-          occupiedSeatCount={getPictionaryOccupiedSeatCount(screen.state)}
-          onOpenRules={screen.openRules}
-        />
-      }
-      afterSeatBoard={null}
-      sideInspector={null}
       gameOverlays={null}
     />
   );

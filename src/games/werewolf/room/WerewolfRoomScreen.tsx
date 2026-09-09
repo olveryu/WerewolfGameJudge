@@ -639,16 +639,46 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   return (
     <RoomShell
       model={roomShellModel}
-      gameWorkspace={null}
-      contextHeader={
-        sheriffElectionPanel === null ? null : (
-          <SheriffElectionHud
-            model={sheriffElectionPanel}
-            styles={sheriffElectionStyles}
-            onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+      content={{
+        kind: 'seats',
+        contextHeader:
+          sheriffElectionPanel === null ? null : (
+            <SheriffElectionHud
+              model={sheriffElectionPanel}
+              styles={sheriffElectionStyles}
+              onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+            />
+          ),
+        beforeSeatBoard: (
+          <BoardInfoCard
+            playerCount={gameState.template.numberOfPlayers}
+            wolfRoleItems={wolfRoleItems}
+            godRoleItems={godRoleItems}
+            specialRoleItems={specialRoleItems}
+            villagerCount={villagerCount}
+            villagerRoleItems={villagerRoleItems}
+            collapsed={
+              roomStatus === GameStatus.Ongoing ||
+              roomStatus === GameStatus.Day ||
+              roomStatus === GameStatus.Ended
+            }
+            onRolePress={handleSkillPreviewOpen}
+            onNotepadPress={handleNotepadPress}
+            onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
+            styles={boardInfoStyles}
+            showNominations={showNominations}
+            hasMyNomination={hasMyNomination}
+            nominationCount={nominationCount}
+            onNominatePress={handleNominate}
+            onViewNominations={handleViewNominations}
           />
-        )
-      }
+        ),
+        afterSeatBoard: null,
+        sideInspector:
+          sheriffElectionPanel === null ? null : (
+            <SheriffElectionInspector model={sheriffElectionPanel} styles={sheriffElectionStyles} />
+          ),
+      }}
       leadingExtraActions={
         roomStatus === GameStatus.Ended && !isAudioPlaying ? (
           <Button
@@ -674,36 +704,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         >
           <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
         </Button>
-      }
-      beforeSeatBoard={
-        <BoardInfoCard
-          playerCount={gameState.template.numberOfPlayers}
-          wolfRoleItems={wolfRoleItems}
-          godRoleItems={godRoleItems}
-          specialRoleItems={specialRoleItems}
-          villagerCount={villagerCount}
-          villagerRoleItems={villagerRoleItems}
-          collapsed={
-            roomStatus === GameStatus.Ongoing ||
-            roomStatus === GameStatus.Day ||
-            roomStatus === GameStatus.Ended
-          }
-          onRolePress={handleSkillPreviewOpen}
-          onNotepadPress={handleNotepadPress}
-          onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
-          styles={boardInfoStyles}
-          showNominations={showNominations}
-          hasMyNomination={hasMyNomination}
-          nominationCount={nominationCount}
-          onNominatePress={handleNominate}
-          onViewNominations={handleViewNominations}
-        />
-      }
-      afterSeatBoard={null}
-      sideInspector={
-        sheriffElectionPanel === null ? null : (
-          <SheriffElectionInspector model={sheriffElectionPanel} styles={sheriffElectionStyles} />
-        )
       }
       gameOverlays={
         <>

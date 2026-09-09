@@ -40,13 +40,19 @@ function getRoomHeaderSideWidth(extraActionCount: number): number {
   return ROOM_HEADER_BASE_SIDE_WIDTH + extraActionCount * ROOM_HEADER_EXTRA_ACTION_WIDTH;
 }
 
+type RoomShellContent =
+  | {
+      readonly kind: 'seats';
+      readonly contextHeader: React.ReactElement | null;
+      readonly beforeSeatBoard: React.ReactElement;
+      readonly afterSeatBoard: React.ReactElement | null;
+      readonly sideInspector: React.ReactElement | null;
+    }
+  | { readonly kind: 'workspace'; readonly element: React.ReactElement };
+
 export interface RoomShellProps {
   readonly model: RoomShellModel;
-  readonly gameWorkspace: React.ReactElement | null;
-  readonly contextHeader: React.ReactElement | null;
-  readonly beforeSeatBoard: React.ReactElement;
-  readonly afterSeatBoard: React.ReactElement | null;
-  readonly sideInspector: React.ReactElement | null;
+  readonly content: RoomShellContent;
   readonly leadingExtraActions: React.ReactNode;
   readonly trailingExtraActions: React.ReactNode;
   readonly gameOverlays: React.ReactNode;
@@ -54,11 +60,7 @@ export interface RoomShellProps {
 
 export const RoomShell: React.FC<RoomShellProps> = ({
   model,
-  gameWorkspace,
-  contextHeader,
-  beforeSeatBoard,
-  afterSeatBoard,
-  sideInspector,
+  content,
   leadingExtraActions,
   trailingExtraActions,
   gameOverlays,
@@ -96,9 +98,9 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         presentation="inspector"
         onClose={closeHostManagement}
       />
-    ) : (
-      sideInspector
-    );
+    ) : content.kind === 'seats' ? (
+      content.sideInspector
+    ) : null;
   const shouldRenderSideInspector = activeSideInspector !== null && isWideLayout;
 
   const title = <Text style={styles.headerTitle}>房间 {model.roomCode}</Text>;
@@ -203,16 +205,16 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         />
       )}
 
-      {gameWorkspace === null ? (
+      {content.kind === 'seats' ? (
         <View style={styles.roomContent}>
           <View style={styles.boardColumn}>
-            {contextHeader !== null && (
-              <View style={styles.contextHeaderContainer}>{contextHeader}</View>
+            {content.contextHeader !== null && (
+              <View style={styles.contextHeaderContainer}>{content.contextHeader}</View>
             )}
             <RoomSeatBoard
               model={model.seats}
-              header={beforeSeatBoard}
-              footer={afterSeatBoard}
+              header={content.beforeSeatBoard}
+              footer={content.afterSeatBoard}
               contentContainerStyle={styles.scrollContent}
             />
           </View>
@@ -221,7 +223,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
           )}
         </View>
       ) : (
-        <View style={styles.gameWorkspace}>{gameWorkspace}</View>
+        <View style={styles.gameWorkspace}>{content.element}</View>
       )}
 
       <RoomBottomActionPanel

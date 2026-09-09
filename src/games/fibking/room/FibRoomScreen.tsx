@@ -62,22 +62,24 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
   return (
     <RoomShell
       model={screen.shellModel}
-      gameWorkspace={null}
-      contextHeader={null}
       leadingExtraActions={null}
       trailingExtraActions={null}
-      beforeSeatBoard={
-        <FibRoomSummary
-          phase={screen.phase}
-          occupiedSeatCount={screen.occupiedSeatCount}
-          playerCount={screen.playerCount}
-          preparationStage={screen.preparationStage}
-          preparationFailureCode={screen.preparationFailureCode}
-          onOpenRules={screen.openRules}
-        />
-      }
-      afterSeatBoard={null}
-      sideInspector={null}
+      content={{
+        kind: 'seats',
+        contextHeader: null,
+        afterSeatBoard: null,
+        sideInspector: null,
+        beforeSeatBoard: (
+          <FibRoomSummary
+            phase={screen.phase}
+            occupiedSeatCount={screen.occupiedSeatCount}
+            playerCount={screen.playerCount}
+            preparationStage={screen.preparationStage}
+            preparationFailureCode={screen.preparationFailureCode}
+            onOpenRules={screen.openRules}
+          />
+        ),
+      }}
       gameOverlays={
         screen.isIdentityVisible && screen.roundView !== null ? (
           <FibIdentityModal view={screen.roundView} onClose={screen.closeIdentity} />
