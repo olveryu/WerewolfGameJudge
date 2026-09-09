@@ -17,7 +17,7 @@ import { getFibEffectFailureCommand, handleFibEffect } from '../effects';
 
 const EFFECT: FibSelectWordEffect = {
   type: 'fib.word.select',
-  payload: { roundId: 'fib-round:start-command', avoidWords: [] },
+  payload: { roundId: 'fib-round:start-command', avoidWords: [], participantUserIds: ['host'] },
 };
 
 function applyPublicCommand(
@@ -85,7 +85,7 @@ describe('handleFibEffect selection retries', () => {
     const commands: FibInternalCommand[] = [];
 
     await expect(handleFibEffect(EFFECT, createContext(1, commands))).rejects.toThrow(
-      'selection was not persisted',
+      'Fib allocation requires a live room and participants',
     );
     expect(commands).toEqual([
       {
@@ -101,7 +101,7 @@ describe('handleFibEffect selection retries', () => {
 
     await expect(
       handleFibEffect(EFFECT, createContext(OUTBOX_MAX_ATTEMPTS, commands)),
-    ).rejects.toThrow('selection was not persisted');
+    ).rejects.toThrow('Fib allocation requires a live room and participants');
     expect(commands).toEqual([
       {
         type: 'fib.round.updatePreparationStage',

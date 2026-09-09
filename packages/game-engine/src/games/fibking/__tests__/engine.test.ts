@@ -373,7 +373,7 @@ describe('FibKing recoverable round workflow', () => {
       effects: [
         {
           type: 'fib.word.select',
-          payload: { roundId: 'fib-round:round-a', avoidWords: [] },
+          payload: { roundId: 'fib-round:round-a', avoidWords: [], participantUserIds: ['host'] },
         },
       ],
       broadcast: 'state',
@@ -570,7 +570,11 @@ describe('FibKing recoverable round workflow', () => {
     expect(nextDecision.effects).toEqual([
       {
         type: 'fib.word.select',
-        payload: { roundId: 'fib-round:round-next', avoidWords: ['灯塔'] },
+        payload: {
+          roundId: 'fib-round:round-next',
+          avoidWords: ['灯塔'],
+          participantUserIds: ['host'],
+        },
       },
     ]);
     state = applyDecision(state, nextDecision);

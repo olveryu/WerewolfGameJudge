@@ -5,6 +5,8 @@ import type {
   FibWordSource,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import type { FibWordEvidence } from './tavily';
+
 export const FIB_WORD_CATEGORIES = ['literary', 'internet', 'compound', 'niche'] as const;
 export const FIB_GENERATED_WORD_CANDIDATE_COUNT = 6;
 export const FIB_WORD_REVIEW_DECISIONS = ['accepted', 'rejected'] as const;
@@ -16,6 +18,7 @@ export interface FibWordRequest {
   readonly category: FibWordCategory;
   readonly deadlineAt: number;
   readonly signal: AbortSignal;
+  readonly evidence: readonly FibWordEvidence[];
 }
 
 export interface FibWordCandidate {

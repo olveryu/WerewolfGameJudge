@@ -7,6 +7,7 @@ export interface FibSelectWordEffect extends GameEffect {
   readonly payload: {
     readonly roundId: string;
     readonly avoidWords: readonly string[];
+    readonly participantUserIds: readonly string[];
   };
 }
 

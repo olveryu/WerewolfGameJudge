@@ -19,7 +19,7 @@ export const FIB_PREPARATION_STAGES = {
   selecting: 'selecting',
   finalizing: 'finalizing',
 } as const;
-export const FIB_PREPARATION_FAILURE_CODES = ['selectionFailed'] as const;
+export const FIB_PREPARATION_FAILURE_CODES = ['selectionFailed', 'inventoryExhausted'] as const;
 
 export type FibPhase = 'lobby' | 'preparing' | 'preparationFailed' | 'ongoing' | 'ended';
 export type FibRole = 'guesser' | 'honest' | 'fibber';

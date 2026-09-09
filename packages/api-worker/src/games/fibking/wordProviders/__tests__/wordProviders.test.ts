@@ -50,6 +50,7 @@ const REVIEWS_RESPONSE = {
 function createWordRequest(): FibWordRequest {
   return {
     category: 'literary',
+    evidence: [],
     deadlineAt: Date.now() + TEST_GENERATION_BUDGET_MS,
     signal: new AbortController().signal,
   };

@@ -120,7 +120,7 @@ export const fibWordCandidateReviews = sqliteTable(
   ],
 );
 
-/** Idempotent question snapshot selected for a room round. */
+/** @public Idempotent question snapshot selected for a room round. */
 export const fibRoundWordSelections = sqliteTable(
   'fib_round_word_selections',
   {
@@ -138,6 +138,8 @@ export const fibRoundWordSelections = sqliteTable(
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
     selectionTier: text('selection_tier', { enum: FIB_WORD_SELECTION_TIERS }).notNull(),
     selectedAt: text('selected_at').notNull(),
+    sequenceNumber: integer('sequence_number'),
+    participantUserIds: text('participant_user_ids').notNull().default('[]'),
   },
   (table) => [
     primaryKey({ columns: [table.roomId, table.effectId] }),
@@ -145,6 +147,22 @@ export const fibRoundWordSelections = sqliteTable(
     index('idx_fib_round_word_selections_word').on(table.wordId, table.selectedAt),
   ],
 );
+
+/** @public Immutable publication order, independent of category and review status. */
+export const fibWordSequence = sqliteTable('fib_word_sequence', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  word: text('word').notNull().unique(),
+  publishedAt: text('published_at').notNull(),
+  packId: text('pack_id'),
+});
+
+/** @public One permanent high-watermark per account; skipped questions are consumed too. */
+export const fibWordProgress = sqliteTable('fib_word_progress', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  sequenceNumber: integer('sequence_number').notNull(),
+});
 
 /** Committed round usage ledger; selection alone never counts as usage. */
 export const fibWordUsages = sqliteTable(
@@ -161,21 +179,5 @@ export const fibWordUsages = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.roomCreationId, table.roundId] }),
     index('idx_fib_word_usages_word_used').on(table.wordId, table.usedAt),
-  ],
-);
-
-/** Bounded word exposure history used to avoid repeats for current human participants. */
-export const fibWordExposures = sqliteTable(
-  'fib_word_exposures',
-  {
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    word: text('word').notNull(),
-    lastSeenAt: text('last_seen_at').notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.userId, table.word] }),
-    index('idx_fib_word_exposures_user_seen').on(table.userId, table.lastSeenAt),
   ],
 );

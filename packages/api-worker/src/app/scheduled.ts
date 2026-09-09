@@ -8,9 +8,10 @@ import {
   cleanupOldLoginAttempts,
 } from '../features/auth/maintenance';
 import { cleanupExpiredIdempotencyKeys } from '../features/gacha/maintenance';
-import { replenishFibWordPool } from '../games/fibking/wordSupply';
+import { cleanupFibWordAudit } from '../games/fibking/maintenance';
 import { createLogger } from '../platform/observability/logger';
 import { expireStaleRooms, reconcileRooms } from '../platform/room/maintenance';
+import { measureDatabaseCapacity } from '../platform/storage/capacity';
 
 const log = createLogger('scheduled');
 
@@ -24,6 +25,8 @@ async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
     { name: 'room expiry', run: () => expireStaleRooms(env, nowMs) },
     { name: 'room reconciliation', run: () => reconcileRooms(env, nowMs) },
     { name: 'anonymous user cleanup', run: () => cleanupAnonymousUsers(env) },
+    { name: 'Fib audit cleanup', run: () => cleanupFibWordAudit(env.DB, nowMs) },
+    { name: 'database capacity', run: () => measureDatabaseCapacity(env.DB) },
     { name: 'login attempt cleanup', run: () => cleanupOldLoginAttempts(env) },
     {
       name: 'refresh-token family cleanup',
@@ -55,12 +58,16 @@ export async function runScheduledCron(env: Env, cron: string, nowMs: number): P
   switch (cron) {
     case ROOM_RECONCILIATION_CRON:
       await reconcileRooms(env, nowMs);
+      await measureDatabaseCapacity(env.DB);
       return;
     case DAILY_CLEANUP_CRON:
       await runDailyCleanup(env, nowMs);
       return;
     case FIB_WORD_SUPPLY_CRON:
-      await replenishFibWordPool(env, nowMs);
+      if (env.FIB_WORD_SUPPLY_ENABLED === 'true') {
+        const day = new Date(nowMs).toISOString().slice(0, 10);
+        await env.FIB_WORD_SUPPLY.createBatch([{ id: `fib-${day}`, params: { day } }]);
+      }
       return;
     default:
       throw new Error(`Unknown cron trigger: ${cron}`);

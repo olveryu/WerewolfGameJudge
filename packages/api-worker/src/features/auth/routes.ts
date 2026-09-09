@@ -28,6 +28,7 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { readCloudflareRequestMetadata } from '../../platform/http/requestMetadata';
 import { createLogger } from '../../platform/observability/logger';
+import { requireDatabaseGrowthCapacity } from '../../platform/storage/capacity';
 import { parseCanonicalIsoTimestampMs } from '../../platform/time/canonicalIsoTimestamp';
 import { users, userStats } from '../account/dbSchema';
 import { createEmptyUserMetadata, selectAuthUserResponse } from '../account/profile';
@@ -221,6 +222,7 @@ async function mergeUserStats(
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/anonymous', async (c) => {
   const env = c.env;
+  await requireDatabaseGrowthCapacity(env.DB);
   const db = createDb(env.DB);
   const userId = crypto.randomUUID();
   const geo = requestGeo(c.req.raw);
@@ -337,13 +339,18 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         await mergeUserStats(db, existingUserId, existing.id);
 
         // Use batch() for atomicity: clear openid → transfer → delete, all-or-nothing.
-        await db.batch([
-          db.update(users).set({ wechatOpenid: null }).where(eq(users.id, existingUserId)),
-          db
-            .update(users)
-            .set({ wechatOpenid: callerRow.wechatOpenid, updatedAt: sql`datetime('now')` })
-            .where(eq(users.id, existing.id)),
-          db.delete(users).where(eq(users.id, existingUserId)),
+        await env.DB.batch([
+          env.DB.prepare(
+            `INSERT INTO fib_word_progress (user_id, sequence_number)
+            SELECT ?, sequence_number FROM fib_word_progress WHERE user_id = ?
+            ON CONFLICT (user_id) DO UPDATE SET
+              sequence_number = MAX(fib_word_progress.sequence_number, excluded.sequence_number)`,
+          ).bind(existing.id, existingUserId),
+          env.DB.prepare('UPDATE users SET wechat_openid = NULL WHERE id = ?').bind(existingUserId),
+          env.DB.prepare(
+            "UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?",
+          ).bind(callerRow.wechatOpenid, existing.id),
+          env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId),
         ]);
       } catch (dbErr: unknown) {
         const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
@@ -413,6 +420,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
   const userId = crypto.randomUUID();
   const now = sql`datetime('now')`;
 
+  await requireDatabaseGrowthCapacity(env.DB);
   await db.insert(users).values({
     id: userId,
     email,
@@ -899,6 +907,7 @@ authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
       isAnonymous: 0,
       tokenVersion: 0,
     };
+    await requireDatabaseGrowthCapacity(env.DB);
     await db.insert(users).values({
       id: account.id,
       wechatOpenid: openid,

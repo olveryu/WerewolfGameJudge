@@ -12,7 +12,6 @@ import {
   handleFibEffect,
 } from '../games/fibking/effects';
 import { fibWorkerModule } from '../games/fibking/module';
-import { getFibWordHistoryUserIds } from '../games/fibking/wordHistory';
 import { getOrCreateFibWordSelection } from '../games/fibking/wordSelection';
 import type { WorkerEffectContext } from '../platform/gameModules/workerModule';
 import {
@@ -48,7 +47,6 @@ async function handleRecoverableFibEffect(
       roomIdentity: context.roomIdentity,
       effectId: context.effectId,
       effect,
-      participantUserIds: getFibWordHistoryUserIds(context.state),
     });
     throw new Error('[E2E] Interrupted Fib effect after round-selection persistence');
   }

@@ -24,6 +24,7 @@ export async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number
         WHERE ${users.isAnonymous} = 1
           AND ${users.updatedAt} < datetime('now', ${`-${ANONYMOUS_INACTIVE_DAYS}`} || ' days')
           AND ${rooms.id} IS NULL
+          AND NOT EXISTS (SELECT 1 FROM fib_word_progress WHERE user_id = ${users.id})
         LIMIT ${DELETE_BATCH_LIMIT}
       )`,
     )

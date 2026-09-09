@@ -63,6 +63,11 @@ async function putJson(path: string, body: unknown, token: string): Promise<Resp
 
 /** Clean all test data between tests */
 beforeEach(async () => {
+  await env.DB.prepare(
+    "UPDATE database_capacity SET state = 'normal', measured_at = ? WHERE id = 1",
+  )
+    .bind(new Date().toISOString())
+    .run();
   await env.DB.exec(`DELETE FROM draw_history;`);
   await env.DB.exec(`DELETE FROM refresh_tokens;`);
   await env.DB.exec(`DELETE FROM password_reset_tokens;`);
@@ -74,6 +79,14 @@ beforeEach(async () => {
 // ── POST /auth/anonymous ────────────────────────────────────────────────────
 
 describe('POST /auth/anonymous', () => {
+  it('rejects new accounts at the storage protection watermark', async () => {
+    await env.DB.prepare("UPDATE database_capacity SET state = 'protected' WHERE id = 1").run();
+    const response = await postJson('/auth/anonymous', {});
+    expect(response.status).toBe(503);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM users').first()).toEqual({
+      count: 0,
+    });
+  });
   it('creates anonymous user and returns JWT', async () => {
     const res = await postJson('/auth/anonymous', {});
     expect(res.status).toBe(200);
@@ -98,6 +111,40 @@ describe('POST /auth/anonymous', () => {
 // ── POST /auth/signup ───────────────────────────────────────────────────────
 
 describe('POST /auth/signup', () => {
+  it.each([2, 8])(
+    'merges Fib progress by maximum when source progress is %i',
+    async (sourceProgress) => {
+      const targetResponse = await postJson('/auth/signup', {
+        email: 'merge@test.local',
+        password: 'pass123',
+      });
+      const target = await targetResponse.json<AuthSuccessResponse>();
+      const sourceResponse = await postJson('/auth/anonymous', {});
+      const source = await sourceResponse.json<AuthSuccessResponse>();
+      await env.DB.prepare(
+        "UPDATE users SET wechat_openid = 'merge-openid', is_anonymous = 0 WHERE id = ?",
+      )
+        .bind(source.user.id)
+        .run();
+      await env.DB.prepare(
+        'INSERT INTO fib_word_progress (user_id, sequence_number) VALUES (?, ?), (?, 5)',
+      )
+        .bind(source.user.id, sourceProgress, target.user.id)
+        .run();
+      const merged = await postJson(
+        '/auth/signup',
+        { email: 'merge@test.local', password: 'pass123' },
+        source.access_token,
+      );
+      expect(merged.status).toBe(200);
+      expect(
+        await env.DB.prepare('SELECT user_id, sequence_number FROM fib_word_progress').first(),
+      ).toEqual({
+        user_id: target.user.id,
+        sequence_number: Math.max(sourceProgress, 5),
+      });
+    },
+  );
   it('registers new user with email and password', async () => {
     const res = await postJson('/auth/signup', {
       email: 'new@test.local',

@@ -16,8 +16,7 @@ import { z } from 'zod';
 
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
-import { getFibWordHistoryUserIds } from './wordHistory';
-import { getOrCreateFibWordSelection } from './wordSelection';
+import { FibWordInventoryExhaustedError, getOrCreateFibWordSelection } from './wordSelection';
 import { recordFibWordUsage } from './wordUsage';
 
 const selectWordEffectSchema = z.strictObject({
@@ -25,6 +24,7 @@ const selectWordEffectSchema = z.strictObject({
   payload: z.strictObject({
     roundId: z.string().min(1),
     avoidWords: z.array(z.string().min(1)).max(FIB_USED_WORD_LIMIT).readonly(),
+    participantUserIds: z.array(z.string().min(1)).min(1).readonly(),
   }),
 }) satisfies z.ZodType<FibSelectWordEffect>;
 
@@ -139,13 +139,31 @@ async function handleFibSelectWordEffect(
     return;
   }
 
-  const selected = await getOrCreateFibWordSelection({
-    db: context.bindings.DB,
-    roomIdentity: context.roomIdentity,
-    effectId: context.effectId,
-    effect,
-    participantUserIds: getFibWordHistoryUserIds(context.state),
-  });
+  let selected: Awaited<ReturnType<typeof getOrCreateFibWordSelection>>;
+  try {
+    selected = await getOrCreateFibWordSelection({
+      db: context.bindings.DB,
+      roomIdentity: context.roomIdentity,
+      effectId: context.effectId,
+      effect,
+    });
+  } catch (error) {
+    if (!(error instanceof FibWordInventoryExhaustedError)) throw error;
+    const commandId = await createEffectCommandId('fib:inventory-exhausted', context.effectId);
+    const result = await context.dispatchInternal(commandId, {
+      type: 'fib.round.failPreparation',
+      roundId: effect.payload.roundId,
+      failureCode: 'inventoryExhausted',
+    });
+    if (result.commandId !== commandId) throw new Error('Fib exhaustion receipt identity mismatch');
+    if (result.kind === 'rejected') {
+      if (isSupersededRoundRejection(result.reason)) return;
+      throw new Error(`Fib exhaustion command rejected: ${result.reason}`);
+    }
+    if (result.outcome.kind !== 'success')
+      throw new Error(`Fib exhaustion command failed: ${result.outcome.reason}`);
+    return;
+  }
   if (
     !(await dispatchPreparationStage(
       context,

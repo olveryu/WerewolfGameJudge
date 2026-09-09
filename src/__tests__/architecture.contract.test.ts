@@ -481,8 +481,9 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['feedbacks', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['fib_round_word_selections', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['fib_word_candidate_reviews', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
-      ['fib_word_exposures', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['fib_word_generation_cycles', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['fib_word_progress', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['fib_word_sequence', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['fib_word_supply_state', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['fib_word_usages', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
       ['fib_words', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
@@ -565,7 +566,10 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     );
 
     expect(entryImports).toContain('./games/catalog');
-    expect(concreteGameImports).toEqual([]);
+    expect(concreteGameImports).toEqual(['./games/fibking/wordSupplyWorkflow']);
+    expect(workerEntry).toContain(
+      "export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';",
+    );
     expect(providerNamedRouteOwners).toEqual([]);
   });
 });
@@ -814,6 +818,7 @@ describe('Worker ownership: source tree is exact', () => {
       'http',
       'observability',
       'room',
+      'storage',
       'telemetry',
       'time',
       'userEvents',
@@ -874,6 +879,7 @@ describe('Worker request boundary: client objects are strict', () => {
       'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
       'packages/api-worker/src/features/feedback/providers/github.ts',
       'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
+      'packages/api-worker/src/games/fibking/wordProviders/tavily.ts',
     ]);
   });
 

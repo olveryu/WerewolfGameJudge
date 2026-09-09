@@ -54,25 +54,22 @@ describe('runScheduledCron', () => {
     );
   });
 
-  it('dispatches the Fib word supply cron without generating during cadence cooldown', async () => {
-    const now = new Date(NOW_MS).toISOString();
-    await env.DB.prepare(
-      `UPDATE fib_word_supply_state SET last_completed_at = ?, updated_at = ? WHERE id = 1`,
-    )
-      .bind(now, now)
-      .run();
-
+  it('does not launch external generation while the production switch is disabled', async () => {
     await expect(runScheduledCron(env, '0 4 * * *', NOW_MS)).resolves.toBeUndefined();
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_generation_cycles').first(),
     ).toEqual({ count: 0 });
   });
 
-  it('deletes stale anonymous non-hosts and preserves room hosts', async () => {
+  it('deletes stale anonymous non-hosts but preserves hosts and accounts with Fib progress', async () => {
     await env.DB.prepare(
       `INSERT INTO users (id, is_anonymous, created_at, updated_at) VALUES
         ('stale-anonymous', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z'),
+        ('progress-owner', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z'),
         ('room-host', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z')`,
+    ).run();
+    await env.DB.prepare(
+      "INSERT INTO fib_word_progress (user_id, sequence_number) VALUES ('progress-owner', 12)",
     ).run();
     await env.DB.prepare(
       `INSERT INTO rooms (
@@ -85,6 +82,11 @@ describe('runScheduledCron', () => {
 
     await runScheduledCron(env, '0 3 * * *', NOW_MS);
 
+    expect(
+      await env.DB.prepare(
+        "SELECT sequence_number FROM fib_word_progress WHERE user_id = 'progress-owner'",
+      ).first(),
+    ).toEqual({ sequence_number: 12 });
     expect(
       await env.DB.prepare("SELECT id FROM users WHERE id = 'stale-anonymous'").first(),
     ).toBeNull();

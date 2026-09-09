@@ -24,6 +24,19 @@ beforeEach(async () => {
   await env.DB.prepare('DELETE FROM rooms').run();
   await env.DB.prepare("DELETE FROM users WHERE id = 'fib-host'").run();
   await env.DB.prepare("INSERT INTO users (id) VALUES ('fib-host')").run();
+  await env.DB.prepare(
+    `INSERT INTO fib_words (
+    id, word, core_meaning, usage_note, category, source, status,
+    selection_key, created_at, activated_at
+  ) VALUES ('integration-word', '射覆', '一种猜测覆盖物下物品的古代游戏。',
+    '常在宴饮时进行，参加者通过提示猜测物品。', 'literary', 'gemini', 'active', 1,
+    '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')
+    ON CONFLICT (id) DO NOTHING`,
+  ).run();
+  await env.DB.prepare(
+    `INSERT INTO fib_word_sequence (word, published_at)
+    VALUES ('射覆', '2026-09-01T00:00:00.000Z') ON CONFLICT (word) DO NOTHING`,
+  ).run();
 });
 
 afterEach(deleteCurrentRoomAlarms);
@@ -87,6 +100,28 @@ function requireCommitted(result: DispatchRoomResult) {
 }
 
 describe('FibKing generic GameRoom integration', () => {
+  it('ends preparation immediately when no new question remains', async () => {
+    await env.DB.prepare('DELETE FROM fib_word_sequence').run();
+    const stub = getStub();
+    await initialize(stub);
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      requireCommitted(
+        await dispatch(instance, stub, 'empty-fill', { type: 'room.seat.fillBots' }),
+      );
+      requireCommitted(await dispatch(instance, stub, 'empty-start', { type: 'fib.round.start' }));
+      await state.storage.deleteAlarm();
+      await instance.alarm();
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
+        count: 0,
+      });
+    });
+    const snapshot = await stub.getSnapshot(roomIdentity(stub));
+    if (snapshot === null) throw new Error('Expected authoritative room snapshot');
+    expect(FIB_STATE_CODEC.parse(snapshot.state)).toMatchObject({
+      phase: 'preparationFailed',
+      preparationFailure: { failureCode: 'inventoryExhausted' },
+    });
+  });
   it('creates sparse authoritative state through the registered Worker module', async () => {
     const stub = getStub();
     const result = await initialize(stub);
@@ -183,7 +218,7 @@ describe('FibKing generic GameRoom integration', () => {
     const ongoing = FIB_STATE_CODEC.parse(snapshot.state);
     expect(ongoing.phase).toBe('ongoing');
     if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing Fib state');
-    expect(ongoing.round.source).toBe('local');
+    expect(ongoing.round.source).toBe('gemini');
     expect(ongoing.round.roles.guesserSeat).not.toBe(ongoing.round.roles.honestSeat);
     expect(ongoing.usedWords).toEqual([ongoing.round.word]);
     expect(Object.keys(ongoing.realSeats)).toEqual(['0']);
@@ -204,7 +239,7 @@ describe('FibKing generic GameRoom integration', () => {
       core_meaning: ongoing.round.definition.coreMeaning,
       usage_note: ongoing.round.definition.usageNote,
       source: ongoing.round.source,
-      selection_tier: 'local_fallback',
+      selection_tier: 'any_unseen',
     });
     expect(
       await env.DB.prepare(
@@ -219,7 +254,9 @@ describe('FibKing generic GameRoom integration', () => {
     });
     expect(
       await env.DB.prepare(
-        `SELECT user_id, word FROM fib_word_exposures WHERE user_id = 'fib-host'`,
+        `SELECT progress.user_id, word.word FROM fib_word_progress AS progress
+         INNER JOIN fib_word_sequence AS sequence ON sequence.id = progress.sequence_number
+         INNER JOIN fib_words AS word ON word.word = sequence.word WHERE progress.user_id = 'fib-host'`,
       ).first(),
     ).toEqual({
       user_id: 'fib-host',

@@ -38,6 +38,7 @@ const PREPARATION_STAGE_LABELS: Readonly<Record<FibPreparationStage, string>> = 
 
 const PREPARATION_FAILURE_LABELS: Readonly<Record<FibPreparationFailureCode, string>> = {
   selectionFailed: '暂无可用词语，请重新准备',
+  inventoryExhausted: '本桌新题已用完，请等待题库更新',
 };
 
 const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({

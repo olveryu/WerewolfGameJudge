@@ -77,6 +77,7 @@ binding = "CF_VERSION_METADATA"
 # ── Environment Variables ────────────────────────────────────────────────────
 [vars]
 ENVIRONMENT = "production"
+FIB_WORD_SUPPLY_ENABLED = "false"
 CLOUDFLARE_ACCOUNT_ID = "a38318fda66da2d2d931d8ab2d98e1c0"
 CLOUDFLARE_WORKER_SCRIPT_NAME = "werewolf-api"
 SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.us.sentry.io/4511310645035008"
@@ -86,6 +87,7 @@ required = [
   "ADMIN_PASSWORD",
   "CF_API_TOKEN",
   "GEMINI_API_KEY",
+  "TAVILY_API_KEY",
   "GITHUB_REPO_OWNER",
   "GITHUB_TOKEN",
   "GITHUB_WEBHOOK_SECRET",
@@ -100,8 +102,13 @@ required = [
 crons = [
   "*/5 * * * *", # Reconcile interrupted room create/delete sagas
   "0 3 * * *",   # Daily room expiry and account/data retention cleanup
-  "0 4 * * *"    # Daily FibKing inventory check and bounded replenishment
+  "0 4 * * *"    # Dispatch a bounded editorial workflow; monthly budget lives in D1
 ]
+
+[[workflows]]
+name = "fib-word-supply"
+binding = "FIB_WORD_SUPPLY"
+class_name = "FibWordSupplyWorkflow"
 
 # ── Local Dev Server ─────────────────────────────────────────────────────────
 # Bind to localhost so Expo Web (localhost:8081) and wrangler share the same

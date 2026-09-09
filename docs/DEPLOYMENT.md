@@ -58,20 +58,23 @@ The frontend CI build provides these values directly:
 
 `packages/api-worker/wrangler.toml` declares the required Worker secrets:
 
-| Secret                  | Purpose                                                |
-| ----------------------- | ------------------------------------------------------ |
-| `ADMIN_PASSWORD`        | Admin API authentication                               |
-| `CF_API_TOKEN`          | Cloudflare Analytics API queries from the admin API    |
-| `GEMINI_API_KEY`        | Gemini AI requests                                     |
-| `GITHUB_REPO_OWNER`     | GitHub feedback integration configuration              |
-| `GITHUB_TOKEN`          | Create and update feedback issues and comments         |
-| `GITHUB_WEBHOOK_SECRET` | Verify feedback webhook signatures                     |
-| `JWT_SECRET`            | Sign access tokens and derive refresh-token successors |
-| `RESEND_API_KEY`        | Send password-reset email through Resend               |
-| `WECHAT_APP_ID`         | WeChat `code2Session` client identifier                |
-| `WECHAT_APP_SECRET`     | WeChat `code2Session` credential                       |
+| Secret                  | Purpose                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `ADMIN_PASSWORD`        | Admin API authentication                                       |
+| `CF_API_TOKEN`          | Cloudflare Analytics API queries from the admin API            |
+| `GEMINI_API_KEY`        | Gemini AI requests                                             |
+| `TAVILY_API_KEY`        | Free-tier FibKing source discovery and definition verification |
+| `GITHUB_REPO_OWNER`     | GitHub feedback integration configuration                      |
+| `GITHUB_TOKEN`          | Create and update feedback issues and comments                 |
+| `GITHUB_WEBHOOK_SECRET` | Verify feedback webhook signatures                             |
+| `JWT_SECRET`            | Sign access tokens and derive refresh-token successors         |
+| `RESEND_API_KEY`        | Send password-reset email through Resend                       |
+| `WECHAT_APP_ID`         | WeChat `code2Session` client identifier                        |
+| `WECHAT_APP_SECRET`     | WeChat `code2Session` credential                               |
 
 Set each value through Wrangler's interactive prompt. Never put secret values in a command, shell history, committed file, or documentation.
+
+FibKing supply is disabled by default. See [the supply and migration runbook](fibking-word-supply.md) before enabling it.
 
 ```bash
 cd packages/api-worker

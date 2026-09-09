@@ -8,6 +8,7 @@ import { and, eq, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
 import type { Env } from '../../env';
+import { requireDatabaseGrowthCapacity } from '../storage/capacity';
 import { requireCanonicalIsoTimestamp } from '../time/canonicalIsoTimestamp';
 import { ROOM_DIRECTORY_STATUSES, ROOM_SAGA_OPERATIONS, rooms } from './dbSchema';
 
@@ -260,6 +261,7 @@ export async function claimRoomCreation(
       : { kind: 'conflict' };
   }
 
+  await requireDatabaseGrowthCapacity(env.DB);
   const timestamp = isoTimestamp(nowMs);
   const db = createDb(env.DB);
   for (let attempt = 0; attempt < ROOM_CODE_ALLOCATION_ATTEMPTS; attempt += 1) {

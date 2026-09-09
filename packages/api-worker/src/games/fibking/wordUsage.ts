@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 import type { WorkerEffectRoomIdentity } from '../../platform/gameModules/runtimeGameModule';
 import type { fibWordUsages } from './dbSchema';
-import { recordFibWordExposure } from './wordHistory';
 
 interface RecordFibWordUsageInput {
   readonly db: D1Database;
@@ -124,6 +123,4 @@ export async function recordFibWordUsage(input: RecordFibWordUsageInput): Promis
       `[FAIL-FAST] Fib word usage identity conflict for round ${input.effect.payload.roundId}`,
     );
   }
-
-  await recordFibWordExposure(input.db, participantUserIds, stored.word, stored.used_at);
 }

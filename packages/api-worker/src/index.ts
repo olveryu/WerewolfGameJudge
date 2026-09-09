@@ -50,6 +50,7 @@ import { telemetryRoutes } from './platform/telemetry/routes';
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './app/GameRoom';
 export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
+export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 

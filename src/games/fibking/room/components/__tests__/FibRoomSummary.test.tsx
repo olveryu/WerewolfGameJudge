@@ -30,23 +30,26 @@ describe('FibRoomSummary', () => {
     expect(view.getByTestId(TESTIDS.fibPreparationStatus)).toHaveTextContent(label);
   });
 
-  it.each([['selectionFailed', '暂无可用词语，请重新准备']] satisfies readonly (readonly [
-    FibPreparationFailureCode,
-    string,
-  ])[])('shows the Chinese %s preparation failure', (preparationFailureCode, label) => {
-    const view = render(
-      <FibRoomSummary
-        phase="preparationFailed"
-        occupiedSeatCount={4}
-        playerCount={4}
-        preparationStage={null}
-        preparationFailureCode={preparationFailureCode}
-        onOpenRules={jest.fn()}
-      />,
-    );
+  it.each([
+    ['selectionFailed', '暂无可用词语，请重新准备'],
+    ['inventoryExhausted', '本桌新题已用完，请等待题库更新'],
+  ] satisfies readonly (readonly [FibPreparationFailureCode, string])[])(
+    'shows the Chinese %s preparation failure',
+    (preparationFailureCode, label) => {
+      const view = render(
+        <FibRoomSummary
+          phase="preparationFailed"
+          occupiedSeatCount={4}
+          playerCount={4}
+          preparationStage={null}
+          preparationFailureCode={preparationFailureCode}
+          onOpenRules={jest.fn()}
+        />,
+      );
 
-    expect(view.getByTestId(TESTIDS.fibPreparationStatus)).toHaveTextContent(label);
-  });
+      expect(view.getByTestId(TESTIDS.fibPreparationStatus)).toHaveTextContent(label);
+    },
+  );
 
   it('hides preparation status outside the preparing phases', () => {
     const view = render(

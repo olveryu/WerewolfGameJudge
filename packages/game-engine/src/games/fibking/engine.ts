@@ -240,7 +240,11 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
     [
       {
         type: 'fib.word.select',
-        payload: { roundId, avoidWords: [...state.usedWords] },
+        payload: {
+          roundId,
+          avoidWords: [...state.usedWords],
+          participantUserIds: getFibParticipantUserIds(state),
+        },
       },
     ],
   );
