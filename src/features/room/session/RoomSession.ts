@@ -41,6 +41,7 @@ interface RoomSessionDeps<
   readonly transport: IRealtimeTransport<TState, TEvent>;
   readonly createCommandId: () => string;
   readonly commandRecovery: RoomCommandRecoveryRepository;
+  readonly initialEpoch?: number;
 }
 
 interface PendingRoomCommand<TState extends BaseGameState<string>> {
@@ -61,7 +62,7 @@ interface UserEventDelivery<TEvent> {
   isDelivering: boolean;
 }
 
-function createIdleSnapshot<TState extends BaseGameState<string>>(
+export function createIdleSnapshot<TState extends BaseGameState<string>>(
   epoch: number,
 ): RoomSessionSnapshot<TState> {
   return Object.freeze({
@@ -127,6 +128,7 @@ export class RoomSession<
   #commandRecoveryRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(deps: RoomSessionDeps<TState, TEvent>) {
+    this.#snapshot = createIdleSnapshot(deps.initialEpoch ?? 0);
     this.#codec = deps.codec;
     this.#createCommandId = deps.createCommandId;
     this.#commandRecovery = deps.commandRecovery;
@@ -275,6 +277,14 @@ export class RoomSession<
     this.#clearRecoverableCommandRetry();
     this.#setSnapshot(createIdleSnapshot(nextEpoch));
     this.#resetConnectionRuntime();
+  }
+
+  /** Permanently release this room instance and its platform listeners. */
+  dispose(): void {
+    this.disconnect();
+    this.#connection.dispose();
+    this.#listeners.clear();
+    this.#userEventHandler = null;
   }
 
   prepare<TPreparedCommand extends TCommand>(

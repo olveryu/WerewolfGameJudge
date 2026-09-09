@@ -14,6 +14,8 @@ import {
   type RoomCommandRecoveryRepository,
   RoomCommandRecoveryStore,
 } from '@/features/room/services/RoomCommandRecoveryStore';
+import { ActiveRoomSessionOwner } from '@/features/room/session/ActiveRoomSessionOwner';
+import { LazyRoomSession } from '@/features/room/session/LazyRoomSession';
 import { RoomSession } from '@/features/room/session/RoomSession';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import { cfPost, CloudflareHttpError } from '@/services/cloudflare/cfFetch';
@@ -144,6 +146,7 @@ function createSession(options?: {
   readonly initialSnapshot?: RoomSnapshot<TestState>;
   readonly openOnConnect?: boolean;
   readonly commandRecovery?: RoomCommandRecoveryRepository;
+  readonly initialEpoch?: number;
 }) {
   const transport = createTransport({
     initialSnapshot: options?.initialSnapshot ?? createRoomSnapshot(createTestState(), 1),
@@ -152,6 +155,7 @@ function createSession(options?: {
   let commandSequence = 0;
   const session = new RoomSession<TestState, TestCommand, TestEvent>({
     codec: TEST_CODEC,
+    initialEpoch: options?.initialEpoch,
     transport,
     createCommandId: () => `command-${++commandSequence}`,
     commandRecovery: options?.commandRecovery ?? {
@@ -199,6 +203,27 @@ afterEach(() => {
 });
 
 describe('RoomSession', () => {
+  it('allocates lazily, releases ownership and preserves epochs across room instances', async () => {
+    const owner = new ActiveRoomSessionOwner();
+    const create = jest.fn((initialEpoch: number) => createSession({ initialEpoch }).session);
+    const first = new LazyRoomSession(owner, create);
+    const second = new LazyRoomSession(owner, create);
+    expect(create).not.toHaveBeenCalled();
+    await first.connect(IDENTITY);
+    const oldEpoch = first.getSnapshot().epoch;
+    await expect(second.connect(IDENTITY)).rejects.toThrow('Disconnect the active room');
+    expect(create).toHaveBeenCalledTimes(1);
+    const dispose = jest.spyOn(create.mock.results[0]!.value, 'dispose');
+    first.disconnect();
+    expect(dispose).toHaveBeenCalledTimes(1);
+    await second.connect(IDENTITY);
+    second.disconnect();
+    await first.connect(IDENTITY);
+    expect(first.getSnapshot().epoch).toBeGreaterThan(oldEpoch);
+    expect(create).toHaveBeenCalledTimes(3);
+    first.disconnect();
+  });
+
   it('publishes one immutable ready snapshot with identity, state, and connection', async () => {
     const { session } = createSession();
 
