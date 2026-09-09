@@ -66,7 +66,7 @@ export function useAuthForm({
   logger,
   showSuccessOnLogin,
 }: UseAuthFormOptions): AuthFormResult {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
   const { mutateAsync: signUpWithEmail, isPending: isSignUpPending } = useSignUpWithEmail();
   const { mutateAsync: signInWithEmail, isPending: isSignInPending } = useSignInWithEmail();
@@ -97,7 +97,6 @@ export function useAuthForm({
           password,
           displayName: displayName || undefined,
         });
-        await refreshUser();
         if (wasAnonymous) {
           // Anonymous -> email upgrade: userId preserved, already in Settings
           toast.success('绑定成功');
@@ -106,7 +105,6 @@ export function useAuthForm({
         }
       } else {
         await signInWithEmail({ email, password });
-        await refreshUser();
         if (showSuccessOnLogin) {
           toast.success('登录成功');
         }
@@ -126,7 +124,6 @@ export function useAuthForm({
     user?.isAnonymous,
     signUpWithEmail,
     signInWithEmail,
-    refreshUser,
     onSuccess,
     resetForm,
     logger,
@@ -136,7 +133,6 @@ export function useAuthForm({
   const handleAnonymousLogin = useCallback(async () => {
     try {
       await signInAnonymously();
-      await refreshUser();
       if (showSuccessOnLogin) {
         toast.success('登录成功');
       }
@@ -146,7 +142,7 @@ export function useAuthForm({
       logger.warn('Anonymous login failed:', message);
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously, refreshUser, onSuccess, logger, showSuccessOnLogin]);
+  }, [signInAnonymously, onSuccess, logger, showSuccessOnLogin]);
 
   const isSubmitting = isAnonymousPending || isSignUpPending || isSignInPending;
 

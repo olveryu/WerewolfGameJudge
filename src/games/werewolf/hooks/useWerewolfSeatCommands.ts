@@ -26,7 +26,7 @@ export function useWerewolfSeatCommands({ session, user }: UseWerewolfSeatComman
   const queryClient = useQueryClient();
   const createProfile = useCallback(
     (identity: ActiveRoomIdentity<'werewolf'>) => {
-      const cachedStats = queryClient.getQueryData(userStatsOptions().queryKey);
+      const cachedStats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
       const equippedEffect =
         user.equippedEffect === 'random'
           ? resolveRandomAnimation(identity.room.roomCode + identity.userId)

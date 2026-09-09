@@ -72,6 +72,7 @@ describe('CFAuthService session restore', () => {
     await service.waitForInit();
 
     expect(service.getCurrentUserId()).toBe('user-1');
+    expect(service.getAuthSession()).toEqual({ userId: 'user-1', initialUser: null });
     expect(storage.getString('cf_auth_token')).toBe(expiredToken);
     expect(mockCfGet).not.toHaveBeenCalled();
   });
@@ -93,6 +94,40 @@ describe('CFAuthService session restore', () => {
     expect(storage.getString('cf_auth_token')).toBeUndefined();
     expect(storage.getBoolean('cf_auth_is_anonymous')).toBeUndefined();
     expect(mockCfGet).not.toHaveBeenCalled();
+  });
+
+  it('publishes login and logout without an additional profile request', async () => {
+    const service = new CFAuthService();
+    await service.waitForInit();
+    const listener = jest.fn();
+    const unsubscribe = service.subscribeAuth(listener);
+    const user = {
+      id: 'user-1',
+      email: 'user@example.com',
+      is_anonymous: false,
+      has_wechat: false,
+      user_metadata: USER_METADATA,
+    };
+    mockCfPost.mockImplementationOnce(async (_path, _body, decode) =>
+      decode({ user, access_token: 'access', refresh_token: 'refresh' }),
+    );
+
+    await service.signInWithEmail('user@example.com', 'password');
+
+    const session = service.getAuthSession();
+    expect(session).toEqual({ userId: 'user-1', initialUser: user });
+    expect(service.getAuthSession()).toBe(session);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(mockCfGet).not.toHaveBeenCalled();
+
+    mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode({ success: true }));
+    await service.signOut();
+
+    expect(service.getAuthSession()).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(2);
+    unsubscribe();
+    await service.signOut();
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 
   it('verifies and caches the canonical user after a successful refresh', async () => {
@@ -184,7 +219,7 @@ describe('CFAuthService session restore', () => {
     );
 
     const service = new CFAuthService();
-    await service.waitForInit();
+    await expect(service.waitForInit()).rejects.toBeInstanceOf(CloudflareResponseProtocolError);
 
     expect(mockCfPost).toHaveBeenCalledTimes(1);
     expect(storage.getString('cf_refresh_token')).toBe('stored-refresh');

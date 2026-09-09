@@ -43,9 +43,9 @@ export type UserStats = z.infer<typeof userStatsSchema>;
 export type UserPublicProfile = z.infer<typeof userPublicProfileSchema>;
 
 /** Fetches the current user's growth data. */
-export async function fetchUserStats(): Promise<UserStats> {
+export async function fetchUserStats(signal?: AbortSignal): Promise<UserStats> {
   statsLog.debug('Fetching user stats');
-  return cfGet('/api/user/stats', (value) => userStatsSchema.parse(value));
+  return cfGet('/api/user/stats', (value) => userStatsSchema.parse(value), { signal });
 }
 
 /** Fetches the public profile of a specific user. */

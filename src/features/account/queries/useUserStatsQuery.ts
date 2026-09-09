@@ -1,3 +1,4 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useAuthenticatedQuery } from '@/features/auth/queries/useAuthenticatedQuery';
 
 import { userStatsOptions } from './accountQueryOptions';
@@ -9,8 +10,9 @@ import { userStatsOptions } from './accountQueryOptions';
  * Multiple screens share one cache key, avoiding duplicate fetches.
  */
 export function useUserStatsQuery(options?: { enabled?: boolean }) {
+  const { user } = useAuthContext();
   return useAuthenticatedQuery({
-    ...userStatsOptions(),
+    ...userStatsOptions(user?.id ?? null),
     ...options,
   });
 }

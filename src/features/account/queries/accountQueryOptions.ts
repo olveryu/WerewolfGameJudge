@@ -15,16 +15,17 @@ import {
 } from '@/features/account/services/accountApi';
 
 export const accountQueryKeys = {
-  stats: ['userStats'] as const,
+  stats: (userId: string | null) => ['userStats', userId] as const,
   profiles: ['userProfile'] as const,
   profile: (userId: string) => ['userProfile', userId] as const,
   unlocks: (userId: string) => ['userUnlocks', userId] as const,
 };
 
-export const userStatsOptions = () =>
+export const userStatsOptions = (userId: string | null) =>
   queryOptions({
-    queryKey: accountQueryKeys.stats,
-    queryFn: fetchUserStats,
+    queryKey: accountQueryKeys.stats(userId),
+    queryFn: ({ signal }) => fetchUserStats(signal),
+    enabled: userId !== null,
     staleTime: 5 * 60_000,
   });
 

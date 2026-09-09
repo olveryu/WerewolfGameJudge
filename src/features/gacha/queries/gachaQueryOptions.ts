@@ -4,9 +4,10 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { fetchGachaStatus } from '../services/gachaApi';
 
-export const gachaStatusOptions = () =>
+export const gachaStatusOptions = (userId: string | null) =>
   queryOptions({
-    queryKey: ['gachaStatus'] as const,
-    queryFn: fetchGachaStatus,
+    queryKey: ['gachaStatus', userId] as const,
+    queryFn: ({ signal }) => fetchGachaStatus(signal),
+    enabled: userId !== null,
     staleTime: 60_000,
   });

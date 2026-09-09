@@ -1,9 +1,13 @@
+import type { AuthSession } from '@/services/types/IAuthService';
+
 import {
   cfGet,
   cfPost,
   CloudflareHttpError,
   CloudflareResponseJsonError,
   CloudflareResponseProtocolError,
+  setAuthSessionProvider,
+  setOnAuthExpired,
   setRefreshHandler,
   setTokenProvider,
 } from '../cfFetch';
@@ -23,6 +27,7 @@ describe('cfFetch response boundary', () => {
   beforeEach(() => {
     mockFetch.mockReset();
     global.fetch = mockFetch;
+    setAuthSessionProvider(() => null);
     setTokenProvider(() => null);
     setRefreshHandler(async () => 'expired');
   });
@@ -195,6 +200,40 @@ describe('cfFetch response boundary', () => {
     const retryCall = mockFetch.mock.calls[1];
     if (retryCall === undefined) throw new Error('Expected one request after token refresh');
     expect(new Headers(retryCall[1]?.headers).get('Authorization')).toBe('Bearer fresh-token');
+  });
+
+  it('does not refresh an old request using the newly signed-in account', async () => {
+    let session: AuthSession = { userId: 'previous-user', initialUser: null };
+    setAuthSessionProvider(() => session);
+    const refresh = jest.fn(async () => 'refreshed' as const);
+    setRefreshHandler(refresh);
+    mockFetch.mockImplementationOnce(async () => {
+      session = { userId: 'current-user', initialUser: null };
+      return jsonResponse({ success: false, reason: 'TOKEN_REVOKED' }, 401);
+    });
+
+    await expect(cfGet('/old-account', parseSuccessResponse)).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(refresh).not.toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not expire the new account when an old refresh finishes', async () => {
+    let session: AuthSession = { userId: 'previous-user', initialUser: null };
+    setAuthSessionProvider(() => session);
+    const expired = jest.fn();
+    setOnAuthExpired(expired);
+    setRefreshHandler(async () => {
+      session = { userId: 'current-user', initialUser: null };
+      return 'expired';
+    });
+    mockFetch.mockResolvedValueOnce(jsonResponse({ success: false, reason: 'TOKEN_REVOKED' }, 401));
+
+    await expect(cfGet('/old-refresh', parseSuccessResponse)).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(expired).not.toHaveBeenCalled();
   });
 
   it('combines caller cancellation with the request timeout signal', async () => {

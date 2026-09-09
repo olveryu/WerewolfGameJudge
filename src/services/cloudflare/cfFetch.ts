@@ -9,6 +9,7 @@
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
+import type { AuthSession } from '@/services/types/IAuthService';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
 import { isAbortError } from '@/utils/errorUtils';
 import { cfFetchLog } from '@/utils/logger';
@@ -88,6 +89,18 @@ export class CloudflareResponseProtocolError extends Error {
 
 /** Callback to read access token from in-memory cache (injected by CFAuthService) */
 let tokenProvider: (() => string | null) | null = null;
+let authSessionProvider: (() => AuthSession | null) | null = null;
+
+/** Bind requests to the identity that initiated them, independently of token rotation. */
+export function setAuthSessionProvider(provider: () => AuthSession | null): void {
+  authSessionProvider = provider;
+}
+
+function assertAuthSession(session: AuthSession | null | undefined): void {
+  if (authSessionProvider?.() !== session) {
+    throw new DOMException('Authentication changed', 'AbortError');
+  }
+}
 
 /** Callback to execute refresh token -> new token pair (injected by CFAuthService) */
 let refreshHandler: (() => Promise<'refreshed' | 'expired' | 'offline'>) | null = null;
@@ -120,6 +133,7 @@ export function getCurrentToken(): string | null {
 // ── Refresh lock: ensures only one refresh request at a time ────────────────
 
 let refreshPromise: Promise<'refreshed' | 'expired' | 'offline'> | null = null;
+let refreshSession: AuthSession | null | undefined;
 
 /**
  * Locked refresh: multiple concurrent 401 requests share the same refresh call.
@@ -131,15 +145,17 @@ let refreshPromise: Promise<'refreshed' | 'expired' | 'offline'> | null = null;
 async function refreshWithLock(): Promise<'refreshed' | 'expired' | 'offline'> {
   if (!refreshHandler) return 'expired';
 
-  if (refreshPromise) {
+  const session = authSessionProvider?.();
+  if (refreshPromise && refreshSession === session) {
     return refreshPromise;
   }
 
-  refreshPromise = refreshHandler().finally(() => {
-    refreshPromise = null;
+  refreshSession = session;
+  const pendingRefresh = refreshHandler().finally(() => {
+    if (refreshPromise === pendingRefresh) refreshPromise = null;
   });
-
-  return refreshPromise;
+  refreshPromise = pendingRefresh;
+  return pendingRefresh;
 }
 
 // ── Token freshness (for non-HTTP callers) ──────────────────────────────────
@@ -166,11 +182,13 @@ export function isAccessTokenExpired(token: string): boolean {
  *   and a WS reconnect share one refresh network call.
  */
 export async function ensureFreshToken(): Promise<string | null> {
+  const session = authSessionProvider?.();
   const token = tokenProvider?.() ?? null;
   if (!token) return null;
   if (!isAccessTokenExpired(token)) return token;
 
   const result = await refreshWithLock();
+  assertAuthSession(session);
   if (result === 'refreshed') return tokenProvider?.() ?? null;
   if (result === 'expired') {
     onAuthExpired?.();
@@ -264,6 +282,7 @@ interface RequestOptions<T> {
 }
 
 async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
+  const session = authSessionProvider?.();
   const url = `${API_BASE_URL}${opts.path}`;
 
   const doFetch = async (headers: Record<string, string>): Promise<ActiveFetchResponse> => {
@@ -296,11 +315,13 @@ async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
   const activeResponse = await doFetch(headers);
   try {
     const { response } = activeResponse;
+    assertAuthSession(session);
 
     // 401 interception: attempt refresh and retry once
     if (response.status === 401 && !opts.skipAuthIntercept && refreshHandler) {
       cfFetchLog.debug('401 received, attempting refresh', { path: opts.path });
       const refreshResult = await waitForRefreshWithSignal(opts.signal);
+      assertAuthSession(session);
       if (refreshResult === 'refreshed') {
         // Retry with new token
         const retryHeaders = { ...opts.headers };
@@ -311,7 +332,10 @@ async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
         activeResponse.dispose();
         const retryResponse = await doFetch(retryHeaders);
         try {
-          return await opts.parseResponse(retryResponse.response, opts.path);
+          assertAuthSession(session);
+          const result = await opts.parseResponse(retryResponse.response, opts.path);
+          assertAuthSession(session);
+          return result;
         } finally {
           retryResponse.dispose();
         }
@@ -329,7 +353,9 @@ async function executeRequest<T>(opts: RequestOptions<T>): Promise<T> {
       // Fall through to parseJsonResponse so TanStack Query can retry
     }
 
-    return await opts.parseResponse(response, opts.path);
+    const result = await opts.parseResponse(response, opts.path);
+    assertAuthSession(session);
+    return result;
   } finally {
     activeResponse.dispose();
   }
@@ -393,7 +419,12 @@ export async function cfPost<T>(
 export async function cfGet<T>(
   path: string,
   decode: JsonResponseDecoder<T>,
-  options?: { skipAuthIntercept?: boolean; noRetry?: boolean; timeoutMs?: number },
+  options?: {
+    skipAuthIntercept?: boolean;
+    noRetry?: boolean;
+    timeoutMs?: number;
+    signal?: AbortSignal;
+  },
 ): Promise<T> {
   cfFetchLog.debug('GET', { path });
   return executeRequest({
@@ -401,6 +432,7 @@ export async function cfGet<T>(
     path,
     headers: {},
     timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    signal: options?.signal,
     parseResponse: (response, requestPath) => parseJsonResponse(response, requestPath, decode),
     noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,

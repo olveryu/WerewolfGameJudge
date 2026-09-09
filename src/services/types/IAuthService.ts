@@ -42,10 +42,22 @@ export interface GetCurrentUserResponse {
   data: { user: AuthUser };
 }
 
+/** Immutable identity snapshot; initialUser seeds the profile cache after online authentication. */
+export interface AuthSession {
+  readonly userId: string;
+  readonly initialUser: AuthUser | null;
+}
+
 /** Auth service interface - covers anonymous login, email auth, user profile management. */
 export interface IAuthService {
+  /** Stable snapshot until authentication changes; null means signed out. */
+  getAuthSession(): AuthSession | null;
+
+  /** Subscribe to identity changes, including login, restore and logout. */
+  subscribeAuth(callback: () => void): () => void;
+
   /** Wait for initialization to complete (session restore / auto login) */
-  waitForInit(): Promise<void>;
+  waitForInit(options?: { retry: boolean }): Promise<void>;
 
   /** Whether the mini-program requires user to manually trigger WeChat login (only meaningful inside miniprogram web-view) */
   readonly needsWechatLogin: boolean;
@@ -66,7 +78,7 @@ export interface IAuthService {
    * Get current user full info.
    * Returns null when not logged in or token invalid.
    */
-  getCurrentUser(): Promise<GetCurrentUserResponse | null>;
+  getCurrentUser(signal?: AbortSignal): Promise<GetCurrentUserResponse | null>;
 
   /** Anonymous login, returns userId */
   signInAnonymously(): Promise<string>;

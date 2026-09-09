@@ -33,7 +33,7 @@ export const AuthLoginScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthLogin'>>();
   const route = useRoute<RouteProp>();
 
-  const { user, loading: authLoading, refreshUser } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const isAnon = !!user?.isAnonymous;
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
 
@@ -57,7 +57,6 @@ export const AuthLoginScreen: React.FC = () => {
   const handleAnonymousLogin = useCallback(async () => {
     try {
       await signInAnonymously();
-      await refreshUser();
       toast.success('登录成功');
       navigation.goBack();
     } catch (e: unknown) {
@@ -65,7 +64,7 @@ export const AuthLoginScreen: React.FC = () => {
       authLog.warn('Anonymous login failed', { message });
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously, refreshUser, navigation]);
+  }, [signInAnonymously, navigation]);
 
   const handleCancel = useCallback(() => {
     navigation.goBack();

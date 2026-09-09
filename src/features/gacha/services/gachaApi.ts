@@ -25,8 +25,8 @@ export type DailyRewardResponse = GachaDailyRewardResponse;
 export type ExchangeResponse = GachaExchangeResponse;
 
 /** Gets the current user's gacha status */
-export async function fetchGachaStatus(): Promise<GachaStatus> {
-  return cfGet('/api/gacha/status', parseGachaStatus);
+export async function fetchGachaStatus(signal?: AbortSignal): Promise<GachaStatus> {
+  return cfGet('/api/gacha/status', parseGachaStatus, { signal });
 }
 
 /** Performs a draw (idempotent: retrying with the same idempotencyKey returns the same result) */

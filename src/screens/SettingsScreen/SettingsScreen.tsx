@@ -18,6 +18,7 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { refreshSavedProfile } from '@/features/account/controllers/refreshSavedProfile';
 import { useUpdateProfile } from '@/features/account/controllers/useUpdateProfile';
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
@@ -162,13 +163,12 @@ export const SettingsScreen: React.FC = () => {
       const previousUserId = user.id;
       await signOut();
       clearRecentRooms(previousUserId);
-      await refreshUser();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.error('Sign out failed', { message }, e);
       showErrorAlert('退出失败', message);
     }
-  }, [signOut, refreshUser, user]);
+  }, [signOut, user]);
 
   const handlePickAvatar = useCallback(() => {
     navigation.navigate('Appearance');
@@ -195,9 +195,13 @@ export const SettingsScreen: React.FC = () => {
           }
           try {
             await updateProfile({ displayName: trimmed });
-            await refreshUser();
+            const isProfileRefreshed = await refreshSavedProfile(refreshUser);
             const roomSynced = await syncActiveRoomProfile({ displayName: trimmed });
-            if (roomSynced) toast.success('昵称已更新');
+            if (!isProfileRefreshed) {
+              toast.warning('昵称已保存，资料刷新失败');
+            } else if (roomSynced) {
+              toast.success('昵称已更新');
+            }
           } catch (e: unknown) {
             const message = getErrorMessage(e);
             settingsLog.error('Update name failed', { message }, e);
@@ -293,14 +297,13 @@ export const SettingsScreen: React.FC = () => {
   const handleAnonymousLogin = useCallback(async () => {
     try {
       await signInAnonymously();
-      await refreshUser();
       toast.success('登录成功');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.warn('Anonymous login failed', { message });
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously, refreshUser]);
+  }, [signInAnonymously]);
 
   const handleBrowseAvatars = useCallback(() => {
     navigation.navigate('Appearance');

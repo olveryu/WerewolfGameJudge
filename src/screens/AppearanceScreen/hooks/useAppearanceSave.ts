@@ -10,6 +10,7 @@ import { toast } from 'sonner-native';
 
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
+import { refreshSavedProfile } from '@/features/account/controllers/refreshSavedProfile';
 import type {
   ActiveRoomAccountSnapshot,
   RoomProfilePatch,
@@ -93,9 +94,11 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         setSaving(true);
         try {
           const url = await p.uploadAvatar(result.assets[0].uri);
-          await p.refreshUser();
+          const isProfileRefreshed = await refreshSavedProfile(p.refreshUser);
           const roomSynced = await syncActiveRoomProfile(p.activeRoom, { avatarUrl: url });
-          if (roomSynced) {
+          if (!isProfileRefreshed) {
+            toast.warning('头像已保存，资料刷新失败');
+          } else if (roomSynced) {
             toast.success('头像已更新');
           } else {
             toast.warning('头像已保存，房间内同步失败');
@@ -184,8 +187,8 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       if (newSeatAnimation !== undefined) profilePatch.seatAnimation = newSeatAnimation;
       if (Object.keys(profilePatch).length > 0) {
         await p.updateProfile(profilePatch);
-        await p.refreshUser();
       }
+      const isProfileRefreshed = await refreshSavedProfile(p.refreshUser);
 
       // Sync to GameState only when in a room (otherwise no GameState exists)
       let activeRoomSyncFailed = false;
@@ -209,7 +212,9 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         }));
       }
 
-      if (activeRoomSyncFailed) {
+      if (!isProfileRefreshed) {
+        toast.warning('形象已保存，资料刷新失败');
+      } else if (activeRoomSyncFailed) {
         toast.warning('形象已保存，游戏内可能需要重新入座刷新');
       } else {
         toast.success('形象已更新');
@@ -240,11 +245,13 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
     try {
       const value = p.heroEffectId === 'none' ? '' : p.heroEffectId;
       await p.updateProfile({ equippedEffect: value });
-      await p.refreshUser();
+      const isProfileRefreshed = await refreshSavedProfile(p.refreshUser);
 
       // Sync roleRevealEffect to GameState so other players see the change
       const roomSynced = await syncActiveRoomProfile(p.activeRoom, { revealEffect: value });
-      if (roomSynced) {
+      if (!isProfileRefreshed) {
+        toast.warning('特效已保存，资料刷新失败');
+      } else if (roomSynced) {
         toast.success(
           p.heroEffectId === 'none'
             ? '已卸下特效'

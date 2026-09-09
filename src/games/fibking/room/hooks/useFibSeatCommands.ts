@@ -17,7 +17,7 @@ interface UseFibSeatCommandsParams {
 export function useFibSeatCommands({ session, user }: UseFibSeatCommandsParams) {
   const queryClient = useQueryClient();
   const createProfile = useCallback(() => {
-    const cachedStats = queryClient.getQueryData(userStatsOptions().queryKey);
+    const cachedStats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
     const profile: FibSeatProfile = {
       displayName: user.displayName ?? '匿名玩家',
       avatarUrl: user.avatarUrl ?? undefined,

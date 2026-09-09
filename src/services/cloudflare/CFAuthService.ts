@@ -20,7 +20,12 @@
 import * as Sentry from '@sentry/react-native';
 
 import { storage } from '@/services/infra/localStorage';
-import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
+import type {
+  AuthSession,
+  AuthUser,
+  GetCurrentUserResponse,
+  IAuthService,
+} from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
@@ -46,6 +51,7 @@ import {
   cfPut,
   CloudflareHttpError,
   CloudflareResponseJsonError,
+  setAuthSessionProvider,
   setOnAuthExpired,
   setRefreshHandler,
   setTokenProvider,
@@ -64,13 +70,15 @@ const AUTH_HAS_WECHAT_KEY = 'cf_auth_has_wechat';
  * Responsibilities: JWT token management, anonymous/email login, WeChat claim flow, auto refresh.
  */
 export class CFAuthService implements IAuthService {
-  #currentUserId: string | null = null;
+  #authSession: AuthSession | null = null;
+  readonly #authCallbacks = new Set<() => void>();
   #cachedAccessToken: string | null = null;
   #cachedRefreshToken: string | null = null;
   #isAnonymous = false;
   #hasWechat = false;
   #needsWechatLogin = false;
-  readonly #initPromise: Promise<void>;
+  #initPromise: Promise<void>;
+  #initError: Error | null = null;
   readonly #authExpiredCallbacks = new Set<() => void>();
 
   get needsWechatLogin(): boolean {
@@ -78,6 +86,7 @@ export class CFAuthService implements IAuthService {
   }
 
   constructor() {
+    setAuthSessionProvider(() => this.#authSession);
     // Register token provider so cfFetch auto-injects Bearer header
     setTokenProvider(() => this.#cachedAccessToken);
     // Register refresh handler for 401 interception
@@ -89,6 +98,7 @@ export class CFAuthService implements IAuthService {
   }
 
   async #autoSignIn(): Promise<void> {
+    this.#initError = null;
     try {
       const existingUserId = await this.initAuth();
 
@@ -103,7 +113,9 @@ export class CFAuthService implements IAuthService {
         if (claimNonce && this.#isAnonymous) {
           const claimed = await this.#tryClaimToken(claimNonce);
           if (claimed) {
-            authLog.info('Claim upgrade from anonymous succeeded', { userId: this.#currentUserId });
+            authLog.info('Claim upgrade from anonymous succeeded', {
+              userId: this.getCurrentUserId(),
+            });
           } else {
             authLog.warn('Claim upgrade failed, keeping anonymous session');
           }
@@ -120,7 +132,7 @@ export class CFAuthService implements IAuthService {
         if (claimNonce) {
           const claimed = await this.#tryClaimToken(claimNonce);
           if (claimed) {
-            authLog.info('Claim flow succeeded', { userId: this.#currentUserId });
+            authLog.info('Claim flow succeeded', { userId: this.getCurrentUserId() });
             return;
           }
           authLog.warn('Claim flow failed, showing login button');
@@ -130,16 +142,18 @@ export class CFAuthService implements IAuthService {
         this.#needsWechatLogin = true;
       }
     } catch (error) {
-      handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, feedback: false });
+      this.#initError = error instanceof Error ? error : new Error(String(error));
     }
   }
 
-  async waitForInit(): Promise<void> {
+  async waitForInit(options?: { retry: boolean }): Promise<void> {
+    if (options?.retry) this.#initPromise = this.#autoSignIn();
     await withTimeout(this.#initPromise, 25000, 'autoSignIn');
+    if (this.#initError !== null) throw this.#initError;
   }
 
   async ensureAuthenticated(): Promise<string> {
-    if (this.#currentUserId) return this.#currentUserId;
+    if (this.#authSession !== null) return this.#authSession.userId;
     const restored = await this.initAuth();
     if (restored) return restored;
     return this.signInAnonymously();
@@ -150,12 +164,23 @@ export class CFAuthService implements IAuthService {
   }
 
   getCurrentUserId(): string | null {
-    return this.#currentUserId;
+    return this.#authSession?.userId ?? null;
   }
 
-  async getCurrentUser(): Promise<GetCurrentUserResponse | null> {
+  /** Read the stable identity snapshot without fetching profile data. */
+  getAuthSession(): AuthSession | null {
+    return this.#authSession;
+  }
+
+  /** Subscribe to committed authentication changes. */
+  subscribeAuth(callback: () => void): () => void {
+    this.#authCallbacks.add(callback);
+    return () => this.#authCallbacks.delete(callback);
+  }
+
+  async getCurrentUser(signal?: AbortSignal): Promise<GetCurrentUserResponse | null> {
     if (!this.#cachedAccessToken) return null;
-    return cfGet('/auth/user', parseCurrentUserResponse);
+    return cfGet('/auth/user', parseCurrentUserResponse, { signal });
   }
 
   async signInAnonymously(): Promise<string> {
@@ -208,6 +233,7 @@ export class CFAuthService implements IAuthService {
   }
 
   async signOut(): Promise<void> {
+    const session = this.#authSession;
     try {
       await cfPost('/auth/signout', undefined, parseSuccessResponse);
     } catch (error) {
@@ -217,6 +243,9 @@ export class CFAuthService implements IAuthService {
         expectedCodes: [401, 404],
         feedback: false,
       });
+    }
+    if (this.#authSession !== session) {
+      throw new DOMException('Authentication changed', 'AbortError');
     }
     this.#clearSession();
   }
@@ -281,7 +310,7 @@ export class CFAuthService implements IAuthService {
       this.#hasWechat = true;
       storage.set(AUTH_HAS_WECHAT_KEY, true);
       clearClaimNonce();
-      authLog.info('WeChat bind succeeded', { userId: this.#currentUserId });
+      authLog.info('WeChat bind succeeded', { userId: this.getCurrentUserId() });
       return true;
     } catch (error: unknown) {
       clearClaimNonce();
@@ -351,7 +380,7 @@ export class CFAuthService implements IAuthService {
       });
       const { user } = resp.data;
       this.#setCurrentUser(user);
-      return this.#currentUserId;
+      return user.id;
     } catch (error: unknown) {
       if (error instanceof CloudflareHttpError && (error.status === 401 || error.status === 404)) {
         // Access token expired/revoked — try refresh
@@ -402,7 +431,6 @@ export class CFAuthService implements IAuthService {
   }
 
   #setCurrentUser(user: AuthUser): void {
-    this.#currentUserId = user.id;
     this.#isAnonymous = user.is_anonymous;
     this.#hasWechat = user.has_wechat;
     this.#needsWechatLogin = false;
@@ -410,14 +438,18 @@ export class CFAuthService implements IAuthService {
     storage.set(AUTH_IS_ANONYMOUS_KEY, user.is_anonymous);
     storage.set(AUTH_HAS_WECHAT_KEY, user.has_wechat);
     Sentry.setUser({ id: user.id });
+    this.#authSession = { userId: user.id, initialUser: user };
+    this.#authCallbacks.forEach((callback) => callback());
   }
 
   #clearSession(): void {
     this.#clearStoredSession();
-    this.#currentUserId = null;
     this.#isAnonymous = false;
     this.#hasWechat = false;
+    this.#needsWechatLogin = isMiniProgram();
     Sentry.setUser(null);
+    this.#authSession = null;
+    this.#authCallbacks.forEach((callback) => callback());
   }
 
   /**
@@ -425,6 +457,7 @@ export class CFAuthService implements IAuthService {
    * Returns true if successful (new tokens saved), false otherwise.
    */
   async #refreshTokens(): Promise<'refreshed' | 'expired' | 'offline'> {
+    const session = this.#authSession;
     const refreshToken = this.#cachedRefreshToken;
     if (!refreshToken) return 'expired';
 
@@ -437,10 +470,16 @@ export class CFAuthService implements IAuthService {
         authLog.warn('Refresh response body unreadable, retrying once');
         data = await this.#requestRefreshTokenPair(refreshToken);
       }
+      if (this.#authSession !== session) {
+        throw new DOMException('Authentication changed', 'AbortError');
+      }
       this.#saveTokens(data.access_token, data.refresh_token);
       authLog.debug('Token refresh succeeded');
       return 'refreshed';
     } catch (error: unknown) {
+      if (this.#authSession !== session) {
+        throw new DOMException('Authentication changed', 'AbortError');
+      }
       if (error instanceof CloudflareHttpError && error.status === 401) {
         // Refresh token is invalid/expired — session is dead
         authLog.warn('Refresh token invalid, clearing session');
@@ -457,7 +496,6 @@ export class CFAuthService implements IAuthService {
   #handleAuthExpired(): void {
     authLog.warn('Auth expired — all tokens invalid');
     this.#clearSession();
-    this.#needsWechatLogin = isMiniProgram();
     this.#authExpiredCallbacks.forEach((cb) => cb());
   }
 
@@ -478,7 +516,7 @@ export class CFAuthService implements IAuthService {
       });
       const { user } = resp.data;
       this.#setCurrentUser(user);
-      return this.#currentUserId;
+      return user.id;
     } catch (error: unknown) {
       if (error instanceof CloudflareHttpError && (error.status === 401 || error.status === 404)) {
         authLog.warn('Refreshed session rejected', { reason: error.reason });
@@ -505,11 +543,12 @@ export class CFAuthService implements IAuthService {
       this.#clearSession();
       return null;
     }
-    this.#currentUserId = claims.sub;
     this.#isAnonymous = isAnonymous;
     this.#hasWechat = hasWechat;
     this.#needsWechatLogin = false;
     Sentry.setUser({ id: claims.sub });
+    this.#authSession = { userId: claims.sub, initialUser: null };
+    this.#authCallbacks.forEach((callback) => callback());
     return claims.sub;
   }
 }

@@ -20,7 +20,7 @@ interface UsePictionarySeatCommandsParams {
 export function usePictionarySeatCommands({ session, user }: UsePictionarySeatCommandsParams) {
   const queryClient = useQueryClient();
   const createProfile = useCallback((): PictionarySeatProfile => {
-    const cachedStats = queryClient.getQueryData(userStatsOptions().queryKey);
+    const cachedStats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
     return {
       displayName: user.displayName ?? '匿名玩家',
       avatarUrl: user.avatarUrl ?? undefined,

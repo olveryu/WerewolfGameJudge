@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 
+import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { gachaStatusOptions } from '@/features/gacha/queries/gachaQueryOptions';
 import type { RoomSessionClient } from '@/features/room/session/types';
@@ -59,20 +60,22 @@ function showSettleToast(result: WerewolfSettlementEvent): void {
  */
 export function useWerewolfSettleToast({ session, isFocused }: UseSettleToastParams): void {
   const queryClient = useQueryClient();
+  const { user } = useAuthContext();
+  const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!isFocused) return;
+    if (!isFocused || userId === null) return;
 
     const unsub = session.setUserEventHandler(async (result) => {
       showSettleToast(result);
 
       // Refresh cached ticket counts so header badge updates immediately
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey }),
-        queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey }),
+        queryClient.invalidateQueries({ queryKey: gachaStatusOptions(userId).queryKey }),
+        queryClient.invalidateQueries({ queryKey: userStatsOptions(userId).queryKey }),
       ]);
     });
 
     return unsub;
-  }, [isFocused, queryClient, session]);
+  }, [isFocused, queryClient, session, userId]);
 }

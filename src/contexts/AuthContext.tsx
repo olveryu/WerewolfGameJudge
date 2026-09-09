@@ -1,17 +1,13 @@
 /**
- * AuthContext - Global auth state shared across all screens
- *
- * Solves the "login flicker" problem where each screen had its own
- * useAuth() state that resets on navigation (mount/unmount).
- *
- * Now auth state lives at App level - single subscription, single state.
- * Manages auth state, subscribes to onAuthStateChange, and provides login/logout/updateProfile.
- * No game business logic; does not directly manipulate game state.
+ * AuthContext composes the service identity snapshot and the current-user Query cache.
+ * Owns initialization feedback and cache isolation, not credentials or game state.
  */
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
-import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, use, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
+import { authQueryKeys, currentUserOptions } from '@/features/auth/queries/authQueryOptions';
 import { navigationRef } from '@/navigation/navigationRef';
 import type { AuthUser } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
@@ -47,32 +43,13 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** Mini-program requires the user to manually sign in via WeChat (App layer renders the login entry page based on this value) */
   needsWechatLogin: boolean;
-  /** Re-fetch current user from service and update local state. */
+  /** Refresh profile data; rejects on failure without discarding the last confirmed profile. */
   refreshUser: () => Promise<void>;
   /** Re-run initial auth (waitForInit + getCurrentUser). Used by boot error retry. */
   retryInit: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-// Shallow equality check for User objects to prevent unnecessary re-renders
-const userEquals = (a: User | null, b: User | null): boolean => {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return (
-    a.id === b.id &&
-    a.email === b.email &&
-    a.displayName === b.displayName &&
-    a.avatarUrl === b.avatarUrl &&
-    a.customAvatarUrl === b.customAvatarUrl &&
-    a.avatarFrame === b.avatarFrame &&
-    a.seatFlair === b.seatFlair &&
-    a.nameStyle === b.nameStyle &&
-    a.equippedEffect === b.equippedEffect &&
-    a.seatAnimation === b.seatAnimation &&
-    a.isAnonymous === b.isAnonymous
-  );
-};
 
 /** Normalize empty string to null (server may send "" for unequipped fields). */
 function emptyToNull(val: string | null): string | null {
@@ -104,91 +81,106 @@ const toUser = (authUser: AuthUser | null): User | null => {
  * Maintains a single auth subscription at the App level to prevent state-reset flicker on screen transitions.
  */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Get services from composition root (via ServiceContext)
   const { authService } = useServices();
-
-  // Only update user state if data actually changed (prevents unnecessary re-renders)
-  const updateUserIfChanged = useCallback((newUser: User | null) => {
-    setUser((prev) => (userEquals(prev, newUser) ? prev : newUser));
-  }, []);
-
-  // Load current user — called on mount and by retryInit.
-  const loadUser = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await authService.waitForInit();
-      const result = await authService.getCurrentUser();
-      if (result !== null) {
-        const u = toUser(result.data.user);
-        updateUserIfChanged(u);
-        if (u) {
-          authLog.info('User loaded', { id: u.id, isAnonymous: u.isAnonymous });
+  const queryClient = useQueryClient();
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+  const subscribe = useCallback(
+    (onChange: () => void) =>
+      authService.subscribeAuth(() => {
+        setInitError(null);
+        void queryClient.cancelQueries();
+        queryClient.removeQueries();
+        const session = authService.getAuthSession();
+        if (session !== null && session.initialUser !== null) {
+          queryClient.setQueryData(authQueryKeys.user(session.userId), session.initialUser);
         }
-      } else {
-        authLog.info('No stored user');
-      }
-    } catch (e: unknown) {
-      // Classification + Sentry routed through the single pipeline; UI here is
-      // the boot-error `setError` banner, so suppress handleError's own feedback.
-      handleError(e, { label: '加载用户信息', logger: authLog, feedback: false });
-      setError(getUserFacingMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [authService, updateUserIfChanged]);
+        onChange();
+      }),
+    [authService, queryClient],
+  );
+  const getSnapshot = useCallback(() => authService.getAuthSession(), [authService]);
+  const session = useSyncExternalStore(subscribe, getSnapshot);
+  const profile = useQuery({
+    ...currentUserOptions(authService, session),
+    enabled: !isInitializing && initError === null && session !== null,
+    select: toUser,
+  });
+  const user = session === null ? null : (profile.data ?? null);
+  const loading = isInitializing || (initError === null && session !== null && profile.isPending);
+  const error =
+    initError ?? (profile.isError && user === null ? getUserFacingMessage(profile.error) : null);
 
-  // Run once at app startup
-  // wxcode auth is handled by CFAuthService.#autoSignIn (service layer),
-  // so waitForInit() guarantees #currentUserId is ready before we read user state.
+  const loadUser = useCallback(
+    async (isRetry = false) => {
+      setIsInitializing(true);
+      setInitError(null);
+      let currentSession = authService.getAuthSession();
+      try {
+        await authService.waitForInit({ retry: isRetry });
+        currentSession = authService.getAuthSession();
+        if (currentSession !== null) {
+          await queryClient.fetchQuery(currentUserOptions(authService, currentSession));
+        }
+      } catch (e: unknown) {
+        if (authService.getAuthSession() !== currentSession) return;
+        handleError(e, { label: '加载用户信息', logger: authLog, feedback: false });
+        setInitError(getUserFacingMessage(e));
+      } finally {
+        setIsInitializing(false);
+      }
+    },
+    [authService, queryClient],
+  );
+
   useEffect(() => {
     void loadUser();
   }, [loadUser]);
 
   /** Re-run initial auth. Used by boot error retry UI. */
   const retryInit = useCallback(() => {
-    void loadUser();
+    void loadUser(true);
   }, [loadUser]);
 
-  /** Re-fetch current user from service and update local state. */
+  /** Refresh the current profile without converting a failed request into success. */
   const refreshUser = useCallback(async () => {
-    try {
-      const result = await authService.getCurrentUser();
-      const u = result === null ? null : toUser(result.data.user);
-      updateUserIfChanged(u);
-    } catch (e: unknown) {
-      authLog.warn('refreshUser failed, keeping current state', e);
+    const currentSession = authService.getAuthSession();
+    if (currentSession === null) {
+      throw new Error('Cannot refresh a signed-out profile');
     }
-  }, [authService, updateUserIfChanged]);
+    await queryClient.invalidateQueries({
+      queryKey: authQueryKeys.user(currentSession.userId),
+      refetchType: 'none',
+    });
+    await queryClient.fetchQuery({
+      ...currentUserOptions(authService, currentSession),
+      staleTime: 0,
+    });
+    if (authService.getAuthSession() !== currentSession) {
+      throw new DOMException('Authentication changed', 'AbortError');
+    }
+  }, [authService, queryClient]);
 
   // Session fully expired (both tokens dead) — clear user so UI transitions to login
   useEffect(() => {
     return authService.onAuthExpired(() => {
-      updateUserIfChanged(null);
       // Non-miniProgram: open AuthLogin modal so user can re-authenticate
       // miniProgram path is handled by App.tsx reading needsWechatLogin=true
       if (!isMiniProgram() && navigationRef.isReady()) {
         navigationRef.navigate('AuthLogin', { loginTitle: '会话已过期，请重新登录' });
       }
     });
-  }, [authService, updateUserIfChanged]);
+  }, [authService]);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      loading,
-      error,
-      isAuthenticated: !!user,
-      needsWechatLogin: authService.needsWechatLogin,
-      refreshUser,
-      retryInit,
-    }),
-    [user, loading, error, authService.needsWechatLogin, refreshUser, retryInit],
-  );
+  const value: AuthContextValue = {
+    user,
+    loading,
+    error,
+    isAuthenticated: !!user,
+    needsWechatLogin: authService.needsWechatLogin,
+    refreshUser,
+    retryInit,
+  };
 
   return <AuthContext value={value}>{children}</AuthContext>;
 };

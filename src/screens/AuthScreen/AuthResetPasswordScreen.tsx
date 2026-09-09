@@ -12,7 +12,6 @@ import { useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { ResetPasswordForm } from '@/components/auth';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { useForgotPassword, useResetPassword } from '@/features/auth/controllers/useAuthMutations';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
@@ -35,7 +34,6 @@ export const AuthResetPasswordScreen: React.FC = () => {
   const route = useRoute<RouteProp>();
 
   const { email } = route.params;
-  const { refreshUser } = useAuthContext();
   const { mutateAsync: resetPassword, isPending: isResetPending } = useResetPassword();
   const { mutateAsync: forgotPassword, isPending: isForgotPending } = useForgotPassword();
 
@@ -57,7 +55,6 @@ export const AuthResetPasswordScreen: React.FC = () => {
     setError(null);
     try {
       await resetPassword({ email, code, newPassword });
-      await refreshUser();
       toast.success('密码重置成功');
       // Pop all auth modal screens back to the original caller
       navigation.popToTop();
@@ -66,7 +63,7 @@ export const AuthResetPasswordScreen: React.FC = () => {
       authLog.warn('Reset password failed', { message });
       setError(message);
     }
-  }, [email, code, newPassword, resetPassword, refreshUser, navigation]);
+  }, [email, code, newPassword, resetPassword, navigation]);
 
   const handleResend = useCallback(async () => {
     setError(null);

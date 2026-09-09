@@ -1,16 +1,30 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 // This test exercises the real AuthProvider — undo the global mock from jest.setup.ts
 jest.unmock('../../contexts/AuthContext');
+jest.mock('@tanstack/react-query', () =>
+  jest.requireActual<typeof import('@tanstack/react-query')>(
+    '../../../node_modules/@tanstack/react-query/build/modern/index.cjs',
+  ),
+);
 
 import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
-import type { AuthUser, UserMetadata } from '@/services/types/IAuthService';
+import type { AuthSession, AuthUser, UserMetadata } from '@/services/types/IAuthService';
 
 // Mock service functions used by AuthProvider via useServices()
 const mockGetCurrentUser = jest.fn();
+let mockSession: AuthSession | null = null;
+const mockListeners = new Set<() => void>();
+let queryClient: QueryClient;
+
+function publishUser(user: AuthUser | null): void {
+  mockSession = user === null ? null : { userId: user.id, initialUser: user };
+  mockListeners.forEach((listener) => listener());
+}
 
 // Access the jest-mocked useServices to override return values
 const mockUseServices = useServices as jest.Mock;
@@ -43,22 +57,36 @@ function createAuthUser(options: {
 
 // Wrapper for renderHook that includes AuthProvider
 const wrapper = ({ children }: { children: React.ReactNode }) =>
-  React.createElement(AuthProvider, null, children);
+  React.createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    React.createElement(AuthProvider, null, children),
+  );
 
 describe('useAuth hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSession = null;
+    mockListeners.clear();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
     mockGetCurrentUser.mockResolvedValue(null);
 
     // Override global ServiceContext mock with test-specific mock functions
     mockUseServices.mockReturnValue({
       authService: {
         getCurrentUser: mockGetCurrentUser,
-        waitForInit: jest.fn().mockResolvedValue(undefined),
+        waitForInit: jest.fn(async () => {
+          const response = (await mockGetCurrentUser()) as { data: { user: AuthUser } } | null;
+          publishUser(response === null ? null : response.data.user);
+        }),
+        getAuthSession: () => mockSession,
+        subscribeAuth: (listener: () => void) => {
+          mockListeners.add(listener);
+          return () => mockListeners.delete(listener);
+        },
         getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
-        onAuthStateChange: jest
-          .fn()
-          .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
         onAuthExpired: jest.fn().mockReturnValue(jest.fn()),
       },
       roomDirectory: {
@@ -85,6 +113,18 @@ describe('useAuth hook', () => {
   });
 
   describe('Initial state', () => {
+    it('surfaces initialization failure and recovers on explicit retry', async () => {
+      mockGetCurrentUser.mockRejectedValueOnce(new Error('Initialization failed'));
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.error).not.toBeNull();
+      const user = createAuthUser({ id: 'restored-user', email: 'restored@example.com' });
+      mockGetCurrentUser.mockResolvedValue({ data: { user } });
+      act(() => result.current.retryInit());
+      await waitFor(() => expect(result.current.user?.id).toBe(user.id));
+      expect(result.current.error).toBeNull();
+    });
+
     it('should start with null user when not authenticated', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -135,7 +175,49 @@ describe('useAuth hook', () => {
   });
 
   describe('refreshUser', () => {
-    it('should update user state from getCurrentUser', async () => {
+    it('discards a late profile response after switching accounts', async () => {
+      const previousUser = createAuthUser({ id: 'previous-user', email: 'previous@example.com' });
+      mockGetCurrentUser.mockResolvedValue({ data: { user: previousUser } });
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      queryClient.setQueryData(['userStats', previousUser.id], { level: 99 });
+      let finishRefresh!: (response: { data: { user: AuthUser } }) => void;
+      mockGetCurrentUser.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishRefresh = resolve;
+          }),
+      );
+      let refreshOutcome!: Promise<void>;
+      await act(async () => {
+        refreshOutcome = expect(result.current.refreshUser()).rejects.toBeDefined();
+        await Promise.resolve();
+      });
+      const currentUser = createAuthUser({ id: 'current-user', email: 'current@example.com' });
+      await act(async () => {
+        publishUser(currentUser);
+        finishRefresh({ data: { user: previousUser } });
+        await refreshOutcome;
+      });
+      expect(result.current.user?.id).toBe(currentUser.id);
+      expect(result.current.error).toBeNull();
+      expect(queryClient.getQueryData(['authUser', previousUser.id])).toBeUndefined();
+      expect(queryClient.getQueryData(['userStats', previousUser.id])).toBeUndefined();
+    });
+
+    it('replaces cached metadata when the same identity is upgraded', async () => {
+      const anonymousUser = createAuthUser({ id: 'same-user', email: null, isAnonymous: true });
+      mockGetCurrentUser.mockResolvedValue({ data: { user: anonymousUser } });
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => {
+        publishUser(createAuthUser({ id: 'same-user', email: 'upgraded@example.com' }));
+      });
+      expect(result.current.user?.isAnonymous).toBe(false);
+      expect(result.current.user?.email).toBe('upgraded@example.com');
+    });
+
+    it('should publish login without requesting the profile again', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
@@ -153,8 +235,9 @@ describe('useAuth hook', () => {
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       await act(async () => {
-        await result.current.refreshUser();
+        publishUser(mockAuthUser);
       });
+      expect(mockGetCurrentUser).toHaveBeenCalledTimes(1);
 
       expect(result.current.user).toEqual({
         id: 'user-456',
@@ -172,7 +255,7 @@ describe('useAuth hook', () => {
       expect(result.current.isAuthenticated).toBe(true);
     });
 
-    it('should clear user state when getCurrentUser returns null', async () => {
+    it('should clear user and cached data when signed out', async () => {
       // Start with a user
       const mockAuthUser = createAuthUser({ id: 'user-123', email: 'test@example.com' });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
@@ -189,14 +272,15 @@ describe('useAuth hook', () => {
       mockGetCurrentUser.mockResolvedValue(null);
 
       await act(async () => {
-        await result.current.refreshUser();
+        publishUser(null);
       });
 
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
+      expect(queryClient.getQueryData(['authUser', 'user-123'])).toBeUndefined();
     });
 
-    it('should keep current state when getCurrentUser throws', async () => {
+    it('should reject refresh failure and keep the last confirmed profile', async () => {
       // Start with a user
       const mockAuthUser = createAuthUser({ id: 'user-123', email: 'test@example.com' });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
@@ -213,7 +297,7 @@ describe('useAuth hook', () => {
       mockGetCurrentUser.mockRejectedValue(new Error('Network error'));
 
       await act(async () => {
-        await result.current.refreshUser();
+        await expect(result.current.refreshUser()).rejects.toThrow('Network error');
       });
 
       // User state kept (not cleared)

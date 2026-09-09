@@ -11,6 +11,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner-native';
 
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useAuthenticatedQuery } from '@/features/auth/queries/useAuthenticatedQuery';
 import {
@@ -31,39 +33,48 @@ import { gachaStatusOptions } from './gachaQueryOptions';
  * enabled=false for anonymous users or when auth is not yet complete; no request is made.
  */
 export function useGachaStatusQuery(options?: { enabled?: boolean }) {
+  const { user } = useAuthContext();
   return useAuthenticatedQuery({
-    ...gachaStatusOptions(),
+    ...gachaStatusOptions(user?.id ?? null),
     ...options,
   });
 }
 
 export function useDrawMutation() {
   const queryClient = useQueryClient();
+  const { authService } = useServices();
 
   return useMutation({
     mutationKey: ['gacha', 'draw'],
+    onMutate: () => authService.getAuthSession(),
     mutationFn: ({ drawType, count }: { drawType: 'normal' | 'golden'; count?: number }) => {
       gachaLog.debug('Draw requested', { drawType, count });
       return performDraw(drawType, count);
     },
-    onSuccess: (data: DrawResponse, { drawType, count }) => {
+    onSuccess: (data: DrawResponse, { drawType, count }, session) => {
+      if (!session || session !== authService.getAuthSession()) return;
       const rarities = data.results.map((r) => r.rarity);
       gachaLog.info('Draw success', { drawType, count, rarities });
       // Invalidate both gacha status and user stats (unlocked items changed)
-      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
-      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions(session.userId).queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions(session.userId).queryKey });
     },
   });
 }
 
 function useClaimDailyRewardMutation() {
   const queryClient = useQueryClient();
+  const { authService } = useServices();
 
   return useMutation({
+    onMutate: () => authService.getAuthSession(),
     mutationFn: claimDailyReward,
-    onSuccess: (data: DailyRewardResponse) => {
+    onSuccess: (data: DailyRewardResponse, _variables, session) => {
+      if (!session || session !== authService.getAuthSession()) return;
       if (data.claimed) {
-        void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+        void queryClient.invalidateQueries({
+          queryKey: gachaStatusOptions(session.userId).queryKey,
+        });
       }
     },
   });
@@ -75,14 +86,16 @@ function useClaimDailyRewardMutation() {
  * Attempts once per session; the server is the sole authority for the 20-hour cooldown.
  */
 export function useAutoClaimDailyReward() {
+  const { user } = useAuthContext();
+  const userId = user?.id ?? null;
   const { data: status } = useGachaStatusQuery();
   const { mutate: claimDailyReward, isPending: isClaimPending } = useClaimDailyRewardMutation();
-  const attemptedRef = useRef(false);
+  const attemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (attemptedRef.current || !status || isClaimPending) return;
+    if (userId === null || attemptedRef.current === userId || !status || isClaimPending) return;
 
-    attemptedRef.current = true;
+    attemptedRef.current = userId;
     claimDailyReward(undefined, {
       onSuccess: (data) => {
         if (data.claimed) {
@@ -95,25 +108,28 @@ export function useAutoClaimDailyReward() {
         gachaLog.warn('Auto claim daily reward failed', { error: String(err) });
       },
     });
-  }, [status, claimDailyReward, isClaimPending]);
+  }, [status, claimDailyReward, isClaimPending, userId]);
 }
 
 export function useExchangeShardMutation() {
   const queryClient = useQueryClient();
+  const { authService } = useServices();
 
   return useMutation({
+    onMutate: () => authService.getAuthSession(),
     mutationFn: (rewardId: string) => {
       gachaLog.debug('Exchange requested', { rewardId });
       return exchangeShard(rewardId);
     },
-    onSuccess: (data: ExchangeResponse) => {
+    onSuccess: (data: ExchangeResponse, _variables, session) => {
+      if (!session || session !== authService.getAuthSession()) return;
       gachaLog.info('Exchange success', {
         rewardId: data.rewardId,
         cost: data.cost,
         remainingShards: data.remainingShards,
       });
-      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
-      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions(session.userId).queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions(session.userId).queryKey });
     },
   });
 }

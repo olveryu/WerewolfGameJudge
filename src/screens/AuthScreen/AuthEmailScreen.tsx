@@ -45,7 +45,7 @@ export const AuthEmailScreen: React.FC = () => {
     openedFromAuthLogin = false,
   } = route.params;
 
-  const { error: authError, refreshUser, user } = useAuthContext();
+  const { error: authError, user } = useAuthContext();
   const { mutateAsync: signOut, isPending: isSignOutPending } = useSignOut();
 
   const handleSuccess = useCallback(() => {
@@ -96,7 +96,6 @@ export const AuthEmailScreen: React.FC = () => {
         const previousUserId = user.id;
         await signOut();
         clearRecentRooms(previousUserId);
-        await refreshUser();
       } catch (e: unknown) {
         handleError(e, {
           label: '切换账号',
@@ -109,7 +108,7 @@ export const AuthEmailScreen: React.FC = () => {
       }
     }
     await handleEmailAuth();
-  }, [signOutFirst, signOut, refreshUser, handleEmailAuth, user]);
+  }, [signOutFirst, signOut, handleEmailAuth, user]);
 
   const handleShowForgotPassword = useCallback(() => {
     navigation.navigate('AuthForgotPassword', { email });
