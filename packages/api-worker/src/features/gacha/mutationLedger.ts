@@ -10,6 +10,7 @@ const storedMutationSchema = z.strictObject({
   operation: z.enum(GACHA_MUTATION_OPERATIONS),
   is_applied: z.number().int(),
   response: z.string(),
+  request_json: z.string().nullable(),
 });
 
 export type GachaReplayResult<TResponse> =
@@ -20,6 +21,7 @@ export type GachaReplayResult<TResponse> =
 interface ReplayIdentity<TResponse> {
   readonly userId: string;
   readonly key: string;
+  readonly requestJson: string;
   readonly operation: GachaMutationOperation;
   readonly decodeResponse: (value: unknown) => TResponse;
 }
@@ -73,7 +75,7 @@ export async function readGachaReplay<TResponse>(
 ): Promise<GachaReplayResult<TResponse>> {
   const row = await db
     .prepare(
-      `SELECT user_id, operation, is_applied, response
+      `SELECT user_id, operation, is_applied, response, request_json
        FROM idempotency_keys
        WHERE key = ?1`,
     )
@@ -85,7 +87,11 @@ export async function readGachaReplay<TResponse>(
   if (stored.is_applied !== 1) {
     throw new Error(`[FAIL-FAST] Gacha replay ${identity.key} is not applied`);
   }
-  if (stored.user_id !== identity.userId || stored.operation !== identity.operation) {
+  if (
+    stored.user_id !== identity.userId ||
+    stored.operation !== identity.operation ||
+    stored.request_json !== identity.requestJson
+  ) {
     return { kind: 'conflict' };
   }
 
@@ -97,15 +103,15 @@ export async function readGachaReplay<TResponse>(
 
 function createClaimStatement(
   db: D1Database,
-  input: Pick<ReplayIdentity<unknown>, 'key' | 'operation' | 'userId'>,
+  input: Pick<ReplayIdentity<unknown>, 'key' | 'operation' | 'userId' | 'requestJson'>,
   claimId: string,
   responseJson: string,
 ): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO idempotency_keys (
-         key, user_id, claim_id, operation, is_applied, response, created_at
-       ) VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6)
+         key, user_id, claim_id, operation, is_applied, response, created_at, request_json
+       ) VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6, ?7)
        ON CONFLICT (key) DO NOTHING`,
     )
     .bind(
@@ -115,6 +121,7 @@ function createClaimStatement(
       input.operation,
       responseJson,
       new Date().toISOString(),
+      input.requestJson,
     );
 }
 

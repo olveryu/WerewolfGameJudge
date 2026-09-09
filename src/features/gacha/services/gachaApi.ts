@@ -32,9 +32,9 @@ export async function fetchGachaStatus(signal?: AbortSignal): Promise<GachaStatu
 /** Performs a draw (idempotent: retrying with the same idempotencyKey returns the same result) */
 export async function performDraw(
   drawType: 'normal' | 'golden',
-  count: number = 1,
+  count: number,
+  idempotencyKey: string,
 ): Promise<DrawResponse> {
-  const idempotencyKey = crypto.randomUUID();
   return cfPost('/api/gacha/draw', { drawType, count, idempotencyKey }, parseGachaDrawResponse);
 }
 
@@ -44,7 +44,9 @@ export async function claimDailyReward(): Promise<DailyRewardResponse> {
 }
 
 /** Exchanges shards for the specified item (idempotent: retrying with the same idempotencyKey returns the same result) */
-export async function exchangeShard(rewardId: string): Promise<ExchangeResponse> {
-  const idempotencyKey = crypto.randomUUID();
+export async function exchangeShard(
+  rewardId: string,
+  idempotencyKey: string,
+): Promise<ExchangeResponse> {
   return cfPost('/api/gacha/exchange', { rewardId, idempotencyKey }, parseGachaExchangeResponse);
 }

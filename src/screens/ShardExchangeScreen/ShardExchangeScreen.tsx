@@ -23,12 +23,14 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
+import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
   useExchangeShardMutation,
   useGachaStatusQuery,
+  usePendingGachaOperation,
 } from '@/features/gacha/queries/useGachaQuery';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { RootStackParamList } from '@/navigation/types';
@@ -93,6 +95,7 @@ const PREVIEW_SIZE = 56;
   const { data: gachaStatus, isLoading: gachaLoading } = useGachaStatusQuery();
   const { data: statsData, isLoading: statsLoading } = useUserStatsQuery();
   const { mutate: exchange, isPending: isExchanging } = useExchangeShardMutation();
+  const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
   const productUi = useClientProductUi();
 
   const [activeTab, setActiveTab] = useState<TypeTab>('avatar');
@@ -252,6 +255,27 @@ const PREVIEW_SIZE = 56;
         }
       />
 
+      {pendingOperation !== null && (
+        <Button
+          onPress={() => {
+            if (isExchanging) return;
+            if (!confirmRecovery()) return;
+            if (pendingOperation.request.operation === 'draw') {
+              navigation.navigate('Gacha');
+            } else {
+              exchange(pendingOperation.request.rewardId, {
+                onSuccess: () => toast.success('兑换成功'),
+                onError: (error) => {
+                  handleError(error, { label: '恢复兑换', logger: gachaLog, feedback: false });
+                  toast.error(error.message);
+                },
+              });
+            }
+          }}
+        >
+          恢复待确认操作
+        </Button>
+      )}
       {/* Type tabs */}
       <View style={styles.tabBar}>
         {TABS.map((tab) => {

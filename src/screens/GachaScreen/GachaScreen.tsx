@@ -32,6 +32,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useDrawMutation, useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { usePendingGachaOperation } from '@/features/gacha/queries/useGachaQuery';
 import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
@@ -64,6 +65,7 @@ export function GachaScreen({ navigation }: Props) {
   const isAnon = !user || user.isAnonymous;
   const { data: status, isLoading } = useGachaStatusQuery();
   const { mutate: draw, isPending: isDrawPending } = useDrawMutation();
+  const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
 
   const machineRef = useRef<CapsuleMachineRef>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -287,6 +289,20 @@ export function GachaScreen({ navigation }: Props) {
       <View
         style={[styles.bottomPanel, { paddingBottom: Math.max(insets.bottom, spacing.medium) }]}
       >
+        {pendingOperation !== null && (
+          <Button
+            onPress={() => {
+              if (!confirmRecovery()) return;
+              if (pendingOperation.request.operation === 'draw') {
+                handleDraw(pendingOperation.request.drawType, pendingOperation.request.count);
+              } else {
+                navigation.navigate('ShardExchange', undefined);
+              }
+            }}
+          >
+            恢复待确认操作
+          </Button>
+        )}
         {/* Tab bar: shows both ticket counts */}
         <TicketTabBar
           activeTab={activeTab}

@@ -114,12 +114,14 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
   const { drawType, count, idempotencyKey } = c.req.valid('json');
+  const requestJson = JSON.stringify({ drawType, count });
   log.info('draw request', { userId, drawType, count });
 
   const cached = await readGachaReplay(c.env.DB, {
     userId,
     key: idempotencyKey,
     operation: 'draw',
+    requestJson,
     decodeResponse: parseGachaDrawResponse,
   });
   if (cached.kind === 'conflict') {
@@ -223,6 +225,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     });
     const committed = await commitGachaDraw(c.env.DB, {
       userId,
+      requestJson,
       key: idempotencyKey,
       drawType,
       expectedVersion: stats.version,
@@ -351,12 +354,14 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
   const { rewardId, idempotencyKey } = c.req.valid('json');
+  const requestJson = JSON.stringify({ rewardId });
   log.info('exchange request', { userId, rewardId });
 
   const cached = await readGachaReplay(c.env.DB, {
     userId,
     key: idempotencyKey,
     operation: 'exchange',
+    requestJson,
     decodeResponse: parseGachaExchangeResponse,
   });
   if (cached.kind === 'conflict') {
@@ -416,6 +421,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
     });
     const committed = await commitGachaExchange(c.env.DB, {
       userId,
+      requestJson,
       key: idempotencyKey,
       expectedVersion: stats.version,
       cost,

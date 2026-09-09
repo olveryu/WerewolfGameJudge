@@ -36,6 +36,7 @@ export const idempotencyKeys = sqliteTable(
     operation: text('operation', { enum: GACHA_MUTATION_OPERATIONS }).notNull(),
     isApplied: integer('is_applied').notNull(),
     response: text('response').notNull(),
+    requestJson: text('request_json'),
     createdAt: text('created_at').notNull(),
   },
   (table) => [

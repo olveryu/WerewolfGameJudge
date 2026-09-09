@@ -60,11 +60,13 @@ describe('gachaApi response contracts', () => {
     });
 
     await expect(fetchGachaStatus()).resolves.toMatchObject({ normalDraws: 3 });
-    await expect(performDraw('normal')).resolves.toMatchObject({
+    await expect(performDraw('normal', 1, 'draw-key')).resolves.toMatchObject({
       results: [{ rewardId: reward.id }],
     });
     await expect(claimDailyReward()).resolves.toEqual({ claimed: false, reason: 'cooldown' });
-    await expect(exchangeShard(reward.id)).resolves.toMatchObject({ rewardId: reward.id });
+    await expect(exchangeShard(reward.id, 'exchange-key')).resolves.toMatchObject({
+      rewardId: reward.id,
+    });
   });
 
   it('rejects a reward unknown to the active product catalog', async () => {
@@ -84,6 +86,6 @@ describe('gachaApi response contracts', () => {
       remaining: { normalDraws: 0, goldenDraws: 0 },
     });
 
-    await expect(performDraw('normal')).rejects.toThrow('registered reward ID');
+    await expect(performDraw('normal', 1, 'draw-key')).rejects.toThrow('registered reward ID');
   });
 });

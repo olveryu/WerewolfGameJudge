@@ -11,6 +11,9 @@ export const ROOM_CREATION_INTENTS_KEY = '@room_creation_intents';
 /** Confirmed room commands awaiting one authoritative decision. */
 export const ROOM_COMMAND_RECOVERY_KEY = '@room_command_recovery';
 
+/** Pending asset operations partitioned by authenticated user. */
+export const GACHA_OPERATION_KEY = '@gacha_operation';
+
 /** Persisted product-level user settings JSON. */
 export const USER_SETTINGS_KEY = '@user_settings';
 

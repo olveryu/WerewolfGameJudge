@@ -20,14 +20,18 @@ async function mintToken(userId: string): Promise<string> {
     .sign(new TextEncoder().encode(env.JWT_SECRET));
 }
 
-async function draw(token: string, idempotencyKey: string = IDEMPOTENCY_KEY): Promise<Response> {
+async function draw(
+  token: string,
+  idempotencyKey: string = IDEMPOTENCY_KEY,
+  count: number = 1,
+): Promise<Response> {
   return SELF.fetch('https://test.local/api/gacha/draw', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ drawType: 'normal', count: 1, idempotencyKey }),
+    body: JSON.stringify({ drawType: 'normal', count, idempotencyKey }),
   });
 }
 
@@ -50,8 +54,8 @@ async function storeRawReplay(input: {
 }): Promise<void> {
   await env.DB.prepare(
     `INSERT INTO idempotency_keys (
-       key, user_id, claim_id, operation, is_applied, response, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+       key, user_id, claim_id, operation, is_applied, response, created_at, request_json
+     ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)`,
   )
     .bind(
       IDEMPOTENCY_KEY,
@@ -60,6 +64,9 @@ async function storeRawReplay(input: {
       input.operation ?? 'draw',
       input.isApplied ?? 1,
       input.response,
+      input.operation === 'exchange'
+        ? JSON.stringify({ rewardId: 'avenger' })
+        : JSON.stringify({ drawType: 'normal', count: 1 }),
     )
     .run();
 }
@@ -117,6 +124,26 @@ beforeEach(async () => {
 });
 
 describe('gacha idempotency replay', () => {
+  it('rejects changed draw parameters without another debit', async () => {
+    await seedStats(USER_ID);
+    const token = await mintToken(USER_ID);
+    expect((await draw(token)).status).toBe(200);
+    expect((await draw(token, IDEMPOTENCY_KEY, 2)).status).toBe(409);
+    await expect(readMutationCounts(USER_ID)).resolves.toEqual({
+      normal_draws: 4,
+      version: 1,
+      history_count: 1,
+      ledger_count: 1,
+    });
+  });
+
+  it('retains legacy receipts but refuses unverifiable parameter replay', async () => {
+    await storeReplay(USER_ID, {});
+    await env.DB.prepare('UPDATE idempotency_keys SET request_json = NULL WHERE key = ?')
+      .bind(IDEMPOTENCY_KEY)
+      .run();
+    expect((await draw(await mintToken(USER_ID))).status).toBe(409);
+  });
   it('returns a schema-validated replay owned by the authenticated user', async () => {
     const reward = REWARD_POOL_BY_ID.get('avenger');
     if (reward === undefined) throw new Error('Expected avenger reward fixture');
