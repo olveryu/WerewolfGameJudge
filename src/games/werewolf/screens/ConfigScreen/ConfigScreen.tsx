@@ -11,7 +11,7 @@ import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -138,6 +138,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     toggleRole,
     handleClearSelection,
     rules,
+    handleSheriffElectionChange,
     handleOpenGameRules,
     selectedTemplateLabel,
     roleInfoId,
@@ -155,7 +156,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     getFactionAccentColor,
   } = state;
 
-  const activeRuleCount = useMemo(() => Object.values(rules).filter(Boolean).length, [rules]);
+  const activeRuleCount = [rules.witchCanSelfHeal, rules.isPlagueMode].filter(Boolean).length;
 
   return (
     <SafeAreaView
@@ -281,6 +282,22 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
         <Text style={styles.cardBFooterHint}>
           点击顶部板子名可重新选板{'\n'}点击增减角色 · 长按查看技能 · 粗边框可切换变体
         </Text>
+        {!isNominateMode && (
+          <View style={rulesEntryStyles.container}>
+            <Ionicons name="people-outline" size={componentSizes.icon.sm} color={colors.primary} />
+            <Text style={rulesEntryStyles.label}>首日警长竞选</Text>
+            <Switch
+              testID={TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')}
+              accessibilityLabel="首日警长竞选"
+              value={rules.isSheriffElectionEnabled === true}
+              onValueChange={(isSheriffElectionEnabled) => {
+                void handleSheriffElectionChange(isSheriffElectionEnabled);
+              }}
+              trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
+              thumbColor={rules.isSheriffElectionEnabled ? colors.primary : colors.textSecondary}
+            />
+          </View>
+        )}
         {/* Game Rules Entry (hidden in nominate mode only) */}
         {!isNominateMode && (
           <TouchableOpacity

@@ -119,7 +119,9 @@ export function useConfigScreenState({
     () => presetInitial?.variantOverrides ?? {},
   );
   const [rules, setRules] = useState<GameRuleOverrides>(() =>
-    isEditMode || isNominateMode ? {} : { isSheriffElectionEnabled: true },
+    isEditMode || isNominateMode
+      ? {}
+      : { isSheriffElectionEnabled: settingsService.isSheriffElectionEnabled() },
   );
 
   const totalCount = useMemo(
@@ -251,10 +253,13 @@ export function useConfigScreenState({
     });
   }, [navigation, rules, existingRoomCode, nominateMode]);
 
-  /** Update rules when returning from GameRulesScreen */
-  const updateRules = useCallback((newRules: GameRuleOverrides) => {
-    setRules(newRules);
-  }, []);
+  const handleSheriffElectionChange = useCallback(
+    async (isSheriffElectionEnabled: boolean) => {
+      setRules((prev) => ({ ...prev, isSheriffElectionEnabled }));
+      await settingsService.setSheriffElectionEnabled(isSheriffElectionEnabled);
+    },
+    [settingsService],
+  );
 
   const { createRoom, isCreating: isRoomCreating } = useRoomCreationController();
   const handleCreateRoom = useCallback(async () => {
@@ -565,7 +570,7 @@ export function useConfigScreenState({
     // Game rules
     rules,
     handleOpenGameRules,
-    updateRules,
+    handleSheriffElectionChange,
 
     // Template
     selectedTemplateLabel,

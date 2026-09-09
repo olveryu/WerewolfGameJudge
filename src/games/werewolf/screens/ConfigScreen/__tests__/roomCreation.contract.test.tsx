@@ -7,14 +7,17 @@
  */
 
 import type { GameRuleOverrides } from '@game-judge/game-engine/games/werewolf/public';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
 import type { RoomCreationRequest, RoomRecord } from '@/features/room/model/RoomDirectory';
+import { SettingsService } from '@/features/settings/services/SettingsService';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+import { TESTIDS } from '@/testids';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -28,7 +31,12 @@ jest.mock('@/features/room/controllers/useRoomCreationController', () => ({
 // Mock navigation
 const mockNavigate = jest.fn();
 const mockOnRoomCreated = jest.fn();
-let mockRouteParams: { presetName: string; updatedRules?: GameRuleOverrides } = {
+let mockSettingsService: SettingsService;
+let mockRouteParams: {
+  presetName?: string;
+  existingRoomCode?: string;
+  updatedRules?: GameRuleOverrides;
+} = {
   presetName: '预女猎白',
 };
 jest.mock('@react-navigation/native', () => ({
@@ -83,8 +91,7 @@ const createMockClient = (): WerewolfGameClient => {
   } as unknown as WerewolfGameClient;
 };
 
-function renderConfigScreen() {
-  const mockClient = createMockClient();
+function renderConfigScreen(mockClient = createMockClient()) {
   return render(
     <ConfigScreen
       client={mockClient}
@@ -99,6 +106,7 @@ describe('Room creation → navigation roomCode contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRouteParams = { presetName: '预女猎白' };
+    mockSettingsService = new SettingsService();
 
     // Mutation mock returns the room code allocated by the server saga.
     mockCreateRoom.mockResolvedValue({
@@ -114,14 +122,7 @@ describe('Room creation → navigation roomCode contract', () => {
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
       },
-      settingsService: {
-        load: jest.fn().mockResolvedValue(undefined),
-        setBgmEnabled: jest.fn().mockResolvedValue(undefined),
-        isBgmEnabled: jest.fn().mockReturnValue(true),
-        getBgmTrack: jest.fn().mockReturnValue('random'),
-        toggleBgm: jest.fn(),
-        addListener: jest.fn().mockReturnValue(jest.fn()),
-      },
+      settingsService: mockSettingsService,
       audioService: {
         startBgm: jest.fn().mockResolvedValue(undefined),
         stopBgm: jest.fn(),
@@ -156,20 +157,102 @@ describe('Room creation → navigation roomCode contract', () => {
     expect(createRequest).not.toHaveProperty('initialState');
   });
 
-  it('serializes an explicitly disabled sheriff election', async () => {
+  it('submits the independent sheriff switch without changing mode and role rules', async () => {
     mockRouteParams = {
       presetName: '预女猎白',
-      updatedRules: { isSheriffElectionEnabled: false },
+      updatedRules: {
+        isSheriffElectionEnabled: true,
+        witchCanSelfHeal: true,
+        isPlagueMode: true,
+      },
     };
-    const { getByText } = renderConfigScreen();
+    const { getByText, getByTestId } = renderConfigScreen();
+    const sheriffSwitch = getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled'));
+    const rulesEntry = within(getByTestId(TESTIDS.configGameRulesButton));
 
+    expect(sheriffSwitch.props.value).toBe(true);
+    expect(rulesEntry.getByText('2')).toBeTruthy();
+    fireEvent(sheriffSwitch, 'valueChange', false);
+    expect(getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value).toBe(false);
+    expect(rulesEntry.getByText('2')).toBeTruthy();
+
+    expect(mockSettingsService.isSheriffElectionEnabled()).toBe(false);
     fireEvent.press(getByText('创建房间'));
+
+    await waitFor(() => expect(mockCreateRoom).toHaveBeenCalledTimes(1));
+    expect(mockCreateRoom.mock.calls[0]?.[0].config.rules).toEqual({
+      isSheriffElectionEnabled: false,
+      witchCanSelfHeal: true,
+      isPlagueMode: true,
+    });
+  });
+
+  it('remembers the switch immediately for the next new room without remembering other rules', async () => {
+    mockRouteParams = {
+      presetName: '预女猎白',
+      updatedRules: { isSheriffElectionEnabled: true, witchCanSelfHeal: true, isPlagueMode: true },
+    };
+    const screen = renderConfigScreen();
+
+    fireEvent(
+      screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')),
+      'valueChange',
+      false,
+    );
+    expect(mockSettingsService.isSheriffElectionEnabled()).toBe(false);
+    expect(mockCreateRoom).not.toHaveBeenCalled();
+    screen.unmount();
+
+    mockRouteParams = { presetName: '预女猎白' };
+    const nextScreen = renderConfigScreen();
+    expect(
+      nextScreen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value,
+    ).toBe(false);
+    fireEvent.press(nextScreen.getByText('创建房间'));
 
     await waitFor(() => expect(mockCreateRoom).toHaveBeenCalledTimes(1));
     expect(mockCreateRoom.mock.calls[0]?.[0].config.rules).toEqual({
       isSheriffElectionEnabled: false,
     });
   });
+
+  it.each([true, false])(
+    'uses the existing room sheriff setting %s instead of the local preference',
+    async (isSheriffElectionEnabled) => {
+      await mockSettingsService.setSheriffElectionEnabled(!isSheriffElectionEnabled);
+      const state = buildWerewolfTestState({ rules: { isSheriffElectionEnabled } });
+      const mockClient = createMockClient();
+      const snapshot = {
+        phase: 'ready' as const,
+        epoch: 1,
+        identity: {
+          room: {
+            roomCode: state.roomCode,
+            roomId: 'room-id-1234',
+            gameType: 'werewolf' as const,
+            hostUserId: state.hostUserId,
+            createdAt: new Date(),
+          },
+          userId: state.hostUserId,
+        },
+        connection: 'live' as const,
+        pendingCommandCount: 0,
+        lastRecoveredCommandRejection: null,
+        snapshot: createRoomSnapshot(state, 1),
+        lastCommand: null,
+        error: null,
+      };
+      jest.spyOn(mockClient.roomSession, 'getSnapshot').mockReturnValue(snapshot);
+      mockRouteParams = { existingRoomCode: state.roomCode };
+
+      const screen = renderConfigScreen(mockClient);
+
+      expect(
+        screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value,
+      ).toBe(isSheriffElectionEnabled);
+      expect(mockSettingsService.isSheriffElectionEnabled()).toBe(!isSheriffElectionEnabled);
+    },
+  );
 
   it('should NOT navigate when createRoomRecord fails', async () => {
     // Simulate DB creation failure

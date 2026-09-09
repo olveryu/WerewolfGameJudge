@@ -460,6 +460,8 @@ jest.mock('./src/contexts/ServiceContext', () => {
     },
     settingsService: {
       load: jest.fn().mockResolvedValue(undefined),
+      isSheriffElectionEnabled: jest.fn().mockReturnValue(true),
+      setSheriffElectionEnabled: jest.fn().mockResolvedValue(undefined),
       isBgmEnabled: jest.fn().mockReturnValue(true),
       toggleBgm: jest.fn().mockResolvedValue(false),
       getBgmTrack: jest.fn().mockReturnValue('random'),

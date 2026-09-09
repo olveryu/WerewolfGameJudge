@@ -15,7 +15,7 @@ jest.mock('@react-navigation/native', () => ({
   }),
   useRoute: () => ({
     params: {
-      rules: { isSheriffElectionEnabled: true },
+      rules: { isSheriffElectionEnabled: false },
     },
   }),
 }));
@@ -25,19 +25,15 @@ describe('GameRulesScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('shows the default-enabled sheriff election and returns an explicit false override', () => {
+  it('only shows mode and role controls while preserving the sheriff election setting', () => {
     const screen = render(<GameRulesScreen />);
-    const sheriffSwitch = screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled'));
-
-    expect(sheriffSwitch.props.value).toBe(true);
-    fireEvent(sheriffSwitch, 'valueChange', false);
-    expect(screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value).toBe(
-      false,
-    );
+    expect(screen.queryByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled'))).toBeNull();
+    expect(screen.getByTestId(TESTIDS.gameRuleSwitch('isPlagueMode')).props.value).toBe(false);
+    fireEvent(screen.getByTestId(TESTIDS.gameRuleSwitch('witchCanSelfHeal')), 'valueChange', true);
 
     fireEvent.press(screen.getByText('完成'));
     expect(mockPopTo).toHaveBeenCalledWith('Config', {
-      updatedRules: { isSheriffElectionEnabled: false },
+      updatedRules: { isSheriffElectionEnabled: false, witchCanSelfHeal: true },
     });
   });
 });

@@ -53,6 +53,38 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('isSheriffElectionEnabled', () => {
+    it('defaults to enabled when no sheriff preference has been saved', async () => {
+      jest.mocked(storage.getString).mockReturnValue(JSON.stringify({ bgmEnabled: false }));
+
+      await service.load();
+
+      expect(service.isSheriffElectionEnabled()).toBe(true);
+    });
+
+    it.each([false, true])(
+      'persists and reloads the choice %s',
+      async (isSheriffElectionEnabled) => {
+        await service.load();
+        await service.setSheriffElectionEnabled(isSheriffElectionEnabled);
+
+        expect(service.isSheriffElectionEnabled()).toBe(isSheriffElectionEnabled);
+        const persistedSettings = jest.mocked(storage.set).mock.calls.at(-1)![1];
+        if (typeof persistedSettings !== 'string')
+          throw new Error('Expected persisted JSON settings');
+        expect(storage.set).toHaveBeenLastCalledWith(
+          USER_SETTINGS_KEY,
+          expect.stringContaining(`"isSheriffElectionEnabled":${isSheriffElectionEnabled}`),
+        );
+        jest.mocked(storage.getString).mockReturnValue(persistedSettings);
+        service = new SettingsService();
+        await service.load();
+
+        expect(service.isSheriffElectionEnabled()).toBe(isSheriffElectionEnabled);
+      },
+    );
+  });
+
   describe('gameAudioVolume', () => {
     it('clamps and persists foreground game audio volume', async () => {
       await service.setGameAudioVolume(2);

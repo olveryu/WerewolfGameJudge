@@ -70,16 +70,6 @@ const MODE_RULES: RuleItemConfig[] = [
   },
 ];
 
-const FLOW_RULES: RuleItemConfig[] = [
-  {
-    key: 'isSheriffElectionEnabled',
-    icon: 'people-outline',
-    iconColor: colors.primary,
-    label: '首日警长竞选',
-    description: '首夜结束后，由房主推进上警、发言、退水和投票流程',
-  },
-];
-
 const ROLE_RULES: RuleItemConfig[] = [
   {
     key: 'witchCanSelfHeal',
@@ -176,9 +166,6 @@ export const GameRulesScreen: FC = () => {
         {/* Game Modes section */}
         <Text style={styles.sectionHeader}>游戏模式</Text>
         {MODE_RULES.map(renderRuleItem)}
-
-        <Text style={styles.sectionHeader}>流程规则</Text>
-        {FLOW_RULES.map(renderRuleItem)}
 
         {/* Role Rules section */}
         <Text style={styles.sectionHeader}>角色规则</Text>

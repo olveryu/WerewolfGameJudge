@@ -2,7 +2,7 @@
  * SettingsService — user settings persistence service.
  *
  * Responsibilities:
- * - Persist user preferences (audio / animation, etc.) using MMKV
+ * - Persist user preferences (audio / room creation defaults) using MMKV
  * - All settings stored as a JSON object under a single key
  * - Provide default-value merging and type-safe read/write
  *
@@ -32,6 +32,8 @@ const MIN_VOLUME = 0;
 const MAX_VOLUME = 1;
 
 interface UserSettings {
+  /** Default sheriff election choice for new Werewolf rooms. */
+  isSheriffElectionEnabled: boolean;
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
   /** Selected BGM track or 'random' for shuffle playlist (default: 'random') */
@@ -43,6 +45,7 @@ interface UserSettings {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
+  isSheriffElectionEnabled: true,
   bgmEnabled: true,
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
@@ -91,6 +94,11 @@ function parsePersistedSettings(value: unknown): UserSettings {
   }
 
   return {
+    isSheriffElectionEnabled: readPersistedBoolean(
+      Reflect.get(value, 'isSheriffElectionEnabled'),
+      'isSheriffElectionEnabled',
+      DEFAULT_SETTINGS.isSheriffElectionEnabled,
+    ),
     bgmEnabled: readPersistedBoolean(
       Reflect.get(value, 'bgmEnabled'),
       'bgmEnabled',
@@ -111,7 +119,7 @@ function parsePersistedSettings(value: unknown): UserSettings {
 }
 
 /**
- * SettingsService — user settings management (BGM / volume / track).
+ * SettingsService — user preferences for audio and room creation defaults.
  *
  * Responsibilities: MMKV read/write + in-memory cache + change listeners.
  */
@@ -163,6 +171,17 @@ export class SettingsService {
         isExpected: isExpectedStorageError,
       });
     }
+  }
+
+  /** Get the sheriff election preference for new Werewolf rooms. */
+  isSheriffElectionEnabled(): boolean {
+    return this.#settings.isSheriffElectionEnabled;
+  }
+
+  /** Persist the sheriff election preference without changing any room state. */
+  async setSheriffElectionEnabled(isSheriffElectionEnabled: boolean): Promise<void> {
+    this.#settings.isSheriffElectionEnabled = isSheriffElectionEnabled;
+    await this.#save();
   }
 
   /**
