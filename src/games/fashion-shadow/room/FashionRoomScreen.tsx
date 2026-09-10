@@ -28,8 +28,8 @@ import { useFashionAudioFeedback } from '@/games/fashion-shadow/audio/useFashion
 import { FashionBackdrop } from '@/games/fashion-shadow/components/FashionBackdrop';
 import { FashionButton as Button } from '@/games/fashion-shadow/components/FashionButton';
 import { FashionContractCard } from '@/games/fashion-shadow/components/FashionContractCard';
-import { FashionCountdown } from '@/games/fashion-shadow/components/FashionCountdown';
 import { FashionCrossExamAwardBanner } from '@/games/fashion-shadow/components/FashionCrossExamAwardBanner';
+import { FashionCrossExamTimedControls } from '@/games/fashion-shadow/components/FashionCrossExamTimedControls';
 import { FashionCrossExamTranscript } from '@/games/fashion-shadow/components/FashionCrossExamTranscript';
 import { FashionDiscussionFeed } from '@/games/fashion-shadow/components/FashionDiscussionFeed';
 import { FashionEventCard } from '@/games/fashion-shadow/components/FashionEventCard';
@@ -212,7 +212,6 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
   const humanCount = occupiedCount - botCount;
   const seatCommands = useFashionSeatCommands({ session, user });
   const { isSubmitting, submit } = useRoomCommandSubmission(getFashionRoomCommandFailureMessage);
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const [tutorialCompleted, setTutorialCompleted] = useState(() =>
     hasCompletedFashionTutorial(user.id),
   );
@@ -251,14 +250,6 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
     }
   }, [mySeat, state.phase, state.winners]);
 
-  useEffect(() => {
-    if (state.phase !== 'crossExamination' || state.interrogation === null) return undefined;
-    const updateNow = () => setNowMs(Date.now());
-    updateNow();
-    const timer = setInterval(updateNow, 1000);
-    return () => clearInterval(timer);
-  }, [state.interrogation, state.phase]);
-
   const submitCommand = useCallback(
     (label: string, command: FashionPublicCommand): Promise<boolean> =>
       submit(label, () => session.dispatch(command, { controlledSeat: null, label })),
@@ -266,8 +257,6 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
   );
 
   const round = FASHION_ROUND_BY_NUMBER[state.currentRound];
-  const remainingMs =
-    state.interrogation === null ? 0 : Math.max(0, state.interrogation.endsAt - nowMs);
   const hasConfirmedRole = mySeat !== null && state.roleConfirmedSeats.includes(mySeat);
   const hasVoted = mySeat !== null && state.votedSeats.includes(mySeat);
   const hasFinalVoted = mySeat !== null && state.finalVotedSeats.includes(mySeat);
@@ -428,8 +417,28 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
         );
       case 'crossExamination':
         return (
-          <View style={styles.actions}>
-            <FashionCountdown remainingMs={remainingMs} match={state.interrogation?.match ?? 1} />
+          <FashionCrossExamTimedControls
+            state={state}
+            mySeat={mySeat}
+            isHost={isHost}
+            hasBots={hasBots}
+            isSubmitting={isSubmitting}
+            onFinish={() =>
+              void submitCommand('结束交叉质询', { type: 'fashion.crossExam.finish' })
+            }
+            onSend={(message, evidenceId) =>
+              evidenceId === undefined
+                ? submitCommand('记录交叉质询论点', {
+                    type: 'fashion.crossExam.statement',
+                    message,
+                  })
+                : submitCommand('记录交叉质询论点', {
+                    type: 'fashion.crossExam.statement',
+                    message,
+                    evidenceId,
+                  })
+            }
+          >
             <Text style={styles.statusText}>
               {state.interrogation === null
                 ? '质询状态同步中'
@@ -465,43 +474,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 你本组作为旁听陪审团，记录双方论点，稍后参与最佳攻防评选。
               </Text>
             )}
-            <FashionCrossExamTranscript
-              state={state}
-              mySeat={mySeat}
-              mode="live"
-              remainingMs={remainingMs}
-              isSubmitting={isSubmitting}
-              onSend={(message, evidenceId) =>
-                evidenceId === undefined
-                  ? submitCommand('记录交叉质询论点', {
-                      type: 'fashion.crossExam.statement',
-                      message,
-                    })
-                  : submitCommand('记录交叉质询论点', {
-                      type: 'fashion.crossExam.statement',
-                      message,
-                      evidenceId,
-                    })
-              }
-            />
-            {isHost ? (
-              <Button
-                variant="primary"
-                onPress={() =>
-                  void submitCommand('结束交叉质询', { type: 'fashion.crossExam.finish' })
-                }
-                disabled={(remainingMs > 0 && !hasBots) || isSubmitting}
-              >
-                {state.interrogation?.match === 1
-                  ? hasBots && remainingMs > 0
-                    ? '体验模式：立即进入第 2 组'
-                    : '时间结束，进入第 2 组'
-                  : hasBots && remainingMs > 0
-                    ? '体验模式：立即进入讨论与评选'
-                    : '两组完成，进入讨论与评选'}
-              </Button>
-            ) : null}
-          </View>
+          </FashionCrossExamTimedControls>
         );
       case 'discussion':
         return (

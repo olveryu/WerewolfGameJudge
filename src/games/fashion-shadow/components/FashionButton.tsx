@@ -3,6 +3,7 @@ import type React from 'react';
 import type { ComponentProps } from 'react';
 
 import { Button } from '@/components/Button';
+import { componentSizes, fixed } from '@/theme';
 import { fashionShadowColors } from '@/theme/fashionShadowColors';
 
 type FashionButtonProps = ComponentProps<typeof Button>;
@@ -32,6 +33,11 @@ export const FashionButton: React.FC<FashionButtonProps> = (props) => {
       : variant === 'secondary'
         ? { backgroundColor: fashionShadowColors.surfaceRaised }
         : undefined;
+  const hitSlop =
+    props.hitSlop ??
+    (props.size === 'sm'
+      ? Math.max(0, (fixed.minTouchTarget - componentSizes.button.sm) / 2)
+      : undefined);
 
   return (
     <Button
@@ -40,6 +46,7 @@ export const FashionButton: React.FC<FashionButtonProps> = (props) => {
       buttonColor={resolvedButtonColor}
       textColor={resolvedTextColor}
       style={[fashionStyle, props.style]}
+      hitSlop={hitSlop}
     />
   );
 };

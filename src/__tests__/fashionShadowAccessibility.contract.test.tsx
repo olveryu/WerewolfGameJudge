@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import { render } from '@testing-library/react-native';
 
+import { FashionButton } from '@/games/fashion-shadow/components/FashionButton';
 import { FashionVoteProgress } from '@/games/fashion-shadow/components/FashionVoteProgress';
+import { componentSizes, fixed } from '@/theme';
 
 const FASHION_COMPONENTS_ROOT = path.resolve(__dirname, '../games/fashion-shadow/components');
 const REANIMATED_MOTION_PATTERN = /\b(?:withTiming|withSequence|withRepeat|withSpring|FadeIn)\b/;
@@ -17,6 +19,22 @@ function getFashionComponentFiles(): string[] {
 }
 
 describe('Fashion Shadow accessibility contracts', () => {
+  it('expands small Fashion Shadow controls to a full mobile touch target', () => {
+    const { getByTestId } = render(
+      <FashionButton
+        testID="small-action"
+        size="sm"
+        onPress={jest.fn()}
+        accessibilityLabel="选择"
+      />,
+    );
+
+    expect(getByTestId('small-action')).toHaveProp(
+      'hitSlop',
+      Math.max(0, (fixed.minTouchTarget - componentSizes.button.sm) / 2),
+    );
+  });
+
   it('marks vote submission count as an accessible progress value', () => {
     const { getByLabelText } = render(<FashionVoteProgress submitted={3} label="调查票提交进度" />);
 

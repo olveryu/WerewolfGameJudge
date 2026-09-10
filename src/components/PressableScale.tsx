@@ -10,7 +10,12 @@
 import type React from 'react';
 import { memo, useCallback, useMemo } from 'react';
 import { type AccessibilityState, Pressable, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { triggerHaptic } from '@/utils/haptics';
 
@@ -35,6 +40,7 @@ interface PressableScaleBaseProps {
   accessibilityHint?: string;
   accessibilityRole?: 'button' | 'link' | 'tab';
   accessibilityState?: AccessibilityState;
+  hitSlop?: number;
 }
 
 type PressableScaleProps = PressableScaleBaseProps &
@@ -61,7 +67,9 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   accessibilityHint,
   accessibilityRole = 'button',
   accessibilityState,
+  hitSlop,
 }) => {
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -70,12 +78,12 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(activeScale, SPRING_CONFIG);
-  }, [activeScale, scale]);
+    scale.value = reducedMotion ? 1 : withSpring(activeScale, SPRING_CONFIG);
+  }, [activeScale, reducedMotion, scale]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, SPRING_CONFIG);
-  }, [scale]);
+    scale.value = reducedMotion ? 1 : withSpring(1, SPRING_CONFIG);
+  }, [reducedMotion, scale]);
 
   const handlePress = useMemo(() => {
     if (onPress === undefined) return undefined;
@@ -99,6 +107,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
       accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole}
       accessibilityState={accessibilityState ?? { disabled }}
+      hitSlop={hitSlop}
     >
       {children}
     </AnimatedPressable>

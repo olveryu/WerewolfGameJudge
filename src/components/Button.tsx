@@ -54,6 +54,7 @@ interface ButtonVisualProps {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityState?: AccessibilityState;
+  hitSlop?: number;
 }
 
 type ButtonProps = ButtonVisualProps &
@@ -128,6 +129,7 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
     accessibilityLabel,
     accessibilityHint,
     accessibilityState,
+    hitSlop,
   } = props;
   const isDisabled = disabled || loading;
   const isUnavailable = disabled && !loading;
@@ -292,6 +294,7 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
       accessibilityHint={accessibilityHint}
       accessibilityRole="button"
       accessibilityState={{ ...accessibilityState, disabled: isDisabled }}
+      hitSlop={hitSlop}
     >
       {useGradient && (
         <LinearGradient
