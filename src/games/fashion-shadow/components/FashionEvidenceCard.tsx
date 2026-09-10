@@ -5,12 +5,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 
 import { borderRadius, fixed, spacing, typography } from '@/theme';
 import { fashionShadowColors } from '@/theme/fashionShadowColors';
+
+import { useFashionCompactLayout } from './useFashionCompactLayout';
 
 type FashionEvidenceStatus = 'pending' | 'public' | 'destroyed';
 
@@ -37,13 +40,21 @@ export const FashionEvidenceCard: React.FC<FashionEvidenceCardProps> = ({
   implications,
   status,
 }) => {
+  const compactLayout = useFashionCompactLayout();
+  const reducedMotion = useReducedMotion();
   const reveal = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(reveal);
+    if (reducedMotion) {
+      reveal.value = 1;
+      return;
+    }
+
     reveal.value = 0;
     reveal.value = withTiming(1, { duration: 360 });
     return () => cancelAnimation(reveal);
-  }, [evidenceId, reveal, status]);
+  }, [evidenceId, reducedMotion, reveal, status]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: reveal.value,
@@ -54,10 +65,13 @@ export const FashionEvidenceCard: React.FC<FashionEvidenceCardProps> = ({
     <Animated.View
       style={[
         styles.card,
+        compactLayout ? styles.compactCard : null,
         status === 'public' ? styles.publicCard : null,
         status === 'destroyed' ? styles.destroyedCard : null,
         animatedStyle,
       ]}
+      accessible
+      accessibilityLabel={`${evidenceId} ${title}，${location}，状态：${statusLabel[status]}`}
     >
       <View style={styles.topRow}>
         <Text style={styles.id}>{evidenceId}</Text>
@@ -98,6 +112,7 @@ const styles = StyleSheet.create({
     padding: spacing.medium,
     gap: spacing.small,
   },
+  compactCard: { flexBasis: '100%', minWidth: '100%' },
   publicCard: {
     borderColor: fashionShadowColors.neonCyan,
     backgroundColor: fashionShadowColors.neonCyanSoft,

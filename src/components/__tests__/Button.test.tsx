@@ -62,6 +62,25 @@ describe('Button interaction contract', () => {
     expect(queryByType(LinearGradient)).toBeNull();
   });
 
+  it('forwards accessibility selection state and hint while owning disabled state', () => {
+    const { getByTestId } = render(
+      <Button
+        testID="choice"
+        onPress={jest.fn()}
+        accessibilityHint="选择当前选项"
+        accessibilityState={{ selected: true, disabled: true }}
+      >
+        选项
+      </Button>,
+    );
+
+    expect(getByTestId('choice')).toHaveProp('accessibilityHint', '选择当前选项');
+    expect(getByTestId('choice')).toHaveProp('accessibilityState', {
+      selected: true,
+      disabled: false,
+    });
+  });
+
   it('blocks every action while loading', () => {
     const onPress = jest.fn();
     const onDisabledPress = jest.fn();

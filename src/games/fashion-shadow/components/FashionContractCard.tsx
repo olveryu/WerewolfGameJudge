@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSequence,
   withTiming,
@@ -31,16 +32,23 @@ export const FashionContractCard: React.FC<FashionContractCardProps> = ({
   isSubmitting,
   onFulfill,
 }) => {
+  const reducedMotion = useReducedMotion();
   const stamp = useSharedValue(1);
 
   useEffect(() => {
+    cancelAnimation(stamp);
+    if (reducedMotion) {
+      stamp.value = 1;
+      return;
+    }
+
     stamp.value = 0.72;
     stamp.value = withSequence(
       withTiming(1.08, { duration: 180 }),
       withTiming(1, { duration: 220 }),
     );
     return () => cancelAnimation(stamp);
-  }, [contract.status, stamp]);
+  }, [contract.status, reducedMotion, stamp]);
 
   const stampStyle = useAnimatedStyle(() => ({ transform: [{ scale: stamp.value }] }));
   const isFulfilled = contract.status === 'fulfilled';

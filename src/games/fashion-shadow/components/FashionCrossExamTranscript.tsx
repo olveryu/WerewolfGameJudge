@@ -182,6 +182,8 @@ export const FashionCrossExamTranscript: React.FC<FashionCrossExamTranscriptProp
                   variant={selectedEvidenceId === null ? 'primary' : 'secondary'}
                   size="sm"
                   onPress={() => setSelectedEvidenceId(null)}
+                  accessibilityState={{ selected: selectedEvidenceId === null }}
+                  accessibilityHint="不在这条正式论点中附带证据引用"
                 >
                   不引用
                 </Button>
@@ -195,6 +197,8 @@ export const FashionCrossExamTranscript: React.FC<FashionCrossExamTranscriptProp
                       variant={selectedEvidenceId === evidenceId ? 'primary' : 'secondary'}
                       size="sm"
                       onPress={() => setSelectedEvidenceId(evidenceId)}
+                      accessibilityState={{ selected: selectedEvidenceId === evidenceId }}
+                      accessibilityHint={`将 ${evidenceId} 作为这条正式论点的证据引用`}
                     >
                       {evidenceId} · {suffix}
                       {evidence === undefined ? '' : ` · ${evidence.location}`}
@@ -213,6 +217,7 @@ export const FashionCrossExamTranscript: React.FC<FashionCrossExamTranscriptProp
               editable={!isSubmitting && remainingStatements > 0 && remainingMs > 0}
               style={styles.input}
               accessibilityLabel="交叉质询正式论点"
+              accessibilityHint={`最多 ${FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH} 字，提交后进入全员案件记录`}
             />
             <View style={styles.composerFooter}>
               <Text style={styles.hint}>
@@ -337,6 +342,7 @@ const styles = StyleSheet.create({
   },
   roleStrip: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.small,
@@ -362,6 +368,7 @@ const styles = StyleSheet.create({
   },
   composerFooter: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.small,

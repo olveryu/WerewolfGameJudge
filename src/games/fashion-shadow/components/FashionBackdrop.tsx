@@ -7,6 +7,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -17,10 +18,19 @@ import { borderRadius } from '@/theme';
 import { fashionShadowColors } from '@/theme/fashionShadowColors';
 
 export const FashionBackdrop: React.FC = () => {
+  const reducedMotion = useReducedMotion();
   const pulse = useSharedValue(0);
   const drift = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(pulse);
+    cancelAnimation(drift);
+    if (reducedMotion) {
+      pulse.value = 0.5;
+      drift.value = 0.5;
+      return;
+    }
+
     pulse.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.quad) }),
@@ -41,7 +51,7 @@ export const FashionBackdrop: React.FC = () => {
       cancelAnimation(pulse);
       cancelAnimation(drift);
     };
-  }, [drift, pulse]);
+  }, [drift, pulse, reducedMotion]);
 
   const pinkStyle = useAnimatedStyle(
     () => ({

@@ -12,6 +12,8 @@ import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { borderRadius, fixed, spacing, typography } from '@/theme';
 import { fashionShadowColors } from '@/theme/fashionShadowColors';
 
+import { useFashionCompactLayout } from './useFashionCompactLayout';
+
 const SETTLEMENT_ENTRY_DURATION_MS = 260;
 
 interface FashionSettlementBoardProps {
@@ -23,6 +25,7 @@ export const FashionSettlementBoard: React.FC<FashionSettlementBoardProps> = ({
   state,
   mySeat,
 }) => {
+  const compactLayout = useFashionCompactLayout();
   const accusedRoleId =
     state.finalAccusedSeat === null ? undefined : state.revealedRoles[state.finalAccusedSeat];
   const accusedOccupant =
@@ -38,6 +41,11 @@ export const FashionSettlementBoard: React.FC<FashionSettlementBoardProps> = ({
           styles.verdict,
           state.villainConvicted === true ? styles.verdictConvicted : styles.verdictNotConvicted,
         ]}
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={
+          state.villainConvicted === true ? '最终裁决：反派被定罪' : '最终裁决：未形成反派定罪'
+        }
       >
         <Text style={styles.verdictKicker}>FINAL VERDICT / 最终裁决</Text>
         <Text style={styles.verdictTitle}>
@@ -61,7 +69,7 @@ export const FashionSettlementBoard: React.FC<FashionSettlementBoardProps> = ({
         </Text>
       </View>
 
-      <View style={styles.headingRow}>
+      <View style={[styles.headingRow, compactLayout ? styles.headingRowCompact : null]}>
         <View style={styles.headingCopy}>
           <Text style={styles.eyebrow}>IDENTITY DECLASSIFIED</Text>
           <Text style={styles.title}>全员身份与个人目标</Text>
@@ -89,7 +97,9 @@ export const FashionSettlementBoard: React.FC<FashionSettlementBoardProps> = ({
                 isSelf ? styles.rowSelf : null,
               ]}
             >
-              <View style={styles.identityLine}>
+              <View
+                style={[styles.identityLine, compactLayout ? styles.identityLineCompact : null]}
+              >
                 <View style={styles.identityCopy}>
                   <Text style={styles.seatLabel}>
                     {seat + 1}号 · {occupant.profile.displayName}
@@ -100,6 +110,7 @@ export const FashionSettlementBoard: React.FC<FashionSettlementBoardProps> = ({
                 <View
                   style={[
                     styles.resultBadge,
+                    compactLayout ? styles.resultBadgeCompact : null,
                     didWin ? styles.resultBadgeWin : styles.resultBadgeLost,
                   ]}
                 >
@@ -186,6 +197,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.small,
   },
+  headingRowCompact: { flexDirection: 'column', alignItems: 'flex-start' },
   headingCopy: { flex: 1, gap: spacing.micro },
   eyebrow: {
     color: fashionShadowColors.neonPink,
@@ -222,6 +234,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.small,
   },
+  identityLineCompact: { flexDirection: 'column', alignItems: 'flex-start' },
   identityCopy: { flex: 1, gap: spacing.micro },
   seatLabel: {
     color: fashionShadowColors.textMuted,
@@ -240,6 +253,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.small,
     paddingVertical: spacing.tight,
   },
+  resultBadgeCompact: { alignSelf: 'flex-start' },
   resultBadgeWin: {
     borderColor: fashionShadowColors.success,
     backgroundColor: fashionShadowColors.successSoft,

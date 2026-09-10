@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSequence,
   withTiming,
@@ -23,16 +24,23 @@ export const FashionIdentityCard: React.FC<FashionIdentityCardProps> = ({
   identity,
   actionTokens,
 }) => {
+  const reducedMotion = useReducedMotion();
   const reveal = useSharedValue(1);
 
   useEffect(() => {
+    cancelAnimation(reveal);
+    if (reducedMotion) {
+      reveal.value = 1;
+      return;
+    }
+
     reveal.value = 0;
     reveal.value = withSequence(
       withTiming(0.55, { duration: 180 }),
       withTiming(1, { duration: 420 }),
     );
     return () => cancelAnimation(reveal);
-  }, [identity.roleId, reveal]);
+  }, [identity.roleId, reducedMotion, reveal]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: reveal.value,

@@ -8,6 +8,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -269,9 +270,16 @@ function getScene(round: FashionRound): React.ReactNode {
 }
 
 export const FashionCaseIllustration: React.FC<FashionCaseIllustrationProps> = ({ round }) => {
+  const reducedMotion = useReducedMotion();
   const drift = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(drift);
+    if (reducedMotion) {
+      drift.value = 0.5;
+      return;
+    }
+
     drift.value = withRepeat(
       withSequence(
         withTiming(1, { duration: ART_DRIFT_DURATION_MS, easing: Easing.inOut(Easing.sin) }),
@@ -281,7 +289,7 @@ export const FashionCaseIllustration: React.FC<FashionCaseIllustrationProps> = (
       false,
     );
     return () => cancelAnimation(drift);
-  }, [drift]);
+  }, [drift, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: 0.78 + drift.value * 0.22,

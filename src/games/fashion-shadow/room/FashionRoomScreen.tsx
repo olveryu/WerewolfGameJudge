@@ -43,6 +43,7 @@ import { FashionPhaseRail } from '@/games/fashion-shadow/components/FashionPhase
 import { FashionPlayerStrip } from '@/games/fashion-shadow/components/FashionPlayerStrip';
 import { FashionSettlementBoard } from '@/games/fashion-shadow/components/FashionSettlementBoard';
 import { FashionVoteProgress } from '@/games/fashion-shadow/components/FashionVoteProgress';
+import { useFashionCompactLayout } from '@/games/fashion-shadow/components/useFashionCompactLayout';
 import type { FashionRoomSession } from '@/games/fashion-shadow/model/FashionRoomSession';
 import { FashionTutorial } from '@/games/fashion-shadow/tutorial/FashionTutorial';
 import {
@@ -191,6 +192,7 @@ interface FashionRoomContentProps extends FashionRoomScreenProps {
 
 const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigation, session }) => {
   const insets = useSafeAreaInsets();
+  const compactLayout = useFashionCompactLayout();
   const { user } = useAuthContext();
   if (user === null) {
     throw new Error('[FAIL-FAST] Ready Fashion Shadow room requires an authenticated user');
@@ -294,7 +296,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             ? `${seat + 1}号 · 空位`
             : `${seat + 1}号 · ${occupant.profile.displayName}${isSelf ? '（你）' : isBot ? '（自动）' : ''}`;
         return (
-          <View key={seat} style={styles.seatCell}>
+          <View key={seat} style={[styles.seatCell, compactLayout ? styles.fullWidthCell : null]}>
             {canTake ? (
               <Button
                 variant="secondary"
@@ -311,7 +313,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
           </View>
         );
       }),
-    [isSubmitting, seatCommands, state.phase, state.realSeats, submit, user.id],
+    [compactLayout, isSubmitting, seatCommands, state.phase, state.realSeats, submit, user.id],
   );
 
   if (!tutorialCompleted) {
@@ -515,7 +517,10 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             {mySeat !== null && !hasCrossExamAwardVoted ? (
               <View style={styles.choiceGrid}>
                 {state.crossExamParticipantSeats.map((seat) => (
-                  <View key={seat} style={styles.choiceCell}>
+                  <View
+                    key={seat}
+                    style={[styles.choiceCell, compactLayout ? styles.compactChoiceCell : null]}
+                  >
                     <Button
                       variant="secondary"
                       size="sm"
@@ -589,11 +594,16 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 <View style={styles.choiceGrid}>
                   {Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) =>
                     seat === mySeat ? null : (
-                      <View key={seat} style={styles.choiceCell}>
+                      <View
+                        key={seat}
+                        style={[styles.choiceCell, compactLayout ? styles.compactChoiceCell : null]}
+                      >
                         <Button
                           variant={selectedGuessTarget === seat ? 'primary' : 'secondary'}
                           size="sm"
                           onPress={() => setSelectedGuessTarget(seat)}
+                          accessibilityState={{ selected: selectedGuessTarget === seat }}
+                          accessibilityHint="选择此玩家后，再选择要猜测的真实角色"
                         >
                           {seat + 1}号
                         </Button>
@@ -606,7 +616,10 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                     {FASHION_ROLE_IDS.filter(
                       (roleId) => roleId !== state.privateIdentity?.roleId,
                     ).map((roleId) => (
-                      <View key={roleId} style={styles.choiceCell}>
+                      <View
+                        key={roleId}
+                        style={[styles.choiceCell, compactLayout ? styles.compactChoiceCell : null]}
+                      >
                         <Button
                           variant="ghost"
                           size="sm"
@@ -620,6 +633,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                             });
                           }}
                           disabled={isSubmitting}
+                          accessibilityHint="提交身份猜测，成功或失败都会消耗本轮猜身份机会"
                         >
                           {FASHION_ROLE_BY_ID[roleId].name}
                         </Button>
@@ -649,6 +663,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                   onPress={() =>
                     void submitCommand('赞成调查', { type: 'fashion.vote.cast', vote: 'approve' })
                   }
+                  accessibilityHint="提交后本轮调查票不可修改"
                 >
                   赞成调查
                 </Button>
@@ -657,6 +672,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                   onPress={() =>
                     void submitCommand('反对调查', { type: 'fashion.vote.cast', vote: 'reject' })
                   }
+                  accessibilityHint="提交后本轮调查票不可修改"
                 >
                   反对调查
                 </Button>
@@ -706,11 +722,16 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 </Text>
                 <View style={styles.choiceGrid}>
                   {CONTRACT_PROMISES.map((promise) => (
-                    <View key={promise} style={styles.choiceCell}>
+                    <View
+                      key={promise}
+                      style={[styles.choiceCell, compactLayout ? styles.compactChoiceCell : null]}
+                    >
                       <Button
                         variant={contractPromise === promise ? 'primary' : 'secondary'}
                         size="sm"
                         onPress={() => setContractPromise(promise)}
+                        accessibilityState={{ selected: contractPromise === promise }}
+                        accessibilityHint="选择这项作为下一份秘密契约的承诺"
                       >
                         {CONTRACT_PROMISE_LABELS[promise]}
                       </Button>
@@ -721,7 +742,10 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 <View style={styles.choiceGrid}>
                   {Array.from({ length: FASHION_PLAYER_COUNT }, (_, buyerSeat) =>
                     buyerSeat === mySeat ? null : (
-                      <View key={buyerSeat} style={styles.choiceCell}>
+                      <View
+                        key={buyerSeat}
+                        style={[styles.choiceCell, compactLayout ? styles.compactChoiceCell : null]}
+                      >
                         <Button
                           variant="secondary"
                           size="sm"
@@ -836,7 +860,10 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 <Text style={styles.statusText}>选择你认为应被最终定罪的座位：</Text>
                 <View style={styles.choiceGrid}>
                   {Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => (
-                    <View key={seat} style={styles.choiceCell}>
+                    <View
+                      key={seat}
+                      style={[styles.choiceCell, compactLayout ? styles.compactChoiceCell : null]}
+                    >
                       <Button
                         variant="secondary"
                         size="sm"
@@ -847,6 +874,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                           })
                         }
                         disabled={isSubmitting}
+                        accessibilityHint="提交后最终指控不可修改"
                       >
                         {seat + 1}号
                       </Button>
@@ -888,7 +916,9 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             <Text style={styles.body}>
               胜者：{winnerLabels.length > 0 ? winnerLabels.join('、') : '无'}
             </Text>
-            <View style={styles.resultMetrics}>
+            <View
+              style={[styles.resultMetrics, compactLayout ? styles.resultMetricsCompact : null]}
+            >
               <View style={styles.metricCell}>
                 <Text style={styles.metricValue}>{state.publicEvidence.length}</Text>
                 <Text style={styles.metricLabel}>公开证据</Text>
@@ -951,7 +981,11 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
           </Button>
         }
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>CASE ROOM · {room.roomCode}</Text>
           <Text style={styles.heroTitle}>{PHASE_LABELS[state.phase]}</Text>
@@ -1118,8 +1152,10 @@ const styles = StyleSheet.create({
   seatGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   seatCell: { width: '48%' },
+  fullWidthCell: { width: '100%' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   choiceCell: { width: '31%' },
+  compactChoiceCell: { width: '48%' },
   tacticCard: {
     borderRadius: borderRadius.medium,
     borderWidth: fixed.borderWidth,
@@ -1138,6 +1174,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.small,
   },
+  resultMetricsCompact: { flexDirection: 'column' },
   metricCell: {
     flex: 1,
     alignItems: 'center',

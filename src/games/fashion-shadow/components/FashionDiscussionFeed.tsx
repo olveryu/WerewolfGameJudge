@@ -106,10 +106,12 @@ export const FashionDiscussionFeed: React.FC<FashionDiscussionFeedProps> = ({
             editable={!isSubmitting && remainingSpeaks > 0 && (myTokens ?? 0) > 0}
             style={styles.input}
             accessibilityLabel="公开讨论发言内容"
+            accessibilityHint={`最多 ${FASHION_DISCUSSION_MESSAGE_MAX_LENGTH} 字，发布后所有玩家可见且消耗 1 枚行动代币`}
           />
           <View style={styles.composerFooter}>
             <Text style={styles.hint}>
-              剩余 {remainingSpeaks} 次 · 行动代币 {myTokens ?? 0} · 每条消耗 1 枚
+              {draft.length}/{FASHION_DISCUSSION_MESSAGE_MAX_LENGTH} · 剩余 {remainingSpeaks} 次 ·
+              行动代币 {myTokens ?? 0} · 每条消耗 1 枚
             </Text>
             <Button
               variant="secondary"
@@ -205,6 +207,7 @@ const styles = StyleSheet.create({
   },
   composerFooter: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.small,

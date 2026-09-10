@@ -14,6 +14,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { borderRadius, fixed, spacing, typography } from '@/theme';
 import { fashionShadowColors } from '@/theme/fashionShadowColors';
 
+import { useFashionCompactLayout } from './useFashionCompactLayout';
+
 interface FashionInvestigationBoardProps {
   readonly state: FashionPublicState;
   readonly mySeat: number | null;
@@ -48,6 +50,7 @@ export const FashionInvestigationBoard: React.FC<FashionInvestigationBoardProps>
   state,
   mySeat,
 }) => {
+  const compactLayout = useFashionCompactLayout();
   const visibleRounds = useMemo(
     () =>
       ([1, 2, 3, 4] as const).filter(
@@ -66,7 +69,7 @@ export const FashionInvestigationBoard: React.FC<FashionInvestigationBoardProps>
 
   return (
     <View style={styles.container}>
-      <View style={styles.headingRow}>
+      <View style={[styles.headingRow, compactLayout ? styles.headingRowCompact : null]}>
         <View style={styles.headingCopy}>
           <Text style={styles.eyebrow}>INVESTIGATION BOARD</Text>
           <Text style={styles.title}>调查关系板</Text>
@@ -98,7 +101,11 @@ export const FashionInvestigationBoard: React.FC<FashionInvestigationBoardProps>
             return (
               <View
                 key={seat}
-                style={[styles.personCard, seat === mySeat ? styles.selfCard : null]}
+                style={[
+                  styles.personCard,
+                  compactLayout ? styles.personCardCompact : null,
+                  seat === mySeat ? styles.selfCard : null,
+                ]}
               >
                 <Text style={styles.personTitle}>
                   {seat + 1}号 · {occupant.profile.displayName}
@@ -147,7 +154,10 @@ export const FashionInvestigationBoard: React.FC<FashionInvestigationBoardProps>
               ? round.implicatedRoles.map((roleId) => FASHION_ROLE_BY_ID[roleId].name)
               : [];
           return (
-            <View key={round.evidenceId} style={styles.evidenceRow}>
+            <View
+              key={round.evidenceId}
+              style={[styles.evidenceRow, compactLayout ? styles.evidenceRowCompact : null]}
+            >
               <View style={styles.evidenceCopy}>
                 <Text style={styles.evidenceTitle}>
                   {round.evidenceId} · {round.evidenceTitle}
@@ -204,6 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.medium,
   },
+  headingRowCompact: { flexDirection: 'column', alignItems: 'flex-start' },
   headingCopy: { flex: 1, gap: spacing.micro },
   eyebrow: {
     color: fashionShadowColors.neonPink,
@@ -242,6 +253,7 @@ const styles = StyleSheet.create({
     padding: spacing.medium,
     gap: spacing.tight,
   },
+  personCardCompact: { flexBasis: '100%', minWidth: '100%' },
   selfCard: {
     borderColor: fashionShadowColors.neonCyan,
     backgroundColor: fashionShadowColors.neonCyanSoft,
@@ -283,6 +295,7 @@ const styles = StyleSheet.create({
     backgroundColor: fashionShadowColors.surfaceRaised,
     padding: spacing.medium,
   },
+  evidenceRowCompact: { flexDirection: 'column', alignItems: 'flex-start' },
   evidenceCopy: { flex: 1, gap: spacing.micro },
   evidenceTitle: {
     color: fashionShadowColors.text,

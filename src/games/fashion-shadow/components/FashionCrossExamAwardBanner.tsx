@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSequence,
   withTiming,
@@ -25,16 +26,23 @@ export const FashionCrossExamAwardBanner: React.FC<FashionCrossExamAwardBannerPr
   seat,
   displayName,
 }) => {
+  const reducedMotion = useReducedMotion();
   const reveal = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(reveal);
+    if (reducedMotion) {
+      reveal.value = 1;
+      return;
+    }
+
     reveal.value = 0;
     reveal.value = withSequence(
       withTiming(1.04, { duration: AWARD_REVEAL_STEP_MS }),
       withTiming(1, { duration: AWARD_REVEAL_STEP_MS }),
     );
     return () => cancelAnimation(reveal);
-  }, [reveal, seat]);
+  }, [reducedMotion, reveal, seat]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, reveal.value),
@@ -44,6 +52,13 @@ export const FashionCrossExamAwardBanner: React.FC<FashionCrossExamAwardBannerPr
   return (
     <Animated.View
       style={[styles.card, seat === null ? styles.tieCard : styles.winnerCard, animatedStyle]}
+      accessible
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={
+        seat === null
+          ? '交叉质询结果：评选并列，本轮无人获得最佳攻防者称号'
+          : `交叉质询结果：${seat + 1}号 ${displayName ?? '玩家'} 获选最佳攻防者`
+      }
     >
       <View style={styles.badge}>
         <Text style={styles.badgeText}>{seat === null ? 'TIE' : 'MVP'}</Text>

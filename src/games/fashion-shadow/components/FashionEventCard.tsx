@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
@@ -25,13 +26,20 @@ export const FashionEventCard: React.FC<FashionEventCardProps> = ({
   voteQuestion,
 }) => {
   const round = FASHION_ROUND_BY_NUMBER[roundNumber];
+  const reducedMotion = useReducedMotion();
   const reveal = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(reveal);
+    if (reducedMotion) {
+      reveal.value = 1;
+      return;
+    }
+
     reveal.value = 0;
     reveal.value = withTiming(1, { duration: 420 });
     return () => cancelAnimation(reveal);
-  }, [reveal, round.eventId]);
+  }, [reducedMotion, reveal, round.eventId]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: reveal.value,

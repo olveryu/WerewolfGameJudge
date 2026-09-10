@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { memo, useMemo } from 'react';
 import {
+  type AccessibilityState,
   ActivityIndicator,
   type StyleProp,
   StyleSheet,
@@ -51,6 +52,8 @@ interface ButtonVisualProps {
   style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityState?: AccessibilityState;
 }
 
 type ButtonProps = ButtonVisualProps &
@@ -123,6 +126,8 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
     style,
     testID,
     accessibilityLabel,
+    accessibilityHint,
+    accessibilityState,
   } = props;
   const isDisabled = disabled || loading;
   const isUnavailable = disabled && !loading;
@@ -284,8 +289,9 @@ const ButtonComponent: React.FC<ButtonProps> = (props) => {
       style={[containerStyle, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityState={{ ...accessibilityState, disabled: isDisabled }}
     >
       {useGradient && (
         <LinearGradient

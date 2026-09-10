@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -28,14 +29,24 @@ function formatRemaining(milliseconds: number): string {
   return `${minutesPart}:${String(secondsPart).padStart(2, '0')}`;
 }
 
+function formatAccessibleRemaining(milliseconds: number): string {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const minutesPart = Math.floor(seconds / 60);
+  const secondsPart = seconds % 60;
+  if (minutesPart === 0) return `${secondsPart}秒`;
+  if (secondsPart === 0) return `${minutesPart}分钟`;
+  return `${minutesPart}分${secondsPart}秒`;
+}
+
 export const FashionCountdown: React.FC<FashionCountdownProps> = ({ remainingMs, match }) => {
+  const reducedMotion = useReducedMotion();
   const pulse = useSharedValue(1);
   const isUrgent = remainingMs > 0 && remainingMs <= URGENT_THRESHOLD_MS;
 
   useEffect(() => {
     cancelAnimation(pulse);
     pulse.value = 1;
-    if (isUrgent) {
+    if (isUrgent && !reducedMotion) {
       pulse.value = withRepeat(
         withSequence(withTiming(0.74, { duration: 360 }), withTiming(1, { duration: 360 })),
         -1,
@@ -43,7 +54,7 @@ export const FashionCountdown: React.FC<FashionCountdownProps> = ({ remainingMs,
       );
     }
     return () => cancelAnimation(pulse);
-  }, [isUrgent, pulse]);
+  }, [isUrgent, pulse, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: pulse.value,
@@ -51,7 +62,11 @@ export const FashionCountdown: React.FC<FashionCountdownProps> = ({ remainingMs,
   }));
 
   return (
-    <View style={[styles.frame, isUrgent ? styles.urgentFrame : null]}>
+    <View
+      style={[styles.frame, isUrgent ? styles.urgentFrame : null]}
+      accessible
+      accessibilityLabel={`交叉质询第 ${match} 组，剩余 ${formatAccessibleRemaining(remainingMs)}`}
+    >
       <Text style={styles.kicker}>CROSS EXAMINATION · MATCH {match}/2</Text>
       <Animated.Text style={[styles.timer, isUrgent ? styles.urgentTimer : null, animatedStyle]}>
         {formatRemaining(remainingMs)}

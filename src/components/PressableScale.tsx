@@ -32,6 +32,7 @@ interface PressableScaleBaseProps {
   children: React.ReactNode;
   testID?: string;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   accessibilityRole?: 'button' | 'link' | 'tab';
   accessibilityState?: AccessibilityState;
 }
@@ -57,6 +58,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   children,
   testID,
   accessibilityLabel,
+  accessibilityHint,
   accessibilityRole = 'button',
   accessibilityState,
 }) => {
@@ -94,6 +96,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
       style={[animatedStyle, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole}
       accessibilityState={accessibilityState ?? { disabled }}
     >

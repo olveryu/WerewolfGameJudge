@@ -17,7 +17,18 @@ export const FashionVoteProgress: React.FC<FashionVoteProgressProps> = ({
   label,
   tone = 'cyan',
 }) => (
-  <View style={styles.frame}>
+  <View
+    style={styles.frame}
+    accessible
+    accessibilityRole="progressbar"
+    accessibilityLabel={label}
+    accessibilityValue={{
+      min: 0,
+      max: FASHION_PLAYER_COUNT,
+      now: submitted,
+      text: `${submitted}/${FASHION_PLAYER_COUNT} 人已提交`,
+    }}
+  >
     <View style={styles.headerRow}>
       <Text style={styles.label}>{label}</Text>
       <Text style={tone === 'pink' ? styles.countPink : styles.countCyan}>
