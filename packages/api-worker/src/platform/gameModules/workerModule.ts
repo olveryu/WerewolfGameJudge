@@ -151,10 +151,7 @@ export interface WorkerGameModuleDefinition<
   readonly internalCommandSchema: ZodType<TInternalCommand>;
   readonly effectSchema: ZodType<TEffect>;
   readonly httpRoutes: readonly WorkerGameHttpRoute<TGameType>[];
-  readonly projectStateForUser?: (
-    state: TState,
-    userId: string | null,
-  ) => BaseGameState<TGameType>;
+  readonly projectStateForUser?: (state: TState, userId: string | null) => BaseGameState<TGameType>;
   parsePublicUserStats(value: unknown): TPublicUserStats;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: TEffect, context: WorkerEffectBusinessContext): string;

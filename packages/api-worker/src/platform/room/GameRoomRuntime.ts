@@ -138,10 +138,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         ...pipeline.rpc,
         result: {
           ...pipeline.rpc.result,
-          snapshot: this.#projectSnapshotForUser(
-            pipeline.rpc.result.snapshot,
-            command.actorUserId,
-          ),
+          snapshot: this.#projectSnapshotForUser(pipeline.rpc.result.snapshot, command.actorUserId),
         },
       };
     }
