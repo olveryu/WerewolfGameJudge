@@ -60,7 +60,7 @@ export const FashionHearingDossier: React.FC<FashionHearingDossierProps> = ({ st
                 <Text style={styles.roundTitle}>
                   R{roundNumber} · {round.location} · {round.esg}
                 </Text>
-                <Text style={styles.roundEvidence} numberOfLines={1}>
+                <Text style={styles.roundEvidence}>
                   {round.evidenceId} · {round.evidenceTitle}
                 </Text>
                 <Text style={styles.roundMeta}>

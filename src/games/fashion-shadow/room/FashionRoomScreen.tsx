@@ -105,6 +105,13 @@ function getSecretText(secretId: FashionPublicState['revealedSecrets'][number]):
   return role?.secret ?? secretId;
 }
 
+function getPlayerLabel(state: FashionPublicState, seat: number): string {
+  const occupant = state.realSeats[seat];
+  return occupant === undefined
+    ? `${seat + 1}号`
+    : `${seat + 1}号 · ${occupant.profile.displayName}`;
+}
+
 function getDiscussionPrompt(round: 1 | 2 | 3 | 4, roleId: FashionRoleId): string {
   const caseFile = FASHION_ROUND_BY_NUMBER[round];
   switch (roleId) {
@@ -442,7 +449,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             <Text style={styles.statusText}>
               {state.interrogation === null
                 ? '质询状态同步中'
-                : `${state.interrogation.attackerSeat + 1}号（攻击） vs ${state.interrogation.defenderSeat + 1}号（防守）`}
+                : `${getPlayerLabel(state, state.interrogation.attackerSeat)}（攻击） vs ${getPlayerLabel(state, state.interrogation.defenderSeat)}（防守）`}
             </Text>
             {isCurrentCrossExamParticipant ? (
               <View style={[styles.card, styles.privateCard]}>
@@ -505,7 +512,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                       }
                       disabled={isSubmitting}
                     >
-                      {seat + 1}号
+                      {getPlayerLabel(state, seat)}
                     </Button>
                   </View>
                 ))}
@@ -578,7 +585,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                           accessibilityState={{ selected: selectedGuessTarget === seat }}
                           accessibilityHint="选择此玩家后，再选择要猜测的真实角色"
                         >
-                          {seat + 1}号
+                          {getPlayerLabel(state, seat)}
                         </Button>
                       </View>
                     ),
@@ -621,8 +628,8 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 {state.myIdentityGuessResult !== null ? (
                   <Text style={styles.statusText}>
                     {state.myIdentityGuessResult.success
-                      ? `猜对：${state.myIdentityGuessResult.targetSeat + 1}号确实是${FASHION_ROLE_BY_ID[state.myIdentityGuessResult.guessedRoleId].name}，其隐藏秘密已公开。`
-                      : `猜错：${state.myIdentityGuessResult.targetSeat + 1}号不是${FASHION_ROLE_BY_ID[state.myIdentityGuessResult.guessedRoleId].name}。${state.myIdentityGuessResult.blockedNextRound ? '你下一轮不能参加交叉质询。' : '这是最后一轮，不再产生后续质询处罚。'}`}
+                      ? `猜对：${getPlayerLabel(state, state.myIdentityGuessResult.targetSeat)}确实是${FASHION_ROLE_BY_ID[state.myIdentityGuessResult.guessedRoleId].name}，其隐藏秘密已公开。`
+                      : `猜错：${getPlayerLabel(state, state.myIdentityGuessResult.targetSeat)}不是${FASHION_ROLE_BY_ID[state.myIdentityGuessResult.guessedRoleId].name}。${state.myIdentityGuessResult.blockedNextRound ? '你下一轮不能参加交叉质询。' : '这是最后一轮，不再产生后续质询处罚。'}`}
                   </Text>
                 ) : null}
               </View>
@@ -732,7 +739,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                           }
                           disabled={(myTokens ?? 0) < 1 || isSubmitting}
                         >
-                          {buyerSeat + 1}号
+                          {getPlayerLabel(state, buyerSeat)}
                         </Button>
                       </View>
                     ),
@@ -744,7 +751,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
               <View key={contract.id} style={[styles.card, styles.privateCard]}>
                 <Text style={styles.eyebrow}>仅你可见 · 契约邀请</Text>
                 <Text style={styles.body}>
-                  {contract.sellerSeat + 1}号向你提出契约：
+                  {getPlayerLabel(state, contract.sellerSeat)}向你提出契约：
                   {CONTRACT_PROMISE_LABELS[contract.promise]}
                 </Text>
                 <Button
@@ -849,7 +856,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                         disabled={isSubmitting}
                         accessibilityHint="提交后最终指控不可修改"
                       >
-                        {seat + 1}号
+                        {getPlayerLabel(state, seat)}
                       </Button>
                     </View>
                   ))}
@@ -1019,7 +1026,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             <Text style={styles.cardTitle}>已公开秘密</Text>
             {Object.entries(state.revealedSecrets).map(([seat, secretId]) => (
               <Text key={seat} style={styles.body}>
-                {Number(seat) + 1}号：{getSecretText(secretId)}
+                {getPlayerLabel(state, Number(seat))}：{getSecretText(secretId)}
               </Text>
             ))}
           </FashionPanel>

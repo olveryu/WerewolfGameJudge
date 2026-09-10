@@ -91,9 +91,7 @@ export const FashionEvidenceCard: React.FC<FashionEvidenceCardProps> = ({
       <Text style={styles.summaryLabel}>
         {status === 'destroyed' ? '销毁前案件摘要' : '证据事实摘要'}
       </Text>
-      <Text style={styles.summary} numberOfLines={3}>
-        {summary}
-      </Text>
+      <Text style={styles.summary}>{summary}</Text>
       {status === 'public' && implications.length > 0 ? (
         <Text style={styles.implication}>直接角色关联：{implications.join('、')}</Text>
       ) : null}
