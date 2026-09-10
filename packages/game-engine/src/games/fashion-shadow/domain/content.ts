@@ -104,7 +104,7 @@ export const FASHION_ROUND_BY_NUMBER: Readonly<Record<FashionRound, FashionRound
     voteQuestion: '是否派出調查小組前往深水埗，取得根叔手上的訂單與布辦樣本？',
     evidenceId: 'V1',
     evidenceTitle: '裁縫師傅的證詞',
-    implicatedRoles: [],
+    implicatedRoles: ['brandExecutive'],
     mainCrossExam: ['factoryWorker', 'brandExecutive'],
     secondaryCrossExam: ['supplierOwner', 'villainProcurementDirector'],
   },

@@ -84,6 +84,20 @@ describe('Fashion Shadow visibility', () => {
         },
       ],
       investigationVoteHistory: [{ round: 1, seat: 0, vote: 'approve' }],
+      discussionMessages: [
+        { round: 1, seat: 0, message: '这条论点应对所有玩家公开。', createdAt: 200 },
+      ],
+      crossExamStatements: [
+        {
+          round: 1,
+          match: 1,
+          seat: 0,
+          side: 'attacker',
+          message: '这条质询记录同样属于公共案件材料。',
+          evidenceId: 'V1',
+          createdAt: 180,
+        },
+      ],
       finalVotes: { 0: buyerSeat },
       revealedSecrets: { [revealedSeat]: revealedSecret },
     };
@@ -96,7 +110,43 @@ describe('Fashion Shadow visibility', () => {
     expect('investigationVoteHistory' in projected).toBe(false);
     expect('contracts' in projected).toBe(false);
     expect(projected.revealedSecrets).toEqual({ [revealedSeat]: revealedSecret });
+    expect(projected.revealedRoles).toEqual({});
+    expect(projected.finalVoteTally).toEqual({});
+    expect(projected.finalAccusedSeat).toBeNull();
+    expect(projected.villainConvicted).toBeNull();
+    expect(projected.discussionMessages).toEqual(state.discussionMessages);
+    expect(projected.crossExamStatements).toEqual(state.crossExamStatements);
     expect(FASHION_PUBLIC_STATE_CODEC.parse(projected)).toEqual(projected);
+  });
+
+  it('reveals every role and final verdict details only after the game has ended', () => {
+    const base = createStartedState();
+    const villainEntry = Object.entries(base.roles).find(
+      ([, roleId]) => roleId === 'villainProcurementDirector',
+    );
+    if (villainEntry === undefined) throw new Error('Expected villain seat');
+    const villainSeat = Number(villainEntry[0]);
+    const finalVotes: Record<number, number> = {};
+    for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+      finalVotes[seat] = villainSeat;
+    }
+    const verdictState: FashionState = {
+      ...base,
+      publicEvidence: ['V1', 'V2'],
+      finalVotes,
+    };
+    const ongoing = getFashionPublicState({ ...verdictState, phase: 'hearing' }, 'user-0');
+    const ended = getFashionPublicState({ ...verdictState, phase: 'ended' }, 'user-0');
+
+    expect(ongoing.revealedRoles).toEqual({});
+    expect(ongoing.finalVoteTally).toEqual({});
+    expect(ongoing.finalAccusedSeat).toBeNull();
+    expect(ongoing.villainConvicted).toBeNull();
+    expect(ended.revealedRoles).toEqual(base.roles);
+    expect(ended.finalVoteTally).toEqual({ [villainSeat]: FASHION_PLAYER_COUNT });
+    expect(ended.finalAccusedSeat).toBe(villainSeat);
+    expect(ended.villainConvicted).toBe(true);
+    expect(FASHION_PUBLIC_STATE_CODEC.parse(ended)).toEqual(ended);
   });
 
   it('gives spectators no private identity', () => {

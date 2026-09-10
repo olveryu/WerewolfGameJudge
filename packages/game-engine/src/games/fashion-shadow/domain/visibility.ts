@@ -4,8 +4,11 @@ import { findSeatByUserId } from '../../../platform/room/seating';
 import type {
   FashionContract,
   FashionCrossExamAward,
+  FashionCrossExamStatement,
+  FashionDiscussionMessage,
   FashionEventId,
   FashionEvidenceId,
+  FashionHearingStatement,
   FashionHumanSeat,
   FashionInterrogation,
   FashionPhase,
@@ -14,6 +17,7 @@ import type {
   FashionState,
 } from '../state/types';
 import { FASHION_ROLE_BY_ID, FASHION_ROUND_BY_NUMBER } from './content';
+import { getFashionFinalAccusedSeat, isFashionVillainConvicted } from './victoryEvaluator';
 
 export interface FashionIdentityGuessResultView {
   readonly targetSeat: number;
@@ -49,12 +53,19 @@ export interface FashionPublicState {
   readonly publicEvidence: readonly FashionEvidenceId[];
   readonly destroyedEvidence: readonly FashionEvidenceId[];
   readonly revealedSecrets: Readonly<Record<number, FashionSecretId>>;
+  readonly revealedRoles: Readonly<Record<number, FashionRoleId>>;
   readonly crossExamAwards: readonly FashionCrossExamAward[];
   readonly crossExamParticipantSeats: readonly number[];
   readonly crossExamAwardVotedSeats: readonly number[];
   readonly votedSeats: readonly number[];
   readonly finalVotedSeats: readonly number[];
+  readonly finalVoteTally: Readonly<Record<number, number>>;
+  readonly finalAccusedSeat: number | null;
+  readonly villainConvicted: boolean | null;
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
+  readonly discussionMessages: readonly FashionDiscussionMessage[];
+  readonly crossExamStatements: readonly FashionCrossExamStatement[];
+  readonly hearingStatements: readonly FashionHearingStatement[];
   readonly interrogation: FashionInterrogation | null;
   readonly hasGuessedThisRound: boolean;
   readonly myIdentityGuessResult: FashionIdentityGuessResultView | null;
@@ -76,6 +87,12 @@ export function getFashionPublicState(
   const secretId = viewerSeat === null ? undefined : state.secrets[viewerSeat];
   const role = roleId === undefined ? undefined : FASHION_ROLE_BY_ID[roleId];
   const round = FASHION_ROUND_BY_NUMBER[state.currentRound];
+  const finalVoteTally: Record<number, number> = {};
+  if (state.phase === 'ended') {
+    for (const targetSeat of Object.values(state.finalVotes)) {
+      finalVoteTally[targetSeat] = (finalVoteTally[targetSeat] ?? 0) + 1;
+    }
+  }
   const myIdentityGuess =
     viewerSeat === null
       ? undefined
@@ -106,6 +123,7 @@ export function getFashionPublicState(
     publicEvidence: state.publicEvidence,
     destroyedEvidence: state.destroyedEvidence,
     revealedSecrets: state.revealedSecrets,
+    revealedRoles: state.phase === 'ended' ? { ...state.roles } : {},
     crossExamAwards: state.crossExamAwards,
     crossExamParticipantSeats: state.crossExamParticipantSeats,
     crossExamAwardVotedSeats: Object.keys(state.crossExamAwardVotes)
@@ -117,7 +135,13 @@ export function getFashionPublicState(
     finalVotedSeats: Object.keys(state.finalVotes)
       .map(Number)
       .sort((left, right) => left - right),
+    finalVoteTally,
+    finalAccusedSeat: state.phase === 'ended' ? getFashionFinalAccusedSeat(state) : null,
+    villainConvicted: state.phase === 'ended' ? isFashionVillainConvicted(state) : null,
     discussionSpeakCounts: state.discussionSpeakCounts,
+    discussionMessages: state.discussionMessages,
+    crossExamStatements: state.crossExamStatements,
+    hearingStatements: state.hearingStatements,
     interrogation: state.interrogation,
     hasGuessedThisRound:
       viewerSeat !== null &&

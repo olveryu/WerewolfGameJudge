@@ -20,7 +20,7 @@ function villainSeats(state: FashionState): readonly number[] {
   return seatsWithRole(state, 'villainProcurementDirector');
 }
 
-function getFinalAccusedSeat(state: FashionState): number | null {
+export function getFashionFinalAccusedSeat(state: FashionState): number | null {
   const counts = new Map<number, number>();
   for (const targetSeat of Object.values(state.finalVotes)) {
     counts.set(targetSeat, (counts.get(targetSeat) ?? 0) + 1);
@@ -40,9 +40,9 @@ function getFinalAccusedSeat(state: FashionState): number | null {
   return highestSeats.length === 1 ? highestSeats[0]! : null;
 }
 
-function isVillainConvicted(state: FashionState): boolean {
+export function isFashionVillainConvicted(state: FashionState): boolean {
   if (state.publicEvidence.length < 2) return false;
-  const accusedSeat = getFinalAccusedSeat(state);
+  const accusedSeat = getFashionFinalAccusedSeat(state);
   return accusedSeat !== null && villainSeats(state).includes(accusedSeat);
 }
 
@@ -137,14 +137,14 @@ function workerContractSettles(
   return state.contracts.some(
     (contract) =>
       contract.sellerSeat === workerSeat &&
-      contract.status !== 'proposed' &&
+      contract.status === 'fulfilled' &&
       baseWinners.has(contract.buyerSeat),
   );
 }
 
 /** Domain-only victory evaluation over authoritative state. */
 export function evaluateFashionVictory(state: FashionState): FashionVictoryResult {
-  const villainConvicted = isVillainConvicted(state);
+  const villainConvicted = isFashionVillainConvicted(state);
   const baseWinners = evaluateBaseWinners(state, villainConvicted);
   const baseWinnerSet = new Set(baseWinners);
   const contractWinners = seatsWithRole(state, 'factoryWorker').filter((seat) =>

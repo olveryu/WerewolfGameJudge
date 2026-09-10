@@ -171,7 +171,7 @@ describe('Fashion Shadow consumer representative victory', () => {
 });
 
 describe('Fashion Shadow factory worker contract settlement', () => {
-  it('wins automatically when an accepted-contract buyer wins', () => {
+  it('wins when a fulfilled-contract buyer wins', () => {
     const base = createStartedState();
     const workerSeat = seatForRole(base, 'factoryWorker');
     const buyerSeat = seatForRole(base, 'journalist');
@@ -183,14 +183,14 @@ describe('Fashion Shadow factory worker contract settlement', () => {
           sellerSeat: workerSeat,
           buyerSeat,
           promise: 'protection',
-          status: 'accepted',
+          status: 'fulfilled',
         },
       ],
     });
     expect(winners(state)).toContain(workerSeat);
   });
 
-  it('loses when the accepted-contract buyer loses', () => {
+  it('loses when the fulfilled-contract buyer loses', () => {
     const base = createStartedState();
     const workerSeat = seatForRole(base, 'factoryWorker');
     const buyerSeat = seatForRole(base, 'villainProcurementDirector');
@@ -202,6 +202,25 @@ describe('Fashion Shadow factory worker contract settlement', () => {
           sellerSeat: workerSeat,
           buyerSeat,
           promise: 'compensation',
+          status: 'fulfilled',
+        },
+      ],
+    });
+    expect(winners(state)).not.toContain(workerSeat);
+  });
+
+  it('does not settle an accepted but unfulfilled contract', () => {
+    const base = createStartedState();
+    const workerSeat = seatForRole(base, 'factoryWorker');
+    const buyerSeat = seatForRole(base, 'journalist');
+    const state = convictionState({
+      ...base,
+      contracts: [
+        {
+          id: 'contract-accepted',
+          sellerSeat: workerSeat,
+          buyerSeat,
+          promise: 'protection',
           status: 'accepted',
         },
       ],
@@ -226,6 +245,26 @@ describe('Fashion Shadow factory worker contract settlement', () => {
       ],
     });
     expect(winners(state)).not.toContain(workerSeat);
+  });
+});
+
+describe('Fashion Shadow brand executive victory', () => {
+  it('loses when public evidence directly implicates the brand executive', () => {
+    const base = createStartedState();
+    const seat = seatForRole(base, 'brandExecutive');
+    expect(winners(convictionState(base))).not.toContain(seat);
+  });
+
+  it('wins when the villain is convicted without public evidence implicating the brand executive', () => {
+    const base = createStartedState();
+    const seat = seatForRole(base, 'brandExecutive');
+    const villainSeat = seatForRole(base, 'villainProcurementDirector');
+    const state: FashionState = {
+      ...base,
+      publicEvidence: ['V2', 'V3'],
+      finalVotes: votesTargeting(villainSeat),
+    };
+    expect(winners(state)).toContain(seat);
   });
 });
 

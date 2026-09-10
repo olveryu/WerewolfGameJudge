@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
+import { FashionBackdrop } from '@/games/fashion-shadow/components/FashionBackdrop';
+import { FashionButton as Button } from '@/games/fashion-shadow/components/FashionButton';
+import { FashionHeader } from '@/games/fashion-shadow/components/FashionHeader';
+import { borderRadius, fixed, spacing, typography } from '@/theme';
+import { fashionShadowColors } from '@/theme/fashionShadowColors';
 
 import {
   FASHION_TUTORIAL_CLOSING_LINES,
@@ -45,7 +47,8 @@ export const FashionTutorial: React.FC<FashionTutorialProps> = ({
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <ScreenHeader title="新手关卡 · 永续长的抉择" onBack={onBack} topInset={topInset} />
+      <FashionBackdrop />
+      <FashionHeader title="新手关卡 · 永续长的抉择" onBack={onBack} topInset={topInset} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>约 5 分钟 · 单人互动推理</Text>
@@ -89,6 +92,7 @@ export const FashionTutorial: React.FC<FashionTutorialProps> = ({
                 ))}
                 <Button
                   variant="secondary"
+                  accessibilityLabel={document.decisionLabel}
                   onPress={() =>
                     setState((current) => chooseFashionTutorialDocument(current, document.id))
                   }
@@ -201,53 +205,60 @@ export const FashionTutorial: React.FC<FashionTutorialProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: fashionShadowColors.background },
   content: { padding: spacing.screenH, gap: spacing.medium, paddingBottom: spacing.xxlarge },
-  hero: { gap: spacing.small },
-  card: {
-    backgroundColor: colors.surface,
+  hero: {
+    gap: spacing.small,
+    backgroundColor: fashionShadowColors.surfaceMuted,
     borderRadius: borderRadius.large,
     borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
+    borderColor: fashionShadowColors.neonPinkSoft,
+    padding: spacing.large,
+  },
+  card: {
+    backgroundColor: fashionShadowColors.surfaceMuted,
+    borderRadius: borderRadius.large,
+    borderWidth: fixed.borderWidth,
+    borderColor: fashionShadowColors.border,
     padding: spacing.large,
     gap: spacing.small,
   },
-  knowledgeCard: { borderColor: colors.primary },
-  resultCard: { borderColor: colors.success },
+  knowledgeCard: { borderColor: fashionShadowColors.neonCyan },
+  resultCard: { borderColor: fashionShadowColors.success },
   decisionBlock: {
     borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
+    borderTopColor: fashionShadowColors.border,
     paddingTop: spacing.medium,
     gap: spacing.small,
   },
   eyebrow: {
-    color: colors.primary,
+    color: fashionShadowColors.neonPink,
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
   },
   title: {
-    color: colors.text,
+    color: fashionShadowColors.text,
     fontSize: typography.heading,
     lineHeight: typography.lineHeights.heading,
     fontWeight: typography.weights.bold,
   },
   sectionTitle: {
-    color: colors.text,
+    color: fashionShadowColors.text,
     fontSize: typography.subtitle,
     fontWeight: typography.weights.bold,
   },
   label: {
-    color: colors.text,
+    color: fashionShadowColors.neonCyan,
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
   },
   body: {
-    color: colors.textSecondary,
+    color: fashionShadowColors.textSecondary,
     fontSize: typography.body,
     lineHeight: typography.lineHeights.body,
   },
   hint: {
-    color: colors.textSecondary,
+    color: fashionShadowColors.textMuted,
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
   },

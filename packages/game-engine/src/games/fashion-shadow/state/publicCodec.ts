@@ -25,11 +25,17 @@ import type {
   FashionPublicState,
 } from '../domain/visibility';
 import {
+  FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH,
+  FASHION_DISCUSSION_MESSAGE_MAX_LENGTH,
+  FASHION_HEARING_STATEMENT_MAX_LENGTH,
   FASHION_PLAYER_COUNT,
   type FashionContract,
   type FashionContractPromise,
   type FashionContractStatus,
   type FashionCrossExamAward,
+  type FashionCrossExamStatement,
+  type FashionDiscussionMessage,
+  type FashionHearingStatement,
   type FashionHumanSeat,
   type FashionInterrogation,
   type FashionPhase,
@@ -148,9 +154,26 @@ function parseNullableString(value: unknown, path: string): string | null {
   return value === null ? null : parseNonEmptyString(value, path);
 }
 
+function parseNullableFashionSeat(value: unknown, path: string): number | null {
+  return value === null ? null : parseFashionSeat(value, path);
+}
+
+function parseNullableBoolean(value: unknown, path: string): boolean | null {
+  return value === null ? null : parseBoolean(value, path);
+}
+
 function parseEvidence(value: unknown, path: string) {
   if (!isFashionEvidenceId(value)) return failDecode(path, 'Fashion evidence id');
   return value;
+}
+
+function parseEvidenceOrNull(value: unknown, path: string) {
+  return value === null ? null : parseEvidence(value, path);
+}
+
+function parseCrossExamSide(value: unknown, path: string): 'attacker' | 'defender' {
+  if (value === 'attacker' || value === 'defender') return value;
+  return failDecode(path, 'Fashion cross exam side');
 }
 
 function parseContractPromise(value: unknown, path: string): FashionContractPromise {
@@ -185,6 +208,66 @@ function parseContract(value: unknown, path: string): FashionContract {
       buyerSeat: parseFashionSeat(raw.buyerSeat, `${path}.buyerSeat`),
       promise: parseContractPromise(raw.promise, `${path}.promise`),
       status: parseContractStatus(raw.status, `${path}.status`),
+    },
+    path,
+  );
+}
+
+function parseDiscussionMessage(value: unknown, path: string): FashionDiscussionMessage {
+  const raw = parseObject(value, path);
+  const message = parseNonEmptyString(raw.message, `${path}.message`);
+  if (message !== message.trim() || message.length > FASHION_DISCUSSION_MESSAGE_MAX_LENGTH) {
+    return failDecode(`${path}.message`, 'trimmed Fashion discussion message within length limit');
+  }
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      message,
+      createdAt: parseInteger(raw.createdAt, `${path}.createdAt`),
+    },
+    path,
+  );
+}
+
+function parseHearingStatement(value: unknown, path: string): FashionHearingStatement {
+  const raw = parseObject(value, path);
+  const message = parseNonEmptyString(raw.message, `${path}.message`);
+  if (message !== message.trim() || message.length > FASHION_HEARING_STATEMENT_MAX_LENGTH) {
+    return failDecode(`${path}.message`, 'trimmed Fashion hearing statement within length limit');
+  }
+  return finishObject(
+    raw,
+    {
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      message,
+      evidenceId: parseEvidence(raw.evidenceId, `${path}.evidenceId`),
+      createdAt: parseInteger(raw.createdAt, `${path}.createdAt`),
+    },
+    path,
+  );
+}
+
+function parseCrossExamStatement(value: unknown, path: string): FashionCrossExamStatement {
+  const raw = parseObject(value, path);
+  const message = parseNonEmptyString(raw.message, `${path}.message`);
+  if (message !== message.trim() || message.length > FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH) {
+    return failDecode(
+      `${path}.message`,
+      'trimmed Fashion cross exam statement within length limit',
+    );
+  }
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      match: parseCrossExamMatch(raw.match, `${path}.match`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      side: parseCrossExamSide(raw.side, `${path}.side`),
+      message,
+      evidenceId: parseEvidenceOrNull(raw.evidenceId, `${path}.evidenceId`),
+      createdAt: parseInteger(raw.createdAt, `${path}.createdAt`),
     },
     path,
   );
@@ -355,6 +438,14 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
           return entry;
         },
       ),
+      revealedRoles: parseSeatRecord(
+        raw.revealedRoles,
+        'FashionPublicState.revealedRoles',
+        (entry, path) => {
+          if (!isFashionRoleId(entry)) return failDecode(path, 'Fashion role id');
+          return entry;
+        },
+      ),
       crossExamAwards: parseArray(
         raw.crossExamAwards,
         'FashionPublicState.crossExamAwards',
@@ -364,10 +455,38 @@ export function parseFashionPublicState(value: unknown): FashionPublicState {
       crossExamAwardVotedSeats,
       votedSeats,
       finalVotedSeats,
+      finalVoteTally: parseSeatRecord(
+        raw.finalVoteTally,
+        'FashionPublicState.finalVoteTally',
+        parseInteger,
+      ),
+      finalAccusedSeat: parseNullableFashionSeat(
+        raw.finalAccusedSeat,
+        'FashionPublicState.finalAccusedSeat',
+      ),
+      villainConvicted: parseNullableBoolean(
+        raw.villainConvicted,
+        'FashionPublicState.villainConvicted',
+      ),
       discussionSpeakCounts: parseSeatRecord(
         raw.discussionSpeakCounts,
         'FashionPublicState.discussionSpeakCounts',
         parseInteger,
+      ),
+      discussionMessages: parseArray(
+        raw.discussionMessages,
+        'FashionPublicState.discussionMessages',
+        parseDiscussionMessage,
+      ),
+      crossExamStatements: parseArray(
+        raw.crossExamStatements,
+        'FashionPublicState.crossExamStatements',
+        parseCrossExamStatement,
+      ),
+      hearingStatements: parseArray(
+        raw.hearingStatements,
+        'FashionPublicState.hearingStatements',
+        parseHearingStatement,
       ),
       interrogation: parseInterrogation(raw.interrogation, 'FashionPublicState.interrogation'),
       hasGuessedThisRound:

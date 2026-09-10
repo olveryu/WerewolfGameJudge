@@ -12,9 +12,5 @@ export function parseFashionPublicStats(value: unknown): FashionPublicStats {
   if (raw.gameType !== FASHION_SHADOW_GAME_TYPE) {
     return failDecode('fashionPublicStats.gameType', FASHION_SHADOW_GAME_TYPE);
   }
-  return finishObject(
-    raw,
-    { gameType: FASHION_SHADOW_GAME_TYPE },
-    'fashionPublicStats',
-  );
+  return finishObject(raw, { gameType: FASHION_SHADOW_GAME_TYPE }, 'fashionPublicStats');
 }

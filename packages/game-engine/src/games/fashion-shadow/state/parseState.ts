@@ -24,6 +24,9 @@ import {
   type FashionContractPromise,
   type FashionContractStatus,
   type FashionCrossExamAward,
+  type FashionCrossExamStatement,
+  type FashionDiscussionMessage,
+  type FashionHearingStatement,
   type FashionHumanSeat,
   type FashionIdentityGuessHistory,
   type FashionIdentityGuessPenalty,
@@ -158,6 +161,15 @@ function parseEvidence(value: unknown, path: string) {
   return value;
 }
 
+function parseEvidenceOrNull(value: unknown, path: string) {
+  return value === null ? null : parseEvidence(value, path);
+}
+
+function parseCrossExamSide(value: unknown, path: string): 'attacker' | 'defender' {
+  if (value === 'attacker' || value === 'defender') return value;
+  return failDecode(path, 'Fashion cross exam side');
+}
+
 function parseContractPromise(value: unknown, path: string): FashionContractPromise {
   switch (value) {
     case 'compensation':
@@ -250,6 +262,51 @@ function parseInvestigationVoteRecord(
   );
 }
 
+function parseDiscussionMessage(value: unknown, path: string): FashionDiscussionMessage {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      message: parseNonEmptyString(raw.message, `${path}.message`),
+      createdAt: parseInteger(raw.createdAt, `${path}.createdAt`),
+    },
+    path,
+  );
+}
+
+function parseHearingStatement(value: unknown, path: string): FashionHearingStatement {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      message: parseNonEmptyString(raw.message, `${path}.message`),
+      evidenceId: parseEvidence(raw.evidenceId, `${path}.evidenceId`),
+      createdAt: parseInteger(raw.createdAt, `${path}.createdAt`),
+    },
+    path,
+  );
+}
+
+function parseCrossExamStatement(value: unknown, path: string): FashionCrossExamStatement {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      round: parseRound(raw.round, `${path}.round`),
+      match: parseCrossExamMatch(raw.match, `${path}.match`),
+      seat: parseFashionSeat(raw.seat, `${path}.seat`),
+      side: parseCrossExamSide(raw.side, `${path}.side`),
+      message: parseNonEmptyString(raw.message, `${path}.message`),
+      evidenceId: parseEvidenceOrNull(raw.evidenceId, `${path}.evidenceId`),
+      createdAt: parseInteger(raw.createdAt, `${path}.createdAt`),
+    },
+    path,
+  );
+}
+
 function parseCrossExamAward(value: unknown, path: string): FashionCrossExamAward {
   const raw = parseObject(value, path);
   return finishObject(
@@ -333,6 +390,30 @@ export function parseFashionState(value: unknown): FashionState {
           'FashionState.discussionSpeakCounts',
           parseInteger,
         ),
+        discussionMessages:
+          raw.discussionMessages === undefined
+            ? []
+            : parseArray(
+                raw.discussionMessages,
+                'FashionState.discussionMessages',
+                parseDiscussionMessage,
+              ),
+        crossExamStatements:
+          raw.crossExamStatements === undefined
+            ? []
+            : parseArray(
+                raw.crossExamStatements,
+                'FashionState.crossExamStatements',
+                parseCrossExamStatement,
+              ),
+        hearingStatements:
+          raw.hearingStatements === undefined
+            ? []
+            : parseArray(
+                raw.hearingStatements,
+                'FashionState.hearingStatements',
+                parseHearingStatement,
+              ),
         interrogation: parseInterrogation(raw.interrogation, 'FashionState.interrogation'),
         crossExamParticipantSeats:
           raw.crossExamParticipantSeats === undefined

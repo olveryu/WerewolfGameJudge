@@ -3,8 +3,10 @@
 import type { SeatChange } from '../../../platform/room/seating';
 import type {
   FashionCrossExamAward,
+  FashionCrossExamStatement,
   FashionEventId,
   FashionEvidenceId,
+  FashionHearingStatement,
   FashionHumanSeat,
   FashionInvestigationVote,
   FashionProfileUpdate,
@@ -45,13 +47,23 @@ export type FashionEvent =
       readonly endsAt: number;
     }
   | {
+      readonly type: 'fashion.crossExam.statementAdded';
+      readonly statement: FashionCrossExamStatement;
+    }
+  | {
       readonly type: 'fashion.crossExam.awardVoted';
       readonly voterSeat: number;
       readonly candidateSeat: number;
     }
   | { readonly type: 'fashion.crossExam.awarded'; readonly award: FashionCrossExamAward }
   | { readonly type: 'fashion.crossExam.finished' }
-  | { readonly type: 'fashion.discussion.spoken'; readonly seat: number }
+  | {
+      readonly type: 'fashion.discussion.spoken';
+      readonly seat: number;
+      readonly round: 1 | 2 | 3 | 4;
+      readonly message: string;
+      readonly createdAt: number;
+    }
   | { readonly type: 'fashion.discussion.finished' }
   | {
       readonly type: 'fashion.vote.cast';
@@ -69,6 +81,10 @@ export type FashionEvent =
       readonly eventId: FashionEventId;
     }
   | { readonly type: 'fashion.hearing.started' }
+  | {
+      readonly type: 'fashion.hearing.statementAdded';
+      readonly statement: FashionHearingStatement;
+    }
   | { readonly type: 'fashion.hearing.vote'; readonly seat: number; readonly targetSeat: number }
   | { readonly type: 'fashion.hearing.finished'; readonly winners: readonly number[] }
   | {

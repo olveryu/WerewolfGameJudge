@@ -4,6 +4,7 @@ import {
   FASHION_PLAYER_COUNT,
   FASHION_ROLE_BY_ID,
   FASHION_ROLE_IDS,
+  FASHION_ROUND_ACTION_TOKEN_RECOVERY,
   FASHION_ROUND_BY_NUMBER,
   type FashionContractPromise,
   type FashionPublicCommand,
@@ -12,12 +13,10 @@ import {
   isFashionBotUserId,
 } from '@game-judge/game-engine/games/fashion-shadow/public';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
@@ -25,13 +24,34 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import { useFashionAudioFeedback } from '@/games/fashion-shadow/audio/useFashionAudioFeedback';
+import { FashionBackdrop } from '@/games/fashion-shadow/components/FashionBackdrop';
+import { FashionButton as Button } from '@/games/fashion-shadow/components/FashionButton';
+import { FashionContractCard } from '@/games/fashion-shadow/components/FashionContractCard';
+import { FashionCountdown } from '@/games/fashion-shadow/components/FashionCountdown';
+import { FashionCrossExamAwardBanner } from '@/games/fashion-shadow/components/FashionCrossExamAwardBanner';
+import { FashionCrossExamTranscript } from '@/games/fashion-shadow/components/FashionCrossExamTranscript';
+import { FashionDiscussionFeed } from '@/games/fashion-shadow/components/FashionDiscussionFeed';
+import { FashionEventCard } from '@/games/fashion-shadow/components/FashionEventCard';
+import { FashionEvidenceCard } from '@/games/fashion-shadow/components/FashionEvidenceCard';
+import { FashionHeader } from '@/games/fashion-shadow/components/FashionHeader';
+import { FashionHearingDossier } from '@/games/fashion-shadow/components/FashionHearingDossier';
+import { FashionIdentityCard } from '@/games/fashion-shadow/components/FashionIdentityCard';
+import { FashionInvestigationBoard } from '@/games/fashion-shadow/components/FashionInvestigationBoard';
+import { FashionPanel } from '@/games/fashion-shadow/components/FashionPanel';
+import { FashionPhaseRail } from '@/games/fashion-shadow/components/FashionPhaseRail';
+import { FashionPlayerStrip } from '@/games/fashion-shadow/components/FashionPlayerStrip';
+import { FashionSettlementBoard } from '@/games/fashion-shadow/components/FashionSettlementBoard';
+import { FashionVoteProgress } from '@/games/fashion-shadow/components/FashionVoteProgress';
 import type { FashionRoomSession } from '@/games/fashion-shadow/model/FashionRoomSession';
 import { FashionTutorial } from '@/games/fashion-shadow/tutorial/FashionTutorial';
 import {
   hasCompletedFashionTutorial,
   markFashionTutorialCompleted,
 } from '@/games/fashion-shadow/tutorial/tutorialProgress';
-import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
+import { borderRadius, fixed, spacing, typography } from '@/theme';
+import { fashionShadowColors } from '@/theme/fashionShadowColors';
+import { triggerHaptic } from '@/utils/haptics';
 
 import { getFashionRoomCommandFailureMessage } from './fashionRoomCommandFailureMessage';
 import { useFashionSeatCommands } from './useFashionSeatCommands';
@@ -59,20 +79,19 @@ function findUserSeat(state: FashionPublicState, userId: string): number | null 
   return null;
 }
 
-function formatRemaining(milliseconds: number): string {
-  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  const minutesPart = Math.floor(seconds / 60);
-  const secondsPart = seconds % 60;
-  return `${minutesPart}:${String(secondsPart).padStart(2, '0')}`;
-}
-
-function getEvidenceTitle(evidenceId: FashionPublicState['publicEvidence'][number]): string {
+function getEvidenceRound(evidenceId: FashionPublicState['publicEvidence'][number]) {
   for (const roundNumber of [1, 2, 3, 4] as const) {
     const round = FASHION_ROUND_BY_NUMBER[roundNumber];
-    if (round.evidenceId === evidenceId) return round.evidenceTitle;
+    if (round.evidenceId === evidenceId) return round;
   }
-  return evidenceId;
+  throw new Error(`[FAIL-FAST] Unknown Fashion Shadow evidence ${evidenceId}`);
 }
+
+const CONTRACT_PROMISES: readonly FashionContractPromise[] = [
+  'compensation',
+  'protection',
+  'legalImmunity',
+];
 
 const CONTRACT_PROMISE_LABELS: Readonly<Record<FashionContractPromise, string>> = {
   compensation: '经济补偿',
@@ -83,6 +102,26 @@ const CONTRACT_PROMISE_LABELS: Readonly<Record<FashionContractPromise, string>> 
 function getSecretText(secretId: FashionPublicState['revealedSecrets'][number]): string {
   const role = Object.values(FASHION_ROLE_BY_ID).find((entry) => entry.secretId === secretId);
   return role?.secret ?? secretId;
+}
+
+function getDiscussionPrompt(round: 1 | 2 | 3 | 4, roleId: FashionRoleId): string {
+  const caseFile = FASHION_ROUND_BY_NUMBER[round];
+  switch (roleId) {
+    case 'journalist':
+      return `逼问谁在${caseFile.location}事件里最怕文件被公开。优先抓前后说法矛盾，不要只复述证据。`;
+    case 'governmentOfficial':
+      return `把讨论拉回“谁应承担监管与决策责任”。你需要控制风险，同时避免自己的旧稽查问题成为焦点。`;
+    case 'consumerRepresentative':
+      return `要求其他人给出可执行的赔偿与整改承诺，并观察谁一直回避消费者损失。`;
+    case 'factoryWorker':
+      return `利用你掌握的一手资料制造谈判筹码。不要过早交出全部信息，为轮次结算后的契约交易留空间。`;
+    case 'brandExecutive':
+      return `切割公司制度与个人决策，把责任链具体化到采购、供应商或执行环节，同时回应品牌整改责任。`;
+    case 'villainProcurementDirector':
+      return `制造合理替代解释，把“异常”拆成供应、报关、工厂或顾问执行问题，避免讨论形成唯一责任链。`;
+    case 'supplierOwner':
+      return `强调订单与付款链能够证明谁发出要求，但避免让讨论转向你自己的供货履约历史。`;
+  }
 }
 
 function getCrossExamTask(round: 1 | 2 | 3 | 4, roleId: FashionRoleId): string | null {
@@ -163,6 +202,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
   const state = sessionSnapshot.snapshot.state;
   const mySeat = findUserSeat(state, user.id);
   const isHost = state.hostUserId === user.id;
+  useFashionAudioFeedback({ state, isHost });
   const occupiedSeats = Object.values(state.realSeats).filter((seat) => seat !== undefined);
   const occupiedCount = occupiedSeats.length;
   const botCount = occupiedSeats.filter((seat) => isFashionBotUserId(seat.userId)).length;
@@ -170,12 +210,44 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
   const humanCount = occupiedCount - botCount;
   const seatCommands = useFashionSeatCommands({ session, user });
   const { isSubmitting, submit } = useRoomCommandSubmission(getFashionRoomCommandFailureMessage);
-  const [nowMs, setNowMs] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [tutorialCompleted, setTutorialCompleted] = useState(() =>
     hasCompletedFashionTutorial(user.id),
   );
   const [selectedGuessTarget, setSelectedGuessTarget] = useState<number | null>(null);
   const [contractPromise, setContractPromise] = useState<FashionContractPromise>('compensation');
+  const previousPhaseRef = useRef(state.phase);
+
+  useEffect(() => {
+    if (previousPhaseRef.current === state.phase) return;
+    previousPhaseRef.current = state.phase;
+    switch (state.phase) {
+      case 'roleReveal':
+      case 'event':
+      case 'discussion':
+        void triggerHaptic('selection');
+        break;
+      case 'crossExamination':
+        void triggerHaptic('medium');
+        break;
+      case 'vote':
+        void triggerHaptic('warning');
+        break;
+      case 'roundTransition':
+        void triggerHaptic('success');
+        break;
+      case 'hearing':
+        void triggerHaptic('heavy');
+        break;
+      case 'ended':
+        void triggerHaptic(
+          mySeat !== null && state.winners.includes(mySeat) ? 'success' : 'warning',
+        );
+        break;
+      case 'lobby':
+        break;
+    }
+  }, [mySeat, state.phase, state.winners]);
 
   useEffect(() => {
     if (state.phase !== 'crossExamination' || state.interrogation === null) return undefined;
@@ -254,24 +326,6 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       />
     );
   }
-
-  const renderIdentity = () => {
-    if (state.privateIdentity === null) return null;
-    const identity = state.privateIdentity;
-    return (
-      <View style={[styles.card, styles.privateCard]}>
-        <Text style={styles.eyebrow}>仅你可见</Text>
-        <Text style={styles.cardTitle}>{identity.roleName}</Text>
-        <Text style={styles.label}>公开立场</Text>
-        <Text style={styles.body}>{identity.publicStance}</Text>
-        <Text style={styles.label}>隐藏秘密</Text>
-        <Text style={styles.body}>{identity.secret}</Text>
-        <Text style={styles.label}>独立胜利条件</Text>
-        <Text style={styles.body}>{identity.victoryCondition}</Text>
-        {myTokens !== null ? <Text style={styles.tokenText}>行动代币：{myTokens}</Text> : null}
-      </View>
-    );
-  };
 
   const renderPhaseAction = () => {
     switch (state.phase) {
@@ -373,10 +427,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       case 'crossExamination':
         return (
           <View style={styles.actions}>
-            <Text style={styles.statusText}>
-              第 {state.interrogation?.match ?? 1} / 2 组交叉质询
-            </Text>
-            <Text style={styles.timer}>{formatRemaining(remainingMs)}</Text>
+            <FashionCountdown remainingMs={remainingMs} match={state.interrogation?.match ?? 1} />
             <Text style={styles.statusText}>
               {state.interrogation === null
                 ? '质询状态同步中'
@@ -412,6 +463,25 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 你本组作为旁听陪审团，记录双方论点，稍后参与最佳攻防评选。
               </Text>
             )}
+            <FashionCrossExamTranscript
+              state={state}
+              mySeat={mySeat}
+              mode="live"
+              remainingMs={remainingMs}
+              isSubmitting={isSubmitting}
+              onSend={(message, evidenceId) =>
+                evidenceId === undefined
+                  ? submitCommand('记录交叉质询论点', {
+                      type: 'fashion.crossExam.statement',
+                      message,
+                    })
+                  : submitCommand('记录交叉质询论点', {
+                      type: 'fashion.crossExam.statement',
+                      message,
+                      evidenceId,
+                    })
+              }
+            />
             {isHost ? (
               <Button
                 variant="primary"
@@ -436,9 +506,12 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
           <View style={styles.actions}>
             <Text style={styles.label}>最佳攻防者评选</Text>
             <Text style={styles.statusText}>
-              全体 7 名玩家各投 1 票，只能选择本轮两组质询的实际参与者。已提交{' '}
-              {state.crossExamAwardVotedSeats.length}/7。
+              全体 7 名玩家各投 1 票，只能选择本轮两组质询的实际参与者。
             </Text>
+            <FashionVoteProgress
+              submitted={state.crossExamAwardVotedSeats.length}
+              label="最佳攻防者评选"
+            />
             {mySeat !== null && !hasCrossExamAwardVoted ? (
               <View style={styles.choiceGrid}>
                 {state.crossExamParticipantSeats.map((seat) => (
@@ -463,18 +536,24 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
               <Text style={styles.statusText}>你的最佳攻防者票已提交。</Text>
             ) : null}
             <Text style={styles.label}>公开讨论</Text>
-            <Text style={styles.statusText}>
-              主动发言会消耗 1 枚行动代币。你本轮已主动发言 {mySpeakCount} 次。
-            </Text>
-            {mySeat !== null ? (
-              <Button
-                variant="secondary"
-                onPress={() => void submitCommand('主动发言', { type: 'fashion.discussion.speak' })}
-                disabled={(myTokens ?? 0) < 1 || isSubmitting}
-              >
-                消耗 1 枚代币主动发言
-              </Button>
+            {state.privateIdentity !== null ? (
+              <View style={styles.tacticCard}>
+                <Text style={styles.tacticLabel}>你的本轮讨论目标</Text>
+                <Text style={styles.body}>
+                  {getDiscussionPrompt(state.currentRound, state.privateIdentity.roleId)}
+                </Text>
+              </View>
             ) : null}
+            <FashionDiscussionFeed
+              state={state}
+              mySeat={mySeat}
+              myTokens={myTokens}
+              mySpeakCount={mySpeakCount}
+              isSubmitting={isSubmitting}
+              onSend={(message) =>
+                submitCommand('发布公开论点', { type: 'fashion.discussion.speak', message })
+              }
+            />
             {isHost ? (
               <Button
                 variant="primary"
@@ -493,13 +572,14 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       case 'vote':
         return (
           <View style={styles.actions}>
-            {currentCrossExamAward !== undefined ? (
-              <Text style={styles.statusText}>
-                本轮最佳攻防者：{currentCrossExamAward.seat + 1}号
-              </Text>
-            ) : (
-              <Text style={styles.statusText}>最佳攻防评选出现并列，本轮无人获得奖励。</Text>
-            )}
+            <FashionCrossExamAwardBanner
+              seat={currentCrossExamAward?.seat ?? null}
+              displayName={
+                currentCrossExamAward === undefined
+                  ? null
+                  : (state.realSeats[currentCrossExamAward.seat]?.profile.displayName ?? null)
+              }
+            />
             {mySeat !== null && !state.hasGuessedThisRound && (myTokens ?? 0) > 0 ? (
               <>
                 <Text style={styles.label}>猜身份（可选，消耗 1 枚代币）</Text>
@@ -561,7 +641,7 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
               </View>
             ) : null}
             <Text style={styles.label}>调查表决</Text>
-            <Text style={styles.statusText}>已投票：{state.votedSeats.length}/7</Text>
+            <FashionVoteProgress submitted={state.votedSeats.length} label="调查票提交进度" />
             {mySeat !== null && !hasVoted ? (
               <View style={styles.voteRow}>
                 <Button
@@ -615,27 +695,27 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             </View>
             <Text style={styles.label}>自由交易时间</Text>
             <Text style={styles.statusText}>
-              主动提出交易邀请者消耗 1 枚行动代币；回应与签约不额外消耗代币。
+              主动提出交易邀请者消耗 1
+              枚行动代币；回应与签约不额外消耗代币。进入下一轮时每名玩家恢复{' '}
+              {FASHION_ROUND_ACTION_TOKEN_RECOVERY} 枚行动代币，最多恢复到开局上限。
             </Text>
             {isWorker && mySeat !== null ? (
               <>
                 <Text style={styles.statusText}>
-                  你是工厂工人，可选择买家与契约承诺。买家最终获胜且契约已接受时，你的契约胜利条件生效。
+                  你是工厂工人，可选择买家与契约承诺。契约签署后仍需由你确认履行；买家最终获胜且契约已履行时，你的契约胜利条件生效。
                 </Text>
                 <View style={styles.choiceGrid}>
-                  {(Object.keys(CONTRACT_PROMISE_LABELS) as FashionContractPromise[]).map(
-                    (promise) => (
-                      <View key={promise} style={styles.choiceCell}>
-                        <Button
-                          variant={contractPromise === promise ? 'primary' : 'secondary'}
-                          size="sm"
-                          onPress={() => setContractPromise(promise)}
-                        >
-                          {CONTRACT_PROMISE_LABELS[promise]}
-                        </Button>
-                      </View>
-                    ),
-                  )}
+                  {CONTRACT_PROMISES.map((promise) => (
+                    <View key={promise} style={styles.choiceCell}>
+                      <Button
+                        variant={contractPromise === promise ? 'primary' : 'secondary'}
+                        size="sm"
+                        onPress={() => setContractPromise(promise)}
+                      >
+                        {CONTRACT_PROMISE_LABELS[promise]}
+                      </Button>
+                    </View>
+                  ))}
                 </View>
                 <Text style={styles.statusText}>选择买家：</Text>
                 <View style={styles.choiceGrid}>
@@ -688,11 +768,19 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
             {state.myContracts
               .filter((contract) => contract.status !== 'proposed')
               .map((contract) => (
-                <Text key={contract.id} style={styles.statusText}>
-                  契约：{contract.sellerSeat + 1}号 ↔ {contract.buyerSeat + 1}号 ·{' '}
-                  {CONTRACT_PROMISE_LABELS[contract.promise]} ·{' '}
-                  {contract.status === 'fulfilled' ? '已履行' : '已签署'}
-                </Text>
+                <FashionContractCard
+                  key={contract.id}
+                  contract={contract}
+                  promiseLabel={CONTRACT_PROMISE_LABELS[contract.promise]}
+                  canFulfill={contract.sellerSeat === mySeat && contract.status === 'accepted'}
+                  isSubmitting={isSubmitting}
+                  onFulfill={() =>
+                    void submitCommand('履行契约', {
+                      type: 'fashion.contract.fulfill',
+                      contractId: contract.id,
+                    })
+                  }
+                />
               ))}
             {isHost ? (
               state.currentRound < 4 ? (
@@ -732,7 +820,17 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
               每人最多 1 分钟。陈词时请至少引用 1 张公共证据；公开证据达到 2
               张以上，且最终唯一被指认者确为反派，才会定罪。
             </Text>
-            <Text style={styles.statusText}>已提交最终指控：{state.finalVotedSeats.length}/7</Text>
+            {hasBots ? (
+              <Text style={styles.statusText}>
+                测试模式：自动玩家会把最终指控分散到测试席位；真人票负责形成最终差异。
+              </Text>
+            ) : null}
+            <FashionHearingDossier state={state} />
+            <FashionVoteProgress
+              submitted={state.finalVotedSeats.length}
+              label="最终指控提交进度"
+              tone="pink"
+            />
             {mySeat !== null && !hasFinalVoted ? (
               <>
                 <Text style={styles.statusText}>选择你认为应被最终定罪的座位：</Text>
@@ -783,11 +881,48 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
         const didWin = mySeat !== null && state.winners.includes(mySeat);
         return (
           <View style={[styles.card, didWin ? styles.resultPublic : styles.resultDestroyed]}>
-            <Text style={styles.cardTitle}>{didWin ? '你达成了胜利条件' : '本局结束'}</Text>
+            <Text style={styles.eyebrow}>CASE CLOSED / 案件封存</Text>
+            <Text style={styles.cardTitle}>
+              {didWin ? '你达成了个人胜利条件' : '你的个人目标未完成'}
+            </Text>
             <Text style={styles.body}>
               胜者：{winnerLabels.length > 0 ? winnerLabels.join('、') : '无'}
             </Text>
-            <Text style={styles.statusText}>4 轮调查与最终听证已全部完成。</Text>
+            <View style={styles.resultMetrics}>
+              <View style={styles.metricCell}>
+                <Text style={styles.metricValue}>{state.publicEvidence.length}</Text>
+                <Text style={styles.metricLabel}>公开证据</Text>
+              </View>
+              <View style={styles.metricCell}>
+                <Text style={styles.metricValue}>{state.destroyedEvidence.length}</Text>
+                <Text style={styles.metricLabel}>销毁证据</Text>
+              </View>
+              <View style={styles.metricCell}>
+                <Text style={styles.metricValue}>{Object.keys(state.revealedSecrets).length}</Text>
+                <Text style={styles.metricLabel}>公开秘密</Text>
+              </View>
+            </View>
+            {state.privateIdentity !== null ? (
+              <>
+                <Text style={styles.label}>你的胜利条件</Text>
+                <Text style={styles.body}>{state.privateIdentity.victoryCondition}</Text>
+              </>
+            ) : null}
+            {isHost ? (
+              <Button
+                variant="primary"
+                size="lg"
+                onPress={() => void submitCommand('重新开案', { type: 'fashion.game.restart' })}
+                loading={isSubmitting}
+              >
+                原房间重新开案
+              </Button>
+            ) : (
+              <Text style={styles.statusText}>房主可以保留当前 7 人座位并重新随机身份开案。</Text>
+            )}
+            <Button variant="secondary" onPress={() => exitRoomFlow(navigation)}>
+              返回游戏大厅
+            </Button>
           </View>
         );
       }
@@ -796,13 +931,15 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <ScreenHeader
+      <FashionBackdrop />
+      <FashionHeader
         title="时尚追凶"
         onBack={() => exitRoomFlow(navigation)}
         topInset={insets.top}
-        headerRight={
+        right={
           <Button
             variant="ghost"
+            size="sm"
             onPress={() =>
               navigation.navigate('GameGuide', {
                 gameType: 'fashion-shadow',
@@ -816,67 +953,108 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>
-            房间 {room.roomCode} · 第 {state.currentRound} 轮
-          </Text>
+          <Text style={styles.eyebrow}>CASE ROOM · {room.roomCode}</Text>
           <Text style={styles.heroTitle}>{PHASE_LABELS[state.phase]}</Text>
           <Text style={styles.body}>
-            入座 {occupiedCount}/7 · 真人 {humanCount} · 测试玩家 {botCount}
+            第 {state.currentRound} 轮 · 入座 {occupiedCount}/7 · 真人 {humanCount} · 测试玩家{' '}
+            {botCount}
           </Text>
         </View>
 
-        {state.phase === 'lobby' ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>座位</Text>
-            <View style={styles.seatGrid}>{seatCards}</View>
-          </View>
-        ) : null}
+        <FashionPhaseRail currentRound={state.currentRound} phase={state.phase} />
 
-        {renderIdentity()}
+        {state.phase === 'lobby' ? (
+          <FashionPanel tone="cyan">
+            <Text style={styles.cardTitle}>调查席位</Text>
+            <Text style={styles.statusText}>7 人全部入座后才能封锁案件现场并随机分配身份。</Text>
+            <View style={styles.seatGrid}>{seatCards}</View>
+          </FashionPanel>
+        ) : (
+          <FashionPlayerStrip state={state} mySeat={mySeat} />
+        )}
+
+        {state.privateIdentity !== null ? (
+          <FashionIdentityCard identity={state.privateIdentity} actionTokens={myTokens} />
+        ) : null}
 
         {state.currentEvent !== null ? (
-          <View style={styles.card}>
-            <Text style={styles.eyebrow}>
-              {round.location} · {round.esg}
-            </Text>
-            <Text style={styles.cardTitle}>
-              {round.eventId} · {round.eventTitle}
-            </Text>
-            <Text style={styles.body}>{round.eventDescription}</Text>
-            {state.voteQuestion !== null ? (
-              <>
-                <Text style={styles.label}>本轮调查议题</Text>
-                <Text style={styles.body}>{state.voteQuestion}</Text>
-              </>
-            ) : null}
-          </View>
+          <FashionEventCard roundNumber={state.currentRound} voteQuestion={state.voteQuestion} />
         ) : null}
 
-        <View style={styles.card}>
+        <FashionPanel tone={state.phase === 'hearing' ? 'pink' : 'neutral'}>
+          <Text style={styles.eyebrow}>LIVE ACTION</Text>
           <Text style={styles.cardTitle}>当前操作</Text>
           {renderPhaseAction()}
-        </View>
+        </FashionPanel>
+
+        {state.phase === 'ended' ? <FashionSettlementBoard state={state} mySeat={mySeat} /> : null}
+
+        {state.phase !== 'crossExamination' && state.crossExamStatements.length > 0 ? (
+          <FashionPanel tone="neutral">
+            <FashionCrossExamTranscript state={state} mySeat={mySeat} mode="archive" />
+          </FashionPanel>
+        ) : null}
+
+        {state.phase !== 'discussion' && state.discussionMessages.length > 0 ? (
+          <FashionPanel tone="neutral">
+            <FashionDiscussionFeed state={state} mySeat={mySeat} mode="archive" />
+          </FashionPanel>
+        ) : null}
+
+        {state.phase !== 'lobby' && state.phase !== 'roleReveal' && state.phase !== 'event' ? (
+          <FashionPanel tone="neutral">
+            <FashionInvestigationBoard state={state} mySeat={mySeat} />
+          </FashionPanel>
+        ) : null}
 
         {Object.keys(state.revealedSecrets).length > 0 ? (
-          <View style={styles.card}>
+          <FashionPanel tone="pink">
             <Text style={styles.cardTitle}>已公开秘密</Text>
             {Object.entries(state.revealedSecrets).map(([seat, secretId]) => (
               <Text key={seat} style={styles.body}>
                 {Number(seat) + 1}号：{getSecretText(secretId)}
               </Text>
             ))}
-          </View>
+          </FashionPanel>
         ) : null}
 
-        {state.publicEvidence.length > 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>公共证据区</Text>
-            {state.publicEvidence.map((evidenceId) => (
-              <Text key={evidenceId} style={styles.body}>
-                {evidenceId} · {getEvidenceTitle(evidenceId)}
-              </Text>
-            ))}
-          </View>
+        {state.publicEvidence.length > 0 || state.destroyedEvidence.length > 0 ? (
+          <FashionPanel tone="cyan">
+            <Text style={styles.eyebrow}>EVIDENCE ARCHIVE</Text>
+            <Text style={styles.cardTitle}>案件证据库</Text>
+            <View style={styles.evidenceGrid}>
+              {state.publicEvidence.map((evidenceId) => {
+                const evidenceRound = getEvidenceRound(evidenceId);
+                return (
+                  <FashionEvidenceCard
+                    key={evidenceId}
+                    evidenceId={evidenceId}
+                    title={evidenceRound.evidenceTitle}
+                    location={evidenceRound.location}
+                    summary={evidenceRound.eventDescription}
+                    implications={evidenceRound.implicatedRoles.map(
+                      (roleId) => FASHION_ROLE_BY_ID[roleId].name,
+                    )}
+                    status="public"
+                  />
+                );
+              })}
+              {state.destroyedEvidence.map((evidenceId) => {
+                const evidenceRound = getEvidenceRound(evidenceId);
+                return (
+                  <FashionEvidenceCard
+                    key={evidenceId}
+                    evidenceId={evidenceId}
+                    title={evidenceRound.evidenceTitle}
+                    location={evidenceRound.location}
+                    summary={evidenceRound.eventDescription}
+                    implications={[]}
+                    status="destroyed"
+                  />
+                );
+              })}
+            </View>
+          </FashionPanel>
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -884,69 +1062,103 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: fashionShadowColors.background },
   content: { padding: spacing.screenH, gap: spacing.medium, paddingBottom: spacing.xxlarge },
-  hero: { gap: spacing.tight },
+  hero: {
+    gap: spacing.tight,
+    backgroundColor: fashionShadowColors.surfaceMuted,
+    borderWidth: fixed.borderWidth,
+    borderColor: fashionShadowColors.neonCyanSoft,
+    borderRadius: borderRadius.large,
+    padding: spacing.large,
+  },
   heroTitle: {
-    color: colors.text,
+    color: fashionShadowColors.text,
     fontSize: typography.heading,
     lineHeight: typography.lineHeights.heading,
     fontWeight: typography.weights.bold,
   },
   eyebrow: {
-    color: colors.primary,
+    color: fashionShadowColors.neonCyan,
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: fashionShadowColors.surfaceMuted,
     borderRadius: borderRadius.large,
     borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
+    borderColor: fashionShadowColors.border,
     padding: spacing.large,
     gap: spacing.small,
   },
-  privateCard: { borderColor: colors.primary },
-  resultPublic: { borderColor: colors.success },
-  resultDestroyed: { borderColor: colors.error },
+  privateCard: { borderColor: fashionShadowColors.neonPink },
+  resultPublic: { borderColor: fashionShadowColors.success },
+  resultDestroyed: { borderColor: fashionShadowColors.danger },
   cardTitle: {
-    color: colors.text,
+    color: fashionShadowColors.text,
     fontSize: typography.subtitle,
     fontWeight: typography.weights.bold,
   },
   label: {
     marginTop: spacing.small,
-    color: colors.text,
+    color: fashionShadowColors.text,
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
   },
   body: {
-    color: colors.textSecondary,
+    color: fashionShadowColors.textSecondary,
     fontSize: typography.body,
     lineHeight: typography.lineHeights.body,
   },
-  tokenText: {
-    marginTop: spacing.small,
-    color: colors.primary,
-    fontSize: typography.body,
-    fontWeight: typography.weights.bold,
-  },
   statusText: {
-    color: colors.textSecondary,
+    color: fashionShadowColors.textSecondary,
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
   },
-  timer: {
-    color: colors.text,
-    fontSize: typography.display,
-    lineHeight: typography.lineHeights.display,
-    fontWeight: typography.weights.bold,
-    textAlign: 'center',
-  },
   seatGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
+  evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   seatCell: { width: '48%' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   choiceCell: { width: '31%' },
+  tacticCard: {
+    borderRadius: borderRadius.medium,
+    borderWidth: fixed.borderWidth,
+    borderColor: fashionShadowColors.neonPinkSoft,
+    backgroundColor: fashionShadowColors.neonPinkSoft,
+    padding: spacing.medium,
+    gap: spacing.small,
+  },
+  tacticLabel: {
+    color: fashionShadowColors.neonPink,
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+  },
+  resultMetrics: {
+    flexDirection: 'row',
+    gap: spacing.small,
+  },
+  metricCell: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: borderRadius.medium,
+    borderWidth: fixed.borderWidth,
+    borderColor: fashionShadowColors.border,
+    backgroundColor: fashionShadowColors.surfaceRaised,
+    padding: spacing.small,
+    gap: spacing.micro,
+  },
+  metricValue: {
+    color: fashionShadowColors.neonCyan,
+    fontSize: typography.heading,
+    lineHeight: typography.lineHeights.heading,
+    fontWeight: typography.weights.bold,
+  },
+  metricLabel: {
+    color: fashionShadowColors.textMuted,
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.captionSmall,
+  },
   actions: { gap: spacing.small },
   voteRow: { gap: spacing.small },
 });

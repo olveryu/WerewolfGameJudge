@@ -20,9 +20,12 @@ export function parseFashionConfigRouteParams(params: unknown): FashionConfigRou
   if (gameType !== 'fashion-shadow') {
     throw new Error(`[FAIL-FAST] Fashion Shadow config received game type ${gameType}`);
   }
-  assertExactRouteParamKeys(routeParams, ['gameType', 'mode'], 'Fashion Shadow config');
+  assertExactRouteParamKeys(routeParams, ['gameType', 'mode', 'roomCode'], 'Fashion Shadow config');
   if (routeParams.mode !== 'create') {
     throw new Error('[FAIL-FAST] Fashion Shadow v1 only supports create config mode');
+  }
+  if (routeParams.roomCode !== undefined) {
+    throw new Error('[FAIL-FAST] Fashion Shadow create config does not accept a room code');
   }
   return { gameType, mode: 'create' };
 }

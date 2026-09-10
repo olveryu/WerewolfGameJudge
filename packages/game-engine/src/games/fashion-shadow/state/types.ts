@@ -7,8 +7,14 @@ import type { SeatOccupant } from '../../../platform/room/seating';
 
 export const FASHION_PLAYER_COUNT = 7 as const;
 export const FASHION_INITIAL_ACTION_TOKENS = 3 as const;
+export const FASHION_ROUND_ACTION_TOKEN_RECOVERY = 1 as const;
 export const FASHION_CROSS_EXAM_DURATION_MS = 180_000 as const;
+export const FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH = 180 as const;
+export const FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH = 4 as const;
 export const FASHION_MAX_DISCUSSION_SPEAKS = 2 as const;
+export const FASHION_DISCUSSION_MESSAGE_MAX_LENGTH = 160 as const;
+export const FASHION_HEARING_STATEMENT_MAX_LENGTH = 240 as const;
+export const FASHION_CONTRACT_ID_MAX_LENGTH = 128 as const;
 export const FASHION_BOT_USER_ID_PREFIX = 'fashion-bot:' as const;
 
 export function getFashionBotUserId(seat: number): string {
@@ -109,6 +115,30 @@ export interface FashionInvestigationVoteRecord {
   readonly vote: FashionInvestigationVote;
 }
 
+export interface FashionDiscussionMessage {
+  readonly round: FashionRound;
+  readonly seat: number;
+  readonly message: string;
+  readonly createdAt: number;
+}
+
+export interface FashionHearingStatement {
+  readonly seat: number;
+  readonly message: string;
+  readonly evidenceId: FashionEvidenceId;
+  readonly createdAt: number;
+}
+
+export interface FashionCrossExamStatement {
+  readonly round: FashionRound;
+  readonly match: 1 | 2;
+  readonly seat: number;
+  readonly side: 'attacker' | 'defender';
+  readonly message: string;
+  readonly evidenceId: FashionEvidenceId | null;
+  readonly createdAt: number;
+}
+
 export interface FashionCrossExamAward {
   readonly round: FashionRound;
   readonly seat: number;
@@ -130,6 +160,9 @@ export interface FashionState extends BaseGameState<FashionShadowGameType> {
   readonly votes: Readonly<Record<number, FashionInvestigationVote>>;
   readonly investigationVoteHistory: readonly FashionInvestigationVoteRecord[];
   readonly discussionSpeakCounts: Readonly<Record<number, number>>;
+  readonly discussionMessages: readonly FashionDiscussionMessage[];
+  readonly crossExamStatements: readonly FashionCrossExamStatement[];
+  readonly hearingStatements: readonly FashionHearingStatement[];
   readonly interrogation: FashionInterrogation | null;
   readonly crossExamParticipantSeats: readonly number[];
   readonly crossExamAwardVotes: Readonly<Record<number, number>>;

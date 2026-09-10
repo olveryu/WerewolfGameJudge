@@ -35,8 +35,17 @@ import {
   REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET,
   REASON_FASHION_CROSS_EXAM_AWARD_INVALID,
   REASON_FASHION_CROSS_EXAM_AWARD_VOTES_INCOMPLETE,
+  REASON_FASHION_CROSS_EXAM_EVIDENCE_UNAVAILABLE,
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_CLOSED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_INVALID,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_LIMIT_REACHED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_NOT_PARTICIPANT,
   REASON_FASHION_DISCUSSION_LIMIT_REACHED,
+  REASON_FASHION_DISCUSSION_MESSAGE_INVALID,
+  REASON_FASHION_HEARING_EVIDENCE_UNAVAILABLE,
+  REASON_FASHION_HEARING_STATEMENT_ALREADY_SET,
+  REASON_FASHION_HEARING_STATEMENT_INVALID,
   REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT,
   REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED,
   REASON_FASHION_PHASE_INVALID,
@@ -51,8 +60,13 @@ import { evaluateFashionVictory } from './domain/victoryEvaluator';
 import type { FashionEffect } from './effects/types';
 import { normalizeFashionState } from './state/normalize';
 import {
+  FASHION_CONTRACT_ID_MAX_LENGTH,
   FASHION_CROSS_EXAM_DURATION_MS,
+  FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH,
+  FASHION_DISCUSSION_MESSAGE_MAX_LENGTH,
+  FASHION_HEARING_STATEMENT_MAX_LENGTH,
   FASHION_INITIAL_ACTION_TOKENS,
+  FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH,
   FASHION_MAX_DISCUSSION_SPEAKS,
   FASHION_PLAYER_COUNT,
   type FashionConfig,
@@ -203,10 +217,11 @@ function createFashionBotCrossExamAwardVotes(state: FashionState): FashionEvent[
 }
 
 function createFashionBotHearingVotes(state: FashionState): FashionEvent[] {
-  return getFashionBotSeats(state).map((seat, index) => ({
+  return getFashionBotSeats(state).map((seat) => ({
     type: 'fashion.hearing.vote',
     seat,
-    targetSeat: index % FASHION_PLAYER_COUNT,
+    // Test bots spread one vote across bot-held seats so a human accusation can break the tie.
+    targetSeat: seat,
   }));
 }
 
@@ -238,18 +253,16 @@ function getActionTokens(state: FashionState, seat: number): number {
   return tokens;
 }
 
-function decideStartFashionGame(state: FashionState, context: CommandContext): FashionDecision {
-  if (state.phase !== 'lobby') return reject(REASON_FASHION_PHASE_INVALID);
-  const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (!isFashionRoomFull(state)) return reject(REASON_FASHION_ROOM_NOT_FULL);
-
+function createFashionGameStartEvents(
+  state: FashionState,
+  context: CommandContext,
+): readonly FashionEvent[] {
   const assignments = assignFashionRoles(context.randomSeed);
   const actionTokens: Record<number, number> = {};
   for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
     actionTokens[seat] = FASHION_INITIAL_ACTION_TOKENS;
   }
-  return commitFashion([
+  return [
     {
       type: 'fashion.game.started',
       roles: assignments.roles,
@@ -259,7 +272,23 @@ function decideStartFashionGame(state: FashionState, context: CommandContext): F
     ...getFashionBotSeats(state).map(
       (seat): FashionEvent => ({ type: 'fashion.role.confirmed', seat }),
     ),
-  ]);
+  ];
+}
+
+function decideStartFashionGame(state: FashionState, context: CommandContext): FashionDecision {
+  if (state.phase !== 'lobby') return reject(REASON_FASHION_PHASE_INVALID);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (!isFashionRoomFull(state)) return reject(REASON_FASHION_ROOM_NOT_FULL);
+  return commitFashion(createFashionGameStartEvents(state, context));
+}
+
+function decideRestartFashionGame(state: FashionState, context: CommandContext): FashionDecision {
+  if (state.phase !== 'ended') return reject(REASON_FASHION_PHASE_INVALID);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (!isFashionRoomFull(state)) return reject(REASON_FASHION_ROOM_NOT_FULL);
+  return commitFashion(createFashionGameStartEvents(state, context));
 }
 
 function decideConfirmFashionRole(state: FashionState, context: CommandContext): FashionDecision {
@@ -372,6 +401,69 @@ function decideRevealOwnSecret(state: FashionState, context: CommandContext): Fa
   return commitFashion([{ type: 'fashion.secret.revealed', seat, secretId }]);
 }
 
+function decideCrossExamStatement(
+  state: FashionState,
+  message: string,
+  evidenceId: Extract<
+    FashionCommand,
+    { readonly type: 'fashion.crossExam.statement' }
+  >['evidenceId'],
+  context: CommandContext,
+): FashionDecision {
+  const interrogation = state.interrogation;
+  if (state.phase !== 'crossExamination' || interrogation === null) {
+    return reject(REASON_FASHION_PHASE_INVALID);
+  }
+  const seat = getActorSeat(state, context);
+  if (typeof seat !== 'number') return seat;
+  const side =
+    seat === interrogation.attackerSeat
+      ? 'attacker'
+      : seat === interrogation.defenderSeat
+        ? 'defender'
+        : null;
+  if (side === null) return reject(REASON_FASHION_CROSS_EXAM_STATEMENT_NOT_PARTICIPANT);
+  if (context.nowMs >= interrogation.endsAt && !hasFashionBots(state)) {
+    return reject(REASON_FASHION_CROSS_EXAM_STATEMENT_CLOSED);
+  }
+  const normalizedMessage = message.trim();
+  if (
+    normalizedMessage.length === 0 ||
+    normalizedMessage.length > FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH
+  ) {
+    return reject(REASON_FASHION_CROSS_EXAM_STATEMENT_INVALID);
+  }
+  const statementCount = state.crossExamStatements.filter(
+    (statement) =>
+      statement.round === state.currentRound &&
+      statement.match === interrogation.match &&
+      statement.seat === seat,
+  ).length;
+  if (statementCount >= FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH) {
+    return reject(REASON_FASHION_CROSS_EXAM_STATEMENT_LIMIT_REACHED);
+  }
+  if (evidenceId !== undefined) {
+    const currentEvidenceId = FASHION_ROUND_BY_NUMBER[state.currentRound].evidenceId;
+    if (evidenceId !== currentEvidenceId && !state.publicEvidence.includes(evidenceId)) {
+      return reject(REASON_FASHION_CROSS_EXAM_EVIDENCE_UNAVAILABLE);
+    }
+  }
+  return commitFashion([
+    {
+      type: 'fashion.crossExam.statementAdded',
+      statement: {
+        round: state.currentRound,
+        match: interrogation.match,
+        seat,
+        side,
+        message: normalizedMessage,
+        evidenceId: evidenceId ?? null,
+        createdAt: context.nowMs,
+      },
+    },
+  ]);
+}
+
 function decideAwardCrossExam(
   state: FashionState,
   seat: number,
@@ -412,17 +504,36 @@ function decideFinishCrossExam(state: FashionState, context: CommandContext): Fa
   ]);
 }
 
-function decideDiscussionSpeak(state: FashionState, context: CommandContext): FashionDecision {
+function decideDiscussionSpeak(
+  state: FashionState,
+  message: string,
+  context: CommandContext,
+): FashionDecision {
   if (state.phase !== 'discussion') return reject(REASON_FASHION_PHASE_INVALID);
   const seat = getActorSeat(state, context);
   if (typeof seat !== 'number') return seat;
+  const normalizedMessage = message.trim();
+  if (
+    normalizedMessage.length === 0 ||
+    normalizedMessage.length > FASHION_DISCUSSION_MESSAGE_MAX_LENGTH
+  ) {
+    return reject(REASON_FASHION_DISCUSSION_MESSAGE_INVALID);
+  }
   if (getActionTokens(state, seat) < 1) {
     return reject(REASON_FASHION_ACTION_TOKEN_REQUIRED);
   }
   if ((state.discussionSpeakCounts[seat] ?? 0) >= FASHION_MAX_DISCUSSION_SPEAKS) {
     return reject(REASON_FASHION_DISCUSSION_LIMIT_REACHED);
   }
-  return commitFashion([{ type: 'fashion.discussion.spoken', seat }]);
+  return commitFashion([
+    {
+      type: 'fashion.discussion.spoken',
+      seat,
+      round: state.currentRound,
+      message: normalizedMessage,
+      createdAt: context.nowMs,
+    },
+  ]);
 }
 
 function resolveCrossExamAwardSeat(state: FashionState): number | null {
@@ -513,6 +624,7 @@ function decideProposeContract(
   }
   if (
     contractId.length === 0 ||
+    contractId.length > FASHION_CONTRACT_ID_MAX_LENGTH ||
     state.contracts.some((contract) => contract.id === contractId) ||
     state.realSeats[buyerSeat] === undefined ||
     buyerSeat === sellerSeat
@@ -553,6 +665,7 @@ function decideFulfillContract(
   contractId: string,
   context: CommandContext,
 ): FashionDecision {
+  if (state.phase !== 'roundTransition') return reject(REASON_FASHION_PHASE_INVALID);
   const seat = getActorSeat(state, context);
   if (typeof seat !== 'number') return seat;
   const contract = state.contracts.find((item) => item.id === contractId);
@@ -635,6 +748,41 @@ function decideStartHearing(state: FashionState, context: CommandContext): Fashi
   ]);
 }
 
+function decideHearingStatement(
+  state: FashionState,
+  message: string,
+  evidenceId: Extract<FashionCommand, { readonly type: 'fashion.hearing.statement' }>['evidenceId'],
+  context: CommandContext,
+): FashionDecision {
+  if (state.phase !== 'hearing') return reject(REASON_FASHION_PHASE_INVALID);
+  const seat = getActorSeat(state, context);
+  if (typeof seat !== 'number') return seat;
+  if (state.hearingStatements.some((statement) => statement.seat === seat)) {
+    return reject(REASON_FASHION_HEARING_STATEMENT_ALREADY_SET);
+  }
+  const normalizedMessage = message.trim();
+  if (
+    normalizedMessage.length === 0 ||
+    normalizedMessage.length > FASHION_HEARING_STATEMENT_MAX_LENGTH
+  ) {
+    return reject(REASON_FASHION_HEARING_STATEMENT_INVALID);
+  }
+  if (!state.publicEvidence.includes(evidenceId)) {
+    return reject(REASON_FASHION_HEARING_EVIDENCE_UNAVAILABLE);
+  }
+  return commitFashion([
+    {
+      type: 'fashion.hearing.statementAdded',
+      statement: {
+        seat,
+        message: normalizedMessage,
+        evidenceId,
+        createdAt: context.nowMs,
+      },
+    },
+  ]);
+}
+
 function decideHearingVote(
   state: FashionState,
   targetSeat: number,
@@ -684,6 +832,9 @@ function createInitialFashionState(
     votes: {},
     investigationVoteHistory: [],
     discussionSpeakCounts: {},
+    discussionMessages: [],
+    crossExamStatements: [],
+    hearingStatements: [],
     interrogation: null,
     crossExamParticipantSeats: [],
     crossExamAwardVotes: {},
@@ -722,6 +873,8 @@ export function decideFashionCommand(
       return decideUpdateFashionProfile(state, command.profile, context);
     case 'fashion.game.start':
       return decideStartFashionGame(state, context);
+    case 'fashion.game.restart':
+      return decideRestartFashionGame(state, context);
     case 'fashion.role.confirm':
       return decideConfirmFashionRole(state, context);
     case 'fashion.event.reveal':
@@ -730,12 +883,14 @@ export function decideFashionCommand(
       return decideStartCrossExam(state, context);
     case 'fashion.secret.revealSelf':
       return decideRevealOwnSecret(state, context);
+    case 'fashion.crossExam.statement':
+      return decideCrossExamStatement(state, command.message, command.evidenceId, context);
     case 'fashion.crossExam.award':
       return decideAwardCrossExam(state, command.seat, context);
     case 'fashion.crossExam.finish':
       return decideFinishCrossExam(state, context);
     case 'fashion.discussion.speak':
-      return decideDiscussionSpeak(state, context);
+      return decideDiscussionSpeak(state, command.message, context);
     case 'fashion.discussion.finish':
       return decideFinishDiscussion(state, context);
     case 'fashion.vote.cast':
@@ -748,6 +903,8 @@ export function decideFashionCommand(
       return decideAdvanceRound(state, context);
     case 'fashion.hearing.start':
       return decideStartHearing(state, context);
+    case 'fashion.hearing.statement':
+      return decideHearingStatement(state, command.message, command.evidenceId, context);
     case 'fashion.hearing.vote':
       return decideHearingVote(state, command.targetSeat, context);
     case 'fashion.hearing.finish':

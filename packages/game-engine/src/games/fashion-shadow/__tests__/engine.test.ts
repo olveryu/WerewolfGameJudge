@@ -6,15 +6,27 @@ import { FASHION_ROUND_BY_NUMBER } from '../domain/content';
 import {
   REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET,
   REASON_FASHION_CROSS_EXAM_AWARD_INVALID,
+  REASON_FASHION_CROSS_EXAM_EVIDENCE_UNAVAILABLE,
   REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_CLOSED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_INVALID,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_LIMIT_REACHED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_NOT_PARTICIPANT,
+  REASON_FASHION_DISCUSSION_LIMIT_REACHED,
+  REASON_FASHION_DISCUSSION_MESSAGE_INVALID,
   REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT,
   REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED,
+  REASON_FASHION_PHASE_INVALID,
   REASON_FASHION_VOTES_INCOMPLETE,
 } from '../domain/reasons';
 import { fashionEngine } from '../engine';
 import {
+  FASHION_CONTRACT_ID_MAX_LENGTH,
   FASHION_CROSS_EXAM_DURATION_MS,
+  FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH,
+  FASHION_DISCUSSION_MESSAGE_MAX_LENGTH,
   FASHION_INITIAL_ACTION_TOKENS,
+  FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH,
   FASHION_PLAYER_COUNT,
   type FashionState,
   isFashionBotUserId,
@@ -180,6 +192,141 @@ function playRoundToTransition(state: FashionState, baseMs: number): FashionStat
   );
 }
 
+describe('Fashion Shadow discussion', () => {
+  function advanceToDiscussion(): FashionState {
+    let state = startAndConfirmRoles();
+    state = dispatch(state, { type: 'fashion.event.reveal' }, userContext('user-0', 20_000));
+    state = dispatch(state, { type: 'fashion.crossExam.start' }, userContext('user-0', 21_000));
+    state = dispatch(
+      state,
+      { type: 'fashion.crossExam.finish' },
+      userContext('user-0', 21_000 + FASHION_CROSS_EXAM_DURATION_MS),
+    );
+    return dispatch(
+      state,
+      { type: 'fashion.crossExam.finish' },
+      userContext('user-0', 21_000 + FASHION_CROSS_EXAM_DURATION_MS * 2),
+    );
+  }
+
+  it('stores trimmed public discussion messages and consumes one token per message', () => {
+    let state = advanceToDiscussion();
+    const speakerSeat = Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat).find(
+      (seat) => !state.crossExamParticipantSeats.includes(seat),
+    );
+    if (speakerSeat === undefined) throw new Error('Expected a non-participant discussion speaker');
+    const beforeTokens = state.actionTokens[speakerSeat];
+    if (beforeTokens === undefined) throw new Error('Expected discussion speaker tokens');
+
+    state = dispatch(
+      state,
+      { type: 'fashion.discussion.speak', message: '  我认为采购记录和标签更换有关。  ' },
+      userContext(`user-${speakerSeat}`, 500_000),
+    );
+
+    expect(state.actionTokens[speakerSeat]).toBe(beforeTokens - 1);
+    expect(state.discussionSpeakCounts[speakerSeat]).toBe(1);
+    expect(state.discussionMessages).toEqual([
+      {
+        round: 1,
+        seat: speakerSeat,
+        message: '我认为采购记录和标签更换有关。',
+        createdAt: 500_000,
+      },
+    ]);
+  });
+
+  it('rejects empty, oversized, and third discussion messages', () => {
+    let state = advanceToDiscussion();
+    const speakerSeat = Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat).find(
+      (seat) => !state.crossExamParticipantSeats.includes(seat),
+    );
+    if (speakerSeat === undefined) throw new Error('Expected a non-participant discussion speaker');
+    const actor = userContext(`user-${speakerSeat}`, 600_000);
+
+    expect(expectReject(state, { type: 'fashion.discussion.speak', message: '   ' }, actor)).toBe(
+      REASON_FASHION_DISCUSSION_MESSAGE_INVALID,
+    );
+    expect(
+      expectReject(
+        state,
+        {
+          type: 'fashion.discussion.speak',
+          message: '证'.repeat(FASHION_DISCUSSION_MESSAGE_MAX_LENGTH + 1),
+        },
+        actor,
+      ),
+    ).toBe(REASON_FASHION_DISCUSSION_MESSAGE_INVALID);
+
+    state = dispatch(
+      state,
+      { type: 'fashion.discussion.speak', message: '第一条公开论点' },
+      userContext(`user-${speakerSeat}`, 600_001),
+    );
+    state = dispatch(
+      state,
+      { type: 'fashion.discussion.speak', message: '第二条公开论点' },
+      userContext(`user-${speakerSeat}`, 600_002),
+    );
+    expect(
+      expectReject(
+        state,
+        { type: 'fashion.discussion.speak', message: '第三条不应被接受' },
+        userContext(`user-${speakerSeat}`, 600_003),
+      ),
+    ).toBe(REASON_FASHION_DISCUSSION_LIMIT_REACHED);
+  });
+});
+
+describe('Fashion Shadow restart', () => {
+  it('starts a clean new case in the same occupied room after settlement', () => {
+    const base = startAndConfirmRoles();
+    const ended: FashionState = {
+      ...base,
+      phase: 'ended',
+      currentRound: 4,
+      currentEvent: 'E4',
+      publicEvidence: ['V1'],
+      destroyedEvidence: ['V2'],
+      investigationVoteHistory: [{ round: 1, seat: 0, vote: 'approve' }],
+      discussionMessages: [{ round: 1, seat: 0, message: '旧案件公开论点', createdAt: 700_000 }],
+      crossExamStatements: [
+        {
+          round: 1,
+          match: 1,
+          seat: 0,
+          side: 'attacker',
+          message: '旧案件质询论点',
+          evidenceId: 'V1',
+          createdAt: 699_000,
+        },
+      ],
+      winners: [0],
+    };
+
+    const restarted = dispatch(
+      ended,
+      { type: 'fashion.game.restart' },
+      userContext('user-0', 700_100),
+    );
+
+    expect(restarted.phase).toBe('roleReveal');
+    expect(restarted.currentRound).toBe(1);
+    expect(restarted.currentEvent).toBeNull();
+    expect(restarted.publicEvidence).toEqual([]);
+    expect(restarted.destroyedEvidence).toEqual([]);
+    expect(restarted.investigationVoteHistory).toEqual([]);
+    expect(restarted.discussionMessages).toEqual([]);
+    expect(restarted.crossExamStatements).toEqual([]);
+    expect(restarted.contracts).toEqual([]);
+    expect(restarted.revealedSecrets).toEqual({});
+    expect(restarted.finalVotes).toEqual({});
+    expect(restarted.winners).toEqual([]);
+    expect(Object.keys(restarted.roles)).toHaveLength(FASHION_PLAYER_COUNT);
+    expect(new Set(Object.values(restarted.roles)).size).toBe(FASHION_PLAYER_COUNT);
+  });
+});
+
 describe('Fashion Shadow solo experience', () => {
   it('fills empty seats with six marked test players', () => {
     const state = createSoloLobby();
@@ -232,7 +379,7 @@ describe('Fashion Shadow solo experience', () => {
     expect(state.publicEvidence).toContain('V1');
   });
 
-  it('auto-submits six bot accusations when the final hearing starts', () => {
+  it('auto-submits six bot accusations while leaving the human vote decisive', () => {
     let state = dispatch(
       createSoloLobby(),
       { type: 'fashion.game.start' },
@@ -244,6 +391,24 @@ describe('Fashion Shadow solo experience', () => {
     state = dispatch(state, { type: 'fashion.hearing.start' }, userContext('user-0', 4_000));
     expect(Object.keys(state.finalVotes)).toHaveLength(6);
     expect(state.finalVotes[0]).toBeUndefined();
+    for (let seat = 1; seat < FASHION_PLAYER_COUNT; seat += 1) {
+      expect(state.finalVotes[seat]).toBe(seat);
+    }
+
+    state = dispatch(
+      state,
+      { type: 'fashion.hearing.vote', targetSeat: 6 },
+      userContext('user-0', 4_100),
+    );
+    const accusationCounts = Object.values(state.finalVotes).reduce<Record<number, number>>(
+      (counts, targetSeat) => ({
+        ...counts,
+        [targetSeat]: (counts[targetSeat] ?? 0) + 1,
+      }),
+      {},
+    );
+    expect(accusationCounts[6]).toBe(2);
+    expect(Object.entries(accusationCounts).filter(([, count]) => count === 2)).toEqual([['6', 2]]);
   });
 });
 
@@ -278,12 +443,40 @@ describe('Fashion Shadow contracts', () => {
       { type: 'fashion.contract.accept', contractId: 'contract-1' },
       userContext(`user-${buyerSeat}`, 4_100),
     );
+    expect(
+      expectReject(
+        { ...state, phase: 'hearing' },
+        { type: 'fashion.contract.fulfill', contractId: 'contract-1' },
+        userContext(`user-${workerSeat}`, 4_150),
+      ),
+    ).toBe(REASON_FASHION_PHASE_INVALID);
     state = dispatch(
       state,
       { type: 'fashion.contract.fulfill', contractId: 'contract-1' },
       userContext(`user-${workerSeat}`, 4_200),
     );
     expect(state.contracts[0]?.status).toBe('fulfilled');
+  });
+
+  it('rejects an oversized contract id before it can enter persisted room state', () => {
+    const state = finishVoteRound(castVotes(advanceToVote(), 4, 810_000), 810_100);
+    const workerEntry = Object.entries(state.roles).find(([, role]) => role === 'factoryWorker');
+    if (workerEntry === undefined) throw new Error('Expected factory worker');
+    const workerSeat = Number(workerEntry[0]);
+    const buyerSeat = workerSeat === 0 ? 1 : 0;
+
+    expect(
+      expectReject(
+        state,
+        {
+          type: 'fashion.contract.propose',
+          contractId: 'x'.repeat(FASHION_CONTRACT_ID_MAX_LENGTH + 1),
+          buyerSeat,
+          promise: 'protection',
+        },
+        userContext(`user-${workerSeat}`, 810_200),
+      ),
+    ).toBe(REASON_FASHION_PHASE_INVALID);
   });
 });
 
@@ -427,6 +620,94 @@ describe('Fashion Shadow round-one vertical slice', () => {
     ).toEqual({ kind: 'reject', reason: REASON_FASHION_CROSS_EXAM_NOT_FINISHED });
   });
 
+  it('records timed cross-exam statements with evidence citations and participant limits', () => {
+    let state = startAndConfirmRoles();
+    state = dispatch(state, { type: 'fashion.event.reveal' }, userContext('user-0', 4_000));
+    state = dispatch(state, { type: 'fashion.crossExam.start' }, userContext('user-0', 5_000));
+    const interrogation = state.interrogation;
+    if (interrogation === null) throw new Error('Expected active interrogation');
+    const attackerSeat = interrogation.attackerSeat;
+    const defenderSeat = interrogation.defenderSeat;
+    const observerSeat = Array.from({ length: FASHION_PLAYER_COUNT }, (_, seat) => seat).find(
+      (seat) => !interrogation.participantSeats.includes(seat),
+    );
+    if (observerSeat === undefined) throw new Error('Expected observer seat');
+    const beforeTokens = state.actionTokens[attackerSeat];
+
+    state = dispatch(
+      state,
+      {
+        type: 'fashion.crossExam.statement',
+        message: '  更换标签指令与本轮证词可以互相印证。  ',
+        evidenceId: 'V1',
+      },
+      userContext(`user-${attackerSeat}`, 5_100),
+    );
+    expect(state.crossExamStatements).toEqual([
+      {
+        round: 1,
+        match: 1,
+        seat: attackerSeat,
+        side: 'attacker',
+        message: '更换标签指令与本轮证词可以互相印证。',
+        evidenceId: 'V1',
+        createdAt: 5_100,
+      },
+    ]);
+    expect(state.actionTokens[attackerSeat]).toBe(beforeTokens);
+
+    expect(
+      expectReject(
+        state,
+        { type: 'fashion.crossExam.statement', message: '旁听者不能替双方正式发言。' },
+        userContext(`user-${observerSeat}`, 5_200),
+      ),
+    ).toBe(REASON_FASHION_CROSS_EXAM_STATEMENT_NOT_PARTICIPANT);
+    expect(
+      expectReject(
+        state,
+        {
+          type: 'fashion.crossExam.statement',
+          message: '引用尚未出现的第二轮证据。',
+          evidenceId: 'V2',
+        },
+        userContext(`user-${defenderSeat}`, 5_300),
+      ),
+    ).toBe(REASON_FASHION_CROSS_EXAM_EVIDENCE_UNAVAILABLE);
+    expect(
+      expectReject(
+        state,
+        {
+          type: 'fashion.crossExam.statement',
+          message: 'x'.repeat(FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH + 1),
+        },
+        userContext(`user-${defenderSeat}`, 5_350),
+      ),
+    ).toBe(REASON_FASHION_CROSS_EXAM_STATEMENT_INVALID);
+
+    for (let index = 1; index < FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH; index += 1) {
+      state = dispatch(
+        state,
+        { type: 'fashion.crossExam.statement', message: `攻击方补充论点 ${index}` },
+        userContext(`user-${attackerSeat}`, 5_400 + index),
+      );
+    }
+    expect(
+      expectReject(
+        state,
+        { type: 'fashion.crossExam.statement', message: '超过本组论点上限' },
+        userContext(`user-${attackerSeat}`, 5_500),
+      ),
+    ).toBe(REASON_FASHION_CROSS_EXAM_STATEMENT_LIMIT_REACHED);
+    expect(
+      expectReject(
+        state,
+        { type: 'fashion.crossExam.statement', message: '时间结束后不能继续补论点。' },
+        userContext(`user-${defenderSeat}`, interrogation.endsAt),
+      ),
+    ).toBe(REASON_FASHION_CROSS_EXAM_STATEMENT_CLOSED);
+  });
+
   it('records every investigation vote with its round', () => {
     const state = castVotes(advanceToVote(), 4, 191_000);
     expect(state.investigationVoteHistory).toHaveLength(FASHION_PLAYER_COUNT);
@@ -498,6 +779,17 @@ describe('Fashion Shadow round-one vertical slice', () => {
     expect(state.phase).toBe('roundTransition');
     expect(state.publicEvidence).toEqual([FASHION_ROUND_BY_NUMBER[1].evidenceId]);
     expect(state.destroyedEvidence).toEqual([]);
+  });
+
+  it('recovers one action token up to the opening maximum when the next round starts', () => {
+    let state = castVotes(advanceToVote(), 4, 191_000);
+    state = finishVoteRound(state, 192_000);
+    const participantSeat = state.crossExamParticipantSeats[0];
+    if (participantSeat === undefined) throw new Error('Expected round-one cross exam participant');
+    expect(state.actionTokens[participantSeat]).toBe(FASHION_INITIAL_ACTION_TOKENS - 1);
+
+    state = dispatch(state, { type: 'fashion.round.advance' }, userContext('user-0', 193_000));
+    expect(state.actionTokens[participantSeat]).toBe(FASHION_INITIAL_ACTION_TOKENS);
   });
 
   it('advances through all four rounds using configured events', () => {

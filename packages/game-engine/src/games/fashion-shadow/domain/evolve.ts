@@ -1,6 +1,13 @@
 // Pure event evolution for Fashion Shadow.
 
-import type { FashionHumanSeat, FashionRound, FashionState } from '../state/types';
+import {
+  FASHION_INITIAL_ACTION_TOKENS,
+  FASHION_PLAYER_COUNT,
+  FASHION_ROUND_ACTION_TOKEN_RECOVERY,
+  type FashionHumanSeat,
+  type FashionRound,
+  type FashionState,
+} from '../state/types';
 import type { FashionEvent } from './events';
 
 function getNextFashionRound(round: FashionRound): FashionRound | null {
@@ -55,16 +62,30 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
       return {
         ...state,
         phase: 'roleReveal',
+        currentRound: 1,
         roles: { ...event.roles },
         secrets: { ...event.secrets },
         roleConfirmedSeats: [],
         actionTokens: { ...event.actionTokens },
         currentEvent: null,
+        publicEvidence: [],
+        destroyedEvidence: [],
         votes: {},
+        investigationVoteHistory: [],
         discussionSpeakCounts: {},
+        discussionMessages: [],
+        crossExamStatements: [],
+        hearingStatements: [],
         interrogation: null,
         crossExamParticipantSeats: [],
         crossExamAwardVotes: {},
+        contracts: [],
+        identityGuessPenalties: [],
+        identityGuessHistory: [],
+        revealedSecrets: {},
+        crossExamAwards: [],
+        finalVotes: {},
+        winners: [],
       };
     case 'fashion.role.confirmed':
       return {
@@ -105,6 +126,11 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
           endsAt: event.endsAt,
         },
       };
+    case 'fashion.crossExam.statementAdded':
+      return {
+        ...state,
+        crossExamStatements: [...state.crossExamStatements, event.statement],
+      };
     case 'fashion.crossExam.awardVoted':
       return {
         ...state,
@@ -128,6 +154,15 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
           ...state.discussionSpeakCounts,
           [event.seat]: (state.discussionSpeakCounts[event.seat] ?? 0) + 1,
         },
+        discussionMessages: [
+          ...state.discussionMessages,
+          {
+            round: event.round,
+            seat: event.seat,
+            message: event.message,
+            createdAt: event.createdAt,
+          },
+        ],
       };
     case 'fashion.discussion.finished':
       return { ...state, phase: 'vote', votes: {} };
@@ -151,19 +186,37 @@ export function evolveFashionState(state: FashionState, event: FashionEvent): Fa
           ? state.destroyedEvidence
           : [...state.destroyedEvidence, event.evidenceId],
       };
-    case 'fashion.round.advanced':
+    case 'fashion.round.advanced': {
+      const actionTokens: Record<number, number> = {};
+      for (let seat = 0; seat < FASHION_PLAYER_COUNT; seat += 1) {
+        const currentTokens = state.actionTokens[seat];
+        if (currentTokens === undefined) {
+          throw new Error(`Fashion seat ${seat} is missing action tokens during round advance`);
+        }
+        actionTokens[seat] = Math.min(
+          FASHION_INITIAL_ACTION_TOKENS,
+          currentTokens + FASHION_ROUND_ACTION_TOKEN_RECOVERY,
+        );
+      }
       return {
         ...state,
         currentRound: event.round,
         phase: 'event',
         currentEvent: event.eventId,
+        actionTokens,
         votes: {},
         discussionSpeakCounts: {},
         crossExamParticipantSeats: [],
         crossExamAwardVotes: {},
       };
+    }
     case 'fashion.hearing.started':
-      return { ...state, phase: 'hearing', finalVotes: {} };
+      return { ...state, phase: 'hearing', hearingStatements: [], finalVotes: {} };
+    case 'fashion.hearing.statementAdded':
+      return {
+        ...state,
+        hearingStatements: [...state.hearingStatements, event.statement],
+      };
     case 'fashion.contract.proposed':
       return {
         ...state,

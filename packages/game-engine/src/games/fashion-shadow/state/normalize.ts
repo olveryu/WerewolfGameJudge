@@ -3,12 +3,18 @@
 import { FASHION_SHADOW_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import { FASHION_ROLE_BY_ID } from '../domain/content';
 import {
+  FASHION_CONTRACT_ID_MAX_LENGTH,
+  FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH,
+  FASHION_DISCUSSION_MESSAGE_MAX_LENGTH,
+  FASHION_HEARING_STATEMENT_MAX_LENGTH,
   FASHION_INITIAL_ACTION_TOKENS,
+  FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH,
   FASHION_MAX_DISCUSSION_SPEAKS,
   FASHION_PLAYER_COUNT,
   FASHION_ROLE_IDS,
   FASHION_SECRET_IDS,
   type FashionState,
+  isFashionEvidenceId,
 } from './types';
 import { FASHION_STATE_VERSION } from './version';
 
@@ -130,6 +136,78 @@ export function normalizeFashionState(state: FashionState): FashionState {
     previousConfirmedSeat = seat;
   }
 
+  for (const message of state.discussionMessages) {
+    assertSeat(message.seat, 'Fashion discussion message seat');
+    if (message.round < 1 || message.round > state.currentRound) {
+      throw new Error('Fashion discussion message round is invalid');
+    }
+    if (
+      message.message.trim().length === 0 ||
+      message.message !== message.message.trim() ||
+      message.message.length > FASHION_DISCUSSION_MESSAGE_MAX_LENGTH
+    ) {
+      throw new Error('Fashion discussion message content is invalid');
+    }
+    if (!Number.isSafeInteger(message.createdAt) || message.createdAt < 0) {
+      throw new Error('Fashion discussion message timestamp is invalid');
+    }
+  }
+
+  const crossExamStatementCounts = new Map<string, number>();
+  for (const statement of state.crossExamStatements) {
+    assertSeat(statement.seat, 'Fashion cross exam statement seat');
+    if (statement.round < 1 || statement.round > state.currentRound) {
+      throw new Error('Fashion cross exam statement round is invalid');
+    }
+    if (statement.match !== 1 && statement.match !== 2) {
+      throw new Error('Fashion cross exam statement match is invalid');
+    }
+    if (statement.side !== 'attacker' && statement.side !== 'defender') {
+      throw new Error('Fashion cross exam statement side is invalid');
+    }
+    if (
+      statement.message.trim().length === 0 ||
+      statement.message !== statement.message.trim() ||
+      statement.message.length > FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH
+    ) {
+      throw new Error('Fashion cross exam statement content is invalid');
+    }
+    if (statement.evidenceId !== null && !isFashionEvidenceId(statement.evidenceId)) {
+      throw new Error('Fashion cross exam statement evidence is invalid');
+    }
+    if (!Number.isSafeInteger(statement.createdAt) || statement.createdAt < 0) {
+      throw new Error('Fashion cross exam statement timestamp is invalid');
+    }
+    const key = `${statement.round}:${statement.match}:${statement.seat}`;
+    const nextCount = (crossExamStatementCounts.get(key) ?? 0) + 1;
+    if (nextCount > FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH) {
+      throw new Error(`Fashion cross exam statement count exceeds limit for ${key}`);
+    }
+    crossExamStatementCounts.set(key, nextCount);
+  }
+
+  const hearingStatementSeats = new Set<number>();
+  for (const statement of state.hearingStatements) {
+    assertSeat(statement.seat, 'Fashion hearing statement seat');
+    if (hearingStatementSeats.has(statement.seat)) {
+      throw new Error(`Fashion seat ${statement.seat} has multiple hearing statements`);
+    }
+    hearingStatementSeats.add(statement.seat);
+    if (
+      statement.message.trim().length === 0 ||
+      statement.message !== statement.message.trim() ||
+      statement.message.length > FASHION_HEARING_STATEMENT_MAX_LENGTH
+    ) {
+      throw new Error('Fashion hearing statement content is invalid');
+    }
+    if (!state.publicEvidence.includes(statement.evidenceId)) {
+      throw new Error('Fashion hearing statement must cite public evidence');
+    }
+    if (!Number.isSafeInteger(statement.createdAt) || statement.createdAt < 0) {
+      throw new Error('Fashion hearing statement timestamp is invalid');
+    }
+  }
+
   const investigationVoteKeys = new Set<string>();
   for (const record of state.investigationVoteHistory) {
     assertSeat(record.seat, 'Fashion investigation vote seat');
@@ -178,8 +256,14 @@ export function normalizeFashionState(state: FashionState): FashionState {
 
   const contractIds = new Set<string>();
   for (const contract of state.contracts) {
-    if (contract.id.length === 0 || contractIds.has(contract.id)) {
-      throw new Error(`Fashion contract id ${contract.id} must be non-empty and unique`);
+    if (
+      contract.id.length === 0 ||
+      contract.id.length > FASHION_CONTRACT_ID_MAX_LENGTH ||
+      contractIds.has(contract.id)
+    ) {
+      throw new Error(
+        `Fashion contract id must be non-empty, at most ${FASHION_CONTRACT_ID_MAX_LENGTH} characters, and unique`,
+      );
     }
     contractIds.add(contract.id);
     assertSeat(contract.sellerSeat, 'Fashion contract seller');
