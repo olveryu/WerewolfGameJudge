@@ -124,7 +124,8 @@ export const FIB_WORD_JSON_SCHEMA = {
             type: 'string',
             minLength: FIB_WORD_EVIDENCE_QUOTE_MIN_LENGTH,
             maxLength: FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH,
-            description: '资料中同时包含词面与释义的连续原文，不得改写或拼接',
+            description:
+              '支持该词释义的连续原文；词面须在同一资料中，引用不必重复词头。仅允许空白排版差异，不得改写或拼接',
           },
         },
       },
@@ -215,7 +216,8 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
             type: ['string', 'null'],
             minLength: FIB_WORD_EVIDENCE_QUOTE_MIN_LENGTH,
             maxLength: FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH,
-            description: '包含词面且支持释义的连续原文；没有证据时为 null 并拒绝该候选',
+            description:
+              '支持该词释义的连续原文，引用不必重复同一资料中的词头；没有证据时为 null 并拒绝该候选',
           },
         },
       },
@@ -250,6 +252,15 @@ export function parseFibWordEditorialCandidate(value: unknown): FibWordEditorial
   return fibWordEditorialCandidateSchema.parse(value);
 }
 
+function resolveFibWordEvidenceQuote(content: string, quote: string): string | null {
+  const quotePattern = quote
+    .split(/\s+/u)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('\\s+');
+  const match = content.match(new RegExp(quotePattern, 'u'));
+  return match === null || match[0].length > FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH ? null : match[0];
+}
+
 export function parseGeneratedFibWordCandidates(
   value: unknown,
   source: FibWordSource,
@@ -264,7 +275,11 @@ export function parseGeneratedFibWordCandidates(
     source,
     evidence: citations.map(({ evidenceIndex, quote }) => {
       const evidence = request.evidence[evidenceIndex];
-      if (evidence === undefined || !evidence.content.includes(quote) || !quote.includes(word)) {
+      if (
+        evidence === undefined ||
+        !evidence.content.includes(word) ||
+        resolveFibWordEvidenceQuote(evidence.content, quote) === null
+      ) {
         throw new Error(`Fib word candidate has an invalid evidence citation: ${word}`);
       }
       return evidence;
@@ -284,7 +299,7 @@ export function assertFibWordReviewEvidence(
     evidence === undefined ||
     evidenceQuote === null ||
     !evidence.content.includes(evidenceQuote) ||
-    !evidenceQuote.includes(candidate.word)
+    !evidence.content.includes(candidate.word)
   ) {
     throw new Error(`Fib word review has an invalid evidence citation: ${candidate.word}`);
   }
@@ -311,7 +326,17 @@ export function parseFibWordReviews(
       ...review,
       decision: Object.values(review.qualityChecks).every(Boolean) ? 'accepted' : 'rejected',
     };
-    assertFibWordReviewEvidence(candidate, result);
-    return result;
+    const evidence =
+      review.evidenceIndex === null ? undefined : candidate.evidence[review.evidenceIndex];
+    const evidenceQuote =
+      evidence === undefined || review.evidenceQuote === null
+        ? null
+        : resolveFibWordEvidenceQuote(evidence.content, review.evidenceQuote);
+    if (review.evidenceQuote !== null && evidenceQuote === null) {
+      throw new Error(`Fib word review has an invalid evidence citation: ${candidate.word}`);
+    }
+    const resolvedReview = { ...result, evidenceQuote };
+    assertFibWordReviewEvidence(candidate, resolvedReview);
+    return resolvedReview;
   });
 }

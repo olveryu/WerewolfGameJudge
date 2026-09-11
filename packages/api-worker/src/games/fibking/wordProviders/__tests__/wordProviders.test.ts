@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  assertFibWordReviewEvidence,
   FIB_WORD_CANDIDATES_JSON_SCHEMA,
   FIB_WORD_JSON_SCHEMA,
   FIB_WORD_REVIEWS_JSON_SCHEMA,
@@ -141,6 +142,85 @@ describe('Fib word candidate batches', () => {
         },
         'gemini',
         createWordRequest(),
+      ),
+    ).toThrow('invalid evidence citation');
+  });
+
+  it('accepts separate dictionary headings and preserves the original quote whitespace', () => {
+    const request = createWordRequest();
+    const evidenceQuote = '荷花的别称，\n古人常在诗文中用来称呼荷花。';
+    const evidence = request.evidence.map((source) => ({
+      ...source,
+      content: `菡萏\n词目与读音\n${evidenceQuote}`,
+    }));
+    const candidates = parseGeneratedFibWordCandidates(
+      {
+        candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1).map((candidate) => ({
+          ...candidate,
+          citations: [{ evidenceIndex: 0, quote: evidenceQuote.replace('\n', ' ') }],
+        })),
+      },
+      'gemini',
+      { ...request, evidence },
+    );
+    const reviews = parseFibWordReviews(
+      {
+        reviews: REVIEWS_RESPONSE.reviews.slice(0, 1).map((review) => ({
+          ...review,
+          qualityChecks: PASSING_QUALITY_CHECKS,
+          evidenceQuote: evidenceQuote.replace('\n', ' '),
+        })),
+      },
+      candidates,
+    );
+    expect(reviews[0]).toMatchObject({ decision: 'accepted', evidenceQuote });
+    expect(() => assertFibWordReviewEvidence(candidates[0], reviews[0])).not.toThrow();
+  });
+
+  it.each([
+    '荷花的别称，古人常在诗文中用来称呼莲花。',
+    '荷花的别称，\n其他段落\n古人常在诗文中用来称呼荷花。',
+  ])('rejects rewritten or stitched quotations: %s', (content) => {
+    const request = createWordRequest();
+    const candidates = parseGeneratedFibWordCandidates(
+      { candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1) },
+      'gemini',
+      request,
+    ).map((candidate) => ({
+      ...candidate,
+      evidence: candidate.evidence.map((source) => ({ ...source, content: `菡萏\n${content}` })),
+    }));
+    expect(() =>
+      parseFibWordReviews(
+        {
+          reviews: REVIEWS_RESPONSE.reviews.slice(0, 1).map((review) => ({
+            ...review,
+            evidenceQuote: LITERARY_DEFINITION.coreMeaning,
+          })),
+        },
+        candidates,
+      ),
+    ).toThrow('invalid evidence citation');
+  });
+
+  it('rejects a definition source that does not contain the candidate word', () => {
+    const request = createWordRequest();
+    expect(() =>
+      parseGeneratedFibWordCandidates(
+        {
+          candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1).map((candidate) => ({
+            ...candidate,
+            citations: [{ evidenceIndex: 0, quote: LITERARY_DEFINITION.coreMeaning }],
+          })),
+        },
+        'gemini',
+        {
+          ...request,
+          evidence: request.evidence.map((source) => ({
+            ...source,
+            content: LITERARY_DEFINITION.coreMeaning,
+          })),
+        },
       ),
     ).toThrow('invalid evidence citation');
   });
