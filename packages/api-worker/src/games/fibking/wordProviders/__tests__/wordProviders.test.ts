@@ -635,6 +635,13 @@ describe('Gemini Fib word provider', () => {
       })),
     );
     expect(requestBody).toContain('独立审核');
+    expect(requestBody).toContain('游戏界面提供带声调拼音');
+    expect(requestBody).toContain('不得仅因生僻字、不会认字或原本不会读而设为 false');
+    expect(requestBody).not.toContain('仅认读困难时 isEasyToReadAloud 设为 false');
+    expect(
+      FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews.items.properties.qualityChecks.properties
+        .isEasyToReadAloud.description,
+    ).toBe('多数普通玩家是否能借助界面提供的拼音口述词面，不要求原先认识汉字或知道读音');
     expect(requestBody).toContain(
       `"word":{"type":"string","enum":${JSON.stringify(candidates.map(({ word }) => word))}}`,
     );
@@ -644,6 +651,28 @@ describe('Gemini Fib word provider', () => {
     expect(requestBody).toContain('坏题“琼浆”');
     expect(requestBody).toContain('坏题“幸存者偏差”');
     expect(requestBody).toContain('常见熟语搭配');
+    expect(requestBody).toContain('七项人工逐项标注');
+    expect(requestBody).toContain('不是来源证据或自动放行名单');
+    for (const word of [
+      '步障',
+      '关扑',
+      '料器',
+      '汤婆子',
+      '青精饭',
+      '合生',
+      '竹夫人',
+      '虎子',
+      '转席',
+      '青庐',
+      '障车',
+      '催妆',
+      '撒帐',
+      '合髻',
+      '却扇',
+    ]) {
+      expect(requestBody).toContain(`${word}：`);
+    }
+    expect(requestBody).toContain('仅猜到所属大类、材料或大致场景，不等于猜中');
     expect(requestBody).toContain('reason 用八至一百字中文记录具体审核依据');
     expect(requestBody).not.toContain('接受“打尖”');
     expect(requestBody).not.toContain('接受“鸟笼效应”');
@@ -681,12 +710,14 @@ describe('Gemini Fib word provider', () => {
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
     expect(requestBody).toContain('"type":"json_schema"');
     expect(requestBody).toContain('返回零到12个互不重复的候选');
-    expect(requestBody).toContain('多数普通玩家在揭晓前不能准确说出固定真义');
-    expect(requestBody).toContain('不得用较弱候选凑满数量');
-    expect(requestBody).toContain('坏题“觊觎”');
-    expect(requestBody).toContain('坏题“琼浆”');
-    expect(requestBody).toContain('坏题“幸存者偏差”');
-    expect(requestBody).toContain('搜索结果少不能证明冷门');
+    expect(requestBody).toContain('游戏性由后续独立审核统一判断');
+    expect(requestBody).toContain('词项真实性、释义与证据对应、候选多样性');
+    expect(requestBody).toContain('没有支持释义的片段就不输出该候选');
+    expect(requestBody).toContain('按证据明确程度和概念多样性排列');
+    expect(requestBody).not.toContain('按出题质量从高到低排列');
+    expect(requestBody).not.toContain('多数普通玩家在揭晓前不能准确说出固定真义');
+    expect(requestBody).not.toContain('<difficulty_rejection>');
+    expect(requestBody).not.toContain('<calibration_examples>');
     expect(requestBody).not.toContain('好题“打尖”');
     expect(requestBody).not.toContain('好题“鸟笼效应”');
     expect(requestBody).not.toContain('本房间');

@@ -142,7 +142,7 @@ export const FIB_WORD_CANDIDATES_JSON_SCHEMA = {
   properties: {
     candidates: {
       type: 'array',
-      description: `按出题质量从高到低排列，最多${FIB_WORD_GENERATION_BATCH_LIMIT}个候选，不得凑数`,
+      description: `按证据明确程度和概念多样性排列，最多${FIB_WORD_GENERATION_BATCH_LIMIT}个真实候选，游戏性由后续审核判断`,
       minItems: 0,
       maxItems: FIB_WORD_GENERATION_BATCH_LIMIT,
       items: FIB_WORD_JSON_SCHEMA,
@@ -188,7 +188,8 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
               },
               isEasyToReadAloud: {
                 type: 'boolean',
-                description: '多数普通玩家是否能自然认读并口述词面',
+                description:
+                  '多数普通玩家是否能借助界面提供的拼音口述词面，不要求原先认识汉字或知道读音',
               },
               isMeaningUnfamiliarToMostPlayers: {
                 type: 'boolean',
