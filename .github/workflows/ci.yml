@@ -201,7 +201,9 @@ jobs:
           cd "$WORK"
           # Idempotent publish: skip if this version already exists on npm
           # (happens when a reverted commit re-lands with the same SHA)
-          if npm view "werewolf-judge-cdn@$PKG_VERSION" version >/dev/null 2>&1; then
+          if npm view "werewolf-judge-cdn@$PKG_VERSION" version \
+            --registry=https://registry.npmjs.org/ --prefer-online \
+            --fetch-retries=0 --fetch-timeout=15000 >/dev/null; then
             echo "⏭️ werewolf-judge-cdn@$PKG_VERSION already published — skipping"
           else
             npm publish --access public --tag latest
@@ -209,18 +211,50 @@ jobs:
           fi
 
           # Gate: confirm version is visible on npm registry before proceeding.
-          # npm registry is eventually consistent — poll until the version resolves.
+          # Bound wall-clock time, including each registry request.
+          MAX_WAIT_SECONDS=600
+          REQUEST_TIMEOUT_SECONDS=15
+          POLL_INTERVAL_SECONDS=5
+          START_SECONDS=$SECONDS
+          DEADLINE_SECONDS=$((START_SECONDS + MAX_WAIT_SECONDS))
+          NPM_ERROR_FILE=$(mktemp)
+          trap 'rm -f "$NPM_ERROR_FILE"' EXIT
           echo "⏳ Waiting for npm registry to confirm $PKG_VERSION..."
-          for i in $(seq 1 24); do
-            if npm view "werewolf-judge-cdn@$PKG_VERSION" version >/dev/null 2>&1; then
-              echo "✅ npm registry confirms $PKG_VERSION (after $((i*5))s)"
-              break
-            fi
-            if [ "$i" -eq 24 ]; then
-              echo "❌ npm registry did not propagate $PKG_VERSION within 120s — aborting"
+          while true; do
+            REMAINING_SECONDS=$((DEADLINE_SECONDS - SECONDS))
+            if [ "$REMAINING_SECONDS" -le 0 ]; then
+              echo "❌ npm registry did not confirm $PKG_VERSION within ${MAX_WAIT_SECONDS}s — aborting"
               exit 1
             fi
-            sleep 5
+            QUERY_TIMEOUT_SECONDS=$REQUEST_TIMEOUT_SECONDS
+            if [ "$REMAINING_SECONDS" -lt "$QUERY_TIMEOUT_SECONDS" ]; then
+              QUERY_TIMEOUT_SECONDS=$REMAINING_SECONDS
+            fi
+            if VERSION_CHECK=$(timeout "${QUERY_TIMEOUT_SECONDS}s" \
+              npm view "werewolf-judge-cdn@$PKG_VERSION" version \
+                --registry=https://registry.npmjs.org/ --prefer-online \
+                --fetch-retries=0 --fetch-timeout=$((QUERY_TIMEOUT_SECONDS * 1000)) \
+                2>"$NPM_ERROR_FILE"); then
+              if [ "$VERSION_CHECK" = "$PKG_VERSION" ]; then
+                echo "✅ npm registry confirms $PKG_VERSION (after $((SECONDS - START_SECONDS))s)"
+                break
+              fi
+              echo "⚠️ npm registry returned unexpected version: ${VERSION_CHECK:-empty}"
+            else
+              QUERY_EXIT_CODE=$?
+              echo "⚠️ npm registry query failed (exit=$QUERY_EXIT_CODE, elapsed=$((SECONDS - START_SECONDS))s)"
+              cat "$NPM_ERROR_FILE" >&2
+            fi
+            REMAINING_SECONDS=$((DEADLINE_SECONDS - SECONDS))
+            if [ "$REMAINING_SECONDS" -le 0 ]; then
+              echo "❌ npm registry did not confirm $PKG_VERSION within ${MAX_WAIT_SECONDS}s — aborting"
+              exit 1
+            fi
+            WAIT_SECONDS=$POLL_INTERVAL_SECONDS
+            if [ "$REMAINING_SECONDS" -lt "$WAIT_SECONDS" ]; then
+              WAIT_SECONDS=$REMAINING_SECONDS
+            fi
+            sleep "$WAIT_SECONDS"
           done
 
           echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
