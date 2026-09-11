@@ -10,7 +10,7 @@ import {
   parseGeneratedFibWordCandidates,
 } from '../candidate';
 import { createGeminiFibWordProvider } from '../gemini';
-import type { FibWordRequest } from '../types';
+import { FIB_WORD_GENERATION_BATCH_LIMIT, type FibWordRequest } from '../types';
 
 const TEST_GENERATION_BUDGET_MS = 60_000;
 const LITERARY_DEFINITION = {
@@ -22,6 +22,7 @@ const CANDIDATES_RESPONSE = {
     word,
     definition: LITERARY_DEFINITION,
     category: 'literary' as const,
+    citations: [{ evidenceIndex: 0, quote: `${word}：${LITERARY_DEFINITION.coreMeaning}` }],
   })),
 };
 const PASSING_QUALITY_CHECKS = {
@@ -44,13 +45,24 @@ const REVIEWS_RESPONSE = {
       word === '菡萏'
         ? '词义已被多数玩家熟知，无法形成真假释义悬念。'
         : '真实含义不透明且便于编造可信释义。',
+    evidenceIndex: 0,
+    evidenceQuote: `${word}：${LITERARY_DEFINITION.coreMeaning}`,
   })),
 };
 
 function createWordRequest(): FibWordRequest {
   return {
     category: 'literary',
-    evidence: [],
+    evidence: [
+      {
+        query: '词源资料',
+        url: 'https://example.com/terms',
+        title: '格式契约测试资料，不代表真实词义或质量',
+        content: CANDIDATES_RESPONSE.candidates
+          .flatMap(({ citations }) => citations.map(({ quote }) => quote))
+          .join('\n'),
+      },
+    ],
     deadlineAt: Date.now() + TEST_GENERATION_BUDGET_MS,
     signal: new AbortController().signal,
   };
@@ -67,23 +79,108 @@ describe('Fib word candidate batches', () => {
     expect(
       parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', createWordRequest()),
     ).toEqual(
-      CANDIDATES_RESPONSE.candidates.map(({ word, definition }) => ({
+      CANDIDATES_RESPONSE.candidates.map(({ word, definition, category }) => ({
         word,
         definition,
+        category,
+        evidence: createWordRequest().evidence,
         source: 'gemini',
       })),
     );
     expect(FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates).toMatchObject({
       items: FIB_WORD_JSON_SCHEMA,
-      minItems: 6,
-      maxItems: 6,
+      minItems: 0,
+      maxItems: FIB_WORD_GENERATION_BATCH_LIMIT,
     });
   });
 
-  it('rejects wrong counts, duplicates, categories, and unknown fields', () => {
+  it('accepts a partial or empty batch without requiring filler candidates', () => {
+    expect(
+      parseGeneratedFibWordCandidates(
+        { candidates: CANDIDATES_RESPONSE.candidates.slice(0, 2) },
+        'gemini',
+        createWordRequest(),
+      ),
+    ).toHaveLength(2);
+    expect(
+      parseGeneratedFibWordCandidates({ candidates: [] }, 'gemini', createWordRequest()),
+    ).toEqual([]);
+  });
+
+  it('preserves per-word categories and requires exactly the partial review batch', () => {
+    const candidates = parseGeneratedFibWordCandidates(
+      {
+        candidates: CANDIDATES_RESPONSE.candidates.slice(0, 2).map((candidate, index) => ({
+          ...candidate,
+          category: index === 0 ? 'niche' : 'literary',
+        })),
+      },
+      'gemini',
+      createWordRequest(),
+    );
+    expect(candidates.map(({ category }) => category)).toEqual(['niche', 'literary']);
+    expect(
+      parseFibWordReviews({ reviews: REVIEWS_RESPONSE.reviews.slice(0, 2) }, candidates),
+    ).toHaveLength(2);
+    expect(() =>
+      parseFibWordReviews({ reviews: REVIEWS_RESPONSE.reviews.slice(0, 1) }, candidates),
+    ).toThrow('batch size mismatch');
+  });
+
+  it.each([
+    { evidenceIndex: 1, quote: '菡萏：荷花的别称，古人常在诗文中用来称呼荷花。' },
+    { evidenceIndex: 0, quote: '菡萏：资料中没有这段释义。' },
+  ])('rejects an invented source reference or quotation', (citation) => {
     expect(() =>
       parseGeneratedFibWordCandidates(
-        { candidates: CANDIDATES_RESPONSE.candidates.slice(0, 5) },
+        {
+          candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1).map((candidate) => ({
+            ...candidate,
+            citations: [citation],
+          })),
+        },
+        'gemini',
+        createWordRequest(),
+      ),
+    ).toThrow('invalid evidence citation');
+  });
+
+  it('cannot accept without a verifiable evidence quote, but can reject missing evidence', () => {
+    const candidates = parseGeneratedFibWordCandidates(
+      { candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1) },
+      'gemini',
+      createWordRequest(),
+    );
+    const reviews = REVIEWS_RESPONSE.reviews.slice(0, 1).map((review) => ({
+      ...review,
+      qualityChecks: PASSING_QUALITY_CHECKS,
+      evidenceIndex: null,
+      evidenceQuote: null,
+    }));
+    expect(() => parseFibWordReviews({ reviews }, candidates)).toThrow('invalid evidence citation');
+    expect(
+      parseFibWordReviews(
+        {
+          reviews: reviews.map((review) => ({
+            ...review,
+            qualityChecks: { ...review.qualityChecks, isDefinitionAccurate: false },
+          })),
+        },
+        candidates,
+      ),
+    ).toMatchObject([{ decision: 'rejected', evidenceIndex: null }]);
+  });
+
+  it('rejects oversized batches, duplicates, invalid categories, and unknown fields', () => {
+    expect(() =>
+      parseGeneratedFibWordCandidates(
+        {
+          candidates: [
+            ...CANDIDATES_RESPONSE.candidates,
+            ...CANDIDATES_RESPONSE.candidates,
+            CANDIDATES_RESPONSE.candidates[0],
+          ],
+        },
         'gemini',
         createWordRequest(),
       ),
@@ -104,13 +201,13 @@ describe('Fib word candidate batches', () => {
       parseGeneratedFibWordCandidates(
         {
           candidates: CANDIDATES_RESPONSE.candidates.map((candidate, index) =>
-            index === 0 ? { ...candidate, category: 'internet' } : candidate,
+            index === 0 ? { ...candidate, category: 'invalid' } : candidate,
           ),
         },
         'gemini',
         createWordRequest(),
       ),
-    ).toThrow('expected literary');
+    ).toThrow();
     expect(() =>
       parseGeneratedFibWordCandidates(
         {
@@ -132,15 +229,13 @@ describe('Fib word candidate batches', () => {
     );
 
     expect(parseFibWordReviews(REVIEWS_RESPONSE, candidates)).toEqual(
-      REVIEWS_RESPONSE.reviews.map(({ word, qualityChecks, reason }, candidateIndex) => ({
-        word,
-        qualityChecks,
+      REVIEWS_RESPONSE.reviews.map((review, candidateIndex) => ({
+        ...review,
         decision: candidateIndex === 0 ? 'rejected' : 'accepted',
-        reason,
       })),
     );
     expect(FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews).toMatchObject({
-      minItems: 6,
+      minItems: 1,
       maxItems: 6,
     });
     expect(() =>
@@ -207,6 +302,15 @@ describe('Fib word candidate batches', () => {
 });
 
 describe('Gemini Fib word provider', () => {
+  it('does not send a model request for an empty review batch', async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new Error('Empty batches must not consume external quota');
+    };
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).reviewBatch(createWordRequest(), []),
+    ).resolves.toEqual([]);
+  });
+
   it('preserves the global fetch receiver for generation and review', async () => {
     let response: unknown = CANDIDATES_RESPONSE;
     const fetchImpl: typeof fetch = async function (this: unknown) {
@@ -240,11 +344,9 @@ describe('Gemini Fib word provider', () => {
     );
 
     await expect(provider.reviewBatch(createWordRequest(), candidates)).resolves.toEqual(
-      REVIEWS_RESPONSE.reviews.map(({ word, qualityChecks, reason }, candidateIndex) => ({
-        word,
-        qualityChecks,
+      REVIEWS_RESPONSE.reviews.map((review, candidateIndex) => ({
+        ...review,
         decision: candidateIndex === 0 ? 'rejected' : 'accepted',
-        reason,
       })),
     );
     expect(requestBody).toContain('独立审核');
@@ -290,7 +392,7 @@ describe('Gemini Fib word provider', () => {
     expect(requestSignal).toBe(request.signal);
     expect(requestBody).toContain('"model":"gemini-3.5-flash-lite"');
     expect(requestBody).toContain('"type":"json_schema"');
-    expect(requestBody).toContain('返回恰好6个互不重复的候选');
+    expect(requestBody).toContain('返回零到12个互不重复的候选');
     expect(requestBody).toContain('多数普通玩家在揭晓前不能准确说出固定真义');
     expect(requestBody).toContain('不得用较弱候选凑满数量');
     expect(requestBody).toContain('坏题“觊觎”');
@@ -332,7 +434,7 @@ describe('Gemini Fib word provider', () => {
 
   it('classifies malformed structured output as invalidOutput', async () => {
     const fetchImpl: typeof fetch = () =>
-      Promise.resolve(Response.json(createGeminiResponse({ candidates: [] })));
+      Promise.resolve(Response.json(createGeminiResponse({ candidates: null })));
 
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),

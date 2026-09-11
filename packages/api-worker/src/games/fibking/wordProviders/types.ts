@@ -8,7 +8,8 @@ import type {
 import type { FibWordEvidence } from './tavily';
 
 export const FIB_WORD_CATEGORIES = ['literary', 'internet', 'compound', 'niche'] as const;
-export const FIB_GENERATED_WORD_CANDIDATE_COUNT = 6;
+export const FIB_WORD_GENERATION_BATCH_LIMIT = 12;
+export const FIB_WORD_REVIEW_BATCH_LIMIT = 6;
 export const FIB_WORD_REVIEW_DECISIONS = ['accepted', 'rejected'] as const;
 
 export type FibWordCategory = (typeof FIB_WORD_CATEGORIES)[number];
@@ -27,6 +28,12 @@ export interface FibWordCandidate {
   readonly source: FibWordSource;
 }
 
+/** Editorial provenance stays server-side and never changes the selected-word contract. */
+export interface FibWordEditorialCandidate extends FibWordCandidate {
+  readonly category: FibWordCategory;
+  readonly evidence: readonly FibWordEvidence[];
+}
+
 export interface FibWordQualityChecks {
   readonly isEstablishedTerm: boolean;
   readonly isDefinitionAccurate: boolean;
@@ -42,15 +49,17 @@ export interface FibWordReview {
   readonly qualityChecks: FibWordQualityChecks;
   readonly decision: FibWordReviewDecision;
   readonly reason: string;
+  readonly evidenceIndex: number | null;
+  readonly evidenceQuote: string | null;
 }
 
 export interface FibWordProvider {
-  /** Generate candidate questions without deciding which candidates enter the active pool. */
-  generateBatch(request: FibWordRequest): Promise<readonly FibWordCandidate[]>;
+  /** Extract source-backed candidates without deciding which enter the active inventory. */
+  generateBatch(request: FibWordRequest): Promise<readonly FibWordEditorialCandidate[]>;
 
   /** Review a generated batch in an independent model request. */
   reviewBatch(
     request: FibWordRequest,
-    candidates: readonly FibWordCandidate[],
+    candidates: readonly FibWordEditorialCandidate[],
   ): Promise<readonly FibWordReview[]>;
 }

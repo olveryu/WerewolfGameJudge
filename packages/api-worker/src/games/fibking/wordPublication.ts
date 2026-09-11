@@ -2,19 +2,28 @@
 
 import { z } from 'zod';
 
-import { parseFibWordCandidate } from './wordProviders/candidate';
+import { assertFibWordReviewEvidence } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import {
-  FIB_GENERATED_WORD_CANDIDATE_COUNT,
   FIB_WORD_CATEGORIES,
-  type FibWordCandidate,
+  FIB_WORD_REVIEW_BATCH_LIMIT,
+  type FibWordEditorialCandidate,
   type FibWordReview,
 } from './wordProviders/types';
 
 const FIB_WORD_MONTHLY_TARGET = 100;
 const FIB_WORD_MONTHLY_BATCH_LIMIT = 60;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
+export const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
+
+type FibWordProviderOperation =
+  | 'discovery'
+  | 'extraction'
+  | 'generation'
+  | 'review'
+  | `verification-${number}`
+  | `verification-extraction-${number}`;
 
 const packSchema = z.strictObject({
   id: z.string(),
@@ -23,72 +32,29 @@ const packSchema = z.strictObject({
 });
 export type FibWordPack = z.output<typeof packSchema>;
 
-/** Prioritize active inventory awaiting the current rubric without changing its sequence. */
-export async function getFibWordReviewCandidates(
-  db: D1Database,
-  pack: FibWordPack,
-  generatedCandidates: readonly FibWordCandidate[],
-): Promise<FibWordCandidate[]> {
-  if (generatedCandidates.length !== FIB_GENERATED_WORD_CANDIDATE_COUNT) {
-    throw new Error('Fib review candidate batch size mismatch');
-  }
-  const inventoryRows = await db
-    .prepare(
-      `SELECT word, core_meaning, usage_note, source FROM fib_words AS inventory
-       WHERE status = 'active' AND category = ?
-         AND NOT EXISTS (
-           SELECT 1 FROM fib_word_candidate_reviews AS review
-           WHERE review.word = inventory.word AND review.review_version = ?
-             AND review.decision = 'accepted'
-             AND review.core_meaning = inventory.core_meaning
-             AND review.usage_note = inventory.usage_note
-             AND review.reviewed_at >= inventory.activated_at
-         )
-       ORDER BY activated_at, word LIMIT ?`,
-    )
-    .bind(pack.category, FIB_WORD_REVIEW_VERSION, FIB_GENERATED_WORD_CANDIDATE_COUNT)
-    .all<{
-      word: string;
-      core_meaning: string;
-      usage_note: string;
-      source: FibWordCandidate['source'];
-    }>();
-  const inventoryCandidates = inventoryRows.results.map((row) =>
-    parseFibWordCandidate(
-      {
-        word: row.word,
-        definition: { coreMeaning: row.core_meaning, usageNote: row.usage_note },
-      },
-      row.source,
-      [],
-    ),
-  );
-  return [
-    ...inventoryCandidates,
-    ...generatedCandidates.filter(
-      (candidate) => !inventoryCandidates.some((inventory) => inventory.word === candidate.word),
-    ),
-  ].slice(0, FIB_GENERATED_WORD_CANDIDATE_COUNT);
-}
-
 /** An uncertain provider operation is consumed permanently, including after Workflow restart. */
 export async function claimFibWordProviderRequest(
   db: D1Database,
   pack: FibWordPack,
-  operation: string,
+  operation: FibWordProviderOperation,
 ): Promise<void> {
   const result = await db
     .prepare(
       `INSERT INTO fib_word_provider_requests (pack_id, operation)
     SELECT id, ? FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved'
+      AND (? IN ('generation', 'review') OR (
+        SELECT COUNT(*) FROM fib_word_provider_requests
+        WHERE pack_id = ? AND operation NOT IN ('generation', 'review')
+      ) < ?)
     ON CONFLICT (pack_id, operation) DO NOTHING RETURNING pack_id`,
     )
-    .bind(operation, pack.id, pack.request_token)
+    .bind(operation, pack.id, pack.request_token, operation, pack.id, FIB_WORD_TAVILY_REQUEST_LIMIT)
     .first();
-  if (result === null) throw new Error('Fib provider operation already consumed or pack is closed');
+  if (result === null)
+    throw new Error('Fib provider operation already consumed, budget exhausted, or pack is closed');
 }
 
-/** Reserve one search and two model calls; uncertain calls are never refunded or retried. */
+/** Reserve at most seven source requests and two model calls; uncertain calls are not refunded. */
 export async function reserveFibWordPack(
   db: D1Database,
   day: string,
@@ -148,7 +114,7 @@ export async function reserveFibWordPack(
 function reviewStatement(
   db: D1Database,
   pack: FibWordPack,
-  candidate: FibWordCandidate,
+  candidate: FibWordEditorialCandidate,
   review: FibWordReview,
   index: number,
   now: string,
@@ -161,8 +127,9 @@ function reviewStatement(
     is_established_term, is_definition_accurate, is_easy_to_read_aloud,
     is_meaning_unfamiliar_to_most_players, is_meaning_distinct_from_literal_reading,
     has_multiple_plausible_wrong_definitions, has_reveal_value,
-    decision, reason, review_version, generation_cycle_id, reviewed_at
-  ) SELECT ?, ?, ?, ?, ?, 'gemini', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    decision, reason, review_version, generation_cycle_id, reviewed_at,
+    evidence_json, evidence_index, evidence_quote
+  ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved'`,
     )
     .bind(
@@ -170,7 +137,8 @@ function reviewStatement(
       candidate.word,
       candidate.definition.coreMeaning,
       candidate.definition.usageNote,
-      pack.category,
+      candidate.category,
+      candidate.source,
       Number(checks.isEstablishedTerm),
       Number(checks.isDefinitionAccurate),
       Number(checks.isEasyToReadAloud),
@@ -183,6 +151,9 @@ function reviewStatement(
       FIB_WORD_REVIEW_VERSION,
       pack.id,
       now,
+      JSON.stringify(candidate.evidence),
+      review.evidenceIndex,
+      review.evidenceQuote,
       pack.id,
       pack.request_token,
     );
@@ -192,16 +163,13 @@ function reviewStatement(
 export async function publishFibWordPack(
   db: D1Database,
   pack: FibWordPack,
-  candidates: readonly FibWordCandidate[],
+  candidates: readonly FibWordEditorialCandidate[],
   reviews: readonly FibWordReview[],
   sourceUrls: readonly string[],
 ): Promise<void> {
-  if (
-    candidates.length !== FIB_GENERATED_WORD_CANDIDATE_COUNT ||
-    reviews.length !== candidates.length
-  )
+  if (candidates.length > FIB_WORD_REVIEW_BATCH_LIMIT || reviews.length !== candidates.length)
     throw new Error('Fib publication batch size mismatch');
-  z.array(z.url()).min(1).max(14).parse(sourceUrls);
+  z.array(z.url()).max(14).parse(sourceUrls);
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [];
   for (const [index, candidate] of candidates.entries()) {
@@ -210,6 +178,7 @@ export async function publishFibWordPack(
       throw new Error('Fib publication review mismatch');
     if (review.decision === 'accepted' && !Object.values(review.qualityChecks).every(Boolean))
       throw new Error('Fib publication accepted failed quality checks');
+    assertFibWordReviewEvidence(candidate, review);
     statements.push(reviewStatement(db, pack, candidate, review, index, now));
     if (review.decision === 'rejected') {
       statements.push(
@@ -228,7 +197,7 @@ export async function publishFibWordPack(
         .prepare(
           `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status,
       selection_key, generation_cycle_id, created_at, activated_at)
-      SELECT ?, ?, ?, ?, category, 'gemini', 'active', 0, id, ?, ? FROM fib_word_packs
+      SELECT ?, ?, ?, ?, ?, ?, 'active', 0, id, ?, ? FROM fib_word_packs
       WHERE id = ? AND request_token = ? AND status = 'reserved'
         AND (EXISTS (SELECT 1 FROM fib_word_sequence WHERE word = ?)
           OR (SELECT published_count FROM fib_word_supply_months WHERE id = month_id)
@@ -245,6 +214,8 @@ export async function publishFibWordPack(
           candidate.word,
           candidate.definition.coreMeaning,
           candidate.definition.usageNote,
+          candidate.category,
+          candidate.source,
           now,
           now,
           pack.id,
@@ -274,18 +245,46 @@ export async function publishFibWordPack(
       .bind(pack.id, pack.id, pack.request_token),
     db
       .prepare(
-        `UPDATE fib_word_generation_cycles SET status = 'completed', completed_at = ?, request_count = 1,
+        `UPDATE fib_word_generation_cycles SET status = 'completed', completed_at = ?,
+      request_count = (SELECT COUNT(*) FROM fib_word_provider_requests WHERE pack_id = ? AND operation IN ('generation', 'review')),
       accepted_count = (SELECT COUNT(*) FROM fib_word_sequence WHERE pack_id = ?),
       rejected_count = (SELECT COUNT(*) FROM fib_word_candidate_reviews WHERE generation_cycle_id = ? AND decision = 'rejected')
       WHERE id = ? AND status = 'running'`,
       )
-      .bind(now, pack.id, pack.id, pack.id),
+      .bind(now, pack.id, pack.id, pack.id, pack.id),
     db
       .prepare(
-        `UPDATE fib_word_packs SET status = 'published', published_at = ?, source_json = ?
+        `DELETE FROM fib_word_candidates WHERE claimed_pack_id = ? AND EXISTS (
+          SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')
+        AND (EXISTS (SELECT 1 FROM fib_word_sequence WHERE word = fib_word_candidates.word)
+          OR EXISTS (SELECT 1 FROM fib_word_candidate_reviews
+            WHERE generation_cycle_id = claimed_pack_id AND word = fib_word_candidates.word
+              AND decision = 'rejected'))`,
+      )
+      .bind(pack.id, pack.id, pack.request_token),
+    db
+      .prepare(
+        `UPDATE fib_word_candidates SET status = 'pending', claimed_pack_id = NULL, claimed_at = NULL
+        WHERE claimed_pack_id = ? AND EXISTS (
+          SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
+      )
+      .bind(pack.id, pack.id, pack.request_token),
+    db
+      .prepare(
+        `UPDATE fib_word_packs SET status = 'published', published_at = ?, source_json = ?, outcome = ?
       WHERE id = ? AND request_token = ? AND status = 'reserved'`,
       )
-      .bind(now, JSON.stringify(sourceUrls), pack.id, pack.request_token),
+      .bind(
+        now,
+        JSON.stringify(sourceUrls),
+        candidates.length === 0
+          ? 'noCandidates'
+          : reviews.every(({ decision }) => decision === 'rejected')
+            ? 'allRejected'
+            : 'reviewed',
+        pack.id,
+        pack.request_token,
+      ),
   );
   await db.batch(statements);
 }
@@ -307,5 +306,12 @@ export async function failFibWordPack(
         "UPDATE fib_word_generation_cycles SET status = 'failed', completed_at = ?, error_code = ? WHERE id = ? AND status = 'running'",
       )
       .bind(new Date().toISOString(), errorCode, pack.id),
+    db
+      .prepare(
+        `UPDATE fib_word_candidates SET status = 'pending', claimed_pack_id = NULL, claimed_at = NULL
+         WHERE claimed_pack_id = ? AND EXISTS (
+           SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'failed')`,
+      )
+      .bind(pack.id, pack.id, pack.request_token),
   ]);
 }

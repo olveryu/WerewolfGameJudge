@@ -110,6 +110,9 @@ export const fibWordCandidateReviews = sqliteTable(
       .notNull()
       .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }),
     reviewedAt: text('reviewed_at').notNull(),
+    evidenceJson: text('evidence_json'), // Source snapshots; NULL for reviews before provenance was recorded.
+    evidenceIndex: integer('evidence_index'), // Zero-based supporting source; NULL when none was cited.
+    evidenceQuote: text('evidence_quote'), // Exact cited excerpt; NULL when evidence was unavailable.
   },
   (table) => [
     index('idx_fib_word_candidate_reviews_word_decision').on(table.word, table.decision),
@@ -117,6 +120,31 @@ export const fibWordCandidateReviews = sqliteTable(
       table.generationCycleId,
       table.decision,
     ),
+  ],
+);
+
+/** @public Pending editorial candidates; claimed rows leave only after a review transaction commits. */
+export const fibWordCandidates = sqliteTable(
+  'fib_word_candidates',
+  {
+    id: text('id').primaryKey(), // Intake cycle and candidate identity.
+    word: text('word').notNull().unique(), // One pending or claimed entry per word.
+    coreMeaning: text('core_meaning').notNull(), // Proposed fixed meaning, not yet approved.
+    usageNote: text('usage_note').notNull(), // Proposed usage context.
+    category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(), // Candidate category, independent of pack focus.
+    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(), // Original candidate provider.
+    evidenceJson: text('evidence_json').notNull(), // Bounded source snapshots; [] only for inventory awaiting verification.
+    generationCycleId: text('generation_cycle_id')
+      .notNull()
+      .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }), // Intake audit identity.
+    status: text('status', { enum: ['pending', 'claimed'] }).notNull(), // Queue lifecycle, never a playable status.
+    claimedPackId: text('claimed_pack_id'), // Reviewing pack; NULL while pending.
+    createdAt: text('created_at').notNull(), // UTC ISO intake time.
+    claimedAt: text('claimed_at'), // UTC ISO claim time; NULL while pending.
+  },
+  (table) => [
+    index('idx_fib_word_candidates_pending').on(table.status, table.createdAt),
+    index('idx_fib_word_candidates_claim').on(table.claimedPackId),
   ],
 );
 

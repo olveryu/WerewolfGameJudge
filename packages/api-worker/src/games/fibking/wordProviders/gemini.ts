@@ -14,7 +14,7 @@ import {
   FibWordProviderError,
   redactProviderError,
 } from './providerError';
-import type { FibWordProvider, FibWordRequest } from './types';
+import { FIB_WORD_REVIEW_BATCH_LIMIT, type FibWordProvider, type FibWordRequest } from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
 export const GEMINI_FIB_WORD_MODEL = 'gemini-3.5-flash-lite';
@@ -118,13 +118,26 @@ export function createGeminiFibWordProvider(
       });
     },
     reviewBatch(request, candidates) {
+      if (candidates.length === 0) return Promise.resolve([]);
+      if (candidates.length > FIB_WORD_REVIEW_BATCH_LIMIT) {
+        throw new Error(`Fib word review exceeds batch limit: ${candidates.length}`);
+      }
       return requestGeminiStructuredOutput({
         apiKey,
         fetchImpl,
         request,
         messages: createFibWordReviewMessages(request, candidates),
         schemaName: 'fib_word_reviews',
-        schema: FIB_WORD_REVIEWS_JSON_SCHEMA,
+        schema: {
+          ...FIB_WORD_REVIEWS_JSON_SCHEMA,
+          properties: {
+            reviews: {
+              ...FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews,
+              minItems: candidates.length,
+              maxItems: candidates.length,
+            },
+          },
+        },
         parseOutput: (value) => parseFibWordReviews(value, candidates),
       });
     },

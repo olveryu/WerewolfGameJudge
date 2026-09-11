@@ -2,10 +2,17 @@
 const RETENTION_DAYS = 90;
 const DELETE_BATCH_LIMIT = 100;
 
-/** Remove at most 300 obsolete rows per run; active room usage remains replayable. */
+/** Remove at most 400 obsolete rows per run; claimed candidates and active room usage survive. */
 export async function cleanupFibWordAudit(db: D1Database, nowMs: number): Promise<void> {
   const boundary = new Date(nowMs - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   await db.batch([
+    db
+      .prepare(
+        `DELETE FROM fib_word_candidates WHERE id IN (
+      SELECT id FROM fib_word_candidates WHERE status = 'pending' AND created_at < ?
+      ORDER BY created_at LIMIT ?)`,
+      )
+      .bind(boundary, DELETE_BATCH_LIMIT),
     db
       .prepare(
         `DELETE FROM fib_word_candidate_reviews WHERE id IN (
