@@ -31,19 +31,11 @@ import {
   publishFibWordPack,
   reserveFibWordPack,
 } from './wordPublication';
+import { createFibWordSearchQuery } from './wordSearchPlan';
 
 const EXTERNAL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '40 seconds' } as const;
-const REQUEST_TIMEOUT_MS = 30_000;
-const SEARCH_TOPICS = [
-  '婚俗 礼仪',
-  '传统器物 工艺',
-  '饮食 市井',
-  '航海 商贸',
-  '书信 古典生活',
-  '心理效应 认知',
-  '小众网络用语',
-  '地方民俗 行业术语',
-];
+const REQUEST_TIMEOUT_MS = 120_000;
+const MODEL_STEP = { ...EXTERNAL_STEP, timeout: '130 seconds' } as const;
 const log = createLogger('fib-word-supply');
 
 interface FibWordSupplyParams {
@@ -88,35 +80,25 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         reserveFibWordPack(this.env.DB, day, batchIndex, batchLimit),
       );
       if (pack === null) continue;
-      await this.processPack(step, pack, batchIndex, day);
+      await this.processPack(step, pack, batchIndex);
       await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
     }
     return { status: 'complete' };
   }
 
-  private async processPack(
-    step: WorkflowStep,
-    pack: FibWordPack,
-    batchIndex: number,
-    day: string,
-  ) {
+  private async processPack(step: WorkflowStep, pack: FibWordPack, batchIndex: number) {
     let failureStage = 'inventoryReviewSelection';
     try {
       let candidates = await step.do(`review-candidates-${batchIndex}`, () =>
         getFibWordReviewCandidates(this.env.DB, pack),
       );
       if (candidates.length === 0) {
-        const topic =
-          SEARCH_TOPICS[
-            (Number(day.slice(-2)) * FIB_WORD_DAILY_BATCH_LIMIT + batchIndex) % SEARCH_TOPICS.length
-          ];
-        if (topic === undefined) throw new Error('Fib search topic unavailable');
         failureStage = 'discovery';
         const discovery = await step.do(`discover-${batchIndex}`, EXTERNAL_STEP, async () => {
           await claimFibWordProviderRequest(this.env.DB, pack, 'discovery');
           return searchFibWordEvidence(
             this.env.TAVILY_API_KEY,
-            `中文 ${topic} 术语 词典 释义 名称`,
+            createFibWordSearchQuery(pack.searchIndex),
           );
         });
         if (discovery.length > 0) {
@@ -129,7 +111,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
             failureStage = 'generation';
             const generatedCandidates = await step.do(
               `generate-${batchIndex}`,
-              EXTERNAL_STEP,
+              MODEL_STEP,
               async () => {
                 await claimFibWordProviderRequest(this.env.DB, pack, 'generation');
                 return [
@@ -196,7 +178,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
       const reviews =
         verifiedCandidates.length === 0
           ? []
-          : await step.do(`review-${batchIndex}`, EXTERNAL_STEP, async () => {
+          : await step.do(`review-${batchIndex}`, MODEL_STEP, async () => {
               await claimFibWordProviderRequest(this.env.DB, pack, 'review');
               return [
                 ...(await createConfiguredFibWordProvider(this.env).reviewBatch(

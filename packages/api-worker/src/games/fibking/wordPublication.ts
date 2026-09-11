@@ -29,6 +29,11 @@ const packSchema = z.strictObject({
   id: z.string(),
   category: z.enum(FIB_WORD_CATEGORIES),
   request_token: z.string(),
+  searchIndex: z
+    .number()
+    .int()
+    .min(0)
+    .max(FIB_WORD_MONTHLY_BATCH_LIMIT - 1),
 });
 export type FibWordPack = z.output<typeof packSchema>;
 
@@ -97,7 +102,8 @@ export async function reserveFibWordPack(
     db
       .prepare(
         `UPDATE fib_word_supply_months SET requests_reserved = requests_reserved + 1
-      WHERE id = ? AND EXISTS (SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ?)`,
+      WHERE id = ? AND EXISTS (SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ?)
+      RETURNING requests_reserved - 1 AS searchIndex`,
       )
       .bind(monthId, id, requestToken),
     db
@@ -110,7 +116,11 @@ export async function reserveFibWordPack(
   const result = results[1];
   if (result === undefined) throw new Error('Fib pack reservation result missing');
   const row = result.results[0];
-  return row === undefined ? null : packSchema.parse(row);
+  if (row === undefined) return null;
+  const reservation = results[2];
+  if (reservation === undefined) throw new Error('Fib monthly reservation result missing');
+  const { searchIndex } = packSchema.pick({ searchIndex: true }).parse(reservation.results[0]);
+  return packSchema.parse({ ...row, searchIndex });
 }
 
 function reviewStatement(

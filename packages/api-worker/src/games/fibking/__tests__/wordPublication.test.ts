@@ -31,6 +31,12 @@ beforeEach(async () => {
 });
 
 describe('Fib word publication', () => {
+  it('advances the search index across days and manual batches without replaying reservations', async () => {
+    expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).toMatchObject({ searchIndex: 0 });
+    expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-02', 0)).toMatchObject({ searchIndex: 1 });
+    expect(await reserveFibWordPack(env.DB, '2026-09-02', 4, 60)).toMatchObject({ searchIndex: 2 });
+  });
   it('does not resend an uncertain external request after a restart', async () => {
     const pack = await reserveFibWordPack(env.DB, '2026-12-01', 0);
     if (pack === null) throw new Error('Expected pack reservation');

@@ -14,6 +14,11 @@ import {
   FibWordProviderError,
   redactProviderError,
 } from './providerError';
+import {
+  createFibWordEvidenceQuotes,
+  resolveFibWordCandidateReferences,
+  resolveFibWordReviewReferences,
+} from './quoteReferences';
 import { FIB_WORD_REVIEW_BATCH_LIMIT, type FibWordProvider, type FibWordRequest } from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
@@ -82,20 +87,30 @@ async function requestGeminiStructuredOutput<Output>(
       failureKind,
     );
   }
+  let failureStage = 'responseJson';
   try {
-    const parsed = geminiResponseSchema.parse(await response.json());
+    const value: unknown = await response.json();
+    failureStage = 'responseEnvelope';
+    const parsed = geminiResponseSchema.parse(value);
     const firstChoice = parsed.choices[0];
     if (firstChoice === undefined) {
       throw new Error('[FAIL-FAST] Gemini structured response choice was unavailable');
     }
-    return input.parseOutput(JSON.parse(firstChoice.message.content));
+    failureStage = 'contentJson';
+    const content: unknown = JSON.parse(firstChoice.message.content);
+    failureStage = 'outputValidation';
+    return input.parseOutput(content);
   } catch (error) {
     if (input.request.signal.aborted) {
       throw createFibWordProviderRequestError('Gemini', input.request.signal, error, input.apiKey);
     }
-    throw new FibWordProviderError('Gemini Fib word response was invalid', 'invalidOutput', {
-      cause: error,
-    });
+    const detail =
+      error instanceof Error ? redactProviderError(error.message, input.apiKey) : 'Unknown error';
+    throw new FibWordProviderError(
+      `Gemini Fib word response was invalid (${failureStage}): ${detail}`,
+      'invalidOutput',
+      { cause: error },
+    );
   }
 }
 
@@ -107,14 +122,45 @@ export function createGeminiFibWordProvider(
 
   return {
     generateBatch(request) {
+      const quoteOptions = createFibWordEvidenceQuotes(request.evidence);
+      if (quoteOptions.length === 0) return Promise.resolve([]);
+      const candidateSchema = FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates.items;
       return requestGeminiStructuredOutput({
         apiKey,
         fetchImpl,
         request,
-        messages: createFibWordMessages(request),
+        messages: createFibWordMessages(request, quoteOptions),
         schemaName: 'fib_word_candidates',
-        schema: FIB_WORD_CANDIDATES_JSON_SCHEMA,
-        parseOutput: (value) => parseGeneratedFibWordCandidates(value, 'gemini', request),
+        schema: {
+          ...FIB_WORD_CANDIDATES_JSON_SCHEMA,
+          properties: {
+            candidates: {
+              ...FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates,
+              items: {
+                ...candidateSchema,
+                properties: {
+                  ...candidateSchema.properties,
+                  citations: {
+                    ...candidateSchema.properties.citations,
+                    items: {
+                      ...candidateSchema.properties.citations.items,
+                      properties: {
+                        ...candidateSchema.properties.citations.items.properties,
+                        quote: { type: 'string', enum: quoteOptions.map(({ id }) => id) },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        parseOutput: (value) =>
+          parseGeneratedFibWordCandidates(
+            resolveFibWordCandidateReferences(value, quoteOptions),
+            'gemini',
+            request,
+          ),
       });
     },
     reviewBatch(request, candidates) {
@@ -122,11 +168,15 @@ export function createGeminiFibWordProvider(
       if (candidates.length > FIB_WORD_REVIEW_BATCH_LIMIT) {
         throw new Error(`Fib word review exceeds batch limit: ${candidates.length}`);
       }
+      const quoteOptions = candidates.map((candidate) =>
+        createFibWordEvidenceQuotes(candidate.evidence),
+      );
+      const quoteIds = [...new Set(quoteOptions.flatMap((options) => options.map(({ id }) => id)))];
       return requestGeminiStructuredOutput({
         apiKey,
         fetchImpl,
         request,
-        messages: createFibWordReviewMessages(request, candidates),
+        messages: createFibWordReviewMessages(request, candidates, quoteOptions),
         schemaName: 'fib_word_reviews',
         schema: {
           ...FIB_WORD_REVIEWS_JSON_SCHEMA,
@@ -135,10 +185,30 @@ export function createGeminiFibWordProvider(
               ...FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews,
               minItems: candidates.length,
               maxItems: candidates.length,
+              items: {
+                ...FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews.items,
+                properties: {
+                  ...FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews.items.properties,
+                  word: {
+                    type: 'string',
+                    enum: candidates.map(({ word }) => word),
+                  },
+                  evidenceQuote:
+                    quoteIds.length === 0
+                      ? { type: 'null' }
+                      : {
+                          anyOf: [{ type: 'string', enum: quoteIds }, { type: 'null' }],
+                        },
+                },
+              },
             },
           },
         },
-        parseOutput: (value) => parseFibWordReviews(value, candidates),
+        parseOutput: (value) =>
+          parseFibWordReviews(
+            resolveFibWordReviewReferences(value, candidates, quoteOptions),
+            candidates,
+          ),
       });
     },
   };

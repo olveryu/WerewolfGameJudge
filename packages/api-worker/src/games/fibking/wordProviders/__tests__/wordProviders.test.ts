@@ -51,6 +51,19 @@ const REVIEWS_RESPONSE = {
   })),
 };
 
+const CANDIDATE_REFERENCES_RESPONSE = {
+  candidates: CANDIDATES_RESPONSE.candidates.map((candidate, index) => ({
+    ...candidate,
+    citations: [{ evidenceIndex: 0, quote: `source0quote${index}` }],
+  })),
+};
+const REVIEW_REFERENCES_RESPONSE = {
+  reviews: REVIEWS_RESPONSE.reviews.map((review, index) => ({
+    ...review,
+    evidenceQuote: `source0quote${index}`,
+  })),
+};
+
 function createWordRequest(): FibWordRequest {
   return {
     category: 'literary',
@@ -69,7 +82,9 @@ function createWordRequest(): FibWordRequest {
   };
 }
 
-function createGeminiResponse(payload: unknown = CANDIDATES_RESPONSE): Record<string, unknown> {
+function createGeminiResponse(
+  payload: unknown = CANDIDATE_REFERENCES_RESPONSE,
+): Record<string, unknown> {
   return {
     choices: [{ message: { content: JSON.stringify(payload) } }],
   };
@@ -382,6 +397,144 @@ describe('Fib word candidate batches', () => {
 });
 
 describe('Gemini Fib word provider', () => {
+  it('binds reordered reviews to each candidate before resolving local quote references', async () => {
+    const request = createWordRequest();
+    const candidates = parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', request).map(
+      (candidate) => ({
+        ...candidate,
+        evidence: candidate.evidence.map((source) => ({
+          ...source,
+          content: `${candidate.word}：${LITERARY_DEFINITION.coreMeaning}`,
+        })),
+      }),
+    );
+    const fetchImpl: typeof fetch = async () =>
+      Response.json(
+        createGeminiResponse({
+          reviews: [...REVIEW_REFERENCES_RESPONSE.reviews]
+            .reverse()
+            .map((review) => ({ ...review, evidenceQuote: 'source0quote0' })),
+        }),
+      );
+
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).reviewBatch(request, candidates),
+    ).resolves.toEqual(
+      REVIEWS_RESPONSE.reviews.map((review, index) => ({
+        ...review,
+        decision: index === 0 ? 'rejected' : 'accepted',
+      })),
+    );
+  });
+
+  it.each(['missing', 'duplicate', 'unknown'] as const)(
+    'rejects %s candidate identities instead of guessing a match',
+    async (failureKind) => {
+      const reviews = REVIEW_REFERENCES_RESPONSE.reviews.map((review, index) => ({
+        ...review,
+        word:
+          index === 2 && failureKind !== 'missing'
+            ? failureKind === 'duplicate'
+              ? '菡萏'
+              : '未知词'
+            : review.word,
+      }));
+      const fetchImpl: typeof fetch = async () =>
+        Response.json(
+          createGeminiResponse({
+            reviews: failureKind === 'missing' ? reviews.slice(1) : reviews,
+          }),
+        );
+      const candidates = parseGeneratedFibWordCandidates(
+        CANDIDATES_RESPONSE,
+        'gemini',
+        createWordRequest(),
+      );
+
+      await expect(
+        createGeminiFibWordProvider('test-key', fetchImpl).reviewBatch(
+          createWordRequest(),
+          candidates,
+        ),
+      ).rejects.toThrow(
+        failureKind === 'missing'
+          ? 'Fib word review batch size mismatch'
+          : `Fib word review returned ${failureKind === 'unknown' ? 'an unknown' : 'a duplicate'} candidate`,
+      );
+    },
+  );
+
+  it.each(['unknown-reference', LITERARY_DEFINITION.coreMeaning])(
+    'rejects invalid or rewritten evidence references: %s',
+    async (quote) => {
+      const response = {
+        candidates: CANDIDATE_REFERENCES_RESPONSE.candidates.map((candidate) => ({
+          ...candidate,
+          citations: [{ evidenceIndex: 0, quote }],
+        })),
+      };
+      const fetchImpl: typeof fetch = async () => Response.json(createGeminiResponse(response));
+      await expect(
+        createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
+      ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
+    },
+  );
+
+  it('rejects a valid quote reference paired with a different source', async () => {
+    const response = {
+      reviews: REVIEW_REFERENCES_RESPONSE.reviews.map((review) => ({
+        ...review,
+        evidenceIndex: 1,
+      })),
+    };
+    const fetchImpl: typeof fetch = async () => Response.json(createGeminiResponse(response));
+    const candidates = parseGeneratedFibWordCandidates(
+      CANDIDATES_RESPONSE,
+      'gemini',
+      createWordRequest(),
+    );
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).reviewBatch(
+        createWordRequest(),
+        candidates,
+      ),
+    ).rejects.toThrow(
+      '[invalidOutput] Gemini Fib word response was invalid (outputValidation): Invalid Fib word evidence reference: source0quote0',
+    );
+  });
+
+  it('does not generate without bounded source sentences and can reject unsourced reviews', async () => {
+    const request = { ...createWordRequest(), evidence: [] };
+    const candidates = parseGeneratedFibWordCandidates(
+      CANDIDATES_RESPONSE,
+      'gemini',
+      createWordRequest(),
+    ).map((candidate) => ({ ...candidate, evidence: [] }));
+    let requestCount = 0;
+    const fetchImpl: typeof fetch = async () => {
+      requestCount += 1;
+      return Response.json(
+        createGeminiResponse({
+          reviews: REVIEW_REFERENCES_RESPONSE.reviews.map((review) => ({
+            ...review,
+            evidenceIndex: null,
+            evidenceQuote: null,
+            qualityChecks: { ...review.qualityChecks, isDefinitionAccurate: false },
+          })),
+        }),
+      );
+    };
+    const provider = createGeminiFibWordProvider('test-key', fetchImpl);
+    await expect(provider.generateBatch(request)).resolves.toEqual([]);
+    expect(requestCount).toBe(0);
+    expect(
+      (await provider.reviewBatch(request, candidates)).every(
+        (review) => review.decision === 'rejected',
+      ),
+    ).toBe(true);
+    expect(requestCount).toBe(1);
+  });
+
   it('does not send a model request for an empty review batch', async () => {
     const fetchImpl: typeof fetch = async () => {
       throw new Error('Empty batches must not consume external quota');
@@ -392,7 +545,7 @@ describe('Gemini Fib word provider', () => {
   });
 
   it('preserves the global fetch receiver for generation and review', async () => {
-    let response: unknown = CANDIDATES_RESPONSE;
+    let response: unknown = CANDIDATE_REFERENCES_RESPONSE;
     const fetchImpl: typeof fetch = async function (this: unknown) {
       expect(this === globalThis).toBe(true);
       return Response.json(createGeminiResponse(response));
@@ -401,7 +554,7 @@ describe('Gemini Fib word provider', () => {
     const candidates = await provider.generateBatch(createWordRequest());
     expect(candidates).toHaveLength(CANDIDATES_RESPONSE.candidates.length);
 
-    response = REVIEWS_RESPONSE;
+    response = REVIEW_REFERENCES_RESPONSE;
     await expect(provider.reviewBatch(createWordRequest(), candidates)).resolves.toHaveLength(
       REVIEWS_RESPONSE.reviews.length,
     );
@@ -414,7 +567,7 @@ describe('Gemini Fib word provider', () => {
         throw new Error('Expected Gemini request body to be a JSON string');
       }
       requestBody = init.body;
-      return Response.json(createGeminiResponse(REVIEWS_RESPONSE));
+      return Response.json(createGeminiResponse(REVIEW_REFERENCES_RESPONSE));
     };
     const provider = createGeminiFibWordProvider('test-key', fetchImpl);
     const candidates = parseGeneratedFibWordCandidates(
@@ -430,6 +583,9 @@ describe('Gemini Fib word provider', () => {
       })),
     );
     expect(requestBody).toContain('独立审核');
+    expect(requestBody).toContain(
+      `"word":{"type":"string","enum":${JSON.stringify(candidates.map(({ word }) => word))}}`,
+    );
     expect(requestBody).toContain('常见成语');
     expect(requestBody).toContain('情绪价值');
     expect(requestBody).toContain('坏题“觊觎”');
@@ -518,6 +674,27 @@ describe('Gemini Fib word provider', () => {
 
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
-    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
+    ).rejects.toThrow(/\[invalidOutput\][\s\S]*outputValidation[\s\S]*candidates/);
+  });
+
+  it('redacts credentials from invalid-output diagnostics', async () => {
+    const fetchImpl: typeof fetch = async () =>
+      Response.json(
+        createGeminiResponse({
+          candidates: [
+            {
+              ...CANDIDATE_REFERENCES_RESPONSE.candidates[0],
+              citations: [{ evidenceIndex: 0, quote: 'test-key' }],
+            },
+          ],
+        }),
+      );
+
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
+    ).rejects.toMatchObject({
+      message:
+        '[invalidOutput] Gemini Fib word response was invalid (outputValidation): Invalid Fib word evidence reference: [REDACTED]',
+    });
   });
 });

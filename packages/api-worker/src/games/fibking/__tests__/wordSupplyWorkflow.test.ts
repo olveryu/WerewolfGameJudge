@@ -8,6 +8,7 @@ import {
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   reserveFibWordPack,
 } from '../wordPublication';
+import { createFibWordSearchQuery } from '../wordSearchPlan';
 
 beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
@@ -27,6 +28,13 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Fib word supply workflow', () => {
+  it('covers the entire monthly budget with distinct non-cycling searches', () => {
+    const queries = Array.from({ length: FIB_WORD_MONTHLY_BATCH_LIMIT }, (_, index) =>
+      createFibWordSearchQuery(index),
+    );
+    expect(new Set(queries).size).toBe(FIB_WORD_MONTHLY_BATCH_LIMIT);
+    expect(() => createFibWordSearchQuery(FIB_WORD_MONTHLY_BATCH_LIMIT)).toThrow('out of range');
+  });
   it.each([FIB_WORD_DAILY_BATCH_LIMIT, FIB_WORD_MONTHLY_BATCH_LIMIT])(
     'reviews persisted overflow within a %i-batch run without repeating consumed batches',
     async (batchLimit) => {
