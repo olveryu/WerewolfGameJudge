@@ -77,6 +77,7 @@ describe('HomeScreen', () => {
 
       expect(getByText('创建房间')).toBeTruthy();
       expect(getByText('进入房间')).toBeTruthy();
+      expect(getByText('狼人杀')).toBeTruthy();
     });
 
     it('should render the app title', () => {

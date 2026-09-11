@@ -444,7 +444,9 @@ export const HomeScreen: React.FC = () => {
           >
             <View style={styles.heroCardContent}>
               <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
-              <Text style={styles.heroCardSubtitle}>开始一局新游戏</Text>
+              <Text style={styles.heroCardSubtitle}>
+                {clientGameHome.modeOptions.map((modeOption) => modeOption.displayName).join(' · ')}
+              </Text>
             </View>
             {isCreating ? (
               <ActivityIndicator color={colors.textInverse} size="small" />
