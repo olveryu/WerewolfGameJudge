@@ -8,6 +8,7 @@ import {
   isValidFibDefinitionField,
   isValidFibWord,
 } from '@game-judge/game-engine/games/fibking/public';
+import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
 import { FIB_WORD_EVIDENCE_SOURCE_LIMIT, fibWordEvidenceSchema } from './tavily';
@@ -23,6 +24,7 @@ import {
 
 const FIB_WORD_EVIDENCE_QUOTE_MIN_LENGTH = 8;
 const FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH = 300;
+const toSimplified = Converter({ from: 't', to: 'cn' });
 const evidenceQuoteSchema = z
   .string()
   .trim()
@@ -261,6 +263,10 @@ function resolveFibWordEvidenceQuote(content: string, quote: string): string | n
   return match === null || match[0].length > FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH ? null : match[0];
 }
 
+function containsFibWord(content: string, word: string): boolean {
+  return toSimplified(content).includes(toSimplified(word));
+}
+
 export function parseGeneratedFibWordCandidates(
   value: unknown,
   source: FibWordSource,
@@ -277,7 +283,7 @@ export function parseGeneratedFibWordCandidates(
       const evidence = request.evidence[evidenceIndex];
       if (
         evidence === undefined ||
-        !evidence.content.includes(word) ||
+        !containsFibWord(evidence.content, word) ||
         resolveFibWordEvidenceQuote(evidence.content, quote) === null
       ) {
         throw new Error(`Fib word candidate has an invalid evidence citation: ${word}`);
@@ -299,7 +305,7 @@ export function assertFibWordReviewEvidence(
     evidence === undefined ||
     evidenceQuote === null ||
     !evidence.content.includes(evidenceQuote) ||
-    !evidence.content.includes(candidate.word)
+    !containsFibWord(evidence.content, candidate.word)
   ) {
     throw new Error(`Fib word review has an invalid evidence citation: ${candidate.word}`);
   }

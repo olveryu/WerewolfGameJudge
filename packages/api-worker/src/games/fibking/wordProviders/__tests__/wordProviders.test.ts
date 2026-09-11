@@ -193,6 +193,58 @@ describe('Fib word candidate batches', () => {
   });
 
   it.each([
+    { word: '关扑', heading: '關撲' },
+    { word: '關撲', heading: '关扑' },
+  ])('matches $word against $heading without rewriting evidence', ({ word, heading }) => {
+    const request = createWordRequest();
+    const evidenceQuote = '我們或可將它稱之為贏錢賭物的遊戲。';
+    const evidence = request.evidence.map((source) => ({
+      ...source,
+      content: `${heading}\n${evidenceQuote}`,
+    }));
+    const candidates = parseGeneratedFibWordCandidates(
+      {
+        candidates: [
+          {
+            word,
+            definition: LITERARY_DEFINITION,
+            category: 'literary',
+            citations: [{ evidenceIndex: 0, quote: evidenceQuote }],
+          },
+        ],
+      },
+      'gemini',
+      { ...request, evidence },
+    );
+    const payload = {
+      reviews: [
+        {
+          word,
+          qualityChecks: PASSING_QUALITY_CHECKS,
+          reason: '此测试仅验证引用格式，不代表词义质量。',
+          evidenceIndex: 0,
+          evidenceQuote,
+        },
+      ],
+    };
+    const reviews = parseFibWordReviews(payload, candidates);
+    expect(candidates[0]).toMatchObject({ word, evidence });
+    expect(reviews[0]).toMatchObject({ decision: 'accepted', evidenceQuote });
+    expect(() => assertFibWordReviewEvidence(candidates[0], reviews[0])).not.toThrow();
+    expect(() =>
+      parseFibWordReviews(
+        {
+          reviews: payload.reviews.map((review) => ({
+            ...review,
+            evidenceQuote: '我们或可将它称之为赢钱赌物的游戏。',
+          })),
+        },
+        candidates,
+      ),
+    ).toThrow('invalid evidence citation');
+  });
+
+  it.each([
     '荷花的别称，古人常在诗文中用来称呼莲花。',
     '荷花的别称，\n其他段落\n古人常在诗文中用来称呼荷花。',
   ])('rejects rewritten or stitched quotations: %s', (content) => {
