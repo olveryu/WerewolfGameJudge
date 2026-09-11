@@ -13,7 +13,7 @@ import {
 } from './wordProviders/types';
 
 const FIB_WORD_MONTHLY_TARGET = 100;
-const FIB_WORD_MONTHLY_BATCH_LIMIT = 60;
+export const FIB_WORD_MONTHLY_BATCH_LIMIT = 60;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
 export const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
 
@@ -59,11 +59,13 @@ export async function reserveFibWordPack(
   db: D1Database,
   day: string,
   batchIndex: number,
+  batchLimit = FIB_WORD_DAILY_BATCH_LIMIT,
 ): Promise<FibWordPack | null> {
   const parsedDay = z.iso.date().parse(day);
+  z.int().min(FIB_WORD_DAILY_BATCH_LIMIT).max(FIB_WORD_MONTHLY_BATCH_LIMIT).parse(batchLimit);
   z.int()
     .min(0)
-    .max(FIB_WORD_DAILY_BATCH_LIMIT - 1)
+    .max(batchLimit - 1)
     .parse(batchIndex);
   const monthId = parsedDay.slice(0, 7);
   const id = `${parsedDay}-${batchIndex}`;

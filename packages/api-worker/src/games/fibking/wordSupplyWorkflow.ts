@@ -26,6 +26,7 @@ import {
   claimFibWordProviderRequest,
   failFibWordPack,
   FIB_WORD_DAILY_BATCH_LIMIT,
+  FIB_WORD_MONTHLY_BATCH_LIMIT,
   type FibWordPack,
   publishFibWordPack,
   reserveFibWordPack,
@@ -47,6 +48,7 @@ const log = createLogger('fib-word-supply');
 
 interface FibWordSupplyParams {
   readonly day: string;
+  readonly batchLimit?: number;
 }
 
 function createRequest(
@@ -65,6 +67,11 @@ function createRequest(
 export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupplyParams> {
   async run(event: WorkflowEvent<FibWordSupplyParams>, step: WorkflowStep) {
     const day = z.iso.date().parse(event.payload.day);
+    const batchLimit = z
+      .int()
+      .min(FIB_WORD_DAILY_BATCH_LIMIT)
+      .max(FIB_WORD_MONTHLY_BATCH_LIMIT)
+      .parse(event.payload.batchLimit ?? FIB_WORD_DAILY_BATCH_LIMIT);
     const isEnabled = await step.do(
       'enabled',
       async () => this.env.FIB_WORD_SUPPLY_ENABLED === 'true',
@@ -72,13 +79,13 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
     if (!isEnabled) return { status: 'disabled' };
     if (day.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return { status: 'expired' };
     await step.do('retention', () => cleanupFibWordAudit(this.env.DB, Date.now()));
-    for (let batchIndex = 0; batchIndex < FIB_WORD_DAILY_BATCH_LIMIT; batchIndex += 1) {
+    for (let batchIndex = 0; batchIndex < batchLimit; batchIndex += 1) {
       const capacity = await step.do(`capacity-${batchIndex}`, () =>
         measureDatabaseCapacity(this.env.DB),
       );
       if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
       const pack = await step.do(`reserve-${batchIndex}`, () =>
-        reserveFibWordPack(this.env.DB, day, batchIndex),
+        reserveFibWordPack(this.env.DB, day, batchIndex, batchLimit),
       );
       if (pack === null) continue;
       await this.processPack(step, pack, batchIndex, day);

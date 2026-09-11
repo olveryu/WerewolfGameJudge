@@ -3,6 +3,11 @@ import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
+import {
+  FIB_WORD_DAILY_BATCH_LIMIT,
+  FIB_WORD_MONTHLY_BATCH_LIMIT,
+  reserveFibWordPack,
+} from '../wordPublication';
 
 beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
@@ -22,74 +27,93 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Fib word supply workflow', () => {
-  it('reviews persisted overflow without another discovery or generation request', async () => {
-    const day = new Date().toISOString().slice(0, 10);
-    const id = crypto.randomUUID();
-    const words = ['测试甲', '测试乙', '测试丙', '测试丁', '测试戊', '测试己', '测试庚', '测试辛'];
-    const evidence = [
-      {
-        query: '传统器物',
-        url: 'https://example.com/words',
-        title: '测试词源',
-        content: words.map((word) => `${word}：用于测试的准确核心含义。`).join('\n'),
-      },
-    ];
-    const candidates: FibWordEditorialCandidate[] = words.map((word, index) => ({
-      word,
-      source: 'gemini',
-      category: index % 2 === 0 ? 'literary' : 'niche',
-      evidence,
-      definition: {
-        coreMeaning: '用于测试的准确核心含义。',
-        usageNote: '用于测试的具体使用语境。',
-      },
-    }));
-    const reviews = words.map((word) => ({
-      word,
-      decision: 'accepted',
-      reason: '有资料支持且符合游戏性标准。',
-      evidenceIndex: 0,
-      evidenceQuote: `${word}：用于测试的准确核心含义。`,
-      qualityChecks: {
-        isEstablishedTerm: true,
-        isDefinitionAccurate: true,
-        isEasyToReadAloud: true,
-        isMeaningUnfamiliarToMostPlayers: true,
-        isMeaningDistinctFromLiteralReading: true,
-        hasMultiplePlausibleWrongDefinitions: true,
-        hasRevealValue: true,
-      },
-    }));
-    await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
-    await instance.modify(async (modifier) => {
-      await modifier.disableSleeps();
-      await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepResult({ name: 'discover-0' }, evidence);
-      await modifier.mockStepResult({ name: 'extract-0' }, { evidence, failedUrls: [] });
-      await modifier.mockStepResult({ name: 'generate-0' }, candidates);
-      await modifier.mockStepResult({ name: 'review-0' }, reviews.slice(0, 6));
-      await modifier.mockStepResult({ name: 'review-1' }, reviews.slice(6));
-      await modifier.mockStepError(
-        { name: 'discover-1' },
-        new Error('Persisted candidates must not trigger discovery'),
-      );
-      await modifier.mockStepResult({ name: 'capacity-2' }, 'paused');
-    });
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
-    await instance.waitForStatus('complete');
-    expect(await instance.getOutput()).toEqual({ status: 'paused' });
-    expect(
-      await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
-    ).toEqual({ count: 0 });
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
-      { count: 8 },
-    );
-    expect(
-      await env.DB.prepare(
-        'SELECT requests_reserved, published_count FROM fib_word_supply_months',
-      ).first(),
-    ).toEqual({ requests_reserved: 2, published_count: 8 });
-  });
+  it.each([FIB_WORD_DAILY_BATCH_LIMIT, FIB_WORD_MONTHLY_BATCH_LIMIT])(
+    'reviews persisted overflow within a %i-batch run without repeating consumed batches',
+    async (batchLimit) => {
+      const day = new Date().toISOString().slice(0, 10);
+      const id = crypto.randomUUID();
+      const batchIndex = batchLimit === FIB_WORD_DAILY_BATCH_LIMIT ? 0 : FIB_WORD_DAILY_BATCH_LIMIT;
+      for (let index = 0; index < batchIndex; index += 1) {
+        await reserveFibWordPack(env.DB, day, index);
+      }
+      const words = [
+        '测试甲',
+        '测试乙',
+        '测试丙',
+        '测试丁',
+        '测试戊',
+        '测试己',
+        '测试庚',
+        '测试辛',
+      ];
+      const evidence = [
+        {
+          query: '传统器物',
+          url: 'https://example.com/words',
+          title: '测试词源',
+          content: words.map((word) => `${word}：用于测试的准确核心含义。`).join('\n'),
+        },
+      ];
+      const candidates: FibWordEditorialCandidate[] = words.map((word, index) => ({
+        word,
+        source: 'gemini',
+        category: index % 2 === 0 ? 'literary' : 'niche',
+        evidence,
+        definition: {
+          coreMeaning: '用于测试的准确核心含义。',
+          usageNote: '用于测试的具体使用语境。',
+        },
+      }));
+      const reviews = words.map((word) => ({
+        word,
+        decision: 'accepted',
+        reason: '有资料支持且符合游戏性标准。',
+        evidenceIndex: 0,
+        evidenceQuote: `${word}：用于测试的准确核心含义。`,
+        qualityChecks: {
+          isEstablishedTerm: true,
+          isDefinitionAccurate: true,
+          isEasyToReadAloud: true,
+          isMeaningUnfamiliarToMostPlayers: true,
+          isMeaningDistinctFromLiteralReading: true,
+          hasMultiplePlausibleWrongDefinitions: true,
+          hasRevealValue: true,
+        },
+      }));
+      await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
+      await instance.modify(async (modifier) => {
+        await modifier.disableSleeps();
+        await modifier.mockStepResult({ name: 'enabled' }, true);
+        await modifier.mockStepResult({ name: `discover-${batchIndex}` }, evidence);
+        await modifier.mockStepResult(
+          { name: `extract-${batchIndex}` },
+          { evidence, failedUrls: [] },
+        );
+        await modifier.mockStepResult({ name: `generate-${batchIndex}` }, candidates);
+        await modifier.mockStepResult({ name: `review-${batchIndex}` }, reviews.slice(0, 6));
+        await modifier.mockStepResult({ name: `review-${batchIndex + 1}` }, reviews.slice(6));
+        await modifier.mockStepError(
+          { name: `discover-${batchIndex + 1}` },
+          new Error('Persisted candidates must not trigger discovery'),
+        );
+        await modifier.mockStepResult({ name: `capacity-${batchIndex + 2}` }, 'paused');
+      });
+      await env.FIB_WORD_SUPPLY.create({ id, params: { day, batchLimit } });
+      await instance.waitForStatus('complete');
+      expect(await instance.getOutput()).toEqual({ status: 'paused' });
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
+      ).toEqual({ count: 0 });
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first(),
+      ).toEqual({ count: 8 });
+      expect(
+        await env.DB.prepare(
+          'SELECT requests_reserved, published_count FROM fib_word_supply_months',
+        ).first(),
+      ).toEqual({ requests_reserved: batchIndex + 2, published_count: 8 });
+    },
+  );
 
   it('re-reviews three unsourced inventory words without generation or resequencing', async () => {
     const day = new Date().toISOString().slice(0, 10);
