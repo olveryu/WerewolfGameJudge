@@ -13,6 +13,7 @@ import { getSentryIntegrations } from '@/app/sentryIntegrations';
 import { useBootProgress } from '@/app/useBootProgress';
 import { AlertModal } from '@/components/AlertModal';
 import { ModalStackProvider } from '@/components/AppModal';
+import { DebugPanel } from '@/components/DebugPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
@@ -331,6 +332,7 @@ function AppContent() {
     <>
       <StatusBar style="dark" />
       <AppNavigator onReady={handleNavReady} />
+      <DebugPanel />
       {alertConfig && (
         <AlertModal
           visible={true}

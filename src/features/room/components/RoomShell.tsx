@@ -3,7 +3,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { Children, useCallback, useMemo, useState } from 'react';
-import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -27,6 +27,7 @@ import { createRoomShellStyles } from './RoomShell.styles';
 import { RoomStatusRibbon } from './RoomStatusRibbon';
 import { createRoomFeatureStyles } from './styles';
 
+const LONG_PRESS_DELAY_MS = 1000;
 const ROOM_HEADER_TITLE_RESERVED_FONT_UNITS = 5;
 const ROOM_HEADER_CENTER_CONTENT_WIDTH =
   layout.headerTitleSize * ROOM_HEADER_TITLE_RESERVED_FONT_UNITS +
@@ -131,13 +132,16 @@ export const RoomShell: React.FC<RoomShellProps> = ({
   const centeredHeader = (
     <View style={headerCenterStyle}>
       <View style={styles.headerTitleRow}>
-        {model.header.onTitlePress ? (
-          <TouchableOpacity onPress={model.header.onTitlePress} activeOpacity={1}>
-            {title}
-          </TouchableOpacity>
-        ) : (
-          title
-        )}
+        <Pressable
+          onPress={model.header.onTitlePress}
+          onLongPress={model.header.onTitleLongPress}
+          delayLongPress={LONG_PRESS_DELAY_MS}
+          accessibilityRole="button"
+          accessibilityLabel={`房间 ${model.roomCode}`}
+          accessibilityHint="双击进入管理后台，长按打开调试日志"
+        >
+          {title}
+        </Pressable>
         {shareCapability.isAllowed && (
           <Button
             variant="icon"

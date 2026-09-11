@@ -18,6 +18,7 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
+import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -82,6 +83,7 @@ export function usePictionaryRoomScreenState({
   entryController,
   session,
 }: UsePictionaryRoomScreenStateParams) {
+  const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
   const { user } = useAuthContext();
   if (user === null) throw new Error('[FAIL-FAST] Ready Pictionary room requires a user');
   const snapshot = useRoomSessionSnapshot(session);
@@ -284,7 +286,8 @@ export function usePictionaryRoomScreenState({
       capabilities,
       header: {
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
-        onTitlePress: null,
+        onTitlePress: handleTitlePress,
+        onTitleLongPress: handleTitleLongPress,
         userAction: {
           user,
           ticketCount,
@@ -312,6 +315,8 @@ export function usePictionaryRoomScreenState({
       controlledSeatModel,
       effectiveSeat,
       entryController,
+      handleTitlePress,
+      handleTitleLongPress,
       hostManagement,
       isHost,
       navigation,

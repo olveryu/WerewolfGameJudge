@@ -38,7 +38,8 @@ export interface RoomHeaderUserAction {
 
 export interface RoomHeaderModel {
   readonly onBack: () => void;
-  readonly onTitlePress: (() => void) | null;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
   readonly userAction: RoomHeaderUserAction | null;
 }
 

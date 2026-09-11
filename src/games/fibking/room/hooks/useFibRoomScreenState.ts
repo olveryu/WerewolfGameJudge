@@ -25,6 +25,7 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
+import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -75,6 +76,7 @@ export function useFibRoomScreenState({
   entryController,
   session,
 }: UseFibRoomScreenStateParams): FibRoomScreenState {
+  const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
   const { user } = useAuthContext();
   if (user === null) {
     throw new Error('[FAIL-FAST] Ready FibKing room requires an authenticated user');
@@ -456,7 +458,8 @@ export function useFibRoomScreenState({
       capabilities,
       header: {
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
-        onTitlePress: null,
+        onTitlePress: handleTitlePress,
+        onTitleLongPress: handleTitleLongPress,
         userAction: {
           user,
           ticketCount,
@@ -483,6 +486,8 @@ export function useFibRoomScreenState({
       capabilities,
       controlledSeatModel,
       entryController,
+      handleTitlePress,
+      handleTitleLongPress,
       navigation,
       onSeatLongPress,
       onSeatPress,

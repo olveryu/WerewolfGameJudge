@@ -21,6 +21,7 @@ import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOp
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
+import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
@@ -47,7 +48,6 @@ import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { getWolfVoteSummary, toGameRoomLike } from '../werewolfRoom.helpers';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
-import { useHiddenDebugTrigger } from './useHiddenDebugTrigger';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
@@ -202,7 +202,7 @@ export function useWerewolfRoomScreenState(
   // Simple hooks
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const { handleDebugTitleTap } = useHiddenDebugTrigger();
+  const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
 
   const roomConnection = entryController;
 
@@ -856,7 +856,8 @@ export function useWerewolfRoomScreenState(
     onSeatTapped,
     onSeatLongPressed,
     getBottomAction,
-    handleDebugTitleTap,
+    handleTitlePress,
+    handleTitleLongPress,
 
     // ── Player profile card ──
     profileSelection: profileController.selection,

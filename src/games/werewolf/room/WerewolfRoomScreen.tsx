@@ -18,7 +18,6 @@ import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
-import { DebugPanel } from '@/components/DebugPanel';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -201,7 +200,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     onSeatTapped,
     onSeatLongPressed,
     getBottomAction,
-    handleDebugTitleTap,
+    handleTitlePress,
+    handleTitleLongPress,
     // Player profile card
     profileSelection,
     closeProfile,
@@ -580,7 +580,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       capabilities,
       header: {
         onBack: () => dispatchInteraction({ kind: 'LEAVE_ROOM' }),
-        onTitlePress: handleDebugTitleTap,
+        onTitlePress: handleTitlePress,
+        onTitleLongPress: handleTitleLongPress,
         userAction: {
           user,
           ticketCount,
@@ -606,7 +607,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     [
       roomCode,
       capabilities,
-      handleDebugTitleTap,
+      handleTitlePress,
+      handleTitleLongPress,
       user,
       ticketCount,
       handleAvatarPress,
@@ -829,9 +831,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
           {/* Board Strategy Modal -- strategy details */}
           <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
-
-          {/* Debug Console -- store-driven modal, toggled via useHiddenDebugTrigger */}
-          <DebugPanel />
         </>
       }
     />

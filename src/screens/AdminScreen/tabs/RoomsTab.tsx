@@ -4,6 +4,8 @@
  * Paginated room cards; tap to expand the participant list. Uses the shared Pagination + AdminEmptyState components.
  */
 
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
@@ -12,10 +14,12 @@ import { PressableScale } from '@/components/PressableScale';
 import { type AdminRoom, type AdminRoomPlayer } from '@/features/admin/model/adminContracts';
 import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { AdminEmptyState, Pagination } from '../components';
 
 export const RoomsTab: React.FC = () => {
+  const navigation = useNavigation();
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -102,6 +106,16 @@ export const RoomsTab: React.FC = () => {
             <Text style={styles.cardMeta}>{item.createdAt.replace('T', ' ').slice(0, 16)} UTC</Text>
           </PressableScale>
 
+          <PressableScale
+            style={styles.enterRoom}
+            accessibilityRole="button"
+            accessibilityLabel={`进入房间 ${item.code}`}
+            onPress={() => navigation.navigate('Room', { roomCode: item.code })}
+          >
+            <Ionicons name="enter-outline" size={componentSizes.icon.sm} color={colors.primary} />
+            <Text style={styles.enterRoomText}>进入房间</Text>
+          </PressableScale>
+
           {isExpanded && (
             <View style={styles.playersContainer}>
               {playersLoading ? (
@@ -126,7 +140,7 @@ export const RoomsTab: React.FC = () => {
         </View>
       );
     },
-    [expandedRoom, players, playersLoading, handleRoomPress],
+    [expandedRoom, players, playersLoading, handleRoomPress, navigation],
   );
 
   return (
@@ -159,6 +173,15 @@ const styles = StyleSheet.create({
     marginTop: spacing.small,
   },
   list: { paddingBottom: spacing.medium },
+  enterRoom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: spacing.tight,
+    padding: spacing.small,
+    marginBottom: spacing.tight,
+  },
+  enterRoomText: { color: colors.primary, fontSize: typography.caption },
   card: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
