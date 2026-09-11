@@ -36,9 +36,13 @@ describe('useRoomTitleActions', () => {
 
   afterEach(() => jest.useRealTimers());
 
-  it('ignores a single tap and navigates on a double tap without opening logs', () => {
+  it('ignores the first three taps and navigates on the fourth without opening logs', () => {
     const { result } = renderHook(useRoomTitleActions);
-    act(() => result.current.handleTitlePress());
+    act(() => {
+      result.current.handleTitlePress();
+      result.current.handleTitlePress();
+      result.current.handleTitlePress();
+    });
     expect(mockNavigate).not.toHaveBeenCalled();
     act(() => {
       jest.advanceTimersByTime(200);
@@ -50,11 +54,13 @@ describe('useRoomTitleActions', () => {
     expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
   });
 
-  it('does not combine taps outside the double-tap interval', () => {
+  it('does not combine taps outside the consecutive-tap interval', () => {
     const { result } = renderHook(useRoomTitleActions);
     act(() => {
       result.current.handleTitlePress();
-      jest.advanceTimersByTime(301);
+      result.current.handleTitlePress();
+      result.current.handleTitlePress();
+      jest.advanceTimersByTime(3001);
       result.current.handleTitlePress();
     });
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -63,6 +69,8 @@ describe('useRoomTitleActions', () => {
   it('verifies a long press and clears the pending single tap', async () => {
     const { result } = renderHook(useRoomTitleActions);
     await act(async () => {
+      result.current.handleTitlePress();
+      result.current.handleTitlePress();
       result.current.handleTitlePress();
       result.current.handleTitleLongPress();
     });

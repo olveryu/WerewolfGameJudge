@@ -14,12 +14,14 @@ import { debugLogStore } from '@/utils/debugLogStore';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-const DOUBLE_TAP_INTERVAL_MS = 300;
+const TAP_THRESHOLD = 4;
+const TAP_TIMEOUT_MS = 3000;
 
 /** Compose title callbacks without reading or mutating game state. */
 export function useRoomTitleActions() {
   const navigation = useNavigation();
   const lastTap = useRef<number | null>(null);
+  const tapCountRef = useRef(0);
   const isVerifying = useRef(false);
 
   const verifyAndToggle = useCallback(async (credential: string) => {
@@ -44,8 +46,13 @@ export function useRoomTitleActions() {
 
   const handleTitlePress = useCallback(() => {
     const now = Date.now();
-    if (lastTap.current !== null && now - lastTap.current <= DOUBLE_TAP_INTERVAL_MS) {
+    tapCountRef.current =
+      lastTap.current !== null && now - lastTap.current <= TAP_TIMEOUT_MS
+        ? tapCountRef.current + 1
+        : 1;
+    if (tapCountRef.current >= TAP_THRESHOLD) {
       lastTap.current = null;
+      tapCountRef.current = 0;
       navigation.navigate('Admin');
       return;
     }
@@ -54,6 +61,7 @@ export function useRoomTitleActions() {
 
   const handleTitleLongPress = useCallback(() => {
     lastTap.current = null;
+    tapCountRef.current = 0;
     const cached = readAdminCredential();
     if (cached) {
       void verifyAndToggle(cached);

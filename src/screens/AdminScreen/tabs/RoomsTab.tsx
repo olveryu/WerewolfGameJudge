@@ -6,6 +6,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
@@ -13,13 +14,15 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-nativ
 import { PressableScale } from '@/components/PressableScale';
 import { type AdminRoom, type AdminRoomPlayer } from '@/features/admin/model/adminContracts';
 import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
+import { enterRoomFromAdmin } from '@/features/room/navigation/roomFlowNavigation';
+import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 
 import { AdminEmptyState, Pagination } from '../components';
 
 export const RoomsTab: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -75,46 +78,50 @@ export const RoomsTab: React.FC = () => {
       const isExpanded = expandedRoom === item.code;
       return (
         <View>
-          <PressableScale style={styles.card} onPress={() => void handleRoomPress(item.code)}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardCode}>#{item.code}</Text>
-              <Text style={styles.cardCount}>{item.participantCount}人</Text>
-            </View>
-            <Text style={styles.cardDetail}>
-              房主: {item.hostName ?? '未知'} · {item.hostCountry ?? '?'}
-            </Text>
-            <Text style={styles.cardDetail}>
-              {item.gameType} ·{' '}
-              {
-                { creating: '创建中', active: '活跃', deleting: '删除中', failed: '恢复失败' }[
-                  item.status
-                ]
-              }
-              {item.reconciliationAttemptCount > 0
-                ? ` · 已重试 ${item.reconciliationAttemptCount} 次`
-                : ''}
-            </Text>
-            <Text style={styles.cardDetail}>
-              {item.gamesStarted > 0
-                ? `已开局 ${item.gamesStarted} 次${
-                    item.lastStartedAt
-                      ? ` · 最近 ${item.lastStartedAt.replace('T', ' ').slice(0, 16)} UTC`
-                      : ''
-                  }`
-                : '未开局'}
-            </Text>
-            <Text style={styles.cardMeta}>{item.createdAt.replace('T', ' ').slice(0, 16)} UTC</Text>
-          </PressableScale>
+          <View style={styles.card}>
+            <PressableScale onPress={() => void handleRoomPress(item.code)}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardCode}>#{item.code}</Text>
+                <Text style={styles.cardCount}>{item.participantCount}人</Text>
+              </View>
+              <Text style={styles.cardDetail}>
+                房主: {item.hostName ?? '未知'} · {item.hostCountry ?? '?'}
+              </Text>
+              <Text style={styles.cardDetail}>
+                {item.gameType} ·{' '}
+                {
+                  { creating: '创建中', active: '活跃', deleting: '删除中', failed: '恢复失败' }[
+                    item.status
+                  ]
+                }
+                {item.reconciliationAttemptCount > 0
+                  ? ` · 已重试 ${item.reconciliationAttemptCount} 次`
+                  : ''}
+              </Text>
+              <Text style={styles.cardDetail}>
+                {item.gamesStarted > 0
+                  ? `已开局 ${item.gamesStarted} 次${
+                      item.lastStartedAt
+                        ? ` · 最近 ${item.lastStartedAt.replace('T', ' ').slice(0, 16)} UTC`
+                        : ''
+                    }`
+                  : '未开局'}
+              </Text>
+              <Text style={styles.cardMeta}>
+                {item.createdAt.replace('T', ' ').slice(0, 16)} UTC
+              </Text>
+            </PressableScale>
 
-          <PressableScale
-            style={styles.enterRoom}
-            accessibilityRole="button"
-            accessibilityLabel={`进入房间 ${item.code}`}
-            onPress={() => navigation.navigate('Room', { roomCode: item.code })}
-          >
-            <Ionicons name="enter-outline" size={componentSizes.icon.sm} color={colors.primary} />
-            <Text style={styles.enterRoomText}>进入房间</Text>
-          </PressableScale>
+            <PressableScale
+              style={styles.enterRoom}
+              accessibilityRole="button"
+              accessibilityLabel={`进入房间 ${item.code}`}
+              onPress={() => enterRoomFromAdmin(navigation, item.code)}
+            >
+              <Ionicons name="enter-outline" size={componentSizes.icon.sm} color={colors.primary} />
+              <Text style={styles.enterRoomText}>进入房间</Text>
+            </PressableScale>
+          </View>
 
           {isExpanded && (
             <View style={styles.playersContainer}>
@@ -179,7 +186,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     gap: spacing.tight,
     padding: spacing.small,
-    marginBottom: spacing.tight,
+    marginTop: spacing.tight,
   },
   enterRoomText: { color: colors.primary, fontSize: typography.caption },
   card: {

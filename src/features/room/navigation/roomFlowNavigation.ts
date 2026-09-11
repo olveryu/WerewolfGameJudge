@@ -22,3 +22,24 @@ export function replaceWithCreatedRoom(navigation: RoomFlowNavigation, roomCode:
 export function returnToActiveRoom(navigation: RoomFlowNavigation, roomCode: string): void {
   navigation.popTo('Room', { roomCode: parseRoomCode(roomCode) });
 }
+
+/** Reuse the current room or unmount the old room flow before resolving a different room. */
+export function enterRoomFromAdmin(navigation: RoomFlowNavigation, roomCode: string): void {
+  const params = { roomCode: parseRoomCode(roomCode) };
+  const activeRoom = navigation.getState().routes.findLast((route) => route.name === 'Room');
+  if (activeRoom === undefined) {
+    navigation.navigate('Room', params);
+    return;
+  }
+  if (activeRoom.params === undefined || !('roomCode' in activeRoom.params)) {
+    throw new Error('[FAIL-FAST] Room route requires a room code');
+  }
+  if (activeRoom.params.roomCode === params.roomCode) {
+    returnToActiveRoom(navigation, params.roomCode);
+    return;
+  }
+  navigation.reset({
+    index: 2,
+    routes: [{ name: 'Home' }, { name: 'Admin' }, { name: 'Room', params }],
+  });
+}

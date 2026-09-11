@@ -9,7 +9,10 @@ import { RoomsTab } from '../RoomsTab';
 
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({
+    navigate: mockNavigate,
+    getState: () => ({ routes: [{ name: 'Home' }, { name: 'Admin' }] }),
+  }),
 }));
 jest.mock('@/features/admin/services/adminApi');
 

@@ -138,7 +138,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
           delayLongPress={LONG_PRESS_DELAY_MS}
           accessibilityRole="button"
           accessibilityLabel={`房间 ${model.roomCode}`}
-          accessibilityHint="双击进入管理后台，长按打开调试日志"
+          accessibilityHint="连续点击四次进入管理后台，长按打开调试日志"
         >
           {title}
         </Pressable>
