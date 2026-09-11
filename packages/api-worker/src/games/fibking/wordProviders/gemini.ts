@@ -9,7 +9,11 @@ import {
   parseGeneratedFibWordCandidates,
 } from './candidate';
 import { createFibWordMessages, createFibWordReviewMessages } from './prompt';
-import { createFibWordProviderRequestError, FibWordProviderError } from './providerError';
+import {
+  createFibWordProviderRequestError,
+  FibWordProviderError,
+  redactProviderError,
+} from './providerError';
 import type { FibWordProvider, FibWordRequest } from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
@@ -40,7 +44,7 @@ async function requestGeminiStructuredOutput<Output>(
 ): Promise<Output> {
   let response: Response;
   try {
-    response = await input.fetchImpl(`${GEMINI_OPENAI_BASE}/chat/completions`, {
+    response = await input.fetchImpl.call(globalThis, `${GEMINI_OPENAI_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +65,7 @@ async function requestGeminiStructuredOutput<Output>(
       signal: input.request.signal,
     });
   } catch (error) {
-    throw createFibWordProviderRequestError('Gemini', input.request.signal, error);
+    throw createFibWordProviderRequestError('Gemini', input.request.signal, error, input.apiKey);
   }
   if (!response.ok) {
     const body = await response.text();
@@ -74,7 +78,7 @@ async function requestGeminiStructuredOutput<Output>(
             ? 'serviceUnavailable'
             : 'requestFailed';
     throw new FibWordProviderError(
-      `Gemini Fib word request failed (${response.status}): ${body.slice(0, 500)}`,
+      `Gemini Fib word request failed (${response.status}): ${redactProviderError(body, input.apiKey)}`,
       failureKind,
     );
   }
@@ -87,7 +91,7 @@ async function requestGeminiStructuredOutput<Output>(
     return input.parseOutput(JSON.parse(firstChoice.message.content));
   } catch (error) {
     if (input.request.signal.aborted) {
-      throw createFibWordProviderRequestError('Gemini', input.request.signal, error);
+      throw createFibWordProviderRequestError('Gemini', input.request.signal, error, input.apiKey);
     }
     throw new FibWordProviderError('Gemini Fib word response was invalid', 'invalidOutput', {
       cause: error,

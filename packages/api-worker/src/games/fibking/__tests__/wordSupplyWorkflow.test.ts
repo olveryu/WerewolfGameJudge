@@ -138,7 +138,10 @@ describe('Fib word supply workflow', () => {
     await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepError({ name: 'discover-0' }, new Error('quota exhausted'));
+      await modifier.mockStepError(
+        { name: 'discover-0' },
+        new Error('[rateLimited] quota exhausted'),
+      );
     });
     await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
     await instance.waitForStatus('errored');
@@ -148,5 +151,10 @@ describe('Fib word supply workflow', () => {
     expect(
       await env.DB.prepare('SELECT requests_reserved FROM fib_word_supply_months').first(),
     ).toEqual({ requests_reserved: 1 });
+    expect(
+      await env.DB.prepare('SELECT error_code FROM fib_word_generation_cycles').first(),
+    ).toEqual({
+      error_code: 'discovery:rateLimited',
+    });
   });
 });

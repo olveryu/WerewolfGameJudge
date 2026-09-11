@@ -68,6 +68,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         reserveFibWordPack(this.env.DB, day, batchIndex),
       );
       if (pack === null) continue;
+      let failureStage = 'discovery';
       try {
         const topic =
           SEARCH_TOPICS[
@@ -82,6 +83,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           );
         });
         if (discovery.length === 0) throw new Error('Fib word discovery returned no evidence');
+        failureStage = 'generation';
         const generatedCandidates = await step.do(
           `generate-${batchIndex}`,
           EXTERNAL_STEP,
@@ -94,11 +96,13 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
             ];
           },
         );
+        failureStage = 'inventoryReviewSelection';
         const candidates = await step.do(`review-candidates-${batchIndex}`, () =>
           getFibWordReviewCandidates(this.env.DB, pack, generatedCandidates),
         );
         const evidence: FibWordEvidence[] = [];
         for (const [candidateIndex, candidate] of candidates.entries()) {
+          failureStage = `verification-${candidateIndex}`;
           const sources = await step.do(
             `verify-${batchIndex}-${candidateIndex}`,
             EXTERNAL_STEP,
@@ -116,6 +120,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           );
           evidence.push(...sources);
         }
+        failureStage = 'review';
         await step.sleep(`review-spacing-${batchIndex}`, '20 seconds');
         const reviews = await step.do(`review-${batchIndex}`, EXTERNAL_STEP, async () => {
           await claimFibWordProviderRequest(this.env.DB, pack, 'review');
@@ -139,6 +144,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
             reason: '检索资料未能核实该词项，暂不入库。',
           };
         });
+        failureStage = 'publication';
         await step.do(`publish-${batchIndex}`, () =>
           publishFibWordPack(this.env.DB, pack, candidates, groundedReviews, [
             ...new Set([...discovery, ...evidence].map((source) => source.url)),
@@ -146,10 +152,19 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         );
         await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
       } catch (error) {
-        await step.do(`fail-${batchIndex}`, () => failFibWordPack(this.env.DB, pack));
+        const message = error instanceof Error ? error.message : String(error);
+        const failureKind =
+          message.match(
+            /\[(timedOut|authenticationFailed|rateLimited|serviceUnavailable|invalidOutput|requestFailed)\]/,
+          )?.[1] ?? 'unclassified';
+        await step.do(`fail-${batchIndex}`, () =>
+          failFibWordPack(this.env.DB, pack, `${failureStage}:${failureKind}`),
+        );
         log.error('editorial pack failed', {
           packId: pack.id,
-          error: error instanceof Error ? error.message : String(error),
+          failureStage,
+          failureKind,
+          error: message,
         });
         throw error;
       }

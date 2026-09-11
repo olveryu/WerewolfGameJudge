@@ -291,7 +291,11 @@ export async function publishFibWordPack(
 }
 
 /** Mark a failed pack terminal without refunding potentially consumed external quota. */
-export async function failFibWordPack(db: D1Database, pack: FibWordPack): Promise<void> {
+export async function failFibWordPack(
+  db: D1Database,
+  pack: FibWordPack,
+  errorCode: string,
+): Promise<void> {
   await db.batch([
     db
       .prepare(
@@ -300,8 +304,8 @@ export async function failFibWordPack(db: D1Database, pack: FibWordPack): Promis
       .bind(pack.id, pack.request_token),
     db
       .prepare(
-        "UPDATE fib_word_generation_cycles SET status = 'failed', completed_at = ?, error_code = 'publicationFailed' WHERE id = ? AND status = 'running'",
+        "UPDATE fib_word_generation_cycles SET status = 'failed', completed_at = ?, error_code = ? WHERE id = ? AND status = 'running'",
       )
-      .bind(new Date().toISOString(), pack.id),
+      .bind(new Date().toISOString(), errorCode, pack.id),
   ]);
 }

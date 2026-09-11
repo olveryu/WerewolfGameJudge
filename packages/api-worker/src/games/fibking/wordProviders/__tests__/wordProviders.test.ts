@@ -207,6 +207,22 @@ describe('Fib word candidate batches', () => {
 });
 
 describe('Gemini Fib word provider', () => {
+  it('preserves the global fetch receiver for generation and review', async () => {
+    let response: unknown = CANDIDATES_RESPONSE;
+    const fetchImpl: typeof fetch = async function (this: unknown) {
+      expect(this === globalThis).toBe(true);
+      return Response.json(createGeminiResponse(response));
+    };
+    const provider = createGeminiFibWordProvider('test-key', fetchImpl);
+    const candidates = await provider.generateBatch(createWordRequest());
+    expect(candidates).toHaveLength(CANDIDATES_RESPONSE.candidates.length);
+
+    response = REVIEWS_RESPONSE;
+    await expect(provider.reviewBatch(createWordRequest(), candidates)).resolves.toHaveLength(
+      REVIEWS_RESPONSE.reviews.length,
+    );
+  });
+
   it('reviews every generated candidate in an independent structured request', async () => {
     let requestBody = '';
     const fetchImpl: typeof fetch = async (_input, init) => {
@@ -299,6 +315,19 @@ describe('Gemini Fib word provider', () => {
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
     ).rejects.toMatchObject({ failureKind });
+  });
+
+  it('preserves transport diagnostics without request credentials', async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new TypeError('Invalid header Bearer test-key at https://example.com/?key=test-key');
+    };
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
+    ).rejects.toMatchObject({
+      message:
+        '[requestFailed] Gemini Fib word request failed: Invalid header Bearer [REDACTED] at [URL]',
+      failureKind: 'requestFailed',
+    });
   });
 
   it('classifies malformed structured output as invalidOutput', async () => {
