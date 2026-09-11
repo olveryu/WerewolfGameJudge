@@ -43,6 +43,31 @@ export const FashionConfigScreen: React.FC = () => {
   );
   parseFashionConfigRouteParams(route.params);
 
+  const openTutorial = () => {
+    if (user === null) {
+      navigation.navigate('AuthLogin', {
+        loginTitle: '登录后开始新手关卡',
+        loginSubtitle: '完成 5 分钟训练后即可创建 7 人房间',
+      });
+      return;
+    }
+    setTutorialActive(true);
+  };
+
+  const completeTutorial = () => {
+    if (user === null) {
+      setTutorialActive(false);
+      navigation.navigate('AuthLogin', {
+        loginTitle: '登录后保存新手进度',
+        loginSubtitle: '登录后重新完成训练即可解锁正式 7 人房间',
+      });
+      return;
+    }
+    markFashionTutorialCompleted(user.id);
+    setTutorialCompleted(true);
+    setTutorialActive(false);
+  };
+
   useEffect(() => {
     setTutorialCompleted(user !== null && hasCompletedFashionTutorial(user.id));
   }, [user]);
@@ -52,16 +77,7 @@ export const FashionConfigScreen: React.FC = () => {
       <FashionTutorial
         topInset={insets.top}
         onBack={() => setTutorialActive(false)}
-        onComplete={() => {
-          if (user === null) {
-            throw new Error(
-              '[FAIL-FAST] Fashion tutorial completion requires an authenticated user',
-            );
-          }
-          markFashionTutorialCompleted(user.id);
-          setTutorialCompleted(true);
-          setTutorialActive(false);
-        }}
+        onComplete={completeTutorial}
       />
     );
   }
@@ -107,12 +123,12 @@ export const FashionConfigScreen: React.FC = () => {
             E / S / G、吹哨者、调查证据与证据消失机制。
           </Text>
           {tutorialCompleted ? (
-            <Button variant="ghost" onPress={() => setTutorialActive(true)}>
+            <Button variant="ghost" onPress={openTutorial}>
               重玩 5 分钟新手关卡
             </Button>
           ) : (
-            <Button variant="primary" size="lg" onPress={() => setTutorialActive(true)}>
-              开始 5 分钟新手关卡
+            <Button variant="primary" size="lg" onPress={openTutorial}>
+              {user === null ? '登录后开始 5 分钟新手关卡' : '开始 5 分钟新手关卡'}
             </Button>
           )}
         </FashionPanel>
@@ -165,9 +181,13 @@ export const FashionConfigScreen: React.FC = () => {
             variant="primary"
             size="lg"
             disabled
-            accessibilityLabel="完成新手关卡后才能创建 7 人房间"
+            accessibilityLabel={
+              user === null
+                ? '登录并完成新手关卡后才能创建 7 人房间'
+                : '完成新手关卡后才能创建 7 人房间'
+            }
           >
-            完成新手关卡后创建 7 人房间
+            {user === null ? '登录并完成新手关卡后创建 7 人房间' : '完成新手关卡后创建 7 人房间'}
           </Button>
         )}
       </View>

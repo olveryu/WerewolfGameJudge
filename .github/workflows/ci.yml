@@ -131,6 +131,10 @@ jobs:
             sed -i "s|__CANVASKIT_WASM_GZ_URL__|${CDN_BASE}/wasm/canvaskit.wasm.gz|g" "$jsfile"
           done
 
+          # Standalone builds carry an 8 MB raw WASM fallback. CI uses the
+          # versioned compressed CDN object instead, so keep Pages output lean.
+          rm -f dist/canvaskit.wasm
+
           # HTML: rewrite src="/assets/... and href="/assets/... to CDN
           sed -i "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
           sed -i "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
