@@ -775,6 +775,8 @@ const FashionRoomContent: React.FC<FashionRoomContentProps> = ({ room, navigatio
                 <FashionContractCard
                   key={contract.id}
                   contract={contract}
+                  sellerLabel={getPlayerLabel(state, contract.sellerSeat)}
+                  buyerLabel={getPlayerLabel(state, contract.buyerSeat)}
                   promiseLabel={CONTRACT_PROMISE_LABELS[contract.promise]}
                   canFulfill={contract.sellerSeat === mySeat && contract.status === 'accepted'}
                   isSubmitting={isSubmitting}

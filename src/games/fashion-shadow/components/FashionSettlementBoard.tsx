@@ -57,12 +57,20 @@ export const FashionSettlementBoard: React.FC<FashionSettlementBoardProps> = ({
             : `最终最高票：${state.finalAccusedSeat + 1}号 ${accusedOccupant?.profile.displayName ?? ''} · ${accusedRoleId === undefined ? '身份未解析' : FASHION_ROLE_BY_ID[accusedRoleId].name}`}
         </Text>
         <View style={styles.tallyRow}>
-          {voteTally.map(({ seat, votes }) => (
-            <View key={seat} style={styles.tallyCell}>
-              <Text style={styles.tallySeat}>{seat + 1}号</Text>
-              <Text style={styles.tallyVotes}>{votes} 票</Text>
-            </View>
-          ))}
+          {voteTally.map(({ seat, votes }) => {
+            const occupant = state.realSeats[seat];
+            return (
+              <View
+                key={seat}
+                style={[styles.tallyCell, compactLayout ? styles.tallyCellCompact : null]}
+              >
+                <Text style={styles.tallySeat}>
+                  {seat + 1}号{occupant === undefined ? '' : ` · ${occupant.profile.displayName}`}
+                </Text>
+                <Text style={styles.tallyVotes}>{votes} 票</Text>
+              </View>
+            );
+          })}
         </View>
         <Text style={styles.verdictRule}>
           定罪条件：至少 2 张公开证据，并且最终唯一最高票被指认者必须是反派。
@@ -166,6 +174,7 @@ const styles = StyleSheet.create({
   },
   tallyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   tallyCell: {
+    maxWidth: '100%',
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
     borderColor: fashionShadowColors.border,
@@ -175,7 +184,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.tight,
   },
+  tallyCellCompact: { width: '100%', justifyContent: 'space-between' },
   tallySeat: {
+    flexShrink: 1,
     color: fashionShadowColors.textSecondary,
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,

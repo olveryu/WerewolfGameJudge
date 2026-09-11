@@ -16,9 +16,12 @@ import { borderRadius, fixed, spacing, typography } from '@/theme';
 import { fashionShadowColors } from '@/theme/fashionShadowColors';
 
 import { FashionButton as Button } from './FashionButton';
+import { useFashionCompactLayout } from './useFashionCompactLayout';
 
 interface FashionContractCardProps {
   readonly contract: FashionContract;
+  readonly sellerLabel: string;
+  readonly buyerLabel: string;
   readonly promiseLabel: string;
   readonly canFulfill: boolean;
   readonly isSubmitting: boolean;
@@ -27,11 +30,14 @@ interface FashionContractCardProps {
 
 export const FashionContractCard: React.FC<FashionContractCardProps> = ({
   contract,
+  sellerLabel,
+  buyerLabel,
   promiseLabel,
   canFulfill,
   isSubmitting,
   onFulfill,
 }) => {
+  const compactLayout = useFashionCompactLayout();
   const reducedMotion = useReducedMotion();
   const stamp = useSharedValue(1);
 
@@ -55,13 +61,18 @@ export const FashionContractCard: React.FC<FashionContractCardProps> = ({
 
   return (
     <View style={[styles.card, isFulfilled ? styles.fulfilledCard : null]}>
-      <View style={styles.topRow}>
-        <View>
+      <View style={[styles.topRow, compactLayout ? styles.topRowCompact : null]}>
+        <View style={styles.headingCopy}>
           <Text style={styles.kicker}>PRIVATE CONTRACT</Text>
           <Text style={styles.title}>秘密契约 #{contract.id}</Text>
         </View>
         <Animated.View
-          style={[styles.stamp, isFulfilled ? styles.stampFulfilled : null, stampStyle]}
+          style={[
+            styles.stamp,
+            compactLayout ? styles.stampCompact : null,
+            isFulfilled ? styles.stampFulfilled : null,
+            stampStyle,
+          ]}
         >
           <Text style={[styles.stampText, isFulfilled ? styles.stampTextFulfilled : null]}>
             {isFulfilled ? '已履行' : '已签署'}
@@ -70,7 +81,7 @@ export const FashionContractCard: React.FC<FashionContractCardProps> = ({
       </View>
       <View style={styles.divider} />
       <Text style={styles.parties}>
-        {contract.sellerSeat + 1}号 → {contract.buyerSeat + 1}号
+        {sellerLabel} → {buyerLabel}
       </Text>
       <Text style={styles.promise}>{promiseLabel}</Text>
       <Text style={styles.body}>
@@ -106,6 +117,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.medium,
   },
+  topRowCompact: { flexDirection: 'column' },
+  headingCopy: { flex: 1, minWidth: 0 },
   kicker: {
     color: fashionShadowColors.neonCyan,
     fontSize: typography.captionSmall,
@@ -126,6 +139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.small,
     paddingVertical: spacing.tight,
   },
+  stampCompact: { alignSelf: 'flex-start' },
   stampFulfilled: {
     borderColor: fashionShadowColors.success,
     backgroundColor: fashionShadowColors.successSoft,
