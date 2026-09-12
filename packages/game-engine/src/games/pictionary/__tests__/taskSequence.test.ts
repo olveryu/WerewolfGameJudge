@@ -59,7 +59,6 @@ function createFullLobby(): PictionaryState {
       ...DEFAULT_PICTIONARY_CONFIG,
       numberOfPlayers: 4,
       drawingDurationSeconds: 90,
-      guessDurationSeconds: 30,
     },
     CREATE_CONTEXT,
   );

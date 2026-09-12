@@ -2,7 +2,6 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type {
-  PictionaryChain,
   PictionaryEntry,
   PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -71,7 +70,6 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, entry, entry
 
 interface PictionaryAlbumStageProps {
   readonly state: PictionaryState;
-  readonly chain: PictionaryChain;
   readonly entries: readonly PictionaryEntry[];
   readonly eyebrow: string;
   readonly title: string;
@@ -83,7 +81,6 @@ interface PictionaryAlbumStageProps {
 
 const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
   state,
-  chain,
   entries,
   eyebrow,
   title,
@@ -93,22 +90,39 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
   controls,
 }) => {
   const listRef = useRef<FlatList<PictionaryEntry>>(null);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [entryHeights, setEntryHeights] = useState<Readonly<Record<string, number>>>({});
+  const latestEntryId = entries.at(-1)?.id;
+  const latestEntryHeight = latestEntryId === undefined ? undefined : entryHeights[latestEntryId];
+  const footerHeight = shouldFollowLatestEntry
+    ? Math.max(0, viewportHeight - (latestEntryHeight ?? 0))
+    : 0;
   const renderEntry = useCallback(
     ({ item, index }: ListRenderItemInfo<PictionaryEntry>) => (
-      <GalleryEntryView state={state} entry={item} entryIndex={index} />
+      <View
+        onLayout={({ nativeEvent }) => {
+          const height = nativeEvent.layout.height;
+          setEntryHeights((current) =>
+            current[item.id] === height ? current : { ...current, [item.id]: height },
+          );
+        }}
+      >
+        <GalleryEntryView state={state} entry={item} entryIndex={index} />
+      </View>
     ),
     [state],
   );
   const getEntryKey = useCallback((entry: PictionaryEntry) => entry.id, []);
-  const followLatestEntry = useCallback(() => {
-    if (shouldFollowLatestEntry && entries.length > 1) {
-      listRef.current?.scrollToEnd({ animated: true });
-    }
-  }, [entries.length, shouldFollowLatestEntry]);
 
   useEffect(() => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [chain.id]);
+    if (!shouldFollowLatestEntry || latestEntryHeight === undefined || contentHeight === 0) return;
+    const offset =
+      entries.length === 1
+        ? 0
+        : contentHeight - footerHeight - spacing.large - spacing.medium - latestEntryHeight;
+    listRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: true });
+  }, [contentHeight, entries.length, footerHeight, latestEntryHeight, shouldFollowLatestEntry]);
 
   return (
     <View style={styles.albumStage} testID={TESTIDS.pictionaryStageFrame}>
@@ -118,8 +132,13 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
         data={entries}
         renderItem={renderEntry}
         keyExtractor={getEntryKey}
-        onContentSizeChange={followLatestEntry}
+        initialNumToRender={getPictionaryRelayStepCount(state.config.numberOfPlayers)}
+        onLayout={({ nativeEvent }) => setViewportHeight(nativeEvent.layout.height)}
+        onContentSizeChange={(_width, height) => setContentHeight(height)}
         contentContainerStyle={styles.albumContent}
+        ListFooterComponent={
+          shouldFollowLatestEntry ? <View style={{ height: footerHeight }} /> : null
+        }
         ListHeaderComponent={
           <PictionaryStageHeading
             eyebrow={eyebrow}
@@ -212,8 +231,8 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
 
   return (
     <PictionaryAlbumStage
+      key={chain.id}
       state={state}
-      chain={chain}
       entries={visibleEntries}
       eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
       title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
@@ -302,8 +321,8 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
 
   return (
     <PictionaryAlbumStage
+      key={chain.id}
       state={state}
-      chain={chain}
       entries={chain.entries}
       eyebrow={`第 ${localChainIndex + 1} / ${state.chains.length} 本画册`}
       title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}

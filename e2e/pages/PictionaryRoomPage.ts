@@ -8,6 +8,7 @@ import { waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from './RoomPage';
 
 const PHONE_STAGE_MAX_WIDTH = 430;
+const GALLERY_ALIGNMENT_TOLERANCE = 2;
 
 /** Operates one real player's Pictionary room surface. */
 export class PictionaryRoomPage extends RoomPage {
@@ -81,6 +82,13 @@ export class PictionaryRoomPage extends RoomPage {
         expect(stage.getByRole('button', { name: tool, exact: true })).toBeVisible(),
       ),
     );
+    const canvasBounds = await this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
+    if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');
+    for (const tool of ['画笔', '红色', '撤销', '重做']) {
+      const toolBounds = await stage.getByRole('button', { name: tool, exact: true }).boundingBox();
+      if (toolBounds === null) throw new Error(`Pictionary ${tool} has no browser layout box`);
+      expect(toolBounds.y).toBeGreaterThanOrEqual(canvasBounds.y + canvasBounds.height);
+    }
   }
 
   /** Draw one non-empty stroke through browser pointer events. */
@@ -114,6 +122,14 @@ export class PictionaryRoomPage extends RoomPage {
   async exerciseDrawingTools(): Promise<void> {
     const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
     await this.drawStroke(0);
+    const undoButton = stage.getByRole('button', { name: '撤销', exact: true });
+    const redoButton = stage.getByRole('button', { name: '重做', exact: true });
+    await expect(undoButton).toBeEnabled();
+    await undoButton.click();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
+    await expect(redoButton).toBeEnabled();
+    await redoButton.click();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
     for (const [toolIndex, tool] of ['直线', '矩形', '椭圆', '橡皮'].entries()) {
       await stage.getByRole('button', { name: tool, exact: true }).click();
       await this.drawStroke(toolIndex + 1);
@@ -121,6 +137,7 @@ export class PictionaryRoomPage extends RoomPage {
     await stage.getByRole('button', { name: '红色', exact: true }).click();
     await stage.getByRole('button', { name: '填充', exact: true }).click();
     const canvas = this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas);
+    await canvas.scrollIntoViewIfNeeded();
     const bounds = await canvas.boundingBox();
     if (bounds === null) throw new Error('Pictionary canvas has no browser layout box');
     await this.page.mouse.click(bounds.x + bounds.width * 0.05, bounds.y + bounds.height * 0.05);
@@ -191,6 +208,24 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(
       revealedEntries.last().getByText(`第 ${entry} / ${entryTotal} 棒`, { exact: true }),
     ).toBeVisible();
+    if (entry > 1) {
+      await expect
+        .poll(async () => {
+          const albumBounds = await this.page
+            .getByTestId(TESTIDS.pictionaryGalleryAlbum)
+            .boundingBox();
+          const entryBounds = await revealedEntries.last().boundingBox();
+          if (albumBounds === null || entryBounds === null) {
+            throw new Error('Pictionary gallery has no browser layout box');
+          }
+          return Math.abs(entryBounds.y - albumBounds.y);
+        })
+        .toBeLessThanOrEqual(GALLERY_ALIGNMENT_TOLERANCE);
+    } else {
+      await expect(
+        stage.getByText(`第 ${chain} / ${chainTotal} 本画册`, { exact: true }),
+      ).toBeInViewport();
+    }
   }
 
   /** Read the cumulative album for cross-player synchronization assertions. */

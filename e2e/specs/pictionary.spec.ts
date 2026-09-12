@@ -69,6 +69,7 @@ test.describe('Pictionary', () => {
     const hostRoom = rooms[0]!;
 
     try {
+      await fixture.pages[1]!.setViewportSize({ width: 390, height: 844 });
       await test.step('create a deterministic four-player room', async () => {
         await new HomePage(hostPage).clickCreateRoom('pictionary');
         const config = new PictionaryConfigPage(hostPage);
@@ -99,6 +100,12 @@ test.describe('Pictionary', () => {
         await hostRoom.exerciseDrawingTools();
         for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
           await rooms[playerIndex]!.drawStroke(playerIndex);
+        }
+        for (const [playerIndex, viewport] of ['desktop', 'mobile'].entries()) {
+          await test.info().attach(`pictionary-drawing-${viewport}`, {
+            body: await fixture.pages[playerIndex]!.screenshot(),
+            contentType: 'image/png',
+          });
         }
         await Promise.all(rooms.map((room) => room.completeDrawingEditing()));
       });
@@ -131,7 +138,21 @@ test.describe('Pictionary', () => {
           const chain = Math.floor(globalEntryIndex / RELAY_STEP_COUNT) + 1;
           const entry = (globalEntryIndex % RELAY_STEP_COUNT) + 1;
           await expectGalleryPositionForEveryPlayer(rooms, chain, entry);
-          if (globalEntryIndex === 1) await hostRoom.expectFullscreenDrawingPreview();
+          if (globalEntryIndex === 1) {
+            await hostRoom.expectFullscreenDrawingPreview();
+            for (const [playerIndex, viewport] of ['desktop', 'mobile'].entries()) {
+              await test.info().attach(`pictionary-gallery-${viewport}`, {
+                body: await fixture.pages[playerIndex]!.screenshot(),
+                contentType: 'image/png',
+              });
+            }
+          }
+          if (globalEntryIndex === 2) {
+            await hostPage.getByRole('button', { name: '上一项', exact: true }).click();
+            await expectGalleryPositionForEveryPlayer(rooms, 1, 2);
+            await hostRoom.advanceGallery();
+            await expectGalleryPositionForEveryPlayer(rooms, 1, 3);
+          }
 
           await expect
             .poll(async () => {

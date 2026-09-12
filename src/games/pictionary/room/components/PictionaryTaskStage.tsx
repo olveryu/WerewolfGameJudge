@@ -276,6 +276,7 @@ const IconAction: React.FC<IconActionProps> = ({ label, icon, disabled, onPress 
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={label}
+    accessibilityState={{ disabled }}
     disabled={disabled}
     onPress={onPress}
     style={({ pressed }) => [
@@ -285,6 +286,7 @@ const IconAction: React.FC<IconActionProps> = ({ label, icon, disabled, onPress 
     ]}
   >
     <Ionicons name={icon} size={22} color={colors.textSecondary} />
+    <Text style={styles.toolButtonText}>{label}</Text>
   </Pressable>
 );
 
@@ -524,6 +526,15 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
           </Text>
         </View>
       </View>
+      <PictionaryDrawingCanvas
+        elements={draft.elements}
+        tool={tool}
+        color={color}
+        strokeWidth={strokeWidth}
+        isEnabled={canEdit}
+        onElementComplete={addElement}
+        onFill={fillDrawing}
+      />
       <DrawingToolbar
         tool={tool}
         color={color}
@@ -537,15 +548,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
         onUndo={() => updateDraft({ type: 'element.undo' })}
         onRedo={() => updateDraft({ type: 'element.redo' })}
         onClear={clearDrawing}
-      />
-      <PictionaryDrawingCanvas
-        elements={draft.elements}
-        tool={tool}
-        color={color}
-        strokeWidth={strokeWidth}
-        isEnabled={canEdit}
-        onElementComplete={addElement}
-        onFill={fillDrawing}
       />
       {isReady && (
         <View style={styles.uploadNotice}>
@@ -785,8 +787,11 @@ const styles = StyleSheet.create({
   selectedToolButtonText: { color: colors.textInverse },
   historyActions: { flexDirection: 'row', gap: spacing.tight },
   iconAction: {
-    width: fixed.minTouchTarget,
-    height: fixed.minTouchTarget,
+    minWidth: fixed.minTouchTarget,
+    minHeight: fixed.minTouchTarget,
+    flexDirection: 'row',
+    gap: spacing.tight,
+    paddingHorizontal: spacing.small,
     alignItems: 'center',
     justifyContent: 'center',
   },

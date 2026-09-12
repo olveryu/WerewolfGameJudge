@@ -43,7 +43,7 @@ export interface PictionaryConfig {
 export const DEFAULT_PICTIONARY_CONFIG: PictionaryConfig = {
   numberOfPlayers: PICTIONARY_DEFAULT_PLAYERS,
   drawingDurationSeconds: 120,
-  guessDurationSeconds: 15,
+  guessDurationSeconds: 30,
   transitionDurationSeconds: 5,
   galleryItemDurationSeconds: 3,
 };
