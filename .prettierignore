@@ -15,3 +15,4 @@ functions/types.d.ts
 tsconfig.json
 expo-env.d.ts
 *.log
+.workbuddy/

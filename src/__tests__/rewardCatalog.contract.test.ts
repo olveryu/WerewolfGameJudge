@@ -10,6 +10,7 @@
  * Also verifies PNG assets exist on disk for every avatar ID.
  */
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -27,7 +28,31 @@ import { getNameStyleById, NAME_STYLES } from '@/components/nameStyles';
 import { getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 
-const ASSETS_ROOT = path.resolve(__dirname, '../../assets');
+const REPOSITORY_ROOT = path.resolve(__dirname, '../..');
+const SPARSE_CHECKOUT_FILE = path.join(REPOSITORY_ROOT, '.git/info/sparse-checkout');
+const IS_SPARSE_CHECKOUT = fs.existsSync(SPARSE_CHECKOUT_FILE);
+const TRACKED_ASSETS = IS_SPARSE_CHECKOUT
+  ? new Set(
+      execFileSync('git', ['ls-files', 'assets'], {
+        cwd: REPOSITORY_ROOT,
+        encoding: 'utf8',
+      })
+        .split('\n')
+        .filter(Boolean),
+    )
+  : new Set<string>();
+
+function expectAssetPresent(relativePath: string): void {
+  const absolutePath = path.join(REPOSITORY_ROOT, relativePath);
+  if (fs.existsSync(absolutePath)) return;
+
+  if (IS_SPARSE_CHECKOUT) {
+    expect(TRACKED_ASSETS.has(relativePath)).toBe(true);
+    return;
+  }
+
+  expect(fs.existsSync(absolutePath)).toBe(true);
+}
 
 // ─── Avatars ────────────────────────────────────────────────────────────────
 
@@ -48,23 +73,19 @@ describe('avatar registry completeness', () => {
   });
 
   it.each(HAND_DRAWN_AVATAR_IDS)('raw PNG exists for avatar "%s"', (id) => {
-    const file = path.join(ASSETS_ROOT, 'avatars/raw', `${id}.png`);
-    expect(fs.existsSync(file)).toBe(true);
+    expectAssetPresent(`assets/avatars/raw/${id}.png`);
   });
 
   it.each(HAND_DRAWN_AVATAR_IDS)('512px thumbnail PNG exists for avatar "%s"', (id) => {
-    const file = path.join(ASSETS_ROOT, 'badges/png/512', `role_${id}.png`);
-    expect(fs.existsSync(file)).toBe(true);
+    expectAssetPresent(`assets/badges/png/512/role_${id}.png`);
   });
 
   it.each(HAND_DRAWN_AVATAR_IDS)('WebP avatar exists for "%s"', (id) => {
-    const file = path.join(ASSETS_ROOT, 'avatars/web', `${id}.webp`);
-    expect(fs.existsSync(file)).toBe(true);
+    expectAssetPresent(`assets/avatars/web/${id}.webp`);
   });
 
   it.each(HAND_DRAWN_AVATAR_IDS)('WebP badge exists for "%s"', (id) => {
-    const file = path.join(ASSETS_ROOT, 'badges/web', `role_${id}.webp`);
-    expect(fs.existsSync(file)).toBe(true);
+    expectAssetPresent(`assets/badges/web/role_${id}.webp`);
   });
 });
 

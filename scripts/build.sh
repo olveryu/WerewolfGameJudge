@@ -48,6 +48,17 @@ echo "🌐 Deploy env: $EXPO_PUBLIC_DEPLOY_ENV"
 echo "📦 构建 Web..."
 npx expo export --platform web --clear --source-maps
 
+# CanvasKit local fallback: index.ts intentionally resolves /canvaskit.wasm
+# whenever CI has not rewritten the compressed WASM placeholder to the CDN.
+# Keep standalone builds and preview/static-server output runnable on their own.
+CANVASKIT_WASM_SOURCE="node_modules/canvaskit-wasm/bin/full/canvaskit.wasm"
+if [ ! -f "$CANVASKIT_WASM_SOURCE" ]; then
+  echo "❌ 缺少 CanvasKit WASM: $CANVASKIT_WASM_SOURCE"
+  exit 1
+fi
+cp "$CANVASKIT_WASM_SOURCE" dist/canvaskit.wasm
+echo "✅ 已复制 CanvasKit WASM fallback"
+
 # ── 3. 后处理（PWA / 字体 / index.html）─────────
 
 echo "📱 复制 PWA 文件..."

@@ -1,3 +1,4 @@
+import { fashionEngine } from '../../../games/fashion-shadow/engine';
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
 import { WEREWOLF_GAME_TYPE } from '../../protocol/gameTypes';
@@ -116,11 +117,13 @@ describe('typed game engine contract', () => {
       werewolf: counterEngine,
       fibking: fibEngine,
       pictionary: pictionaryEngine,
+      'fashion-shadow': fashionEngine,
     });
 
     expect(catalog.werewolf).toBe(counterEngine);
     expect(catalog.fibking).toBe(fibEngine);
     expect(catalog.pictionary).toBe(pictionaryEngine);
+    expect(catalog['fashion-shadow']).toBe(fashionEngine);
   });
 
   it('rejects incomplete, extra, and structurally invalid catalogs at compile time', () => {
@@ -131,6 +134,7 @@ describe('typed game engine contract', () => {
       // @ts-expect-error catalog key must match the engine's literal game identity
       fibking: counterEngine,
       pictionary: pictionaryEngine,
+      'fashion-shadow': fashionEngine,
     });
     defineGameEngineCatalog({
       werewolf: counterEngine,
@@ -138,12 +142,14 @@ describe('typed game engine contract', () => {
       pictionary: pictionaryEngine,
       // @ts-expect-error keys outside GameType are forbidden
       unregisteredExample: pictionaryEngine,
+      'fashion-shadow': fashionEngine,
     });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
       werewolf: { gameType: WEREWOLF_GAME_TYPE, stateVersion: 1 },
       fibking: fibEngine,
       pictionary: pictionaryEngine,
+      'fashion-shadow': fashionEngine,
     });
   });
 });

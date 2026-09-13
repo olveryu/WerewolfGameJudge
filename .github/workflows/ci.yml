@@ -124,11 +124,10 @@ jobs:
           PKG_VERSION="0.0.0-g${GITHUB_SHA::8}"
           CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
 
-          # JS bundles: rewrite "/assets/ string literals to CDN (Metro chunk references)
+          # JS bundles: rewrite "/assets/ string literals to CDN (Metro chunk references).
+          # CanvasKit stays same-origin because it is required before React can mount.
           for jsfile in dist/assets/js/*.js; do
             sed -i "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
-            # Replace WASM placeholder with versioned CDN URL for pre-compressed canvaskit
-            sed -i "s|__CANVASKIT_WASM_GZ_URL__|${CDN_BASE}/wasm/canvaskit.wasm.gz|g" "$jsfile"
           done
 
           # HTML: rewrite src="/assets/... and href="/assets/... to CDN
@@ -148,15 +147,9 @@ jobs:
           # Copy already-rewritten assets/ tree (JS bundles have CDN URLs baked in)
           cp -r dist/assets "$WORK/assets"
 
-          # Pre-compress CanvasKit WASM for CDN delivery (8 MB → ~3.2 MB gzip).
-          # Client fetches .wasm.gz and decompresses via DecompressionStream.
-          # cp first: pnpm hardlinks node_modules files, gzip -k refuses multi-link targets.
-          mkdir -p "$WORK/wasm"
-          cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm "$WORK/wasm/canvaskit.wasm"
-          gzip -9 "$WORK/wasm/canvaskit.wasm"
-
-          # Generate index.js — importable manifest of all bundled assets
-          FILES=$(cd "$WORK" && find assets wasm -type f | sort)
+          # Generate index.js — importable manifest of bundled CDN assets.
+          # CanvasKit stays in the Pages deployment because it is boot-critical.
+          FILES=$(cd "$WORK" && find assets -type f | sort)
           {
             echo '"use strict";'
             echo "const VERSION = \"$PKG_VERSION\";"
@@ -197,7 +190,7 @@ jobs:
           # Trim leading spaces from heredoc (YAML indent)
           sed -i 's/^          //' "$WORK/README.md"
 
-          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","wasm/","README.md"],"repository":{"type":"git","url":"https://github.com/olveryu/WerewolfGameJudge.git"}}' "$PKG_VERSION" > "$WORK/package.json"
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","README.md"],"repository":{"type":"git","url":"https://github.com/olveryu/WerewolfGameJudge.git"}}' "$PKG_VERSION" > "$WORK/package.json"
           cd "$WORK"
           # Idempotent publish: skip if this version already exists on npm
           # (happens when a reverted commit re-lands with the same SHA)

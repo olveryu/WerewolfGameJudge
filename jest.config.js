@@ -37,6 +37,7 @@ module.exports = {
     '^@shopify/react-native-skia$': '<rootDir>/__mocks__/@shopify/react-native-skia.tsx',
     '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.tsx',
     '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.ts',
-    '\\.m4a$': '<rootDir>/__mocks__/audioFileMock.js',
+    '\\.(?:png|jpe?g|gif|webp)$': '<rootDir>/__mocks__/imageFileMock.js',
+    '\\.(?:m4a|mp3|wav)$': '<rootDir>/__mocks__/audioFileMock.js',
   },
 };

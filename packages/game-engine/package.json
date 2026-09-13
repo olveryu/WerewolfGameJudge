@@ -20,6 +20,10 @@
       "types": "./src/games/pictionary/public.ts",
       "default": "./dist/games/pictionary/public.js"
     },
+    "./games/fashion-shadow/public": {
+      "types": "./src/games/fashion-shadow/public.ts",
+      "default": "./dist/games/fashion-shadow/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"
