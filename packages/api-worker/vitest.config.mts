@@ -9,7 +9,12 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: './wrangler.test.toml' },
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+        miniflare: {
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            JWT_SECRET: 'e2e-test-jwt-secret-do-not-use-in-production',
+          },
+        },
       }),
     ],
     resolve: {
@@ -20,6 +25,7 @@ export default defineConfig(async () => {
     test: {
       include: ['src/**/__tests__/**/*.test.ts'],
       setupFiles: ['./test/applyMigrations.ts'],
+      testTimeout: 15_000,
     },
   };
 });

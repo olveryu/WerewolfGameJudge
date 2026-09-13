@@ -10,6 +10,7 @@ import {
   defineWorkerGameCatalog,
   registerWorkerGameModule,
 } from '../platform/gameModules/workerModule';
+import { fashionWorkerModule } from './fashion-shadow/module';
 import { fibWorkerModule } from './fibking/module';
 import { pictionaryWorkerModule } from './pictionary/module';
 import { werewolfWorkerModule } from './werewolf/module';
@@ -18,6 +19,7 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, 
   werewolf: registerWorkerGameModule(werewolfWorkerModule),
   fibking: registerWorkerGameModule(fibWorkerModule),
   pictionary: registerWorkerGameModule(pictionaryWorkerModule),
+  'fashion-shadow': registerWorkerGameModule(fashionWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

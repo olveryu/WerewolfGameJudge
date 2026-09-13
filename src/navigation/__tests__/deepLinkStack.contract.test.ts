@@ -111,6 +111,20 @@ describe('deep-link stack: game config route matrix', () => {
   ])('rejects the invalid FibKing config route %s', (path) => {
     expect(() => linking.getStateFromPath!(path, linking.config)).toThrow();
   });
+
+  it('builds the Fashion Shadow create-config stack without a synthetic room code', () => {
+    const state = linking.getStateFromPath!('/game/fashion-shadow/config/create', linking.config);
+
+    expect(state?.routes.map((route) => route.name)).toEqual(['Home', 'GameConfig']);
+  });
+
+  it.each([
+    '/game/fashion-shadow/config/create/2468',
+    '/game/fashion-shadow/config/edit',
+    '/game/fashion-shadow/config/edit/2468',
+  ])('rejects the invalid Fashion Shadow config route %s', (path) => {
+    expect(() => linking.getStateFromPath!(path, linking.config)).toThrow();
+  });
 });
 
 describe('deep-link stack: optional game navigation capabilities', () => {

@@ -1,6 +1,7 @@
 import type React from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import { fashionGameNavigation } from '@/games/fashion-shadow/navigation/fashionGameNavigation';
 import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
 import {
   type GameNotepadRouteParams,
@@ -39,12 +40,31 @@ describe('game navigation composition', () => {
     expect(
       parseGameNavigationRouteParams('guide', { gameType: 'fibking', roomCode: '4321' }),
     ).toEqual({ gameType: 'fibking', roomCode: '4321' });
+    expect(
+      parseGameNavigationRouteParams('config', {
+        gameType: 'fashion-shadow',
+        mode: 'create',
+      }),
+    ).toEqual({ gameType: 'fashion-shadow', mode: 'create' });
+    expect(
+      parseGameNavigationRouteParams('guide', {
+        gameType: 'fashion-shadow',
+        roomCode: '7654',
+      }),
+    ).toEqual({ gameType: 'fashion-shadow', roomCode: '7654' });
     expect(() =>
       parseGameNavigationRouteParams('notepad', {
         gameType: 'fibking',
         roomCode: '4321',
       }),
     ).toThrow('[FAIL-FAST] fibking does not support notepad navigation');
+    expect(() =>
+      parseGameNavigationRouteParams('notepad', {
+        gameType: 'fashion-shadow',
+        roomCode: '7654',
+      }),
+    ).toThrow('[FAIL-FAST] fashion-shadow does not support notepad navigation');
+    expect(fashionGameNavigation.gameType).toBe('fashion-shadow');
   });
 
   it('derives parent room identity from the selected game parser', () => {

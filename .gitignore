@@ -28,6 +28,7 @@ expo-env.d.ts
 
 # Metro
 .metro-health-check*
+/public/canvaskit.wasm
 
 # debug
 npm-debug.*
