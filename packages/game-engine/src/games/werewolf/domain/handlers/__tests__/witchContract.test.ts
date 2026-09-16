@@ -10,6 +10,7 @@
 import { isSkipAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionGuards';
 import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionHandler';
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import { maybeCreateWitchContextAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/witchContext';
 import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
@@ -80,6 +81,33 @@ function getApplyResolverResult(result: { actions: readonly { type: string }[] }
 
 describe('Witch buildActionInput contract', () => {
   describe('stepResults parsing', () => {
+    it('should accept self-healing with the computed witch context when the rule is enabled', () => {
+      const state = createMinimalState({
+        rules: { witchCanSelfHeal: true },
+        currentNightResults: { wolfVotesBySeat: { '1': 3 } },
+        witchContext: undefined,
+      });
+      const witchContextAction = maybeCreateWitchContextAction('witchAction', state, () => 0.75);
+      expect(witchContextAction).not.toBeNull();
+
+      const context = createContext({ ...state, witchContext: witchContextAction!.payload });
+      const intent: SubmitActionIntent = {
+        type: 'SUBMIT_ACTION',
+        payload: {
+          seat: 3,
+          role: 'witch',
+          actionInput: { schemaId: 'witchAction', stepResults: { save: 3, poison: null } },
+        },
+      };
+
+      const result = handleSubmitAction(intent, context);
+
+      const success = expectSuccess(result);
+      const applyAction = getApplyResolverResult(success);
+      expect(applyAction?.payload.updates?.savedSeat).toBe(3);
+      expect(applyAction?.payload.updates?.poisonedSeat).toBeUndefined();
+    });
+
     it('should parse stepResults.save correctly', () => {
       const state = createMinimalState({
         currentNightResults: { wolfVotesBySeat: { '1': 0 } }, // wolf killed seat 0

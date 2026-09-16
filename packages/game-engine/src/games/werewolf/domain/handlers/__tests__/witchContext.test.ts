@@ -75,14 +75,30 @@ describe('maybeCreateWitchContextAction', () => {
       expect(action?.payload.canSave).toBe(true);
     });
 
-    it('should set canSave=false when wolf kills the witch (notSelf constraint)', () => {
+    it.each([undefined, false, true])(
+      'should apply witchCanSelfHeal=%s when wolf kills the witch',
+      (witchCanSelfHeal) => {
+        const state = createOngoingState({
+          rules: { witchCanSelfHeal },
+          currentNightResults: { wolfVotesBySeat: { '0': 1 } },
+        });
+
+        const action = maybeCreateWitchContextAction('witchAction', state);
+
+        expect(action?.payload.killedSeat).toBe(1);
+        expect(action?.payload.canSave).toBe(witchCanSelfHeal === true);
+      },
+    );
+
+    it('should keep canSave=false for an empty kill when self-healing is enabled', () => {
       const state = createOngoingState({
-        currentNightResults: { wolfVotesBySeat: { '0': 1 } }, // wolf kills witch at seat 1
+        rules: { witchCanSelfHeal: true },
+        currentNightResults: {},
       });
 
       const action = maybeCreateWitchContextAction('witchAction', state);
 
-      expect(action?.payload.killedSeat).toBe(1);
+      expect(action?.payload.killedSeat).toBe(-1);
       expect(action?.payload.canSave).toBe(false);
     });
 

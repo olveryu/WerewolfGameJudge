@@ -8,8 +8,10 @@
  * Design principles:
  * - Single source of truth: witchContext lives only in GameState.witchContext
  * - Pure function: no IO, no external reads, no state writes
- * - Schema-first: canSave logic aligns with witchAction.steps[0].constraints['notSelf']
+ * - canSave applies the default notSelf constraint unless rules.witchCanSelfHeal is enabled
  * - Night-1-only: canPoison is always true (project rule: poison available on Night-1)
+ *
+ * @remarks Computes authoritative antidote availability before entering witchAction, including rule overrides.
  */
 
 import type { Rng } from '../../../../platform/random';
@@ -70,11 +72,8 @@ function computeWitchContext(
     throw new Error('[FAIL-FAST] witchAction step has no assigned witch seat');
   }
 
-  // 3. Schema-first: witchAction.steps[0] (save) has the notSelf constraint
-  // canSave must be false when:
-  //   (1) no one was killed (killedSeat < 0)
-  //   (2) the killed seat is the witch herself (killedSeat === witchSeat)
-  const canSave = killedSeat >= 0 && killedSeat !== witchActor.seat;
+  const canSave =
+    killedSeat >= 0 && (killedSeat !== witchActor.seat || state.rules?.witchCanSelfHeal === true);
 
   // Night-1 only (project rule): poison is always available
   // If multi-night becomes supported, switch to reading whether the witch has already used poison from state
