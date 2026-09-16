@@ -121,7 +121,9 @@ const NumPadComponent: React.FC<NumPadProps> = ({
           disabled && styles.buttonDisabled,
         ]}
         onPress={() => handlePress(key)}
+        disabled={disabled}
         activeOpacity={disabled ? 1 : fixed.activeOpacity}
+        accessibilityRole="button"
         accessibilityLabel={getAccessibilityLabel(key)}
         accessibilityState={{ disabled }}
         testID={TESTIDS.numpadKey(key)}

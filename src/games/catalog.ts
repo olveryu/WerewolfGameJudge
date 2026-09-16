@@ -2,6 +2,8 @@
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
+import { createFashionUiModule } from '@/games/fashion-shadow/module';
+import { fashionGameNavigation } from '@/games/fashion-shadow/navigation/fashionGameNavigation';
 import { createFibUiModule } from '@/games/fibking/module';
 import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
 import { type ClientGameCatalog, registerClientGameModule } from '@/games/model/ClientGameCatalog';
@@ -36,6 +38,11 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
     navigation: pictionaryGameNavigation,
     createModule: ({ sessionFactory }) => createPictionaryUiModule({ sessionFactory }),
   },
+  'fashion-shadow': {
+    gameType: 'fashion-shadow',
+    navigation: fashionGameNavigation,
+    createModule: ({ sessionFactory }) => createFashionUiModule({ sessionFactory }),
+  },
 } satisfies ClientGamePluginCatalogShape;
 
 export function createClientGameCatalog(
@@ -50,6 +57,9 @@ export function createClientGameCatalog(
     ),
     pictionary: registerClientGameModule(
       CLIENT_GAME_PLUGIN_CATALOG.pictionary.createModule(dependencies),
+    ),
+    'fashion-shadow': registerClientGameModule(
+      CLIENT_GAME_PLUGIN_CATALOG['fashion-shadow'].createModule(dependencies),
     ),
   };
 }

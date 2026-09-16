@@ -6,14 +6,10 @@
  * 2. Index wrapping: getAvatarImageByIndex handles edge cases
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import { AVATAR_IMAGES, getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
 
-import { getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
-
-/** Number of avatar images — read from disk to stay in sync with static require list */
-const avatarDir = path.resolve(__dirname, '../../../assets/avatars/raw');
-const AVATAR_COUNT = fs.readdirSync(avatarDir).filter((f) => f.endsWith('.png')).length;
+/** Number of runtime-registered hand-drawn avatar images. */
+const AVATAR_COUNT = AVATAR_IMAGES.length;
 
 describe('getUniqueAvatarMap', () => {
   it('assigns unique avatar indices to 12 different uids in same room', () => {

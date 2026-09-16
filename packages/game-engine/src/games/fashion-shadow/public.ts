@@ -1,0 +1,107 @@
+// Public pure API for the Fashion Shadow game module.
+
+export type {
+  FashionCommand,
+  FashionInternalCommand,
+  FashionPublicCommand,
+} from './commands/types';
+export {
+  FASHION_ROLE_BY_ID,
+  FASHION_ROUND_BY_NUMBER,
+  type FashionRoleDefinition,
+  type FashionRoundDefinition,
+  getFashionRoleDefinition,
+} from './domain/content';
+export {
+  REASON_FASHION_ACTION_TOKEN_REQUIRED,
+  REASON_FASHION_ALREADY_VOTED,
+  REASON_FASHION_CROSS_EXAM_AWARD_ALREADY_SET,
+  REASON_FASHION_CROSS_EXAM_AWARD_INVALID,
+  REASON_FASHION_CROSS_EXAM_AWARD_VOTES_INCOMPLETE,
+  REASON_FASHION_CROSS_EXAM_EVIDENCE_UNAVAILABLE,
+  REASON_FASHION_CROSS_EXAM_NOT_FINISHED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_CLOSED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_INVALID,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_LIMIT_REACHED,
+  REASON_FASHION_CROSS_EXAM_STATEMENT_NOT_PARTICIPANT,
+  REASON_FASHION_DISCUSSION_LIMIT_REACHED,
+  REASON_FASHION_DISCUSSION_MESSAGE_INVALID,
+  REASON_FASHION_HEARING_EVIDENCE_UNAVAILABLE,
+  REASON_FASHION_HEARING_STATEMENT_ALREADY_SET,
+  REASON_FASHION_HEARING_STATEMENT_INVALID,
+  REASON_FASHION_IDENTITY_GUESS_ROUND_LIMIT,
+  REASON_FASHION_IDENTITY_GUESS_TARGET_REPEATED,
+  REASON_FASHION_PHASE_INVALID,
+  REASON_FASHION_ROLE_ALREADY_CONFIRMED,
+  REASON_FASHION_ROLE_NOT_ASSIGNED,
+  REASON_FASHION_ROLES_NOT_CONFIRMED,
+  REASON_FASHION_ROOM_NOT_FULL,
+  REASON_FASHION_VOTES_INCOMPLETE,
+} from './domain/reasons';
+export { assignFashionRoles, type FashionAssignments } from './domain/roles';
+export { getFashionFinalAccusedSeat, isFashionVillainConvicted } from './domain/victoryEvaluator';
+export {
+  type FashionIdentityGuessResultView,
+  type FashionPrivateIdentityView,
+  type FashionPublicState,
+  getFashionPublicState,
+  getFashionUserSeat,
+} from './domain/visibility';
+export type { FashionEffect } from './effects/types';
+export {
+  decideFashionCommand,
+  type FashionEngine,
+  fashionEngine,
+  getFashionLifecycle,
+} from './engine';
+export { type FashionPublicStats, parseFashionPublicStats } from './publicStats';
+export { FASHION_STATE_CODEC } from './state/codec';
+export { parseFashionState } from './state/parseState';
+export { FASHION_PUBLIC_STATE_CODEC, parseFashionPublicState } from './state/publicCodec';
+export {
+  FASHION_BOT_USER_ID_PREFIX,
+  FASHION_CONTRACT_ID_MAX_LENGTH,
+  FASHION_CROSS_EXAM_DURATION_MS,
+  FASHION_CROSS_EXAM_STATEMENT_MAX_LENGTH,
+  FASHION_DISCUSSION_MESSAGE_MAX_LENGTH,
+  FASHION_EVENT_IDS,
+  FASHION_EVIDENCE_IDS,
+  FASHION_HEARING_STATEMENT_MAX_LENGTH,
+  FASHION_INITIAL_ACTION_TOKENS,
+  FASHION_MAX_CROSS_EXAM_STATEMENTS_PER_MATCH,
+  FASHION_MAX_DISCUSSION_SPEAKS,
+  FASHION_PLAYER_COUNT,
+  FASHION_ROLE_IDS,
+  FASHION_ROUND_ACTION_TOKEN_RECOVERY,
+  FASHION_SECRET_IDS,
+  type FashionConfig,
+  type FashionContract,
+  type FashionContractPromise,
+  type FashionContractStatus,
+  type FashionCrossExamAward,
+  type FashionCrossExamStatement,
+  type FashionDiscussionMessage,
+  type FashionEventId,
+  type FashionEvidenceId,
+  type FashionHearingStatement,
+  type FashionHumanSeat,
+  type FashionInterrogation,
+  type FashionInvestigationVote,
+  type FashionInvestigationVoteRecord,
+  type FashionPhase,
+  type FashionProfileUpdate,
+  type FashionRoleId,
+  type FashionRound,
+  type FashionSeatProfile,
+  type FashionSecretId,
+  type FashionState,
+  getFashionBotUserId,
+  isFashionBotUserId,
+  isFashionEventId,
+  isFashionEvidenceId,
+  isFashionInvestigationVote,
+  isFashionRoleId,
+  isFashionRoomFull,
+  isFashionSecretId,
+} from './state/types';
+export { FASHION_STATE_IDENTITY, FASHION_STATE_VERSION } from './state/version';

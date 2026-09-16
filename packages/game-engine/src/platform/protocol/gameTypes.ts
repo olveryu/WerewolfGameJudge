@@ -1,16 +1,18 @@
 /** Canonical game identifiers shared by every runtime. */
 
-export const GAME_TYPES = ['werewolf', 'fibking', 'pictionary'] as const;
+export const GAME_TYPES = ['werewolf', 'fibking', 'pictionary', 'fashion-shadow'] as const;
 
 export type GameType = (typeof GAME_TYPES)[number];
 
 export const WEREWOLF_GAME_TYPE = 'werewolf' as const satisfies GameType;
 export const FIBKING_GAME_TYPE = 'fibking' as const satisfies GameType;
 export const PICTIONARY_GAME_TYPE = 'pictionary' as const satisfies GameType;
+export const FASHION_SHADOW_GAME_TYPE = 'fashion-shadow' as const satisfies GameType;
 
 export type WerewolfGameType = typeof WEREWOLF_GAME_TYPE;
 export type FibKingGameType = typeof FIBKING_GAME_TYPE;
 export type PictionaryGameType = typeof PICTIONARY_GAME_TYPE;
+export type FashionShadowGameType = typeof FASHION_SHADOW_GAME_TYPE;
 
 export function isGameType(value: unknown): value is GameType {
   return GAME_TYPES.some((gameType) => gameType === value);

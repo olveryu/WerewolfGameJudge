@@ -13,7 +13,6 @@
       ],
       "project": ["src/**/*.{ts,tsx}!", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
       "ignoreDependencies": [
-        "canvaskit-wasm",
         "expo-modules-core",
         "expo-updates",
         "expo-system-ui",
