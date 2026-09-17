@@ -22,10 +22,6 @@ import {
   STATE_SYNC_TIMEOUT_MS,
 } from '../types';
 
-interface TestUserEvent {
-  readonly eventId: string;
-}
-
 interface TestAppVisibility {
   readonly store: AppVisibilityStore;
   setIsVisible(isVisible: boolean): void;
@@ -68,19 +64,18 @@ function createDeferred<T>(): {
 // Mock Transport
 // ─────────────────────────────────────────────────────────────────────────────
 
-function createMockTransport(): IRealtimeTransport<GameState, TestUserEvent> & {
-  handlers: TransportEventHandlers<GameState, TestUserEvent>;
+function createMockTransport(): IRealtimeTransport<GameState> & {
+  handlers: TransportEventHandlers<GameState>;
   connect: jest.Mock;
   disconnect: jest.Mock;
   send: jest.Mock;
 } {
-  let handlers: TransportEventHandlers<GameState, TestUserEvent> = {
+  let handlers: TransportEventHandlers<GameState> = {
     onOpen: jest.fn(),
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
     onStateSyncResponse: jest.fn(),
-    onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
 
@@ -91,7 +86,7 @@ function createMockTransport(): IRealtimeTransport<GameState, TestUserEvent> & {
     connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn(),
     send: jest.fn().mockReturnValue(true),
-    setEventHandlers(h: TransportEventHandlers<GameState, TestUserEvent>) {
+    setEventHandlers(h: TransportEventHandlers<GameState>) {
       handlers = h;
     },
   };
@@ -109,16 +104,15 @@ function createMockSnapshot(revision: number): RoomSnapshot<GameState> {
 }
 
 function createDeps(
-  overrides?: Partial<ConnectionManagerDeps<GameState, TestUserEvent>>,
+  overrides?: Partial<ConnectionManagerDeps<GameState>>,
   shouldAutoRespondToStateSync = true,
 ) {
   const transport = createMockTransport();
   const appVisibility = createTestAppVisibility();
-  const deps: ConnectionManagerDeps<GameState, TestUserEvent> = {
+  const deps: ConnectionManagerDeps<GameState> = {
     transport,
     onStateUpdate: jest.fn(),
     onStateSync: jest.fn(),
-    onUserEvent: jest.fn(),
     appVisibilityStore: appVisibility.store,
     ...overrides,
   };
@@ -329,18 +323,6 @@ describe('ConnectionManager', () => {
   });
 
   describe('ping/pong', () => {
-    it('sends the canonical durable user-event acknowledgement', () => {
-      const { transport, deps } = createDeps();
-      const manager = new ConnectionManager(deps);
-
-      expect(manager.sendUserEventAcknowledgement('event-1')).toBe(true);
-      expect(transport.send).toHaveBeenCalledWith(
-        JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'event-1' }),
-      );
-
-      manager.dispose();
-    });
-
     it('sends ping at interval and handles pong', async () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
@@ -727,24 +709,6 @@ describe('ConnectionManager', () => {
       transport.handlers.onStateUpdate(
         createStateUpdateMessage(createMockSnapshot(2), 'test.command'),
       );
-
-      expect(manager.getState()).toBe(ConnectionState.Failed);
-      expect(transport.disconnect).toHaveBeenCalled();
-      manager.dispose();
-    });
-
-    it('fails a live connection when a user-event callback rejects integrity', async () => {
-      const onUserEvent = jest.fn(() => {
-        throw new Error('event ID changed payload');
-      });
-      const { transport, deps } = createDeps({ onUserEvent });
-      const manager = new ConnectionManager(deps);
-      const connected = manager.connectAndWait(ROOM_1);
-      transport.handlers.onOpen();
-      await jest.advanceTimersByTimeAsync(0);
-      await connected;
-
-      transport.handlers.onUserEvent({ eventId: 'event-1' });
 
       expect(manager.getState()).toBe(ConnectionState.Failed);
       expect(transport.disconnect).toHaveBeenCalled();

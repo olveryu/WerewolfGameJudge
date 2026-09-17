@@ -95,7 +95,7 @@ rollXp(level) = 50 + randomIntInclusive(0, 20 + level)
 4. 一个 D1 batch 写入 result ledger、`user_stats` 与 `camp_settlements`。
 5. 重试先校验 ledger，再返回相同结果；不会重新随机或重复增加 stats。
 6. Worker 发送幂等 internal roster-level command，然后写入 `user_event_inbox`。
-7. Shared `RoomSession` 只有在 listener 成功处理事件后才 ACK；断线会重放未确认事件。
+7. 应用级 `useAccountEvents` 通过认证 HTTP 读取事件，刷新账户查询并展示后才 ACK；失败保留 D1 事件。
 
 `user_stats.last_room_code` 是历史产品字段，不是幂等边界。幂等性由 effect result ledger 保证。
 
@@ -104,10 +104,11 @@ rollXp(level) = 50 + randomIntInclusive(0, 20 + level)
 ```text
 Werewolf effect
   -> user_event_inbox
-  -> shared RoomSession
-  -> Werewolf user-event codec
-  -> useWerewolfSettleToast
+  -> authenticated account HTTP inbox
+  -> accountEvent parser
+  -> useAccountEvents (foreground, independent of room)
   -> stats/gacha query invalidation
+  -> toast -> HTTP ACK
 ```
 
 - `src/screens/SettingsScreen/components/GrowthSection.tsx` 展示等级进度、对局数和收藏进度。
@@ -116,6 +117,10 @@ Werewolf effect
 - `src/screens/UnlocksScreen/` 展示完整奖励目录和解锁状态。
 
 客户端不计算票券余额、不决定稀有度，也不在 settlement toast 中自行增加本地统计。
+
+账户消费者在前台每 30 秒检查一次空收件箱，返回前台立即检查。切换账户或进入后台取消
+旧消费。ACK 响应丢失时，同一消费者不重复展示通知；刷新整个页面后可能再次展示尚未确认
+的通知，但不会重复结算奖励。房间 WebSocket 仅承载房间状态。
 
 ## 8. D1 数据
 

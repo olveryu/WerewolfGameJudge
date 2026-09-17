@@ -7,8 +7,4 @@ import type {
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 
-export type PictionaryRoomSession = RoomSessionClient<
-  PictionaryState,
-  PictionaryPublicCommand,
-  never
->;
+export type PictionaryRoomSession = RoomSessionClient<PictionaryState, PictionaryPublicCommand>;

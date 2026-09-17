@@ -32,10 +32,9 @@ import type {
   StateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { createStateSyncRequestMessage } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 
 import type { AppVisibilityStore } from '@/services/infra/appVisibility';
-import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
+import type { IRealtimeTransport } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
 import { NetworkTimeoutError } from '@/utils/errorUtils';
 import { connectionLog } from '@/utils/logger';
@@ -62,18 +61,13 @@ function toError(value: unknown): Error {
 }
 
 /** ConnectionManager dependency injection interface. */
-export interface ConnectionManagerDeps<
-  TState extends BaseGameState<string>,
-  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
-> {
+export interface ConnectionManagerDeps<TState extends BaseGameState<string>> {
   /** WebSocket transport layer (IRealtimeTransport) */
-  transport: IRealtimeTransport<TState, TEvent>;
+  transport: IRealtimeTransport<TState>;
   /** Callback when WS broadcast receives STATE_UPDATE */
   onStateUpdate: (message: StateUpdateMessage<TState>) => void;
   /** Callback after a correlated socket sync yields an authoritative snapshot. */
   onStateSync: (snapshot: RoomSnapshot<TState>) => void;
-  /** Durable user-event callback. */
-  onUserEvent: (event: TEvent) => void;
   /** Shared Web/Native foreground visibility source. */
   appVisibilityStore: AppVisibilityStore;
 }
@@ -91,12 +85,9 @@ export interface ConnectionManagerDeps<
  * @remarks State synchronization has an explicit request ID and deadline. Missing or mismatched
  *   responses never mark the connection live. Ping/pong independently detects dead connections.
  */
-export class ConnectionManager<
-  TState extends BaseGameState<string>,
-  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
-> {
+export class ConnectionManager<TState extends BaseGameState<string>> {
   #ctx: FSMContext;
-  readonly #deps: ConnectionManagerDeps<TState, TEvent>;
+  readonly #deps: ConnectionManagerDeps<TState>;
   readonly #stateListeners = new Set<ConnectionStateListener>();
 
   // Timers
@@ -117,7 +108,7 @@ export class ConnectionManager<
   #connectWaitReject: ((err: Error) => void) | null = null;
   #connectWaitTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(deps: ConnectionManagerDeps<TState, TEvent>) {
+  constructor(deps: ConnectionManagerDeps<TState>) {
     this.#deps = deps;
     this.#ctx = createInitialContext({ visible: deps.appVisibilityStore.getSnapshot() });
 
@@ -143,13 +134,6 @@ export class ConnectionManager<
       },
       onStateSyncResponse: (message) => this.#handleStateSyncResponse(message),
       onPong: () => this.#handlePong(),
-      onUserEvent: (event) => {
-        try {
-          deps.onUserEvent(event);
-        } catch (error) {
-          this.#failProtocol(error);
-        }
-      },
     });
 
     this.#registerPlatformListeners();
@@ -174,11 +158,6 @@ export class ConnectionManager<
   /** Current FSM context (for observability / testing) */
   getContext(): Readonly<FSMContext> {
     return this.#ctx;
-  }
-
-  /** Send a durable user-event acknowledgement on the active socket. */
-  sendUserEventAcknowledgement(eventId: string): boolean {
-    return this.#deps.transport.send(JSON.stringify(createUserEventAckMessage(eventId)));
   }
 
   /**

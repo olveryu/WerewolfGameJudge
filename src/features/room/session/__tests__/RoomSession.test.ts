@@ -7,7 +7,6 @@ import {
   parseStateSyncRequestMessage,
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import * as Sentry from '@sentry/react-native';
 
 import {
   type NewRecoverableRoomCommand,
@@ -38,12 +37,6 @@ interface TestState extends BaseGameState<'werewolf'> {
 interface TestCommand {
   readonly type: 'test.increment';
   readonly amount: number;
-}
-
-interface TestEvent {
-  readonly type: 'TEST_EVENT';
-  readonly eventId: string;
-  readonly value: number;
 }
 
 const TEST_CODEC: GameStateCodec<TestState> = {
@@ -78,7 +71,7 @@ const IDENTITY: ActiveRoomIdentity<'werewolf'> = {
   userId: 'host-user',
 };
 
-const createdSessions: RoomSession<TestState, TestCommand, TestEvent>[] = [];
+const createdSessions: RoomSession<TestState, TestCommand>[] = [];
 
 function createTestState(counter = 0, hostUserId = 'host-user'): TestState {
   return {
@@ -94,17 +87,16 @@ function createTransport(options: {
   readonly initialSnapshot: RoomSnapshot<TestState>;
   readonly openOnConnect?: boolean;
 }) {
-  let handlers: TransportEventHandlers<TestState, TestEvent> = {
+  let handlers: TransportEventHandlers<TestState> = {
     onOpen: jest.fn(),
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
     onStateSyncResponse: jest.fn(),
-    onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
-  const transport: IRealtimeTransport<TestState, TestEvent> & {
-    readonly handlers: TransportEventHandlers<TestState, TestEvent>;
+  const transport: IRealtimeTransport<TestState> & {
+    readonly handlers: TransportEventHandlers<TestState>;
     readonly connect: jest.Mock;
     readonly disconnect: jest.Mock;
     readonly send: jest.Mock;
@@ -153,7 +145,7 @@ function createSession(options?: {
     openOnConnect: options?.openOnConnect,
   });
   let commandSequence = 0;
-  const session = new RoomSession<TestState, TestCommand, TestEvent>({
+  const session = new RoomSession<TestState, TestCommand>({
     codec: TEST_CODEC,
     initialEpoch: options?.initialEpoch,
     transport,
@@ -550,115 +542,5 @@ describe('RoomSession', () => {
     await expect(connecting).resolves.toEqual({ kind: 'cancelled' });
     expect(session.getSnapshot().phase).toBe('idle');
     expect(transport.disconnect).toHaveBeenCalled();
-  });
-
-  it('delivers durable user events before acknowledging and re-acks duplicates', async () => {
-    const { session, transport } = createSession();
-    await session.connect(IDENTITY);
-    transport.send.mockClear();
-    const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-1', value: 1 };
-    transport.handlers.onUserEvent(event);
-    expect(transport.send).not.toHaveBeenCalled();
-
-    const delivery = createDeferred<void>();
-    const handler = jest.fn(() => delivery.promise);
-    const clearHandler = session.setUserEventHandler(handler);
-    await flushAsyncWork();
-    expect(handler).toHaveBeenCalledWith(event);
-    expect(transport.send).not.toHaveBeenCalled();
-    delivery.resolve();
-    await flushAsyncWork();
-    expect(transport.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'event-1' }),
-    );
-
-    transport.handlers.onUserEvent(event);
-    expect(transport.send).toHaveBeenCalledTimes(2);
-    clearHandler();
-  });
-
-  it('defers acknowledgement when the socket closes during user-event delivery', async () => {
-    const { session, transport } = createSession();
-    await session.connect(IDENTITY);
-    transport.send.mockClear();
-    const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-disconnected', value: 3 };
-    const delivery = createDeferred<void>();
-    const handler = jest.fn(() => delivery.promise);
-    session.setUserEventHandler(handler);
-    const captureException = jest.mocked(Sentry.captureException);
-    captureException.mockClear();
-
-    transport.handlers.onUserEvent(event);
-    await flushAsyncWork();
-    transport.send.mockReturnValue(false);
-    transport.handlers.onClose(1006, '');
-    delivery.resolve();
-    await flushAsyncWork();
-
-    expect(handler).toHaveBeenCalledTimes(1);
-    expect(transport.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'event-disconnected' }),
-    );
-    expect(captureException).not.toHaveBeenCalled();
-
-    transport.send.mockReturnValue(true);
-    transport.handlers.onUserEvent(event);
-    expect(handler).toHaveBeenCalledTimes(1);
-    expect(transport.send).toHaveBeenCalledTimes(2);
-  });
-
-  it('reports an acknowledgement send exception after user-event delivery', async () => {
-    const { session, transport } = createSession();
-    await session.connect(IDENTITY);
-    transport.send.mockClear();
-    const sendError = new Error('WebSocket send failed');
-    transport.send.mockImplementation(() => {
-      throw sendError;
-    });
-    session.setUserEventHandler(jest.fn());
-    const captureException = jest.mocked(Sentry.captureException);
-    captureException.mockClear();
-
-    transport.handlers.onUserEvent({
-      type: 'TEST_EVENT',
-      eventId: 'event-send-error',
-      value: 4,
-    });
-    await flushAsyncWork();
-
-    expect(captureException).toHaveBeenCalledWith(sendError);
-  });
-
-  it('does not acknowledge a failed handler and retries the same event on redelivery', async () => {
-    const { session, transport } = createSession();
-    await session.connect(IDENTITY);
-    transport.send.mockClear();
-    const event: TestEvent = { type: 'TEST_EVENT', eventId: 'event-2', value: 2 };
-    const handler = jest
-      .fn<Promise<void>, [TestEvent]>()
-      .mockRejectedValueOnce(new Error('render failed'))
-      .mockResolvedValueOnce(undefined);
-    session.setUserEventHandler(handler);
-
-    transport.handlers.onUserEvent(event);
-    await flushAsyncWork();
-    expect(transport.send).not.toHaveBeenCalled();
-
-    transport.handlers.onUserEvent(event);
-    await flushAsyncWork();
-    expect(handler).toHaveBeenCalledTimes(2);
-    expect(transport.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'event-2' }),
-    );
-  });
-
-  it('fails the live connection when one event ID changes payload', async () => {
-    const { session, transport } = createSession();
-    await session.connect(IDENTITY);
-
-    transport.handlers.onUserEvent({ type: 'TEST_EVENT', eventId: 'event-3', value: 1 });
-    transport.handlers.onUserEvent({ type: 'TEST_EVENT', eventId: 'event-3', value: 2 });
-
-    expect(session.getSnapshot()).toMatchObject({ phase: 'ready', connection: 'failed' });
   });
 });

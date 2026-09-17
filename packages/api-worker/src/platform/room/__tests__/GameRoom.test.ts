@@ -16,7 +16,6 @@ import {
   createStateSyncRequestMessage,
   parseStateSyncResponseMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 import { runInDurableObject, SELF } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -653,7 +652,7 @@ describe('GameRoom command receipts', () => {
     await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
-  it('acknowledges a durable user event only through the socket user identity', async () => {
+  it('does not consume account events through the room socket', async () => {
     const stub = getStub();
     await initialize(stub);
     await enqueueUserEvent(env.DB, {
@@ -667,7 +666,7 @@ describe('GameRoom command receipts', () => {
       state.acceptWebSocket(sockets[1], ['user:host-1']);
       await instance.webSocketMessage(
         sockets[1],
-        JSON.stringify(createUserEventAckMessage('socket-event')),
+        JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'socket-event' }),
       );
     });
 
@@ -675,7 +674,7 @@ describe('GameRoom command receipts', () => {
       await env.DB.prepare(
         "SELECT event_id FROM user_event_inbox WHERE event_id = 'socket-event'",
       ).first(),
-    ).toBeNull();
+    ).not.toBeNull();
   });
 
   it('returns the authoritative snapshot for a correlated socket sync request', async () => {
@@ -736,7 +735,7 @@ describe('GameRoom command receipts', () => {
     });
   });
 
-  it('replays the oldest unacknowledged user event when a socket reconnects', async () => {
+  it('syncs room state instead of sending pending account events on reconnect', async () => {
     const stub = getStub();
     await initialize(stub);
     const message = { type: 'SETTLE_RESULT', eventId: 'offline-event', settlementId: 'game-1' };
@@ -772,7 +771,12 @@ describe('GameRoom command receipts', () => {
     });
     socket.accept();
 
-    await expect(received).resolves.toEqual(message);
+    socket.send(JSON.stringify(createStateSyncRequestMessage('account-independent-sync')));
+    expect(parseStateSyncResponseMessage(await received, WEREWOLF_STATE_CODEC)).toMatchObject({
+      type: 'STATE_SYNC_RESPONSE',
+      requestId: 'account-independent-sync',
+      revision: 1,
+    });
     socket.close();
   });
 });

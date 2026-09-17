@@ -108,7 +108,6 @@ export interface AdminRequestTraffic {
     downlinkDeliveries: number;
     /** All business downlink UTF-8 payload bytes after WebSocket fanout. */
     downlinkBytes: number;
-    userEventAcks: number;
     invalidClientMessages: number;
   };
 }

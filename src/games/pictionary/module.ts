@@ -10,7 +10,6 @@ import { createElement } from 'react';
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
-import { NO_ROOM_USER_EVENT_CODEC } from '@/features/room/session/noRoomUserEventCodec';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 import { pictionaryHomeContribution } from '@/games/pictionary/home';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
@@ -30,9 +29,8 @@ const EmptyPictionaryAccountStatsSection: React.FC<{ readonly userId: string }> 
 export function createPictionaryUiModule({ sessionFactory }: CreatePictionaryUiModuleDeps) {
   const roomSession: PictionaryRoomSession = sessionFactory.create<
     PictionaryState,
-    PictionaryPublicCommand,
-    never
-  >({ stateCodec: PICTIONARY_STATE_CODEC, userEventCodec: NO_ROOM_USER_EVENT_CODEC });
+    PictionaryPublicCommand
+  >({ stateCodec: PICTIONARY_STATE_CODEC });
   const roomAccount = createPictionaryRoomAccountCapability(roomSession);
   function BoundPictionaryRoomScreen(props: GameRoomScreenProps<'pictionary'>) {
     return createElement(PictionaryRoomScreen, { ...props, session: roomSession });

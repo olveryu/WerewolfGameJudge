@@ -15,10 +15,9 @@ import { useRoomSeatCommands as useSharedRoomSeatCommands } from '@/features/roo
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { RoomSessionClient } from '@/features/room/session/types';
 import { createWerewolfDefaultDisplayName } from '@/games/werewolf/profile/createWerewolfDefaultDisplayName';
-import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 
 interface UseWerewolfSeatCommandsParams {
-  readonly session: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
+  readonly session: RoomSessionClient<GameState, WerewolfPublicCommand>;
   readonly user: User;
 }
 

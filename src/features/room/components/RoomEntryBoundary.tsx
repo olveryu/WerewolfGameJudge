@@ -14,7 +14,7 @@ import {
   useRoomEntryController,
 } from '@/features/room/controllers/useRoomEntryController';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
-import type { RoomSessionClient, RoomUserEvent } from '@/features/room/session/types';
+import type { RoomSessionClient } from '@/features/room/session/types';
 import { colors, componentSizes } from '@/theme';
 import { isMiniProgram } from '@/utils/miniProgram';
 
@@ -22,27 +22,19 @@ import { RoomAuthGate } from './RoomAuthGate';
 import { roomEntryStyles as styles } from './roomEntry.styles';
 import { RoomMiniProgramAuthFailure } from './RoomMiniProgramAuthFailure';
 
-interface RoomEntryBoundaryProps<
-  TState extends BaseGameState<GameType>,
-  TCommand extends object,
-  TEvent extends RoomUserEvent,
-> {
+interface RoomEntryBoundaryProps<TState extends BaseGameState<GameType>, TCommand extends object> {
   readonly room: RoomRecord<TState['gameType']>;
-  readonly session: RoomSessionClient<TState, TCommand, TEvent>;
+  readonly session: RoomSessionClient<TState, TCommand>;
   readonly onExit: () => void;
   readonly children: (controller: RoomEntryController) => React.ReactNode;
 }
 
-export function RoomEntryBoundary<
-  TState extends BaseGameState<GameType>,
-  TCommand extends object,
-  TEvent extends RoomUserEvent,
->({
+export function RoomEntryBoundary<TState extends BaseGameState<GameType>, TCommand extends object>({
   room,
   session,
   onExit,
   children,
-}: RoomEntryBoundaryProps<TState, TCommand, TEvent>): React.ReactNode {
+}: RoomEntryBoundaryProps<TState, TCommand>): React.ReactNode {
   const { user, loading: isAuthLoading } = useAuthContext();
   const controller = useRoomEntryController({
     room,

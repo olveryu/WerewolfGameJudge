@@ -10,7 +10,6 @@ import { createElement } from 'react';
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
-import { NO_ROOM_USER_EVENT_CODEC } from '@/features/room/session/noRoomUserEventCodec';
 import { fibHomeContribution } from '@/games/fibking/home';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
@@ -28,9 +27,8 @@ interface CreateFibUiModuleDeps {
 const EmptyFibAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
 
 export function createFibUiModule({ sessionFactory }: CreateFibUiModuleDeps) {
-  const roomSession: FibRoomSession = sessionFactory.create<FibState, FibPublicCommand, never>({
+  const roomSession: FibRoomSession = sessionFactory.create<FibState, FibPublicCommand>({
     stateCodec: FIB_STATE_CODEC,
-    userEventCodec: NO_ROOM_USER_EVENT_CODEC,
   });
   const roomAccount = createFibRoomAccountCapability(roomSession);
 

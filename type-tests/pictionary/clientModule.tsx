@@ -20,12 +20,6 @@ import {
   registerClientGameModule,
 } from '../../src/games/model/ClientGameCatalog';
 import type { ClientGamePluginDefinition } from '../../src/games/model/ClientGamePlugin';
-import type { RealtimeUserEventCodec } from '../../src/services/types/IRealtimeTransport';
-
-interface PictionaryUserEvent {
-  readonly type: 'PICTIONARY_PROMPT_READY';
-  readonly eventId: string;
-}
 
 const PictionaryRoomScreen: React.FC<GameRoomScreenProps<typeof UNREGISTERED_GAME_TYPE>> = () =>
   null;
@@ -100,23 +94,12 @@ const pictionaryClientModule = {
   appOverlay: null,
 } satisfies ClientGameModule<typeof UNREGISTERED_GAME_TYPE>;
 
-const pictionaryUserEventCodec: RealtimeUserEventCodec<PictionaryUserEvent> = {
-  parse: (): never => {
-    throw new Error('Compile-only Pictionary user-event parser must not execute');
-  },
-};
-
 const pictionaryClientPlugin = {
   gameType: UNREGISTERED_GAME_TYPE,
   navigation: pictionaryNavigationDefinition,
   createModule: (dependencies) => {
-    const session = dependencies.sessionFactory.create<
-      PictionaryState,
-      PictionaryCommand,
-      PictionaryUserEvent
-    >({
+    const session = dependencies.sessionFactory.create<PictionaryState, PictionaryCommand>({
       stateCodec: pictionaryStateCodec,
-      userEventCodec: pictionaryUserEventCodec,
     });
     void session;
     return pictionaryClientModule;

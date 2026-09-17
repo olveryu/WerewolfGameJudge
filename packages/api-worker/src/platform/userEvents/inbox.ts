@@ -118,7 +118,7 @@ export async function readNextUserEvent(
   return row === null ? null : parsePendingUserEvent(row);
 }
 
-/** Delete only an event owned by the authenticated socket user. */
+/** Delete only an event owned by the authenticated account. */
 export async function acknowledgeUserEvent(
   db: D1Database,
   userId: string,

@@ -11,7 +11,6 @@ import type React from 'react';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
-import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
@@ -79,7 +78,7 @@ function createRoomSession(
   state: GameState,
   userId: string,
   lastRecoveredCommandRejection: { readonly commandId: string; readonly reason: string } | null,
-): RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent> {
+): RoomSessionClient<GameState, WerewolfPublicCommand> {
   const room = {
     roomCode: state.roomCode,
     roomId: 'room-id-1234',
@@ -111,7 +110,6 @@ function createRoomSession(
       if (snapshot.lastRecoveredCommandRejection?.commandId !== commandId) return;
       snapshot = { ...snapshot, lastRecoveredCommandRejection: null };
     }),
-    setUserEventHandler: jest.fn(() => () => undefined),
   } as unknown as WerewolfGameClient['roomSession'];
 }
 

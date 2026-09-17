@@ -218,11 +218,6 @@ const TrafficOverview = memo(function TrafficOverview({ data }: { data: AdminReq
           label="状态恢复"
           icon="sync-outline"
         />
-        <MetricCard
-          value={data.realtime.userEventAcks.toLocaleString()}
-          label="事件确认"
-          icon="checkmark-done-outline"
-        />
       </View>
       <Text style={styles.sectionTitle}>WebSocket 下行</Text>
       <View style={styles.metricsRow}>

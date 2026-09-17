@@ -46,7 +46,6 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './platform/protocol/roomCode',
   './platform/protocol/roomLocator',
   './platform/protocol/roomSnapshot',
-  './platform/protocol/userEvents',
   './platform/random',
   './platform/room/formatSeat',
   './platform/room/roster',

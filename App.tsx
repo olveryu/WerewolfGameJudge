@@ -19,6 +19,7 @@ import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, ServiceProvider } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAccountEvents } from '@/features/account/hooks/useAccountEvents';
 import { ClientGameCatalogProvider, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { AppNavigator } from '@/navigation';
@@ -235,6 +236,7 @@ function dismissWebSplash() {
 }
 
 function AppContent() {
+  useAccountEvents();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const gameCatalog = useClientGameCatalog();
   const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);

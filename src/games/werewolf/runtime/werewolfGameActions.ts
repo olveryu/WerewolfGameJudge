@@ -21,13 +21,12 @@ import type {
   RoomSessionClient,
 } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
-import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
 export interface GameActionsContext {
   readonly getState: () => GameState;
   readonly audio: WerewolfAudioRuntime;
-  readonly commands: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
+  readonly commands: RoomSessionClient<GameState, WerewolfPublicCommand>;
 }
 
 type WerewolfCommandDispatchOutcome = RoomCommandDispatchOutcome<GameState>;

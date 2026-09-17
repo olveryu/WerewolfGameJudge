@@ -1,7 +1,5 @@
 /** Werewolf realtime user-event schema and strict parser. */
 
-import type { RealtimeUserEventCodec } from '@/services/types/IRealtimeTransport';
-
 export interface WerewolfSettlementEvent {
   readonly type: 'SETTLE_RESULT';
   readonly eventId: string;
@@ -42,7 +40,7 @@ function requireNonEmptyString(value: unknown, fieldName: string): string {
   return value;
 }
 
-function parseWerewolfUserEvent(value: unknown): WerewolfUserEvent {
+export function parseWerewolfUserEvent(value: unknown): WerewolfUserEvent {
   if (!isRecord(value)) throw new Error('Werewolf user event must be an object');
   const expectedKeys = [
     'type',
@@ -92,7 +90,3 @@ function parseWerewolfUserEvent(value: unknown): WerewolfUserEvent {
     ),
   };
 }
-
-export const WEREWOLF_USER_EVENT_CODEC: RealtimeUserEventCodec<WerewolfUserEvent> = {
-  parse: parseWerewolfUserEvent,
-};

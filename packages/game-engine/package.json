@@ -52,10 +52,6 @@
       "types": "./src/platform/protocol/roomSnapshot.ts",
       "default": "./dist/platform/protocol/roomSnapshot.js"
     },
-    "./platform/protocol/userEvents": {
-      "types": "./src/platform/protocol/userEvents.ts",
-      "default": "./dist/platform/protocol/userEvents.js"
-    },
     "./platform/engine": {
       "types": "./src/platform/engine/index.ts",
       "default": "./dist/platform/engine/index.js"

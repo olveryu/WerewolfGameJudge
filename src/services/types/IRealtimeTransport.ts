@@ -17,29 +17,13 @@ import type {
   StateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Event Handlers (transport → ConnectionManager)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface RealtimeUserEvent {
-  readonly eventId: string;
-}
-
-export interface RealtimeUserEventCodec<TEvent extends RealtimeUserEvent> {
-  parse(value: unknown): TEvent;
-}
-
 /** Transport-layer event callbacks (transport -> ConnectionManager). */
-export interface TransportEventHandlers<
-  TState extends BaseGameState<string>,
-  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
-> {
+export interface TransportEventHandlers<TState extends BaseGameState<string>> {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
   onStateUpdate(message: StateUpdateMessage<TState>): void;
   onStateSyncResponse(message: StateSyncResponseMessage<TState>): void;
-  onUserEvent(event: TEvent): void;
   onPong(): void;
 }
 
@@ -48,10 +32,7 @@ export interface TransportEventHandlers<
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** WebSocket transport layer interface — atomic operation contract, no reconnect logic. */
-export interface IRealtimeTransport<
-  TState extends BaseGameState<string>,
-  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
-> {
+export interface IRealtimeTransport<TState extends BaseGameState<string>> {
   /**
    * Establish WebSocket connection.
    * Built-in 8s connect timeout. Timeout/failure is signaled via handlers.onClose / handlers.onError.
@@ -75,5 +56,5 @@ export interface IRealtimeTransport<
    * Register event handlers (transport translates WS events to typed callbacks).
    * Must be called before connect().
    */
-  setEventHandlers(handlers: TransportEventHandlers<TState, TEvent>): void;
+  setEventHandlers(handlers: TransportEventHandlers<TState>): void;
 }

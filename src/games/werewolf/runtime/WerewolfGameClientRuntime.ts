@@ -26,7 +26,6 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
-import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
 import {
@@ -46,7 +45,7 @@ import type { WerewolfCommandDispatchOutcome, WerewolfGameClient } from './Werew
  */
 interface WerewolfGameClientRuntimeDeps {
   /** Single shared room session instance. */
-  roomSession: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
+  roomSession: RoomSessionClient<GameState, WerewolfPublicCommand>;
   /** Game-owned narration runtime. */
   audio: WerewolfAudioRuntime;
 }
@@ -55,7 +54,7 @@ interface WerewolfGameClientRuntimeDeps {
  * Werewolf command/audio client layered over the shared session.
  */
 export class WerewolfGameClientRuntime implements WerewolfGameClient {
-  readonly roomSession: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
+  readonly roomSession: RoomSessionClient<GameState, WerewolfPublicCommand>;
   readonly #audio: WerewolfAudioRuntime;
   readonly #audioOrchestrator: WerewolfAudioOrchestrator;
   #activeEpoch: number | null = null;

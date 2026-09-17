@@ -37,10 +37,6 @@ interface TestCommand {
   readonly type: 'test';
 }
 
-interface TestEvent {
-  readonly eventId: string;
-}
-
 function createRoom(): RoomRecord<'werewolf'> {
   return {
     roomCode: '1234',
@@ -123,7 +119,7 @@ function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot())
   });
   reconnect.mockResolvedValue({ kind: 'connected' });
 
-  const session: RoomSessionClient<TestState, TestCommand, TestEvent> = {
+  const session: RoomSessionClient<TestState, TestCommand> = {
     getSnapshot: () => snapshot,
     subscribe(listener) {
       listeners.add(listener);
@@ -142,7 +138,6 @@ function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot())
       throw new Error('not used');
     }),
     acknowledgeRecoveredCommandRejection: jest.fn(),
-    setUserEventHandler: jest.fn(() => () => undefined),
   };
   return { connect, disconnect, emit, reconnect, session };
 }

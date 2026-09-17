@@ -32,8 +32,7 @@ const session = {} as RoomSessionClient<
     readonly roomCode: string;
     readonly hostUserId: string;
   },
-  { readonly type: 'test' },
-  { readonly eventId: string }
+  { readonly type: 'test' }
 >;
 
 function createController(isReady: boolean): RoomEntryController {

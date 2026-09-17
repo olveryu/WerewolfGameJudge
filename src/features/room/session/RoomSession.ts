@@ -1,4 +1,4 @@
-/** Single owner for room identity, snapshot, connection, commands, and durable user events. */
+/** Single owner for room identity, snapshot, connection, and commands. */
 
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import type {
@@ -22,23 +22,19 @@ import type {
   RoomConnectOutcome,
   RoomSessionClient,
   RoomSessionSnapshot,
-  RoomUserEvent,
 } from '@/features/room/session/types';
 import { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
 import { appVisibilityStore } from '@/services/infra/appVisibility';
-import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
+import type { IRealtimeTransport } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
 import { roomSessionLog } from '@/utils/logger';
 
 const RECOVERABLE_COMMAND_RETRY_DELAYS_MS = [1_000, 3_000, 10_000, 30_000] as const;
 
-interface RoomSessionDeps<
-  TState extends BaseGameState<string>,
-  TEvent extends RoomUserEvent & RealtimeUserEvent,
-> {
+interface RoomSessionDeps<TState extends BaseGameState<string>> {
   readonly codec: GameStateCodec<TState>;
-  readonly transport: IRealtimeTransport<TState, TEvent>;
+  readonly transport: IRealtimeTransport<TState>;
   readonly createCommandId: () => string;
   readonly commandRecovery: RoomCommandRecoveryRepository;
   readonly initialEpoch?: number;
@@ -53,13 +49,6 @@ interface PendingRoomCommand<TState extends BaseGameState<string>> {
   recoveryAttemptCount: number;
   nextRecoveryAtMs: number | null;
   inFlight: Promise<RoomCommandDispatchOutcome<TState>> | null;
-}
-
-interface UserEventDelivery<TEvent> {
-  readonly event: TEvent;
-  readonly fingerprint: string;
-  isDelivered: boolean;
-  isDelivering: boolean;
 }
 
 export function createIdleSnapshot<TState extends BaseGameState<string>>(
@@ -108,35 +97,30 @@ function isSignalAborted(signal: AbortSignal | undefined): boolean {
 export class RoomSession<
   TState extends BaseGameState<string>,
   TCommand extends object,
-  TEvent extends RoomUserEvent & RealtimeUserEvent,
-> implements RoomSessionClient<TState, TCommand, TEvent> {
+> implements RoomSessionClient<TState, TCommand> {
   readonly #codec: GameStateCodec<TState>;
-  readonly #connection: ConnectionManager<TState, TEvent>;
+  readonly #connection: ConnectionManager<TState>;
   readonly #createCommandId: () => string;
   readonly #commandRecovery: RoomCommandRecoveryRepository;
   readonly #listeners = new Set<() => void>();
   readonly #pendingCommands = new Map<string, PendingRoomCommand<TState>>();
-  readonly #userEventDeliveries = new Map<string, UserEventDelivery<TEvent>>();
   #snapshot: RoomSessionSnapshot<TState> = createIdleSnapshot(0);
   #commandAbortController: AbortController | null = null;
   #snapshotFingerprint: string | null = null;
   #runtimeResetExpected = false;
-  #userEventHandler: ((event: TEvent) => void | Promise<void>) | null = null;
-  #userEventDeliveryChain: Promise<void> = Promise.resolve();
   #connectionGeneration = 0;
   #isCommandRecoveryScheduled = false;
   #commandRecoveryRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(deps: RoomSessionDeps<TState, TEvent>) {
+  constructor(deps: RoomSessionDeps<TState>) {
     this.#snapshot = createIdleSnapshot(deps.initialEpoch ?? 0);
     this.#codec = deps.codec;
     this.#createCommandId = deps.createCommandId;
     this.#commandRecovery = deps.commandRecovery;
-    this.#connection = new ConnectionManager<TState, TEvent>({
+    this.#connection = new ConnectionManager<TState>({
       transport: deps.transport,
       onStateUpdate: (message) => this.#applyStateUpdate(message),
       onStateSync: (snapshot) => this.#applySnapshot(snapshot, null),
-      onUserEvent: (event) => this.#receiveUserEvent(event),
       appVisibilityStore,
     });
     this.#connection.addStateListener((state) => this.#handleConnectionState(state));
@@ -175,7 +159,6 @@ export class RoomSession<
     this.#commandAbortController = new AbortController();
     this.#snapshotFingerprint = null;
     this.#pendingCommands.clear();
-    this.#userEventDeliveries.clear();
     this.#setSnapshot(
       Object.freeze({
         phase: 'entering',
@@ -270,7 +253,6 @@ export class RoomSession<
     this.#commandAbortController?.abort();
     this.#commandAbortController = null;
     this.#pendingCommands.clear();
-    this.#userEventDeliveries.clear();
     this.#snapshotFingerprint = null;
     this.#connectionGeneration = 0;
     this.#isCommandRecoveryScheduled = false;
@@ -284,7 +266,6 @@ export class RoomSession<
     this.disconnect();
     this.#connection.dispose();
     this.#listeners.clear();
-    this.#userEventHandler = null;
   }
 
   prepare<TPreparedCommand extends TCommand>(
@@ -437,20 +418,6 @@ export class RoomSession<
     return attempt;
   }
 
-  setUserEventHandler(handler: (event: TEvent) => void | Promise<void>): () => void {
-    if (this.#userEventHandler !== null) {
-      throw new Error('[FAIL-FAST] Room session already has a user-event handler');
-    }
-    this.#userEventHandler = handler;
-    this.#scheduleUserEventDelivery();
-    return () => {
-      if (this.#userEventHandler !== handler) {
-        throw new Error('[FAIL-FAST] Room session user-event handler changed before cleanup');
-      }
-      this.#userEventHandler = null;
-    };
-  }
-
   #applyStateUpdate(message: StateUpdateMessage<TState>): void {
     this.#applySnapshot(
       {
@@ -553,7 +520,6 @@ export class RoomSession<
     this.#setSnapshot(Object.freeze({ ...current, connection }));
     if (state === ConnectionState.Connected) {
       this.#connectionGeneration += 1;
-      this.#acknowledgeDeliveredUserEvents();
       this.#scheduleRecoverableCommandRecovery();
     }
   }
@@ -728,75 +694,6 @@ export class RoomSession<
         lastRecoveredCommandRejection: { commandId, reason },
       }),
     );
-  }
-
-  #receiveUserEvent(event: TEvent): void {
-    if (this.#snapshot.phase === 'idle') {
-      throw new Error('[FAIL-FAST] User event arrived without an active room session');
-    }
-    if (event.eventId.length === 0) {
-      throw new Error('Room user event ID must be non-empty');
-    }
-
-    const fingerprint = canonicalJson(event);
-    const existing = this.#userEventDeliveries.get(event.eventId);
-    if (existing !== undefined) {
-      if (existing.fingerprint !== fingerprint) {
-        throw new Error(`Room user event ${event.eventId} changed across deliveries`);
-      }
-      if (existing.isDelivered) {
-        this.#attemptUserEventAcknowledgement(event.eventId);
-        return;
-      }
-    } else {
-      this.#userEventDeliveries.set(event.eventId, {
-        event,
-        fingerprint,
-        isDelivered: false,
-        isDelivering: false,
-      });
-    }
-    this.#scheduleUserEventDelivery();
-  }
-
-  #scheduleUserEventDelivery(): void {
-    this.#userEventDeliveryChain = this.#userEventDeliveryChain
-      .then(() => this.#deliverPendingUserEvents())
-      .catch((error: unknown) => {
-        handleError(error, {
-          label: '房间事件',
-          logger: roomSessionLog,
-          feedback: false,
-        });
-      });
-  }
-
-  async #deliverPendingUserEvents(): Promise<void> {
-    const handler = this.#userEventHandler;
-    if (handler === null) return;
-
-    for (const [eventId, delivery] of this.#userEventDeliveries) {
-      if (delivery.isDelivered || delivery.isDelivering) continue;
-      delivery.isDelivering = true;
-      try {
-        await handler(delivery.event);
-        delivery.isDelivered = true;
-        this.#attemptUserEventAcknowledgement(eventId);
-      } finally {
-        delivery.isDelivering = false;
-      }
-    }
-  }
-
-  #acknowledgeDeliveredUserEvents(): void {
-    for (const [eventId, delivery] of this.#userEventDeliveries) {
-      if (delivery.isDelivered) this.#attemptUserEventAcknowledgement(eventId);
-    }
-  }
-
-  #attemptUserEventAcknowledgement(eventId: string): void {
-    // A closed socket defers the ack; reconnect or server redelivery retries delivered events.
-    void this.#connection.sendUserEventAcknowledgement(eventId);
   }
 
   #requireReadySnapshot(): Extract<RoomSessionSnapshot<TState>, { readonly phase: 'ready' }> {

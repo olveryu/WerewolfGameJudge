@@ -58,7 +58,6 @@ export interface AdminRequestTrafficSummary {
     readonly stateUpdateBytes: number;
     readonly downlinkDeliveries: number;
     readonly downlinkBytes: number;
-    readonly userEventAcks: number;
     readonly invalidClientMessages: number;
   };
 }
@@ -207,7 +206,6 @@ export function createAdminRequestTrafficSummary(
     stateUpdateBytes: 0,
     downlinkDeliveries: 0,
     downlinkBytes: 0,
-    userEventAcks: 0,
     invalidClientMessages: 0,
   };
   for (const row of realtimeRows) {
@@ -223,12 +221,8 @@ export function createAdminRequestTrafficSummary(
         realtime.downlinkBytes += row.transferredBytes;
         break;
       case 'STATE_SYNC_RESPONSE':
-      case 'USER_EVENT_DELIVERY':
         realtime.downlinkDeliveries += row.deliveryCount;
         realtime.downlinkBytes += row.transferredBytes;
-        break;
-      case 'USER_EVENT_ACK':
-        realtime.userEventAcks += row.messageCount;
         break;
       case 'INVALID_CLIENT_MESSAGE':
         realtime.invalidClientMessages += row.messageCount;

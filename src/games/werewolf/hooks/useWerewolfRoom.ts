@@ -41,7 +41,6 @@ import { useWerewolfGameActions } from './useWerewolfGameActions';
 import { useWerewolfLastActionToast } from './useWerewolfLastActionToast';
 import { useWerewolfNightDerived } from './useWerewolfNightDerived';
 import { useWerewolfSeatCommands } from './useWerewolfSeatCommands';
-import { useWerewolfSettleToast } from './useWerewolfSettleToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Return type
@@ -176,7 +175,6 @@ interface UseWerewolfRoomResult {
   }, [isFocused, session, sessionSnapshot.lastRecoveredCommandRejection]);
 
   // Toast notifications for XP gain / level-up after valid game settlement
-  useWerewolfSettleToast({ session, isFocused });
 
   useEffect(() => {
     if (!isFocused) return; // hidden (blurred) screens do not run side effects

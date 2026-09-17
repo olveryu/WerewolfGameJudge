@@ -8,11 +8,7 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellModel';
 import { addRecentRoom } from '@/features/room/services/recentRooms';
-import type {
-  ActiveRoomIdentity,
-  RoomSessionClient,
-  RoomUserEvent,
-} from '@/features/room/session/types';
+import type { ActiveRoomIdentity, RoomSessionClient } from '@/features/room/session/types';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -22,10 +18,9 @@ const SLOW_CONNECTION_HINT_MS = 8_000;
 interface UseRoomEntryControllerParams<
   TState extends BaseGameState<GameType>,
   TCommand extends object,
-  TEvent extends RoomUserEvent,
 > {
   readonly room: RoomRecord<TState['gameType']>;
-  readonly session: RoomSessionClient<TState, TCommand, TEvent>;
+  readonly session: RoomSessionClient<TState, TCommand>;
   readonly authUserId: string | null;
   readonly isAuthLoading: boolean;
   readonly onExit: () => void;
@@ -58,14 +53,13 @@ function matchesIdentity<TGameType extends string>(
 export function useRoomEntryController<
   TState extends BaseGameState<GameType>,
   TCommand extends object,
-  TEvent extends RoomUserEvent,
 >({
   room,
   session,
   authUserId,
   isAuthLoading,
   onExit,
-}: UseRoomEntryControllerParams<TState, TCommand, TEvent>): RoomEntryController {
+}: UseRoomEntryControllerParams<TState, TCommand>): RoomEntryController {
   const sessionSnapshot = useRoomSessionSnapshot(session);
   const [retryGeneration, setRetryGeneration] = useState(0);
   const [isSlowConnection, setIsSlowConnection] = useState(false);

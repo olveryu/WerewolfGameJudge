@@ -10,10 +10,6 @@ import {
   createStateUpdateMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import {
-  WEREWOLF_USER_EVENT_CODEC,
-  type WerewolfUserEvent,
-} from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import type { TransportEventHandlers } from '@/services/types/IRealtimeTransport';
 
 import { ensureFreshToken } from '../cfFetch';
@@ -63,27 +59,23 @@ class MockWebSocket {
 
 const mockEnsureFreshToken = jest.mocked(ensureFreshToken);
 
-function createHandlers(): jest.Mocked<TransportEventHandlers<GameState, WerewolfUserEvent>> {
+function createHandlers(): jest.Mocked<TransportEventHandlers<GameState>> {
   return {
     onOpen: jest.fn(),
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
     onStateSyncResponse: jest.fn(),
-    onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
 }
 
 async function connectService(): Promise<{
-  service: CFRealtimeService<GameState, WerewolfUserEvent>;
-  handlers: jest.Mocked<TransportEventHandlers<GameState, WerewolfUserEvent>>;
+  service: CFRealtimeService<GameState>;
+  handlers: jest.Mocked<TransportEventHandlers<GameState>>;
   socket: MockWebSocket;
 }> {
-  const service = new CFRealtimeService<GameState, WerewolfUserEvent>(
-    WEREWOLF_STATE_CODEC,
-    WEREWOLF_USER_EVENT_CODEC,
-  );
+  const service = new CFRealtimeService<GameState>(WEREWOLF_STATE_CODEC);
   const handlers = createHandlers();
   service.setEventHandlers(handlers);
   await service.connect(ROOM);
@@ -108,7 +100,7 @@ describe('CFRealtimeService protocol', () => {
   });
 
   it('fails fast when connect is called before handlers are registered', async () => {
-    const service = new CFRealtimeService(WEREWOLF_STATE_CODEC, WEREWOLF_USER_EVENT_CODEC);
+    const service = new CFRealtimeService(WEREWOLF_STATE_CODEC);
 
     await expect(service.connect(ROOM)).rejects.toThrow(
       'CFRealtimeService requires event handlers before connect',
@@ -174,65 +166,5 @@ describe('CFRealtimeService protocol', () => {
     expect(handlers.onStateUpdate).toHaveBeenCalledTimes(1);
     expect(handlers.onStateSyncResponse).toHaveBeenCalledWith(response);
     expect(socket.close).not.toHaveBeenCalledWith(1002, 'protocol_error');
-  });
-
-  it('parses every durable settlement delivery for the session acknowledgement owner', async () => {
-    const { handlers, socket } = await connectService();
-    const message = {
-      type: 'SETTLE_RESULT',
-      eventId: 'settlement-event-1',
-      gameType: 'werewolf',
-      settlementId: 'settlement-1',
-      endedRevision: 12,
-      xpEarned: 15,
-      newXp: 40,
-      newLevel: 2,
-      previousLevel: 1,
-      normalDrawsEarned: 2,
-      goldenDrawsEarned: 1,
-    };
-
-    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
-    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
-
-    expect(handlers.onUserEvent).toHaveBeenCalledTimes(2);
-    expect(handlers.onUserEvent).toHaveBeenCalledWith({
-      type: 'SETTLE_RESULT',
-      eventId: 'settlement-event-1',
-      gameType: 'werewolf',
-      settlementId: 'settlement-1',
-      endedRevision: 12,
-      xpEarned: 15,
-      newXp: 40,
-      newLevel: 2,
-      previousLevel: 1,
-      normalDrawsEarned: 2,
-      goldenDrawsEarned: 1,
-    });
-  });
-
-  it('rejects a settlement message without its durable event ID', async () => {
-    const { handlers, socket } = await connectService();
-    const message = {
-      type: 'SETTLE_RESULT',
-      gameType: 'werewolf',
-      settlementId: 'settlement-2',
-      endedRevision: 12,
-      xpEarned: 15,
-      newXp: 40,
-      newLevel: 2,
-      previousLevel: 1,
-      normalDrawsEarned: 2,
-      goldenDrawsEarned: 1,
-    };
-    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
-
-    expect(handlers.onUserEvent).not.toHaveBeenCalled();
-    const settlementError = handlers.onError.mock.calls[0]?.[0];
-    if (!(settlementError instanceof Error)) {
-      throw new Error('Expected settlement protocol error');
-    }
-    expect(settlementError.message).toContain('missing field');
-    expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
   });
 });

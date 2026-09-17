@@ -38,7 +38,6 @@ const EMPTY_TRAFFIC: AdminRequestTraffic = {
     stateUpdateBytes: 0,
     downlinkDeliveries: 0,
     downlinkBytes: 0,
-    userEventAcks: 0,
     invalidClientMessages: 0,
   },
 };

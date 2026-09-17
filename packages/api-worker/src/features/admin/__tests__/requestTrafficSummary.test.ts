@@ -91,18 +91,6 @@ describe('request traffic summary', () => {
           transferredBytes: 600,
         },
         {
-          messageType: 'USER_EVENT_DELIVERY',
-          messageCount: 1,
-          deliveryCount: 3,
-          transferredBytes: 300,
-        },
-        {
-          messageType: 'USER_EVENT_ACK',
-          messageCount: 2,
-          deliveryCount: 2,
-          transferredBytes: 100,
-        },
-        {
           messageType: 'INVALID_CLIENT_MESSAGE',
           messageCount: 1,
           deliveryCount: 1,
@@ -129,9 +117,8 @@ describe('request traffic summary', () => {
         stateUpdateBroadcasts: 3,
         stateUpdateDeliveries: 12,
         stateUpdateBytes: 2400,
-        downlinkDeliveries: 17,
-        downlinkBytes: 3300,
-        userEventAcks: 2,
+        downlinkDeliveries: 14,
+        downlinkBytes: 3000,
         invalidClientMessages: 1,
       },
     });

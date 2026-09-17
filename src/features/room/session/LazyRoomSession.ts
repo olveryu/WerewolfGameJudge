@@ -1,8 +1,6 @@
 /** Stable typed handle; actual room resources exist only while this handle owns a room. */
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import type { RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
-
 import type { ActiveRoomSessionOwner } from './ActiveRoomSessionOwner';
 import { createIdleSnapshot, type RoomSession } from './RoomSession';
 import type {
@@ -17,19 +15,16 @@ import type {
 export class LazyRoomSession<
   TState extends BaseGameState<string>,
   TCommand extends object,
-  TEvent extends RealtimeUserEvent,
-> implements RoomSessionClient<TState, TCommand, TEvent> {
+> implements RoomSessionClient<TState, TCommand> {
   readonly #listeners = new Set<() => void>();
   #snapshot: RoomSessionSnapshot<TState> = createIdleSnapshot(0);
-  #session: RoomSession<TState, TCommand, TEvent> | null = null;
+  #session: RoomSession<TState, TCommand> | null = null;
   #release: (() => void) | null = null;
   #unsubscribe: (() => void) | null = null;
-  #userEventHandler: ((event: TEvent) => void | Promise<void>) | null = null;
-  #unsubscribeUserEvents: (() => void) | null = null;
 
   constructor(
     private readonly owner: ActiveRoomSessionOwner,
-    private readonly createSession: (epoch: number) => RoomSession<TState, TCommand, TEvent>,
+    private readonly createSession: (epoch: number) => RoomSession<TState, TCommand>,
   ) {}
 
   getSnapshot(): RoomSessionSnapshot<TState> {
@@ -60,9 +55,6 @@ export class LazyRoomSession<
       this.#snapshot = session.getSnapshot();
       this.#publish();
     });
-    if (this.#userEventHandler !== null) {
-      this.#unsubscribeUserEvents = session.setUserEventHandler(this.#userEventHandler);
-    }
     try {
       return await session.connect(identity, signal);
     } finally {
@@ -81,9 +73,7 @@ export class LazyRoomSession<
     const session = this.#session;
     if (session === null) return;
     this.#unsubscribe?.();
-    this.#unsubscribeUserEvents?.();
     this.#unsubscribe = null;
-    this.#unsubscribeUserEvents = null;
     session.dispose();
     this.#snapshot = session.getSnapshot();
     this.#session = null;
@@ -114,23 +104,7 @@ export class LazyRoomSession<
     this.#requireSession().acknowledgeRecoveredCommandRejection(commandId);
   }
 
-  setUserEventHandler(handler: (event: TEvent) => void | Promise<void>): () => void {
-    if (this.#userEventHandler !== null) {
-      throw new Error('[FAIL-FAST] Room user event handler already registered');
-    }
-    this.#userEventHandler = handler;
-    if (this.#session !== null) {
-      this.#unsubscribeUserEvents = this.#session.setUserEventHandler(handler);
-    }
-    return () => {
-      if (this.#userEventHandler !== handler) return;
-      this.#unsubscribeUserEvents?.();
-      this.#unsubscribeUserEvents = null;
-      this.#userEventHandler = null;
-    };
-  }
-
-  #requireSession(): RoomSession<TState, TCommand, TEvent> {
+  #requireSession(): RoomSession<TState, TCommand> {
     if (this.#session === null) throw new Error('[FAIL-FAST] No active room session');
     return this.#session;
   }

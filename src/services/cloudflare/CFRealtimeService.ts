@@ -31,8 +31,6 @@ import {
 import { API_BASE_URL } from '@/config/api';
 import type {
   IRealtimeTransport,
-  RealtimeUserEvent,
-  RealtimeUserEventCodec,
   TransportEventHandlers,
 } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
@@ -51,26 +49,23 @@ const WS_CONNECT_TIMEOUT_MS = 8_000;
  */
 export class CFRealtimeService<
   TState extends BaseGameState<string>,
-  TEvent extends RealtimeUserEvent,
-> implements IRealtimeTransport<TState, TEvent> {
+> implements IRealtimeTransport<TState> {
   #ws: WebSocket | null = null;
-  #handlers: TransportEventHandlers<TState, TEvent> | null = null;
+  #handlers: TransportEventHandlers<TState> | null = null;
   readonly #stateCodec: GameStateCodec<TState>;
-  readonly #userEventCodec: RealtimeUserEventCodec<TEvent>;
   /** Generation counter: prevents stale WS events after disconnect/reconnect */
   #generation = 0;
   #lastSocketRevision = 0;
 
-  constructor(stateCodec: GameStateCodec<TState>, userEventCodec: RealtimeUserEventCodec<TEvent>) {
+  constructor(stateCodec: GameStateCodec<TState>) {
     this.#stateCodec = stateCodec;
-    this.#userEventCodec = userEventCodec;
   }
 
-  setEventHandlers(handlers: TransportEventHandlers<TState, TEvent>): void {
+  setEventHandlers(handlers: TransportEventHandlers<TState>): void {
     this.#handlers = handlers;
   }
 
-  #requireHandlers(): TransportEventHandlers<TState, TEvent> {
+  #requireHandlers(): TransportEventHandlers<TState> {
     if (!this.#handlers) {
       throw new Error('CFRealtimeService requires event handlers before connect');
     }
@@ -227,7 +222,7 @@ export class CFRealtimeService<
         });
         this.#requireHandlers().onStateSyncResponse(message);
       } else {
-        this.#requireHandlers().onUserEvent(this.#userEventCodec.parse(data));
+        throw new Error(`Unsupported room message: ${data.type}`);
       }
     } catch (error) {
       handleError(error, {

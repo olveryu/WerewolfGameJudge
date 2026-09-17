@@ -14,10 +14,6 @@ import {
   type RoomSnapshot,
   type StateSyncRequestMessage,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import {
-  parseUserEventAckMessage,
-  type UserEventAckMessage,
-} from '@game-judge/game-engine/platform/protocol/userEvents';
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -33,7 +29,7 @@ import {
   type RealtimeTrafficMessageType,
   recordRealtimeTraffic,
 } from '../telemetry/realtimeTraffic';
-import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
+import { enqueueUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
 import { EffectOutbox, OUTBOX_MAX_ATTEMPTS } from './effectOutbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
@@ -398,7 +394,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
         return dispatched.rpc.result;
       },
       publishUserEvent: (userId, eventId, message) =>
-        this.#publishUserEvent(userId, eventId, message),
+        enqueueUserEvent(this.env.DB, { userId, eventId, message }),
     });
   }
 
@@ -443,46 +439,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     this.#recordRealtimeTraffic('STATE_UPDATE', message, deliveryCount);
   }
 
-  #pushUserEventToConnectedSockets(userId: string, message: object): void {
-    const serialized = JSON.stringify(message);
-    let deliveryCount = 0;
-    for (const socket of this.ctx.getWebSockets(userSocketTag(userId))) {
-      try {
-        socket.send(serialized);
-        deliveryCount += 1;
-      } catch (error) {
-        log.warn('unicast skipped closed socket', {
-          userId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-    this.#recordRealtimeTraffic('USER_EVENT_DELIVERY', serialized, deliveryCount);
-  }
-
-  async #publishUserEvent(userId: string, eventId: string, message: object): Promise<void> {
-    await enqueueUserEvent(this.env.DB, { userId, eventId, message });
-    this.#pushUserEventToConnectedSockets(userId, message);
-  }
-
-  async #sendNextUserEvent(socket: WebSocket, userId: string): Promise<void> {
-    const pending = await readNextUserEvent(this.env.DB, userId);
-    if (pending === null) return;
-    const serialized = JSON.stringify(pending.message);
-    let deliveryCount = 0;
-    try {
-      socket.send(serialized);
-      deliveryCount = 1;
-    } catch (error) {
-      log.warn('pending user event skipped closed socket', {
-        userId,
-        eventId: pending.eventId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-    this.#recordRealtimeTraffic('USER_EVENT_DELIVERY', serialized, deliveryCount);
-  }
-
   async fetch(request: Request): Promise<Response> {
     if (this.#isStorageDeleted) return new Response('Room deleted', { status: 404 });
     const url = new URL(request.url);
@@ -514,7 +470,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
 
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1], [userSocketTag(userId)]);
-    await this.#sendNextUserEvent(pair[1], userId);
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
@@ -566,23 +521,13 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       socket.close(1000, 'room_deleted');
       return;
     }
-    let clientMessage: StateSyncRequestMessage | UserEventAckMessage;
+    let clientMessage: StateSyncRequestMessage;
     try {
       if (typeof message !== 'string') {
         throw new Error('WebSocket client message must be text');
       }
       const decodedMessage: unknown = JSON.parse(message);
-      if (
-        typeof decodedMessage === 'object' &&
-        decodedMessage !== null &&
-        !Array.isArray(decodedMessage) &&
-        'type' in decodedMessage &&
-        decodedMessage.type === 'STATE_SYNC_REQUEST'
-      ) {
-        clientMessage = parseStateSyncRequestMessage(decodedMessage);
-      } else {
-        clientMessage = parseUserEventAckMessage(decodedMessage);
-      }
+      clientMessage = parseStateSyncRequestMessage(decodedMessage);
     } catch (error) {
       this.#recordRealtimeTraffic('INVALID_CLIENT_MESSAGE', message, 1);
       log.error('invalid websocket client message', {
@@ -611,20 +556,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       this.#recordRealtimeTraffic('STATE_SYNC_RESPONSE', response, 1);
       return;
     }
-
-    const userTags = this.ctx
-      .getTags(socket)
-      .filter((tag) => tag.startsWith(USER_SOCKET_TAG_PREFIX));
-    if (userTags.length !== 1) {
-      throw new Error(`WebSocket must have exactly one user tag, received ${userTags.length}`);
-    }
-    const userId = userTags[0]?.slice(USER_SOCKET_TAG_PREFIX.length);
-    if (userId === undefined || userId.length === 0) {
-      throw new Error('WebSocket user tag must contain a user ID');
-    }
-
-    await acknowledgeUserEvent(this.env.DB, userId, clientMessage.eventId);
-    await this.#sendNextUserEvent(socket, userId);
   }
 
   async webSocketClose(

@@ -4,4 +4,4 @@ import type { FibPublicCommand, FibState } from '@game-judge/game-engine/games/f
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 
-export type FibRoomSession = RoomSessionClient<FibState, FibPublicCommand, never>;
+export type FibRoomSession = RoomSessionClient<FibState, FibPublicCommand>;

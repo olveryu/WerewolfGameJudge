@@ -396,7 +396,6 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
       'stateUpdateBytes',
       'downlinkDeliveries',
       'downlinkBytes',
-      'userEventAcks',
       'invalidClientMessages',
     ],
     'Admin request traffic realtime',
@@ -506,10 +505,6 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
       downlinkBytes: parseNonnegativeInteger(
         realtime.downlinkBytes,
         'Admin request traffic downlinkBytes',
-      ),
-      userEventAcks: parseNonnegativeInteger(
-        realtime.userEventAcks,
-        'Admin request traffic userEventAcks',
       ),
       invalidClientMessages: parseNonnegativeInteger(
         realtime.invalidClientMessages,

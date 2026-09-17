@@ -85,8 +85,9 @@ Game ends
       → durable user_event_inbox SETTLE_RESULT
 
 Client
-  → shared RoomSession decodes the acknowledged user event
-    → useWerewolfSettleToast shows toast and invalidates product queries
+  → account HTTP inbox (independent of the active game)
+    → useAccountEvents refreshes product queries and shows the toast
+      → authenticated HTTP ACK removes the consumed event
 ```
 
 **Settlement boundary**: `settleGameResults()` updates XP and ticket earnings only. Item selection is
@@ -236,7 +237,7 @@ Each entry in `REWARD_POOL` gains a `rarity` field. Specific distribution in §5
 
 ### 3.4 Werewolf Settlement Event
 
-`src/games/werewolf/realtime/werewolfUserEventCodec.ts`:
+`src/features/account/model/accountEvent.ts`:
 
 ```typescript
 export interface WerewolfSettlementEvent {
@@ -625,7 +626,7 @@ export const dailyRewardSchema = z.strictObject({});
 
 ### 7.1 Settlement Toast Refactor
 
-**File**: `src/games/werewolf/hooks/useWerewolfSettleToast.ts`
+**File**: `src/features/account/hooks/useAccountEvents.ts`
 
 Before:
 
@@ -641,7 +642,12 @@ fields say they were earned.
 
 **SettleResultMessage interface changes**: Directly replaced with §3.4 definition (remove `reward` field, `normalDrawsEarned`/`goldenDrawsEarned` are required).
 
-**RoomSession parsing changes**: the Werewolf user-event codec parses the required ticket fields and rejects malformed payloads.
+**Account consumption**: the account parser rejects malformed settlement payloads. While authenticated
+and visible, the app reads `/api/user/events/next`, processes the oldest event, then acknowledges it
+through `/api/user/events/:eventId/ack`. Empty reads and failures retry after 30 seconds; returning to
+the foreground reads immediately. Identity changes abort the previous consumer. Failed processing
+keeps the D1 event. An uncertain ACK retries without another toast within the same mounted consumer;
+a browser reload can replay a notification. Room sockets carry no account events.
 
 ### 7.2 New Gacha Service
 
@@ -875,9 +881,9 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 - `packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts` — persist effect-idempotent XP and ticket earnings
 - `packages/api-worker/src/games/werewolf/effects.ts` — publish durable settlement events with ticket fields
-- `src/games/werewolf/realtime/werewolfUserEventCodec.ts` — parse the game-owned settlement event
-- `src/features/room/session/RoomSession.ts` — deliver and acknowledge durable user events
-- `src/games/werewolf/hooks/useWerewolfSettleToast.ts` — Display changed to ticket notification
+- `src/features/account/model/accountEvent.ts` — parse the settlement event
+- `packages/api-worker/src/features/account/routes.ts` — authenticated inbox reads and acknowledgements
+- `src/features/account/hooks/useAccountEvents.ts` — foreground account consumption and ticket notification
 
 **Impact analysis**:
 

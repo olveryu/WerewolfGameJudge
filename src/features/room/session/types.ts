@@ -15,10 +15,6 @@ export interface ActiveRoomIdentity<TGameType extends string = GameType> {
   readonly userId: string;
 }
 
-export interface RoomUserEvent {
-  readonly eventId: string;
-}
-
 interface RoomSessionSnapshotBase {
   readonly epoch: number;
   readonly connection: RoomConnectionStatus;
@@ -106,7 +102,6 @@ export interface RoomCommandContext<TState extends BaseGameState<string>, TComma
 export interface RoomSessionClient<
   TState extends BaseGameState<string>,
   TCommand extends object,
-  TEvent extends RoomUserEvent,
 > extends RoomCommandContext<TState, TCommand> {
   getSnapshot(): RoomSessionSnapshot<TState>;
   subscribe(listener: () => void): () => void;
@@ -126,5 +121,4 @@ export interface RoomSessionClient<
   ): Promise<RoomCommandDispatchOutcome<TState>>;
   /** Consume one matching background-recovery failure after presenting it. */
   acknowledgeRecoveredCommandRejection(commandId: string): void;
-  setUserEventHandler(handler: (event: TEvent) => void | Promise<void>): () => void;
 }

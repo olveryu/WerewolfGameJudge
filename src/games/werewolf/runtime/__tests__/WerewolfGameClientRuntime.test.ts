@@ -11,7 +11,6 @@ import type {
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
-import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
@@ -62,7 +61,7 @@ function createRoomSession() {
       snapshot.snapshot.revision + 1,
     );
   });
-  const session: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent> = {
+  const session: RoomSessionClient<GameState, WerewolfPublicCommand> = {
     getSnapshot: () => snapshot,
     subscribe: (listener) => {
       listeners.add(listener);
@@ -87,7 +86,6 @@ function createRoomSession() {
       throw new Error('dispatchPrepared is not used by this test');
     }),
     acknowledgeRecoveredCommandRejection: jest.fn(),
-    setUserEventHandler: jest.fn(() => () => undefined),
   };
 
   return {

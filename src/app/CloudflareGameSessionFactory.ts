@@ -13,25 +13,20 @@ import { LazyRoomSession } from '@/features/room/session/LazyRoomSession';
 import { RoomSession } from '@/features/room/session/RoomSession';
 import type { RoomSessionClient } from '@/features/room/session/types';
 import { CFRealtimeService } from '@/services/cloudflare/CFRealtimeService';
-import type { RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 
 export class CloudflareGameSessionFactory implements GameSessionFactory {
   readonly #commandRecovery = new RoomCommandRecoveryStore();
   readonly #owner = new ActiveRoomSessionOwner();
 
-  create<
-    TState extends BaseGameState<string>,
-    TCommand extends object,
-    TEvent extends RealtimeUserEvent,
-  >(
-    definition: GameSessionDefinition<TState, TEvent>,
-  ): RoomSessionClient<TState, TCommand, TEvent> {
+  create<TState extends BaseGameState<string>, TCommand extends object>(
+    definition: GameSessionDefinition<TState>,
+  ): RoomSessionClient<TState, TCommand> {
     return new LazyRoomSession(
       this.#owner,
       (initialEpoch) =>
-        new RoomSession<TState, TCommand, TEvent>({
+        new RoomSession<TState, TCommand>({
           codec: definition.stateCodec,
-          transport: new CFRealtimeService(definition.stateCodec, definition.userEventCodec),
+          transport: new CFRealtimeService(definition.stateCodec),
           createCommandId: newRequestId,
           commandRecovery: this.#commandRecovery,
           initialEpoch,

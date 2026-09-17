@@ -17,11 +17,22 @@ import { Hono } from 'hono';
 
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
+import { acknowledgeUserEvent, readNextUserEvent } from '../../platform/userEvents/inbox';
 import { requireAuth } from '../auth/tokenAuth';
 import { users, userStats } from './dbSchema';
 
 /** User stats/profile routes. */
 export const accountRoutes = new Hono<AppEnv>();
+
+accountRoutes.get('/user/events/next', requireAuth, async (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({ event: await readNextUserEvent(c.env.DB, c.var.userId) });
+});
+
+accountRoutes.post('/user/events/:eventId/ack', requireAuth, async (c) => {
+  await acknowledgeUserEvent(c.env.DB, c.var.userId, c.req.param('eventId'));
+  return c.json({ success: true });
+});
 
 /** GET /api/user/:userId/profile — view another player's public profile */
 accountRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
