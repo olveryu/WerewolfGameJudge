@@ -33,7 +33,6 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useDrawMutation, useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { usePendingGachaOperation } from '@/features/gacha/queries/useGachaQuery';
-import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
@@ -49,11 +48,17 @@ import { SingleResultReveal } from './components/SingleResultReveal';
 import { TenResultOverlay } from './components/TenResultOverlay';
 import { TicketTabBar } from './components/TicketTabBar';
 import { PHASE } from './gachaConstants';
+import { useDrawPresentation } from './hooks/useDrawPresentation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
 
 /** Gacha main screen. */
-export function GachaScreen({ navigation }: Props) {
+export function GachaScreen(props: Props) {
+  const { user } = useAuthContext();
+  return <GachaSession key={user?.id ?? 'anonymous'} {...props} />;
+}
+
+function GachaSession({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
@@ -75,14 +80,18 @@ export function GachaScreen({ navigation }: Props) {
   const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
 
   const machineRef = useRef<CapsuleMachineRef>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [currentDrawType, setCurrentDrawType] = useState<'normal' | 'golden'>('normal');
-  const [lastResults, setLastResults] = useState<readonly DrawResultItem[]>([]);
-  const [showTenOverlay, setShowTenOverlay] = useState(false);
-  const [showSingleResult, setShowSingleResult] = useState(false);
+  const cancelAnimation = useCallback(() => machineRef.current?.cancelAnimation(), []);
+  const { presentation, begin, accept, showResults, dismiss, fail } = useDrawPresentation(
+    !reducedMotion && isAmbientAnimationActive,
+    cancelAnimation,
+  );
+  const lastResults = presentation.results;
+  const isAnimating = presentation.phase === 'animating' || presentation.phase === 'requesting';
+  const showTenOverlay = presentation.phase === 'results' && lastResults.length > 1;
+  const showSingleResult = presentation.phase === 'results' && lastResults.length === 1;
   const [activeTab, setActiveTab] = useState<'normal' | 'golden'>('normal');
   const [showRates, setShowRates] = useState(false);
-  const pendingCountRef = useRef(0);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -93,16 +102,14 @@ export function GachaScreen({ navigation }: Props) {
   }, [navigation]);
 
   // ── Phase change handler ──────────────────────────────────────────────
-  const handlePhaseChange = useCallback((phase: number) => {
-    if (phase === PHASE.DONE) {
-      setIsAnimating(false);
-      if (pendingCountRef.current > 1) {
-        setShowTenOverlay(true);
-      } else {
-        setShowSingleResult(true);
+  const handlePhaseChange = useCallback(
+    (phase: number) => {
+      if (phase === PHASE.DONE) {
+        showResults();
       }
-    }
-  }, []);
+    },
+    [showResults],
+  );
 
   // ── Draw handler ──────────────────────────────────────────────────────
   const handleDraw = useCallback(
@@ -117,13 +124,9 @@ export function GachaScreen({ navigation }: Props) {
       if (isAnimating || isDrawPending) return;
 
       setCurrentDrawType(drawType);
-      setLastResults([]);
-      setShowSingleResult(false);
-      setShowTenOverlay(false);
-      pendingCountRef.current = count;
+      begin();
 
       if (!reducedMotion) {
-        setIsAnimating(true);
         machineRef.current?.startAnimation(drawType, count);
       }
 
@@ -131,22 +134,14 @@ export function GachaScreen({ navigation }: Props) {
         { drawType, count },
         {
           onSuccess: (data) => {
-            setLastResults(data.results);
+            accept(data.results);
             const rarities = data.results.map((r) => r.rarity);
             if (!reducedMotion) {
               machineRef.current?.setResults(rarities);
-            } else {
-              // Reduced motion: skip animation, show results directly
-              if (count > 1) {
-                setShowTenOverlay(true);
-              } else {
-                setShowSingleResult(true);
-              }
             }
           },
           onError: (error: Error) => {
-            setIsAnimating(false);
-            machineRef.current?.cancelAnimation();
+            fail();
             // Expected business rejections are warn-only; unexpected failures are reported by MutationCache.
             const reason =
               'reason' in error && typeof error.reason === 'string' ? error.reason : '';
@@ -164,16 +159,11 @@ export function GachaScreen({ navigation }: Props) {
         },
       );
     },
-    [isAnon, isAnimating, draw, isDrawPending, reducedMotion, navigation],
+    [isAnon, isAnimating, draw, isDrawPending, reducedMotion, navigation, begin, accept, fail],
   );
 
-  const handleCloseTenOverlay = useCallback(() => {
-    setShowTenOverlay(false);
-  }, []);
-
-  const handleDismissSingleResult = useCallback(() => {
-    setShowSingleResult(false);
-  }, []);
+  const handleCloseTenOverlay = dismiss;
+  const handleDismissSingleResult = dismiss;
 
   // ── Layout ────────────────────────────────────────────────────────────
   const [machineLayout, setMachineLayout] = useState({ w: screenWidth, h: 0 });
@@ -338,6 +328,9 @@ export function GachaScreen({ navigation }: Props) {
       <View
         style={[styles.bottomPanel, { paddingBottom: Math.max(insets.bottom, spacing.medium) }]}
       >
+        {(presentation.phase === 'animating' || presentation.phase === 'dismissed') && (
+          <Button onPress={showResults}>查看抽奖结果</Button>
+        )}
         {pendingOperation !== null && (
           <Button
             onPress={() => {
