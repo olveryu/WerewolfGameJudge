@@ -145,6 +145,25 @@ describe('SettingsService', () => {
   });
 
   describe('listener', () => {
+    it('rejects failed persistence without changing state or notifying subscribers', async () => {
+      const listener = jest.fn();
+      service.addListener(listener);
+      const settings = service.getAll();
+      const error = new Error('Storage quota exhausted');
+      error.name = 'QuotaExceededError';
+      jest.mocked(storage.set).mockImplementationOnce(() => {
+        throw error;
+      });
+
+      await expect(service.setBgmEnabled(false)).rejects.toBe(error);
+
+      expect(service.getAll()).toEqual(settings);
+      expect(listener).not.toHaveBeenCalled();
+      await service.setBgmEnabled(false);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(service.isBgmEnabled()).toBe(false);
+    });
+
     it('notifies listeners on settings change', async () => {
       const listener = jest.fn();
       service.addListener(listener);

@@ -1,6 +1,9 @@
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
+import { handleError } from '@/utils/errorPipeline';
+
+jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 
 const mockGoBack = jest.fn();
 const mockPreviewStop = jest.fn();
@@ -63,6 +66,19 @@ jest.mock('../components', () => ({
 }));
 
 describe('MusicSettingsScreen', () => {
+  it('restores the saved switch value and reports a persistence failure', async () => {
+    const error = new Error('Storage disabled');
+    mockSettingsService.setBgmEnabled.mockRejectedValueOnce(error);
+    const view = render(<MusicSettingsScreen />);
+    fireEvent(view.getByRole('switch'), 'valueChange', false);
+    await waitFor(() => expect(handleError).toHaveBeenCalled());
+    expect(view.getByRole('switch')).toHaveProp('value', true);
+    expect(handleError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ label: '保存音乐设置' }),
+    );
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     previewResolvers = [];

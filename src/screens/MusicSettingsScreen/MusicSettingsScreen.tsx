@@ -4,7 +4,7 @@
  * Two main sections: BGM controls and game-owned foreground audio controls.
  * Preview is decoupled from selection — previewing does not auto-switch the selected track.
  * When BGM is off the track list remains visible but disabled (avoids layout jumps).
- * Settings are persisted via SettingsService (AsyncStorage).
+ * Settings are persisted via SettingsService (MMKV).
  * Preview goes through AudioService.startBgm / stopBgm.
  * Game-specific previews enter through the client game catalog contribution.
  */
@@ -20,10 +20,12 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import type { BgmTrackId, BgmTrackSetting } from '@/features/product/model/BgmCatalog';
 import { BGM_TRACKS, BGM_VOLUME, getBgmTrack } from '@/features/product/model/BgmCatalog';
+import { isExpectedStorageError } from '@/features/settings/services/SettingsService';
 import type { ClientGameAudioPreview } from '@/games/audioPreviews';
 import { useClientGameAudioPreviews } from '@/games/ClientGameCatalogContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, spacing, withAlpha } from '@/theme';
+import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
@@ -93,7 +95,13 @@ export const MusicSettingsScreen: React.FC = () => {
     (enabled: boolean) => {
       setBgmEnabled(enabled);
       settingsService.setBgmEnabled(enabled).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist bgmEnabled', e);
+        setBgmEnabled(settingsService.isBgmEnabled());
+        handleError(e, {
+          label: '保存音乐设置',
+          logger: musicSettingsLog,
+          alertMessage: '设置未保存，请检查浏览器存储权限后重试',
+          isExpected: isExpectedStorageError,
+        });
       });
       if (!enabled && previewActiveRef.current) {
         audioService.stopBgm();
@@ -109,7 +117,13 @@ export const MusicSettingsScreen: React.FC = () => {
     (track: BgmTrackSetting) => {
       setBgmTrack(track);
       settingsService.setBgmTrack(track).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist bgmTrack', e);
+        setBgmTrack(settingsService.getBgmTrack());
+        handleError(e, {
+          label: '保存音乐设置',
+          logger: musicSettingsLog,
+          alertMessage: '设置未保存，请检查浏览器存储权限后重试',
+          isExpected: isExpectedStorageError,
+        });
       });
     },
     [settingsService],
@@ -159,10 +173,17 @@ export const MusicSettingsScreen: React.FC = () => {
   const handleVolumeComplete = useCallback(
     (value: number) => {
       settingsService.setBgmVolume(value).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist bgmVolume', e);
+        setBgmVolume(settingsService.getBgmVolume());
+        audioService.setBgmVolume(settingsService.getBgmVolume());
+        handleError(e, {
+          label: '保存音乐设置',
+          logger: musicSettingsLog,
+          alertMessage: '设置未保存，请检查浏览器存储权限后重试',
+          isExpected: isExpectedStorageError,
+        });
       });
     },
-    [settingsService],
+    [settingsService, audioService],
   );
 
   // Foreground game audio volume change (live)
@@ -178,10 +199,17 @@ export const MusicSettingsScreen: React.FC = () => {
   const handleGameAudioVolumeComplete = useCallback(
     (value: number) => {
       settingsService.setGameAudioVolume(value).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist gameAudioVolume', e);
+        setGameAudioVolume(settingsService.getGameAudioVolume());
+        audioService.setGameAudioVolume(settingsService.getGameAudioVolume());
+        handleError(e, {
+          label: '保存音乐设置',
+          logger: musicSettingsLog,
+          alertMessage: '设置未保存，请检查浏览器存储权限后重试',
+          isExpected: isExpectedStorageError,
+        });
       });
     },
-    [settingsService],
+    [settingsService, audioService],
   );
 
   const handleGameAudioPreview = useCallback((preview: ClientGameAudioPreview) => {

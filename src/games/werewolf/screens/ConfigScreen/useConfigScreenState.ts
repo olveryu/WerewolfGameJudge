@@ -31,6 +31,7 @@ import {
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
 import type { SettingsService } from '@/features/settings/services/SettingsService';
+import { isExpectedStorageError } from '@/features/settings/services/SettingsService';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { colors } from '@/theme';
@@ -255,8 +256,17 @@ export function useConfigScreenState({
 
   const handleSheriffElectionChange = useCallback(
     async (isSheriffElectionEnabled: boolean) => {
-      setRules((prev) => ({ ...prev, isSheriffElectionEnabled }));
-      await settingsService.setSheriffElectionEnabled(isSheriffElectionEnabled);
+      try {
+        await settingsService.setSheriffElectionEnabled(isSheriffElectionEnabled);
+        setRules((prev) => ({ ...prev, isSheriffElectionEnabled }));
+      } catch (error) {
+        handleError(error, {
+          label: '保存警长设置',
+          logger: configLog,
+          alertMessage: '设置未保存，请检查浏览器存储权限后重试',
+          isExpected: isExpectedStorageError,
+        });
+      }
     },
     [settingsService],
   );

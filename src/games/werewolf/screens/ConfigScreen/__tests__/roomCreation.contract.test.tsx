@@ -15,9 +15,11 @@ import type { RoomCreationRequest, RoomRecord } from '@/features/room/model/Room
 import { SettingsService } from '@/features/settings/services/SettingsService';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
+import { storage } from '@/services/infra/localStorage';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -173,7 +175,11 @@ describe('Room creation → navigation roomCode contract', () => {
     expect(sheriffSwitch.props.value).toBe(true);
     expect(rulesEntry.getByText('2')).toBeTruthy();
     fireEvent(sheriffSwitch, 'valueChange', false);
-    expect(getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value).toBe(false);
+    await waitFor(() =>
+      expect(getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')).props.value).toBe(
+        false,
+      ),
+    );
     expect(rulesEntry.getByText('2')).toBeTruthy();
 
     expect(mockSettingsService.isSheriffElectionEnabled()).toBe(false);
@@ -185,6 +191,28 @@ describe('Room creation → navigation roomCode contract', () => {
       witchCanSelfHeal: true,
       isPlagueMode: true,
     });
+  });
+
+  it('keeps the previous sheriff setting when persistence fails', async () => {
+    const screen = renderConfigScreen();
+    const error = new Error('Storage disabled');
+    error.name = 'SecurityError';
+    jest.mocked(storage.set).mockImplementationOnce(() => {
+      throw error;
+    });
+    fireEvent(
+      screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')),
+      'valueChange',
+      false,
+    );
+    await waitFor(() =>
+      expect(showAlert).toHaveBeenCalledWith('保存警长设置失败', expect.any(String)),
+    );
+    expect(mockSettingsService.isSheriffElectionEnabled()).toBe(true);
+    expect(screen.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled'))).toHaveProp(
+      'value',
+      true,
+    );
   });
 
   it('remembers the switch immediately for the next new room without remembering other rules', async () => {

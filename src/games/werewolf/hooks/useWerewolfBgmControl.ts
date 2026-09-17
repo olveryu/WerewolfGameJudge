@@ -17,6 +17,8 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { AudioAsset } from '@/features/product/model/AudioClip';
 import type { BgmTrackSetting } from '@/features/product/model/BgmCatalog';
 import { BGM_TRACKS, getBgmTrack } from '@/features/product/model/BgmCatalog';
+import { isExpectedStorageError } from '@/features/settings/services/SettingsService';
+import { handleError } from '@/utils/errorPipeline';
 import { bgmLog } from '@/utils/logger';
 
 export interface WerewolfBgmControlState {
@@ -109,7 +111,18 @@ export function useWerewolfBgmControl(
 
   // Toggle BGM setting (host only)
   const toggleBgm = useCallback(async (): Promise<void> => {
-    const newValue = await settingsService.toggleBgm();
+    let newValue: boolean;
+    try {
+      newValue = await settingsService.toggleBgm();
+    } catch (error) {
+      handleError(error, {
+        label: '保存音乐设置',
+        logger: bgmLog,
+        alertMessage: '设置未保存，请检查浏览器存储权限后重试',
+        isExpected: isExpectedStorageError,
+      });
+      return;
+    }
     setIsBgmEnabled(newValue);
     // If currently playing, stop/start based on new setting
     if (newValue) {

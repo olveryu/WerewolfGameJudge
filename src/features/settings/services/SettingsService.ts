@@ -12,7 +12,7 @@
  *
  * Boundary constraints:
  * - load() must be called once at app startup; subsequent reads are synchronous
- * - Silently degrades to in-memory defaults when MMKV is unavailable
+ * - Reads may use defaults when MMKV is unavailable; writes reject without changing state
  */
 import { USER_SETTINGS_KEY } from '@/config/storageKeys';
 import type { BgmTrackSetting } from '@/features/product/model/BgmCatalog';
@@ -25,7 +25,7 @@ import { settingsServiceLog } from '@/utils/logger';
  * MMKV access can throw `QuotaExceededError` / `SecurityError` (e.g. private mode,
  * storage disabled). These are environment limits, not bugs — expected, no Sentry.
  */
-const isExpectedStorageError = (err: unknown): boolean =>
+export const isExpectedStorageError = (err: unknown): boolean =>
   err instanceof Error && (err.name === 'QuotaExceededError' || err.name === 'SecurityError');
 
 const MIN_VOLUME = 0;
@@ -157,20 +157,12 @@ export class SettingsService {
   }
 
   /**
-   * Save current settings to storage.
+   * Commit settings only after storage succeeds; propagate write failures to the caller.
    */
-  async #save(): Promise<void> {
-    try {
-      storage.set(USER_SETTINGS_KEY, JSON.stringify(this.#settings));
-      this.#notifyListeners();
-    } catch (e) {
-      handleError(e, {
-        label: '保存设置',
-        logger: settingsServiceLog,
-        feedback: false,
-        isExpected: isExpectedStorageError,
-      });
-    }
+  async #save(settings: UserSettings): Promise<void> {
+    storage.set(USER_SETTINGS_KEY, JSON.stringify(settings));
+    this.#settings = settings;
+    this.#notifyListeners();
   }
 
   /** Get the sheriff election preference for new Werewolf rooms. */
@@ -180,8 +172,7 @@ export class SettingsService {
 
   /** Persist the sheriff election preference without changing any room state. */
   async setSheriffElectionEnabled(isSheriffElectionEnabled: boolean): Promise<void> {
-    this.#settings.isSheriffElectionEnabled = isSheriffElectionEnabled;
-    await this.#save();
+    await this.#save({ ...this.#settings, isSheriffElectionEnabled });
   }
 
   /**
@@ -195,16 +186,14 @@ export class SettingsService {
    * Set BGM enabled/disabled and persist.
    */
   async setBgmEnabled(enabled: boolean): Promise<void> {
-    this.#settings.bgmEnabled = enabled;
-    await this.#save();
+    await this.#save({ ...this.#settings, bgmEnabled: enabled });
   }
 
   /**
    * Toggle BGM setting and persist. Returns new value.
    */
   async toggleBgm(): Promise<boolean> {
-    this.#settings.bgmEnabled = !this.#settings.bgmEnabled;
-    await this.#save();
+    await this.setBgmEnabled(!this.#settings.bgmEnabled);
     return this.#settings.bgmEnabled;
   }
 
@@ -219,8 +208,7 @@ export class SettingsService {
    * Set BGM track and persist.
    */
   async setBgmTrack(track: BgmTrackSetting): Promise<void> {
-    this.#settings.bgmTrack = track;
-    await this.#save();
+    await this.#save({ ...this.#settings, bgmTrack: track });
   }
 
   /**
@@ -234,8 +222,7 @@ export class SettingsService {
    * Set BGM volume and persist. Clamped to [0, 1].
    */
   async setBgmVolume(volume: number): Promise<void> {
-    this.#settings.bgmVolume = requireFiniteVolume(volume, 'bgmVolume');
-    await this.#save();
+    await this.#save({ ...this.#settings, bgmVolume: requireFiniteVolume(volume, 'bgmVolume') });
   }
 
   /**
@@ -249,8 +236,10 @@ export class SettingsService {
    * Set foreground game audio volume and persist. Clamped to [0, 1].
    */
   async setGameAudioVolume(volume: number): Promise<void> {
-    this.#settings.gameAudioVolume = requireFiniteVolume(volume, 'gameAudioVolume');
-    await this.#save();
+    await this.#save({
+      ...this.#settings,
+      gameAudioVolume: requireFiniteVolume(volume, 'gameAudioVolume'),
+    });
   }
 
   // =========================================================================
