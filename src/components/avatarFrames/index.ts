@@ -20,6 +20,7 @@ import { DarkVineFrame } from './DarkVineFrame';
 import { DragonScaleFrame } from './DragonScaleFrame';
 import { DuskIronFrame } from './DuskIronFrame';
 import { EmberAshFrame } from './EmberAshFrame';
+import { EternalCrownFrame } from './EternalCrownFrame';
 import { FlameThornFrame } from './FlameThornFrame';
 import type { FrameProps } from './FrameProps';
 import { FrostCrystalFrame } from './FrostCrystalFrame';
@@ -79,6 +80,7 @@ interface AvatarFrameConfig {
 function buildFrameRegistry(): Partial<Record<FrameId, AvatarFrameConfig>> {
   // Static entries — manually listed for unique hand-crafted frames
   const staticEntries = {
+    eternalCrown: { name: '永夜王冠', Component: EternalCrownFrame },
     ironForge: { name: '铁锻', Component: IronForgeFrame },
     moonSilver: { name: '月银', Component: MoonSilverFrame },
     bloodThorn: { name: '血棘', Component: BloodThornFrame },

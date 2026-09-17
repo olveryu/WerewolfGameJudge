@@ -30,6 +30,7 @@ import maskedMan from '../../assets/avatars/web/maskedMan.webp';
 import masquerade from '../../assets/avatars/web/masquerade.webp';
 import mirrorSeer from '../../assets/avatars/web/mirrorSeer.webp';
 import nightmare from '../../assets/avatars/web/nightmare.webp';
+import nightSovereign from '../../assets/avatars/web/nightSovereign.webp';
 import piper from '../../assets/avatars/web/piper.webp';
 import poisoner from '../../assets/avatars/web/poisoner.webp';
 import psychic from '../../assets/avatars/web/psychic.webp';
@@ -78,6 +79,7 @@ import thumb_maskedMan from '../../assets/badges/web/role_maskedMan.webp';
 import thumb_masquerade from '../../assets/badges/web/role_masquerade.webp';
 import thumb_mirrorSeer from '../../assets/badges/web/role_mirrorSeer.webp';
 import thumb_nightmare from '../../assets/badges/web/role_nightmare.webp';
+import thumb_nightSovereign from '../../assets/badges/web/role_nightSovereign.webp';
 import thumb_piper from '../../assets/badges/web/role_piper.webp';
 import thumb_poisoner from '../../assets/badges/web/role_poisoner.webp';
 import thumb_psychic from '../../assets/badges/web/role_psychic.webp';
@@ -105,6 +107,7 @@ import thumb_wolfWitch from '../../assets/badges/web/role_wolfWitch.webp';
 
 // prettier-ignore
 export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
+  nightSovereign,
   avenger,
   awakenedGargoyle,
   bloodMoon,
@@ -156,6 +159,7 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
 
 // prettier-ignore
 export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
+  nightSovereign: thumb_nightSovereign,
   avenger: thumb_avenger,
   awakenedGargoyle: thumb_awakenedGargoyle,
   bloodMoon: thumb_bloodMoon,

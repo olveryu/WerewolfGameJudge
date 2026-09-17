@@ -11,6 +11,7 @@ const WEREWOLF_AVATAR_IDS: ReadonlySet<string> = new Set(HAND_DRAWN_AVATAR_IDS);
 
 export const werewolfProductUi: GameProductUiContribution = {
   getAvatarDisplayName(avatarId) {
+    if (avatarId === 'nightSovereign') return '永夜君主';
     return WEREWOLF_AVATAR_IDS.has(avatarId) ? getRoleDisplayName(avatarId) : null;
   },
   getRevealEffectPresentation(effectId) {

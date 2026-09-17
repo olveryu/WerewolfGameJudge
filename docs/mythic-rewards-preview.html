@@ -1,0 +1,1482 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>永夜加冕 · 神话典藏</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f2f3f0;
+        --ink: #242624;
+        --muted: #656961;
+        --line: #d6dad2;
+        --red: #a32142;
+        --green: #315b50;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'Avenir Next', 'PingFang SC', sans-serif;
+        letter-spacing: 0;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #548674;
+        outline-offset: 5px;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
+      header {
+        padding: 22px 4%;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .wordmark {
+        font-family: Georgia, 'Songti SC', serif;
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .edition {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      main {
+        max-width: 1480px;
+        margin: auto;
+        padding: 32px 4% 56px;
+      }
+      .intro {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        margin-bottom: 26px;
+      }
+      .eyebrow {
+        color: var(--red);
+        font-size: 11px;
+        margin: 0 0 10px;
+      }
+      h1 {
+        font:
+          44px/1.15 Georgia,
+          'Songti SC',
+          serif;
+        margin: 0;
+        font-weight: 600;
+      }
+      .intro aside {
+        font-size: 12px;
+        text-align: right;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+      .studio {
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+      .viewer {
+        min-width: 0;
+        padding-right: 28px;
+        padding-top: 24px;
+      }
+      .stage {
+        position: relative;
+        height: 524px;
+        overflow: hidden;
+        background: #131818;
+        background-image:
+          linear-gradient(#a7bdb006 1px, transparent 1px),
+          linear-gradient(90deg, #a7bdb006 1px, transparent 1px);
+        background-size: 44px 44px;
+        color: #e8ebe4;
+      }
+      .stage::after {
+        content: '';
+        position: absolute;
+        inset: 18px;
+        border: 1px solid #d4dfd115;
+        pointer-events: none;
+      }
+      .stage.light {
+        background-color: #e2e6df;
+        color: #252d29;
+      }
+      .stage canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .stage-top {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        right: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1;
+        pointer-events: none;
+      }
+      .tier {
+        font:
+          12px Georgia,
+          'Songti SC',
+          serif;
+        color: #ed8799;
+      }
+      .stage.light .tier {
+        color: #921c3a;
+      }
+      .stage-number {
+        font-size: 10px;
+        opacity: 0.55;
+      }
+      .stage-caption {
+        position: absolute;
+        bottom: 32px;
+        left: 20px;
+        right: 20px;
+        text-align: center;
+        pointer-events: none;
+      }
+      .stage-caption h2 {
+        font:
+          26px Georgia,
+          'Songti SC',
+          serif;
+        margin: 0 0 9px;
+      }
+      .stage-caption p {
+        margin: 0;
+        font-size: 10px;
+        opacity: 0.6;
+      }
+      .toolbar {
+        min-height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 0;
+      }
+      .commands {
+        display: flex;
+        gap: 8px;
+      }
+      .command {
+        border: 1px solid var(--line);
+        background: transparent;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: var(--ink);
+        min-height: 36px;
+      }
+      .command:hover {
+        border-color: var(--ink);
+      }
+      .swatches {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .swatch {
+        width: 22px;
+        height: 22px;
+        border: 3px solid var(--paper);
+        outline: 1px solid var(--line);
+        border-radius: 50%;
+      }
+      .swatch[aria-pressed='true'] {
+        outline: 2px solid var(--green);
+      }
+      .swatch.dark {
+        background: #131818;
+      }
+      .swatch.light {
+        background: #e2e6df;
+      }
+      .collection {
+        padding: 24px 0 20px 28px;
+        border-left: 1px solid var(--line);
+        min-width: 0;
+      }
+      .collection-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 17px;
+        gap: 12px;
+      }
+      .collection-heading h2 {
+        font-size: 13px;
+        font-weight: 500;
+        margin: 0;
+      }
+      .collection-heading span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .rewards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .reward {
+        position: relative;
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        overflow: hidden;
+        text-align: left;
+        color: var(--ink);
+        background: #e8ebe5;
+        padding: 0;
+        transition: border-color 0.2s;
+        min-width: 0;
+      }
+      .reward[aria-pressed='true'] {
+        border-color: var(--red);
+        box-shadow: inset 0 0 0 1px var(--red);
+      }
+      .reward:hover {
+        border-color: #7b857a;
+      }
+      .reward canvas {
+        width: 100%;
+        height: 112px;
+        display: block;
+        background: #1b2220;
+      }
+      .reward-meta {
+        padding: 10px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .reward-meta strong {
+        font:
+          15px Georgia,
+          'Songti SC',
+          serif;
+      }
+      .reward-meta small {
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .index {
+        position: absolute;
+        top: 9px;
+        left: 10px;
+        font-size: 9px;
+        color: #a3b4ab;
+      }
+      .equipment {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding-top: 18px;
+      }
+      .equipment label {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        font-size: 11px;
+      }
+      input[type='checkbox'] {
+        accent-color: var(--red);
+        width: 15px;
+        height: 15px;
+        margin: 0;
+      }
+      .details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 48px;
+        padding-top: 32px;
+      }
+      .detail-title {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 18px;
+      }
+      .detail-title h2 {
+        font:
+          19px Georgia,
+          'Songti SC',
+          serif;
+        margin: 0;
+      }
+      .detail-title span {
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .room {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+        min-height: 170px;
+        flex-wrap: wrap;
+      }
+      .seat {
+        text-align: center;
+        width: 112px;
+        position: relative;
+      }
+      .seat canvas {
+        width: 112px;
+        height: 112px;
+        display: block;
+      }
+      .seat-number {
+        display: inline-flex;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--green);
+        color: #fff;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        margin-bottom: 5px;
+      }
+      .seat-name {
+        font-size: 11px;
+        color: #812b42;
+        margin: 5px 0 0;
+        overflow-wrap: anywhere;
+      }
+      .materials {
+        display: flex;
+        gap: 22px;
+        padding-top: 10px;
+      }
+      .material {
+        flex: 1;
+      }
+      .material i {
+        display: block;
+        height: 44px;
+        margin-bottom: 12px;
+        border-radius: 3px;
+        border: 1px solid #00000012;
+      }
+      .material strong {
+        display: block;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .material small {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      @media (min-width: 1500px) {
+        .stage {
+          height: 570px;
+        }
+        .reward canvas {
+          height: 126px;
+        }
+      }
+      @media (max-width: 900px) {
+        .studio {
+          grid-template-columns: minmax(0, 1.2fr) minmax(290px, 1fr);
+        }
+        .viewer {
+          padding-right: 16px;
+        }
+        .collection {
+          padding-left: 16px;
+        }
+        .stage {
+          height: 520px;
+        }
+        .details {
+          gap: 24px;
+        }
+        .room {
+          gap: 10px;
+        }
+      }
+      @media (max-width: 680px) {
+        header {
+          padding: 17px 5%;
+        }
+        main {
+          padding: 26px 5% 32px;
+        }
+        h1 {
+          font-size: 34px;
+        }
+        .intro aside {
+          font-size: 10px;
+        }
+        .studio {
+          display: block;
+        }
+        .viewer {
+          padding: 16px 0 0;
+        }
+        .stage {
+          height: 430px;
+        }
+        .collection {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding: 22px 0;
+        }
+        .rewards {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .reward canvas {
+          height: 100px;
+        }
+        .reward-meta {
+          padding: 9px 8px;
+        }
+        .reward-meta strong {
+          font-size: 13px;
+        }
+        .details {
+          grid-template-columns: 1fr;
+          gap: 22px;
+        }
+        .room {
+          justify-content: space-between;
+          gap: 0;
+        }
+        .seat {
+          width: 96px;
+        }
+        .seat canvas {
+          width: 96px;
+          height: 96px;
+        }
+        .stage-caption h2 {
+          font-size: 23px;
+        }
+        footer {
+          flex-wrap: wrap;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wordmark">夜幕典藏<span style="color: var(--red)">.</span></div>
+      <div class="edition">MYTHIC COLLECTION / 001</div>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">神话 · 永夜系列</p>
+          <h1>永夜加冕</h1>
+        </div>
+        <aside>六件独立珍藏<br />概念设计 / 01</aside>
+      </section>
+      <section class="studio" aria-label="神话奖励预览">
+        <div class="viewer">
+          <div class="stage" id="stage">
+            <div class="stage-top">
+              <span class="tier">◆ 神话</span
+              ><span class="stage-number" id="stage-number">COLLECTION / ALL</span>
+            </div>
+            <canvas id="main-canvas" aria-label="永夜加冕整套装备动态预览" role="img"></canvas>
+            <div class="stage-caption">
+              <h2 id="reward-title">永夜加冕</h2>
+              <p id="reward-subtitle">THE CORONATION OF NIGHT</p>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="commands">
+              <button class="command" id="ensemble" aria-pressed="true">整套装备</button
+              ><button class="command" id="replay">重播</button
+              ><button class="command" id="motion" aria-pressed="true">暂停动效</button>
+            </div>
+            <div class="swatches" role="group" aria-label="预览背景">
+              <button
+                class="swatch dark"
+                aria-label="深色背景"
+                title="深色背景"
+                aria-pressed="true"
+                data-background="dark"
+              ></button
+              ><button
+                class="swatch light"
+                aria-label="浅色背景"
+                title="浅色背景"
+                aria-pressed="false"
+                data-background="light"
+              ></button>
+            </div>
+          </div>
+        </div>
+        <aside class="collection">
+          <div class="collection-heading">
+            <h2>永夜珍藏</h2>
+            <span>06 / 神话</span>
+          </div>
+          <div class="rewards" id="rewards"></div>
+          <div class="equipment" role="group" aria-label="组合装备">
+            <label><input id="equip-frame" type="checkbox" checked />头像框</label
+            ><label><input id="equip-flair" type="checkbox" checked />座位装饰</label
+            ><label><input id="equip-name" type="checkbox" checked />昵称样式</label>
+          </div>
+        </aside>
+      </section>
+      <section class="details">
+        <div>
+          <div class="detail-title">
+            <h2>落座之后</h2>
+            <span>ROOM / 小尺寸</span>
+          </div>
+          <div class="room">
+            <div class="seat">
+              <span class="seat-number">01</span
+              ><canvas data-seat="0" role="img" aria-label="一号座位整套装备"></canvas>
+              <p class="seat-name">永夜旅人</p>
+            </div>
+            <div class="seat">
+              <span class="seat-number">02</span
+              ><canvas data-seat="1" role="img" aria-label="二号座位头像与头像框"></canvas>
+              <p class="seat-name">月下无声</p>
+            </div>
+            <div class="seat">
+              <span class="seat-number">03</span
+              ><canvas data-seat="2" role="img" aria-label="三号座位单独头像"></canvas>
+              <p class="seat-name">今晚一起看星星</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="detail-title">
+            <h2>永夜的材质</h2>
+            <span>PALETTE / 01</span>
+          </div>
+          <div class="materials">
+            <div class="material">
+              <i
+                style="
+                  background: linear-gradient(125deg, #7c9290, #f3f4e9 42%, #a8bfb8 60%, #dce5dc);
+                "
+              ></i
+              ><strong>月铂银</strong><small>PEARL SILVER</small>
+            </div>
+            <div class="material">
+              <i style="background: linear-gradient(125deg, #541b2f, #bf3858 45%, #671b32)"></i
+              ><strong>赤曜珐琅</strong><small>CRIMSON ENAMEL</small>
+            </div>
+            <div class="material">
+              <i style="background: linear-gradient(125deg, #102a26, #426658 55%, #132923)"></i
+              ><strong>墨绿曜石</strong><small>OBSIDIAN JADE</small>
+            </div>
+          </div>
+        </div>
+      </section>
+      <footer>
+        <span>永夜加冕 · 原创程序绘制概念稿</span><span>头像美术方向稿 / 非最终插画资产</span>
+      </footer>
+    </main>
+    <script>
+      'use strict';
+      const rewards = [
+        { id: 'avatar', name: '永夜君主', type: '头像', english: 'THE NIGHT SOVEREIGN' },
+        { id: 'frame', name: '永夜王冠', type: '头像框', english: 'CROWN OF THE ETERNAL NIGHT' },
+        { id: 'flair', name: '永夜圣域', type: '座位装饰', english: 'SANCTUM OF NIGHT' },
+        { id: 'name', name: '王权真名', type: '昵称样式', english: 'THE SOVEREIGN SIGNATURE' },
+        { id: 'reveal', name: '命运敕令', type: '身份揭晓', english: 'DECREE OF FATE' },
+        { id: 'entry', name: '王座降临', type: '入座动画', english: 'ARRIVAL OF THE THRONE' },
+      ];
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      const state = {
+        selected: 'ensemble',
+        running: !reducedMotion.matches,
+        time: 0,
+        startedAt: 0,
+        frame: true,
+        flair: true,
+        name: true,
+        light: false,
+      };
+      const colors = {
+        silver: '#dce5da',
+        dim: '#708e82',
+        red: '#c73d5c',
+        pale: '#ffc2ca',
+        dark: '#152622',
+      };
+      const mainCanvas = document.querySelector('#main-canvas');
+      const surfaces = [];
+      const collection = document.querySelector('#rewards');
+
+      /** Create the fixed-size preview surfaces; all artwork is local Canvas 2D. */
+      function registerSurface(canvas, kind) {
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('此浏览器不支持 Canvas 2D，无法显示奖励设计稿。');
+        const surface = { canvas, context, kind, width: 0, height: 0 };
+        surfaces.push(surface);
+        return surface;
+      }
+
+      rewards.forEach((reward, index) => {
+        const button = document.createElement('button');
+        button.className = 'reward';
+        button.dataset.reward = reward.id;
+        button.setAttribute('aria-pressed', 'false');
+        button.setAttribute('aria-label', `${reward.type}：${reward.name}`);
+        const canvas = document.createElement('canvas');
+        canvas.setAttribute('aria-hidden', 'true');
+        const number = document.createElement('span');
+        number.className = 'index';
+        number.textContent = String(index + 1).padStart(2, '0');
+        const meta = document.createElement('span');
+        meta.className = 'reward-meta';
+        const name = document.createElement('strong');
+        name.textContent = reward.name;
+        const type = document.createElement('small');
+        type.textContent = reward.type;
+        meta.append(name, type);
+        button.append(canvas, number, meta);
+        collection.append(button);
+        registerSurface(canvas, reward.id);
+        button.addEventListener('click', () => selectReward(reward.id));
+      });
+      registerSurface(mainCanvas, 'main');
+      document
+        .querySelectorAll('[data-seat]')
+        .forEach((canvas) => registerSurface(canvas, `seat${canvas.dataset.seat}`));
+
+      function polygon(context, points, fill, stroke, lineWidth = 1) {
+        context.beginPath();
+        points.forEach(([horizontal, vertical], index) => {
+          if (index === 0) context.moveTo(horizontal, vertical);
+          else context.lineTo(horizontal, vertical);
+        });
+        context.closePath();
+        if (fill) {
+          context.fillStyle = fill;
+          context.fill();
+        }
+        if (stroke) {
+          context.strokeStyle = stroke;
+          context.lineWidth = lineWidth;
+          context.stroke();
+        }
+      }
+
+      function line(context, points, color, width = 1) {
+        context.beginPath();
+        points.forEach(([horizontal, vertical], index) => {
+          if (index === 0) context.moveTo(horizontal, vertical);
+          else context.lineTo(horizontal, vertical);
+        });
+        context.strokeStyle = color;
+        context.lineWidth = width;
+        context.stroke();
+      }
+
+      function ellipse(context, horizontal, vertical, radiusX, radiusY, color, width = 1) {
+        context.beginPath();
+        context.ellipse(horizontal, vertical, radiusX, radiusY, 0, 0, Math.PI * 2);
+        context.strokeStyle = color;
+        context.lineWidth = width;
+        context.stroke();
+      }
+
+      function crystal(context, horizontal, vertical, size, time) {
+        context.save();
+        context.translate(horizontal, vertical);
+        context.shadowColor = colors.red;
+        context.shadowBlur = 10 + 7 * Math.sin(time * 1.5);
+        polygon(
+          context,
+          [
+            [0, -size],
+            [size * 0.56, 0],
+            [0, size],
+            [-size * 0.56, 0],
+          ],
+          '#951c3c',
+          '#ee8a9e',
+        );
+        context.shadowBlur = 0;
+        polygon(
+          context,
+          [
+            [0, -size],
+            [size * 0.56, 0],
+            [0, size * 0.3],
+          ],
+          '#ec6b82',
+        );
+        line(
+          context,
+          [
+            [0, -size],
+            [0, size],
+          ],
+          '#ffbfcb',
+          0.7,
+        );
+        context.restore();
+      }
+
+      function crown(context, vertical, scale, time) {
+        context.save();
+        context.translate(0, vertical);
+        context.scale(scale, scale);
+        const metal = context.createLinearGradient(-55, -35, 55, 12);
+        metal.addColorStop(0, '#718a80');
+        metal.addColorStop(0.35, '#f4f4e4');
+        metal.addColorStop(0.6, '#8ca79a');
+        metal.addColorStop(1, '#e2e9dc');
+        polygon(
+          context,
+          [
+            [-48, 6],
+            [-62, -43],
+            [-27, -20],
+            [-23, -54],
+            [0, -84],
+            [23, -54],
+            [27, -20],
+            [62, -43],
+            [48, 6],
+            [0, 19],
+          ],
+          '#12241f',
+          metal,
+          2,
+        );
+        polygon(
+          context,
+          [
+            [-48, 6],
+            [-62, -43],
+            [-35, -13],
+            [-23, -54],
+            [0, -84],
+            [-12, -29],
+            [0, -7],
+            [12, -29],
+            [0, -84],
+            [23, -54],
+            [35, -13],
+            [62, -43],
+            [48, 6],
+            [0, 19],
+          ],
+          metal,
+        );
+        line(
+          context,
+          [
+            [-48, 6],
+            [0, 10],
+            [48, 6],
+          ],
+          '#fff5e3',
+          1.5,
+        );
+        crystal(context, 0, -10, 14, time);
+        context.restore();
+      }
+
+      /** Faceted character concept, without remote images or generated-asset claims. */
+      function portrait(context, time) {
+        context.save();
+        context.beginPath();
+        context.roundRect(-96, -116, 192, 224, 37);
+        context.clip();
+        const background = context.createLinearGradient(-100, -120, 100, 110);
+        background.addColorStop(0, '#415a50');
+        background.addColorStop(0.5, '#1c302b');
+        background.addColorStop(1, '#0c1515');
+        context.fillStyle = background;
+        context.fillRect(-100, -120, 200, 235);
+        ellipse(context, 0, -20, 79, 89, '#d7e1bb35');
+        ellipse(context, 0, -20, 71, 82, '#d7e1bb22');
+        for (let index = 0; index < 20; index++) {
+          const angle = (index * Math.PI) / 10;
+          line(
+            context,
+            [
+              [Math.cos(angle) * 75, Math.sin(angle) * 86 - 20],
+              [Math.cos(angle) * 80, Math.sin(angle) * 92 - 20],
+            ],
+            '#c5d3ae45',
+          );
+        }
+        polygon(
+          context,
+          [
+            [-108, 110],
+            [-87, 62],
+            [-36, 40],
+            [0, 57],
+            [36, 40],
+            [87, 62],
+            [108, 110],
+          ],
+          '#080f13',
+          '#8a9b8d',
+        );
+        polygon(
+          context,
+          [
+            [-78, 64],
+            [-53, 30],
+            [-32, 58],
+            [0, 94],
+            [-21, 116],
+          ],
+          '#92213c',
+          '#d56b78',
+        );
+        polygon(
+          context,
+          [
+            [78, 64],
+            [53, 30],
+            [32, 58],
+            [0, 94],
+            [21, 116],
+          ],
+          '#5f1d31',
+          '#d56b78',
+        );
+        for (const direction of [-1, 1]) {
+          polygon(
+            context,
+            [
+              [direction * 34, 38],
+              [direction * 69, 58],
+              [direction * 98, 105],
+              [direction * 50, 76],
+              [direction * 25, 89],
+            ],
+            '#253d37',
+            '#a6b3a0',
+          );
+          line(
+            context,
+            [
+              [direction * 66, 66],
+              [direction * 81, 89],
+              [direction * 47, 71],
+            ],
+            '#dce1c2',
+            1.5,
+          );
+          polygon(
+            context,
+            [
+              [direction * 30, -70],
+              [direction * 58, -41],
+              [direction * 59, 55],
+              [direction * 33, 29],
+              [direction * 20, -39],
+            ],
+            '#a0aca0',
+          );
+          polygon(
+            context,
+            [
+              [direction * 36, -67],
+              [direction * 65, -16],
+              [direction * 47, 57],
+              [direction * 46, -17],
+            ],
+            '#e1e0c8',
+          );
+        }
+        polygon(
+          context,
+          [
+            [-37, -53],
+            [-22, -72],
+            [22, -72],
+            [37, -53],
+            [30, 13],
+            [15, 35],
+            [0, 44],
+            [-15, 35],
+            [-30, 13],
+          ],
+          '#c1bcb0',
+        );
+        polygon(
+          context,
+          [
+            [0, -69],
+            [29, -57],
+            [27, 12],
+            [0, 39],
+            [8, 0],
+          ],
+          '#777d75',
+        );
+        polygon(
+          context,
+          [
+            [-38, -47],
+            [-7, -40],
+            [0, -25],
+            [7, -40],
+            [38, -47],
+            [32, -10],
+            [16, -6],
+            [0, -17],
+            [-16, -6],
+            [-32, -10],
+          ],
+          '#142925',
+          '#d4dac3',
+          1.2,
+        );
+        line(
+          context,
+          [
+            [-28, -27],
+            [-13, -23],
+          ],
+          '#f67a91',
+          3,
+        );
+        line(
+          context,
+          [
+            [13, -23],
+            [28, -27],
+          ],
+          '#f67a91',
+          3,
+        );
+        line(
+          context,
+          [
+            [0, -13],
+            [-5, 7],
+            [4, 7],
+          ],
+          '#d8d7c5',
+        );
+        line(
+          context,
+          [
+            [-9, 21],
+            [0, 23],
+            [10, 20],
+          ],
+          '#543e43',
+          1.5,
+        );
+        crown(context, -68, 0.61, time);
+        crystal(context, 0, 76, 15, time);
+        context.restore();
+      }
+
+      function frame(context, time) {
+        context.save();
+        const metal = context.createLinearGradient(-130, -130, 140, 160);
+        metal.addColorStop(0, '#6d8d81');
+        metal.addColorStop(0.25, '#f6f5df');
+        metal.addColorStop(0.48, '#8faaa1');
+        metal.addColorStop(0.7, '#e9ecdc');
+        metal.addColorStop(1, '#4f7466');
+        context.strokeStyle = metal;
+        context.lineWidth = 4;
+        context.beginPath();
+        context.roundRect(-104, -123, 208, 244, 37);
+        context.stroke();
+        context.strokeStyle = '#b43553';
+        context.lineWidth = 1;
+        context.beginPath();
+        context.roundRect(-111, -130, 222, 258, 40);
+        context.stroke();
+        for (const direction of [-1, 1]) {
+          context.save();
+          context.scale(direction, 1);
+          polygon(
+            context,
+            [
+              [90, -102],
+              [124, -136],
+              [113, -74],
+              [139, -97],
+              [121, -34],
+              [145, -50],
+              [122, 14],
+              [133, 45],
+              [111, 109],
+              [92, 120],
+              [108, 55],
+              [100, 3],
+              [112, -59],
+            ],
+            '#17302a',
+            metal,
+            2,
+          );
+          polygon(
+            context,
+            [
+              [124, -136],
+              [111, -65],
+              [102, -13],
+              [109, 39],
+              [101, 104],
+              [116, 54],
+              [110, -2],
+              [122, -73],
+            ],
+            metal,
+          );
+          line(
+            context,
+            [
+              [135, -83],
+              [119, -30],
+              [128, -39],
+            ],
+            '#e19b9f',
+            1.5,
+          );
+          context.restore();
+        }
+        crown(context, -130 + Math.sin(time * 1.2) * 2, 0.8, time);
+        polygon(
+          context,
+          [
+            [-57, 122],
+            [-21, 119],
+            [0, 140],
+            [21, 119],
+            [57, 122],
+            [0, 158],
+          ],
+          '#1b332a',
+          metal,
+          2,
+        );
+        crystal(context, 0, 134, 19, time);
+        context.restore();
+      }
+
+      function flair(context, time) {
+        context.save();
+        context.scale(1, 0.94);
+        ellipse(context, 0, 0, 168, 168, '#9bbaa34d');
+        ellipse(context, 0, 0, 183, 183, '#9bbaa326');
+        context.rotate(Math.sin(time * 0.18) * 0.06);
+        for (let index = 0; index < 12; index++) {
+          context.save();
+          context.rotate((index * Math.PI) / 6);
+          line(
+            context,
+            [
+              [-9, -174],
+              [0, -190],
+              [9, -174],
+            ],
+            '#b5cab28a',
+            1,
+          );
+          line(
+            context,
+            [
+              [0, -191],
+              [0, -199],
+            ],
+            '#9da78b',
+          );
+          if (index % 3 === 0) crystal(context, 0, -166, 7, time + index);
+          context.restore();
+        }
+        for (let index = 0; index < 4; index++) {
+          context.beginPath();
+          context.arc(0, 0, 157, (index * Math.PI) / 2 + 0.12, (index * Math.PI) / 2 + 1.1);
+          context.strokeStyle = `rgba(216,94,121,${0.4 + Math.sin(time + index) * 0.18})`;
+          context.lineWidth = 2;
+          context.stroke();
+        }
+        polygon(
+          context,
+          [
+            [0, -204],
+            [153, 0],
+            [0, 204],
+            [-153, 0],
+          ],
+          null,
+          '#91ac8d25',
+        );
+        context.restore();
+      }
+
+      function signature(context, time, text = '永夜旅人', vertical = 0) {
+        context.save();
+        context.translate(0, vertical);
+        const gradient = context.createLinearGradient(-140, 0, 140, 0);
+        gradient.addColorStop(0, '#aabcd0');
+        gradient.addColorStop(0.4, '#f4eddf');
+        gradient.addColorStop(0.65, '#f9c9d2');
+        gradient.addColorStop(1, '#b2c3b4');
+        context.font = '600 29px "Songti SC", serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.strokeStyle = '#a5314d';
+        context.lineWidth = 2.2;
+        context.strokeText(text, 0, 0);
+        context.fillStyle = gradient;
+        context.fillText(text, 0, 0);
+        const halfWidth = context.measureText(text).width / 2;
+        line(
+          context,
+          [
+            [-halfWidth, 25],
+            [halfWidth, 25],
+          ],
+          '#ad6d7455',
+        );
+        const sweep = ((time * 0.13) % 1) * 2 - 1;
+        crystal(context, sweep * halfWidth, 25, 3, time);
+        polygon(
+          context,
+          [
+            [-halfWidth - 24, -5],
+            [-halfWidth - 15, 0],
+            [-halfWidth - 24, 5],
+          ],
+          '#b7c9b4',
+        );
+        polygon(
+          context,
+          [
+            [halfWidth + 24, -5],
+            [halfWidth + 15, 0],
+            [halfWidth + 24, 5],
+          ],
+          '#b7c9b4',
+        );
+        context.restore();
+      }
+
+      function ensemble(context, time, options = state) {
+        if (options.flair) flair(context, time);
+        portrait(context, time);
+        if (options.frame) frame(context, time);
+        if (options.name) signature(context, time, '永夜旅人', options.frame ? 198 : 150);
+      }
+
+      function reveal(context, elapsed, time) {
+        const opening = Math.min(1, Math.max(0, (elapsed - 0.6) / 1.5));
+        const eased = 1 - Math.pow(1 - opening, 3);
+        const halfWidth = 30 + eased * 99;
+        context.save();
+        polygon(
+          context,
+          [
+            [-halfWidth, -164],
+            [halfWidth, -164],
+            [halfWidth, 165],
+            [-halfWidth, 165],
+          ],
+          '#1b312b',
+          '#b8c5a8',
+          2,
+        );
+        polygon(
+          context,
+          [
+            [-halfWidth + 8, -154],
+            [halfWidth - 8, -154],
+            [halfWidth - 8, 155],
+            [-halfWidth + 8, 155],
+          ],
+          null,
+          '#a94e61',
+        );
+        context.save();
+        context.globalAlpha = eased;
+        context.translate(0, -10);
+        context.scale(0.7, 0.7);
+        portrait(context, time);
+        context.restore();
+        context.fillStyle = colors.silver;
+        context.textAlign = 'center';
+        context.font = '12px "Songti SC", serif';
+        if (opening > 0.8) {
+          context.fillText('命 运 已 定', 0, -137);
+          context.font = '26px "Songti SC", serif';
+          context.fillText('预言家', 0, 112);
+          context.font = '11px "Songti SC", serif';
+          context.fillStyle = '#b4c6a7';
+          context.fillText('神职 · 好人阵营', 0, 138);
+        }
+        for (const direction of [-1, 1]) {
+          const edge = direction * halfWidth;
+          line(
+            context,
+            [
+              [edge, -174],
+              [edge, 175],
+            ],
+            '#e3e6d0',
+            5,
+          );
+          crystal(context, edge, -170, 9, time);
+          crystal(context, edge, 169, 9, time);
+        }
+        context.save();
+        context.globalAlpha = 1 - eased;
+        crown(context, -3, 0.9, time);
+        crystal(context, 0, 27, 20, time);
+        context.restore();
+        context.restore();
+      }
+
+      function entry(context, elapsed, time) {
+        const progress = Math.min(1, elapsed / 2.5);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        context.save();
+        context.globalAlpha = eased;
+        context.translate(0, (1 - eased) * 55);
+        context.scale(0.75 + eased * 0.25, 0.75 + eased * 0.25);
+        portrait(context, time);
+        frame(context, time);
+        context.restore();
+        if (progress < 1) {
+          for (let index = 0; index < 12; index++) {
+            const angle = (index * Math.PI) / 6;
+            const radius = 110 + (1 - eased) * 160;
+            context.save();
+            context.globalAlpha = Math.sin(progress * Math.PI);
+            context.translate(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            context.rotate(angle + progress * 2);
+            polygon(
+              context,
+              [
+                [0, -28],
+                [9, 0],
+                [0, 28],
+                [-6, 0],
+              ],
+              index % 3 === 0 ? '#c44863' : '#dae5d2',
+            );
+            context.restore();
+          }
+        }
+      }
+
+      function drawArtwork(context, kind, time, elapsed) {
+        switch (kind) {
+          case 'ensemble':
+            ensemble(context, time);
+            break;
+          case 'avatar':
+            context.save();
+            context.scale(1.3, 1.3);
+            portrait(context, time);
+            context.restore();
+            break;
+          case 'frame':
+            frame(context, time);
+            break;
+          case 'flair':
+            flair(context, time);
+            crystal(context, 0, 0, 18, time);
+            break;
+          case 'name':
+            signature(context, time, '王权真名');
+            break;
+          case 'reveal':
+            reveal(context, elapsed, time);
+            break;
+          case 'entry':
+            entry(context, elapsed, time);
+            break;
+          default:
+            throw new Error(`未知奖励类型：${kind}`);
+        }
+      }
+
+      function renderSurface(surface) {
+        const { context, canvas, kind, width, height } = surface;
+        if (!width || !height) return;
+        context.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+        context.clearRect(0, 0, width, height);
+        context.save();
+        const isMain = kind === 'main';
+        const isSeat = kind.startsWith('seat');
+        const scale = isMain
+          ? Math.min(width / 520, (height - 136) / 470)
+          : isSeat
+            ? width / 440
+            : kind === 'name'
+              ? Math.min(width / 230, height / 150)
+              : Math.min(width / 380, height / 440);
+        context.translate(width / 2, isMain ? height / 2 - 14 : height / 2);
+        context.scale(scale, scale);
+        if (isSeat) {
+          ensemble(context, state.time, {
+            frame: kind !== 'seat2' && state.frame,
+            flair: kind === 'seat0' && state.flair,
+            name: false,
+          });
+        } else {
+          drawArtwork(
+            context,
+            isMain ? state.selected : kind,
+            state.time,
+            isMain ? state.time - state.startedAt : 4,
+          );
+        }
+        context.restore();
+      }
+
+      function renderAll() {
+        surfaces.forEach(renderSurface);
+      }
+
+      function resizeSurfaces() {
+        const density = Math.min(devicePixelRatio || 1, 2);
+        surfaces.forEach((surface) => {
+          const bounds = surface.canvas.getBoundingClientRect();
+          surface.width = bounds.width;
+          surface.height = bounds.height;
+          surface.canvas.width = Math.round(bounds.width * density);
+          surface.canvas.height = Math.round(bounds.height * density);
+        });
+        renderAll();
+      }
+
+      function selectReward(id) {
+        const reward = rewards.find((item) => item.id === id);
+        if (id !== 'ensemble' && !reward) throw new Error(`未知奖励：${id}`);
+        state.selected = id;
+        state.startedAt = state.running ? state.time : state.time - 4;
+        document.querySelector('#reward-title').textContent = reward ? reward.name : '永夜加冕';
+        document.querySelector('#reward-subtitle').textContent = reward
+          ? reward.english
+          : 'THE CORONATION OF NIGHT';
+        document.querySelector('#stage-number').textContent = reward
+          ? `COLLECTION / ${String(rewards.indexOf(reward) + 1).padStart(2, '0')}`
+          : 'COLLECTION / ALL';
+        mainCanvas.setAttribute(
+          'aria-label',
+          reward ? `${reward.type}：${reward.name}动态预览` : '永夜加冕整套装备动态预览',
+        );
+        document
+          .querySelectorAll('[data-reward]')
+          .forEach((button) =>
+            button.setAttribute('aria-pressed', String(button.dataset.reward === id)),
+          );
+        document.querySelector('#ensemble').setAttribute('aria-pressed', String(id === 'ensemble'));
+        renderAll();
+      }
+
+      let animationFrame = 0;
+      let previousTimestamp = null;
+      function animate(timestamp) {
+        if (!state.running || document.hidden) {
+          previousTimestamp = null;
+          return;
+        }
+        if (previousTimestamp !== null)
+          state.time += Math.min((timestamp - previousTimestamp) / 1000, 0.1);
+        previousTimestamp = timestamp;
+        renderAll();
+        animationFrame = requestAnimationFrame(animate);
+      }
+
+      function syncMotion() {
+        cancelAnimationFrame(animationFrame);
+        previousTimestamp = null;
+        const button = document.querySelector('#motion');
+        button.textContent = state.running ? '暂停动效' : '播放动效';
+        button.setAttribute('aria-pressed', String(state.running));
+        if (state.running && !document.hidden) animationFrame = requestAnimationFrame(animate);
+        renderAll();
+      }
+
+      document.querySelector('#ensemble').addEventListener('click', () => selectReward('ensemble'));
+      document.querySelector('#replay').addEventListener('click', () => {
+        state.startedAt = state.time;
+        if (!state.running) {
+          state.running = true;
+          syncMotion();
+        }
+        renderAll();
+      });
+      document.querySelector('#motion').addEventListener('click', () => {
+        state.running = !state.running;
+        syncMotion();
+      });
+      for (const equipment of ['frame', 'flair', 'name']) {
+        document.querySelector(`#equip-${equipment}`).addEventListener('change', (event) => {
+          state[equipment] = event.target.checked;
+          selectReward('ensemble');
+        });
+      }
+      document.querySelectorAll('[data-background]').forEach((button) =>
+        button.addEventListener('click', () => {
+          state.light = button.dataset.background === 'light';
+          document.querySelector('#stage').classList.toggle('light', state.light);
+          document
+            .querySelectorAll('[data-background]')
+            .forEach((swatch) => swatch.setAttribute('aria-pressed', String(swatch === button)));
+        }),
+      );
+      reducedMotion.addEventListener('change', () => {
+        state.running = !reducedMotion.matches;
+        if (!state.running) state.startedAt = state.time - 4;
+        syncMotion();
+      });
+      document.addEventListener('visibilitychange', syncMotion);
+      new ResizeObserver(resizeSurfaces).observe(document.querySelector('.studio'));
+      window.addEventListener('resize', resizeSurfaces);
+      resizeSurfaces();
+      syncMotion();
+    </script>
+  </body>
+</html>

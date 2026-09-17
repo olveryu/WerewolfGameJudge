@@ -26,7 +26,7 @@ interface Props {
   onClose: () => void;
 }
 
-const COLUMNS: readonly Rarity[] = ['legendary', 'epic', 'rare', 'common'];
+const COLUMNS: readonly Rarity[] = ['mythic', 'legendary', 'epic', 'rare', 'common'];
 
 /** Draw count columns for reward source table */
 const DRAW_COUNTS = [1, 2, 3, 4, 5] as const;

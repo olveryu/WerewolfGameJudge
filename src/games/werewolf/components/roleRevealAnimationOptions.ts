@@ -31,6 +31,14 @@ interface AnimationOptionConfig {
 
 const ANIMATION_OPTIONS = [
   {
+    value: 'fateDecree',
+    label: '命运敕令',
+    icon: 'ribbon-outline',
+    shortDesc: '银冠封印解开，永夜卷轴展开揭晓身份',
+    operationType: 'auto',
+    petName: '永夜渡鸦',
+  },
+  {
     value: 'random',
     label: '随机',
     icon: 'shuffle-outline',

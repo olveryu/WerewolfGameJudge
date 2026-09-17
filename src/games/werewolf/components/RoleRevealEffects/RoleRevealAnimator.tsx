@@ -18,6 +18,7 @@ import { log } from '@/utils/logger';
 import { CardPick } from './CardPick';
 import { ChainShatter } from './ChainShatter';
 import { EnhancedRoulette } from './EnhancedRoulette';
+import { FateDecree } from './FateDecree';
 import { FilmRewind } from './FilmRewind';
 import { FortuneWheel } from './FortuneWheel';
 import { GachaMachine } from './GachaMachine';
@@ -30,7 +31,7 @@ import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './type
 import { VortexCollapse } from './VortexCollapse';
 
 /** Effect types that play automatically (no user interaction required). */
-const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['filmRewind']);
+const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['filmRewind', 'fateDecree']);
 
 /** Selects the prompt title based on effect type: interactive types guide the user; auto types announce the upcoming reveal. */
 function getTitleForEffect(effectType: RevealEffectType): string {
@@ -91,6 +92,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   // Render the appropriate effect
   const renderEffect = () => {
     switch (effectType) {
+      case 'fateDecree':
+        return <FateDecree {...commonProps} />;
       case 'roulette':
         return <EnhancedRoulette {...commonProps} allRoles={rouletteRoles} />;
       case 'roleHunt':

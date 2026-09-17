@@ -48,6 +48,26 @@ describe('RoleRevealEffects', () => {
   });
 
   describe('RoleRevealAnimator', () => {
+    it('reveals the mythic identity immediately with reduced motion and confirms once', () => {
+      const onComplete = jest.fn();
+      const { getByTestId, getByText } = render(
+        <RoleRevealAnimator
+          visible
+          effectType="fateDecree"
+          role={mockGodRole}
+          onComplete={onComplete}
+          reducedMotion
+          testIDPrefix="decree"
+        />,
+      );
+      expect(getByTestId('decree-fateDecree')).toBeTruthy();
+      expect(getByText('预言家')).toBeTruthy();
+      expect(onComplete).not.toHaveBeenCalled();
+      fireEvent.press(getByTestId('decree-decree-confirm'));
+      fireEvent.press(getByTestId('decree-decree-confirm'));
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
     it('renders nothing when not visible', () => {
       const onComplete = jest.fn();
       const { queryByTestId } = render(

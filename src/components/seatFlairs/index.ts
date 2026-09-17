@@ -43,6 +43,7 @@ import { MirageHeatFlair } from './MirageHeatFlair';
 import { MistVeilFlair } from './MistVeilFlair';
 import { MoonBeamFlair } from './MoonBeamFlair';
 import { NightGlowFlair } from './NightGlowFlair';
+import { NightSanctumFlair } from './NightSanctumFlair';
 import { ObsidianPulseFlair } from './ObsidianPulseFlair';
 import { OceanWaveFlair } from './OceanWaveFlair';
 import { PetalDanceFlair } from './PetalDanceFlair';
@@ -88,6 +89,7 @@ interface SeatFlairConfig {
  */
 function buildFlairRegistry(): Partial<Record<FlairId, SeatFlairConfig>> {
   const staticEntries = {
+    nightSanctum: { name: '永夜圣域', Component: NightSanctumFlair },
     emberGlow: { name: '余烬微光', Component: EmberGlowFlair },
     frostAura: { name: '寒霜气场', Component: FrostAuraFlair },
     shadowMist: { name: '暗影迷雾', Component: ShadowMistFlair },

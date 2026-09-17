@@ -75,13 +75,15 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
         {heroEffectRarity && (
           <Text style={[styles.effectHeroRarity, { color: RARITY_VISUAL[heroEffectRarity].color }]}>
             {'★'.repeat(
-              heroEffectRarity === 'legendary'
-                ? 4
-                : heroEffectRarity === 'epic'
-                  ? 3
-                  : heroEffectRarity === 'rare'
-                    ? 2
-                    : 1,
+              heroEffectRarity === 'mythic'
+                ? 5
+                : heroEffectRarity === 'legendary'
+                  ? 4
+                  : heroEffectRarity === 'epic'
+                    ? 3
+                    : heroEffectRarity === 'rare'
+                      ? 2
+                      : 1,
             )}{' '}
             {RARITY_VISUAL[heroEffectRarity].label}
           </Text>

@@ -61,8 +61,8 @@ Introduce gacha mechanism:
 **File**: `packages/game-engine/src/product/rewards/catalog.ts`
 
 - 6 item types: avatar, frame, seat flair, name style, role-reveal effect, and seat animation
-- `REWARD_POOL`: 1018 drawable items, `RewardItem { type, id, rarity }`
-- 4 rarities: Common(500) / Rare(250) / Epic(219) / Legendary(49)
+- `REWARD_POOL`: 1025 drawable items, `RewardItem { type, id, rarity }`
+- 5 rarities: Common(500) / Rare(250) / Epic(220) / Legendary(49) / Mythic(6)
 
 ### 2.2 Random Selection
 
@@ -143,7 +143,7 @@ CREATE TABLE draw_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL REFERENCES users(id),
   draw_type TEXT NOT NULL,        -- 'normal' | 'golden'
-  rarity TEXT NOT NULL,           -- 'common' | 'rare' | 'epic' | 'legendary'
+  rarity TEXT NOT NULL,           -- 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
   item_type TEXT NOT NULL,        -- 'avatar' | 'frame' | 'seatFlair' | 'nameStyle'
   item_id TEXT NOT NULL,
   pity_count INTEGER NOT NULL,    -- pity count at time of draw (0 = first, 9 = pity triggered)
@@ -223,7 +223,7 @@ CREATE TABLE idempotency_keys (
 `packages/game-engine/src/product/rewards/catalog.ts`:
 
 ```typescript
-export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export interface RewardItem {
   readonly type: RewardType;
@@ -266,19 +266,21 @@ export interface WerewolfSettlementEvent {
 
 | Rarity    | Probability | Description     |
 | --------- | ----------- | --------------- |
-| Common    | 84.5%       | Basic items     |
+| Common    | 83.3%       | Basic items     |
 | Rare      | 10%         | Mid quality     |
 | Epic      | 4%          | High quality    |
-| Legendary | 1.5%        | Highest quality |
+| Legendary | 2.5%        | Legendary items |
+| Mythic    | 0.2%        | Highest quality |
 
 **Golden Draw** (source: 1 ticket per level-up):
 
 | Rarity    | Probability | Description     |
 | --------- | ----------- | --------------- |
-| Common    | 69%         | Basic items     |
+| Common    | 66.5%       | Basic items     |
 | Rare      | 20%         | Mid quality     |
 | Epic      | 8%          | High quality    |
-| Legendary | 3%          | Highest quality |
+| Legendary | 5%          | Legendary items |
+| Mythic    | 0.5%        | Highest quality |
 
 ### 4.2 Pity Mechanism
 
@@ -291,8 +293,9 @@ export interface WerewolfSettlementEvent {
 
 - +1 after each draw (regardless of result)
 - Resets to 0 when drawing above the pity threshold rarity
-- Normal draw: drawing Rare/Epic/Legendary → reset
-- Golden draw: drawing Epic/Legendary → reset
+- Normal draw: drawing Rare/Epic/Legendary/Mythic → reset
+- Golden draw: drawing Epic/Legendary/Mythic → reset
+- Mythic has no independent pity counter; its probability is deducted only from Common.
 - When reaching 10, pity forcibly triggers (this draw doesn't consume count, directly resets to 0)
 - **10-pull calculates pity independently per draw** (multi-pull is not rolling 10 results at once then settling together)
 
@@ -303,6 +306,7 @@ export interface WerewolfSettlementEvent {
 - New items are appended to `unlockedItems`; duplicates leave the collection unchanged
 - Shards can be exchanged for a specific catalog item through `POST /api/gacha/exchange`
 - Every rarity pool is validated at module initialization; an empty pool is a catalog error and fails fast
+- Mythic duplicates award 600 shards; exchanging one Mythic item costs 3600 shards.
 
 ### 4.4 Pure Function Implementation Location
 
@@ -313,17 +317,19 @@ export interface WerewolfSettlementEvent {
 export const PITY_THRESHOLD = 10;
 
 export const NORMAL_RATES: Record<Rarity, number> = {
-  legendary: 1.5,
+  mythic: 0.2,
+  legendary: 2.5,
   epic: 4,
   rare: 10,
-  common: 84.5,
+  common: 83.3,
 };
 
 export const GOLDEN_RATES: Record<Rarity, number> = {
-  legendary: 3,
+  mythic: 0.5,
+  legendary: 5,
   epic: 8,
   rare: 20,
-  common: 69,
+  common: 66.5,
 };
 
 // ── Core Functions ──
@@ -387,15 +393,20 @@ Scenarios to cover:
 
 ### 5.1 Overview
 
-| Type                | Total    | Legendary | Epic    | Rare    | Common  |
-| ------------------- | -------- | --------- | ------- | ------- | ------- |
-| Avatars             | 196      | 11        | 35      | 50      | 100     |
-| Frames              | 200      | 11        | 39      | 50      | 100     |
-| Seat flairs         | 210      | 7         | 53      | 50      | 100     |
-| Name styles         | 200      | 4         | 46      | 50      | 100     |
-| Role-reveal effects | 12       | 6         | 6       | 0       | 0       |
-| Seat animations     | 200      | 10        | 40      | 50      | 100     |
-| **Total**           | **1018** | **49**    | **219** | **250** | **500** |
+| Type                | Total    | Mythic | Legendary | Epic    | Rare    | Common  |
+| ------------------- | -------- | ------ | --------- | ------- | ------- | ------- |
+| Avatars             | 198      | 1      | 11        | 36      | 50      | 100     |
+| Frames              | 201      | 1      | 11        | 39      | 50      | 100     |
+| Seat flairs         | 211      | 1      | 7         | 53      | 50      | 100     |
+| Name styles         | 201      | 1      | 4         | 46      | 50      | 100     |
+| Role-reveal effects | 13       | 1      | 6         | 6       | 0       | 0       |
+| Seat animations     | 201      | 1      | 10        | 40      | 50      | 100     |
+| **Total**           | **1025** | **6**  | **49**    | **220** | **250** | **500** |
+
+Mythic collection **永夜加冕** contains six independently equippable rewards:
+`nightSovereign` (永夜君主), `eternalCrown` (永夜王冠), `nightSanctum` (永夜圣域),
+`sovereignName` (王权真名), `fateDecree` (命运敕令, with 永夜渡鸦 companion),
+and `throneArrival` (王座降临). The supplied portrait is packaged as native PNG and WebP assets.
 
 > `REWARD_POOL` in `packages/game-engine/src/product/rewards/catalog.ts` is authoritative. Contract
 > tests verify both the total and per-rarity distribution.

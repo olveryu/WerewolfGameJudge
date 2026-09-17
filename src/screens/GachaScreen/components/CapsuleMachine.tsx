@@ -15,6 +15,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { RARITY_VISUAL } from '@/config/rarityVisual';
+
 import {
   BALL_COLORS,
   BODY_B,
@@ -70,12 +72,13 @@ const SKIA_DIAL_HIGHLIGHT = Skia.Color(MACHINE.dialHighlight);
 const SKIA_DIAL_KNOB = Skia.Color(MACHINE.dialKnob);
 const SKIA_DIAL_STROKE = Skia.Color(MACHINE.dialStroke);
 
-// Rarity glow colors (indexed 0-3: common, rare, epic, legendary)
+// Rarity glow colors (common, rare, epic, legendary, mythic).
 const RARITY_GLOW_COLORS = [
   Skia.Color('rgba(158,158,158,0.5)'),
   Skia.Color('rgba(74,144,217,0.6)'),
   Skia.Color('rgba(155,89,182,0.7)'),
   Skia.Color('rgba(245,166,35,0.8)'),
+  Skia.Color(RARITY_VISUAL.mythic.glow),
 ];
 
 // Pre-allocated colors used inside scenePicture worklet
@@ -93,7 +96,9 @@ const SKIA_DOME_BOTTOM_ARC = Skia.Color('rgba(255,255,255,0.06)');
 /** Imperative handle for the gacha machine component. */
 export interface CapsuleMachineRef {
   startAnimation: (drawType: 'normal' | 'golden', count: number) => void;
-  setResults: (rarities: string[]) => void;
+  setResults: (
+    rarities: readonly import('@game-judge/game-engine/product/rewards').Rarity[],
+  ) => void;
   cancelAnimation: () => void;
 }
 

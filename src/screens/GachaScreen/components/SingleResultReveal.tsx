@@ -13,6 +13,7 @@ import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -35,6 +36,7 @@ import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 // ─── Constants ──────────────────────────────────────────────────────────
 
 const PREVIEW_SIZES: Record<Rarity, number> = {
+  mythic: 140,
   common: 80,
   rare: 100,
   epic: 120,
@@ -42,6 +44,7 @@ const PREVIEW_SIZES: Record<Rarity, number> = {
 };
 
 const BORDER_WIDTHS: Record<Rarity, number> = {
+  mythic: 3,
   common: 1,
   rare: 2,
   epic: 2,
@@ -134,6 +137,7 @@ export function SingleResultReveal({
         );
         break;
 
+      case 'mythic':
       case 'legendary':
         cardTranslateY.value = -80;
         cardOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
@@ -155,6 +159,11 @@ export function SingleResultReveal({
         );
         break;
     }
+    return () => {
+      [cardScale, cardOpacity, cardTranslateY, glowOpacity, glowScale, cardGlowPulse].forEach(
+        cancelAnimation,
+      );
+    };
   }, [
     rarity,
     reducedMotion,
@@ -177,7 +186,7 @@ export function SingleResultReveal({
   }));
 
   // ── Overlay background color ──
-  const isEpicOrLegendary = rarity === 'epic' || rarity === 'legendary';
+  const isEpicOrLegendary = rarity === 'epic' || rarity === 'legendary' || rarity === 'mythic';
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onDismiss}>
@@ -194,7 +203,15 @@ export function SingleResultReveal({
         )}
 
         {/* Light pillar for legendary */}
-        {rarity === 'legendary' && <Animated.View style={[styles.lightPillar, glowAnimStyle]} />}
+        {(rarity === 'legendary' || rarity === 'mythic') && (
+          <Animated.View
+            style={[
+              styles.lightPillar,
+              { backgroundColor: withAlpha(visual.color, 0.5) },
+              glowAnimStyle,
+            ]}
+          />
+        )}
 
         {/* Card */}
         <Animated.View
@@ -218,7 +235,7 @@ export function SingleResultReveal({
             style={[
               styles.rarityBadge,
               { backgroundColor: visual.color },
-              rarity === 'legendary' && styles.rarityBadgeLegendary,
+              (rarity === 'legendary' || rarity === 'mythic') && styles.rarityBadgeLegendary,
             ]}
           >
             <Text style={styles.rarityBadgeText}>{visual.label}</Text>

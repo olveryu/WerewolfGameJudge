@@ -20,7 +20,7 @@ interface RarityVisual {
 }
 
 /** Rarity display order from highest to lowest */
-export const RARITY_ORDER: Rarity[] = ['legendary', 'epic', 'rare', 'common'];
+export const RARITY_ORDER: Rarity[] = ['mythic', 'legendary', 'epic', 'rare', 'common'];
 
 const mkVisual = (color: string, glow: string, label: string): RarityVisual => ({
   color,
@@ -30,6 +30,7 @@ const mkVisual = (color: string, glow: string, label: string): RarityVisual => (
 });
 
 export const RARITY_VISUAL: Record<Rarity, RarityVisual> = {
+  mythic: mkVisual('#C73D5C', 'rgba(199,61,92,0.5)', '神话'),
   common: mkVisual('#9E9E9E', 'rgba(158,158,158,0.3)', '普通'),
   rare: mkVisual('#4A90D9', 'rgba(74,144,217,0.4)', '稀有'),
   epic: mkVisual('#9B59B6', 'rgba(155,89,182,0.5)', '史诗'),
@@ -51,6 +52,13 @@ interface RarityCellConfig {
  * Colors derived from RARITY_VISUAL to stay in sync with rarity theme.
  */
 const RARITY_CELL: Record<Exclude<Rarity, 'common'>, RarityCellConfig> = {
+  mythic: {
+    gradientColors: [
+      withAlpha(RARITY_VISUAL.mythic.color, 0.08),
+      withAlpha(RARITY_VISUAL.mythic.color, 0.3),
+    ],
+    glow: { boxShadow: `0px 0px 12px ${withAlpha(RARITY_VISUAL.mythic.color, 0.3)}` },
+  },
   rare: {
     gradientColors: [
       withAlpha(RARITY_VISUAL.rare.color, 0.03),
@@ -98,9 +106,15 @@ export function getRaritySelectedStyle(rarity: Rarity | null): ViewStyle {
   return { borderColor: color, backgroundColor: withAlpha(color, 0.08) };
 }
 
-const RARITY_INDEX: Record<Rarity, number> = { legendary: 0, epic: 1, rare: 2, common: 3 };
+const RARITY_INDEX: Record<Rarity, number> = {
+  mythic: 0,
+  legendary: 1,
+  epic: 2,
+  rare: 3,
+  common: 4,
+};
 
 /** Compare two rarities in descending order (legendary first). Stable for equal. */
 export function compareByRarity(a: Rarity | null, b: Rarity | null): number {
-  return (RARITY_INDEX[a ?? 'common'] ?? 3) - (RARITY_INDEX[b ?? 'common'] ?? 3);
+  return RARITY_INDEX[a ?? 'common'] - RARITY_INDEX[b ?? 'common'];
 }

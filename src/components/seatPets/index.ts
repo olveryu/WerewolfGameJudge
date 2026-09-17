@@ -21,6 +21,7 @@ import { FilmBugPet } from './FilmBugPet';
 import { HoundPet } from './HoundPet';
 import { LuckyStarPet } from './LuckyStarPet';
 import { MeteorBuddyPet } from './MeteorBuddyPet';
+import { NightRavenPet } from './NightRavenPet';
 import type { PetProps } from './PetProps';
 import { ScratchCatPet } from './ScratchCatPet';
 import { SealBeastPet } from './SealBeastPet';
@@ -38,6 +39,7 @@ interface SeatPetConfig {
  * Adding a new ID to ROLE_REVEAL_EFFECT_IDS without adding it here causes a TS compile error.
  */
 const PET_REGISTRY: Record<RoleRevealEffectId, SeatPetConfig> = {
+  fateDecree: { name: '永夜渡鸦', Component: NightRavenPet },
   roulette: { name: '骰灵', Component: DicePet },
   roleHunt: { name: '猎犬', Component: HoundPet },
   scratch: { name: '刮刮猫', Component: ScratchCatPet },

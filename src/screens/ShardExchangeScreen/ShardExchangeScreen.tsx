@@ -73,6 +73,7 @@ type RarityFilter = 'all' | Rarity;
 
 const RARITY_FILTERS: readonly { key: RarityFilter; label: string }[] = [
   { key: 'all', label: '全部' },
+  { key: 'mythic', label: '神话' },
   { key: 'legendary', label: '传说' },
   { key: 'epic', label: '史诗' },
   { key: 'rare', label: '稀有' },

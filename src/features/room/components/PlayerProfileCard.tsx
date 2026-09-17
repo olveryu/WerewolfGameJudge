@@ -176,7 +176,7 @@ const EquipmentSlot: React.FC<{
 }> = memo(({ slot, children }) => {
   const isEmpty = !slot.name;
   const visual = slot.rarity ? RARITY_VISUAL[slot.rarity] : null;
-  const isLegendary = slot.rarity === 'legendary';
+  const isLegendary = slot.rarity === 'legendary' || slot.rarity === 'mythic';
 
   return (
     <View

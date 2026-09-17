@@ -1,36 +1,53 @@
 import type { Rarity } from '../catalog';
-import { REWARD_POOL } from '../catalog';
+import { REWARD_POOL, REWARD_TYPES, SHARD_COSTS } from '../catalog';
 import { GOLDEN_RATES, NORMAL_RATES, PITY_THRESHOLD, rollRarity, selectReward } from '../gacha';
 
 describe('gachaProbability', () => {
   // ── rollRarity ──────────────────────────────────────────────────────────
 
   describe('rollRarity', () => {
+    it.each(['normal', 'golden'] as const)(
+      'resets %s pity on mythic and keeps its boundary exclusive',
+      (drawType) => {
+        const mythicRate = drawType === 'normal' ? 0.2 : 0.5;
+        expect(rollRarity(drawType, 5, 0)).toEqual({ rarity: 'mythic', pityReset: true });
+        expect(rollRarity(drawType, 9, mythicRate - 0.001)).toEqual({
+          rarity: 'mythic',
+          pityReset: true,
+        });
+        expect(rollRarity(drawType, 0, mythicRate).rarity).toBe('legendary');
+      },
+    );
+
     it('should return correct rarity boundaries for normal draw', () => {
-      // legendary: 0–2.5, epic: 2.5–6.5, rare: 6.5–16.5, common: 16.5–100
-      expect(rollRarity('normal', 0, 0).rarity).toBe('legendary');
-      expect(rollRarity('normal', 0, 2.4).rarity).toBe('legendary');
-      expect(rollRarity('normal', 0, 2.5).rarity).toBe('epic');
-      expect(rollRarity('normal', 0, 6.4).rarity).toBe('epic');
-      expect(rollRarity('normal', 0, 6.5).rarity).toBe('rare');
-      expect(rollRarity('normal', 0, 16.4).rarity).toBe('rare');
-      expect(rollRarity('normal', 0, 16.5).rarity).toBe('common');
+      expect(rollRarity('normal', 0, 0).rarity).toBe('mythic');
+      expect(rollRarity('normal', 0, 2.6).rarity).toBe('legendary');
+      expect(rollRarity('normal', 0, 2.7).rarity).toBe('epic');
+      expect(rollRarity('normal', 0, 6.6).rarity).toBe('epic');
+      expect(rollRarity('normal', 0, 6.7).rarity).toBe('rare');
+      expect(rollRarity('normal', 0, 16.6).rarity).toBe('rare');
+      expect(rollRarity('normal', 0, 16.7).rarity).toBe('common');
       expect(rollRarity('normal', 0, 99.9).rarity).toBe('common');
     });
 
     it('should return correct rarity boundaries for golden draw', () => {
-      // legendary: 0–5, epic: 5–13, rare: 13–33, common: 33–100
-      expect(rollRarity('golden', 0, 0).rarity).toBe('legendary');
-      expect(rollRarity('golden', 0, 4.9).rarity).toBe('legendary');
-      expect(rollRarity('golden', 0, 5).rarity).toBe('epic');
-      expect(rollRarity('golden', 0, 12.9).rarity).toBe('epic');
-      expect(rollRarity('golden', 0, 13).rarity).toBe('rare');
-      expect(rollRarity('golden', 0, 32.9).rarity).toBe('rare');
-      expect(rollRarity('golden', 0, 33).rarity).toBe('common');
+      expect(rollRarity('golden', 0, 0).rarity).toBe('mythic');
+      expect(rollRarity('golden', 0, 5.4).rarity).toBe('legendary');
+      expect(rollRarity('golden', 0, 5.5).rarity).toBe('epic');
+      expect(rollRarity('golden', 0, 13.4).rarity).toBe('epic');
+      expect(rollRarity('golden', 0, 13.5).rarity).toBe('rare');
+      expect(rollRarity('golden', 0, 33.4).rarity).toBe('rare');
+      expect(rollRarity('golden', 0, 33.5).rarity).toBe('common');
     });
 
     it('normal distribution should match rates within 1% over 100k trials', () => {
-      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const counts: Record<Rarity, number> = {
+        common: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+      };
       const N = 100_000;
       for (let i = 0; i < N; i++) {
         const val = (i / N) * 100; // evenly distributed [0, 100)
@@ -44,7 +61,13 @@ describe('gachaProbability', () => {
     });
 
     it('golden distribution should match rates within 1% over 100k trials', () => {
-      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const counts: Record<Rarity, number> = {
+        common: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+      };
       const N = 100_000;
       for (let i = 0; i < N; i++) {
         const val = (i / N) * 100;
@@ -67,7 +90,13 @@ describe('gachaProbability', () => {
     });
 
     it('normal pity should clamp to rare without inflating legendary rate', () => {
-      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const counts: Record<Rarity, number> = {
+        common: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+      };
       const N = 100_000;
       for (let i = 0; i < N; i++) {
         const val = (i / N) * 100;
@@ -88,13 +117,19 @@ describe('gachaProbability', () => {
       for (let i = 0; i < 1000; i++) {
         const val = (i / 1000) * 100;
         const { rarity, pityReset } = rollRarity('golden', PITY_THRESHOLD - 1, val);
-        expect(rarity === 'epic' || rarity === 'legendary').toBe(true);
+        expect(['epic', 'legendary', 'mythic']).toContain(rarity);
         expect(pityReset).toBe(true);
       }
     });
 
     it('golden pity should clamp to epic without inflating legendary rate', () => {
-      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const counts: Record<Rarity, number> = {
+        common: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+      };
       const N = 100_000;
       for (let i = 0; i < N; i++) {
         const val = (i / N) * 100;
@@ -129,7 +164,7 @@ describe('gachaProbability', () => {
     });
 
     it('golden: rolling epic resets pity', () => {
-      const { pityReset } = rollRarity('golden', 5, 5); // epic range
+      const { pityReset } = rollRarity('golden', 5, 6);
       expect(pityReset).toBe(true);
     });
 
@@ -144,6 +179,21 @@ describe('gachaProbability', () => {
   // ── selectReward ────────────────────────────────────────────────────────
 
   describe('selectReward', () => {
+    it('offers one mythic of each type and compensates duplicates', () => {
+      const mythicPool = REWARD_POOL.filter((item) => item.rarity === 'mythic');
+      expect(mythicPool.map((item) => item.type).sort()).toEqual([...REWARD_TYPES].sort());
+      mythicPool.forEach((reward, index) => {
+        expect(
+          selectReward('mythic', new Set([reward.id]), () => (index + 0.5) / mythicPool.length),
+        ).toEqual({
+          reward,
+          isDuplicate: true,
+          shardsAwarded: 600,
+        });
+      });
+      expect(SHARD_COSTS.mythic).toBe(3600);
+    });
+
     const deterministicRandom = () => 0; // always pick first
 
     it('should return item of target rarity', () => {
@@ -187,15 +237,22 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(1019);
+      expect(REWARD_POOL.length).toBe(1025);
     });
 
     it('should have correct rarity distribution', () => {
-      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const counts: Record<Rarity, number> = {
+        common: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+      };
       for (const item of REWARD_POOL) {
         counts[item.rarity]++;
       }
       expect(counts.legendary).toBe(49);
+      expect(counts.mythic).toBe(6);
       expect(counts.epic).toBe(220);
       expect(counts.rare).toBe(250);
       expect(counts.common).toBe(500);
@@ -204,7 +261,8 @@ describe('gachaProbability', () => {
     it('should have correct per-type rarity distribution', () => {
       const byType: Record<string, Record<Rarity, number>> = {};
       for (const item of REWARD_POOL) {
-        if (!byType[item.type]) byType[item.type] = { common: 0, rare: 0, epic: 0, legendary: 0 };
+        if (!byType[item.type])
+          byType[item.type] = { common: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
         byType[item.type]![item.rarity]++;
       }
       // Avatars: L11/E36/R50/C100 = 197

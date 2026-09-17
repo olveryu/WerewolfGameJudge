@@ -21,6 +21,7 @@ import { SpiritSummon } from './legendary/SpiritSummon';
 import { WitchBrew } from './legendary/WitchBrew';
 import { WolfKingEntry } from './legendary/WolfKingEntry';
 import type { SeatAnimationProps } from './SeatAnimationProps';
+import { ThroneArrival } from './ThroneArrival';
 
 interface SeatAnimationConfig {
   /** Chinese display name */
@@ -37,6 +38,7 @@ interface SeatAnimationConfig {
  */
 function buildAnimationRegistry(): Partial<Record<SeatAnimationId, SeatAnimationConfig>> {
   const legendaryEntries = {
+    throneArrival: { name: '王座降临', Component: ThroneArrival },
     wolfKingEntry: { name: '狼王登场', Component: WolfKingEntry },
     witchBrew: { name: '女巫秘药', Component: WitchBrew },
     seerVision: { name: '预言之眼', Component: SeerVision },

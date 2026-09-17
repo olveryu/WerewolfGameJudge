@@ -18,7 +18,7 @@ export const REWARD_TYPES = [
 export type RewardType = (typeof REWARD_TYPES)[number];
 
 /** Rarity tiers used by runtime schemas and compile-time contracts. */
-export const RARITIES = ['common', 'rare', 'epic', 'legendary'] as const;
+export const RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic'] as const;
 export type Rarity = (typeof RARITIES)[number];
 
 /** Single unlockable item entry. */
@@ -35,6 +35,7 @@ export interface RewardItem {
 // prettier-ignore
 /** Hand-drawn avatar IDs (47, Rare+ tier) */
 const HAND_DRAWN_AVATAR_IDS = [
+  'nightSovereign',
   'avenger',
   'awakenedGargoyle',
   'bloodMoon',
@@ -126,6 +127,7 @@ export const LEGENDARY_FRAME_IDS: ReadonlySet<string> = new Set([
 /** All frame IDs (1:1 with `avatarFrames/index.ts` component registry). */
 // prettier-ignore
 export const FRAME_IDS = [
+  'eternalCrown',
   // Epic (39) — hand-crafted themed SVG frames
   'ironForge',
   'moonSilver',
@@ -215,6 +217,7 @@ export const FRAME_IDS = [
 /** All seat flair IDs (1:1 with `seatFlairs/index.ts` component registry). */
 // prettier-ignore
 export const SEAT_FLAIR_IDS = [
+  'nightSanctum',
   // Epic (53) — hand-crafted themed SVG flair
   'emberGlow',
   'frostAura',
@@ -314,6 +317,7 @@ export const SEAT_FLAIR_IDS = [
 /** All name style IDs (1:1 with `nameStyles/index.ts` config registry). */
 // prettier-ignore
 export const NAME_STYLE_IDS = [
+  'sovereignName',
   // Epic (46) — hand-crafted gradient text
   'silverGleam',
   'copperEmber',
@@ -403,6 +407,7 @@ export const NAME_STYLE_IDS = [
 /** All role-reveal effect IDs available to the reveal-animation policy. */
 // prettier-ignore
 export const ROLE_REVEAL_EFFECT_IDS = [
+  'fateDecree',
   'roulette',
   'roleHunt',
   'scratch',
@@ -420,6 +425,7 @@ export const ROLE_REVEAL_EFFECT_IDS = [
 /** All seat-animation IDs (1:1 with `seatAnimations/index.ts` component registry). */
 // prettier-ignore
 export const SEAT_ANIMATION_IDS = [
+  'throneArrival',
   // Epic (40) — hand-crafted themed entrance animations
   'wolfClawEnter',
   'moonriseEnter',
@@ -550,6 +556,7 @@ export const FREE_SEAT_ANIMATION_IDS: ReadonlySet<string> = new Set<string>();
 
 /** Avatar rarity mapping */
 const AVATAR_RARITY: Record<string, Rarity> = {
+  nightSovereign: 'mythic',
   // Legendary (11)
   darkWolfKing: 'legendary',
   nightmare: 'legendary',
@@ -606,6 +613,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
 
 /** Frame rarity mapping */
 const FRAME_RARITY: Record<string, Rarity> = {
+  eternalCrown: 'mythic',
   // Legendary (11)
   starNebula: 'legendary',
   celestialRing: 'legendary',
@@ -714,6 +722,7 @@ const FRAME_RARITY: Record<string, Rarity> = {
 
 /** Seat flair rarity mapping */
 const FLAIR_RARITY: Record<string, Rarity> = {
+  nightSanctum: 'mythic',
   // Legendary (7)
   runeCircle: 'legendary',
   prismShard: 'legendary',
@@ -832,6 +841,7 @@ const FLAIR_RARITY: Record<string, Rarity> = {
 
 /** Role-reveal effect rarity mapping — 6 legendary + 6 epic (tiered by implementation complexity) */
 const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
+  fateDecree: 'mythic',
   // Legendary (6) — complex interactions / multi-stage sequences
   roleHunt: 'legendary',
   sealBreak: 'legendary',
@@ -850,6 +860,7 @@ const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
 
 /** Name style rarity mapping */
 const NAME_STYLE_RARITY: Record<string, Rarity> = {
+  sovereignName: 'mythic',
   // Legendary (4)
   celestialDawn: 'legendary',
   voidStar: 'legendary',
@@ -959,6 +970,7 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
 // prettier-ignore
 /** Seat-animation rarity mapping */
 const SEAT_ANIMATION_RARITY: Record<string, Rarity> = {
+  throneArrival: 'mythic',
   // Legendary (10)
   wolfKingEntry: 'legendary', witchBrew: 'legendary', seerVision: 'legendary',
   hunterShot: 'legendary', guardShield: 'legendary', nightFall: 'legendary',
@@ -1094,6 +1106,7 @@ export const REWARD_POOL_BY_ID = createRewardIndex(REWARD_POOL, 'reward pool');
 
 /** Shard count awarded when drawing a duplicate item */
 export const SHARD_VALUES: Readonly<Record<Rarity, number>> = {
+  mythic: 600,
   common: 5,
   rare: 15,
   epic: 50,
@@ -1102,6 +1115,7 @@ export const SHARD_VALUES: Readonly<Record<Rarity, number>> = {
 
 /** Shard cost to redeem a specific item */
 export const SHARD_COSTS: Readonly<Record<Rarity, number>> = {
+  mythic: 3600,
   common: 30,
   rare: 90,
   epic: 300,

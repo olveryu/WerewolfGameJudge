@@ -5,6 +5,7 @@
  * Runs entirely on the UI thread (useFrameCallback), zero bridge latency.
  * Physics parameters ported 1:1 from the gacha-capsule-v5.html prototype.
  */
+import type { Rarity } from '@game-judge/game-engine/product/rewards';
 import { useCallback, useEffect } from 'react';
 import { useAnimatedReaction, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -799,10 +800,15 @@ function physicsTick(
   );
 
   const setResults = useCallback(
-    (rarities: string[]) => {
-      // Encode rarities as numbers: common=0, rare=1, epic=2, legendary=3
-      const RARITY_MAP: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
-      resultRarities.value = rarities.map((r) => RARITY_MAP[r] ?? 0);
+    (rarities: readonly Rarity[]) => {
+      const RARITY_MAP: Record<Rarity, number> = {
+        common: 0,
+        rare: 1,
+        epic: 2,
+        legendary: 3,
+        mythic: 4,
+      };
+      resultRarities.value = rarities.map((rarity) => RARITY_MAP[rarity]);
       resultsReady.value = 1;
     },
     [resultRarities, resultsReady],

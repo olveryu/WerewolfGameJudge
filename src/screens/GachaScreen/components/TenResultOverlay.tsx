@@ -84,7 +84,7 @@ function ResultCell({
       opacity.value = withDelay(baseDelay, withTiming(1, { duration: 300 }));
 
       // Breathing glow for legendary
-      if (item.rarity === 'legendary') {
+      if (item.rarity === 'legendary' || item.rarity === 'mythic') {
         glowPulse.value = withDelay(
           baseDelay + 400,
           withRepeat(withTiming(0.6, { duration: 1200 }), -1, true),
@@ -188,7 +188,10 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
           >
             {groups.map((group) => {
               const visual = RARITY_VISUAL[group.rarity];
-              const isHighGroup = group.rarity === 'legendary' || group.rarity === 'epic';
+              const isHighGroup =
+                group.rarity === 'mythic' ||
+                group.rarity === 'legendary' ||
+                group.rarity === 'epic';
               return (
                 <View key={group.rarity}>
                   <View style={styles.groupHeader}>

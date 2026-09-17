@@ -115,7 +115,7 @@ async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string
  * - xp / games_played / draws: sum
  * - pity: max (preserve progress toward guaranteed)
  * - unlocked_items: union; duplicates compensated as draw tickets
- *   (legendary → 1 golden, others → 1 normal)
+ *   (legendary/mythic → 1 golden, others → 1 normal)
  * - version: max + 1
  * - draw_history: re-assign to target user
  */
@@ -173,7 +173,7 @@ async function mergeUserStats(
   for (const id of sourceItems) {
     if (targetSet.has(id)) {
       // Duplicate — compensate with draw ticket
-      if (getItemRarity(id) === 'legendary') {
+      if (getItemRarity(id) === 'legendary' || getItemRarity(id) === 'mythic') {
         goldenCompensation++;
       } else {
         normalCompensation++;

@@ -21,24 +21,27 @@ export const PITY_THRESHOLD = 10;
 
 /** Normal draw probabilities (%), total = 100 */
 export const NORMAL_RATES: Readonly<Record<Rarity, number>> = {
+  mythic: 0.2,
   legendary: 2.5,
   epic: 4,
   rare: 10,
-  common: 83.5,
+  common: 83.3,
 };
 
 /** Golden draw probabilities (%), total = 100 */
 export const GOLDEN_RATES: Readonly<Record<Rarity, number>> = {
+  mythic: 0.5,
   legendary: 5,
   epic: 8,
   rare: 20,
-  common: 67,
+  common: 66.5,
 };
 
 /** Rarity order used to enforce the pity floor. */
-const RARITY_ORDER: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+const RARITY_ORDER: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 
 const REWARD_POOLS_BY_RARITY: Readonly<Record<Rarity, readonly RewardItem[]>> = {
+  mythic: REWARD_POOL.filter((item) => item.rarity === 'mythic'),
   common: REWARD_POOL.filter((item) => item.rarity === 'common'),
   rare: REWARD_POOL.filter((item) => item.rarity === 'rare'),
   epic: REWARD_POOL.filter((item) => item.rarity === 'epic'),
@@ -91,7 +94,7 @@ export function rollRarity(
 
   // Determine whether to reset pity
   const resetsNormalPity = rarity !== 'common'; // Rare/Epic/Legendary reset
-  const resetsGoldenPity = rarity === 'epic' || rarity === 'legendary';
+  const resetsGoldenPity = RARITY_ORDER.indexOf(rarity) >= RARITY_ORDER.indexOf('epic');
   const pityReset = drawType === 'golden' ? resetsGoldenPity : resetsNormalPity;
 
   return { rarity, pityReset };
@@ -134,6 +137,8 @@ export function selectReward(
 /** Roll using full probability table */
 function rollFromRates(rates: Readonly<Record<Rarity, number>>, value: number): Rarity {
   let cumulative = 0;
+  cumulative += rates.mythic;
+  if (value < cumulative) return 'mythic';
   cumulative += rates.legendary;
   if (value < cumulative) return 'legendary';
   cumulative += rates.epic;

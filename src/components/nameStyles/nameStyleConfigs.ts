@@ -7,13 +7,19 @@
  * - Native: solid color + textShadow (gradient/animation degraded)
  */
 
-import { NAME_STYLE_IDS, type NameStyleId } from '@game-judge/game-engine/product/rewards';
+import {
+  NAME_STYLE_IDS,
+  type NameStyleId,
+  type Rarity,
+} from '@game-judge/game-engine/product/rewards';
+
+import { MYTHIC_COLORS } from '@/config/mythicVisual';
 
 import { COMMON_NAME_STYLE_CONFIGS, RARE_NAME_STYLE_CONFIGS } from './common';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type NameStyleTier = 'common' | 'rare' | 'epic' | 'legendary';
+export type NameStyleTier = Rarity;
 
 export interface TextShadowLayer {
   offsetX: number;
@@ -64,6 +70,31 @@ export interface NameStyleConfig {
 // ── Configs ─────────────────────────────────────────────────────────────────
 
 const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
+  sovereignName: {
+    id: 'sovereignName',
+    name: '王权真名',
+    tier: 'mythic',
+    color: MYTHIC_COLORS.pearl,
+    textShadows: [
+      { offsetX: -0.7, offsetY: 0, blur: 0, color: MYTHIC_COLORS.enamel },
+      { offsetX: 0.7, offsetY: 0, blur: 0, color: MYTHIC_COLORS.enamel },
+      { offsetX: 0, offsetY: 0.7, blur: 1, color: MYTHIC_COLORS.enamel },
+    ],
+    gradient: {
+      stops: `${MYTHIC_COLORS.crimson} 0%, ${MYTHIC_COLORS.enamel} 38%, ${MYTHIC_COLORS.silver} 46%, ${MYTHIC_COLORS.pearl} 50%, ${MYTHIC_COLORS.silver} 54%, ${MYTHIC_COLORS.enamel} 62%, ${MYTHIC_COLORS.crimson} 100%`,
+      backgroundSize: '300% 100%',
+      dropShadow: `drop-shadow(0 1px 1px ${MYTHIC_COLORS.enamel})`,
+    },
+    animations: [
+      {
+        name: 'sovereignNameSweep',
+        duration: '7s',
+        timing: 'ease-in-out',
+        keyframes:
+          '0%, 65% { background-position: 100% 50%; } 90%, 100% { background-position: 0% 50%; }',
+      },
+    ],
+  },
   // ══════════════════════════════════════════════════════════════════════════
   // EPIC (46) — static gradient text, no animation
   // ══════════════════════════════════════════════════════════════════════════
