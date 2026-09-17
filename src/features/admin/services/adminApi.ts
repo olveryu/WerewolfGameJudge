@@ -18,7 +18,7 @@ import {
   parseAdminStatsResponse,
   parseAdminUsersResponse,
 } from '@/features/admin/services/adminResponseCodec';
-import { createTimeoutSignal } from '@/utils/abortSignal';
+import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -33,6 +33,7 @@ async function adminFetch<T>(
   path: string,
   parseResponse: (value: unknown) => T,
   query?: Record<string, string>,
+  signal?: AbortSignal,
 ): Promise<T> {
   const url = new URL(`${API_BASE_URL}${path}`);
   if (query) {
@@ -41,14 +42,19 @@ async function adminFetch<T>(
     }
   }
 
-  const resp = await fetch(url.toString(), {
-    headers: { 'X-Admin-Token': getAdminToken() },
-    signal: createTimeoutSignal(API_TIMEOUT_MS),
-  });
-
-  const body: unknown = await resp.json();
-  if (!resp.ok) throw new AdminApiError(resp.status, parseAdminErrorResponse(body));
-  return parseResponse(body);
+  const timeoutSignal = createTimeoutSignal(API_TIMEOUT_MS);
+  const composed = composeAbortSignals(signal ? [signal, timeoutSignal] : [timeoutSignal]);
+  try {
+    const resp = await fetch(url.toString(), {
+      headers: { 'X-Admin-Token': getAdminToken() },
+      signal: composed.signal,
+    });
+    const body: unknown = await resp.json();
+    if (!resp.ok) throw new AdminApiError(resp.status, parseAdminErrorResponse(body));
+    return parseResponse(body);
+  } finally {
+    composed.dispose();
+  }
 }
 
 /**
@@ -103,16 +109,21 @@ interface FetchUsersParams {
   search?: string;
 }
 
-export function fetchUsers(params: FetchUsersParams = {}) {
-  return adminFetch('/admin/users', parseAdminUsersResponse, {
-    page: String(params.page ?? 1),
-    limit: String(params.limit ?? 50),
-    sort: params.sort ?? 'created_at',
-    order: params.order ?? 'desc',
-    ...(params.country && { country: params.country }),
-    ...(params.type && { type: params.type }),
-    ...(params.search && { search: params.search }),
-  });
+export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) {
+  return adminFetch(
+    '/admin/users',
+    parseAdminUsersResponse,
+    {
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 50),
+      sort: params.sort ?? 'created_at',
+      order: params.order ?? 'desc',
+      ...(params.country && { country: params.country }),
+      ...(params.type && { type: params.type }),
+      ...(params.search && { search: params.search }),
+    },
+    signal,
+  );
 }
 
 export function fetchRooms(params: { page?: number; limit?: number } = {}) {

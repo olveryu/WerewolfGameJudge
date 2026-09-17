@@ -4,10 +4,12 @@
  * Search + Sort AdminPills + Country/Type filter chips + Pagination FlatList.
  */
 
+import { useQuery } from '@tanstack/react-query';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import type { AdminUser } from '@/features/admin/model/adminContracts';
 import { fetchUsers } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
@@ -29,11 +31,7 @@ const TYPE_OPTIONS = [
 ] as const;
 
 export const UsersTab: React.FC = () => {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('created_at');
@@ -55,32 +53,14 @@ export const UsersTab: React.FC = () => {
     };
   }, [search]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchUsers({
-        page,
-        sort,
-        order,
-        country,
-        type,
-        search: debouncedSearch || undefined,
-      });
-      setUsers(result.users);
-      setTotal(result.total);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, sort, order, country, type, debouncedSearch]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
-
-  const totalPages = Math.ceil(total / 50);
+  const params = { page, sort, order, country, type, search: debouncedSearch || undefined };
+  const { data, isPending, isError, isFetching, refetch } = useQuery({
+    queryKey: ['adminUsers', params],
+    queryFn: ({ signal }) => fetchUsers(params, signal),
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  });
 
   const handleSortPress = useCallback(
     (key: string) => {
@@ -127,7 +107,7 @@ export const UsersTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.summary}>总用户: {total}</Text>
+      {data !== undefined && !isError && <Text style={styles.summary}>总用户: {data.total}</Text>}
 
       <TextInput
         style={styles.searchInput}
@@ -170,11 +150,18 @@ export const UsersTab: React.FC = () => {
         ))}
       </View>
 
-      {loading || error ? (
-        <AdminEmptyState loading={loading} error={error} empty={false} />
+      {isError ? (
+        <View>
+          <AdminEmptyState loading={false} error="读取用户失败，请重试" empty={false} />
+          <Button loading={isFetching} onPress={() => void refetch()}>
+            重新读取
+          </Button>
+        </View>
+      ) : data === undefined ? (
+        <AdminEmptyState loading={isPending} error={null} empty={false} />
       ) : (
         <FlatList
-          data={users}
+          data={data.users}
           keyExtractor={(item) => item.id}
           renderItem={renderUser}
           contentContainerStyle={styles.list}
@@ -182,7 +169,9 @@ export const UsersTab: React.FC = () => {
         />
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      {data !== undefined && !isError && (
+        <Pagination page={page} totalPages={Math.ceil(data.total / 50)} onPageChange={setPage} />
+      )}
     </View>
   );
 };
