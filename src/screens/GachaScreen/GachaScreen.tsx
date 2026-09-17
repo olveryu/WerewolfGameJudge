@@ -63,7 +63,14 @@ export function GachaScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuthContext();
   const isAnon = !user || user.isAnonymous;
-  const { data: status, isLoading } = useGachaStatusQuery();
+  const {
+    data: status,
+    isPending,
+    isError,
+    isFetching,
+    fetchStatus,
+    refetch,
+  } = useGachaStatusQuery();
   const { mutate: draw, isPending: isDrawPending } = useDrawMutation();
   const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
 
@@ -178,12 +185,6 @@ export function GachaScreen({ navigation }: Props) {
   const machineWidth = machineLayout.w;
   const machineHeight = machineLayout.h;
 
-  const normalDraws = status?.normalDraws ?? 0;
-  const goldenDraws = status?.goldenDraws ?? 0;
-  const normalPity = status?.normalPity ?? 0;
-  const goldenPity = status?.goldenPity ?? 0;
-  const shards = status?.shards ?? 0;
-
   const busy = isAnimating || isDrawPending;
 
   // Auto-select tab: if current tab has 0 tickets and other has some, switch
@@ -193,13 +194,6 @@ export function GachaScreen({ navigation }: Props) {
     },
     [busy],
   );
-
-  // Derive counts for active tab
-  const isGoldenTab = activeTab === 'golden';
-  const activeDraws = isGoldenTab ? goldenDraws : normalDraws;
-  const activePity = isGoldenTab ? goldenPity : normalPity;
-  const activeDrawType: 'normal' | 'golden' = activeTab;
-  const multiCount = Math.min(10, activeDraws || 10);
 
   // ── Loading ───────────────────────────────────────────────────────────
   const headerRight = (
@@ -227,7 +221,7 @@ export function GachaScreen({ navigation }: Props) {
     </View>
   );
 
-  if (isLoading) {
+  if (isAnon || status === undefined) {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <ScreenHeader
@@ -237,11 +231,49 @@ export function GachaScreen({ navigation }: Props) {
           headerRight={headerRight}
         />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          {isAnon ? (
+            <Button
+              onPress={() =>
+                navigation.navigate('AuthLogin', {
+                  loginTitle: '登录',
+                  loginSubtitle: '登录后即可抽奖',
+                })
+              }
+            >
+              登录后抽奖
+            </Button>
+          ) : isPending && fetchStatus !== 'paused' ? (
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              accessibilityLabel="正在读取资产"
+            />
+          ) : (
+            <>
+              <Text style={styles.statusMessage} accessibilityRole="alert">
+                资产读取失败，请重试
+              </Text>
+              <Button
+                onPress={() => {
+                  void refetch();
+                }}
+                loading={isFetching}
+              >
+                重新读取
+              </Button>
+            </>
+          )}
         </View>
       </SafeAreaView>
     );
   }
+
+  const { normalDraws, goldenDraws, normalPity, goldenPity, shards } = status;
+  const isGoldenTab = activeTab === 'golden';
+  const activeDraws = isGoldenTab ? goldenDraws : normalDraws;
+  const activePity = isGoldenTab ? goldenPity : normalPity;
+  const activeDrawType: 'normal' | 'golden' = activeTab;
+  const multiCount = Math.min(10, activeDraws || 10);
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
@@ -254,6 +286,23 @@ export function GachaScreen({ navigation }: Props) {
       />
 
       {/* Machine area */}
+      {isError && (
+        <View style={styles.statusBanner}>
+          <Text style={styles.statusMessage} accessibilityRole="alert">
+            刷新失败，当前显示上次读取的资产
+          </Text>
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => {
+              void refetch();
+            }}
+            loading={isFetching}
+          >
+            重新读取
+          </Button>
+        </View>
+      )}
       <View style={styles.machineArea} onLayout={handleMachineLayout}>
         {machineHeight > 0 && (
           <CapsuleMachine
@@ -359,11 +408,11 @@ export function GachaScreen({ navigation }: Props) {
 
           {/* Draw button */}
           <DrawButton
-            label={`抽 ×${isAnon ? 10 : multiCount}`}
-            disabled={!isAnon && (activeDraws < 1 || busy)}
-            onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
+            label={`抽 ×${multiCount}`}
+            disabled={activeDraws < 1 || busy}
+            onPress={() => handleDraw(activeDrawType, multiCount)}
             golden={isGoldenTab}
-            multiPullCount={isAnon ? undefined : activeDraws}
+            multiPullCount={activeDraws}
             reducedMotion={reducedMotion}
             isAnimationActive={isAmbientAnimationActive}
           />
@@ -412,6 +461,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.large,
+    gap: spacing.medium,
+  },
+  statusBanner: {
+    paddingHorizontal: spacing.screenH,
+    gap: spacing.small,
+  },
+  statusMessage: {
+    color: colors.textSecondary,
+    fontSize: typography.secondary,
+    textAlign: 'center',
   },
   machineArea: {
     flex: 1,
