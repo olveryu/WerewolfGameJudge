@@ -305,6 +305,47 @@ describe('GameRoom initialization', () => {
 });
 
 describe('GameRoom command receipts', () => {
+  it('replays reordered commands and persisted receipts without changing state', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    const request = {
+      commandId: 'reordered-seat',
+      actorUserId: 'host-1',
+      command: {
+        type: 'room.seat.take',
+        seat: 0,
+        profile: { displayName: 'Host', avatarUrl: 'https://example.com/avatar.png' },
+      },
+    } as const;
+    const first = requireCommitted(await dispatch(stub, request));
+    const replay = requireCommitted(
+      await dispatch(stub, {
+        ...request,
+        command: {
+          profile: { avatarUrl: 'https://example.com/avatar.png', displayName: 'Host' },
+          seat: 0,
+          type: 'room.seat.take',
+        },
+      }),
+    );
+    expect(replay.isReplay).toBe(true);
+    expect(replay.result).toEqual(first.result);
+
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec(
+        'UPDATE command_receipts SET request_json = ? WHERE command_id = ?',
+        JSON.stringify({
+          command: request.command,
+          controlledSeat: null,
+          actor: { userId: request.actorUserId, kind: 'user' },
+        }),
+        request.commandId,
+      );
+    });
+    expect(requireCommitted(await dispatch(stub, request))).toEqual(replay);
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(2);
+  });
+
   it('uses the authenticated actor identity and replays an identical command once', async () => {
     const stub = getStub();
     await initialize(stub);

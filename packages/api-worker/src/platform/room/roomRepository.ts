@@ -5,6 +5,7 @@ import type {
   CreateGameContext,
   GameEffect,
 } from '@game-judge/game-engine/platform/engine';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { REASON_ROOM_INITIALIZATION_CONFLICT } from '@game-judge/game-engine/platform/protocol/reasons';
@@ -163,7 +164,7 @@ function parseRoomInitialization(value: unknown): StoredRoomInitialization {
 }
 
 export function serializeCommandRequest(request: DispatchRoomCommand): string {
-  return JSON.stringify({
+  return canonicalJson({
     actor: request.actor,
     controlledSeat: request.controlledSeat,
     command: request.command,
@@ -425,7 +426,7 @@ export class RoomRepository {
       storedActorId !== actorId(request.actor) ||
       storedControlledSeat !== request.controlledSeat ||
       storedCommandType !== requestedCommandType ||
-      storedRequestJson !== requestJson
+      canonicalJson(JSON.parse(storedRequestJson)) !== requestJson
     ) {
       return 'conflict';
     }
