@@ -33,6 +33,10 @@ export const RarityFilterBar: React.FC<RarityFilterBarProps> = ({
       return (
         <Pressable
           key={rt.key}
+          accessibilityRole="button"
+          accessibilityLabel={`${rt.label}稀有度`}
+          accessibilityState={{ selected: isActive }}
+          aria-pressed={isActive}
           style={[
             styles.rarityTab,
             isActive && {

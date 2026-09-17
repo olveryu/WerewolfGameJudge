@@ -288,7 +288,12 @@ export const AppearanceScreen: React.FC = () => {
         styles={styles}
       />
 
-      <View style={styles.content}>
+      <View
+        style={styles.content}
+        nativeID="appearance-picker-panel"
+        role="tabpanel"
+        aria-labelledby={`appearance-tab-${state.activeTab}`}
+      >
         {state.activeTab === 'avatar' ? (
           <FlatList
             key="avatar"

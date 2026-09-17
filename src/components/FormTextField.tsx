@@ -6,7 +6,7 @@
  * Styles use theme tokens; contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type ComponentProps, type Ref } from 'react';
+import { type ComponentProps, type Ref, useId } from 'react';
 import {
   type StyleProp,
   StyleSheet,
@@ -27,7 +27,7 @@ interface FormTextFieldProps extends Omit<TextInputProps, 'style'> {
   variant?: 'default' | 'search';
   /** Left icon (Ionicons name); rendered inside the container for the search variant */
   icon?: ComponentProps<typeof Ionicons>['name'];
-  /** Error message (shown below the input for the default variant) */
+  /** Error message associated with the input for assistive technology. */
   error?: string;
   /** Extra style merged onto the TextInput */
   style?: StyleProp<TextStyle>;
@@ -93,18 +93,40 @@ export function FormTextField({
   ref,
   ...rest
 }: FormTextFieldProps) {
+  const errorId = useId();
+  const accessibilityProps = {
+    accessibilityLabel: rest.accessibilityLabel ?? rest.placeholder,
+    accessibilityHint: error
+      ? [rest.accessibilityHint, error].filter(Boolean).join('。')
+      : rest.accessibilityHint,
+    'aria-invalid': Boolean(error),
+    'aria-describedby': error ? errorId : undefined,
+  };
   if (variant === 'search') {
     return (
-      <View style={[styles.searchBar, containerStyle]}>
-        {icon != null && (
-          <Ionicons name={icon} size={componentSizes.icon.sm} color={colors.textMuted} />
-        )}
-        <TextInput
-          ref={ref}
-          style={[styles.searchInput, style]}
-          placeholderTextColor={placeholderTextColor ?? colors.textMuted}
-          {...rest}
-        />
+      <View>
+        <View style={[styles.searchBar, containerStyle]}>
+          {icon != null && (
+            <Ionicons name={icon} size={componentSizes.icon.sm} color={colors.textMuted} />
+          )}
+          <TextInput
+            ref={ref}
+            style={[styles.searchInput, style]}
+            placeholderTextColor={placeholderTextColor ?? colors.textMuted}
+            {...rest}
+            {...accessibilityProps}
+          />
+        </View>
+        {error ? (
+          <Text
+            nativeID={errorId}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            style={styles.errorText}
+          >
+            {error}
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -117,8 +139,18 @@ export function FormTextField({
         style={[styles.defaultInput, style]}
         placeholderTextColor={placeholderTextColor ?? colors.textSecondary}
         {...rest}
+        {...accessibilityProps}
       />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? (
+        <Text
+          nativeID={errorId}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={styles.errorText}
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

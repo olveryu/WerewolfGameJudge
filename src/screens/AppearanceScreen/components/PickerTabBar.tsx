@@ -1,7 +1,5 @@
 import type React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-
-import { fixed } from '@/theme';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import type { PickerTab } from '../types';
 import type { AppearanceScreenStyles } from './styles';
@@ -21,23 +19,60 @@ interface PickerTabBarProps {
   styles: AppearanceScreenStyles;
 }
 
+function handleKeyDown(event: React.KeyboardEvent<HTMLElement>) {
+  const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'));
+  const currentIndex = tabs.findIndex((tab) => tab === event.target);
+  if (currentIndex === -1) return;
+  let nextIndex: number;
+  switch (event.key) {
+    case 'ArrowRight':
+      nextIndex = (currentIndex + 1) % tabs.length;
+      break;
+    case 'ArrowLeft':
+      nextIndex = (currentIndex + tabs.length - 1) % tabs.length;
+      break;
+    case 'Home':
+      nextIndex = 0;
+      break;
+    case 'End':
+      nextIndex = tabs.length - 1;
+      break;
+    default:
+      return;
+  }
+  event.preventDefault();
+  tabs[nextIndex]!.focus();
+  tabs[nextIndex]!.click();
+}
+
 /** Appearance picker tab bar. */
 export const PickerTabBar: React.FC<PickerTabBarProps> = ({ activeTab, onTabChange, styles }) => (
-  <View style={styles.pickerTabBar}>
+  <View
+    style={styles.pickerTabBar}
+    accessibilityRole="tablist"
+    accessibilityLabel="外观分类"
+    {...(Platform.OS === 'web' ? { onKeyDown: handleKeyDown } : {})}
+  >
     {TABS.map((tab) => {
       const isActive = activeTab === tab.key;
       return (
-        <TouchableOpacity
+        <Pressable
           key={tab.key}
+          nativeID={`appearance-tab-${tab.key}`}
+          accessibilityRole="tab"
+          accessibilityLabel={tab.label}
+          accessibilityState={{ selected: isActive }}
+          aria-selected={isActive}
+          tabIndex={isActive ? 0 : -1}
+          aria-controls="appearance-picker-panel"
           style={[styles.pickerTab, isActive && styles.pickerTabActive]}
           onPress={() => onTabChange(tab.key)}
-          activeOpacity={fixed.activeOpacity}
         >
           <Text style={[styles.pickerTabText, isActive && styles.pickerTabTextActive]}>
             {tab.label}
           </Text>
           {isActive && <View style={styles.pickerTabIndicator} />}
-        </TouchableOpacity>
+        </Pressable>
       );
     })}
   </View>
