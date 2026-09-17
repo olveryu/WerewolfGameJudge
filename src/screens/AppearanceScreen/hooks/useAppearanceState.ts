@@ -21,7 +21,6 @@ import type { FlairId } from '@/components/seatFlairs';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useUpdateProfile } from '@/features/account/controllers/useUpdateProfile';
 import { useUploadAvatar } from '@/features/account/controllers/useUploadAvatar';
-import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { useActiveRoomAccount } from '@/games/ClientGameCatalogContext';
 import type { RootStackParamList } from '@/navigation/types';
@@ -42,7 +41,7 @@ import type { PickerTab, RarityFilter, Selection } from '../types';
 import { useAppearanceSave } from './useAppearanceSave';
 
 /** Appearance screen state hook. */
-export function useAppearanceState() {
+export function useAppearanceState(unlockedIds: string[]) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Appearance'>>();
   const { user, refreshUser } = useAuth();
   const { mutateAsync: updateProfile } = useUpdateProfile();
@@ -82,8 +81,6 @@ export function useAppearanceState() {
   const [previewEffectId, setPreviewEffectId] = useState<RoleRevealEffectId | null>(null);
 
   // Growth stats for unlock check (shared cache via TanStack Query)
-  const { data: statsData } = useUserStatsQuery();
-  const unlockedIds = useMemo(() => statsData?.unlockedItems ?? [], [statsData?.unlockedItems]);
   const unlockedAvatars = useMemo(() => getUnlockedAvatars(unlockedIds), [unlockedIds]);
 
   // ── Derived state ──

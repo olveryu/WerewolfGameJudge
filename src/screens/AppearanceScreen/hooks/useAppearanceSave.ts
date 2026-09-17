@@ -4,7 +4,7 @@ import type {
   SeatAnimationId,
 } from '@game-judge/game-engine/product/rewards';
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -68,11 +68,23 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
   const [saving, setSaving] = useState(false);
   const ref = useRef(params);
   ref.current = params;
+  const lifetime = useRef<{ isActive: boolean; isSaving: boolean } | null>(null);
+  useEffect(() => {
+    const scope = { isActive: true, isSaving: false };
+    lifetime.current = scope;
+    return () => {
+      scope.isActive = false;
+    };
+  }, []);
 
   const handleUpload = useCallback(async () => {
     const p = ref.current;
+    const scope = lifetime.current;
+    if (!scope?.isActive || scope.isSaving) return;
+    scope.isSaving = true;
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!scope.isActive) return;
       if (status !== ImagePicker.PermissionStatus.GRANTED) {
         showConfirmAlert(
           '需要相册权限',
@@ -90,12 +102,16 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         quality: 0.8,
       });
 
+      if (!scope.isActive) return;
       if (!result.canceled && result.assets[0]) {
         setSaving(true);
         try {
           const url = await p.uploadAvatar(result.assets[0].uri);
+          if (!scope.isActive) return;
           const isProfileRefreshed = await refreshSavedProfile(p.refreshUser);
+          if (!scope.isActive) return;
           const roomSynced = await syncActiveRoomProfile(p.activeRoom, { avatarUrl: url });
+          if (!scope.isActive) return;
           if (!isProfileRefreshed) {
             toast.warning('头像已保存，资料刷新失败');
           } else if (roomSynced) {
@@ -106,25 +122,32 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
 
           p.goBack();
         } catch (e: unknown) {
+          if (!scope.isActive) return;
           const message = getErrorMessage(e);
           settingsLog.error('Avatar upload failed', { message }, e);
           showErrorAlert('上传失败', message);
         } finally {
-          setSaving(false);
+          if (scope.isActive) setSaving(false);
         }
       }
     } catch (e: unknown) {
+      if (!scope.isActive) return;
       const message = getErrorMessage(e);
       settingsLog.warn('Image picker failed', { message }, e);
       showErrorAlert('选择图片失败', message);
+    } finally {
+      scope.isSaving = false;
     }
   }, []);
 
   const handleConfirm = useCallback(async () => {
     const p = ref.current;
+    const scope = lifetime.current;
+    if (!scope?.isActive || scope.isSaving) return;
     if (!p.hasSelection) {
       throw new Error('[FAIL-FAST] Appearance confirm requires a pending selection');
     }
+    scope.isSaving = true;
     setSaving(true);
     try {
       // Resolve new avatar URL (if changed)
@@ -188,7 +211,9 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       if (Object.keys(profilePatch).length > 0) {
         await p.updateProfile(profilePatch);
       }
+      if (!scope.isActive) return;
       const isProfileRefreshed = await refreshSavedProfile(p.refreshUser);
+      if (!scope.isActive) return;
 
       // Sync to GameState only when in a room (otherwise no GameState exists)
       let activeRoomSyncFailed = false;
@@ -212,6 +237,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         }));
       }
 
+      if (!scope.isActive) return;
       if (!isProfileRefreshed) {
         toast.warning('形象已保存，资料刷新失败');
       } else if (activeRoomSyncFailed) {
@@ -221,11 +247,13 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       }
       p.goBack();
     } catch (e: unknown) {
+      if (!scope.isActive) return;
       const message = getErrorMessage(e);
       settingsLog.error('Avatar/frame save failed', { message }, e);
       showErrorAlert('保存失败', message);
     } finally {
-      setSaving(false);
+      scope.isSaving = false;
+      if (scope.isActive) setSaving(false);
     }
   }, []);
 
@@ -238,17 +266,23 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
 
   const handleEquipEffect = useCallback(async () => {
     const p = ref.current;
+    const scope = lifetime.current;
+    if (!scope?.isActive || scope.isSaving) return;
     if (p.heroEffectIsEquipped || !p.heroEffectUnlocked) {
       throw new Error('[FAIL-FAST] Equip effect requires an unlocked, unequipped effect');
     }
+    scope.isSaving = true;
     setSaving(true);
     try {
       const value = p.heroEffectId === 'none' ? '' : p.heroEffectId;
       await p.updateProfile({ equippedEffect: value });
+      if (!scope.isActive) return;
       const isProfileRefreshed = await refreshSavedProfile(p.refreshUser);
+      if (!scope.isActive) return;
 
       // Sync roleRevealEffect to GameState so other players see the change
       const roomSynced = await syncActiveRoomProfile(p.activeRoom, { revealEffect: value });
+      if (!scope.isActive) return;
       if (!isProfileRefreshed) {
         toast.warning('特效已保存，资料刷新失败');
       } else if (roomSynced) {
@@ -261,11 +295,13 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         toast.warning('特效已保存，房间内同步失败');
       }
     } catch (e: unknown) {
+      if (!scope.isActive) return;
       const message = getErrorMessage(e);
       settingsLog.error('Equip effect failed', { message }, e);
       showErrorAlert('装备失败', message);
     } finally {
-      setSaving(false);
+      scope.isSaving = false;
+      if (scope.isActive) setSaving(false);
     }
   }, []);
 

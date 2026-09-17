@@ -8,21 +8,27 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getItemRarity } from '@game-judge/game-engine/product/rewards';
+import { useNavigation } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   type ListRenderItemInfo,
   Pressable,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import { colors, componentSizes } from '@/theme';
 import { getHandDrawnImage } from '@/utils/avatar';
 
@@ -51,9 +57,64 @@ import { FRAME_NUM_COLUMNS, NUM_COLUMNS } from './types';
 
 /** Appearance customization screen. */
 export const AppearanceScreen: React.FC = () => {
+  const { user } = useAuthContext();
+  return <AppearanceSession key={`${user?.id ?? 'anonymous'}:${user?.isAnonymous ?? true}`} />;
+};
+
+function AppearanceSession() {
+  const { user } = useAuthContext();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAppearanceScreenStyles(colors), []);
-  const state = useAppearanceState();
+  const stats = useUserStatsQuery();
+  const readOnly = !user || user.isAnonymous;
+  if (!readOnly && stats.data === undefined) {
+    return (
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
+        <ScreenHeader title="选择形象" onBack={() => navigation.goBack()} topInset={insets.top} />
+        {stats.isError ? (
+          <View style={styles.queryStatus}>
+            <Text style={styles.statusText} accessibilityRole="alert">
+              藏品加载失败
+            </Text>
+            <Button
+              onPress={() => {
+                void stats.refetch();
+              }}
+              loading={stats.isFetching}
+            >
+              重试
+            </Button>
+          </View>
+        ) : (
+          <ActivityIndicator accessibilityLabel="正在加载藏品" color={colors.primary} />
+        )}
+      </SafeAreaView>
+    );
+  }
+  return (
+    <AppearanceEditor
+      unlockedIds={stats.data?.unlockedItems ?? []}
+      isRefreshError={stats.isError}
+      retry={() => {
+        void stats.refetch();
+      }}
+    />
+  );
+}
+
+function AppearanceEditor({
+  unlockedIds,
+  isRefreshError,
+  retry,
+}: {
+  unlockedIds: string[];
+  isRefreshError: boolean;
+  retry: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createAppearanceScreenStyles(colors), []);
+  const state = useAppearanceState(unlockedIds);
   const RevealEffectPreview = state.heroEffectPresentation.Preview;
 
   // ── Key extractors ──
@@ -240,6 +301,13 @@ export const AppearanceScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <ScreenHeader title="选择形象" onBack={state.handleGoBack} topInset={insets.top} />
 
+      {isRefreshError && <Button onPress={retry}>藏品刷新失败，重试</Button>}
+      {state.hasSelection && (
+        <Text style={styles.statusText} accessibilityLiveRegion="polite">
+          有未保存的更改
+        </Text>
+      )}
+
       {state.activeTab !== 'effect' ? (
         <HeroPreview
           userId={state.user?.id ?? 'anonymous'}
@@ -419,4 +487,4 @@ export const AppearanceScreen: React.FC = () => {
       )}
     </SafeAreaView>
   );
-};
+}

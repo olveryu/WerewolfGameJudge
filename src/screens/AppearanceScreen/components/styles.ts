@@ -21,6 +21,8 @@ import {
 /** Appearance screen style type. */
 export interface AppearanceScreenStyles {
   container: ViewStyle;
+  queryStatus: ViewStyle;
+  statusText: TextStyle;
   content: ViewStyle;
   // Picker grid
   pickerGrid: ViewStyle;
@@ -88,6 +90,12 @@ const HERO_ICON_SIZE = 72;
 /** Create appearance screen styles. */
 export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScreenStyles =>
   StyleSheet.create<AppearanceScreenStyles>({
+    queryStatus: { padding: spacing.large, gap: spacing.medium },
+    statusText: {
+      color: colors.textSecondary,
+      ...textStyles.body,
+      paddingHorizontal: spacing.large,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
