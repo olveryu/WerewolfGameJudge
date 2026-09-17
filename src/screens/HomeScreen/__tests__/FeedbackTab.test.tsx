@@ -1,5 +1,5 @@
 /** Feedback UI preserves operation identity and exposes uncertain delivery recovery. */
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, fireEventAsync, render } from '@testing-library/react-native';
 
 import * as feedbackApi from '@/features/feedback/services/feedbackApi';
 import { TESTIDS } from '@/testids';
@@ -9,6 +9,14 @@ import { FeedbackTab } from '../components/FeedbackTab';
 jest.mock('@/features/feedback/services/feedbackApi');
 jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), info: jest.fn() } }));
+
+function createDeferred<Value>() {
+  let resolve!: (value: Value) => void;
+  const promise = new Promise<Value>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 it('reuses the operation after a lost response, shows uncertainty, and reconciles the stored record', async () => {
   const getHistory = jest.mocked(feedbackApi.getFeedbackHistory).mockResolvedValue([]);
@@ -31,26 +39,38 @@ it('reuses the operation after a lost response, shows uncertainty, and reconcile
   );
   fireEvent.press(await screen.findByTestId(TESTIDS.feedbackNewButton));
   fireEvent.changeText(screen.getByTestId(TESTIDS.feedbackInput), '反馈内容');
-  fireEvent.press(screen.getByTestId(TESTIDS.feedbackSubmitButton));
-  await waitFor(() => expect(screen.getByTestId(TESTIDS.feedbackSubmitButton)).not.toBeDisabled());
+  await fireEventAsync.press(screen.getByTestId(TESTIDS.feedbackSubmitButton));
+  expect(screen.getByTestId(TESTIDS.feedbackSubmitButton)).not.toBeDisabled();
   getHistory.mockResolvedValue([item]);
-  fireEvent.press(screen.getByTestId(TESTIDS.feedbackSubmitButton));
-  await screen.findByText('待同步');
+  await fireEventAsync.press(screen.getByTestId(TESTIDS.feedbackSubmitButton));
+  expect(screen.getByText('待同步')).toBeTruthy();
   expect(submit).toHaveBeenCalledTimes(2);
   expect(submit.mock.calls[0]?.[2]).toEqual(submit.mock.calls[1]?.[2]);
   expect(submit.mock.calls[0]?.[2]).toEqual(expect.any(String));
   fireEvent.press(screen.getByTestId(TESTIDS.feedbackHistoryItem(item.id)));
   expect(screen.getByText('远端结果待核对')).toBeTruthy();
   expect(screen.getByTestId(TESTIDS.feedbackResolveButton)).toBeDisabled();
-  jest
-    .mocked(feedbackApi.syncFeedbackDelivery)
-    .mockResolvedValue({ success: true, syncStatus: 'synced' });
-  getHistory.mockResolvedValue([{ ...item, syncStatus: 'synced', githubIssueNumber: 42 }]);
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: '核对反馈同步状态' })).not.toBeDisabled(),
-  );
+  const synchronization =
+    createDeferred<Awaited<ReturnType<typeof feedbackApi.syncFeedbackDelivery>>>();
+  const refreshedHistory = createDeferred<feedbackApi.FeedbackItem[]>();
+  jest.mocked(feedbackApi.syncFeedbackDelivery).mockReturnValueOnce(synchronization.promise);
+  getHistory.mockReturnValueOnce(refreshedHistory.promise);
+  expect(screen.getByRole('button', { name: '核对反馈同步状态' })).not.toBeDisabled();
   fireEvent.press(screen.getByRole('button', { name: '核对反馈同步状态' }));
-  await waitFor(() => expect(screen.queryByText('远端结果待核对')).toBeNull());
   expect(feedbackApi.syncFeedbackDelivery).toHaveBeenCalledWith(item.id);
+  expect(getHistory).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole('button', { name: '核对反馈同步状态' })).toBeDisabled();
+  await act(async () => {
+    synchronization.resolve({ success: true, syncStatus: 'synced' });
+    await synchronization.promise;
+  });
+  expect(getHistory).toHaveBeenCalledTimes(3);
+  expect(screen.getByText('远端结果待核对')).toBeTruthy();
+  await act(async () => {
+    refreshedHistory.resolve([{ ...item, syncStatus: 'synced', githubIssueNumber: 42 }]);
+    await refreshedHistory.promise;
+  });
+  expect(screen.queryByText('远端结果待核对')).toBeNull();
+  expect(screen.getByTestId(TESTIDS.feedbackResolveButton)).not.toBeDisabled();
   expect(submit).toHaveBeenCalledTimes(2);
 });
