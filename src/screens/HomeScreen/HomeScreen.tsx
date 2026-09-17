@@ -30,11 +30,8 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { getUnreadFeedbackCount } from '@/features/feedback/services/feedbackApi';
-import {
-  useAutoClaimDailyReward,
-  useGachaStatusQuery,
-} from '@/features/gacha/queries/useGachaQuery';
+import { useUnreadFeedback } from '@/features/feedback/queries/useUnreadFeedback';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import {
   hasSeenAnnouncement,
   markAnnouncementSeen,
@@ -78,7 +75,12 @@ export const HomeScreen: React.FC = () => {
 
   // Announcement modal state (auto-show once per version + manual open from card)
   const [showAnnouncement, setShowAnnouncement] = useState(false);
-  const [unreadFeedbackCount, setUnreadFeedbackCount] = useState(0);
+  const {
+    data: unreadFeedbackCount,
+    isError: isUnreadFeedbackError,
+    setUnreadFeedbackCount,
+  } = useUnreadFeedback();
+  const hasUnreadFeedback = unreadFeedbackCount !== undefined && unreadFeedbackCount > 0;
 
   // Show announcement after auth loading settles (avoid flashing modal over loading state)
   useEffect(() => {
@@ -92,22 +94,6 @@ export const HomeScreen: React.FC = () => {
     markAnnouncementSeen(APP_VERSION);
   }, [authLoading]);
 
-  // Fetch unread feedback count when user is logged in
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    getUnreadFeedbackCount()
-      .then((count) => {
-        if (!cancelled) setUnreadFeedbackCount(count);
-      })
-      .catch((error: unknown) => {
-        homeLog.warn('Failed to load unread feedback count', { error });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -118,9 +104,6 @@ export const HomeScreen: React.FC = () => {
   // Ticket count for top bar badge (shared cache via TanStack Query)
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-
-  // Auto-claim daily login reward (fires once per session when status loads)
-  useAutoClaimDailyReward();
 
   // Prevent transient UI states from getting stuck if we navigate away.
   // Also clear stale pending auth action if user didn't complete login before leaving.
@@ -428,125 +411,137 @@ export const HomeScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ── Hero Card — Create Room ─────────────────── */}
-        <PressableScale
-          onPress={handleCreateRoomPress}
-          disabled={authLoading}
-          style={styles.heroCard}
-          testID={TESTIDS.homeCreateRoomButton}
-          haptic
-        >
-          <LinearGradient
-            colors={[colors.primaryLight, colors.primary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroCardGradient}
-          >
-            <View style={styles.heroCardContent}>
-              <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
-              <Text style={styles.heroCardSubtitle}>
-                {clientGameHome.modeOptions.map((modeOption) => modeOption.displayName).join(' · ')}
-              </Text>
+        <View style={styles.taskLayout}>
+          <View style={styles.taskColumn}>
+            {/* ── Hero Card — Create Room ─────────────────── */}
+            <PressableScale
+              onPress={handleCreateRoomPress}
+              disabled={authLoading}
+              style={styles.heroCard}
+              testID={TESTIDS.homeCreateRoomButton}
+              haptic
+            >
+              <LinearGradient
+                colors={[colors.primaryLight, colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroCardGradient}
+              >
+                <View style={styles.heroCardContent}>
+                  <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
+                  <Text style={styles.heroCardSubtitle}>
+                    {clientGameHome.modeOptions
+                      .map((modeOption) => modeOption.displayName)
+                      .join(' · ')}
+                  </Text>
+                </View>
+                {isCreating ? (
+                  <ActivityIndicator color={colors.textInverse} size="small" />
+                ) : (
+                  <View style={styles.heroCardArrow}>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={componentSizes.icon.lg}
+                      color={colors.textInverse}
+                    />
+                  </View>
+                )}
+              </LinearGradient>
+            </PressableScale>
+
+            {/* ── Action Row — Enter Room + Return to Last Game ── */}
+            <View style={styles.actionRow}>
+              <PressableScale
+                onPress={handleEnterRoomPress}
+                disabled={authLoading}
+                style={[styles.actionCard, authLoading && styles.actionCardDisabled]}
+                testID={TESTIDS.homeEnterRoomButton}
+              >
+                <View style={styles.actionCardIcon}>
+                  <Ionicons
+                    name="log-in-outline"
+                    size={componentSizes.icon.lg}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text style={styles.actionCardTitle}>{isJoining ? '进入中' : '进入房间'}</Text>
+                <Text style={styles.actionCardSubtitle}>输入房间号</Text>
+              </PressableScale>
+              <PressableScale
+                onPress={handleReturnLastGamePress}
+                disabled={authLoading || recentRooms.length === 0}
+                style={[
+                  styles.actionCard,
+                  (authLoading || recentRooms.length === 0) && styles.actionCardDisabled,
+                ]}
+                testID={TESTIDS.homeReturnLastGameButton}
+              >
+                <View style={styles.actionCardIcon}>
+                  <Ionicons
+                    name="time-outline"
+                    size={componentSizes.icon.lg}
+                    color={colors.primary}
+                  />
+                </View>
+                <Text style={styles.actionCardTitle}>最近房间</Text>
+                <Text style={styles.actionCardSubtitle}>
+                  {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
+                </Text>
+              </PressableScale>
             </View>
-            {isCreating ? (
-              <ActivityIndicator color={colors.textInverse} size="small" />
-            ) : (
-              <View style={styles.heroCardArrow}>
+          </View>
+          <View style={styles.taskColumn}>
+            {/* ── Gacha Entry ─────────────────────────── */}
+            <PressableScale
+              onPress={handleNavigateGacha}
+              style={[styles.gachaCard, styles.gachaCardAccentGold]}
+              haptic
+            >
+              <Text style={styles.gachaCardEmoji}>🎰</Text>
+              <View style={styles.gachaCardText}>
+                <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
+                <Text style={styles.gachaCardSubtitle}>用抽奖券解锁头像、头像框、装饰</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </PressableScale>
+
+            {clientGameHome.spotlights.map((entry) => {
+              const Spotlight = entry.spotlight;
+              return <Spotlight key={entry.gameType} />;
+            })}
+
+            {/* ── Announcement & Feedback Card ────────────────────────── */}
+            {ANNOUNCEMENT_VERSIONS.length > 0 && (
+              <PressableScale
+                onPress={handleOpenAnnouncement}
+                style={[styles.gachaCard, styles.gachaCardAccentBlue]}
+                haptic
+              >
+                <Ionicons
+                  name="megaphone-outline"
+                  size={componentSizes.icon.md}
+                  color={colors.primary}
+                />
+                <View style={styles.gachaCardText}>
+                  <Text style={styles.gachaCardTitle}>公告与反馈</Text>
+                  <Text style={styles.gachaCardSubtitle}>
+                    {hasUnreadFeedback
+                      ? `${unreadFeedbackCount} 条新回复`
+                      : isUnreadFeedbackError
+                        ? '回复状态读取失败'
+                        : '查看更新 · 提交建议'}
+                  </Text>
+                </View>
+                {hasUnreadFeedback && <View style={styles.feedbackDot} />}
                 <Ionicons
                   name="chevron-forward"
-                  size={componentSizes.icon.lg}
-                  color={colors.textInverse}
+                  size={componentSizes.icon.sm}
+                  color={colors.textMuted}
                 />
-              </View>
+              </PressableScale>
             )}
-          </LinearGradient>
-        </PressableScale>
-
-        {/* ── Action Row — Enter Room + Return to Last Game ── */}
-        <View style={styles.actionRow}>
-          <PressableScale
-            onPress={handleEnterRoomPress}
-            disabled={authLoading}
-            style={[styles.actionCard, authLoading && styles.actionCardDisabled]}
-            testID={TESTIDS.homeEnterRoomButton}
-          >
-            <View style={styles.actionCardIcon}>
-              <Ionicons
-                name="log-in-outline"
-                size={componentSizes.icon.lg}
-                color={colors.primary}
-              />
-            </View>
-            <Text style={styles.actionCardTitle}>{isJoining ? '进入中' : '进入房间'}</Text>
-            <Text style={styles.actionCardSubtitle}>输入房间号</Text>
-          </PressableScale>
-          <PressableScale
-            onPress={handleReturnLastGamePress}
-            disabled={authLoading || recentRooms.length === 0}
-            style={[
-              styles.actionCard,
-              (authLoading || recentRooms.length === 0) && styles.actionCardDisabled,
-            ]}
-            testID={TESTIDS.homeReturnLastGameButton}
-          >
-            <View style={styles.actionCardIcon}>
-              <Ionicons name="time-outline" size={componentSizes.icon.lg} color={colors.primary} />
-            </View>
-            <Text style={styles.actionCardTitle}>最近房间</Text>
-            <Text style={styles.actionCardSubtitle}>
-              {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
-            </Text>
-          </PressableScale>
-        </View>
-
-        {/* ── Gacha Entry ─────────────────────────── */}
-        <PressableScale
-          onPress={handleNavigateGacha}
-          style={[styles.gachaCard, styles.gachaCardAccentGold]}
-          haptic
-        >
-          <Text style={styles.gachaCardEmoji}>🎰</Text>
-          <View style={styles.gachaCardText}>
-            <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
-            <Text style={styles.gachaCardSubtitle}>用抽奖券解锁头像、头像框、装饰</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </PressableScale>
-
-        {clientGameHome.spotlights.map((entry) => {
-          const Spotlight = entry.spotlight;
-          return <Spotlight key={entry.gameType} />;
-        })}
-
-        {/* ── Announcement & Feedback Card ────────────────────────── */}
-        {ANNOUNCEMENT_VERSIONS.length > 0 && (
-          <PressableScale
-            onPress={handleOpenAnnouncement}
-            style={[styles.gachaCard, styles.gachaCardAccentBlue]}
-            haptic
-          >
-            <Ionicons
-              name="megaphone-outline"
-              size={componentSizes.icon.md}
-              color={colors.primary}
-            />
-            <View style={styles.gachaCardText}>
-              <Text style={styles.gachaCardTitle}>公告与反馈</Text>
-              <Text style={styles.gachaCardSubtitle}>
-                {unreadFeedbackCount > 0
-                  ? `${unreadFeedbackCount} 条新回复`
-                  : '查看更新 · 提交建议'}
-              </Text>
-            </View>
-            {unreadFeedbackCount > 0 && <View style={styles.feedbackDot} />}
-            <Ionicons
-              name="chevron-forward"
-              size={componentSizes.icon.sm}
-              color={colors.textMuted}
-            />
-          </PressableScale>
-        )}
-
+        </View>
         {/* Footer with author and version */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>{APP_VERSION} · 作者：严振宇</Text>
@@ -582,7 +577,7 @@ export const HomeScreen: React.FC = () => {
         visible={showAnnouncement}
         gameTabs={clientGameHome.announcementTabs}
         onClose={handleCloseAnnouncement}
-        hasUnreadFeedback={unreadFeedbackCount > 0}
+        hasUnreadFeedback={hasUnreadFeedback}
         onUnreadFeedbackChange={setUnreadFeedbackCount}
       />
 

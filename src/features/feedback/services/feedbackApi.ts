@@ -114,9 +114,11 @@ export async function syncFeedbackDelivery(id: string) {
 }
 
 /** Fetches the count of unread admin replies. */
-export async function getUnreadFeedbackCount(): Promise<number> {
-  const res = await cfGet('/api/feedback/unread-count', (value) =>
-    unreadCountResponseSchema.parse(value),
+export async function getUnreadFeedbackCount(signal?: AbortSignal): Promise<number> {
+  const res = await cfGet(
+    '/api/feedback/unread-count',
+    (value) => unreadCountResponseSchema.parse(value),
+    { signal },
   );
   return res.count;
 }

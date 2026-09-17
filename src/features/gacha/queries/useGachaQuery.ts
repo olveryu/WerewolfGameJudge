@@ -97,17 +97,24 @@ function useClaimDailyRewardMutation() {
  */
 export function useAutoClaimDailyReward() {
   const { user } = useAuthContext();
+  const { authService } = useServices();
   const userId = user?.id ?? null;
   const { data: status } = useGachaStatusQuery();
   const { mutate: claimDailyReward, isPending: isClaimPending } = useClaimDailyRewardMutation();
   const attemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (userId === null || attemptedRef.current === userId || !status || isClaimPending) return;
+    if (userId === null) {
+      attemptedRef.current = null;
+      return;
+    }
+    if (attemptedRef.current === userId || !status || isClaimPending) return;
 
     attemptedRef.current = userId;
+    const session = authService.getAuthSession();
     claimDailyReward(undefined, {
       onSuccess: (data) => {
+        if (session === null || authService.getAuthSession() !== session) return;
         if (data.claimed) {
           toast.success('每日登录奖励', {
             description: `获得 ${data.normalDrawsAdded} 次普通抽 + ${data.goldenDrawsAdded} 次黄金抽！`,
@@ -115,10 +122,11 @@ export function useAutoClaimDailyReward() {
         }
       },
       onError: (err) => {
+        if (session === null || authService.getAuthSession() !== session) return;
         gachaLog.warn('Auto claim daily reward failed', { error: String(err) });
       },
     });
-  }, [status, claimDailyReward, isClaimPending, userId]);
+  }, [status, claimDailyReward, isClaimPending, userId, authService]);
 }
 
 export function useExchangeShardMutation() {

@@ -121,3 +121,20 @@ it('continues boot and releases the request when avatar prefetch never settles',
 
   unmount();
 });
+
+it('does not continue a font task after its boot owner unmounts', async () => {
+  let complete!: () => void;
+  mockFontLoadAsync.mockReturnValue(
+    new Promise<void>((resolve) => {
+      complete = resolve;
+    }),
+  );
+  const { unmount } = renderHook(() => useBootProgress());
+  unmount();
+  await act(async () => {
+    complete();
+    await Promise.resolve();
+  });
+  expect(document.fonts.load).not.toHaveBeenCalled();
+  expect(fakeImages[0]!.removeAttribute).toHaveBeenCalledWith('src');
+});

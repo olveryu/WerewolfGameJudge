@@ -25,6 +25,8 @@ export interface HomeScreenStyles {
   container: ViewStyle;
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
+  taskLayout: ViewStyle;
+  taskColumn: ViewStyle;
   // Top Bar (brand + avatar + settings)
   topBar: ViewStyle;
   topBarBrand: ViewStyle;
@@ -123,7 +125,21 @@ export interface HomeScreenStyles {
 
 export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number): HomeScreenStyles {
   const shared = createSharedStyles(colors);
+  const isWideLayout = screenWidth >= fixed.maxContentWidth * 2;
   return StyleSheet.create({
+    taskLayout: {
+      width: '100%',
+      maxWidth: fixed.maxContentWidth * 2,
+      alignSelf: 'center',
+      flexDirection: isWideLayout ? 'row' : 'column',
+      paddingTop: spacing.medium,
+    },
+    taskColumn: {
+      flex: isWideLayout ? 1 : undefined,
+      width: isWideLayout ? undefined : '100%',
+      minWidth: 0,
+      maxWidth: isWideLayout ? fixed.maxContentWidth : undefined,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
@@ -149,6 +165,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     topBarBrand: {
       flexDirection: 'row',
+      flex: 1,
+      minWidth: 0,
       alignItems: 'center',
       gap: spacing.small,
     },
@@ -156,6 +174,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontSize: 28,
     },
     topBarTitle: {
+      flexShrink: 1,
       fontSize: layout.headerTitleSize,
       lineHeight: layout.headerTitleLineHeight,
       fontWeight: typography.weights.bold,
@@ -177,7 +196,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       overflow: 'hidden',
       borderRadius: borderRadius.large,
       marginHorizontal: spacing.screenH,
-      marginTop: spacing.medium,
+      marginTop: 0,
       marginBottom: spacing.large,
       ...shadows.lg,
     },
