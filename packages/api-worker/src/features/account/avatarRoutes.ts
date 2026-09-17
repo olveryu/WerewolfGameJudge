@@ -2,25 +2,28 @@
  * Avatar upload routes owned by the account feature.
  *
  * POST /avatar/upload — accepts multipart/form-data,
- * compresses and stores in R2, returns a publicly accessible URL.
- * Automatically cleans up the user's previous avatar before uploading.
+ * stores in R2 and conditionally activates a publicly accessible URL.
+ * Cleans up the pre-upload object set only after the profile commit succeeds.
  * GET /avatar/:userId/:filename — serves avatar files from R2.
  *
  * @throws 401 — requireAuth failed (POST only)
  * @throws 400 — missing file field / file exceeds size limit / unsupported format
  * @throws 404 — avatar not found (GET)
+ * @throws 409 — avatar references changed during upload
  */
 
 import { randomHex } from '@game-judge/game-engine/platform/identifiers';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
+import { createLogger } from '../../platform/observability/logger';
 import { requireAuth } from '../auth/tokenAuth';
 import { users } from './dbSchema';
 
 const AVATAR_SUFFIX_HEX_LENGTH = 8;
+const log = createLogger('avatar');
 
 /** Avatar upload routes. */
 export const avatarRoutes = new Hono<AppEnv>();
@@ -50,11 +53,22 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
     return c.json({ success: false, reason: 'FILE_TOO_LARGE' }, 400);
   }
 
-  // List and delete old avatars for this user
-  const oldObjects = await env.AVATARS.list({ prefix: `${userId}/` });
-  if (oldObjects.objects.length > 0) {
-    await Promise.all(oldObjects.objects.map((obj) => env.AVATARS.delete(obj.key)));
+  const db = createDb(env.DB);
+  const previousAvatar = await db
+    .select({ avatarUrl: users.avatarUrl, customAvatarUrl: users.customAvatarUrl })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  if (previousAvatar === undefined) {
+    return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
   }
+  const oldObjects: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await env.AVATARS.list({ prefix: `${userId}/`, cursor });
+    oldObjects.push(...page.objects.map((object) => object.key));
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor !== undefined);
 
   // Upload new avatar
   const suffix = randomHex(AVATAR_SUFFIX_HEX_LENGTH);
@@ -75,15 +89,37 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
   const avatarUrlStr = publicUrl.toString();
 
   // Persist custom_avatar_url AND activate it as the current avatar
-  const db = createDb(env.DB);
-  await db
+  const updated = await db
     .update(users)
     .set({
       customAvatarUrl: avatarUrlStr,
       avatarUrl: avatarUrlStr,
       updatedAt: sql`datetime('now')`,
     })
-    .where(eq(users.id, userId));
+    .where(
+      and(
+        eq(users.id, userId),
+        sql`${users.avatarUrl} IS ${previousAvatar.avatarUrl}`,
+        sql`${users.customAvatarUrl} IS ${previousAvatar.customAvatarUrl}`,
+      ),
+    )
+    .returning({ id: users.id })
+    .get();
+
+  if (updated === undefined) {
+    await env.AVATARS.delete(key);
+    return c.json({ success: false, reason: 'AVATAR_UPLOAD_CONFLICT' }, 409);
+  }
+
+  c.executionCtx.waitUntil(
+    Promise.all(oldObjects.map((key) => env.AVATARS.delete(key))).catch((error: unknown) => {
+      log.error('avatar cleanup failed; retained objects will be retried on replacement', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }),
+  );
 
   return c.json({ url: avatarUrlStr }, 200);
 });
