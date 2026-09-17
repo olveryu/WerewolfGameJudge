@@ -477,6 +477,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     const expectedOwners = new Map<string, string>([
       ['camp_settlements', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
       ['draw_history', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
+      ['feedback_deliveries', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['feedback_replies', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['feedbacks', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['fib_round_word_selections', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
@@ -802,7 +803,9 @@ describe('Worker ownership: source tree is exact', () => {
     ).toEqual(['WeChatAuthProxy.ts', 'weChatAuthStub.ts']);
     expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'feedback'))).toEqual([
       'dbSchema.ts',
+      'delivery.ts',
       'githubWebhookSchemas.ts',
+      'history.ts',
       'routes.ts',
       'schemas.ts',
     ]);

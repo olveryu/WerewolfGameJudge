@@ -14,8 +14,10 @@ import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 
 const nonnegativeIntegerSchema = z.number().int().nonnegative();
 const sqliteBooleanSchema = z.union([z.literal(0), z.literal(1)]);
+const syncStatusSchema = z.enum(['pending', 'uncertain', 'needs_review', 'synced']);
 
 const feedbackReplySchema = z.strictObject({
+  syncStatus: syncStatusSchema,
   id: z.string().min(1),
   isAdmin: sqliteBooleanSchema,
   body: z.string(),
@@ -24,10 +26,11 @@ const feedbackReplySchema = z.strictObject({
 });
 
 const feedbackItemSchema = z.strictObject({
+  syncStatus: syncStatusSchema,
   id: z.string().min(1),
   content: z.string(),
   appVersion: z.string().min(1),
-  githubIssueNumber: nonnegativeIntegerSchema,
+  githubIssueNumber: nonnegativeIntegerSchema.nullable(),
   status: z.enum(['open', 'resolved']),
   createdAt: z.iso.datetime(),
   replies: z.array(feedbackReplySchema),
@@ -36,7 +39,7 @@ const feedbackItemSchema = z.strictObject({
 const submitFeedbackResponseSchema = z.strictObject({
   success: z.literal(true),
   feedbackId: z.string().min(1),
-  githubIssueNumber: nonnegativeIntegerSchema,
+  syncStatus: syncStatusSchema,
 });
 
 const feedbackHistoryResponseSchema = z.strictObject({
@@ -47,6 +50,11 @@ const unreadCountResponseSchema = z.strictObject({ count: nonnegativeIntegerSche
 const replyResponseSchema = z.strictObject({
   success: z.literal(true),
   replyId: z.string().min(1),
+  syncStatus: syncStatusSchema,
+});
+const syncResponseSchema = z.strictObject({
+  success: z.literal(true),
+  syncStatus: syncStatusSchema,
 });
 const successResponseSchema = z.strictObject({ success: z.literal(true) });
 
@@ -58,7 +66,7 @@ export type FeedbackItem = z.infer<typeof feedbackItemSchema>;
 
 interface SubmitFeedbackResult {
   feedbackId: string;
-  githubIssueNumber: number;
+  syncStatus: z.infer<typeof syncStatusSchema>;
 }
 
 /**
@@ -70,11 +78,12 @@ interface SubmitFeedbackResult {
 export async function submitFeedback(
   content: string,
   appVersion: string,
+  id: string,
 ): Promise<SubmitFeedbackResult> {
-  const res = await cfPost('/api/feedback', { content, appVersion }, (value) =>
+  const res = await cfPost('/api/feedback', { id, content, appVersion }, (value) =>
     submitFeedbackResponseSchema.parse(value),
   );
-  return { feedbackId: res.feedbackId, githubIssueNumber: res.githubIssueNumber };
+  return { feedbackId: res.feedbackId, syncStatus: res.syncStatus };
 }
 
 /** Fetches the current user's feedback history (including replies). */
@@ -91,10 +100,17 @@ export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
  * @param feedbackId - feedback ID
  * @param content - reply body
  */
-export async function replyToFeedback(feedbackId: string, content: string): Promise<void> {
-  await cfPost(`/api/feedback/${feedbackId}/reply`, { content }, (value) => {
-    replyResponseSchema.parse(value);
-  });
+export async function replyToFeedback(feedbackId: string, content: string, id: string) {
+  return cfPost(`/api/feedback/${feedbackId}/reply`, { id, content }, (value) =>
+    replyResponseSchema.parse(value),
+  );
+}
+
+/** Reconcile a previously accepted delivery; uncertain creates are never repeated. */
+export async function syncFeedbackDelivery(id: string) {
+  return cfPost(`/api/feedback/deliveries/${id}/sync`, {}, (value) =>
+    syncResponseSchema.parse(value),
+  );
 }
 
 /** Fetches the count of unread admin replies. */

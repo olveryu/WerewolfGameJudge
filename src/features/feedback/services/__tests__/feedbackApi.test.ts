@@ -7,6 +7,7 @@ import {
   replyToFeedback,
   resolveFeedback,
   submitFeedback,
+  syncFeedbackDelivery,
 } from '../feedbackApi';
 
 jest.mock('@/services/cloudflare/cfFetch', () => ({ cfGet: jest.fn(), cfPost: jest.fn() }));
@@ -29,11 +30,12 @@ describe('feedbackApi response contracts', () => {
   });
 
   it('decodes submit, history, unread, and mutation acknowledgements', async () => {
-    respondToPost({ success: true, feedbackId: 'feedback-1', githubIssueNumber: 42 });
+    respondToPost({ success: true, feedbackId: 'feedback-1', syncStatus: 'uncertain' });
     respondToGet({
       feedbacks: [
         {
           id: 'feedback-1',
+          syncStatus: 'synced',
           content: '内容',
           appVersion: '1.0.0',
           githubIssueNumber: 42,
@@ -42,6 +44,7 @@ describe('feedbackApi response contracts', () => {
           replies: [
             {
               id: 'reply-1',
+              syncStatus: 'synced',
               isAdmin: 1,
               body: '回复',
               isRead: 0,
@@ -52,21 +55,33 @@ describe('feedbackApi response contracts', () => {
       ],
     });
     respondToGet({ count: 1 });
-    respondToPost({ success: true, replyId: 'reply-2' });
+    respondToPost({ success: true, replyId: 'reply-2', syncStatus: 'synced' });
     respondToPost({ success: true });
     respondToPost({ success: true });
 
-    await expect(submitFeedback('内容', '1.0.0')).resolves.toEqual({
+    await expect(submitFeedback('内容', '1.0.0', 'feedback-1')).resolves.toEqual({
       feedbackId: 'feedback-1',
-      githubIssueNumber: 42,
+      syncStatus: 'uncertain',
     });
+    expect(mockCfPost).toHaveBeenCalledWith(
+      '/api/feedback',
+      { id: 'feedback-1', content: '内容', appVersion: '1.0.0' },
+      expect.any(Function),
+    );
     await expect(getFeedbackHistory()).resolves.toMatchObject([
       { id: 'feedback-1', replies: [{ isAdmin: 1, isRead: 0 }] },
     ]);
     await expect(getUnreadFeedbackCount()).resolves.toBe(1);
-    await expect(replyToFeedback('feedback-1', '追问')).resolves.toBeUndefined();
+    await expect(replyToFeedback('feedback-1', '追问', 'reply-2')).resolves.toMatchObject({
+      replyId: 'reply-2',
+      syncStatus: 'synced',
+    });
     await expect(markFeedbackRead('feedback-1')).resolves.toBeUndefined();
     await expect(resolveFeedback('feedback-1', 'resolve')).resolves.toBeUndefined();
+    respondToPost({ success: true, syncStatus: 'needs_review' });
+    await expect(syncFeedbackDelivery('reply-2')).resolves.toMatchObject({
+      syncStatus: 'needs_review',
+    });
   });
 
   it('rejects non-SQLite booleans in feedback history', async () => {
@@ -74,6 +89,7 @@ describe('feedbackApi response contracts', () => {
       feedbacks: [
         {
           id: 'feedback-1',
+          syncStatus: 'synced',
           content: '内容',
           appVersion: '1.0.0',
           githubIssueNumber: 42,
@@ -82,6 +98,7 @@ describe('feedbackApi response contracts', () => {
           replies: [
             {
               id: 'reply-1',
+              syncStatus: 'synced',
               isAdmin: 2,
               body: '回复',
               isRead: 0,

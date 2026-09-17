@@ -5,6 +5,27 @@ import { describe, expect, it } from 'vitest';
 import { createGitHubFeedbackProvider } from '../github';
 
 describe('GitHub feedback provider', () => {
+  it('reconciles marked resources through paginated reads without creating again', async () => {
+    const requests: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input);
+      requests.push(url.toString());
+      expect(init?.method).toBeUndefined();
+      const entries =
+        url.searchParams.get('page') === '1'
+          ? Array.from({ length: 100 }, (_, index) => ({ number: index + 1, body: 'other' }))
+          : [{ number: 142, body: '<!-- feedback:operation -->\nbody' }];
+      return Response.json(entries);
+    };
+    const provider = createGitHubFeedbackProvider('token', fetchImpl);
+    await expect(provider.findIssue('<!-- feedback:operation -->')).resolves.toBe(142);
+    expect(requests).toHaveLength(2);
+    expect(new URL(requests[1]).searchParams.get('state')).toBe('all');
+    const comments = createGitHubFeedbackProvider('token', async () =>
+      Response.json([{ id: 91, body: '<!-- feedback:reply -->\nbody' }]),
+    );
+    await expect(comments.findComment(142, '<!-- feedback:reply -->')).resolves.toBe(91);
+  });
   it('creates an issue with the pinned API contract and parses its number', async () => {
     let requestHeaders = new Headers();
     let requestBody = '';

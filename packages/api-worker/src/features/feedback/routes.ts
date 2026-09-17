@@ -13,7 +13,7 @@
  * @throws 500 — GitHub API call failed (logged + Sentry)
  */
 
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
@@ -22,8 +22,10 @@ import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { users } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
-import { feedbackReplies, feedbacks } from './dbSchema';
+import { feedbackDeliveries, feedbackReplies, feedbacks } from './dbSchema';
+import { prepareFeedbackDelivery, syncFeedbackDelivery } from './delivery';
 import { githubIssueCommentPayloadSchema, githubIssuesPayloadSchema } from './githubWebhookSchemas';
+import { readFeedbackHistory } from './history';
 import { createGitHubFeedbackProvider } from './providers/github';
 import {
   feedbackMarkReadSchema,
@@ -41,7 +43,7 @@ export const feedbackRoutes = new Hono<AppEnv>();
 
 feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c) => {
   const userId = c.var.userId;
-  const { content, appVersion } = c.req.valid('json');
+  const { id, content, appVersion } = c.req.valid('json');
 
   const titlePreview = content.length > 20 ? `${content.slice(0, 20)}…` : content;
 
@@ -66,104 +68,49 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
   ];
 
   const github = createGitHubFeedbackProvider(c.env.GITHUB_TOKEN);
-  const issueData = await github.createIssue({
-    title: `[反馈] ${titlePreview}`,
-    body: [...metaLines, '', '---', '', content].join('\n'),
-    labels: ['user-feedback'],
-  });
-
-  // Store in D1
-  const feedbackId = crypto.randomUUID();
-  await db.insert(feedbacks).values({
-    id: feedbackId,
+  const delivery = await prepareFeedbackDelivery(db, {
+    id,
     userId,
-    githubIssueNumber: issueData.number,
+    kind: 'issue',
+    feedbackId: null,
     content,
     appVersion,
-    createdAt: new Date().toISOString(),
+    title: `[反馈] ${titlePreview}`,
+    githubBody: [...metaLines, '', '---', '', content].join('\n'),
   });
-
-  log.info('feedback submitted as GitHub issue', {
-    userId,
-    appVersion,
-    contentLength: content.length,
-    issueNumber: issueData.number,
-    feedbackId,
-  });
-
-  return c.json({ success: true, feedbackId, githubIssueNumber: issueData.number }, 201);
+  const result = await syncFeedbackDelivery(db, github, delivery);
+  return c.json(
+    { success: true, feedbackId: id, syncStatus: result.status },
+    result.status === 'synced' ? 201 : 202,
+  );
 });
 
 // ── GET /feedback/history — user's feedback + replies ───────────────────────
 
 feedbackRoutes.get('/feedback/history', requireAuth, async (c) => {
-  const userId = c.var.userId;
+  c.header('Cache-Control', 'no-store');
+  return c.json({ feedbacks: await readFeedbackHistory(createDb(c.env.DB), c.var.userId) });
+});
+
+feedbackRoutes.post('/feedback/deliveries/:id/sync', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
-
-  const userFeedbacks = await db
-    .select({
-      id: feedbacks.id,
-      content: feedbacks.content,
-      appVersion: feedbacks.appVersion,
-      githubIssueNumber: feedbacks.githubIssueNumber,
-      status: feedbacks.status,
-      createdAt: feedbacks.createdAt,
-    })
-    .from(feedbacks)
-    .where(eq(feedbacks.userId, userId))
-    .orderBy(desc(feedbacks.createdAt));
-
-  if (userFeedbacks.length === 0) {
-    return c.json({ feedbacks: [] });
-  }
-
-  const feedbackIds = userFeedbacks.map((f) => f.id);
-  const allReplies = await db
-    .select({
-      id: feedbackReplies.id,
-      feedbackId: feedbackReplies.feedbackId,
-      isAdmin: feedbackReplies.isAdmin,
-      body: feedbackReplies.body,
-      isRead: feedbackReplies.isRead,
-      createdAt: feedbackReplies.createdAt,
-    })
-    .from(feedbackReplies)
+  const delivery = await db
+    .select()
+    .from(feedbackDeliveries)
     .where(
-      feedbackIds.length === 1
-        ? eq(feedbackReplies.feedbackId, feedbackIds[0])
-        : sql`${feedbackReplies.feedbackId} IN (${sql.join(
-            feedbackIds.map((id) => sql`${id}`),
-            sql`, `,
-          )})`,
+      and(
+        eq(feedbackDeliveries.id, c.req.param('id')),
+        eq(feedbackDeliveries.userId, c.var.userId),
+      ),
     )
-    .orderBy(feedbackReplies.createdAt);
-
-  // Group replies by feedbackId
-  const repliesByFeedbackId = new Map<
-    string,
-    Array<{ id: string; isAdmin: number; body: string; isRead: number; createdAt: string }>
-  >();
-  for (const reply of allReplies) {
-    let group = repliesByFeedbackId.get(reply.feedbackId);
-    if (!group) {
-      group = [];
-      repliesByFeedbackId.set(reply.feedbackId, group);
-    }
-    group.push({
-      id: reply.id,
-      isAdmin: reply.isAdmin,
-      body: reply.body,
-      isRead: reply.isRead,
-      createdAt: reply.createdAt,
-    });
-  }
-
-  const result = userFeedbacks.map((f) => ({
-    ...f,
-    replies: repliesByFeedbackId.get(f.id) ?? [],
-  }));
-
-  return c.json({ feedbacks: result });
+    .get();
+  if (delivery === undefined) return c.json({ success: false, reason: 'NOT_FOUND' }, 404);
+  const result = await syncFeedbackDelivery(
+    db,
+    createGitHubFeedbackProvider(c.env.GITHUB_TOKEN),
+    delivery,
+  );
+  return c.json({ success: true, syncStatus: result.status });
 });
 
 // ── POST /feedback/:feedbackId/reply — user follow-up ───────────────────────
@@ -175,7 +122,7 @@ feedbackRoutes.post(
   async (c) => {
     const userId = c.var.userId;
     const feedbackId = c.req.param('feedbackId');
-    const { content } = c.req.valid('json');
+    const { id, content } = c.req.valid('json');
 
     const db = createDb(c.env.DB);
 
@@ -195,46 +142,21 @@ feedbackRoutes.post(
     }
 
     const github = createGitHubFeedbackProvider(c.env.GITHUB_TOKEN);
-    if (feedback.status === 'resolved') {
-      await github.setIssueState(feedback.githubIssueNumber, 'open');
-    }
-    const commentData = await github.createComment(
-      feedback.githubIssueNumber,
-      `**用户追问（\`${userId}\`）：**\n\n${content}`,
-    );
-
-    // Store reply in D1
-    const replyId = crypto.randomUUID();
-    const insertReply = db.insert(feedbackReplies).values({
-      id: replyId,
-      feedbackId,
-      isAdmin: 0,
-      body: content,
-      githubCommentId: commentData.id,
-      isRead: 1, // User's own reply is inherently read
-      createdAt: new Date().toISOString(),
-    });
-
-    if (feedback.status === 'resolved') {
-      await db.batch([
-        insertReply,
-        db.update(feedbacks).set({ status: 'open' }).where(eq(feedbacks.id, feedbackId)),
-      ]);
-    } else {
-      await insertReply;
-    }
-
-    log.info('user reply added to feedback', {
+    const delivery = await prepareFeedbackDelivery(db, {
+      id,
       userId,
       feedbackId,
-      issueNumber: feedback.githubIssueNumber,
+      kind: 'reply',
+      content,
+      appVersion: '',
+      title: '',
+      githubBody: `**用户追问（\`${userId}\`）：**\n\n${content}`,
     });
-
-    if (feedback.status === 'resolved') {
-      log.info('auto-reopened resolved feedback on user reply', { feedbackId });
-    }
-
-    return c.json({ success: true, replyId }, 201);
+    const result = await syncFeedbackDelivery(db, github, delivery);
+    return c.json(
+      { success: true, replyId: id, syncStatus: result.status },
+      result.status === 'synced' ? 201 : 202,
+    );
   },
 );
 
@@ -447,6 +369,16 @@ async function handleIssueCommentEvent(
   // Only process newly created comments
   if (payload.action !== 'created') {
     return c.body(null, 204);
+  }
+
+  const deliveryMarker = /^<!-- feedback:([0-9a-f-]{36}) -->\n/.exec(payload.comment.body);
+  if (deliveryMarker !== null) {
+    const delivery = await createDb(c.env.DB)
+      .select({ id: feedbackDeliveries.id })
+      .from(feedbackDeliveries)
+      .where(eq(feedbackDeliveries.id, deliveryMarker[1]))
+      .get();
+    if (delivery !== undefined) return c.body(null, 204);
   }
 
   // Filter: only issues with user-feedback label

@@ -26,6 +26,7 @@ import {
   replyToFeedback,
   resolveFeedback,
   submitFeedback,
+  syncFeedbackDelivery,
 } from '@/features/feedback/services/feedbackApi';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
@@ -56,6 +57,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FeedbackFilter>('open');
   const scrollRef = useRef<ScrollView>(null);
+  const submitIntent = useRef<{ id: string; content: string } | null>(null);
+  const replyIntent = useRef<{ id: string; content: string; feedbackId: string } | null>(null);
 
   const selectedFeedback = selectedFeedbackId
     ? feedbackItems.find((f) => f.id === selectedFeedbackId)
@@ -93,22 +96,15 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
 
     setIsSubmitting(true);
     try {
-      const { feedbackId, githubIssueNumber } = await submitFeedback(trimmed, APP_VERSION);
-      toast.success('感谢反馈！');
+      if (submitIntent.current === null || submitIntent.current.content !== trimmed) {
+        submitIntent.current = { id: crypto.randomUUID(), content: trimmed };
+      }
+      const result = await submitFeedback(trimmed, APP_VERSION, submitIntent.current.id);
+      if (result.syncStatus === 'synced') toast.success('感谢反馈！');
+      else toast.info('反馈已保存，远端结果待核对');
       setFeedbackText('');
-      // Add to local list immediately
-      setFeedbackItems((prev) => [
-        {
-          id: feedbackId,
-          content: trimmed,
-          appVersion: APP_VERSION,
-          githubIssueNumber,
-          status: 'open',
-          createdAt: new Date().toISOString(),
-          replies: [],
-        },
-        ...prev,
-      ]);
+      submitIntent.current = null;
+      setFeedbackItems(await getFeedbackHistory());
       setView('list');
     } catch (err) {
       handleError(err, { label: '提交反馈', logger: homeLog, feedback: 'toast' });
@@ -170,29 +166,22 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
 
     setIsSubmitting(true);
     try {
-      await replyToFeedback(selectedFeedbackId, trimmed);
+      if (
+        replyIntent.current === null ||
+        replyIntent.current.content !== trimmed ||
+        replyIntent.current.feedbackId !== selectedFeedbackId
+      ) {
+        replyIntent.current = {
+          id: crypto.randomUUID(),
+          content: trimmed,
+          feedbackId: selectedFeedbackId,
+        };
+      }
+      const result = await replyToFeedback(selectedFeedbackId, trimmed, replyIntent.current.id);
+      if (result.syncStatus !== 'synced') toast.info('追问已保存，远端结果待核对');
       setReplyText('');
-      // Add to local state + auto-reopen if resolved
-      setFeedbackItems((prev) =>
-        prev.map((f) =>
-          f.id === selectedFeedbackId
-            ? {
-                ...f,
-                status: 'open' as const,
-                replies: [
-                  ...f.replies,
-                  {
-                    id: crypto.randomUUID(),
-                    isAdmin: 0,
-                    body: trimmed,
-                    isRead: 1,
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
-              }
-            : f,
-        ),
-      );
+      replyIntent.current = null;
+      setFeedbackItems(await getFeedbackHistory());
       // Scroll to bottom after reply
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (err) {
@@ -201,6 +190,45 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       setIsSubmitting(false);
     }
   }, [replyText, selectedFeedbackId]);
+
+  const handleSync = async (id: string) => {
+    setIsSubmitting(true);
+    try {
+      const result = await syncFeedbackDelivery(id);
+      setFeedbackItems(await getFeedbackHistory());
+      if (result.syncStatus === 'synced') toast.success('反馈同步完成');
+      else toast.info('结果仍未确认，请勿重复提交；需开发者人工核对');
+    } catch (error) {
+      handleError(error, { label: '核对反馈', logger: homeLog, feedback: 'toast' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderSyncStatus = (id: string, syncStatus: FeedbackItem['syncStatus']) => {
+    if (syncStatus === 'synced') return null;
+    return (
+      <View style={[styles.backRow, styles.syncStatusRow]}>
+        <Text style={styles.bubbleTime}>
+          {syncStatus === 'pending'
+            ? '已保存，尚未同步'
+            : syncStatus === 'needs_review'
+              ? '待人工核对，请勿重复提交'
+              : '远端结果待核对'}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="核对反馈同步状态"
+          disabled={isSubmitting}
+          onPress={() => void handleSync(id)}
+          style={styles.backRow}
+        >
+          <Ionicons name="sync-outline" size={componentSizes.icon.sm} color={colors.primary} />
+          <Text style={styles.backText}>核对状态</Text>
+        </Pressable>
+      </View>
+    );
+  };
 
   // ── Resolve / Reopen ──────────────────────────────────────────────────────
 
@@ -317,6 +345,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
             )
           }
           testID={TESTIDS.feedbackResolveButton}
+          disabled={selectedFeedback.syncStatus !== 'synced' || isSubmitting}
         >
           <Ionicons
             name={
@@ -335,9 +364,11 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
               },
             ]}
           >
-            {selectedFeedback.status === 'resolved'
-              ? '已解决 · 点击重新打开'
-              : '进行中 · 点击标记解决'}
+            {selectedFeedback.syncStatus !== 'synced'
+              ? '反馈已保存，远端待确认'
+              : selectedFeedback.status === 'resolved'
+                ? '已解决 · 点击重新打开'
+                : '进行中 · 点击标记解决'}
           </Text>
         </Pressable>
 
@@ -348,6 +379,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
               <Text style={styles.bubbleUserText}>{selectedFeedback.content}</Text>
             </View>
             <Text style={styles.bubbleTime}>{formatTime(selectedFeedback.createdAt)}</Text>
+            {renderSyncStatus(selectedFeedback.id, selectedFeedback.syncStatus)}
           </View>
 
           {/* Replies */}
@@ -373,6 +405,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
                   <Text style={styles.bubbleUserText}>{reply.body}</Text>
                 </View>
                 <Text style={styles.bubbleTimeRight}>{formatTime(reply.createdAt)}</Text>
+                {renderSyncStatus(reply.id, reply.syncStatus)}
               </View>
             ),
           )}
@@ -411,16 +444,23 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
             placeholder="追问…"
             placeholderTextColor={colors.textMuted}
             maxLength={500}
-            editable={!isSubmitting}
+            editable={!isSubmitting && selectedFeedback.syncStatus === 'synced'}
             testID={TESTIDS.feedbackReplyInput}
           />
           <Pressable
             style={[
               styles.replySendButton,
-              (replyText.trim().length === 0 || isSubmitting) && styles.submitButtonDisabled,
+              (replyText.trim().length === 0 ||
+                isSubmitting ||
+                selectedFeedback.syncStatus !== 'synced') &&
+                styles.submitButtonDisabled,
             ]}
             onPress={() => void handleSendReply()}
-            disabled={replyText.trim().length === 0 || isSubmitting}
+            disabled={
+              replyText.trim().length === 0 ||
+              isSubmitting ||
+              selectedFeedback.syncStatus !== 'synced'
+            }
             testID={TESTIDS.feedbackReplySendButton}
           >
             {isSubmitting ? (
@@ -495,6 +535,10 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
                   <Text style={styles.historyItemContent} numberOfLines={2}>
                     {item.content}
                   </Text>
+                  {(item.syncStatus !== 'synced' ||
+                    item.replies.some((reply) => reply.syncStatus !== 'synced')) && (
+                    <Text style={styles.bubbleTime}>待同步</Text>
+                  )}
                   {unreadCount > 0 && (
                     <View style={styles.unreadBadge}>
                       <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
@@ -565,6 +609,10 @@ function formatTime(isoString: string): string {
 // ── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  syncStatusRow: {
+    flexWrap: 'wrap',
+    maxWidth: '100%',
+  },
   feedbackArea: {
     marginBottom: spacing.small,
   },

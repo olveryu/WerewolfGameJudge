@@ -4,12 +4,14 @@ import { z } from 'zod';
 
 /** POST /api/feedback — submit new feedback */
 export const feedbackSchema = z.strictObject({
+  id: z.uuid(),
   content: z.string().min(1).max(500),
   appVersion: z.string().min(1).max(20),
 });
 
 /** POST /api/feedback/:feedbackId/reply — user follow-up reply */
 export const feedbackReplySchema = z.strictObject({
+  id: z.uuid(),
   content: z.string().min(1).max(500),
 });
 

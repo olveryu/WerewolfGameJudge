@@ -4,6 +4,30 @@ import { index, integer, sqliteTable, text, unique, uniqueIndex } from 'drizzle-
 
 import { users } from '../account/dbSchema';
 
+/** Durable publication intent; uncertain creates are reconciled, never blindly repeated. */
+export const feedbackDeliveries = sqliteTable(
+  'feedback_deliveries',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    feedbackId: text('feedback_id').references(() => feedbacks.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['issue', 'reply'] }).notNull(),
+    requestJson: text('request_json').notNull(),
+    content: text('content').notNull(),
+    appVersion: text('app_version').notNull(),
+    title: text('title').notNull(),
+    githubBody: text('github_body').notNull(),
+    status: text('status', { enum: ['pending', 'uncertain', 'needs_review', 'synced'] })
+      .notNull()
+      .default('pending'),
+    remoteId: integer('remote_id'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('idx_feedback_deliveries_user_status').on(table.userId, table.status)],
+);
+
 /** User feedback synchronized with GitHub issues. */
 export const feedbacks = sqliteTable(
   'feedbacks',
