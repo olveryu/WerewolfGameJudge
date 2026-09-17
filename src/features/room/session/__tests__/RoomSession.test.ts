@@ -504,6 +504,78 @@ describe('RoomSession', () => {
     });
   });
 
+  it('keeps recovery serial when an old user response completes during a new session', async () => {
+    const commandRecovery = new RoomCommandRecoveryStore(createRecoveryStorage(), () => 1_000);
+    const nextIdentity = { ...IDENTITY, userId: 'next-user' };
+    for (const [userId, commandId, amount] of [
+      [IDENTITY.userId, 'old-command', 1],
+      [nextIdentity.userId, 'next-command-1', 2],
+      [nextIdentity.userId, 'next-command-2', 3],
+    ] as const) {
+      commandRecovery.save({
+        roomCode: IDENTITY.room.roomCode,
+        roomId: IDENTITY.room.roomId,
+        userId,
+        commandId,
+        command: { type: 'test.increment', amount },
+        controlledSeat: null,
+        label: 'test',
+      });
+    }
+    const oldResponse = createDeferred<unknown>();
+    const nextResponse = createDeferred<unknown>();
+    mockCfPost
+      .mockImplementationOnce(() => oldResponse.promise)
+      .mockImplementationOnce(() => nextResponse.promise)
+      .mockResolvedValueOnce({
+        kind: 'committed',
+        commandId: 'next-command-2',
+        snapshot: createRoomSnapshot(createTestState(5), 3),
+        outcome: { kind: 'success' },
+      });
+    const { session } = createSession({ commandRecovery });
+    await session.connect(IDENTITY);
+    expect(mockCfPost).toHaveBeenCalledTimes(1);
+    const oldEpoch = session.getSnapshot().epoch;
+    session.disconnect();
+    await session.connect(nextIdentity);
+    expect(session.getSnapshot().epoch).toBeGreaterThan(oldEpoch);
+    expect(mockCfPost).toHaveBeenCalledTimes(2);
+
+    oldResponse.resolve({
+      kind: 'rejected',
+      commandId: 'old-command',
+      reason: 'action_step_changed',
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(mockCfPost).toHaveBeenCalledTimes(2);
+    expect(session.getSnapshot()).toMatchObject({
+      identity: nextIdentity,
+      pendingCommandCount: 2,
+      lastRecoveredCommandRejection: null,
+      snapshot: { revision: 1 },
+    });
+
+    nextResponse.resolve({
+      kind: 'committed',
+      commandId: 'next-command-1',
+      snapshot: createRoomSnapshot(createTestState(2), 2),
+      outcome: { kind: 'success' },
+    });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(mockCfPost).toHaveBeenCalledTimes(3);
+    expect(session.getSnapshot()).toMatchObject({
+      pendingCommandCount: 0,
+      snapshot: { revision: 3 },
+    });
+    expect(commandRecovery.load(IDENTITY.room.roomId, IDENTITY.userId)).toMatchObject([
+      { commandId: 'old-command' },
+    ]);
+    expect(commandRecovery.load(nextIdentity.room.roomId, nextIdentity.userId)).toEqual([]);
+  });
+
   it('fails fast if a non-cooperative command transport returns after disconnect', async () => {
     const { session } = createSession();
     await session.connect(IDENTITY);
