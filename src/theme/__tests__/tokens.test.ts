@@ -16,6 +16,26 @@ import {
 } from '../tokens';
 
 describe('spacing', () => {
+  it.each([320, 390, 1440])('keeps semantic dimensions stable when loaded at width %s', (width) => {
+    jest.isolateModules(() => {
+      const native = jest.requireActual<typeof import('react-native')>('react-native');
+      const dimensions = jest.spyOn(native.Dimensions, 'get').mockReturnValue({
+        width,
+        height: 844,
+        scale: 1,
+        fontScale: 1,
+      });
+      try {
+        const tokens = jest.requireActual<typeof import('../tokens')>('../tokens');
+        expect(tokens.typography.title).toBe(20);
+        expect(tokens.spacing.screenH).toBe(20);
+        expect(tokens.componentSizes.button.md).toBe(44);
+      } finally {
+        dimensions.mockRestore();
+      }
+    });
+  });
+
   it('has all semantic keys', () => {
     const keys = Object.keys(spacing);
     expect(keys).toEqual(

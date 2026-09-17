@@ -12,38 +12,19 @@
  * - import { spacing, typography, borderRadius, componentSizes } from '@/theme/tokens';
  * - spacing.small, typography.body, borderRadius.medium
  *
- * No business logic, no React or service imports. Colors defined in themes.ts; hardcoding colors here is forbidden.
+ * No business logic, no React or service imports. Colors are defined in colors.ts.
+ * Semantic dimensions are viewport-independent; consuming layouts own responsive constraints.
  */
 
-import { Dimensions, PixelRatio, Platform, type TextStyle, type ViewStyle } from 'react-native';
+import { PixelRatio, Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 // ============================================================================
-// Responsive Scaling
+// Pixel Alignment
 // ============================================================================
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_WIDTH = 375; // iPhone SE/8 base width
-
-/**
- * Responsive scale factor (0.75x ~ 1.25x)
- * - Small screen (320px): 0.85x
- * - Base (375px): 1.0x
- * - Large screen (428px+): 1.14x ~ 1.25x
- */
-const getScaleFactor = (): number => {
-  const raw = SCREEN_WIDTH / BASE_WIDTH;
-  return Math.max(0.75, Math.min(1.25, raw));
-};
-
-const SCALE = getScaleFactor();
-
-/**
- * Apply responsive scaling
- * @param size Base size
- * @returns Scaled size (pixel-aligned)
- */
+/** Align logical dimensions to physical pixels without changing them with viewport width. */
 const scale = (size: number): number => {
-  return PixelRatio.roundToNearestPixel(size * SCALE);
+  return PixelRatio.roundToNearestPixel(size);
 };
 
 // ============================================================================
