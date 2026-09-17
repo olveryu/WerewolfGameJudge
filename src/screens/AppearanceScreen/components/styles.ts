@@ -98,6 +98,9 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
     },
     container: {
       flex: 1,
+      width: '100%',
+      maxWidth: fixed.maxContentWidth,
+      alignSelf: 'center',
       backgroundColor: colors.transparent,
       overflow: 'hidden',
     },
