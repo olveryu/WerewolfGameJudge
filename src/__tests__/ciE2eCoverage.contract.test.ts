@@ -1,5 +1,6 @@
 /** CI E2E coverage contract for the explicit Playwright shard matrix. */
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -20,6 +21,22 @@ function getConfiguredE2eSpecs(): string[] {
 }
 
 describe('CI Playwright shard coverage', () => {
+  it('verifies CDN bytes before Pages deployment without waiting for the full E2E matrix', () => {
+    execFileSync(process.execPath, ['--test', 'scripts/verify-cdn-artifacts.test.mjs'], {
+      cwd: ROOT_DIR,
+    });
+    const workflow = fs.readFileSync(CI_WORKFLOW_PATH, 'utf8');
+    const frontend = workflow.slice(
+      workflow.indexOf('\n  deploy-frontend:'),
+      workflow.indexOf('\n  deploy-miniapp:'),
+    );
+    expect(frontend).toContain('needs: [quality, deploy-api-worker]');
+    expect(frontend.indexOf('node scripts/verify-cdn-artifacts.mjs')).toBeGreaterThan(0);
+    expect(frontend.indexOf('node scripts/verify-cdn-artifacts.mjs')).toBeLessThan(
+      frontend.indexOf('name: Deploy to Cloudflare Pages'),
+    );
+  });
+
   it('runs every E2E spec exactly once', () => {
     const repositorySpecs = fs
       .readdirSync(E2E_SPEC_DIR)

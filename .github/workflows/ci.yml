@@ -368,6 +368,10 @@ jobs:
           fi
           exit 1
 
+      - name: Verify release CDN payload
+        timeout-minutes: 3
+        run: node scripts/verify-cdn-artifacts.mjs "${{ steps.cdn.outputs.cdn_base }}"
+
       # Cloudflare Pages API rejects non-ASCII commit messages.
       # Our convention: subject line (first line) is always ASCII (Conventional Commits).
       # Extract it explicitly so deployments stay human-readable + API-safe.
