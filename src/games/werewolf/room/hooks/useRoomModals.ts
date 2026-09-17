@@ -7,16 +7,17 @@
  */
 
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
+import { DISMISS_BUTTON, dismissAlert, getAlertGeneration, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 /** useRoomModals deps */
 interface UseRoomModalsDeps {
+  reportScopeKey: string;
   /** Whether current user is Host (determines "本局复盘" modal options) */
   isHost: boolean;
   /** Whether current user can share the night-report screenshot (Host or a player shared by Host) */
@@ -62,6 +63,7 @@ interface RoomModalsState {
 }
 
 export function useRoomModals({
+  reportScopeKey,
   isHost,
   canShareReport,
   getLastNightInfo,
@@ -103,14 +105,39 @@ export function useRoomModals({
 
   /** Tracks whether the "本局复盘" alert is still open (prevents re-showing after dismiss). */
   const detailAlertOpenRef = useRef(false);
+  const detailAlertRequestRef = useRef(0);
+  const detailAlertGenerationRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    detailAlertOpenRef.current = false;
+    detailAlertRequestRef.current += 1;
+    setNightReviewVisible(false);
+    setShareReviewVisible(false);
+    setRoleCardVisible(false);
+    setShouldPlayRevealAnimation(false);
+    setIsLoadingRole(false);
+    setSkillPreviewRoleId(null);
+    return () => {
+      detailAlertOpenRef.current = false;
+      detailAlertRequestRef.current += 1;
+      if (detailAlertGenerationRef.current !== null) {
+        dismissAlert(detailAlertGenerationRef.current);
+        detailAlertGenerationRef.current = null;
+      }
+    };
+  }, [reportScopeKey]);
 
   const confirmOpenNightReview = useCallback(() => {
-    showConfirmAlert(
+    const requestId = detailAlertRequestRef.current;
+    const isShown = showConfirmAlert(
       '查看本局复盘？',
       '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认继续。',
-      () => setNightReviewVisible(true),
+      () => {
+        if (detailAlertRequestRef.current === requestId) setNightReviewVisible(true);
+      },
       { confirmText: '确定查看' },
     );
+    detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
   }, []);
 
   /**
@@ -120,64 +147,69 @@ export function useRoomModals({
    */
   const showDetailAlert = useCallback(
     (reportLoading: boolean) => {
+      const requestId = detailAlertRequestRef.current;
       const dismiss = () => {
+        if (detailAlertRequestRef.current !== requestId) return false;
         detailAlertOpenRef.current = false;
+        detailAlertGenerationRef.current = null;
+        return true;
       };
 
+      let isShown = false;
       if (isHost) {
-        showAlert('本局复盘', '选择操作', [
+        isShown = showAlert('本局复盘', '选择操作', [
           {
             text: '自己查看',
             onPress: () => {
-              dismiss();
-              confirmOpenNightReview();
+              if (dismiss()) confirmOpenNightReview();
             },
           },
           {
             text: '授权玩家查看',
             onPress: () => {
-              dismiss();
-              setShareReviewVisible(true);
+              if (dismiss()) setShareReviewVisible(true);
             },
           },
           {
             text: '分享战报',
             loading: reportLoading,
             onPress: () => {
-              dismiss();
-              void shareNightReviewReport();
+              if (dismiss()) void shareNightReviewReport();
             },
           },
           {
             text: '取消',
             style: 'cancel',
-            onPress: dismiss,
+            onPress: () => {
+              dismiss();
+            },
           },
         ]);
       } else if (canShareReport) {
-        showAlert('本局复盘', '选择操作', [
+        isShown = showAlert('本局复盘', '选择操作', [
           {
             text: '查看',
             onPress: () => {
-              dismiss();
-              confirmOpenNightReview();
+              if (dismiss()) confirmOpenNightReview();
             },
           },
           {
             text: '分享战报',
             loading: reportLoading,
             onPress: () => {
-              dismiss();
-              void shareNightReviewReport();
+              if (dismiss()) void shareNightReviewReport();
             },
           },
           {
             text: '取消',
             style: 'cancel',
-            onPress: dismiss,
+            onPress: () => {
+              dismiss();
+            },
           },
         ]);
       }
+      detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
     },
     [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport],
   );
@@ -190,6 +222,7 @@ export function useRoomModals({
     }
 
     detailAlertOpenRef.current = true;
+    const requestId = ++detailAlertRequestRef.current;
 
     if (isMiniProgram()) {
       showDetailAlert(false);
@@ -198,7 +231,11 @@ export function useRoomModals({
 
     // Start capture in background; update alert to enable "分享战报" on completion
     void beginReportCapture().then(() => {
-      if (detailAlertOpenRef.current) {
+      if (
+        detailAlertOpenRef.current &&
+        detailAlertRequestRef.current === requestId &&
+        detailAlertGenerationRef.current === getAlertGeneration()
+      ) {
         showDetailAlert(false);
       }
     });
@@ -213,8 +250,11 @@ export function useRoomModals({
 
   const handleShareNightReview = useCallback(
     async (allowedSeats: number[]) => {
+      const requestId = detailAlertRequestRef.current;
       const result = await shareNightReview(allowedSeats);
-      if (isSuccessfulRoomCommand(result)) setShareReviewVisible(false);
+      if (detailAlertRequestRef.current === requestId && isSuccessfulRoomCommand(result)) {
+        setShareReviewVisible(false);
+      }
     },
     [shareNightReview],
   );

@@ -13,8 +13,7 @@ import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -26,23 +25,13 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { uploadNightReviewImage } from '@/games/werewolf/services/uploadNightReviewImage';
 import {
   createWerewolfRoomCapabilities,
   WEREWOLF_DISPLAY_NAME,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import type { RootStackParamList } from '@/navigation/types';
-import { colors } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
-import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
-import { buildNightReviewData } from '../NightReview.helpers';
-import {
-  captureNightReviewCard,
-  renderNightReviewToCanvas,
-  shareNightReviewReportImage,
-} from '../shareNightReview';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { getWolfVoteSummary, toGameRoomLike } from '../werewolfRoom.helpers';
@@ -50,6 +39,7 @@ import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
+import { useNightReviewShare } from './useNightReviewShare';
 import { useRoomActions } from './useRoomActions';
 import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
@@ -314,7 +304,14 @@ export function useWerewolfRoomScreenState(
   // A confirmation dialog is ephemeral; a restored first target remains editable.
   useEffect(() => {
     setSecondSeat(null);
-  }, [currentStepId, gameState?.currentStepIndex, gameState?.roleRevealRandomNonce]);
+  }, [
+    currentStepId,
+    gameState?.currentStepIndex,
+    gameState?.roleRevealRandomNonce,
+    myUserId,
+    room.roomId,
+    actorSeatForUi,
+  ]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Intent Layer: useRoomActions
@@ -396,6 +393,18 @@ export function useWerewolfRoomScreenState(
   const openChooseCardModal = useCallback(() => setChooseCardModalVisible(true), []);
   const closeChooseCardModal = useCallback(() => setChooseCardModalVisible(false), []);
 
+  useEffect(() => {
+    setChooseCardModalVisible(false);
+  }, [
+    room.roomId,
+    myUserId,
+    currentStepId,
+    gameState?.currentStepIndex,
+    gameState?.roleRevealRandomNonce,
+    actorSeatForUi,
+    imActioner,
+  ]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Action Orchestrator
   // ═══════════════════════════════════════════════════════════════════════════
@@ -432,77 +441,14 @@ export function useWerewolfRoomScreenState(
   // Host Dialogs
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const nightReviewData = useMemo(() => {
-    if (!gameState?.currentNightResults) return null;
-    if (gameState.status !== GameStatus.Day && gameState.status !== GameStatus.Ended) return null;
-    return buildNightReviewData(gameState);
-  }, [gameState]);
-  const nightReviewShareCardRef = useRef<View>(null);
-  const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
-  const cachedShareBase64Ref = useRef<string | null>(null);
-
-  // Begin report capture on demand (called when user opens "本局复盘" alert).
-  // Mounts the hidden share card, waits for paint, captures via html2canvas / captureRef.
-  const beginReportCapture = useCallback(async (): Promise<string | null> => {
-    cachedShareBase64Ref.current = null;
-    setIsCapturingShareCard(true);
-    try {
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const base64 = await captureNightReviewCard(nightReviewShareCardRef);
-      cachedShareBase64Ref.current = base64;
-      return base64;
-    } catch {
-      return null;
-    } finally {
-      setIsCapturingShareCard(false);
-    }
-  }, []);
-
-  const shareNightReviewReportDirectly = useCallback(async (): Promise<boolean> => {
-    if (!nightReviewData) {
-      showErrorAlert('分享失败', '当前暂无可分享的战报');
-      return false;
-    }
-
-    // Use base64 pre-captured by beginReportCapture (triggered when "本局复盘" alert opened)
-    const base64 = cachedShareBase64Ref.current;
-
-    // Mini program web-view: Canvas 2D → upload to R2 → wx.previewImage
-    if (isMiniProgram()) {
-      try {
-        const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
-        const url = await uploadNightReviewImage(canvasBase64);
-        await wxPreviewImage(url);
-        return true;
-      } catch (err) {
-        roomScreenLog.error('Mini program share failed', err);
-        showErrorAlert('分享失败', '无法分享战报，请稍后重试');
-        return false;
-      }
-    }
-
-    if (base64) {
-      const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomCode);
-      if (result === 'failed') {
-        showErrorAlert('分享失败', '无法分享战报，请稍后重试');
-        return false;
-      }
-      return true;
-    }
-
-    // Fallback: on-demand capture (Chrome may download instead of share due to activation expiry)
-    const freshBase64 = await beginReportCapture();
-    if (!freshBase64) {
-      showErrorAlert('分享失败', '无法生成战报截图，请稍后重试');
-      return false;
-    }
-    const result = await shareNightReviewReportImage(() => Promise.resolve(freshBase64), roomCode);
-    if (result === 'failed') {
-      showErrorAlert('分享失败', '无法分享战报，请稍后重试');
-      return false;
-    }
-    return true;
-  }, [nightReviewData, roomCode, beginReportCapture]);
+  const {
+    nightReviewData,
+    reportScopeKey,
+    nightReviewShareCardRef,
+    isCapturingShareCard,
+    beginReportCapture,
+    shareNightReviewReportDirectly,
+  } = useNightReviewShare(room.roomId, roomCode, myUserId, gameState);
 
   const {
     showPrepareToFlipDialog,
@@ -604,6 +550,7 @@ export function useWerewolfRoomScreenState(
     getCurseInfo: getCurseInfoFn,
     shareNightReview,
     beginReportCapture,
+    reportScopeKey,
     shareNightReviewReport: shareNightReviewReportDirectly,
   });
 

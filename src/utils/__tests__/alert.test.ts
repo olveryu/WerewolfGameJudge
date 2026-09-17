@@ -1,6 +1,34 @@
-import { type AlertConfig, setAlertListener, showAlert } from '@/utils/alert';
+import {
+  type AlertConfig,
+  dismissAlert,
+  getAlertGeneration,
+  setAlertListener,
+  showAlert,
+  showPrompt,
+} from '@/utils/alert';
 
 describe('alert utility', () => {
+  it('does not dismiss an input prompt that replaced an owned alert', () => {
+    const listener = jest.fn();
+    setAlertListener(listener);
+    showAlert('复盘');
+    const generation = getAlertGeneration();
+    showPrompt('修改昵称', { onConfirm: jest.fn() });
+    dismissAlert(generation);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenLastCalledWith(expect.objectContaining({ title: '修改昵称' }));
+  });
+  it('dismisses only the alert belonging to the expected generation', () => {
+    const listener = jest.fn();
+    setAlertListener(listener);
+    showAlert('复盘');
+    const generation = getAlertGeneration();
+    showAlert('其他提示');
+    dismissAlert(generation);
+    expect(listener).toHaveBeenCalledTimes(2);
+    dismissAlert(getAlertGeneration());
+    expect(listener).toHaveBeenLastCalledWith(null);
+  });
   afterEach(() => {
     // Reset listener after each test
     setAlertListener(null);

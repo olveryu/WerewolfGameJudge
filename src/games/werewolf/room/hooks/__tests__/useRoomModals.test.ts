@@ -24,6 +24,7 @@ function createDeps(
   beginReportCapture: () => Promise<string | null>,
 ): Parameters<typeof useRoomModals>[0] {
   return {
+    reportScopeKey: 'report-1',
     isHost: true,
     canShareReport: true,
     getLastNightInfo: () => '',
@@ -43,8 +44,30 @@ function getShareButton(callIndex: number) {
 }
 
 describe('useRoomModals night-review report preparation', () => {
+  it('does not update a replaced report or an unmounted dialog after capture completes', async () => {
+    mockIsMiniProgram.mockReturnValue(false);
+    let complete!: (value: string | null) => void;
+    const capture = new Promise<string | null>((resolve) => {
+      complete = resolve;
+    });
+    const deps = createDeps(() => capture);
+    const { result, rerender, unmount } = renderHook(
+      ({ reportScopeKey }: { reportScopeKey: string }) =>
+        useRoomModals({ ...deps, reportScopeKey }),
+      { initialProps: { reportScopeKey: 'report-1' } },
+    );
+    act(() => result.current.openNightReview());
+    rerender({ reportScopeKey: 'report-2' });
+    unmount();
+    await act(async () => {
+      complete('old-image');
+      await capture;
+    });
+    expect(mockShowAlert).toHaveBeenCalledTimes(1);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockShowAlert.mockReturnValue(true);
   });
 
   it('enables mini-program sharing without starting an unused DOM capture', () => {

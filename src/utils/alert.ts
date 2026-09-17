@@ -72,6 +72,13 @@ export const setAlertListener = (listener: AlertListener | null) => {
 let alertGeneration = 0;
 export const getAlertGeneration = (): number => alertGeneration;
 
+/** Dismiss an owned custom alert only if no newer alert has replaced it. */
+export function dismissAlert(expectedGeneration: number): void {
+  if (expectedGeneration !== alertGeneration) return;
+  alertGeneration += 1;
+  alertListener?.(null);
+}
+
 /**
  * Cross-platform alert function that works on both native and web
  * Uses custom modal for consistent UI across all platforms
@@ -147,6 +154,7 @@ export const showPrompt = (
   const { message, placeholder, defaultValue = '', onConfirm } = options;
 
   if (alertBlocked) return false;
+  alertGeneration++;
 
   const buttons: AlertButton[] = [
     { text: '取消', style: 'cancel' },
