@@ -102,6 +102,7 @@ async function putDrawing(
   token: string,
   reservation: PictionaryDrawingReservation,
   controlledSeat: string | null,
+  bytes = createTestPng(),
 ): Promise<Response> {
   const query = controlledSeat === null ? '' : `?controlledSeat=${controlledSeat}`;
   return SELF.fetch(
@@ -109,7 +110,7 @@ async function putDrawing(
     {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/png' },
-      body: createTestPng(),
+      body: bytes,
     },
   );
 }
@@ -224,6 +225,19 @@ describe('Pictionary controlled bot media', () => {
     }
     state = botUploadResult.snapshot.state;
 
+    const replay = await putDrawing(room, host.access_token, botReservation, '1');
+    expect(replay.status).toBe(200);
+    expect(parseRoomCommandResult(await replay.json(), PICTIONARY_STATE_CODEC)).toEqual(
+      botUploadResult,
+    );
+    const changedPng = createTestPng();
+    changedPng[8] = 1;
+    const conflict = await putDrawing(room, host.access_token, botReservation, '1', changedPng);
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ success: false, reason: 'PICTIONARY_UPLOAD_CONFLICT' });
+    const unauthorizedReplay = await putDrawing(room, guest.access_token, botReservation, '1');
+    expect(unauthorizedReplay.status).toBe(403);
+
     state = await commitSeatDrawing(room, host.access_token, 0, null);
     state = await commitSeatDrawing(room, host.access_token, 2, 2);
     state = await commitSeatDrawing(room, host.access_token, 3, 3);
@@ -235,6 +249,11 @@ describe('Pictionary controlled bot media', () => {
       null,
     );
     expect(state).toMatchObject({ phase: 'answering', stepIndex: 2 });
+
+    const lateReplay = await putDrawing(room, host.access_token, botReservation, '1');
+    expect(lateReplay.status).toBe(200);
+    const lateResult = parseRoomCommandResult(await lateReplay.json(), PICTIONARY_STATE_CODEC);
+    expect(lateResult).toEqual(botUploadResult);
 
     const botTask = getPictionaryTaskForSeat(state, 1);
     const previousEntry = botTask?.previousEntry;

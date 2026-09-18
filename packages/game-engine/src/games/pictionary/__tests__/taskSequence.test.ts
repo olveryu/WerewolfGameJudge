@@ -99,6 +99,41 @@ function advancePastAnsweringStep(state: PictionaryState): PictionaryState {
 }
 
 describe('Pictionary task sequence', () => {
+  it('pauses at each album end until the host advances, including the final album', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0'),
+    );
+    for (let step = 0; step < 4; step += 1) state = advancePastAnsweringStep(state);
+    for (let chainIndex = 0; chainIndex < 4; chainIndex += 1) {
+      expect(state.gallery).toEqual({ chainIndex, entryIndex: 0, isPlaying: true });
+      for (let entryIndex = 1; entryIndex < 4; entryIndex += 1) state = expireCurrentPhase(state);
+      expect(state.gallery).toEqual({ chainIndex, entryIndex: 3, isPlaying: false });
+      expect(state.deadlineAt).toBeNull();
+      expect(
+        decidePictionaryCommand(
+          state,
+          { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+          userContext('user-1', 9_000_000),
+        ).kind,
+      ).toBe('reject');
+      expect(
+        decidePictionaryCommand(
+          state,
+          { type: 'pictionary.gallery.advance' },
+          userContext('user-1'),
+        ).kind,
+      ).toBe('reject');
+      state = dispatch(
+        state,
+        { type: 'pictionary.gallery.advance' },
+        userContext('user-0', 10_000_000 + chainIndex),
+      );
+    }
+    expect(state.phase).toBe('ended');
+  });
+
   it('keeps collection open until clients deliver their drafts', () => {
     const state = expireCurrentPhase(
       dispatch(
@@ -137,7 +172,7 @@ describe('Pictionary task sequence', () => {
 
     expect(state.phase).toBe('answering');
     expect(state.stepIndex).toBe(0);
-    expect(state.deadlineAt).toBe(startTime + 30_000);
+    expect(state.deadlineAt).toBe(startTime + 45_000);
     for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
       expect(getPictionaryTaskForSeat(state, seat)).toMatchObject({
         expectedKind: 'text',

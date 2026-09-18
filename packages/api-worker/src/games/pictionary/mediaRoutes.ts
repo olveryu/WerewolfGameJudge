@@ -14,7 +14,6 @@ import {
   PICTIONARY_DRAWING_WIDTH,
   PICTIONARY_STATE_CODEC,
   type PictionaryDrawingEntry,
-  type PictionaryDrawingReservation,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { Hono } from 'hono';
@@ -98,19 +97,6 @@ function resolveMediaSeat(
     return fail(403, 'CONTROLLED_SEAT_NOT_BOT');
   }
   return controlledSeat;
-}
-
-function requireUploadReservation(
-  state: PictionaryState,
-  seat: number | null,
-  submissionId: string,
-): PictionaryDrawingReservation {
-  if (seat === null) return fail(403, 'NOT_SEATED');
-  const reservation = state.reservations.find(
-    (candidate) => candidate.submissionId === submissionId && candidate.authorSeat === seat,
-  );
-  if (reservation === undefined) return fail(409, 'PICTIONARY_UPLOAD_INVALID');
-  return reservation;
 }
 
 function parseContentLength(request: Request): number | null {
@@ -249,25 +235,41 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
   const roomContext = await readPictionaryRoom(c.env, c.req.raw, c.req.param('roomCode'));
   const controlledSeat = parseControlledSeat(c.req.query('controlledSeat'));
   const seat = resolveMediaSeat(roomContext.state, c.var.userId, controlledSeat);
-  const reservation = requireUploadReservation(
-    roomContext.state,
-    seat,
-    c.req.param('submissionId'),
+  if (seat === null) return fail(403, 'NOT_SEATED');
+  const submissionId = c.req.param('submissionId');
+  const objectKey = buildObjectKey(roomContext.room, roomContext.state, submissionId);
+  const reservation = roomContext.state.reservations.find(
+    (candidate) => candidate.submissionId === submissionId && candidate.authorSeat === seat,
   );
+  const entry = roomContext.state.chains
+    .flatMap((chain) => chain.entries)
+    .find(
+      (candidate): candidate is PictionaryDrawingEntry =>
+        candidate.kind === 'drawing' &&
+        candidate.authorSeat === seat &&
+        candidate.media.objectKey === objectKey,
+    );
+  const entryId = reservation?.entryId ?? entry?.id;
+  if (entryId === undefined) return fail(409, 'PICTIONARY_UPLOAD_INVALID');
   const upload = await readDrawingUpload(c.req.raw);
-  const objectKey = buildObjectKey(roomContext.room, roomContext.state, reservation.submissionId);
-  await putImmutableDrawing(c.env.GAME_MEDIA, objectKey, reservation.entryId, upload);
+  if (
+    entry !== undefined &&
+    (entry.media.sha256 !== upload.sha256 || entry.media.byteLength !== upload.bytes.byteLength)
+  ) {
+    return fail(409, 'PICTIONARY_UPLOAD_CONFLICT');
+  }
+  await putImmutableDrawing(c.env.GAME_MEDIA, objectKey, entryId, upload);
 
   const dispatched = await callDurableObject(() =>
     roomContext.stub.dispatchInternalCommand({
       roomCode: roomContext.room.roomCode,
       roomId: roomContext.room.roomId,
       creationId: roomContext.room.creationId,
-      commandId: `pictionary-media-commit:${reservation.submissionId}`,
-      systemActorId: `pictionary-media-route:${reservation.submissionId}`,
+      commandId: `pictionary-media-commit:${submissionId}`,
+      systemActorId: `pictionary-media-route:${submissionId}`,
       command: {
         type: 'pictionary.drawing.commit',
-        submissionId: reservation.submissionId,
+        submissionId,
         media: {
           objectKey,
           contentType: PNG_CONTENT_TYPE,
@@ -284,7 +286,7 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
     return c.json({ success: false as const, reason: dispatched.reason }, 404);
   }
   if (dispatched.result.kind === 'rejected') {
-    await c.env.GAME_MEDIA.delete(objectKey);
+    if (entry === undefined) await c.env.GAME_MEDIA.delete(objectKey);
     return c.json(dispatched.result, 409);
   }
   return c.json(dispatched.result, 200);

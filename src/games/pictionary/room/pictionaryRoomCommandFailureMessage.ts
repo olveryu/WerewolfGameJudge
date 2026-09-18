@@ -1,6 +1,7 @@
 /** Pictionary-owned presentation for domain command rejections. */
 
 import {
+  PICTIONARY_TEXT_MAX_LENGTH,
   type PictionaryState,
   REASON_PICTIONARY_CONFIG_INVALID,
   REASON_PICTIONARY_GALLERY_MANUAL,
@@ -41,11 +42,11 @@ export function getPictionaryRoomCommandFailureMessage(
     case REASON_PICTIONARY_TASK_INVALID:
       return '当前任务已变化，请按最新页面继续';
     case REASON_PICTIONARY_TEXT_INVALID:
-      return '内容不能为空，且最多输入 80 个字符';
+      return `内容不能为空，且最多输入 ${PICTIONARY_TEXT_MAX_LENGTH} 个字符`;
     case REASON_PICTIONARY_UPLOAD_EXPIRED:
       return '画作上传时间已结束';
     case REASON_PICTIONARY_UPLOAD_INVALID:
-      return '画作预留已失效，请等待下一棒';
+      return '画作预留无法确认，草稿仍保留，请重试';
     default:
       return translateReasonCode(reason);
   }

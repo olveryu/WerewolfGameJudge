@@ -508,7 +508,11 @@ function nextGalleryPosition(
   return {
     chainIndex: Math.floor(next / entryCount),
     entryIndex: next % entryCount,
-    isPlaying: state.gallery.isPlaying,
+    isPlaying:
+      next % entryCount !== entryCount - 1 &&
+      (Math.floor(next / entryCount) !== state.gallery.chainIndex
+        ? state.config.galleryItemDurationSeconds !== null
+        : state.gallery.isPlaying),
   };
 }
 
@@ -602,6 +606,9 @@ function decideResumePictionaryGallery(
   }
   if (state.config.galleryItemDurationSeconds === null) {
     return reject(REASON_PICTIONARY_GALLERY_MANUAL);
+  }
+  if (state.gallery.entryIndex === state.stepIndex) {
+    return updateGallery(state, context, 1);
   }
   return commitPictionary([
     phaseChangedEvent(

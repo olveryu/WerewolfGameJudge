@@ -13,12 +13,18 @@ export class PictionaryConfigPage {
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible({ timeout: 10_000 });
     await expect(this.page.getByText('接龙设置', { exact: true })).toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('6 人');
+    await expect(
+      this.page.getByTestId(TESTIDS.pictionaryConfigDurationOption('guess', 45)),
+    ).toHaveAttribute('aria-checked', 'true');
+    await expect(
+      this.page.getByTestId(TESTIDS.pictionaryConfigDurationOption('gallery', 5)),
+    ).toHaveAttribute('aria-checked', 'true');
     await expect(this.page.getByTestId(TESTIDS.pictionaryConfigSubmitButton)).toHaveText(
       '创建房间',
     );
   }
 
-  /** Configure the shortest deterministic four-player flow while preserving real submissions. */
+  /** Configure manual drawing while retaining default text and gallery deadlines. */
   async configureFourPlayerManualGame(): Promise<void> {
     const decrementButton = this.page.getByRole('button', { name: '减少人数' });
     await decrementButton.click();
@@ -26,9 +32,7 @@ export class PictionaryConfigPage {
     await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('4 人');
 
     await this.selectDuration('drawing', 'unlimited');
-    await this.selectDuration('guess', 'unlimited');
     await this.selectDuration('transition', 0);
-    await this.selectDuration('gallery', 'unlimited');
   }
 
   /** Submit the form and create the room. */

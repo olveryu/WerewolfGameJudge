@@ -77,18 +77,52 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(stage.getByText('把这句话画出来', { exact: true })).toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
     await expect(stage.getByText('上一棒', { exact: true })).toBeVisible();
-    await Promise.all(
-      ['画笔', '橡皮', '直线', '矩形', '椭圆', '填充'].map((tool) =>
-        expect(stage.getByRole('button', { name: tool, exact: true })).toBeVisible(),
-      ),
-    );
     const canvasBounds = await this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
     if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');
-    for (const tool of ['画笔', '红色', '撤销', '重做']) {
-      const toolBounds = await stage.getByRole('button', { name: tool, exact: true }).boundingBox();
+    const toolbarBounds = [];
+    for (const tool of [/^选择工具，/, /^选择颜色，/, /^选择粗细，/, /^撤销$/, /^重做$/]) {
+      const button = stage.getByRole('button', { name: tool });
+      await expect(button).toBeInViewport({ ratio: 1 });
+      const toolBounds = await button.boundingBox();
       if (toolBounds === null) throw new Error(`Pictionary ${tool} has no browser layout box`);
       expect(toolBounds.y).toBeGreaterThanOrEqual(canvasBounds.y + canvasBounds.height);
+      toolbarBounds.push(toolBounds);
     }
+    expect(new Set(toolbarBounds.map((bounds) => bounds.y)).size).toBe(1);
+    await expect(stage.getByRole('button', { name: '红色', exact: true })).toHaveCount(0);
+    await stage.getByRole('button', { name: /^选择工具，/ }).click();
+    for (const tool of ['画笔', '橡皮', '直线', '矩形', '椭圆', '填充', '清空画布']) {
+      await expect(this.page.getByRole('button', { name: tool, exact: true })).toBeInViewport({
+        ratio: 1,
+      });
+    }
+    await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
+    await stage.getByRole('button', { name: /^选择颜色，/ }).click();
+    await expect(this.page.getByRole('button', { name: '粉色', exact: true })).toBeInViewport({
+      ratio: 1,
+    });
+    await this.page.getByRole('button', { name: '蓝色', exact: true }).click();
+    await expect(
+      stage.getByRole('button', { name: '选择颜色，当前蓝色', exact: true }),
+    ).toBeVisible();
+    await stage.getByRole('button', { name: /^选择粗细，/ }).click();
+    await this.page.getByRole('button', { name: '30 像素画笔', exact: true }).click();
+    await expect(
+      stage.getByRole('button', { name: '选择粗细，当前 30 像素', exact: true }),
+    ).toBeVisible();
+    await stage.getByRole('button', { name: /^选择颜色，/ }).click();
+    await expect(
+      this.page.getByRole('button', { name: '关闭选择面板', exact: true }),
+    ).toBeVisible();
+    await this.page.mouse.click(
+      canvasBounds.x + canvasBounds.width / 2,
+      canvasBounds.y + canvasBounds.height - 8,
+    );
+    await expect(this.page.getByRole('button', { name: '关闭选择面板', exact: true })).toHaveCount(
+      0,
+    );
+    await expect(stage.getByRole('button', { name: '撤销', exact: true })).toBeDisabled();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
   }
 
   /** Draw one non-empty stroke through browser pointer events. */
@@ -131,17 +165,35 @@ export class PictionaryRoomPage extends RoomPage {
     await redoButton.click();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
     for (const [toolIndex, tool] of ['直线', '矩形', '椭圆', '橡皮'].entries()) {
-      await stage.getByRole('button', { name: tool, exact: true }).click();
+      await stage.getByRole('button', { name: /^选择工具，/ }).click();
+      await this.page.getByRole('button', { name: tool, exact: true }).click();
+      await expect(
+        stage.getByRole('button', { name: `选择工具，当前${tool}`, exact: true }),
+      ).toBeVisible();
       await this.drawStroke(toolIndex + 1);
     }
-    await stage.getByRole('button', { name: '红色', exact: true }).click();
-    await stage.getByRole('button', { name: '填充', exact: true }).click();
+    await stage.getByRole('button', { name: /^选择颜色，/ }).click();
+    await this.page.getByRole('button', { name: '红色', exact: true }).click();
+    await stage.getByRole('button', { name: /^选择工具，/ }).click();
+    await this.page.getByRole('button', { name: '填充', exact: true }).click();
     const canvas = this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas);
     await canvas.scrollIntoViewIfNeeded();
     const bounds = await canvas.boundingBox();
     if (bounds === null) throw new Error('Pictionary canvas has no browser layout box');
     await this.page.mouse.click(bounds.x + bounds.width * 0.05, bounds.y + bounds.height * 0.05);
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
+    await stage.getByRole('button', { name: /^选择工具，/ }).click();
+    await this.page.getByRole('button', { name: '清空画布', exact: true }).click();
+    await this.page.getByRole('dialog').getByText('取消', { exact: true }).click();
+    await expect(undoButton).toBeEnabled();
+    await stage.getByRole('button', { name: /^选择工具，/ }).click();
+    await this.page.getByRole('button', { name: '清空画布', exact: true }).click();
+    await this.page.getByRole('dialog').getByText('清空', { exact: true }).click();
+    await expect(undoButton).toBeDisabled();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
+    await stage.getByRole('button', { name: /^选择工具，/ }).click();
+    await this.page.getByRole('button', { name: '画笔', exact: true }).click();
+    await this.drawStroke(0);
   }
 
   /** Mark the locally persisted drawing ready for final collection. */
@@ -206,7 +258,7 @@ export class PictionaryRoomPage extends RoomPage {
       stage.getByText(`第 ${chain} / ${chainTotal} 本画册`, { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
     const revealedEntries = this.page.getByTestId(TESTIDS.pictionaryGalleryEntry);
-    await expect(revealedEntries).toHaveCount(entry);
+    await expect(revealedEntries).toHaveCount(entry, { timeout: 10_000 });
     await expect(
       revealedEntries.last().getByText(`第 ${entry} / ${entryTotal} 棒`, { exact: true }),
     ).toBeVisible();
@@ -255,5 +307,30 @@ export class PictionaryRoomPage extends RoomPage {
     const bounds = await this.page.getByTestId(TESTIDS.pictionaryStageFrame).boundingBox();
     if (bounds === null) throw new Error('Pictionary stage has no browser layout box');
     expect(bounds.width).toBeLessThanOrEqual(PHONE_STAGE_MAX_WIDTH);
+  }
+
+  /** Require core task controls to fit without scrolling, including a reduced keyboard viewport. */
+  async expectTaskFitsViewport(kind: 'prompt' | 'guess' | 'drawing'): Promise<void> {
+    const media = this.page.getByTestId(
+      kind === 'drawing' ? TESTIDS.pictionaryDrawingCanvas : TESTIDS.pictionaryDrawingImageButton,
+    );
+    const button = this.page.getByTestId(
+      kind === 'drawing'
+        ? TESTIDS.pictionaryDrawingSubmitButton
+        : TESTIDS.pictionaryTextSubmitButton,
+    );
+    await expect(button).toBeInViewport({ ratio: 1 });
+    if (kind !== 'drawing')
+      await expect(this.page.getByTestId(TESTIDS.pictionaryTextInput)).toBeInViewport({ ratio: 1 });
+    if (kind !== 'prompt') {
+      await expect(media).toBeInViewport({ ratio: 1 });
+      const bounds = await media.boundingBox();
+      if (bounds === null) throw new Error('Task media layout is missing');
+      expect(bounds.height).toBeGreaterThan(60);
+      expect(bounds.width / bounds.height).toBeCloseTo(4 / 3, 1);
+    }
+    expect(
+      await this.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
   }
 }

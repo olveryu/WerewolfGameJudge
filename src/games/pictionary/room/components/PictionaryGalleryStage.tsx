@@ -176,6 +176,7 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   }
   const command = usePictionaryStageCommand(session, null);
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
+  const isAlbumEnd = gallery.entryIndex === chain.entries.length - 1;
   const isFinalEntry =
     gallery.chainIndex === state.chains.length - 1 &&
     gallery.entryIndex === chain.entries.length - 1;
@@ -191,40 +192,57 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
       >
         <Ionicons name="play-skip-back" size={20} color={colors.text} />
       </Button>
+      {!isAlbumEnd && state.config.galleryItemDurationSeconds !== null && (
+        <Button
+          variant="secondary"
+          accessibilityLabel={gallery.isPlaying ? '暂停' : '播放'}
+          size="md"
+          disabled={command.isSubmitting}
+          onPress={() =>
+            void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
+              type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
+            })
+          }
+          icon={
+            <Ionicons
+              name={gallery.isPlaying ? 'pause' : 'play'}
+              size={20}
+              color={colors.primary}
+            />
+          }
+        >
+          {gallery.isPlaying ? '暂停' : '播放'}
+        </Button>
+      )}
       <Button
-        variant="secondary"
+        variant={isAlbumEnd ? 'primary' : 'icon'}
         size="md"
         disabled={command.isSubmitting}
         onPress={() =>
-          void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
-            type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
-          })
-        }
-        icon={
-          <Ionicons name={gallery.isPlaying ? 'pause' : 'play'} size={20} color={colors.primary} />
-        }
-      >
-        {gallery.isPlaying ? '暂停' : '播放'}
-      </Button>
-      <Button
-        variant="icon"
-        size="md"
-        disabled={command.isSubmitting}
-        onPress={() =>
-          void command.submit(isFinalEntry ? '结束揭晓' : '下一项', {
+          void command.submit(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
             type: 'pictionary.gallery.advance',
           })
         }
-        accessibilityLabel={isFinalEntry ? '结束揭晓' : '下一项'}
+        accessibilityLabel={isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项'}
         testID={TESTIDS.pictionaryGalleryAdvanceButton}
       >
-        <Ionicons name="play-skip-forward" size={20} color={colors.text} />
+        {isAlbumEnd ? (
+          isFinalEntry ? (
+            '结束揭晓'
+          ) : (
+            '下一本'
+          )
+        ) : (
+          <Ionicons name="play-skip-forward" size={20} color={colors.text} />
+        )}
       </Button>
     </View>
   ) : (
     <View style={styles.viewerNotice}>
       <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
-      <Text style={styles.viewerNoticeText}>全员正在观看同一本画册</Text>
+      <Text style={styles.viewerNoticeText}>
+        {isAlbumEnd ? '本册已揭晓，等待房主继续' : '全员正在观看同一本画册'}
+      </Text>
     </View>
   );
 

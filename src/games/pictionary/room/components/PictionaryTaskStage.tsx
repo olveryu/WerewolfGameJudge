@@ -12,8 +12,17 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
+import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import {
   EMPTY_PICTIONARY_DRAWING_DRAFT,
@@ -50,6 +59,7 @@ import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryDrawingCanvas } from './PictionaryDrawingCanvas';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageFrame } from './PictionaryStageFrame';
+import { PictionaryTaskFrame, PictionaryTaskMedia } from './PictionaryTaskFrame';
 
 interface PictionaryTaskStageProps {
   readonly state: PictionaryState;
@@ -109,12 +119,14 @@ const PreviousDrawing: React.FC<{
   return (
     <View style={styles.contextBlock}>
       <Text style={styles.contextLabel}>上一棒画作</Text>
-      <PictionaryDrawingImage
-        roomCode={state.roomCode}
-        entryId={previousEntry.id}
-        accessibilityLabel="上一棒画作"
-        controlledSeat={controlledSeat}
-      />
+      <PictionaryTaskMedia>
+        <PictionaryDrawingImage
+          roomCode={state.roomCode}
+          entryId={previousEntry.id}
+          accessibilityLabel="上一棒画作"
+          controlledSeat={controlledSeat}
+        />
+      </PictionaryTaskMedia>
     </View>
   );
 };
@@ -157,27 +169,34 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   };
 
   return (
-    <PictionaryStageFrame
+    <PictionaryTaskFrame
       eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
       title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
-      description={
-        isOpeningPrompt
-          ? '题目会在编辑结束后交给下一位玩家，期间不要告诉其他人。'
-          : '只根据画面作答；编辑结束前仍可修改。'
-      }
       remainingSeconds={remainingSeconds}
+      footer={
+        <Button
+          variant={isReady ? 'secondary' : 'primary'}
+          onPress={() => void toggleReady()}
+          disabled={(!isReady && validationMessage !== null) || isExpired}
+          loading={command.isSubmitting}
+          size="md"
+          accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+          testID={TESTIDS.pictionaryTextSubmitButton}
+        >
+          {isReady ? '继续编辑' : '完成编辑'}
+        </Button>
+      }
     >
       {!isOpeningPrompt && (
         <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
       )}
-      <View style={styles.composer}>
+      <View style={[styles.composer, isOpeningPrompt && styles.openingComposer]}>
         <TextInput
           value={text}
           onChangeText={updateText}
           editable={!isReady && !command.isSubmitting && !isExpired}
           maxLength={PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS}
           multiline
-          autoFocus
           placeholder={isOpeningPrompt ? '例如：月球上的猫' : '写下你的猜测'}
           placeholderTextColor={colors.textMuted}
           style={styles.textInput}
@@ -194,8 +213,8 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
             {text.length > 0 && validationMessage !== null
               ? validationMessage
               : isReady
-                ? '已完成编辑，可在倒计时结束前继续修改'
-                : '倒计时结束后才会发送最终内容'}
+                ? '已就绪'
+                : ''}
           </Text>
           <Text
             style={[
@@ -207,18 +226,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           </Text>
         </View>
       </View>
-      <Button
-        variant={isReady ? 'secondary' : 'primary'}
-        onPress={() => void toggleReady()}
-        disabled={(!isReady && validationMessage !== null) || isExpired}
-        loading={command.isSubmitting}
-        size="lg"
-        accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-        testID={TESTIDS.pictionaryTextSubmitButton}
-      >
-        {isReady ? '继续编辑' : '完成编辑'}
-      </Button>
-    </PictionaryStageFrame>
+    </PictionaryTaskFrame>
   );
 };
 
@@ -228,35 +236,51 @@ interface ToolButtonProps {
   readonly isSelected: boolean;
   readonly disabled: boolean;
   readonly onPress: () => void;
+  readonly children?: React.ReactNode;
 }
 
-const ToolButton: React.FC<ToolButtonProps> = ({ label, icon, isSelected, disabled, onPress }) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel={label}
-    accessibilityState={{ selected: isSelected, disabled }}
-    disabled={disabled}
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.toolButton,
-      isSelected && styles.selectedToolButton,
-      disabled && styles.disabled,
-      pressed && styles.pressed,
-    ]}
-  >
-    <Ionicons
-      name={icon}
-      size={18}
-      color={isSelected ? colors.textInverse : colors.textSecondary}
-    />
-    <Text
-      numberOfLines={1}
-      style={[styles.toolButtonText, isSelected && styles.selectedToolButtonText]}
+const ToolButton: React.FC<ToolButtonProps> = ({
+  label,
+  icon,
+  isSelected,
+  disabled,
+  onPress,
+  children,
+}) => {
+  const [isLabelVisible, setIsLabelVisible] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isSelected, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      onHoverIn={() => setIsLabelVisible(true)}
+      onHoverOut={() => setIsLabelVisible(false)}
+      onFocus={() => setIsLabelVisible(true)}
+      onBlur={() => setIsLabelVisible(false)}
+      style={({ pressed }) => [
+        styles.toolButton,
+        isSelected && styles.selectedToolButton,
+        disabled && styles.disabled,
+        pressed && styles.pressed,
+      ]}
     >
-      {label}
-    </Text>
-  </Pressable>
-);
+      {children ?? (
+        <Ionicons
+          name={icon}
+          size={18}
+          color={isSelected ? colors.textInverse : colors.textSecondary}
+        />
+      )}
+      {isLabelVisible && (
+        <View pointerEvents="none" style={styles.tooltip}>
+          <Text style={styles.tooltipText}>{label}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+};
 
 interface IconActionProps {
   readonly label: string;
@@ -266,21 +290,7 @@ interface IconActionProps {
 }
 
 const IconAction: React.FC<IconActionProps> = ({ label, icon, disabled, onPress }) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel={label}
-    accessibilityState={{ disabled }}
-    disabled={disabled}
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.iconAction,
-      disabled && styles.disabled,
-      pressed && styles.pressed,
-    ]}
-  >
-    <Ionicons name={icon} size={22} color={colors.textSecondary} />
-    <Text style={styles.toolButtonText}>{label}</Text>
-  </Pressable>
+  <ToolButton label={label} icon={icon} disabled={disabled} onPress={onPress} isSelected={false} />
 );
 
 interface DrawingToolbarProps {
@@ -298,136 +308,194 @@ interface DrawingToolbarProps {
   readonly onClear: () => void;
 }
 
-const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
-  tool,
-  color,
-  strokeWidth,
-  canUndo,
-  canRedo,
-  disabled,
-  onToolChange,
-  onColorChange,
-  onWidthChange,
-  onUndo,
-  onRedo,
-  onClear,
-}) => (
-  <View style={styles.toolbar}>
-    <View style={styles.toolRow}>
-      <View style={styles.segmentedControl}>
-        <ToolButton
-          label="画笔"
-          icon="brush-outline"
-          isSelected={tool === 'brush'}
-          disabled={disabled}
-          onPress={() => onToolChange('brush')}
-        />
-        <ToolButton
-          label="橡皮"
-          icon="backspace-outline"
-          isSelected={tool === 'eraser'}
-          disabled={disabled}
-          onPress={() => onToolChange('eraser')}
-        />
-        <ToolButton
-          label="直线"
-          icon="remove-outline"
-          isSelected={tool === 'line'}
-          disabled={disabled}
-          onPress={() => onToolChange('line')}
-        />
-        <ToolButton
-          label="矩形"
-          icon="square-outline"
-          isSelected={tool === 'rectangle'}
-          disabled={disabled}
-          onPress={() => onToolChange('rectangle')}
-        />
-        <ToolButton
-          label="椭圆"
-          icon="ellipse-outline"
-          isSelected={tool === 'ellipse'}
-          disabled={disabled}
-          onPress={() => onToolChange('ellipse')}
-        />
-        <ToolButton
-          label="填充"
-          icon="color-fill-outline"
-          isSelected={tool === 'fill'}
-          disabled={disabled}
-          onPress={() => onToolChange('fill')}
-        />
-      </View>
-    </View>
-    <View style={styles.historyActions}>
-      <IconAction
-        label="撤销"
-        icon="arrow-undo-outline"
-        disabled={disabled || !canUndo}
-        onPress={onUndo}
-      />
-      <IconAction
-        label="重做"
-        icon="arrow-redo-outline"
-        disabled={disabled || !canRedo}
-        onPress={onRedo}
-      />
-      <IconAction
-        label="清空画布"
-        icon="trash-outline"
-        disabled={disabled || !canUndo}
-        onPress={onClear}
-      />
-    </View>
-    <View style={styles.optionRow} accessibilityLabel="画笔颜色">
-      {PICTIONARY_DRAWING_PALETTE.map((swatch) => (
+const toolOptions = [
+  { tool: 'brush', label: '画笔', icon: 'brush-outline' },
+  { tool: 'eraser', label: '橡皮', icon: 'backspace-outline' },
+  { tool: 'line', label: '直线', icon: 'remove-outline' },
+  { tool: 'rectangle', label: '矩形', icon: 'square-outline' },
+  { tool: 'ellipse', label: '椭圆', icon: 'ellipse-outline' },
+  { tool: 'fill', label: '填充', icon: 'color-fill-outline' },
+] as const satisfies readonly {
+  tool: PictionaryDrawingTool;
+  label: string;
+  icon: ToolButtonProps['icon'];
+}[];
+
+type DrawingPanel = 'tool' | 'color' | 'width';
+
+interface DrawingOptionsProps {
+  readonly activePanel: DrawingPanel;
+  readonly toolbar: DrawingToolbarProps;
+  readonly onClose: () => void;
+}
+
+const DrawingOptions: React.FC<DrawingOptionsProps> = ({ activePanel, toolbar, onClose }) => (
+  <View style={styles.optionGrid}>
+    {activePanel === 'tool' && (
+      <>
+        {toolOptions.map((option) => (
+          <View key={option.tool} style={styles.toolOption}>
+            <ToolButton
+              label={option.label}
+              icon={option.icon}
+              isSelected={toolbar.tool === option.tool}
+              disabled={toolbar.disabled}
+              onPress={() => {
+                toolbar.onToolChange(option.tool);
+                onClose();
+              }}
+            />
+          </View>
+        ))}
+        <View style={styles.toolOption}>
+          <IconAction
+            label="清空画布"
+            icon="trash-outline"
+            disabled={toolbar.disabled || !toolbar.canUndo}
+            onPress={() => {
+              onClose();
+              toolbar.onClear();
+            }}
+          />
+        </View>
+      </>
+    )}
+    {activePanel === 'color' &&
+      PICTIONARY_DRAWING_PALETTE.map((swatch) => (
         <Pressable
           key={swatch.value}
           accessibilityRole="button"
           accessibilityLabel={swatch.name}
-          accessibilityState={{ selected: color === swatch.value, disabled }}
-          disabled={disabled}
-          onPress={() => onColorChange(swatch.value)}
+          accessibilityState={{
+            selected: toolbar.color === swatch.value,
+            disabled: toolbar.disabled,
+          }}
+          disabled={toolbar.disabled}
+          onPress={() => {
+            toolbar.onColorChange(swatch.value);
+            onClose();
+          }}
           style={[
             styles.swatchButton,
-            color === swatch.value && styles.selectedSwatchButton,
-            disabled && styles.disabled,
+            toolbar.color === swatch.value && styles.selectedSwatchButton,
           ]}
         >
           <View style={[styles.swatch, { backgroundColor: swatch.value }]} />
         </Pressable>
       ))}
-    </View>
-    <View style={styles.optionRow} accessibilityLabel="画笔粗细">
-      {PICTIONARY_DRAWING_WIDTHS.map((width) => (
+    {activePanel === 'width' &&
+      PICTIONARY_DRAWING_WIDTHS.map((width) => (
         <Pressable
           key={width}
           accessibilityRole="button"
           accessibilityLabel={`${width} 像素画笔`}
-          accessibilityState={{ selected: strokeWidth === width, disabled }}
-          disabled={disabled}
-          onPress={() => onWidthChange(width)}
-          style={[
-            styles.widthButton,
-            strokeWidth === width && styles.selectedWidthButton,
-            disabled && styles.disabled,
-          ]}
+          accessibilityState={{
+            selected: toolbar.strokeWidth === width,
+            disabled: toolbar.disabled,
+          }}
+          disabled={toolbar.disabled}
+          onPress={() => {
+            toolbar.onWidthChange(width);
+            onClose();
+          }}
+          style={[styles.widthButton, toolbar.strokeWidth === width && styles.selectedWidthButton]}
         >
           <View
             style={[
               styles.widthPreview,
               {
-                width: Math.max(5, width / 2),
-                height: Math.max(5, width / 2),
-                backgroundColor: tool === 'eraser' ? colors.textMuted : color,
+                width,
+                height: width,
+                backgroundColor: toolbar.tool === 'eraser' ? colors.textMuted : toolbar.color,
               },
             ]}
           />
         </Pressable>
       ))}
-    </View>
   </View>
 );
+
+const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
+  const [activePanel, setActivePanel] = useState<DrawingPanel | null>(null);
+  const selectedTool = toolOptions.find((option) => option.tool === toolbar.tool);
+  const selectedColor = PICTIONARY_DRAWING_PALETTE.find((swatch) => swatch.value === toolbar.color);
+  if (selectedTool === undefined || selectedColor === undefined) {
+    throw new Error('[FAIL-FAST] Unknown Pictionary drawing tool or color');
+  }
+  const onClose = () => setActivePanel(null);
+  const panelTitle =
+    activePanel === 'tool' ? '绘画工具' : activePanel === 'color' ? '画笔颜色' : '画笔粗细';
+
+  return (
+    <View style={styles.toolbar}>
+      <ToolButton
+        label={`选择工具，当前${selectedTool.label}`}
+        icon={selectedTool.icon}
+        isSelected={false}
+        disabled={toolbar.disabled}
+        onPress={() => setActivePanel('tool')}
+      />
+      <ToolButton
+        label={`选择颜色，当前${selectedColor.name}`}
+        icon="color-palette-outline"
+        isSelected={false}
+        disabled={toolbar.disabled}
+        onPress={() => setActivePanel('color')}
+      >
+        <View style={[styles.swatch, { backgroundColor: toolbar.color }]} />
+      </ToolButton>
+      <ToolButton
+        label={`选择粗细，当前 ${toolbar.strokeWidth} 像素`}
+        icon="ellipse"
+        isSelected={false}
+        disabled={toolbar.disabled}
+        onPress={() => setActivePanel('width')}
+      >
+        <View
+          style={[
+            styles.widthPreview,
+            {
+              width: toolbar.strokeWidth,
+              height: toolbar.strokeWidth,
+              backgroundColor: toolbar.tool === 'eraser' ? colors.textMuted : toolbar.color,
+            },
+          ]}
+        />
+      </ToolButton>
+      <IconAction
+        label="撤销"
+        icon="arrow-undo-outline"
+        disabled={toolbar.disabled || !toolbar.canUndo}
+        onPress={toolbar.onUndo}
+      />
+      <IconAction
+        label="重做"
+        icon="arrow-redo-outline"
+        disabled={toolbar.disabled || !toolbar.canRedo}
+        onPress={toolbar.onRedo}
+      />
+      {activePanel !== null && (
+        <BaseCenterModal
+          visible={!toolbar.disabled}
+          onClose={onClose}
+          dismissOnOverlayPress
+          animationType="none"
+          contentStyle={styles.optionsPanel}
+        >
+          <View style={styles.panelHeader}>
+            <Text accessibilityRole="header" style={styles.panelTitle}>
+              {panelTitle}
+            </Text>
+            <View style={styles.closeButton}>
+              <IconAction label="关闭选择面板" icon="close" disabled={false} onPress={onClose} />
+            </View>
+          </View>
+          <DrawingOptions activePanel={activePanel} toolbar={toolbar} onClose={onClose} />
+        </BaseCenterModal>
+      )}
+    </View>
+  );
+};
 
 const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   state,
@@ -519,63 +587,64 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const canComplete = draft.elements.length > 0 && !isBusy && !isExpired;
 
   return (
-    <PictionaryStageFrame
+    <PictionaryTaskFrame
       eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
       title="把这句话画出来"
-      description="画面会在编辑结束后传给下一位玩家，不能添加文字提示。"
       remainingSeconds={remainingSeconds}
+      footer={
+        <>
+          <DrawingToolbar
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            canUndo={draft.elements.length > 0}
+            canRedo={draft.redoElements.length > 0}
+            disabled={!canEdit}
+            onToolChange={setTool}
+            onColorChange={setColor}
+            onWidthChange={setStrokeWidth}
+            onUndo={() => updateDraft({ type: 'element.undo' })}
+            onRedo={() => updateDraft({ type: 'element.redo' })}
+            onClear={clearDrawing}
+          />
+          <Button
+            variant={isReady ? 'secondary' : 'primary'}
+            onPress={() => void toggleReady()}
+            disabled={isReady ? isExpired || isBusy : !canComplete}
+            loading={isBusy}
+            size="md"
+            accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+            testID={TESTIDS.pictionaryDrawingSubmitButton}
+          >
+            {isReady ? '继续编辑' : '完成编辑'}
+          </Button>
+        </>
+      }
     >
       <View style={styles.promptStrip}>
         <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
         <View style={styles.promptCopy}>
           <Text style={styles.contextLabel}>上一棒</Text>
-          <Text style={styles.promptText}>
-            {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
-          </Text>
+          <ScrollView style={styles.promptScroll} nestedScrollEnabled>
+            <Text style={styles.promptText}>
+              {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
+            </Text>
+          </ScrollView>
         </View>
       </View>
-      <PictionaryDrawingCanvas
-        elements={draft.elements}
-        tool={tool}
-        color={color}
-        strokeWidth={strokeWidth}
-        isEnabled={canEdit}
-        onElementChange={persistElement}
-        onElementComplete={addElement}
-        onFill={fillDrawing}
-      />
-      <DrawingToolbar
-        tool={tool}
-        color={color}
-        strokeWidth={strokeWidth}
-        canUndo={draft.elements.length > 0}
-        canRedo={draft.redoElements.length > 0}
-        disabled={!canEdit}
-        onToolChange={setTool}
-        onColorChange={setColor}
-        onWidthChange={setStrokeWidth}
-        onUndo={() => updateDraft({ type: 'element.undo' })}
-        onRedo={() => updateDraft({ type: 'element.redo' })}
-        onClear={clearDrawing}
-      />
-      {isReady && (
-        <View style={styles.uploadNotice}>
-          <Ionicons name="checkmark-circle-outline" size={18} color={colors.info} />
-          <Text style={styles.uploadNoticeText}>画稿已保存在本机，可在倒计时结束前继续修改</Text>
-        </View>
-      )}
-      <Button
-        variant={isReady ? 'secondary' : 'primary'}
-        onPress={() => void toggleReady()}
-        disabled={isReady ? isExpired || isBusy : !canComplete}
-        loading={isBusy}
-        size="lg"
-        accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-        testID={TESTIDS.pictionaryDrawingSubmitButton}
-      >
-        {isReady ? '继续编辑' : '完成编辑'}
-      </Button>
-    </PictionaryStageFrame>
+      <PictionaryTaskMedia>
+        <PictionaryDrawingCanvas
+          elements={draft.elements}
+          tool={tool}
+          color={color}
+          strokeWidth={strokeWidth}
+          isEnabled={canEdit}
+          onElementChange={persistElement}
+          onElementComplete={addElement}
+          onFill={fillDrawing}
+        />
+      </PictionaryTaskMedia>
+    </PictionaryTaskFrame>
   );
 };
 
@@ -644,11 +713,13 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
     const description =
       draftFinalizer.status === 'failed'
         ? '本机最终内容发送失败，草稿仍保存在本机。'
-        : draftFinalizer.status === 'empty'
-          ? '本机没有这一棒的草稿。如果在其他设备作答，请回到原设备交稿。'
-          : draftFinalizer.status === 'waiting'
-            ? '本机最终内容已处理，正在等待其他玩家。'
-            : '正在发送本机保存的最终内容，请保持页面打开。';
+        : draftFinalizer.status === 'retrying'
+          ? '发送暂未成功，正在自动重试。草稿已保留，恢复连接后会继续发送。'
+          : draftFinalizer.status === 'empty'
+            ? '本机没有这一棒的草稿。如果在其他设备作答，请回到原设备交稿。'
+            : draftFinalizer.status === 'waiting'
+              ? '本机最终内容已处理，正在等待其他玩家。'
+              : '正在发送本机保存的最终内容，请保持页面打开。';
     return (
       <PictionaryWaitingStage
         state={state}
@@ -721,7 +792,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
 };
 
 const styles = StyleSheet.create({
-  contextBlock: { gap: spacing.small },
+  contextBlock: { flex: 1, minHeight: 0, gap: spacing.tight },
   contextLabel: {
     ...textStyles.caption,
     color: colors.textSecondary,
@@ -739,6 +810,8 @@ const styles = StyleSheet.create({
   },
   missedContextText: { ...textStyles.bodyMedium, color: colors.text },
   composer: {
+    flexShrink: 1,
+    minHeight: fixed.minTouchTarget,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
     borderRadius: borderRadius.medium,
@@ -746,8 +819,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   textInput: {
-    minHeight: 132,
-    padding: spacing.medium,
+    minHeight: fixed.minTouchTarget,
+    height: fixed.minTouchTarget * 2,
+    flexShrink: 1,
+    padding: spacing.small,
     ...textStyles.subtitle,
     color: colors.text,
     textAlignVertical: 'top',
@@ -769,38 +844,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.small,
-    padding: spacing.medium,
+    padding: spacing.small,
     borderLeftWidth: fixed.borderWidthHighlight,
     borderLeftColor: colors.primary,
     backgroundColor: colors.surface,
   },
   promptCopy: { flex: 1, minWidth: 0 },
-  promptText: { ...textStyles.titleBold, color: colors.text, marginTop: spacing.tight },
+  promptScroll: { maxHeight: fixed.minTouchTarget },
+  promptText: { ...textStyles.bodyMedium, color: colors.text },
+  openingComposer: { marginTop: spacing.medium },
   toolbar: {
-    gap: spacing.small,
-    paddingVertical: spacing.small,
+    flexDirection: 'row',
+    gap: spacing.tight,
     borderTopWidth: fixed.borderWidth,
     borderBottomWidth: fixed.borderWidth,
     borderColor: colors.borderLight,
   },
-  toolRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.small,
-  },
-  segmentedControl: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    borderRadius: borderRadius.small,
-    overflow: 'hidden',
-  },
+  optionsPanel: { width: '90%', maxWidth: 320, borderRadius: borderRadius.medium },
+  panelHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.small },
+  panelTitle: { ...textStyles.subtitle, flex: 1, color: colors.text },
+  closeButton: { width: fixed.minTouchTarget },
+  toolOption: { width: fixed.minTouchTarget },
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
   toolButton: {
     minHeight: fixed.minTouchTarget,
-    width: '33.333%',
+    flex: 1,
+    minWidth: fixed.minTouchTarget,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -809,19 +878,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   selectedToolButton: { backgroundColor: colors.primary },
-  toolButtonText: { ...textStyles.secondarySemibold, color: colors.textSecondary },
-  selectedToolButtonText: { color: colors.textInverse },
-  historyActions: { flexDirection: 'row', gap: spacing.tight },
-  iconAction: {
+  tooltip: {
+    position: 'absolute',
+    bottom: '100%',
     minWidth: fixed.minTouchTarget,
-    minHeight: fixed.minTouchTarget,
-    flexDirection: 'row',
-    gap: spacing.tight,
-    paddingHorizontal: spacing.small,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: spacing.tight,
+    backgroundColor: colors.text,
+    borderRadius: borderRadius.small,
+    zIndex: 1,
   },
-  optionRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.tight },
+  tooltipText: { ...textStyles.caption, color: colors.textInverse, textAlign: 'center' },
   swatchButton: {
     width: fixed.minTouchTarget,
     height: fixed.minTouchTarget,
@@ -850,8 +916,6 @@ const styles = StyleSheet.create({
   },
   selectedWidthButton: { borderColor: colors.primary, borderWidth: fixed.borderWidthThick },
   widthPreview: { borderRadius: borderRadius.full },
-  uploadNotice: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
-  uploadNoticeText: { ...textStyles.secondary, flex: 1, color: colors.info },
   waitingBody: {
     minHeight: 260,
     alignItems: 'center',

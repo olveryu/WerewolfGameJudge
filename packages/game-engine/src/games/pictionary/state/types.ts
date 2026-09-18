@@ -42,9 +42,9 @@ export interface PictionaryConfig {
 export const DEFAULT_PICTIONARY_CONFIG: PictionaryConfig = {
   numberOfPlayers: PICTIONARY_DEFAULT_PLAYERS,
   drawingDurationSeconds: 120,
-  guessDurationSeconds: 30,
+  guessDurationSeconds: 45,
   transitionDurationSeconds: 5,
-  galleryItemDurationSeconds: 3,
+  galleryItemDurationSeconds: 5,
 };
 
 export type PictionarySeatProfile = RoomSeatProfile;
