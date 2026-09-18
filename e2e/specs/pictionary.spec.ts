@@ -3,6 +3,7 @@
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { HomePage } from '../pages/HomePage';
 import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
@@ -12,11 +13,7 @@ const PLAYER_COUNT = 4;
 const RELAY_STEP_COUNT = getPictionaryRelayStepCount(PLAYER_COUNT);
 const TOTAL_GALLERY_ENTRIES = PLAYER_COUNT * RELAY_STEP_COUNT;
 const OPENING_PROMPTS = ['月球上的猫', '云端城堡', '跳舞的花', '海上火车'] as const;
-const GUESS_SUBMISSIONS = [
-  ['太阳', '小屋', '花朵', '帆船'],
-  ['发光的球', '山顶房子', '旋转花园', '海边列车'],
-  ['金色月亮', '漂浮村庄', '风中的花', '远航列车'],
-] as const;
+const GUESS_SUBMISSIONS = [[' 太阳\n还没写完 ', '小屋', '花朵', '帆船']] as const;
 
 async function promptForEveryPlayer(
   rooms: readonly PictionaryRoomPage[],
@@ -25,16 +22,6 @@ async function promptForEveryPlayer(
   await Promise.all(
     rooms.map((room, playerIndex) => room.completePromptEditing(prompts[playerIndex]!)),
   );
-}
-
-async function drawForEveryPlayer(
-  rooms: readonly PictionaryRoomPage[],
-  strokeOffset: number,
-): Promise<void> {
-  for (const [playerIndex, room] of rooms.entries()) {
-    await room.drawStroke(strokeOffset + playerIndex);
-  }
-  await Promise.all(rooms.map((room) => room.completeDrawingEditing()));
 }
 
 async function guessForEveryPlayer(
@@ -116,11 +103,38 @@ test.describe('Pictionary', () => {
         await test.step(`complete guess and drawing stages ${guessStep}-${drawingStep}`, async () => {
           await Promise.all(rooms.map((room) => room.expectGuessStep(guessStep, RELAY_STEP_COUNT)));
           if (guessIndex === 0) await rooms[1]!.expectFullscreenDrawingPreview();
-          await guessForEveryPlayer(rooms, guesses);
+          await hostPage.getByTestId(TESTIDS.pictionaryTextInput).fill(guesses[0]);
+          await guessForEveryPlayer(rooms.slice(1), guesses.slice(1));
+          await hostPage.getByRole('button', { name: '结束本棒', exact: true }).click();
+          await hostPage.getByRole('dialog').getByText('结束本棒', { exact: true }).click();
           await Promise.all(
             rooms.map((room) => room.expectDrawingStep(drawingStep, RELAY_STEP_COUNT)),
           );
-          await drawForEveryPlayer(rooms, PLAYER_COUNT * (guessIndex + 1));
+          for (const room of rooms.slice(0, 3)) await room.drawStroke(PLAYER_COUNT);
+          const unfinishedPage = fixture.pages[3]!;
+          const canvas = unfinishedPage.getByTestId(TESTIDS.pictionaryDrawingCanvas);
+          await canvas.scrollIntoViewIfNeeded();
+          const bounds = await canvas.boundingBox();
+          if (bounds === null) throw new Error('Unfinished drawing canvas is missing');
+          await unfinishedPage.mouse.move(
+            bounds.x + bounds.width * 0.2,
+            bounds.y + bounds.height * 0.2,
+          );
+          await unfinishedPage.mouse.down();
+          await unfinishedPage.mouse.move(
+            bounds.x + bounds.width * 0.8,
+            bounds.y + bounds.height * 0.8,
+            { steps: 8 },
+          );
+          await unfinishedPage.route('**/submissions/**', (route) => route.abort('failed'), {
+            times: 1,
+          });
+          await hostPage.getByRole('button', { name: '结束本棒', exact: true }).click();
+          await hostPage.getByRole('dialog').getByText('结束本棒', { exact: true }).click();
+          await expect(unfinishedPage.getByText('发送最终内容失败', { exact: true })).toBeVisible();
+          await unfinishedPage.mouse.up();
+          await unfinishedPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+          await unfinishedPage.getByRole('button', { name: '重试发送', exact: true }).click();
         });
       }
 
@@ -128,6 +142,7 @@ test.describe('Pictionary', () => {
 
       await test.step('keep every player on the authoritative gallery cursor', async () => {
         await expectGalleryPositionForEveryPlayer(rooms, 1, 1);
+        const collectedGuesses: string[] = [];
 
         for (
           let globalEntryIndex = 1;
@@ -138,6 +153,29 @@ test.describe('Pictionary', () => {
           const chain = Math.floor(globalEntryIndex / RELAY_STEP_COUNT) + 1;
           const entry = (globalEntryIndex % RELAY_STEP_COUNT) + 1;
           await expectGalleryPositionForEveryPlayer(rooms, chain, entry);
+          if (entry === 3) collectedGuesses.push(await hostRoom.readLatestGalleryEntryText());
+          if (entry % 2 === 0) {
+            const image = hostPage
+              .getByTestId(TESTIDS.pictionaryGalleryEntry)
+              .last()
+              .locator('img');
+            await expect(image).toBeVisible();
+            await expect
+              .poll(() =>
+                image.evaluate((element: HTMLImageElement) => {
+                  if (!element.complete || element.naturalWidth === 0) return false;
+                  const canvas = document.createElement('canvas');
+                  canvas.width = element.naturalWidth;
+                  canvas.height = element.naturalHeight;
+                  const context = canvas.getContext('2d');
+                  if (context === null) throw new Error('Canvas pixel check unavailable');
+                  context.drawImage(element, 0, 0);
+                  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+                  return pixels.some((value, index) => index % 4 !== 3 && value < 240);
+                }),
+              )
+              .toBe(true);
+          }
           if (globalEntryIndex === 1) {
             await hostRoom.expectFullscreenDrawingPreview();
             for (const [playerIndex, viewport] of ['desktop', 'mobile'].entries()) {
@@ -166,6 +204,7 @@ test.describe('Pictionary', () => {
 
         await hostRoom.advanceGallery();
         await Promise.all(rooms.map((room) => room.expectEnded()));
+        expect(collectedGuesses.some((text) => text.includes(GUESS_SUBMISSIONS[0][0]))).toBe(true);
       });
     } finally {
       await closeAll(fixture);

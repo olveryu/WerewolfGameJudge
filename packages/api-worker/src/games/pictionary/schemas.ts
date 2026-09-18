@@ -6,6 +6,7 @@ import type {
   PictionaryPublicCommand,
 } from '@game-judge/game-engine/games/pictionary/public';
 import {
+  isValidPictionaryText,
   PICTIONARY_DRAWING_DURATIONS,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
@@ -14,7 +15,6 @@ import {
   PICTIONARY_GUESS_DURATIONS,
   PICTIONARY_MAX_PLAYERS,
   PICTIONARY_MIN_PLAYERS,
-  PICTIONARY_TEXT_MAX_LENGTH,
   PICTIONARY_TRANSITION_DURATIONS,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { z } from 'zod';
@@ -44,9 +44,10 @@ const publicCommandOptions = definePictionaryPublicCommandOptions([
   z.strictObject({ type: z.literal('pictionary.config.update'), config: pictionaryConfigSchema }),
   z.strictObject({ type: z.literal('pictionary.round.start') }),
   z.strictObject({ type: z.literal('pictionary.task.ready.set'), isReady: z.boolean() }),
+  z.strictObject({ type: z.literal('pictionary.task.empty.submit') }),
   z.strictObject({
     type: z.literal('pictionary.text.submit'),
-    text: z.string().trim().min(1).max(PICTIONARY_TEXT_MAX_LENGTH),
+    text: z.string().refine(isValidPictionaryText),
   }),
   z.strictObject({ type: z.literal('pictionary.drawing.reserve') }),
   z.strictObject({

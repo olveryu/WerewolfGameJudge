@@ -24,11 +24,17 @@ import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPicti
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-export type PictionaryDraftFinalizationStatus = 'idle' | 'submitting' | 'waiting' | 'failed';
+export type PictionaryDraftFinalizationStatus =
+  | 'idle'
+  | 'submitting'
+  | 'waiting'
+  | 'failed'
+  | 'empty';
 
 interface PictionaryDraftFinalizer {
   readonly status: PictionaryDraftFinalizationStatus;
   readonly retry: () => void;
+  readonly submitEmpty: () => void;
 }
 
 interface LocallyOwnedTask {
@@ -68,7 +74,9 @@ async function submitTextDraft(
 ): Promise<void> {
   const scope = createPictionaryTaskDraftScope(state, ownedTask.task, userId);
   const text = pictionaryTextDraftStore.read(scope);
-  if (text === null || !isValidPictionaryText(text)) return;
+  if (text === null || !isValidPictionaryText(text)) {
+    throw new Error('Pictionary text draft cannot be submitted; local content is retained');
+  }
   const result = await session.dispatch(
     { type: 'pictionary.text.submit', text },
     { controlledSeat: ownedTask.controlledSeat, label: '发送最终文字' },
@@ -110,7 +118,9 @@ async function submitDrawingDraft(
 ): Promise<void> {
   const scope = createPictionaryTaskDraftScope(state, ownedTask.task, userId);
   const draft = pictionaryDrawingDraftStore.read(scope);
-  if (draft === null || draft.elements.length === 0) return;
+  if (draft === null || draft.elements.length === 0) {
+    throw new Error('Pictionary drawing draft cannot be submitted; local content is retained');
+  }
   const png = renderPictionaryDrawing(draft.elements);
   const reservation = await reserveDrawing(state, ownedTask, session);
   const result = await uploadPictionaryDrawing(
@@ -142,10 +152,33 @@ async function submitAllLocalDrafts(
   state: PictionaryState,
   userId: string,
   session: PictionaryRoomSession,
-): Promise<void> {
+  shouldSubmitEmpty: boolean,
+): Promise<boolean> {
+  let hasEmptyTasks = false;
   const failures = await Promise.all(
     getLocallyOwnedTasks(state, userId).map(async (ownedTask): Promise<Error | null> => {
       try {
+        const scope = createPictionaryTaskDraftScope(state, ownedTask.task, userId);
+        const isEmpty =
+          ownedTask.task.expectedKind === 'text'
+            ? pictionaryTextDraftStore.read(scope) === null
+            : (pictionaryDrawingDraftStore.read(scope)?.elements.length ?? 0) === 0;
+        if (isEmpty) {
+          if (!shouldSubmitEmpty) {
+            hasEmptyTasks = true;
+            return null;
+          }
+          const result = await session.dispatch(
+            { type: 'pictionary.task.empty.submit' },
+            { controlledSeat: ownedTask.controlledSeat, label: '提交空白' },
+          );
+          if (!isSuccessfulRoomCommand(result)) {
+            throw new Error(
+              `Empty Pictionary task was rejected: ${getRoomCommandFailureReason(result)}`,
+            );
+          }
+          return null;
+        }
         await submitOwnedTask(state, ownedTask, userId, session);
         return null;
       } catch (error: unknown) {
@@ -155,6 +188,7 @@ async function submitAllLocalDrafts(
   );
   const firstFailure = failures.find((error) => error !== null);
   if (firstFailure !== undefined && firstFailure !== null) throw firstFailure;
+  return hasEmptyTasks;
 }
 
 /** Coordinate exactly one local finalization attempt per authoritative collection phase. */
@@ -165,24 +199,26 @@ export function usePictionaryDraftFinalizer(
 ): PictionaryDraftFinalizer {
   const [status, setStatus] = useState<PictionaryDraftFinalizationStatus>('idle');
   const [attempt, setAttempt] = useState(0);
+  const [shouldSubmitEmpty, setShouldSubmitEmpty] = useState(false);
   const collectionKey =
     state.phase === 'settling'
       ? `${state.roundId}:${state.stepIndex}:${state.phaseRevision}`
       : null;
-  const submitCurrentDrafts = useEffectEvent(async (): Promise<void> => {
-    await submitAllLocalDrafts(state, userId, session);
+  const submitCurrentDrafts = useEffectEvent(async (): Promise<boolean> => {
+    return submitAllLocalDrafts(state, userId, session, shouldSubmitEmpty);
   });
 
   useEffect(() => {
     if (collectionKey === null) {
       setStatus('idle');
+      setShouldSubmitEmpty(false);
       return;
     }
     let isCurrentAttempt = true;
     setStatus('submitting');
     void submitCurrentDrafts()
-      .then(() => {
-        if (isCurrentAttempt) setStatus('waiting');
+      .then((hasEmptyTasks) => {
+        if (isCurrentAttempt) setStatus(hasEmptyTasks ? 'empty' : 'waiting');
       })
       .catch((error: unknown) => {
         if (!isCurrentAttempt) return;
@@ -190,7 +226,7 @@ export function usePictionaryDraftFinalizer(
         handleError(error, {
           label: '发送最终内容',
           logger: roomScreenLog,
-          alertMessage: '最终内容发送失败，请在收稿结束前重试。',
+          alertMessage: '最终内容发送失败，草稿仍保留在本机，请恢复连接后重试。',
         });
       });
     return () => {
@@ -199,5 +235,9 @@ export function usePictionaryDraftFinalizer(
   }, [attempt, collectionKey]);
 
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
-  return { status, retry };
+  const submitEmpty = useCallback(() => {
+    setShouldSubmitEmpty(true);
+    setAttempt((current) => current + 1);
+  }, []);
+  return { status, retry, submitEmpty };
 }

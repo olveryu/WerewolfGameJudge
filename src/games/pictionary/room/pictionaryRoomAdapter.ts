@@ -235,8 +235,8 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
       }
       return {
         kind: 'progress',
-        current: state.gallery.chainIndex * relayStepCount + state.gallery.entryIndex + 1,
-        total: state.config.numberOfPlayers * relayStepCount,
+        current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
+        total: state.config.numberOfPlayers * (state.stepIndex + 1),
         label: '接龙揭晓中',
       };
     }

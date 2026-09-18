@@ -129,8 +129,8 @@ function useDurationHandlers(state: PictionaryConfigScreenState) {
 function getEstimatedMinutes(config: PictionaryConfig): string {
   const relayStepCount = getPictionaryRelayStepCount(config.numberOfPlayers);
   const answeringSeconds =
-    config.numberOfPlayers * (config.drawingDurationSeconds ?? 0) +
-    config.numberOfPlayers * (config.guessDurationSeconds ?? 0) +
+    Math.floor(relayStepCount / 2) * (config.drawingDurationSeconds ?? 0) +
+    Math.ceil(relayStepCount / 2) * (config.guessDurationSeconds ?? 0) +
     relayStepCount * config.transitionDurationSeconds;
   if (
     config.drawingDurationSeconds === null ||
@@ -168,7 +168,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
         <Text style={styles.eyebrow}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
         <Text style={styles.title}>让每一棒都来不及想太多</Text>
         <Text style={styles.description}>
-          4–20 人，默认 6 人。人数决定轮数，每轮全员先写题或猜词，再接续作画。
+          4–20 人，默认 6 人。N 人共 N 棒，文字和绘画交替，每人只参与同一本画册一次。
         </Text>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>玩家人数</Text>

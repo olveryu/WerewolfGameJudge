@@ -239,7 +239,11 @@ function parseReservation(value: unknown, path: string): PictionaryDrawingReserv
       chainId: parseNonEmptyString(raw.chainId, `${path}.chainId`),
       authorSeat: parseSeat(raw.authorSeat, `${path}.authorSeat`),
       reservedAt: parseInteger(raw.reservedAt, `${path}.reservedAt`),
-      uploadDeadlineAt: parseInteger(raw.uploadDeadlineAt, `${path}.uploadDeadlineAt`),
+      uploadDeadlineAt: parseNullable(
+        raw.uploadDeadlineAt,
+        `${path}.uploadDeadlineAt`,
+        parseInteger,
+      ),
     },
     path,
   );

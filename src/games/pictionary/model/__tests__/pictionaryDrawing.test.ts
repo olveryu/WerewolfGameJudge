@@ -23,6 +23,20 @@ const FILL_ELEMENT: PictionaryDrawingElement = {
 };
 
 describe('reducePictionaryDrawingDraft', () => {
+  it('retains an unfinished element and updates it without duplicating undo history', () => {
+    const started = reducePictionaryDrawingDraft(EMPTY_PICTIONARY_DRAWING_DRAFT, {
+      type: 'element.add',
+      element: LINE_ELEMENT,
+    });
+    const extended = { ...LINE_ELEMENT, end: { x: 0.9, y: 0.9 } };
+    const updated = reducePictionaryDrawingDraft(started, {
+      type: 'element.add',
+      element: extended,
+    });
+    expect(updated.elements).toEqual([extended]);
+    expect(reducePictionaryDrawingDraft(updated, { type: 'element.undo' }).elements).toEqual([]);
+  });
+
   it('undoes and redoes complete drawing elements', () => {
     const withLine = reducePictionaryDrawingDraft(EMPTY_PICTIONARY_DRAWING_DRAFT, {
       type: 'element.add',

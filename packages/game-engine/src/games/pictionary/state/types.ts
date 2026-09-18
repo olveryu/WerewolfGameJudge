@@ -8,8 +8,7 @@ import type { SeatOccupant } from '../../../platform/room/seating';
 export const PICTIONARY_MIN_PLAYERS = 4;
 export const PICTIONARY_DEFAULT_PLAYERS = 6;
 export const PICTIONARY_MAX_PLAYERS = 20;
-export const PICTIONARY_TEXT_MAX_LENGTH = 80;
-export const PICTIONARY_COLLECTION_DURATION_SECONDS = 15;
+export const PICTIONARY_TEXT_MAX_LENGTH = 512;
 export const PICTIONARY_DRAWING_WIDTH = 1024;
 export const PICTIONARY_DRAWING_HEIGHT = 768;
 export const PICTIONARY_DRAWING_MAX_BYTES = 2 * 1024 * 1024;
@@ -101,7 +100,7 @@ export interface PictionaryDrawingReservation {
   readonly chainId: string;
   readonly authorSeat: number;
   readonly reservedAt: number;
-  readonly uploadDeadlineAt: number;
+  readonly uploadDeadlineAt: number | null;
 }
 
 export interface PictionaryGalleryState {
@@ -173,13 +172,7 @@ export function hasPictionaryForbiddenControlCharacter(value: string): boolean {
 }
 
 export function isValidPictionaryText(value: string): boolean {
-  const graphemeCount = getPictionaryTextGraphemeCount(value);
-  return (
-    value.trim() === value &&
-    graphemeCount > 0 &&
-    graphemeCount <= PICTIONARY_TEXT_MAX_LENGTH &&
-    !hasPictionaryForbiddenControlCharacter(value)
-  );
+  return value.length > 0 && value.length <= PICTIONARY_TEXT_MAX_LENGTH;
 }
 
 export function isValidPictionaryConfig(config: PictionaryConfig): boolean {
@@ -197,7 +190,7 @@ export function getPictionaryExpectedKind(stepIndex: number): PictionaryExpected
 }
 
 export function getPictionaryRelayStepCount(numberOfPlayers: number): number {
-  return numberOfPlayers * 2;
+  return numberOfPlayers;
 }
 
 export function getPictionaryOccupiedSeatCount(state: PictionaryState): number {

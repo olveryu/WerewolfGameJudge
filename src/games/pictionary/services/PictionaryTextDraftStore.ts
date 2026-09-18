@@ -1,5 +1,7 @@
 /** Strict task-scoped persistence for editable Pictionary text drafts. */
 
+import { PICTIONARY_TEXT_MAX_LENGTH } from '@game-judge/game-engine/games/pictionary/public';
+
 import { storage } from '@/services/infra/localStorage';
 
 import {
@@ -11,7 +13,7 @@ import {
 
 const STORAGE_KEY_PREFIX = '@pictionary:text-draft:';
 const STORAGE_VERSION = 1;
-export const PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS = 512;
+export const PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS = PICTIONARY_TEXT_MAX_LENGTH;
 
 interface TextDraftStorage {
   getString(key: string): string | undefined;

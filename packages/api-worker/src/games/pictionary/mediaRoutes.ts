@@ -110,7 +110,6 @@ function requireUploadReservation(
     (candidate) => candidate.submissionId === submissionId && candidate.authorSeat === seat,
   );
   if (reservation === undefined) return fail(409, 'PICTIONARY_UPLOAD_INVALID');
-  if (Date.now() > reservation.uploadDeadlineAt) return fail(409, 'PICTIONARY_UPLOAD_EXPIRED');
   return reservation;
 }
 

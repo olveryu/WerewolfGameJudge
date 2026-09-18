@@ -81,17 +81,25 @@ const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
       { offsetX: 0, offsetY: 0.7, blur: 1, color: MYTHIC_COLORS.enamel },
     ],
     gradient: {
-      stops: `${MYTHIC_COLORS.crimson} 0%, ${MYTHIC_COLORS.enamel} 38%, ${MYTHIC_COLORS.silver} 46%, ${MYTHIC_COLORS.pearl} 50%, ${MYTHIC_COLORS.silver} 54%, ${MYTHIC_COLORS.enamel} 62%, ${MYTHIC_COLORS.crimson} 100%`,
+      stops: `${MYTHIC_COLORS.enamel} 0%, ${MYTHIC_COLORS.crimson} 24%, ${MYTHIC_COLORS.enamel} 34%, ${MYTHIC_COLORS.silver} 40%, ${MYTHIC_COLORS.pearl} 43%, ${MYTHIC_COLORS.silver} 46%, ${MYTHIC_COLORS.enamel} 50%, ${MYTHIC_COLORS.crystal} 54%, ${MYTHIC_COLORS.pearl} 57%, ${MYTHIC_COLORS.silver} 60%, ${MYTHIC_COLORS.enamel} 66%, ${MYTHIC_COLORS.crimson} 76%, ${MYTHIC_COLORS.enamel} 100%`,
       backgroundSize: '300% 100%',
-      dropShadow: `drop-shadow(0 1px 1px ${MYTHIC_COLORS.enamel})`,
+      dropShadow: `drop-shadow(0 1px 1px ${MYTHIC_COLORS.enamel}) drop-shadow(0 0 2px ${MYTHIC_COLORS.crimson})`,
     },
     animations: [
       {
         name: 'sovereignNameSweep',
-        duration: '7s',
-        timing: 'ease-in-out',
+        duration: '4s',
+        timing: 'linear',
         keyframes:
-          '0%, 65% { background-position: 100% 50%; } 90%, 100% { background-position: 0% 50%; }',
+          '0%, 100% { background-position: 100% 50%; } 50% { background-position: 0% 50%; }',
+      },
+      {
+        name: 'sovereignNameGlow',
+        duration: '4s',
+        timing: 'ease-in-out',
+        keyframes: `0%, 50%, 100% { filter: drop-shadow(0 1px 1px ${MYTHIC_COLORS.enamel}) drop-shadow(0 0 2px ${MYTHIC_COLORS.crimson}); }
+    20%, 70% { filter: drop-shadow(0 1px 1px ${MYTHIC_COLORS.enamel}) drop-shadow(0 0 1px ${MYTHIC_COLORS.pearl}) drop-shadow(0 0 6px ${MYTHIC_COLORS.crimson}); }
+    32%, 82% { filter: drop-shadow(0 1px 1px ${MYTHIC_COLORS.enamel}) drop-shadow(0 0 2px ${MYTHIC_COLORS.silver}) drop-shadow(0 0 4px ${MYTHIC_COLORS.enamel}); }`,
       },
     ],
   },

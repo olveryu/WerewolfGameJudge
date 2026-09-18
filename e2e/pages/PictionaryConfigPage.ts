@@ -25,6 +25,8 @@ export class PictionaryConfigPage {
     await decrementButton.click();
     await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('4 人');
 
+    await this.selectDuration('drawing', 'unlimited');
+    await this.selectDuration('guess', 'unlimited');
     await this.selectDuration('transition', 0);
     await this.selectDuration('gallery', 'unlimited');
   }
@@ -35,7 +37,7 @@ export class PictionaryConfigPage {
   }
 
   private async selectDuration(
-    setting: 'transition' | 'gallery',
+    setting: 'drawing' | 'guess' | 'transition' | 'gallery',
     value: number | 'unlimited',
   ): Promise<void> {
     const option = this.page.getByTestId(TESTIDS.pictionaryConfigDurationOption(setting, value));

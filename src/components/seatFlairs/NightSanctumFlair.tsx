@@ -1,25 +1,29 @@
-/** Mythic sanctum: perimeter runes and moving crimson engravings, leaving the avatar center clear. */
+/** Mythic sanctum: a rotating floor sigil and rising light beneath the avatar; no state or IO. */
 import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { useAnimatedProps } from 'react-native-reanimated';
-import Svg, { G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
 
 import { MYTHIC_COLORS, MYTHIC_LOOP_DURATION } from '@/config/mythicVisual';
 import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
-import { AnimatedPath } from './svgAnimatedPrimitives';
-
-const INSCRIPTIONS = [0, 90, 180, 270] as const;
+import { AnimatedG, AnimatedPath } from './svgAnimatedPrimitives';
 
 /** Paints within the seat bounds; one animation driver is cancelled on unmount. */
-export const NightSanctumFlair = memo<FlairProps>(({ size, borderRadius }) => {
+export const NightSanctumFlair = memo<FlairProps>(({ size }) => {
   const progress = useLoopProgress(MYTHIC_LOOP_DURATION);
-  const flowingProps = useAnimatedProps(() => ({
-    strokeDashoffset: -progress.value * 384,
-    opacity: 0.45 + Math.sin(progress.value * Math.PI * 2) * 0.15,
+  const sanctumProps = useAnimatedProps(() => ({
+    transform: `rotate(${progress.value * 360})`,
   }));
-  const radius = (borderRadius * 100) / size;
+  const risingProps = useAnimatedProps(() => {
+    const phase = (progress.value * 2) % 1;
+    const height = 86 - phase * 18;
+    return {
+      d: `M19 ${height} v-4 M37 ${height + 3} v-7 M57 ${height + 1} v-3`,
+      opacity: Math.sin(phase * Math.PI) * 0.8,
+    };
+  });
   return (
     <Svg
       width={size}
@@ -28,51 +32,46 @@ export const NightSanctumFlair = memo<FlairProps>(({ size, borderRadius }) => {
       style={StyleSheet.absoluteFill}
       pointerEvents="none"
     >
-      <Rect
-        x={2}
-        y={2}
-        width={96}
-        height={96}
-        rx={radius}
-        fill="none"
-        stroke={MYTHIC_COLORS.silver}
-        strokeWidth={0.5}
-        opacity={0.45}
-      />
-      <Rect
-        x={5}
-        y={5}
-        width={90}
-        height={90}
-        rx={radius}
-        fill="none"
-        stroke={MYTHIC_COLORS.metal}
-        strokeWidth={0.4}
-        opacity={0.55}
-      />
-      {INSCRIPTIONS.map((angle) => (
-        <G key={angle} transform={`rotate(${angle} 50 50)`}>
-          <Path
-            d="M38 5 L44 8 L50 3 L56 8 L62 5 M46 3 L50 9 L54 3 M22 3 L24 6 L26 3 M74 3 L76 6 L78 3"
-            stroke={MYTHIC_COLORS.silver}
-            strokeWidth={0.65}
-            fill="none"
-          />
-          <Path
-            d="M50 1 L52 4 L50 7 L48 4 Z"
-            fill={MYTHIC_COLORS.enamel}
-            stroke={MYTHIC_COLORS.highlight}
-            strokeWidth={0.35}
-          />
-        </G>
-      ))}
-      <AnimatedPath
-        animatedProps={flowingProps}
-        d="M12 3 H88 Q97 3 97 12 V88 Q97 97 88 97 H12 Q3 97 3 88 V12 Q3 3 12 3"
+      <Ellipse
+        cx={40}
+        cy={90}
+        rx={32}
+        ry={7.5}
         fill="none"
         stroke={MYTHIC_COLORS.crimson}
+        strokeWidth={1.8}
+        opacity={0.3}
+      />
+      <G transform="translate(40 87) scale(1 .24)">
+        <Circle r={32} fill="none" stroke={MYTHIC_COLORS.enamel} strokeWidth={2} opacity={0.8} />
+        <AnimatedG animatedProps={sanctumProps}>
+          <Circle
+            r={28}
+            fill="none"
+            stroke={MYTHIC_COLORS.silver}
+            strokeWidth={3}
+            strokeDasharray="12 8 3 8"
+          />
+          <Path
+            d="M0 -21 L18 10 H-18 Z M0 21 L-18 -10 H18 Z"
+            fill="none"
+            stroke={MYTHIC_COLORS.crimson}
+            strokeWidth={2}
+          />
+          <Path
+            d="M-4 -35 H4 M35 -4 V4 M-4 35 H4 M-35 -4 V4"
+            fill="none"
+            stroke={MYTHIC_COLORS.pearl}
+            strokeWidth={3}
+          />
+        </AnimatedG>
+      </G>
+      <AnimatedPath
+        animatedProps={risingProps}
+        fill="none"
+        stroke={MYTHIC_COLORS.crystal}
         strokeWidth={1.2}
-        strokeDasharray="18 78"
+        strokeLinecap="round"
       />
     </Svg>
   );

@@ -22,7 +22,11 @@ import {
 const RULES = [
   ['create-outline', '各自出题', '第一轮每个人写下一个题目，交给下一位玩家作画。'],
   ['brush-outline', '只看上一棒', '看到文字就画画，看到画就猜词，不能回看更早的内容。'],
-  ['swap-horizontal-outline', '人数决定轮数', '每轮全员先写题或猜词，再作画并传给下一位玩家。'],
+  [
+    'swap-horizontal-outline',
+    '随机接龙不重复',
+    'N 人共 N 棒，文字和绘画交替，同一本画册每人只参与一次。',
+  ],
   ['images-outline', '一起揭晓', '最后按顺序播放每条接龙，看题目如何一路变形。'],
 ] as const;
 
@@ -40,7 +44,7 @@ export const PictionaryRulesScreen: React.FC = () => {
         <Text style={styles.eyebrow}>一人一道开场题，最后一起看答案</Text>
         <Text style={styles.heading}>画得像不像不重要，传得离谱才有趣</Text>
         <Text style={styles.intro}>
-          支持 4–20 人，游戏轮数等于玩家人数。每一棒限时进行，没提交也会留下空缺并继续。
+          支持 4–20 人，游戏棒数等于玩家人数。到时收取已写文字和未完成画稿，全部收齐后继续。
         </Text>
         <View style={styles.ruleList}>
           {RULES.map(([icon, title, description]) => (

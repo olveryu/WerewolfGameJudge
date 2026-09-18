@@ -74,7 +74,13 @@ export function reducePictionaryDrawingDraft(
 ): PictionaryDrawingDraft {
   switch (action.type) {
     case 'element.add':
-      return { elements: [...draft.elements, action.element], redoElements: [] };
+      return {
+        elements: [
+          ...draft.elements.filter((element) => element.id !== action.element.id),
+          action.element,
+        ],
+        redoElements: [],
+      };
     case 'element.undo': {
       const element = draft.elements.at(-1);
       return element === undefined

@@ -5,7 +5,6 @@ import {
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   getPictionaryTextGraphemeCount,
-  hasPictionaryForbiddenControlCharacter,
   isValidPictionaryText,
   PICTIONARY_TEXT_MAX_LENGTH,
   type PictionaryState,
@@ -29,10 +28,7 @@ import {
   reducePictionaryDrawingDraft,
 } from '@/games/pictionary/model/pictionaryDrawing';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import {
-  getPictionaryCompletedCount,
-  getPictionarySeatDisplayName,
-} from '@/games/pictionary/model/pictionarySelectors';
+import { getPictionaryCompletedCount } from '@/games/pictionary/model/pictionarySelectors';
 import { pictionaryDrawingDraftStore } from '@/games/pictionary/services/PictionaryDrawingDraftStore';
 import {
   createPictionaryTaskDraftScope,
@@ -45,7 +41,7 @@ import {
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles, typography } from '@/theme';
-import { showDestructiveAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -66,6 +62,7 @@ interface PictionaryTaskStageProps {
   readonly draftFinalizer: {
     readonly status: PictionaryDraftFinalizationStatus;
     readonly retry: () => void;
+    readonly submitEmpty: () => void;
   };
 }
 
@@ -83,10 +80,8 @@ interface TaskViewProps {
 function getTextValidationMessage(text: string): string | null {
   const graphemeCount = getPictionaryTextGraphemeCount(text);
   if (graphemeCount === 0) return '请输入一个词语或短句';
-  if (hasPictionaryForbiddenControlCharacter(text)) return '内容不能包含换行或控制字符';
-  if (text.trim() !== text) return '开头和结尾不能有空格';
-  if (graphemeCount > PICTIONARY_TEXT_MAX_LENGTH) {
-    return `最多输入 ${PICTIONARY_TEXT_MAX_LENGTH} 个字`;
+  if (text.length > PICTIONARY_TEXT_MAX_LENGTH) {
+    return `最多输入 ${PICTIONARY_TEXT_MAX_LENGTH} 个字符`;
   }
   return null;
 }
@@ -113,9 +108,7 @@ const PreviousDrawing: React.FC<{
   }
   return (
     <View style={styles.contextBlock}>
-      <Text style={styles.contextLabel}>
-        {getPictionarySeatDisplayName(state, previousEntry.authorSeat)} 的画作
-      </Text>
+      <Text style={styles.contextLabel}>上一棒画作</Text>
       <PictionaryDrawingImage
         roomCode={state.roomCode}
         entryId={previousEntry.id}
@@ -457,11 +450,26 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
 
   const updateDraft = useCallback(
     (action: PictionaryDrawingDraftAction): void => {
-      setDraft((current) => {
-        const next = reducePictionaryDrawingDraft(current, action);
-        pictionaryDrawingDraftStore.write(draftScope, next);
-        return next;
-      });
+      const current =
+        pictionaryDrawingDraftStore.read(draftScope) ?? EMPTY_PICTIONARY_DRAWING_DRAFT;
+      const next = reducePictionaryDrawingDraft(current, action);
+      pictionaryDrawingDraftStore.write(draftScope, next);
+      setDraft(next);
+    },
+    [draftScope],
+  );
+
+  const persistElement = useCallback(
+    (element: PictionaryDrawingElement): void => {
+      const current =
+        pictionaryDrawingDraftStore.read(draftScope) ?? EMPTY_PICTIONARY_DRAWING_DRAFT;
+      pictionaryDrawingDraftStore.write(
+        draftScope,
+        reducePictionaryDrawingDraft(current, {
+          type: 'element.add',
+          element,
+        }),
+      );
     },
     [draftScope],
   );
@@ -532,6 +540,7 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
         color={color}
         strokeWidth={strokeWidth}
         isEnabled={canEdit}
+        onElementChange={persistElement}
         onElementComplete={addElement}
         onFill={fillDrawing}
       />
@@ -635,9 +644,11 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
     const description =
       draftFinalizer.status === 'failed'
         ? '本机最终内容发送失败，草稿仍保存在本机。'
-        : draftFinalizer.status === 'waiting'
-          ? '本机最终内容已处理，正在等待其他玩家。'
-          : '正在发送本机保存的最终内容，请保持页面打开。';
+        : draftFinalizer.status === 'empty'
+          ? '本机没有这一棒的草稿。如果在其他设备作答，请回到原设备交稿。'
+          : draftFinalizer.status === 'waiting'
+            ? '本机最终内容已处理，正在等待其他玩家。'
+            : '正在发送本机保存的最终内容，请保持页面打开。';
     return (
       <PictionaryWaitingStage
         state={state}
@@ -645,6 +656,21 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
         title="正在收取最终内容"
         description={description}
       >
+        {draftFinalizer.status === 'empty' && (
+          <Button
+            variant="secondary"
+            onPress={() =>
+              showConfirmAlert(
+                '确认提交空白？',
+                '仅在这一棒确实没有输入文字或画画时提交空白。其他设备上的草稿不会自动转移到本机。',
+                draftFinalizer.submitEmpty,
+                { confirmText: '提交空白' },
+              )
+            }
+          >
+            提交空白
+          </Button>
+        )}
         {draftFinalizer.status === 'failed' && (
           <Button variant="secondary" onPress={draftFinalizer.retry}>
             重试发送

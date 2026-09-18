@@ -43,7 +43,6 @@ import {
   REASON_PICTIONARY_TASK_ALREADY_SUBMITTED,
   REASON_PICTIONARY_TASK_INVALID,
   REASON_PICTIONARY_TEXT_INVALID,
-  REASON_PICTIONARY_UPLOAD_EXPIRED,
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from './domain/reasons';
 import type { PictionaryEffect } from './effects/types';
@@ -56,14 +55,12 @@ import {
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   isValidPictionaryText,
-  PICTIONARY_COLLECTION_DURATION_SECONDS,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
   type PictionaryChain,
   type PictionaryConfig,
   type PictionaryDrawingReservation,
-  type PictionaryEntry,
   type PictionaryGalleryState,
   type PictionaryHumanSeat,
   type PictionaryMedia,
@@ -323,13 +320,8 @@ function transitionEvent(state: PictionaryState, nowMs: number): PictionaryEvent
   );
 }
 
-function settlingEvent(state: PictionaryState, nowMs: number): PictionaryEvent {
-  return phaseChangedEvent(
-    state,
-    'settling',
-    state.stepIndex,
-    durationDeadline(nowMs, PICTIONARY_COLLECTION_DURATION_SECONDS),
-  );
+function settlingEvent(state: PictionaryState): PictionaryEvent {
+  return phaseChangedEvent(state, 'settling', state.stepIndex, null);
 }
 
 function decideSetPictionaryTaskReadiness(
@@ -346,7 +338,7 @@ function decideSetPictionaryTaskReadiness(
   ];
   const readySeatCount = state.readySeats.length + (isReady ? 1 : -1);
   if (readySeatCount === state.config.numberOfPlayers) {
-    events.push(settlingEvent(state, context.nowMs));
+    events.push(settlingEvent(state));
   }
   return commitPictionary(events);
 }
@@ -385,9 +377,6 @@ function decideReservePictionaryDrawing(
   const resolved = resolveSeatTask(state, context, 'settling');
   if (isDecision(resolved)) return resolved;
   if (resolved.task.expectedKind !== 'drawing') return reject(REASON_PICTIONARY_TASK_INVALID);
-  if (state.deadlineAt === null) {
-    throw new Error('[FAIL-FAST] Pictionary settling phase requires a deadline');
-  }
   if (state.reservations.some((reservation) => reservation.authorSeat === resolved.seat)) {
     return reject(REASON_PICTIONARY_TASK_ALREADY_SUBMITTED);
   }
@@ -430,9 +419,6 @@ function decideCommitPictionaryDrawing(
   if (reservation === undefined || !isValidMedia(media)) {
     return reject(REASON_PICTIONARY_UPLOAD_INVALID);
   }
-  if (context.nowMs > reservation.uploadDeadlineAt) {
-    return reject(REASON_PICTIONARY_UPLOAD_EXPIRED);
-  }
   const events: PictionaryEvent[] = [
     {
       type: 'pictionary.task.submitted',
@@ -451,45 +437,34 @@ function decideCommitPictionaryDrawing(
   return commitPictionary(events);
 }
 
-function createMissedEntries(
+function decideSubmitEmptyPictionaryTask(
   state: PictionaryState,
   context: CommandContext,
-): readonly { readonly chainId: string; readonly entry: PictionaryEntry }[] {
-  return state.chains.flatMap((chain) => {
-    if (chain.entries.length > state.stepIndex) return [];
-    const authorSeat =
-      state.seatOrder[
-        (state.chains.indexOf(chain) + state.stepIndex) % state.config.numberOfPlayers
-      ];
-    if (authorSeat === undefined) throw new Error('Pictionary relay author is missing');
-    return [
-      {
-        chainId: chain.id,
-        entry: {
-          kind: 'missed',
-          id: `pictionary-missed:${context.commandId}:${chain.id}`,
-          authorSeat,
-          expectedKind: getPictionaryExpectedKind(state.stepIndex),
-        },
-      },
-    ];
-  });
-}
-
-function expireAnsweringPhase(state: PictionaryState, context: CommandContext): PictionaryDecision {
-  return commitPictionary([settlingEvent(state, context.nowMs)]);
-}
-
-function expireSettlingPhase(state: PictionaryState, context: CommandContext): PictionaryDecision {
-  const entries = createMissedEntries(state, context);
-  return commitPictionary([
+): PictionaryDecision {
+  const resolved = resolveSeatTask(state, context, 'settling');
+  if (isDecision(resolved)) return resolved;
+  if (state.reservations.some((reservation) => reservation.authorSeat === resolved.seat)) {
+    return reject(REASON_PICTIONARY_TASK_ALREADY_SUBMITTED);
+  }
+  const events: PictionaryEvent[] = [
     {
-      type: 'pictionary.tasks.missed',
-      entries,
-      submissionIds: state.reservations.map((reservation) => reservation.submissionId),
+      type: 'pictionary.task.submitted',
+      chainId: resolved.task.chain.id,
+      entry: {
+        kind: 'missed',
+        id: `pictionary-missed:${context.commandId}:${resolved.task.chain.id}`,
+        authorSeat: resolved.seat,
+        expectedKind: resolved.task.expectedKind,
+      },
+      submissionId: null,
     },
-    transitionEvent(state, context.nowMs),
-  ]);
+  ];
+  if (hasResolvedCurrentStep(state, 1)) events.push(transitionEvent(state, context.nowMs));
+  return commitPictionary(events);
+}
+
+function expireAnsweringPhase(state: PictionaryState): PictionaryDecision {
+  return commitPictionary([settlingEvent(state)]);
 }
 
 function galleryStartEvent(state: PictionaryState, nowMs: number): PictionaryEvent {
@@ -526,7 +501,7 @@ function nextGalleryPosition(
 ): PictionaryGalleryState | null {
   if (state.gallery === null) return null;
   const chainCount = state.config.numberOfPlayers;
-  const entryCount = getPictionaryRelayStepCount(chainCount);
+  const entryCount = state.stepIndex + 1;
   const current = state.gallery.chainIndex * entryCount + state.gallery.entryIndex;
   const next = current + direction;
   if (next < 0 || next >= chainCount * entryCount) return null;
@@ -574,9 +549,9 @@ function decideExpirePictionaryPhase(
   }
   switch (state.phase) {
     case 'answering':
-      return expireAnsweringPhase(state, context);
+      return expireAnsweringPhase(state);
     case 'settling':
-      return expireSettlingPhase(state, context);
+      return reject(REASON_PICTIONARY_PHASE_INVALID);
     case 'transition':
       return expireTransitionPhase(state, context);
     case 'gallery':
@@ -596,7 +571,7 @@ function decideFinishPictionaryPhase(
   if (state.phase !== 'answering' || state.deadlineAt !== null) {
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
-  return expireAnsweringPhase(state, context);
+  return expireAnsweringPhase(state);
 }
 
 function decidePausePictionaryGallery(
@@ -718,6 +693,8 @@ export function decidePictionaryCommand(
       return decideStartPictionaryRound(state, context);
     case 'pictionary.task.ready.set':
       return decideSetPictionaryTaskReadiness(state, command.isReady, context);
+    case 'pictionary.task.empty.submit':
+      return decideSubmitEmptyPictionaryTask(state, context);
     case 'pictionary.text.submit':
       return decideSubmitPictionaryText(state, command.text, context);
     case 'pictionary.drawing.reserve':

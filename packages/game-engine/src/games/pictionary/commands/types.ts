@@ -20,6 +20,7 @@ export type PictionaryPublicCommand =
   | { readonly type: 'pictionary.config.update'; readonly config: PictionaryConfig }
   | { readonly type: 'pictionary.round.start' }
   | { readonly type: 'pictionary.task.ready.set'; readonly isReady: boolean }
+  | { readonly type: 'pictionary.task.empty.submit' }
   | { readonly type: 'pictionary.text.submit'; readonly text: string }
   | { readonly type: 'pictionary.drawing.reserve' }
   | { readonly type: 'pictionary.phase.expire'; readonly phaseRevision: number }

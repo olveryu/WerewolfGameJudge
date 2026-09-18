@@ -53,16 +53,16 @@ function dispatch(
   return applyDecision(state, decidePictionaryCommand(state, command, context));
 }
 
-function createFullLobby(): PictionaryState {
+function createFullLobby(numberOfPlayers = 4): PictionaryState {
   let state = pictionaryEngine.createInitialState(
     {
       ...DEFAULT_PICTIONARY_CONFIG,
-      numberOfPlayers: 4,
+      numberOfPlayers,
       drawingDurationSeconds: 90,
     },
     CREATE_CONTEXT,
   );
-  for (let seat = 0; seat < 4; seat += 1) {
+  for (let seat = 0; seat < numberOfPlayers; seat += 1) {
     state = dispatch(
       state,
       { type: 'room.seat.take', seat, profile: { displayName: `玩家 ${seat + 1}` } },
@@ -86,18 +86,45 @@ function expireCurrentPhase(state: PictionaryState): PictionaryState {
 function advancePastAnsweringStep(state: PictionaryState): PictionaryState {
   const settlingState = expireCurrentPhase(state);
   expect(settlingState.phase).toBe('settling');
-  const transitionState = expireCurrentPhase(settlingState);
+  let transitionState = settlingState;
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    transitionState = dispatch(
+      transitionState,
+      { type: 'pictionary.task.empty.submit' },
+      userContext(`user-${seat}`, state.deadlineAt! + seat + 1),
+    );
+  }
   expect(transitionState.phase).toBe('transition');
   return expireCurrentPhase(transitionState);
 }
 
 describe('Pictionary task sequence', () => {
-  it('alternates text and drawing for two stages per player', () => {
+  it('keeps collection open until clients deliver their drafts', () => {
+    const state = expireCurrentPhase(
+      dispatch(
+        createFullLobby(),
+        { type: 'pictionary.round.start' },
+        userContext('user-0', 10_000),
+      ),
+    );
+    expect(state.phase).toBe('settling');
+    expect(state.deadlineAt).toBeNull();
+    const collected = dispatch(
+      state,
+      { type: 'pictionary.text.submit', text: ' 还没有写完\n' },
+      userContext('user-0', 120_000),
+    );
+    expect(collected.chains.flatMap((chain) => chain.entries)).toEqual([
+      expect.objectContaining({ kind: 'text', text: ' 还没有写完\n' }),
+    ]);
+  });
+
+  it('alternates text and drawing for one total stage per player', () => {
     expect(
       Array.from({ length: getPictionaryRelayStepCount(4) }, (_, stepIndex) =>
         getPictionaryExpectedKind(stepIndex),
       ),
-    ).toEqual(['text', 'drawing', 'text', 'drawing', 'text', 'drawing', 'text', 'drawing']);
+    ).toEqual(['text', 'drawing', 'text', 'drawing']);
   });
 
   it('starts every player with a prompt task and the text deadline', () => {
@@ -187,52 +214,57 @@ describe('Pictionary task sequence', () => {
     expect(state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
   });
 
-  it('runs all eight four-player stages before starting the gallery', () => {
-    let state = dispatch(
-      createFullLobby(),
-      { type: 'pictionary.round.start' },
-      userContext('user-0', 10_000),
-    );
-    const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
-    const firstTaskChainId = getPictionaryTaskForSeat(state, 0)?.chain.id;
+  it.each([4, 5, 8])(
+    'gives every album %i distinct participants before the gallery',
+    (numberOfPlayers) => {
+      let state = dispatch(
+        createFullLobby(numberOfPlayers),
+        { type: 'pictionary.round.start' },
+        userContext('user-0', 10_000),
+      );
+      const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
+      const visitedChains = new Set<string>();
 
-    for (let stepIndex = 0; stepIndex < relayStepCount; stepIndex += 1) {
-      expect(state).toMatchObject({ phase: 'answering', stepIndex });
-      const task = getPictionaryTaskForSeat(state, 0);
-      expect(task?.expectedKind).toBe(getPictionaryExpectedKind(stepIndex));
-      if (stepIndex === state.config.numberOfPlayers) {
-        expect(task?.chain.id).toBe(firstTaskChainId);
-        expect(task?.previousEntry).toMatchObject({
-          kind: 'missed',
-          expectedKind: 'drawing',
+      for (let stepIndex = 0; stepIndex < relayStepCount; stepIndex += 1) {
+        expect(state).toMatchObject({ phase: 'answering', stepIndex });
+        const task = getPictionaryTaskForSeat(state, 0);
+        expect(task?.expectedKind).toBe(getPictionaryExpectedKind(stepIndex));
+        expect(task).not.toBeNull();
+        expect(visitedChains.has(task!.chain.id)).toBe(false);
+        visitedChains.add(task!.chain.id);
+        state = advancePastAnsweringStep(state);
+      }
+
+      expect(state.phase).toBe('gallery');
+      expect(state.chains).toHaveLength(numberOfPlayers);
+      expect(state.chains.every((chain) => chain.entries.length === relayStepCount)).toBe(true);
+      expect(
+        state.chains.every(
+          (chain) =>
+            new Set(chain.entries.map((entry) => entry.authorSeat)).size === numberOfPlayers,
+        ),
+      ).toBe(true);
+      expect(state.gallery).toMatchObject({ chainIndex: 0, entryIndex: 0 });
+
+      const galleryEntryCount = state.config.numberOfPlayers * relayStepCount;
+      for (let position = 1; position < galleryEntryCount; position += 1) {
+        state = dispatch(
+          state,
+          { type: 'pictionary.gallery.advance' },
+          userContext('user-0', 20_000 + position),
+        );
+        expect(state.gallery).toMatchObject({
+          chainIndex: Math.floor(position / relayStepCount),
+          entryIndex: position % relayStepCount,
         });
       }
-      state = advancePastAnsweringStep(state);
-    }
 
-    expect(state.phase).toBe('gallery');
-    expect(state.chains).toHaveLength(4);
-    expect(state.chains.every((chain) => chain.entries.length === relayStepCount)).toBe(true);
-    expect(state.gallery).toMatchObject({ chainIndex: 0, entryIndex: 0 });
-
-    const galleryEntryCount = state.config.numberOfPlayers * relayStepCount;
-    for (let position = 1; position < galleryEntryCount; position += 1) {
       state = dispatch(
         state,
         { type: 'pictionary.gallery.advance' },
-        userContext('user-0', 20_000 + position),
+        userContext('user-0', 20_000 + galleryEntryCount),
       );
-      expect(state.gallery).toMatchObject({
-        chainIndex: Math.floor(position / relayStepCount),
-        entryIndex: position % relayStepCount,
-      });
-    }
-
-    state = dispatch(
-      state,
-      { type: 'pictionary.gallery.advance' },
-      userContext('user-0', 20_000 + galleryEntryCount),
-    );
-    expect(state.phase).toBe('ended');
-  });
+      expect(state.phase).toBe('ended');
+    },
+  );
 });

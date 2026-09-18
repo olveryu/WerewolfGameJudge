@@ -198,7 +198,9 @@ describe('Pictionary bot control', () => {
 
     state = expireCurrentPhase(state);
     expect(state.phase).toBe('settling');
-    state = expireCurrentPhase(state);
+    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+      state = dispatch(state, { type: 'pictionary.task.empty.submit' }, userContext('host', seat));
+    }
     expect(state.phase).toBe('transition');
     state = expireCurrentPhase(state);
 

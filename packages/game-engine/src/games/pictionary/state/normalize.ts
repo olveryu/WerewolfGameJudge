@@ -130,7 +130,10 @@ function assertRound(state: PictionaryState): void {
   if (state.chains.length !== numberOfPlayers) {
     throw new Error('Pictionary round must contain one chain per player');
   }
-  const relayStepCount = getPictionaryRelayStepCount(numberOfPlayers);
+  const relayStepCount =
+    state.phase === 'gallery' || state.phase === 'ended'
+      ? state.stepIndex + 1
+      : getPictionaryRelayStepCount(numberOfPlayers);
   state.chains.forEach((chain, chainIndex) => {
     if (chain.originSeat !== state.seatOrder[chainIndex]) {
       throw new Error('Pictionary chain order must match seatOrder');
@@ -180,7 +183,10 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   }
 
   assertRound(state);
-  const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
+  const relayStepCount =
+    state.phase === 'gallery' || state.phase === 'ended'
+      ? state.stepIndex + 1
+      : getPictionaryRelayStepCount(state.config.numberOfPlayers);
   if (state.stepIndex < 0 || state.stepIndex >= relayStepCount) {
     throw new Error('Pictionary stepIndex is outside the round');
   }
@@ -192,8 +198,8 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   } else if (state.gallery !== null) {
     throw new Error('Pictionary gallery state is only valid during reveal');
   }
-  if (state.phase === 'settling' && state.deadlineAt === null) {
-    throw new Error('Pictionary settling phase requires a deadline');
+  if (state.phase === 'settling' && state.deadlineAt !== null) {
+    throw new Error('Pictionary collection must wait for explicit submissions');
   }
   if (state.phase !== 'settling' && state.reservations.length > 0) {
     throw new Error('Pictionary reservations are only valid while collecting final drawings');

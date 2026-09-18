@@ -29,6 +29,7 @@ interface PictionaryDrawingCanvasProps {
   readonly color: PictionaryDrawingColor;
   readonly strokeWidth: PictionaryDrawingWidth;
   readonly isEnabled: boolean;
+  readonly onElementChange: (element: PictionaryDrawingElement) => void;
   readonly onElementComplete: (element: PictionaryDrawingElement) => void;
   readonly onFill: (point: PictionaryDrawingPoint) => void;
 }
@@ -58,12 +59,14 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
   color,
   strokeWidth,
   isEnabled,
+  onElementChange,
   onElementComplete,
   onFill,
 }) => {
   const [canvasSize, setCanvasSize] = useState<CanvasSize>({ width: 0, height: 0 });
   const activePath = useSharedValue(Skia.Path.Make());
   const activeBuilder = useRef<SkPathBuilder | null>(null);
+  const activeElementId = useRef('');
   const activePoints = useRef<PictionaryDrawingPoint[]>([]);
   const activeShapeStart = useRef<PictionaryDrawingPoint | null>(null);
   const activeShapeEnd = useRef<PictionaryDrawingPoint | null>(null);
@@ -88,12 +91,13 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
         onFill(point);
         return;
       }
+      activeElementId.current = crypto.randomUUID();
       if (tool === 'line' || tool === 'rectangle' || tool === 'ellipse') {
         activeShapeStart.current = point;
         activeShapeEnd.current = point;
         activePath.value = createPictionaryElementPath(
           {
-            id: 'active-shape',
+            id: activeElementId.current,
             kind: tool,
             color,
             width: strokeWidth,
@@ -103,6 +107,14 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
           canvasSize.width,
           canvasSize.height,
         );
+        onElementChange({
+          id: activeElementId.current,
+          kind: tool,
+          color,
+          width: strokeWidth,
+          start: point,
+          end: point,
+        });
         return;
       }
       const builder = Skia.PathBuilder.Make();
@@ -110,6 +122,13 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
       activeBuilder.current = builder;
       activePoints.current = [point];
       activePath.value = builder.build();
+      onElementChange({
+        id: activeElementId.current,
+        kind: tool,
+        color,
+        width: strokeWidth,
+        points: [point],
+      });
     },
     [
       activePath,
@@ -117,6 +136,7 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
       canvasSize.width,
       color,
       normalizedPoint,
+      onElementChange,
       onFill,
       strokeWidth,
       tool,
@@ -133,7 +153,7 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
         activeShapeEnd.current = end;
         activePath.value = createPictionaryElementPath(
           {
-            id: 'active-shape',
+            id: activeElementId.current,
             kind: tool,
             color,
             width: strokeWidth,
@@ -143,6 +163,14 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
           canvasSize.width,
           canvasSize.height,
         );
+        onElementChange({
+          id: activeElementId.current,
+          kind: tool,
+          color,
+          width: strokeWidth,
+          start,
+          end,
+        });
         return;
       }
       const builder = activeBuilder.current;
@@ -152,8 +180,24 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
       activePoints.current.push(point);
       builder.lineTo(point.x * canvasSize.width, point.y * canvasSize.height);
       activePath.value = builder.build();
+      onElementChange({
+        id: activeElementId.current,
+        kind: tool,
+        color,
+        width: strokeWidth,
+        points: [...activePoints.current],
+      });
     },
-    [activePath, canvasSize.height, canvasSize.width, color, normalizedPoint, strokeWidth, tool],
+    [
+      activePath,
+      canvasSize.height,
+      canvasSize.width,
+      color,
+      normalizedPoint,
+      onElementChange,
+      strokeWidth,
+      tool,
+    ],
   );
 
   const finishElement = useCallback((): void => {
@@ -161,9 +205,9 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
     if (tool === 'line' || tool === 'rectangle' || tool === 'ellipse') {
       const start = activeShapeStart.current;
       const end = activeShapeEnd.current;
-      if (start === null || end === null || !isDistinctPoint(start, end)) return;
+      if (start === null || end === null) return;
       const element: PictionaryDrawingShapeElement = {
-        id: crypto.randomUUID(),
+        id: activeElementId.current,
         kind: tool,
         color,
         width: strokeWidth,
@@ -175,11 +219,11 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
     }
     if (activeBuilder.current === null || activePoints.current.length === 0) return;
     onElementComplete({
-      id: crypto.randomUUID(),
+      id: activeElementId.current,
       kind: tool,
       color,
       width: strokeWidth,
-      points: activePoints.current,
+      points: [...activePoints.current],
     });
   }, [color, onElementComplete, strokeWidth, tool]);
 

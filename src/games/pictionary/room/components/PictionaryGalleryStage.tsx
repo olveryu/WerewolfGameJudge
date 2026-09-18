@@ -5,7 +5,6 @@ import type {
   PictionaryEntry,
   PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -33,7 +32,7 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, entry, entry
         {entry.kind === 'drawing' ? '画作' : entry.kind === 'text' ? '文字' : '未完成'}
       </Text>
       <Text style={styles.entryPosition}>
-        第 {entryIndex + 1} / {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
+        第 {entryIndex + 1} / {state.stepIndex + 1} 棒
       </Text>
     </View>
     {entry.kind === 'drawing' ? (
@@ -132,7 +131,7 @@ const PictionaryAlbumStage: React.FC<PictionaryAlbumStageProps> = ({
         data={entries}
         renderItem={renderEntry}
         keyExtractor={getEntryKey}
-        initialNumToRender={getPictionaryRelayStepCount(state.config.numberOfPlayers)}
+        initialNumToRender={state.stepIndex + 1}
         onLayout={({ nativeEvent }) => setViewportHeight(nativeEvent.layout.height)}
         onContentSizeChange={(_width, height) => setContentHeight(height)}
         contentContainerStyle={styles.albumContent}

@@ -162,6 +162,8 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingImageButton)).toBeVisible({
       timeout: 30_000,
     });
+    await expect(stage.getByText('上一棒画作', { exact: true })).toBeVisible();
+    await expect(stage.getByText(/ 的画作$/)).toHaveCount(0);
   }
 
   /** Open and close the protected drawing's fullscreen preview. */
@@ -245,7 +247,7 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(this.page.getByRole('button', { name: '下一本' })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryEntry)).toHaveCount(8);
+    await expect(this.page.getByTestId(TESTIDS.pictionaryGalleryEntry)).toHaveCount(4);
   }
 
   /** Assert that desktop viewports retain the product's phone-sized stage. */

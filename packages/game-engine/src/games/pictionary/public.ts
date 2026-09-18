@@ -42,7 +42,6 @@ export {
   isValidPictionaryConfig,
   isValidPictionaryPlayerCount,
   isValidPictionaryText,
-  PICTIONARY_COLLECTION_DURATION_SECONDS,
   PICTIONARY_DEFAULT_PLAYERS,
   PICTIONARY_DRAWING_DURATIONS,
   PICTIONARY_DRAWING_HEIGHT,
