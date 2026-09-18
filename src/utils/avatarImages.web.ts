@@ -18,12 +18,14 @@ import darkWolfKing from '../../assets/avatars/web/darkWolfKing.webp';
 import dreamcatcher from '../../assets/avatars/web/dreamcatcher.webp';
 import drunkSeer from '../../assets/avatars/web/drunkSeer.webp';
 import eclipseWolfQueen from '../../assets/avatars/web/eclipseWolfQueen.webp';
+import fateWeaver from '../../assets/avatars/web/fateWeaver.webp';
 import gargoyle from '../../assets/avatars/web/gargoyle.webp';
 import graveyardKeeper from '../../assets/avatars/web/graveyardKeeper.webp';
 import guard from '../../assets/avatars/web/guard.webp';
 import hiddenWolf from '../../assets/avatars/web/hiddenWolf.webp';
 import hunter from '../../assets/avatars/web/hunter.webp';
 import idiot from '../../assets/avatars/web/idiot.webp';
+import inkImmortal from '../../assets/avatars/web/inkImmortal.webp';
 import knight from '../../assets/avatars/web/knight.webp';
 import magician from '../../assets/avatars/web/magician.webp';
 import maskedMan from '../../assets/avatars/web/maskedMan.webp';
@@ -43,6 +45,7 @@ import silenceElder from '../../assets/avatars/web/silenceElder.webp';
 import slacker from '../../assets/avatars/web/slacker.webp';
 import spiritKnight from '../../assets/avatars/web/spiritKnight.webp';
 import thief from '../../assets/avatars/web/thief.webp';
+import tidePriestess from '../../assets/avatars/web/tidePriestess.webp';
 import treasureMaster from '../../assets/avatars/web/treasureMaster.webp';
 import villager from '../../assets/avatars/web/villager.webp';
 import votebanElder from '../../assets/avatars/web/votebanElder.webp';
@@ -67,12 +70,14 @@ import thumb_darkWolfKing from '../../assets/badges/web/role_darkWolfKing.webp';
 import thumb_dreamcatcher from '../../assets/badges/web/role_dreamcatcher.webp';
 import thumb_drunkSeer from '../../assets/badges/web/role_drunkSeer.webp';
 import thumb_eclipseWolfQueen from '../../assets/badges/web/role_eclipseWolfQueen.webp';
+import thumb_fateWeaver from '../../assets/badges/web/role_fateWeaver.webp';
 import thumb_gargoyle from '../../assets/badges/web/role_gargoyle.webp';
 import thumb_graveyardKeeper from '../../assets/badges/web/role_graveyardKeeper.webp';
 import thumb_guard from '../../assets/badges/web/role_guard.webp';
 import thumb_hiddenWolf from '../../assets/badges/web/role_hiddenWolf.webp';
 import thumb_hunter from '../../assets/badges/web/role_hunter.webp';
 import thumb_idiot from '../../assets/badges/web/role_idiot.webp';
+import thumb_inkImmortal from '../../assets/badges/web/role_inkImmortal.webp';
 import thumb_knight from '../../assets/badges/web/role_knight.webp';
 import thumb_magician from '../../assets/badges/web/role_magician.webp';
 import thumb_maskedMan from '../../assets/badges/web/role_maskedMan.webp';
@@ -92,6 +97,7 @@ import thumb_silenceElder from '../../assets/badges/web/role_silenceElder.webp';
 import thumb_slacker from '../../assets/badges/web/role_slacker.webp';
 import thumb_spiritKnight from '../../assets/badges/web/role_spiritKnight.webp';
 import thumb_thief from '../../assets/badges/web/role_thief.webp';
+import thumb_tidePriestess from '../../assets/badges/web/role_tidePriestess.webp';
 import thumb_treasureMaster from '../../assets/badges/web/role_treasureMaster.webp';
 import thumb_villager from '../../assets/badges/web/role_villager.webp';
 import thumb_votebanElder from '../../assets/badges/web/role_votebanElder.webp';
@@ -108,6 +114,7 @@ import thumb_wolfWitch from '../../assets/badges/web/role_wolfWitch.webp';
 // prettier-ignore
 export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   nightSovereign,
+  fateWeaver, tidePriestess, inkImmortal,
   avenger,
   awakenedGargoyle,
   bloodMoon,
@@ -160,6 +167,9 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
 // prettier-ignore
 export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   nightSovereign: thumb_nightSovereign,
+  fateWeaver: thumb_fateWeaver,
+  tidePriestess: thumb_tidePriestess,
+  inkImmortal: thumb_inkImmortal,
   avenger: thumb_avenger,
   awakenedGargoyle: thumb_awakenedGargoyle,
   bloodMoon: thumb_bloodMoon,

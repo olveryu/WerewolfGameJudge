@@ -48,6 +48,28 @@ describe('RoleRevealEffects', () => {
   });
 
   describe('RoleRevealAnimator', () => {
+    it.each(['fateReweave', 'oceanPearl', 'unfoldLandscape'] as const)(
+      'reveals the authoritative role and confirms %s once with reduced motion',
+      (effectType) => {
+        const onComplete = jest.fn();
+        const { getByTestId, getByText } = render(
+          <RoleRevealAnimator
+            visible
+            effectType={effectType}
+            role={mockGodRole}
+            onComplete={onComplete}
+            reducedMotion
+            testIDPrefix="collection"
+          />,
+        );
+        expect(getByTestId(`collection-${effectType}`)).toBeTruthy();
+        expect(getByText('预言家')).toBeTruthy();
+        expect(onComplete).not.toHaveBeenCalled();
+        fireEvent.press(getByTestId('collection-collection-confirm'));
+        fireEvent.press(getByTestId('collection-collection-confirm'));
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      },
+    );
     it('reveals the mythic identity immediately with reduced motion and confirms once', () => {
       const onComplete = jest.fn();
       const { getByTestId, getByText } = render(

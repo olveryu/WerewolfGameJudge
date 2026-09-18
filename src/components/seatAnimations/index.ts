@@ -20,6 +20,7 @@ import { SeerVision } from './legendary/SeerVision';
 import { SpiritSummon } from './legendary/SpiritSummon';
 import { WitchBrew } from './legendary/WitchBrew';
 import { WolfKingEntry } from './legendary/WolfKingEntry';
+import { InkArrival, TidalArrival, WovenArrival } from './MythicCollectionArrivals';
 import type { SeatAnimationProps } from './SeatAnimationProps';
 import { ThroneArrival } from './ThroneArrival';
 
@@ -39,6 +40,9 @@ interface SeatAnimationConfig {
 function buildAnimationRegistry(): Partial<Record<SeatAnimationId, SeatAnimationConfig>> {
   const legendaryEntries = {
     throneArrival: { name: '王座降临', Component: ThroneArrival },
+    wovenArrival: { name: '经纬化身', Component: WovenArrival },
+    tidalArrival: { name: '潮汐凝身', Component: TidalArrival },
+    inkArrival: { name: '点墨成仙', Component: InkArrival },
     wolfKingEntry: { name: '狼王登场', Component: WolfKingEntry },
     witchBrew: { name: '女巫秘药', Component: WitchBrew },
     seerVision: { name: '预言之眼', Component: SeerVision },

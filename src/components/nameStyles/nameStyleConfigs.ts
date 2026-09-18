@@ -13,7 +13,7 @@ import {
   type Rarity,
 } from '@game-judge/game-engine/product/rewards';
 
-import { MYTHIC_COLORS } from '@/config/mythicVisual';
+import { MYTHIC_COLLECTION_COLORS, MYTHIC_COLORS } from '@/config/mythicVisual';
 
 import { COMMON_NAME_STYLE_CONFIGS, RARE_NAME_STYLE_CONFIGS } from './common';
 
@@ -70,6 +70,89 @@ export interface NameStyleConfig {
 // ── Configs ─────────────────────────────────────────────────────────────────
 
 const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
+  goldenScript: {
+    id: 'goldenScript',
+    name: '金缕天书',
+    tier: 'mythic',
+    color: MYTHIC_COLLECTION_COLORS.astral.ink,
+    gradient: {
+      stops:
+        '#137B78 0%, #137B78 35%, #E9B85F 43%, #FFF3D4 46%, #E9B85F 49%, #137B78 53%, #47D9C0 76%, #137B78 100%',
+      backgroundSize: '280% 100%',
+      dropShadow: 'drop-shadow(0 1px 1px #173C3E)',
+    },
+    animations: [
+      {
+        name: 'goldenScriptWeave',
+        duration: '4s',
+        timing: 'linear',
+        keyframes: '0% { background-position: 100% 50%; } 100% { background-position: 0% 50%; }',
+      },
+      {
+        name: 'goldenScriptCharge',
+        duration: '4s',
+        timing: 'ease-in-out',
+        keyframes:
+          '0%, 100% { filter: drop-shadow(0 1px 1px #173C3E); } 46% { filter: drop-shadow(0 1px 1px #173C3E) drop-shadow(0 0 4px #E9B85F); }',
+      },
+    ],
+  },
+  pearlOath: {
+    id: 'pearlOath',
+    name: '流珠海誓',
+    tier: 'mythic',
+    color: MYTHIC_COLLECTION_COLORS.ocean.ink,
+    gradient: {
+      stops:
+        '#186E98 0%, #38C8EC 22%, #F0FFFA 27%, #186E98 32%, #186E98 48%, #FF836F 53%, #F0FFFA 56%, #186E98 61%, #38C8EC 80%, #186E98 100%',
+      backgroundSize: '180% 280%',
+      dropShadow: 'drop-shadow(0 1px 1px #123E54)',
+    },
+    animations: [
+      {
+        name: 'pearlOathRefraction',
+        duration: '5s',
+        timing: 'ease-in-out',
+        keyframes:
+          '0%, 100% { background-position: 0% 0%; background-size: 180% 280%; } 50% { background-position: 100% 100%; background-size: 260% 180%; }',
+      },
+      {
+        name: 'pearlOathCaustic',
+        duration: '5s',
+        timing: 'ease-in-out',
+        keyframes:
+          '0%, 100% { filter: drop-shadow(0 1px 1px #123E54); } 50% { filter: drop-shadow(0 1px 1px #123E54) drop-shadow(0 0 3px #38C8EC); }',
+      },
+    ],
+  },
+  vermilionName: {
+    id: 'vermilionName',
+    name: '朱印留名',
+    tier: 'mythic',
+    color: MYTHIC_COLLECTION_COLORS.ink.ink,
+    gradient: {
+      stops:
+        '#173D34 0%, #173D34 35%, #DF513F 40%, #F5F5E8 42%, #AE392F 44%, #AE392F 70%, #173D34 76%, #173D34 100%',
+      backgroundSize: '300% 100%',
+      dropShadow: 'drop-shadow(0 0 1px #B3D1BE)',
+    },
+    animations: [
+      {
+        name: 'vermilionNameBrush',
+        duration: '6s',
+        timing: 'cubic-bezier(.3,0,.2,1)',
+        keyframes:
+          '0%, 12% { background-position: 100% 50%; } 48%, 80% { background-position: 0% 50%; } 100% { background-position: 100% 50%; }',
+      },
+      {
+        name: 'vermilionNameSeal',
+        duration: '6s',
+        timing: 'ease-in-out',
+        keyframes:
+          '0%, 44%, 100% { filter: drop-shadow(0 0 1px #B3D1BE); } 52%, 72% { filter: drop-shadow(0 0 1px #B3D1BE) drop-shadow(1px 1px 2px #DF513F); }',
+      },
+    ],
+  },
   sovereignName: {
     id: 'sovereignName',
     name: '王权真名',

@@ -18,16 +18,70 @@ import {
   FRAME_IDS,
   HAND_DRAWN_AVATAR_IDS,
   NAME_STYLE_IDS,
+  REWARD_POOL_BY_ID,
+  ROLE_REVEAL_EFFECT_IDS,
+  SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
 } from '@game-judge/game-engine/product/rewards';
 
 import { AVATAR_FRAMES, getFrameById } from '@/components/avatarFrames';
 import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NAME_STYLES } from '@/components/nameStyles';
+import { getSeatAnimationById, SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
+import { getPetByEffectId } from '@/components/seatPets';
+import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import { werewolfProductUi } from '@/games/werewolf/productUi';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 
 const ASSETS_ROOT = path.resolve(__dirname, '../../assets');
+
+describe('mythic collection contracts', () => {
+  it.each([
+    ['fateWeaver', 'celestialLoom', 'starWeave', 'goldenScript', 'fateReweave', 'wovenArrival'],
+    ['tidePriestess', 'coralTide', 'moonTides', 'pearlOath', 'oceanPearl', 'tidalArrival'],
+    [
+      'inkImmortal',
+      'inkLandscape',
+      'paintedMountains',
+      'vermilionName',
+      'unfoldLandscape',
+      'inkArrival',
+    ],
+  ])('registers six independently equippable mythic rewards for %s', (...ids) => {
+    const items = ids.map((id) => REWARD_POOL_BY_ID.get(id));
+    expect(items.map((item) => item?.type)).toEqual([
+      'avatar',
+      'frame',
+      'seatFlair',
+      'nameStyle',
+      'roleRevealEffect',
+      'seatAnimation',
+    ]);
+    expect(items.every((item) => item?.rarity === 'mythic')).toBe(true);
+  });
+
+  it.each([
+    ['fateWeaver', '司命星官'],
+    ['tidePriestess', '沧溟鲛姬'],
+    ['inkImmortal', '执笔谪仙'],
+  ])('names cosmetic avatar %s without treating it as a game role', (id, name) => {
+    expect(werewolfProductUi.getAvatarDisplayName(id)).toBe(name);
+  });
+
+  it('registers all entrance renderers', () => {
+    expect(SEAT_ANIMATIONS).toHaveLength(SEAT_ANIMATION_IDS.length);
+    for (const id of SEAT_ANIMATION_IDS) expect(getSeatAnimationById(id)?.Component).toBeDefined();
+  });
+
+  it.each(ROLE_REVEAL_EFFECT_IDS)('registers reveal presentation and companion for %s', (id) => {
+    const option = getAnimationOption(id);
+    const pet = getPetByEffectId(id);
+    expect(option).toBeDefined();
+    expect(pet?.Component).toBeDefined();
+    expect(option).toEqual(expect.objectContaining({ petName: pet?.name }));
+  });
+});
 
 // ─── Avatars ────────────────────────────────────────────────────────────────
 

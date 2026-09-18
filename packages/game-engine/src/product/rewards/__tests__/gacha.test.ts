@@ -179,9 +179,11 @@ describe('gachaProbability', () => {
   // ── selectReward ────────────────────────────────────────────────────────
 
   describe('selectReward', () => {
-    it('offers one mythic of each type and compensates duplicates', () => {
+    it('offers four mythics of each type and compensates duplicates', () => {
       const mythicPool = REWARD_POOL.filter((item) => item.rarity === 'mythic');
-      expect(mythicPool.map((item) => item.type).sort()).toEqual([...REWARD_TYPES].sort());
+      expect(mythicPool.map((item) => item.type).sort()).toEqual(
+        REWARD_TYPES.flatMap((type) => [type, type, type, type]).sort(),
+      );
       mythicPool.forEach((reward, index) => {
         expect(
           selectReward('mythic', new Set([reward.id]), () => (index + 0.5) / mythicPool.length),
@@ -237,7 +239,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(1025);
+      expect(REWARD_POOL.length).toBe(1043);
     });
 
     it('should have correct rarity distribution', () => {
@@ -252,7 +254,7 @@ describe('gachaProbability', () => {
         counts[item.rarity]++;
       }
       expect(counts.legendary).toBe(49);
-      expect(counts.mythic).toBe(6);
+      expect(counts.mythic).toBe(24);
       expect(counts.epic).toBe(220);
       expect(counts.rare).toBe(250);
       expect(counts.common).toBe(500);
@@ -265,6 +267,7 @@ describe('gachaProbability', () => {
           byType[item.type] = { common: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
         byType[item.type]![item.rarity]++;
       }
+      for (const counts of Object.values(byType)) expect(counts.mythic).toBe(4);
       // Avatars: L11/E36/R50/C100 = 197
       expect(byType['avatar']!.legendary).toBe(11);
       expect(byType['avatar']!.epic).toBe(36);

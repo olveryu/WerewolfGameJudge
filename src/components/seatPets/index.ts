@@ -21,6 +21,7 @@ import { FilmBugPet } from './FilmBugPet';
 import { HoundPet } from './HoundPet';
 import { LuckyStarPet } from './LuckyStarPet';
 import { MeteorBuddyPet } from './MeteorBuddyPet';
+import { PaintedCranePet, PearlRayPet, StarShuttlePet } from './MythicCollectionPets';
 import { NightRavenPet } from './NightRavenPet';
 import type { PetProps } from './PetProps';
 import { ScratchCatPet } from './ScratchCatPet';
@@ -40,6 +41,9 @@ interface SeatPetConfig {
  */
 const PET_REGISTRY: Record<RoleRevealEffectId, SeatPetConfig> = {
   fateDecree: { name: '永夜渡鸦', Component: NightRavenPet },
+  fateReweave: { name: '天机星梭', Component: StarShuttlePet },
+  oceanPearl: { name: '流珠鳐', Component: PearlRayPet },
+  unfoldLandscape: { name: '丹青纸鹤', Component: PaintedCranePet },
   roulette: { name: '骰灵', Component: DicePet },
   roleHunt: { name: '猎犬', Component: HoundPet },
   scratch: { name: '刮刮猫', Component: ScratchCatPet },

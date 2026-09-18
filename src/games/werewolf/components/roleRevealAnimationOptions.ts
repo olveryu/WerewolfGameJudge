@@ -31,6 +31,30 @@ interface AnimationOptionConfig {
 
 const ANIMATION_OPTIONS = [
   {
+    value: 'fateReweave',
+    label: '命盘重构',
+    icon: 'planet-outline',
+    shortDesc: '星盘解构，经纬重织揭晓身份',
+    operationType: 'auto',
+    petName: '天机星梭',
+  },
+  {
+    value: 'oceanPearl',
+    label: '万海开珠',
+    icon: 'water-outline',
+    shortDesc: '潮退贝开，明珠照出身份',
+    operationType: 'auto',
+    petName: '流珠鳐',
+  },
+  {
+    value: 'unfoldLandscape',
+    label: '长卷开天',
+    icon: 'brush-outline',
+    shortDesc: '山河长卷舒展，朱印落定身份',
+    operationType: 'auto',
+    petName: '丹青纸鹤',
+  },
+  {
     value: 'fateDecree',
     label: '命运敕令',
     icon: 'ribbon-outline',

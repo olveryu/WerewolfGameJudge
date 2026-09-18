@@ -1,0 +1,2048 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>神话典藏 · 三境</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f5f6f4;
+        --ink: #202c2a;
+        --muted: #687773;
+        --line: #d8dfdb;
+        --accent: #137b78;
+        --soft: #e5efec;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font-family: 'Avenir Next', 'PingFang SC', sans-serif;
+        letter-spacing: 0;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 4px;
+      }
+      header {
+        padding: 20px 4%;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand {
+        font:
+          700 21px 'Songti SC',
+          Georgia,
+          serif;
+      }
+      .edition,
+      .eyebrow {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      main {
+        max-width: 1440px;
+        margin: auto;
+        padding: 28px 4% 40px;
+      }
+      .heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 20px;
+        margin-bottom: 22px;
+      }
+      h1 {
+        font:
+          600 36px/1.3 'Songti SC',
+          Georgia,
+          serif;
+        margin: 6px 0 0;
+      }
+      .heading p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      fieldset {
+        padding: 0;
+        border: 0;
+        margin: 0;
+        min-width: 0;
+      }
+      .themes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 24px;
+      }
+      .theme {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        padding: 17px 14px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+      }
+      .theme:has(input:checked) {
+        border-bottom-color: var(--accent);
+        background: var(--soft);
+      }
+      .theme:has(input:focus-visible) {
+        outline: 3px solid var(--accent);
+        outline-offset: -3px;
+      }
+      .theme input,
+      .mode input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+      }
+      .theme .number {
+        font:
+          italic 24px Georgia,
+          serif;
+        color: var(--muted);
+      }
+      .theme strong {
+        display: block;
+        font:
+          600 19px 'Songti SC',
+          serif;
+      }
+      .theme small {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 28px;
+      }
+      .viewer {
+        min-width: 0;
+      }
+      .stage {
+        position: relative;
+        background: #101c20;
+        color: #e7f0eb;
+        overflow: hidden;
+        aspect-ratio: 760 / 560;
+      }
+      .stage.light {
+        background: #edf0ed;
+        color: #23332f;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .stage-top {
+        position: absolute;
+        inset: 22px 24px auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        pointer-events: none;
+        gap: 12px;
+      }
+      .stage-top span {
+        font-size: 11px;
+      }
+      .stage-top strong {
+        color: #ef8aa0;
+        font:
+          15px 'Songti SC',
+          serif;
+      }
+      .stage.light .stage-top strong {
+        color: #a72648;
+      }
+      .stage-bottom {
+        position: absolute;
+        inset: auto 24px 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 10px;
+        opacity: 0.65;
+        pointer-events: none;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .icon {
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: transparent;
+        color: var(--ink);
+        font-size: 22px;
+      }
+      .icon:hover {
+        background: var(--soft);
+      }
+      .swatch {
+        width: 24px;
+        height: 24px;
+        border: 3px solid var(--paper);
+        outline: 1px solid var(--line);
+        border-radius: 50%;
+      }
+      .swatch[aria-pressed='true'] {
+        outline: 2px solid var(--accent);
+      }
+      .swatch.dark {
+        background: #101c20;
+      }
+      .swatch.light {
+        background: #edf0ed;
+      }
+      .motion {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+      }
+      input[type='checkbox'] {
+        accent-color: var(--accent);
+        width: 16px;
+        height: 16px;
+      }
+      .mode {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding: 15px 10px;
+        min-height: 66px;
+        position: relative;
+      }
+      .mode:has(input:checked) {
+        background: var(--soft);
+        box-shadow: inset 3px 0 var(--accent);
+      }
+      .mode:has(input:focus-visible) {
+        outline: 3px solid var(--accent);
+        outline-offset: -3px;
+      }
+      .mode strong {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .mode small {
+        display: block;
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .mode .kind {
+        font-size: 11px;
+        color: var(--muted);
+        flex-shrink: 0;
+        margin-left: 12px;
+      }
+      .sidebar-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      h2 {
+        margin: 0;
+        font:
+          600 19px 'Songti SC',
+          serif;
+      }
+      .tag {
+        font-size: 10px;
+        color: var(--accent);
+      }
+      .seat-strip {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 22px 0;
+      }
+      .mini {
+        flex: 0 0 120px;
+        height: 156px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+      .seat-info strong {
+        font:
+          600 18px 'Songti SC',
+          serif;
+      }
+      .seat-info {
+        min-width: 0;
+      }
+      .name-input {
+        display: block;
+        margin-top: 12px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .name-input input {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 240px;
+        margin-top: 5px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+        padding: 7px 0;
+        font: inherit;
+        font-size: 14px;
+      }
+      #confirm-reveal {
+        position: absolute;
+        bottom: 38px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 9px 20px;
+        border: 1px solid #c73d5c;
+        border-radius: 4px;
+        background: #a72648;
+        color: #fff;
+        font: 600 12px sans-serif;
+        cursor: pointer;
+      }
+      #confirm-reveal:disabled {
+        cursor: default;
+        background: #344841;
+        border-color: #78938a;
+      }
+      .seat-info p {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.8;
+        margin: 8px 0 0;
+      }
+      .palette {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .palette span {
+        height: 8px;
+        width: 30px;
+        border-radius: 1px;
+        border: 1px solid #00000012;
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding-top: 16px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.7;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      @media (max-width: 800px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 20px;
+        }
+        .modes {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0 10px;
+        }
+        .mode:first-child {
+          grid-column: 1 / -1;
+        }
+        .seat-strip {
+          padding: 8px 0 18px;
+        }
+      }
+      @media (max-width: 450px) {
+        header {
+          padding: 16px 5%;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        main {
+          padding: 22px 5%;
+        }
+        h1 {
+          font-size: 30px;
+        }
+        .heading {
+          align-items: start;
+        }
+        .heading p {
+          max-width: 85px;
+          line-height: 1.7;
+          text-align: right;
+        }
+        .theme {
+          padding: 14px 6px;
+          gap: 7px;
+        }
+        .theme .number {
+          display: none;
+        }
+        .theme strong {
+          font-size: 16px;
+        }
+        .theme small {
+          font-size: 10px;
+          min-height: 28px;
+        }
+        .stage {
+          aspect-ratio: 1 / 1;
+        }
+        .stage-top {
+          inset: 15px 14px auto;
+        }
+        .stage-bottom {
+          inset: auto 14px 13px;
+        }
+        .edition {
+          font-size: 10px;
+        }
+        footer {
+          flex-direction: column;
+          gap: 4px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">神话典藏 / 三境</div>
+      <div class="edition">COLLECTION STUDY · 02—04</div>
+    </header>
+    <main>
+      <div class="heading">
+        <div>
+          <div class="eyebrow">MYTHIC ATELIER</div>
+          <h1 id="collection-title">天机织命</h1>
+        </div>
+        <p>三套典藏<br />十八件主题藏品</p>
+      </div>
+      <fieldset class="themes" aria-label="典藏系列">
+        <label class="theme"
+          ><input type="radio" name="theme" value="astral" checked /><span class="number">02</span
+          ><span><strong>天机织命</strong><small>孔雀青 · 鎏金 · 星轨</small></span></label
+        >
+        <label class="theme"
+          ><input type="radio" name="theme" value="ocean" /><span class="number">03</span
+          ><span><strong>沧海遗珠</strong><small>海蓝 · 珊瑚 · 珍珠</small></span></label
+        >
+        <label class="theme"
+          ><input type="radio" name="theme" value="ink" /><span class="number">04</span
+          ><span><strong>墨照山河</strong><small>墨黑 · 朱砂 · 玉白</small></span></label
+        >
+      </fieldset>
+      <div class="workspace">
+        <section class="viewer" aria-label="典藏动态预览">
+          <div class="stage" id="stage">
+            <canvas id="preview" role="img" aria-label="天机织命完整组合动态概念图"></canvas>
+            <button id="confirm-reveal" hidden>确认身份</button>
+            <div class="stage-top"><strong>神话</strong><span id="mode-title">完整组合</span></div>
+            <div class="stage-bottom">
+              <span id="serial">TJ / 02</span><span id="phase" aria-hidden="true">经纬成形</span>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="controls">
+              <button class="icon" id="replay" aria-label="重播动画" title="重播动画">↻</button
+              ><button
+                class="icon"
+                id="pause"
+                aria-label="暂停动画"
+                title="暂停动画"
+                aria-pressed="false"
+              >
+                Ⅱ
+              </button>
+            </div>
+            <div class="controls" role="group" aria-label="预览背景">
+              <button
+                class="swatch dark"
+                data-background="dark"
+                aria-label="深色背景"
+                aria-pressed="true"
+                title="深色背景"
+              ></button
+              ><button
+                class="swatch light"
+                data-background="light"
+                aria-label="浅色背景"
+                aria-pressed="false"
+                title="浅色背景"
+              ></button>
+            </div>
+            <label class="motion"><input id="reduced" type="checkbox" />减少动态</label>
+          </div>
+          <div class="seat-strip">
+            <div class="mini">
+              <canvas id="miniature" role="img" aria-label="小尺寸席位组合预览"></canvas>
+            </div>
+            <div class="seat-info">
+              <strong id="seat-name">司命星官</strong>
+              <p id="mood">经纬织星，金轮定命。</p>
+              <p id="companion">伴生 · 天机星梭</p>
+              <label class="name-input"
+                >玩家名<input id="player-name" value="今夜观星" maxlength="24"
+              /></label>
+              <div class="palette" id="palette" aria-label="系列配色"></div>
+            </div>
+          </div>
+        </section>
+        <aside>
+          <div class="sidebar-title">
+            <h2>典藏目录</h2>
+            <span class="tag">六件成套</span>
+          </div>
+          <fieldset class="modes" id="modes" aria-label="预览藏品"></fieldset>
+        </aside>
+      </div>
+      <footer>
+        <span>原创动态概念稿 · 头像为程序绘制概念形象</span
+        ><span>未接入游戏奖池 · 不代表最终上线美术</span>
+      </footer>
+      <div class="sr-only" id="announcement" role="status" aria-live="polite"></div>
+    </main>
+    <script>
+      'use strict';
+      const collections = {
+        astral: {
+          title: '天机织命',
+          serial: 'TJ / 02',
+          colors: ['#47d9c0', '#e9b85f', '#fff3d4'],
+          accent: '#137b78',
+          soft: '#e5efec',
+          mood: '经纬织星，金轮定命。',
+          names: ['司命星官', '周天仪', '织星经纬', '金缕天书', '命盘重构', '经纬化身'],
+          phases: ['经纬成形', '星盘重构'],
+          companion: '天机星梭',
+        },
+        ocean: {
+          title: '沧海遗珠',
+          serial: 'CH / 03',
+          colors: ['#38c8ec', '#ff836f', '#f0fffa'],
+          accent: '#186e98',
+          soft: '#e3eff5',
+          mood: '潮生万象，珠照深海。',
+          names: ['沧溟鲛姬', '潮生珊瑚', '逐月潮汐', '流珠海誓', '万海开珠', '潮汐凝身'],
+          phases: ['潮汐凝身', '万海开珠'],
+          companion: '流珠鳐',
+        },
+        ink: {
+          title: '墨照山河',
+          serial: 'MS / 04',
+          colors: ['#b3d1be', '#df513f', '#f5f5e8'],
+          accent: '#ae392f',
+          soft: '#f3e8e4',
+          mood: '一笔山河，落印成真。',
+          names: ['执笔谪仙', '游龙飞白', '咫尺山河', '朱印留名', '长卷开天', '点墨成仙'],
+          phases: ['点墨成仙', '长卷开天'],
+          companion: '丹青纸鹤',
+        },
+      };
+      const categories = ['头像', '边框', '座位装饰', '名字', '揭示特效', '入座动画'];
+      const modeIds = ['avatar', 'frame', 'flair', 'name', 'reveal', 'entrance'];
+      const state = {
+        theme: 'astral',
+        mode: 'all',
+        time: 0,
+        paused: false,
+        light: false,
+        playerName: '今夜观星',
+        revealConfirmed: false,
+        reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      };
+      const canvas = document.getElementById('preview');
+      const context = canvas.getContext('2d');
+      const miniCanvas = document.getElementById('miniature');
+      const miniContext = miniCanvas.getContext('2d');
+      const fullTurn = Math.PI * 2;
+      const clamp = (value) => Math.max(0, Math.min(1, value));
+      const smooth = (value) => {
+        const bounded = clamp(value);
+        return bounded * bounded * (3 - 2 * bounded);
+      };
+
+      function strokePath(painter, points, color, width = 1, closed = false) {
+        painter.beginPath();
+        points.forEach(([horizontal, vertical], index) =>
+          index ? painter.lineTo(horizontal, vertical) : painter.moveTo(horizontal, vertical),
+        );
+        if (closed) painter.closePath();
+        painter.strokeStyle = color;
+        painter.lineWidth = width;
+        painter.stroke();
+      }
+      function ellipse(painter, horizontal, vertical, radiusX, radiusY, color, width = 1) {
+        painter.beginPath();
+        painter.ellipse(
+          horizontal,
+          vertical,
+          Math.max(0, radiusX),
+          Math.max(0, radiusY),
+          0,
+          0,
+          fullTurn,
+        );
+        painter.strokeStyle = color;
+        painter.lineWidth = width;
+        painter.stroke();
+      }
+      function fillShape(painter, points, color) {
+        painter.beginPath();
+        points.forEach(([horizontal, vertical], index) =>
+          index ? painter.lineTo(horizontal, vertical) : painter.moveTo(horizontal, vertical),
+        );
+        painter.closePath();
+        painter.fillStyle = color;
+        painter.fill();
+      }
+      function star(painter, horizontal, vertical, radius, color) {
+        fillShape(
+          painter,
+          [
+            [horizontal, vertical - radius],
+            [horizontal + radius * 0.22, vertical - radius * 0.2],
+            [horizontal + radius, vertical],
+            [horizontal + radius * 0.22, vertical + radius * 0.2],
+            [horizontal, vertical + radius],
+            [horizontal - radius * 0.22, vertical + radius * 0.2],
+            [horizontal - radius, vertical],
+            [horizontal - radius * 0.22, vertical - radius * 0.2],
+          ],
+          color,
+        );
+      }
+
+      /** Draws a theme-specific concept portrait without external image dependencies. */
+      function drawPortrait(painter, time) {
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        const isInk = state.theme === 'ink';
+        const isOcean = state.theme === 'ocean';
+        painter.save();
+        painter.beginPath();
+        painter.roundRect(-64, -64, 128, 128, 14);
+        painter.clip();
+        painter.scale(1, 128 / 140);
+        const background = painter.createLinearGradient(-64, -70, 64, 70);
+        background.addColorStop(0, isInk ? '#e4ece2' : isOcean ? '#124762' : '#102e32');
+        background.addColorStop(1, isInk ? '#90aa9f' : '#080f20');
+        painter.fillStyle = background;
+        painter.fillRect(-64, -70, 128, 140);
+        painter.globalAlpha = 0.35;
+        if (isInk) {
+          for (let layer = 0; layer < 3; layer++)
+            fillShape(
+              painter,
+              [
+                [-80, 60],
+                [-60, -20 + layer * 16],
+                [-30, 0],
+                [5, -48 + layer * 22],
+                [42, -10],
+                [80, -32],
+                [80, 80],
+              ],
+              '#48635e',
+            );
+        } else {
+          for (let index = 0; index < 12; index++)
+            star(
+              painter,
+              Math.sin(index * 8) * 60,
+              Math.cos(index * 5) * 64,
+              1 + (index % 3),
+              pearl,
+            );
+          ellipse(painter, 0, -18, 50, 50, secondary, 1);
+        }
+        painter.globalAlpha = 1;
+        const hair = isInk ? '#13282b' : isOcean ? '#def5ed' : '#17272e';
+        painter.fillStyle = hair;
+        painter.beginPath();
+        painter.ellipse(0, -12, 34, 48, 0, 0, fullTurn);
+        painter.fill();
+        for (const side of [-1, 1]) {
+          painter.beginPath();
+          painter.moveTo(side * 20, -36);
+          painter.bezierCurveTo(side * 65, -22, side * 29, 30, side * 59, 73);
+          painter.lineTo(side * 18, 74);
+          painter.closePath();
+          painter.fill();
+        }
+        fillShape(
+          painter,
+          [
+            [-18, 15],
+            [18, 15],
+            [20, 34],
+            [51, 45],
+            [67, 75],
+            [-67, 75],
+            [-50, 45],
+            [-19, 34],
+          ],
+          isOcean ? '#efcdbb' : '#dfc1a0',
+        );
+        fillShape(
+          painter,
+          [
+            [-64, 71],
+            [-47, 39],
+            [-20, 30],
+            [0, 59],
+            [20, 30],
+            [47, 39],
+            [64, 71],
+          ],
+          isInk ? '#eff1e5' : isOcean ? '#176d80' : '#145652',
+        );
+        fillShape(
+          painter,
+          [
+            [-20, 30],
+            [0, 51],
+            [20, 30],
+            [10, 66],
+            [-8, 66],
+          ],
+          isInk ? '#263d3b' : secondary,
+        );
+        const face = painter.createLinearGradient(-22, -34, 22, 21);
+        face.addColorStop(0, '#e0b897');
+        face.addColorStop(0.5, '#fae5ca');
+        face.addColorStop(1, '#b98f7f');
+        painter.fillStyle = face;
+        painter.beginPath();
+        painter.moveTo(-24, -32);
+        painter.bezierCurveTo(-27, -5, -16, 20, 0, 25);
+        painter.bezierCurveTo(16, 20, 27, -5, 24, -32);
+        painter.quadraticCurveTo(0, -53, -24, -32);
+        painter.fill();
+        painter.fillStyle = hair;
+        painter.beginPath();
+        painter.moveTo(-30, -10);
+        painter.quadraticCurveTo(-30, -65, 0, -58);
+        painter.quadraticCurveTo(35, -58, 30, -7);
+        painter.lineTo(18, -32);
+        painter.quadraticCurveTo(6, -30, 1, -45);
+        painter.quadraticCurveTo(-9, -26, -30, -10);
+        painter.fill();
+        strokePath(
+          painter,
+          [
+            [-18, -10],
+            [-10, -13],
+            [-4, -10],
+          ],
+          '#493d3a',
+          1.4,
+        );
+        strokePath(
+          painter,
+          [
+            [4, -10],
+            [10, -13],
+            [18, -10],
+          ],
+          '#493d3a',
+          1.4,
+        );
+        strokePath(
+          painter,
+          [
+            [-17, -6],
+            [-10, -4],
+            [-5, -6],
+          ],
+          '#28443e',
+          1.7,
+        );
+        strokePath(
+          painter,
+          [
+            [5, -6],
+            [10, -4],
+            [17, -6],
+          ],
+          '#28443e',
+          1.7,
+        );
+        strokePath(
+          painter,
+          [
+            [1, -3],
+            [-2, 7],
+            [3, 8],
+          ],
+          '#b89079',
+          1,
+        );
+        strokePath(
+          painter,
+          [
+            [-6, 14],
+            [0, 15],
+            [6, 13],
+          ],
+          '#a3504c',
+          1.5,
+        );
+        painter.strokeStyle = isInk ? '#668078' : pearl;
+        painter.lineWidth = 0.7;
+        for (let strand = 0; strand < 8; strand++) {
+          const side = strand % 2 ? 1 : -1;
+          painter.beginPath();
+          painter.moveTo(side * (24 + strand), -32);
+          painter.bezierCurveTo(side * (42 + strand), 0, side * 30, 31, side * (44 + strand), 62);
+          painter.stroke();
+        }
+        if (isOcean) {
+          for (const side of [-1, 1]) {
+            fillShape(
+              painter,
+              [
+                [side * 21, -13],
+                [side * 43, -27],
+                [side * 34, 6],
+              ],
+              primary,
+            );
+            strokePath(
+              painter,
+              [
+                [side * 27, -10],
+                [side * 37, -18],
+              ],
+              pearl,
+              1,
+            );
+            for (let bead = 0; bead < 5; bead++) {
+              painter.beginPath();
+              painter.arc(side * (8 + bead * 5), -40 + bead * 2, 2, 0, fullTurn);
+              painter.fillStyle = pearl;
+              painter.fill();
+            }
+          }
+          star(painter, 0, -32, 5, secondary);
+        } else if (isInk) {
+          painter.fillStyle = hair;
+          painter.beginPath();
+          painter.ellipse(0, -57, 13, 10, -0.2, 0, fullTurn);
+          painter.fill();
+          strokePath(
+            painter,
+            [
+              [-24, -54],
+              [29, -59],
+            ],
+            '#e4e5c5',
+            3,
+          );
+          star(painter, 28, -59, 3, secondary);
+          strokePath(
+            painter,
+            [
+              [34, 66],
+              [51, 22],
+            ],
+            '#412f28',
+            4,
+          );
+          fillShape(
+            painter,
+            [
+              [48, 23],
+              [55, 25],
+              [57, 9],
+            ],
+            '#e8e1cb',
+          );
+        } else {
+          fillShape(
+            painter,
+            [
+              [-28, -42],
+              [-22, -66],
+              [-8, -55],
+              [0, -72],
+              [8, -55],
+              [22, -66],
+              [28, -42],
+            ],
+            '#193e3e',
+          );
+          strokePath(
+            painter,
+            [
+              [-27, -44],
+              [0, -51],
+              [27, -44],
+            ],
+            secondary,
+            3,
+          );
+          star(painter, 0, -49, 7, pearl);
+          for (const side of [-1, 1]) {
+            strokePath(
+              painter,
+              [
+                [side * 28, -39],
+                [side * 33, 12],
+              ],
+              secondary,
+              1,
+            );
+            star(painter, side * 33, 15, 4, primary);
+          }
+        }
+        painter.globalAlpha = 0.3;
+        for (let fold = 0; fold < 5; fold++)
+          strokePath(
+            painter,
+            [
+              [-50 + fold * 24, 45],
+              [-35 + fold * 17, 72],
+            ],
+            pearl,
+            1,
+          );
+        painter.restore();
+      }
+
+      function drawFrame(painter, time) {
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        painter.lineCap = 'round';
+        const material = painter.createLinearGradient(-68, -68, 68, 68);
+        material.addColorStop(0, pearl);
+        material.addColorStop(0.25, secondary);
+        material.addColorStop(0.5, '#274d48');
+        material.addColorStop(0.73, pearl);
+        material.addColorStop(1, primary);
+        painter.beginPath();
+        painter.roundRect(-64, -64, 128, 128, 14);
+        painter.strokeStyle = '#102a2b';
+        painter.lineWidth = 7;
+        painter.stroke();
+        painter.strokeStyle = material;
+        painter.lineWidth = 4;
+        painter.stroke();
+        painter.beginPath();
+        painter.roundRect(-60, -60, 120, 120, 11);
+        painter.strokeStyle = primary;
+        painter.lineWidth = 0.8;
+        painter.stroke();
+        const charge = (time % 6) / 6;
+        for (let side = 0; side < 4; side++) {
+          painter.save();
+          painter.rotate((side * Math.PI) / 2);
+          if (state.theme === 'astral') {
+            fillShape(
+              painter,
+              [
+                [-42, -63],
+                [-33, -70],
+                [33, -70],
+                [42, -63],
+                [23, -65],
+                [-23, -65],
+              ],
+              '#173c3e',
+            );
+            strokePath(
+              painter,
+              [
+                [-40, -64],
+                [-30, -70],
+                [30, -70],
+                [40, -64],
+              ],
+              secondary,
+              1.5,
+            );
+            for (let tooth = -3; tooth <= 3; tooth++)
+              strokePath(
+                painter,
+                [
+                  [tooth * 9, -65],
+                  [tooth * 9, -69],
+                ],
+                primary,
+                1,
+              );
+            painter.save();
+            painter.translate(0, -65);
+            painter.rotate(time * (side % 2 ? -1 : 1));
+            for (let tooth = 0; tooth < 8; tooth++) {
+              painter.rotate(Math.PI / 4);
+              strokePath(
+                painter,
+                [
+                  [0, -4],
+                  [0, -8],
+                ],
+                secondary,
+                2,
+              );
+            }
+            star(painter, 0, 0, 5, pearl);
+            painter.restore();
+            const traveler = -43 + ((time * 22 + side * 21) % 86);
+            strokePath(
+              painter,
+              [
+                [traveler - 8, -67],
+                [traveler, -67],
+              ],
+              pearl,
+              2,
+            );
+          } else if (state.theme === 'ocean') {
+            for (let branch = -2; branch <= 2; branch++) {
+              const base = branch * 19;
+              const sway = Math.sin(time * 1.8 + side + branch) * 2;
+              strokePath(
+                painter,
+                [
+                  [base, -64],
+                  [base + 3, -68],
+                  [base + sway, -73],
+                ],
+                secondary,
+                2.4,
+              );
+              strokePath(
+                painter,
+                [
+                  [base + 3, -68],
+                  [base + 9, -71],
+                ],
+                pearl,
+                1,
+              );
+            }
+            painter.save();
+            painter.beginPath();
+            painter.rect(-49, -73, 98, 12);
+            painter.clip();
+            painter.beginPath();
+            for (let horizontal = -49; horizontal <= 49; horizontal++) {
+              const vertical = -67 + Math.sin(horizontal * 0.11 - time * 2.8 + side) * 2;
+              horizontal === -49
+                ? painter.moveTo(horizontal, vertical)
+                : painter.lineTo(horizontal, vertical);
+            }
+            painter.strokeStyle = primary;
+            painter.lineWidth = 2;
+            painter.stroke();
+            painter.restore();
+          } else {
+            fillShape(
+              painter,
+              [
+                [-46, -62],
+                [-31, -70],
+                [12, -67],
+                [42, -71],
+                [31, -63],
+                [-12, -66],
+              ],
+              '#173d34',
+            );
+            for (let brush = 0; brush < 4; brush++) {
+              painter.setLineDash([18 + brush * 6, 12]);
+              painter.lineDashOffset = -time * 24 + brush * 7;
+              strokePath(
+                painter,
+                [
+                  [-42, -64 - brush],
+                  [0, -67 + brush * 0.4],
+                  [43, -65 - brush],
+                ],
+                brush % 2 ? primary : pearl,
+                0.8,
+              );
+            }
+            painter.setLineDash([]);
+            star(painter, -40 + ((time * 30 + side * 20) % 80), -67, 3, secondary);
+          }
+          painter.restore();
+        }
+        for (const horizontal of [-1, 1])
+          for (const vertical of [-1, 1]) {
+            painter.save();
+            painter.translate(horizontal * 57, vertical * 57);
+            painter.rotate(Math.PI / 4);
+            if (state.theme === 'astral') {
+              painter.fillStyle = '#173936';
+              painter.fillRect(-7, -7, 14, 14);
+              painter.strokeStyle = secondary;
+              painter.lineWidth = 1.5;
+              painter.strokeRect(-7, -7, 14, 14);
+              painter.fillStyle = primary;
+              painter.fillRect(-3, -3, 6, 6);
+            } else if (state.theme === 'ocean') {
+              const nacre = painter.createRadialGradient(-2, -2, 0, 0, 0, 7);
+              nacre.addColorStop(0, '#ffffff');
+              nacre.addColorStop(0.45, pearl);
+              nacre.addColorStop(1, '#529bac');
+              painter.beginPath();
+              painter.arc(0, 0, 6, 0, fullTurn);
+              painter.fillStyle = nacre;
+              painter.fill();
+              ellipse(painter, 0, 0, 8, 8, secondary, 1);
+            } else {
+              painter.rotate(-Math.PI / 4);
+              fillShape(
+                painter,
+                [
+                  [-7, -6],
+                  [5, -8],
+                  [7, 5],
+                  [-5, 7],
+                ],
+                '#284e41',
+              );
+              strokePath(
+                painter,
+                [
+                  [-7, 4],
+                  [-7, -7],
+                  [4, -7],
+                ],
+                pearl,
+                2,
+              );
+              strokePath(
+                painter,
+                [
+                  [1, -3],
+                  [1, 4],
+                  [5, 4],
+                ],
+                secondary,
+                1.5,
+              );
+            }
+            painter.globalAlpha = 0.3 + 0.7 * Math.sin(time * 2 + horizontal + vertical) ** 2;
+            star(painter, 0, 0, 6, pearl);
+            painter.restore();
+          }
+        painter.save();
+        painter.globalAlpha = Math.sin(charge * Math.PI) ** 6;
+        painter.setLineDash([35, 85]);
+        painter.lineDashOffset = -time * 90;
+        painter.beginPath();
+        painter.roundRect(-67, -67, 134, 134, 16);
+        painter.strokeStyle = pearl;
+        painter.lineWidth = 2.5;
+        painter.stroke();
+        painter.restore();
+        if (state.theme === 'ink') {
+          painter.fillStyle = secondary;
+          painter.fillRect(-7, -73, 14, 16);
+          painter.fillStyle = pearl;
+          painter.font = '11px "Songti SC", serif';
+          painter.textAlign = 'center';
+          painter.fillText('山', 0, -61);
+        }
+        painter.restore();
+      }
+
+      function drawFlair(painter, time) {
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        painter.translate(-22, 72);
+        painter.scale(0.62, 0.62);
+        if (state.theme === 'astral') {
+          painter.save();
+          painter.scale(1, 0.25);
+          painter.rotate(time * 0.45);
+          for (let thread = -3; thread <= 3; thread++) {
+            strokePath(
+              painter,
+              [
+                [-89, thread * 17],
+                [89, thread * 17],
+              ],
+              thread % 2 ? primary : secondary,
+              1.6,
+            );
+            strokePath(
+              painter,
+              [
+                [thread * 22, -54],
+                [thread * 22, 54],
+              ],
+              primary,
+              1,
+            );
+          }
+          for (let node = 0; node < 6; node++)
+            star(painter, Math.sin(node * 7 + time) * 78, Math.cos(node * 4) * 43, 6, pearl);
+          painter.restore();
+        } else if (state.theme === 'ocean') {
+          for (let wave = 0; wave < 3; wave++) {
+            painter.beginPath();
+            for (let horizontal = -99; horizontal <= 99; horizontal += 3) {
+              const vertical =
+                Math.sin(horizontal * 0.05 - time * 2 + wave) * (4 + wave) + wave * 6;
+              horizontal === -99
+                ? painter.moveTo(horizontal, vertical)
+                : painter.lineTo(horizontal, vertical);
+            }
+            painter.strokeStyle = [primary, pearl, secondary][wave];
+            painter.lineWidth = 2.5 - wave * 0.5;
+            painter.stroke();
+          }
+          for (let bubble = 0; bubble < 8; bubble++) {
+            const phase = (time * 0.32 + bubble / 8) % 1;
+            painter.globalAlpha = Math.sin(phase * Math.PI);
+            ellipse(painter, -91 + bubble * 25, -phase * 33, 2, 2, pearl);
+          }
+        } else {
+          for (let mountain = 0; mountain < 3; mountain++) {
+            painter.globalAlpha = 0.35 + mountain * 0.2;
+            const offset = Math.sin(time * 0.5 + mountain) * 9;
+            fillShape(
+              painter,
+              [
+                [-99, 15],
+                [-69 + offset, -13 - mountain * 7],
+                [-41, 1],
+                [-12 + offset, -23],
+                [19, 4],
+                [61 + offset, -13],
+                [101, 15],
+              ],
+              mountain === 2 ? '#34554b' : primary,
+            );
+          }
+          painter.globalAlpha = 1;
+          strokePath(
+            painter,
+            [
+              [-92, 20],
+              [-45, 16 + Math.sin(time) * 3],
+              [4, 22],
+              [62, 17],
+              [99, 22],
+            ],
+            pearl,
+            1.5,
+          );
+          for (let leaf = 0; leaf < 4; leaf++) {
+            const phase = (time * 0.16 + leaf * 0.25) % 1;
+            painter.save();
+            painter.translate(-95 + phase * 190, 6 + Math.sin(phase * fullTurn) * 8);
+            painter.rotate(phase * 9);
+            fillShape(
+              painter,
+              [
+                [-4, 0],
+                [0, -2],
+                [5, 0],
+                [0, 3],
+              ],
+              secondary,
+            );
+            painter.restore();
+          }
+        }
+        painter.restore();
+      }
+
+      function drawName(painter, time, standalone = false, miniature = false) {
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        painter.textAlign = 'center';
+        painter.textBaseline = 'middle';
+        painter.font = `600 ${standalone ? 30 : 20}px "Songti SC", serif`;
+        const limit = standalone ? 260 : 128;
+        let name = state.playerName;
+        const characters = Array.from(name);
+        while (painter.measureText(name).width > limit && characters.length) {
+          characters.pop();
+          name = characters.join('') + '…';
+        }
+        const textWidth = painter.measureText(name).width;
+        const isLight = state.light || miniature;
+        painter.fillStyle = isLight ? '#21493e' : pearl;
+        painter.fillText(name, 0, 0);
+        const sweep = ((time % 4) / 4) * (textWidth + 48) - textWidth / 2 - 24;
+        if (state.theme === 'astral') {
+          painter.save();
+          painter.beginPath();
+          painter.rect(sweep - 12, -24, 24, 48);
+          painter.clip();
+          painter.fillStyle = isLight ? '#976409' : secondary;
+          painter.shadowColor = secondary;
+          painter.shadowBlur = 8;
+          painter.fillText(name, 0, 0);
+          painter.restore();
+          strokePath(
+            painter,
+            [
+              [-textWidth / 2, 17],
+              [textWidth / 2, 17],
+            ],
+            isLight ? '#137b78' : primary,
+            0.7,
+          );
+          star(painter, Math.max(-textWidth / 2, Math.min(textWidth / 2, sweep)), 17, 4, secondary);
+          for (let thread = 0; thread < 3; thread++) {
+            painter.save();
+            painter.globalAlpha = 0.65;
+            strokePath(
+              painter,
+              [
+                [sweep - 8 + thread * 8, -19],
+                [sweep - 8 + thread * 8, 17],
+              ],
+              secondary,
+              0.5,
+            );
+            painter.restore();
+          }
+        } else if (state.theme === 'ocean') {
+          for (let band = 0; band < 3; band++) {
+            painter.save();
+            painter.beginPath();
+            const tide = -14 + ((time * 8 + band * 10) % 30);
+            painter.rect(-textWidth / 2 - 2, tide, textWidth + 4, 4);
+            painter.clip();
+            painter.fillStyle = isLight ? '#096b92' : primary;
+            painter.fillText(name, Math.sin(time * 2 + band) * 1.3, 0);
+            painter.restore();
+          }
+          painter.beginPath();
+          for (let horizontal = -textWidth / 2; horizontal <= textWidth / 2; horizontal++) {
+            const vertical = 17 + Math.sin(horizontal * 0.12 - time * 2) * 1.8;
+            horizontal === -textWidth / 2
+              ? painter.moveTo(horizontal, vertical)
+              : painter.lineTo(horizontal, vertical);
+          }
+          painter.strokeStyle = primary;
+          painter.lineWidth = 1;
+          painter.stroke();
+          star(painter, Math.sin(time) * textWidth * 0.4, 19, 3, secondary);
+        } else {
+          painter.save();
+          painter.beginPath();
+          painter.rect(-textWidth / 2, -22, Math.max(0, sweep + textWidth / 2), 44);
+          painter.clip();
+          painter.fillStyle = isLight ? '#9c302c' : primary;
+          painter.fillText(name, 0, 0);
+          painter.restore();
+          strokePath(
+            painter,
+            [
+              [-textWidth / 2, 17],
+              [Math.min(textWidth / 2, Math.max(-textWidth / 2, sweep)), 17],
+            ],
+            secondary,
+            1.5,
+          );
+          painter.save();
+          painter.translate(textWidth / 2 - 5, 22);
+          painter.scale(1, 0.8 + 0.2 * Math.sin(time * 2) ** 2);
+          painter.fillStyle = secondary;
+          painter.fillRect(-5, -5, 10, 10);
+          painter.fillStyle = pearl;
+          painter.font = '8px "Songti SC", serif';
+          painter.fillText('印', 0, 0);
+          painter.restore();
+        }
+        painter.restore();
+      }
+
+      function drawCompanion(painter, time) {
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        painter.translate(53, 51 + Math.sin(time * 2) * 2);
+        painter.lineCap = 'round';
+        painter.lineJoin = 'round';
+        if (state.theme === 'astral') {
+          painter.save();
+          painter.rotate(Math.sin(time) * 0.25);
+          ellipse(painter, 0, 0, 17, 8, secondary, 1.8);
+          painter.save();
+          painter.rotate(time * 0.7);
+          ellipse(painter, 0, 0, 8, 17, primary, 1.3);
+          painter.restore();
+          fillShape(
+            painter,
+            [
+              [0, -17],
+              [7, -2],
+              [0, 15],
+              [-7, -2],
+            ],
+            '#163c3b',
+          );
+          strokePath(
+            painter,
+            [
+              [0, -17],
+              [7, -2],
+              [0, 15],
+              [-7, -2],
+              [0, -17],
+            ],
+            secondary,
+            1.5,
+          );
+          star(painter, 0, -1, 7, pearl);
+          painter.restore();
+        } else if (state.theme === 'ocean') {
+          const wing = Math.sin(time * 3) * 7;
+          fillShape(
+            painter,
+            [
+              [0, -8],
+              [-8, -5],
+              [-20, -12 + wing],
+              [-14, 8],
+              [0, 12],
+              [14, 8],
+              [20, -12 + wing],
+              [8, -5],
+            ],
+            primary,
+          );
+          fillShape(
+            painter,
+            [
+              [0, -6],
+              [-10, 7],
+              [0, 11],
+              [10, 7],
+            ],
+            pearl,
+          );
+          strokePath(
+            painter,
+            [
+              [0, 10],
+              [5, 17],
+              [Math.sin(time * 2) * 8, 21],
+            ],
+            secondary,
+            2,
+          );
+          for (const side of [-1, 1]) {
+            painter.fillStyle = '#13334a';
+            painter.beginPath();
+            painter.arc(side * 4, -1, 1.5, 0, fullTurn);
+            painter.fill();
+          }
+          star(painter, 0, -12, 3, pearl);
+        } else {
+          const wing = Math.sin(time * 2.6) * 9;
+          fillShape(
+            painter,
+            [
+              [0, 5],
+              [-19, -13 + wing],
+              [-7, 8],
+              [0, 13],
+              [17, -15 - wing],
+              [9, 6],
+            ],
+            pearl,
+          );
+          strokePath(
+            painter,
+            [
+              [-19, -13 + wing],
+              [-7, 8],
+              [0, 5],
+              [17, -15 - wing],
+            ],
+            primary,
+            1.4,
+          );
+          fillShape(
+            painter,
+            [
+              [0, 7],
+              [6, -8],
+              [10, -10],
+              [16, -6],
+              [9, -5],
+              [5, 12],
+            ],
+            '#254a40',
+          );
+          painter.fillStyle = secondary;
+          painter.fillRect(7, -10, 4, 4);
+          strokePath(
+            painter,
+            [
+              [-3, 12],
+              [-5, 17],
+              [1, 16],
+            ],
+            secondary,
+            1,
+          );
+        }
+        painter.restore();
+      }
+
+      function drawSeatMetadata(painter) {
+        painter.save();
+        painter.textAlign = 'center';
+        painter.textBaseline = 'middle';
+        painter.fillStyle = '#344841';
+        painter.beginPath();
+        painter.arc(-61, -61, 10, 0, fullTurn);
+        painter.fill();
+        painter.fillStyle = '#ffffff';
+        painter.font = '600 12px sans-serif';
+        painter.fillText('3', -61, -60);
+        painter.fillStyle = '#1e644e';
+        painter.beginPath();
+        painter.roundRect(13, -54, 43, 16, 3);
+        painter.fill();
+        painter.fillStyle = '#ffffff';
+        painter.font = '9px sans-serif';
+        painter.fillText('已准备', 34.5, -46);
+        painter.restore();
+      }
+
+      function drawEntrance(painter, elapsed) {
+        const phase = clamp(elapsed / 3.2);
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        painter.globalAlpha = Math.sin(phase * Math.PI);
+        painter.lineCap = 'round';
+        if (state.theme === 'astral') {
+          for (let thread = 0; thread < 13; thread++) {
+            const horizontal = -112 + thread * 18;
+            const height = 260 * smooth(phase * 1.8 - thread * 0.025);
+            strokePath(
+              painter,
+              [
+                [horizontal, 110],
+                [horizontal, 110 - height],
+              ],
+              thread % 2 ? primary : secondary,
+              1.8,
+            );
+            star(painter, horizontal, 110 - height, 5, pearl);
+          }
+          for (let weft = 0; weft < 7; weft++)
+            strokePath(
+              painter,
+              [
+                [-135 * phase, 90 - weft * 31],
+                [135 * phase, 90 - weft * 31],
+              ],
+              primary,
+              1,
+            );
+        } else if (state.theme === 'ocean') {
+          for (let stream = 0; stream < 12; stream++) {
+            const height = 270 * smooth(phase * 2);
+            painter.beginPath();
+            painter.moveTo((stream - 6) * 9, 108);
+            painter.bezierCurveTo(
+              Math.sin(stream + phase * 9) * 140,
+              50,
+              Math.cos(stream) * 120,
+              80 - height,
+              Math.sin(stream * 2) * 55,
+              110 - height,
+            );
+            painter.strokeStyle = stream % 3 ? primary : pearl;
+            painter.lineWidth = 2 + (stream % 3);
+            painter.stroke();
+          }
+          ellipse(painter, 0, 110, 130 * phase, 27 * phase, secondary, 3);
+        } else {
+          for (let drop = 0; drop < 23; drop++) {
+            const angle = drop * 2.4;
+            const radius = (1 - smooth(phase * 1.3)) * (130 + (drop % 4) * 24);
+            painter.fillStyle = drop % 5 ? '#28443e' : secondary;
+            painter.beginPath();
+            painter.ellipse(
+              Math.cos(angle) * radius,
+              Math.sin(angle) * radius,
+              4 + (drop % 6),
+              2 + (drop % 4),
+              angle + phase,
+              0,
+              fullTurn,
+            );
+            painter.fill();
+          }
+          painter.lineWidth = 13 * (1 - phase);
+          painter.strokeStyle = pearl;
+          painter.beginPath();
+          painter.arc(0, 0, 115 - phase * 35, -Math.PI / 2, -Math.PI / 2 + phase * fullTurn);
+          painter.stroke();
+        }
+        painter.restore();
+      }
+
+      function drawReveal(painter, elapsed) {
+        const phase = smooth((elapsed - 0.4) / 2.6);
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        if (state.theme === 'astral') {
+          for (let piece = 0; piece < 12; piece++) {
+            const angle = (piece * fullTurn) / 12 + (1 - phase) * 1.2;
+            painter.save();
+            painter.rotate(angle);
+            painter.translate(phase * 185, 0);
+            painter.globalAlpha = 1 - phase * 0.85;
+            fillShape(
+              painter,
+              [
+                [0, 0],
+                [145, -40],
+                [145, 40],
+              ],
+              '#143d3e',
+            );
+            strokePath(
+              painter,
+              [
+                [0, 0],
+                [145, -40],
+                [145, 40],
+              ],
+              secondary,
+              1.5,
+              true,
+            );
+            star(painter, 112, 0, 5, primary);
+            painter.restore();
+          }
+        } else if (state.theme === 'ocean') {
+          for (const side of [-1, 1]) {
+            painter.save();
+            painter.translate(side * phase * 130, (1 - phase) * 12);
+            painter.rotate(side * phase * 0.95);
+            painter.globalAlpha = 1 - phase * 0.65;
+            painter.beginPath();
+            painter.moveTo(0, 102);
+            painter.bezierCurveTo(side * 190, 68, side * 168, -151, 0, -125);
+            painter.closePath();
+            painter.fillStyle = '#e3dad2';
+            painter.fill();
+            painter.strokeStyle = secondary;
+            painter.lineWidth = 2;
+            painter.stroke();
+            for (let rib = 1; rib < 7; rib++) {
+              painter.beginPath();
+              painter.moveTo(0, 100);
+              painter.quadraticCurveTo(side * rib * 24, -10, side * rib * 13, -107 + rib * 13);
+              painter.stroke();
+            }
+            painter.restore();
+          }
+          painter.globalAlpha = 1 - phase;
+          painter.shadowBlur = 30;
+          painter.shadowColor = pearl;
+          painter.fillStyle = pearl;
+          painter.beginPath();
+          painter.arc(0, 0, 22, 0, fullTurn);
+          painter.fill();
+        } else {
+          for (const side of [-1, 1]) {
+            const edge = side * phase * 174;
+            painter.save();
+            painter.globalAlpha = 1 - phase * 0.35;
+            painter.fillStyle = '#e6e8d8';
+            painter.fillRect(side < 0 ? edge - 174 : edge, -112, 174, 224);
+            strokePath(
+              painter,
+              [
+                [edge, -126],
+                [edge, 126],
+              ],
+              secondary,
+              8,
+            );
+            strokePath(
+              painter,
+              [
+                [edge, -113],
+                [edge, 113],
+              ],
+              '#476553',
+              3,
+            );
+            painter.fillStyle = '#68877a';
+            painter.font = '18px "Songti SC", serif';
+            painter.textAlign = 'center';
+            ['山', '河', '入', '画'].forEach((character, index) =>
+              painter.fillText(character, edge + side * 28, -60 + index * 39),
+            );
+            painter.restore();
+          }
+        }
+        painter.restore();
+      }
+
+      function drawSeat(painter, time, elapsed, miniature = false) {
+        const all = miniature || state.mode === 'all';
+        const entrance = !miniature && (all || state.mode === 'entrance');
+        const arrival = entrance && !state.reduced ? smooth((elapsed - 0.55) / 1.5) : 1;
+        if (!miniature && state.mode === 'reveal') {
+          painter.save();
+          painter.globalAlpha = state.reduced ? 1 : smooth((elapsed - 0.6) / 1.8);
+          drawRoleCard(painter);
+          painter.restore();
+          if (elapsed < 3.8 && !state.reduced) drawReveal(painter, elapsed);
+          return;
+        }
+        if ((all || state.mode === 'flair') && (!entrance || elapsed >= 3.2 || state.reduced))
+          drawFlair(painter, time);
+        painter.save();
+        if (arrival < 1) {
+          painter.beginPath();
+          if (state.theme === 'astral') {
+            for (let row = 0; row < 8; row++)
+              for (let column = 0; column < 8; column++) {
+                const growth = smooth(arrival * 2 - ((column + row * 3) % 7) * 0.14);
+                painter.rect(-64 + column * 16, -64 + row * 16, 16 * growth, 16);
+              }
+          } else if (state.theme === 'ocean') {
+            painter.moveTo(-64, 64);
+            painter.lineTo(-64, 64 - arrival * 138);
+            for (let horizontal = -64; horizontal <= 64; horizontal += 4)
+              painter.lineTo(
+                horizontal,
+                64 - arrival * 138 + Math.sin(horizontal * 0.07 - time * 6) * 9 * (1 - arrival),
+              );
+            painter.lineTo(64, 64);
+            painter.closePath();
+          } else {
+            painter.rotate(-0.25);
+            for (let brush = 0; brush < 9; brush++) {
+              const growth = smooth(arrival * 2 - brush * 0.11);
+              painter.roundRect(-90, -88 + brush * 20, 180 * growth, 23, 9);
+            }
+            painter.rotate(0.25);
+          }
+          painter.clip();
+        }
+        if (state.mode !== 'name' || miniature) drawPortrait(painter, time);
+        painter.restore();
+        if (all || state.mode === 'frame' || state.mode === 'entrance') {
+          painter.save();
+          painter.globalAlpha = arrival;
+          drawFrame(painter, time);
+          painter.restore();
+        }
+        if (entrance && elapsed < 3.2 && !state.reduced) drawEntrance(painter, elapsed);
+        if (all) {
+          if (!entrance || elapsed >= 3.2 || state.reduced) drawCompanion(painter, time);
+          drawSeatMetadata(painter);
+        }
+        if (all || state.mode === 'name') {
+          painter.save();
+          painter.translate(0, state.mode === 'name' && !miniature ? 0 : 106);
+          drawName(painter, time, !miniature && state.mode === 'name', miniature);
+          painter.restore();
+        }
+      }
+
+      function drawRoleCard(painter) {
+        const [primary, secondary, pearl] = collections[state.theme].colors;
+        painter.save();
+        const material = painter.createLinearGradient(-74, -101, 74, 101);
+        material.addColorStop(0, '#183838');
+        material.addColorStop(0.5, '#0d2426');
+        material.addColorStop(1, '#234c48');
+        painter.beginPath();
+        painter.roundRect(-74, -101, 148, 202, 6);
+        painter.fillStyle = material;
+        painter.fill();
+        painter.strokeStyle = secondary;
+        painter.lineWidth = 2;
+        painter.stroke();
+        painter.beginPath();
+        painter.roundRect(-68, -95, 136, 190, 3);
+        painter.strokeStyle = primary;
+        painter.lineWidth = 0.6;
+        painter.stroke();
+        painter.textAlign = 'center';
+        painter.font = '11px sans-serif';
+        painter.fillStyle = primary;
+        painter.fillText('好人阵营', 0, -71);
+        painter.save();
+        painter.translate(0, -30);
+        painter.beginPath();
+        painter.moveTo(-34, 0);
+        painter.quadraticCurveTo(0, -29, 34, 0);
+        painter.quadraticCurveTo(0, 29, -34, 0);
+        painter.strokeStyle = pearl;
+        painter.lineWidth = 2;
+        painter.stroke();
+        ellipse(painter, 0, 0, 10, 10, secondary, 2);
+        star(painter, 0, 0, 6, primary);
+        painter.restore();
+        painter.font = '600 30px "Songti SC", serif';
+        painter.fillStyle = pearl;
+        painter.fillText('预言家', 0, 24);
+        painter.font = '10px sans-serif';
+        painter.fillStyle = primary;
+        painter.fillText('每晚查验一位玩家的身份', 0, 53);
+        painter.fillStyle = state.revealConfirmed ? '#b1ead0' : pearl;
+        painter.fillText(state.revealConfirmed ? '身份已确认' : '身份牌 · 概念展示', 0, 79);
+        painter.restore();
+      }
+
+      function sizeCanvas(element) {
+        const bounds = element.getBoundingClientRect();
+        const ratio = Math.min(devicePixelRatio || 1, 2);
+        const width = Math.round(bounds.width * ratio);
+        const height = Math.round(bounds.height * ratio);
+        if (element.width !== width || element.height !== height) {
+          element.width = width;
+          element.height = height;
+        }
+        return { width: bounds.width, height: bounds.height, ratio };
+      }
+      function render() {
+        const { width, height, ratio } = sizeCanvas(canvas);
+        const time = state.reduced ? 2.3 : state.time;
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.clearRect(0, 0, width, height);
+        context.strokeStyle = state.light ? '#254f4010' : '#cfedde09';
+        context.lineWidth = 1;
+        for (let grid = 24; grid < width; grid += 32)
+          strokePath(
+            context,
+            [
+              [grid, 0],
+              [grid, height],
+            ],
+            context.strokeStyle,
+          );
+        for (let grid = 24; grid < height; grid += 32)
+          strokePath(
+            context,
+            [
+              [0, grid],
+              [width, grid],
+            ],
+            context.strokeStyle,
+          );
+        context.save();
+        context.translate(width / 2, height * 0.43);
+        const scale = Math.min(width / 410, height / 345);
+        context.scale(scale, scale);
+        drawSeat(context, time, time);
+        context.restore();
+        const mini = sizeCanvas(miniCanvas);
+        miniContext.setTransform(mini.ratio, 0, 0, mini.ratio, 0, 0);
+        miniContext.clearRect(0, 0, mini.width, mini.height);
+        miniContext.save();
+        miniContext.translate(60, 60);
+        miniContext.scale(0.66, 0.66);
+        drawSeat(miniContext, time, 4, true);
+        miniContext.restore();
+        document.getElementById('confirm-reveal').hidden =
+          state.mode !== 'reveal' || (!state.reduced && time < 3.8);
+        document.getElementById('phase').textContent = state.reduced
+          ? '静态呈现'
+          : state.paused
+            ? '已暂停'
+            : time < 3.2 && ['all', 'entrance', 'reveal'].includes(state.mode)
+              ? collections[state.theme].phases[state.mode === 'reveal' ? 1 : 0]
+              : '典藏呈现';
+      }
+      function selectMode(mode) {
+        state.mode = mode;
+        state.time = 0;
+        state.revealConfirmed = false;
+        document.getElementById('confirm-reveal').disabled = false;
+        document.getElementById('confirm-reveal').textContent = '确认身份';
+        const name =
+          mode === 'all' ? '完整组合' : collections[state.theme].names[modeIds.indexOf(mode)];
+        document.getElementById('mode-title').textContent = name;
+        canvas.setAttribute('aria-label', `${collections[state.theme].title} · ${name}动态概念图`);
+        document.getElementById('announcement').textContent =
+          `当前预览：${collections[state.theme].title}，${name}`;
+        render();
+      }
+      function selectCollection() {
+        document.getElementById('companion').textContent =
+          '揭示伴生 · ' + collections[state.theme].companion;
+        const collection = collections[state.theme];
+        document.documentElement.style.setProperty('--accent', collection.accent);
+        document.documentElement.style.setProperty('--soft', collection.soft);
+        document.getElementById('collection-title').textContent = collection.title;
+        document.getElementById('serial').textContent = collection.serial;
+        document.getElementById('seat-name').textContent = collection.names[0];
+        document.getElementById('mood').textContent = collection.mood;
+        const modes = document.getElementById('modes');
+        modes.replaceChildren();
+        ['all', ...modeIds].forEach((mode, index) => {
+          const label = document.createElement('label');
+          label.className = 'mode';
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'mode';
+          input.value = mode;
+          input.checked = state.mode === mode;
+          const text = document.createElement('span');
+          const title = document.createElement('strong');
+          title.textContent = index ? collection.names[index - 1] : '完整组合';
+          const number = document.createElement('small');
+          number.textContent = index ? `COLLECTION / 0${index}` : 'COMPLETE COLLECTION';
+          text.append(title, number);
+          const kind = document.createElement('span');
+          kind.className = 'kind';
+          kind.textContent = index ? categories[index - 1] : '整套';
+          label.append(input, text, kind);
+          modes.append(label);
+          input.addEventListener('change', () => selectMode(mode));
+        });
+        const palette = document.getElementById('palette');
+        palette.replaceChildren();
+        collection.colors.forEach((color) => {
+          const swatch = document.createElement('span');
+          swatch.style.background = color;
+          swatch.title = color;
+          palette.append(swatch);
+        });
+        selectMode(state.mode);
+      }
+      document.querySelectorAll('input[name="theme"]').forEach((input) =>
+        input.addEventListener('change', () => {
+          state.theme = input.value;
+          selectCollection();
+        }),
+      );
+      document.querySelectorAll('[data-background]').forEach((button) =>
+        button.addEventListener('click', () => {
+          state.light = button.dataset.background === 'light';
+          document.getElementById('stage').classList.toggle('light', state.light);
+          document
+            .querySelectorAll('[data-background]')
+            .forEach((swatch) => swatch.setAttribute('aria-pressed', String(swatch === button)));
+          render();
+        }),
+      );
+      const pause = document.getElementById('pause');
+      function updatePause() {
+        pause.textContent = state.paused ? '▷' : 'Ⅱ';
+        pause.setAttribute('aria-label', state.paused ? '继续动画' : '暂停动画');
+        pause.title = state.paused ? '继续动画' : '暂停动画';
+        pause.setAttribute('aria-pressed', String(state.paused));
+      }
+      pause.addEventListener('click', () => {
+        state.paused = !state.paused;
+        updatePause();
+        render();
+      });
+      document.getElementById('replay').addEventListener('click', () => {
+        selectMode(state.mode);
+        state.paused = false;
+        updatePause();
+        render();
+        document.getElementById('announcement').textContent = state.reduced
+          ? '减少动态已开启，保留静态呈现'
+          : '动画已重播';
+      });
+      const reduced = document.getElementById('reduced');
+      reduced.checked = state.reduced;
+      reduced.addEventListener('change', () => {
+        state.reduced = reduced.checked;
+        state.time = 0;
+        pause.disabled = state.reduced;
+        render();
+      });
+      pause.disabled = state.reduced;
+      new ResizeObserver(render).observe(document.getElementById('stage'));
+      let previous = performance.now();
+      function animate(now) {
+        const delta = Math.min((now - previous) / 1000, 0.05);
+        previous = now;
+        if (!state.paused && !state.reduced && !document.hidden) {
+          state.time += delta;
+          render();
+        }
+        requestAnimationFrame(animate);
+      }
+      document.getElementById('confirm-reveal').addEventListener('click', () => {
+        state.revealConfirmed = true;
+        document.getElementById('confirm-reveal').disabled = true;
+        document.getElementById('confirm-reveal').textContent = '已确认';
+        document.getElementById('announcement').textContent = '预言家身份已确认';
+        render();
+      });
+      document.getElementById('player-name').addEventListener('input', (event) => {
+        state.playerName = event.target.value;
+        render();
+      });
+      selectCollection();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

@@ -61,8 +61,8 @@ Introduce gacha mechanism:
 **File**: `packages/game-engine/src/product/rewards/catalog.ts`
 
 - 6 item types: avatar, frame, seat flair, name style, role-reveal effect, and seat animation
-- `REWARD_POOL`: 1025 drawable items, `RewardItem { type, id, rarity }`
-- 5 rarities: Common(500) / Rare(250) / Epic(220) / Legendary(49) / Mythic(6)
+- `REWARD_POOL`: 1043 drawable items, `RewardItem { type, id, rarity }`
+- 5 rarities: Common(500) / Rare(250) / Epic(220) / Legendary(49) / Mythic(24)
 
 ### 2.2 Random Selection
 
@@ -396,18 +396,33 @@ Scenarios to cover:
 
 | Type                | Total    | Mythic | Legendary | Epic    | Rare    | Common  |
 | ------------------- | -------- | ------ | --------- | ------- | ------- | ------- |
-| Avatars             | 198      | 1      | 11        | 36      | 50      | 100     |
-| Frames              | 201      | 1      | 11        | 39      | 50      | 100     |
-| Seat flairs         | 211      | 1      | 7         | 53      | 50      | 100     |
-| Name styles         | 201      | 1      | 4         | 46      | 50      | 100     |
-| Role-reveal effects | 13       | 1      | 6         | 6       | 0       | 0       |
-| Seat animations     | 201      | 1      | 10        | 40      | 50      | 100     |
-| **Total**           | **1025** | **6**  | **49**    | **220** | **250** | **500** |
+| Avatars             | 201      | 4      | 11        | 36      | 50      | 100     |
+| Frames              | 204      | 4      | 11        | 39      | 50      | 100     |
+| Seat flairs         | 214      | 4      | 7         | 53      | 50      | 100     |
+| Name styles         | 204      | 4      | 4         | 46      | 50      | 100     |
+| Role-reveal effects | 16       | 4      | 6         | 6       | 0       | 0       |
+| Seat animations     | 204      | 4      | 10        | 40      | 50      | 100     |
+| **Total**           | **1043** | **24** | **49**    | **220** | **250** | **500** |
 
 Mythic collection **永夜加冕** contains six independently equippable rewards:
 `nightSovereign` (永夜君主), `eternalCrown` (永夜王冠), `nightSanctum` (永夜圣域),
 `sovereignName` (王权真名), `fateDecree` (命运敕令, with 永夜渡鸦 companion),
 and `throneArrival` (王座降临). The supplied portrait is packaged as native PNG and WebP assets.
+
+Three additional mythic collections follow the same six-slot contract:
+
+| Collection | Avatar                   | Frame                   | Seat Flair                  | Name                     | Reveal / Companion                    | Entrance                |
+| ---------- | ------------------------ | ----------------------- | --------------------------- | ------------------------ | ------------------------------------- | ----------------------- |
+| 天机织命   | `fateWeaver` 司命星官    | `celestialLoom` 周天仪  | `starWeave` 织星经纬        | `goldenScript` 金缕天书  | `fateReweave` 命盘重构 / 天机星梭     | `wovenArrival` 经纬化身 |
+| 沧海遗珠   | `tidePriestess` 沧溟鲛姬 | `coralTide` 潮生珊瑚    | `moonTides` 逐月潮汐        | `pearlOath` 流珠海誓     | `oceanPearl` 万海开珠 / 流珠鳐        | `tidalArrival` 潮汐凝身 |
+| 墨照山河   | `inkImmortal` 执笔谪仙   | `inkLandscape` 游龙飞白 | `paintedMountains` 咫尺山河 | `vermilionName` 朱印留名 | `unfoldLandscape` 长卷开天 / 丹青纸鹤 | `inkArrival` 点墨成仙   |
+
+Frame bodies remain square and inherit the avatar radius within the shared eight-unit overflow.
+Flairs occupy the lower-left seat region, leaving the lower-right companion viewport clear.
+Entrances reveal the actual avatar children, cancel on unmount, and report completion only when finished.
+Reveals animate around the authoritative role card and require explicit acknowledgement;
+reduced-motion mode exposes the identity immediately. Companions are included with reveal rewards,
+not a seventh item type. Adding these items does not change rarity probabilities or shard costs.
 
 > `REWARD_POOL` in `packages/game-engine/src/product/rewards/catalog.ts` is authoritative. Contract
 > tests verify both the total and per-rarity distribution.

@@ -36,6 +36,9 @@ export interface RoleData {
  * Available reveal effect types
  */
 export type RevealEffectType =
+  | 'fateReweave'
+  | 'oceanPearl'
+  | 'unfoldLandscape'
   | 'fateDecree'
   | 'roulette'
   | 'roleHunt'

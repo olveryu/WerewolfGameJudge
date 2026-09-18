@@ -36,6 +36,7 @@ export interface RewardItem {
 /** Hand-drawn avatar IDs (47, Rare+ tier) */
 const HAND_DRAWN_AVATAR_IDS = [
   'nightSovereign',
+  'fateWeaver', 'tidePriestess', 'inkImmortal',
   'avenger',
   'awakenedGargoyle',
   'bloodMoon',
@@ -128,6 +129,7 @@ export const LEGENDARY_FRAME_IDS: ReadonlySet<string> = new Set([
 // prettier-ignore
 export const FRAME_IDS = [
   'eternalCrown',
+  'celestialLoom', 'coralTide', 'inkLandscape',
   // Epic (39) — hand-crafted themed SVG frames
   'ironForge',
   'moonSilver',
@@ -218,6 +220,7 @@ export const FRAME_IDS = [
 // prettier-ignore
 export const SEAT_FLAIR_IDS = [
   'nightSanctum',
+  'starWeave', 'moonTides', 'paintedMountains',
   // Epic (53) — hand-crafted themed SVG flair
   'emberGlow',
   'frostAura',
@@ -318,6 +321,7 @@ export const SEAT_FLAIR_IDS = [
 // prettier-ignore
 export const NAME_STYLE_IDS = [
   'sovereignName',
+  'goldenScript', 'pearlOath', 'vermilionName',
   // Epic (46) — hand-crafted gradient text
   'silverGleam',
   'copperEmber',
@@ -408,6 +412,7 @@ export const NAME_STYLE_IDS = [
 // prettier-ignore
 export const ROLE_REVEAL_EFFECT_IDS = [
   'fateDecree',
+  'fateReweave', 'oceanPearl', 'unfoldLandscape',
   'roulette',
   'roleHunt',
   'scratch',
@@ -426,6 +431,7 @@ export const ROLE_REVEAL_EFFECT_IDS = [
 // prettier-ignore
 export const SEAT_ANIMATION_IDS = [
   'throneArrival',
+  'wovenArrival', 'tidalArrival', 'inkArrival',
   // Epic (40) — hand-crafted themed entrance animations
   'wolfClawEnter',
   'moonriseEnter',
@@ -557,6 +563,9 @@ export const FREE_SEAT_ANIMATION_IDS: ReadonlySet<string> = new Set<string>();
 /** Avatar rarity mapping */
 const AVATAR_RARITY: Record<string, Rarity> = {
   nightSovereign: 'mythic',
+  fateWeaver: 'mythic',
+  tidePriestess: 'mythic',
+  inkImmortal: 'mythic',
   // Legendary (11)
   darkWolfKing: 'legendary',
   nightmare: 'legendary',
@@ -614,6 +623,9 @@ const AVATAR_RARITY: Record<string, Rarity> = {
 /** Frame rarity mapping */
 const FRAME_RARITY: Record<string, Rarity> = {
   eternalCrown: 'mythic',
+  celestialLoom: 'mythic',
+  coralTide: 'mythic',
+  inkLandscape: 'mythic',
   // Legendary (11)
   starNebula: 'legendary',
   celestialRing: 'legendary',
@@ -723,6 +735,9 @@ const FRAME_RARITY: Record<string, Rarity> = {
 /** Seat flair rarity mapping */
 const FLAIR_RARITY: Record<string, Rarity> = {
   nightSanctum: 'mythic',
+  starWeave: 'mythic',
+  moonTides: 'mythic',
+  paintedMountains: 'mythic',
   // Legendary (7)
   runeCircle: 'legendary',
   prismShard: 'legendary',
@@ -842,6 +857,9 @@ const FLAIR_RARITY: Record<string, Rarity> = {
 /** Role-reveal effect rarity mapping — 6 legendary + 6 epic (tiered by implementation complexity) */
 const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
   fateDecree: 'mythic',
+  fateReweave: 'mythic',
+  oceanPearl: 'mythic',
+  unfoldLandscape: 'mythic',
   // Legendary (6) — complex interactions / multi-stage sequences
   roleHunt: 'legendary',
   sealBreak: 'legendary',
@@ -861,6 +879,9 @@ const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
 /** Name style rarity mapping */
 const NAME_STYLE_RARITY: Record<string, Rarity> = {
   sovereignName: 'mythic',
+  goldenScript: 'mythic',
+  pearlOath: 'mythic',
+  vermilionName: 'mythic',
   // Legendary (4)
   celestialDawn: 'legendary',
   voidStar: 'legendary',
@@ -971,6 +992,9 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
 /** Seat-animation rarity mapping */
 const SEAT_ANIMATION_RARITY: Record<string, Rarity> = {
   throneArrival: 'mythic',
+  wovenArrival: 'mythic',
+  tidalArrival: 'mythic',
+  inkArrival: 'mythic',
   // Legendary (10)
   wolfKingEntry: 'legendary', witchBrew: 'legendary', seerVision: 'legendary',
   hunterShot: 'legendary', guardShield: 'legendary', nightFall: 'legendary',

@@ -23,6 +23,7 @@ import { FilmRewind } from './FilmRewind';
 import { FortuneWheel } from './FortuneWheel';
 import { GachaMachine } from './GachaMachine';
 import { MeteorStrike } from './MeteorStrike';
+import { MythicCollectionReveal } from './MythicCollectionReveal';
 import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
 import { SealBreak } from './SealBreak';
@@ -31,7 +32,13 @@ import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './type
 import { VortexCollapse } from './VortexCollapse';
 
 /** Effect types that play automatically (no user interaction required). */
-const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['filmRewind', 'fateDecree']);
+const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set([
+  'filmRewind',
+  'fateDecree',
+  'fateReweave',
+  'oceanPearl',
+  'unfoldLandscape',
+]);
 
 /** Selects the prompt title based on effect type: interactive types guide the user; auto types announce the upcoming reveal. */
 function getTitleForEffect(effectType: RevealEffectType): string {
@@ -92,6 +99,12 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   // Render the appropriate effect
   const renderEffect = () => {
     switch (effectType) {
+      case 'fateReweave':
+        return <MythicCollectionReveal {...commonProps} collection="astral" />;
+      case 'oceanPearl':
+        return <MythicCollectionReveal {...commonProps} collection="ocean" />;
+      case 'unfoldLandscape':
+        return <MythicCollectionReveal {...commonProps} collection="ink" />;
       case 'fateDecree':
         return <FateDecree {...commonProps} />;
       case 'roulette':

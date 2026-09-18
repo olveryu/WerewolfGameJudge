@@ -75,11 +75,11 @@ describe('rewardCatalog', () => {
     const flairs = REWARD_POOL.filter((r) => r.type === 'seatFlair');
     const nameStyles = REWARD_POOL.filter((r) => r.type === 'nameStyle');
     expect(avatars).toHaveLength(AVATAR_IDS.length - FREE_AVATAR_IDS.size);
-    expect(frames).toHaveLength(201);
-    expect(flairs).toHaveLength(211);
-    expect(nameStyles).toHaveLength(201);
+    expect(frames).toHaveLength(204);
+    expect(flairs).toHaveLength(214);
+    expect(nameStyles).toHaveLength(204);
     const seatAnimations = REWARD_POOL.filter((r) => r.type === 'seatAnimation');
-    expect(seatAnimations).toHaveLength(201);
+    expect(seatAnimations).toHaveLength(204);
   });
 });
 

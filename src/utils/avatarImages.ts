@@ -18,12 +18,14 @@ import darkWolfKing from '../../assets/avatars/raw/darkWolfKing.png';
 import dreamcatcher from '../../assets/avatars/raw/dreamcatcher.png';
 import drunkSeer from '../../assets/avatars/raw/drunkSeer.png';
 import eclipseWolfQueen from '../../assets/avatars/raw/eclipseWolfQueen.png';
+import fateWeaver from '../../assets/avatars/raw/fateWeaver.png';
 import gargoyle from '../../assets/avatars/raw/gargoyle.png';
 import graveyardKeeper from '../../assets/avatars/raw/graveyardKeeper.png';
 import guard from '../../assets/avatars/raw/guard.png';
 import hiddenWolf from '../../assets/avatars/raw/hiddenWolf.png';
 import hunter from '../../assets/avatars/raw/hunter.png';
 import idiot from '../../assets/avatars/raw/idiot.png';
+import inkImmortal from '../../assets/avatars/raw/inkImmortal.png';
 import knight from '../../assets/avatars/raw/knight.png';
 import magician from '../../assets/avatars/raw/magician.png';
 import maskedMan from '../../assets/avatars/raw/maskedMan.png';
@@ -43,6 +45,7 @@ import silenceElder from '../../assets/avatars/raw/silenceElder.png';
 import slacker from '../../assets/avatars/raw/slacker.png';
 import spiritKnight from '../../assets/avatars/raw/spiritKnight.png';
 import thief from '../../assets/avatars/raw/thief.png';
+import tidePriestess from '../../assets/avatars/raw/tidePriestess.png';
 import treasureMaster from '../../assets/avatars/raw/treasureMaster.png';
 import villager from '../../assets/avatars/raw/villager.png';
 import votebanElder from '../../assets/avatars/raw/votebanElder.png';
@@ -67,12 +70,14 @@ import thumb_darkWolfKing from '../../assets/badges/png/512/role_darkWolfKing.pn
 import thumb_dreamcatcher from '../../assets/badges/png/512/role_dreamcatcher.png';
 import thumb_drunkSeer from '../../assets/badges/png/512/role_drunkSeer.png';
 import thumb_eclipseWolfQueen from '../../assets/badges/png/512/role_eclipseWolfQueen.png';
+import thumb_fateWeaver from '../../assets/badges/png/512/role_fateWeaver.png';
 import thumb_gargoyle from '../../assets/badges/png/512/role_gargoyle.png';
 import thumb_graveyardKeeper from '../../assets/badges/png/512/role_graveyardKeeper.png';
 import thumb_guard from '../../assets/badges/png/512/role_guard.png';
 import thumb_hiddenWolf from '../../assets/badges/png/512/role_hiddenWolf.png';
 import thumb_hunter from '../../assets/badges/png/512/role_hunter.png';
 import thumb_idiot from '../../assets/badges/png/512/role_idiot.png';
+import thumb_inkImmortal from '../../assets/badges/png/512/role_inkImmortal.png';
 import thumb_knight from '../../assets/badges/png/512/role_knight.png';
 import thumb_magician from '../../assets/badges/png/512/role_magician.png';
 import thumb_maskedMan from '../../assets/badges/png/512/role_maskedMan.png';
@@ -92,6 +97,7 @@ import thumb_silenceElder from '../../assets/badges/png/512/role_silenceElder.pn
 import thumb_slacker from '../../assets/badges/png/512/role_slacker.png';
 import thumb_spiritKnight from '../../assets/badges/png/512/role_spiritKnight.png';
 import thumb_thief from '../../assets/badges/png/512/role_thief.png';
+import thumb_tidePriestess from '../../assets/badges/png/512/role_tidePriestess.png';
 import thumb_treasureMaster from '../../assets/badges/png/512/role_treasureMaster.png';
 import thumb_villager from '../../assets/badges/png/512/role_villager.png';
 import thumb_votebanElder from '../../assets/badges/png/512/role_votebanElder.png';
@@ -108,6 +114,7 @@ import thumb_wolfWitch from '../../assets/badges/png/512/role_wolfWitch.png';
 // prettier-ignore
 export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   nightSovereign,
+  fateWeaver, tidePriestess, inkImmortal,
   avenger,
   awakenedGargoyle,
   bloodMoon,
@@ -160,6 +167,9 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
 // prettier-ignore
 export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   nightSovereign: thumb_nightSovereign,
+  fateWeaver: thumb_fateWeaver,
+  tidePriestess: thumb_tidePriestess,
+  inkImmortal: thumb_inkImmortal,
   avenger: thumb_avenger,
   awakenedGargoyle: thumb_awakenedGargoyle,
   bloodMoon: thumb_bloodMoon,

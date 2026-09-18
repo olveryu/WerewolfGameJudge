@@ -7,11 +7,14 @@ import {
 } from '@game-judge/game-engine/product/rewards';
 
 describe('reveal animation policy', () => {
-  it('derives the thirteen randomizable effects from the reward catalog', () => {
-    expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(13);
+  it('derives the sixteen randomizable effects from the reward catalog', () => {
+    expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(16);
     expect(RANDOMIZABLE_ANIMATIONS).toEqual(
       expect.arrayContaining([
         'fateDecree',
+        'fateReweave',
+        'oceanPearl',
+        'unfoldLandscape',
         'roulette',
         'roleHunt',
         'scratch',
@@ -30,13 +33,10 @@ describe('reveal animation policy', () => {
     expect(RANDOMIZABLE_ANIMATIONS).not.toContain('random');
   });
 
-  it('keeps fixed seed mappings stable', () => {
-    expect(resolveRandomAnimation('room-1234')).toBe('vortexCollapse');
-    expect(resolveRandomAnimation('a')).toBe('vortexCollapse');
-    expect(resolveRandomAnimation('1234u1')).toBe('fortuneWheel');
-
+  it('keeps seed mappings deterministic within the current catalog', () => {
     for (const seed of ['a', 'b', 'c', '123', 'room1']) {
       expect(RANDOMIZABLE_ANIMATIONS).toContain(resolveRandomAnimation(seed));
+      expect(resolveRandomAnimation(seed)).toBe(resolveRandomAnimation(seed));
     }
   });
 

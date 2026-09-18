@@ -33,6 +33,7 @@ import { LionCrestFrame } from './LionCrestFrame';
 import { MoonGateFrame } from './MoonGateFrame';
 import { MoonSilverFrame } from './MoonSilverFrame';
 import { MysticRuneFrame } from './MysticRuneFrame';
+import { CelestialLoomFrame, CoralTideFrame, InkLandscapeFrame } from './MythicCollectionFrames';
 import { NightBloomFrame } from './NightBloomFrame';
 import { NightShadeFrame } from './NightShadeFrame';
 import { ObsidianEdgeFrame } from './ObsidianEdgeFrame';
@@ -81,6 +82,9 @@ function buildFrameRegistry(): Partial<Record<FrameId, AvatarFrameConfig>> {
   // Static entries — manually listed for unique hand-crafted frames
   const staticEntries = {
     eternalCrown: { name: '永夜王冠', Component: EternalCrownFrame },
+    celestialLoom: { name: '周天仪', Component: CelestialLoomFrame },
+    coralTide: { name: '潮生珊瑚', Component: CoralTideFrame },
+    inkLandscape: { name: '游龙飞白', Component: InkLandscapeFrame },
     ironForge: { name: '铁锻', Component: IronForgeFrame },
     moonSilver: { name: '月银', Component: MoonSilverFrame },
     bloodThorn: { name: '血棘', Component: BloodThornFrame },

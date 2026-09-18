@@ -42,6 +42,7 @@ import { MagmaFloatFlair } from './MagmaFloatFlair';
 import { MirageHeatFlair } from './MirageHeatFlair';
 import { MistVeilFlair } from './MistVeilFlair';
 import { MoonBeamFlair } from './MoonBeamFlair';
+import { MoonTidesFlair, PaintedMountainsFlair, StarWeaveFlair } from './MythicCollectionFlairs';
 import { NightGlowFlair } from './NightGlowFlair';
 import { NightSanctumFlair } from './NightSanctumFlair';
 import { ObsidianPulseFlair } from './ObsidianPulseFlair';
@@ -90,6 +91,9 @@ interface SeatFlairConfig {
 function buildFlairRegistry(): Partial<Record<FlairId, SeatFlairConfig>> {
   const staticEntries = {
     nightSanctum: { name: '永夜圣域', Component: NightSanctumFlair },
+    starWeave: { name: '织星经纬', Component: StarWeaveFlair },
+    moonTides: { name: '逐月潮汐', Component: MoonTidesFlair },
+    paintedMountains: { name: '咫尺山河', Component: PaintedMountainsFlair },
     emberGlow: { name: '余烬微光', Component: EmberGlowFlair },
     frostAura: { name: '寒霜气场', Component: FrostAuraFlair },
     shadowMist: { name: '暗影迷雾', Component: ShadowMistFlair },
