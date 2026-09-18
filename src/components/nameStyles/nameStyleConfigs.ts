@@ -702,7 +702,7 @@ const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
   },
 
   // ══════════════════════════════════════════════════════════════════════════
-  // LEGENDARY (4) — gradient + multi-animation layered effects (enhanced)
+  // LEGENDARY (4) — one slow gradient animation with a restrained static highlight
   // ══════════════════════════════════════════════════════════════════════════
 
   phoenixRebirth: {
@@ -713,31 +713,16 @@ const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
     gradient: {
       stops: '#FF4500 0%, #FFD700 25%, #FF6347 50%, #FFAA00 75%, #FF4500 100%',
       backgroundSize: '200% 100%',
-      dropShadow: 'drop-shadow(0 0 8px rgba(255,69,0,0.7))',
+      dropShadow: 'drop-shadow(0 0 2px rgba(255,69,0,0.4))',
     },
     animations: [
       {
         name: 'phoenixShift',
-        duration: '3s',
+        duration: '6s',
         timing: 'ease-in-out',
         keyframes: `0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }`,
-      },
-      {
-        name: 'phoenixGlow',
-        duration: '2s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { filter: drop-shadow(0 0 4px rgba(255,69,0,0.5)); }
-    25% { filter: drop-shadow(0 0 12px rgba(255,215,0,0.95)) drop-shadow(0 0 6px rgba(255,100,0,0.7)); }
-    75% { filter: drop-shadow(0 0 8px rgba(255,165,0,0.75)) drop-shadow(0 0 3px rgba(255,69,0,0.5)); }`,
-      },
-      {
-        name: 'phoenixScale',
-        duration: '4s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { transform: scale(1); letter-spacing: 0; }
-    50% { transform: scale(1.02); letter-spacing: 0.5px; }`,
       },
     ],
   },
@@ -750,31 +735,16 @@ const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
     gradient: {
       stops: '#0D0D2B 0%, #4F46E5 20%, #818CF8 40%, #C084FC 60%, #4F46E5 80%, #0D0D2B 100%',
       backgroundSize: '300% 100%',
-      dropShadow: 'drop-shadow(0 0 8px rgba(129,140,248,0.7))',
+      dropShadow: 'drop-shadow(0 0 2px rgba(129,140,248,0.4))',
     },
     animations: [
       {
         name: 'voidStarShift',
-        duration: '4s',
+        duration: '7s',
         timing: 'ease-in-out',
         keyframes: `0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }`,
-      },
-      {
-        name: 'voidStarGlow',
-        duration: '2.5s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { filter: drop-shadow(0 0 4px rgba(129,140,248,0.5)); }
-    30% { filter: drop-shadow(0 0 14px rgba(79,70,229,0.95)) drop-shadow(0 0 6px rgba(192,132,252,0.7)); }
-    60% { filter: drop-shadow(0 0 8px rgba(129,140,248,0.7)); }`,
-      },
-      {
-        name: 'voidStarPulse',
-        duration: '6s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { opacity: 1; }
-    50% { opacity: 0.88; }`,
       },
     ],
   },
@@ -787,31 +757,16 @@ const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
     gradient: {
       stops: '#8B0000 0%, #FF4500 20%, #FFD700 45%, #FF4500 70%, #8B0000 100%',
       backgroundSize: '250% 100%',
-      dropShadow: 'drop-shadow(0 0 8px rgba(255,69,0,0.7))',
+      dropShadow: 'drop-shadow(0 0 2px rgba(255,69,0,0.4))',
     },
     animations: [
       {
         name: 'dragonShift',
-        duration: '3.5s',
+        duration: '6.5s',
         timing: 'ease-in-out',
         keyframes: `0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }`,
-      },
-      {
-        name: 'dragonGlow',
-        duration: '2.2s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { filter: drop-shadow(0 0 4px rgba(255,69,0,0.5)); }
-    25% { filter: drop-shadow(0 0 14px rgba(255,215,0,0.95)) drop-shadow(0 0 8px rgba(139,0,0,0.7)); }
-    75% { filter: drop-shadow(0 0 8px rgba(255,165,0,0.75)) drop-shadow(0 0 4px rgba(255,69,0,0.5)); }`,
-      },
-      {
-        name: 'dragonScale',
-        duration: '5s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }`,
       },
     ],
   },
@@ -825,31 +780,16 @@ const NAME_STYLE_CONFIGS_BY_ID: Record<string, NameStyleConfig> = {
       stops:
         '#3730A3 0%, #6366C8 15%, #C87DA8 35%, #D49A10 55%, #C87DA8 75%, #6366C8 90%, #3730A3 100%',
       backgroundSize: '300% 100%',
-      dropShadow: 'drop-shadow(0 0 8px rgba(249,168,212,0.65))',
+      dropShadow: 'drop-shadow(0 0 2px rgba(249,168,212,0.4))',
     },
     animations: [
       {
         name: 'celestialShift',
-        duration: '5s',
+        duration: '8s',
         timing: 'ease-in-out',
         keyframes: `0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }`,
-      },
-      {
-        name: 'celestialGlow',
-        duration: '3s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { filter: drop-shadow(0 0 4px rgba(249,168,212,0.45)); }
-    25% { filter: drop-shadow(0 0 12px rgba(251,191,36,0.9)) drop-shadow(0 0 6px rgba(129,140,248,0.7)); }
-    75% { filter: drop-shadow(0 0 8px rgba(200,125,168,0.7)) drop-shadow(0 0 4px rgba(99,102,200,0.5)); }`,
-      },
-      {
-        name: 'celestialScale',
-        duration: '7s',
-        timing: 'ease-in-out',
-        keyframes: `0%, 100% { transform: scale(1); letter-spacing: 0; }
-    50% { transform: scale(1.02); letter-spacing: 0.3px; }`,
       },
     ],
   },

@@ -13,7 +13,6 @@ import Svg, { Circle } from 'react-native-svg';
 import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
-import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
 const N = 8;
@@ -102,7 +101,6 @@ RuneParticle.displayName = 'RuneParticle';
 
 export const RuneCircleFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useLoopProgress(10000);
-  const slowProgress = useLoopProgress(7000);
   const cx = size / 2;
   const cy = size / 2;
   const orbit = ORBIT * size;
@@ -110,7 +108,6 @@ export const RuneCircleFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <LegendaryAura size={size} progress={slowProgress} r={160} g={96} b={224} orbit={ORBIT} />
         <Circle
           cx={cx}
           cy={cy}

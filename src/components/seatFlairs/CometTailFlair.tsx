@@ -12,7 +12,6 @@ import Svg from 'react-native-svg';
 import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
-import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
 
 const COMET_COUNT = 3;
@@ -86,7 +85,6 @@ CometParticle.displayName = 'CometParticle';
 
 export const CometTailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useLoopProgress(5000);
-  const slowProgress = useLoopProgress(7000);
 
   const seeds = useMemo(
     () =>
@@ -101,7 +99,6 @@ export const CometTailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <LegendaryAura size={size} progress={slowProgress} r={160} g={190} b={255} orbit={0.4} />
         {seeds.map((s, i) => (
           <CometParticle key={i} seed={s} size={size} progress={progress} />
         ))}

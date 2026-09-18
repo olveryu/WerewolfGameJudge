@@ -21,7 +21,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface ParticleBurstConfig {
   /** Primary particle color */
@@ -97,7 +96,6 @@ export const ParticleBurstEnter = memo<SeatAnimationProps & { config: ParticleBu
     const burstProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
     const childScale = useSharedValue(0.7);
-    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       burstProgress.value = withTiming(1, {
@@ -133,12 +131,6 @@ export const ParticleBurstEnter = memo<SeatAnimationProps & { config: ParticleBu
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.color}
-          />
           {particles.map((i) => (
             <BurstParticle
               key={i}
@@ -155,10 +147,6 @@ export const ParticleBurstEnter = memo<SeatAnimationProps & { config: ParticleBu
         >
           {children}
         </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
-        />
       </View>
     );
   },

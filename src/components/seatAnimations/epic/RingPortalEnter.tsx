@@ -21,7 +21,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface RingPortalConfig {
   /** Ring stroke color */
@@ -71,7 +70,6 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
     const childOpacity = useSharedValue(0);
     const childScale = useSharedValue(0.5);
     const glowOpacity = useSharedValue(0);
-    const { flashStyle, glowProps: epicGlowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       ringProgress.value = withTiming(1, {
@@ -122,12 +120,6 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
           <AnimatedCircle
             cx={size / 2}
             cy={size / 2}
-            animatedProps={epicGlowProps}
-            fill={config.color}
-          />
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
             animatedProps={glowProps}
             fill={config.glowColor}
           />
@@ -140,10 +132,6 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
         >
           {children}
         </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
-        />
       </View>
     );
   },

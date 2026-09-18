@@ -12,7 +12,6 @@ import Svg from 'react-native-svg';
 import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
-import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
 const N = 6;
@@ -109,7 +108,6 @@ PrismParticle.displayName = 'PrismParticle';
 
 export const PrismShardFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useLoopProgress(7000);
-  const slowProgress = useLoopProgress(11000);
 
   const seeds = useMemo(
     () =>
@@ -125,7 +123,6 @@ export const PrismShardFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <LegendaryAura size={size} progress={slowProgress} r={200} g={180} b={255} />
         {seeds.map((s, i) => (
           <PrismParticle key={i} seed={s} hue0={HUES[i]!} size={size} progress={progress} />
         ))}

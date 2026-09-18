@@ -1,7 +1,7 @@
 /**
  * LightPillarFlair — Four Light Pillars
  *
- * 4 golden light pillars extend inward from the four corners (not reaching the center), with pulsing brightness.
+ * Four short golden corner accents illuminate briefly in sequence, leaving the avatar unobscured.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useMemo } from 'react';
@@ -14,7 +14,18 @@ import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
-const GLOW_STEPS = 8;
+const GLOW_STEPS = 4;
+const PILLAR_CYCLE = 8000;
+const PULSE_DURATION = 1200;
+const CORNER_STAGGER = 1500;
+const PILLAR_HEIGHT = 0.12;
+
+function getCornerPulse(progress: number, cornerIndex: number): number {
+  'worklet';
+  const elapsed = progress * PILLAR_CYCLE - cornerIndex * CORNER_STAGGER;
+  if (elapsed <= 0 || elapsed >= PULSE_DURATION) return 0;
+  return Math.sin((elapsed / PULSE_DURATION) * Math.PI) ** 2;
+}
 
 interface Corner {
   bx: number;
@@ -31,13 +42,12 @@ const GlowDot = memo<{
 }>(({ step, cornerIndex, corner, size, progress }) => {
   const props = useAnimatedProps(() => {
     'worklet';
-    const t = progress.value;
-    const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2.5 + cornerIndex * 0.7) * Math.PI));
-    const h = size * 0.35 * pulse;
+    const pulse = getCornerPulse(progress.value, cornerIndex);
+    const height = size * PILLAR_HEIGHT * pulse;
     const frac = step / GLOW_STEPS;
-    const y = corner.by + corner.dir * h * frac;
-    const alpha = (1 - frac) * pulse * 0.15;
-    return { cx: corner.bx, cy: y, r: size * 0.025, opacity: alpha };
+    const y = corner.by + corner.dir * height * frac;
+    const alpha = (1 - frac) * pulse * 0.1;
+    return { cx: corner.bx, cy: y, r: size * 0.015, opacity: alpha };
   });
 
   return <AnimatedCircle animatedProps={props} fill="rgb(255,230,130)" />;
@@ -52,24 +62,22 @@ const PillarParticle = memo<{
 }>(({ corner, cornerIndex, size, progress }) => {
   const lineProps = useAnimatedProps(() => {
     'worklet';
-    const t = progress.value;
-    const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2.5 + cornerIndex * 0.7) * Math.PI));
-    const h = size * 0.35 * pulse;
+    const pulse = getCornerPulse(progress.value, cornerIndex);
+    const height = size * PILLAR_HEIGHT * pulse;
     return {
       x1: corner.bx,
       y1: corner.by,
       x2: corner.bx,
-      y2: corner.by + corner.dir * h * 0.8,
-      opacity: pulse * 0.6,
-      strokeWidth: 1.5,
+      y2: corner.by + corner.dir * height * 0.8,
+      opacity: pulse * 0.45,
+      strokeWidth: 1,
     };
   });
 
   const sparkProps = useAnimatedProps(() => {
     'worklet';
-    const t = progress.value;
-    const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2.5 + cornerIndex * 0.7) * Math.PI));
-    return { cx: corner.bx, cy: corner.by, r: size * 0.012, opacity: pulse * 0.8 };
+    const pulse = getCornerPulse(progress.value, cornerIndex);
+    return { cx: corner.bx, cy: corner.by, r: size * 0.01, opacity: pulse * 0.55 };
   });
 
   const glowSteps = useMemo(() => Array.from({ length: GLOW_STEPS }, (_, i) => i), []);
@@ -94,7 +102,7 @@ const PillarParticle = memo<{
 PillarParticle.displayName = 'PillarParticle';
 
 export const LightPillarFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useLoopProgress(4000);
+  const progress = useLoopProgress(PILLAR_CYCLE);
 
   const corners = useMemo(
     () => [

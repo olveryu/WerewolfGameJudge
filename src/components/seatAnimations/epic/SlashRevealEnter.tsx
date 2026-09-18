@@ -20,8 +20,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
+import { AnimatedPath } from '../svgAnimatedPrimitives';
 
 export interface SlashRevealConfig {
   /** Slash line color */
@@ -77,7 +76,6 @@ export const SlashRevealEnter = memo<SeatAnimationProps & { config: SlashRevealC
     const slashProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
     const childScale = useSharedValue(0.85);
-    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       slashProgress.value = withTiming(1, {
@@ -113,12 +111,6 @@ export const SlashRevealEnter = memo<SeatAnimationProps & { config: SlashRevealC
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.color}
-          />
           {slashes.map((i) => (
             <SlashLine
               key={i}
@@ -135,10 +127,6 @@ export const SlashRevealEnter = memo<SeatAnimationProps & { config: SlashRevealC
         >
           {children}
         </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
-        />
       </View>
     );
   },

@@ -20,8 +20,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
+import { AnimatedPath } from '../svgAnimatedPrimitives';
 
 export interface FlameEnvelopeConfig {
   /** Flame primary color */
@@ -80,7 +79,6 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
     const flameProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
     const childScale = useSharedValue(0.8);
-    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       flameProgress.value = withTiming(1, {
@@ -116,12 +114,6 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.color}
-          />
           {flames.map((i) => (
             <FlameTongue
               key={i}
@@ -138,10 +130,6 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
         >
           {children}
         </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
-        />
       </View>
     );
   },

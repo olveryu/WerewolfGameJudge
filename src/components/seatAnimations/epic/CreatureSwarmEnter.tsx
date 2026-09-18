@@ -20,8 +20,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
+import { AnimatedPath } from '../svgAnimatedPrimitives';
 
 export interface CreatureSwarmConfig {
   /** Creature body color */
@@ -88,7 +87,6 @@ export const CreatureSwarmEnter = memo<SeatAnimationProps & { config: CreatureSw
     const swarmProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
     const childScale = useSharedValue(0.7);
-    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       swarmProgress.value = withTiming(1, {
@@ -124,12 +122,6 @@ export const CreatureSwarmEnter = memo<SeatAnimationProps & { config: CreatureSw
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.color}
-          />
           {creatures.map((i) => (
             <Creature
               key={i}
@@ -146,10 +138,6 @@ export const CreatureSwarmEnter = memo<SeatAnimationProps & { config: CreatureSw
         >
           {children}
         </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
-        />
       </View>
     );
   },

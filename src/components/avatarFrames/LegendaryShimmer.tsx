@@ -1,35 +1,14 @@
-/**
- * LegendaryShimmer — Legendary avatar frame exclusive animation layer
- *
- * Three-layer effect stack:
- * 1. Orbiting arc: golden arc orbits along frame edge at constant speed (two pairs of light dots moving in opposite directions)
- * 2. Glow pulse: golden breathing glow (SVG Rect opacity)
- * 3. Corner sparkles: light dots flickering alternately at four corners (SVG Circle opacity+r)
- *
- * All driven by Reanimated `useAnimatedProps` on SVG numeric attributes (cx/cy/opacity/r),
- * executed on UI thread without blocking JS thread. Web + Native behavior consistent.
- */
-import { memo, useEffect, useId } from 'react';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  ReduceMotion,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+/** Legendary frame highlight; one slow edge sweep without changing the frame silhouette. */
+import { memo } from 'react';
+import Animated, { useAnimatedProps } from 'react-native-reanimated';
+import Svg, { Rect } from 'react-native-svg';
+
+import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-/** Orbiting arc rotation period (ms) */
-const ORBIT_DURATION = 3000;
-/** Glow pulse breathing period (ms) */
-const GLOW_DURATION = 3200;
-/** Sparkle twinkle period (ms) */
-const SPARKLE_DURATION = 2400;
+const ORBIT_DURATION = 7000;
+const FRAME_SIDE = 100;
+const HIGHLIGHT_LENGTH = 12;
 
 interface LegendaryShimmerProps {
   /** SVG total size (with viewBox expansion, = avatar size * 116/100) */
@@ -38,170 +17,31 @@ interface LegendaryShimmerProps {
   rx: number;
 }
 
-/**
- * Calculate coordinates at a proportional position along the rectangular border perimeter.
- * `t` ∈ [0,1) clockwise starting from top-left corner (x0,y0).
- */
-function perimeterPoint(
-  t: number,
-  x0: number,
-  y0: number,
-  w: number,
-  h: number,
-): { x: number; y: number } {
-  'worklet';
-  const perimeter = 2 * (w + h);
-  // Normalize t to [0,1)
-  let d = (((t % 1) + 1) % 1) * perimeter;
-  if (d < w) return { x: x0 + d, y: y0 }; // top edge
-  d -= w;
-  if (d < h) return { x: x0 + w, y: y0 + d }; // right edge
-  d -= h;
-  if (d < w) return { x: x0 + w - d, y: y0 + h }; // bottom edge
-  d -= w;
-  return { x: x0, y: y0 + h - d }; // left edge
-}
-
+/** Adds a single restrained highlight to a legendary frame's rounded perimeter. */
 export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
-  // ── Shared values ─────────────────────────────────────────────────────
-  const orbit = useSharedValue(0);
-  const glow = useSharedValue(0);
-  const sparkle = useSharedValue(0);
-
-  useEffect(() => {
-    orbit.value = withRepeat(
-      withTiming(1, { duration: ORBIT_DURATION, easing: Easing.linear }),
-      -1,
-      false,
-      undefined,
-      ReduceMotion.Never,
-    );
-    glow.value = withRepeat(
-      withTiming(1, { duration: GLOW_DURATION, easing: Easing.linear }),
-      -1,
-      false,
-      undefined,
-      ReduceMotion.Never,
-    );
-    sparkle.value = withRepeat(
-      withTiming(1, { duration: SPARKLE_DURATION, easing: Easing.linear }),
-      -1,
-      false,
-      undefined,
-      ReduceMotion.Never,
-    );
-    // Cancel the infinite loops on unmount so they stop ticking on the UI thread
-    // (e.g. when the frame is dropped on entering the Ongoing phase).
-    return () => {
-      cancelAnimation(orbit);
-      cancelAnimation(glow);
-      cancelAnimation(sparkle);
-    };
-  }, [orbit, glow, sparkle]);
-
-  // ── Gradient ID (stable per instance) ─────────────────────────────────
-  const userId = useId();
-  const glowId = `lgw${userId}`;
-
-  // ── 1. Orbiting light arc — two pairs of circles chasing along border
-  // Lead circle (bright, warm white)
-  const orbitLeadProps = useAnimatedProps(() => {
-    'worklet';
-    const pt = perimeterPoint(orbit.value, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.7, r: 4 };
-  });
-  // Trail circle (dimmer gold, slightly behind)
-  const orbitTrailProps = useAnimatedProps(() => {
-    'worklet';
-    const pt = perimeterPoint(orbit.value - 0.04, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.35, r: 3 };
-  });
-  // Secondary lead (opposite side, for symmetry)
-  const orbitLead2Props = useAnimatedProps(() => {
-    'worklet';
-    const pt = perimeterPoint(orbit.value + 0.5, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.5, r: 3.5 };
-  });
-  // Secondary trail
-  const orbitTrail2Props = useAnimatedProps(() => {
-    'worklet';
-    const pt = perimeterPoint(orbit.value + 0.46, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.25, r: 2.5 };
-  });
-
-  // ── 2. Glow pulse (outer border opacity) ──────────────────────────────
-  const glowProps = useAnimatedProps(() => {
-    'worklet';
-    const t = glow.value;
-    const alpha = 0.1 + Math.sin(t * Math.PI * 2) * 0.13;
-    return { opacity: alpha, strokeWidth: 5 };
-  });
-
-  // ── 3. Corner sparkles — 4 points, staggered phase ───────────────────
-  const sparkle0Props = useAnimatedProps(() => {
-    'worklet';
-    const t = sparkle.value;
-    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
-    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r };
-  });
-  const sparkle1Props = useAnimatedProps(() => {
-    'worklet';
-    const t = (sparkle.value + 0.25) % 1;
-    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
-    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r };
-  });
-  const sparkle2Props = useAnimatedProps(() => {
-    'worklet';
-    const t = (sparkle.value + 0.5) % 1;
-    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
-    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r };
-  });
-  const sparkle3Props = useAnimatedProps(() => {
-    'worklet';
-    const t = (sparkle.value + 0.75) % 1;
-    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
-    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r };
-  });
-
-  const sparkleAnimProps = [sparkle0Props, sparkle1Props, sparkle2Props, sparkle3Props];
+  const progress = useLoopProgress(ORBIT_DURATION);
+  const cornerRadius = Math.min(rx, FRAME_SIDE / 2);
+  const perimeter = FRAME_SIDE * 4 - (8 - 2 * Math.PI) * cornerRadius;
+  const highlightProps = useAnimatedProps(() => ({
+    strokeDashoffset: -progress.value * perimeter,
+  }));
 
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
-      <Defs>
-        <LinearGradient id={glowId} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#F5A623" stopOpacity={1} />
-          <Stop offset="0.5" stopColor="#FFD700" stopOpacity={1} />
-          <Stop offset="1" stopColor="#F5A623" stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-
-      {/* Layer 1: Orbiting light arcs — two pairs of circles chasing along border */}
-      <AnimatedCircle animatedProps={orbitTrailProps} fill="#FFD700" />
-      <AnimatedCircle animatedProps={orbitLeadProps} fill="#FFFDE8" />
-      <AnimatedCircle animatedProps={orbitTrail2Props} fill="#FFD700" />
-      <AnimatedCircle animatedProps={orbitLead2Props} fill="#FFFDE8" />
-
-      {/* Layer 2: Glow pulse — animated gold border */}
       <AnimatedRect
-        animatedProps={glowProps}
-        x={-3}
-        y={-3}
-        width={106}
-        height={106}
-        rx={rx + 2}
+        x={0}
+        y={0}
+        width={FRAME_SIDE}
+        height={FRAME_SIDE}
+        rx={cornerRadius}
         fill="none"
-        stroke={`url(#${glowId})`}
+        stroke="#FFFDE8"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeDasharray={`${HIGHLIGHT_LENGTH} ${perimeter - HIGHLIGHT_LENGTH}`}
+        opacity={0.45}
+        animatedProps={highlightProps}
       />
-
-      {/* Layer 3: Corner sparkles */}
-      <AnimatedCircle animatedProps={sparkleAnimProps[0]} cx={4} cy={4} fill="#FFD700" />
-      <AnimatedCircle animatedProps={sparkleAnimProps[1]} cx={96} cy={4} fill="#FFD700" />
-      <AnimatedCircle animatedProps={sparkleAnimProps[2]} cx={96} cy={96} fill="#FFD700" />
-      <AnimatedCircle animatedProps={sparkleAnimProps[3]} cx={4} cy={96} fill="#FFD700" />
     </Svg>
   );
 });

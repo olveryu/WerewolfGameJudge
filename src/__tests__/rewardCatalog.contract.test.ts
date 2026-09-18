@@ -163,4 +163,17 @@ describe('nameStyle registry completeness', () => {
     expect(config!.name).toBeTruthy();
     expect(config!.tier).toBeTruthy();
   });
+
+  it.each(['phoenixRebirth', 'voidStar', 'dragonBreath', 'celestialDawn'])(
+    'keeps "%s" to one gradient animation without changing text geometry or visibility',
+    (id) => {
+      const config = getNameStyleById(id)!;
+      expect(config.animations).toHaveLength(1);
+      expect(config.animations![0]!.keyframes).toContain('background-position');
+      expect(config.animations![0]!.keyframes).not.toMatch(
+        /transform|letter-spacing|opacity|filter/,
+      );
+      expect(config.gradient!.dropShadow).toBeTruthy();
+    },
+  );
 });

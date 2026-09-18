@@ -21,7 +21,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface VortexSwirlConfig {
   /** Primary particle color */
@@ -72,7 +71,6 @@ export const VortexSwirlEnter = memo<SeatAnimationProps & { config: VortexSwirlC
     const swirlProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
     const childScale = useSharedValue(0.6);
-    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       swirlProgress.value = withTiming(1, {
@@ -111,12 +109,6 @@ export const VortexSwirlEnter = memo<SeatAnimationProps & { config: VortexSwirlC
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.color}
-          />
           {particles.map((i) => (
             <SwirlParticle
               key={i}
@@ -133,10 +125,6 @@ export const VortexSwirlEnter = memo<SeatAnimationProps & { config: VortexSwirlC
         >
           {children}
         </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
-        />
       </View>
     );
   },
