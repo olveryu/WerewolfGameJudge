@@ -32,13 +32,11 @@ export type PictionaryDraftFinalizationStatus =
   | 'submitting'
   | 'retrying'
   | 'waiting'
-  | 'failed'
-  | 'empty';
+  | 'failed';
 
 interface PictionaryDraftFinalizer {
   readonly status: PictionaryDraftFinalizationStatus;
   readonly retry: () => void;
-  readonly submitEmpty: () => void;
 }
 
 interface LocallyOwnedTask {
@@ -182,23 +180,17 @@ async function submitAllLocalDrafts(
   state: PictionaryState,
   userId: string,
   session: PictionaryRoomSession,
-  shouldSubmitEmpty: boolean,
   signal: AbortSignal,
-): Promise<boolean> {
-  let hasEmptyTasks = false;
+): Promise<void> {
   const failures = await Promise.all(
     getLocallyOwnedTasks(state, userId).map(async (ownedTask): Promise<Error | null> => {
       try {
         const scope = createPictionaryTaskDraftScope(state, ownedTask.task, userId);
         const isEmpty =
           ownedTask.task.expectedKind === 'text'
-            ? pictionaryTextDraftStore.read(scope) === null
+            ? (pictionaryTextDraftStore.read(scope)?.length ?? 0) === 0
             : (pictionaryDrawingDraftStore.read(scope)?.elements.length ?? 0) === 0;
         if (isEmpty) {
-          if (!shouldSubmitEmpty) {
-            hasEmptyTasks = true;
-            return null;
-          }
           const result = await session.dispatch(
             { type: 'pictionary.task.empty.submit' },
             { controlledSeat: ownedTask.controlledSeat, label: '提交空白', isRecoverable: true },
@@ -220,7 +212,6 @@ async function submitAllLocalDrafts(
   );
   const firstFailure = failures.find((error) => error !== null);
   if (firstFailure !== undefined && firstFailure !== null) throw firstFailure;
-  return hasEmptyTasks;
 }
 
 /** Recover local collection with one in-flight attempt, backoff, and authoritative acknowledgements. */
@@ -231,18 +222,16 @@ export function usePictionaryDraftFinalizer(
 ): PictionaryDraftFinalizer {
   const [status, setStatus] = useState<PictionaryDraftFinalizationStatus>('idle');
   const [attempt, setAttempt] = useState(0);
-  const [shouldSubmitEmpty, setShouldSubmitEmpty] = useState(false);
   const collectionKey = collectionKeyFor(state);
   const submitCurrentDrafts = useEffectEvent(
-    async (current: PictionaryState, signal: AbortSignal): Promise<boolean> => {
-      return submitAllLocalDrafts(current, userId, session, shouldSubmitEmpty, signal);
+    async (current: PictionaryState, signal: AbortSignal): Promise<void> => {
+      return submitAllLocalDrafts(current, userId, session, signal);
     },
   );
 
   useEffect(() => {
     if (collectionKey === null) {
       setStatus('idle');
-      setShouldSubmitEmpty(false);
       return;
     }
     const controller = new AbortController();
@@ -290,8 +279,8 @@ export function usePictionaryDraftFinalizer(
       isSubmitting = true;
       setStatus(retryCount === 0 ? 'submitting' : 'retrying');
       try {
-        const hasEmptyTasks = await submitCurrentDrafts(current.snapshot.state, controller.signal);
-        if (!controller.signal.aborted) setStatus(hasEmptyTasks ? 'empty' : 'waiting');
+        await submitCurrentDrafts(current.snapshot.state, controller.signal);
+        if (!controller.signal.aborted) setStatus('waiting');
       } catch (error: unknown) {
         if (controller.signal.aborted) return;
         if (reconcile()) {
@@ -335,9 +324,5 @@ export function usePictionaryDraftFinalizer(
   }, [attempt, collectionKey, session, userId]);
 
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
-  const submitEmpty = useCallback(() => {
-    setShouldSubmitEmpty(true);
-    setAttempt((current) => current + 1);
-  }, []);
-  return { status, retry, submitEmpty };
+  return { status, retry };
 }

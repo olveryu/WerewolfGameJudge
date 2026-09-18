@@ -50,7 +50,7 @@ import {
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles, typography } from '@/theme';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -72,7 +72,6 @@ interface PictionaryTaskStageProps {
   readonly draftFinalizer: {
     readonly status: PictionaryDraftFinalizationStatus;
     readonly retry: () => void;
-    readonly submitEmpty: () => void;
   };
 }
 
@@ -232,6 +231,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
 
 interface ToolButtonProps {
   readonly label: string;
+  readonly caption?: string;
   readonly icon: React.ComponentProps<typeof Ionicons>['name'];
   readonly isSelected: boolean;
   readonly disabled: boolean;
@@ -241,6 +241,7 @@ interface ToolButtonProps {
 
 const ToolButton: React.FC<ToolButtonProps> = ({
   label,
+  caption = label,
   icon,
   isSelected,
   disabled,
@@ -261,18 +262,22 @@ const ToolButton: React.FC<ToolButtonProps> = ({
       onBlur={() => setIsLabelVisible(false)}
       style={({ pressed }) => [
         styles.toolButton,
+        styles.labeledToolButton,
         isSelected && styles.selectedToolButton,
         disabled && styles.disabled,
         pressed && styles.pressed,
       ]}
     >
-      {children ?? (
-        <Ionicons
-          name={icon}
-          size={18}
-          color={isSelected ? colors.textInverse : colors.textSecondary}
-        />
-      )}
+      <View style={styles.toolPreview}>
+        {children ?? (
+          <Ionicons
+            name={icon}
+            size={18}
+            color={isSelected ? colors.textInverse : colors.textSecondary}
+          />
+        )}
+      </View>
+      <Text style={[styles.toolCaption, isSelected && styles.selectedToolCaption]}>{caption}</Text>
       {isLabelVisible && (
         <View pointerEvents="none" style={styles.tooltip}>
           <Text style={styles.tooltipText}>{label}</Text>
@@ -284,13 +289,27 @@ const ToolButton: React.FC<ToolButtonProps> = ({
 
 interface IconActionProps {
   readonly label: string;
+  readonly caption?: string;
   readonly icon: React.ComponentProps<typeof Ionicons>['name'];
   readonly disabled: boolean;
   readonly onPress: () => void;
 }
 
-const IconAction: React.FC<IconActionProps> = ({ label, icon, disabled, onPress }) => (
-  <ToolButton label={label} icon={icon} disabled={disabled} onPress={onPress} isSelected={false} />
+const IconAction: React.FC<IconActionProps> = ({
+  label,
+  caption = label,
+  icon,
+  disabled,
+  onPress,
+}) => (
+  <ToolButton
+    label={label}
+    caption={caption}
+    icon={icon}
+    disabled={disabled}
+    onPress={onPress}
+    isSelected={false}
+  />
 );
 
 interface DrawingToolbarProps {
@@ -350,6 +369,7 @@ const DrawingOptions: React.FC<DrawingOptionsProps> = ({ activePanel, toolbar, o
         <View style={styles.toolOption}>
           <IconAction
             label="清空画布"
+            caption="清空"
             icon="trash-outline"
             disabled={toolbar.disabled || !toolbar.canUndo}
             onPress={() => {
@@ -430,6 +450,7 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
     <View style={styles.toolbar}>
       <ToolButton
         label={`选择工具，当前${selectedTool.label}`}
+        caption={selectedTool.label}
         icon={selectedTool.icon}
         isSelected={false}
         disabled={toolbar.disabled}
@@ -437,6 +458,7 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
       />
       <ToolButton
         label={`选择颜色，当前${selectedColor.name}`}
+        caption="颜色"
         icon="color-palette-outline"
         isSelected={false}
         disabled={toolbar.disabled}
@@ -446,6 +468,7 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
       </ToolButton>
       <ToolButton
         label={`选择粗细，当前 ${toolbar.strokeWidth} 像素`}
+        caption="粗细"
         icon="ellipse"
         isSelected={false}
         disabled={toolbar.disabled}
@@ -487,7 +510,13 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
               {panelTitle}
             </Text>
             <View style={styles.closeButton}>
-              <IconAction label="关闭选择面板" icon="close" disabled={false} onPress={onClose} />
+              <IconAction
+                label="关闭选择面板"
+                caption="关闭"
+                icon="close"
+                disabled={false}
+                onPress={onClose}
+              />
             </View>
           </View>
           <DrawingOptions activePanel={activePanel} toolbar={toolbar} onClose={onClose} />
@@ -715,11 +744,9 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
         ? '本机最终内容发送失败，草稿仍保存在本机。'
         : draftFinalizer.status === 'retrying'
           ? '发送暂未成功，正在自动重试。草稿已保留，恢复连接后会继续发送。'
-          : draftFinalizer.status === 'empty'
-            ? '本机没有这一棒的草稿。如果在其他设备作答，请回到原设备交稿。'
-            : draftFinalizer.status === 'waiting'
-              ? '本机最终内容已处理，正在等待其他玩家。'
-              : '正在发送本机保存的最终内容，请保持页面打开。';
+          : draftFinalizer.status === 'waiting'
+            ? '本机最终内容已处理，正在等待其他玩家。'
+            : '正在发送本机保存的最终内容，请保持页面打开。';
     return (
       <PictionaryWaitingStage
         state={state}
@@ -727,21 +754,6 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
         title="正在收取最终内容"
         description={description}
       >
-        {draftFinalizer.status === 'empty' && (
-          <Button
-            variant="secondary"
-            onPress={() =>
-              showConfirmAlert(
-                '确认提交空白？',
-                '仅在这一棒确实没有输入文字或画画时提交空白。其他设备上的草稿不会自动转移到本机。',
-                draftFinalizer.submitEmpty,
-                { confirmText: '提交空白' },
-              )
-            }
-          >
-            提交空白
-          </Button>
-        )}
         {draftFinalizer.status === 'failed' && (
           <Button variant="secondary" onPress={draftFinalizer.retry}>
             重试发送
@@ -878,6 +890,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   selectedToolButton: { backgroundColor: colors.primary },
+  labeledToolButton: {
+    height: fixed.minTouchTarget + spacing.medium,
+    maxHeight: fixed.minTouchTarget + spacing.medium,
+    flexDirection: 'column',
+  },
+  toolPreview: {
+    height: Math.max(...PICTIONARY_DRAWING_WIDTHS),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolCaption: { ...textStyles.caption, color: colors.textSecondary, textAlign: 'center' },
+  selectedToolCaption: { color: colors.textInverse },
   tooltip: {
     position: 'absolute',
     bottom: '100%',

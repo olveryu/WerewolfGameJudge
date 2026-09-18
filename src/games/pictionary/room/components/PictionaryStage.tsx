@@ -66,7 +66,7 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
   const finishPhase = (): void => {
     showConfirmAlert(
       '结束编辑并收稿？',
-      '将收取已写文字和未完成画稿。发送失败可以重试；没有草稿的玩家需要明确确认提交空白。',
+      '将自动收取已写文字和未完成画稿，没有内容时自动交空白。发送失败会保留草稿并自动重试，全部送达后进入下一棒。',
       async () => {
         await command.submit('结束这一棒', { type: 'pictionary.phase.finish' });
       },

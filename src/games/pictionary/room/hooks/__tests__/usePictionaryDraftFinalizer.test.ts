@@ -198,25 +198,46 @@ it('retains drafts and stops automatic retries after an explicit domain rejectio
   expect(handleError).toHaveBeenCalledTimes(1);
 });
 
-it('requires explicit empty confirmation instead of treating absent drafts as upload failures', async () => {
+it.each([null, ''])('automatically submits an empty task for local text %p', async (text) => {
   const fixture = createCollection();
-  jest.mocked(pictionaryTextDraftStore.read).mockReturnValue(null);
+  jest.mocked(pictionaryTextDraftStore.read).mockReturnValue(text);
   const { result } = renderHook(() =>
     usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
   );
   await act(async () => {
     await Promise.resolve();
   });
-  expect(result.current.status).toBe('empty');
-  expect(fixture.dispatch).not.toHaveBeenCalled();
-  await act(async () => {
-    result.current.submitEmpty();
-  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(1);
   expect(fixture.dispatch).toHaveBeenCalledWith(
     { type: 'pictionary.task.empty.submit' },
     expect.objectContaining({ isRecoverable: true }),
   );
   expect(result.current.status).toBe('waiting');
+});
+
+it('waits for reconnection and retries automatic blank delivery after a network failure', async () => {
+  const fixture = createCollection();
+  jest.mocked(pictionaryTextDraftStore.read).mockReturnValue(null);
+  fixture.setConnection('disconnected');
+  fixture.dispatch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  const { result } = renderHook(() =>
+    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+  );
+  expect(fixture.dispatch).not.toHaveBeenCalled();
+  await act(async () => {
+    fixture.setConnection('live');
+  });
+  expect(result.current.status).toBe('retrying');
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(1_000);
+  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(2);
+  expect(fixture.dispatch).toHaveBeenLastCalledWith(
+    { type: 'pictionary.task.empty.submit' },
+    expect.objectContaining({ isRecoverable: true }),
+  );
+  expect(result.current.status).toBe('waiting');
+  expect(handleError).not.toHaveBeenCalled();
 });
 
 it('cancels scheduled delivery when the collection owner unmounts', async () => {
