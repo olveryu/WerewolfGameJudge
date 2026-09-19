@@ -35,6 +35,7 @@ import {
   createRequestTrafficQueryPlan,
   REQUEST_TRAFFIC_MAX_RANGE_MS,
 } from './requestTrafficSummary';
+import { rewardGrantRoutes } from './rewardGrants';
 
 const log = createLogger('admin');
 
@@ -74,6 +75,7 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
 
 adminRoutes.use('*', requireAdmin);
 adminRoutes.route('/effect-replays', effectRecoveryRoutes);
+adminRoutes.route('/users', rewardGrantRoutes);
 
 // ── GET /admin/users ────────────────────────────────────────────────────────
 

@@ -475,6 +475,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
 
   it('declares every physical D1 table exactly once in its owner module', () => {
     const expectedOwners = new Map<string, string>([
+      ['admin_reward_grants', 'packages/api-worker/src/features/admin/dbSchema.ts'],
       ['camp_settlements', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
       ['draw_history', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
       ['feedback_deliveries', 'packages/api-worker/src/features/feedback/dbSchema.ts'],

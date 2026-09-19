@@ -22,3 +22,6 @@ export const LAST_SEEN_ANNOUNCEMENT_VERSION_KEY = '@last_seen_announcement_versi
 
 /** Admin portal password cache */
 export const ADMIN_PASSWORD_KEY = 'admin_password';
+
+/** Unresolved admin ticket grants, partitioned by recipient ID. */
+export const ADMIN_REWARD_OPERATION_KEY = '@admin_reward_operation';

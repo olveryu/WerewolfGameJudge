@@ -4,6 +4,7 @@
  * Search + Sort AdminPills + Country/Type filter chips + Pagination FlatList.
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,8 +14,10 @@ import { Button } from '@/components/Button';
 import type { AdminUser } from '@/features/admin/model/adminContracts';
 import { fetchUsers } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { AdminEmptyState, AdminPill, Pagination } from '../components';
+import { UserRewardsModal } from './UserRewardsModal';
 
 const SORT_OPTIONS = [
   { key: 'created_at', label: '注册时间' },
@@ -32,6 +35,7 @@ const TYPE_OPTIONS = [
 
 export const UsersTab: React.FC = () => {
   const [page, setPage] = useState(1);
+  const [rewardUser, setRewardUser] = useState<AdminUser | null>(null);
 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('created_at');
@@ -100,6 +104,17 @@ export const UsersTab: React.FC = () => {
         <Text style={styles.cardMeta}>
           {item.lastCountry ?? '?'} · {item.lastColo ?? '?'} · {item.createdAt.slice(0, 10)}
         </Text>
+        <Button
+          variant="secondary"
+          size="sm"
+          onPress={() => setRewardUser(item)}
+          accessibilityLabel={`给${item.displayName ?? '匿名用户'}发放奖励`}
+          icon={
+            <Ionicons name="gift-outline" size={componentSizes.icon.sm} color={colors.primary} />
+          }
+        >
+          发放奖励
+        </Button>
       </View>
     ),
     [],
@@ -107,6 +122,13 @@ export const UsersTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {rewardUser !== null && (
+        <UserRewardsModal
+          key={rewardUser.id}
+          user={rewardUser}
+          onClose={() => setRewardUser(null)}
+        />
+      )}
       {data !== undefined && !isError && <Text style={styles.summary}>总用户: {data.total}</Text>}
 
       <TextInput

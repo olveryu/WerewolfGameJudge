@@ -7,6 +7,11 @@
 
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type { TimePreset } from '@/features/admin/model/adminContracts';
+import {
+  adminRewardGrantSchema,
+  type AdminRewardInput,
+  adminUserRewardsSchema,
+} from '@/features/admin/model/adminRewards';
 import { readAdminCredential } from '@/features/admin/services/adminCredentialStore';
 import {
   parseAdminAIUsageResponse,
@@ -34,6 +39,7 @@ async function adminFetch<T>(
   parseResponse: (value: unknown) => T,
   query?: Record<string, string>,
   signal?: AbortSignal,
+  requestBody?: AdminRewardInput,
 ): Promise<T> {
   const url = new URL(`${API_BASE_URL}${path}`);
   if (query) {
@@ -46,7 +52,11 @@ async function adminFetch<T>(
   const composed = composeAbortSignals(signal ? [signal, timeoutSignal] : [timeoutSignal]);
   try {
     const resp = await fetch(url.toString(), {
-      headers: { 'X-Admin-Token': getAdminToken() },
+      headers: {
+        'X-Admin-Token': getAdminToken(),
+        ...(requestBody !== undefined && { 'Content-Type': 'application/json' }),
+      },
+      ...(requestBody !== undefined && { method: 'POST', body: JSON.stringify(requestBody) }),
       signal: composed.signal,
     });
     const body: unknown = await resp.json();
@@ -63,7 +73,7 @@ async function adminFetch<T>(
  * When thrown: when Admin API returns non-2xx status code.
  * How to catch: `instanceof AdminApiError` — read .status and .reason to show the user.
  */
-class AdminApiError extends Error {
+export class AdminApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly reason: string,
@@ -135,6 +145,27 @@ export function fetchRooms(params: { page?: number; limit?: number } = {}) {
 
 export function fetchRoomPlayers(roomCode: string) {
   return adminFetch(`/admin/rooms/${roomCode}/players`, parseAdminRoomPlayersResponse);
+}
+
+/** Read authoritative balances and the most recent admin grant records. */
+export function fetchUserRewards(userId: string, signal?: AbortSignal) {
+  return adminFetch(
+    `/admin/users/${encodeURIComponent(userId)}/rewards`,
+    (value) => adminUserRewardsSchema.parse(value),
+    undefined,
+    signal,
+  );
+}
+
+/** Submit or replay one confirmed grant; callers retain its ID until the result is known. */
+export function grantUserReward(userId: string, input: AdminRewardInput) {
+  return adminFetch(
+    `/admin/users/${encodeURIComponent(userId)}/rewards`,
+    (value) => adminRewardGrantSchema.parse(value),
+    undefined,
+    undefined,
+    input,
+  );
 }
 
 export function fetchStats(from: string, to: string) {

@@ -1,6 +1,8 @@
 import {
   fetchRequestTraffic,
+  fetchUserRewards,
   getTimeRange,
+  grantUserReward,
   verifyAdminPassword,
 } from '@/features/admin/services/adminApi';
 
@@ -93,5 +95,38 @@ describe('adminApi', () => {
     const range = getTimeRange(preset);
 
     expect(new Date(range.to).getTime() - new Date(range.from).getTime()).toBe(expectedDurationMs);
+  });
+
+  it('posts an exact reward identity and decodes balances and history', async () => {
+    const input = {
+      id: '99b71298-c798-49ad-bb47-dc54d21d2384',
+      drawType: 'golden' as const,
+      count: 100,
+      reason: '活动奖励',
+    };
+    const grant = {
+      ...input,
+      userId: 'recipient',
+      balanceBefore: 5,
+      balanceAfter: 105,
+      createdAt: '2026-09-18T00:00:00Z',
+    };
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(grant)));
+    await expect(grantUserReward('recipient', input)).resolves.toEqual(grant);
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringContaining('/admin/users/recipient/rewards'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(input),
+        headers: { 'X-Admin-Token': 'credential', 'Content-Type': 'application/json' },
+      }),
+    );
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ normalDraws: 0, goldenDraws: 105, grants: [grant] })),
+    );
+    await expect(fetchUserRewards('recipient')).resolves.toMatchObject({
+      goldenDraws: 105,
+      grants: [grant],
+    });
   });
 });
