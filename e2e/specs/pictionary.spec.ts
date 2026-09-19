@@ -93,11 +93,20 @@ test.describe('Pictionary', () => {
           await rooms[playerIndex]!.drawStroke(playerIndex);
         }
         for (const [playerIndex, viewport] of ['desktop', 'mobile', 'small'].entries()) {
+          await rooms[playerIndex]!.exerciseColorPicker();
           await test.info().attach(`pictionary-drawing-${viewport}`, {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',
           });
           await fixture.pages[playerIndex]!.getByRole('button', { name: /^选择颜色，/ }).click();
+          await test.info().attach(`pictionary-presets-${viewport}`, {
+            body: await fixture.pages[playerIndex]!.screenshot(),
+            contentType: 'image/png',
+          });
+          await fixture.pages[playerIndex]!.getByRole('button', {
+            name: '展开调色板',
+            exact: true,
+          }).click();
           await test.info().attach(`pictionary-colors-${viewport}`, {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',

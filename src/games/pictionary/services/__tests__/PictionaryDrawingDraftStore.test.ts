@@ -1,6 +1,9 @@
 /** Pictionary drawing draft storage version and element-union contracts. */
 
-import type { PictionaryDrawingDraft } from '../../model/pictionaryDrawing';
+import {
+  isPictionaryDrawingColor,
+  type PictionaryDrawingDraft,
+} from '../../model/pictionaryDrawing';
 import { pictionaryDrawingDraftStore } from '../PictionaryDrawingDraftStore';
 import type { PictionaryTaskDraftScope } from '../pictionaryTaskDraftScope';
 
@@ -82,6 +85,21 @@ describe('PictionaryDrawingDraftStore', () => {
 
     expect(pictionaryDrawingDraftStore.read(SCOPE)).toEqual(DRAFT);
     expect(pictionaryDrawingDraftStore.read(secondScope)).toEqual(secondDraft);
+  });
+
+  it('round-trips custom colors in drawing and redo history', () => {
+    const customDraft: PictionaryDrawingDraft = {
+      elements: DRAFT.elements.map((element) => ({ ...element, color: '#a13b8c' })),
+      redoElements: [{ ...DRAFT.elements[0]!, color: '#123456' }],
+    };
+
+    pictionaryDrawingDraftStore.write(SCOPE, customDraft);
+
+    expect(pictionaryDrawingDraftStore.read(SCOPE)).toEqual(customDraft);
+  });
+
+  it.each(['#fff', '#12345678', '#zzzzzz', 'red', null])('rejects invalid color %s', (color) => {
+    expect(isPictionaryDrawingColor(color)).toBe(false);
   });
 
   it('removes an incompatible version-1 stroke draft', () => {

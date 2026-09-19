@@ -1,12 +1,15 @@
 /** Pure local drawing model for Pictionary elements, tools, and undo history. */
 
-import { PICTIONARY_DRAWING_PALETTE } from '@/theme/colors';
-
-export { PICTIONARY_DRAWING_PALETTE };
+export { PICTIONARY_DRAWING_PALETTE } from '@/theme/colors';
 
 export const PICTIONARY_DRAWING_WIDTHS = [5, 14, 30] as const;
 
-export type PictionaryDrawingColor = (typeof PICTIONARY_DRAWING_PALETTE)[number]['value'];
+export type PictionaryDrawingColor = `#${string}`;
+
+/** Validate opaque six-digit hex colors at picker and storage boundaries. */
+export function isPictionaryDrawingColor(value: unknown): value is PictionaryDrawingColor {
+  return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value);
+}
 export type PictionaryDrawingWidth = (typeof PICTIONARY_DRAWING_WIDTHS)[number];
 export type PictionaryDrawingTool = 'brush' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'fill';
 

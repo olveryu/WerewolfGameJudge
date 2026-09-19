@@ -2,7 +2,7 @@
  * Authenticated Pictionary drawing upload and retrieval routes.
  *
  * @throws 400 for malformed PNG data, 401 for missing authentication, 403 for
- * non-members, 404 for missing rooms/media, 409 for stale reservations, and
+ * disallowed media access, 404 for missing rooms/media, 409 for stale reservations, and
  * 413 for oversized uploads.
  */
 
@@ -215,14 +215,9 @@ function findDrawingEntry(state: PictionaryState, entryId: string): PictionaryDr
   return null;
 }
 
-function canReadDrawing(
-  state: PictionaryState,
-  userId: string,
-  seat: number | null,
-  entryId: string,
-): boolean {
+function canReadDrawing(state: PictionaryState, seat: number | null, entryId: string): boolean {
   if (state.phase === 'gallery' || state.phase === 'ended') {
-    return seat !== null || userId === state.hostUserId;
+    return true;
   }
   if (seat === null) return false;
   if (state.phase !== 'answering' && state.phase !== 'settling') return false;
@@ -299,7 +294,7 @@ pictionaryMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) =>
   const entryId = c.req.param('entryId');
   const entry = findDrawingEntry(roomContext.state, entryId);
   if (entry === null) return fail(404, 'PICTIONARY_MEDIA_NOT_FOUND');
-  if (!canReadDrawing(roomContext.state, c.var.userId, seat, entryId)) {
+  if (!canReadDrawing(roomContext.state, seat, entryId)) {
     return fail(403, 'PICTIONARY_MEDIA_FORBIDDEN');
   }
   const object = await c.env.GAME_MEDIA.get(entry.media.objectKey);

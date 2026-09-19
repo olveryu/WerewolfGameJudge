@@ -8,7 +8,7 @@ import {
 import { storage } from '@/services/infra/localStorage';
 
 import {
-  PICTIONARY_DRAWING_PALETTE,
+  isPictionaryDrawingColor,
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
   type PictionaryDrawingDraft,
@@ -110,9 +110,9 @@ function parseTool(value: unknown): PictionaryDrawingTool {
 }
 
 function parseColor(value: unknown): PictionaryDrawingColor {
-  const color = PICTIONARY_DRAWING_PALETTE.find((candidate) => candidate.value === value);
-  if (color === undefined) throw new Error('Stored Pictionary drawing color is invalid');
-  return color.value;
+  if (!isPictionaryDrawingColor(value))
+    throw new Error('Stored Pictionary drawing color is invalid');
+  return value;
 }
 
 function parseWidth(value: unknown): PictionaryDrawingWidth {

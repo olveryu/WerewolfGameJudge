@@ -114,15 +114,102 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(
       this.page.getByRole('button', { name: '关闭选择面板', exact: true }),
     ).toBeVisible();
-    await this.page.mouse.click(
-      canvasBounds.x + canvasBounds.width / 2,
-      canvasBounds.y + canvasBounds.height - 8,
-    );
+    await this.page.mouse.click(1, 1);
     await expect(this.page.getByRole('button', { name: '关闭选择面板', exact: true })).toHaveCount(
       0,
     );
     await expect(stage.getByRole('button', { name: '撤销', exact: true })).toBeDisabled();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
+  }
+
+  /** Keep preset colors first and select a custom color using only picker gestures. */
+  async exerciseColorPicker(): Promise<void> {
+    const colorButton = this.page.getByRole('button', { name: /^选择颜色，/ });
+    const swatch = colorButton.locator('[style*="background-color"]').first();
+    const initialColor = await swatch.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    const colorButtonBounds = await colorButton.boundingBox();
+    await colorButton.click();
+    const palette = this.page.getByLabel('画笔颜色面板', { exact: true });
+    await expect(palette).toBeInViewport({ ratio: 1 });
+    const paletteBounds = await palette.boundingBox();
+    const viewport = this.page.viewportSize();
+    const presetBounds = await this.page
+      .getByRole('button', { name: '粉色', exact: true })
+      .boundingBox();
+    const entryBounds = await this.page
+      .getByRole('button', { name: '展开调色板', exact: true })
+      .boundingBox();
+    if (!paletteBounds || !viewport || !colorButtonBounds || !presetBounds || !entryBounds) {
+      throw new Error('Pictionary color palette has no browser layout box');
+    }
+    expect(entryBounds.width).toBe(presetBounds.width);
+    expect(entryBounds.height).toBe(presetBounds.height);
+    expect(entryBounds.y).toBe(presetBounds.y);
+    if (viewport.width < 600) {
+      expect(paletteBounds.y + paletteBounds.height).toBeCloseTo(viewport.height, 0);
+    } else {
+      expect(colorButtonBounds.y - paletteBounds.y - paletteBounds.height).toBeCloseTo(8, 0);
+    }
+    const panel = this.page.getByLabel('饱和度与明度', { exact: true });
+    const hue = this.page.getByLabel('色相', { exact: true });
+    await expect(panel).toHaveCount(0);
+    await expect(this.page.getByRole('button', { name: '粉色', exact: true })).toBeInViewport({
+      ratio: 1,
+    });
+    await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();
+    await expect(this.page.getByRole('textbox')).toHaveCount(0);
+    await expect(this.page.getByText(/#[0-9a-f]{6}/i)).toHaveCount(0);
+    for (const control of [panel, hue]) {
+      await expect(control).toBeInViewport({ ratio: 1 });
+    }
+    const panelBounds = await panel.boundingBox();
+    const hueBounds = await hue.boundingBox();
+    if (panelBounds === null || hueBounds === null) {
+      throw new Error('Pictionary color picker has no browser layout box');
+    }
+    await this.page.mouse.move(
+      hueBounds.x + hueBounds.width * 0.2,
+      hueBounds.y + hueBounds.height / 2,
+    );
+    await this.page.mouse.down();
+    await this.page.mouse.move(
+      hueBounds.x + hueBounds.width * 0.6,
+      hueBounds.y + hueBounds.height / 2,
+      { steps: 8 },
+    );
+    await this.page.mouse.up();
+    await this.page.mouse.move(
+      panelBounds.x + panelBounds.width * 0.2,
+      panelBounds.y + panelBounds.height * 0.2,
+    );
+    await this.page.mouse.down();
+    await this.page.mouse.move(
+      panelBounds.x + panelBounds.width * 0.7,
+      panelBounds.y + panelBounds.height * 0.4,
+      { steps: 8 },
+    );
+    await this.page.mouse.up();
+    await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
+    await expect(colorButton).toHaveAccessibleName('选择颜色，当前自定义颜色');
+    const selectedColor = await swatch.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    expect(selectedColor).not.toBe(initialColor);
+    await this.drawStroke(2);
+    await colorButton.click();
+    await expect(panel).toHaveCount(0);
+    await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();
+    await expect(panel).toBeInViewport({ ratio: 1 });
+    await this.page.getByRole('button', { name: '返回常用颜色', exact: true }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(this.page.getByRole('button', { name: /^最近颜色 / })).toHaveCount(1);
+    await this.page.getByRole('button', { name: '红色', exact: true }).click();
+    await expect(colorButton).toHaveAccessibleName('选择颜色，当前红色');
+    await colorButton.click();
+    await this.page.getByRole('button', { name: '最近颜色 1', exact: true }).click();
+    await expect(swatch).toHaveCSS('background-color', selectedColor);
   }
 
   /** Draw one non-empty stroke through browser pointer events. */
@@ -291,7 +378,30 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Advance the authoritative gallery cursor from the host controls. */
   async advanceGallery(): Promise<void> {
+    const responsePromise = this.page.waitForResponse((response) => {
+      const request = response.request();
+      if (new URL(response.url()).pathname !== '/room/command' || request.method() !== 'POST') {
+        return false;
+      }
+      const body: unknown = request.postDataJSON();
+      return (
+        typeof body === 'object' &&
+        body !== null &&
+        'command' in body &&
+        typeof body.command === 'object' &&
+        body.command !== null &&
+        'type' in body.command &&
+        body.command.type === 'pictionary.gallery.advance'
+      );
+    });
     await this.page.getByTestId(TESTIDS.pictionaryGalleryAdvanceButton).click();
+    const response = await responsePromise;
+    expect(await response.finished()).toBeNull();
+    expect(response.ok()).toBe(true);
+    expect(await response.json()).toMatchObject({
+      kind: 'committed',
+      outcome: { kind: 'success' },
+    });
   }
 
   /** Wait until all synchronized reveals finish and local browsing begins. */

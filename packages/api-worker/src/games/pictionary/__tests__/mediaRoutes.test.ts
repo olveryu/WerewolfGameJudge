@@ -168,6 +168,103 @@ beforeEach(async () => {
 
 afterEach(deleteCurrentRoomAlarms);
 
+describe('Pictionary spectator media', () => {
+  it('allows unseated viewers to read drawings only after the round reaches gallery', async () => {
+    const host = await createAnonymousSession();
+    const guest = await createAnonymousSession();
+    const room = await createPictionaryRoom(host.access_token);
+    await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } },
+      null,
+    );
+    await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
+    let state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.round.start' },
+      null,
+    );
+    for (let step = 0; step < 2; step += 1) {
+      state = await markEverySeatReady(room, host.access_token, state);
+      for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+        state =
+          step === 0
+            ? await dispatchCommand(
+                room,
+                host.access_token,
+                { type: 'pictionary.text.submit', text: `测试题目 ${seat + 1}` },
+                seat === 0 ? null : seat,
+              )
+            : await commitSeatDrawing(room, host.access_token, seat, seat === 0 ? null : seat);
+      }
+      state = await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+        null,
+      );
+    }
+    expect(state).toMatchObject({ phase: 'answering', stepIndex: 2 });
+    const entry = state.chains
+      .flatMap((chain) => chain.entries)
+      .find((entry) => entry.kind === 'drawing');
+    if (entry === undefined) throw new Error('Round is missing its test drawing');
+    const mediaUrl = `https://test.local/api/games/pictionary/rooms/${room.roomCode}/media/${entry.id}`;
+    const activeRead = await SELF.fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${guest.access_token}` },
+    });
+    expect(activeRead.status).toBe(403);
+    expect(await activeRead.json()).toEqual({
+      success: false,
+      reason: 'PICTIONARY_MEDIA_FORBIDDEN',
+    });
+
+    for (let step = 2; step < state.config.numberOfPlayers; step += 1) {
+      state = await markEverySeatReady(room, host.access_token, state);
+      for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+        state = await dispatchCommand(
+          room,
+          host.access_token,
+          { type: 'pictionary.task.empty.submit' },
+          seat === 0 ? null : seat,
+        );
+      }
+      state = await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+        null,
+      );
+    }
+    expect(state.phase).toBe('gallery');
+    const galleryRead = await SELF.fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${guest.access_token}` },
+    });
+    expect(galleryRead.status).toBe(200);
+    expect(galleryRead.headers.get('content-type')).toBe('image/png');
+    expect(new Uint8Array(await galleryRead.arrayBuffer())).toEqual(createTestPng());
+    const unauthenticatedRead = await SELF.fetch(mediaUrl);
+    expect(unauthenticatedRead.status).toBe(401);
+
+    while (state.phase === 'gallery') {
+      state = await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.gallery.advance' },
+        null,
+      );
+    }
+    expect(state.phase).toBe('ended');
+    const endedRead = await SELF.fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${guest.access_token}` },
+    });
+    expect(endedRead.status).toBe(200);
+    expect(new Uint8Array(await endedRead.arrayBuffer())).toEqual(createTestPng());
+  });
+});
+
 describe('Pictionary controlled bot media', () => {
   it('authorizes host-controlled bot uploads and active-task reads', async () => {
     const host = await createAnonymousSession();

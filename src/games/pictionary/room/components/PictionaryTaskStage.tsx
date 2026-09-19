@@ -10,8 +10,9 @@ import {
   type PictionaryState,
   type PictionaryTask,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -19,13 +20,28 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import {
+  GestureHandlerRootView,
+  ScrollView as GestureScrollView,
+} from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ColorPicker, {
+  type ColorFormatsObject,
+  colorKit,
+  HueSlider,
+  Panel1,
+  Preview,
+} from 'reanimated-color-picker';
 
+import { Modal } from '@/components/AppModal';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import {
   EMPTY_PICTIONARY_DRAWING_DRAFT,
+  isPictionaryDrawingColor,
   PICTIONARY_DRAWING_PALETTE,
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
@@ -49,7 +65,7 @@ import {
 } from '@/games/pictionary/services/PictionaryTextDraftStore';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, fixed, spacing, textStyles, typography } from '@/theme';
+import { borderRadius, colors, fixed, shadows, spacing, textStyles, typography } from '@/theme';
 import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -348,6 +364,225 @@ interface DrawingOptionsProps {
   readonly onClose: () => void;
 }
 
+const COLOR_POPOVER_WIDTH = 320;
+const COLOR_SHEET_BREAKPOINT = 600;
+const RECENT_COLOR_COUNT = 5;
+
+interface ColorOptionButtonProps {
+  readonly label: string;
+  readonly isSelected?: boolean;
+  readonly onPress: () => void;
+  readonly children: React.ReactNode;
+}
+
+const ColorOptionButton: React.FC<ColorOptionButtonProps> = ({
+  label,
+  isSelected = false,
+  onPress,
+  children,
+}) => {
+  const [isLabelVisible, setIsLabelVisible] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isSelected }}
+      onPress={onPress}
+      onHoverIn={() => setIsLabelVisible(true)}
+      onHoverOut={() => setIsLabelVisible(false)}
+      onFocus={() => setIsLabelVisible(true)}
+      onBlur={() => setIsLabelVisible(false)}
+      style={[styles.swatchButton, isSelected && styles.selectedSwatchButton]}
+    >
+      {children}
+      {isLabelVisible && (
+        <View pointerEvents="none" style={styles.tooltip}>
+          <Text style={styles.tooltipText}>{label}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+};
+
+const DrawingColorSwatch: React.FC<{
+  readonly color: PictionaryDrawingColor;
+  readonly label: string;
+  readonly toolbar: DrawingToolbarProps;
+  readonly onClose: () => void;
+}> = ({ color, label, toolbar, onClose }) => {
+  const isSelected = toolbar.color.toUpperCase() === color.toUpperCase();
+  return (
+    <ColorOptionButton
+      label={label}
+      isSelected={isSelected}
+      onPress={() => {
+        toolbar.onColorChange(color);
+        onClose();
+      }}
+    >
+      <View style={[styles.colorTile, { backgroundColor: color }]}>
+        {isSelected && (
+          <Ionicons
+            name="checkmark"
+            size={spacing.screenH}
+            color={colorKit.isDark(color) ? colors.textInverse : colors.text}
+          />
+        )}
+      </View>
+    </ColorOptionButton>
+  );
+};
+
+interface DrawingColorOptionsProps extends Omit<DrawingOptionsProps, 'activePanel'> {
+  readonly anchor: { readonly left: number; readonly top: number };
+  readonly recentColors: readonly PictionaryDrawingColor[];
+}
+
+const DrawingColorPicker: React.FC<{ readonly toolbar: DrawingToolbarProps }> = ({ toolbar }) => {
+  const onColorPick = ({ hex }: ColorFormatsObject) => {
+    if (!isPictionaryDrawingColor(hex)) {
+      throw new Error('[FAIL-FAST] Pictionary picker returned an invalid opaque color');
+    }
+    toolbar.onColorChange(hex);
+  };
+  return (
+    <GestureHandlerRootView style={styles.colorPickerArea}>
+      <GestureScrollView>
+        <ColorPicker
+          value={toolbar.color}
+          onCompleteJS={onColorPick}
+          boundedThumb
+          enableColorAnnouncements={false}
+          sliderThickness={fixed.minTouchTarget}
+          thumbSize={spacing.large}
+          style={styles.colorPicker}
+        >
+          <Panel1
+            accessibilityLabel="饱和度与明度"
+            accessibilityHint="左右调整饱和度，上下调整明度"
+            style={styles.colorPanel}
+          />
+          <HueSlider accessibilityLabel="色相" style={styles.hueSlider} />
+          <View accessibilityLabel="当前颜色预览">
+            <Preview hideText style={styles.colorPreview} />
+          </View>
+        </ColorPicker>
+      </GestureScrollView>
+    </GestureHandlerRootView>
+  );
+};
+
+const DrawingColorOptions: React.FC<DrawingColorOptionsProps> = ({
+  toolbar,
+  onClose,
+  anchor,
+  recentColors,
+}) => {
+  const [isColorPickerVisible, setIsColorPickerVisible] = useState(false);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isCompact = width < COLOR_SHEET_BREAKPOINT;
+  const position = isCompact
+    ? {
+        left: 0,
+        right: 0,
+        bottom: 0,
+        maxHeight: height - insets.top - spacing.medium,
+        paddingBottom: Math.max(insets.bottom, spacing.medium),
+      }
+    : {
+        left: Math.max(
+          spacing.small,
+          Math.min(anchor.left, width - COLOR_POPOVER_WIDTH - spacing.small),
+        ),
+        bottom: height - anchor.top + spacing.small,
+        width: COLOR_POPOVER_WIDTH,
+        maxHeight: anchor.top - insets.top - spacing.medium,
+      };
+  return (
+    <Modal visible={!toolbar.disabled} transparent animationType="none" onRequestClose={onClose}>
+      <View style={StyleSheet.absoluteFill}>
+        <Pressable
+          accessibilityLabel="关闭颜色面板"
+          onPress={onClose}
+          style={StyleSheet.absoluteFill}
+        />
+        <View accessibilityLabel="画笔颜色面板" style={[styles.colorOptions, position]}>
+          <View style={styles.colorHeader}>
+            {isColorPickerVisible && (
+              <ColorOptionButton
+                label="返回常用颜色"
+                onPress={() => setIsColorPickerVisible(false)}
+              >
+                <Ionicons name="arrow-back" size={spacing.screenH} color={colors.text} />
+              </ColorOptionButton>
+            )}
+            <Text accessibilityRole="header" style={styles.colorTitle}>
+              {isColorPickerVisible ? '调色板' : '颜色'}
+            </Text>
+            <View
+              accessibilityLabel="当前颜色"
+              style={[styles.colorCurrent, { backgroundColor: toolbar.color }]}
+            />
+            <ColorOptionButton label="关闭选择面板" onPress={onClose}>
+              <Ionicons name="close" size={spacing.screenH} color={colors.textSecondary} />
+            </ColorOptionButton>
+          </View>
+          {isColorPickerVisible ? (
+            <DrawingColorPicker toolbar={toolbar} />
+          ) : (
+            <View style={styles.colorPaletteBody}>
+              <View style={styles.colorSwatches}>
+                {PICTIONARY_DRAWING_PALETTE.map((swatch) => (
+                  <DrawingColorSwatch
+                    key={swatch.value}
+                    color={swatch.value}
+                    label={swatch.name}
+                    toolbar={toolbar}
+                    onClose={onClose}
+                  />
+                ))}
+                <ColorOptionButton label="展开调色板" onPress={() => setIsColorPickerVisible(true)}>
+                  <LinearGradient
+                    colors={[
+                      PICTIONARY_DRAWING_PALETTE[2].value,
+                      PICTIONARY_DRAWING_PALETTE[4].value,
+                      PICTIONARY_DRAWING_PALETTE[5].value,
+                      PICTIONARY_DRAWING_PALETTE[7].value,
+                      PICTIONARY_DRAWING_PALETTE[8].value,
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.colorTile}
+                  >
+                    <Ionicons name="add" size={spacing.large} color={colors.textInverse} />
+                  </LinearGradient>
+                </ColorOptionButton>
+              </View>
+              {recentColors.length > 0 && (
+                <View style={styles.recentColorSection}>
+                  <Text style={styles.recentColorTitle}>最近使用</Text>
+                  <View style={styles.colorSwatches}>
+                    {recentColors.map((color, index) => (
+                      <DrawingColorSwatch
+                        key={color}
+                        color={color}
+                        label={`最近颜色 ${index + 1}`}
+                        toolbar={toolbar}
+                        onClose={onClose}
+                      />
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const DrawingOptions: React.FC<DrawingOptionsProps> = ({ activePanel, toolbar, onClose }) => (
   <View style={styles.optionGrid}>
     {activePanel === 'tool' && (
@@ -380,29 +615,6 @@ const DrawingOptions: React.FC<DrawingOptionsProps> = ({ activePanel, toolbar, o
         </View>
       </>
     )}
-    {activePanel === 'color' &&
-      PICTIONARY_DRAWING_PALETTE.map((swatch) => (
-        <Pressable
-          key={swatch.value}
-          accessibilityRole="button"
-          accessibilityLabel={swatch.name}
-          accessibilityState={{
-            selected: toolbar.color === swatch.value,
-            disabled: toolbar.disabled,
-          }}
-          disabled={toolbar.disabled}
-          onPress={() => {
-            toolbar.onColorChange(swatch.value);
-            onClose();
-          }}
-          style={[
-            styles.swatchButton,
-            toolbar.color === swatch.value && styles.selectedSwatchButton,
-          ]}
-        >
-          <View style={[styles.swatch, { backgroundColor: swatch.value }]} />
-        </Pressable>
-      ))}
     {activePanel === 'width' &&
       PICTIONARY_DRAWING_WIDTHS.map((width) => (
         <Pressable
@@ -437,10 +649,32 @@ const DrawingOptions: React.FC<DrawingOptionsProps> = ({ activePanel, toolbar, o
 
 const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
   const [activePanel, setActivePanel] = useState<DrawingPanel | null>(null);
+  const [recentColors, setRecentColors] = useState<readonly PictionaryDrawingColor[]>([]);
+  const [colorAnchor, setColorAnchor] = useState<DrawingColorOptionsProps['anchor'] | null>(null);
+  const colorButtonRef = useRef<View>(null);
+  const { width, height } = useWindowDimensions();
+  useLayoutEffect(() => {
+    if (activePanel === 'color') {
+      colorButtonRef.current?.measureInWindow((left, top) => setColorAnchor({ left, top }));
+    }
+  }, [activePanel, width, height]);
+  const rememberColor = () => {
+    const color = toolbar.color;
+    if (!PICTIONARY_DRAWING_PALETTE.some((swatch) => swatch.value === color.toUpperCase())) {
+      setRecentColors((previous) =>
+        [color, ...previous.filter((entry) => entry.toUpperCase() !== color.toUpperCase())].slice(
+          0,
+          RECENT_COLOR_COUNT,
+        ),
+      );
+    }
+  };
   const selectedTool = toolOptions.find((option) => option.tool === toolbar.tool);
-  const selectedColor = PICTIONARY_DRAWING_PALETTE.find((swatch) => swatch.value === toolbar.color);
-  if (selectedTool === undefined || selectedColor === undefined) {
-    throw new Error('[FAIL-FAST] Unknown Pictionary drawing tool or color');
+  const selectedColor = PICTIONARY_DRAWING_PALETTE.find(
+    (swatch) => swatch.value === toolbar.color.toUpperCase(),
+  );
+  if (selectedTool === undefined) {
+    throw new Error('[FAIL-FAST] Unknown Pictionary drawing tool');
   }
   const onClose = () => setActivePanel(null);
   const panelTitle =
@@ -456,16 +690,18 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
         disabled={toolbar.disabled}
         onPress={() => setActivePanel('tool')}
       />
-      <ToolButton
-        label={`选择颜色，当前${selectedColor.name}`}
-        caption="颜色"
-        icon="color-palette-outline"
-        isSelected={false}
-        disabled={toolbar.disabled}
-        onPress={() => setActivePanel('color')}
-      >
-        <View style={[styles.swatch, { backgroundColor: toolbar.color }]} />
-      </ToolButton>
+      <View ref={colorButtonRef} collapsable={false} style={styles.colorButtonAnchor}>
+        <ToolButton
+          label={`选择颜色，当前${selectedColor === undefined ? '自定义颜色' : selectedColor.name}`}
+          caption="颜色"
+          icon="color-palette-outline"
+          isSelected={false}
+          disabled={toolbar.disabled}
+          onPress={() => setActivePanel('color')}
+        >
+          <View style={[styles.swatch, { backgroundColor: toolbar.color }]} />
+        </ToolButton>
+      </View>
       <ToolButton
         label={`选择粗细，当前 ${toolbar.strokeWidth} 像素`}
         caption="粗细"
@@ -497,7 +733,18 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
         disabled={toolbar.disabled || !toolbar.canRedo}
         onPress={toolbar.onRedo}
       />
-      {activePanel !== null && (
+      {activePanel === 'color' && colorAnchor !== null && (
+        <DrawingColorOptions
+          toolbar={toolbar}
+          anchor={colorAnchor}
+          recentColors={recentColors}
+          onClose={() => {
+            rememberColor();
+            onClose();
+          }}
+        />
+      )}
+      {activePanel !== null && activePanel !== 'color' && (
         <BaseCenterModal
           visible={!toolbar.disabled}
           onClose={onClose}
@@ -872,7 +1119,75 @@ const styles = StyleSheet.create({
     borderBottomWidth: fixed.borderWidth,
     borderColor: colors.borderLight,
   },
-  optionsPanel: { width: '90%', maxWidth: 320, borderRadius: borderRadius.medium },
+  optionsPanel: {
+    width: '92%',
+    maxWidth: 360,
+    maxHeight: '90%',
+    borderRadius: borderRadius.medium,
+  },
+  colorButtonAnchor: { flex: 1 },
+  colorOptions: {
+    position: 'absolute',
+    padding: spacing.medium,
+    paddingTop: spacing.small,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.medium,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.borderLight,
+    ...shadows.md,
+  },
+  colorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+    marginBottom: spacing.small,
+  },
+  colorTitle: { ...textStyles.bodyMedium, color: colors.text, flex: 1 },
+  colorCurrent: {
+    width: spacing.large,
+    height: spacing.large,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+  },
+  colorPaletteBody: { gap: spacing.small },
+  colorPickerArea: { height: 240, flexShrink: 1 },
+  colorPicker: { gap: spacing.small },
+  colorPanel: { width: '100%', height: 144, borderRadius: borderRadius.small },
+  hueSlider: { borderRadius: borderRadius.small },
+  colorPreview: {
+    width: '100%',
+    height: spacing.large,
+    borderRadius: borderRadius.small,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+  },
+  colorSwatches: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.tight,
+    maxWidth: COLOR_POPOVER_WIDTH - spacing.medium * 2,
+  },
+  recentColorSection: {
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.borderLight,
+    paddingTop: spacing.small,
+  },
+  recentColorTitle: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.tight,
+  },
+  colorTile: {
+    width: spacing.xlarge,
+    height: spacing.xlarge,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.borderLight,
+  },
   panelHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.small },
   panelTitle: { ...textStyles.subtitle, flex: 1, color: colors.text },
   closeButton: { width: fixed.minTouchTarget },
@@ -919,6 +1234,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: fixed.borderWidthThick,
     borderColor: colors.transparent,
+    borderRadius: borderRadius.full,
   },
   selectedSwatchButton: { borderColor: colors.primary },
   swatch: {
