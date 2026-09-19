@@ -5,9 +5,9 @@ export type {
   WerewolfCommand,
   WerewolfExpectedStep,
   WerewolfInternalCommand,
+  WerewolfMvpSelection,
   WerewolfProfileUpdate,
   WerewolfPublicCommand,
-  WerewolfRestartCompletion,
   WerewolfSeatProfile,
 } from './commands/types';
 export { resolveSeerAudioKey } from './domain/audioKeyOverride';

@@ -14,7 +14,7 @@
 
 import type {
   WerewolfActionInput,
-  WerewolfRestartCompletion,
+  WerewolfMvpSelection,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
@@ -89,7 +89,8 @@ interface WerewolfGameActionsState {
   updateTemplate: (template: GameTemplate) => Promise<void>;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
-  restartGame: (completion?: WerewolfRestartCompletion) => Promise<void>;
+  restartGame: () => Promise<void>;
+  selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   // Player night actions
@@ -173,19 +174,25 @@ interface WerewolfGameActionsDeps {
   }, [client, isHost]);
 
   // Restart game (host only)
-  const restartGame = useCallback(
-    async (completion?: WerewolfRestartCompletion): Promise<void> => {
-      if (!isHost) return;
-      // Stop BGM on restart
-      bgm.stopBgm();
-      // Clear controlled seat on restart
-      if (debug.controlledSeat !== null) {
-        debug.releaseBot();
-      }
-      const result = await client.restartGame(completion);
-      handleCommandOutcome(result, '重新开始', toastError);
+  const restartGame = useCallback(async (): Promise<void> => {
+    if (!isHost) return;
+    // Stop BGM on restart
+    bgm.stopBgm();
+    // Clear controlled seat on restart
+    if (debug.controlledSeat !== null) {
+      debug.releaseBot();
+    }
+    const result = await client.restartGame();
+    handleCommandOutcome(result, '重新开始', toastError);
+  }, [client, bgm, debug, isHost]);
+
+  const selectMvp = useCallback(
+    async (selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome> => {
+      const result = await client.selectMvp(selection);
+      handleCommandOutcome(result, '评选 MVP', toastError);
+      return result;
     },
-    [client, bgm, debug, isHost],
+    [client],
   );
 
   // Clear all seats (host only)
@@ -420,6 +427,7 @@ interface WerewolfGameActionsDeps {
     assignRoles,
     startGame,
     restartGame,
+    selectMvp,
     clearAllSeats,
     shareNightReview,
     viewedRole,

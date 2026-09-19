@@ -882,6 +882,7 @@ export function parseWerewolfState(value: unknown): GameState {
     templateRoles: parseRoleIds(raw.templateRoles, 'GameState.templateRoles'),
     rules: parseOptional(raw.rules, 'GameState.rules', parseRules),
     players: parsePlayers(raw.players, 'GameState.players'),
+    mvpUserId: parseOptional(raw.mvpUserId, 'GameState.mvpUserId', parseNonEmptyString),
     startingParticipants: parseOptional(
       raw.startingParticipants,
       'GameState.startingParticipants',

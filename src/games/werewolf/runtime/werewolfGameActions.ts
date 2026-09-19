@@ -11,8 +11,8 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   type WerewolfActionInput,
   type WerewolfExpectedStep,
+  type WerewolfMvpSelection,
   type WerewolfPublicCommand,
-  type WerewolfRestartCompletion,
 } from '@game-judge/game-engine/games/werewolf/public';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -103,16 +103,21 @@ export function updateTemplate(
   );
 }
 
-export function restartGame(
+export function restartGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, 'restartGame');
+}
+
+/** Submit the selected player for the captured round without restarting it. */
+export function selectMvp(
   ctx: GameActionsContext,
-  completion?: WerewolfRestartCompletion,
+  selection: WerewolfMvpSelection,
 ): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
-    { type: 'werewolf.game.restart', ...(completion === undefined ? {} : { completion }) },
+    { type: 'werewolf.mvp.select', selection: { ...selection } },
     null,
-    'restartGame',
-    completion !== undefined,
+    'selectMvp',
+    true,
   );
 }
 

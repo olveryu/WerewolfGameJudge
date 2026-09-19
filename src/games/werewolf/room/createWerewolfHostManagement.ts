@@ -1,6 +1,7 @@
 /** Pure Werewolf host-management projection. It does not execute or authorize game commands. */
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type {
@@ -19,6 +20,8 @@ interface WerewolfHostManagementInput {
   readonly isAudioPlaying: boolean;
   readonly isStartingGame: boolean;
   readonly isHostActionSubmitting: boolean;
+  readonly mvpSeat: number | null;
+  readonly onSelectMvp: () => void;
   readonly canMarkAllBotsViewed: boolean;
   readonly canMarkAllBotsGroupConfirmed: boolean;
   readonly capabilities: Pick<
@@ -147,6 +150,16 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
     }
     case GameStatus.Ended:
       return [
+        pendingAwareAction(
+          {
+            key: 'select-mvp',
+            label: input.mvpSeat === null ? '评选 MVP' : `本局 MVP：${formatSeat(input.mvpSeat)}`,
+            icon: 'trophy-outline',
+            variant: 'secondary',
+          },
+          input.isHostActionSubmitting || input.mvpSeat !== null,
+          input.onSelectMvp,
+        ),
         createHostControlAction(input, 'restart', {
           key: 'restart',
           label: '重新开始',

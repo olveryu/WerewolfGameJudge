@@ -27,6 +27,7 @@ import {
   prepareAudioAck,
   registerSheriffCandidate,
   restartGame,
+  selectMvp,
   setWolfRobotHunterStatusViewed,
   shareNightReview,
   startNight,
@@ -170,6 +171,20 @@ describe('canonical Werewolf command builders', () => {
     expectCommand({ type: 'werewolf.sheriff.advance' }, null);
     await endSheriffElectionBySelfDestruct(ctx);
     expectCommand({ type: 'werewolf.sheriff.endBySelfDestruct' }, null);
+  });
+
+  it('selects MVP recoverably using the captured round without restarting', async () => {
+    const ctx = createContext(ACTION_STATE);
+    const selection = { roleRevealRandomNonce: 'captured-round', mvpUserId: 'winner' };
+
+    await selectMvp(ctx, selection);
+
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    expect(dispatchMock).toHaveBeenCalledWith(
+      { type: 'werewolf.mvp.select', selection },
+      { controlledSeat: null, label: 'selectMvp', isRecoverable: true },
+    );
+    expect(ctx.getState).not.toHaveBeenCalled();
   });
 
   it('passes controlledSeat only for bot-capable player commands', async () => {

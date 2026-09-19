@@ -9,6 +9,8 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { useRoomHostDialogs } from '@/games/werewolf/room/useRoomHostDialogs';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { showAlert } from '@/utils/alert';
 
 // Mock showAlert
@@ -82,6 +84,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -107,6 +110,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -130,51 +134,50 @@ describe('useRoomHostDialogs', () => {
   });
 
   describe('showRestartDialog', () => {
-    it.each(['test-uid-1', null])(
-      'submits the captured round and MVP selection %s',
-      async (mvpUserId) => {
-        const gameState = createMockGameState(8);
-        gameState.status = GameStatus.Ended;
-        gameState.roleRevealRandomNonce = 'completed-round';
-        gameState.startingParticipants = Array.from(gameState.players.values()).flatMap((player) =>
-          player === null ? [] : [{ userId: player.userId, seat: player.seat }],
-        );
-        const restartGame = jest.fn().mockResolvedValue(undefined);
-        const { result } = renderHook(() =>
-          useRoomHostDialogs({
-            gameState,
-            restartGame,
-            assignRoles: jest.fn(),
-            startGame: jest.fn(),
-            shareNightReviewReport: jest.fn(),
-            setIsStartingGame: jest.fn(),
-            navigation: mockNavigation,
-            roomCode: '1234',
-          }),
-        );
-        act(() => result.current.showRestartDialog());
-        await act(async () => {
-          await mockShowAlert.mock.calls
-            .at(-1)?.[2]
-            ?.find((button) => button.text === '整局结束，评选 MVP')
-            ?.onPress?.();
-        });
-        expect(result.current.mvpSelection?.goldenDraws).toBe(16);
-        expect(result.current.mvpSelection?.participants).toHaveLength(8);
-        gameState.roleRevealRandomNonce = 'next-round';
-        act(() => result.current.mvpSelection?.onSelect(mvpUserId));
-        await act(async () => {
-          await mockShowAlert.mock.calls
-            .at(-1)?.[2]
-            ?.find((button) => button.text === '确定')
-            ?.onPress?.();
-        });
-        expect(restartGame).toHaveBeenCalledWith({
-          roleRevealRandomNonce: 'completed-round',
-          mvpUserId,
-        });
-      },
-    );
+    it('selects MVP for the captured round without restarting and allows cancellation', async () => {
+      const mvpUserId = 'test-uid-1';
+      const gameState = createMockGameState(8);
+      gameState.status = GameStatus.Ended;
+      gameState.roleRevealRandomNonce = 'completed-round';
+      gameState.startingParticipants = Array.from(gameState.players.values()).flatMap((player) =>
+        player === null ? [] : [{ userId: player.userId, seat: player.seat }],
+      );
+      const restartGame = jest.fn().mockResolvedValue(undefined);
+      const selectMvp = jest
+        .fn()
+        .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
+      const { result } = renderHook(() =>
+        useRoomHostDialogs({
+          gameState,
+          restartGame,
+          selectMvp,
+          assignRoles: jest.fn(),
+          startGame: jest.fn(),
+          shareNightReviewReport: jest.fn(),
+          setIsStartingGame: jest.fn(),
+          navigation: mockNavigation,
+          roomCode: '1234',
+        }),
+      );
+      act(() => result.current.showMvpSelection());
+      act(() => result.current.closeMvpSelection());
+      expect(selectMvp).not.toHaveBeenCalled();
+      expect(result.current.mvpSelection).toBeNull();
+      act(() => result.current.showMvpSelection());
+      expect(result.current.mvpSelection?.goldenDraws).toBe(16);
+      expect(result.current.mvpSelection?.participants).toHaveLength(8);
+      gameState.roleRevealRandomNonce = 'next-round';
+      await act(async () => {
+        await result.current.mvpSelection?.onSelect(mvpUserId);
+      });
+      expect(selectMvp).toHaveBeenCalledWith({
+        roleRevealRandomNonce: 'completed-round',
+        mvpUserId,
+      });
+      expect(restartGame).not.toHaveBeenCalled();
+      expect(mockShowAlert).not.toHaveBeenCalled();
+      expect(result.current.mvpSelection).toBeNull();
+    });
 
     it('should show share-before-restart dialog when game is ended', () => {
       const gameState = createMockGameState(8);
@@ -186,6 +189,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -202,8 +206,7 @@ describe('useRoomHostDialogs', () => {
         '重新开始后本局详情将无法查看，是否先分享战报？',
         expect.arrayContaining([
           expect.objectContaining({ text: '分享战报' }),
-          expect.objectContaining({ text: '整局结束，评选 MVP' }),
-          expect.objectContaining({ text: '中途重开（不发 MVP 奖励）' }),
+          expect.objectContaining({ text: '重新开始' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
         ]),
       );
@@ -220,6 +223,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -253,6 +257,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -276,6 +281,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: mockAssignRoles,
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -328,6 +334,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: mockRestartGame,
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
@@ -341,7 +348,7 @@ describe('useRoomHostDialogs', () => {
 
       const alertCall = mockShowAlert.mock.calls[0]!;
       const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
-      const confirmBtn = buttons.find((b) => b.text === '中途重开（不发 MVP 奖励）');
+      const confirmBtn = buttons.find((b) => b.text === '重新开始');
 
       // First press
       await act(async () => {
@@ -374,6 +381,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: mockStartGame,
           restartGame: jest.fn(),
+          selectMvp: jest.fn(),
           shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,

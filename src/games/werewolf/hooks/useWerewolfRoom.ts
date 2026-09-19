@@ -15,7 +15,7 @@
 
 import type {
   WerewolfActionInput,
-  WerewolfRestartCompletion,
+  WerewolfMvpSelection,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
@@ -88,7 +88,8 @@ interface UseWerewolfRoomResult {
   // Game actions (from useWerewolfGameActions)
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
-  restartGame: (completion?: WerewolfRestartCompletion) => Promise<void>;
+  restartGame: () => Promise<void>;
+  selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   viewedRole: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -276,6 +277,7 @@ interface UseWerewolfRoomResult {
     assignRoles: actions.assignRoles,
     startGame: actions.startGame,
     restartGame: actions.restartGame,
+    selectMvp: actions.selectMvp,
     clearAllSeats: actions.clearAllSeats,
     shareNightReview: actions.shareNightReview,
     viewedRole: actions.viewedRole,

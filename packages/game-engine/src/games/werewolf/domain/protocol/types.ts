@@ -250,6 +250,7 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 
   /** Immutable human participants captured at night start, retained through departures. */
   startingParticipants?: readonly { readonly userId: string; readonly seat: number }[];
+  mvpUserId?: string;
 
   /**
    * Player display info (RosterEntry), keyed by userId.

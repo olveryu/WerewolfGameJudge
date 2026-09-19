@@ -83,10 +83,10 @@ function evolveCommittedCommand(
 }
 
 describe('Werewolf authoritative actor resolution', () => {
-  it('binds MVP selection to the completed starting roster and resets it atomically', () => {
+  it.each([4, 6])('selects MVP once without restarting a %s-human game', (humanPlayerCount) => {
     let state = werewolfEngine.createInitialState(
       {
-        templateRoles: Array.from({ length: 6 }, () => 'villager'),
+        templateRoles: Array.from({ length: humanPlayerCount }, () => 'villager'),
         rules: { isSheriffElectionEnabled: false },
       },
       {
@@ -96,7 +96,7 @@ describe('Werewolf authoritative actor resolution', () => {
         commandId: 'create-mvp',
       },
     );
-    for (let seat = 0; seat < 6; seat++) {
+    for (let seat = 0; seat < humanPlayerCount; seat++) {
       const userId = seat === 0 ? 'host' : `human-${seat}`;
       state = evolveCommittedCommand(
         state,
@@ -115,41 +115,60 @@ describe('Werewolf authoritative actor resolution', () => {
     }
     state = evolveCommittedCommand(state, { type: 'werewolf.night.start' }, userContext('host'));
     expect(state.status).toBe(GameStatus.Ended);
-    expect(state.startingParticipants).toHaveLength(6);
+    expect(state.startingParticipants).toHaveLength(humanPlayerCount);
     const command: WerewolfCommand = {
-      type: 'werewolf.game.restart',
-      completion: { roleRevealRandomNonce: null, mvpUserId: 'human-1' },
+      type: 'werewolf.mvp.select',
+      selection: { roleRevealRandomNonce: null, mvpUserId: 'human-1' },
     };
     expect(werewolfEngine.decide(state, command, userContext('human-1')).kind).toBe('reject');
     expect(
       werewolfEngine.decide(
         state,
-        { ...command, completion: { roleRevealRandomNonce: 'stale', mvpUserId: 'human-1' } },
+        { ...command, selection: { roleRevealRandomNonce: 'stale', mvpUserId: 'human-1' } },
         userContext('host'),
       ).kind,
     ).toBe('reject');
     expect(
       werewolfEngine.decide(
         state,
-        { ...command, completion: { roleRevealRandomNonce: null, mvpUserId: 'outsider' } },
+        { ...command, selection: { roleRevealRandomNonce: null, mvpUserId: 'outsider' } },
         userContext('host'),
       ).kind,
     ).toBe('reject');
     const decision = werewolfEngine.decide(state, command, userContext('host'));
     if (decision.kind === 'reject') throw new Error(decision.reason);
-    expect(decision.effects).toEqual([
-      {
-        type: 'werewolf.mvp.awarded',
-        payload: {
-          roundId: 'null',
-          completedAt: 1000,
-          participantUserIds: ['human-1'],
-          humanPlayerCount: 6,
-        },
-      },
-    ]);
-    const restarted = decision.events.reduce(werewolfEngine.evolve, state);
+    expect(decision.effects).toEqual(
+      humanPlayerCount < 6
+        ? []
+        : [
+            {
+              type: 'werewolf.mvp.awarded',
+              payload: {
+                roundId: 'null',
+                completedAt: 1000,
+                participantUserIds: ['human-1'],
+                humanPlayerCount: 6,
+              },
+            },
+          ],
+    );
+    const selected = werewolfEngine.normalize(decision.events.reduce(werewolfEngine.evolve, state));
+    expect(selected).toEqual({ ...state, mvpUserId: 'human-1' });
+    expect(werewolfEngine.decide(selected, command, userContext('host')).kind).toBe('reject');
+    expect(
+      werewolfEngine.decide(
+        selected,
+        { ...command, selection: { ...command.selection, mvpUserId: 'human-2' } },
+        userContext('host'),
+      ).kind,
+    ).toBe('reject');
+    const restarted = evolveCommittedCommand(
+      selected,
+      { type: 'werewolf.game.restart' },
+      userContext('host'),
+    );
     expect(restarted.startingParticipants).toBeUndefined();
+    expect(restarted.mvpUserId).toBeUndefined();
     expect(werewolfEngine.decide(restarted, command, userContext('host')).kind).toBe('reject');
   });
 
@@ -409,6 +428,10 @@ describe('Werewolf engine definition and catalog', () => {
     },
     'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
     'werewolf.game.restart': { type: 'werewolf.game.restart' },
+    'werewolf.mvp.select': {
+      type: 'werewolf.mvp.select',
+      selection: { roleRevealRandomNonce: null, mvpUserId: 'user-1' },
+    },
     'werewolf.bots.markRolesViewed': { type: 'werewolf.bots.markRolesViewed' },
     'werewolf.action.submit': {
       type: 'werewolf.action.submit',

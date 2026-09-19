@@ -29,6 +29,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'rules',
   'players',
   'startingParticipants',
+  'mvpUserId',
   'roster',
   'currentStepIndex',
   'isAudioPlaying',

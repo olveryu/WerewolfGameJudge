@@ -85,6 +85,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     // ── Reset fields ─────────────────────────────────────────
     players,
     startingParticipants: undefined,
+    mvpUserId: undefined,
     status: GameStatus.Seated,
     currentStepIndex: -1, // consistent with buildInitialGameState
     isAudioPlaying: false,

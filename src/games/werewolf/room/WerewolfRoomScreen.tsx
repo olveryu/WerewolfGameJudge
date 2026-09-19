@@ -209,6 +209,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     // Local UI state
     mvpSelection,
     closeMvpSelection,
+    showMvpSelection,
     isStartingGame,
     isHostActionSubmitting,
     isActionSubmitting,
@@ -395,6 +396,11 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         isAudioPlaying,
         isStartingGame,
         isHostActionSubmitting,
+        mvpSeat:
+          gameState.startingParticipants?.find(
+            (participant) => participant.userId === gameState.mvpUserId,
+          )?.seat ?? null,
+        onSelectMvp: showMvpSelection,
         canMarkAllBotsViewed: isDebugMode && roomStatus === GameStatus.Assigned,
         canMarkAllBotsGroupConfirmed:
           isDebugMode &&
@@ -416,6 +422,9 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       executeMarkAllBotsGroupConfirmed,
       executeMarkAllBotsViewed,
       gameState?.rules?.isPlagueMode,
+      gameState.startingParticipants,
+      gameState.mvpUserId,
+      showMvpSelection,
       handleHostControl,
       handleMusicSettings,
       isAudioPlaying,
@@ -716,6 +725,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           {mvpSelection != null && (
             <MvpSelectionModal
               {...mvpSelection}
+              isSubmitting={isHostActionSubmitting}
               onClose={closeMvpSelection}
               styles={mvpSelectionStyles}
             />

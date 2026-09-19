@@ -135,6 +135,7 @@ function createClient(options?: {
     updateTemplate: jest.fn(async () => success()),
     startNight: jest.fn(async () => success()),
     restartGame: jest.fn(async () => success()),
+    selectMvp: jest.fn(async () => success()),
     markAllBotsViewed: jest.fn(async () => success()),
     markAllBotsGroupConfirmed: jest.fn(async () => success()),
     shareNightReview: jest.fn(async () => success()),

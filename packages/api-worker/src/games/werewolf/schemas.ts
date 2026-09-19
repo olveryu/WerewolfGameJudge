@@ -61,14 +61,13 @@ function defineWerewolfPublicCommandOptions<const TOptions extends readonly z.Zo
 const publicCommandOptions = defineWerewolfPublicCommandOptions([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('werewolf.roles.assign') }),
+  z.strictObject({ type: z.literal('werewolf.game.restart') }),
   z.strictObject({
-    type: z.literal('werewolf.game.restart'),
-    completion: z
-      .strictObject({
-        roleRevealRandomNonce: z.string().nullable(),
-        mvpUserId: z.string().min(1).nullable(),
-      })
-      .optional(),
+    type: z.literal('werewolf.mvp.select'),
+    selection: z.strictObject({
+      roleRevealRandomNonce: z.string().nullable(),
+      mvpUserId: z.string().min(1),
+    }),
   }),
   z.strictObject({ type: z.literal('werewolf.bots.markRolesViewed') }),
   z.strictObject({

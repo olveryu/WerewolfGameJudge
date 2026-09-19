@@ -68,6 +68,7 @@ function createMockClient(overrides: Partial<MockClient> = {}): MockClient {
     assignRoles: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     startNight: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
     restartGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue(successfulCommand()),
+    selectMvp: jest.fn().mockResolvedValue(successfulCommand()),
     shareNightReview: jest
       .fn<Promise<MutationResult>, [number[]]>()
       .mockResolvedValue(successfulCommand()),

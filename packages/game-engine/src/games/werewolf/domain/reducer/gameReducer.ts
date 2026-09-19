@@ -61,6 +61,8 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleInitializeGame(state, action);
     case 'RESTART_GAME':
       return handleRestartGame(state, action);
+    case 'SELECT_MVP':
+      return { ...state, mvpUserId: action.mvpUserId };
     case 'UPDATE_TEMPLATE':
       return handleUpdateTemplate(state, action);
     case 'PLAYER_JOIN':

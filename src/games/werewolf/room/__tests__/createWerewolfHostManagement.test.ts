@@ -19,6 +19,8 @@ function createInput(overrides: Record<string, unknown> = {}) {
     isAudioPlaying: false,
     isStartingGame: false,
     isHostActionSubmitting: false,
+    mvpSeat: null,
+    onSelectMvp: jest.fn(),
     isDebugMode: false,
     canMarkAllBotsViewed: false,
     canMarkAllBotsGroupConfirmed: false,
@@ -78,6 +80,24 @@ function createSheriffElection(
 }
 
 describe('createWerewolfHostManagement', () => {
+  it('locks the selected MVP while leaving restart independent', () => {
+    const onSelectMvp = jest.fn();
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        mvpSeat: 2,
+        onSelectMvp,
+      }),
+    );
+    const actions = model!.sections.flatMap((section) => section.actions);
+    expect(actions.find((action) => action.key === 'select-mvp')).toMatchObject({
+      label: '本局 MVP：3号',
+      isEnabled: false,
+    });
+    expect(actions.find((action) => action.key === 'restart')).toMatchObject({ isEnabled: true });
+    expect(onSelectMvp).not.toHaveBeenCalled();
+  });
+
   it('returns null for a non-Host player', () => {
     expect(createWerewolfHostManagement(createInput({ isHost: false }))).toBeNull();
   });
@@ -218,7 +238,13 @@ describe('createWerewolfHostManagement', () => {
       '赛后管理',
       '辅助工具',
     ]);
-    expect(actionLabels(model!)).toEqual(['重新开始', '本局复盘', '昨夜信息', '音乐设置']);
+    expect(actionLabels(model!)).toEqual([
+      '评选 MVP',
+      '重新开始',
+      '本局复盘',
+      '昨夜信息',
+      '音乐设置',
+    ]);
     const reviewAction = model?.sections
       .flatMap((section) => section.actions)
       .find((action) => action.key === 'night-review');

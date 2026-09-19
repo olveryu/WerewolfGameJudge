@@ -317,7 +317,7 @@ export class RoomPage {
     await expect(this.page.getByText('重新开始游戏？', { exact: true })).toBeVisible({
       timeout: 3000,
     });
-    await this.page.getByText('中途重开（不发 MVP 奖励）', { exact: true }).click();
+    await this.page.getByText('重新开始', { exact: true }).click();
     // Wait for restart broadcast — the Host preview changes when the room is ready again.
     await expect(
       this.page.getByRole('button', {

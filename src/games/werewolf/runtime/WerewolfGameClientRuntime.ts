@@ -17,8 +17,8 @@
 
 import type {
   WerewolfActionInput,
+  WerewolfMvpSelection,
   WerewolfPublicCommand,
-  WerewolfRestartCompletion,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
@@ -148,14 +148,17 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    *
    * Server resets state -> WS broadcast pushes new state to all clients.
    */
-  async restartGame(
-    completion?: WerewolfRestartCompletion,
-  ): Promise<WerewolfCommandDispatchOutcome> {
+  async restartGame(): Promise<WerewolfCommandDispatchOutcome> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
     this.#audio.stopNarration();
     this.#audio.clearPreloaded();
     // Server validates hostUserId, client no longer does redundant gating
-    return gameActions.restartGame(this.#getActionsContext(), completion);
+    return gameActions.restartGame(this.#getActionsContext());
+  }
+
+  /** Confirm MVP without changing audio, roles, or review state. */
+  async selectMvp(selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome> {
+    return gameActions.selectMvp(this.#getActionsContext(), selection);
   }
 
   // =========================================================================

@@ -490,6 +490,7 @@ export interface UpdateRosterLevelsAction {
 // =============================================================================
 
 export type StateAction =
+  | { readonly type: 'SELECT_MVP'; readonly mvpUserId: string }
   // Lifecycle
   | InitializeGameAction
   | RestartGameAction

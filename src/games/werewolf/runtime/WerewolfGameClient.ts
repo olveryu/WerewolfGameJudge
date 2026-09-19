@@ -2,8 +2,8 @@
 
 import type {
   WerewolfActionInput,
+  WerewolfMvpSelection,
   WerewolfPublicCommand,
-  WerewolfRestartCompletion,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
@@ -36,7 +36,9 @@ export interface WerewolfGameClient {
   /**
    * Restart game
    */
-  restartGame(completion?: WerewolfRestartCompletion): Promise<WerewolfCommandDispatchOutcome>;
+  restartGame(): Promise<WerewolfCommandDispatchOutcome>;
+  /** Confirm the MVP once for the captured round, retaining the current game. */
+  selectMvp(selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome>;
 
   // === Debug Mode ===
   /**

@@ -41,6 +41,10 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   },
   'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
   'werewolf.game.restart': { type: 'werewolf.game.restart' },
+  'werewolf.mvp.select': {
+    type: 'werewolf.mvp.select',
+    selection: { roleRevealRandomNonce: 'round-1', mvpUserId: 'user-1' },
+  },
   'werewolf.bots.markRolesViewed': { type: 'werewolf.bots.markRolesViewed' },
   'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
   'werewolf.role.view': { type: 'werewolf.role.view' },

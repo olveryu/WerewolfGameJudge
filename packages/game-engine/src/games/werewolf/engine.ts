@@ -2,6 +2,7 @@
 
 import {
   type CommandContext,
+  commit,
   type CommonGameLifecycle,
   type CreateGameContext,
   type Decision,
@@ -103,6 +104,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'room.profile.update':
     case 'werewolf.roles.assign':
     case 'werewolf.game.restart':
+    case 'werewolf.mvp.select':
     case 'werewolf.bots.markRolesViewed':
     case 'werewolf.config.update':
     case 'werewolf.review.share':
@@ -276,39 +278,42 @@ function decideWerewolfCommandRules(
     case 'werewolf.game.restart': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      const completion = command.completion;
-      if (
-        completion !== undefined &&
-        (state.status !== GameStatus.Ended ||
-          state.startingParticipants === undefined ||
-          completion.roleRevealRandomNonce !== (state.roleRevealRandomNonce ?? null) ||
-          (completion.mvpUserId !== null &&
-            !state.startingParticipants.some((player) => player.userId === completion.mvpUserId)))
-      )
-        return reject('无法结算：本局尚未结束、局次已变化或 MVP 不在本局真人名单中');
-      const decision = decideHandler(
+      return decideHandler(
         state,
         handleRestartGame({ type: 'RESTART_GAME' }, actor.value.handlerContext, context),
         context,
       );
-      if (decision.kind === 'reject' || completion === undefined || completion.mvpUserId === null)
-        return decision;
-      if (getMvpGoldenDraws(state.startingParticipants!.length) === 0) return decision;
-      return {
-        ...decision,
-        effects: [
-          ...decision.effects,
-          {
-            type: 'werewolf.mvp.awarded',
-            payload: {
-              roundId: JSON.stringify(completion.roleRevealRandomNonce),
-              completedAt: context.nowMs,
-              participantUserIds: [completion.mvpUserId],
-              humanPlayerCount: state.startingParticipants!.length,
-            },
-          },
-        ],
-      };
+    }
+    case 'werewolf.mvp.select': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      const { selection } = command;
+      if (state.mvpUserId !== undefined) return reject('本局已确认 MVP，不可重复评选');
+      if (
+        state.status !== GameStatus.Ended ||
+        state.startingParticipants === undefined ||
+        selection.roleRevealRandomNonce !== (state.roleRevealRandomNonce ?? null) ||
+        !state.startingParticipants.some((player) => player.userId === selection.mvpUserId)
+      )
+        return reject('无法评选：本局尚未结束、局次已变化或玩家不在本局真人名单中');
+      return commit<StateAction, WerewolfEffect>({
+        events: [{ type: 'SELECT_MVP', mvpUserId: selection.mvpUserId }],
+        broadcast: 'state',
+        effects:
+          getMvpGoldenDraws(state.startingParticipants.length) === 0
+            ? []
+            : [
+                {
+                  type: 'werewolf.mvp.awarded',
+                  payload: {
+                    roundId: JSON.stringify(selection.roleRevealRandomNonce),
+                    completedAt: context.nowMs,
+                    participantUserIds: [selection.mvpUserId],
+                    humanPlayerCount: state.startingParticipants.length,
+                  },
+                },
+              ],
+      });
     }
     case 'werewolf.bots.markRolesViewed': {
       const actor = resolveHostActor(state, context);
