@@ -12,7 +12,10 @@
  * Does not modify GameState directly and does not bypass the client.
  */
 
-import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  WerewolfActionInput,
+  WerewolfRestartCompletion,
+} from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
@@ -86,7 +89,7 @@ interface WerewolfGameActionsState {
   updateTemplate: (template: GameTemplate) => Promise<void>;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
-  restartGame: () => Promise<void>;
+  restartGame: (completion?: WerewolfRestartCompletion) => Promise<void>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   // Player night actions
@@ -170,17 +173,20 @@ interface WerewolfGameActionsDeps {
   }, [client, isHost]);
 
   // Restart game (host only)
-  const restartGame = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
-    // Stop BGM on restart
-    bgm.stopBgm();
-    // Clear controlled seat on restart
-    if (debug.controlledSeat !== null) {
-      debug.releaseBot();
-    }
-    const result = await client.restartGame();
-    handleCommandOutcome(result, '重新开始', toastError);
-  }, [client, bgm, debug, isHost]);
+  const restartGame = useCallback(
+    async (completion?: WerewolfRestartCompletion): Promise<void> => {
+      if (!isHost) return;
+      // Stop BGM on restart
+      bgm.stopBgm();
+      // Clear controlled seat on restart
+      if (debug.controlledSeat !== null) {
+        debug.releaseBot();
+      }
+      const result = await client.restartGame(completion);
+      handleCommandOutcome(result, '重新开始', toastError);
+    },
+    [client, bgm, debug, isHost],
+  );
 
   // Clear all seats (host only)
   const clearAllSeats = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {

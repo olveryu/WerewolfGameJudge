@@ -1,6 +1,17 @@
-import { rollGoldenDraws, rollNormalDraws } from '../earnings';
+import { getMvpGoldenDraws, rollGoldenDraws, rollNormalDraws } from '../earnings';
 
 describe('draw ticket earnings', () => {
+  it.each([
+    [0, 0],
+    [5, 0],
+    [6, 12],
+    [12, 24],
+    [15, 30],
+    [20, 30],
+  ])('awards %s starting humans %s MVP golden draws', (humanPlayerCount, expected) => {
+    expect(getMvpGoldenDraws(humanPlayerCount)).toBe(expected);
+  });
+
   it.each([
     [0, 1],
     [0.299_999, 1],

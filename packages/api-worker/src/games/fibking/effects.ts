@@ -14,6 +14,10 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
+import {
+  gameCompletionPayloadSchema,
+  publishGameRewards,
+} from '../../features/account/settleGameRewards';
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { FibWordInventoryExhaustedError, getOrCreateFibWordSelection } from './wordSelection';
@@ -42,6 +46,7 @@ const recordWordUsageEffectSchema = z.strictObject({
 export const fibEffectSchema: z.ZodType<FibEffect> = z.discriminatedUnion('type', [
   selectWordEffectSchema,
   recordWordUsageEffectSchema,
+  z.strictObject({ type: z.literal('fib.round.ended'), payload: gameCompletionPayloadSchema }),
 ]);
 
 function isSupersededRoundRejection(reason: string): boolean {
@@ -198,6 +203,12 @@ export async function handleFibEffect(
       return;
     case 'fib.word.recordUsage':
       await handleFibRecordWordUsageEffect(effect, context);
+      return;
+    case 'fib.round.ended':
+      await publishGameRewards(
+        { ...effect.payload, kind: 'completion', gameType: 'fibking' },
+        context,
+      );
       return;
   }
 }

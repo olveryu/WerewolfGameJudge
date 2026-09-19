@@ -16,4 +16,14 @@ export interface WerewolfGameEndedEffect {
   };
 }
 
-export type WerewolfEffect = WerewolfGameEndedEffect;
+export interface WerewolfMvpEffect {
+  readonly type: 'werewolf.mvp.awarded';
+  readonly payload: {
+    readonly roundId: string;
+    readonly completedAt: number;
+    readonly participantUserIds: readonly string[];
+    readonly humanPlayerCount: number;
+  };
+}
+
+export type WerewolfEffect = WerewolfGameEndedEffect | WerewolfMvpEffect;

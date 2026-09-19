@@ -22,4 +22,13 @@ export interface FibRecordWordUsageEffect extends GameEffect {
   };
 }
 
-export type FibEffect = FibSelectWordEffect | FibRecordWordUsageEffect;
+export interface FibCompletedEffect extends GameEffect {
+  readonly type: 'fib.round.ended';
+  readonly payload: {
+    readonly roundId: string;
+    readonly completedAt: number;
+    readonly participantUserIds: readonly string[];
+  };
+}
+
+export type FibEffect = FibSelectWordEffect | FibRecordWordUsageEffect | FibCompletedEffect;

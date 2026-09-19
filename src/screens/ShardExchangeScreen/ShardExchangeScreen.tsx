@@ -11,7 +11,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   type ListRenderItemInfo,
   Pressable,
@@ -35,6 +34,7 @@ import {
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
+import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { gachaLog } from '@/utils/logger';
 
@@ -143,7 +143,7 @@ const PREVIEW_SIZE = 56;
   const handleExchange = useCallback(
     (item: ExchangeItem) => {
       const displayName = getRewardDisplayName(productUi, item.type, item.id);
-      Alert.alert('确认兑换', `消耗 ✦ ${item.cost} 碎片兑换「${displayName}」？`, [
+      showAlert('确认兑换', `消耗 ✦ ${item.cost} 碎片兑换「${displayName}」？`, [
         { text: '取消', style: 'cancel' },
         {
           text: '兑换',

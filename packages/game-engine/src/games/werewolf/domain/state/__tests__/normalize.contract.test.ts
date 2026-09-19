@@ -28,6 +28,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'templateRoles',
   'rules',
   'players',
+  'startingParticipants',
   'roster',
   'currentStepIndex',
   'isAudioPlaying',

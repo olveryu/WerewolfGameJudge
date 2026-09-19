@@ -35,9 +35,14 @@ type WerewolfRoomCommand =
   | RoomSeatCommand<WerewolfSeatProfile>
   | RoomProfileUpdateCommand<WerewolfProfileUpdate>;
 
+export interface WerewolfRestartCompletion {
+  readonly roleRevealRandomNonce: string | null;
+  readonly mvpUserId: string | null;
+}
+
 type WerewolfGameCommand =
   | { readonly type: 'werewolf.roles.assign' }
-  | { readonly type: 'werewolf.game.restart' }
+  | { readonly type: 'werewolf.game.restart'; readonly completion?: WerewolfRestartCompletion }
   | { readonly type: 'werewolf.bots.markRolesViewed' }
   | {
       readonly type: 'werewolf.action.submit';

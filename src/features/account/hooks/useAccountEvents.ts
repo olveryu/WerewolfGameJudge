@@ -10,8 +10,8 @@ import { z } from 'zod';
 
 import { useServices } from '@/contexts/ServiceContext';
 import {
-  parseWerewolfUserEvent,
-  type WerewolfSettlementEvent,
+  type AccountSettlementEvent,
+  parseAccountEvent,
 } from '@/features/account/model/accountEvent';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { gachaStatusOptions } from '@/features/gacha/queries/gachaQueryOptions';
@@ -27,26 +27,20 @@ const accountEventResponseSchema = z.strictObject({
 });
 const acknowledgementSchema = z.strictObject({ success: z.literal(true) });
 
-function showSettleToast(result: WerewolfSettlementEvent): void {
+function showSettleToast(result: AccountSettlementEvent): void {
   const leveledUp = result.newLevel > result.previousLevel;
   gameRoomLog.debug('Settle toast', { xpEarned: result.xpEarned, leveledUp });
-
-  if (leveledUp && result.goldenDrawsEarned > 0) {
-    toast.success(`升级 Lv.${result.newLevel}！获得黄金抽奖券`, {
-      description: `+${result.xpEarned} XP · 获得 ${result.normalDrawsEarned} 张抽奖券`,
-      duration: 10000,
-    });
-  } else if (leveledUp) {
+  const description = `+${result.xpEarned} 经验 · ${result.normalDrawsEarned} 普通抽 · ${result.goldenDrawsEarned} 黄金抽`;
+  if (leveledUp) {
     toast.success(`升级 Lv.${result.newLevel}！`, {
-      description: `+${result.xpEarned} XP · 获得 ${result.normalDrawsEarned} 张抽奖券`,
-      duration: 10000,
-    });
-  } else if (result.normalDrawsEarned > 0) {
-    toast.info(`+${result.xpEarned} XP · 获得 ${result.normalDrawsEarned} 张抽奖券`, {
+      description,
       duration: 10000,
     });
   } else {
-    toast.info(`+${result.xpEarned} XP`, { duration: 10000 });
+    toast.info(result.xpEarned === 0 ? 'MVP 奖励到账' : '对局奖励到账', {
+      description,
+      duration: 10000,
+    });
   }
 }
 
@@ -96,7 +90,7 @@ export function useAccountEvents(): void {
             );
             assertActive();
             if (event === null) break;
-            const result = parseWerewolfUserEvent(event.message);
+            const result = parseAccountEvent(event.message);
             if (result.eventId !== event.eventId)
               throw new Error('Account event identity mismatch');
             if (lastDeliveredEventId !== event.eventId) {

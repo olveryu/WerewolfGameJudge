@@ -9,6 +9,10 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
+import {
+  gameCompletionPayloadSchema,
+  publishGameRewards,
+} from '../../features/account/settleGameRewards';
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { settleGameResults } from './settlement/settleGameResults';
@@ -17,21 +21,27 @@ const roleIdSchema = z.custom<RoleId>(
   (value): value is RoleId => typeof value === 'string' && isValidRoleId(value),
 );
 
-export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.strictObject({
-  type: z.literal('werewolf.game.ended'),
-  payload: z.strictObject({
-    roomCode: z.string().min(1),
-    participants: z
-      .array(
-        z.strictObject({
-          userId: z.string().min(1),
-          role: roleIdSchema,
-          isBot: z.boolean(),
-        }),
-      )
-      .min(1),
+export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('werewolf.game.ended'),
+    payload: z.strictObject({
+      roomCode: z.string().min(1),
+      participants: z
+        .array(
+          z.strictObject({
+            userId: z.string().min(1),
+            role: roleIdSchema,
+            isBot: z.boolean(),
+          }),
+        )
+        .min(1),
+    }),
   }),
-});
+  z.strictObject({
+    type: z.literal('werewolf.mvp.awarded'),
+    payload: gameCompletionPayloadSchema.extend({ humanPlayerCount: z.number().int().min(6) }),
+  }),
+]);
 
 async function createApplyRosterCommandId(effectId: string): Promise<string> {
   return createEffectCommandId('werewolf:growth', effectId);
@@ -90,5 +100,9 @@ export async function handleWerewolfEffect(
   effect: WerewolfEffect,
   context: WorkerEffectContext<GameState, WerewolfInternalCommand>,
 ): Promise<void> {
-  await handleGameEnded(effect, context);
+  if (effect.type === 'werewolf.mvp.awarded') {
+    await publishGameRewards({ ...effect.payload, kind: 'mvp', gameType: 'werewolf' }, context);
+  } else {
+    await handleGameEnded(effect, context);
+  }
 }

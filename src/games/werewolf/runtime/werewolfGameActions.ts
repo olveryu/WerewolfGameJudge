@@ -12,6 +12,7 @@ import {
   type WerewolfActionInput,
   type WerewolfExpectedStep,
   type WerewolfPublicCommand,
+  type WerewolfRestartCompletion,
 } from '@game-judge/game-engine/games/werewolf/public';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -102,8 +103,17 @@ export function updateTemplate(
   );
 }
 
-export function restartGame(ctx: GameActionsContext): Promise<WerewolfCommandDispatchOutcome> {
-  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, 'restartGame');
+export function restartGame(
+  ctx: GameActionsContext,
+  completion?: WerewolfRestartCompletion,
+): Promise<WerewolfCommandDispatchOutcome> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.game.restart', ...(completion === undefined ? {} : { completion }) },
+    null,
+    'restartGame',
+    completion !== undefined,
+  );
 }
 
 export function markViewedRole(

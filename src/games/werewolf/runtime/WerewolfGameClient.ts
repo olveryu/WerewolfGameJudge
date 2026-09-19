@@ -3,6 +3,7 @@
 import type {
   WerewolfActionInput,
   WerewolfPublicCommand,
+  WerewolfRestartCompletion,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
@@ -35,7 +36,7 @@ export interface WerewolfGameClient {
   /**
    * Restart game
    */
-  restartGame(): Promise<WerewolfCommandDispatchOutcome>;
+  restartGame(completion?: WerewolfRestartCompletion): Promise<WerewolfCommandDispatchOutcome>;
 
   // === Debug Mode ===
   /**

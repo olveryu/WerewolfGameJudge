@@ -882,6 +882,22 @@ export function parseWerewolfState(value: unknown): GameState {
     templateRoles: parseRoleIds(raw.templateRoles, 'GameState.templateRoles'),
     rules: parseOptional(raw.rules, 'GameState.rules', parseRules),
     players: parsePlayers(raw.players, 'GameState.players'),
+    startingParticipants: parseOptional(
+      raw.startingParticipants,
+      'GameState.startingParticipants',
+      (value, path) =>
+        parseArray(value, path, (item, itemPath) => {
+          const participant = parseObject(item, itemPath);
+          return finishObject(
+            participant,
+            {
+              userId: parseNonEmptyString(participant.userId, `${itemPath}.userId`),
+              seat: parseSeat(participant.seat, `${itemPath}.seat`),
+            },
+            itemPath,
+          );
+        }),
+    ),
     roster: parseRoster(raw.roster, 'GameState.roster'),
     currentStepIndex: parseInteger(raw.currentStepIndex, 'GameState.currentStepIndex'),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),

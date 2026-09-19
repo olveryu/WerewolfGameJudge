@@ -10,6 +10,7 @@ import {
 } from '../../platform/engine';
 import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
 import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
+import { getMvpGoldenDraws } from '../../product/rewards/earnings';
 import type { WerewolfCommand } from './commands/types';
 import { resolveSubmitActionIntent } from './domain/actionInput';
 import {
@@ -275,11 +276,39 @@ function decideWerewolfCommandRules(
     case 'werewolf.game.restart': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
+      const completion = command.completion;
+      if (
+        completion !== undefined &&
+        (state.status !== GameStatus.Ended ||
+          state.startingParticipants === undefined ||
+          completion.roleRevealRandomNonce !== (state.roleRevealRandomNonce ?? null) ||
+          (completion.mvpUserId !== null &&
+            !state.startingParticipants.some((player) => player.userId === completion.mvpUserId)))
+      )
+        return reject('无法结算：本局尚未结束、局次已变化或 MVP 不在本局真人名单中');
+      const decision = decideHandler(
         state,
         handleRestartGame({ type: 'RESTART_GAME' }, actor.value.handlerContext, context),
         context,
       );
+      if (decision.kind === 'reject' || completion === undefined || completion.mvpUserId === null)
+        return decision;
+      if (getMvpGoldenDraws(state.startingParticipants!.length) === 0) return decision;
+      return {
+        ...decision,
+        effects: [
+          ...decision.effects,
+          {
+            type: 'werewolf.mvp.awarded',
+            payload: {
+              roundId: JSON.stringify(completion.roleRevealRandomNonce),
+              completedAt: context.nowMs,
+              participantUserIds: [completion.mvpUserId],
+              humanPlayerCount: state.startingParticipants!.length,
+            },
+          },
+        ],
+      };
     }
     case 'werewolf.bots.markRolesViewed': {
       const actor = resolveHostActor(state, context);

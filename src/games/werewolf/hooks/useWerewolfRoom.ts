@@ -13,7 +13,10 @@
  * Does not call the service layer directly; contains no business callback logic (belongs in sub-hooks).
  */
 
-import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  WerewolfActionInput,
+  WerewolfRestartCompletion,
+} from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
@@ -85,7 +88,7 @@ interface UseWerewolfRoomResult {
   // Game actions (from useWerewolfGameActions)
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
-  restartGame: () => Promise<void>;
+  restartGame: (completion?: WerewolfRestartCompletion) => Promise<void>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
   viewedRole: () => Promise<WerewolfCommandDispatchOutcome>;

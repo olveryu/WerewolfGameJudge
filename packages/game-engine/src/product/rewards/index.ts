@@ -34,7 +34,13 @@ export {
   SHARD_VALUES,
   TOTAL_UNLOCKABLE_COUNT,
 } from './catalog';
-export { rollGoldenDraws, rollNormalDraws } from './earnings';
+export {
+  DAILY_COMPLETION_GOLDEN_DRAWS,
+  GAME_COMPLETION_REWARDS,
+  getMvpGoldenDraws,
+  rollGoldenDraws,
+  rollNormalDraws,
+} from './earnings';
 export {
   type DrawType,
   GOLDEN_RATES,

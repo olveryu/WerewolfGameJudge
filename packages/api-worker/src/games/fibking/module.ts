@@ -24,5 +24,5 @@ export const fibWorkerModule = defineWorkerGameModule({
   getEffectBusinessKey: (effect) => effect.payload.roundId,
   handleEffect: handleFibEffect,
   getEffectFailureCommand: getFibEffectFailureCommand,
-  canReplayFailedEffect: () => false,
+  canReplayFailedEffect: (effect) => effect.type === 'fib.round.ended',
 });

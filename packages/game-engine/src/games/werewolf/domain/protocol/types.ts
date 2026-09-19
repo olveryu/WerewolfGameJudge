@@ -248,6 +248,9 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   // Numeric seat index -> player assignment.
   players: Record<number, Player | null>;
 
+  /** Immutable human participants captured at night start, retained through departures. */
+  startingParticipants?: readonly { readonly userId: string; readonly seat: number }[];
+
   /**
    * Player display info (RosterEntry), keyed by userId.
    * Display fields (displayName / avatarUrl / avatarFrame / level) separated from Player.

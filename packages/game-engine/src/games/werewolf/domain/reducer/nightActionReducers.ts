@@ -38,6 +38,11 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
   return {
     ...state,
     status: GameStatus.Ongoing,
+    startingParticipants: Object.values(state.players).flatMap((player) =>
+      player === null || player.isBot === true
+        ? []
+        : [{ userId: player.userId, seat: player.seat }],
+    ),
     currentStepIndex,
     currentStepId: currentStepId ?? undefined,
     // Audio queue events own isAudioPlaying; step transitions never infer it.

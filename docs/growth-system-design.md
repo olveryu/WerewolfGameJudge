@@ -10,8 +10,8 @@
 - `packages/game-engine/src/product/growth/` 拥有 XP、等级阈值与等级展示算法。
 - `packages/game-engine/src/product/rewards/` 拥有奖励目录、收藏查询、抽卡概率、票券产出与翻牌动画选择。
 - `packages/game-engine/src/platform/random/` 提供可注入 `Rng`、安全随机数和确定性随机数。
-- 具体游戏自行决定何时采用产品能力。当前只有狼人杀的 `werewolf.game.ended` effect 触发成长结算；
-  瞎掰王没有成长 effect，也不会因为共用房间平台而自动获得狼人杀结算。
+- 具体游戏自行决定结算时点：狼人杀保留原首夜结束结算；瞎掰王揭晓答案结算；画画接龙进入画廊结算。
+  狼人杀整局结束后的 MVP 是独立票券奖励，不追加 XP 或对局数。
 
 产品模块是纯 TypeScript，不访问 D1、网络、React 或 Cloudflare binding。Worker game module 负责把 game event
 翻译为产品奖励，客户端只展示服务端已提交的结果。
@@ -75,6 +75,25 @@ rollXp(level) = 50 + randomIntInclusive(0, 20 + level)
 
 ## 5. 奖励与收藏
 
+### 多游戏完成奖励
+
+| 游戏     | 结算时点               | XP             | 普通抽        | 每日黄金抽                   |
+| -------- | ---------------------- | -------------- | ------------- | ---------------------------- |
+| 狼人杀   | 原首夜 / 警长竞选结束  | 原随机公式不变 | 原随机 1–5 次 | 无新增                       |
+| 瞎掰王   | 房主揭晓本轮答案       | 5              | 1             | 当日第 5 轮额外 2 次，仅一次 |
+| 画画接龙 | 全部作品收齐，进入画廊 | 15             | 3             | 当日首次额外 2 次            |
+
+每日按服务端完成时间的北京时间（UTC+8）日期计算。三款游戏共用账户 XP 和等级；任一完成结算升级，
+只抽取一次原有 1–5 次黄金抽奖励，可与每日奖励叠加。只有注册真人参与者领奖，bot、旁观者及匿名账号不领奖。
+画画接龙整局全部为空白 / 缺交的玩家不结算。
+
+### 狼人杀 MVP
+
+房主在重开时确认线下整局已结束，再选择一位开局真人为 MVP，也可跳过。分享战报保留；中途重开不发 MVP 奖励。
+开局真人名单在开始首夜时冻结，离房不减少人数或取消资格；bot 和旁观者不计入。匿名真人计入人数，但不能获得奖励。
+黄金抽次数为 `min(开局真人数 × 2, 30)`；不足 6 名真人可评选但奖励为 0。每局最多奖励一个注册账号一次。
+选择绑定局次 nonce，服务端在重置状态的同一次提交内登记奖励 outbox；旧局次确认不能作用于新局。
+
 `packages/game-engine/src/product/rewards/catalog.ts` 是奖励 ID、类型和稀有度的唯一来源。当前类型包括头像、
 头像框、座位特效、名字样式、翻牌特效和入座动画。
 
@@ -98,6 +117,11 @@ rollXp(level) = 50 + randomIntInclusive(0, 20 + level)
 7. 应用级 `useAccountEvents` 通过认证 HTTP 读取事件，刷新账户查询并展示后才 ACK；失败保留 D1 事件。
 
 `user_stats.last_room_code` 是历史产品字段，不是幂等边界。幂等性由 effect result ledger 保证。
+
+瞎掰王、接龙和 MVP 使用 `features/account/settleGameRewards.ts` 的产品奖励账本。
+`product_game_reward_claims` 冻结房间实例、局次、奖励种类和参与名单；`product_game_reward_results` 保存原始结算结果。
+同一个 D1 batch 完成资格冻结、每日次数判断、读取当前 XP、升级、余额更新和结果落盘。重放返回原结果，
+游客事后注册不会因重试补领旧局。通知写入失败由 outbox 重试，离房后仍通过账户 inbox 收到通知和刷新余额。
 
 ## 7. 客户端
 

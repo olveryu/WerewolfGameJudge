@@ -19,6 +19,7 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { z } from 'zod';
 
+import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 const pictionaryConfigSchema = z.strictObject({
@@ -83,4 +84,7 @@ export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalComman
   },
 );
 
-export const pictionaryEffectSchema = z.never();
+export const pictionaryEffectSchema = z.strictObject({
+  type: z.literal('pictionary.round.completed'),
+  payload: gameCompletionPayloadSchema,
+});

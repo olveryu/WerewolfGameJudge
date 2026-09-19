@@ -786,6 +786,7 @@ describe('Worker ownership: source tree is exact', () => {
       'profile.ts',
       'routes.ts',
       'schemas.ts',
+      'settleGameRewards.ts',
     ]);
     expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'auth'))).toEqual([
       'dbSchema.ts',

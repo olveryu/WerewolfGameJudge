@@ -262,7 +262,19 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
   return state.phase === 'ongoing'
-    ? commitFib([{ type: 'fib.round.ended' }])
+    ? commitFib(
+        [{ type: 'fib.round.ended' }],
+        [
+          {
+            type: 'fib.round.ended',
+            payload: {
+              roundId: state.round.roundId,
+              completedAt: context.nowMs,
+              participantUserIds: getFibParticipantUserIds(state),
+            },
+          },
+        ],
+      )
     : reject(REASON_FIB_ROUND_NOT_ONGOING);
 }
 

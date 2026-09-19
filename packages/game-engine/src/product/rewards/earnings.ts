@@ -2,6 +2,25 @@
 
 import { randomIntInclusive, type Rng, secureRng } from '../../platform/random';
 
+export const GAME_COMPLETION_REWARDS = {
+  fibking: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
+  pictionary: { xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+} as const;
+
+export const DAILY_COMPLETION_GOLDEN_DRAWS = 2;
+const MVP_MIN_HUMAN_PLAYERS = 6;
+const MVP_GOLDEN_DRAWS_PER_PLAYER = 2;
+const MVP_MAX_GOLDEN_DRAWS = 30;
+
+/** Calculate the single MVP award from the immutable starting human roster. */
+export function getMvpGoldenDraws(humanPlayerCount: number): number {
+  if (!Number.isSafeInteger(humanPlayerCount) || humanPlayerCount < 0) {
+    throw new Error('[FAIL-FAST] MVP human player count must be a nonnegative safe integer');
+  }
+  if (humanPlayerCount < MVP_MIN_HUMAN_PLAYERS) return 0;
+  return Math.min(humanPlayerCount * MVP_GOLDEN_DRAWS_PER_PLAYER, MVP_MAX_GOLDEN_DRAWS);
+}
+
 interface DrawWeight {
   readonly draws: number;
   readonly cumulativeWeight: number;

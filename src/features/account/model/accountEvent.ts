@@ -1,9 +1,9 @@
-/** Werewolf realtime user-event schema and strict parser. */
+/** Account settlement notifications shared by all games; strictly decoded at the inbox boundary. */
 
-export interface WerewolfSettlementEvent {
+export interface AccountSettlementEvent {
   readonly type: 'SETTLE_RESULT';
   readonly eventId: string;
-  readonly gameType: 'werewolf';
+  readonly gameType: 'werewolf' | 'fibking' | 'pictionary';
   readonly settlementId: string;
   readonly endedRevision: number;
   readonly xpEarned: number;
@@ -13,8 +13,6 @@ export interface WerewolfSettlementEvent {
   readonly normalDrawsEarned: number;
   readonly goldenDrawsEarned: number;
 }
-
-export type WerewolfUserEvent = WerewolfSettlementEvent;
 
 function isRecord(data: unknown): data is Record<string, unknown> {
   return typeof data === 'object' && data !== null && !Array.isArray(data);
@@ -40,8 +38,8 @@ function requireNonEmptyString(value: unknown, fieldName: string): string {
   return value;
 }
 
-export function parseWerewolfUserEvent(value: unknown): WerewolfUserEvent {
-  if (!isRecord(value)) throw new Error('Werewolf user event must be an object');
+export function parseAccountEvent(value: unknown): AccountSettlementEvent {
+  if (!isRecord(value)) throw new Error('Account event must be an object');
   const expectedKeys = [
     'type',
     'eventId',
@@ -65,9 +63,13 @@ export function parseWerewolfUserEvent(value: unknown): WerewolfUserEvent {
     throw new Error(`SETTLE_RESULT is missing field: ${missingKey}`);
   }
   if (value.type !== 'SETTLE_RESULT') {
-    throw new Error(`Unsupported Werewolf user event type: ${String(value.type)}`);
+    throw new Error(`Unsupported account event type: ${String(value.type)}`);
   }
-  if (value.gameType !== 'werewolf') {
+  if (
+    value.gameType !== 'werewolf' &&
+    value.gameType !== 'fibking' &&
+    value.gameType !== 'pictionary'
+  ) {
     throw new Error(`SETTLE_RESULT gameType is invalid: ${String(value.gameType)}`);
   }
   return {

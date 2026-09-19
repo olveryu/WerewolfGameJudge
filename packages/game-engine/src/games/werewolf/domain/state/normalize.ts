@@ -151,6 +151,7 @@ export function normalizeState(raw: GameState): GameState {
     rules: raw.rules,
     // Player keys retain the authoritative state representation.
     players: requireField(raw.players, 'players'),
+    startingParticipants: raw.startingParticipants,
     // Player display info (roster), keyed by userId
     roster: raw.roster ?? {},
     currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),

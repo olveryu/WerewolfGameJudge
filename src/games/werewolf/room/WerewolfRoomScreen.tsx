@@ -51,6 +51,7 @@ import { createBoardInfoStyles } from './components/boardInfo.styles';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
+import { createMvpSelectionStyles, MvpSelectionModal } from './components/MvpSelectionModal';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { RoleCardModal } from './components/RoleCardModal';
@@ -206,6 +207,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     profileSelection,
     closeProfile,
     // Local UI state
+    mvpSelection,
+    closeMvpSelection,
     isStartingGame,
     isHostActionSubmitting,
     isActionSubmitting,
@@ -246,6 +249,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   } = useWerewolfRoomScreenState(room, navigation, entryController, client);
 
   const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
+  const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
   const isSheriffInspectorVisible =
     sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
   const openSheriffDetails = useCallback(() => {
@@ -709,6 +713,13 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       }
       gameOverlays={
         <>
+          {mvpSelection != null && (
+            <MvpSelectionModal
+              {...mvpSelection}
+              onClose={closeMvpSelection}
+              styles={mvpSelectionStyles}
+            />
+          )}
           {sheriffElectionPanel !== null && !isSheriffInspectorVisible && (
             <SheriffElectionSheet
               visible={isSheriffDetailsVisible}

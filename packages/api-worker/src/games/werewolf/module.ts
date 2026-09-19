@@ -18,7 +18,7 @@ import {
 
 export const werewolfWorkerModule = defineWorkerGameModule({
   getEffectFailureCommand: () => null,
-  canReplayFailedEffect: (effect) => effect.type === 'werewolf.game.ended',
+  canReplayFailedEffect: () => true,
   gameType: 'werewolf',
   engine: werewolfEngine,
   stateCodec: WEREWOLF_STATE_CODEC,
@@ -34,6 +34,9 @@ export const werewolfWorkerModule = defineWorkerGameModule({
   ],
   parsePublicUserStats: parseWerewolfPublicStats,
   getPublicUserStats: getWerewolfPublicUserStats,
-  getEffectBusinessKey: (_effect, context) => `revision:${context.createdRevision}`,
+  getEffectBusinessKey: (effect, context) =>
+    effect.type === 'werewolf.mvp.awarded'
+      ? effect.payload.roundId
+      : `revision:${context.createdRevision}`,
   handleEffect: handleWerewolfEffect,
 });

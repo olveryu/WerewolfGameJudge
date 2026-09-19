@@ -99,6 +99,59 @@ function advancePastAnsweringStep(state: PictionaryState): PictionaryState {
 }
 
 describe('Pictionary task sequence', () => {
+  it.each([true, false])(
+    'settles at gallery entry and excludes blank-only players (hasContent=%s)',
+    (hasContent) => {
+      let state = dispatch(
+        createFullLobby(),
+        { type: 'pictionary.round.start' },
+        userContext('user-0'),
+      );
+      for (let step = 0; step < 4; step += 1) {
+        state = expireCurrentPhase(state);
+        for (let seat = 0; seat < 4; seat += 1) {
+          state = dispatch(
+            state,
+            hasContent && step === 0 && seat === 0
+              ? { type: 'pictionary.text.submit', text: '画一座山' }
+              : { type: 'pictionary.task.empty.submit' },
+            userContext(`user-${seat}`, 10_000 + step * 1000 + seat),
+          );
+        }
+        const context = userContext('user-0', state.deadlineAt!);
+        const decision = decidePictionaryCommand(
+          state,
+          { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+          context,
+        );
+        if (decision.kind === 'reject') throw new Error(decision.reason);
+        expect(decision.effects).toEqual(
+          step === 3
+            ? [
+                {
+                  type: 'pictionary.round.completed',
+                  payload: {
+                    roundId: state.roundId,
+                    completedAt: context.nowMs,
+                    participantUserIds: hasContent ? ['user-0'] : [],
+                  },
+                },
+              ]
+            : [],
+        );
+        state = applyDecision(state, decision);
+      }
+      expect(state.phase).toBe('gallery');
+      const decision = decidePictionaryCommand(
+        state,
+        { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+        userContext('user-0', state.deadlineAt!),
+      );
+      if (decision.kind === 'reject') throw new Error(decision.reason);
+      expect(decision.effects).toEqual([]);
+    },
+  );
+
   it('pauses at each album end until the host advances, including the final album', () => {
     let state = dispatch(
       createFullLobby(),

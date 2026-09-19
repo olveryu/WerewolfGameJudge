@@ -79,6 +79,35 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+it.each(['fibking', 'pictionary'])(
+  'presents %s daily golden rewards without requiring a level-up',
+  async (gameType) => {
+    mockGet.mockResolvedValueOnce({
+      event: {
+        ...event,
+        message: {
+          ...event.message,
+          gameType,
+          previousLevel: 2,
+          goldenDrawsEarned: 2,
+        },
+      },
+    });
+    const { unmount } = renderHook(useAccountEvents);
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    expect(toast.info).toHaveBeenCalledWith(
+      '对局奖励到账',
+      expect.objectContaining({
+        description: `+${event.message.xpEarned} 经验 · ${event.message.normalDrawsEarned} 普通抽 · 2 黄金抽`,
+      }),
+    );
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    unmount();
+  },
+);
+
 it('refreshes before presentation, retries an uncertain ACK without another toast, and pauses hidden', async () => {
   mockGet.mockResolvedValueOnce({ event }).mockResolvedValueOnce({ event });
   mockPost.mockRejectedValueOnce(new Error('ack response lost'));

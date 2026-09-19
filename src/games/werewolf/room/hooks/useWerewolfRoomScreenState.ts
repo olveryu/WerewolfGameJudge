@@ -456,6 +456,8 @@ export function useWerewolfRoomScreenState(
     showRestartDialog,
     handleSettingsPress,
     isHostActionSubmitting,
+    mvpSelection,
+    closeMvpSelection,
   } = useRoomHostDialogs({
     gameState,
     assignRoles,
@@ -811,6 +813,8 @@ export function useWerewolfRoomScreenState(
     closeProfile: profileController.close,
 
     // ── Local UI state ──
+    mvpSelection,
+    closeMvpSelection,
     isStartingGame,
     isHostActionSubmitting,
     isActionSubmitting,

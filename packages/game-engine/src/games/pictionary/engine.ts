@@ -72,8 +72,11 @@ import { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/ver
 
 type PictionaryDecision = Decision<PictionaryEvent, PictionaryEffect>;
 
-function commitPictionary(events: readonly PictionaryEvent[]): PictionaryDecision {
-  return commit({ events, broadcast: events.length === 0 ? 'none' : 'state' });
+function commitPictionary(
+  events: readonly PictionaryEvent[],
+  effects: readonly PictionaryEffect[] = [],
+): PictionaryDecision {
+  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
 }
 
 function requireLobby(state: PictionaryState): PictionaryDecision | null {
@@ -483,8 +486,34 @@ function expireTransitionPhase(
   context: CommandContext,
 ): PictionaryDecision {
   const nextStepIndex = state.stepIndex + 1;
+  if (state.roundId === null) throw new Error('[FAIL-FAST] Transition requires a round');
   return nextStepIndex === getPictionaryRelayStepCount(state.config.numberOfPlayers)
-    ? commitPictionary([galleryStartEvent(state, context.nowMs)])
+    ? commitPictionary(
+        [galleryStartEvent(state, context.nowMs)],
+        [
+          {
+            type: 'pictionary.round.completed',
+            payload: {
+              roundId: state.roundId,
+              completedAt: context.nowMs,
+              participantUserIds: Object.values(state.realSeats)
+                .filter(
+                  (player) =>
+                    player !== undefined &&
+                    state.chains.some((chain) =>
+                      chain.entries.some(
+                        (entry) =>
+                          entry.authorSeat === player.seat &&
+                          (entry.kind === 'drawing' ||
+                            (entry.kind === 'text' && entry.text.trim().length > 0)),
+                      ),
+                    ),
+                )
+                .map((player) => player!.userId),
+            },
+          },
+        ],
+      )
     : commitPictionary([
         phaseChangedEvent(
           state,

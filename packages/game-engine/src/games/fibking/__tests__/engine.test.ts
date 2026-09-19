@@ -105,6 +105,31 @@ function startPreparing(state: FibState, commandId = 'round-command-1'): FibStat
   return dispatch(state, { type: 'fib.round.start' }, userContext('host', { commandId }));
 }
 
+it('emits a completion reward roster only on the first host reveal', () => {
+  const state = completeRound(
+    startPreparing(createFullLobby()),
+    '云朵',
+    '悬浮在空中的水滴或冰晶集合',
+  );
+  const decision = decideFibCommand(state, { type: 'fib.round.reveal' }, userContext('host'));
+  expect(decision.kind).toBe('commit');
+  if (decision.kind !== 'commit') throw new Error(decision.reason);
+  expect(decision.effects).toEqual([
+    {
+      type: 'fib.round.ended',
+      payload: {
+        roundId: state.round!.roundId,
+        completedAt: 2000,
+        participantUserIds: ['host'],
+      },
+    },
+  ]);
+  const ended = applyDecision(state, decision);
+  expect(decideFibCommand(ended, { type: 'fib.round.reveal' }, userContext('host')).kind).toBe(
+    'reject',
+  );
+});
+
 function completeRound(
   state: FibState,
   word: string,

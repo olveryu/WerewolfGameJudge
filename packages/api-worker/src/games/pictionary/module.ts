@@ -6,6 +6,7 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { z } from 'zod';
 
+import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { pictionaryMediaRoutes } from './mediaRoutes';
 import {
@@ -21,7 +22,7 @@ const pictionaryPublicStatsSchema = z.strictObject({
 
 export const pictionaryWorkerModule = defineWorkerGameModule({
   getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => false,
+  canReplayFailedEffect: () => true,
   gameType: 'pictionary',
   engine: pictionaryEngine,
   stateCodec: PICTIONARY_STATE_CODEC,
@@ -37,9 +38,7 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
   ],
   parsePublicUserStats: (value) => pictionaryPublicStatsSchema.parse(value),
   getPublicUserStats: () => Promise.resolve({ gameType: 'pictionary' as const }),
-  getEffectBusinessKey: (_effect, context) => `revision:${context.createdRevision}`,
-  handleEffect: (effect) => {
-    const exhaustive: never = effect;
-    throw new Error(`Pictionary emitted an unsupported effect: ${String(exhaustive)}`);
-  },
+  getEffectBusinessKey: (effect) => effect.payload.roundId,
+  handleEffect: (effect, context) =>
+    publishGameRewards({ ...effect.payload, kind: 'completion', gameType: 'pictionary' }, context),
 });

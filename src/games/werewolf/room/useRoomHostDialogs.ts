@@ -4,7 +4,11 @@
  * Centralizes all Host-related dialog logic and alert text.
  * WerewolfRoomScreen only needs to call these returned functions.
  */
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  type WerewolfRestartCompletion,
+} from '@game-judge/game-engine/games/werewolf/public';
+import { getMvpGoldenDraws } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useRef, useState } from 'react';
 
@@ -19,7 +23,7 @@ interface UseRoomHostDialogsParams {
   gameState: LocalGameState;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
-  restartGame: () => Promise<void>;
+  restartGame: (completion?: WerewolfRestartCompletion) => Promise<void>;
   /** Share night review report. Returns true on success, false on failure. */
   shareNightReviewReport: () => Promise<boolean>;
 
@@ -30,6 +34,12 @@ interface UseRoomHostDialogsParams {
 }
 
 interface UseRoomHostDialogsResult {
+  mvpSelection: {
+    participants: readonly { userId: string; seat: number; displayName: string }[];
+    goldenDraws: number;
+    onSelect: (userId: string | null) => void;
+  } | null;
+  closeMvpSelection: () => void;
   showPrepareToFlipDialog: () => void;
   showStartGameDialog: () => void;
   showRestartDialog: () => void;
@@ -51,6 +61,8 @@ export const useRoomHostDialogs = ({
 }: UseRoomHostDialogsParams): UseRoomHostDialogsResult => {
   const submittingRef = useRef(false);
   const [isHostActionSubmitting, setIsHostActionSubmitting] = useState(false);
+  const [mvpSelection, setMvpSelection] = useState<UseRoomHostDialogsResult['mvpSelection']>(null);
+  const closeMvpSelection = useCallback(() => setMvpSelection(null), []);
 
   /** Mark submission start (ref + state). */
   const markSubmitting = useCallback((v: boolean) => {
@@ -117,28 +129,31 @@ export const useRoomHostDialogs = ({
     showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => handleStartGame());
   }, [handleStartGame]);
 
-  const handleRestart = useCallback(async () => {
-    if (submittingRef.current) return;
-    markSubmitting(true);
-    roomScreenLog.debug('Restarting game');
-    try {
-      await restartGame();
-    } catch (err) {
-      handleError(err, {
-        label: '重新开始',
-        logger: roomScreenLog,
-        feedback: 'toast',
-      });
-      throw err;
-    } finally {
-      markSubmitting(false);
-    }
-  }, [restartGame, markSubmitting]);
+  const handleRestart = useCallback(
+    async (completion?: WerewolfRestartCompletion) => {
+      if (submittingRef.current) return;
+      markSubmitting(true);
+      roomScreenLog.debug('Restarting game');
+      try {
+        await restartGame(completion);
+      } catch (err) {
+        handleError(err, {
+          label: '重新开始',
+          logger: roomScreenLog,
+          feedback: 'toast',
+        });
+        throw err;
+      } finally {
+        markSubmitting(false);
+      }
+    },
+    [restartGame, markSubmitting],
+  );
 
   const showRestartDialog = useCallback(() => {
     if (gameState.status !== GameStatus.Ended) {
       // Game not ended — no complete report to share, plain restart
-      showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', handleRestart);
+      showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', () => handleRestart());
       return;
     }
 
@@ -151,11 +166,44 @@ export const useRoomHostDialogs = ({
         },
       },
       {
-        text: '直接开始',
-        onPress: handleRestart,
+        text: '整局结束，评选 MVP',
+        onPress: () => {
+          const participants = gameState.startingParticipants;
+          if (participants === undefined) {
+            showDismissAlert('无法评选 MVP', '本局缺少开局真人名单');
+            return;
+          }
+          const goldenDraws = getMvpGoldenDraws(participants.length);
+          const roleRevealRandomNonce = gameState.roleRevealRandomNonce ?? null;
+          setMvpSelection({
+            participants: participants.map((participant) => {
+              const player = gameState.players.get(participant.seat);
+              return {
+                ...participant,
+                displayName:
+                  player?.userId === participant.userId ? (player.displayName ?? '') : '已离房',
+              };
+            }),
+            goldenDraws,
+            onSelect: (mvpUserId) => {
+              closeMvpSelection();
+              showConfirmAlert(
+                '确认整局结束并重开？',
+                mvpUserId === null
+                  ? '本局不评选 MVP，使用相同配置开始新一局。'
+                  : `MVP 获得 ${goldenDraws} 次黄金抽（仅注册账号）。确认后不可更改。`,
+                () => handleRestart({ roleRevealRandomNonce, mvpUserId }),
+              );
+            },
+          });
+        },
+      },
+      {
+        text: '中途重开（不发 MVP 奖励）',
+        onPress: () => handleRestart(),
       },
     ]);
-  }, [gameState.status, shareNightReviewReport, handleRestart]);
+  }, [gameState, shareNightReviewReport, handleRestart, closeMvpSelection]);
 
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('GameConfig', {
@@ -166,6 +214,8 @@ export const useRoomHostDialogs = ({
   }, [navigation, roomCode]);
 
   return {
+    mvpSelection,
+    closeMvpSelection,
     showPrepareToFlipDialog,
     showStartGameDialog,
     showRestartDialog,

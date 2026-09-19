@@ -83,6 +83,76 @@ function evolveCommittedCommand(
 }
 
 describe('Werewolf authoritative actor resolution', () => {
+  it('binds MVP selection to the completed starting roster and resets it atomically', () => {
+    let state = werewolfEngine.createInitialState(
+      {
+        templateRoles: Array.from({ length: 6 }, () => 'villager'),
+        rules: { isSheriffElectionEnabled: false },
+      },
+      {
+        roomCode: 'mvp',
+        hostUserId: 'host',
+        nowMs: 1,
+        commandId: 'create-mvp',
+      },
+    );
+    for (let seat = 0; seat < 6; seat++) {
+      const userId = seat === 0 ? 'host' : `human-${seat}`;
+      state = evolveCommittedCommand(
+        state,
+        { type: 'room.seat.take', seat, profile: { displayName: userId } },
+        userContext(userId),
+      );
+    }
+    state = evolveCommittedCommand(state, { type: 'werewolf.roles.assign' }, userContext('host'));
+    for (const player of Object.values(state.players)) {
+      if (player !== null)
+        state = evolveCommittedCommand(
+          state,
+          { type: 'werewolf.role.view' },
+          userContext(player.userId),
+        );
+    }
+    state = evolveCommittedCommand(state, { type: 'werewolf.night.start' }, userContext('host'));
+    expect(state.status).toBe(GameStatus.Ended);
+    expect(state.startingParticipants).toHaveLength(6);
+    const command: WerewolfCommand = {
+      type: 'werewolf.game.restart',
+      completion: { roleRevealRandomNonce: null, mvpUserId: 'human-1' },
+    };
+    expect(werewolfEngine.decide(state, command, userContext('human-1')).kind).toBe('reject');
+    expect(
+      werewolfEngine.decide(
+        state,
+        { ...command, completion: { roleRevealRandomNonce: 'stale', mvpUserId: 'human-1' } },
+        userContext('host'),
+      ).kind,
+    ).toBe('reject');
+    expect(
+      werewolfEngine.decide(
+        state,
+        { ...command, completion: { roleRevealRandomNonce: null, mvpUserId: 'outsider' } },
+        userContext('host'),
+      ).kind,
+    ).toBe('reject');
+    const decision = werewolfEngine.decide(state, command, userContext('host'));
+    if (decision.kind === 'reject') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([
+      {
+        type: 'werewolf.mvp.awarded',
+        payload: {
+          roundId: 'null',
+          completedAt: 1000,
+          participantUserIds: ['human-1'],
+          humanPlayerCount: 6,
+        },
+      },
+    ]);
+    const restarted = decision.events.reduce(werewolfEngine.evolve, state);
+    expect(restarted.startingParticipants).toBeUndefined();
+    expect(werewolfEngine.decide(restarted, command, userContext('host')).kind).toBe('reject');
+  });
+
   it('resolves the real user seat and host-controlled bot seat', () => {
     const state = createState();
 
