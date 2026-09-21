@@ -2,7 +2,7 @@
 
 import type { CreateGameContext } from '../../../platform/engine';
 import { pictionaryEngine } from '../engine';
-import { parsePictionaryState } from '../state/parseState';
+import { migratePersistedPictionaryState, parsePictionaryState } from '../state/parseState';
 import { DEFAULT_PICTIONARY_CONFIG } from '../state/types';
 import { PICTIONARY_STATE_VERSION } from '../state/version';
 
@@ -44,11 +44,16 @@ describe('Pictionary state parsing', () => {
     );
   });
 
-  it('rejects rooms persisted with the previous state version', () => {
+  it('migrates a persisted lobby but keeps the network decoder current-version only', () => {
     const state = pictionaryEngine.createInitialState(DEFAULT_PICTIONARY_CONFIG, CREATE_CONTEXT);
+    const legacy: Record<string, unknown> = { ...state, stateVersion: 6 };
+    delete legacy.stepOffsets;
 
-    expect(() =>
-      parsePictionaryState({ ...state, stateVersion: PICTIONARY_STATE_VERSION - 1 }),
-    ).toThrow(`PictionaryState.stateVersion must be state version ${PICTIONARY_STATE_VERSION}`);
+    expect(migratePersistedPictionaryState(legacy)).toEqual(state);
+    expect(migratePersistedPictionaryState(state)).toEqual(state);
+
+    expect(() => parsePictionaryState(legacy)).toThrow(
+      `PictionaryState.stateVersion must be state version ${PICTIONARY_STATE_VERSION}`,
+    );
   });
 });

@@ -226,6 +226,30 @@ function createInitializationJson(
   });
 }
 
+function migrateReceiptResult(
+  value: unknown,
+  stateVersion: number,
+  module: RuntimeWorkerGameModule,
+  migrateState: (value: unknown) => BaseGameState<GameType>,
+): RoomCommandResult<BaseGameState<GameType>> {
+  if (!isRecord(value) || value.kind !== 'committed') return module.parseCommandResult(value);
+  const snapshot = value.snapshot;
+  if (
+    !isRecord(snapshot) ||
+    snapshot.gameType !== module.gameType ||
+    snapshot.stateVersion !== stateVersion ||
+    !isRecord(snapshot.state) ||
+    snapshot.state.stateVersion !== stateVersion
+  ) {
+    throw new Error('Stored command receipt version does not match its snapshot');
+  }
+  const state = migrateState(snapshot.state);
+  return module.parseCommandResult({
+    ...value,
+    snapshot: { ...snapshot, stateVersion: state.stateVersion, state },
+  });
+}
+
 /** SQL operations remain synchronous except the transaction that also installs an alarm. */
 export class RoomRepository {
   readonly #storage: DurableObjectStorage;
@@ -282,7 +306,62 @@ export class RoomRepository {
     if (rows.length !== 1) {
       throw new Error(`room_state must contain at most one row, received ${rows.length}`);
     }
-    return parseRoomRow(rows[0], this.#resolveGameModule);
+    const raw = rows[0];
+    const gameType = parseGameType(raw.game_type);
+    const module = this.#resolveGameModule(gameType);
+    const stateVersion = parsePositiveInteger(raw.state_version, 'room_state.state_version');
+    if (stateVersion === module.stateVersion) return parseRoomRow(raw, this.#resolveGameModule);
+    const migrateState = module.migratePersistedState;
+    if (stateVersion > module.stateVersion || migrateState === null) {
+      throw new Error(`Unsupported ${gameType} state version: ${stateVersion}`);
+    }
+    return this.#storage.transactionSync(() => {
+      const persistedState: unknown = JSON.parse(
+        parseNonEmptyString(raw.game_state, 'room_state.game_state'),
+      );
+      if (!isRecord(persistedState) || persistedState.stateVersion !== stateVersion) {
+        throw new Error('Stored room version does not match its state');
+      }
+      const state = migrateState(persistedState);
+      const migrated = parseRoomRow(
+        {
+          ...raw,
+          state_version: state.stateVersion,
+          game_state: canonicalJson(state),
+        },
+        this.#resolveGameModule,
+      );
+      const receipts = this.#sql
+        .exec('SELECT command_id, game_type, state_version, result_json FROM command_receipts')
+        .toArray();
+      for (const receipt of receipts) {
+        if (parseGameType(receipt.game_type) !== gameType) {
+          throw new Error('Stored command receipt game type does not match its room');
+        }
+        const receiptVersion = parsePositiveInteger(
+          receipt.state_version,
+          'command_receipts.state_version',
+        );
+        const result = migrateReceiptResult(
+          JSON.parse(parseNonEmptyString(receipt.result_json, 'command_receipts.result_json')),
+          receiptVersion,
+          module,
+          migrateState,
+        );
+        this.#sql.exec(
+          'UPDATE command_receipts SET state_version = ?, result_json = ? WHERE command_id = ?',
+          state.stateVersion,
+          canonicalJson(result),
+          parseNonEmptyString(receipt.command_id, 'command_receipts.command_id'),
+        );
+      }
+      this.#sql.exec(
+        'UPDATE room_state SET state_version = ?, game_state = ? WHERE id = 1',
+        state.stateVersion,
+        migrated.stateJson,
+      );
+      return migrated;
+    });
   }
 
   readSnapshot(): RoomSnapshot<BaseGameState<GameType>> | null {

@@ -78,6 +78,7 @@ export interface RuntimeWorkerGameModule {
   parseCreateConfig(config: unknown): RuntimeConfigResult;
   createInitialState(config: unknown, context: CreateGameContext): RuntimeCreateResult;
   parseState(value: unknown): BaseGameState<GameType>;
+  readonly migratePersistedState: ((value: unknown) => BaseGameState<GameType>) | null;
   parseCommandResult(value: unknown): RoomCommandResult<BaseGameState<GameType>>;
   decidePublic(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;

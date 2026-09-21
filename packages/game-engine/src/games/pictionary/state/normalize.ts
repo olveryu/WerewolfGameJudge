@@ -32,8 +32,10 @@ function assertEntry(
   entryIndex: number,
 ): void {
   const expectedKind = getPictionaryExpectedKind(entryIndex);
+  const seatOffset = state.stepOffsets[entryIndex];
+  if (seatOffset === undefined) throw new Error('Pictionary relay step offset is missing');
   const expectedAuthorSeat =
-    state.seatOrder[(chainIndex + entryIndex) % state.config.numberOfPlayers];
+    state.seatOrder[(chainIndex + seatOffset) % state.config.numberOfPlayers];
   if (entry.authorSeat !== expectedAuthorSeat) {
     throw new Error('Pictionary entry author does not match relay assignment');
   }
@@ -134,6 +136,16 @@ function assertRound(state: PictionaryState): void {
     state.phase === 'gallery' || state.phase === 'ended'
       ? state.stepIndex + 1
       : getPictionaryRelayStepCount(numberOfPlayers);
+  if (
+    state.stepOffsets.length !== relayStepCount ||
+    state.stepOffsets[0] !== 0 ||
+    state.stepOffsets.some(
+      (offset) => !Number.isSafeInteger(offset) || offset < 0 || offset >= numberOfPlayers,
+    ) ||
+    new Set(state.stepOffsets.slice(0, numberOfPlayers)).size !== numberOfPlayers
+  ) {
+    throw new Error('Pictionary stepOffsets must visit every seat once before repeating');
+  }
   state.chains.forEach((chain, chainIndex) => {
     if (chain.originSeat !== state.seatOrder[chainIndex]) {
       throw new Error('Pictionary chain order must match seatOrder');
@@ -170,6 +182,7 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
     if (
       state.roundId !== null ||
       state.seatOrder.length > 0 ||
+      state.stepOffsets.length > 0 ||
       state.stepIndex !== -1 ||
       state.deadlineAt !== null ||
       state.readySeats.length > 0 ||

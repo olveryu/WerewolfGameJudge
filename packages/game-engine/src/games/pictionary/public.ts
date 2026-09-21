@@ -26,7 +26,7 @@ export {
   pictionaryEngine,
 } from './engine';
 export { PICTIONARY_STATE_CODEC } from './state/codec';
-export { parsePictionaryState } from './state/parseState';
+export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
 export {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryBotDisplayName,

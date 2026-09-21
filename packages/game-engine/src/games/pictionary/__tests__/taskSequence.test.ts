@@ -6,11 +6,14 @@ import type { PictionaryEvent } from '../domain/events';
 import { REASON_PICTIONARY_PHASE_INVALID } from '../domain/reasons';
 import type { PictionaryEffect } from '../effects/types';
 import { decidePictionaryCommand, pictionaryEngine } from '../engine';
+import { migratePersistedPictionaryState, parsePictionaryState } from '../state/parseState';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
+  PICTIONARY_MAX_PLAYERS,
+  PICTIONARY_MIN_PLAYERS,
   type PictionaryState,
 } from '../state/types';
 
@@ -99,6 +102,72 @@ function advancePastAnsweringStep(state: PictionaryState): PictionaryState {
 }
 
 describe('Pictionary task sequence', () => {
+  it.each(
+    Array.from(
+      { length: PICTIONARY_MAX_PLAYERS - PICTIONARY_MIN_PLAYERS + 1 },
+      (_, index) => index + PICTIONARY_MIN_PLAYERS,
+    ),
+  )('varies handoff recipients in a %s-player round', (numberOfPlayers) => {
+    let state = dispatch(
+      createFullLobby(numberOfPlayers),
+      { type: 'pictionary.round.start' },
+      userContext('user-0'),
+    );
+    for (let stepIndex = 0; stepIndex < numberOfPlayers; stepIndex += 1) {
+      const restored = parsePictionaryState(JSON.parse(JSON.stringify(state)));
+      const tasks = Array.from({ length: numberOfPlayers }, (_, seat) => {
+        const task = getPictionaryTaskForSeat(state, seat);
+        expect(task).not.toBeNull();
+        expect(getPictionaryTaskForSeat(restored, seat)).toEqual(task);
+        return task!.chain.id;
+      });
+      expect(new Set(tasks).size).toBe(numberOfPlayers);
+      state = advancePastAnsweringStep(state);
+    }
+    const recipients = Array.from({ length: numberOfPlayers }, () => new Map<number, number>());
+    for (const chain of state.chains) {
+      expect(new Set(chain.entries.map((entry) => entry.authorSeat)).size).toBe(numberOfPlayers);
+      for (let entryIndex = 1; entryIndex < chain.entries.length; entryIndex += 1) {
+        const previousEntry = chain.entries[entryIndex - 1]!;
+        const entry = chain.entries[entryIndex]!;
+        const handoffRecipients = recipients[previousEntry.authorSeat]!;
+        handoffRecipients.set(entry.authorSeat, (handoffRecipients.get(entry.authorSeat) ?? 0) + 1);
+      }
+    }
+    for (const handoffRecipients of recipients) {
+      expect(handoffRecipients.size).toBeGreaterThan(1);
+      const maximumHandoffs = numberOfPlayers % 2 === 0 ? 1 : 2;
+      expect(Math.max(...handoffRecipients.values())).toBeLessThanOrEqual(maximumHandoffs);
+    }
+  });
+
+  it('preserves a stored round and pending drawing when migrating its fixed relay order', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0'),
+    );
+    state = expireCurrentPhase(state);
+    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'pictionary.text.submit', text: `prompt-${seat}` },
+        userContext(`user-${seat}`),
+      );
+    }
+    state = expireCurrentPhase(expireCurrentPhase(state));
+    state = dispatch(state, { type: 'pictionary.drawing.reserve' }, userContext('user-0'));
+    const legacy: Record<string, unknown> = { ...state, stateVersion: 6 };
+    delete legacy.stepOffsets;
+    const restored = migratePersistedPictionaryState(legacy);
+    expect(restored).toEqual({ ...state, stepOffsets: [0, 1, 2, 3] });
+    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+      expect(getPictionaryTaskForSeat(restored, seat)).toEqual(
+        getPictionaryTaskForSeat(state, seat),
+      );
+    }
+  });
+
   it.each([true, false])(
     'settles at gallery entry and excludes blank-only players (hasContent=%s)',
     (hasContent) => {

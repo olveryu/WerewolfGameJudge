@@ -120,6 +120,7 @@ export interface PictionaryState extends BaseGameState<PictionaryGameType> {
   readonly roundNumber: number;
   readonly roundId: string | null;
   readonly seatOrder: readonly number[];
+  readonly stepOffsets: readonly number[];
   readonly stepIndex: number;
   readonly deadlineAt: number | null;
   /** Seats that marked their local draft ready during the current answering phase. */
@@ -232,7 +233,8 @@ export function getPictionaryTaskForSeat(
   if (state.roundId === null || state.stepIndex < 0) return null;
   const seatIndex = state.seatOrder.indexOf(seat);
   if (seatIndex < 0) return null;
-  const seatOffset = state.stepIndex % state.config.numberOfPlayers;
+  const seatOffset = state.stepOffsets[state.stepIndex];
+  if (seatOffset === undefined) throw new Error('Pictionary relay step offset is missing');
   const chainIndex =
     (seatIndex - seatOffset + state.config.numberOfPlayers) % state.config.numberOfPlayers;
   const chain = state.chains[chainIndex];

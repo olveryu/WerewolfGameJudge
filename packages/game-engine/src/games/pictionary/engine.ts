@@ -230,6 +230,11 @@ function createRound(state: PictionaryState, context: CommandContext): Pictionar
     Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat),
     createSeededRng(`${context.randomSeed}:pictionary-relay`),
   );
+  const stepOffsets = Array.from({ length: state.config.numberOfPlayers }, (_, stepIndex) =>
+    stepIndex % 2 === 1
+      ? (stepIndex + 1) / 2
+      : (state.config.numberOfPlayers - stepIndex / 2) % state.config.numberOfPlayers,
+  );
   const chains: readonly PictionaryChain[] = seatOrder.map((originSeat) => ({
     id: `${roundId}:chain:${originSeat}`,
     originSeat,
@@ -239,6 +244,7 @@ function createRound(state: PictionaryState, context: CommandContext): Pictionar
     type: 'pictionary.round.started',
     roundId,
     seatOrder,
+    stepOffsets,
     chains,
     deadlineAt: durationDeadline(context.nowMs, getAnswerDuration(state, 0)),
   };
@@ -689,6 +695,7 @@ function createInitialPictionaryState(
     roundNumber: 0,
     roundId: null,
     seatOrder: [],
+    stepOffsets: [],
     stepIndex: -1,
     deadlineAt: null,
     readySeats: [],

@@ -11,11 +11,14 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { parseRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
-import { env, SELF } from 'cloudflare:test';
+import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { createAnonymousSession } from '../../../../test/uploadTestSupport';
+import type { GameRoomRuntime } from '../../../platform/room/GameRoomRuntime';
+import { RoomRepository } from '../../../platform/room/roomRepository';
+import { getWorkerGameModule } from '../../catalog';
 
 interface RoomIdentity {
   readonly roomCode: string;
@@ -167,6 +170,139 @@ beforeEach(async () => {
 });
 
 afterEach(deleteCurrentRoomAlarms);
+
+describe('Pictionary persisted relay migration', () => {
+  it('preserves pending uploads, room metadata and replayable receipts from version six', async () => {
+    const host = await createAnonymousSession();
+    const room = await createPictionaryRoom(host.access_token);
+    await dispatchCommand(
+      room,
+      host.access_token,
+      {
+        type: 'room.seat.take',
+        seat: 0,
+        profile: { displayName: '房主' },
+      },
+      null,
+    );
+    await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
+    let state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.round.start' },
+      null,
+    );
+    state = await markEverySeatReady(room, host.access_token, state);
+    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+      state = await dispatchCommand(
+        room,
+        host.access_token,
+        {
+          type: 'pictionary.text.submit',
+          text: `prompt-${seat}`,
+        },
+        seat === 0 ? null : seat,
+      );
+    }
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      {
+        type: 'pictionary.phase.expire',
+        phaseRevision: state.phaseRevision,
+      },
+      null,
+    );
+    state = await markEverySeatReady(room, host.access_token, state);
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.drawing.reserve' },
+      null,
+    );
+    const reservation = requireReservation(state, 0);
+    const commandId = `pictionary-media-test:${commandSequence}`;
+    const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
+    await runInDurableObject(stub, async (instance: GameRoomRuntime, durableState) => {
+      const sql = durableState.storage.sql;
+      sql.exec(`UPDATE room_state SET state_version = 6,
+        game_state = json_remove(json_set(game_state, '$.stateVersion', 6), '$.stepOffsets')`);
+      sql.exec(`UPDATE command_receipts SET state_version = 6,
+        result_json = json_remove(json_set(result_json,
+          '$.snapshot.stateVersion', 6, '$.snapshot.state.stateVersion', 6),
+          '$.snapshot.state.stepOffsets')`);
+      const before = sql.exec('SELECT * FROM room_state').one();
+      const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
+      const outbox = sql.exec('SELECT * FROM effect_outbox ORDER BY id').toArray();
+      const identity = { ...room, creationId: 'pictionary-media-bot-control' };
+      const snapshot = await instance.getSnapshot(identity);
+      expect(snapshot?.state).toEqual({ ...state, stepOffsets: [0, 1, 2, 3] });
+      expect(sql.exec('SELECT * FROM room_state').one()).toEqual({
+        ...before,
+        state_version: PICTIONARY_STATE_CODEC.stateVersion,
+        game_state: expect.any(String) as unknown,
+      });
+      expect(sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray()).toEqual(
+        receipts.map((receipt) => ({
+          ...receipt,
+          state_version: PICTIONARY_STATE_CODEC.stateVersion,
+          result_json: expect.any(String) as unknown,
+        })),
+      );
+      expect(sql.exec('SELECT * FROM effect_outbox ORDER BY id').toArray()).toEqual(outbox);
+      const replay = await instance.dispatchUserCommand({
+        ...identity,
+        commandId,
+        actorUserId: state.hostUserId,
+        controlledSeat: null,
+        command: { type: 'pictionary.drawing.reserve' },
+      });
+      expect(replay).toMatchObject({
+        kind: 'decided',
+        isReplay: true,
+        result: { kind: 'committed', snapshot },
+      });
+      expect(await instance.getSnapshot(identity)).toEqual(snapshot);
+    });
+    const uploaded = await putDrawing(room, host.access_token, reservation, null);
+    expect(uploaded.status).toBe(200);
+    const result = parseRoomCommandResult(await uploaded.json(), PICTIONARY_STATE_CODEC);
+    if (result.kind !== 'committed') throw new Error(result.reason);
+    expect(result.snapshot.state.chains.flatMap((chain) => chain.entries)).toContainEqual(
+      expect.objectContaining({ kind: 'drawing', authorSeat: 0, id: reservation.entryId }),
+    );
+  });
+
+  it('rolls back all migrated receipts when a later stored snapshot is invalid', async () => {
+    const host = await createAnonymousSession();
+    const room = await createPictionaryRoom(host.access_token);
+    await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.round.start' }, null);
+    const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
+    await runInDurableObject(stub, async (_instance: GameRoomRuntime, durableState) => {
+      const sql = durableState.storage.sql;
+      sql.exec(`UPDATE room_state SET state_version = 6,
+        game_state = json_remove(json_set(game_state, '$.stateVersion', 6), '$.stepOffsets')`);
+      sql.exec(`UPDATE command_receipts SET state_version = 6,
+        result_json = json_remove(json_set(result_json,
+          '$.snapshot.stateVersion', 6, '$.snapshot.state.stateVersion', 6),
+          '$.snapshot.state.stepOffsets')`);
+      sql.exec(
+        `UPDATE command_receipts SET result_json = json_set(result_json,
+        '$.snapshot.state.config.numberOfPlayers', 3) WHERE command_id = ?`,
+        `pictionary-media-test:${commandSequence}`,
+      );
+      const before = sql.exec('SELECT * FROM room_state').one();
+      const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
+      const repository = new RoomRepository(durableState.storage, getWorkerGameModule);
+      expect(() => repository.readRoom()).toThrow('Pictionary config is invalid');
+      expect(sql.exec('SELECT * FROM room_state').one()).toEqual(before);
+      expect(sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray()).toEqual(
+        receipts,
+      );
+    });
+  });
+});
 
 describe('Pictionary spectator media', () => {
   it('allows unseated viewers to read drawings only after the round reaches gallery', async () => {

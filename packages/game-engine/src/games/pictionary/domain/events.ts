@@ -39,6 +39,7 @@ export type PictionaryEvent =
       readonly type: 'pictionary.round.started';
       readonly roundId: string;
       readonly seatOrder: readonly number[];
+      readonly stepOffsets: readonly number[];
       readonly chains: readonly PictionaryChain[];
       readonly deadlineAt: number | null;
     })

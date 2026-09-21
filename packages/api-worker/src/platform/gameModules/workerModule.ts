@@ -109,6 +109,7 @@ export interface WorkerModuleRuntime<
   parseCreateConfig(config: unknown): WorkerModuleConfigResult<TConfig>;
   createInitialState(config: unknown, context: CreateGameContext): WorkerModuleCreateResult<TState>;
   parseState(value: unknown): TState;
+  readonly migratePersistedState: ((value: unknown) => TState) | null;
   parseCommandResult(value: unknown): RoomCommandResult<TState>;
   decidePublic(
     state: unknown,
@@ -148,6 +149,7 @@ export interface WorkerGameModuleDefinition<
   readonly gameType: TGameType;
   readonly engine: TEngine;
   readonly stateCodec: GameStateCodec<TState>;
+  readonly migratePersistedState?: ((value: unknown) => TState) | null;
   readonly createConfigSchema: ZodType<TConfig>;
   readonly publicCommandSchema: ZodType<TPublicCommand>;
   readonly internalCommandSchema: ZodType<TInternalCommand>;
@@ -194,6 +196,7 @@ export type WorkerGameModule<
     TPublicUserStats
   >,
   | 'getPublicUserStats'
+  | 'migratePersistedState'
   | 'getEffectBusinessKey'
   | 'getEffectFailureCommand'
   | 'canReplayFailedEffect'
@@ -259,6 +262,7 @@ export function defineWorkerGameModule<
     TEffect
   > = definition.engine;
 
+  const migratePersistedState = definition.migratePersistedState;
   const routePrefix = `/api/games/${definition.gameType}/`;
   for (const route of definition.httpRoutes) {
     if (!route.path.startsWith(routePrefix) || route.path.length === routePrefix.length) {
@@ -354,6 +358,10 @@ export function defineWorkerGameModule<
       };
     },
     parseState,
+    migratePersistedState:
+      typeof migratePersistedState === 'function'
+        ? (value) => parseState(migratePersistedState(value))
+        : null,
     parseCommandResult: (value) => parseRoomCommandResult(value, definition.stateCodec),
     decidePublic: (rawState, rawCommand, context) => {
       const state = parseState(rawState);
@@ -442,6 +450,7 @@ export function registerWorkerGameModule<
     parseCreateConfig: (config) => module.parseCreateConfig(config),
     createInitialState: (config, context) => module.createInitialState(config, context),
     parseState: (value) => module.parseState(value),
+    migratePersistedState: module.migratePersistedState,
     parseCommandResult: (value) => module.parseCommandResult(value),
     decidePublic: (state, command, context) => module.decidePublic(state, command, context),
     decideInternal: (state, command, context) => module.decideInternal(state, command, context),

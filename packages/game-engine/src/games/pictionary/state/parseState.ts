@@ -288,6 +288,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         roundNumber: parseInteger(raw.roundNumber, 'PictionaryState.roundNumber'),
         roundId: parseNullable(raw.roundId, 'PictionaryState.roundId', parseNonEmptyString),
         seatOrder: parseArray(raw.seatOrder, 'PictionaryState.seatOrder', parseSeat),
+        stepOffsets: parseArray(raw.stepOffsets, 'PictionaryState.stepOffsets', parseSeat),
         stepIndex: parseInteger(raw.stepIndex, 'PictionaryState.stepIndex'),
         deadlineAt: parseNullable(raw.deadlineAt, 'PictionaryState.deadlineAt', parseInteger),
         readySeats: parseArray(raw.readySeats, 'PictionaryState.readySeats', parseSeat),
@@ -302,4 +303,30 @@ export function parsePictionaryState(value: unknown): PictionaryState {
       'PictionaryState',
     ),
   );
+}
+
+/** Restore stored version-six rounds without changing their existing relay assignments.
+ * @throws When the source version or migrated state is invalid.
+ */
+export function migratePersistedPictionaryState(value: unknown): PictionaryState {
+  const raw = parseObject(value, 'PictionaryState');
+  if (raw.stateVersion !== 6) return parsePictionaryState(raw);
+  if ('stepOffsets' in raw) return failDecode('PictionaryState', 'version six without stepOffsets');
+  const config = parseConfig(raw.config, 'PictionaryState.config');
+  const phase = parsePhase(raw.phase, 'PictionaryState.phase');
+  const stepIndex = parseInteger(raw.stepIndex, 'PictionaryState.stepIndex');
+  const relayStepCount =
+    phase === 'lobby'
+      ? 0
+      : phase === 'gallery' || phase === 'ended'
+        ? stepIndex + 1
+        : config.numberOfPlayers;
+  return parsePictionaryState({
+    ...raw,
+    stateVersion: PICTIONARY_STATE_VERSION,
+    stepOffsets: Array.from(
+      { length: relayStepCount },
+      (_, entryIndex) => entryIndex % config.numberOfPlayers,
+    ),
+  });
 }
