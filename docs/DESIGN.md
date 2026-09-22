@@ -5,7 +5,7 @@
 - **What this is:** Multigame face-to-face judge app; Werewolf is the primary UI reference, alongside FibKing, Pictionary and Undercover
 - **Who it's for:** Face-to-face tabletop players (Host + remote players)
 - **Platform:** iOS / Android / Web (React Native + Expo)
-- **Theme count:** Currently 1 theme implemented (Moonlight / light); multi-theme is planned (design has 8 themes: 4 light + 4 dark)
+- **Theme count:** One active Moonlight color set. Historical multi-theme proposals are not implemented theme choices.
 
 ## Aesthetic Direction
 
@@ -39,7 +39,10 @@
 
 ## Color
 
-- **8 Theme Schemes:**
+- **Historical theme proposals (not current color values or an implemented theme registry):**
+
+The active palette is exported as `colors` from `src/theme/colors.ts`. Use those semantic
+exports; the table below is retained only as design history and must not seed a new game's palette.
 
 | Key        | Name       | Type  | Primary   | Background | Surface   | Text      |
 | ---------- | ---------- | ----- | --------- | ---------- | --------- | --------- |
@@ -52,10 +55,10 @@
 | `blood`    | Blood Moon | Dark  | `#DC3B3B` | `#110B0B`  | `#1C1212` | `#F5EAEA` |
 | `forest`   | Forest     | Dark  | `#3DD68C` | `#0A1210`  | `#101D18` | `#E8F5EE` |
 
-- **Semantic colors (every theme has):** `primary`, `primaryLight`, `primaryDark`, `background`, `surface`, `surfaceHover`, `card`, `text`, `textSecondary`, `textMuted`, `textInverse`, `border`, `borderLight`, `success`, `warning`, `error`, `info`
+- **Active semantic colors:** `primary`, `primaryLight`, `primaryDark`, `background`, `surface`, `surfaceHover`, `card`, `text`, `textSecondary`, `textMuted`, `textInverse`, `border`, `borderLight`, `success`, `warning`, `error`, `info`
 - **Game-specific 4 faction colors:** `wolf`(red), `villager`(green), `god`(purple), `third`(yellow)
 - **Overlay:** `overlay`(dark, modal backdrop), `overlayLight`(light, subtle overlay)
-- **Default theme:** `light`
+- **Active color set:** `colors`; do not assume a selectable `light` theme registry exists
 
 ## Spacing
 
@@ -68,9 +71,9 @@
 
 ## Border Radius
 
-- none: 0, small: 8px, medium: 12px, large: 16px, xlarge: 24px, full: 9999px
-- **Cards/panels:** medium (12px)
-- **Buttons:** full (9999px) for primary, medium for secondary
+- none: 0, small: 10px, medium: 14px, large: 20px, xlarge: 28px, full: 9999px
+- **Cards/panels:** Use the existing component's semantic radius; content cards use `borderRadius.large`
+- **Buttons:** Reuse `Button` variants rather than assigning radius by game
 - **Avatars/badges:** full (9999px)
 
 ## Component Sizes
