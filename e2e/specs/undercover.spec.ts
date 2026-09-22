@@ -21,8 +21,8 @@ for (const viewport of [
     try {
       await new HomePage(page).clickCreateRoom('undercover');
       await page.getByTestId('undercover-category').click();
-      await expect(page.getByRole('button', { name: '吃喝美食', exact: true })).toBeVisible();
-      await expect(page.getByRole('button', { name: '自然世界', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('radio', { name: '吃喝美食', exact: true })).toBeVisible();
+      await expect(page.getByRole('radio', { name: '自然世界', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: '关闭', exact: true }).click();
       await expect(page.getByRole('button', { name: '关闭', exact: true })).toHaveCount(0);
       await page.getByTestId('undercover-player-count').fill('6');

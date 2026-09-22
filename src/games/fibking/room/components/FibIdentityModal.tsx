@@ -1,24 +1,15 @@
 /** FibKing identity and ended-round result inside the shared centered modal primitive. */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type { FibRoundView } from '@game-judge/game-engine/games/fibking/public';
 import type React from 'react';
 import { memo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  spacing,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, fixed, spacing, typography, withAlpha } from '@/theme';
 
 import { getFibRoleName } from '../fibRoomAdapter';
 import { formatFibWordPinyin } from '../formatFibWordPinyin';
@@ -52,118 +43,66 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({ view, onCl
   const eyebrow = view.phase === 'ended' ? '本轮结果' : isSpectator ? '本轮题目' : '你的身份';
   const wordPinyin = formatFibWordPinyin(view.word);
   return (
-    <BaseCenterModal
-      visible
+    <RoomDialog
+      title={roleName}
+      subtitle={eyebrow}
+      titleTestID={TESTIDS.fibIdentityRole}
       onClose={onClose}
-      dismissOnOverlayPress
-      contentStyle={styles.modal}
       testID={TESTIDS.fibIdentityModal}
-    >
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headingRow}>
-          <View style={styles.roleIcon}>
-            <Ionicons name="eye-outline" size={componentSizes.icon.md} color={colors.primary} />
-          </View>
-          <View style={styles.headingText}>
-            <Text style={styles.eyebrow}>{eyebrow}</Text>
-            <Text style={styles.roleName} testID={TESTIDS.fibIdentityRole}>
-              {roleName}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.instruction}>{getRoleInstruction(view)}</Text>
-
-        <View style={styles.wordSection}>
-          <Text style={styles.sectionLabel}>本轮词语</Text>
-          <Text style={styles.word} testID={TESTIDS.fibIdentityWord}>
-            {view.word}
-          </Text>
-          {wordPinyin !== null && (
-            <Text style={styles.pinyin} testID={TESTIDS.fibIdentityPinyin}>
-              {wordPinyin}
-            </Text>
-          )}
-        </View>
-
-        {view.definition !== null && (
-          <View style={styles.definitionSection} testID={TESTIDS.fibIdentityDefinition}>
-            <View>
-              <Text style={styles.sectionLabel}>核心释义</Text>
-              <Text style={styles.definition} testID={TESTIDS.fibIdentityCoreMeaning}>
-                {view.definition.coreMeaning}
-              </Text>
-            </View>
-            <View style={styles.usageNoteSection}>
-              <Text style={styles.sectionLabel}>使用提示</Text>
-              <Text style={styles.definition} testID={TESTIDS.fibIdentityUsageNote}>
-                {view.definition.usageNote}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.assignmentSection}>
-          <Text style={styles.sectionLabel}>公开身份</Text>
-          <Text style={styles.assignment}>{formatRoomSeat(view.guesserSeat)} · 大聪明</Text>
-          {view.honestSeat !== null && (
-            <>
-              <Text style={styles.assignment}>{formatRoomSeat(view.honestSeat)} · 老实人</Text>
-              <Text style={styles.assignmentMuted}>其余座位 · 瞎掰王</Text>
-            </>
-          )}
-        </View>
-
-        <Button variant="primary" size="lg" onPress={onClose} style={styles.closeButton}>
+      footer={
+        <Button variant="primary" size="lg" onPress={onClose}>
           知道了
         </Button>
-      </ScrollView>
-    </BaseCenterModal>
+      }
+    >
+      <Text style={styles.instruction}>{getRoleInstruction(view)}</Text>
+
+      <View style={styles.wordSection}>
+        <Text style={styles.sectionLabel}>本轮词语</Text>
+        <Text style={styles.word} testID={TESTIDS.fibIdentityWord}>
+          {view.word}
+        </Text>
+        {wordPinyin !== null && (
+          <Text style={styles.pinyin} testID={TESTIDS.fibIdentityPinyin}>
+            {wordPinyin}
+          </Text>
+        )}
+      </View>
+
+      {view.definition !== null && (
+        <View style={styles.definitionSection} testID={TESTIDS.fibIdentityDefinition}>
+          <View>
+            <Text style={styles.sectionLabel}>核心释义</Text>
+            <Text style={styles.definition} testID={TESTIDS.fibIdentityCoreMeaning}>
+              {view.definition.coreMeaning}
+            </Text>
+          </View>
+          <View style={styles.usageNoteSection}>
+            <Text style={styles.sectionLabel}>使用提示</Text>
+            <Text style={styles.definition} testID={TESTIDS.fibIdentityUsageNote}>
+              {view.definition.usageNote}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.assignmentSection}>
+        <Text style={styles.sectionLabel}>公开身份</Text>
+        <Text style={styles.assignment}>{formatRoomSeat(view.guesserSeat)} · 大聪明</Text>
+        {view.honestSeat !== null && (
+          <>
+            <Text style={styles.assignment}>{formatRoomSeat(view.honestSeat)} · 老实人</Text>
+            <Text style={styles.assignmentMuted}>其余座位 · 瞎掰王</Text>
+          </>
+        )}
+      </View>
+    </RoomDialog>
   );
 };
 
 export const FibIdentityModal = memo(FibIdentityModalComponent);
 
 const styles = StyleSheet.create({
-  modal: {
-    width: 420,
-    maxWidth: '92%',
-    maxHeight: '86%',
-    padding: 0,
-    overflow: 'hidden',
-  },
-  content: {
-    padding: spacing.large,
-  },
-  headingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  roleIcon: {
-    width: componentSizes.avatar.lg,
-    height: componentSizes.avatar.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: componentSizes.avatar.lg / 2,
-    backgroundColor: withAlpha(colors.primary, 0.08),
-    marginRight: spacing.medium,
-  },
-  headingText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  eyebrow: {
-    fontSize: typography.caption,
-    lineHeight: typography.caption * 1.4,
-    color: colors.textMuted,
-  },
-  roleName: {
-    marginTop: spacing.micro,
-    fontSize: typography.title,
-    lineHeight: typography.title * 1.3,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-  },
   instruction: {
     marginTop: spacing.medium,
     fontSize: typography.secondary,
@@ -229,8 +168,5 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     lineHeight: typography.secondary * 1.45,
     color: colors.textSecondary,
-  },
-  closeButton: {
-    marginTop: spacing.large,
   },
 });

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from '@/components/AppModal';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import type { RoomSeatPlayer } from '@/features/room/model/RoomSeatDataSource';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import { colors, spacing } from '@/theme';
@@ -41,19 +42,20 @@ export function UndercoverRevealModal({
     >
       <View style={[styles.revealOverlay, isWideLayout && styles.revealOverlayWide]}>
         <View
-          style={[
-            styles.revealPanel,
-            isWideLayout && styles.revealPanelWide,
-            { paddingBottom: Math.max(spacing.large, insets.bottom) },
-          ]}
+          style={[styles.revealPanel, isWideLayout && styles.revealPanelWide]}
           accessibilityViewIsModal
           accessibilityLabel="确认玩家出局"
           testID="undercover-reveal-modal"
         >
-          <ScrollView contentContainerStyle={styles.section}>
+          <View style={roomSurfaceStyles.header}>
             <Text style={styles.title} accessibilityRole="header">
               确认出局？
             </Text>
+          </View>
+          <ScrollView
+            style={roomSurfaceStyles.scroll}
+            contentContainerStyle={roomSurfaceStyles.content}
+          >
             <View style={styles.revealIdentity}>
               <Avatar
                 value={player.userId}
@@ -69,7 +71,13 @@ export function UndercoverRevealModal({
             </View>
             <Text style={styles.muted}>确认后将揭晓身份，该玩家立即出局。此操作不可撤销。</Text>
           </ScrollView>
-          <View style={styles.revealActions}>
+          <View
+            style={[
+              roomSurfaceStyles.footer,
+              styles.revealActions,
+              { paddingBottom: Math.max(spacing.large, insets.bottom) },
+            ]}
+          >
             <Button
               variant="secondary"
               size="lg"

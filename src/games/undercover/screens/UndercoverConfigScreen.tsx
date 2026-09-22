@@ -15,22 +15,19 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
   type ListRenderItemInfo,
+  Pressable,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
-import {
-  GameScreen,
-  GameScreenContent,
-  GameScreenFooter,
-  gameScreenStyles,
-} from '@/components/GameScreen';
+import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
+import { GameSettingsStepper } from '@/components/GameSettings';
+import { gameSettingsStyles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
@@ -40,7 +37,7 @@ import {
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
-import { borderRadius, colors, spacing, typography } from '@/theme';
+import { colors, spacing, withAlpha } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -146,17 +143,25 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
   };
   const renderCategory = useCallback(
     ({ item }: ListRenderItemInfo<UndercoverConfig['category']>) => (
-      <Button
-        variant="ghost"
+      <Pressable
+        style={gameSettingsStyles.row}
+        accessibilityRole="radio"
+        accessibilityLabel={UNDERCOVER_CATEGORY_NAMES[item]}
+        accessibilityState={{ checked: config.category === item }}
         onPress={() => {
           setConfig((previous) => ({ ...previous, category: item }));
           setIsCategoryVisible(false);
         }}
       >
-        {UNDERCOVER_CATEGORY_NAMES[item]}
-      </Button>
+        <Text style={gameSettingsStyles.label}>{UNDERCOVER_CATEGORY_NAMES[item]}</Text>
+        <Ionicons
+          name={config.category === item ? 'radio-button-on' : 'radio-button-off'}
+          size={componentSizes.icon.sm}
+          color={config.category === item ? colors.primary : colors.textSecondary}
+        />
+      </Pressable>
     ),
-    [],
+    [config.category],
   );
   return (
     <GameScreen
@@ -170,74 +175,59 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
         />
       }
     >
-      <GameScreenContent>
-        <Text style={gameScreenStyles.kicker}>
-          {params.mode === 'edit' ? '房间设置' : '创建房间'}
-        </Text>
-        <Text style={gameScreenStyles.title}>谁是卧底</Text>
-        <Text style={gameScreenStyles.description}>4 至 12 人，启用白板至少需要 6 人。</Text>
-        <View style={gameScreenStyles.section}>
-          <View style={styles.row}>
-            <Text style={gameScreenStyles.sectionTitle}>玩家人数</Text>
-          </View>
-          <View style={styles.controlRow}>
-            <Button
-              variant="icon"
-              size="lg"
-              accessibilityLabel="减少人数"
-              onPress={() => stepCount(-1)}
-            >
-              <Ionicons name="remove" size={componentSizes.icon.md} color={colors.text} />
-            </Button>
-            <TextInput
-              value={playerCountText}
-              onChangeText={setPlayerCountText}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              style={styles.input}
-              accessibilityLabel="玩家人数"
-              testID="undercover-player-count"
-            />
-            <Button
-              variant="icon"
-              size="lg"
-              accessibilityLabel="增加人数"
-              onPress={() => stepCount(1)}
-            >
-              <Ionicons name="add" size={componentSizes.icon.md} color={colors.text} />
-            </Button>
-          </View>
+      <GameScreenContent contentContainerStyle={gameSettingsStyles.content}>
+        <View style={gameSettingsStyles.section}>
+          <GameSettingsStepper
+            label="玩家人数"
+            onDecrement={() => stepCount(-1)}
+            onIncrement={() => stepCount(1)}
+            value={playerCountText}
+            onChangeText={setPlayerCountText}
+            testID="undercover-player-count"
+          />
+          <Text style={gameSettingsStyles.hint}>支持 4 至 12 人，启用白板至少需要 6 人</Text>
         </View>
-        <View style={gameScreenStyles.section}>
-          <View style={styles.row}>
-            <Text style={gameScreenStyles.sectionTitle}>白板</Text>
+        <View style={gameSettingsStyles.section}>
+          <View style={gameSettingsStyles.row}>
+            <Text style={gameSettingsStyles.label}>白板</Text>
             <Switch
               accessibilityLabel="启用白板"
               value={config.hasBlank}
               onValueChange={(hasBlank) => setConfig({ ...config, hasBlank })}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.surface}
+              trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
+              thumbColor={config.hasBlank ? colors.primary : colors.textSecondary}
             />
           </View>
-          <Text style={styles.muted}>白板没有词语，替换一名平民。</Text>
+          <Text style={gameSettingsStyles.hint}>白板没有词语，替换一名平民。</Text>
         </View>
-        <View style={gameScreenStyles.section}>
-          <Text style={gameScreenStyles.sectionTitle}>词语分类</Text>
-          <Button
-            variant="secondary"
+        <View style={gameSettingsStyles.section}>
+          <Pressable
+            style={gameSettingsStyles.row}
+            accessibilityRole="button"
+            accessibilityLabel={`词语分类：${UNDERCOVER_CATEGORY_NAMES[config.category]}`}
             onPress={() => setIsCategoryVisible(true)}
             testID="undercover-category"
           >
-            {UNDERCOVER_CATEGORY_NAMES[config.category]}
-          </Button>
+            <Text style={gameSettingsStyles.label}>词语分类</Text>
+            <View style={styles.categoryValue}>
+              <Text style={gameSettingsStyles.hint}>
+                {UNDERCOVER_CATEGORY_NAMES[config.category]}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={componentSizes.icon.sm}
+                color={colors.textSecondary}
+              />
+            </View>
+          </Pressable>
         </View>
+      </GameScreenContent>
+      <GameScreenFooter>
         {counts !== null && (
-          <Text style={styles.summary}>
+          <Text style={gameSettingsStyles.summary}>
             平民 {counts.civilian} 人 · 卧底 {counts.undercover} 人 · 白板 {counts.blank} 人
           </Text>
         )}
-      </GameScreenContent>
-      <GameScreenFooter>
         <Button
           variant="primary"
           size="lg"
@@ -255,15 +245,17 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
           dismissOnOverlayPress
           contentStyle={styles.modal}
         >
-          <Text style={styles.title}>词语分类</Text>
+          <Text style={gameSettingsStyles.label} accessibilityRole="header">
+            词语分类
+          </Text>
           {inventory.isPending ? (
-            <Text style={styles.muted}>正在读取分类</Text>
+            <Text style={gameSettingsStyles.hint}>正在读取分类</Text>
           ) : inventory.isError ? (
             <Button variant="secondary" onPress={() => void inventory.refetch()}>
               重试读取分类
             </Button>
           ) : categories.length === 0 ? (
-            <Text style={styles.muted}>暂无可用词语</Text>
+            <Text style={gameSettingsStyles.hint}>暂无可用词语</Text>
           ) : (
             <FlatList
               data={categories}
@@ -281,35 +273,6 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.small,
-  },
-  controlRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
-  title: gameScreenStyles.sectionTitle,
-  muted: {
-    color: colors.textSecondary,
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-  },
-  summary: {
-    ...gameScreenStyles.description,
-    marginTop: spacing.large,
-    paddingVertical: spacing.medium,
-  },
-  input: {
-    flex: 1,
-    minWidth: 0,
-    height: componentSizes.button.lg,
-    color: colors.text,
-    fontSize: typography.subtitle,
-    fontWeight: typography.weights.bold,
-    textAlign: 'center',
-    paddingHorizontal: spacing.medium,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.small,
-  },
-  modal: { width: 440, maxWidth: '94%', maxHeight: '85%' },
+  categoryValue: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
+  modal: { width: 440, maxWidth: '94%', maxHeight: '85%', gap: spacing.medium },
 });

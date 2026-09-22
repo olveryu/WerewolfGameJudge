@@ -11,8 +11,8 @@ export class PictionaryConfigPage {
   /** Wait until the create form has loaded with its authoritative defaults. */
   async waitForCreateMode(): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible({ timeout: 10_000 });
-    await expect(this.page.getByText('接龙设置', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('6 人');
+    await expect(this.page.getByText('你画我猜接龙设置', { exact: true })).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('6');
     await expect(
       this.page.getByTestId(TESTIDS.pictionaryConfigDurationOption('guess', 45)),
     ).toHaveAttribute('aria-checked', 'true');
@@ -29,7 +29,7 @@ export class PictionaryConfigPage {
     const decrementButton = this.page.getByRole('button', { name: '减少人数' });
     await decrementButton.click();
     await decrementButton.click();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('4 人');
+    await expect(this.page.getByTestId(TESTIDS.pictionaryConfigPlayerCount)).toHaveText('4');
 
     await this.selectDuration('drawing', 'unlimited');
     await this.selectDuration('transition', 0);

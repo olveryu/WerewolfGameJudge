@@ -17,12 +17,9 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import {
-  GameScreen,
-  GameScreenContent,
-  GameScreenFooter,
-  gameScreenStyles,
-} from '@/components/GameScreen';
+import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
+import { GameSettingsStepper } from '@/components/GameSettings';
+import { gameSettingsStyles } from '@/components/GameSettings.styles';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { parsePictionaryConfigRouteParams } from '@/games/pictionary/navigation/pictionaryConfigRoute';
@@ -60,9 +57,15 @@ function DurationOption<TDuration extends number | null>({
       testID={testID}
       style={[styles.option, selected && styles.optionSelected]}
       accessibilityRole="radio"
+      accessibilityLabel={value === null ? '不限时' : `${value} 秒`}
       accessibilityState={{ checked: selected }}
       aria-checked={selected}
     >
+      <Ionicons
+        name={selected ? 'radio-button-on' : 'radio-button-off'}
+        size={componentSizes.icon.sm}
+        color={selected ? colors.primary : colors.textSecondary}
+      />
       <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
         {value === null ? '不限时' : `${value} 秒`}
       </Text>
@@ -166,38 +169,21 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
   return (
     <GameScreen
       testID={TESTIDS.configScreenRoot}
-      header={<ScreenHeader title="接龙设置" onBack={state.goBack} topInset={insets.top} />}
+      header={<ScreenHeader title="你画我猜接龙设置" onBack={state.goBack} topInset={insets.top} />}
     >
-      <GameScreenContent>
-        <Text style={gameScreenStyles.kicker}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
-        <Text style={gameScreenStyles.title}>你画我猜接龙</Text>
-        <Text style={gameScreenStyles.description}>
-          4–20 人，默认 6 人。N 人共 N 棒，文字和绘画交替，每人只参与同一本画册一次。
-        </Text>
+      <GameScreenContent contentContainerStyle={gameSettingsStyles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>玩家人数</Text>
-          <View style={styles.playerRow}>
-            <Button
-              variant="icon"
-              size="lg"
-              onPress={state.decrementPlayers}
-              disabled={state.config.numberOfPlayers === 4}
-              accessibilityLabel="减少人数"
-            >
-              <Ionicons name="remove" size={componentSizes.icon.md} color={colors.text} />
-            </Button>
-            <Text style={styles.count} testID={TESTIDS.pictionaryConfigPlayerCount}>
-              {state.config.numberOfPlayers} 人
-            </Text>
-            <Button
-              variant="icon"
-              size="lg"
-              onPress={state.incrementPlayers}
-              accessibilityLabel="增加人数"
-            >
-              <Ionicons name="add" size={componentSizes.icon.md} color={colors.text} />
-            </Button>
-          </View>
+          <GameSettingsStepper
+            label="玩家人数"
+            onDecrement={state.decrementPlayers}
+            onIncrement={state.incrementPlayers}
+            isDecrementDisabled={state.config.numberOfPlayers === 4}
+            value={String(state.config.numberOfPlayers)}
+            testID={TESTIDS.pictionaryConfigPlayerCount}
+          />
+          <Text style={styles.sectionHint}>
+            支持 4–20 人 · 共 {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
+          </Text>
         </View>
         <DurationSection
           setting="drawing"
@@ -234,6 +220,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
         <Text style={styles.estimate}>{getEstimatedMinutes(state.config)}</Text>
       </GameScreenContent>
       <GameScreenFooter>
+        <Text style={gameSettingsStyles.summary}>共 {state.config.numberOfPlayers} 人</Text>
         <Button
           variant="primary"
           size="lg"

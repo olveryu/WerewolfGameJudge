@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.medium,
     paddingVertical: spacing.small,
     borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.borderLight,
+    borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },
   revealSection: {
@@ -396,7 +397,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     backgroundColor: colors.surface,
   },
-  revealText: { ...textStyles.headingBold, color: colors.text, textAlign: 'center' },
+  revealText: { ...textStyles.titleBold, color: colors.text, textAlign: 'center' },
   missedReveal: {
     minHeight: 260,
     alignItems: 'center',
@@ -407,10 +408,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     backgroundColor: colors.surface,
   },
-  missedTitle: { ...textStyles.titleBold, color: colors.text },
+  missedTitle: roomSurfaceStyles.title,
   missedDescription: { ...textStyles.secondary, color: colors.textSecondary },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tight },
-  authorText: { ...textStyles.secondary, color: colors.textSecondary },
+  authorText: { ...textStyles.secondary, color: colors.textSecondary, flex: 1, minWidth: 0 },
   galleryControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.small,
   },
-  viewerNoticeText: { ...textStyles.secondary, color: colors.textSecondary },
+  viewerNoticeText: { ...textStyles.secondary, color: colors.textSecondary, flexShrink: 1 },
   endedControls: { gap: spacing.small },
   localBrowserControls: {
     flexDirection: 'row',

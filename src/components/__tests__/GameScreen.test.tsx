@@ -2,12 +2,58 @@
 import { fireEvent, render, within } from '@testing-library/react-native';
 import { StyleSheet, Text } from 'react-native';
 
+import { componentSizes } from '@/theme/tokens';
+
 import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '../GameGuide';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '../GameScreen';
+import { GameSettingsStepper } from '../GameSettings';
 
 const styles = StyleSheet.create({ content: { opacity: 0.5 } });
 
 describe('Shared game pages', () => {
+  it('forwards count editing and increment intent while preserving the caller minimum gate', () => {
+    const onDecrement = jest.fn();
+    const onIncrement = jest.fn();
+    const onChangeText = jest.fn();
+    const view = render(
+      <GameSettingsStepper
+        label="玩家人数"
+        onDecrement={onDecrement}
+        onIncrement={onIncrement}
+        isDecrementDisabled
+        value="4"
+        onChangeText={onChangeText}
+      />,
+    );
+    fireEvent.press(view.getByRole('button', { name: '减少人数' }));
+    expect(onDecrement).not.toHaveBeenCalled();
+    fireEvent.press(view.getByRole('button', { name: '增加人数' }));
+    expect(onIncrement).toHaveBeenCalledTimes(1);
+    fireEvent.changeText(view.getByLabelText('玩家人数'), '');
+    expect(onChangeText).toHaveBeenCalledWith('');
+  });
+
+  it.each([true, false])('keeps count geometry fixed when editable is %s', (isEditable) => {
+    const view = render(
+      <GameSettingsStepper
+        label="玩家人数"
+        value="8"
+        onChangeText={isEditable ? jest.fn() : undefined}
+        onDecrement={jest.fn()}
+        onIncrement={jest.fn()}
+        testID="count"
+      />,
+    );
+    expect(view.getByTestId('count')).toHaveStyle({
+      width: componentSizes.button.lg,
+      height: componentSizes.button.md,
+      lineHeight: componentSizes.button.md,
+      flexShrink: 0,
+      textAlign: 'center',
+      paddingVertical: 0,
+    });
+  });
+
   it('keeps primary actions outside scrolling content and preserves caller scroll props', () => {
     const view = render(
       <GameScreen

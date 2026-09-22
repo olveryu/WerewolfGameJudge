@@ -39,6 +39,7 @@ import ColorPicker, {
 import { Modal } from '@/components/AppModal';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import {
   EMPTY_PICTIONARY_DRAWING_DRAFT,
   isPictionaryDrawingColor,
@@ -65,7 +66,16 @@ import {
 } from '@/games/pictionary/services/PictionaryTextDraftStore';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, fixed, shadows, spacing, textStyles, typography } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  fixed,
+  shadows,
+  spacing,
+  textStyles,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -289,7 +299,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
           <Ionicons
             name={icon}
             size={18}
-            color={isSelected ? colors.textInverse : colors.textSecondary}
+            color={isSelected ? colors.primary : colors.textSecondary}
           />
         )}
       </View>
@@ -766,7 +776,12 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
               />
             </View>
           </View>
-          <DrawingOptions activePanel={activePanel} toolbar={toolbar} onClose={onClose} />
+          <ScrollView
+            style={roomSurfaceStyles.scroll}
+            contentContainerStyle={roomSurfaceStyles.content}
+          >
+            <DrawingOptions activePanel={activePanel} toolbar={toolbar} onClose={onClose} />
+          </ScrollView>
         </BaseCenterModal>
       )}
     </View>
@@ -1119,22 +1134,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: fixed.borderWidth,
     borderColor: colors.borderLight,
   },
-  optionsPanel: {
-    width: '92%',
-    maxWidth: 360,
-    maxHeight: '90%',
-    borderRadius: borderRadius.medium,
-  },
+  optionsPanel: roomSurfaceStyles.dialog,
   colorButtonAnchor: { flex: 1 },
   colorOptions: {
     position: 'absolute',
     padding: spacing.medium,
     paddingTop: spacing.small,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.borderLight,
-    ...shadows.md,
+    borderRadius: borderRadius.large,
+    ...shadows.sm,
   },
   colorHeader: {
     flexDirection: 'row',
@@ -1142,7 +1150,7 @@ const styles = StyleSheet.create({
     gap: spacing.small,
     marginBottom: spacing.small,
   },
-  colorTitle: { ...textStyles.bodyMedium, color: colors.text, flex: 1 },
+  colorTitle: { ...roomSurfaceStyles.title, flex: 1 },
   colorCurrent: {
     width: spacing.large,
     height: spacing.large,
@@ -1188,8 +1196,8 @@ const styles = StyleSheet.create({
     borderWidth: fixed.borderWidth,
     borderColor: colors.borderLight,
   },
-  panelHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.small },
-  panelTitle: { ...textStyles.subtitle, flex: 1, color: colors.text },
+  panelHeader: roomSurfaceStyles.header,
+  panelTitle: { ...roomSurfaceStyles.title, flex: 1 },
   closeButton: { width: fixed.minTouchTarget },
   toolOption: { width: fixed.minTouchTarget },
   optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.small },
@@ -1202,9 +1210,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.tight,
     paddingHorizontal: spacing.tight,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.small,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.transparent,
   },
-  selectedToolButton: { backgroundColor: colors.primary },
+  selectedToolButton: {
+    backgroundColor: withAlpha(colors.primary, 0.15),
+    borderColor: colors.primary,
+  },
   labeledToolButton: {
     height: fixed.minTouchTarget + spacing.medium,
     maxHeight: fixed.minTouchTarget + spacing.medium,
@@ -1216,7 +1230,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toolCaption: { ...textStyles.caption, color: colors.textSecondary, textAlign: 'center' },
-  selectedToolCaption: { color: colors.textInverse },
+  selectedToolCaption: { color: colors.primary },
   tooltip: {
     position: 'absolute',
     bottom: '100%',
@@ -1254,7 +1268,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.small,
     backgroundColor: colors.surface,
   },
-  selectedWidthButton: { borderColor: colors.primary, borderWidth: fixed.borderWidthThick },
+  selectedWidthButton: {
+    borderColor: colors.primary,
+    backgroundColor: withAlpha(colors.primary, 0.15),
+  },
   widthPreview: { borderRadius: borderRadius.full },
   waitingBody: {
     minHeight: 260,
@@ -1262,7 +1279,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.medium,
   },
-  waitingCount: { ...textStyles.titleBold, color: colors.text },
+  waitingCount: roomSurfaceStyles.title,
   waitingHint: { ...textStyles.secondary, color: colors.textSecondary, textAlign: 'center' },
   progressTrack: {
     width: '100%',

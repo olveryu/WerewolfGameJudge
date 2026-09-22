@@ -5,8 +5,10 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { TESTIDS } from '@/testids';
-import { colors, fixed, spacing, textStyles, typography } from '@/theme';
+import { colors, fixed, spacing, textStyles } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { PICTIONARY_STAGE_MAX_WIDTH } from './PictionaryStageFrame';
 
@@ -70,7 +72,9 @@ export function PictionaryTaskFrame({
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
               <Text style={styles.eyebrow}>{eyebrow}</Text>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.title} accessibilityRole="header">
+                {title}
+              </Text>
             </View>
             <View
               style={[styles.timer, isFinalCountdown && styles.finalTimer]}
@@ -80,7 +84,11 @@ export function PictionaryTaskFrame({
               }
             >
               {!isFinalCountdown && (
-                <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+                <Ionicons
+                  name="time-outline"
+                  size={componentSizes.icon.sm}
+                  color={colors.textSecondary}
+                />
               )}
               <Text style={[styles.timerText, isFinalCountdown && styles.countdownText]}>
                 {timerText}
@@ -130,20 +138,9 @@ const styles = StyleSheet.create({
   },
   headingCopy: { flex: 1, minWidth: 0 },
   eyebrow: { ...textStyles.caption, color: colors.textSecondary },
-  title: { ...textStyles.subtitle, fontWeight: typography.weights.bold, color: colors.text },
-  timer: {
-    width: 80,
-    height: fixed.minTouchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.tight,
-  },
-  timerText: {
-    ...textStyles.secondarySemibold,
-    color: colors.textSecondary,
-    fontVariant: ['tabular-nums'],
-  },
+  title: roomSurfaceStyles.title,
+  timer: roomSurfaceStyles.timer,
+  timerText: roomSurfaceStyles.timerText,
   finalTimer: { backgroundColor: colors.error, borderRadius: fixed.minTouchTarget / 2 },
   countdownText: {
     ...textStyles.headingBold,
@@ -151,7 +148,13 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   body: { flex: 1, minHeight: 0, gap: spacing.small },
-  footer: { flexShrink: 0, gap: spacing.tight },
+  footer: {
+    flexShrink: 0,
+    gap: spacing.tight,
+    paddingTop: spacing.small,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.border,
+  },
   media: {
     flex: 1,
     minHeight: 0,

@@ -70,9 +70,13 @@ test.describe('Config Screen', () => {
 });
 
 for (const game of [
-  { gameType: 'fibking', title: '瞎掰王', submit: TESTIDS.fibConfigSubmitButton },
-  { gameType: 'pictionary', title: '你画我猜接龙', submit: TESTIDS.pictionaryConfigSubmitButton },
-  { gameType: 'undercover', title: '谁是卧底', submit: 'undercover-config-submit' },
+  { gameType: 'fibking', title: '瞎掰王设置', submit: TESTIDS.fibConfigSubmitButton },
+  {
+    gameType: 'pictionary',
+    title: '你画我猜接龙设置',
+    submit: TESTIDS.pictionaryConfigSubmitButton,
+  },
+  { gameType: 'undercover', title: '谁是卧底设置', submit: 'undercover-config-submit' },
 ] as const) {
   test(`${game.gameType} config keeps its primary action visible while content scrolls`, async ({
     app: { page },

@@ -1,45 +1,20 @@
 /** Shared Undercover presentation tokens; layout remains responsive within the room shell. */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, colors, spacing, typography } from '@/theme';
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { borderRadius, colors, spacing, textStyles } from '@/theme';
 
 export const undercoverStyles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: {
-    padding: spacing.large,
-    gap: spacing.large,
-    width: '100%',
-    maxWidth: 640,
-    alignSelf: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.medium,
-    flexWrap: 'wrap',
-  },
-  title: { color: colors.text, fontSize: typography.title },
-  text: { color: colors.text, fontSize: typography.body },
-  muted: { color: colors.textSecondary, fontSize: typography.secondary },
+  title: roomSurfaceStyles.title,
+  text: roomSurfaceStyles.body,
+  muted: roomSurfaceStyles.status,
   word: {
+    ...textStyles.titleBold,
     color: colors.text,
-    fontSize: typography.hero,
     textAlign: 'center',
     paddingVertical: spacing.large,
   },
-  input: {
-    color: colors.text,
-    fontSize: typography.title,
-    padding: spacing.small,
-    textAlign: 'center',
-    width: 80,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.small,
-  },
-  section: { gap: spacing.medium },
-  modal: { width: 440, maxWidth: '94%', maxHeight: '85%' },
-  footer: { padding: spacing.medium, gap: spacing.small },
+  section: roomSurfaceStyles.section,
   revealOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -50,8 +25,7 @@ export const undercoverStyles = StyleSheet.create({
   revealPanel: {
     width: '100%',
     maxHeight: '85%',
-    padding: spacing.large,
-    gap: spacing.large,
+    overflow: 'hidden',
     backgroundColor: colors.surface,
     borderTopLeftRadius: borderRadius.large,
     borderTopRightRadius: borderRadius.large,

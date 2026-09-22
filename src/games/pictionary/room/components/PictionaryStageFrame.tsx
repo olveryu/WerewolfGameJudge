@@ -4,8 +4,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { TESTIDS } from '@/testids';
-import { colors, fixed, spacing, textStyles, typography } from '@/theme';
+import { colors, spacing, textStyles, withAlpha } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 export const PICTIONARY_STAGE_MAX_WIDTH = 430;
 
@@ -41,7 +43,9 @@ export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
     <View style={styles.headingRow}>
       <View style={styles.headingCopy}>
         <Text style={styles.eyebrow}>{eyebrow}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          {title}
+        </Text>
         <Text style={styles.description}>{description}</Text>
       </View>
       <View
@@ -53,7 +57,7 @@ export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
       >
         <Ionicons
           name={remainingSeconds === 0 ? 'sync-outline' : 'time-outline'}
-          size={18}
+          size={componentSizes.icon.sm}
           color={isUrgent ? colors.error : colors.textSecondary}
         />
         <Text style={[styles.timerText, isUrgent && styles.urgentTimerText]}>
@@ -112,22 +116,12 @@ const styles = StyleSheet.create({
   headingCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
     ...textStyles.caption,
-    color: colors.primary,
-    fontWeight: typography.weights.bold,
+    color: colors.textSecondary,
   },
-  title: { ...textStyles.headingBold, color: colors.text, marginTop: spacing.tight },
+  title: { ...roomSurfaceStyles.title, marginTop: spacing.tight },
   description: { ...textStyles.secondary, color: colors.textSecondary, marginTop: spacing.tight },
-  timer: {
-    minHeight: fixed.minTouchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.tight,
-    paddingHorizontal: spacing.small,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  urgentTimer: { borderColor: colors.error },
-  timerText: { ...textStyles.secondarySemibold, color: colors.textSecondary },
+  timer: roomSurfaceStyles.timer,
+  urgentTimer: { backgroundColor: withAlpha(colors.error, 0.15) },
+  timerText: roomSurfaceStyles.timerText,
   urgentTimerText: { color: colors.error },
 });
