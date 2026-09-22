@@ -57,13 +57,17 @@ export function createWerewolfUiModule({
     return createElement(NotepadScreen, { client });
   }
 
+  function BoundWerewolfGuideScreen() {
+    return createElement(EncyclopediaScreen, { client });
+  }
+
   return {
     gameType: 'werewolf' as const,
     client,
     home: werewolfHomeContribution,
     navigation: bindGameNavigation(werewolfGameNavigation, {
       config: BoundWerewolfConfigFlowScreen,
-      guide: EncyclopediaScreen,
+      guide: BoundWerewolfGuideScreen,
       notepad: BoundWerewolfNotepadScreen,
     }),
     roomScreen: BoundWerewolfRoomScreen,

@@ -18,7 +18,8 @@ import type {
 import { parseWerewolfConfigRouteParams } from './werewolfConfigFlow';
 
 function parseGuideTab(value: unknown): WerewolfGuideTab | undefined {
-  if (value === undefined || value === 'roles' || value === 'boards') return value;
+  if (value === undefined || value === 'gameplay' || value === 'roles' || value === 'boards')
+    return value;
   if (typeof value !== 'string') {
     throw new Error('[FAIL-FAST] Werewolf guide tab must be a string');
   }

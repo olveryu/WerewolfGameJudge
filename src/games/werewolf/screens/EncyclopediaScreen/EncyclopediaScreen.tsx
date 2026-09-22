@@ -1,9 +1,7 @@
 /**
- * EncyclopediaScreen - encyclopedia (roles + boards)
+ * EncyclopediaScreen - gameplay guide and encyclopedia (roles + boards)
  *
- * Thin shell: ScreenHeader + SegmentedControl("角色" | "板子") + tab content.
- * Content is rendered by RolesGuideContent / BoardsGuideContent.
- * Pure presentational screen: depends on no service, contains no business logic.
+ * Composes gameplay, role and board tabs; reads the matching active room for public configuration.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getAllRoleIds, PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
@@ -17,8 +15,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { GameScreen, gameScreenStyles } from '@/components/GameScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { WerewolfGuideTab } from '@/games/werewolf/navigation/types';
 import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, withAlpha } from '@/theme';
@@ -27,10 +27,12 @@ import { BoardsGuideContent } from './BoardsGuideContent';
 import { SegmentedControl } from './components/SegmentedControl';
 import { RolesGuideContent } from './RolesGuideContent';
 import { useEncyclopediaScreenState } from './useEncyclopediaScreenState';
+import { WerewolfGameplayContent } from './WerewolfGameplayContent';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 const GUIDE_SEGMENTS: readonly { key: WerewolfGuideTab; label: string }[] = [
+  { key: 'gameplay', label: '玩法' },
   { key: 'roles', label: `角色 · ${getAllRoleIds().length}` },
   { key: 'boards', label: `板子 · ${PRESET_TEMPLATES.length}` },
 ];
@@ -38,12 +40,21 @@ const GUIDE_SEGMENTS: readonly { key: WerewolfGuideTab; label: string }[] = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 /** Role encyclopedia / board guide screen. */
-export const EncyclopediaScreen: React.FC = () => {
+export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient }> = ({
+  client,
+}) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameGuide'>>();
   const routeParams = parseWerewolfGuideRouteParams(route.params);
-  const initialTab = routeParams.initialTab ?? 'roles';
+  const room = useRoomSessionSnapshot(client.roomSession);
+  const gameState =
+    room.phase === 'ready' && room.identity.room.roomCode === routeParams.roomCode
+      ? room.snapshot.state
+      : null;
+  const isHost =
+    room.phase === 'ready' && gameState !== null && gameState.hostUserId === room.identity.userId;
+  const initialTab = routeParams.initialTab ?? (routeParams.roleId ? 'roles' : 'gameplay');
   const [activeTab, setActiveTab] = useState<WerewolfGuideTab>(initialTab);
 
   const rolesState = useEncyclopediaScreenState(routeParams.roleId);
@@ -92,7 +103,7 @@ export const EncyclopediaScreen: React.FC = () => {
           />
         </Button>
       </View>
-    ) : (
+    ) : activeTab === 'boards' ? (
       <View style={styles.headerRight}>
         <Button
           variant="icon"
@@ -114,14 +125,14 @@ export const EncyclopediaScreen: React.FC = () => {
           />
         </Button>
       </View>
-    );
+    ) : undefined;
 
   return (
     <GameScreen
       testID={TESTIDS.encyclopediaScreenRoot}
       header={
         <ScreenHeader
-          title="图鉴"
+          title="狼人杀玩法"
           onBack={handleGoBack}
           topInset={insets.top}
           headerRight={headerRight}
@@ -135,6 +146,13 @@ export const EncyclopediaScreen: React.FC = () => {
           onChangeKey={setActiveTab}
         />
         <View style={styles.content}>
+          {activeTab === 'gameplay' && (
+            <WerewolfGameplayContent
+              gameState={gameState}
+              isHost={isHost}
+              hasRoomContext={routeParams.roomCode !== undefined}
+            />
+          )}
           {activeTab === 'roles' && <RolesGuideContent state={rolesState} />}
           {activeTab === 'boards' && (
             <BoardsGuideContent

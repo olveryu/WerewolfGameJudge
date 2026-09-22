@@ -60,6 +60,22 @@ describe('game navigation composition', () => {
     ).toBe('2468');
   });
 
+  it.each(['gameplay', 'roles', 'boards'])('accepts the Werewolf %s guide tab', (initialTab) => {
+    expect(
+      parseGameNavigationRouteParams('guide', {
+        gameType: 'werewolf',
+        roomCode: '1234',
+        initialTab,
+      }),
+    ).toMatchObject({ gameType: 'werewolf', roomCode: '1234', initialTab });
+  });
+
+  it('rejects unknown Werewolf guide tabs', () => {
+    expect(() =>
+      parseGameNavigationRouteParams('guide', { gameType: 'werewolf', initialTab: 'unknown' }),
+    ).toThrow('Unknown Werewolf guide tab');
+  });
+
   it('excludes unsupported route params and screen bindings at compile time', () => {
     const notepadRoute: GameNotepadRouteParams = {
       gameType: 'werewolf',

@@ -14,7 +14,7 @@ export type WerewolfConfigRouteParams =
       readonly roomCode: string;
     };
 
-export type WerewolfGuideTab = 'roles' | 'boards';
+export type WerewolfGuideTab = 'gameplay' | 'roles' | 'boards';
 
 export interface WerewolfGuideRouteParams {
   readonly gameType: 'werewolf';
