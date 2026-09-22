@@ -6,6 +6,10 @@
 > 最后更新：2026-09-05
 > 范围：game-engine、API Worker、Durable Object、客户端服务、导航、共享房间 UI、瞎掰王及未来游戏
 
+> 阅读边界：本文保留迁移提案和历史实施记录，开头的基线不代表当前代码状态。
+> 新游戏接入采用第 25 节清单；当前跨游戏 UI 契约见 [room-shell-contract.md](room-shell-contract.md)，
+> 视觉基准见 [DESIGN.md](DESIGN.md)。历史示例与当前实现冲突时，先核对所属模块，不复制旧路径或旧 API。
+
 ## 1. 文档目的
 
 这个仓库最初只服务狼人杀。因此在 `main` 中，很多狼人杀实现使用了看似通用的名字，例如 `GameState`、`GameStore`、`GameFacadeContext`、`GameRoom` 和 `engine/`。加入瞎掰王后可以确认：这些名字大多不是多游戏抽象，而是狼人杀业务实现。
@@ -1628,9 +1632,10 @@ games/<game>/
 
 允许游戏有特殊 screen，但必须留在 game slice，并通过 client module 注册。
 
-## 25. 以后加入你画我猜
+## 25. 新增游戏接入清单
 
-玩法、计时、媒体与实施契约见[你画我猜接龙设计](./pictionary-game-design.md)。
+你画我猜接龙已是现有游戏，其玩法、计时、媒体契约见[你画我猜接龙设计](./pictionary-game-design.md)。
+后续游戏沿用以下清单，不把每个游戏当作重新设计房间 UI 的机会。
 
 新增游戏需要：
 
@@ -1642,6 +1647,14 @@ games/<game>/
 6. 实现一个 client game module、Home contribution、game-owned config flow、room adapter 和玩法 screen。
 7. 加入穷尽式 client catalog。
 8. 添加 create、join、deep link、room shell 和主玩法测试。
+9. 按 [跨游戏 UI 契约](room-shell-contract.md) 列出 config、guide、房间各阶段及关联弹窗的组件归属和状态矩阵；以狼人杀为视觉基准。
+10. 优先复用完整设置控件、房间摘要、详情容器和共享房间模型；游戏专属工作区仍需对齐工具栏、状态和操作层级。差异必须由功能需要解释，不能仅因文件属于游戏目录而另建样式体系。
+11. 完成契约中的定向验证和集中页面验收，分别记录已通过与未执行项；只有导入共享组件或通过单测不能声明 UI 已统一。
+12. 有持久化结构变更时提供必要迁移并保留既有房间业务数据；仅支持当前客户端不等于允许发布后旧房间无法进入。
+
+接入文档应记录：现有共享组件选择、确需新增的能力、各游戏阶段的可见信息和操作、验证命令及结果。
+通用 UI 规则只维护在 [room-shell-contract.md](room-shell-contract.md) 与 [DESIGN.md](DESIGN.md)；
+游戏设计文档引用它们，不复制一套容易过期的尺寸表或控件 API。
 
 新增游戏不应修改：
 

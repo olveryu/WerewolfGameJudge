@@ -2,12 +2,16 @@
 
 ## Product Context
 
-- **What this is:** Werewolf judge assistant app — manages card dealing, night actions, identity reveals, timers
+- **What this is:** Multigame face-to-face judge app; Werewolf is the primary UI reference, alongside FibKing, Pictionary and Undercover
 - **Who it's for:** Face-to-face tabletop players (Host + remote players)
 - **Platform:** iOS / Android / Web (React Native + Expo)
 - **Theme count:** Currently 1 theme implemented (Moonlight / light); multi-theme is planned (design has 8 themes: 4 light + 4 dark)
 
 ## Aesthetic Direction
+
+- **Cross-game baseline:** Preserve Werewolf's established config controls, compact room hierarchy and interaction patterns. Other games align with it; do not redesign Werewolf to accommodate a new shared abstraction.
+- **Integration contract:** [room-shell-contract.md](room-shell-contract.md) owns the config/guide/room component map and acceptance checklist. This includes all game-owned panels and overlay states, not only page frames.
+- **Authority:** Current theme tokens and shared component implementations define values. Tables below are a reference, not permission to duplicate numeric constants in new games.
 
 - **Direction:** iOS native feel — clear hierarchy, token-driven, restrained decoration
 - **Mood:** Immersive tabletop atmosphere. Light themes are clean and elegant; dark themes each have personality (Eclipse = mysterious, Blood Moon = tense, Forest = secretive)
@@ -16,7 +20,7 @@
 ## Typography
 
 - **Font:** System default (SF Pro / Roboto / sans-serif)
-- **Scale (base 375px, responsive 0.75x–1.25x):**
+- **Scale (viewport-independent logical sizes, pixel-aligned):**
   - Display: 40px
   - Hero: 32px
   - Heading: 24px
@@ -55,7 +59,7 @@
 
 ## Spacing
 
-- **Base unit:** Responsive `scale()`, reference 375px
+- **Base unit:** Logical dimensions aligned with `PixelRatio.roundToNearestPixel`; `scale()` does not resize spacing with viewport width
 - **Scale:**
   - micro: 2px, tight: 4px, small: 8px, medium: 16px
   - screenH: 20px (screen horizontal margin, distinct from medium card padding)
@@ -93,7 +97,7 @@ Uses RN 0.76+ `boxShadow` property, cross-platform iOS/Android/Web.
 
 ## Layout
 
-- **Max content width:** 600px
+- **Content widths:** `GameScreenContent` and `GameScreenFooter` currently cap at 720; the shared catalog layout caps at 1040. Room workspaces own their responsive constraints. Reuse those owners rather than treating one width as universal.
 - **Screen padding:** horizontal=20px, vertical=24px
 - **Card padding:** 16px
 - **List item gap:** 8px
@@ -113,5 +117,6 @@ Uses RN 0.76+ `boxShadow` property, cross-platform iOS/Android/Web.
 ## Source of Truth
 
 - **Token definitions:** `src/theme/tokens.ts` — spacing, typography, borderRadius, shadows, componentSizes, layout, textStyles, fixed
-- **Theme colors:** `src/theme/themes.ts` — 8 ThemeColors sets
-- **Usage rules:** Hardcoding colors is forbidden (must get from theme context), hardcoding sizes is forbidden (must get from tokens)
+- **Theme colors:** `src/theme/colors.ts`, exported through `src/theme/index.ts`; inspect the active implementation rather than assuming a theme-context hook exists
+- **Usage rules:** Use exported colors and semantic size tokens; do not copy this document's numeric values into game components
+- **Contract maintenance:** Changes to shared controls or room surfaces update [room-shell-contract.md](room-shell-contract.md), their focused tests and applicable agent source rules together. Generated adapters are rebuilt with `pnpm run sync:agents`.

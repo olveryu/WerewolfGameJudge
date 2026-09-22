@@ -1,6 +1,6 @@
 ---
 name: 'Screens & Components'
-description: 'Screen/Component layer standards: Policy-Orchestrator-Presentational three-tier, Theme Tokens, RN performance. Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations'
+description: 'Screen/Component standards: Werewolf UI baseline, new-game UI integration, policy/presentation boundaries, theme tokens and RN performance. Use when: adding a game UI, editing config/guide/room screens, components, dialogs, theme tokens or animations'
 applyTo: 'src/screens/**,src/components/**,src/games/*/screens/**,src/games/*/components/**,src/games/*/room/components/**,src/games/*/room/*RoomScreen*.tsx,src/features/room/components/**'
 ---
 
@@ -8,6 +8,7 @@ applyTo: 'src/screens/**,src/components/**,src/games/*/screens/**,src/games/*/co
 
 ## Cross-Game UI Baseline
 
+- For new games and config/guide/room changes, read `docs/room-shell-contract.md` for the component ownership map and acceptance matrix; use `docs/DESIGN.md` for visual references and section 25 of `docs/multigame-platform-design.md` for game integration. Keep detailed contracts there instead of duplicating them in skills or per-game docs.
 - Werewolf is the primary UI reference. Align other games with its established config controls, room hierarchy, typography, selection states and dialogs; do not redesign Werewolf merely to introduce shared components.
 - A request to unify config and room pages includes their controls, game-owned panels, dialogs, drawers, loading, empty, error and submission states, not just page frames or navigation entries.
 - Shared controls own their complete visual geometry. Callers supply values and intent callbacks; do not leave core count/selection rendering to arbitrary children when identical appearance is required. Preserve existing input capabilities and game validation.
