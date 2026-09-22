@@ -28,14 +28,14 @@ for (const viewport of [
       await page.getByTestId('undercover-player-count').fill('6');
       await expect(page.getByTestId('undercover-player-count')).toHaveValue('6');
       await page.getByRole('switch', { name: '启用白板' }).click();
-      await page.getByRole('switch', { name: '测试模式' }).click();
+      await expect(page.getByRole('switch', { name: '测试模式' })).toHaveCount(0);
       await page.getByTestId('undercover-config-submit').click();
       await room.waitForReady('host');
       await room.seatAt(0);
       await room.openHostManagement();
       await page.getByTestId('undercover-fill-bots').click();
       await page.getByText('确定', { exact: true }).click();
-      await expect(page.getByText('测试模式 · 等待入座 · 6/6', { exact: true })).toBeVisible();
+      await expect(page.getByText('等待入座 · 6/6', { exact: true })).toBeVisible();
       await room.openHostManagement();
       await page.getByTestId('undercover-start').click();
       await expect(page.getByTestId('undercover-view-word')).toBeVisible();
@@ -53,9 +53,7 @@ for (const viewport of [
         if (seat > 0) await page.getByTestId(TESTIDS.controlledSeatReleaseButton).click();
       }
       expect(cards.filter((word) => word === '你是白板')).toHaveLength(1);
-      await expect(
-        page.getByText('测试模式 · 游戏进行中 · 存活 6 人', { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
       await page.getByTestId('undercover-view-word').click();
       await expect(page.getByTestId('undercover-word')).toHaveText(cards[0]!);
       await page.reload();
@@ -84,7 +82,7 @@ for (const viewport of [
           await page.getByText('隐藏词卡', { exact: true }).click();
         }
       }
-      await expect(page.getByText('测试模式 · 白板获胜', { exact: true })).toBeVisible();
+      await expect(page.getByText('白板获胜', { exact: true })).toBeVisible();
       await expect(page.getByTestId('undercover-view-word')).toHaveCount(0);
       await page.screenshot({
         path: testInfo.outputPath(`undercover-ended-${viewport.width}.png`),
@@ -94,7 +92,7 @@ for (const viewport of [
       ).toBe(true);
       await room.openHostManagement();
       await page.getByTestId('undercover-return-lobby').click();
-      await expect(page.getByText('测试模式 · 等待入座 · 6/6', { exact: true })).toBeVisible();
+      await expect(page.getByText('等待入座 · 6/6', { exact: true })).toBeVisible();
     } finally {
       await closeAll(fixture);
     }

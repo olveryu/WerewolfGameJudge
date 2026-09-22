@@ -40,8 +40,7 @@ export function useUndercoverRoster(
   const operations = useRoomHostOperations(commands);
   const bot = useRoomBotControl();
   const isHost = state.hostUserId === user.id;
-  const canControl =
-    isHost && state.config.isTestMode && (state.phase === 'reading' || state.phase === 'ongoing');
+  const canControl = isHost && (state.phase === 'reading' || state.phase === 'ongoing');
   const controlledSeat =
     canControl && bot.controlledSeat !== null && state.botSeats.includes(bot.controlledSeat)
       ? bot.controlledSeat

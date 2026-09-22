@@ -134,7 +134,6 @@ function decideConfirmation(
   let seat: number | null;
   if (context.controlledSeat !== null) {
     if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!state.config.isTestMode) return reject(UNDERCOVER_REASONS.testMode);
     if (!state.botSeats.includes(context.controlledSeat)) return reject(UNDERCOVER_REASONS.bot);
     seat = context.controlledSeat;
   } else {

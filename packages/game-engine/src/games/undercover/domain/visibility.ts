@@ -16,12 +16,7 @@ export function getUndercoverWordCard(
   if (state.phase !== 'reading' && state.phase !== 'ongoing') return null;
   let seat: number | null;
   if (controlledSeat !== null) {
-    if (
-      userId !== state.hostUserId ||
-      !state.config.isTestMode ||
-      !state.botSeats.includes(controlledSeat)
-    )
-      return null;
+    if (userId !== state.hostUserId || !state.botSeats.includes(controlledSeat)) return null;
     seat = controlledSeat;
   } else seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, userId);
   if (seat === null) return null;

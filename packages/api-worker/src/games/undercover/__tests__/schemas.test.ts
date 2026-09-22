@@ -10,7 +10,7 @@ import {
 
 describe('Undercover schemas', () => {
   it('accepts configuration and rejects invalid blank mode', () => {
-    const config = { numberOfPlayers: 8, hasBlank: true, isTestMode: true, category: 'all' };
+    const config = { numberOfPlayers: 8, hasBlank: true, category: 'all' };
     expect(undercoverCreateConfigSchema.parse(config)).toEqual(config);
     expect(undercoverCreateConfigSchema.safeParse({ ...config, numberOfPlayers: 4 }).success).toBe(
       false,

@@ -24,7 +24,7 @@ function applyCommand(state: UndercoverState, command: UndercoverPublicCommand, 
 
 function prepare() {
   const initial = undercoverWorkerModule.createInitialState(
-    { numberOfPlayers: 4, hasBlank: false, isTestMode: true, category: 'all' },
+    { numberOfPlayers: 4, hasBlank: false, category: 'all' },
     { roomCode: '8765', hostUserId: 'host', nowMs: 1, commandId: 'create' },
   );
   if (initial.kind !== 'created') throw new Error(initial.reason);

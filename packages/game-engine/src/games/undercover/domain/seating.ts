@@ -100,8 +100,6 @@ export function decideUndercoverRoom(
   switch (command.type) {
     case 'undercover.config.update': {
       if (!isValidUndercoverConfig(command.config)) return reject(UNDERCOVER_REASONS.config);
-      if (!command.config.isTestMode && state.botSeats.length > 0)
-        return reject(UNDERCOVER_REASONS.botsRemain);
       const occupied = [...Object.keys(state.realSeats).map(Number), ...state.botSeats];
       if (occupied.some((seat) => seat >= command.config.numberOfPlayers))
         return reject(UNDERCOVER_REASONS.occupied);
@@ -110,7 +108,6 @@ export function decideUndercoverRoom(
       ]);
     }
     case 'room.seat.fillBots': {
-      if (!state.config.isTestMode) return reject(UNDERCOVER_REASONS.testMode);
       if (
         findSeatByUserId(state.realSeats, state.config.numberOfPlayers, state.hostUserId) === null
       )
@@ -122,7 +119,6 @@ export function decideUndercoverRoom(
       return seatDecision([], botSeats);
     }
     case 'undercover.bots.clear':
-      if (!state.config.isTestMode) return reject(UNDERCOVER_REASONS.testMode);
       return seatDecision([], []);
     case 'room.seat.kick': {
       if (state.botSeats.includes(command.seat))

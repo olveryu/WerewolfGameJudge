@@ -5,7 +5,7 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import type { SeatOccupant } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 
-export const UNDERCOVER_STATE_VERSION = 1;
+export const UNDERCOVER_STATE_VERSION = 2;
 export const UNDERCOVER_CATEGORIES = [
   'food',
   'dailyLife',
@@ -23,7 +23,6 @@ export type UndercoverCategory = (typeof UNDERCOVER_CATEGORIES)[number];
 export interface UndercoverConfig {
   readonly numberOfPlayers: number;
   readonly hasBlank: boolean;
-  readonly isTestMode: boolean;
   readonly category: UndercoverCategory | 'all';
 }
 

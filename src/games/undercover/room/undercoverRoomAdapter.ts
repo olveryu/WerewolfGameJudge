@@ -82,16 +82,14 @@ export function createUndercoverRoomCapabilities(
     ...createRoomSetupCapabilities({
       ...input,
       isSetup: input.state.phase === 'lobby',
-      supportsBots: input.state.config.isTestMode && input.mySeat !== null,
+      supportsBots: input.mySeat !== null,
       hasOccupiedSeats: getUndercoverOccupiedSeatCount(input.state) > 0,
       isRoomFull:
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
     }),
     canViewProfiles: { isAllowed: true, execute: input.openProfile },
     canTakeOverBots:
-      input.isHost &&
-      input.state.config.isTestMode &&
-      (input.state.phase === 'reading' || input.state.phase === 'ongoing')
+      input.isHost && (input.state.phase === 'reading' || input.state.phase === 'ongoing')
         ? { isAllowed: true, execute: input.takeOverBot }
         : { isAllowed: false, reason: '当前不能接管机器人' },
   };
@@ -151,7 +149,6 @@ export function createUndercoverSeatDataSource(
 
 /** Status text contains no hidden identities or words. */
 export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatusRibbonModel {
-  const prefix = state.config.isTestMode ? '测试模式 · ' : '';
   let text: string;
   switch (state.phase) {
     case 'lobby':
@@ -181,5 +178,5 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
       text = '本局已中止';
       break;
   }
-  return { kind: 'message', icon: 'guide', text: prefix + text, supportingText: null };
+  return { kind: 'message', icon: 'guide', text, supportingText: null };
 }

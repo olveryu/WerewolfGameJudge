@@ -24,7 +24,6 @@ export function isValidUndercoverConfig(config: UndercoverConfig): boolean {
     config.numberOfPlayers >= UNDERCOVER_MIN_PLAYERS &&
     config.numberOfPlayers <= UNDERCOVER_MAX_PLAYERS &&
     typeof config.hasBlank === 'boolean' &&
-    typeof config.isTestMode === 'boolean' &&
     (!config.hasBlank || config.numberOfPlayers >= UNDERCOVER_BLANK_MIN_PLAYERS) &&
     (config.category === 'all' ||
       UNDERCOVER_CATEGORIES.some((category) => category === config.category))
@@ -62,8 +61,7 @@ function assertSeats(state: UndercoverState): void {
     new Set(state.botSeats).size !== state.botSeats.length ||
     state.botSeats.some(
       (seat) => !isUndercoverSeat(state, seat) || state.realSeats[seat] !== undefined,
-    ) ||
-    (!state.config.isTestMode && state.botSeats.length > 0)
+    )
   )
     throw new Error('Invalid Undercover robot seats');
 }

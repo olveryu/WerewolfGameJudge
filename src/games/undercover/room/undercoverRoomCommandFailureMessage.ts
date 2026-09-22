@@ -12,8 +12,6 @@ const messages: Readonly<Record<string, string>> = {
   [UNDERCOVER_REASONS.phase]: '当前阶段不能执行此操作',
   [UNDERCOVER_REASONS.config]: '人数需为 4 至 12 人；启用白板至少需要 6 人',
   [UNDERCOVER_REASONS.occupied]: '人数之外仍有已占用座位，请先调整座位',
-  [UNDERCOVER_REASONS.testMode]: '请先在房间设置中开启测试模式',
-  [UNDERCOVER_REASONS.botsRemain]: '请先清除机器人，再关闭测试模式',
   [UNDERCOVER_REASONS.notFull]: '请先坐满所有座位',
   [UNDERCOVER_REASONS.round]: '对局已变化，请等待房间状态刷新',
   [UNDERCOVER_REASONS.alreadyRevealed]: '该玩家已经出局',

@@ -18,7 +18,7 @@ export {
 } from './domain/rules';
 export { getUndercoverWordCard, type UndercoverWordCard } from './domain/visibility';
 export { type UndercoverEngine, undercoverEngine } from './engine';
-export { UNDERCOVER_STATE_CODEC } from './state/codec';
+export { migratePersistedUndercoverState, UNDERCOVER_STATE_CODEC } from './state/codec';
 export { isValidUndercoverConfig, isValidUndercoverWordPair } from './state/normalize';
 export {
   getUndercoverOccupiedSeatCount,

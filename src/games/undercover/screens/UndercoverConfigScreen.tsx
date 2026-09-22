@@ -72,7 +72,6 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
       return {
         numberOfPlayers: UNDERCOVER_DEFAULT_PLAYERS,
         hasBlank: false,
-        isTestMode: false,
         category: 'all',
       };
     const snapshot = session.getSnapshot();
@@ -188,14 +187,6 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
             accessibilityLabel="启用白板"
             value={config.hasBlank}
             onValueChange={(hasBlank) => setConfig({ ...config, hasBlank })}
-          />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.text}>测试模式</Text>
-          <Switch
-            accessibilityLabel="测试模式"
-            value={config.isTestMode}
-            onValueChange={(isTestMode) => setConfig({ ...config, isTestMode })}
           />
         </View>
         <View style={styles.row}>

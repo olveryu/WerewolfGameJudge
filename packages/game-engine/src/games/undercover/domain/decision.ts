@@ -15,8 +15,6 @@ export const UNDERCOVER_REASONS = {
   phase: 'undercover_phase_invalid',
   config: 'undercover_config_invalid',
   occupied: 'undercover_occupied_seat_out_of_range',
-  testMode: 'undercover_test_mode_required',
-  botsRemain: 'undercover_bots_remain',
   notFull: 'undercover_room_not_full',
   round: 'undercover_round_mismatch',
   alreadyRevealed: 'undercover_already_revealed',

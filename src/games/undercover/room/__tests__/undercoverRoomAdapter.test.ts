@@ -31,7 +31,7 @@ function dispatch(state: UndercoverState, command: UndercoverCommand, isSystem =
 
 function createReadingState() {
   let state = undercoverEngine.createInitialState(
-    { numberOfPlayers: 6, hasBlank: true, isTestMode: true, category: 'all' },
+    { numberOfPlayers: 6, hasBlank: true, category: 'all' },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1, commandId: 'create' },
   );
   state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
@@ -49,7 +49,7 @@ function createReadingState() {
   return state;
 }
 
-it('shows test mode but conceals roles and words while everyone reads their cards', () => {
+it('conceals roles and words while everyone reads their cards', () => {
   const state = createReadingState();
   const source = createUndercoverSeatDataSource(state, 4, 'host', 1, null);
   for (let seat = 0; seat < source.count; seat += 1)
@@ -57,7 +57,7 @@ it('shows test mode but conceals roles and words while everyone reads their card
   expect(source.getSeat(1).highlight).toBe('controlled');
   expect(getUndercoverUserSeat(state, 'host')).toBe(0);
   expect(getUndercoverUserSeat(state, 'visitor')).toBeNull();
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '测试模式 · 确认词卡 · 0/6' });
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '确认词卡 · 0/6' });
 });
 
 it('conceals cards on control changes, backgrounding and remount', () => {

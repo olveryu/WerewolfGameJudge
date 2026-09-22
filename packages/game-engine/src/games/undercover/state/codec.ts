@@ -47,7 +47,6 @@ function parseConfig(value: unknown, path: string): UndercoverConfig {
     {
       numberOfPlayers: parseInteger(raw.numberOfPlayers, `${path}.numberOfPlayers`),
       hasBlank: parseBoolean(raw.hasBlank, `${path}.hasBlank`),
-      isTestMode: parseBoolean(raw.isTestMode, `${path}.isTestMode`),
       category: raw.category === 'all' ? 'all' : parseCategory(raw.category, `${path}.category`),
     },
     path,
@@ -220,6 +219,23 @@ function parseUndercoverState(value: unknown): UndercoverState {
       return failDecode(`${path}.phase`, 'an Undercover phase');
   }
   return normalizeUndercoverState(finishObject(raw, state, path));
+}
+
+/** Upgrade stored v1 rooms without changing roster, words, confirmations or results.
+ * @throws When the stored configuration or migrated state is invalid.
+ */
+export function migratePersistedUndercoverState(value: unknown): UndercoverState {
+  const raw = parseObject(value, 'UndercoverState');
+  if (raw.stateVersion !== 1) return parseUndercoverState(raw);
+  const config = parseObject(raw.config, 'UndercoverState.config');
+  parseBoolean(config.isTestMode, 'UndercoverState.config.isTestMode');
+  const currentConfig = { ...config };
+  delete currentConfig.isTestMode;
+  return parseUndercoverState({
+    ...raw,
+    stateVersion: UNDERCOVER_STATE_VERSION,
+    config: currentConfig,
+  });
 }
 
 export const UNDERCOVER_STATE_CODEC = {

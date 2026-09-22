@@ -20,7 +20,6 @@ export const undercoverCreateConfigSchema: z.ZodType<UndercoverConfig> = z
   .strictObject({
     numberOfPlayers: z.int().min(UNDERCOVER_MIN_PLAYERS).max(UNDERCOVER_MAX_PLAYERS),
     hasBlank: z.boolean(),
-    isTestMode: z.boolean(),
     category: z.union([z.literal('all'), z.enum(UNDERCOVER_CATEGORIES)]),
   })
   .refine(isValidUndercoverConfig);

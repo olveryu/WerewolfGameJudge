@@ -6,13 +6,12 @@ import { UNDERCOVER_REASONS } from '../domain/decision';
 import type { UndercoverRole } from '../domain/rules';
 import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
-import { UNDERCOVER_STATE_CODEC } from '../state/codec';
+import { migratePersistedUndercoverState, UNDERCOVER_STATE_CODEC } from '../state/codec';
 import type { UndercoverConfig, UndercoverState } from '../state/types';
 
 const config: UndercoverConfig = {
   numberOfPlayers: 8,
   hasBlank: true,
-  isTestMode: true,
   category: 'all',
 };
 
@@ -133,6 +132,13 @@ describe('Undercover authoritative engine', () => {
     for (const state of states) {
       expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(state)))).toEqual(state);
       expect(() => UNDERCOVER_STATE_CODEC.parse({ ...state, unexpected: true })).toThrow();
+      const legacy = {
+        ...state,
+        stateVersion: 1,
+        config: { ...state.config, isTestMode: state.botSeats.length > 0 },
+      };
+      expect(migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)))).toEqual(state);
+      expect(migratePersistedUndercoverState(state)).toEqual(state);
     }
   });
 
@@ -183,12 +189,12 @@ describe('Undercover authoritative engine', () => {
     expect(state).toMatchObject({ phase: 'ended', winner: 'undercover' });
   });
 
-  it('rejects bot fill outside test mode', () => {
-    const state = createLobby({ ...config, isTestMode: false });
-    expect(undercoverEngine.decide(state, { type: 'room.seat.fillBots' }, user())).toEqual({
-      kind: 'reject',
-      reason: UNDERCOVER_REASONS.testMode,
-    });
+  it('allows the seated host to fill bots without a mode switch but rejects other users', () => {
+    const state = createLobby();
+    expect(dispatch(state, { type: 'room.seat.fillBots' }).botSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(undercoverEngine.decide(state, { type: 'room.seat.fillBots' }, user('guest')).kind).toBe(
+      'reject',
+    );
   });
 
   it('does not replace a human or allow control of a human seat', () => {
@@ -302,7 +308,7 @@ describe('Undercover authoritative engine', () => {
     expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
   });
 
-  it('freezes the roster and mode during a round', () => {
+  it('freezes the roster and configuration during a round', () => {
     const state = ongoing();
     const commands: UndercoverCommand[] = [
       { type: 'room.seat.leave' },
@@ -310,7 +316,7 @@ describe('Undercover authoritative engine', () => {
       { type: 'room.seat.fillBots' },
       { type: 'undercover.bots.clear' },
       { type: 'room.seat.kick', seat: 1 },
-      { type: 'undercover.config.update', config: { ...config, isTestMode: false } },
+      { type: 'undercover.config.update', config: { ...config, category: 'food' } },
     ];
     for (const command of commands)
       expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
