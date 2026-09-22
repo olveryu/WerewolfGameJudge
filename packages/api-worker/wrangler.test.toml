@@ -13,6 +13,7 @@ JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
 ADMIN_PASSWORD = "test-admin-token-do-not-use-in-production"
 ENVIRONMENT = "test"
 FIB_WORD_SUPPLY_ENABLED = "false"
+UNDERCOVER_WORD_SUPPLY_ENABLED = "false"
 TAVILY_API_KEY = "test-key"
 CLOUDFLARE_ACCOUNT_ID = "test-cloudflare-account"
 CLOUDFLARE_WORKER_SCRIPT_NAME = "werewolf-api"
@@ -61,3 +62,8 @@ new_sqlite_classes = ["GameRoom"]
 name = "fib-word-supply"
 binding = "FIB_WORD_SUPPLY"
 class_name = "FibWordSupplyWorkflow"
+
+[[workflows]]
+name = "undercover-word-supply"
+binding = "UNDERCOVER_WORD_SUPPLY"
+class_name = "UndercoverWordSupplyWorkflow"

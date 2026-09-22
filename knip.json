@@ -28,7 +28,12 @@
       "project": ["src/**/*.ts!"]
     },
     "packages/api-worker": {
-      "entry": ["src/e2e/index.ts!", "type-tests/**/*.ts!"],
+      "entry": [
+        "src/e2e/index.ts!",
+        "src/games/undercover/dbSchema.ts!",
+        "src/platform/ai/dbSchema.ts!",
+        "type-tests/**/*.ts!"
+      ],
       "project": ["src/**/*.ts!", "type-tests/**/*.ts!"],
       "ignoreDependencies": ["cloudflare"]
     }

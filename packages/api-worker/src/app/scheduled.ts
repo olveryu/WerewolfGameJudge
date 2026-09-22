@@ -68,6 +68,12 @@ export async function runScheduledCron(env: Env, cron: string, nowMs: number): P
         const day = new Date(nowMs).toISOString().slice(0, 10);
         await env.FIB_WORD_SUPPLY.createBatch([{ id: `fib-${day}`, params: { day } }]);
       }
+      if (env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true') {
+        const day = new Date(nowMs).toISOString().slice(0, 10);
+        await env.UNDERCOVER_WORD_SUPPLY.createBatch([
+          { id: `undercover-${day}`, params: { day } },
+        ]);
+      }
       return;
     default:
       throw new Error(`Unknown cron trigger: ${cron}`);

@@ -34,3 +34,19 @@ execFileSync(
   },
 );
 writeDevVars();
+execFileSync(
+  'pnpm',
+  [
+    'exec',
+    'wrangler',
+    'd1',
+    'execute',
+    'werewolf-db',
+    '--local',
+    '--config',
+    'wrangler.e2e.toml',
+    '--file',
+    '../../e2e/fixtures/undercover-word-pool.sql',
+  ],
+  { cwd: new URL('../packages/api-worker/', import.meta.url), stdio: 'inherit' },
+);

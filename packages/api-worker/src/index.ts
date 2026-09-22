@@ -51,6 +51,7 @@ import { telemetryRoutes } from './platform/telemetry/routes';
 export { GameRoom } from './app/GameRoom';
 export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
 export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';
+export { UndercoverWordSupplyWorkflow } from './games/undercover/wordSupplyWorkflow';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 

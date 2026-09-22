@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { assertFibWordReviewEvidence } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
@@ -57,6 +58,14 @@ export async function claimFibWordProviderRequest(
     .first();
   if (result === null)
     throw new Error('Fib provider operation already consumed, budget exhausted, or pack is closed');
+  if (operation === 'generation' || operation === 'review') {
+    await claimEditorialModelRequest(
+      db,
+      `fib:${pack.id}:${operation}`,
+      'fibking',
+      GEMINI_FIB_WORD_MODEL,
+    );
+  }
 }
 
 /** Reserve at most seven source requests and two model calls; uncertain calls are not refunded. */

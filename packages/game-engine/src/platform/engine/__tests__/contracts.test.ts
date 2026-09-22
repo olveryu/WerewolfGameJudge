@@ -1,5 +1,6 @@
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
+import { undercoverEngine } from '../../../games/undercover/engine';
 import { WEREWOLF_GAME_TYPE } from '../../protocol/gameTypes';
 import type { BaseGameState } from '../../protocol/roomSnapshot';
 import { defineGameEngineCatalog } from '../catalog';
@@ -116,6 +117,7 @@ describe('typed game engine contract', () => {
       werewolf: counterEngine,
       fibking: fibEngine,
       pictionary: pictionaryEngine,
+      undercover: undercoverEngine,
     });
 
     expect(catalog.werewolf).toBe(counterEngine);
@@ -131,6 +133,7 @@ describe('typed game engine contract', () => {
       // @ts-expect-error catalog key must match the engine's literal game identity
       fibking: counterEngine,
       pictionary: pictionaryEngine,
+      undercover: undercoverEngine,
     });
     defineGameEngineCatalog({
       werewolf: counterEngine,
@@ -138,12 +141,14 @@ describe('typed game engine contract', () => {
       pictionary: pictionaryEngine,
       // @ts-expect-error keys outside GameType are forbidden
       unregisteredExample: pictionaryEngine,
+      undercover: undercoverEngine,
     });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
       werewolf: { gameType: WEREWOLF_GAME_TYPE, stateVersion: 1 },
       fibking: fibEngine,
       pictionary: pictionaryEngine,
+      undercover: undercoverEngine,
     });
   });
 });

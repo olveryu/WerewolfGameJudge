@@ -20,6 +20,10 @@
       "types": "./src/games/pictionary/public.ts",
       "default": "./dist/games/pictionary/public.js"
     },
+    "./games/undercover/public": {
+      "types": "./src/games/undercover/public.ts",
+      "default": "./dist/games/undercover/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"

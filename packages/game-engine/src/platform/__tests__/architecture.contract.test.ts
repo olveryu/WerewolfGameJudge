@@ -35,6 +35,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/catalog',
   './games/fibking/public',
   './games/pictionary/public',
+  './games/undercover/public',
   './games/werewolf/public',
   './platform/engine',
   './platform/identifiers',

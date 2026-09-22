@@ -12,12 +12,14 @@ import {
 } from '../platform/gameModules/workerModule';
 import { fibWorkerModule } from './fibking/module';
 import { pictionaryWorkerModule } from './pictionary/module';
+import { undercoverWorkerModule } from './undercover/module';
 import { werewolfWorkerModule } from './werewolf/module';
 
 export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, {
   werewolf: registerWorkerGameModule(werewolfWorkerModule),
   fibking: registerWorkerGameModule(fibWorkerModule),
   pictionary: registerWorkerGameModule(pictionaryWorkerModule),
+  undercover: registerWorkerGameModule(undercoverWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

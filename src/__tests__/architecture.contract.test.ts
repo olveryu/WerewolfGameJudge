@@ -478,6 +478,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['admin_reward_grants', 'packages/api-worker/src/features/admin/dbSchema.ts'],
       ['camp_settlements', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
       ['draw_history', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
+      ['editorial_model_requests', 'packages/api-worker/src/platform/ai/dbSchema.ts'],
       ['feedback_deliveries', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['feedback_replies', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
       ['feedbacks', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
@@ -499,6 +500,10 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['room_game_starts', 'packages/api-worker/src/platform/room/dbSchema.ts'],
       ['room_participants', 'packages/api-worker/src/platform/room/dbSchema.ts'],
       ['rooms', 'packages/api-worker/src/platform/room/dbSchema.ts'],
+      ['undercover_round_word_selections', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
+      ['undercover_word_candidates', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
+      ['undercover_word_packs', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
+      ['undercover_word_pairs', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
       ['user_event_inbox', 'packages/api-worker/src/platform/userEvents/dbSchema.ts'],
       ['user_stats', 'packages/api-worker/src/features/account/dbSchema.ts'],
       ['users', 'packages/api-worker/src/features/account/dbSchema.ts'],
@@ -543,7 +548,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     expect(werewolfSchema).not.toMatch(/fib_words|fib_word_usages/);
   });
 
-  it('composes multiple concrete Worker games only in the exhaustive catalog', () => {
+  it('composes multiple concrete Worker games only in the catalog and Workflow entrypoint', () => {
     const multiGameConsumers = workerFiles.filter((filePath) => {
       const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
       const importedGames = GAME_TYPES.filter((gameType) =>
@@ -554,6 +559,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
 
     expect(multiGameConsumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
       'packages/api-worker/src/games/catalog.ts',
+      'packages/api-worker/src/index.ts',
     ]);
   });
 
@@ -569,7 +575,10 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     );
 
     expect(entryImports).toContain('./games/catalog');
-    expect(concreteGameImports).toEqual(['./games/fibking/wordSupplyWorkflow']);
+    expect(concreteGameImports).toEqual([
+      './games/fibking/wordSupplyWorkflow',
+      './games/undercover/wordSupplyWorkflow',
+    ]);
     expect(workerEntry).toContain(
       "export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';",
     );
@@ -819,6 +828,7 @@ describe('Worker ownership: source tree is exact', () => {
 
   it('defines the exact shared platform ownership roots', () => {
     expect(getTopLevelProductionDirectories(workerPlatformDir)).toEqual([
+      'ai',
       'crypto',
       'gameModules',
       'http',
@@ -886,6 +896,7 @@ describe('Worker request boundary: client objects are strict', () => {
       'packages/api-worker/src/features/feedback/providers/github.ts',
       'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
       'packages/api-worker/src/games/fibking/wordProviders/tavily.ts',
+      'packages/api-worker/src/games/undercover/wordProvider.ts',
     ]);
   });
 

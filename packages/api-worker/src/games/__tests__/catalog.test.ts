@@ -21,6 +21,7 @@ import {
   fibPublicCommandSchema,
 } from '../fibking/schemas';
 import { pictionaryMediaRoutes } from '../pictionary/mediaRoutes';
+import { undercoverInventoryRoutes } from '../undercover/routes';
 import { werewolfAiChatRoutes } from '../werewolf/aiChat/routes';
 import { werewolfEffectSchema } from '../werewolf/effects';
 import {
@@ -150,6 +151,11 @@ describe('Worker game catalog', () => {
         gameType: 'pictionary',
         path: '/api/games/pictionary/rooms',
         router: pictionaryMediaRoutes,
+      },
+      {
+        gameType: 'undercover',
+        path: '/api/games/undercover/inventory',
+        router: undercoverInventoryRoutes,
       },
     ]);
     expect(WORKER_GAME_CATALOG.fibking.httpRoutes).toEqual([]);

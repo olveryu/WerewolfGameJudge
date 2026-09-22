@@ -18,6 +18,7 @@ import {
 
 beforeEach(async () => {
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM editorial_model_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidates'),
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),

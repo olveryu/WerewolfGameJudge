@@ -36,6 +36,28 @@ function createIdleRoomAccount<TGameType extends GameType>(gameType: TGameType) 
 
 export function createTestClientGameCatalog(): ClientGameCatalog {
   return {
+    undercover: {
+      gameType: 'undercover',
+      home: {
+        mode: {
+          displayName: '谁是卧底',
+          subtitle: '线下指人投票，房主揭晓',
+          iconName: 'finger-print-outline',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.undercover.navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('undercover'),
+      productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
     werewolf: {
       gameType: 'werewolf',
       home: {
