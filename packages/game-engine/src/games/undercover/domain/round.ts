@@ -192,6 +192,14 @@ export function decideUndercoverRound(
       : state.round?.roundId;
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
+    case 'undercover.round.markAllBotsViewed':
+      return state.phase === 'reading'
+        ? commitUndercover(
+            state.botSeats
+              .filter((seat) => !state.round.confirmedSeats.includes(seat))
+              .map((seat) => ({ type: 'undercover.round.confirmed', seat })),
+          )
+        : reject(UNDERCOVER_REASONS.phase);
     case 'undercover.round.retry':
       return state.phase === 'preparationFailed'
         ? commitUndercover(

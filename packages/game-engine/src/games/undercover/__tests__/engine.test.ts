@@ -189,9 +189,13 @@ describe('Undercover authoritative engine', () => {
     expect(state).toMatchObject({ phase: 'ended', winner: 'undercover' });
   });
 
-  it('allows the seated host to fill bots without a mode switch but rejects other users', () => {
+  it('allows seated and unseated hosts to fill bots but rejects other users', () => {
     const state = createLobby();
     expect(dispatch(state, { type: 'room.seat.fillBots' }).botSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    const unseated = dispatch(state, { type: 'room.seat.leave' });
+    expect(dispatch(unseated, { type: 'room.seat.fillBots' }).botSeats).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7,
+    ]);
     expect(undercoverEngine.decide(state, { type: 'room.seat.fillBots' }, user('guest')).kind).toBe(
       'reject',
     );
@@ -219,6 +223,46 @@ describe('Undercover authoritative engine', () => {
     });
     expect(undercoverEngine.decide(state, command, user('guest', 2)).kind).toBe('reject');
     expect(dispatch(state, command, user('guest')).round?.confirmedSeats).toEqual([1]);
+  });
+
+  it('atomically confirms only unconfirmed bots and leaves human confirmation to the player', () => {
+    let state = complete(prepare());
+    if (state.round === null) throw new Error('Expected round');
+    const command = {
+      type: 'undercover.round.markAllBotsViewed',
+      roundId: state.round.roundId,
+    } as const;
+    expect(undercoverEngine.decide(state, command, user('guest')).kind).toBe('reject');
+    expect(undercoverEngine.decide(state, { ...command, roundId: 'stale' }, user()).kind).toBe(
+      'reject',
+    );
+    state = dispatch(
+      state,
+      { type: 'undercover.round.confirm', roundId: command.roundId },
+      user('host', 1),
+    );
+    state = dispatch(state, command);
+    expect(state.phase).toBe('reading');
+    expect(state.round?.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(dispatch(state, command)).toEqual(state);
+    state = dispatch(state, { type: 'undercover.round.confirm', roundId: command.roundId });
+    expect(state.phase).toBe('ongoing');
+    expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
+  });
+
+  it('starts an all-bot game when an unseated host confirms the bots', () => {
+    let state = dispatch(createLobby(), { type: 'room.seat.leave' });
+    state = dispatch(state, { type: 'room.seat.fillBots' });
+    state = complete(
+      dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
+    );
+    if (state.round === null) throw new Error('Expected round');
+    state = dispatch(state, {
+      type: 'undercover.round.markAllBotsViewed',
+      roundId: state.round.roundId,
+    });
+    expect(state.phase).toBe('ongoing');
+    expect(state.round?.confirmedSeats).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
   it('keeps repeated confirmations idempotent and requires everyone to confirm', () => {

@@ -11,6 +11,7 @@ import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
 import { undercoverStyles as styles } from '../undercover.styles';
+import { UndercoverRevealModal } from './components/UndercoverRevealModal';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
 import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenState';
 import { UNDERCOVER_CATEGORY_NAMES } from './undercoverRoomAdapter';
@@ -69,16 +70,27 @@ function UndercoverRoomContent(
         ),
       }}
       gameOverlays={
-        controls.card === null ? null : (
-          <UndercoverWordModal
-            card={controls.card}
-            isControlled={isControlled}
-            shouldConfirm={controls.shouldConfirm}
-            isSubmitting={controls.isSubmitting}
-            onClose={controls.closeCard}
-            onConfirm={controls.confirmCard}
-          />
-        )
+        <>
+          {controls.card !== null && (
+            <UndercoverWordModal
+              card={controls.card}
+              isControlled={isControlled}
+              shouldConfirm={controls.shouldConfirm}
+              isSubmitting={controls.isSubmitting}
+              onClose={controls.closeCard}
+              onConfirm={controls.confirmCard}
+            />
+          )}
+          {controls.selectedSeat !== null && (
+            <UndercoverRevealModal
+              seat={controls.selectedSeat}
+              player={shellModel.seats.source.getSeat(controls.selectedSeat).player!}
+              isSubmitting={controls.isSubmitting}
+              onClose={controls.cancelRevelation}
+              onConfirm={controls.reveal}
+            />
+          )}
+        </>
       }
     />
   );

@@ -81,12 +81,14 @@ export function useUndercoverRoomScreenState({
         user.id,
         roster.controlledSeat,
         controls.selectedSeat,
+        controls.isSelecting,
       ),
       visuallyDisabled: controls.isSubmitting || roster.isSubmitting,
       onSeatPress: controls.isSelecting ? controls.selectSeat : roster.onSeatPress,
-      onBotSeatLongPress: roster.capabilities.canTakeOverBots.isAllowed
-        ? roster.onBotLongPress
-        : null,
+      onBotSeatLongPress:
+        !controls.isSelecting && roster.capabilities.canTakeOverBots.isAllowed
+          ? roster.onBotLongPress
+          : null,
     },
     seatConfirmation: roster.seatConfirmation,
     profile: roster.profile,

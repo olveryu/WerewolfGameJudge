@@ -31,6 +31,15 @@ for (const viewport of [
       await expect(page.getByRole('switch', { name: '测试模式' })).toHaveCount(0);
       await page.getByTestId('undercover-config-submit').click();
       await room.waitForReady('host');
+      await room.expectNotSeated();
+      await room.openHostManagement();
+      await page.getByTestId('undercover-fill-bots').click();
+      await page.getByText('确定', { exact: true }).click();
+      await expect(page.getByText('等待入座 · 6/6', { exact: true })).toBeVisible();
+      await room.openHostManagement();
+      await page.getByTestId('undercover-clear-bots').click();
+      await page.getByText('确定', { exact: true }).click();
+      await expect(page.getByText('等待入座 · 0/6', { exact: true })).toBeVisible();
       await room.seatAt(0);
       await room.openHostManagement();
       await page.getByTestId('undercover-fill-bots').click();
@@ -48,11 +57,16 @@ for (const viewport of [
         }
         await page.getByTestId('undercover-view-word').click();
         cards.push(await page.getByTestId('undercover-word').innerText());
-        await page.getByTestId('undercover-confirm').click();
+        await page.getByText('隐藏词卡', { exact: true }).click();
         await expect(page.getByTestId('undercover-word')).toHaveCount(0);
         if (seat > 0) await page.getByTestId(TESTIDS.controlledSeatReleaseButton).click();
       }
       expect(cards.filter((word) => word === '你是白板')).toHaveLength(1);
+      await room.openHostManagement();
+      await page.getByTestId('undercover-mark-all-bots-viewed').click();
+      await expect(page.getByText('确认词卡 · 5/6', { exact: true })).toBeVisible();
+      await page.getByTestId('undercover-view-word').click();
+      await page.getByTestId('undercover-confirm').click();
       await expect(page.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
       await page.getByTestId('undercover-view-word').click();
       await expect(page.getByTestId('undercover-word')).toHaveText(cards[0]!);
@@ -69,10 +83,50 @@ for (const viewport of [
       for (const { seat } of civilians) {
         await room.openHostManagement();
         await page.getByTestId('undercover-select-player').click();
+        if (seat !== civilians[0]!.seat) {
+          await room.getSeatTile(civilians[0]!.seat).click();
+          await expect(page.getByTestId('undercover-reveal-modal')).toHaveCount(0);
+        }
         await room.getSeatTile(seat).click();
+        const modal = page.getByTestId('undercover-reveal-modal');
+        await expect(modal).toBeVisible();
+        await expect(modal.getByText(`${seat + 1} 号`, { exact: true })).toBeVisible();
+        await expect(page.getByTestId('undercover-reveal-player')).not.toBeEmpty();
+        await expect(modal).not.toContainText(/平民|卧底|白板/);
+        if (seat === civilians[0]!.seat) {
+          await page.getByTestId('undercover-reveal-cancel').click();
+          await expect(modal).toHaveCount(0);
+          await expect(page.getByText('取消选择', { exact: true })).toBeVisible();
+          await expect(page.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
+          await room.getSeatTile(seat).click();
+          await expect(modal).toBeVisible();
+          await expect(async () => {
+            const bounds = await modal.boundingBox();
+            if (bounds === null) throw new Error('Missing confirmation panel');
+            expect(bounds.x).toBeGreaterThanOrEqual(0);
+            expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+            expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+            if (viewport.width < 1100)
+              expect(Math.abs(bounds.y + bounds.height - viewport.height)).toBeLessThan(2);
+            else
+              expect(Math.abs(bounds.y + bounds.height / 2 - viewport.height / 2)).toBeLessThan(2);
+          }).toPass({ timeout: 5000 });
+          await page.screenshot({
+            path: testInfo.outputPath(`undercover-confirm-${viewport.width}.png`),
+            animations: 'disabled',
+          });
+          await page.route(
+            '**/room/command',
+            async (route) => {
+              await expect(page.getByTestId('undercover-reveal')).toBeDisabled();
+              await expect(page.getByTestId('undercover-reveal-cancel')).toBeDisabled();
+              await route.continue();
+            },
+            { times: 1 },
+          );
+        }
         await page.getByTestId('undercover-reveal').click();
-        await expect(page.getByText(`揭晓 ${seat + 1} 号并出局？`, { exact: true })).toBeVisible();
-        await page.getByText('确定', { exact: true }).click();
+        await expect(modal).toHaveCount(0);
         await expect(page.getByText('已出局 · 平民', { exact: true })).toHaveCount(
           civilians.findIndex((civilian) => civilian.seat === seat) + 1,
         );

@@ -28,7 +28,10 @@ export function useUndercoverRoundControls(
     card === null ? null : `${state.round!.roundId}:${userId}:${card.seat}:${state.hostUserId}`;
   const isSelecting =
     isHost && state.phase === 'ongoing' && selection?.roundId === state.round.roundId;
-  const selectedSeat = isSelecting ? selection.seat : null;
+  const selectedSeat =
+    isSelecting && !state.round.revelations.some((entry) => entry.seat === selection.seat)
+      ? selection.seat
+      : null;
   const closeCard = () => setVisibleCardKey(null);
   useEffect(() => {
     setVisibleCardKey(null);
@@ -78,20 +81,13 @@ export function useUndercoverRoundControls(
   const reveal = () => {
     if (state.phase !== 'ongoing' || selectedSeat === null)
       throw new Error('Reveal requires a selected live seat');
-    showConfirmAlert(
-      `揭晓 ${selectedSeat + 1} 号并出局？`,
-      '此操作不可撤销，揭晓后该玩家立即出局。',
-      async () => {
-        if (
-          await submit('揭晓并出局', {
-            type: 'undercover.round.reveal',
-            roundId: state.round.roundId,
-            seat: selectedSeat,
-          })
-        )
-          setSelection(null);
-      },
-    );
+    void submit('揭晓并出局', {
+      type: 'undercover.round.reveal',
+      roundId: state.round.roundId,
+      seat: selectedSeat,
+    }).then((success) => {
+      if (success) setSelection(null);
+    });
   };
   const allowRepeated = () =>
     showConfirmAlert(
@@ -114,11 +110,19 @@ export function useUndercoverRoundControls(
     },
     closeCard,
     confirmCard,
+    markAllBotsViewed: () => {
+      if (state.phase !== 'reading') throw new Error('Bot confirmation requires reading phase');
+      void submit('标记机器人已查看', {
+        type: 'undercover.round.markAllBotsViewed',
+        roundId: state.round.roundId,
+      });
+    },
     isSelecting,
     selectedSeat,
     reveal,
     selectSeat: (seat: number) => {
       if (
+        submission.isSubmitting ||
         !isSelecting ||
         state.phase !== 'ongoing' ||
         state.round.revelations.some((entry) => entry.seat === seat)
@@ -129,7 +133,12 @@ export function useUndercoverRoundControls(
     beginSelection: () => {
       if (state.phase !== 'ongoing' || !isHost)
         throw new Error('Only the host can select an elimination');
+      closeCard();
       setSelection({ roundId: state.round.roundId, seat: null });
+    },
+    cancelRevelation: () => {
+      if (!submission.isSubmitting && isSelecting)
+        setSelection({ roundId: state.round.roundId, seat: null });
     },
     cancelSelection: () => setSelection(null),
     start: () => {

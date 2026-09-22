@@ -20,7 +20,7 @@ type Controls = ReturnType<typeof useUndercoverRoundControls>;
 
 export function createUndercoverBottomActions(controls: Controls): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
-  if (controls.canViewCard)
+  if (controls.canViewCard && !controls.isSelecting)
     actions.push({
       key: 'card',
       label: '查看我的词',
@@ -39,17 +39,6 @@ export function createUndercoverBottomActions(controls: Controls): RoomBottomAct
       isEnabled: true,
       onPress: controls.cancelSelection,
     });
-    if (controls.selectedSeat !== null)
-      actions.push({
-        key: 'reveal',
-        label: `揭晓 ${controls.selectedSeat + 1} 号并出局`,
-        variant: 'secondary',
-        size: 'lg',
-        ...(controls.isSubmitting
-          ? ({ isEnabled: false, disabledReason: null, onDisabledPress: null } as const)
-          : ({ isEnabled: true, onPress: controls.reveal } as const)),
-        testID: 'undercover-reveal',
-      });
   }
   return { kind: 'info', message: controls.isSelecting ? '选择本次出局玩家' : null, actions };
 }
@@ -111,7 +100,17 @@ export function createUndercoverHostManagement(
         );
       break;
     case 'preparing':
+      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
+      break;
     case 'reading':
+      if (state.botSeats.some((seat) => !state.round.confirmedSeats.includes(seat)))
+        add(
+          'mark-all-bots-viewed',
+          '全部机器人标记已查看',
+          'checkmark-done-outline',
+          controls.markAllBotsViewed,
+          'primary',
+        );
       add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
       break;
     case 'preparationFailed':

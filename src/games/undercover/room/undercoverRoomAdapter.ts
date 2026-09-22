@@ -82,7 +82,7 @@ export function createUndercoverRoomCapabilities(
     ...createRoomSetupCapabilities({
       ...input,
       isSetup: input.state.phase === 'lobby',
-      supportsBots: input.mySeat !== null,
+      supportsBots: true,
       hasOccupiedSeats: getUndercoverOccupiedSeatCount(input.state) > 0,
       isRoomFull:
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
@@ -102,10 +102,11 @@ export function createUndercoverSeatDataSource(
   myUserId: string,
   controlledSeat: number | null,
   selectedSeat: number | null,
+  isSelecting: boolean,
 ): RoomSeatDataSource {
   return {
     count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat}:${selectedSeat}`,
+    revision: `${revision}:${controlledSeat}:${selectedSeat}:${isSelecting}`,
     getSeat(seat) {
       const target = getUndercoverProfileTarget(state, seat);
       const human = state.realSeats[seat];
@@ -131,12 +132,17 @@ export function createUndercoverSeatDataSource(
               },
         isSelf: human?.userId === myUserId,
         highlight:
-          controlledSeat === seat ? 'controlled' : selectedSeat === seat ? 'selected' : 'none',
+          selectedSeat === seat ? 'selected' : controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel:
           role === undefined
             ? null
             : `${revelation === undefined ? '' : '已出局 · '}${UNDERCOVER_ROLE_NAMES[role]}`,
-        disabledReason: target === null && state.phase !== 'lobby' ? '本局座位已锁定' : undefined,
+        disabledReason:
+          isSelecting && revelation !== undefined
+            ? '该玩家已出局'
+            : target === null && state.phase !== 'lobby'
+              ? '本局座位已锁定'
+              : undefined,
         showReadyBadge: state.phase === 'reading' && state.round.confirmedSeats.includes(seat),
         statusBadge: null,
         isStatusEmphasized: revelation !== undefined,

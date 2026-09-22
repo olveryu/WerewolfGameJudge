@@ -108,10 +108,6 @@ export function decideUndercoverRoom(
       ]);
     }
     case 'room.seat.fillBots': {
-      if (
-        findSeatByUserId(state.realSeats, state.config.numberOfPlayers, state.hostUserId) === null
-      )
-        return reject(REASON_NOT_SEATED);
       const botSeats = Array.from(
         { length: state.config.numberOfPlayers },
         (_, seat) => seat,
