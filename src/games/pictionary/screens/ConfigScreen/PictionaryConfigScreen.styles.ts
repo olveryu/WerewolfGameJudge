@@ -2,56 +2,13 @@
 
 import { StyleSheet } from 'react-native';
 
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  spacing,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { gameScreenStyles } from '@/components/GameScreen';
+import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 export const pictionaryConfigStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: {
-    width: '100%',
-    maxWidth: 760,
-    alignSelf: 'center',
-    paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.large,
-    paddingBottom: spacing.xxlarge,
-    gap: spacing.large,
-  },
-  eyebrow: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-    color: colors.primary,
-  },
-  title: {
-    fontSize: typography.title,
-    lineHeight: typography.lineHeights.title,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-  },
-  description: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    color: colors.textSecondary,
-  },
-  section: {
-    paddingVertical: spacing.medium,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
-    gap: spacing.small,
-  },
-  sectionTitle: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  },
+  section: gameScreenStyles.section,
+  sectionTitle: gameScreenStyles.sectionTitle,
   sectionHint: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
@@ -93,6 +50,7 @@ export const pictionaryConfigStyles = StyleSheet.create({
   },
   optionTextSelected: { color: colors.primary, fontWeight: typography.weights.bold },
   estimate: {
+    marginTop: spacing.large,
     padding: spacing.medium,
     borderRadius: borderRadius.small,
     backgroundColor: withAlpha(colors.info, 0.08),
@@ -100,12 +58,4 @@ export const pictionaryConfigStyles = StyleSheet.create({
     lineHeight: typography.lineHeights.secondary,
     color: colors.text,
   },
-  bottomBar: {
-    paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.small,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  submit: { width: '100%', maxWidth: 760, alignSelf: 'center' },
 });

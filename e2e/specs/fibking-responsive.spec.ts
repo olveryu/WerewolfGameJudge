@@ -85,7 +85,11 @@ test('FibKing config, room, rules, and identity fit the small-mobile viewport', 
 
   await room.openRules();
   await expectNoHorizontalOverflow(page);
-  await expect(page.getByText('三个身份', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '三个身份', level: 2 })).toBeVisible();
+  await testInfo.attach('fibking-mobile-guide.png', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  });
   await room.returnFromRules();
 
   await room.fillEmptySeatsWithBots(4);

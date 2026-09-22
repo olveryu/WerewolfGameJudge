@@ -23,7 +23,6 @@ describe('FibRoomSummary', () => {
         playerCount={4}
         preparationStage={preparationStage}
         preparationFailureCode={null}
-        onOpenRules={jest.fn()}
       />,
     );
 
@@ -43,7 +42,6 @@ describe('FibRoomSummary', () => {
           playerCount={4}
           preparationStage={null}
           preparationFailureCode={preparationFailureCode}
-          onOpenRules={jest.fn()}
         />,
       );
 
@@ -59,7 +57,6 @@ describe('FibRoomSummary', () => {
         playerCount={4}
         preparationStage={FIB_PREPARATION_STAGES.finalizing}
         preparationFailureCode={null}
-        onOpenRules={jest.fn()}
       />,
     );
 
@@ -70,7 +67,6 @@ describe('FibRoomSummary', () => {
         playerCount={4}
         preparationStage={null}
         preparationFailureCode={null}
-        onOpenRules={jest.fn()}
       />,
     );
 

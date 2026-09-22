@@ -31,6 +31,20 @@ for (const viewport of [
       await expect(page.getByRole('switch', { name: '测试模式' })).toHaveCount(0);
       await page.getByTestId('undercover-config-submit').click();
       await room.waitForReady('host');
+      await expect(page.getByRole('button', { name: '查看谁是卧底玩法说明' })).toBeInViewport();
+      await page.screenshot({
+        path: testInfo.outputPath(`undercover-lobby-${viewport.width}.png`),
+      });
+      await page.getByRole('button', { name: '查看谁是卧底玩法说明' }).click();
+      await expect(page.getByRole('heading', { name: '三个身份', level: 2 })).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await page.screenshot({
+        path: testInfo.outputPath(`undercover-guide-${viewport.width}.png`),
+      });
+      await page.getByRole('button', { name: '返回', exact: true }).click();
+      await room.waitForReady('host');
       await room.expectNotSeated();
       await room.openHostManagement();
       await page.getByTestId('undercover-fill-bots').click();

@@ -12,9 +12,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { GameScreen, gameScreenStyles } from '@/components/GameScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { WerewolfGuideTab } from '@/games/werewolf/navigation/types';
 import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
@@ -116,46 +117,43 @@ export const EncyclopediaScreen: React.FC = () => {
     );
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={['left', 'right']}
+    <GameScreen
       testID={TESTIDS.encyclopediaScreenRoot}
+      header={
+        <ScreenHeader
+          title="图鉴"
+          onBack={handleGoBack}
+          topInset={insets.top}
+          headerRight={headerRight}
+        />
+      }
     >
-      <ScreenHeader
-        title="图鉴"
-        onBack={handleGoBack}
-        topInset={insets.top}
-        headerRight={headerRight}
-      />
-      <SegmentedControl
-        segments={GUIDE_SEGMENTS}
-        activeKey={activeTab}
-        onChangeKey={setActiveTab}
-      />
-      <View style={styles.content}>
-        {activeTab === 'roles' && <RolesGuideContent state={rolesState} />}
-        {activeTab === 'boards' && (
-          <BoardsGuideContent
-            searchVisible={boardsSearchVisible}
-            searchQuery={boardsSearchQuery}
-            setSearchQuery={setBoardsSearchQuery}
-            tagFilter={boardsTagFilter}
-            setTagFilter={setBoardsTagFilter}
-            tagFilterDropdownVisible={boardsTagFilterVisible}
-            setTagFilterDropdownVisible={setBoardsTagFilterVisible}
-          />
-        )}
+      <View style={gameScreenStyles.catalog}>
+        <SegmentedControl
+          segments={GUIDE_SEGMENTS}
+          activeKey={activeTab}
+          onChangeKey={setActiveTab}
+        />
+        <View style={styles.content}>
+          {activeTab === 'roles' && <RolesGuideContent state={rolesState} />}
+          {activeTab === 'boards' && (
+            <BoardsGuideContent
+              searchVisible={boardsSearchVisible}
+              searchQuery={boardsSearchQuery}
+              setSearchQuery={setBoardsSearchQuery}
+              tagFilter={boardsTagFilter}
+              setTagFilter={setBoardsTagFilter}
+              tagFilterDropdownVisible={boardsTagFilterVisible}
+              setTagFilterDropdownVisible={setBoardsTagFilterVisible}
+            />
+          )}
+        </View>
       </View>
-    </SafeAreaView>
+    </GameScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.transparent,
-    overflow: 'hidden',
-  },
   content: {
     flex: 1,
   },

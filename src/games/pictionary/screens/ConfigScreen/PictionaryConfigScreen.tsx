@@ -13,10 +13,16 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
 import { useCallback } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import {
+  GameScreen,
+  GameScreenContent,
+  GameScreenFooter,
+  gameScreenStyles,
+} from '@/components/GameScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { parsePictionaryConfigRouteParams } from '@/games/pictionary/navigation/pictionaryConfigRoute';
@@ -158,16 +164,14 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
   const durations = useDurationHandlers(state);
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={['left', 'right']}
+    <GameScreen
       testID={TESTIDS.configScreenRoot}
+      header={<ScreenHeader title="接龙设置" onBack={state.goBack} topInset={insets.top} />}
     >
-      <ScreenHeader title="接龙设置" onBack={state.goBack} topInset={insets.top} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
-        <Text style={styles.title}>让每一棒都来不及想太多</Text>
-        <Text style={styles.description}>
+      <GameScreenContent>
+        <Text style={gameScreenStyles.kicker}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
+        <Text style={gameScreenStyles.title}>你画我猜接龙</Text>
+        <Text style={gameScreenStyles.description}>
           4–20 人，默认 6 人。N 人共 N 棒，文字和绘画交替，每人只参与同一本画册一次。
         </Text>
         <View style={styles.section}>
@@ -228,19 +232,18 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           onSelect={durations.gallery}
         />
         <Text style={styles.estimate}>{getEstimatedMinutes(state.config)}</Text>
-      </ScrollView>
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom }]}>
+      </GameScreenContent>
+      <GameScreenFooter>
         <Button
           variant="primary"
           size="lg"
           onPress={state.submit}
           loading={state.isSubmitting}
-          style={styles.submit}
           testID={TESTIDS.pictionaryConfigSubmitButton}
         >
           {state.isEditMode ? '保存设置' : '创建房间'}
         </Button>
-      </View>
-    </SafeAreaView>
+      </GameScreenFooter>
+    </GameScreen>
   );
 };

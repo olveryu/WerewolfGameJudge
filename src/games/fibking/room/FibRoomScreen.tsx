@@ -4,11 +4,13 @@ import type React from 'react';
 import { useCallback } from 'react';
 
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
+import { TESTIDS } from '@/testids';
 
 import { FibIdentityModal } from './components/FibIdentityModal';
 import { FibRoomSummary } from './components/FibRoomSummary';
@@ -76,7 +78,13 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
             playerCount={screen.playerCount}
             preparationStage={screen.preparationStage}
             preparationFailureCode={screen.preparationFailureCode}
-            onOpenRules={screen.openRules}
+            headerRight={
+              <RoomGuideButton
+                onPress={screen.openRules}
+                label="查看瞎掰王玩法说明"
+                testID={TESTIDS.fibRulesButton}
+              />
+            }
           />
         ),
       }}

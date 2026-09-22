@@ -4,16 +4,23 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import {
+  GameScreen,
+  GameScreenContent,
+  GameScreenFooter,
+  gameScreenStyles,
+} from '@/components/GameScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibConfigRoute';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes } from '@/theme';
+import { colors } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { fibConfigStyles as styles } from './FibConfigScreen.styles';
 import { useFibConfigScreenState } from './useFibConfigScreenState';
@@ -30,19 +37,30 @@ export const FibConfigScreen: React.FC<FibConfigScreenProps> = ({ session }) => 
   const state = useFibConfigScreenState({ params, navigation, session });
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={['left', 'right']}
+    <GameScreen
       testID={TESTIDS.configScreenRoot}
+      header={<ScreenHeader title="瞎掰王设置" onBack={state.goBack} topInset={insets.top} />}
+      footer={
+        <GameScreenFooter>
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={state.submit}
+            loading={state.isSubmitting}
+            testID={TESTIDS.fibConfigSubmitButton}
+          >
+            {state.isEditMode ? '保存设置' : '创建房间'}
+          </Button>
+        </GameScreenFooter>
+      }
     >
-      <ScreenHeader title="瞎掰王设置" onBack={state.goBack} topInset={insets.top} />
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.sectionLabel}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
-        <Text style={styles.title}>选择本局人数</Text>
-        <Text style={styles.description}>默认 8 人，支持 4–20 人。</Text>
+      <GameScreenContent>
+        <Text style={gameScreenStyles.kicker}>{state.isEditMode ? '房间设置' : '创建房间'}</Text>
+        <Text style={gameScreenStyles.title}>瞎掰王</Text>
+        <Text style={gameScreenStyles.description}>默认 8 人，支持 4–20 人。</Text>
 
-        <View style={styles.controlPanel}>
-          <Text style={styles.controlLabel}>玩家人数</Text>
+        <View style={gameScreenStyles.section}>
+          <Text style={gameScreenStyles.sectionTitle}>玩家人数</Text>
           <View style={styles.controlRow}>
             <Button
               variant="icon"
@@ -108,20 +126,7 @@ export const FibConfigScreen: React.FC<FibConfigScreenProps> = ({ session }) => 
             </View>
           </View>
         </View>
-      </ScrollView>
-
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom }]}>
-        <Button
-          variant="primary"
-          size="lg"
-          onPress={state.submit}
-          loading={state.isSubmitting}
-          style={styles.submitButton}
-          testID={TESTIDS.fibConfigSubmitButton}
-        >
-          {state.isEditMode ? '保存设置' : '创建房间'}
-        </Button>
-      </View>
-    </SafeAreaView>
+      </GameScreenContent>
+    </GameScreen>
   );
 };

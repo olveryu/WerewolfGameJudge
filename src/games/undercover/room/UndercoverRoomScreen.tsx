@@ -2,8 +2,8 @@
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 
-import { Button } from '@/components/Button';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -45,17 +45,13 @@ function UndercoverRoomContent(
         sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
-          <View style={styles.section} testID="undercover-room">
-            <View style={styles.row}>
-              <Text style={styles.title}>谁是卧底</Text>
-              <Button variant="ghost" onPress={openRules}>
-                游戏规则
-              </Button>
-            </View>
-            <Text style={styles.muted}>
-              {state.config.numberOfPlayers} 人 · {state.config.hasBlank ? '有白板' : '无白板'} ·{' '}
-              {UNDERCOVER_CATEGORY_NAMES[state.config.category]}
-            </Text>
+          <RoomGameSummary
+            icon="search-outline"
+            title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
+            subtitle={`${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
+            testID="undercover-room"
+            headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
+          >
             {state.phase === 'ended' && (
               <View style={styles.section} testID="undercover-results">
                 <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
@@ -66,7 +62,7 @@ function UndercoverRoomContent(
                 </Text>
               </View>
             )}
-          </View>
+          </RoomGameSummary>
         ),
       }}
       gameOverlays={

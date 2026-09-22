@@ -12,9 +12,10 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { GameScreen, GameScreenFooter, gameScreenStyles } from '@/components/GameScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -159,173 +160,185 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
   const activeRuleCount = [rules.witchCanSelfHeal, rules.isPlagueMode].filter(Boolean).length;
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={['left', 'right']}
+    <GameScreen
       testID={TESTIDS.configScreenRoot}
-    >
-      {/* Header row — back | board name + player count | reset */}
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <View style={styles.headerCenter}>
-          <TouchableOpacity
-            style={styles.templatePill}
-            activeOpacity={0.7}
-            onPress={handleTemplatePillPress}
-            testID={TESTIDS.configTemplatePill}
+      header={
+        <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
+          <Button
+            variant="icon"
+            onPress={handleGoBack}
+            testID={TESTIDS.configBackButton}
+            accessibilityLabel="返回"
           >
-            <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
-            <Ionicons
-              name="chevron-down"
-              size={componentSizes.icon.xs}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-          <Text style={styles.playerCount}>{totalCount}人</Text>
+            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+          </Button>
+          <View style={styles.headerCenter}>
+            <TouchableOpacity
+              style={styles.templatePill}
+              activeOpacity={0.7}
+              onPress={handleTemplatePillPress}
+              testID={TESTIDS.configTemplatePill}
+              accessibilityRole="button"
+              accessibilityLabel={`选择板子：${selectedTemplateLabel}`}
+            >
+              <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
+              <Ionicons
+                name="chevron-down"
+                size={componentSizes.icon.xs}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+            <Text style={styles.playerCount}>{totalCount}人</Text>
+          </View>
+          <Button
+            variant="icon"
+            onPress={handleClearSelection}
+            testID={TESTIDS.configOverflowReset}
+            accessibilityLabel="重置配置"
+          >
+            <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
+          </Button>
         </View>
-        <Button
-          variant="icon"
-          onPress={handleClearSelection}
-          testID={TESTIDS.configOverflowReset}
-          accessibilityLabel="重置配置"
-        >
-          <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
-        </Button>
-      </View>
+      }
+    >
+      <View style={gameScreenStyles.catalog}>
+        {/* Card A — faction tabs */}
+        <View style={styles.cardA}>
+          {/* Faction Tab Bar */}
+          <FactionTabs
+            tabs={tabItems}
+            activeKey={activeTab}
+            onTabPress={handleTabPress}
+            styles={styles}
+          />
+        </View>
 
-      {/* Card A — faction tabs */}
-      <View style={styles.cardA}>
-        {/* Faction Tab Bar */}
-        <FactionTabs
-          tabs={tabItems}
-          activeKey={activeTab}
-          onTabPress={handleTabPress}
-          styles={styles}
-        />
-      </View>
+        {isLoading ? (
+          <LoadingScreen message="加载中" fullScreen={false} />
+        ) : (
+          <>
+            {/* Active tab content */}
+            <ScrollView
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* Card B — stepper + role sections */}
+              <View style={styles.cardB}>
+                {activeGroup!.sections.map((section, index) => {
+                  const sectionFaction = section.faction ?? activeGroup!.faction;
+                  const sectionAccentColor = getFactionAccentColor(sectionFaction);
 
-      {isLoading ? (
-        <LoadingScreen message="加载中" fullScreen={false} />
-      ) : (
-        <>
-          {/* Active tab content */}
-          <ScrollView
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Card B — stepper + role sections */}
-            <View style={styles.cardB}>
-              {activeGroup!.sections.map((section, index) => {
-                const sectionFaction = section.faction ?? activeGroup!.faction;
-                const sectionAccentColor = getFactionAccentColor(sectionFaction);
+                  // Bulk slot -> RoleStepper
+                  const bulkSlot = section.roles.find((s) => s.isBulk);
+                  if (bulkSlot) {
+                    const maxCount = bulkSlot.count ?? 1;
+                    const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
+                    const spec = ROLE_SPECS[bulkSlot.roleId];
+                    return (
+                      <React.Fragment key={section.title}>
+                        <RoleStepper
+                          roleId={bulkSlot.roleId}
+                          label={spec.displayName}
+                          count={currentCount}
+                          maxCount={maxCount}
+                          onCountChange={handleBulkCountChange}
+                          styles={styles}
+                          accentColor={sectionAccentColor}
+                        />
+                        {index < activeGroup!.sections.length - 1 && (
+                          <View style={styles.cardBDivider} />
+                        )}
+                      </React.Fragment>
+                    );
+                  }
 
-                // Bulk slot -> RoleStepper
-                const bulkSlot = section.roles.find((s) => s.isBulk);
-                if (bulkSlot) {
-                  const maxCount = bulkSlot.count ?? 1;
-                  const currentCount = getBulkCount(bulkSlot.roleId, maxCount);
-                  const spec = ROLE_SPECS[bulkSlot.roleId];
+                  // Skill slots -> Section + RoleChips
+                  const sectionFactionColorKey = FACTION_COLOR_MAP[sectionFaction] ?? 'villager';
                   return (
                     <React.Fragment key={section.title}>
-                      <RoleStepper
-                        roleId={bulkSlot.roleId}
-                        label={spec.displayName}
-                        count={currentCount}
-                        maxCount={maxCount}
-                        onCountChange={handleBulkCountChange}
-                        styles={styles}
-                        accentColor={sectionAccentColor}
-                      />
-                      {index < activeGroup!.sections.length - 1 && (
-                        <View style={styles.cardBDivider} />
-                      )}
+                      {index > 0 && <View style={styles.cardBDivider} />}
+                      <Section title={section.title} styles={styles}>
+                        {section.roles
+                          .flatMap((slot) => expandSlotToChipEntries(slot, variantOverrides))
+                          .map((entry) => (
+                            <RoleChip
+                              key={entry.key}
+                              id={entry.key}
+                              label={entry.label}
+                              selected={!!selection[entry.key]}
+                              onToggle={toggleRole}
+                              styles={styles}
+                              factionColor={sectionFactionColorKey}
+                              accentColor={sectionAccentColor}
+                              hasVariants={entry.hasVariants}
+                              onInfoPress={handleChipInfoPress}
+                            />
+                          ))}
+                      </Section>
                     </React.Fragment>
                   );
-                }
-
-                // Skill slots -> Section + RoleChips
-                const sectionFactionColorKey = FACTION_COLOR_MAP[sectionFaction] ?? 'villager';
-                return (
-                  <React.Fragment key={section.title}>
-                    {index > 0 && <View style={styles.cardBDivider} />}
-                    <Section title={section.title} styles={styles}>
-                      {section.roles
-                        .flatMap((slot) => expandSlotToChipEntries(slot, variantOverrides))
-                        .map((entry) => (
-                          <RoleChip
-                            key={entry.key}
-                            id={entry.key}
-                            label={entry.label}
-                            selected={!!selection[entry.key]}
-                            onToggle={toggleRole}
-                            styles={styles}
-                            factionColor={sectionFactionColorKey}
-                            accentColor={sectionAccentColor}
-                            hasVariants={entry.hasVariants}
-                            onInfoPress={handleChipInfoPress}
-                          />
-                        ))}
-                    </Section>
-                  </React.Fragment>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </>
-      )}
-
-      {/* Bottom Create Button */}
-      <View style={[styles.bottomCreateBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
-        <Text style={styles.cardBFooterHint}>
-          点击顶部板子名可重新选板{'\n'}点击增减角色 · 长按查看技能 · 粗边框可切换变体
-        </Text>
-        {!isNominateMode && (
-          <View style={rulesEntryStyles.container}>
-            <Ionicons name="people-outline" size={componentSizes.icon.sm} color={colors.primary} />
-            <Text style={rulesEntryStyles.label}>首日警长竞选</Text>
-            <Switch
-              testID={TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')}
-              accessibilityLabel="首日警长竞选"
-              value={rules.isSheriffElectionEnabled === true}
-              onValueChange={(isSheriffElectionEnabled) => {
-                void handleSheriffElectionChange(isSheriffElectionEnabled);
-              }}
-              trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
-              thumbColor={rules.isSheriffElectionEnabled ? colors.primary : colors.textSecondary}
-            />
-          </View>
-        )}
-        {/* Game Rules Entry (hidden in nominate mode only) */}
-        {!isNominateMode && (
-          <TouchableOpacity
-            style={rulesEntryStyles.container}
-            activeOpacity={0.7}
-            onPress={handleOpenGameRules}
-            testID={TESTIDS.configGameRulesButton}
-          >
-            <Ionicons
-              name="settings-outline"
-              size={componentSizes.icon.sm}
-              color={colors.primary}
-            />
-            <Text style={rulesEntryStyles.label}>游戏规则</Text>
-            {activeRuleCount > 0 && (
-              <View style={rulesEntryStyles.badge}>
-                <Text style={rulesEntryStyles.badgeText}>{activeRuleCount}</Text>
+                })}
               </View>
-            )}
-            <Ionicons
-              name="chevron-forward"
-              size={componentSizes.icon.sm}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
+              <View style={styles.cardB}>
+                {!isNominateMode && (
+                  <View style={rulesEntryStyles.container}>
+                    <Ionicons
+                      name="people-outline"
+                      size={componentSizes.icon.sm}
+                      color={colors.primary}
+                    />
+                    <Text style={rulesEntryStyles.label}>首日警长竞选</Text>
+                    <Switch
+                      testID={TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')}
+                      accessibilityLabel="首日警长竞选"
+                      value={rules.isSheriffElectionEnabled === true}
+                      onValueChange={(isSheriffElectionEnabled) => {
+                        void handleSheriffElectionChange(isSheriffElectionEnabled);
+                      }}
+                      trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
+                      thumbColor={
+                        rules.isSheriffElectionEnabled ? colors.primary : colors.textSecondary
+                      }
+                    />
+                  </View>
+                )}
+                {/* Game Rules Entry (hidden in nominate mode only) */}
+                {!isNominateMode && (
+                  <TouchableOpacity
+                    style={rulesEntryStyles.container}
+                    activeOpacity={0.7}
+                    onPress={handleOpenGameRules}
+                    testID={TESTIDS.configGameRulesButton}
+                  >
+                    <Ionicons
+                      name="settings-outline"
+                      size={componentSizes.icon.sm}
+                      color={colors.primary}
+                    />
+                    <Text style={rulesEntryStyles.label}>游戏规则</Text>
+                    {activeRuleCount > 0 && (
+                      <View style={rulesEntryStyles.badge}>
+                        <Text style={rulesEntryStyles.badgeText}>{activeRuleCount}</Text>
+                      </View>
+                    )}
+                    <Ionicons
+                      name="chevron-forward"
+                      size={componentSizes.icon.sm}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+          </>
         )}
+      </View>
+      <GameScreenFooter>
+        <Text style={styles.cardBFooterHint}>已选 {totalCount} 人</Text>
         <Button
           variant="primary"
+          size="lg"
           onPress={() => {
             void handleCreateRoom();
           }}
@@ -334,7 +347,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
         >
           {isNominateMode ? '提交建议' : isEditMode ? '保存配置' : '创建房间'}
         </Button>
-      </View>
+      </GameScreenFooter>
 
       {/* Role Info Card (long-press any chip → card with variant pills) */}
       <RoleCardSimple
@@ -347,6 +360,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
         onVariantSelect={handleRoleInfoVariantSelect}
         onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handleCloseRoleInfo) : undefined}
       />
-    </SafeAreaView>
+    </GameScreen>
   );
 };

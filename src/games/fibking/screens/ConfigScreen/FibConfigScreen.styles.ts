@@ -1,61 +1,9 @@
 import { StyleSheet } from 'react-native';
 
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  spacing,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 export const fibConfigStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    width: '100%',
-    maxWidth: 720,
-    alignSelf: 'center',
-    paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.large,
-    paddingBottom: spacing.xxlarge,
-  },
-  sectionLabel: {
-    fontSize: typography.caption,
-    lineHeight: typography.caption * 1.4,
-    fontWeight: typography.weights.bold,
-    color: colors.textMuted,
-    marginBottom: spacing.small,
-  },
-  title: {
-    fontSize: typography.title,
-    lineHeight: typography.title * 1.35,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-  },
-  description: {
-    marginTop: spacing.small,
-    fontSize: typography.body,
-    lineHeight: typography.body * 1.55,
-    color: colors.textSecondary,
-  },
-  controlPanel: {
-    marginTop: spacing.large,
-    padding: spacing.medium,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    borderRadius: borderRadius.small,
-    backgroundColor: colors.surface,
-  },
-  controlLabel: {
-    fontSize: typography.secondary,
-    lineHeight: typography.secondary * 1.4,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  },
   controlRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -118,17 +66,5 @@ export const fibConfigStyles = StyleSheet.create({
     fontSize: typography.caption,
     lineHeight: typography.caption * 1.5,
     color: colors.textSecondary,
-  },
-  bottomBar: {
-    paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.small,
-    backgroundColor: withAlpha(colors.surface, 0.98),
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
-  },
-  submitButton: {
-    width: '100%',
-    maxWidth: 720,
-    alignSelf: 'center',
   },
 });

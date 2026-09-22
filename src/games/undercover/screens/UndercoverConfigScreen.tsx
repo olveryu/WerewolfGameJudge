@@ -15,16 +15,22 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
   type ListRenderItemInfo,
-  ScrollView,
+  StyleSheet,
   Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
+import {
+  GameScreen,
+  GameScreenContent,
+  GameScreenFooter,
+  gameScreenStyles,
+} from '@/components/GameScreen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
@@ -34,7 +40,7 @@ import {
   returnToActiveRoom,
 } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
-import { colors } from '@/theme';
+import { borderRadius, colors, spacing, typography } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -45,7 +51,6 @@ import { parseUndercoverConfigRouteParams } from '../navigation/undercoverGameNa
 import { UNDERCOVER_CATEGORY_NAMES } from '../room/undercoverRoomAdapter';
 import { getUndercoverRoomCommandFailureMessage } from '../room/undercoverRoomCommandFailureMessage';
 import { undercoverInventoryOptions } from '../services/undercoverInventory';
-import { undercoverStyles as styles } from '../undercover.styles';
 
 export function UndercoverConfigScreen({ session }: { readonly session: UndercoverRoomSession }) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameConfig'>>();
@@ -154,17 +159,34 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
     [],
   );
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
-      <ScreenHeader
-        title="谁是卧底设置"
-        topInset={insets.top}
-        onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
-      />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.row}>
-          <Text style={styles.title}>玩家人数</Text>
+    <GameScreen
+      header={
+        <ScreenHeader
+          title="谁是卧底设置"
+          topInset={insets.top}
+          onBack={() =>
+            navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')
+          }
+        />
+      }
+    >
+      <GameScreenContent>
+        <Text style={gameScreenStyles.kicker}>
+          {params.mode === 'edit' ? '房间设置' : '创建房间'}
+        </Text>
+        <Text style={gameScreenStyles.title}>谁是卧底</Text>
+        <Text style={gameScreenStyles.description}>4 至 12 人，启用白板至少需要 6 人。</Text>
+        <View style={gameScreenStyles.section}>
           <View style={styles.row}>
-            <Button variant="icon" accessibilityLabel="减少人数" onPress={() => stepCount(-1)}>
+            <Text style={gameScreenStyles.sectionTitle}>玩家人数</Text>
+          </View>
+          <View style={styles.controlRow}>
+            <Button
+              variant="icon"
+              size="lg"
+              accessibilityLabel="减少人数"
+              onPress={() => stepCount(-1)}
+            >
               <Ionicons name="remove" size={componentSizes.icon.md} color={colors.text} />
             </Button>
             <TextInput
@@ -176,21 +198,31 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
               accessibilityLabel="玩家人数"
               testID="undercover-player-count"
             />
-            <Button variant="icon" accessibilityLabel="增加人数" onPress={() => stepCount(1)}>
+            <Button
+              variant="icon"
+              size="lg"
+              accessibilityLabel="增加人数"
+              onPress={() => stepCount(1)}
+            >
               <Ionicons name="add" size={componentSizes.icon.md} color={colors.text} />
             </Button>
           </View>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.text}>白板</Text>
-          <Switch
-            accessibilityLabel="启用白板"
-            value={config.hasBlank}
-            onValueChange={(hasBlank) => setConfig({ ...config, hasBlank })}
-          />
+        <View style={gameScreenStyles.section}>
+          <View style={styles.row}>
+            <Text style={gameScreenStyles.sectionTitle}>白板</Text>
+            <Switch
+              accessibilityLabel="启用白板"
+              value={config.hasBlank}
+              onValueChange={(hasBlank) => setConfig({ ...config, hasBlank })}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.surface}
+            />
+          </View>
+          <Text style={styles.muted}>白板没有词语，替换一名平民。</Text>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.text}>词语分类</Text>
+        <View style={gameScreenStyles.section}>
+          <Text style={gameScreenStyles.sectionTitle}>词语分类</Text>
           <Button
             variant="secondary"
             onPress={() => setIsCategoryVisible(true)}
@@ -200,12 +232,12 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
           </Button>
         </View>
         {counts !== null && (
-          <Text style={styles.muted}>
+          <Text style={styles.summary}>
             平民 {counts.civilian} 人 · 卧底 {counts.undercover} 人 · 白板 {counts.blank} 人
           </Text>
         )}
-      </ScrollView>
-      <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
+      </GameScreenContent>
+      <GameScreenFooter>
         <Button
           variant="primary"
           size="lg"
@@ -215,7 +247,7 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
         >
           {params.mode === 'edit' ? '保存设置' : '创建房间'}
         </Button>
-      </View>
+      </GameScreenFooter>
       {isCategoryVisible && (
         <BaseCenterModal
           visible
@@ -244,6 +276,40 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
           </Button>
         </BaseCenterModal>
       )}
-    </SafeAreaView>
+    </GameScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.small,
+  },
+  controlRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
+  title: gameScreenStyles.sectionTitle,
+  muted: {
+    color: colors.textSecondary,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+  },
+  summary: {
+    ...gameScreenStyles.description,
+    marginTop: spacing.large,
+    paddingVertical: spacing.medium,
+  },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    height: componentSizes.button.lg,
+    color: colors.text,
+    fontSize: typography.subtitle,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
+    paddingHorizontal: spacing.medium,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.small,
+  },
+  modal: { width: 440, maxWidth: '94%', maxHeight: '85%' },
+});

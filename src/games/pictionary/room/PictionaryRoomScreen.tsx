@@ -5,6 +5,7 @@ import type React from 'react';
 import { useCallback } from 'react';
 
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -52,7 +53,9 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
                 <PictionaryRoomSummary
                   config={screen.state.config}
                   occupiedSeatCount={getPictionaryOccupiedSeatCount(screen.state)}
-                  onOpenRules={screen.openRules}
+                  headerRight={
+                    <RoomGuideButton onPress={screen.openRules} label="查看你画我猜接龙玩法说明" />
+                  }
                 />
               ),
             }

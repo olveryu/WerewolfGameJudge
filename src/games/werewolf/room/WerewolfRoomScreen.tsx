@@ -21,6 +21,7 @@ import { Button } from '@/components/Button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
@@ -665,28 +666,41 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
             />
           ),
         beforeSeatBoard: (
-          <BoardInfoCard
-            playerCount={gameState.template.numberOfPlayers}
-            wolfRoleItems={wolfRoleItems}
-            godRoleItems={godRoleItems}
-            specialRoleItems={specialRoleItems}
-            villagerCount={villagerCount}
-            villagerRoleItems={villagerRoleItems}
-            collapsed={
-              roomStatus === GameStatus.Ongoing ||
-              roomStatus === GameStatus.Day ||
-              roomStatus === GameStatus.Ended
+          <RoomGameSummary
+            icon="moon-outline"
+            title={`狼人杀 · ${gameState.template.numberOfPlayers}人局`}
+            subtitle={findClosestPresetName(gameState.template.roles) ?? '自定义配置'}
+            headerRight={
+              <RoomGuideButton
+                onPress={handleEncyclopedia}
+                testID={TESTIDS.roomEncyclopediaButton}
+                label="角色百科"
+              />
             }
-            onRolePress={handleSkillPreviewOpen}
-            onNotepadPress={handleNotepadPress}
-            onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
-            styles={boardInfoStyles}
-            showNominations={showNominations}
-            hasMyNomination={hasMyNomination}
-            nominationCount={nominationCount}
-            onNominatePress={handleNominate}
-            onViewNominations={handleViewNominations}
-          />
+          >
+            <BoardInfoCard
+              playerCount={gameState.template.numberOfPlayers}
+              wolfRoleItems={wolfRoleItems}
+              godRoleItems={godRoleItems}
+              specialRoleItems={specialRoleItems}
+              villagerCount={villagerCount}
+              villagerRoleItems={villagerRoleItems}
+              collapsed={
+                roomStatus === GameStatus.Ongoing ||
+                roomStatus === GameStatus.Day ||
+                roomStatus === GameStatus.Ended
+              }
+              onRolePress={handleSkillPreviewOpen}
+              onNotepadPress={handleNotepadPress}
+              onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
+              styles={boardInfoStyles}
+              showNominations={showNominations}
+              hasMyNomination={hasMyNomination}
+              nominationCount={nominationCount}
+              onNominatePress={handleNominate}
+              onViewNominations={handleViewNominations}
+            />
+          </RoomGameSummary>
         ),
         afterSeatBoard: null,
         sideInspector:
@@ -710,16 +724,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           </Button>
         ) : null
       }
-      trailingExtraActions={
-        <Button
-          variant="icon"
-          onPress={handleEncyclopedia}
-          testID={TESTIDS.roomEncyclopediaButton}
-          accessibilityLabel="角色百科"
-        >
-          <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
-        </Button>
-      }
+      trailingExtraActions={null}
       gameOverlays={
         <>
           {mvpSelection != null && (

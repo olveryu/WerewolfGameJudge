@@ -1,3 +1,4 @@
+import { TESTIDS } from '../../src/testids';
 import { expect, test } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
@@ -23,6 +24,8 @@ test.describe('Config Screen', () => {
     const config = new ConfigPage(app.page);
     await config.waitForCreateMode();
     await config.expectTemplateVisible();
+    await expect(app.page.getByRole('button', { name: '创建房间', exact: true })).toBeInViewport();
+    await app.page.screenshot({ path: test.info().outputPath('werewolf-config.png') });
   });
 
   test('can select different templates via board picker', async ({ app }) => {
@@ -65,3 +68,27 @@ test.describe('Config Screen', () => {
     await config.clickBack();
   });
 });
+
+for (const game of [
+  { gameType: 'fibking', title: '瞎掰王', submit: TESTIDS.fibConfigSubmitButton },
+  { gameType: 'pictionary', title: '你画我猜接龙', submit: TESTIDS.pictionaryConfigSubmitButton },
+  { gameType: 'undercover', title: '谁是卧底', submit: 'undercover-config-submit' },
+] as const) {
+  test(`${game.gameType} config keeps its primary action visible while content scrolls`, async ({
+    app: { page },
+  }, testInfo) => {
+    await new HomePage(page).clickCreateRoom(game.gameType);
+    await expect(page.getByText(game.title, { exact: true })).toBeVisible();
+    await expect(page.getByTestId(game.submit)).toBeInViewport();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`${game.gameType}-config.png`) });
+    if (game.gameType === 'pictionary') {
+      await page.getByText('结果播放', { exact: true }).scrollIntoViewIfNeeded();
+      await expect(page.getByTestId(game.submit)).toBeInViewport();
+      await page.getByRole('radio', { name: '不限时', exact: true }).last().click();
+      await expect(page.getByRole('radio', { name: '不限时', exact: true }).last()).toBeChecked();
+    }
+  });
+}

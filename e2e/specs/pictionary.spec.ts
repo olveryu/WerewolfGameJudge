@@ -67,6 +67,12 @@ test.describe('Pictionary', () => {
         await config.createRoom();
         await hostRoom.waitForReady('host');
 
+        await hostPage.getByRole('button', { name: '查看你画我猜接龙玩法说明' }).click();
+        await expect(hostPage.getByRole('heading', { name: '接龙流程', level: 2 })).toBeVisible();
+        await hostPage.screenshot({ path: test.info().outputPath('pictionary-guide.png') });
+        await hostPage.getByRole('button', { name: '返回', exact: true }).click();
+        await hostRoom.waitForReady('host');
+
         const roomCode = await hostRoom.getRoomCode();
         await hostRoom.seatAt(0);
         for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
@@ -79,6 +85,9 @@ test.describe('Pictionary', () => {
       await test.step('start with a private prompt from every player', async () => {
         await hostRoom.startRound();
         await Promise.all(rooms.map((room) => room.expectPromptStep(1, RELAY_STEP_COUNT)));
+        await expect(
+          hostPage.getByRole('button', { name: '查看你画我猜接龙玩法说明' }),
+        ).toHaveCount(0);
         await hostRoom.expectPhoneSizedStage();
         await Promise.all(rooms.map((room) => room.expectTaskFitsViewport('prompt')));
         await hostRoom.reviseReadyPrompt('月球上的狗', OPENING_PROMPTS[0]);
