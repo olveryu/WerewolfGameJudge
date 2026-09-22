@@ -7,8 +7,8 @@ import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
 export const UNDERCOVER_WORD_BATCH_LIMIT = 30;
-export const UNDERCOVER_WORD_PROMPT_VERSION = 'undercover-generation-v1';
-export const UNDERCOVER_WORD_REVIEW_VERSION = 'undercover-review-v1';
+export const UNDERCOVER_WORD_PROMPT_VERSION = 'undercover-generation-v2';
+export const UNDERCOVER_WORD_REVIEW_VERSION = 'undercover-review-v2';
 const toSimplified = Converter({ from: 't', to: 'cn' });
 const wordSchema = z.string().trim().min(1).max(16);
 const explanationSchema = z.string().trim().min(2).max(180);
