@@ -48,7 +48,7 @@ Perform the following checks on the role list:
 
 #### Step 1 — Add PRESET_TEMPLATES Entry
 
-**File**: `packages/game-engine/src/models/Template.ts`
+**File**: `packages/game-engine/src/games/werewolf/domain/models/Template.ts`
 
 Add at the end of the corresponding category block:
 

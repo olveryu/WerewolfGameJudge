@@ -63,15 +63,15 @@ Implement step by step in SOP order.
 
 #### Core Steps (Roles with night actions)
 
-| #   | Step                                  | File                                                    |
-| --- | ------------------------------------- | ------------------------------------------------------- |
-| 1   | Add ROLE_SPECS entry                  | `packages/game-engine/src/models/roles/spec/specs.ts`   |
-| 2   | Insert into NIGHT_STEP_ORDER_INTERNAL | `packages/game-engine/src/models/roles/spec/plan.ts`    |
-| 3   | Register Resolver                     | `packages/game-engine/src/resolvers/index.ts`           |
-| 4   | Generate audio files                  | See "Step 4 — Audio Generation"                         |
-| 5   | Register audio                        | `src/games/werewolf/audio/audioRegistry.ts`             |
-| 6   | Add to ConfigScreen                   | `src/games/werewolf/screens/ConfigScreen/configData.ts` |
-| 6b  | Role badge                            | See "Step 6b — Badge Generation"                        |
+| #   | Step                                  | File                                                                        |
+| --- | ------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | Add ROLE_SPECS entry                  | `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts` |
+| 2   | Insert into NIGHT_STEP_ORDER_INTERNAL | `packages/game-engine/src/games/werewolf/domain/models/roles/spec/plan.ts`  |
+| 3   | Register Resolver                     | `packages/game-engine/src/games/werewolf/domain/resolvers/index.ts`         |
+| 4   | Generate audio files                  | See "Step 4 — Audio Generation"                                             |
+| 5   | Register audio                        | `src/games/werewolf/audio/audioRegistry.ts`                                 |
+| 6   | Add to ConfigScreen                   | `src/games/werewolf/screens/ConfigScreen/configData.ts`                     |
+| 6b  | Role badge                            | See "Step 6b — Badge Generation"                                            |
 
 #### Roles without night actions
 
@@ -224,7 +224,7 @@ nightSteps: [
 
 **genericResolver path**: no new file needed. `createGenericResolver('roleId')` reads abilities from ROLE_SPECS → automatically dispatches to the corresponding effect processor (`processWriteSlot` / `processCheck` / `processConfirm`, etc.).
 
-**Standalone resolver path**: create new file `packages/game-engine/src/resolvers/<newRole>.ts`.
+**Standalone resolver path**: create new file `packages/game-engine/src/games/werewolf/domain/resolvers/<newRole>.ts`.
 
 ---
 
@@ -287,7 +287,7 @@ When a new role uses `actionKind: 'confirm'`, the following full pipeline must b
 
 ### 1. Type Definitions
 
-**`packages/game-engine/src/protocol/types.ts`** — Add ConfirmStatus variant:
+**`packages/game-engine/src/games/werewolf/domain/protocol/types.ts`** — Add ConfirmStatus variant:
 
 ```typescript
 // existing: ShootConfirmStatus | FactionConfirmStatus
@@ -299,7 +299,7 @@ export interface NewRoleConfirmStatus {
 export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus | NewRoleConfirmStatus;
 ```
 
-**`packages/game-engine/src/models/roles/spec/schema.types.ts`** — Add ConfirmStatusUi variant:
+**`packages/game-engine/src/games/werewolf/domain/models/roles/spec/schema.types.ts`** — Add ConfirmStatusUi variant:
 
 ```typescript
 // existing: ShootConfirmUi | FactionConfirmUi
@@ -314,7 +314,7 @@ export type ConfirmStatusUi = ShootConfirmUi | FactionConfirmUi | NewRoleConfirm
 
 ### 2. Server-side Computation (`confirmContext.ts`)
 
-**File**: `packages/game-engine/src/engine/handlers/confirmContext.ts`
+**File**: `packages/game-engine/src/games/werewolf/domain/handlers/confirmContext.ts`
 
 ```typescript
 // 1. Extend ConfirmRole type
@@ -516,7 +516,7 @@ newRole: {
 
 ### plan.ts — Step Order
 
-**File**: `packages/game-engine/src/models/roles/spec/plan.ts`
+**File**: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/plan.ts`
 
 ```typescript
 export const NIGHT_STEP_ORDER_INTERNAL = [
@@ -577,7 +577,7 @@ Insert the new stepId at the appropriate position.
 
 ### Resolver Registration
 
-**File**: `packages/game-engine/src/resolvers/index.ts`
+**File**: `packages/game-engine/src/games/werewolf/domain/resolvers/index.ts`
 
 ```typescript
 // Generic resolver (most roles)
@@ -589,7 +589,7 @@ newRoleSecond: createGenericResolver('newRole', 1),
 
 ### Standalone Resolver
 
-**New file**: `packages/game-engine/src/resolvers/<newRole>.ts`
+**New file**: `packages/game-engine/src/games/werewolf/domain/resolvers/<newRole>.ts`
 
 ```typescript
 /**
@@ -694,18 +694,18 @@ Write a 30-80 character role description and append it after the universal prefi
 
 ## Conditional Steps Reference
 
-| Conditional Step       | When to Use                               | Key Files                                                         | Notes                                                           |
-| ---------------------- | ----------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- |
-| C1 Reveal              | Check type                                | `schema.types.ts` RevealKind + resolver `result: { checkResult }` | Use `resolveRoleForChecks()`                                    |
-| C2 Death Calculation   | Guard/chain-death/immunity                | `deathCalcRole` field + DeathCalculator                           | Add `deathCalcRole` to spec                                     |
-| C3 Confirm Pipeline    | Confirm type                              | See "Confirm Step Full Pipeline" section                          | protocol types + schema.types + confirmContext + promptExecutor |
-| C4 New GameState Field | Need to store new info in GameState       | `protocol/types.ts` + `normalize.ts`                              | Compile guard                                                   |
-| C5 Preset Template     | Preset board containing new role          | `packages/game-engine/src/models/templates/presetTemplates.ts`    | Use new-board skill                                             |
-| C6 E2E                 | By behavior category                      | `e2e/specs/night-roles-*.spec.ts`                                 | Use new-e2e-spec skill                                          |
-| C7 multiChooseSeat     | Multi-target selection                    | abilities `target.count.max > 1` + resolver reads `input.targets` |                                                                 |
-| C8 groupConfirm        | Group reveal                              | Second `nightStep` + `STEP_AUDIO` registration                    |                                                                 |
-| C9 Multi-step          | Same role has multiple nightSteps entries | Each step needs its own resolver + audio                          | Second step `audioKey` typically !== roleId                     |
-| C10 Immunity           | Immune to wolf attack/poison/etc.         | `immunities: [{ kind: 'wolfAttack' }]` + DeathCalculator          |                                                                 |
+| Conditional Step       | When to Use                               | Key Files                                                           | Notes                                                           |
+| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------- |
+| C1 Reveal              | Check type                                | `schema.types.ts` RevealKind + resolver `result: { checkResult }`   | Use `resolveRoleForChecks()`                                    |
+| C2 Death Calculation   | Guard/chain-death/immunity                | `deathCalcRole` field + DeathCalculator                             | Add `deathCalcRole` to spec                                     |
+| C3 Confirm Pipeline    | Confirm type                              | See "Confirm Step Full Pipeline" section                            | protocol types + schema.types + confirmContext + promptExecutor |
+| C4 New GameState Field | Need to store new info in GameState       | `protocol/types.ts` + `normalize.ts`                                | Compile guard                                                   |
+| C5 Preset Template     | Preset board containing new role          | `packages/game-engine/src/games/werewolf/domain/models/Template.ts` | Use new-board skill                                             |
+| C6 E2E                 | By behavior category                      | `e2e/specs/night-roles-*.spec.ts`                                   | Use new-e2e-spec skill                                          |
+| C7 multiChooseSeat     | Multi-target selection                    | abilities `target.count.max > 1` + resolver reads `input.targets`   |                                                                 |
+| C8 groupConfirm        | Group reveal                              | Second `nightStep` + `STEP_AUDIO` registration                      |                                                                 |
+| C9 Multi-step          | Same role has multiple nightSteps entries | Each step needs its own resolver + audio                            | Second step `audioKey` typically !== roleId                     |
+| C10 Immunity           | Immune to wolf attack/poison/etc.         | `immunities: [{ kind: 'wolfAttack' }]` + DeathCalculator            |                                                                 |
 
 ---
 

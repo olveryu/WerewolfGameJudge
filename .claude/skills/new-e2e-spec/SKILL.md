@@ -115,15 +115,12 @@ test('description', async ({ app: { page, diag } }) => {
 
 #### ⚠️ Night Step Order (NIGHT_STEPS)
 
-**Roles MUST be driven in the order defined by `NIGHT_STEP_ORDER_INTERNAL` in `packages/game-engine/src/models/roles/spec/plan.ts`.**
+**Roles MUST be driven in the order defined by `NIGHT_STEP_ORDER_INTERNAL` in `packages/game-engine/src/games/werewolf/domain/models/roles/spec/plan.ts`.**
 `waitForRoleTurn` calls `tryClickAdvanceButton(includeSkip=true)` to advance OTHER pages; wrong order will cause the target role to be auto-skipped.
 
-Check order: `grep -n '' packages/game-engine/src/models/roles/spec/plan.ts`
+Check order in the current `plan.ts`; derive the order from code rather than copied position numbers.
 
-Common order reference (position):
-
-- `crowCurse` (15) → `wolfKill` (16) → `hiddenWolfReveal` (18) → `seerCheck` (24)
-- `guardProtect` (14) → `wolfKill` (16) → `witchSave/witchPoison` (20/21)
+For non-Werewolf games, use that game's existing page objects and phase assertions; the night driver is Werewolf-specific.
 
 #### ⚠️ actionKind Driving Patterns (Critical!)
 

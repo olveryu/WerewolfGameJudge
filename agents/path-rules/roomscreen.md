@@ -17,23 +17,19 @@ description: 'Werewolf room feature standards: policy/hooks/executors/seatTap/co
 | `seatTap/`    | Seat tap interaction logic                                |
 | `share*.ts`   | Werewolf-only night-review sharing                        |
 
-## Screen Overview
+## UI Ownership
 
-| Screen                    | Location                           | Responsibility                                         |
-| ------------------------- | ---------------------------------- | ------------------------------------------------------ |
-| `HomeScreen`              | `screens/HomeScreen/`              | Home — create/join room entry                          |
-| `ConfigScreen`            | `screens/ConfigScreen/`            | Game config — select board, roles, player count        |
-| `WerewolfRoomScreen`      | `games/werewolf/room/`             | Werewolf room composition and night interaction        |
-| `EncyclopediaScreen`      | `screens/EncyclopediaScreen/`      | Role encyclopedia                                      |
-| `SettingsScreen`          | `screens/SettingsScreen/`          | User settings                                          |
-| `Auth*Screen`             | `screens/AuthScreen/`              | Login / register / forgot password / reset password    |
-| `AppearanceScreen`        | `screens/AppearanceScreen/`        | Avatar/frame/seat decoration selection (level unlocks) |
-| `UnlocksScreen`           | `screens/UnlocksScreen/`           | Unlock reward display (avatar/frame/effect three tabs) |
-| `BoardPickerScreen`       | `screens/BoardPickerScreen/`       | Board/template selection                               |
-| `AnimationSettingsScreen` | `screens/AnimationSettingsScreen/` | Role reveal animation selection                        |
-| `MusicSettingsScreen`     | `screens/MusicSettingsScreen/`     | Background music settings                              |
-| `NotepadScreen`           | `screens/NotepadScreen/`           | Game notepad (record speeches/votes)                   |
-| `GachaScreen`             | `screens/GachaScreen/`             | Gacha machine — spend tickets to draw decorations      |
+| Location                        | Responsibility                                                     |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `src/games/werewolf/screens/`   | Config, board picker, rule settings, encyclopedia and notepad      |
+| `src/games/werewolf/room/`      | Werewolf room composition, policy and night interaction            |
+| `src/features/room/components/` | Shared room header, seats, status, actions, management and dialogs |
+| `src/features/room/session/`    | Shared authoritative snapshot and command lifecycle                |
+| `src/screens/`                  | Product-level home, auth, settings and collection screens          |
+
+The visual standards in `agents/path-rules/screens.md` also apply to room UI. Werewolf is
+the cross-game visual baseline; share presentation where appropriate without moving
+Werewolf-specific night policy or identity visibility into generic room components.
 
 Shared room shell and controllers live in `src/features/room/`. Werewolf policy, executors, and
 night UI must remain in this game-owned directory. State machine reference:

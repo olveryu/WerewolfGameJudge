@@ -59,45 +59,45 @@ Classify symptom into scenario branches (can combine):
 
 **A — Client UI Anomaly:**
 
-| First-check Path        | Investigation Focus                                  |
-| ----------------------- | ---------------------------------------------------- |
-| `src/screens/<Screen>/` | Policy hooks return values, conditional render logic |
-| `src/services/facade/`  | GameState snapshot derivation, selector              |
-| `src/contexts/`         | Context Provider mounting, value passing             |
-| `src/components/`       | Props types, memo deps, key stability                |
+| First-check Path                                                      | Investigation Focus                                |
+| --------------------------------------------------------------------- | -------------------------------------------------- |
+| `src/games/<game>/screens/`, `src/games/<game>/room/`, `src/screens/` | Game-owned UI, policy hooks, conditional rendering |
+| `src/features/room/session/RoomSession.ts`                            | Authoritative snapshot application                 |
+| `src/contexts/`                                                       | Context Provider mounting, value passing           |
+| `src/components/`, `src/features/room/components/`                    | Shared controls, room surfaces, props and layout   |
 
 Common root causes: Selector returning new reference causing infinite re-render, Context not mounted, conditional render missing state
 
 **B — WebSocket/Network Issue:**
 
-| First-check Path                          | Investigation Focus                                  |
-| ----------------------------------------- | ---------------------------------------------------- |
-| `src/services/infra/ConnectionManager.ts` | Reconnect logic, error classification, state machine |
-| `src/services/infra/RealtimeService.ts`   | Subscribe/unsubscribe, message routing               |
-| `src/services/facade/`                    | applySnapshot timing                                 |
-| `packages/api-worker/src/do/`             | DO WebSocket handler, broadcast logic                |
+| First-check Path                                                                    | Investigation Focus                                  |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `src/services/connection/ConnectionManager.ts`                                      | Reconnect logic, error classification, state machine |
+| `src/services/cloudflare/CFRealtimeService.ts`                                      | Subscribe/unsubscribe, message routing               |
+| `src/features/room/session/RoomSession.ts`                                          | Snapshot application and command recovery            |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/` | DO entry, WebSocket and shared room coordination     |
 
 Common root causes: Token expired without refresh, DO cold-start race condition, message sequence number gap
 
 **C — Game Logic Bug:**
 
-| First-check Path                              | Investigation Focus                   |
-| --------------------------------------------- | ------------------------------------- |
-| `packages/game-engine/src/resolvers/`         | Resolver logic, edge cases            |
-| `packages/game-engine/src/models/roles/spec/` | NIGHT_STEPS order, schema constraints |
-| `packages/api-worker/src/do/`                 | DO reducer calls, state writes        |
-| `src/services/facade/`                        | Client snapshot interpretation        |
+| First-check Path                                                            | Investigation Focus                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `packages/game-engine/src/games/<game>/`                                    | Game-owned commands and logic; Werewolf resolvers are under `domain/resolvers/` |
+| `packages/game-engine/src/games/werewolf/domain/models/roles/spec/`         | NIGHT_STEPS order, schema constraints                                           |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/games/` | DO game dispatch and persistence                                                |
+| `src/features/room/session/RoomSession.ts`, `src/games/<game>/`             | Client snapshots and game-owned interpretation                                  |
 
 Common root causes: Resolver not handling skip case, NIGHT_STEPS order error, DO write race condition
 
 **D — API/Worker Error:**
 
-| First-check Path                      | Investigation Focus                  |
-| ------------------------------------- | ------------------------------------ |
-| `packages/api-worker/src/routes/`     | Zod schema validation, param passing |
-| `packages/api-worker/src/middleware/` | Auth middleware, rate limit          |
-| `packages/api-worker/src/do/`         | DO stub calls, SQLite queries        |
-| `packages/api-worker/src/d1/`         | D1 migration compatibility           |
+| First-check Path                                                                    | Investigation Focus                                                                   |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `packages/api-worker/src/features/`, `packages/api-worker/src/games/`               | Feature/game endpoints, request validation                                            |
+| `packages/api-worker/src/platform/http/`                                            | Shared HTTP handling and middleware                                                   |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/platform/room/` | DO calls and room persistence                                                         |
+| `packages/api-worker/src/db/`                                                       | D1 schemas and database access; trace migration configuration from the Worker package |
 
 Common root causes: Zod schema mismatch with request body, DO id construction error, D1 migration missing column
 
@@ -114,12 +114,12 @@ Common root causes: testid changed without sync, WebSocket not ready before acti
 
 **F — Performance Issue:**
 
-| First-check Path              | Investigation Focus                                |
-| ----------------------------- | -------------------------------------------------- |
-| `src/screens/`                | Large lists not virtualized, unnecessary re-render |
-| `src/services/`               | Frequent setState, un-debounced operations         |
-| `src/features/*/controllers/` | useMemo/useCallback deps too broad                 |
-| Worker network tab            | Request waterfall, oversized payload               |
+| First-check Path                                              | Investigation Focus                                |
+| ------------------------------------------------------------- | -------------------------------------------------- |
+| `src/screens/`, `src/games/`, `src/features/room/components/` | Large lists not virtualized, unnecessary re-render |
+| `src/services/`                                               | Frequent setState, un-debounced operations         |
+| `src/features/*/controllers/`                                 | useMemo/useCallback deps too broad                 |
+| Worker network tab                                            | Request waterfall, oversized payload               |
 
 Common root causes: Selector returning new object each time, list items without memo, audio preload blocking
 
