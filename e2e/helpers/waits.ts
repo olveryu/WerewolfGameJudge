@@ -145,6 +145,7 @@ export async function waitForRoomScreenReady(
       .catch(() => false);
     if (visible) {
       await qrModal.getByText('关闭', { exact: true }).click();
+      await expect(qrModal).toBeHidden();
     }
     return;
   }
