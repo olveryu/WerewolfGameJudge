@@ -31,8 +31,10 @@ import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
+import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { BoardCard, estimateMaxChips } from '@/games/werewolf/screens/BoardPickerScreen/BoardCard';
 import { createBoardPickerStyles } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen.styles';
+import { useBoardRolePreview } from '@/games/werewolf/screens/useBoardRolePreview';
 import {
   borderRadius,
   colors,
@@ -137,6 +139,7 @@ export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
   const [activeCategory, setActiveCategory] = useState<TemplateCategory | null>(null);
   const [expandedName, setExpandedName] = useState<string | null>(null);
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+  const { handleRolePress, roleCardProps } = useBoardRolePreview();
 
   const filteredTemplates = useMemo(() => {
     return PRESET_TEMPLATES.filter(
@@ -173,8 +176,6 @@ export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
 
   // noop — encyclopedia doesn't select boards
   const handleSelect = useCallback(() => {}, []);
-  // noop — encyclopedia doesn't navigate to role detail on chip press
-  const handleRolePress = useCallback(() => {}, []);
 
   const renderItem = useCallback(
     ({ item }: { item: PresetTemplate }) => (
@@ -327,6 +328,7 @@ export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
         </View>
       )}
 
+      <RoleCardSimple {...roleCardProps} />
       <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
     </View>
   );

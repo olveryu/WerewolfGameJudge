@@ -34,8 +34,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { type TemplateSectionData } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
-import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
+import { useBoardRolePreview } from '@/games/werewolf/screens/useBoardRolePreview';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing, withAlpha } from '@/theme';
 
@@ -70,12 +69,12 @@ interface BoardPickerScreenProps {
   const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();
   const maxChips = useMemo(() => estimateMaxChips(screenWidth), [screenWidth]);
+  const { handleRolePress, roleCardProps } = useBoardRolePreview();
 
   const {
     searchQuery,
     setSearchQuery,
     searchVisible,
-    previewRoleId,
     activeCategory,
     expandedName,
     filterVisible,
@@ -87,8 +86,6 @@ interface BoardPickerScreenProps {
     handleGoBack,
     handleSelect,
     handleCustom,
-    handleRolePress,
-    handlePreviewClose,
     toggleSearch,
     handleClearSearch,
     handleTabPress,
@@ -350,13 +347,7 @@ interface BoardPickerScreenProps {
       </View>
 
       {/* Role preview card */}
-      <RoleCardSimple
-        visible={previewRoleId !== null}
-        roleId={previewRoleId}
-        onClose={handlePreviewClose}
-        showRealIdentity
-        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handlePreviewClose) : undefined}
-      />
+      <RoleCardSimple {...roleCardProps} />
 
       {/* Board Strategy Modal */}
       <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />

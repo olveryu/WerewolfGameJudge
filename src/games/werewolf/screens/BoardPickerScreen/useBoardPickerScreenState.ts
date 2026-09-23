@@ -3,7 +3,7 @@
  *
  * Search / category / role filter / expand-collapse / navigation.
  */
-import { Faction, isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES, TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -37,7 +37,6 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
-  const [previewRoleId, setPreviewRoleId] = useState<RoleId | null>(null);
   const [activeCategory, setActiveCategory] = useState<TemplateCategory | null>(
     TemplateCategory.Classic,
   );
@@ -128,17 +127,6 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
     }
   }, [navigation, existingRoomCode, nominateMode]);
 
-  const handleRolePress = useCallback((roleId: string) => {
-    if (!isValidRoleId(roleId)) {
-      throw new Error(`[useBoardPickerScreenState] Invalid role ID: ${roleId}`);
-    }
-    setPreviewRoleId(roleId);
-  }, []);
-
-  const handlePreviewClose = useCallback(() => {
-    setPreviewRoleId(null);
-  }, []);
-
   const toggleSearch = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSearchVisible((prev) => {
@@ -197,7 +185,6 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
     searchQuery,
     setSearchQuery,
     searchVisible,
-    previewRoleId,
     activeCategory,
     expandedName,
     filterVisible,
@@ -211,8 +198,6 @@ export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenSt
     handleGoBack,
     handleSelect,
     handleCustom,
-    handleRolePress,
-    handlePreviewClose,
     toggleSearch,
     handleClearSearch,
     handleTabPress,

@@ -87,6 +87,39 @@ import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageFrame } from './PictionaryStageFrame';
 import { PictionaryTaskFrame, PictionaryTaskMedia } from './PictionaryTaskFrame';
 
+const PICTIONARY_OPENING_PROMPT_EXAMPLES = [
+  '月球上的猫',
+  '骑单车的熊猫',
+  '撑雨伞的蘑菇',
+  '吃西瓜的雪人',
+  '坐地铁的外星人',
+  '在云朵上钓鱼',
+  '给太阳戴墨镜',
+  '背着书包的恐龙',
+  '穿拖鞋的企鹅',
+  '火山里煮火锅',
+  '骑扫帚送外卖',
+  '海底开生日派对',
+  '会飞的冰箱',
+  '长出翅膀的西瓜',
+  '在彩虹上滑滑梯',
+  '用面条织围巾',
+  '抱着月亮睡觉',
+  '蜗牛开赛车',
+  '章鱼打鼓',
+  '长颈鹿打篮球',
+  '机器人放风筝',
+  '兔子在月亮上露营',
+  '鸭子当船长',
+  '猫咪给鱼拍照',
+  '刺猬卖气球',
+  '雪人泡温泉',
+  '小狗开挖掘机',
+  '螃蟹剪头发',
+  '吐泡泡的茶壶',
+  '热气球上吃早餐',
+] as const;
+
 interface PictionaryTaskStageProps {
   readonly state: PictionaryState;
   readonly effectiveSeat: number | null;
@@ -168,6 +201,12 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
 }) => {
   const draftScope = createPictionaryTaskDraftScope(state, task, userId);
   const [text, setText] = useState(() => pictionaryTextDraftStore.read(draftScope) ?? '');
+  const [openingPromptExample] = useState(
+    () =>
+      PICTIONARY_OPENING_PROMPT_EXAMPLES[
+        Math.floor(Math.random() * PICTIONARY_OPENING_PROMPT_EXAMPLES.length)
+      ]!,
+  );
   const command = usePictionaryStageCommand(session, controlledSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);
@@ -222,7 +261,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           editable={!isReady && !command.isSubmitting && !isExpired}
           maxLength={PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS}
           multiline
-          placeholder={isOpeningPrompt ? '例如：月球上的猫' : '写下你的猜测'}
+          placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
           placeholderTextColor={colors.textMuted}
           style={styles.textInput}
           accessibilityLabel={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
