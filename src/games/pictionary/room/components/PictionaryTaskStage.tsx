@@ -10,6 +10,7 @@ import {
   type PictionaryState,
   type PictionaryTask,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { randomPick } from '@game-judge/game-engine/platform/random';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
@@ -201,12 +202,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
 }) => {
   const draftScope = createPictionaryTaskDraftScope(state, task, userId);
   const [text, setText] = useState(() => pictionaryTextDraftStore.read(draftScope) ?? '');
-  const [openingPromptExample] = useState(
-    () =>
-      PICTIONARY_OPENING_PROMPT_EXAMPLES[
-        Math.floor(Math.random() * PICTIONARY_OPENING_PROMPT_EXAMPLES.length)
-      ]!,
-  );
+  const [openingPromptExample] = useState(() => randomPick(PICTIONARY_OPENING_PROMPT_EXAMPLES));
   const command = usePictionaryStageCommand(session, controlledSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);

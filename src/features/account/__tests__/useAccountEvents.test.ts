@@ -79,7 +79,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-it.each(['fibking', 'pictionary'])(
+it.each(['fibking', 'pictionary', 'undercover'])(
   'presents %s daily golden rewards without requiring a level-up',
   async (gameType) => {
     mockGet.mockResolvedValueOnce({

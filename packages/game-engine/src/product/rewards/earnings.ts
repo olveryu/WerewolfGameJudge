@@ -5,6 +5,7 @@ import { randomIntInclusive, type Rng, secureRng } from '../../platform/random';
 export const GAME_COMPLETION_REWARDS = {
   fibking: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
   pictionary: { xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+  undercover: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
 } as const;
 
 export const DAILY_COMPLETION_GOLDEN_DRAWS = 2;

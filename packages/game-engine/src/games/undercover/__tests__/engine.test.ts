@@ -183,6 +183,58 @@ describe('Undercover authoritative engine', () => {
     expect(state).toMatchObject({ phase: 'ended', winner: 'civilian' });
   });
 
+  it.each<readonly [UndercoverRole, readonly UndercoverRole[]]>([
+    ['civilian', ['blank', 'undercover', 'undercover']],
+    ['undercover', ['blank', 'civilian', 'civilian', 'civilian']],
+    ['blank', ['civilian', 'civilian', 'civilian', 'civilian', 'civilian', 'undercover']],
+  ])('emits one human-only completion reward for %s victory', (winner, roles) => {
+    let state = ongoing();
+    for (const [index, role] of roles.entries()) {
+      if (state.phase !== 'ongoing') throw new Error('Expected ongoing round');
+      const round = state.round;
+      const seat = round.roles.findIndex(
+        (assigned, seatIndex) =>
+          assigned === role &&
+          !round.revelations.some((revelation) => revelation.seat === seatIndex),
+      );
+      const command: UndercoverCommand = {
+        type: 'undercover.round.reveal',
+        roundId: state.round.roundId,
+        seat,
+      };
+      const decision = undercoverEngine.decide(state, command, user());
+      if (decision.kind === 'reject') throw new Error(decision.reason);
+      expect(decision.effects).toEqual(
+        index === roles.length - 1
+          ? [
+              {
+                type: 'undercover.game.completed',
+                payload: {
+                  roundId: state.round.roundId,
+                  completedAt: 1000,
+                  participantUserIds: ['host'],
+                },
+              },
+            ]
+          : [],
+      );
+      state = dispatch(state, command);
+    }
+    expect(state).toMatchObject({ phase: 'ended', winner });
+  });
+
+  it('does not reward an aborted round', () => {
+    const state = ongoing();
+    if (state.phase !== 'ongoing') throw new Error('Expected ongoing round');
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.abort', roundId: state.round.roundId },
+      user(),
+    );
+    if (decision.kind === 'reject') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([]);
+  });
+
   it('ends with undercover victory at parity after blank elimination', () => {
     let state = reveal(ongoing(), 'blank');
     for (let count = 0; count < 3; count += 1) state = reveal(state, 'civilian');

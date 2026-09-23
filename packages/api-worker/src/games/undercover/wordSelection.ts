@@ -15,7 +15,7 @@ import { undercoverWordPairSchema } from './schemas';
 export interface SelectUndercoverWordInput {
   readonly db: D1Database;
   readonly roomIdentity: WorkerEffectRoomIdentity;
-  readonly effect: UndercoverEffect;
+  readonly effect: Extract<UndercoverEffect, { type: 'undercover.word.select' }>;
 }
 
 /** Explicit exhaustion; callers must ask permission before repeating a pair. */

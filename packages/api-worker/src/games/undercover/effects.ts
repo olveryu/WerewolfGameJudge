@@ -1,4 +1,4 @@
-/** Deliver Undercover word snapshots; the shared outbox owns retries and terminal persistence. */
+/** Deliver Undercover word snapshots and rewards; the shared outbox owns retries and persistence. */
 
 import {
   UNDERCOVER_REASONS,
@@ -7,6 +7,7 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import {
@@ -19,6 +20,7 @@ export function getUndercoverEffectFailureCommand(
   effect: UndercoverEffect,
   state: UndercoverState,
 ): UndercoverInternalCommand | null {
+  if (effect.type === 'undercover.game.completed') return null;
   if (state.phase !== 'preparing' || state.pendingRound.roundId !== effect.payload.roundId)
     return null;
   return {
@@ -28,11 +30,18 @@ export function getUndercoverEffectFailureCommand(
   };
 }
 
-/** Persist the selected pair before dispatching an idempotent internal completion. */
+/** Persist selected pairs before dispatch; settle rewards from the immutable completion payload. */
 export async function handleUndercoverEffect(
   effect: UndercoverEffect,
   context: WorkerEffectContext<UndercoverState, UndercoverInternalCommand>,
 ): Promise<void> {
+  if (effect.type === 'undercover.game.completed') {
+    await publishGameRewards(
+      { ...effect.payload, kind: 'completion', gameType: 'undercover' },
+      context,
+    );
+    return;
+  }
   if (
     context.state.phase !== 'preparing' ||
     context.state.pendingRound.roundId !== effect.payload.roundId

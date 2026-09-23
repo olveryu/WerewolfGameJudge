@@ -159,7 +159,23 @@ function decideRevelation(
   const winner = getUndercoverWinner(
     state.round.roles.filter((_, index) => !eliminated.has(index)),
   );
-  return commitUndercover([{ type: 'undercover.round.revealed', revelation, winner }]);
+  return commitUndercover(
+    [{ type: 'undercover.round.revealed', revelation, winner }],
+    winner === null
+      ? []
+      : [
+          {
+            type: 'undercover.game.completed',
+            payload: {
+              roundId: state.round.roundId,
+              completedAt: context.nowMs,
+              participantUserIds: Object.values(state.realSeats)
+                .filter((seat) => seat !== undefined)
+                .map((seat) => seat.userId),
+            },
+          },
+        ],
+  );
 }
 
 /** Decides one round operation; @pre actor identity is authenticated by the platform. */

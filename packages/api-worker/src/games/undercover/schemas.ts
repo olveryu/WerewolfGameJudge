@@ -14,6 +14,7 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 import { z } from 'zod';
 
+import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 export const undercoverCreateConfigSchema: z.ZodType<UndercoverConfig> = z
@@ -74,12 +75,18 @@ export const undercoverInternalCommandSchema: z.ZodType<UndercoverInternalComman
     }),
   ]);
 
-export const undercoverEffectSchema: z.ZodType<UndercoverEffect> = z.strictObject({
-  type: z.literal('undercover.word.select'),
-  payload: z.strictObject({
-    roundId: z.string().min(1),
-    category: z.union([z.literal('all'), z.enum(UNDERCOVER_CATEGORIES)]),
-    avoidWordPairIds: z.array(z.string().min(1)).readonly(),
-    shouldAllowRepeated: z.boolean(),
+export const undercoverEffectSchema: z.ZodType<UndercoverEffect> = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('undercover.word.select'),
+    payload: z.strictObject({
+      roundId: z.string().min(1),
+      category: z.union([z.literal('all'), z.enum(UNDERCOVER_CATEGORIES)]),
+      avoidWordPairIds: z.array(z.string().min(1)).readonly(),
+      shouldAllowRepeated: z.boolean(),
+    }),
   }),
-});
+  z.strictObject({
+    type: z.literal('undercover.game.completed'),
+    payload: gameCompletionPayloadSchema,
+  }),
+]);

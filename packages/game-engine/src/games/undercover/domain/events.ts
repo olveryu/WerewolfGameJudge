@@ -1,4 +1,4 @@
-/** Pure Undercover events and deferred word-selection effects. */
+/** Pure Undercover events and deferred word-selection and completion-reward effects. */
 
 import type { SeatChange } from '../../../platform/room/seating';
 import type {
@@ -30,12 +30,21 @@ export type UndercoverEvent =
   | { readonly type: 'undercover.round.aborted' }
   | { readonly type: 'undercover.game.returnedToLobby' };
 
-export interface UndercoverEffect {
-  readonly type: 'undercover.word.select';
-  readonly payload: {
-    readonly roundId: string;
-    readonly category: UndercoverConfig['category'];
-    readonly avoidWordPairIds: readonly string[];
-    readonly shouldAllowRepeated: boolean;
-  };
-}
+export type UndercoverEffect =
+  | {
+      readonly type: 'undercover.word.select';
+      readonly payload: {
+        readonly roundId: string;
+        readonly category: UndercoverConfig['category'];
+        readonly avoidWordPairIds: readonly string[];
+        readonly shouldAllowRepeated: boolean;
+      };
+    }
+  | {
+      readonly type: 'undercover.game.completed';
+      readonly payload: {
+        readonly roundId: string;
+        readonly completedAt: number;
+        readonly participantUserIds: readonly string[];
+      };
+    };

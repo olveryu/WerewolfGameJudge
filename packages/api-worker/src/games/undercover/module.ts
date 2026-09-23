@@ -34,5 +34,5 @@ export const undercoverWorkerModule = defineWorkerGameModule({
   getEffectBusinessKey: (effect) => effect.payload.roundId,
   handleEffect: handleUndercoverEffect,
   getEffectFailureCommand: getUndercoverEffectFailureCommand,
-  canReplayFailedEffect: () => false,
+  canReplayFailedEffect: (effect) => effect.type === 'undercover.game.completed',
 });

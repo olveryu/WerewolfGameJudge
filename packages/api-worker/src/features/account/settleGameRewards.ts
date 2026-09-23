@@ -27,7 +27,7 @@ interface RewardIdentity {
 }
 
 type GameRewardPolicy =
-  | { readonly kind: 'completion'; readonly gameType: 'fibking' | 'pictionary' }
+  | { readonly kind: 'completion'; readonly gameType: keyof typeof GAME_COMPLETION_REWARDS }
   | { readonly kind: 'mvp'; readonly gameType: 'werewolf'; readonly humanPlayerCount: number };
 
 export type GameRewardInput = RewardIdentity & GameRewardPolicy;

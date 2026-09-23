@@ -3,7 +3,7 @@
 export interface AccountSettlementEvent {
   readonly type: 'SETTLE_RESULT';
   readonly eventId: string;
-  readonly gameType: 'werewolf' | 'fibking' | 'pictionary';
+  readonly gameType: 'werewolf' | 'fibking' | 'pictionary' | 'undercover';
   readonly settlementId: string;
   readonly endedRevision: number;
   readonly xpEarned: number;
@@ -68,7 +68,8 @@ export function parseAccountEvent(value: unknown): AccountSettlementEvent {
   if (
     value.gameType !== 'werewolf' &&
     value.gameType !== 'fibking' &&
-    value.gameType !== 'pictionary'
+    value.gameType !== 'pictionary' &&
+    value.gameType !== 'undercover'
   ) {
     throw new Error(`SETTLE_RESULT gameType is invalid: ${String(value.gameType)}`);
   }
