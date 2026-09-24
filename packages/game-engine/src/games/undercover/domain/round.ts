@@ -9,7 +9,12 @@ import {
   resolveUserActorId,
 } from '../../../platform/engine';
 import { REASON_NOT_HOST, REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
-import { createSeededRng, randomBool, shuffleArray } from '../../../platform/random';
+import {
+  createSeededRng,
+  randomBool,
+  randomIntInclusive,
+  shuffleArray,
+} from '../../../platform/random';
 import { findSeatByUserId } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
@@ -54,7 +59,6 @@ function decideStart(
   shouldAllowRepeated: boolean,
   context: CommandContext,
 ): UndercoverDecision {
-  if (state.phase !== 'lobby') return reject(UNDERCOVER_REASONS.phase);
   if (getUndercoverOccupiedSeatCount(state) !== state.config.numberOfPlayers)
     return reject(UNDERCOVER_REASONS.notFull);
   if (context.commandId.length === 0) throw new Error('Undercover start requires a command ID');
@@ -116,6 +120,7 @@ function decideInternal(
     civilianWord: isSwapped ? command.wordPair.wordB : command.wordPair.wordA,
     undercoverWord: isSwapped ? command.wordPair.wordA : command.wordPair.wordB,
     roles: shuffleArray(roles, random),
+    speakingStartSeat: randomIntInclusive(0, state.config.numberOfPlayers - 1, random),
     confirmedSeats: [],
     revelations: [],
   };
@@ -194,7 +199,9 @@ export function decideUndercoverRound(
   const hostRejection = requireUndercoverHost(state, context);
   if (hostRejection !== null) return hostRejection;
   if (command.type === 'undercover.round.start')
-    return decideStart(state, command.shouldAllowRepeated, context);
+    return state.phase === 'lobby'
+      ? decideStart(state, command.shouldAllowRepeated, context)
+      : reject(UNDERCOVER_REASONS.phase);
   if (command.type === 'undercover.game.returnToLobby') {
     return state.phase === 'ended' ||
       state.phase === 'aborted' ||
@@ -206,6 +213,11 @@ export function decideUndercoverRound(
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : state.round?.roundId;
+  if (command.type === 'undercover.round.restart') {
+    if (state.phase === 'lobby') return reject(UNDERCOVER_REASONS.phase);
+    if ((roundId ?? null) !== command.roundId) return reject(UNDERCOVER_REASONS.round);
+    return decideStart(state, false, context);
+  }
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
     case 'undercover.round.markAllBotsViewed':

@@ -8,6 +8,8 @@ import {
 import { act, renderHook } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 
+import { showConfirmAlert } from '@/utils/alertPresets';
+
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import { useUndercoverRoundControls } from '../hooks/useUndercoverRoundControls';
 import {
@@ -20,6 +22,11 @@ import {
   createUndercoverStatusRibbon,
   getUndercoverUserSeat,
 } from '../undercoverRoomAdapter';
+
+jest.mock('@/utils/alertPresets', () => ({
+  showConfirmAlert: jest.fn(),
+  showErrorAlert: jest.fn(),
+}));
 
 beforeEach(() => {
   jest.spyOn(AppState, 'addEventListener').mockReturnValue({ remove: jest.fn() });
@@ -177,7 +184,7 @@ it('selects directly for confirmation, cancels without submission and invalidate
   expect(createUndercoverSeatDataSource(state, 1, 'host', 1, 1, true).getSeat(1).highlight).toBe(
     'selected',
   );
-  expect(createUndercoverBottomActions(result.current)).toMatchObject({
+  expect(createUndercoverBottomActions(state, true, result.current)).toMatchObject({
     kind: 'info',
     actions: [{ key: 'cancel' }],
   });
@@ -194,4 +201,68 @@ it('selects directly for confirmation, cancels without submission and invalidate
   ).toBe('该玩家已出局');
   act(() => result.current.selectSeat(1));
   expect(result.current.selectedSeat).toBeNull();
+});
+
+it('shows the authoritative starting speaker only once all cards are confirmed', () => {
+  let state = createReadingState();
+  if (state.round === null) throw new Error('Expected round');
+  const { roundId, speakingStartSeat } = state.round;
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    kind: 'message',
+    supportingText: null,
+  });
+  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    kind: 'message',
+    supportingText: null,
+  });
+  state = dispatch(state, { type: 'undercover.round.confirm', roundId });
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    kind: 'message',
+    icon: 'speaking',
+    supportingText: `首轮随机由 ${speakingStartSeat + 1} 号开始发言`,
+  });
+});
+
+it('requires confirmation to restart an active round and exposes a direct host action after abort', async () => {
+  const state = createReadingState();
+  if (state.round === null) throw new Error('Expected round');
+  const session = {
+    dispatch: jest.fn().mockResolvedValue({
+      kind: 'decided',
+      decision: { kind: 'committed', outcome: { kind: 'success' } },
+    }),
+  } as unknown as UndercoverRoomSession;
+  const { result, rerender } = renderHook(
+    ({ currentState }: { currentState: UndercoverState }) =>
+      useUndercoverRoundControls(currentState, session, 'host', null),
+    { initialProps: { currentState: state } },
+  );
+  act(() => result.current.restart());
+  expect(session.dispatch).not.toHaveBeenCalled();
+  const confirmation = jest.mocked(showConfirmAlert).mock.calls.at(-1);
+  if (confirmation === undefined) throw new Error('Expected restart confirmation');
+  expect(confirmation[0]).toBe('重新开始？');
+  await act(async () => {
+    await confirmation[2]();
+  });
+  expect(session.dispatch).toHaveBeenCalledWith(
+    { type: 'undercover.round.restart', roundId: state.round.roundId },
+    { controlledSeat: null, label: '重新开始' },
+  );
+  const aborted = dispatch(state, { type: 'undercover.round.abort', roundId: state.round.roundId });
+  rerender({ currentState: aborted });
+  expect(createUndercoverBottomActions(aborted, false, result.current)).toMatchObject({
+    actions: [],
+  });
+  const model = createUndercoverBottomActions(aborted, true, result.current);
+  if (model.kind !== 'info') throw new Error('Expected room actions');
+  const restart = model.actions.find((action) => action.key === 'restart');
+  if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
+  jest.mocked(showConfirmAlert).mockClear();
+  await act(async () => {
+    restart.onPress();
+  });
+  expect(showConfirmAlert).not.toHaveBeenCalled();
+  expect(session.dispatch).toHaveBeenCalledTimes(2);
 });

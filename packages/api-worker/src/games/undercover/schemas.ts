@@ -43,6 +43,10 @@ export const undercoverPublicCommandSchema: z.ZodType<UndercoverPublicCommand> =
     }),
     z.strictObject({ type: z.literal('undercover.bots.clear') }),
     z.strictObject({ type: z.literal('undercover.round.start'), shouldAllowRepeated: z.boolean() }),
+    z.strictObject({
+      type: z.literal('undercover.round.restart'),
+      roundId: z.string().min(1).nullable(),
+    }),
     z.strictObject({ type: z.literal('undercover.round.retry'), roundId: z.string().min(1) }),
     z.strictObject({ type: z.literal('undercover.round.confirm'), roundId: z.string().min(1) }),
     z.strictObject({

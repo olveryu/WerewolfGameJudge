@@ -14,6 +14,7 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
+import { createSeededRng, randomIntInclusive } from '../../../platform/random';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import type { UndercoverRole } from '../domain/rules';
 import { normalizeUndercoverState } from './normalize';
@@ -128,6 +129,7 @@ function parseRound(value: unknown, path: string): UndercoverRound {
       civilianWord: parseNonEmptyString(raw.civilianWord, `${path}.civilianWord`),
       undercoverWord: parseNonEmptyString(raw.undercoverWord, `${path}.undercoverWord`),
       roles: parseArray(raw.roles, `${path}.roles`, parseRole),
+      speakingStartSeat: parseSeat(raw.speakingStartSeat, `${path}.speakingStartSeat`),
       confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
       revelations: parseArray(raw.revelations, `${path}.revelations`, (value, entryPath) => {
         const entry = parseObject(value, entryPath);
@@ -221,20 +223,36 @@ function parseUndercoverState(value: unknown): UndercoverState {
   return normalizeUndercoverState(finishObject(raw, state, path));
 }
 
-/** Upgrade stored v1 rooms without changing roster, words, confirmations or results.
+/** Upgrade stored v1/v2 rooms without changing roster, words, confirmations or results.
  * @throws When the stored configuration or migrated state is invalid.
  */
 export function migratePersistedUndercoverState(value: unknown): UndercoverState {
   const raw = parseObject(value, 'UndercoverState');
-  if (raw.stateVersion !== 1) return parseUndercoverState(raw);
+  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseUndercoverState(raw);
   const config = parseObject(raw.config, 'UndercoverState.config');
-  parseBoolean(config.isTestMode, 'UndercoverState.config.isTestMode');
   const currentConfig = { ...config };
-  delete currentConfig.isTestMode;
+  if (raw.stateVersion === 1) {
+    parseBoolean(config.isTestMode, 'UndercoverState.config.isTestMode');
+    delete currentConfig.isTestMode;
+  }
+  const parsedConfig = parseConfig(currentConfig, 'UndercoverState.config');
+  const round = parseNullable(raw.round, 'UndercoverState.round', parseObject);
+  const migratedRound =
+    round === null
+      ? null
+      : {
+          ...round,
+          speakingStartSeat: randomIntInclusive(
+            0,
+            parsedConfig.numberOfPlayers - 1,
+            createSeededRng(parseNonEmptyString(round.roundId, 'UndercoverState.round.roundId')),
+          ),
+        };
   return parseUndercoverState({
     ...raw,
     stateVersion: UNDERCOVER_STATE_VERSION,
-    config: currentConfig,
+    config: parsedConfig,
+    round: migratedRound,
   });
 }
 

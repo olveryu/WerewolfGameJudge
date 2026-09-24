@@ -5,7 +5,7 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import type { SeatOccupant } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 
-export const UNDERCOVER_STATE_VERSION = 2;
+export const UNDERCOVER_STATE_VERSION = 3;
 export const UNDERCOVER_CATEGORIES = [
   'food',
   'dailyLife',
@@ -55,6 +55,7 @@ export interface UndercoverRound {
   readonly civilianWord: string;
   readonly undercoverWord: string;
   readonly roles: readonly UndercoverRole[];
+  readonly speakingStartSeat: number;
   readonly confirmedSeats: readonly number[];
   readonly revelations: readonly UndercoverRevelation[];
 }

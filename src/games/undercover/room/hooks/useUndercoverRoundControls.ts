@@ -13,6 +13,30 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import { getUndercoverRoomCommandFailureMessage } from '../undercoverRoomCommandFailureMessage';
 
+function requestUndercoverRestart(
+  state: UndercoverState,
+  submit: (label: string, command: UndercoverPublicCommand) => Promise<boolean>,
+  closeCard: () => void,
+  clearSelection: () => void,
+) {
+  if (state.phase === 'lobby') throw new Error('Restart requires an existing Undercover round');
+  const roundId =
+    state.phase === 'preparing' || state.phase === 'preparationFailed'
+      ? state.pendingRound.roundId
+      : (state.round?.roundId ?? null);
+  const restart = async () => {
+    closeCard();
+    if (await submit('重新开始', { type: 'undercover.round.restart', roundId })) clearSelection();
+  };
+  if (state.phase === 'ended' || state.phase === 'aborted') void restart();
+  else
+    showConfirmAlert(
+      '重新开始？',
+      '当前未结束的对局不计胜负，保留座位和设置，重新分配词语与身份。',
+      restart,
+    );
+}
+
 export function useUndercoverRoundControls(
   state: UndercoverState,
   session: UndercoverRoomSession,
@@ -153,6 +177,7 @@ export function useUndercoverRoundControls(
         await submit('清除机器人', { type: 'undercover.bots.clear' });
       }),
     abort,
+    restart: () => requestUndercoverRestart(state, submit, closeCard, () => setSelection(null)),
     returnToLobby,
     allowRepeated,
   };

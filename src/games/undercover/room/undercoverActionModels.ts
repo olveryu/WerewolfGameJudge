@@ -18,8 +18,24 @@ import type { useUndercoverRoundControls } from './hooks/useUndercoverRoundContr
 
 type Controls = ReturnType<typeof useUndercoverRoundControls>;
 
-export function createUndercoverBottomActions(controls: Controls): RoomBottomActionModel {
+export function createUndercoverBottomActions(
+  state: UndercoverState,
+  isHost: boolean,
+  controls: Controls,
+): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
+  if (isHost && (state.phase === 'ended' || state.phase === 'aborted'))
+    actions.push({
+      key: 'restart',
+      label: '重新开始',
+      variant: 'primary',
+      size: 'lg',
+      testID: 'undercover-restart',
+      isLoading: controls.isSubmitting,
+      ...(controls.isSubmitting
+        ? ({ isEnabled: false, disabledReason: null, onDisabledPress: null } as const)
+        : ({ isEnabled: true, onPress: controls.restart } as const)),
+    });
   if (controls.canViewCard && !controls.isSelecting)
     actions.push({
       key: 'card',
@@ -74,6 +90,8 @@ export function createUndercoverHostManagement(
         : ({ isEnabled: true, onPress } as const)),
     });
   };
+  if (state.phase !== 'lobby' && state.phase !== 'ended' && state.phase !== 'aborted')
+    add('restart', '重新开始', 'refresh-outline', controls.restart);
   switch (state.phase) {
     case 'lobby':
       add(

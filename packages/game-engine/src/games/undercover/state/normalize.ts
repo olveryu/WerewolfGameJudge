@@ -73,6 +73,7 @@ function assertRound(state: UndercoverState): void {
     !isValidUndercoverWordPair(round.wordPair) ||
     !state.usedWordPairIds.includes(round.wordPair.id) ||
     round.roundId.length === 0 ||
+    !isUndercoverSeat(state, round.speakingStartSeat) ||
     round.roles.length !== state.config.numberOfPlayers
   )
     throw new Error('Invalid Undercover round');

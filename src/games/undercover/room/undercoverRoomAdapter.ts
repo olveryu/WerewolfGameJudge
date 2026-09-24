@@ -184,5 +184,13 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
       text = '本局已中止';
       break;
   }
-  return { kind: 'message', icon: 'guide', text, supportingText: null };
+  return {
+    kind: 'message',
+    icon: state.phase === 'ongoing' ? 'speaking' : 'guide',
+    text,
+    supportingText:
+      state.phase === 'ongoing'
+        ? `首轮随机由 ${state.round.speakingStartSeat + 1} 号开始发言`
+        : null,
+  };
 }

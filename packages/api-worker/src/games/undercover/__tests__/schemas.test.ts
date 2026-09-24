@@ -9,6 +9,19 @@ import {
 } from '../schemas';
 
 describe('Undercover schemas', () => {
+  it('requires an explicit round identity for restart and rejects caller-owned random choices', () => {
+    const command = { type: 'undercover.round.restart', roundId: 'round' };
+    expect(undercoverPublicCommandSchema.parse(command)).toEqual(command);
+    expect(undercoverPublicCommandSchema.parse({ ...command, roundId: null })).toEqual({
+      ...command,
+      roundId: null,
+    });
+    expect(undercoverPublicCommandSchema.safeParse({ type: command.type }).success).toBe(false);
+    expect(
+      undercoverPublicCommandSchema.safeParse({ ...command, speakingStartSeat: 0 }).success,
+    ).toBe(false);
+  });
+
   it('accepts configuration and rejects invalid blank mode', () => {
     const config = { numberOfPlayers: 8, hasBlank: true, category: 'all' };
     expect(undercoverCreateConfigSchema.parse(config)).toEqual(config);

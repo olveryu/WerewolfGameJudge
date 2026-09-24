@@ -38,7 +38,7 @@ export function UndercoverRulesScreen() {
         <RuleItem
           icon="eye-outline"
           title="确认词卡"
-          description="每位玩家查看自己的词卡，所有人确认后开始描述。"
+          description="每位玩家查看自己的词卡，所有人确认后显示随机首位发言座位，首轮从该玩家开始描述。之后的顺序在线下约定。"
         />
         <RuleItem
           icon="chatbubbles-outline"
@@ -49,6 +49,11 @@ export function UndercoverRulesScreen() {
           icon="person-remove-outline"
           title="揭晓出局"
           description="房主选择被投出的玩家并确认揭晓，该玩家立即出局。继续描述和投票，直到满足获胜条件。"
+        />
+        <RuleItem
+          icon="refresh-outline"
+          title="重新开始"
+          description="房主可保留座位和设置，重新分配词语与身份，所有人重新确认词卡。进行中重开需确认，未结束的对局不计胜负。"
         />
       </GameGuideSection>
       <GameGuideSection title="获胜条件">

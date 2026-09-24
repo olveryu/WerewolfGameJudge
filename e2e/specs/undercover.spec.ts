@@ -62,6 +62,8 @@ for (const viewport of [
       await room.openHostManagement();
       await page.getByTestId('undercover-start').click();
       await expect(page.getByTestId('undercover-view-word')).toBeVisible();
+      const speakingHint = page.getByText(/^首轮随机由 [1-6] 号开始发言$/);
+      await expect(speakingHint).toHaveCount(0);
       await expect(page.getByTestId('undercover-word')).toHaveCount(0);
       const cards: string[] = [];
       for (let seat = 0; seat < 6; seat += 1) {
@@ -82,11 +84,17 @@ for (const viewport of [
       await page.getByTestId('undercover-view-word').click();
       await page.getByTestId('undercover-confirm').click();
       await expect(page.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
+      await expect(speakingHint).toBeVisible();
+      const initialSpeakingHint = await speakingHint.innerText();
       await page.getByTestId('undercover-view-word').click();
       await expect(page.getByTestId('undercover-word')).toHaveText(cards[0]!);
       await page.reload();
       await room.waitForReady('host');
       await expect(page.getByTestId('undercover-word')).toHaveCount(0);
+      await expect(speakingHint).toHaveText(initialSpeakingHint);
+      await page.screenshot({
+        path: testInfo.outputPath(`undercover-speaking-${viewport.width}.png`),
+      });
       await expect(page.getByTestId(TESTIDS.controlledSeatBanner)).toHaveCount(0);
       const civilians = cards
         .map((word, seat) => ({ word, seat }))
@@ -152,12 +160,37 @@ for (const viewport of [
       }
       await expect(page.getByText('白板获胜', { exact: true })).toBeVisible();
       await expect(page.getByTestId('undercover-view-word')).toHaveCount(0);
+      await expect(page.getByTestId('undercover-restart')).toBeInViewport();
       await page.screenshot({
         path: testInfo.outputPath(`undercover-ended-${viewport.width}.png`),
       });
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
+      await page.getByTestId('undercover-restart').click();
+      await expect(page.getByText('确认词卡 · 0/6', { exact: true })).toBeVisible();
+      await expect(speakingHint).toHaveCount(0);
+      await expect(page.getByTestId('undercover-results')).toHaveCount(0);
+      await expect(page.getByText('已出局 · 平民', { exact: true })).toHaveCount(0);
+      await room.openHostManagement();
+      await page.getByTestId('undercover-mark-all-bots-viewed').click();
+      await page.getByTestId('undercover-view-word').click();
+      await page.getByTestId('undercover-confirm').click();
+      await expect(speakingHint).toBeVisible();
+      await room.openHostManagement();
+      await page.getByTestId('undercover-restart').click();
+      await expect(page.getByText('重新开始？', { exact: true })).toBeVisible();
+      await page.getByText('取消', { exact: true }).click();
+      await expect(page.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
+      await room.openHostManagement();
+      await page.getByTestId('undercover-restart').click();
+      await page.getByText('确定', { exact: true }).click();
+      await expect(page.getByText('确认词卡 · 0/6', { exact: true })).toBeVisible();
+      await expect(speakingHint).toHaveCount(0);
+      await room.openHostManagement();
+      await page.getByTestId('undercover-abort').click();
+      await page.getByText('确定', { exact: true }).click();
+      await expect(page.getByText('本局已中止', { exact: true })).toBeVisible();
       await room.openHostManagement();
       await page.getByTestId('undercover-return-lobby').click();
       await expect(page.getByText('等待入座 · 6/6', { exact: true })).toBeVisible();

@@ -107,6 +107,118 @@ function reveal(state: UndercoverState, role: UndercoverRole, context = user()):
 }
 
 describe('Undercover authoritative engine', () => {
+  it('atomically restarts while retaining the roster, config and used words, rejecting stale requests', () => {
+    const active = reveal(ongoing(), 'civilian');
+    if (active.round === null) throw new Error('Expected round');
+    const preparing = prepare();
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+    const states = [
+      preparing,
+      complete(preparing),
+      active,
+      reveal(reveal(reveal(ongoing(), 'blank'), 'undercover'), 'undercover'),
+      dispatch(active, { type: 'undercover.round.abort', roundId: active.round.roundId }),
+      dispatch(preparing, {
+        type: 'undercover.round.abort',
+        roundId: preparing.pendingRound.roundId,
+      }),
+      dispatch(
+        preparing,
+        {
+          type: 'undercover.round.failPreparation',
+          roundId: preparing.pendingRound.roundId,
+          failureCode: 'selectionFailed',
+        },
+        system(),
+      ),
+    ];
+    for (const state of states) {
+      const roundId =
+        state.phase === 'preparing' || state.phase === 'preparationFailed'
+          ? state.pendingRound.roundId
+          : (state.round?.roundId ?? null);
+      const command = { type: 'undercover.round.restart', roundId } as const;
+      expect(undercoverEngine.decide(state, command, user('visitor')).kind).toBe('reject');
+      const decision = undercoverEngine.decide(state, command, user('host', null, 'restart'));
+      if (decision.kind === 'reject') throw new Error(decision.reason);
+      expect(decision.effects).toEqual([
+        {
+          type: 'undercover.word.select',
+          payload: {
+            roundId: 'undercover-round:restart',
+            category: state.config.category,
+            avoidWordPairIds: state.usedWordPairIds,
+            shouldAllowRepeated: false,
+          },
+        },
+      ]);
+      const restarted = dispatch(state, command, user('host', null, 'restart'));
+      expect(restarted).toEqual({
+        gameType: state.gameType,
+        stateVersion: state.stateVersion,
+        roomCode: state.roomCode,
+        hostUserId: state.hostUserId,
+        config: state.config,
+        realSeats: state.realSeats,
+        botSeats: state.botSeats,
+        usedWordPairIds: state.usedWordPairIds,
+        phase: 'preparing',
+        round: null,
+        pendingRound: {
+          roundId: 'undercover-round:restart',
+          requestedAt: 1000,
+          shouldAllowRepeated: false,
+        },
+      });
+      expect(undercoverEngine.decide(restarted, command, user()).kind).toBe('reject');
+      expect(
+        undercoverEngine.decide(
+          restarted,
+          {
+            type: 'undercover.round.complete',
+            roundId: 'undercover-round:start',
+            wordPair: { id: 'stale', wordA: 'Milk', wordB: 'Soy milk', category: 'food' },
+          },
+          system(),
+        ).kind,
+      ).toBe('reject');
+      const next = dispatch(
+        restarted,
+        {
+          type: 'undercover.round.complete',
+          roundId: 'undercover-round:restart',
+          wordPair: { id: 'pair-2', wordA: 'Tea', wordB: 'Coffee', category: 'food' },
+        },
+        system(),
+      );
+      expect(next.phase).toBe('reading');
+      expect(next.round).toMatchObject({ confirmedSeats: [], revelations: [] });
+      expect(next.usedWordPairIds).toContain('pair-2');
+    }
+    expect(
+      undercoverEngine.decide(
+        createLobby(),
+        { type: 'undercover.round.restart', roundId: null },
+        user(),
+      ).kind,
+    ).toBe('reject');
+  });
+
+  it('persists a valid speaking start seat across confirmations and snapshot decoding', () => {
+    const reading = complete(prepare());
+    if (reading.round === null) throw new Error('Expected round');
+    expect(reading.round).toHaveProperty('speakingStartSeat', expect.any(Number));
+    expect(Array.from({ length: config.numberOfPlayers }, (_, index) => index)).toContain(
+      reading.round.speakingStartSeat,
+    );
+    const confirmed = dispatch(reading, {
+      type: 'undercover.round.confirm',
+      roundId: reading.round.roundId,
+    });
+    expect(confirmed.round).toEqual({ ...reading.round, confirmedSeats: [0] });
+    expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(confirmed)))).toEqual(confirmed);
+  });
+
   it('strictly round-trips all phase variants without resetting the game', () => {
     const preparing = prepare();
     if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
@@ -132,12 +244,30 @@ describe('Undercover authoritative engine', () => {
     for (const state of states) {
       expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(state)))).toEqual(state);
       expect(() => UNDERCOVER_STATE_CODEC.parse({ ...state, unexpected: true })).toThrow();
-      const legacy = {
-        ...state,
-        stateVersion: 1,
-        config: { ...state.config, isTestMode: state.botSeats.length > 0 },
-      };
-      expect(migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)))).toEqual(state);
+      for (const stateVersion of [1, 2]) {
+        const legacyRound: Record<string, unknown> | null =
+          state.round === null ? null : { ...state.round };
+        if (legacyRound !== null) delete legacyRound.speakingStartSeat;
+        const legacy = {
+          ...state,
+          stateVersion,
+          round: legacyRound,
+          config:
+            stateVersion === 1
+              ? { ...state.config, isTestMode: state.botSeats.length > 0 }
+              : state.config,
+        };
+        const migrated = migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)));
+        expect(migrated).toEqual({
+          ...state,
+          round:
+            state.round === null
+              ? null
+              : { ...state.round, speakingStartSeat: expect.any(Number) as unknown },
+        });
+        expect(migratePersistedUndercoverState(legacy)).toEqual(migrated);
+        expect(() => UNDERCOVER_STATE_CODEC.parse(legacy)).toThrow();
+      }
       expect(migratePersistedUndercoverState(state)).toEqual(state);
     }
   });
