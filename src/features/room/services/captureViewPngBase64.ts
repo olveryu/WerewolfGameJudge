@@ -16,7 +16,10 @@ function parseBase64DataUrl(dataUrl: string): string {
   return dataUrl.slice(markerIndex + BASE64_MARKER.length);
 }
 
-/** Capture a mounted view. The Web boundary validates the React Native Web host element. */
+/**
+ * Capture a mounted view, keeping its images and the surrounding layout/styles.
+ * @remarks Excludes unrelated images before cloning: iframe load waits for them without a timeout.
+ */
 export async function captureViewPngBase64(ref: RefObject<unknown>): Promise<string> {
   if (ref.current === null) {
     throw new Error('[FAIL-FAST] Capture view ref is not mounted');
@@ -27,8 +30,12 @@ export async function captureViewPngBase64(ref: RefObject<unknown>): Promise<str
       throw new Error('[FAIL-FAST] Capture view ref must resolve to an HTMLElement on Web');
     }
 
+    const element = ref.current;
     const html2canvas = await loadHtml2canvas();
-    const canvas = await html2canvas(ref.current, { backgroundColor: null });
+    const canvas = await html2canvas(element, {
+      backgroundColor: null,
+      ignoreElements: (node) => node.tagName === 'IMG' && !element.contains(node),
+    });
     return parseBase64DataUrl(canvas.toDataURL('image/png'));
   }
 

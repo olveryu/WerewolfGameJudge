@@ -7,6 +7,7 @@ import { type Download, expect, type Page, test } from '@playwright/test';
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { expectWeChatImageShare } from '../helpers/image-sharing';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
@@ -219,6 +220,9 @@ test('four humans write four turns without restoring unsubmitted input and revea
       ).toHaveCount(0);
       await expectStoryImageExport(hostPage, '全部图片', 4);
       await expectStoryImageExport(fixture.pages[1]!, '本篇图片', 1);
+      await test.step('upload all story PNGs for WeChat despite an unrelated pending image', async () => {
+        await expectWeChatImageShare(hostPage, '全部图片', '保存／分享图片', 4);
+      });
       await hostPage.getByTestId('storyrelay-next-round').click();
       await confirm(hostPage);
       await expect(hostPage.getByTestId('storyrelay-editor')).toHaveValue('');

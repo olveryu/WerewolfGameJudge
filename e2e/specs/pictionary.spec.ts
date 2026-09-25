@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test';
 import { FETCH_RETRY_COUNT } from '../../src/config/api';
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import { expectWeChatImageShare } from '../helpers/image-sharing';
 import { HomePage } from '../pages/HomePage';
 import { PictionaryConfigPage } from '../pages/PictionaryConfigPage';
 import { PictionaryRoomPage } from '../pages/PictionaryRoomPage';
@@ -353,6 +354,9 @@ test.describe('Pictionary', () => {
           await test.info().attach('pictionary-export', { body: png, contentType: 'image/png' });
           await page.getByRole('button', { name: '关闭详情', exact: true }).click();
         }
+      });
+      await test.step('upload the album PNG for WeChat despite an unrelated pending image', async () => {
+        await expectWeChatImageShare(hostPage, /保存／分享画册/, /保存／分享长图/, 1);
       });
     } finally {
       await closeAll(fixture);

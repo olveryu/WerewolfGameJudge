@@ -39,8 +39,31 @@ describe('captureViewPngBase64', () => {
     mockLoadHtml2canvas.mockResolvedValue(mockHtml2canvas);
 
     await expect(captureViewPngBase64({ current: element })).resolves.toBe('captured');
-    expect(mockHtml2canvas).toHaveBeenCalledWith(element, { backgroundColor: null });
+    expect(mockHtml2canvas).toHaveBeenCalledWith(
+      element,
+      expect.objectContaining({ backgroundColor: null }),
+    );
     expect(mockCaptureRef).not.toHaveBeenCalled();
+  });
+
+  it('excludes unrelated images before cloning while retaining export images and layout', async () => {
+    setPlatformOS('web');
+    const element = document.createElement('div');
+    const image = document.createElement('img');
+    element.appendChild(image);
+    const canvas = document.createElement('canvas');
+    jest.spyOn(canvas, 'toDataURL').mockReturnValue('data:image/png;base64,captured');
+    mockHtml2canvas.mockResolvedValue(canvas);
+    mockLoadHtml2canvas.mockResolvedValue(mockHtml2canvas);
+
+    await captureViewPngBase64({ current: element });
+
+    const options = mockHtml2canvas.mock.calls[0]![1]!;
+    expect(options.ignoreElements!(document.createElement('img'))).toBe(true);
+    expect(options.ignoreElements!(image)).toBe(false);
+    expect(options.ignoreElements!(element)).toBe(false);
+    expect(options.ignoreElements!(document.createElement('div'))).toBe(false);
+    expect(options.ignoreElements!(document.createElement('style'))).toBe(false);
   });
 
   it('rejects a Web ref that is not an HTMLElement', async () => {
