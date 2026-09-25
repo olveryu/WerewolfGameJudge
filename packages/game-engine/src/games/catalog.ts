@@ -3,6 +3,7 @@
 import { defineGameEngineCatalog } from '../platform/engine';
 import { fibEngine } from './fibking/engine';
 import { pictionaryEngine } from './pictionary/engine';
+import { storyRelayEngine } from './storyrelay/engine';
 import { undercoverEngine } from './undercover/engine';
 import { werewolfEngine } from './werewolf/engine';
 
@@ -11,6 +12,7 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
   fibking: fibEngine,
   pictionary: pictionaryEngine,
   undercover: undercoverEngine,
+  storyrelay: storyRelayEngine,
 });
 
 export type GameEngineCatalog = typeof GAME_ENGINE_CATALOG;

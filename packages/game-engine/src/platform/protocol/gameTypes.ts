@@ -1,6 +1,12 @@
 /** Canonical game identifiers shared by every runtime. */
 
-export const GAME_TYPES = ['werewolf', 'fibking', 'pictionary', 'undercover'] as const;
+export const GAME_TYPES = [
+  'werewolf',
+  'fibking',
+  'pictionary',
+  'undercover',
+  'storyrelay',
+] as const;
 
 export type GameType = (typeof GAME_TYPES)[number];
 

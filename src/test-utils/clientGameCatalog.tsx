@@ -36,6 +36,28 @@ function createIdleRoomAccount<TGameType extends GameType>(gameType: TGameType) 
 
 export function createTestClientGameCatalog(): ClientGameCatalog {
   return {
+    storyrelay: {
+      gameType: 'storyrelay',
+      home: {
+        mode: {
+          displayName: '故事接龙',
+          subtitle: '一人写一段，一起揭晓故事',
+          iconName: 'book-outline',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.storyrelay.navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('storyrelay'),
+      productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
     undercover: {
       gameType: 'undercover',
       home: {

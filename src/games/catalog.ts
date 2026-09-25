@@ -11,6 +11,8 @@ import type {
 } from '@/games/model/ClientGamePlugin';
 import { createPictionaryUiModule } from '@/games/pictionary/module';
 import { pictionaryGameNavigation } from '@/games/pictionary/navigation/pictionaryGameNavigation';
+import { createStoryRelayUiModule } from '@/games/storyrelay/module';
+import { storyRelayGameNavigation } from '@/games/storyrelay/navigation/storyRelayGameNavigation';
 import { createUndercoverUiModule } from '@/games/undercover/module';
 import { undercoverGameNavigation } from '@/games/undercover/navigation/undercoverGameNavigation';
 import { createWerewolfUiModule } from '@/games/werewolf/module';
@@ -43,6 +45,11 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
     navigation: undercoverGameNavigation,
     createModule: ({ sessionFactory }) => createUndercoverUiModule({ sessionFactory }),
   },
+  storyrelay: {
+    gameType: 'storyrelay',
+    navigation: storyRelayGameNavigation,
+    createModule: ({ sessionFactory }) => createStoryRelayUiModule({ sessionFactory }),
+  },
 } satisfies ClientGamePluginCatalogShape;
 
 export function createClientGameCatalog(
@@ -60,6 +67,9 @@ export function createClientGameCatalog(
     ),
     undercover: registerClientGameModule(
       CLIENT_GAME_PLUGIN_CATALOG.undercover.createModule(dependencies),
+    ),
+    storyrelay: registerClientGameModule(
+      CLIENT_GAME_PLUGIN_CATALOG.storyrelay.createModule(dependencies),
     ),
   };
 }

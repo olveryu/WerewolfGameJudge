@@ -24,6 +24,10 @@
       "types": "./src/games/undercover/public.ts",
       "default": "./dist/games/undercover/public.js"
     },
+    "./games/storyrelay/public": {
+      "types": "./src/games/storyrelay/public.ts",
+      "default": "./dist/games/storyrelay/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"

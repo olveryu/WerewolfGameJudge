@@ -35,7 +35,7 @@ it('retries account delivery using the committed reward after the room is gone',
 });
 function completion(
   settlementId: string,
-  gameType: 'fibking' | 'pictionary' | 'undercover' = 'fibking',
+  gameType: 'fibking' | 'pictionary' | 'undercover' | 'storyrelay' = 'fibking',
 ): GameRewardInput {
   return {
     settlementId,
@@ -126,6 +126,38 @@ it('counts Undercover daily completions independently from FibKing', async () =>
       "SELECT xp, normal_draws, golden_draws FROM user_stats WHERE user_id = 'reward-user'",
     ).first(),
   ).toEqual({ xp: 45, normal_draws: 9, golden_draws: 2 });
+});
+
+it('settles Story Relay exactly once, excludes anonymous users and retains prior reward receipts', async () => {
+  const previous = completion('previous-gallery', 'pictionary');
+  const previousResults = await settleGameRewards(env.DB, previous);
+  const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0059_storyrelay.sql');
+  if (migration === undefined) throw new Error('Missing Story Relay migration');
+  await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
+  expect(await settleGameRewards(env.DB, previous)).toEqual(previousResults);
+  const input = completion('story-round', 'storyrelay');
+  const [first, replay] = await Promise.all([
+    settleGameRewards(env.DB, input),
+    settleGameRewards(env.DB, input),
+  ]);
+  expect(first).toEqual(replay);
+  expect(first).toEqual([
+    expect.objectContaining({
+      userId: 'reward-user',
+      xpEarned: 15,
+      normalDrawsEarned: 3,
+      goldenDrawsEarned: 2,
+    }),
+  ]);
+  expect(
+    await env.DB.prepare(
+      "SELECT xp, games_played FROM user_stats WHERE user_id = 'reward-user'",
+    ).first(),
+  ).toEqual({ xp: 30, games_played: 2 });
+  expect(
+    await env.DB.prepare("SELECT * FROM user_stats WHERE user_id = 'reward-guest'").first(),
+  ).toBeNull();
+  expect(await env.DB.prepare('PRAGMA foreign_key_check').all()).toMatchObject({ results: [] });
 });
 
 it('preserves historical rewards and replay receipts when expanding the game constraint', async () => {
