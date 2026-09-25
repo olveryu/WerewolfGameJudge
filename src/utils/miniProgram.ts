@@ -105,14 +105,15 @@ export function wxReLaunchWithNonce(nonce: string): void {
  * Calls WeChat JSSDK wx.previewImage to show the native image previewer.
  * Available inside web-view; user can long-press to save/forward. Requires HTTP(S) URL (no base64).
  */
-export function wxPreviewImage(url: string): Promise<void> {
+export function wxPreviewImage(url: string, urls: readonly string[] = [url]): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!window.wx?.previewImage) {
       reject(new Error('wx.previewImage not available'));
       return;
     }
     window.wx.previewImage({
-      urls: [url],
+      current: url,
+      urls: [...urls],
       success: () => resolve(),
       fail: (err) => reject(new Error(err.errMsg)),
     });

@@ -5,7 +5,7 @@ import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonic
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { uploadNightReviewImage } from '@/games/werewolf/services/uploadNightReviewImage';
+import { uploadShareImage } from '@/features/room/services/uploadShareImage';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -105,7 +105,7 @@ export function useNightReviewShare(
     try {
       if (isMiniProgram()) {
         const base64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
-        const url = await uploadNightReviewImage(base64);
+        const url = await uploadShareImage(base64);
         if (!scope.isActive) return false;
         await wxPreviewImage(url);
         return scope.isActive;

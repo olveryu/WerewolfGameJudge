@@ -47,7 +47,7 @@ function StoryRelayHostActions({
           onPress={() =>
             confirm(
               '再来一局',
-              '重新分配写作顺序并开始新一局。当前故事将被替换，请先复制需要保留的正文。',
+              '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
               { type: 'storyrelay.round.next' },
             )
           }
@@ -61,7 +61,7 @@ function StoryRelayHostActions({
           disabled={isSubmitting}
           testID="storyrelay-return-lobby"
           onPress={() =>
-            confirm('返回大厅', '保留座位和设置，清除当前故事。请先复制需要保留的正文。', {
+            confirm('返回大厅', '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。', {
               type: 'storyrelay.game.returnToLobby',
             })
           }

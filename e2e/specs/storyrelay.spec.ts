@@ -1,6 +1,8 @@
 /** Browser acceptance for plain-text Story Relay, using only production room and writing controls. */
 
-import { expect, type Page, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+import { type Download, expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
@@ -61,6 +63,60 @@ async function expectFixedTask(page: Page): Promise<void> {
         ),
     )
     .toBeLessThanOrEqual(1);
+}
+
+async function expectStoryImageExport(page: Page, scope: '本篇图片' | '全部图片', count: number) {
+  await page.getByRole('button', { name: scope, exact: true }).click();
+  const images = page.locator('[data-testid^="storyrelay-export-"]');
+  await expect(images).toHaveCount(count);
+  for (const image of await images.all()) {
+    await expect(image).toContainText('第4棒的故事');
+    await expect(image).toContainText('4.');
+  }
+  const downloads: Download[] = [];
+  const collect = (download: Download) => downloads.push(download);
+  page.on('download', collect);
+  try {
+    await page.getByRole('button', { name: '保存／分享图片', exact: true }).click();
+    await expect.poll(() => downloads.length).toBe(count);
+    for (const [index, download] of downloads.entries()) {
+      expect(download.suggestedFilename()).toMatch(/^storyrelay-.*\.png$/);
+      const filename = test.info().outputPath(`${scope}-${index}.png`);
+      await download.saveAs(filename);
+      const png = await readFile(filename);
+      expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+      expect(png.readUInt32BE(20)).toBeGreaterThan(png.readUInt32BE(16));
+      expect(png.length).toBeGreaterThan(10_000);
+      const hasTextAtBottom = await page.evaluate(
+        async (dataUrl) => {
+          const image = new Image();
+          image.src = dataUrl;
+          await image.decode();
+          const canvas = document.createElement('canvas');
+          canvas.width = image.width;
+          canvas.height = image.height;
+          const context = canvas.getContext('2d');
+          if (context === null) throw new Error('Image pixel check unavailable');
+          context.drawImage(image, 0, 0);
+          const pixels = context.getImageData(
+            0,
+            Math.floor(image.height * 0.75),
+            image.width,
+            Math.floor(image.height * 0.25),
+          ).data;
+          const background = pixels.slice(0, 3);
+          return pixels.some(
+            (value, offset) => offset % 4 < 3 && Math.abs(value - background[offset % 4]!) > 50,
+          );
+        },
+        `data:image/png;base64,${png.toString('base64')}`,
+      );
+      expect(hasTextAtBottom).toBe(true);
+    }
+  } finally {
+    page.off('download', collect);
+  }
+  await page.getByRole('button', { name: '关闭详情', exact: true }).click();
 }
 
 test('four humans write four turns without restoring unsubmitted input and reveal synchronized stories', async ({
@@ -155,9 +211,14 @@ test('four humans write four turns without restoring unsubmitted input and revea
       await hostPage.getByRole('button', { name: '全部揭晓', exact: true }).click();
       await confirm(hostPage);
       await expect(
-        spectator.page.getByRole('button', { name: '复制全部', exact: true }),
+        spectator.page.getByRole('button', { name: '全部图片', exact: true }),
       ).toBeVisible();
       await expect(hostPage.getByTestId('storyrelay-entry-3')).toBeVisible();
+      await expect(
+        hostPage.getByTestId('storyrelay-gallery').getByRole('button', { name: /复制/ }),
+      ).toHaveCount(0);
+      await expectStoryImageExport(hostPage, '全部图片', 4);
+      await expectStoryImageExport(fixture.pages[1]!, '本篇图片', 1);
       await hostPage.getByTestId('storyrelay-next-round').click();
       await confirm(hostPage);
       await expect(hostPage.getByTestId('storyrelay-editor')).toHaveValue('');

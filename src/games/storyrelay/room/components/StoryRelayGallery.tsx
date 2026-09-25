@@ -1,4 +1,4 @@
-/** Displays the server-revealed story prefix; terminal rounds permit complete rereading and copying. */
+/** Displays the server-revealed story prefix; terminal rounds permit rereading and image sharing. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type {
@@ -9,11 +9,11 @@ import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { copyStoryRelayText } from '@/games/storyrelay/services/copyStoryRelayText';
 import { colors, componentSizes } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { formatStoryRelayStory, getStoryRelayVisibleStories } from '../storyRelayPresentation';
+import { getStoryRelayVisibleStories } from '../storyRelayPresentation';
+import { StoryRelayImageShare } from './StoryRelayImageShare';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 
 /** Keeps local rereading separate from the server's shared playback position. */
@@ -45,12 +45,6 @@ export function StoryRelayGallery({
       | 'storyrelay.gallery.resume'
       | 'storyrelay.gallery.finish',
   ) => void submit('控制故事回放', { type, phaseRevision: state.phaseRevision });
-  const copyAll = () =>
-    void copyStoryRelayText(
-      stories
-        .map((story, index) => formatStoryRelayStory(state, story, index))
-        .join('\n\n────────\n\n'),
-    );
   return (
     <View style={styles.container} testID="storyrelay-gallery">
       <View style={styles.content}>
@@ -76,20 +70,7 @@ export function StoryRelayGallery({
             >
               <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.text} />
             </Button>
-            <Button
-              variant="secondary"
-              onPress={() =>
-                void copyStoryRelayText(formatStoryRelayStory(state, chain, chainIndex))
-              }
-              icon={
-                <Ionicons name="copy-outline" size={componentSizes.icon.sm} color={colors.text} />
-              }
-            >
-              复制本篇
-            </Button>
-            <Button variant="secondary" onPress={copyAll}>
-              复制全部
-            </Button>
+            <StoryRelayImageShare state={state} chainIndex={chainIndex} />
           </View>
         )}
       </View>

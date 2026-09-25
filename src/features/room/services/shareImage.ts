@@ -5,6 +5,9 @@ import { shareAsync } from 'expo-sharing';
 import { Platform } from 'react-native';
 
 import { shareLog } from '@/utils/logger';
+import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
+
+import { uploadShareImage } from './uploadShareImage';
 
 function base64ToFile(base64: string, filename: string): globalThis.File {
   const byteChars = atob(base64);
@@ -29,46 +32,68 @@ export async function shareImageBase64(
   filename: string,
   title: string,
 ): Promise<void> {
-  shareLog.debug('shareImageBase64', { filename });
-  const base64Data = await getBase64();
-  if (base64Data.length === 0) {
-    throw new Error('Captured share image is empty');
+  await shareImagesBase64([{ getBase64, filename }], title);
+}
+
+/** Shares ordered PNGs together in WeChat or a supported browser file-share sheet. */
+export async function shareImagesBase64(
+  images: readonly { readonly getBase64: () => Promise<string>; readonly filename: string }[],
+  title: string,
+): Promise<void> {
+  if (images.length === 0) throw new Error('No images to share');
+  const captured: { base64Data: string; filename: string }[] = [];
+  for (const image of images) {
+    const base64Data = await image.getBase64();
+    if (base64Data.length === 0) throw new Error('Captured share image is empty');
+    captured.push({ base64Data, filename: image.filename });
   }
 
   if (Platform.OS === 'web') {
-    await shareImageWeb(base64Data, filename, title);
+    if (isMiniProgram()) {
+      const urls: string[] = [];
+      for (const image of captured) urls.push(await uploadShareImage(image.base64Data));
+      await wxPreviewImage(urls[0]!, urls);
+      return;
+    }
+    await shareImagesWeb(captured, title);
     return;
   }
-  await shareImageNative(base64Data, filename, title);
+  for (const image of captured) await shareImageNative(image.base64Data, image.filename, title);
 }
 
-async function shareImageWeb(base64Data: string, filename: string, title: string): Promise<void> {
+async function shareImagesWeb(
+  images: readonly { readonly base64Data: string; readonly filename: string }[],
+  title: string,
+): Promise<void> {
+  const download = () => {
+    for (const image of images) downloadImage(image.base64Data, image.filename);
+  };
   if (typeof navigator !== 'undefined' && navigator.share) {
-    const file = base64ToFile(base64Data, filename);
-    if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-      downloadImage(base64Data, filename);
+    const files = images.map((image) => base64ToFile(image.base64Data, image.filename));
+    if (navigator.canShare && !navigator.canShare({ files })) {
+      download();
       return;
     }
     try {
-      await navigator.share({ title, files: [file] });
+      await navigator.share({ title, files });
       return;
     } catch (error) {
       if (error instanceof DOMException) {
         if (error.name === 'AbortError') return;
         if (error.name === 'NotAllowedError') {
-          downloadImage(base64Data, filename);
+          download();
           return;
         }
       }
       if (error instanceof TypeError) {
-        downloadImage(base64Data, filename);
+        download();
         return;
       }
       throw error;
     }
   }
 
-  downloadImage(base64Data, filename);
+  download();
 }
 
 async function shareImageNative(

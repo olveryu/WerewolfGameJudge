@@ -35,7 +35,7 @@ export function StoryRelayRulesScreen() {
         <RuleItem
           icon="book-outline"
           title="每人每个故事只写一次"
-          description="N 人共写 N 棒，每个故事 N 段。最后一棒也是普通续写，没有额外收尾。房主逐段揭晓，结束后可回读与复制。"
+          description="N 人共写 N 棒，每个故事 N 段。最后一棒也是普通续写，没有额外收尾。房主逐段揭晓，结束后可回读并分享故事图片。"
         />
       </GameGuideSection>
       <GameGuideSection title="房主与机器人">

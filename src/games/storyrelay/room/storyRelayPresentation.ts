@@ -18,7 +18,7 @@ export function getStoryRelayVisibleStories(state: StoryRelayState): readonly St
   }));
 }
 
-/** Formats only an already-authorized story projection for copying. */
+/** Formats an already-authorized story projection for its printable image. */
 export function formatStoryRelayStory(
   state: StoryRelayState,
   chain: StoryRelayChain,

@@ -50,6 +50,12 @@ export const storyRelayStyles = StyleSheet.create({
     gap: spacing.small,
   },
   list: { padding: spacing.medium, gap: spacing.small },
+  imagePage: {
+    width: '100%',
+    padding: spacing.medium,
+    gap: spacing.medium,
+    backgroundColor: colors.surface,
+  },
   entry: {
     borderBottomWidth: fixed.borderWidth,
     borderBottomColor: colors.borderLight,
