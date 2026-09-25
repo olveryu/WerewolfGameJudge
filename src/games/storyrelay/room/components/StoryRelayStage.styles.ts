@@ -2,7 +2,7 @@
 
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
+import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 
 export const storyRelayStyles = StyleSheet.create({
   container: { flex: 1, minHeight: 0 },
@@ -14,24 +14,32 @@ export const storyRelayStyles = StyleSheet.create({
     gap: spacing.medium,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.small },
+  task: { flex: 1, minHeight: 0, paddingVertical: spacing.small, gap: spacing.small },
+  progressList: { paddingHorizontal: spacing.medium, gap: spacing.small },
+  progressItem: { paddingVertical: spacing.tight, gap: spacing.tight },
   title: { ...textStyles.subtitleSemibold, color: colors.text, flexShrink: 1 },
   text: { ...textStyles.body, color: colors.text },
   muted: { ...textStyles.secondary, color: colors.textSecondary },
   error: { ...textStyles.secondary, color: colors.error },
   previous: {
+    flex: 1,
+    maxHeight: '28%',
+    minHeight: 0,
     borderLeftWidth: fixed.borderWidthThick,
     borderLeftColor: colors.primary,
     paddingLeft: spacing.medium,
     paddingVertical: spacing.small,
   },
+  previousScroll: { flex: 1, minHeight: 0 },
   editor: {
+    flex: 1,
+    minHeight: 0,
     ...textStyles.body,
     color: colors.text,
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderWidth: fixed.borderWidth,
     borderRadius: borderRadius.small,
-    minHeight: componentSizes.button.lg * 4,
     padding: spacing.medium,
     textAlignVertical: 'top',
   },

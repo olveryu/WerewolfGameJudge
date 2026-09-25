@@ -5,10 +5,17 @@ import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_NOT_HOST,
 } from '../../../platform/protocol/reasons';
-import type { PictionaryCommand } from '../commands/types';
+import {
+  createPictionaryCommand,
+  type PictionaryCommandInput,
+  type PictionaryInternalCommand,
+} from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import type { PictionaryEffect } from '../effects/types';
-import { decidePictionaryCommand, pictionaryEngine } from '../engine';
+import {
+  decidePictionaryCommand as decideBoundPictionaryCommand,
+  pictionaryEngine,
+} from '../engine';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -53,10 +60,30 @@ function applyDecision(
 
 function dispatch(
   state: PictionaryState,
-  command: PictionaryCommand,
+  command: PictionaryCommandInput | PictionaryInternalCommand,
   context: CommandContext,
 ): PictionaryState {
   return applyDecision(state, decidePictionaryCommand(state, command, context));
+}
+
+function decidePictionaryCommand(
+  state: PictionaryState,
+  command: PictionaryCommandInput | PictionaryInternalCommand,
+  context: CommandContext,
+) {
+  const seat =
+    context.controlledSeat ??
+    Object.values(state.realSeats).find(
+      (occupant) => context.actor.kind === 'user' && occupant?.userId === context.actor.userId,
+    )?.seat ??
+    0;
+  return decideBoundPictionaryCommand(
+    state,
+    command.type === 'pictionary.drawing.commit'
+      ? command
+      : createPictionaryCommand(state, command, seat),
+    context,
+  );
 }
 
 function createBotRound(): PictionaryState {

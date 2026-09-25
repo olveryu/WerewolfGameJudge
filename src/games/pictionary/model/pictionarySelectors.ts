@@ -23,6 +23,11 @@ export function getPictionaryCompletedCount(state: PictionaryState): number {
 }
 
 export function getPictionarySeatDisplayName(state: PictionaryState, seat: number): string {
+  if (state.phase !== 'lobby') {
+    const participant = state.participants.find((candidate) => candidate.seat === seat);
+    if (participant === undefined) throw new Error('Pictionary participant snapshot is missing');
+    return participant.displayName;
+  }
   const occupant = state.realSeats[seat];
   if (occupant !== undefined) return occupant.profile.displayName;
   if (isPictionaryImplicitBotSeat(state, seat)) return getPictionaryBotDisplayName(seat);

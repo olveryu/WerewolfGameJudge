@@ -1,8 +1,10 @@
 /** Collection recovery contracts with public engine transitions and controlled transport failures. */
 
 import {
+  createPictionaryCommand,
   decidePictionaryCommand,
   DEFAULT_PICTIONARY_CONFIG,
+  type PictionaryCommandInput,
   pictionaryEngine,
   type PictionaryPublicCommand,
   type PictionaryState,
@@ -12,14 +14,12 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { pictionaryTextDraftStore } from '@/games/pictionary/services/PictionaryTextDraftStore';
 import { handleError } from '@/utils/errorPipeline';
 
-import { usePictionaryDraftFinalizer } from '../usePictionaryDraftFinalizer';
-
-jest.mock('@/games/pictionary/services/PictionaryTextDraftStore', () => ({
-  pictionaryTextDraftStore: { read: jest.fn(), clear: jest.fn() },
-}));
+import {
+  type PictionaryTaskInput,
+  usePictionaryAutoSubmission,
+} from '../usePictionaryAutoSubmission';
 jest.mock('@/games/pictionary/services/renderPictionaryDrawing', () => ({
   renderPictionaryDrawing: jest.fn(),
 }));
@@ -31,9 +31,11 @@ function createCollection() {
     { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4, guessDurationSeconds: null },
     { roomCode: '2468', hostUserId: 'user-0', nowMs: 1_000, commandId: 'create' },
   );
-  const dispatchEngine = (command: PictionaryPublicCommand, userId = 'user-0') => {
+  const dispatchEngine = (command: PictionaryCommandInput, userId = 'user-0') => {
     sequence += 1;
-    const decision = decidePictionaryCommand(state, command, {
+    const seat =
+      Object.values(state.realSeats).find((occupant) => occupant?.userId === userId)?.seat ?? 0;
+    const decision = decidePictionaryCommand(state, createPictionaryCommand(state, command, seat), {
       actor: { kind: 'user', userId },
       controlledSeat: null,
       nowMs: 2_000 + sequence,
@@ -109,13 +111,13 @@ function createCollection() {
     snapshot = { ...snapshot, connection };
     publish();
   };
-  return { collection, session, dispatch, acknowledge, setConnection };
+  const inputs = new Map<number, PictionaryTaskInput>([[0, ' 还没写完\n']]);
+  return { collection, session, dispatch, acknowledge, setConnection, inputs };
 }
 
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
-  jest.mocked(pictionaryTextDraftStore.read).mockReturnValue(' 还没写完\n');
 });
 afterEach(() => jest.useRealTimers());
 
@@ -123,23 +125,25 @@ it('retains raw text through a transient failure and automatically retries', asy
   const fixture = createCollection();
   fixture.dispatch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
   const { result } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   await act(async () => {
     await Promise.resolve();
   });
   expect(result.current.status).toBe('retrying');
-  expect(pictionaryTextDraftStore.clear).not.toHaveBeenCalled();
   await act(async () => {
     await jest.advanceTimersByTimeAsync(1_000);
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(2);
   expect(fixture.dispatch).toHaveBeenLastCalledWith(
-    { type: 'pictionary.text.submit', text: ' 还没写完\n' },
+    createPictionaryCommand(
+      fixture.collection,
+      { type: 'pictionary.text.submit', text: ' 还没写完\n' },
+      0,
+    ),
     expect.objectContaining({ isRecoverable: true }),
   );
   expect(result.current.status).toBe('waiting');
-  expect(pictionaryTextDraftStore.clear).toHaveBeenCalled();
   expect(handleError).not.toHaveBeenCalled();
 });
 
@@ -147,7 +151,7 @@ it('resumes on an authoritative live connection without a manual retry', async (
   const fixture = createCollection();
   fixture.setConnection('disconnected');
   const { result } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   expect(result.current.status).toBe('retrying');
   expect(fixture.dispatch).not.toHaveBeenCalled();
@@ -165,18 +169,17 @@ it('accepts a snapshot acknowledgement when the successful HTTP response is lost
     throw new TypeError('Failed to fetch');
   });
   const { result } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   await act(async () => {
     await jest.advanceTimersByTimeAsync(30_000);
   });
   expect(result.current.status).toBe('waiting');
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
-  expect(pictionaryTextDraftStore.clear).toHaveBeenCalled();
   expect(handleError).not.toHaveBeenCalled();
 });
 
-it('retains drafts and stops automatic retries after an explicit domain rejection', async () => {
+it('reports an explicit domain rejection without retrying indefinitely', async () => {
   const fixture = createCollection();
   fixture.dispatch.mockResolvedValueOnce({
     kind: 'decided',
@@ -187,29 +190,28 @@ it('retains drafts and stops automatic retries after an explicit domain rejectio
     },
   });
   const { result } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   await act(async () => {
     await jest.advanceTimersByTimeAsync(30_000);
   });
   expect(result.current.status).toBe('failed');
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
-  expect(pictionaryTextDraftStore.clear).not.toHaveBeenCalled();
   expect(handleError).toHaveBeenCalledTimes(1);
 });
 
-it.each([null, ''])('automatically submits an empty task for local text %p', async (text) => {
+it('automatically submits an empty input', async () => {
   const fixture = createCollection();
-  jest.mocked(pictionaryTextDraftStore.read).mockReturnValue(text);
+  fixture.inputs.set(0, '');
   const { result } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   await act(async () => {
     await Promise.resolve();
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
   expect(fixture.dispatch).toHaveBeenCalledWith(
-    { type: 'pictionary.task.empty.submit' },
+    expect.objectContaining({ type: 'pictionary.task.empty.submit' }),
     expect.objectContaining({ isRecoverable: true }),
   );
   expect(result.current.status).toBe('waiting');
@@ -217,11 +219,11 @@ it.each([null, ''])('automatically submits an empty task for local text %p', asy
 
 it('waits for reconnection and retries automatic blank delivery after a network failure', async () => {
   const fixture = createCollection();
-  jest.mocked(pictionaryTextDraftStore.read).mockReturnValue(null);
+  fixture.inputs.clear();
   fixture.setConnection('disconnected');
   fixture.dispatch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
   const { result } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   expect(fixture.dispatch).not.toHaveBeenCalled();
   await act(async () => {
@@ -233,18 +235,37 @@ it('waits for reconnection and retries automatic blank delivery after a network 
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(2);
   expect(fixture.dispatch).toHaveBeenLastCalledWith(
-    { type: 'pictionary.task.empty.submit' },
+    expect.objectContaining({ type: 'pictionary.task.empty.submit' }),
     expect.objectContaining({ isRecoverable: true }),
   );
   expect(result.current.status).toBe('waiting');
   expect(handleError).not.toHaveBeenCalled();
 });
 
+it('automatically submits blank when a fresh page has no input', async () => {
+  const fixture = createCollection();
+  fixture.inputs.clear();
+  const { result } = renderHook(() =>
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
+  );
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(result.current.status).toBe('waiting');
+  expect(fixture.dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: 'pictionary.task.empty.submit',
+      stepIndex: 0,
+    }),
+    expect.anything(),
+  );
+});
+
 it('cancels scheduled delivery when the collection owner unmounts', async () => {
   const fixture = createCollection();
   fixture.dispatch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
   const { unmount } = renderHook(() =>
-    usePictionaryDraftFinalizer(fixture.collection, 'user-0', fixture.session),
+    usePictionaryAutoSubmission(fixture.collection, 'user-0', fixture.session, fixture.inputs),
   );
   await act(async () => {
     await Promise.resolve();
@@ -254,5 +275,4 @@ it('cancels scheduled delivery when the collection owner unmounts', async () => 
     await jest.advanceTimersByTimeAsync(30_000);
   });
   expect(fixture.dispatch).toHaveBeenCalledTimes(1);
-  expect(pictionaryTextDraftStore.clear).not.toHaveBeenCalled();
 });

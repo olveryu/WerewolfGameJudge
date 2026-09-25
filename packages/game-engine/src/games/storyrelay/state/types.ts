@@ -44,11 +44,7 @@ export type StoryRelayEntry = {
   readonly id: string;
   readonly authorSeat: number;
   readonly submittedAt: number;
-} & (
-  | { readonly kind: 'text'; readonly text: string }
-  | { readonly kind: 'empty' }
-  | { readonly kind: 'skipped'; readonly skippedBy: string }
-);
+} & ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'empty' });
 
 export interface StoryRelayChain {
   readonly id: string;
@@ -95,7 +91,7 @@ export interface StoryRelayTask {
   readonly authorSeat: number;
   readonly previousEntry:
     | { readonly kind: 'text'; readonly text: string }
-    | { readonly kind: 'empty' | 'skipped' }
+    | { readonly kind: 'empty' }
     | null;
   readonly isSubmitted: boolean;
 }

@@ -40,28 +40,45 @@ function definePictionaryPublicCommandOptions<const TOptions extends readonly z.
   return options;
 }
 
+const taskIdentityShape = {
+  roundId: z.string().min(1),
+  stepIndex: z.int().nonnegative(),
+  chainId: z.string().min(1),
+};
+const phaseIdentityShape = {
+  roundId: z.string().min(1).nullable(),
+  phaseRevision: z.int().nonnegative(),
+};
+
 const publicCommandOptions = definePictionaryPublicCommandOptions([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('pictionary.config.update'), config: pictionaryConfigSchema }),
   z.strictObject({ type: z.literal('pictionary.round.start') }),
-  z.strictObject({ type: z.literal('pictionary.task.ready.set'), isReady: z.boolean() }),
-  z.strictObject({ type: z.literal('pictionary.task.empty.submit') }),
+  z.strictObject({
+    type: z.literal('pictionary.task.ready.set'),
+    ...taskIdentityShape,
+    isReady: z.boolean(),
+  }),
+  z.strictObject({ type: z.literal('pictionary.task.empty.submit'), ...taskIdentityShape }),
   z.strictObject({
     type: z.literal('pictionary.text.submit'),
+    ...taskIdentityShape,
     text: z.string().refine(isValidPictionaryText),
   }),
-  z.strictObject({ type: z.literal('pictionary.drawing.reserve') }),
+  z.strictObject({ type: z.literal('pictionary.drawing.reserve'), ...taskIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.round.abort'), ...phaseIdentityShape }),
   z.strictObject({
     type: z.literal('pictionary.phase.expire'),
     phaseRevision: z.int().nonnegative(),
   }),
-  z.strictObject({ type: z.literal('pictionary.phase.finish') }),
-  z.strictObject({ type: z.literal('pictionary.gallery.pause') }),
-  z.strictObject({ type: z.literal('pictionary.gallery.resume') }),
-  z.strictObject({ type: z.literal('pictionary.gallery.advance') }),
-  z.strictObject({ type: z.literal('pictionary.gallery.rewind') }),
-  z.strictObject({ type: z.literal('pictionary.round.next') }),
-  z.strictObject({ type: z.literal('pictionary.game.returnToLobby') }),
+  z.strictObject({ type: z.literal('pictionary.phase.finish'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.gallery.pause'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.gallery.resume'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.gallery.advance'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.gallery.rewind'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.gallery.finish'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.round.next'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.returnToLobby'), ...phaseIdentityShape }),
 ]);
 
 export const pictionaryPublicCommandSchema: z.ZodType<PictionaryPublicCommand> =

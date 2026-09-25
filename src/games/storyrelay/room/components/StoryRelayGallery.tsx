@@ -117,11 +117,7 @@ export function StoryRelayGallery({
                 第 {index + 1} 棒 · {author.displayName}
               </Text>
               <Text selectable style={styles.text} testID={`storyrelay-entry-${index}`}>
-                {item.kind === 'text'
-                  ? item.text
-                  : item.kind === 'empty'
-                    ? '（主动交空白）'
-                    : '（房主跳过）'}
+                {item.kind === 'text' ? item.text : '（空白）'}
               </Text>
             </View>
           );

@@ -30,7 +30,7 @@ export function StoryRelayRulesScreen() {
         <RuleItem
           icon="checkmark-circle-outline"
           title="准备好后等待收稿"
-          description="准备状态不公开正文。全员准备或时间结束后收稿；未收到的稿件会等待，房主可确认跳过。"
+          description="准备状态不公开正文。全员准备或时间结束后自动收稿，没有内容时自动交空白。离线玩家重连后继续收稿。"
         />
         <RuleItem
           icon="book-outline"
@@ -42,10 +42,10 @@ export function StoryRelayRulesScreen() {
         <RuleItem
           icon="people-outline"
           title="机器人由房主手写"
-          description="房主可切换机器人分别写稿，草稿互不覆盖。没有 AI 自动生成；房主可以不入座。中止会保留已提交的片段，但不发完成奖励。"
+          description="房主可切换机器人分别写稿，输入互不覆盖。没有 AI 自动生成；房主可以不入座。中止会保留已提交的片段，但不发完成奖励。"
         />
       </GameGuideSection>
-      <GameNotice text="草稿保存在当前设备，不在不同设备间同步。游戏中请不要换设备或清理浏览器数据。" />
+      <GameNotice text="刷新或离开页面会丢失未提交的输入。" />
     </GameGuide>
   );
 }

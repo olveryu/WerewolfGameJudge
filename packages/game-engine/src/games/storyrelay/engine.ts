@@ -21,12 +21,7 @@ import {
 import { evolveStoryRelayState } from './domain/evolve';
 import { controlStoryRelayGallery, moveStoryRelayGallery } from './domain/gallery';
 import { decideStoryRelayRoom } from './domain/seating';
-import {
-  decideStoryRelaySkip,
-  decideStoryRelayTask,
-  storyRelayDeadline,
-  storyRelayPhase,
-} from './domain/tasks';
+import { decideStoryRelayTask, storyRelayDeadline, storyRelayPhase } from './domain/tasks';
 import { normalizeStoryRelayState } from './state/normalize';
 import {
   getStoryRelayOccupiedSeatCount,
@@ -166,9 +161,6 @@ export function decideStoryRelayCommand(
     case 'storyrelay.text.submit':
     case 'storyrelay.task.empty.submit':
       return decideStoryRelayTask(state, command, context);
-    case 'storyrelay.task.skip':
-    case 'storyrelay.bots.skip':
-      return decideStoryRelaySkip(state, command, context);
     case 'storyrelay.phase.expire':
       return expirePhase(state, context);
     default:

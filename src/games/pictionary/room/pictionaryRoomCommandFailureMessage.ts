@@ -46,7 +46,7 @@ export function getPictionaryRoomCommandFailureMessage(
     case REASON_PICTIONARY_UPLOAD_EXPIRED:
       return '画作上传时间已结束';
     case REASON_PICTIONARY_UPLOAD_INVALID:
-      return '画作预留无法确认，草稿仍保留，请重试';
+      return '画作预留无法确认，请重试';
     default:
       return translateReasonCode(reason);
   }

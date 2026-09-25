@@ -42,15 +42,4 @@ export type StoryRelayCommand =
     })
   | (StoryRelayTaskIdentity & { readonly type: 'storyrelay.text.submit'; readonly text: string })
   | (StoryRelayTaskIdentity & { readonly type: 'storyrelay.task.empty.submit' })
-  | (StoryRelayTaskIdentity & {
-      readonly type: 'storyrelay.task.skip';
-      readonly seat: number;
-      readonly phaseRevision: number;
-    })
-  | {
-      readonly type: 'storyrelay.bots.skip';
-      readonly roundId: string;
-      readonly stepIndex: number;
-      readonly phaseRevision: number;
-    }
   | RevisionCommand;

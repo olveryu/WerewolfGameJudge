@@ -130,18 +130,13 @@ describe('Story Relay engine', () => {
     },
   );
 
-  it('distinguishes empty, missing and explicitly skipped tasks and rejects late submissions', () => {
+  it('collects empty tasks and rejects duplicate and late submissions', () => {
     const session = game();
     const oldTask = session.task(1);
     session.finish();
     session.send({ type: 'storyrelay.task.empty.submit', ...session.task(0) });
     expect(session.state.phase).toBe('settling');
-    session.send({
-      type: 'storyrelay.task.skip',
-      ...oldTask,
-      seat: 1,
-      phaseRevision: session.state.phaseRevision,
-    });
+    session.send({ type: 'storyrelay.task.empty.submit', ...oldTask }, 1);
     expect(
       storyRelayEngine.decide(
         session.state,
@@ -149,18 +144,14 @@ describe('Story Relay engine', () => {
         session.context(1),
       ).kind,
     ).toBe('reject');
-    session.send({
-      type: 'storyrelay.bots.skip',
-      roundId: session.state.roundId!,
-      stepIndex: session.state.stepIndex,
-      phaseRevision: session.state.phaseRevision,
-    });
+    for (const seat of [2, 3])
+      session.send({ type: 'storyrelay.task.empty.submit', ...session.task(seat) }, seat);
     expect(
       session.state.chains
         .flatMap((chain) => chain.entries)
         .map((entry) => entry.kind)
         .sort(),
-    ).toEqual(['empty', 'skipped', 'skipped', 'skipped']);
+    ).toEqual(['empty', 'empty', 'empty', 'empty']);
     session.expire();
     expect(
       storyRelayEngine.decide(
@@ -169,7 +160,7 @@ describe('Story Relay engine', () => {
         session.context(1),
       ).kind,
     ).toBe('reject');
-    expect(getStoryRelayTaskForSeat(session.state, 0)!.previousEntry!.kind).toBe('skipped');
+    expect(getStoryRelayTaskForSeat(session.state, 0)!.previousEntry!.kind).toBe('empty');
     session.send({ type: 'storyrelay.round.abort', phaseRevision: session.state.phaseRevision });
     expect(session.state.phase).toBe('aborted');
     expect(session.effects).toHaveLength(0);
@@ -208,12 +199,8 @@ describe('Story Relay engine', () => {
     for (let stepIndex = 0; stepIndex < 4; stepIndex += 1) {
       session.finish();
       session.send({ type: 'storyrelay.task.empty.submit', ...session.task(0) });
-      session.send({
-        type: 'storyrelay.bots.skip',
-        roundId: session.state.roundId!,
-        stepIndex,
-        phaseRevision: session.state.phaseRevision,
-      });
+      for (const seat of [1, 2, 3])
+        session.send({ type: 'storyrelay.task.empty.submit', ...session.task(seat) }, seat);
       session.expire();
     }
     session.advanceTime(3000);

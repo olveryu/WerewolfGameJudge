@@ -15,8 +15,10 @@ import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryR
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
+import { PictionaryAlbumExport } from './PictionaryAlbumExport';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PICTIONARY_STAGE_MAX_WIDTH, PictionaryStageHeading } from './PictionaryStageFrame';
 
@@ -51,7 +53,7 @@ const GalleryEntryView: React.FC<GalleryEntryViewProps> = ({ state, entry, entry
     ) : (
       <View style={styles.missedReveal}>
         <Ionicons name="close-circle-outline" size={36} color={colors.textMuted} />
-        <Text style={styles.missedTitle}>这一棒没有完成</Text>
+        <Text style={styles.missedTitle}>这一棒交了空白</Text>
         <Text style={styles.missedDescription}>
           原本需要{entry.expectedKind === 'drawing' ? '画一幅画' : '写下猜测'}
         </Text>
@@ -175,15 +177,32 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   if (chain.entries[gallery.entryIndex] === undefined) {
     throw new Error('[FAIL-FAST] Pictionary gallery entry is missing');
   }
-  const command = usePictionaryStageCommand(session, null);
+  const command = usePictionaryStageCommand(session, null, state);
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
   const isAlbumEnd = gallery.entryIndex === chain.entries.length - 1;
   const isFinalEntry =
     gallery.chainIndex === state.chains.length - 1 &&
     gallery.entryIndex === chain.entries.length - 1;
-  const visibleEntries = chain.entries.slice(0, gallery.entryIndex + 1);
+  const visibleEntries = chain.entries.slice(
+    0,
+    Math.min(
+      chain.entries.length,
+      gallery.revealedPosition - gallery.chainIndex * chain.entries.length + 1,
+    ),
+  );
   const controls = isHost ? (
     <View style={styles.galleryControls}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onPress={() =>
+          showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
+            await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
+          })
+        }
+      >
+        全部揭晓
+      </Button>
       <Button
         variant="icon"
         size="md"
@@ -273,15 +292,16 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
   isHost,
   session,
 }) => {
-  if (state.phase !== 'ended') {
+  if (state.phase !== 'ended' && state.phase !== 'aborted') {
     throw new Error('[FAIL-FAST] Ended stage requires completed Pictionary state');
   }
   const [localChainIndex, setLocalChainIndex] = useState(0);
   const chain = state.chains[localChainIndex];
   if (chain === undefined) throw new Error('[FAIL-FAST] Completed Pictionary album is missing');
-  const command = usePictionaryStageCommand(session, null);
+  const command = usePictionaryStageCommand(session, null, state);
   const controls = (
     <View style={styles.endedControls}>
+      <PictionaryAlbumExport key={chain.id} state={state} chain={chain} />
       <View style={styles.localBrowserControls}>
         <Pressable
           accessibilityRole="button"
@@ -326,12 +346,14 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
           >
             返回房间
           </Button>
-          <Button
-            loading={command.isSubmitting}
-            onPress={() => void command.submit('再来一轮', { type: 'pictionary.round.next' })}
-          >
-            再来一轮
-          </Button>
+          {state.phase === 'ended' && (
+            <Button
+              loading={command.isSubmitting}
+              onPress={() => void command.submit('再来一轮', { type: 'pictionary.round.next' })}
+            >
+              再来一轮
+            </Button>
+          )}
         </View>
       )}
     </View>
@@ -344,7 +366,11 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
       entries={chain.entries}
       eyebrow={`第 ${localChainIndex + 1} / ${state.chains.length} 本画册`}
       title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
-      description={`第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`}
+      description={
+        state.phase === 'aborted'
+          ? `第 ${state.roundNumber} 轮未完成，房主已中止。`
+          : `第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`
+      }
       remainingSeconds={null}
       shouldFollowLatestEntry={false}
       controls={controls}
@@ -414,6 +440,7 @@ const styles = StyleSheet.create({
   authorText: { ...textStyles.secondary, color: colors.textSecondary, flex: 1, minWidth: 0 },
   galleryControls: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.small,

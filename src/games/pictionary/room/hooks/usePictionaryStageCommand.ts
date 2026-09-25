@@ -1,6 +1,8 @@
 /** Submit one user-facing Pictionary stage command with typed failure presentation. */
 
 import {
+  createPictionaryCommand,
+  type PictionaryCommandInput,
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -22,7 +24,7 @@ interface PictionaryStageCommand {
   readonly isSubmitting: boolean;
   readonly submit: (
     label: string,
-    command: PictionaryPublicCommand,
+    command: PictionaryCommandInput,
   ) => Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null>;
 }
 
@@ -35,6 +37,8 @@ interface InFlightStageCommand {
 export function usePictionaryStageCommand(
   session: PictionaryRoomSession,
   controlledSeat: number | null,
+  state: PictionaryState,
+  effectiveSeat: number | null = null,
 ): PictionaryStageCommand {
   const inFlight = useRef<InFlightStageCommand | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,7 +46,7 @@ export function usePictionaryStageCommand(
   const submit = useCallback(
     (
       label: string,
-      command: PictionaryPublicCommand,
+      command: PictionaryCommandInput,
     ): Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null> => {
       if (inFlight.current !== null) {
         if (inFlight.current.commandType === command.type) return inFlight.current.promise;
@@ -51,7 +55,11 @@ export function usePictionaryStageCommand(
         );
       }
       const operation = session
-        .dispatch(command, { controlledSeat, label })
+        .dispatch(createPictionaryCommand(state, command, effectiveSeat), {
+          controlledSeat,
+          label,
+          isRecoverable: true,
+        })
         .then((result) => {
           if (isSuccessfulRoomCommand(result)) return result;
           const reason = getRoomCommandFailureReason(result);
@@ -78,7 +86,7 @@ export function usePictionaryStageCommand(
       setIsSubmitting(true);
       return operation;
     },
-    [controlledSeat, session],
+    [controlledSeat, session, state, effectiveSeat],
   );
 
   return useMemo(() => ({ isSubmitting, submit }), [isSubmitting, submit]);

@@ -19,7 +19,7 @@ export const STORY_RELAY_REASONS = {
   config: '故事接龙配置无效',
   phase: '当前阶段不能执行此操作',
   task: '故事任务已变化，请刷新后重试',
-  submitted: '本棒已收稿或已跳过',
+  submitted: '本棒已收稿',
   text: '请填写 1 至 512 字符的正文',
   full: '请先坐满或补满机器人',
   occupied: '缩小人数前请先移出超出范围的真人',

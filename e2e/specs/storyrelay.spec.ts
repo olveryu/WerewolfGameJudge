@@ -37,7 +37,33 @@ async function confirm(page: Page): Promise<void> {
   await page.getByText('确定', { exact: true }).click();
 }
 
-test('four humans write exactly four turns, restore a local draft and reveal the synchronized stories', async ({
+async function expectFixedTask(page: Page): Promise<void> {
+  await expect(page.getByTestId('storyrelay-editor')).toBeInViewport({ ratio: 1 });
+  await expect(page.getByTestId('storyrelay-ready')).toBeInViewport({ ratio: 1 });
+  await expect
+    .poll(() =>
+      page
+        .getByTestId('storyrelay-task')
+        .evaluate((element) => element.scrollHeight - element.clientHeight),
+    )
+    .toBeLessThanOrEqual(1);
+  await expect
+    .poll(() => page.getByTestId('storyrelay-editor').evaluate((element) => element.clientHeight))
+    .toBeGreaterThan(40);
+  await expect
+    .poll(() =>
+      page
+        .getByTestId('storyrelay-ready')
+        .evaluate(
+          (element) =>
+            element.getBoundingClientRect().bottom -
+            (window.visualViewport?.height ?? window.innerHeight),
+        ),
+    )
+    .toBeLessThanOrEqual(1);
+}
+
+test('four humans write four turns without restoring unsubmitted input and reveal synchronized stories', async ({
   browser,
 }) => {
   const fixture = await createPlayerContexts(browser, 4);
@@ -69,7 +95,8 @@ test('four humans write exactly four turns, restore a local draft and reveal the
           for (const [seat, page] of fixture.pages.entries())
             await page
               .getByTestId('storyrelay-editor')
-              .fill(` 第${stepIndex + 1}棒的故事，作者${seat}\n原始换行 `);
+              .fill(` 第${stepIndex + 1}棒的故事，作者${seat}\n原始换行 ${'长正文'.repeat(100)}`);
+          await Promise.all(fixture.pages.map(expectFixedTask));
           if (stepIndex === 0) {
             await hostPage.getByTestId('storyrelay-ready').click();
             await expect(hostPage.getByTestId('storyrelay-editor')).not.toBeEditable();
@@ -81,9 +108,28 @@ test('four humans write exactly four turns, restore a local draft and reveal the
               });
           }
           if (stepIndex === 1) {
+            const mobilePage = fixture.pages[1]!;
+            await mobilePage.getByTestId('storyrelay-editor').focus();
+            await mobilePage.evaluate(() => {
+              const viewport = window.visualViewport;
+              if (viewport === null) throw new Error('Visual viewport missing');
+              Object.defineProperty(viewport, 'height', { configurable: true, value: 480 });
+              viewport.dispatchEvent(new Event('resize'));
+            });
+            await expectFixedTask(mobilePage);
+            await mobilePage.screenshot({
+              path: test.info().outputPath('storyrelay-keyboard.png'),
+            });
+            await mobilePage.evaluate(() => {
+              const viewport = window.visualViewport;
+              if (viewport === null) throw new Error('Visual viewport missing');
+              Reflect.deleteProperty(viewport, 'height');
+              viewport.dispatchEvent(new Event('resize'));
+            });
             await fixture.pages[1]!.reload();
             await waitForRoomScreenReady(fixture.pages[1]!, { role: 'joiner' });
-            await expect(fixture.pages[1]!.getByTestId('storyrelay-editor')).toHaveValue(
+            await expect(fixture.pages[1]!.getByTestId('storyrelay-editor')).toHaveValue('');
+            await fixture.pages[1]!.getByTestId('storyrelay-editor').fill(
               ` 第2棒的故事，作者1\n原始换行 `,
             );
           }
@@ -124,7 +170,7 @@ test('four humans write exactly four turns, restore a local draft and reveal the
   }
 });
 
-test('an unseated host writes independent bot drafts and an abort preserves fragments without completing the round', async ({
+test('an unseated host writes independent bot inputs and an abort preserves submitted fragments', async ({
   browser,
 }) => {
   const fixture = await createPlayerContexts(browser, 1);
@@ -132,6 +178,11 @@ test('an unseated host writes independent bot drafts and an abort preserves frag
   try {
     const room = await createRoom(page);
     const panel = await room.openHostManagement();
+    await expect(panel.getByText('等待入座 · 0/4', { exact: true })).toBeVisible();
+    await panel.getByTestId('storyrelay-start').click();
+    await expect(page.getByText('暂时不能开始', { exact: true })).toBeVisible();
+    await confirm(page);
+    await expect(page.getByTestId('storyrelay-editor')).toHaveCount(0);
     await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
     await confirm(page);
     await room.clickHostManagementAction('storyrelay-start');
@@ -141,14 +192,16 @@ test('an unseated host writes independent bot drafts and an abort preserves frag
     }
     await page.getByTestId('storyrelay-bot-0').click();
     await expect(page.getByTestId('storyrelay-editor')).toHaveValue('机器人0的独立稿件');
-    await page.getByTestId('storyrelay-finish-step').click();
+    await room.clickHostManagementAction('storyrelay-finish-step');
     await confirm(page);
     await expect(page.getByText('续写故事', { exact: true })).toBeVisible();
     await page.getByTestId('storyrelay-bot-0').click();
     await expect(page.getByTestId('storyrelay-previous-entry')).toContainText('独立稿件', {
       timeout: 20_000,
     });
-    await page.getByRole('button', { name: '中止本局', exact: true }).click();
+    await (await room.openHostManagement())
+      .getByRole('button', { name: '中止本局', exact: true })
+      .click();
     await confirm(page);
     await expect(page.getByText('未完成的故事', { exact: false })).toBeVisible();
     await expect(page.getByTestId('storyrelay-next-round')).toHaveCount(0);

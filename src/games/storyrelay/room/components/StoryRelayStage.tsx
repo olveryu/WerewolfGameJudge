@@ -6,6 +6,7 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -15,11 +16,10 @@ import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayR
 import { colors, componentSizes } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmission';
 import { useStoryRelayDeadline } from '../hooks/useStoryRelayDeadline';
-import { useStoryRelayDraftFinalizer } from '../hooks/useStoryRelayDraftFinalizer';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { StoryRelayGallery } from './StoryRelayGallery';
-import { StoryRelayRetainedDrafts } from './StoryRelayRetainedDrafts';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 import { StoryRelayTaskEditor } from './StoryRelayTaskEditor';
 
@@ -40,57 +40,6 @@ function StoryRelayHostActions({
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
   return (
     <View style={[styles.controls, styles.row]}>
-      {state.phase === 'answering' && (
-        <Button
-          variant="secondary"
-          disabled={isSubmitting}
-          testID="storyrelay-finish-step"
-          onPress={() =>
-            confirm('结束本棒', '所有人的编辑将冻结并开始收稿。离线稿件需要等待重连或手动跳过。', {
-              type: 'storyrelay.phase.finish',
-              phaseRevision: state.phaseRevision,
-            })
-          }
-        >
-          结束本棒并收稿
-        </Button>
-      )}
-      {state.phase === 'settling' && state.roundId !== null && state.botSeats.length > 0 && (
-        <Button
-          variant="secondary"
-          disabled={isSubmitting}
-          testID="storyrelay-skip-bots"
-          onPress={() =>
-            confirm(
-              '跳过剩余机器人',
-              '仅跳过本棒尚未收稿的机器人，不影响真人。已写但未送达的草稿保留在本机。',
-              {
-                type: 'storyrelay.bots.skip',
-                roundId: state.roundId!,
-                stepIndex: state.stepIndex,
-                phaseRevision: state.phaseRevision,
-              },
-            )
-          }
-        >
-          跳过剩余机器人
-        </Button>
-      )}
-      {!isTerminal && state.completedAt === null && (
-        <Button
-          variant="danger"
-          disabled={isSubmitting}
-          onPress={() =>
-            confirm(
-              '中止本局',
-              '将公开已收录的故事片段，本局不结算奖励。未送达草稿仍保留在本机。',
-              { type: 'storyrelay.round.abort', phaseRevision: state.phaseRevision },
-            )
-          }
-        >
-          中止本局
-        </Button>
-      )}
       {state.phase === 'ended' && (
         <Button
           disabled={isSubmitting}
@@ -98,7 +47,7 @@ function StoryRelayHostActions({
           onPress={() =>
             confirm(
               '再来一局',
-              '重新分配写作顺序并开始新一局。当前故事将被替换，请先复制需要保留的正文和草稿。',
+              '重新分配写作顺序并开始新一局。当前故事将被替换，请先复制需要保留的正文。',
               { type: 'storyrelay.round.next' },
             )
           }
@@ -112,7 +61,7 @@ function StoryRelayHostActions({
           disabled={isSubmitting}
           testID="storyrelay-return-lobby"
           onPress={() =>
-            confirm('返回大厅', '保留座位和设置，清除当前故事。请先复制需要保留的正文和草稿。', {
+            confirm('返回大厅', '保留座位和设置，清除当前故事。请先复制需要保留的正文。', {
               type: 'storyrelay.game.returnToLobby',
             })
           }
@@ -128,13 +77,9 @@ function StoryRelayHostActions({
 function StoryRelayProgress({
   state,
   seatModel,
-  isHost,
-  submit,
 }: {
   readonly state: StoryRelayState;
   readonly seatModel: RoomSeatBoardModel;
-  readonly isHost: boolean;
-  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
 }) {
   return (
     <View>
@@ -142,14 +87,14 @@ function StoryRelayProgress({
         horizontal
         data={state.participants}
         keyExtractor={(participant) => String(participant.seat)}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={styles.progressList}
         renderItem={({ item }) => {
           const seat = seatModel.source.getSeat(item.seat);
-          const task = getStoryRelayTaskForSeat(state, item.seat);
           const takeOver = seatModel.onBotSeatLongPress;
           return (
-            <View style={styles.entry}>
+            <View style={styles.progressItem}>
               <Button
+                size="sm"
                 variant="secondary"
                 disabled={item.userId !== null || takeOver === null}
                 onPress={() => takeOver?.(item.seat)}
@@ -159,31 +104,6 @@ function StoryRelayProgress({
                 {item.displayName}
               </Button>
               <Text style={styles.muted}>{seat.statusBadge?.label ?? '已收稿'}</Text>
-              {isHost && state.phase === 'settling' && task !== null && !task.isSubmitted && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  accessibilityLabel={`跳过${item.displayName}的稿件`}
-                  onPress={() =>
-                    showConfirmAlert(
-                      '跳过稿件',
-                      `确定跳过${item.displayName}本棒的稿件？未送达正文不会补入故事。`,
-                      async () => {
-                        await submit('跳过稿件', {
-                          type: 'storyrelay.task.skip',
-                          seat: task.authorSeat,
-                          roundId: task.roundId,
-                          stepIndex: task.stepIndex,
-                          chainId: task.chainId,
-                          phaseRevision: state.phaseRevision,
-                        });
-                      },
-                    )
-                  }
-                >
-                  跳过
-                </Button>
-              )}
             </View>
           );
         }}
@@ -193,27 +113,37 @@ function StoryRelayProgress({
 }
 
 /** Routes authoritative phases without computing game transitions on the client. */
-export function StoryRelayStage({
-  state,
-  roomId,
-  effectiveSeat,
-  controlledSeat,
-  userId,
-  isHost,
-  seatModel,
-  session,
-}: {
+export function StoryRelayStage(props: StoryRelayStageProps) {
+  return (
+    <StoryRelayStageContent
+      key={`${props.state.roundId}:${props.state.stepIndex}:${props.userId}`}
+      {...props}
+    />
+  );
+}
+
+interface StoryRelayStageProps {
   readonly state: StoryRelayState;
-  readonly roomId: string;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly userId: string;
   readonly isHost: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: StoryRelayRoomSession;
-}) {
+}
+
+function StoryRelayStageContent({
+  state,
+  effectiveSeat,
+  controlledSeat,
+  userId,
+  isHost,
+  seatModel,
+  session,
+}: StoryRelayStageProps) {
   const remainingSeconds = useStoryRelayDeadline(state.deadlineAt, state.phaseRevision, session);
-  const finalizer = useStoryRelayDraftFinalizer(state, roomId, userId, session);
+  const [inputs] = useState(() => new Map<number, string>());
+  const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
@@ -222,21 +152,28 @@ export function StoryRelayStage({
     state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted';
   return (
     <View style={styles.container} testID="storyrelay-stage">
-      <View style={[styles.controls, styles.row]}>
-        {remainingSeconds !== null && <Text style={styles.muted}>剩余 {remainingSeconds} 秒</Text>}
-        <StoryRelayRetainedDrafts state={state} roomId={roomId} userId={userId} />
-        {finalizer.status === 'failed' && (
-          <Button
-            variant="secondary"
-            onPress={finalizer.retry}
-            icon={
-              <Ionicons name="refresh-outline" size={componentSizes.icon.sm} color={colors.text} />
-            }
-          >
-            重试收稿
-          </Button>
-        )}
-      </View>
+      {(remainingSeconds !== null || finalizer.status === 'failed') && (
+        <View style={[styles.controls, styles.row]}>
+          {remainingSeconds !== null && (
+            <Text style={styles.muted}>剩余 {remainingSeconds} 秒</Text>
+          )}
+          {finalizer.status === 'failed' && (
+            <Button
+              variant="secondary"
+              onPress={finalizer.retry}
+              icon={
+                <Ionicons
+                  name="refresh-outline"
+                  size={componentSizes.icon.sm}
+                  color={colors.text}
+                />
+              }
+            >
+              重试收稿
+            </Button>
+          )}
+        </View>
+      )}
       {isGallery ? (
         <StoryRelayGallery
           state={state}
@@ -246,7 +183,7 @@ export function StoryRelayStage({
         />
       ) : (
         <>
-          <StoryRelayProgress state={state} seatModel={seatModel} isHost={isHost} submit={submit} />
+          <StoryRelayProgress state={state} seatModel={seatModel} />
           {task === null ? (
             <View style={styles.content}>
               <Text style={styles.text}>
@@ -258,18 +195,16 @@ export function StoryRelayStage({
               key={`${task.roundId}:${task.stepIndex}:${task.chainId}:${task.authorSeat}`}
               state={state}
               task={task}
-              roomId={roomId}
-              userId={userId}
+              inputs={inputs}
               controlledSeat={controlledSeat}
               session={session}
               finalization={finalizer.status}
-              retry={finalizer.retry}
               isExpired={remainingSeconds === 0}
             />
           )}
         </>
       )}
-      {isHost && (
+      {isHost && (state.phase === 'ended' || state.phase === 'aborted') && (
         <StoryRelayHostActions
           state={state}
           submit={submit}

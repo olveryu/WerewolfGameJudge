@@ -21,7 +21,10 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementModel,
+} from '@/features/room/model/RoomHostManagement';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import {
@@ -29,7 +32,7 @@ import {
   type StoryRelayRoomSession,
 } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { showAlert } from '@/utils/alert';
-import { showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createStoryRelaySeatDataSource,
@@ -156,6 +159,69 @@ export function useStoryRelayRoomState(
           },
         ]),
     });
+  const canAbort =
+    ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
+  const activeHostManagement: RoomHostManagementModel | null = !canAbort
+    ? null
+    : {
+        preview: '管理本局',
+        status: null,
+        sections: [
+          ...(state.phase === 'answering'
+            ? [
+                {
+                  key: 'current-flow',
+                  title: '当前流程',
+                  actions: [
+                    {
+                      key: 'finish-phase',
+                      label: '结束本棒',
+                      icon: 'stop-circle-outline' as const,
+                      variant: 'secondary' as const,
+                      isEnabled: true as const,
+                      testID: 'storyrelay-finish-step',
+                      onPress: () =>
+                        showConfirmAlert(
+                          '结束本棒',
+                          '将自动收取当前文字，没有内容时自动交空白。',
+                          async () => {
+                            await submit('结束本棒', {
+                              type: 'storyrelay.phase.finish',
+                              phaseRevision: state.phaseRevision,
+                            });
+                          },
+                        ),
+                    },
+                  ],
+                },
+              ]
+            : []),
+          {
+            key: 'danger',
+            title: '危险操作',
+            actions: [
+              {
+                key: 'abort-round',
+                label: '中止本局',
+                icon: 'close-circle-outline',
+                variant: 'danger',
+                isEnabled: true,
+                onPress: () =>
+                  showConfirmAlert(
+                    '中止本局',
+                    '将公开已收录的故事片段，本局不结算奖励。',
+                    async () => {
+                      await submit('中止本局', {
+                        type: 'storyrelay.round.abort',
+                        phaseRevision: state.phaseRevision,
+                      });
+                    },
+                  ),
+              },
+            ],
+          },
+        ],
+      };
   const selection = profile.selection;
   const shellModel: RoomShellModel = {
     roomCode: room.roomCode,
@@ -214,11 +280,12 @@ export function useStoryRelayRoomState(
       message: isLobby && !isHost ? (mySeat === null ? '选择一个座位入座' : '等待房主开始') : null,
       actions: [],
     },
-    hostManagement:
-      isHost && isLobby
+    hostManagement: !isHost
+      ? null
+      : isLobby
         ? {
             preview: '开始故事接龙',
-            status: null,
+            status: `等待入座 · ${getStoryRelayOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
             sections: [
               {
                 key: 'game',
@@ -229,17 +296,29 @@ export function useStoryRelayRoomState(
                     label: '开始游戏',
                     icon: 'play-outline',
                     variant: 'primary',
-                    isEnabled: true,
                     isLoading: submission.isSubmitting,
                     testID: 'storyrelay-start',
-                    onPress: () => void submit('开始游戏', { type: 'storyrelay.round.start' }),
+                    ...(submission.isSubmitting
+                      ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
+                      : getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers
+                        ? {
+                            isEnabled: true as const,
+                            onPress: () =>
+                              void submit('开始游戏', { type: 'storyrelay.round.start' }),
+                          }
+                        : {
+                            isEnabled: false as const,
+                            disabledReason: '座位尚未坐满',
+                            onDisabledPress: () =>
+                              showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。'),
+                          }),
                   },
                 ],
               },
               { key: 'room', title: '房间管理', actions },
             ],
           }
-        : null,
+        : activeHostManagement,
     controlledSeat:
       controlledSeat === null
         ? canControlBots && state.botSeats.length > 0

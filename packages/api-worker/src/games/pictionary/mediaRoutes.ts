@@ -216,7 +216,7 @@ function findDrawingEntry(state: PictionaryState, entryId: string): PictionaryDr
 }
 
 function canReadDrawing(state: PictionaryState, seat: number | null, entryId: string): boolean {
-  if (state.phase === 'gallery' || state.phase === 'ended') {
+  if (state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted') {
     return true;
   }
   if (seat === null) return false;

@@ -28,6 +28,7 @@ export type PictionaryPhase =
   | 'settling'
   | 'transition'
   | 'gallery'
+  | 'aborted'
   | 'ended';
 export type PictionaryExpectedEntryKind = 'text' | 'drawing';
 
@@ -88,6 +89,12 @@ export interface PictionaryMissedEntry {
 
 export type PictionaryEntry = PictionaryTextEntry | PictionaryDrawingEntry | PictionaryMissedEntry;
 
+export interface PictionaryParticipant {
+  readonly seat: number;
+  readonly displayName: string;
+  readonly userId: string | null;
+}
+
 export interface PictionaryChain {
   readonly id: string;
   readonly originSeat: number;
@@ -107,6 +114,8 @@ export interface PictionaryGalleryState {
   readonly chainIndex: number;
   readonly entryIndex: number;
   readonly isPlaying: boolean;
+  readonly revealedPosition: number;
+  readonly remainingMs: number | null;
 }
 
 export interface PictionaryState extends BaseGameState<PictionaryGameType> {
@@ -119,6 +128,7 @@ export interface PictionaryState extends BaseGameState<PictionaryGameType> {
   readonly excludedBotSeats: readonly number[];
   readonly roundNumber: number;
   readonly roundId: string | null;
+  readonly participants: readonly PictionaryParticipant[];
   readonly seatOrder: readonly number[];
   readonly stepOffsets: readonly number[];
   readonly stepIndex: number;

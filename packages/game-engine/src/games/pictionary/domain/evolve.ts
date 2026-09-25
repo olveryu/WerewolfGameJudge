@@ -78,6 +78,7 @@ export function evolvePictionaryState(
         phaseRevision: state.phaseRevision + 1,
         roundNumber: state.roundNumber + 1,
         roundId: event.roundId,
+        participants: event.participants,
         seatOrder: event.seatOrder,
         stepOffsets: event.stepOffsets,
         stepIndex: 0,
@@ -107,20 +108,16 @@ export function evolvePictionaryState(
       };
     case 'pictionary.drawing.reserved':
       return { ...state, reservations: [...state.reservations, event.reservation] };
-    case 'pictionary.tasks.missed': {
-      let chains = state.chains;
-      for (const missed of event.entries) {
-        chains = appendEntry({ ...state, chains }, missed.chainId, missed.entry);
-      }
-      const removedSubmissionIds = new Set(event.submissionIds);
+    case 'pictionary.round.aborted':
       return {
         ...state,
-        chains,
-        reservations: state.reservations.filter(
-          (reservation) => !removedSubmissionIds.has(reservation.submissionId),
-        ),
+        phase: 'aborted',
+        phaseRevision: state.phaseRevision + 1,
+        deadlineAt: null,
+        readySeats: [],
+        reservations: [],
+        gallery: null,
       };
-    }
     case 'pictionary.phase.changed':
       return {
         ...state,
@@ -137,6 +134,7 @@ export function evolvePictionaryState(
         phase: 'lobby',
         phaseRevision: state.phaseRevision + 1,
         roundId: null,
+        participants: [],
         seatOrder: [],
         stepOffsets: [],
         stepIndex: -1,

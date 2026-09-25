@@ -227,7 +227,12 @@ export const RoomShell: React.FC<RoomShellProps> = ({
           )}
         </View>
       ) : (
-        <View style={styles.gameWorkspace}>{content.element}</View>
+        <View style={styles.roomContent}>
+          <View style={styles.gameWorkspace}>{content.element}</View>
+          {shouldRenderSideInspector && (
+            <View style={styles.sideInspectorContainer}>{activeSideInspector}</View>
+          )}
+        </View>
       )}
 
       <RoomBottomActionPanel

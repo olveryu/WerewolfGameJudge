@@ -59,7 +59,6 @@ function StoryRelayRoomContent(
               element: (
                 <StoryRelayStage
                   state={screen.state}
-                  roomId={props.room.roomId}
                   effectiveSeat={screen.effectiveSeat}
                   controlledSeat={screen.controlledSeat}
                   userId={screen.userId}

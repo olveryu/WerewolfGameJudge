@@ -57,7 +57,7 @@ component owns the complete geometry, including the value area, not just its out
 - `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, and `sideInspector` form the shared seat-board view. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
 
-Werewolf, FibKing and Undercover use `seats`. Pictionary uses `seats` in its lobby and `workspace` in its active phases. Header actions and game overlays remain independent of this choice.
+Werewolf, FibKing and Undercover use `seats`. Pictionary and Story Relay use `seats` in their lobbies and `workspace` in active phases. Header actions, host-management panels and game overlays remain independent of this choice. Both content variants render the wide-screen host inspector; narrow screens use the existing sheet.
 
 This contract changes no game rules, session lifetime, viewport breakpoints, seat layout, or overlay behavior. It removes the implicit `gameWorkspace === null` mode switch and the redundant lobby props previously passed during Pictionary gameplay.
 
@@ -65,8 +65,10 @@ This contract changes no game rules, session lifetime, viewport breakpoints, sea
 
 Game-owned workspaces are not exempt from the visual contract: toolbars, status, timers,
 selection, waiting, retry and results use the shared hierarchy and theme. Preserve domain
-behavior such as canvas gestures and draft persistence. Pictionary's guide action is lobby-only;
+behavior such as canvas gestures and automatic submission. Relay inputs live only in the current page and turn; refreshing or leaving discards unsubmitted input. `RoomTaskViewport` keeps task content and completion actions above native and web keyboards. Pictionary's guide action is lobby-only;
 do not insert it into the drawing/task workspace. Define guide visibility explicitly for new games.
+
+Relay host commands such as finish-step and abort-round belong in the host-management panel, not a second footer in the task workspace. Story Relay keeps the writing workspace fixed; previous text and the editor scroll internally. Completed stories remain scrollable for reading.
 
 ## New-Game Acceptance Checklist
 

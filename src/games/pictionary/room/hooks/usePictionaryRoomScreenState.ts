@@ -1,6 +1,7 @@
 /** Compose shared room controllers with Pictionary lobby and phase semantics. */
 
 import {
+  createPictionaryCommand,
   getPictionaryBotDisplayName,
   isPictionaryImplicitBotSeat,
   type PictionaryPublicCommand,
@@ -27,11 +28,11 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
 import type { RootStackParamList } from '@/navigation/types';
-import { showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createPictionaryBottomActions,
-  createPictionaryLobbyHostManagement,
+  createPictionaryHostManagement,
   createPictionaryRoomCapabilities,
   createPictionarySeatDataSource,
   createPictionaryStatusRibbon,
@@ -254,15 +255,34 @@ export function usePictionaryRoomScreenState({
   );
   const hostManagement = useMemo(
     () =>
-      createPictionaryLobbyHostManagement({
+      createPictionaryHostManagement({
         state,
         isHost,
         isCommandSubmitting: commandSubmission.isSubmitting,
         capabilities,
         startRound,
+        finishPhase: () =>
+          showConfirmAlert(
+            '结束编辑并收稿？',
+            '将自动收取当前文字和画作，没有内容时自动交空白。全部送达后进入下一棒。',
+            async () => {
+              await submitCommand(
+                '结束本棒',
+                createPictionaryCommand(state, { type: 'pictionary.phase.finish' }, null),
+              );
+            },
+            { confirmText: '结束本棒' },
+          ),
+        abortRound: () =>
+          showConfirmAlert('中止本局？', '保留已提交作品供回看；本局不结算完成奖励。', async () => {
+            await submitCommand(
+              '中止本局',
+              createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
+            );
+          }),
         onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位。'),
       }),
-    [capabilities, commandSubmission.isSubmitting, isHost, startRound, state],
+    [capabilities, commandSubmission.isSubmitting, isHost, startRound, state, submitCommand],
   );
   const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
     if (controlledSeat !== null) {

@@ -9,6 +9,7 @@ import type {
   PictionaryEntry,
   PictionaryGalleryState,
   PictionaryHumanSeat,
+  PictionaryParticipant,
   PictionaryPhase,
   PictionaryProfileUpdate,
 } from '../state/types';
@@ -38,6 +39,7 @@ export type PictionaryEvent =
   | (GameEvent & {
       readonly type: 'pictionary.round.started';
       readonly roundId: string;
+      readonly participants: readonly PictionaryParticipant[];
       readonly seatOrder: readonly number[];
       readonly stepOffsets: readonly number[];
       readonly chains: readonly PictionaryChain[];
@@ -59,18 +61,11 @@ export type PictionaryEvent =
       readonly reservation: PictionaryDrawingReservation;
     })
   | (GameEvent & {
-      readonly type: 'pictionary.tasks.missed';
-      readonly entries: readonly {
-        readonly chainId: string;
-        readonly entry: PictionaryEntry;
-      }[];
-      readonly submissionIds: readonly string[];
-    })
-  | (GameEvent & {
       readonly type: 'pictionary.phase.changed';
       readonly phase: PictionaryPhase;
       readonly stepIndex: number;
       readonly deadlineAt: number | null;
       readonly gallery: PictionaryGalleryState | null;
     })
+  | (GameEvent & { readonly type: 'pictionary.round.aborted' })
   | (GameEvent & { readonly type: 'pictionary.game.returnedToLobby' });

@@ -118,18 +118,8 @@ function entry(value: unknown, path: string): StoryRelayEntry {
       );
     case 'empty':
       return finishObject(raw, { ...base, kind: 'empty' }, path);
-    case 'skipped':
-      return finishObject(
-        raw,
-        {
-          ...base,
-          kind: 'skipped',
-          skippedBy: parseNonEmptyString(raw.skippedBy, `${path}.skippedBy`),
-        },
-        path,
-      );
     default:
-      return failDecode(`${path}.kind`, 'text, empty or skipped');
+      return failDecode(`${path}.kind`, 'text or empty');
   }
 }
 

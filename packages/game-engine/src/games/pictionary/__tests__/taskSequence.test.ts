@@ -1,12 +1,19 @@
 /** Pictionary prompt-first sequence contracts through the public engine transition path. */
 
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
-import type { PictionaryCommand } from '../commands/types';
+import {
+  createPictionaryCommand,
+  type PictionaryCommandInput,
+  type PictionaryInternalCommand,
+} from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import { REASON_PICTIONARY_PHASE_INVALID } from '../domain/reasons';
 import type { PictionaryEffect } from '../effects/types';
-import { decidePictionaryCommand, pictionaryEngine } from '../engine';
-import { migratePersistedPictionaryState, parsePictionaryState } from '../state/parseState';
+import {
+  decidePictionaryCommand as decideBoundPictionaryCommand,
+  pictionaryEngine,
+} from '../engine';
+import { parsePictionaryState } from '../state/parseState';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -45,15 +52,37 @@ function applyDecision(
   for (const event of decision.events) {
     nextState = pictionaryEngine.evolve(nextState, event);
   }
-  return pictionaryEngine.normalize(nextState);
+  const normalized = pictionaryEngine.normalize(nextState);
+  expect(JSON.stringify(parsePictionaryState(normalized))).toBe(JSON.stringify(normalized));
+  return normalized;
 }
 
 function dispatch(
   state: PictionaryState,
-  command: PictionaryCommand,
+  command: PictionaryCommandInput | PictionaryInternalCommand,
   context: CommandContext,
 ): PictionaryState {
   return applyDecision(state, decidePictionaryCommand(state, command, context));
+}
+
+function decidePictionaryCommand(
+  state: PictionaryState,
+  command: PictionaryCommandInput | PictionaryInternalCommand,
+  context: CommandContext,
+) {
+  const seat =
+    context.controlledSeat ??
+    Object.values(state.realSeats).find(
+      (occupant) => context.actor.kind === 'user' && occupant?.userId === context.actor.userId,
+    )?.seat ??
+    0;
+  return decideBoundPictionaryCommand(
+    state,
+    command.type === 'pictionary.drawing.commit'
+      ? command
+      : createPictionaryCommand(state, command, seat),
+    context,
+  );
 }
 
 function createFullLobby(numberOfPlayers = 4): PictionaryState {
@@ -102,6 +131,94 @@ function advancePastAnsweringStep(state: PictionaryState): PictionaryState {
 }
 
 describe('Pictionary task sequence', () => {
+  it('rejects delayed task commands after an empty submission and later steps', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0'),
+    );
+    const delayed = createPictionaryCommand(
+      state,
+      { type: 'pictionary.text.submit', text: 'old input' },
+      0,
+    );
+    state = expireCurrentPhase(state);
+    state = dispatch(state, { type: 'pictionary.task.empty.submit' }, userContext('user-0'));
+    expect(state.chains.flatMap((chain) => chain.entries)).toContainEqual(
+      expect.objectContaining({ kind: 'missed', authorSeat: 0 }),
+    );
+    for (let seat = 1; seat < 4; seat++)
+      state = dispatch(
+        state,
+        { type: 'pictionary.task.empty.submit' },
+        userContext(`user-${seat}`),
+      );
+    state = advancePastAnsweringStep(expireCurrentPhase(state));
+    state = expireCurrentPhase(state);
+    expect(state.stepIndex).toBe(2);
+    expect(decideBoundPictionaryCommand(state, delayed, userContext('user-0')).kind).toBe('reject');
+  });
+
+  it('aborts incomplete rounds without rewards and keeps accepted works and author names', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0'),
+    );
+    state = expireCurrentPhase(state);
+    state = dispatch(
+      state,
+      { type: 'pictionary.text.submit', text: 'retained' },
+      userContext('user-0'),
+    );
+    state = dispatch(
+      state,
+      { type: 'room.profile.update', profile: { displayName: 'new name' } },
+      userContext('user-0'),
+    );
+    const decision = decidePictionaryCommand(
+      state,
+      { type: 'pictionary.round.abort' },
+      userContext('user-0'),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([]);
+    state = applyDecision(state, decision);
+    expect(state.phase).toBe('aborted');
+    expect(state.participants.find((participant) => participant.seat === 0)?.displayName).toBe(
+      '玩家 1',
+    );
+    expect(state.chains.flatMap((chain) => chain.entries)).toContainEqual(
+      expect.objectContaining({ text: 'retained' }),
+    );
+    expect(parsePictionaryState(state)).toEqual(state);
+    state = dispatch(state, { type: 'pictionary.game.returnToLobby' }, userContext('user-0'));
+    expect(state.participants).toEqual([]);
+  });
+
+  it('preserves paused time and revealed entries and can finish the entire gallery', () => {
+    let state = dispatch(
+      createFullLobby(),
+      { type: 'pictionary.round.start' },
+      userContext('user-0'),
+    );
+    for (let step = 0; step < 4; step++) state = advancePastAnsweringStep(state);
+    const pauseAt = state.deadlineAt! - 3000;
+    state = dispatch(state, { type: 'pictionary.gallery.pause' }, userContext('user-0', pauseAt));
+    state = dispatch(
+      state,
+      { type: 'pictionary.gallery.resume' },
+      userContext('user-0', pauseAt + 1000),
+    );
+    expect(state.deadlineAt).toBe(pauseAt + 4000);
+    state = dispatch(state, { type: 'pictionary.gallery.advance' }, userContext('user-0'));
+    state = dispatch(state, { type: 'pictionary.gallery.rewind' }, userContext('user-0'));
+    expect(state.gallery).toMatchObject({ entryIndex: 0, revealedPosition: 1 });
+    state = dispatch(state, { type: 'pictionary.gallery.finish' }, userContext('user-0'));
+    expect(state.phase).toBe('ended');
+    expect(state.gallery?.revealedPosition).toBe(15);
+  });
   it.each(
     Array.from(
       { length: PICTIONARY_MAX_PLAYERS - PICTIONARY_MIN_PLAYERS + 1 },
@@ -141,7 +258,7 @@ describe('Pictionary task sequence', () => {
     }
   });
 
-  it('preserves a stored round and pending drawing when migrating its fixed relay order', () => {
+  it('preserves current rounds and pending drawings through persistence', () => {
     let state = dispatch(
       createFullLobby(),
       { type: 'pictionary.round.start' },
@@ -157,10 +274,8 @@ describe('Pictionary task sequence', () => {
     }
     state = expireCurrentPhase(expireCurrentPhase(state));
     state = dispatch(state, { type: 'pictionary.drawing.reserve' }, userContext('user-0'));
-    const legacy: Record<string, unknown> = { ...state, stateVersion: 6 };
-    delete legacy.stepOffsets;
-    const restored = migratePersistedPictionaryState(legacy);
-    expect(restored).toEqual({ ...state, stepOffsets: [0, 1, 2, 3] });
+    const restored = parsePictionaryState(JSON.parse(JSON.stringify(state)));
+    expect(restored).toEqual(state);
     for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
       expect(getPictionaryTaskForSeat(restored, seat)).toEqual(
         getPictionaryTaskForSeat(state, seat),
@@ -229,9 +344,21 @@ describe('Pictionary task sequence', () => {
     );
     for (let step = 0; step < 4; step += 1) state = advancePastAnsweringStep(state);
     for (let chainIndex = 0; chainIndex < 4; chainIndex += 1) {
-      expect(state.gallery).toEqual({ chainIndex, entryIndex: 0, isPlaying: true });
+      expect(state.gallery).toEqual({
+        chainIndex,
+        entryIndex: 0,
+        isPlaying: true,
+        revealedPosition: chainIndex * 4,
+        remainingMs: null,
+      });
       for (let entryIndex = 1; entryIndex < 4; entryIndex += 1) state = expireCurrentPhase(state);
-      expect(state.gallery).toEqual({ chainIndex, entryIndex: 3, isPlaying: false });
+      expect(state.gallery).toEqual({
+        chainIndex,
+        entryIndex: 3,
+        isPlaying: false,
+        revealedPosition: chainIndex * 4 + 3,
+        remainingMs: null,
+      });
       expect(state.deadlineAt).toBeNull();
       expect(
         decidePictionaryCommand(

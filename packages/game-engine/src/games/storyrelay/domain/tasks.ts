@@ -16,7 +16,6 @@ import {
 } from '../state/types';
 import {
   commitStoryRelay,
-  requireStoryRelayHost,
   STORY_RELAY_REASONS,
   type StoryRelayDecision,
   type StoryRelayEffect,
@@ -151,47 +150,4 @@ export function decideStoryRelayTask(
         }
       : { kind: 'empty', id: context.commandId, authorSeat: seat, submittedAt: context.nowMs };
   return appendEntries(state, [{ chainId: task.chainId, entry }], context.nowMs);
-}
-
-/** Skips only explicitly selected unresolved tasks, preserving already accepted entries. */
-export function decideStoryRelaySkip(
-  state: StoryRelayState,
-  command: Extract<
-    StoryRelayCommand,
-    { readonly type: 'storyrelay.task.skip' | 'storyrelay.bots.skip' }
-  >,
-  context: CommandContext,
-): StoryRelayDecision {
-  const hostRejection = requireStoryRelayHost(state, context);
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase !== 'settling') return reject(STORY_RELAY_REASONS.phase);
-  if (
-    command.phaseRevision !== state.phaseRevision ||
-    command.roundId !== state.roundId ||
-    command.stepIndex !== state.stepIndex
-  )
-    return reject(STORY_RELAY_REASONS.task);
-  if (command.type === 'storyrelay.task.skip' && !matchesTask(state, command, command.seat))
-    return reject(STORY_RELAY_REASONS.task);
-  const seats = command.type === 'storyrelay.task.skip' ? [command.seat] : state.botSeats;
-  const entries: { chainId: string; entry: StoryRelayEntry }[] = [];
-  for (const seat of seats) {
-    const task = getStoryRelayTaskForSeat(state, seat);
-    if (task === null) return reject(STORY_RELAY_REASONS.task);
-    if (task.isSubmitted) {
-      if (command.type === 'storyrelay.task.skip') return reject(STORY_RELAY_REASONS.submitted);
-      continue;
-    }
-    entries.push({
-      chainId: task.chainId,
-      entry: {
-        kind: 'skipped',
-        id: `${context.commandId}:${seat}`,
-        authorSeat: seat,
-        submittedAt: context.nowMs,
-        skippedBy: state.hostUserId,
-      },
-    });
-  }
-  return entries.length === 0 ? commitStoryRelay([]) : appendEntries(state, entries, context.nowMs);
 }

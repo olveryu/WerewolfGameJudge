@@ -32,12 +32,7 @@ export function formatStoryRelayStory(
     ...chain.entries.map((entry, stepIndex) => {
       const participant = state.participants.find((author) => author.seat === entry.authorSeat);
       if (participant === undefined) throw new Error('Story Relay author snapshot missing');
-      const text =
-        entry.kind === 'text'
-          ? entry.text
-          : entry.kind === 'empty'
-            ? '（主动交空白）'
-            : '（房主跳过）';
+      const text = entry.kind === 'text' ? entry.text : '（空白）';
       return `${stepIndex + 1}. ${participant.displayName}\n${text}`;
     }),
   ].join('\n\n');

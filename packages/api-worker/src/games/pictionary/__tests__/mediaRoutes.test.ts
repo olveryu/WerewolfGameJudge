@@ -1,13 +1,14 @@
 /** Pictionary media authorization integration through room commands, Durable Objects, and R2. */
 
 import {
+  createPictionaryCommand,
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryTaskForSeat,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_WIDTH,
   PICTIONARY_STATE_CODEC,
+  type PictionaryCommandInput,
   type PictionaryDrawingReservation,
-  type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { parseRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
@@ -60,10 +61,14 @@ async function createPictionaryRoom(token: string): Promise<RoomIdentity> {
 async function dispatchCommand(
   room: RoomIdentity,
   token: string,
-  command: PictionaryPublicCommand,
+  command: PictionaryCommandInput,
   controlledSeat: number | null,
 ): Promise<PictionaryState> {
   commandSequence += 1;
+  const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
+  const snapshot = await stub.getSnapshot({ ...room, creationId: 'pictionary-media-bot-control' });
+  if (snapshot === null) throw new Error('Pictionary test room is missing');
+  const state = PICTIONARY_STATE_CODEC.parse(snapshot.state);
   const response = await postJson(
     '/room/command',
     {
@@ -71,7 +76,7 @@ async function dispatchCommand(
       roomId: room.roomId,
       commandId: `pictionary-media-test:${commandSequence}`,
       controlledSeat,
-      command,
+      command: createPictionaryCommand(state, command, controlledSeat ?? 0),
     },
     token,
   );
@@ -171,8 +176,8 @@ beforeEach(async () => {
 
 afterEach(deleteCurrentRoomAlarms);
 
-describe('Pictionary persisted relay migration', () => {
-  it('preserves pending uploads, room metadata and replayable receipts from version six', async () => {
+describe('Pictionary current persisted relay state', () => {
+  it('preserves pending uploads, room metadata and exact replayable receipts', async () => {
     const host = await createAnonymousSession();
     const room = await createPictionaryRoom(host.access_token);
     await dispatchCommand(
@@ -225,29 +230,15 @@ describe('Pictionary persisted relay migration', () => {
     const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
     await runInDurableObject(stub, async (instance: GameRoomRuntime, durableState) => {
       const sql = durableState.storage.sql;
-      sql.exec(`UPDATE room_state SET state_version = 6,
-        game_state = json_remove(json_set(game_state, '$.stateVersion', 6), '$.stepOffsets')`);
-      sql.exec(`UPDATE command_receipts SET state_version = 6,
-        result_json = json_remove(json_set(result_json,
-          '$.snapshot.stateVersion', 6, '$.snapshot.state.stateVersion', 6),
-          '$.snapshot.state.stepOffsets')`);
       const before = sql.exec('SELECT * FROM room_state').one();
       const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
       const outbox = sql.exec('SELECT * FROM effect_outbox ORDER BY id').toArray();
       const identity = { ...room, creationId: 'pictionary-media-bot-control' };
       const snapshot = await instance.getSnapshot(identity);
-      expect(snapshot?.state).toEqual({ ...state, stepOffsets: [0, 1, 2, 3] });
-      expect(sql.exec('SELECT * FROM room_state').one()).toEqual({
-        ...before,
-        state_version: PICTIONARY_STATE_CODEC.stateVersion,
-        game_state: expect.any(String) as unknown,
-      });
+      expect(snapshot?.state).toEqual(state);
+      expect(sql.exec('SELECT * FROM room_state').one()).toEqual(before);
       expect(sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray()).toEqual(
-        receipts.map((receipt) => ({
-          ...receipt,
-          state_version: PICTIONARY_STATE_CODEC.stateVersion,
-          result_json: expect.any(String) as unknown,
-        })),
+        receipts,
       );
       expect(sql.exec('SELECT * FROM effect_outbox ORDER BY id').toArray()).toEqual(outbox);
       const replay = await instance.dispatchUserCommand({
@@ -255,7 +246,7 @@ describe('Pictionary persisted relay migration', () => {
         commandId,
         actorUserId: state.hostUserId,
         controlledSeat: null,
-        command: { type: 'pictionary.drawing.reserve' },
+        command: createPictionaryCommand(state, { type: 'pictionary.drawing.reserve' }, 0),
       });
       expect(replay).toMatchObject({
         kind: 'decided',
@@ -273,7 +264,7 @@ describe('Pictionary persisted relay migration', () => {
     );
   });
 
-  it('rolls back all migrated receipts when a later stored snapshot is invalid', async () => {
+  it('rejects unsupported persisted versions without rewriting room data', async () => {
     const host = await createAnonymousSession();
     const room = await createPictionaryRoom(host.access_token);
     await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
@@ -281,21 +272,12 @@ describe('Pictionary persisted relay migration', () => {
     const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
     await runInDurableObject(stub, async (_instance: GameRoomRuntime, durableState) => {
       const sql = durableState.storage.sql;
-      sql.exec(`UPDATE room_state SET state_version = 6,
-        game_state = json_remove(json_set(game_state, '$.stateVersion', 6), '$.stepOffsets')`);
-      sql.exec(`UPDATE command_receipts SET state_version = 6,
-        result_json = json_remove(json_set(result_json,
-          '$.snapshot.stateVersion', 6, '$.snapshot.state.stateVersion', 6),
-          '$.snapshot.state.stepOffsets')`);
-      sql.exec(
-        `UPDATE command_receipts SET result_json = json_set(result_json,
-        '$.snapshot.state.config.numberOfPlayers', 3) WHERE command_id = ?`,
-        `pictionary-media-test:${commandSequence}`,
-      );
+      sql.exec(`UPDATE room_state SET state_version = 7,
+        game_state = json_set(game_state, '$.stateVersion', 7)`);
       const before = sql.exec('SELECT * FROM room_state').one();
       const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
       const repository = new RoomRepository(durableState.storage, getWorkerGameModule);
-      expect(() => repository.readRoom()).toThrow('Pictionary config is invalid');
+      expect(() => repository.readRoom()).toThrow('state version');
       expect(sql.exec('SELECT * FROM room_state').one()).toEqual(before);
       expect(sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray()).toEqual(
         receipts,
@@ -305,6 +287,82 @@ describe('Pictionary persisted relay migration', () => {
 });
 
 describe('Pictionary spectator media', () => {
+  it('invalidates aborted uploads while preserving accepted artwork', async () => {
+    const host = await createAnonymousSession();
+    const viewer = await createAnonymousSession();
+    const room = await createPictionaryRoom(host.access_token);
+    await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'room.seat.take', seat: 0, profile: { displayName: '原始作者' } },
+      null,
+    );
+    await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.round.start' }, null);
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.phase.finish' }, null);
+    const oldProtocol = await postJson(
+      '/room/command',
+      {
+        ...room,
+        commandId: 'unscoped',
+        controlledSeat: null,
+        command: { type: 'pictionary.text.submit', text: 'old' },
+      },
+      host.access_token,
+    );
+    expect(oldProtocol.status).toBe(400);
+    for (const seat of [1, 2, 3])
+      await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.task.empty.submit' },
+        seat,
+      );
+    let state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.text.submit', text: '题目' },
+      null,
+    );
+    expect(
+      state.chains.flatMap((chain) => chain.entries).filter((entry) => entry.kind === 'missed'),
+    ).toHaveLength(3);
+    await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+      null,
+    );
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.phase.finish' }, null);
+    state = await commitSeatDrawing(room, host.access_token, 0, null);
+    const accepted = state.chains
+      .flatMap((chain) => chain.entries)
+      .find((entry) => entry.kind === 'drawing');
+    if (accepted === undefined) throw new Error('Accepted drawing is missing');
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.drawing.reserve' },
+      2,
+    );
+    const aborted = requireReservation(state, 2);
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.round.abort' },
+      null,
+    );
+    expect(state.phase).toBe('aborted');
+    expect(state.reservations).toHaveLength(0);
+    expect((await putDrawing(room, host.access_token, aborted, '2')).status).toBe(409);
+    const image = await SELF.fetch(
+      `https://test.local/api/games/pictionary/rooms/${room.roomCode}/media/${accepted.id}`,
+      { headers: { Authorization: `Bearer ${viewer.access_token}` } },
+    );
+    expect(image.status).toBe(200);
+    expect(new Uint8Array(await image.arrayBuffer())).toEqual(createTestPng());
+  });
+
   it('allows unseated viewers to read drawings only after the round reaches gallery', async () => {
     const host = await createAnonymousSession();
     const guest = await createAnonymousSession();

@@ -242,6 +242,13 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
     }
     case 'ended':
       return { kind: 'message', icon: 'guide', text: '本局接龙已揭晓', supportingText: null };
+    case 'aborted':
+      return {
+        kind: 'message',
+        icon: 'guide',
+        text: '本局已中止，作品未完成',
+        supportingText: null,
+      };
   }
 }
 
@@ -261,7 +268,7 @@ export function createPictionaryBottomActions(
   return { kind: 'info', message, actions: [] };
 }
 
-interface PictionaryLobbyHostManagementInput {
+interface PictionaryHostManagementInput {
   readonly state: PictionaryState;
   readonly isHost: boolean;
   readonly isCommandSubmitting: boolean;
@@ -270,6 +277,8 @@ interface PictionaryLobbyHostManagementInput {
     'canConfigureGame' | 'canClearSeats' | 'canFillBots'
   >;
   readonly startRound: () => void;
+  readonly finishPhase: () => void;
+  readonly abortRound: () => void;
   readonly onStartDisabled: () => void;
 }
 
@@ -283,10 +292,42 @@ function hostAction(
   return { key, label, icon, variant, isEnabled: true, onPress };
 }
 
-export function createPictionaryLobbyHostManagement(
-  input: PictionaryLobbyHostManagementInput,
+export function createPictionaryHostManagement(
+  input: PictionaryHostManagementInput,
 ): RoomHostManagementModel | null {
-  if (!input.isHost || input.state.phase !== 'lobby') return null;
+  if (!input.isHost) return null;
+  if (input.state.phase !== 'lobby') {
+    const canAbort =
+      ['answering', 'settling', 'transition'].includes(input.state.phase) &&
+      !(
+        input.state.phase === 'transition' &&
+        input.state.stepIndex === input.state.config.numberOfPlayers - 1
+      );
+    if (!canAbort) return null;
+    const sections: RoomHostManagementSection[] = [];
+    if (input.state.phase === 'answering')
+      sections.push({
+        key: 'current-flow',
+        title: '当前流程',
+        actions: [
+          hostAction(
+            'finish-phase',
+            '结束本棒',
+            'stop-circle-outline',
+            'secondary',
+            input.finishPhase,
+          ),
+        ],
+      });
+    sections.push({
+      key: 'danger',
+      title: '危险操作',
+      actions: [
+        hostAction('abort-round', '中止本局', 'close-circle-outline', 'danger', input.abortRound),
+      ],
+    });
+    return { preview: '管理本局', status: null, sections };
+  }
   const startAction: RoomHostManagementAction = input.isCommandSubmitting
     ? {
         key: 'start-round',

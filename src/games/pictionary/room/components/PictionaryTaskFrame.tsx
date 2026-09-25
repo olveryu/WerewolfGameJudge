@@ -2,10 +2,11 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import { TESTIDS } from '@/testids';
 import { colors, fixed, spacing, textStyles } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -30,25 +31,6 @@ export function PictionaryTaskFrame({
   children,
   footer,
 }: PictionaryTaskFrameProps) {
-  const container = useRef<View>(null);
-  const [keyboardInset, setKeyboardInset] = useState(0);
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const viewport = window.visualViewport;
-    if (viewport === null) return;
-    const update = () => {
-      container.current?.measureInWindow((_left, top, _width, height) => {
-        setKeyboardInset(Math.max(0, top + height - viewport.height - viewport.offsetTop));
-      });
-    };
-    update();
-    viewport.addEventListener('resize', update);
-    viewport.addEventListener('scroll', update);
-    return () => {
-      viewport.removeEventListener('resize', update);
-      viewport.removeEventListener('scroll', update);
-    };
-  }, []);
   const isFinalCountdown =
     remainingSeconds !== null &&
     remainingSeconds > 0 &&
@@ -62,44 +44,38 @@ export function PictionaryTaskFrame({
           ? String(remainingSeconds)
           : `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
   return (
-    <View ref={container} style={styles.container}>
-      <KeyboardAvoidingView
-        enabled={Platform.OS !== 'web'}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.container, { paddingBottom: keyboardInset }]}
-      >
-        <View style={styles.task} testID={TESTIDS.pictionaryStageFrame}>
-          <View style={styles.heading}>
-            <View style={styles.headingCopy}>
-              <Text style={styles.eyebrow}>{eyebrow}</Text>
-              <Text style={styles.title} accessibilityRole="header">
-                {title}
-              </Text>
-            </View>
-            <View
-              style={[styles.timer, isFinalCountdown && styles.finalTimer]}
-              accessibilityLiveRegion={isFinalCountdown ? 'assertive' : 'none'}
-              accessibilityLabel={
-                remainingSeconds === null ? '本阶段不限时' : `剩余 ${remainingSeconds} 秒`
-              }
-            >
-              {!isFinalCountdown && (
-                <Ionicons
-                  name="time-outline"
-                  size={componentSizes.icon.sm}
-                  color={colors.textSecondary}
-                />
-              )}
-              <Text style={[styles.timerText, isFinalCountdown && styles.countdownText]}>
-                {timerText}
-              </Text>
-            </View>
+    <RoomTaskViewport>
+      <View style={styles.task} testID={TESTIDS.pictionaryStageFrame}>
+        <View style={styles.heading}>
+          <View style={styles.headingCopy}>
+            <Text style={styles.eyebrow}>{eyebrow}</Text>
+            <Text style={styles.title} accessibilityRole="header">
+              {title}
+            </Text>
           </View>
-          <View style={styles.body}>{children}</View>
-          <View style={styles.footer}>{footer}</View>
+          <View
+            style={[styles.timer, isFinalCountdown && styles.finalTimer]}
+            accessibilityLiveRegion={isFinalCountdown ? 'assertive' : 'none'}
+            accessibilityLabel={
+              remainingSeconds === null ? '本阶段不限时' : `剩余 ${remainingSeconds} 秒`
+            }
+          >
+            {!isFinalCountdown && (
+              <Ionicons
+                name="time-outline"
+                size={componentSizes.icon.sm}
+                color={colors.textSecondary}
+              />
+            )}
+            <Text style={[styles.timerText, isFinalCountdown && styles.countdownText]}>
+              {timerText}
+            </Text>
+          </View>
         </View>
-      </KeyboardAvoidingView>
-    </View>
+        <View style={styles.body}>{children}</View>
+        <View style={styles.footer}>{footer}</View>
+      </View>
+    </RoomTaskViewport>
   );
 }
 
@@ -120,7 +96,6 @@ export function PictionaryTaskMedia({ children }: { readonly children: React.Rea
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, minHeight: 0 },
   task: {
     flex: 1,
     minHeight: 0,

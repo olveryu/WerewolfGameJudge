@@ -59,13 +59,6 @@ const commands = defineCommands([
       .refine((text) => text.trim().length > 0),
   }),
   z.strictObject({
-    type: z.literal('storyrelay.task.skip'),
-    ...task,
-    ...revision,
-    seat: z.int().nonnegative(),
-  }),
-  z.strictObject({ type: z.literal('storyrelay.bots.skip'), ...roundTask, ...revision }),
-  z.strictObject({
     type: z.literal([
       'storyrelay.phase.expire',
       'storyrelay.phase.finish',

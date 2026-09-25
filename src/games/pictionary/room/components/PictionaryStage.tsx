@@ -2,16 +2,16 @@
 
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Button } from '@/components/Button';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { colors, fixed, spacing } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { usePictionaryDraftFinalizer } from '../hooks/usePictionaryDraftFinalizer';
-import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
+import {
+  type PictionaryTaskInput,
+  usePictionaryAutoSubmission,
+} from '../hooks/usePictionaryAutoSubmission';
 import { usePictionaryStageDeadline } from '../hooks/usePictionaryStageDeadline';
 import { PictionaryBotControlStrip } from './PictionaryBotControlStrip';
 import { PictionaryEndedStage, PictionaryGalleryStage } from './PictionaryGalleryStage';
@@ -27,7 +27,14 @@ interface PictionaryStageProps {
   readonly session: PictionaryRoomSession;
 }
 
-export const PictionaryStage: React.FC<PictionaryStageProps> = ({
+export const PictionaryStage: React.FC<PictionaryStageProps> = (props) => (
+  <PictionaryStageContent
+    key={`${props.state.roundId}:${props.state.stepIndex}:${props.userId}`}
+    {...props}
+  />
+);
+
+const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   state,
   effectiveSeat,
   controlledSeat,
@@ -45,39 +52,34 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
     canExpire: isHost || effectiveSeat !== null,
     session,
   });
-  const command = usePictionaryStageCommand(session, null);
-  const draftFinalizer = usePictionaryDraftFinalizer(state, userId, session);
+  const [inputs] = useState(() => new Map<number, PictionaryTaskInput>());
+  const autoSubmission = usePictionaryAutoSubmission(state, userId, session, inputs);
 
   if (state.phase === 'gallery') {
     return (
-      <PictionaryGalleryStage
-        state={state}
-        isHost={isHost}
-        session={session}
-        remainingSeconds={deadline.remainingSeconds}
-      />
+      <View style={styles.container}>
+        <PictionaryGalleryStage
+          state={state}
+          isHost={isHost}
+          session={session}
+          remainingSeconds={deadline.remainingSeconds}
+        />
+      </View>
     );
   }
-  if (state.phase === 'ended') {
-    return <PictionaryEndedStage state={state} isHost={isHost} session={session} />;
-  }
-
-  const showManualFinish = isHost && state.phase === 'answering' && state.deadlineAt === null;
-  const finishPhase = (): void => {
-    showConfirmAlert(
-      '结束编辑并收稿？',
-      '将自动收取已写文字和未完成画稿，没有内容时自动交空白。发送失败会保留草稿并自动重试，全部送达后进入下一棒。',
-      async () => {
-        await command.submit('结束这一棒', { type: 'pictionary.phase.finish' });
-      },
-      { confirmText: '结束本棒' },
+  if (state.phase === 'ended' || state.phase === 'aborted') {
+    return (
+      <View style={styles.container}>
+        <PictionaryEndedStage state={state} isHost={isHost} session={session} />
+      </View>
     );
-  };
+  }
 
   return (
     <View style={styles.container}>
       <PictionaryBotControlStrip model={seatModel} />
       <PictionaryTaskStage
+        inputs={inputs}
         state={state}
         effectiveSeat={effectiveSeat}
         controlledSeat={controlledSeat}
@@ -85,27 +87,12 @@ export const PictionaryStage: React.FC<PictionaryStageProps> = ({
         session={session}
         remainingSeconds={deadline.remainingSeconds}
         isExpired={deadline.isExpired}
-        draftFinalizer={draftFinalizer}
+        autoSubmission={autoSubmission}
       />
-      {showManualFinish && (
-        <View style={styles.manualControl}>
-          <Button variant="secondary" disabled={command.isSubmitting} onPress={finishPhase}>
-            结束本棒
-          </Button>
-        </View>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, minHeight: 0 },
-  manualControl: {
-    alignItems: 'flex-end',
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.small,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.borderLight,
-    backgroundColor: colors.surface,
-  },
 });

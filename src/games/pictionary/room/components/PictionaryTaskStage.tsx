@@ -56,15 +56,6 @@ import {
 } from '@/games/pictionary/model/pictionaryDrawing';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionaryCompletedCount } from '@/games/pictionary/model/pictionarySelectors';
-import { pictionaryDrawingDraftStore } from '@/games/pictionary/services/PictionaryDrawingDraftStore';
-import {
-  createPictionaryTaskDraftScope,
-  type PictionaryTaskDraftScope,
-} from '@/games/pictionary/services/pictionaryTaskDraftScope';
-import {
-  PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS,
-  pictionaryTextDraftStore,
-} from '@/games/pictionary/services/PictionaryTextDraftStore';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
 import {
@@ -81,7 +72,10 @@ import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import type { PictionaryDraftFinalizationStatus } from '../hooks/usePictionaryDraftFinalizer';
+import type {
+  PictionarySubmissionStatus,
+  PictionaryTaskInput,
+} from '../hooks/usePictionaryAutoSubmission';
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryDrawingCanvas } from './PictionaryDrawingCanvas';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
@@ -122,6 +116,7 @@ const PICTIONARY_OPENING_PROMPT_EXAMPLES = [
 ] as const;
 
 interface PictionaryTaskStageProps {
+  readonly inputs: Map<number, PictionaryTaskInput>;
   readonly state: PictionaryState;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
@@ -129,13 +124,14 @@ interface PictionaryTaskStageProps {
   readonly session: PictionaryRoomSession;
   readonly remainingSeconds: number | null;
   readonly isExpired: boolean;
-  readonly draftFinalizer: {
-    readonly status: PictionaryDraftFinalizationStatus;
+  readonly autoSubmission: {
+    readonly status: PictionarySubmissionStatus;
     readonly retry: () => void;
   };
 }
 
 interface TaskViewProps {
+  readonly inputs: Map<number, PictionaryTaskInput>;
   readonly state: PictionaryState;
   readonly task: PictionaryTask;
   readonly effectiveSeat: number;
@@ -191,19 +187,22 @@ const PreviousDrawing: React.FC<{
 };
 
 const PictionaryTextTask: React.FC<TaskViewProps> = ({
+  inputs,
   state,
   task,
   effectiveSeat,
-  userId,
   session,
   controlledSeat,
   remainingSeconds,
   isExpired,
 }) => {
-  const draftScope = createPictionaryTaskDraftScope(state, task, userId);
-  const [text, setText] = useState(() => pictionaryTextDraftStore.read(draftScope) ?? '');
+  const [text, setText] = useState(() => {
+    const input = inputs.get(effectiveSeat);
+    if (input !== undefined && typeof input !== 'string') throw new Error('Expected text input');
+    return input ?? '';
+  });
   const [openingPromptExample] = useState(() => randomPick(PICTIONARY_OPENING_PROMPT_EXAMPLES));
-  const command = usePictionaryStageCommand(session, controlledSeat);
+  const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
   const validationMessage = getTextValidationMessage(text);
   const graphemeCount = getPictionaryTextGraphemeCount(text);
   const isOpeningPrompt = state.stepIndex === 0;
@@ -217,7 +216,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
 
   const updateText = (nextText: string): void => {
     setText(nextText);
-    pictionaryTextDraftStore.write(draftScope, nextText);
+    inputs.set(effectiveSeat, nextText);
   };
 
   const toggleReady = async (): Promise<void> => {
@@ -234,17 +233,21 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
       title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
       remainingSeconds={remainingSeconds}
       footer={
-        <Button
-          variant={isReady ? 'secondary' : 'primary'}
-          onPress={() => void toggleReady()}
-          disabled={(!isReady && validationMessage !== null) || isExpired}
-          loading={command.isSubmitting}
-          size="md"
-          accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-          testID={TESTIDS.pictionaryTextSubmitButton}
-        >
-          {isReady ? '继续编辑' : '完成编辑'}
-        </Button>
+        <View style={styles.taskFooter}>
+          <View style={styles.primaryAction}>
+            <Button
+              variant={isReady ? 'secondary' : 'primary'}
+              onPress={() => void toggleReady()}
+              disabled={(!isReady && validationMessage !== null) || isExpired}
+              loading={command.isSubmitting}
+              size="md"
+              accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+              testID={TESTIDS.pictionaryTextSubmitButton}
+            >
+              {isReady ? '继续编辑' : '完成编辑'}
+            </Button>
+          </View>
+        </View>
       }
     >
       {!isOpeningPrompt && (
@@ -255,7 +258,7 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           value={text}
           onChangeText={updateText}
           editable={!isReady && !command.isSubmitting && !isExpired}
-          maxLength={PICTIONARY_TEXT_DRAFT_MAX_CODE_UNITS}
+          maxLength={PICTIONARY_TEXT_MAX_LENGTH}
           multiline
           placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
           placeholderTextColor={colors.textMuted}
@@ -824,48 +827,45 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
 };
 
 const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
+  inputs,
   state,
   task,
   effectiveSeat,
-  userId,
   session,
   controlledSeat,
   remainingSeconds,
   isExpired,
 }) => {
-  const draftScope: PictionaryTaskDraftScope = createPictionaryTaskDraftScope(state, task, userId);
-  const [draft, setDraft] = useState(
-    () => pictionaryDrawingDraftStore.read(draftScope) ?? EMPTY_PICTIONARY_DRAWING_DRAFT,
-  );
+  const [draft, setDraft] = useState(() => {
+    const input = inputs.get(effectiveSeat);
+    if (typeof input === 'string') throw new Error('Expected drawing input');
+    return input ?? EMPTY_PICTIONARY_DRAWING_DRAFT;
+  });
   const [tool, setTool] = useState<PictionaryDrawingTool>('brush');
   const [color, setColor] = useState<PictionaryDrawingColor>(PICTIONARY_DRAWING_PALETTE[0].value);
   const [strokeWidth, setStrokeWidth] = useState<PictionaryDrawingWidth>(14);
-  const command = usePictionaryStageCommand(session, controlledSeat);
+  const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
 
   const updateDraft = useCallback(
     (action: PictionaryDrawingDraftAction): void => {
-      const current =
-        pictionaryDrawingDraftStore.read(draftScope) ?? EMPTY_PICTIONARY_DRAWING_DRAFT;
-      const next = reducePictionaryDrawingDraft(current, action);
-      pictionaryDrawingDraftStore.write(draftScope, next);
+      const next = reducePictionaryDrawingDraft(draft, action);
+      inputs.set(effectiveSeat, next);
       setDraft(next);
     },
-    [draftScope],
+    [draft, inputs, effectiveSeat],
   );
 
   const persistElement = useCallback(
     (element: PictionaryDrawingElement): void => {
-      const current =
-        pictionaryDrawingDraftStore.read(draftScope) ?? EMPTY_PICTIONARY_DRAWING_DRAFT;
-      pictionaryDrawingDraftStore.write(
-        draftScope,
-        reducePictionaryDrawingDraft(current, {
+      inputs.set(
+        effectiveSeat,
+        reducePictionaryDrawingDraft(draft, {
           type: 'element.add',
           element,
         }),
       );
     },
-    [draftScope],
+    [draft, inputs, effectiveSeat],
   );
 
   const addElement = useCallback(
@@ -933,17 +933,21 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
             onRedo={() => updateDraft({ type: 'element.redo' })}
             onClear={clearDrawing}
           />
-          <Button
-            variant={isReady ? 'secondary' : 'primary'}
-            onPress={() => void toggleReady()}
-            disabled={isReady ? isExpired || isBusy : !canComplete}
-            loading={isBusy}
-            size="md"
-            accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-            testID={TESTIDS.pictionaryDrawingSubmitButton}
-          >
-            {isReady ? '继续编辑' : '完成编辑'}
-          </Button>
+          <View style={styles.taskFooter}>
+            <View style={styles.primaryAction}>
+              <Button
+                variant={isReady ? 'secondary' : 'primary'}
+                onPress={() => void toggleReady()}
+                disabled={isReady ? isExpired || isBusy : !canComplete}
+                loading={isBusy}
+                size="md"
+                accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+                testID={TESTIDS.pictionaryDrawingSubmitButton}
+              >
+                {isReady ? '继续编辑' : '完成编辑'}
+              </Button>
+            </View>
+          </View>
         </>
       }
     >
@@ -1016,6 +1020,7 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
 };
 
 export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
+  inputs,
   state,
   effectiveSeat,
   controlledSeat,
@@ -1023,8 +1028,9 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
   session,
   remainingSeconds,
   isExpired,
-  draftFinalizer,
+  autoSubmission,
 }) => {
+  const task = effectiveSeat === null ? null : getPictionaryTaskForSeat(state, effectiveSeat);
   if (state.phase === 'transition') {
     return (
       <PictionaryWaitingStage
@@ -1037,13 +1043,13 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
   }
   if (state.phase === 'settling') {
     const description =
-      draftFinalizer.status === 'failed'
-        ? '本机最终内容发送失败，草稿仍保存在本机。'
-        : draftFinalizer.status === 'retrying'
-          ? '发送暂未成功，正在自动重试。草稿已保留，恢复连接后会继续发送。'
-          : draftFinalizer.status === 'waiting'
+      autoSubmission.status === 'failed'
+        ? '内容发送失败，请重试。'
+        : autoSubmission.status === 'retrying'
+          ? '发送暂未成功，正在自动重试。'
+          : autoSubmission.status === 'waiting'
             ? '本机最终内容已处理，正在等待其他玩家。'
-            : '正在发送本机保存的最终内容，请保持页面打开。';
+            : '正在自动提交本棒内容，请保持页面打开。';
     return (
       <PictionaryWaitingStage
         state={state}
@@ -1051,8 +1057,8 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
         title="正在收取最终内容"
         description={description}
       >
-        {draftFinalizer.status === 'failed' && (
-          <Button variant="secondary" onPress={draftFinalizer.retry}>
+        {autoSubmission.status === 'failed' && (
+          <Button variant="secondary" onPress={autoSubmission.retry}>
             重试发送
           </Button>
         )}
@@ -1069,12 +1075,12 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
       />
     );
   }
-  const task = getPictionaryTaskForSeat(state, effectiveSeat);
   if (task === null) {
     throw new Error('[FAIL-FAST] Seated Pictionary player has no task');
   }
   return task.expectedKind === 'text' ? (
     <PictionaryTextTask
+      inputs={inputs}
       key={`${state.roundId}:${state.stepIndex}:${task.chain.id}:${userId}`}
       state={state}
       task={task}
@@ -1087,6 +1093,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
     />
   ) : (
     <PictionaryDrawingTask
+      inputs={inputs}
       key={`${state.roundId}:${state.stepIndex}:${task.chain.id}:${userId}`}
       state={state}
       task={task}
@@ -1101,6 +1108,8 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
 };
 
 const styles = StyleSheet.create({
+  taskFooter: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
+  primaryAction: { flex: 1 },
   contextBlock: { flex: 1, minHeight: 0, gap: spacing.tight },
   contextLabel: {
     ...textStyles.caption,

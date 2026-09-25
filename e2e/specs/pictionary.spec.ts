@@ -208,13 +208,12 @@ test.describe('Pictionary', () => {
             failedUploads += 1;
             await route.abort('failed');
           });
-          await hostPage.getByRole('button', { name: '结束本棒', exact: true }).click();
+          await (await hostRoom.openHostManagement())
+            .getByRole('button', { name: '结束本棒', exact: true })
+            .click();
           await hostPage.getByRole('dialog').getByText('结束本棒', { exact: true }).click();
           await expect(
-            unfinishedPage.getByText(
-              '发送暂未成功，正在自动重试。草稿已保留，恢复连接后会继续发送。',
-              { exact: true },
-            ),
+            unfinishedPage.getByText('发送暂未成功，正在自动重试。', { exact: true }),
           ).toBeVisible({ timeout: 20_000 });
           expect(failedUploads).toBeGreaterThanOrEqual(FETCH_RETRY_COUNT + 1);
           await expect(
@@ -305,7 +304,7 @@ test.describe('Pictionary', () => {
           }
           if (globalEntryIndex === 2) {
             await hostPage.getByRole('button', { name: '上一项', exact: true }).click();
-            await expectGalleryPositionForEveryPlayer(rooms, 1, 2);
+            await expectGalleryPositionForEveryPlayer(rooms, 1, 3);
             await hostRoom.advanceGallery();
             await expectGalleryPositionForEveryPlayer(rooms, 1, 3);
           }
@@ -326,6 +325,91 @@ test.describe('Pictionary', () => {
         await Promise.all(rooms.map((room) => room.expectEnded()));
         expect(collectedGuesses.some((text) => text.includes(GUESS_SUBMISSIONS[0][0]))).toBe(true);
       });
+      await test.step('export complete albums with rendered drawings on desktop and mobile', async () => {
+        for (const page of fixture.pages.slice(0, 2)) {
+          await page.getByRole('button', { name: /保存／分享画册/ }).click();
+          const exportButton = page.getByRole('button', { name: /保存／分享长图/ });
+          await expect(exportButton).toBeEnabled();
+          const album = page.getByTestId('pictionary-export-album');
+          await expect(album).toContainText('第 4 棒');
+          await expect(album.locator('img')).toHaveCount(2);
+          const downloadPromise = page.waitForEvent('download');
+          await exportButton.click();
+          const download = await downloadPromise;
+          expect(download.suggestedFilename()).toMatch(/\.png$/);
+          const stream = await download.createReadStream();
+          if (stream === null) throw new Error('Album download stream is missing');
+          const chunks: Buffer[] = [];
+          for await (const chunk of stream) {
+            const bytes: unknown = chunk;
+            if (!(bytes instanceof Uint8Array))
+              throw new Error('Album download chunk is not binary');
+            chunks.push(Buffer.from(bytes));
+          }
+          const png = Buffer.concat(chunks);
+          expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+          expect(png.readUInt32BE(20)).toBeGreaterThan(png.readUInt32BE(16));
+          expect(png.length).toBeGreaterThan(10_000);
+          await test.info().attach('pictionary-export', { body: png, contentType: 'image/png' });
+          await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+        }
+      });
+    } finally {
+      await closeAll(fixture);
+    }
+  });
+
+  test('empty inputs are collected automatically and abort preserves only submitted works', async ({
+    browser,
+  }) => {
+    const fixture = await createPlayerContexts(browser, 2);
+    const hostPage = fixture.pages[0];
+    const guestPage = fixture.pages[1]!;
+    const hostRoom = new PictionaryRoomPage(hostPage);
+    const guestRoom = new PictionaryRoomPage(guestPage);
+    try {
+      await guestPage.setViewportSize({ width: 390, height: 844 });
+      await new HomePage(hostPage).clickCreateRoom('pictionary');
+      const config = new PictionaryConfigPage(hostPage);
+      await config.waitForCreateMode();
+      await config.configureFourPlayerManualGame();
+      await config.createRoom();
+      await hostRoom.waitForReady('host');
+      await hostRoom.seatAt(0);
+      await guestRoom.joinViaCode(await hostRoom.getRoomCode());
+      await guestRoom.seatAt(1);
+      const panel = await hostRoom.openHostManagement();
+      await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
+      await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+      await hostRoom.startRound();
+      await hostPage.getByTestId(TESTIDS.pictionaryTextInput).fill('保留的原始题目');
+      await (await hostRoom.openHostManagement())
+        .getByRole('button', { name: '结束本棒', exact: true })
+        .click();
+      await hostPage.getByRole('dialog').getByText('结束本棒', { exact: true }).click();
+      await Promise.all([
+        hostRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
+        guestRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
+      ]);
+      await hostRoom.drawStroke(1);
+      await (await hostRoom.openHostManagement())
+        .getByRole('button', { name: '中止本局', exact: true })
+        .click();
+      await hostPage.getByRole('dialog').getByText('确定', { exact: true }).click();
+      for (const page of fixture.pages) {
+        await expect(page.getByText('第 1 轮未完成，房主已中止。', { exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: '再来一轮', exact: true })).toHaveCount(0);
+      }
+      await expect(hostPage.getByRole('button', { name: /草稿|跳过/ })).toHaveCount(0);
+      await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
+      const albums: string[] = [];
+      for (let index = 0; index < PLAYER_COUNT; index += 1) {
+        albums.push(await hostRoom.readLatestGalleryEntryText());
+        if (index < PLAYER_COUNT - 1)
+          await hostPage.getByRole('button', { name: '下一本', exact: true }).click();
+      }
+      expect(albums.some((text) => text.includes('保留的原始题目'))).toBe(true);
+      expect(albums.filter((text) => text.includes('这一棒交了空白'))).toHaveLength(3);
     } finally {
       await closeAll(fixture);
     }

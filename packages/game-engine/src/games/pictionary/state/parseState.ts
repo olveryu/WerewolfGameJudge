@@ -45,6 +45,7 @@ const PICTIONARY_PHASES = [
   'transition',
   'gallery',
   'ended',
+  'aborted',
 ] as const;
 
 function parseGameType(value: unknown, path: string): PictionaryGameType {
@@ -257,6 +258,8 @@ function parseGallery(value: unknown, path: string): PictionaryGalleryState {
       chainIndex: parseInteger(raw.chainIndex, `${path}.chainIndex`),
       entryIndex: parseInteger(raw.entryIndex, `${path}.entryIndex`),
       isPlaying: parseBoolean(raw.isPlaying, `${path}.isPlaying`),
+      revealedPosition: parseInteger(raw.revealedPosition, `${path}.revealedPosition`),
+      remainingMs: parseNullable(raw.remainingMs, `${path}.remainingMs`, parseInteger),
     },
     path,
   );
@@ -287,6 +290,22 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         ),
         roundNumber: parseInteger(raw.roundNumber, 'PictionaryState.roundNumber'),
         roundId: parseNullable(raw.roundId, 'PictionaryState.roundId', parseNonEmptyString),
+        participants: parseArray(
+          raw.participants,
+          'PictionaryState.participants',
+          (value, path) => {
+            const participant = parseObject(value, path);
+            return finishObject(
+              participant,
+              {
+                seat: parseSeat(participant.seat, `${path}.seat`),
+                displayName: parseNonEmptyString(participant.displayName, `${path}.displayName`),
+                userId: parseNullable(participant.userId, `${path}.userId`, parseNonEmptyString),
+              },
+              path,
+            );
+          },
+        ),
         seatOrder: parseArray(raw.seatOrder, 'PictionaryState.seatOrder', parseSeat),
         stepOffsets: parseArray(raw.stepOffsets, 'PictionaryState.stepOffsets', parseSeat),
         stepIndex: parseInteger(raw.stepIndex, 'PictionaryState.stepIndex'),
@@ -303,30 +322,4 @@ export function parsePictionaryState(value: unknown): PictionaryState {
       'PictionaryState',
     ),
   );
-}
-
-/** Restore stored version-six rounds without changing their existing relay assignments.
- * @throws When the source version or migrated state is invalid.
- */
-export function migratePersistedPictionaryState(value: unknown): PictionaryState {
-  const raw = parseObject(value, 'PictionaryState');
-  if (raw.stateVersion !== 6) return parsePictionaryState(raw);
-  if ('stepOffsets' in raw) return failDecode('PictionaryState', 'version six without stepOffsets');
-  const config = parseConfig(raw.config, 'PictionaryState.config');
-  const phase = parsePhase(raw.phase, 'PictionaryState.phase');
-  const stepIndex = parseInteger(raw.stepIndex, 'PictionaryState.stepIndex');
-  const relayStepCount =
-    phase === 'lobby'
-      ? 0
-      : phase === 'gallery' || phase === 'ended'
-        ? stepIndex + 1
-        : config.numberOfPlayers;
-  return parsePictionaryState({
-    ...raw,
-    stateVersion: PICTIONARY_STATE_VERSION,
-    stepOffsets: Array.from(
-      { length: relayStepCount },
-      (_, entryIndex) => entryIndex % config.numberOfPlayers,
-    ),
-  });
 }

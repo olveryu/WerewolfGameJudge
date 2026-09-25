@@ -124,6 +124,19 @@ function assertRound(state: PictionaryState): void {
   if (!isPictionaryRoomFull(state)) throw new Error('Pictionary active phase requires a full room');
   const numberOfPlayers = state.config.numberOfPlayers;
   if (
+    state.participants.length !== numberOfPlayers ||
+    new Set(state.participants.map((participant) => participant.seat)).size !== numberOfPlayers
+  ) {
+    throw new Error('Pictionary participants must snapshot every seat');
+  }
+  for (const participant of state.participants) {
+    if (!state.seatOrder.includes(participant.seat))
+      throw new Error('Pictionary participant seat is invalid');
+    assertNonEmpty(participant.displayName, 'Pictionary participant name');
+    if (participant.userId !== (state.realSeats[participant.seat]?.userId ?? null))
+      throw new Error('Pictionary participant identity changed');
+  }
+  if (
     state.seatOrder.length !== numberOfPlayers ||
     new Set(state.seatOrder).size !== numberOfPlayers
   ) {
@@ -181,6 +194,7 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   if (state.phase === 'lobby') {
     if (
       state.roundId !== null ||
+      state.participants.length > 0 ||
       state.seatOrder.length > 0 ||
       state.stepOffsets.length > 0 ||
       state.stepIndex !== -1 ||
@@ -208,12 +222,26 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
       throw new Error('Pictionary gallery requires complete chains');
     }
     if (state.gallery === null) throw new Error('Pictionary gallery state is required');
+    const position = state.gallery.chainIndex * relayStepCount + state.gallery.entryIndex;
+    if (
+      state.gallery.chainIndex < 0 ||
+      state.gallery.chainIndex >= state.chains.length ||
+      state.gallery.entryIndex < 0 ||
+      state.gallery.entryIndex >= relayStepCount ||
+      state.gallery.revealedPosition < position ||
+      state.gallery.revealedPosition >= state.chains.length * relayStepCount
+    ) {
+      throw new Error('Pictionary gallery position is invalid');
+    }
+    assertSafeTimestamp(state.gallery.remainingMs, 'Pictionary gallery remaining time');
   } else if (state.gallery !== null) {
     throw new Error('Pictionary gallery state is only valid during reveal');
   }
   if (state.phase === 'settling' && state.deadlineAt !== null) {
     throw new Error('Pictionary collection must wait for explicit submissions');
   }
+  if (state.phase === 'aborted' && state.deadlineAt !== null)
+    throw new Error('Pictionary aborted round cannot have a deadline');
   if (state.phase !== 'settling' && state.reservations.length > 0) {
     throw new Error('Pictionary reservations are only valid while collecting final drawings');
   }

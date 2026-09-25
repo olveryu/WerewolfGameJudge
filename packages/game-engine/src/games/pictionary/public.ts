@@ -2,9 +2,12 @@
 
 export type {
   PictionaryCommand,
+  PictionaryCommandInput,
   PictionaryInternalCommand,
   PictionaryPublicCommand,
+  PictionaryTaskIdentity,
 } from './commands/types';
+export { createPictionaryCommand } from './commands/types';
 export {
   REASON_PICTIONARY_CONFIG_INVALID,
   REASON_PICTIONARY_GALLERY_MANUAL,
@@ -26,7 +29,7 @@ export {
   pictionaryEngine,
 } from './engine';
 export { PICTIONARY_STATE_CODEC } from './state/codec';
-export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
+export { parsePictionaryState } from './state/parseState';
 export {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryBotDisplayName,
