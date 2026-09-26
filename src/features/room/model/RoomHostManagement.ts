@@ -37,6 +37,11 @@ export interface RoomHostManagementSection {
 export interface RoomHostManagementModel {
   /** Context shown on the persistent entry without executing the action. */
   readonly preview: string;
+  /** When true, the preview names an action the host should take now; render it prominently. */
+  readonly hasPendingAction?: boolean;
   readonly status: string | null;
   readonly sections: readonly RoomHostManagementSection[];
 }
+
+/** Label for the persistent host-management entry. Referenced by hints; do not hardcode. */
+export const HOST_MANAGEMENT_LABEL = '主持管理';

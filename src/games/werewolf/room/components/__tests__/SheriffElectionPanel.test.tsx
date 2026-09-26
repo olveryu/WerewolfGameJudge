@@ -15,8 +15,7 @@ import { colors } from '@/theme';
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'registration',
   phaseTitle: '报名上警',
-  phaseDescription:
-    '房主请点击“结束报名”按钮（位于“主持管理”中）。想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
+  phaseDescription: '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
   candidateRecords: null,
   speakingInstruction: null,
   voteProgress: null,

@@ -93,7 +93,7 @@ export function useUndercoverRoomScreenState({
     seatConfirmation: roster.seatConfirmation,
     profile: roster.profile,
     share,
-    bottomActions: createUndercoverBottomActions(state, isHost, controls),
+    bottomActions: createUndercoverBottomActions(state, isHost, controls, roster.currentSeat),
     hostManagement: createUndercoverHostManagement(state, isHost, roster.capabilities, controls),
     controlledSeat:
       roster.controlledSeat !== null

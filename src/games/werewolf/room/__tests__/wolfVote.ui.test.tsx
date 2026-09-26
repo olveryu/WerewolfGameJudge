@@ -260,7 +260,7 @@ describe('WerewolfRoomScreen wolf vote UI', () => {
     const { findByTestId, findByText } = render(<WerewolfRoomScreen {...props} />);
 
     // Ensure we're in the actionable state and the UI finished initial render
-    await findByText(/请选择袭击目标/);
+    await findByText(/请点击玩家座位，选择今晚的袭击目标/);
 
     // Tap seat 3 (index 2)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
@@ -289,7 +289,7 @@ describe('WerewolfRoomScreen wolf vote UI', () => {
 
     // Plan A (server-authoritative): UI does not disable schema-external targets.
     // If a forbidden role is tapped, we still open confirm dialog and submit.
-    // Server then broadcasts actionRejected and UI shows the unified "操作无效" alert.
+    // Server then broadcasts actionRejected and UI shows the unified "操作失败" alert.
 
     // Override just the players map: seat 3 (index 2) is spiritKnight (server will reject).
     mockUseWerewolfRoomImpl = () => {
@@ -324,7 +324,7 @@ describe('WerewolfRoomScreen wolf vote UI', () => {
 
     const rendered = render(<WerewolfRoomScreen {...props} />);
     const { findByTestId, findByText } = rendered;
-    await findByText(/请选择袭击目标/);
+    await findByText(/请点击玩家座位，选择今晚的袭击目标/);
 
     // Ignore any alerts from initial render/auto intent.
     jest.mocked(showAlert).mockClear();
@@ -387,7 +387,7 @@ describe('WerewolfRoomScreen wolf vote chain interaction (harness)', () => {
     const { findByTestId, findByText } = render(<WerewolfRoomScreen {...props} />);
 
     // Wait for action prompt to render
-    await findByText(/请选择袭击目标/);
+    await findByText(/请点击玩家座位，选择今晚的袭击目标/);
     harness.clear(); // Discard auto-trigger events
 
     // Tap seat 3 (index 2)
@@ -414,7 +414,7 @@ describe('WerewolfRoomScreen wolf vote chain interaction (harness)', () => {
 
     const { findByTestId, findByText } = render(<WerewolfRoomScreen {...props} />);
 
-    await findByText(/请选择袭击目标/);
+    await findByText(/请点击玩家座位，选择今晚的袭击目标/);
     harness.clear();
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
@@ -439,7 +439,7 @@ describe('WerewolfRoomScreen wolf vote chain interaction (harness)', () => {
 
     const { findByTestId, findByText } = render(<WerewolfRoomScreen {...props} />);
 
-    await findByText(/请选择袭击目标/);
+    await findByText(/请点击玩家座位，选择今晚的袭击目标/);
     harness.clear();
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(4));

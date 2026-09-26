@@ -474,7 +474,7 @@ describe('FibKing room adapter', () => {
       openIdentity,
     });
     expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
-    expect(lobby.message).toBe('等待房主开始本轮');
+    expect(lobby.message).toBe('选择一个空位入座');
 
     const ongoingPlayer = createFibBottomActions({
       state: createOngoing(),

@@ -14,6 +14,7 @@ import type {
   RoomBottomToolButton,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
@@ -225,7 +226,7 @@ const HostManagementEntry: React.FC<{
     size="md"
     onPress={onPress}
     testID={TESTIDS.roomHostManagementButton}
-    accessibilityLabel={`主持管理，${model.preview}`}
+    accessibilityLabel={`${HOST_MANAGEMENT_LABEL}，${model.preview}`}
     style={styles.hostManagementEntry}
   >
     <View style={styles.hostManagementContent}>
@@ -236,11 +237,18 @@ const HostManagementEntry: React.FC<{
           color={colors.textInverse}
         />
         <Text style={styles.hostManagementTitle} numberOfLines={1}>
-          主持管理
+          {HOST_MANAGEMENT_LABEL}
         </Text>
       </View>
       <View style={styles.hostManagementPreviewRow}>
-        <Text style={styles.hostManagementPreview} numberOfLines={1}>
+        <Text
+          style={
+            model.hasPendingAction === true
+              ? styles.hostManagementPreviewUrgent
+              : styles.hostManagementPreview
+          }
+          numberOfLines={1}
+        >
           {model.preview}
         </Text>
         <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textInverse} />

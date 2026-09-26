@@ -392,5 +392,20 @@ export function createWerewolfHostManagement(
   if (sections.length === 0) {
     throw new Error('Werewolf Host management must expose at least one action');
   }
-  return { preview: getPreview(input), status: getStatus(input), sections };
+  return {
+    preview: getPreview(input),
+    hasPendingAction: getHasPendingAction(input),
+    status: getStatus(input),
+    sections,
+  };
+}
+
+function getHasPendingAction(input: WerewolfHostManagementInput): boolean {
+  if (input.roomStatus === GameStatus.Seated) return true;
+  if (input.roomStatus === GameStatus.Ready && !input.isPlagueMode) return true;
+  return (
+    input.roomStatus === GameStatus.Day &&
+    input.sheriffElection?.view.canAdvance === true &&
+    input.sheriffElection.view.advanceLabel !== null
+  );
 }
