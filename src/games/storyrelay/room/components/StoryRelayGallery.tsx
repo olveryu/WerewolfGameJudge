@@ -70,7 +70,6 @@ export function StoryRelayGallery({
             >
               <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.text} />
             </Button>
-            <StoryRelayImageShare state={state} chainIndex={chainIndex} />
           </View>
         )}
       </View>
@@ -153,6 +152,11 @@ export function StoryRelayGallery({
           >
             全部揭晓
           </Button>
+        </View>
+      )}
+      {!isPlayback && (
+        <View style={[styles.controls, styles.row]}>
+          <StoryRelayImageShare state={state} chainIndex={chainIndex} />
         </View>
       )}
     </View>

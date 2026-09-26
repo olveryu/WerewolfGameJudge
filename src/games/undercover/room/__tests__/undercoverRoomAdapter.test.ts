@@ -224,7 +224,7 @@ it('shows the authoritative starting speaker only once all cards are confirmed',
   });
 });
 
-it('requires confirmation to restart an active round and exposes a direct host action after abort', async () => {
+it('requires confirmation to restart an active round and exposes restart in host management after abort', async () => {
   const state = createReadingState();
   if (state.round === null) throw new Error('Expected round');
   const session = {
@@ -255,9 +255,31 @@ it('requires confirmation to restart an active round and exposes a direct host a
   expect(createUndercoverBottomActions(aborted, false, result.current)).toMatchObject({
     actions: [],
   });
-  const model = createUndercoverBottomActions(aborted, true, result.current);
-  if (model.kind !== 'info') throw new Error('Expected room actions');
-  const restart = model.actions.find((action) => action.key === 'restart');
+  expect(createUndercoverBottomActions(aborted, true, result.current)).toMatchObject({
+    actions: [],
+  });
+  const capabilities = createUndercoverRoomCapabilities({
+    state: aborted,
+    isHost: true,
+    mySeat: null,
+    requestTakeSeat: jest.fn(),
+    requestMoveSeat: jest.fn(),
+    leaveSeat: jest.fn(),
+    kickSeat: jest.fn(),
+    clearSeats: jest.fn(),
+    fillBots: jest.fn(),
+    configureGame: jest.fn(),
+    shareRoom: jest.fn(),
+    openProfile: jest.fn(),
+    takeOverBot: jest.fn(),
+  });
+  const hostManagement = createUndercoverHostManagement(
+    aborted,
+    true,
+    capabilities,
+    result.current,
+  );
+  const restart = hostManagement?.sections[0]?.actions.find((action) => action.key === 'restart');
   if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
   jest.mocked(showConfirmAlert).mockClear();
   await act(async () => {

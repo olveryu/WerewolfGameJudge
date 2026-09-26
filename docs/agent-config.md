@@ -1,6 +1,6 @@
 # Agent 配置（单源多端）
 
-本仓库用一组规范源驱动 GitHub Copilot、Claude Code、Cursor 和 Gemini CLI。规则正文只维护一份，宿主差异由生成器处理。
+本仓库用一组规范源驱动 GitHub Copilot、Claude Code、Cursor、Gemini CLI 和 Muse。规则正文只维护一份，宿主差异由生成器处理。
 
 ## 规范源与生成物
 
@@ -16,6 +16,7 @@ agents/
 .claude/skills/<name>/**
 CLAUDE.md
 GEMINI.md
+MUSE.md
 ```
 
 ## 日常命令
@@ -36,6 +37,7 @@ GEMINI.md
 | **Claude Code**    | `CLAUDE.md` 导入 `AGENTS.md`；技能位于 `.claude/skills/` |
 | **Cursor**         | `AGENTS.md`、`.cursor/rules/`、`.agents/skills/`         |
 | **Gemini CLI**     | `GEMINI.md` 导入 `AGENTS.md`；技能位于 `.agents/skills/` |
+| **Muse**           | `MUSE.md` 导入 `AGENTS.md`；技能位于 `.agents/skills/`   |
 
 不生成 `.github/copilot-instructions.md`，避免与 `AGENTS.md` 重复注入。同理，不生成 `.github/skills/`、`.cursor/skills/` 或根 `skills/`；支持的宿主直接读取 `.agents/skills/`。
 

@@ -49,6 +49,7 @@ export const storyRelayStyles = StyleSheet.create({
     padding: spacing.small,
     gap: spacing.small,
   },
+  shareButton: { flex: 1 },
   list: { padding: spacing.medium, gap: spacing.small },
   imagePage: {
     width: '100%',

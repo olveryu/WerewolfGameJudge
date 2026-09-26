@@ -14,7 +14,6 @@ import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCom
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmission';
 import { useStoryRelayDeadline } from '../hooks/useStoryRelayDeadline';
@@ -22,56 +21,6 @@ import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommand
 import { StoryRelayGallery } from './StoryRelayGallery';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 import { StoryRelayTaskEditor } from './StoryRelayTaskEditor';
-
-/** Host actions carry current task identity or phase revision and always confirm destructive choices. */
-function StoryRelayHostActions({
-  state,
-  submit,
-  isSubmitting,
-}: {
-  readonly state: StoryRelayState;
-  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
-  readonly isSubmitting: boolean;
-}) {
-  const confirm = (title: string, message: string, command: StoryRelayCommand) =>
-    showConfirmAlert(title, message, async () => {
-      await submit(title, command);
-    });
-  const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
-  return (
-    <View style={[styles.controls, styles.row]}>
-      {state.phase === 'ended' && (
-        <Button
-          disabled={isSubmitting}
-          testID="storyrelay-next-round"
-          onPress={() =>
-            confirm(
-              '再来一局',
-              '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
-              { type: 'storyrelay.round.next' },
-            )
-          }
-        >
-          再来一局
-        </Button>
-      )}
-      {isTerminal && (
-        <Button
-          variant="secondary"
-          disabled={isSubmitting}
-          testID="storyrelay-return-lobby"
-          onPress={() =>
-            confirm('返回大厅', '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。', {
-              type: 'storyrelay.game.returnToLobby',
-            })
-          }
-        >
-          返回大厅
-        </Button>
-      )}
-    </View>
-  );
-}
 
 /** Shows public progress and explicit per-bot takeover without revealing story assignments. */
 function StoryRelayProgress({
@@ -203,13 +152,6 @@ function StoryRelayStageContent({
             />
           )}
         </>
-      )}
-      {isHost && (state.phase === 'ended' || state.phase === 'aborted') && (
-        <StoryRelayHostActions
-          state={state}
-          submit={submit}
-          isSubmitting={submission.isSubmitting}
-        />
       )}
     </View>
   );

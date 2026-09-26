@@ -328,7 +328,7 @@ test.describe('Pictionary', () => {
       });
       await test.step('export complete albums with rendered drawings on desktop and mobile', async () => {
         for (const page of fixture.pages.slice(0, 2)) {
-          await page.getByRole('button', { name: /保存／分享画册/ }).click();
+          await page.getByRole('button', { name: /分享本篇画册/ }).click();
           const exportButton = page.getByRole('button', { name: /保存／分享长图/ });
           await expect(exportButton).toBeEnabled();
           const album = page.getByTestId('pictionary-export-album');
@@ -356,7 +356,7 @@ test.describe('Pictionary', () => {
         }
       });
       await test.step('upload the album PNG for WeChat despite an unrelated pending image', async () => {
-        await expectWeChatImageShare(hostPage, /保存／分享画册/, /保存／分享长图/, 1);
+        await expectWeChatImageShare(hostPage, /分享本篇画册/, /保存／分享长图/, 1);
       });
     } finally {
       await closeAll(fixture);

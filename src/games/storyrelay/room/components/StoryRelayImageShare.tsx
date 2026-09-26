@@ -24,19 +24,12 @@ export function StoryRelayImageShare({
     <>
       <Button
         variant="secondary"
-        accessibilityLabel="本篇图片"
+        style={styles.shareButton}
+        accessibilityLabel="分享本篇故事"
         onPress={() => model.openStory(chainIndex)}
         icon={<Ionicons name="image-outline" size={componentSizes.icon.sm} color={colors.text} />}
       >
-        本篇图片
-      </Button>
-      <Button
-        variant="secondary"
-        accessibilityLabel="全部图片"
-        onPress={model.openAll}
-        icon={<Ionicons name="images-outline" size={componentSizes.icon.sm} color={colors.text} />}
-      >
-        全部图片
+        分享本篇故事
       </Button>
       {model.isOpen && (
         <RoomDialog

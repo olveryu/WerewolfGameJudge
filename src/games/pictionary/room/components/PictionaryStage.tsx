@@ -70,7 +70,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   if (state.phase === 'ended' || state.phase === 'aborted') {
     return (
       <View style={styles.container}>
-        <PictionaryEndedStage state={state} isHost={isHost} session={session} />
+        <PictionaryEndedStage state={state} />
       </View>
     );
   }

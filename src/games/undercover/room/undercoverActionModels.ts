@@ -24,18 +24,6 @@ export function createUndercoverBottomActions(
   controls: Controls,
 ): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
-  if (isHost && (state.phase === 'ended' || state.phase === 'aborted'))
-    actions.push({
-      key: 'restart',
-      label: '重新开始',
-      variant: 'primary',
-      size: 'lg',
-      testID: 'undercover-restart',
-      isLoading: controls.isSubmitting,
-      ...(controls.isSubmitting
-        ? ({ isEnabled: false, disabledReason: null, onDisabledPress: null } as const)
-        : ({ isEnabled: true, onPress: controls.restart } as const)),
-    });
   if (controls.canViewCard && !controls.isSelecting)
     actions.push({
       key: 'card',
@@ -149,12 +137,13 @@ export function createUndercoverHostManagement(
       break;
     case 'ended':
     case 'aborted':
+      add('restart', '重新开始', 'refresh-outline', controls.restart, 'primary');
       add(
         'return-lobby',
         '返回大厅',
         'return-down-back-outline',
         controls.returnToLobby,
-        'primary',
+        'secondary',
       );
       break;
   }
