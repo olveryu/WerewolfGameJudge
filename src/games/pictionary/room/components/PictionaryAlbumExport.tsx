@@ -34,7 +34,7 @@ export function PictionaryAlbumExport({
         onPress={() => setIsOpen(true)}
         icon={<Ionicons name="share-outline" size={20} color={colors.text} />}
       >
-        保存／分享画册
+        分享本篇画册
       </Button>
       {isOpen && <AlbumExportDialog state={state} chain={chain} onClose={() => setIsOpen(false)} />}
     </>

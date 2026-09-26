@@ -161,60 +161,50 @@ export function useStoryRelayRoomState(
     });
   const canAbort =
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
-  const activeHostManagement: RoomHostManagementModel | null = !canAbort
+  const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
+  const terminalHostManagement: RoomHostManagementModel | null = !isTerminal
     ? null
     : {
-        preview: '管理本局',
+        preview: state.phase === 'ended' ? '故事已揭晓' : '未完成的故事',
         status: null,
         sections: [
-          ...(state.phase === 'answering'
-            ? [
-                {
-                  key: 'current-flow',
-                  title: '当前流程',
-                  actions: [
+          {
+            key: 'current-flow',
+            title: '当前流程',
+            actions: [
+              ...(state.phase === 'ended'
+                ? [
                     {
-                      key: 'finish-phase',
-                      label: '结束本棒',
-                      icon: 'stop-circle-outline' as const,
-                      variant: 'secondary' as const,
+                      key: 'next-round',
+                      label: '再来一局',
+                      icon: 'play-forward-outline' as const,
+                      variant: 'primary' as const,
                       isEnabled: true as const,
-                      testID: 'storyrelay-finish-step',
+                      testID: 'storyrelay-next-round',
                       onPress: () =>
                         showConfirmAlert(
-                          '结束本棒',
-                          '将自动收取当前文字，没有内容时自动交空白。',
+                          '再来一局',
+                          '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
                           async () => {
-                            await submit('结束本棒', {
-                              type: 'storyrelay.phase.finish',
-                              phaseRevision: state.phaseRevision,
-                            });
+                            await submit('再来一局', { type: 'storyrelay.round.next' });
                           },
                         ),
                     },
-                  ],
-                },
-              ]
-            : []),
-          {
-            key: 'danger',
-            title: '危险操作',
-            actions: [
+                  ]
+                : []),
               {
-                key: 'abort-round',
-                label: '中止本局',
-                icon: 'close-circle-outline',
-                variant: 'danger',
-                isEnabled: true,
+                key: 'return-lobby',
+                label: '返回大厅',
+                icon: 'return-down-back-outline' as const,
+                variant: 'secondary' as const,
+                isEnabled: true as const,
+                testID: 'storyrelay-return-lobby',
                 onPress: () =>
                   showConfirmAlert(
-                    '中止本局',
-                    '将公开已收录的故事片段，本局不结算奖励。',
+                    '返回大厅',
+                    '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。',
                     async () => {
-                      await submit('中止本局', {
-                        type: 'storyrelay.round.abort',
-                        phaseRevision: state.phaseRevision,
-                      });
+                      await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
                     },
                   ),
               },
@@ -222,6 +212,69 @@ export function useStoryRelayRoomState(
           },
         ],
       };
+  const activeHostManagement: RoomHostManagementModel | null =
+    terminalHostManagement ??
+    (!canAbort
+      ? null
+      : {
+          preview: '管理本局',
+          status: null,
+          sections: [
+            ...(state.phase === 'answering'
+              ? [
+                  {
+                    key: 'current-flow',
+                    title: '当前流程',
+                    actions: [
+                      {
+                        key: 'finish-phase',
+                        label: '结束本棒',
+                        icon: 'stop-circle-outline' as const,
+                        variant: 'secondary' as const,
+                        isEnabled: true as const,
+                        testID: 'storyrelay-finish-step',
+                        onPress: () =>
+                          showConfirmAlert(
+                            '结束本棒',
+                            '将自动收取当前文字，没有内容时自动交空白。',
+                            async () => {
+                              await submit('结束本棒', {
+                                type: 'storyrelay.phase.finish',
+                                phaseRevision: state.phaseRevision,
+                              });
+                            },
+                          ),
+                      },
+                    ],
+                  },
+                ]
+              : []),
+            {
+              key: 'danger',
+              title: '危险操作',
+              actions: [
+                {
+                  key: 'abort-round',
+                  label: '中止本局',
+                  icon: 'close-circle-outline',
+                  variant: 'danger',
+                  isEnabled: true,
+                  onPress: () =>
+                    showConfirmAlert(
+                      '中止本局',
+                      '将公开已收录的故事片段，本局不结算奖励。',
+                      async () => {
+                        await submit('中止本局', {
+                          type: 'storyrelay.round.abort',
+                          phaseRevision: state.phaseRevision,
+                        });
+                      },
+                    ),
+                },
+              ],
+            },
+          ],
+        });
   const selection = profile.selection;
   const shellModel: RoomShellModel = {
     roomCode: room.roomCode,

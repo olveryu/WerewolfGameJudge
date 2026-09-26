@@ -66,10 +66,10 @@ async function expectFixedTask(page: Page): Promise<void> {
     .toBeLessThanOrEqual(1);
 }
 
-async function expectStoryImageExport(page: Page, scope: '本篇图片' | '全部图片', count: number) {
-  await page.getByRole('button', { name: scope, exact: true }).click();
+async function expectStoryImageExport(page: Page) {
+  await page.getByRole('button', { name: '分享本篇故事', exact: true }).click();
   const images = page.locator('[data-testid^="storyrelay-export-"]');
-  await expect(images).toHaveCount(count);
+  await expect(images).toHaveCount(1);
   for (const image of await images.all()) {
     await expect(image).toContainText('第4棒的故事');
     await expect(image).toContainText('4.');
@@ -79,10 +79,10 @@ async function expectStoryImageExport(page: Page, scope: '本篇图片' | '全�
   page.on('download', collect);
   try {
     await page.getByRole('button', { name: '保存／分享图片', exact: true }).click();
-    await expect.poll(() => downloads.length).toBe(count);
+    await expect.poll(() => downloads.length).toBe(1);
     for (const [index, download] of downloads.entries()) {
       expect(download.suggestedFilename()).toMatch(/^storyrelay-.*\.png$/);
-      const filename = test.info().outputPath(`${scope}-${index}.png`);
+      const filename = test.info().outputPath(`story-${index}.png`);
       await download.saveAs(filename);
       const png = await readFile(filename);
       expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
@@ -212,18 +212,18 @@ test('four humans write four turns without restoring unsubmitted input and revea
       await hostPage.getByRole('button', { name: '全部揭晓', exact: true }).click();
       await confirm(hostPage);
       await expect(
-        spectator.page.getByRole('button', { name: '全部图片', exact: true }),
+        spectator.page.getByRole('button', { name: '分享本篇故事', exact: true }),
       ).toBeVisible();
       await expect(hostPage.getByTestId('storyrelay-entry-3')).toBeVisible();
       await expect(
         hostPage.getByTestId('storyrelay-gallery').getByRole('button', { name: /复制/ }),
       ).toHaveCount(0);
-      await expectStoryImageExport(hostPage, '全部图片', 4);
-      await expectStoryImageExport(fixture.pages[1]!, '本篇图片', 1);
-      await test.step('upload all story PNGs for WeChat despite an unrelated pending image', async () => {
-        await expectWeChatImageShare(hostPage, '全部图片', '保存／分享图片', 4);
+      await expectStoryImageExport(hostPage);
+      await expectStoryImageExport(fixture.pages[1]!);
+      await test.step('upload story PNG for WeChat despite an unrelated pending image', async () => {
+        await expectWeChatImageShare(hostPage, '分享本篇故事', '保存／分享图片', 1);
       });
-      await hostPage.getByTestId('storyrelay-next-round').click();
+      await (await room.openHostManagement()).getByTestId('storyrelay-next-round').click();
       await confirm(hostPage);
       await expect(hostPage.getByTestId('storyrelay-editor')).toHaveValue('');
       await expect(hostPage.getByTestId('storyrelay-previous-entry')).toHaveCount(0);
@@ -268,9 +268,11 @@ test('an unseated host writes independent bot inputs and an abort preserves subm
       .getByRole('button', { name: '中止本局', exact: true })
       .click();
     await confirm(page);
-    await expect(page.getByText('未完成的故事', { exact: false })).toBeVisible();
+    // The host-management entry button preview also reads "未完成的故事";
+    // scope to the gallery title ("未完成的故事 · 1 / N") to avoid ambiguity.
+    await expect(page.getByText(/未完成的故事 · \d+ \//)).toBeVisible();
     await expect(page.getByTestId('storyrelay-next-round')).toHaveCount(0);
-    await page.getByTestId('storyrelay-return-lobby').click();
+    await (await room.openHostManagement()).getByTestId('storyrelay-return-lobby').click();
     await confirm(page);
     await expect(page.getByTestId(TESTIDS.roomHostManagementButton)).toBeVisible();
   } finally {

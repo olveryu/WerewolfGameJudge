@@ -53,7 +53,6 @@ export function useStoryRelayImageShare(state: StoryRelayState) {
     isSharing,
     stories,
     openStory: (chainIndex: number) => setSelection([chainIndex]),
-    openAll: () => setSelection(state.chains.map((_, chainIndex) => chainIndex)),
     close: () => setSelection(null),
     setCaptureRef: (id: string, view: View | null) => {
       if (view === null) captureRefs.current.delete(id);

@@ -148,6 +148,22 @@ export function usePictionaryRoomScreenState({
     () => void submitCommand('开始游戏', { type: 'pictionary.round.start' }),
     [submitCommand],
   );
+  const nextRound = useCallback(
+    () =>
+      void submitCommand(
+        '再来一轮',
+        createPictionaryCommand(state, { type: 'pictionary.round.next' }, null),
+      ),
+    [state, submitCommand],
+  );
+  const returnToLobby = useCallback(
+    () =>
+      void submitCommand(
+        '返回大厅',
+        createPictionaryCommand(state, { type: 'pictionary.game.returnToLobby' }, null),
+      ),
+    [state, submitCommand],
+  );
   const capabilities = useMemo(
     () =>
       createPictionaryRoomCapabilities({
@@ -261,6 +277,8 @@ export function usePictionaryRoomScreenState({
         isCommandSubmitting: commandSubmission.isSubmitting,
         capabilities,
         startRound,
+        nextRound,
+        returnToLobby,
         finishPhase: () =>
           showConfirmAlert(
             '结束编辑并收稿？',
@@ -282,7 +300,16 @@ export function usePictionaryRoomScreenState({
           }),
         onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位。'),
       }),
-    [capabilities, commandSubmission.isSubmitting, isHost, startRound, state, submitCommand],
+    [
+      capabilities,
+      commandSubmission.isSubmitting,
+      isHost,
+      nextRound,
+      returnToLobby,
+      startRound,
+      state,
+      submitCommand,
+    ],
   );
   const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
     if (controlledSeat !== null) {

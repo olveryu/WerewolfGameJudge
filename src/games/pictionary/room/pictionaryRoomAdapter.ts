@@ -277,6 +277,8 @@ interface PictionaryHostManagementInput {
     'canConfigureGame' | 'canClearSeats' | 'canFillBots'
   >;
   readonly startRound: () => void;
+  readonly nextRound: () => void;
+  readonly returnToLobby: () => void;
   readonly finishPhase: () => void;
   readonly abortRound: () => void;
   readonly onStartDisabled: () => void;
@@ -296,6 +298,27 @@ export function createPictionaryHostManagement(
   input: PictionaryHostManagementInput,
 ): RoomHostManagementModel | null {
   if (!input.isHost) return null;
+  if (input.state.phase === 'ended' || input.state.phase === 'aborted') {
+    const actions: RoomHostManagementAction[] = [];
+    if (input.state.phase === 'ended')
+      actions.push(
+        hostAction('next-round', '再来一轮', 'play-forward-outline', 'primary', input.nextRound),
+      );
+    actions.push(
+      hostAction(
+        'return-lobby',
+        '返回大厅',
+        'return-down-back-outline',
+        'secondary',
+        input.returnToLobby,
+      ),
+    );
+    return {
+      preview: '本轮已结束',
+      status: null,
+      sections: [{ key: 'current-flow', title: '当前流程', actions }],
+    };
+  }
   if (input.state.phase !== 'lobby') {
     const canAbort =
       ['answering', 'settling', 'transition'].includes(input.state.phase) &&

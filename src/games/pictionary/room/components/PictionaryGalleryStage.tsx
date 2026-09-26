@@ -283,22 +283,15 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
 
 interface PictionaryEndedStageProps {
   readonly state: PictionaryState;
-  readonly isHost: boolean;
-  readonly session: PictionaryRoomSession;
 }
 
-export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
-  state,
-  isHost,
-  session,
-}) => {
+export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({ state }) => {
   if (state.phase !== 'ended' && state.phase !== 'aborted') {
     throw new Error('[FAIL-FAST] Ended stage requires completed Pictionary state');
   }
   const [localChainIndex, setLocalChainIndex] = useState(0);
   const chain = state.chains[localChainIndex];
   if (chain === undefined) throw new Error('[FAIL-FAST] Completed Pictionary album is missing');
-  const command = usePictionaryStageCommand(session, null, state);
   const controls = (
     <View style={styles.endedControls}>
       <PictionaryAlbumExport key={chain.id} state={state} chain={chain} />
@@ -335,27 +328,6 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({
           <Ionicons name="chevron-forward" size={22} color={colors.text} />
         </Pressable>
       </View>
-      {isHost && (
-        <View style={styles.roundActions}>
-          <Button
-            variant="secondary"
-            disabled={command.isSubmitting}
-            onPress={() =>
-              void command.submit('返回房间', { type: 'pictionary.game.returnToLobby' })
-            }
-          >
-            返回房间
-          </Button>
-          {state.phase === 'ended' && (
-            <Button
-              loading={command.isSubmitting}
-              onPress={() => void command.submit('再来一轮', { type: 'pictionary.round.next' })}
-            >
-              再来一轮
-            </Button>
-          )}
-        </View>
-      )}
     </View>
   );
 
@@ -475,12 +447,6 @@ const styles = StyleSheet.create({
     minWidth: 72,
     color: colors.text,
     textAlign: 'center',
-  },
-  roundActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    gap: spacing.small,
   },
   disabled: { opacity: fixed.disabledOpacity },
   pressed: { opacity: fixed.activeOpacity },

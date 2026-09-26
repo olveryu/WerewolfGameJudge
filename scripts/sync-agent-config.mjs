@@ -282,6 +282,35 @@ Run \`pnpm run sync:agents\` after editing canonical agent configuration. See [d
 `;
 }
 
+function buildMuseEntrypoint(pathRuleFiles) {
+  const pathRuleLinks = pathRuleFiles
+    .map((fileName) => `- [agents/path-rules/${fileName}](agents/path-rules/${fileName})`)
+    .join('\n');
+
+  return `${GENERATED_NOTICE}
+
+# Muse
+
+> Edit [\`AGENTS.md\`](AGENTS.md), [\`agents/path-rules/\`](agents/path-rules/), or [\`.agents/skills/\`](.agents/skills/), then run \`pnpm run sync:agents\`.
+
+## Project Instructions
+
+@AGENTS.md
+
+## Path Rules
+
+Read the matching source rule before editing files in its scope:
+
+${pathRuleLinks}
+
+## Skills
+
+Project skills are discovered from [\`.agents/skills/\`](.agents/skills/).
+
+See [docs/agent-config.md](docs/agent-config.md).
+`;
+}
+
 async function buildExpectedOutputs() {
   if (!(await pathExists(AGENTS_MD))) {
     throw new Error('Missing AGENTS.md at repository root');
@@ -294,6 +323,7 @@ async function buildExpectedOutputs() {
   await buildClaudeSkillOutputs(expectedOutputs);
   expectedOutputs.set('CLAUDE.md', buildClaudeEntrypoint(pathRuleFiles));
   expectedOutputs.set('GEMINI.md', buildGeminiEntrypoint());
+  expectedOutputs.set('MUSE.md', buildMuseEntrypoint(pathRuleFiles));
   return expectedOutputs;
 }
 

@@ -160,14 +160,19 @@ for (const viewport of [
       }
       await expect(page.getByText('白板获胜', { exact: true })).toBeVisible();
       await expect(page.getByTestId('undercover-view-word')).toHaveCount(0);
-      await expect(page.getByTestId('undercover-restart')).toBeInViewport();
+      // Open the host panel once and reuse it: on narrow viewports the panel is a
+      // modal sheet that covers the management entry button, so opening it again
+      // while it is already open leaves Playwright retrying the entry click
+      // until the test timeout.
+      const endedManagement = await room.openHostManagement();
+      await expect(endedManagement.getByTestId('undercover-restart')).toBeVisible();
       await page.screenshot({
         path: testInfo.outputPath(`undercover-ended-${viewport.width}.png`),
       });
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
-      await page.getByTestId('undercover-restart').click();
+      await endedManagement.getByTestId('undercover-restart').click();
       await expect(page.getByText('确认词卡 · 0/6', { exact: true })).toBeVisible();
       await expect(speakingHint).toHaveCount(0);
       await expect(page.getByTestId('undercover-results')).toHaveCount(0);
