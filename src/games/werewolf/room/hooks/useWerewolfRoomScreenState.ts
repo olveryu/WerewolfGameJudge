@@ -37,6 +37,7 @@ import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { getWolfVoteSummary, toGameRoomLike } from '../werewolfRoom.helpers';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
+import { STATIC_BUTTONS } from './bottomLayoutConfig';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useNightReviewShare } from './useNightReviewShare';
@@ -625,7 +626,7 @@ export function useWerewolfRoomScreenState(
           }
           if (seatedCount === 0) return '等待玩家入座，或分享房间邀请好友';
           if (seatedCount < totalSeats) return `还有 ${totalSeats - seatedCount} 个空位等待入座`;
-          return '全员已就位 → 点击下方「分配角色」｜右上角菜单可清空座位';
+          return '全员已就位，等待房主分配角色';
         }
         case GameStatus.Assigned: {
           let viewedCount = 0;
@@ -638,7 +639,7 @@ export function useWerewolfRoomScreenState(
           return null;
         }
         case GameStatus.Ready:
-          return '全员就绪 → 「开始天黑」🔊';
+          return '全员就绪，等待房主开始游戏 🔊';
         case GameStatus.Ongoing:
         case GameStatus.Day:
           return null;
@@ -660,7 +661,7 @@ export function useWerewolfRoomScreenState(
           if (p && p.hasViewedRole) viewedCount++;
         }
         if (viewedCount < totalSeats) {
-          return '请点击你的头像查看身份';
+          return `请点击下方「${STATIC_BUTTONS.viewRole.label}」查看你的身份`;
         }
         return null;
       }

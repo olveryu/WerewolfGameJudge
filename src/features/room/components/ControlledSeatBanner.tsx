@@ -24,9 +24,7 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({ mo
       <View style={styles.hintContainer}>
         <Text style={styles.hintText}>
           <Ionicons name={UI_ICONS.HINT} size={typography.secondary} />
-          {model.showBulkViewHint
-            ? ' 长按座位可接管机器人，右上角菜单可一键查看身份'
-            : ' 长按座位可接管机器人'}
+          {' 长按座位可接管机器人'}
         </Text>
       </View>
     );

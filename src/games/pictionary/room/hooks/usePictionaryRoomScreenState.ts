@@ -325,7 +325,7 @@ export function usePictionaryRoomScreenState({
       Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).some((seat) =>
         isPictionaryImplicitBotSeat(state, seat),
       );
-    return hasControllableBots ? { kind: 'hint', showBulkViewHint: false } : null;
+    return hasControllableBots ? { kind: 'hint' } : null;
   }, [capabilities.canTakeOverBots, controlledSeat, releaseBot, state]);
   const shellModel = useMemo(
     (): RoomShellModel => ({

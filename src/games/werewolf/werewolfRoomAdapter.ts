@@ -212,12 +212,11 @@ export function createWerewolfControlledSeatModel(input: {
   readonly isVisible: boolean;
   readonly controlledSeat: number | null;
   readonly controlledBotName: string | null;
-  readonly showBulkViewHint: boolean;
   readonly release: () => void;
 }): RoomControlledSeatModel | null {
   if (!input.isVisible) return null;
   if (input.controlledSeat === null) {
-    return { kind: 'hint', showBulkViewHint: input.showBulkViewHint };
+    return { kind: 'hint' };
   }
   if (input.controlledBotName === null) {
     throw new Error(`Controlled Werewolf bot seat ${input.controlledSeat} has no player`);
