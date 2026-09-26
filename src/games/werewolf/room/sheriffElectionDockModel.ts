@@ -140,7 +140,9 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
   if (election.view.canVote) {
     return {
       key: 'sheriff-open-vote',
-      label: input.isInspectorVisible ? '请在「警长竞选」中投票' : getSheriffVoteButtonLabel(election),
+      label: input.isInspectorVisible
+        ? '请在「警长竞选」中投票'
+        : getSheriffVoteButtonLabel(election),
       testID: TESTIDS.sheriffOpenVoteButton,
       pendingKind: null,
       tone: 'default',
