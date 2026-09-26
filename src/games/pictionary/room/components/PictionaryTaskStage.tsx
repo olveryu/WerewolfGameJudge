@@ -1014,7 +1014,9 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
         </View>
         <Text style={styles.waitingHint}>所有人完成后会自动交换任务</Text>
         {state.phase === 'settling' && (
-          <Text style={styles.waitingHint}>等待期间请留在 App/小程序内并保持联网，以免收稿卡住</Text>
+          <Text style={styles.waitingHint}>
+            等待期间请留在 App/小程序内并保持联网，以免收稿卡住
+          </Text>
         )}
         {children}
       </View>
