@@ -20,6 +20,13 @@ export const storyRelayStyles = StyleSheet.create({
   title: { ...textStyles.subtitleSemibold, color: colors.text, flexShrink: 1 },
   text: { ...textStyles.body, color: colors.text },
   muted: { ...textStyles.secondary, color: colors.textSecondary },
+  settlingReminder: {
+    ...textStyles.secondary,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.medium,
+    paddingTop: spacing.small,
+  },
   error: { ...textStyles.secondary, color: colors.error },
   previous: {
     flex: 1,
