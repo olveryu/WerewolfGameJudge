@@ -1013,7 +1013,9 @@ const PictionaryWaitingStage: React.FC<WaitingStageProps> = ({
           {pendingCount > 0 && <View style={{ flex: pendingCount }} />}
         </View>
         <Text style={styles.waitingHint}>所有人完成后会自动交换任务</Text>
-        <Text style={styles.waitingHint}>等待期间请留在 App/小程序内并保持联网，以免收稿卡住</Text>
+        {state.phase === 'settling' && (
+          <Text style={styles.waitingHint}>等待期间请留在 App/小程序内并保持联网，以免收稿卡住</Text>
+        )}
         {children}
       </View>
     </PictionaryStageFrame>
@@ -1050,7 +1052,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
           ? '发送暂未成功，正在自动重试。'
           : autoSubmission.status === 'waiting'
             ? '本机最终内容已处理，正在等待其他玩家。'
-            : '正在自动提交本棒内容，请保持页面打开。';
+            : '正在自动提交本棒内容，请留在 App/小程序内。';
     return (
       <PictionaryWaitingStage
         state={state}

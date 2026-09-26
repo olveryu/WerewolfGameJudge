@@ -481,7 +481,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           controlledSeat === null
             ? null
             : (gameState?.players.get(controlledSeat)?.displayName ?? null),
-        showBulkViewHint: roomStatus === GameStatus.Assigned,
         release: releaseBot,
       }),
     [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, releaseBot],

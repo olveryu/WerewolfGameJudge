@@ -27,7 +27,7 @@ describe('ControlledSeatBanner', () => {
 
   it('renders a non-interactive takeover hint without a release action', () => {
     const view = render(
-      <ControlledSeatBanner model={{ kind: 'hint', showBulkViewHint: false }} styles={styles} />,
+      <ControlledSeatBanner model={{ kind: 'hint' }} styles={styles} />,
     );
 
     expect(view.getByText(/长按座位可接管机器人/)).toBeTruthy();

@@ -59,7 +59,6 @@ export type RoomControlledSeatModel =
     }
   | {
       readonly kind: 'hint';
-      readonly showBulkViewHint: boolean;
     };
 
 export interface RoomShellModel {
