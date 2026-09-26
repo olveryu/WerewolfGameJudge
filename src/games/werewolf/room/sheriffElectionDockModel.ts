@@ -98,7 +98,7 @@ function createInspectorVotePrompt(action: SheriffDockAction): RoomBottomButton 
   };
 }
 
-function getVoteLabel(model: SheriffElectionPanelModel): string {
+export function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): string {
   const ballot = model.view.myBallot;
   if (ballot === null || ballot.kind === 'notSubmitted') return '选择投票';
   if (ballot.kind === 'abstained') return '修改弃票';
@@ -140,7 +140,9 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
   if (election.view.canVote) {
     return {
       key: 'sheriff-open-vote',
-      label: input.isInspectorVisible ? '请在右侧投票' : getVoteLabel(election),
+      label: input.isInspectorVisible
+        ? '请在「警长竞选」中投票'
+        : getSheriffVoteButtonLabel(election),
       testID: TESTIDS.sheriffOpenVoteButton,
       pendingKind: null,
       tone: 'default',

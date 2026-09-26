@@ -233,7 +233,7 @@ const ROLE_SPEC_DEFINITIONS = {
         audioKey: 'witch',
         actionKind: 'compound',
         ui: {
-          prompt: '女巫请行动',
+          prompt: '女巫请行动（可救人、用毒或跳过）',
           emptyKillTitle: '昨夜无人倒台',
         },
         compoundSteps: [
@@ -260,7 +260,7 @@ const ROLE_SPEC_DEFINITIONS = {
             canSkip: true,
             ui: {
               confirmTitle: '确认行动',
-              prompt: '如要使用毒药，请点击座位',
+              prompt: '如要使用毒药，请点击要毒杀的玩家座位',
               confirmText: '使用毒药？',
               bottomActionText: '不用技能',
             },
@@ -354,7 +354,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'confirm',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请点击下方按钮查看技能发动状态',
+          prompt: '请点击「发动状态」查看技能发动状态',
           confirmText: '查看猎人发动状态？',
           bottomActionText: '发动状态',
           confirmStatusUi: {
@@ -923,7 +923,7 @@ const ROLE_SPEC_DEFINITIONS = {
         audioKey: 'wolf',
         actionKind: 'wolfVote',
         ui: {
-          prompt: '请选择袭击目标',
+          prompt: '请点击玩家座位，选择今晚的袭击目标',
           confirmTitle: '狼人投票',
           confirmText: '袭击此玩家？',
           emptyVoteText: '放弃袭击',
@@ -1117,7 +1117,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'confirm',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请点击下方按钮查看技能发动状态',
+          prompt: '请点击「发动状态」查看技能发动状态',
           confirmText: '查看狼王发动状态？',
           bottomActionText: '发动状态',
           confirmStatusUi: {
@@ -1567,7 +1567,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'confirm',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请点击下方按钮查看你的狼同伴',
+          prompt: '请点击「查看同伴」查看你的狼同伴',
           confirmText: '查看狼同伴？',
           bottomActionText: '查看同伴',
           confirmStatusUi: {
@@ -1620,7 +1620,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'chooseSeat',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请选择你的榜样',
+          prompt: '请选择你的榜样（榜样被投票出局时你将变为狼人）',
           confirmText: '选择此玩家为榜样？',
           bottomActionText: '不用技能',
         },
@@ -1665,7 +1665,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'chooseSeat',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请选择你的榜样',
+          prompt: '请选择你的榜样（榜样被投票出局时你将变为狼人）',
           confirmText: '选择此玩家为榜样？',
           bottomActionText: '不用技能',
         },
@@ -1781,7 +1781,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'chooseSeat',
         ui: {
           confirmTitle: '确认模仿',
-          prompt: '请选择你要模仿的玩家',
+          prompt: '请选择你要模仿的玩家（其出局后你将继承其身份）',
           confirmText: '模仿此玩家？',
         },
       },
@@ -1831,7 +1831,7 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'confirm',
         ui: {
           confirmTitle: '确认行动',
-          prompt: '请点击下方按钮查看你的阵营信息',
+          prompt: '请点击「查看阵营」查看你的阵营信息',
           confirmText: '查看阵营信息？',
           bottomActionText: '查看阵营',
           confirmStatusUi: {

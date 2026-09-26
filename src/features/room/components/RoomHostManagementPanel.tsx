@@ -12,6 +12,7 @@ import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -78,14 +79,14 @@ const ManagementContent: React.FC<{
   <>
     <View style={styles.header}>
       <View style={styles.heading}>
-        <Text style={styles.title}>主持管理</Text>
+        <Text style={styles.title}>{HOST_MANAGEMENT_LABEL}</Text>
         {model.status !== null && <Text style={styles.status}>{model.status}</Text>}
       </View>
       <Button
         variant="icon"
         size="sm"
         onPress={onClose}
-        accessibilityLabel="关闭主持管理"
+        accessibilityLabel={`关闭${HOST_MANAGEMENT_LABEL}`}
         buttonColor={colors.surface}
       >
         <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />

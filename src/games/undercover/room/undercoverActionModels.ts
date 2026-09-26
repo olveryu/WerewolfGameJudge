@@ -22,6 +22,7 @@ export function createUndercoverBottomActions(
   state: UndercoverState,
   isHost: boolean,
   controls: Controls,
+  mySeat: number | null,
 ): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
   if (controls.canViewCard && !controls.isSelecting)
@@ -44,7 +45,16 @@ export function createUndercoverBottomActions(
       onPress: controls.cancelSelection,
     });
   }
-  return { kind: 'info', message: controls.isSelecting ? '选择本次出局玩家' : null, actions };
+  return {
+    kind: 'info',
+    message:
+      state.phase === 'lobby' && !isHost && mySeat === null
+        ? '选择一个空位入座'
+        : controls.isSelecting
+          ? '选择本次出局玩家'
+          : null,
+    actions,
+  };
 }
 
 export function createUndercoverHostManagement(
@@ -112,7 +122,7 @@ export function createUndercoverHostManagement(
       if (state.botSeats.some((seat) => !state.round.confirmedSeats.includes(seat)))
         add(
           'mark-all-bots-viewed',
-          '全部机器人标记已查看',
+          '标记全部机器人已查看',
           'checkmark-done-outline',
           controls.markAllBotsViewed,
           'primary',

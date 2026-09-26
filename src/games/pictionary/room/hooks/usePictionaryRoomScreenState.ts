@@ -298,7 +298,7 @@ export function usePictionaryRoomScreenState({
               createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
             );
           }),
-        onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位。'),
+        onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。'),
       }),
     [
       capabilities,

@@ -89,7 +89,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showActionRejectedAlert = useCallback((reason: string) => {
-    showDismissAlert('操作无效', reason);
+    showDismissAlert('操作失败', reason);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────

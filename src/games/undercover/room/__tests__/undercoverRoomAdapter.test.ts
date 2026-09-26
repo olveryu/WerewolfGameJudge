@@ -184,7 +184,7 @@ it('selects directly for confirmation, cancels without submission and invalidate
   expect(createUndercoverSeatDataSource(state, 1, 'host', 1, 1, true).getSeat(1).highlight).toBe(
     'selected',
   );
-  expect(createUndercoverBottomActions(state, true, result.current)).toMatchObject({
+  expect(createUndercoverBottomActions(state, true, result.current, null)).toMatchObject({
     kind: 'info',
     actions: [{ key: 'cancel' }],
   });
@@ -252,10 +252,10 @@ it('requires confirmation to restart an active round and exposes restart in host
   );
   const aborted = dispatch(state, { type: 'undercover.round.abort', roundId: state.round.roundId });
   rerender({ currentState: aborted });
-  expect(createUndercoverBottomActions(aborted, false, result.current)).toMatchObject({
+  expect(createUndercoverBottomActions(aborted, false, result.current, null)).toMatchObject({
     actions: [],
   });
-  expect(createUndercoverBottomActions(aborted, true, result.current)).toMatchObject({
+  expect(createUndercoverBottomActions(aborted, true, result.current, null)).toMatchObject({
     actions: [],
   });
   const capabilities = createUndercoverRoomCapabilities({
