@@ -104,7 +104,7 @@ export function useUndercoverRoomScreenState({
             onRelease: roster.release,
           }
         : roster.capabilities.canTakeOverBots.isAllowed && state.botSeats.length > 0
-          ? { kind: 'hint', showBulkViewHint: false }
+          ? { kind: 'hint' }
           : null,
   };
   return {

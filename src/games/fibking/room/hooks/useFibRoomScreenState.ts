@@ -449,7 +449,7 @@ export function useFibRoomScreenState({
       capabilities.canTakeOverBots.isAllowed &&
       state.fillEmptySeatsWithBots &&
       Object.keys(state.realSeats).length < state.numberOfPlayers;
-    return hasControllableBots ? { kind: 'hint', showBulkViewHint: false } : null;
+    return hasControllableBots ? { kind: 'hint' } : null;
   }, [capabilities.canTakeOverBots, controlledSeat, releaseBot, state]);
 
   const shellModel = useMemo(

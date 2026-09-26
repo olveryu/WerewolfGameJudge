@@ -330,7 +330,7 @@ export function useStoryRelayRoomState(
     share,
     bottomActions: {
       kind: 'info',
-      message: isLobby && !isHost ? (mySeat === null ? '选择一个座位入座' : '等待房主开始') : null,
+      message: isLobby && !isHost ? (mySeat === null ? '选择一个空位入座' : '等待房主开始') : null,
       actions: [],
     },
     hostManagement: !isHost
@@ -375,7 +375,7 @@ export function useStoryRelayRoomState(
     controlledSeat:
       controlledSeat === null
         ? canControlBots && state.botSeats.length > 0
-          ? { kind: 'hint', showBulkViewHint: false }
+          ? { kind: 'hint' }
           : null
         : {
             kind: 'controlled',
