@@ -133,6 +133,11 @@ function StoryRelayStageContent({
       ) : (
         <>
           <StoryRelayProgress state={state} seatModel={seatModel} />
+          {state.phase === 'settling' && (
+            <Text style={styles.settlingReminder}>
+              等待期间请留在 App/小程序内并保持联网，以免收稿卡住
+            </Text>
+          )}
           {task === null ? (
             <View style={styles.content}>
               <Text style={styles.text}>
