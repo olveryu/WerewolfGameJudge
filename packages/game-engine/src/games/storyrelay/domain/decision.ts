@@ -21,10 +21,10 @@ export const STORY_RELAY_REASONS = {
   task: '故事任务已变化，请刷新后重试',
   submitted: '本棒已收稿',
   text: '请填写 1 至 512 字符的正文',
-  full: '请先坐满或补满机器人',
-  occupied: '缩小人数前请先移出超出范围的真人',
-  deadline: '当前阶段尚未到时',
-  manual: '当前为手动回放',
+  full: '请先坐满所有座位，或填充机器人。',
+  occupied: '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位',
+  deadline: '当前阶段尚未到推进时间',
+  manual: '当前为手动翻页',
 } as const;
 
 export type StoryRelayEvent =

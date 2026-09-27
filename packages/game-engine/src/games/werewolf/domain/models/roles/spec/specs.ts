@@ -1592,9 +1592,10 @@ const ROLE_SPEC_DEFINITIONS = {
     faction: Faction.Special,
     team: Team.Third,
     description:
-      '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份；与榜样阵营共同胜利',
+      '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份；榜样被投票出局时自身变为狼人；与榜样阵营共同胜利',
     structuredDescription: {
       skill: '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
+      trigger: '榜样被投票出局时自身变为狼人',
       winCondition: '与榜样阵营共同胜利',
     },
     tags: ['follow'],

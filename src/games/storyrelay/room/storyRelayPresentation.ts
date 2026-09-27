@@ -28,7 +28,14 @@ export function formatStoryRelayStory(
   const title = `故事 ${chainIndex + 1}${state.phase === 'aborted' ? '（未完成，房主中止）' : ''}`;
   return [
     title,
-    `开局时间：${new Date(state.startedAt).toISOString()}`,
+    `开局时间：${new Date(state.startedAt).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })}`,
     ...chain.entries.map((entry, stepIndex) => {
       const participant = state.participants.find((author) => author.seat === entry.authorSeat);
       if (participant === undefined) throw new Error('Story Relay author snapshot missing');

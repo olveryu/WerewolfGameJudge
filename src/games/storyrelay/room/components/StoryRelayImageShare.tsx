@@ -57,7 +57,7 @@ export function StoryRelayImageShare({
               style={styles.imagePage}
               testID={`storyrelay-export-${story.chainIndex}`}
             >
-              <Text style={styles.title}>文字接龙</Text>
+              <Text style={styles.title}>故事接龙</Text>
               <Text style={styles.text}>{story.text}</Text>
             </View>
           ))}

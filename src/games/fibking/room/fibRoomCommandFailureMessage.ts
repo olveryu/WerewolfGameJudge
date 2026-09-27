@@ -29,9 +29,9 @@ export function getFibRoomCommandFailureMessage(
     case REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE:
       return '目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位';
     case REASON_FIB_PLAYER_COUNT_INVALID:
-      return '人数必须是大于等于 4 的安全整数';
+      return '人数必须是 4 到 20 之间的整数';
     case REASON_FIB_ROUND_NOT_FULL:
-      return '请先让所有座位入座，或使用机器人补满空位';
+      return '请先坐满所有座位，或填充机器人。';
     case REASON_FIB_ROUND_ALREADY_ONGOING:
       return '本轮已经开始';
     case REASON_FIB_ROUND_NOT_PREPARING:

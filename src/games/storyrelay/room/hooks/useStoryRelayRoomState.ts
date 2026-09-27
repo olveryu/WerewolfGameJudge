@@ -103,7 +103,7 @@ export function useStoryRelayRoomState(
     }),
     canViewProfiles: isLobby
       ? { isAllowed: true, execute: profile.open }
-      : { isAllowed: false, reason: '游戏中不能查看资料' },
+      : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: canControlBots
       ? { isAllowed: true, execute: botControl.takeOver }
       : { isAllowed: false, reason: '当前不能接管机器人' },
@@ -112,7 +112,7 @@ export function useStoryRelayRoomState(
     if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     const target = getStoryRelayProfileTarget(state, seat);
     if (target?.occupantKind === 'bot')
-      return showAlert(target.rosterName, '选择座位操作', [
+      return showAlert(target.rosterName, '请选择对该机器人座位的操作', [
         { text: '取消', style: 'cancel' },
         { text: '查看资料', onPress: () => profile.open(target) },
         {
@@ -330,14 +330,15 @@ export function useStoryRelayRoomState(
     share,
     bottomActions: {
       kind: 'info',
-      message: isLobby && !isHost ? (mySeat === null ? '选择一个空位入座' : '等待房主开始') : null,
+      message:
+        isLobby && !isHost ? (mySeat === null ? '选择一个空位入座' : '等待房主开始游戏') : null,
       actions: [],
     },
     hostManagement: !isHost
       ? null
       : isLobby
         ? {
-            preview: '开始故事接龙',
+            preview: '开始游戏',
             status: `等待入座 · ${getStoryRelayOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
             sections: [
               {

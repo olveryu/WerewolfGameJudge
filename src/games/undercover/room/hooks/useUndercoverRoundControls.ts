@@ -124,6 +124,7 @@ export function useUndercoverRoundControls(
     );
   return {
     isSubmitting: submission.isSubmitting,
+    controlledSeat,
     card: visibleCardKey !== null && visibleCardKey === cardKey ? card : null,
     canViewCard: card !== null,
     shouldConfirm:

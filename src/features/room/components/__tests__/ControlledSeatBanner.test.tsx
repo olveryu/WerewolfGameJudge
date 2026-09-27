@@ -19,7 +19,7 @@ describe('ControlledSeatBanner', () => {
     );
 
     expect(view.getByTestId(TESTIDS.controlledSeatBanner)).toHaveTextContent(
-      /正在操控 4号 位（机器人4号）/,
+      /正在操控 4 号位（机器人4号）/,
     );
     fireEvent.press(view.getByTestId(TESTIDS.controlledSeatReleaseButton));
     expect(onRelease).toHaveBeenCalledTimes(1);
