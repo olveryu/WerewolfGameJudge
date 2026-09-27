@@ -92,7 +92,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
       <View style={styles.container} testID={TESTIDS.connectionStatusContainer}>
         <View style={styles.failedRow}>
           <Text style={styles.text}>
-            {hasPendingCommand ? '行动已保存，重连后继续确认' : '连接失败'}
+            {hasPendingCommand ? '行动已保存，重连后将自动确认' : '连接失败'}
           </Text>
           <Pressable onPress={onManualReconnect} style={styles.reconnectButton}>
             <Text style={styles.reconnectText}>点击重连</Text>

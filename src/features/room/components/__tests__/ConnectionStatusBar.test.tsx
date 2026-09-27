@@ -51,7 +51,7 @@ describe('ConnectionStatusBar', () => {
       />,
     );
 
-    expect(screen.getByText('行动已保存，重连后继续确认')).toBeTruthy();
+    expect(screen.getByText('行动已保存，重连后将自动确认')).toBeTruthy();
     fireEvent.press(screen.getByText('点击重连'));
     expect(onManualReconnect).toHaveBeenCalledTimes(1);
   });

@@ -22,7 +22,7 @@ describe('getFibRoomCommandFailureMessage', () => {
       getFibRoomCommandFailureMessage(
         rejectedRoomCommand<FibState>(REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE, 'command-1'),
       ),
-    ).toBe('目标人数之外仍有真人入座，请先让这些玩家离座或换到保留座位');
+    ).toBe('目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位');
   });
 
   it('delegates shared room rejection reasons to the shared translator', () => {

@@ -27,7 +27,7 @@ export function getFibRoomCommandFailureMessage(
     case REASON_FIB_GAME_NOT_ENDED:
       return '当前游戏尚未结束';
     case REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE:
-      return '目标人数之外仍有真人入座，请先让这些玩家离座或换到保留座位';
+      return '目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位';
     case REASON_FIB_PLAYER_COUNT_INVALID:
       return '人数必须是大于等于 4 的安全整数';
     case REASON_FIB_ROUND_NOT_FULL:
