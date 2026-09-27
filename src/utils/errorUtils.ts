@@ -200,7 +200,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   TIMEOUT: '请求超时，请稍后重试',
   NOT_CONNECTED: '未连接到房间',
   // Night flow
-  not_ongoing: '游戏未在进行中',
+  not_ongoing: '游戏不在进行中',
   no_pending_acks: '无待确认的操作',
   no_current_step: '当前步骤异常',
   not_group_confirm_step: '当前非确认步骤',
@@ -211,7 +211,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   action_step_changed: '当前行动步骤已变化，请重新选择',
   step_mismatch: '步骤不匹配',
   role_mismatch: '角色不匹配',
-  no_resolver: '操作处理器不存在',
+  no_resolver: '当前操作暂不可用，请稍后重试',
   wolfrobot_hunter_status_not_viewed: '请先查看猎人状态',
   night_not_complete: '夜晚流程未完成',
   not_learned_hunter: '还未获知猎人信息',
@@ -224,15 +224,26 @@ const REASON_CODE_MAP: Record<string, string> = {
   invalid_vote_target: '该玩家不是本轮候选人',
   pending_votes: '仍有玩家未完成投票',
   // HTTP routing
-  MISSING_PARAMS: '请求参数缺失',
-  INVALID_ACTION: '无效操作',
+  MISSING_PARAMS: '请求信息不完整，请重试',
+  INVALID_ACTION: '无法执行该操作，请重试',
   MISSING_SEAT: '座位参数缺失',
   METHOD_NOT_ALLOWED: '请求方法不允许',
   UNKNOWN_ACTION: '未知操作',
   UNKNOWN_NIGHT_ACTION: '未知夜间操作',
-  host_only: '仅房主可执行此操作',
+  host_only: '仅房主可以执行此操作',
   forbidden: '无权执行此操作',
   no_db_state: '游戏状态不可用',
+  // ── Story relay (engine domain rejection reasons; keys must match STORY_RELAY_REASONS values) ──
+  故事接龙配置无效: '故事接龙配置无效',
+  当前阶段不能执行此操作: '当前阶段不能执行此操作',
+  '故事任务已变化，请刷新后重试': '故事任务已变化，请刷新后重试',
+  本棒已收稿: '本棒已收稿',
+  '请填写 1 至 512 字符的正文': '请填写 1 至 512 字符的正文',
+  '请先坐满所有座位，或填充机器人。': '请先坐满所有座位，或填充机器人。',
+  '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位':
+    '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位',
+  当前阶段尚未到推进时间: '当前阶段尚未到推进时间',
+  当前为手动翻页: '当前为手动翻页',
 };
 
 /**

@@ -107,7 +107,7 @@ export function StoryRelayTaskEditor({
             {task.isSubmitted
               ? entry?.kind === 'empty'
                 ? '已交空白'
-                : '服务器已收稿'
+                : '已收稿'
               : state.phase === 'transition'
                 ? '本棒已结束'
                 : finalization === 'retrying'

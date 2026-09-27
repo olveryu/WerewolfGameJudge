@@ -121,7 +121,7 @@ export function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatus
         : state.phase === 'gallery'
           ? '故事揭晓中'
           : state.phase === 'aborted'
-            ? '本局已中止 · 故事未完成'
+            ? '未完成的故事'
             : '本局故事已完成';
   return { kind: 'message', icon: 'guide', text, supportingText: null };
 }

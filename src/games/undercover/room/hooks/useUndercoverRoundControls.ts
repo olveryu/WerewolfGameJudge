@@ -124,6 +124,7 @@ export function useUndercoverRoundControls(
     );
   return {
     isSubmitting: submission.isSubmitting,
+    controlledSeat,
     card: visibleCardKey !== null && visibleCardKey === cardKey ? card : null,
     canViewCard: card !== null,
     shouldConfirm:
@@ -173,8 +174,8 @@ export function useUndercoverRoundControls(
       void submit('重新准备', { type: 'undercover.round.retry', roundId });
     },
     clearBots: () =>
-      showConfirmAlert('清除所有机器人？', '真人座位会保留。', async () => {
-        await submit('清除机器人', { type: 'undercover.bots.clear' });
+      showConfirmAlert('移除所有机器人？', '真人座位会保留。', async () => {
+        await submit('移除机器人', { type: 'undercover.bots.clear' });
       }),
     abort,
     restart: () => requestUndercoverRestart(state, submit, closeCard, () => setSelection(null)),

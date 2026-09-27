@@ -62,7 +62,7 @@ for (const viewport of [
       await room.openHostManagement();
       await page.getByTestId('undercover-start').click();
       await expect(page.getByTestId('undercover-view-word')).toBeVisible();
-      const speakingHint = page.getByText(/^首轮随机由 [1-6] 号开始发言$/);
+      const speakingHint = page.getByText(/^首轮从 [1-6] 号开始发言（随机）$/);
       await expect(speakingHint).toHaveCount(0);
       await expect(page.getByTestId('undercover-word')).toHaveCount(0);
       const cards: string[] = [];

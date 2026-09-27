@@ -130,7 +130,7 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
     const wolfTeammates = confirmStatus?.role === 'hiddenWolf' ? confirmStatus.wolfTeammates : [];
     statusMessage = statusUi.messageTemplate.replace(
       '{seats}',
-      wolfTeammates.length > 0 ? wolfTeammates.map((s) => s + 1).join('、') : '无',
+      wolfTeammates.length > 0 ? wolfTeammates.map((s) => formatSeat(s)).join('、') : '无',
     );
   } else if (statusUi.kind === 'faction') {
     // Avenger: 3-way faction display

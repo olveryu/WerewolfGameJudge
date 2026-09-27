@@ -445,11 +445,11 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
                 style={styles.displayName}
                 numberOfLines={1}
               >
-                {profile.displayName || `${target.seat + 1}号玩家`}
+                {profile.displayName || `${target.seat + 1}号座位`}
               </NameStyleText>
             ) : (
               <Text style={styles.displayName} numberOfLines={1}>
-                {profile.displayName || `${target.seat + 1}号玩家`}
+                {profile.displayName || `${target.seat + 1}号座位`}
               </Text>
             )}
             <View style={[styles.titleChip, { borderColor: withAlpha(titleColor, 0.3) }]}>

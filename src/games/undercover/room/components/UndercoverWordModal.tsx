@@ -27,7 +27,7 @@ export function UndercoverWordModal({
   return (
     <RoomDialog
       title={`${card.seat + 1}号词卡`}
-      subtitle={isControlled ? '正在接管' : '你的词卡'}
+      subtitle={isControlled ? `正在接管 ${card.seat + 1} 号 · 机器人` : '你的词卡'}
       onClose={onClose}
       testID="undercover-word-modal"
       footer={

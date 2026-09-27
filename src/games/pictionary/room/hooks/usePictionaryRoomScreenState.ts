@@ -211,7 +211,7 @@ export function usePictionaryRoomScreenState({
           ? capabilities.canViewProfiles.execute(intent.target)
           : showErrorAlert(
               '无法查看资料',
-              capabilities.canViewProfiles.reason ?? '当前阶段不可查看',
+              capabilities.canViewProfiles.reason ?? '游戏进行中不能查看玩家资料',
             );
       const capability =
         intent.kind === 'take' ? capabilities.canTakeSeat : capabilities.canMoveSeat;
@@ -292,7 +292,7 @@ export function usePictionaryRoomScreenState({
             { confirmText: '结束本棒' },
           ),
         abortRound: () =>
-          showConfirmAlert('中止本局？', '保留已提交作品供回看；本局不结算完成奖励。', async () => {
+          showConfirmAlert('中止本轮？', '保留已提交作品供回看；本局不结算完成奖励。', async () => {
             await submitCommand(
               '中止本局',
               createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),

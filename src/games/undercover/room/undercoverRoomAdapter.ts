@@ -190,7 +190,7 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
     text,
     supportingText:
       state.phase === 'ongoing'
-        ? `首轮随机由 ${state.round.speakingStartSeat + 1} 号开始发言`
+        ? `首轮从 ${state.round.speakingStartSeat + 1} 号开始发言（随机）`
         : null,
   };
 }

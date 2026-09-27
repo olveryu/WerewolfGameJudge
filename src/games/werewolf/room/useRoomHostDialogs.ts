@@ -167,7 +167,7 @@ export const useRoomHostDialogs = ({
       return;
     }
 
-    showAlert('重新开始游戏？', '重新开始后本局详情将无法查看，是否先分享战报？', [
+    showAlert('重新开始游戏？', '重新开始后本局复盘将无法查看，是否先分享战报？', [
       CANCEL_BUTTON,
       {
         text: '分享战报',

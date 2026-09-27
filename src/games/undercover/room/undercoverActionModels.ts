@@ -28,7 +28,10 @@ export function createUndercoverBottomActions(
   if (controls.canViewCard && !controls.isSelecting)
     actions.push({
       key: 'card',
-      label: '查看我的词',
+      label:
+        controls.controlledSeat !== null
+          ? `查看 ${controls.controlledSeat + 1} 号词卡`
+          : '查看我的词',
       variant: 'primary',
       size: 'lg',
       isEnabled: true,
@@ -82,7 +85,7 @@ export function createUndercoverHostManagement(
       ...(controls.isSubmitting || !isAllowed
         ? ({
             isEnabled: false,
-            disabledReason: isAllowed ? null : '请先坐满所有座位',
+            disabledReason: isAllowed ? null : '请先坐满所有座位，或填充机器人。',
             onDisabledPress: null,
           } as const)
         : ({ isEnabled: true, onPress } as const)),
@@ -105,7 +108,7 @@ export function createUndercoverHostManagement(
       if (capabilities.canFillBots.isAllowed)
         add('fill-bots', '填充机器人', 'people-outline', capabilities.canFillBots.execute);
       if (state.botSeats.length > 0)
-        add('clear-bots', '清除机器人', 'remove-circle-outline', controls.clearBots);
+        add('clear-bots', '移除机器人', 'remove-circle-outline', controls.clearBots);
       if (capabilities.canClearSeats.isAllowed)
         add(
           'clear-seats',

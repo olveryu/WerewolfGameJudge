@@ -47,7 +47,7 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
           handleError(settled.error, {
             label,
             logger: roomScreenLog,
-            alertMessage: `${label}失败，请稍后重试。`,
+            alertMessage: `${label}失败，请稍后重试`,
           });
           return false;
         }

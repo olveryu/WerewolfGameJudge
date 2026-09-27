@@ -2,7 +2,7 @@
  * ConnectionStatusBar - disconnect banner + indeterminate progress bar / manual reconnect button (memoized)
  *
  * Shows "连接断开，正在重连…" with a sliding bottom progress bar when not in Live state.
- * Failed state (auto-retry exhausted) shows "连接失败" + "点击重连" button.
+ * Failed state (auto-retry exhausted) shows "连接失败" + "重新连接" button.
  * Community-standard approach: indeterminate progress bar (similar to Slack/Discord) indicates ongoing reconnect.
  */
 import type React from 'react';
@@ -92,10 +92,10 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
       <View style={styles.container} testID={TESTIDS.connectionStatusContainer}>
         <View style={styles.failedRow}>
           <Text style={styles.text}>
-            {hasPendingCommand ? '行动已保存，重连后继续确认' : '连接失败'}
+            {hasPendingCommand ? '行动已保存，重连后将自动确认' : '连接失败'}
           </Text>
           <Pressable onPress={onManualReconnect} style={styles.reconnectButton}>
-            <Text style={styles.reconnectText}>点击重连</Text>
+            <Text style={styles.reconnectText}>重新连接</Text>
           </Pressable>
         </View>
       </View>

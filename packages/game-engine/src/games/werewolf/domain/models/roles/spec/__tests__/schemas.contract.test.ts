@@ -444,7 +444,7 @@ describe('SCHEMAS contract', () => {
   describe('witchAction schema-driven dialog text', () => {
     it('witchAction should have emptyKillTitle', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
-      expect(witchSchema.ui?.emptyKillTitle).toBe('昨夜无人倒台');
+      expect(witchSchema.ui?.emptyKillTitle).toBe('昨夜平安夜');
     });
   });
 });

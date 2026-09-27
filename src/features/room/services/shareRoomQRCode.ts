@@ -10,6 +10,6 @@ export async function shareRoomQRCode(
   await shareImageBase64(
     getBase64,
     `room-${roomCode}-qr.png`,
-    `${gameDisplayName}房间 ${roomCode} 二维码`,
+    `${gameDisplayName}房间号 ${roomCode}，扫码加入`,
   );
 }

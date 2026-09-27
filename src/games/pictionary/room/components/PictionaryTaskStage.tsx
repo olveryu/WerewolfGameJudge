@@ -164,7 +164,7 @@ const PreviousDrawing: React.FC<{
     return (
       <View style={styles.missedContext}>
         <Ionicons name="alert-circle-outline" size={24} color={colors.warning} />
-        <Text style={styles.missedContextText}>上一棒未完成，请根据直觉继续接龙</Text>
+        <Text style={styles.missedContextText}>上一棒未完成，请自由发挥</Text>
       </View>
     );
   }
@@ -1053,7 +1053,7 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
         : autoSubmission.status === 'retrying'
           ? '发送暂未成功，正在自动重试。'
           : autoSubmission.status === 'waiting'
-            ? '本机最终内容已处理，正在等待其他玩家。'
+            ? '你的内容已处理，正在等待其他玩家。'
             : '正在自动提交本棒内容，请留在 App/小程序内。';
     return (
       <PictionaryWaitingStage

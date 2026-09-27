@@ -102,7 +102,7 @@ export function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): str
   const ballot = model.view.myBallot;
   if (ballot === null || ballot.kind === 'notSubmitted') return '选择投票';
   if (ballot.kind === 'abstained') return '修改弃票';
-  return `修改投给${formatSeat(ballot.seat)}`;
+  return `改投${formatSeat(ballot.seat)}`;
 }
 
 function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction | null {

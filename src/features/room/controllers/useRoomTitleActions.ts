@@ -67,7 +67,7 @@ export function useRoomTitleActions() {
       void verifyAndToggle(cached);
       return;
     }
-    showPrompt('Admin 密码', {
+    showPrompt('管理员密码', {
       placeholder: '请输入管理员密码',
       onConfirm: (value: string) => {
         const credential = value.trim();

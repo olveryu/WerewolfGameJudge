@@ -110,7 +110,7 @@ const PHASE_CONTENT: Record<
   },
   completed: {
     title: '竞选结束',
-    description: '报名、退水与每轮投票结果已公开保留',
+    description: '报名、退水与每轮投票结果均已公开并保留',
   },
 };
 

@@ -12,7 +12,7 @@ interface PictionaryRoomSummaryProps {
 }
 
 function formatDuration(value: number | null): string {
-  return value === null ? '不限时' : `${value}秒`;
+  return value === null ? '不限时' : `${value} 秒`;
 }
 
 export const PictionaryRoomSummary: React.FC<PictionaryRoomSummaryProps> = ({
@@ -24,6 +24,6 @@ export const PictionaryRoomSummary: React.FC<PictionaryRoomSummaryProps> = ({
     headerRight={headerRight}
     icon="brush-outline"
     title={`你画我猜接龙 · ${config.numberOfPlayers}人局`}
-    subtitle={`${occupiedSeatCount}/${config.numberOfPlayers} 人就座 · 画画 ${formatDuration(config.drawingDurationSeconds)}`}
+    subtitle={`${occupiedSeatCount}/${config.numberOfPlayers} 人就座 · 绘画 ${formatDuration(config.drawingDurationSeconds)}`}
   />
 );

@@ -12,7 +12,7 @@ export function PictionaryRulesScreen() {
     <GameGuide
       title="你画我猜接龙玩法"
       heading="画得像不像不重要，传得离谱才有趣"
-      intro="一人一道开场题，最后一起看答案。支持 4–20 人，游戏棒数等于玩家人数。到时收取已写文字和未完成画稿，全部收齐后继续。"
+      intro="一人一道开场题，最后一起看答案。支持 4 至 20 人，游戏棒数等于玩家人数。时间到时自动收取已写文字和未完成画稿，全部收齐后继续。"
       onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
     >
       <GameGuideSection title="接龙流程">

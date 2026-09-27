@@ -93,7 +93,7 @@ describe('useRoomTitleActions', () => {
     jest.mocked(readAdminCredential).mockReturnValue(null);
     const { result } = renderHook(useRoomTitleActions);
     act(() => result.current.handleTitleLongPress());
-    expect(showPrompt).toHaveBeenCalledWith('Admin 密码', expect.any(Object));
+    expect(showPrompt).toHaveBeenCalledWith('管理员密码', expect.any(Object));
     expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
     const options = jest.mocked(showPrompt).mock.calls[0]![1];
     await act(async () => options.onConfirm(' new-password '));

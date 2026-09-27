@@ -112,7 +112,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   { type: 'wolfVote', match: (t) => t === '狼人投票' },
 
   // Witch save flow
-  { type: 'witchNoKill', match: (t) => t === '昨夜无人倒台' },
+  { type: 'witchNoKill', match: (t) => t === '昨夜平安夜' },
   // Schema-driven: title is '女巫请行动', body contains promptTemplate or cannotSavePrompt text
   {
     type: 'witchSavePrompt',

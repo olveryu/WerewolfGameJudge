@@ -32,10 +32,10 @@ describe('translateReasonCode', () => {
     expect(translateReasonCode('SERVER_ERROR')).toBe('服务暂时不可用，请稍后重试');
     expect(translateReasonCode('TIMEOUT')).toBe('请求超时，请稍后重试');
     expect(translateReasonCode('NOT_CONNECTED')).toBe('未连接到房间');
-    expect(translateReasonCode('not_ongoing')).toBe('游戏未在进行中');
+    expect(translateReasonCode('not_ongoing')).toBe('游戏不在进行中');
     expect(translateReasonCode('userId_mismatch')).toBe('身份不匹配');
-    expect(translateReasonCode('host_only')).toBe('仅房主可执行此操作');
-    expect(translateReasonCode('MISSING_PARAMS')).toBe('请求参数缺失');
+    expect(translateReasonCode('host_only')).toBe('仅房主可以执行此操作');
+    expect(translateReasonCode('MISSING_PARAMS')).toBe('请求信息不完整，请重试');
   });
 
   it('translates sheriff-election rejections', () => {
@@ -46,6 +46,23 @@ describe('translateReasonCode', () => {
     expect(translateReasonCode('not_eligible_voter')).toBe('你在本轮没有投票权');
     expect(translateReasonCode('invalid_vote_target')).toBe('该玩家不是本轮候选人');
     expect(translateReasonCode('pending_votes')).toBe('仍有玩家未完成投票');
+  });
+
+  it('translates storyrelay domain rejection reasons without falling back', () => {
+    const storyRelayReasons = [
+      '故事接龙配置无效',
+      '当前阶段不能执行此操作',
+      '故事任务已变化，请刷新后重试',
+      '本棒已收稿',
+      '请填写 1 至 512 字符的正文',
+      '请先坐满所有座位，或填充机器人。',
+      '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位',
+      '当前阶段尚未到推进时间',
+      '当前为手动翻页',
+    ];
+    for (const reason of storyRelayReasons) {
+      expect(translateReasonCode(reason)).not.toBe('请稍后重试');
+    }
   });
 
   it('returns default fallback for unknown reason codes', () => {

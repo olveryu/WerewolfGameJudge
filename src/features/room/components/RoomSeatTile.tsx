@@ -391,8 +391,8 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
           testID={TESTIDS.seatTilePressable(seat)}
           accessibilityLabel={
             playerDisplayName
-              ? `座位${formatRoomSeat(seat)} ${playerDisplayName}`
-              : `座位${formatRoomSeat(seat)}`
+              ? `${formatRoomSeat(seat)}座位 ${playerDisplayName}`
+              : `${formatRoomSeat(seat)}座位`
           }
           style={[
             styles.playerTile,

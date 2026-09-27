@@ -35,7 +35,7 @@ export function useStoryRelayImageShare(state: StoryRelayState) {
             return captureViewPngBase64({ current: view });
           },
         })),
-        '文字接龙',
+        '故事接龙',
       );
     } catch (error) {
       handleError(error, {

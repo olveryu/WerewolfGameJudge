@@ -184,7 +184,7 @@ export const SettingsScreen: React.FC = () => {
 
   const handleStartEditName = useCallback(() => {
     showPrompt('修改昵称', {
-      placeholder: '输入名字',
+      placeholder: '请输入昵称',
       defaultValue: user?.displayName || '',
       onConfirm: (value: string) => {
         void (async () => {

@@ -58,7 +58,7 @@ export function useWerewolfLastActionToast({
         }
         break;
       case 'ASSIGN_ROLES':
-        toast.info('角色已分配，点击你的座位查看');
+        toast.info('角色已分配，点击下方「查看身份」查看你的身份');
         break;
       case 'START_NIGHT':
         toast.info('夜幕降临，请等待指示');

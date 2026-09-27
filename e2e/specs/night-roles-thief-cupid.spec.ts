@@ -45,7 +45,7 @@ test.setTimeout(180_000);
  * Drive cupid's multiChooseSeat lover-linking action.
  *
  * Toggle seat selection on each target, then click the
- * "确认连接(2人)" confirm button in the bottom action panel.
+ * "确认连接（2人）" confirm button in the bottom action panel.
  */
 async function driveCupidChooseLovers(
   page: import('@playwright/test').Page,
@@ -61,7 +61,7 @@ async function driveCupidChooseLovers(
   }
 
   const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const confirmBtn = panel.getByText('确认连接(2人)', { exact: true }).first();
+  const confirmBtn = panel.getByText('确认连接（2人）', { exact: true }).first();
   await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
   await confirmBtn.click();
 

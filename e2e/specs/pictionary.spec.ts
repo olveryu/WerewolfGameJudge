@@ -181,7 +181,7 @@ test.describe('Pictionary', () => {
               .getByText('正在收取最终内容', { exact: true }),
           ).toBeVisible({ timeout: 60_000 });
           await expect(
-            hostPage.getByText('本机最终内容已处理，正在等待其他玩家。', { exact: true }),
+            hostPage.getByText('你的内容已处理，正在等待其他玩家。', { exact: true }),
           ).toBeVisible();
           await expect(hostPage.getByTestId(TESTIDS.pictionaryGalleryAlbum)).toHaveCount(0);
           await offlinePage.context().setOffline(false);

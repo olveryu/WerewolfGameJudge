@@ -28,15 +28,15 @@ export function getPictionaryRoomCommandFailureMessage(
     case REASON_PICTIONARY_CONFIG_INVALID:
       return '房间设置不符合玩法范围';
     case REASON_PICTIONARY_GALLERY_MANUAL:
-      return '当前结果设置为手动播放';
+      return '当前为手动翻页，无需继续揭晓';
     case REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE:
-      return '目标人数之外仍有玩家，请先调整座位';
+      return '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位';
     case REASON_PICTIONARY_PHASE_INVALID:
       return '当前阶段不能执行这个操作';
     case REASON_PICTIONARY_PHASE_NOT_EXPIRED:
       return '当前阶段尚未到推进时间';
     case REASON_PICTIONARY_ROOM_NOT_FULL:
-      return '请先让所有座位坐满';
+      return '请先坐满所有座位，或填充机器人。';
     case REASON_PICTIONARY_TASK_ALREADY_SUBMITTED:
       return '这一棒已经提交';
     case REASON_PICTIONARY_TASK_INVALID:

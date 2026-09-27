@@ -198,7 +198,7 @@ export function useRoomEntryController<
   const requestExit = useCallback(
     (shouldConfirm: boolean) => {
       if (shouldConfirm) {
-        showConfirmAlert('离开房间？', '', performExit);
+        showConfirmAlert('离开房间？', '离开后将退出当前对局，座位可能被他人占用。', performExit);
         return;
       }
       performExit();
