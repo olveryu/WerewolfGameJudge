@@ -392,7 +392,7 @@ export function useFibRoomScreenState({
   ]);
 
   const showStartRoundDisabled = useCallback(() => {
-    showErrorAlert('暂时不能开始', '请先坐满所有座位。');
+    showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。');
   }, []);
 
   const hostManagement = useMemo(

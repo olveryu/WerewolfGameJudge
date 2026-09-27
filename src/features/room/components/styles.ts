@@ -28,6 +28,7 @@ export interface BottomActionPanelStyles {
   hostManagementTitle: TextStyle;
   hostManagementPreviewRow: ViewStyle;
   hostManagementPreview: TextStyle;
+  hostManagementPreviewUrgent: TextStyle;
 }
 
 export interface ConnectionStatusBarStyles {

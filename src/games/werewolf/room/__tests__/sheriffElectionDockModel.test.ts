@@ -286,6 +286,6 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: jest.fn(),
     });
 
-    expect(dock.primary).toMatchObject({ label: '请在右侧投票', isEnabled: false });
+    expect(dock.primary).toMatchObject({ label: '请在「警长竞选」中投票', isEnabled: false });
   });
 });

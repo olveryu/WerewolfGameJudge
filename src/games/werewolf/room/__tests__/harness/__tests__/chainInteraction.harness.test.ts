@@ -223,7 +223,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     let dismissed = false;
 
     // Simulate: witch save prompt (title contains '玩家死亡' → witchSavePrompt)
-    mockShowAlert('女巫请行动', '3号被狼人袭击，是否使用解药？', [
+    mockShowAlert('女巫请行动（可救人、用毒或跳过）', '3号被狼人袭击，是否使用解药？', [
       {
         text: '知道了',
         onPress: () => {

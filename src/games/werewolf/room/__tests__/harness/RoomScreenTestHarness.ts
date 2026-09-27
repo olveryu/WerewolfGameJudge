@@ -32,7 +32,7 @@ export type DialogType =
   | 'actionPrompt' // Generic "请XX行动" prompt
   | 'actionConfirm' // Seat selection confirmation
   | 'skipConfirm' // Skip action confirmation
-  | 'actionRejected' // Host rejected action ("操作无效")
+  | 'actionRejected' // Host rejected action ("操作失败")
 
   // Wolf dialogs
   | 'wolfVote' // Wolf vote confirmation
@@ -105,7 +105,7 @@ interface ClassificationRule {
  */
 const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Action rejected
-  { type: 'actionRejected', match: (t) => t === '操作无效' },
+  { type: 'actionRejected', match: (t) => t === '操作失败' },
 
   // Wolf vote
   { type: 'wolfVoteEmpty', match: (t, m) => t === '狼人投票' && m.includes('放弃袭击') },

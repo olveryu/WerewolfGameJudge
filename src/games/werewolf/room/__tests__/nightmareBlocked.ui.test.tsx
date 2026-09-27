@@ -98,7 +98,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
-        '操作无效',
+        '操作失败',
         BLOCKED_UI_DEFAULTS.message,
         expect.any(Array),
       );

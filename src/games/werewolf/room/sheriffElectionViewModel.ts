@@ -15,6 +15,7 @@ import type {
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 
 export interface SheriffCandidateOptionViewModel {
   readonly seat: number;
@@ -80,12 +81,12 @@ const SPEAKING_DIRECTION_LABELS = {
 
 const PHASE_CONTENT: Record<
   SheriffElectionState['phase'],
-  { readonly title: string; readonly description: string }
+  { readonly title: string; readonly description: string; readonly hostDescription?: string }
 > = {
   registration: {
     title: '报名上警',
-    description:
-      '房主请点击“结束报名”按钮（位于“主持管理”中）。想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
+    description: '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
+    hostDescription: `报名截止后，请在「${HOST_MANAGEMENT_LABEL}」中结束报名。`,
   },
   candidateSpeech: {
     title: '竞选发言',
@@ -276,7 +277,10 @@ export function createSheriffElectionViewModel(
   return {
     phase: election.phase,
     phaseTitle: phaseContent.title,
-    phaseDescription: phaseContent.description,
+    phaseDescription:
+      input.isHost && phaseContent.hostDescription !== undefined
+        ? phaseContent.hostDescription
+        : phaseContent.description,
     candidateRecords,
     speakingInstruction,
     voteProgress:

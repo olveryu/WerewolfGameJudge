@@ -148,6 +148,12 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         color: withAlpha(colors.textInverse, 0.78),
         flexShrink: 1,
       },
+      hostManagementPreviewUrgent: {
+        ...textStyles.caption,
+        color: colors.textInverse,
+        fontWeight: typography.weights.semibold,
+        flexShrink: 1,
+      },
     }),
 
     connectionStatusBar: StyleSheet.create<ConnectionStatusBarStyles>({

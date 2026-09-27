@@ -602,15 +602,15 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
 
   return {
     kind: 'stacked',
-    message: input.isHost ? null : getPlayerMessage(input.state),
+    message: input.isHost ? null : getPlayerMessage(input.state, input.viewerSeat),
     layout: { primary, secondary, ghost },
   };
 }
 
-function getPlayerMessage(state: FibState): string | null {
+function getPlayerMessage(state: FibState, viewerSeat: number | null): string | null {
   switch (state.phase) {
     case 'lobby':
-      return '等待房主开始本轮';
+      return viewerSeat === null ? '选择一个空位入座' : '等待房主开始本轮';
     case 'preparing':
       return '房主正在准备本轮';
     case 'preparationFailed':

@@ -168,7 +168,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
         (c) => typeof c[1] === 'string' && c[1] === expectedPrompt,
       );
       expect(matchingCall).toBeDefined();
-      expect(matchingCall![0]).toBe('女巫请行动');
+      expect(matchingCall![0]).toBe('女巫请行动（可救人、用毒或跳过）');
     });
   });
 
@@ -187,7 +187,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
         (c) => typeof c[1] === 'string' && c[1] === expectedPrompt,
       );
       expect(matchingCall).toBeDefined();
-      expect(matchingCall![0]).toBe('女巫请行动');
+      expect(matchingCall![0]).toBe('女巫请行动（可救人、用毒或跳过）');
     });
   });
 });

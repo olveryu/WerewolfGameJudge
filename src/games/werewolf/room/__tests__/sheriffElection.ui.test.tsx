@@ -116,7 +116,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     expect(screen.getByTestId(TESTIDS.sheriffElectionInspector)).toBeTruthy();
     expect(screen.queryByTestId(TESTIDS.sheriffElectionSheet)).toBeNull();
     expect(screen.queryByTestId(TESTIDS.sheriffDetailsButton)).toBeNull();
-    expect(screen.getByText('请在右侧投票')).toBeTruthy();
+    expect(screen.getByText('请在「警长竞选」中投票')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId(TESTIDS.seatTilePressable(0)));
 
