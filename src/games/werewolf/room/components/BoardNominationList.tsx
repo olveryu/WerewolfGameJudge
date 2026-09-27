@@ -94,7 +94,7 @@ function NominationCard({
   const hasUpvoted = myUserId ? nomination.upvoters.includes(myUserId) : false;
   const roles = nomination.roles;
   const nominationPlayerCount = getPlayerCount(roles);
-  const boardName = useMemo(() => findMatchingPresetName(roles) ?? '自定义板子', [roles]);
+  const boardName = useMemo(() => findMatchingPresetName(roles) ?? '自定义配置', [roles]);
   const stats = useMemo(() => computeFactionStats(roles), [roles]);
   const handleUpvote = useCallback(() => {
     onUpvote(nomination.userId);
@@ -114,7 +114,7 @@ function NominationCard({
           </Text>
           <Text style={[styles.cardSubmitter, { color: colors.textSecondary }]} numberOfLines={1}>
             {nomination.displayName}
-            {isMine && ' (我)'}
+            {isMine && '（我）'}
           </Text>
         </View>
         <View style={styles.compactStats}>
@@ -283,7 +283,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
       >
         <View style={styles.modalHeader}>
           <Text style={[styles.modalTitle, { color: colors.text }]}>
-            板子建议 ({entries.length})
+            板子建议（{entries.length}）
           </Text>
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />

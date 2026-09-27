@@ -65,7 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <Ionicons name={STATUS_ICONS.ERROR} size={48} color="#FF6B6B" style={styles.emoji} />
           <Text style={styles.title}>应用出现问题</Text>
-          <Text style={styles.message}>请点击下方按钮重试</Text>
+          <Text style={styles.message}>请点击「重试」按钮</Text>
           <TouchableOpacity style={styles.button} onPress={this.#handleRetry}>
             <Text style={styles.buttonText}>重试</Text>
           </TouchableOpacity>

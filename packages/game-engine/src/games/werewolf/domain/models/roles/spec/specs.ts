@@ -233,8 +233,8 @@ const ROLE_SPEC_DEFINITIONS = {
         audioKey: 'witch',
         actionKind: 'compound',
         ui: {
-          prompt: '女巫请行动（可救人、用毒或跳过）',
-          emptyKillTitle: '昨夜无人倒台',
+          prompt: '女巫请行动（可救人、用毒或点「不用技能」跳过）',
+          emptyKillTitle: '昨夜平安夜',
         },
         compoundSteps: [
           {
@@ -247,7 +247,7 @@ const ROLE_SPEC_DEFINITIONS = {
               confirmTitle: '确认行动',
               prompt: '是否使用解药？',
               promptTemplate: '{seat}被狼人袭击，是否使用解药？',
-              cannotSavePrompt: '你被狼人袭击，无法自救，可使用毒药或不用技能',
+              cannotSavePrompt: '你被狼人袭击，无法自救；如不使用毒药请点击「不用技能」',
               confirmText: '使用解药？',
               bottomActionText: '不用技能',
             },
@@ -927,7 +927,7 @@ const ROLE_SPEC_DEFINITIONS = {
           confirmTitle: '狼人投票',
           confirmText: '袭击此玩家？',
           emptyVoteText: '放弃袭击',
-          voteConfirmTemplate: '{wolf} 确定袭击{seat}？',
+          voteConfirmTemplate: '{wolf}，确定袭击{seat}吗？',
           emptyVoteConfirmTemplate: '{wolf} 确定放弃袭击？',
         },
         meeting: {
@@ -1351,7 +1351,7 @@ const ROLE_SPEC_DEFINITIONS = {
           revealTitlePrefix: '学习结果',
           revealResultFormat: 'roleName',
           bottomActionText: '不用技能',
-          hunterGatePrompt: '你学习到了猎人，请确认是否可发动技能',
+          hunterGatePrompt: '你学习到了猎人，请点击「查看技能状态」确认是否可发动技能',
           hunterGateButtonText: '查看技能状态',
           hunterGateDialogTitle: '猎人技能状态',
           hunterGateCanShootText: '当前可发动技能',
@@ -1573,7 +1573,7 @@ const ROLE_SPEC_DEFINITIONS = {
           confirmStatusUi: {
             kind: 'wolfTeammates',
             statusDialogTitle: '狼同伴信息',
-            messageTemplate: '你的狼同伴为：{seats}号',
+            messageTemplate: '你的狼同伴为：{seats}',
           },
         },
       },
@@ -1719,10 +1719,10 @@ const ROLE_SPEC_DEFINITIONS = {
         actionKind: 'multiChooseSeat',
         ui: {
           confirmTitle: '确认催眠',
-          prompt: '请选择1-2名要催眠的玩家，如不使用请点击「不用技能」',
+          prompt: '请选择 1~2 名要催眠的玩家，如不使用请点击「不用技能」',
           confirmText: '催眠选中的玩家？',
           bottomActionText: '不用技能',
-          confirmButtonText: '确认催眠({count}人)',
+          confirmButtonText: '确认催眠（{count}人）',
         },
       },
       {
@@ -1930,7 +1930,7 @@ const ROLE_SPEC_DEFINITIONS = {
           prompt: '请选择两名玩家成为情侣，可以选择自己',
           confirmText: '让这两名玩家成为情侣？',
           bottomActionText: '不用技能',
-          confirmButtonText: '确认连接({count}人)',
+          confirmButtonText: '确认连接（{count}人）',
         },
       },
       {

@@ -22,7 +22,7 @@ import { withSetup } from '../helpers/night-setup';
  * - Piper skips → night ends normally
  *
  * Covers the first multiChooseSeat schema in E2E (no single-confirm alert;
- * seats toggle selection, then bottom-panel "确认催眠(N人)" submits).
+ * seats toggle selection, then bottom-panel "确认催眠（N人）" submits).
  * Does not modify game state directly or import services/models.
  */
 
@@ -37,7 +37,7 @@ test.setTimeout(180_000);
  *
  * Unlike single chooseSeat (click seat → alert confirm), multiChooseSeat
  * toggles seat selection on click (no alert), then the player clicks the
- * bottom-panel "确认催眠(N人)" button to confirm.
+ * bottom-panel "确认催眠（N人）" button to confirm.
  */
 async function drivePiperHypnotize(
   page: import('@playwright/test').Page,
@@ -55,8 +55,8 @@ async function drivePiperHypnotize(
     await page.waitForTimeout(200);
   }
 
-  // Click the confirm button: "确认催眠(N人)"
-  const confirmLabel = `确认催眠(${targetSeats.length}人)`;
+  // Click the confirm button: "确认催眠（N人）"
+  const confirmLabel = `确认催眠（${targetSeats.length}人）`;
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   const confirmBtn = panel.getByText(confirmLabel, { exact: true }).first();
   await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });

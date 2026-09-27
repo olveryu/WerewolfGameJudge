@@ -182,7 +182,7 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
             testID={TESTIDS.pictionaryConfigPlayerCount}
           />
           <Text style={styles.sectionHint}>
-            支持 4–20 人 · 共 {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
+            支持 4 至 20 人 · 共 {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
           </Text>
         </View>
         <DurationSection

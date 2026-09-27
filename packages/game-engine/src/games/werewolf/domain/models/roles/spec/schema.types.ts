@@ -340,7 +340,7 @@ export interface MultiChooseSeatSchema extends BaseActionSchema {
   readonly ui?: SchemaUi & {
     /** Skip button text (e.g. "不用技能") */
     readonly bottomActionText?: string;
-    /** Confirm button text, supports {count} placeholder (e.g. "确认催眠({count}人)") */
+    /** Confirm button text, supports {count} placeholder (e.g. "确认催眠（{count}人）") */
     readonly confirmButtonText?: string;
   };
 }

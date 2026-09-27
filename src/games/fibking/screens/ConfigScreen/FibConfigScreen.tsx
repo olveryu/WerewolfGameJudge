@@ -59,7 +59,7 @@ export const FibConfigScreen: React.FC<FibConfigScreenProps> = ({ session }) => 
             onChangeText={state.onPlayerCountChange}
             testID={TESTIDS.fibPlayerCountInput}
           />
-          <Text style={gameSettingsStyles.hint}>支持 4–20 人</Text>
+          <Text style={gameSettingsStyles.hint}>支持 4 至 20 人</Text>
         </View>
 
         <View style={gameSettingsStyles.section}>

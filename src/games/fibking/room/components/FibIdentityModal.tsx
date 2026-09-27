@@ -26,7 +26,7 @@ function getRoleInstruction(view: FibRoundView): string {
     case 'guesser':
       return '听取其他玩家的描述，找出真实释义。';
     case 'honest':
-      return '用自己的话描述真实释义，不要直接念出答案。';
+      return '用自己的话描述真实释义，不能直接念出答案。';
     case 'fibber':
       return '编出可信的释义，让大聪明难以分辨。';
   }

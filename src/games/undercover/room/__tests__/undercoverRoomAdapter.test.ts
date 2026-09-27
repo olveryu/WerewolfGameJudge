@@ -220,7 +220,7 @@ it('shows the authoritative starting speaker only once all cards are confirmed',
   expect(createUndercoverStatusRibbon(state)).toMatchObject({
     kind: 'message',
     icon: 'speaking',
-    supportingText: `首轮随机由 ${speakingStartSeat + 1} 号开始发言`,
+    supportingText: `首轮从 ${speakingStartSeat + 1} 号开始发言（随机）`,
   });
 });
 

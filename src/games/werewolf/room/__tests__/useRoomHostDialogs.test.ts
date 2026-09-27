@@ -203,7 +203,7 @@ describe('useRoomHostDialogs', () => {
 
       expect(mockShowAlert).toHaveBeenCalledWith(
         '重新开始游戏？',
-        '重新开始后本局详情将无法查看，是否先分享战报？',
+        '重新开始后本局复盘将无法查看，是否先分享战报？',
         expect.arrayContaining([
           expect.objectContaining({ text: '分享战报' }),
           expect.objectContaining({ text: '重新开始' }),

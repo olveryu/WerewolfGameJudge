@@ -131,7 +131,7 @@ export function useRoomModals({
     const requestId = detailAlertRequestRef.current;
     const isShown = showConfirmAlert(
       '查看本局复盘？',
-      '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认继续。',
+      '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
       () => {
         if (detailAlertRequestRef.current === requestId) setNightReviewVisible(true);
       },
@@ -263,7 +263,7 @@ export function useRoomModals({
   const showLastNightInfo = useCallback(() => {
     showConfirmAlert(
       '提示',
-      '昨夜信息可能影响警长竞选，请确认现在查看。',
+      '昨夜信息可能影响警长竞选，请确认是否现在查看。',
       () => {
         const info = getLastNightInfo();
         const curseInfo = getCurseInfo();

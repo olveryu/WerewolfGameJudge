@@ -164,7 +164,7 @@ const PreviousDrawing: React.FC<{
     return (
       <View style={styles.missedContext}>
         <Ionicons name="alert-circle-outline" size={24} color={colors.warning} />
-        <Text style={styles.missedContextText}>上一棒未完成，请根据直觉继续接龙</Text>
+        <Text style={styles.missedContextText}>上一棒未完成，请自由发挥</Text>
       </View>
     );
   }

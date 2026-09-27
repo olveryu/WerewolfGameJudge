@@ -147,7 +147,7 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
       handleError(settled.error, {
         label,
         logger: roomScreenLog,
-        alertMessage: '房间响应异常，请重新进入房间后重试。',
+        alertMessage: '房间响应异常，请重新进入房间后重试',
       });
       return;
     }

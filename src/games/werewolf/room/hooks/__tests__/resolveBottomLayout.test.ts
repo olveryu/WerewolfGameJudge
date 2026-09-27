@@ -270,7 +270,7 @@ describe('resolveBottomLayout', () => {
 
     const multiConfirmButton: BottomButton = {
       key: 'multiConfirm',
-      label: '确认催眠(2人)',
+      label: '确认催眠（2人）',
       intent: { type: 'multiSelectConfirm', targetSeat: -1, targets: [1, 3] },
     };
 

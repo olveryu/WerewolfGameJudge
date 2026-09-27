@@ -52,7 +52,7 @@ describe('ConnectionStatusBar', () => {
     );
 
     expect(screen.getByText('行动已保存，重连后将自动确认')).toBeTruthy();
-    fireEvent.press(screen.getByText('点击重连'));
+    fireEvent.press(screen.getByText('重新连接'));
     expect(onManualReconnect).toHaveBeenCalledTimes(1);
   });
 

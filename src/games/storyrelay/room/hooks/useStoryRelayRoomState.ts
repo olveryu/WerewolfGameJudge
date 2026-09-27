@@ -146,16 +146,16 @@ export function useStoryRelayRoomState(
   if (state.botSeats.length > 0)
     actions.push({
       key: 'clear-bots',
-      label: '移出所有机器人',
+      label: '移除所有机器人',
       icon: 'remove-circle-outline',
       variant: 'secondary',
       isEnabled: true,
       onPress: () =>
-        showAlert('移出机器人', '保留真人座位，移出全部机器人？', [
+        showAlert('移除机器人', '保留真人座位，移除全部机器人？', [
           { text: '取消', style: 'cancel' },
           {
-            text: '移出',
-            onPress: () => void submit('移出机器人', { type: 'storyrelay.bots.clear' }),
+            text: '移除',
+            onPress: () => void submit('移除机器人', { type: 'storyrelay.bots.clear' }),
           },
         ]),
     });

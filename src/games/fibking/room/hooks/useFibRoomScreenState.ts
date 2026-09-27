@@ -208,13 +208,9 @@ export function useFibRoomScreenState({
   }, [submitCommand]);
 
   const endGame = useCallback(() => {
-    showConfirmAlert(
-      '结束游戏？',
-      '结束后将返回大厅，本轮结果会关闭；座位和已用词记录会保留。',
-      async () => {
-        await submitCommand('结束游戏', { type: 'fib.game.returnToLobby' });
-      },
-    );
+    showConfirmAlert('结束游戏？', '结束后返回大厅，座位和已用词记录会保留。', async () => {
+      await submitCommand('结束游戏', { type: 'fib.game.returnToLobby' });
+    });
   }, [submitCommand]);
 
   const openIdentity = useCallback(() => {
@@ -305,7 +301,7 @@ export function useFibRoomScreenState({
         case 'profile': {
           const capability = capabilities.canViewProfiles;
           if (!capability.isAllowed) {
-            showErrorAlert('无法查看资料', capability.reason ?? '当前阶段不可查看');
+            showErrorAlert('无法查看资料', capability.reason ?? '游戏进行中不能查看玩家资料');
             return;
           }
           capability.execute(roomIntent.target);

@@ -100,7 +100,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
             handleError(error, {
               label: command.label,
               logger: roomScreenLog,
-              alertMessage: '房间响应异常，请重新进入房间后重试。',
+              alertMessage: '房间响应异常，请重新进入房间后重试',
             });
           },
         )
