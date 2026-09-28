@@ -195,7 +195,10 @@ export function fetchGameWordsStats(game: GameWordGame): Promise<GameWordsStats>
   return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game });
 }
 
-export function triggerGameWordSupply(game: GameWordGame, force: boolean): Promise<TriggerSupplyResult> {
+export function triggerGameWordSupply(
+  game: GameWordGame,
+  force: boolean,
+): Promise<TriggerSupplyResult> {
   return adminFetch(
     '/admin/games/words/trigger-supply',
     parseTriggerSupplyResult,
