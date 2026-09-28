@@ -131,7 +131,7 @@ export async function reserveFibWordPack(
   const reservation = results[2];
   if (reservation === undefined) throw new Error('Fib monthly reservation result missing');
   const rawSearchIndex = z
-    .object({ searchIndex: z.number().int().min(0) })
+    .strictObject({ searchIndex: z.number().int().min(0) })
     .parse(reservation.results[0]).searchIndex;
   // Force mode cycles through the query plan instead of failing out of range.
   const searchIndex = opts.force ? rawSearchIndex % FIB_WORD_MONTHLY_BATCH_LIMIT : rawSearchIndex;
