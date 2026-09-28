@@ -6,7 +6,12 @@
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
-import type { TimePreset } from '@/features/admin/model/adminContracts';
+import type {
+  GameWordGame,
+  GameWordsStats,
+  TimePreset,
+  TriggerSupplyResult,
+} from '@/features/admin/model/adminContracts';
 import {
   adminRewardGrantSchema,
   type AdminRewardInput,
@@ -22,6 +27,8 @@ import {
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
   parseAdminUsersResponse,
+  parseGameWordsStatsResponse,
+  parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
 
@@ -39,7 +46,7 @@ async function adminFetch<T>(
   parseResponse: (value: unknown) => T,
   query?: Record<string, string>,
   signal?: AbortSignal,
-  requestBody?: AdminRewardInput,
+  requestBody?: Record<string, unknown>,
 ): Promise<T> {
   const url = new URL(`${API_BASE_URL}${path}`);
   if (query) {
@@ -182,6 +189,23 @@ export function fetchAIUsage(from: string, to: string) {
 
 export function fetchRequestTraffic(from: string, to: string) {
   return adminFetch('/admin/request-traffic', parseAdminRequestTrafficResponse, { from, to });
+}
+
+export function fetchGameWordsStats(game: GameWordGame): Promise<GameWordsStats> {
+  return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game });
+}
+
+export function triggerGameWordSupply(game: GameWordGame, force: boolean): Promise<TriggerSupplyResult> {
+  return adminFetch(
+    '/admin/games/words/trigger-supply',
+    parseTriggerSupplyResult,
+    undefined,
+    undefined,
+    {
+      game,
+      force,
+    },
+  );
 }
 
 /**

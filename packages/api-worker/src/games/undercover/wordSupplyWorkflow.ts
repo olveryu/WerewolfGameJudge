@@ -23,6 +23,9 @@ const log = createLogger('undercover-word-supply');
 const historySchema = z.array(z.strictObject({ wordA: z.string(), wordB: z.string() }));
 interface UndercoverWordSupplyParams {
   readonly day: string;
+  readonly force?: boolean;
+  /** Unique id for admin manual triggers; keeps pack ids collision-free. */
+  readonly runId?: string;
 }
 
 /** Durable single-day batches with independent review and non-repeatable external operations. */
@@ -35,13 +38,17 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
     if (!(await step.do('enabled', async () => this.env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true')))
       return { status: 'disabled' };
     if (day !== new Date().toISOString().slice(0, 10)) return { status: 'expired' };
-    for (let batchIndex = 0; batchIndex < UNDERCOVER_DAILY_BATCH_LIMIT; batchIndex += 1) {
+    const force = event.payload.force === true;
+    const runId = z.string().min(1).max(64).optional().parse(event.payload.runId);
+    // Force mode runs one extra full daily cycle beyond the scheduled limit.
+    const totalBatches = UNDERCOVER_DAILY_BATCH_LIMIT + (force ? UNDERCOVER_DAILY_BATCH_LIMIT : 0);
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex += 1) {
       const capacity = await step.do(`capacity-${batchIndex}`, () =>
         measureDatabaseCapacity(this.env.DB),
       );
       if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
       const pack = await step.do(`reserve-${batchIndex}`, () =>
-        reserveUndercoverWordPack(this.env.DB, day, batchIndex),
+        reserveUndercoverWordPack(this.env.DB, day, batchIndex, { force, runId }),
       );
       if (pack === null) continue;
       await this.processPack(step, pack, batchIndex);

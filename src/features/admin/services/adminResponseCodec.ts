@@ -14,6 +14,9 @@ import type {
   AdminStats,
   AdminUser,
   AdminUsersResponse,
+  GameWordGame,
+  GameWordsStats,
+  TriggerSupplyResult,
 } from '@/features/admin/model/adminContracts';
 
 type JsonObject = Record<string, unknown>;
@@ -511,5 +514,94 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
         'Admin request traffic invalidClientMessages',
       ),
     },
+  };
+}
+
+function parseGameWordGame(value: unknown, label: string): GameWordGame {
+  if (value === 'fibking' || value === 'undercover') return value;
+  throw new Error(`${label} has unsupported game`);
+}
+
+export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
+  const object = requireObject(value, 'Game words stats response');
+  assertExactKeys(
+    object,
+    [
+      'game',
+      'wordsByCategory',
+      'monthlySupply',
+      'reviewDecisions',
+      'queryLeaderboard',
+      'supplyEnabled',
+    ],
+    'Game words stats response',
+  );
+  const monthlySupply =
+    object.monthlySupply === null ? null : parseMonthlySupply(object.monthlySupply);
+  return {
+    game: parseGameWordGame(object.game, 'Game words stats game'),
+    wordsByCategory: parseArray(object.wordsByCategory, 'Game words categories', (item, label) => {
+      const o = requireObject(item, label);
+      assertExactKeys(o, ['category', 'active', 'total'], label);
+      return {
+        category: parseNonEmptyString(o.category, `${label} category`),
+        active: parseNonnegativeInteger(o.active, `${label} active`),
+        total: parseNonnegativeInteger(o.total, `${label} total`),
+      };
+    }),
+    monthlySupply,
+    reviewDecisions: parseArray(
+      object.reviewDecisions,
+      'Game words review decisions',
+      (item, label) => {
+        const o = requireObject(item, label);
+        assertExactKeys(o, ['decision', 'count'], label);
+        return {
+          decision: parseNonEmptyString(o.decision, `${label} decision`),
+          count: parseNonnegativeInteger(o.count, `${label} count`),
+        };
+      },
+    ),
+    queryLeaderboard: parseArray(
+      object.queryLeaderboard,
+      'Game words leaderboard',
+      (item, label) => {
+        const o = requireObject(item, label);
+        assertExactKeys(o, ['label', 'detail', 'publishedWords', 'packs'], label);
+        return {
+          label: parseNonEmptyString(o.label, `${label} label`),
+          detail: o.detail === null ? null : parseNonEmptyString(o.detail, `${label} detail`),
+          publishedWords: parseNonnegativeInteger(o.publishedWords, `${label} publishedWords`),
+          packs: parseNonnegativeInteger(o.packs, `${label} packs`),
+        };
+      },
+    ),
+    supplyEnabled: parseBoolean(object.supplyEnabled, 'Game words supplyEnabled'),
+  };
+}
+
+function parseMonthlySupply(value: unknown): NonNullable<GameWordsStats['monthlySupply']> {
+  const o = requireObject(value, 'Game words monthly supply');
+  assertExactKeys(
+    o,
+    ['month', 'reserved', 'published', 'batchLimit', 'wordTarget'],
+    'Game words monthly supply',
+  );
+  return {
+    month: parseNonEmptyString(o.month, 'Game words monthly supply month'),
+    reserved: parseNonnegativeInteger(o.reserved, 'Game words monthly supply reserved'),
+    published: parseNonnegativeInteger(o.published, 'Game words monthly supply published'),
+    batchLimit: parseNonnegativeInteger(o.batchLimit, 'Game words monthly supply batchLimit'),
+    wordTarget: parseNonnegativeInteger(o.wordTarget, 'Game words monthly supply wordTarget'),
+  };
+}
+
+export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
+  const object = requireObject(value, 'Trigger supply response');
+  assertExactKeys(object, ['game', 'force', 'workflowId'], 'Trigger supply response');
+  return {
+    game: parseGameWordGame(object.game, 'Trigger supply game'),
+    force: parseBoolean(object.force, 'Trigger supply force'),
+    workflowId: parseNonEmptyString(object.workflowId, 'Trigger supply workflowId'),
   };
 }

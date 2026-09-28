@@ -18,11 +18,18 @@ import { HTTPException } from 'hono/http-exception';
 
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
+import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
+import {
+  gameWordGameSchema,
+  getGameWordsStats,
+  triggerGameWordSupply,
+  triggerSupplySchema,
+} from './gameWords';
 import {
   queryAIUsageAnalytics,
   queryLoadTimingAnalytics,
@@ -542,4 +549,15 @@ adminRoutes.get('/ai-usage', async (c) => {
       count,
     })),
   });
+});
+
+adminRoutes.get('/games/words/stats', async (c) => {
+  const parsed = gameWordGameSchema.safeParse(c.req.query('game'));
+  if (!parsed.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
+  return c.json(await getGameWordsStats(c.env, parsed.data));
+});
+
+adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), async (c) => {
+  const { game, force } = c.req.valid('json');
+  return c.json(await triggerGameWordSupply(c.env, { game, force }), 202);
 });

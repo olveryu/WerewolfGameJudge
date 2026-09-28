@@ -13,7 +13,7 @@ import {
   type FibWordReview,
 } from './wordProviders/types';
 
-const FIB_WORD_MONTHLY_TARGET = 100;
+export const FIB_WORD_MONTHLY_TARGET = 100;
 export const FIB_WORD_MONTHLY_BATCH_LIMIT = 60;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
 export const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
@@ -74,6 +74,7 @@ export async function reserveFibWordPack(
   day: string,
   batchIndex: number,
   batchLimit = FIB_WORD_DAILY_BATCH_LIMIT,
+  opts: { force?: boolean; runId?: string } = {},
 ): Promise<FibWordPack | null> {
   const parsedDay = z.iso.date().parse(day);
   z.int().min(FIB_WORD_DAILY_BATCH_LIMIT).max(FIB_WORD_MONTHLY_BATCH_LIMIT).parse(batchLimit);
@@ -82,11 +83,20 @@ export async function reserveFibWordPack(
     .max(batchLimit - 1)
     .parse(batchIndex);
   const monthId = parsedDay.slice(0, 7);
-  const id = `${parsedDay}-${batchIndex}`;
+  // Manual runs (normal or force) carry a unique runId so repeated triggers on the same
+  // day never collide with each other or with the scheduled daily batches. Force mode
+  // additionally bypasses the monthly budget below.
+  const id = opts.runId
+    ? `${parsedDay}-${opts.force ? 'force' : 'manual'}-${opts.runId}-${batchIndex}`
+    : `${parsedDay}-${batchIndex}`;
   const requestToken = crypto.randomUUID();
   const category =
     FIB_WORD_CATEGORIES[(Number(parsedDay.slice(-2)) + batchIndex) % FIB_WORD_CATEGORIES.length];
   if (category === undefined) throw new Error('Fib publication category unavailable');
+  const quotaClause = opts.force ? '' : 'AND requests_reserved < ? AND published_count < ?';
+  const quotaBinds: number[] = opts.force
+    ? []
+    : [FIB_WORD_MONTHLY_BATCH_LIMIT, FIB_WORD_MONTHLY_TARGET];
   const results = await db.batch([
     db
       .prepare('INSERT INTO fib_word_supply_months (id) VALUES (?) ON CONFLICT (id) DO NOTHING')
@@ -95,19 +105,11 @@ export async function reserveFibWordPack(
       .prepare(
         `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at)
       SELECT ?, id, ?, ?, 'reserved', ? FROM fib_word_supply_months
-      WHERE id = ? AND requests_reserved < ? AND published_count < ?
+      WHERE id = ? ${quotaClause}
         AND EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
       ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
       )
-      .bind(
-        id,
-        requestToken,
-        category,
-        new Date().toISOString(),
-        monthId,
-        FIB_WORD_MONTHLY_BATCH_LIMIT,
-        FIB_WORD_MONTHLY_TARGET,
-      ),
+      .bind(id, requestToken, category, new Date().toISOString(), monthId, ...quotaBinds),
     db
       .prepare(
         `UPDATE fib_word_supply_months SET requests_reserved = requests_reserved + 1
@@ -128,7 +130,14 @@ export async function reserveFibWordPack(
   if (row === undefined) return null;
   const reservation = results[2];
   if (reservation === undefined) throw new Error('Fib monthly reservation result missing');
-  const { searchIndex } = packSchema.pick({ searchIndex: true }).parse(reservation.results[0]);
+  const rawRow = reservation.results[0] as { searchIndex?: unknown } | undefined;
+  const rawSearchIndex = z.number().int().min(0).parse(rawRow?.searchIndex);
+  // Force mode cycles through the query plan instead of failing out of range.
+  const searchIndex = opts.force ? rawSearchIndex % FIB_WORD_MONTHLY_BATCH_LIMIT : rawSearchIndex;
+  await db
+    .prepare('UPDATE fib_word_packs SET search_index = ? WHERE id = ? AND request_token = ?')
+    .bind(searchIndex, id, requestToken)
+    .run();
   return packSchema.parse({ ...row, searchIndex });
 }
 
