@@ -1,7 +1,6 @@
 /** Games tab: game switching, stats display, and supply triggers. */
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { GameWordsStats } from '@/features/admin/model/adminContracts';
 
@@ -42,19 +41,9 @@ const UNDERCOVER_STATS: GameWordsStats = {
   supplyEnabled: true,
 };
 
-const alertSpy = jest.spyOn(Alert, 'alert');
-
-function pressAlertConfirm() {
-  const lastCall = alertSpy.mock.calls[alertSpy.mock.calls.length - 1];
-  if (!lastCall) throw new Error('Alert not called');
-  const buttons = lastCall[2];
-  if (!buttons) throw new Error('Alert buttons missing');
-  const confirm = buttons.find((b) => b.text === '确定');
-  const onPress = confirm?.onPress;
-  if (!onPress) throw new Error('Confirm button missing');
-  act(() => {
-    onPress();
-  });
+/** Press the modal's 确定 button. The modal renders title/message/buttons as real UI. */
+function pressModalConfirm() {
+  fireEvent.press(screen.getByText('确定'));
 }
 
 beforeEach(() => {
@@ -90,12 +79,9 @@ describe('GamesTab', () => {
     render(<GamesTab />);
     await waitFor(() => expect(screen.getByText('补词')).toBeTruthy());
     fireEvent.press(screen.getByText('补词'));
-    expect(alertSpy).toHaveBeenCalledWith(
-      '确认补词',
-      expect.stringContaining('瞎掰王'),
-      expect.anything(),
-    );
-    pressAlertConfirm();
+    expect(screen.getByText('确认补词')).toBeTruthy();
+    expect(screen.getByText(/为「瞎掰王」立即触发一次补词/)).toBeTruthy();
+    pressModalConfirm();
     await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', false));
     // Reloads stats after the trigger.
     await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledTimes(2));
@@ -105,12 +91,9 @@ describe('GamesTab', () => {
     render(<GamesTab />);
     await waitFor(() => expect(screen.getByText('强制补词')).toBeTruthy());
     fireEvent.press(screen.getByText('强制补词'));
-    expect(alertSpy).toHaveBeenCalledWith(
-      '确认补词',
-      expect.stringContaining('突破本月 60 次配额并产生额外 Tavily/Gemini 费用'),
-      expect.anything(),
-    );
-    pressAlertConfirm();
+    expect(screen.getByText('确认补词')).toBeTruthy();
+    expect(screen.getByText(/突破本月 60 次配额并产生额外 Tavily\/Gemini 费用/)).toBeTruthy();
+    pressModalConfirm();
     await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', true));
   });
 
