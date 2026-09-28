@@ -7,8 +7,9 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import type { GameWordGame, GameWordsStats } from '@/features/admin/model/adminContracts';
 import { fetchGameWordsStats, triggerGameWordSupply } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, spacing, typography } from '@/theme';
@@ -26,6 +27,9 @@ export const GamesTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
+  // Pending confirm dialog: null = hidden, otherwise whether it is a force trigger.
+  // AlertModal replaces Alert.alert because react-native-web's Alert.alert is a no-op.
+  const [confirmForce, setConfirmForce] = useState<boolean | null>(null);
 
   const load = useCallback(async (g: GameWordGame) => {
     setLoading(true);
@@ -43,37 +47,31 @@ export const GamesTab: React.FC = () => {
     void load(game);
   }, [game, load]);
 
-  const handleTrigger = useCallback(
-    (force: boolean) => {
-      const gameLabel = game === 'fibking' ? '瞎掰王' : '谁是卧底';
-      const forceDetail =
-        game === 'fibking'
-          ? '突破本月 60 次配额并产生额外 Tavily/Gemini 费用'
-          : '突破每日批次上限并产生额外 Gemini 费用';
-      const message = force
-        ? `将为「${gameLabel}」强制触发一次补词，${forceDetail}，确定吗？`
-        : `为「${gameLabel}」立即触发一次补词，确定吗？`;
-      Alert.alert('确认补词', message, [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定',
-          style: force ? 'destructive' : 'default',
-          onPress: () => {
-            setTriggering(true);
-            triggerGameWordSupply(game, force)
-              .then(() => load(game))
-              .catch((e: unknown) => {
-                setError(e instanceof Error ? e.message : 'Unknown error');
-              })
-              .finally(() => {
-                setTriggering(false);
-              });
-          },
-        },
-      ]);
-    },
-    [game, load],
-  );
+  const confirmMessage = useMemo(() => {
+    if (confirmForce === null) return '';
+    const gameLabel = game === 'fibking' ? '瞎掰王' : '谁是卧底';
+    const forceDetail =
+      game === 'fibking'
+        ? '突破本月 60 次配额并产生额外 Tavily/Gemini 费用'
+        : '突破每日批次上限并产生额外 Gemini 费用';
+    return confirmForce
+      ? `将为「${gameLabel}」强制触发一次补词，${forceDetail}，确定吗？`
+      : `为「${gameLabel}」立即触发一次补词，确定吗？`;
+  }, [confirmForce, game]);
+
+  const doTrigger = useCallback(() => {
+    if (confirmForce === null) return;
+    const force = confirmForce;
+    setTriggering(true);
+    triggerGameWordSupply(game, force)
+      .then(() => load(game))
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : 'Unknown error');
+      })
+      .finally(() => {
+        setTriggering(false);
+      });
+  }, [confirmForce, game, load]);
 
   const totalActive = useMemo(
     () => data?.wordsByCategory.reduce((sum, c) => sum + c.active, 0) ?? 0,
@@ -154,7 +152,7 @@ export const GamesTab: React.FC = () => {
             <Pressable
               accessibilityRole="button"
               disabled={triggering || !data.supplyEnabled}
-              onPress={() => handleTrigger(false)}
+              onPress={() => setConfirmForce(false)}
               style={[
                 styles.button,
                 styles.buttonPrimary,
@@ -166,7 +164,7 @@ export const GamesTab: React.FC = () => {
             <Pressable
               accessibilityRole="button"
               disabled={triggering || !data.supplyEnabled}
-              onPress={() => handleTrigger(true)}
+              onPress={() => setConfirmForce(true)}
               style={[
                 styles.button,
                 styles.buttonDanger,
@@ -183,6 +181,20 @@ export const GamesTab: React.FC = () => {
                 : `本月剩余 ${remaining} 次（配额 ${data.monthlySupply?.batchLimit}）`
               : '词库供给未启用'}
           </Text>
+          <AlertModal
+            visible={confirmForce !== null}
+            title="确认补词"
+            message={confirmMessage}
+            buttons={[
+              { text: '取消', style: 'cancel' },
+              {
+                text: '确定',
+                style: confirmForce === true ? 'destructive' : 'default',
+                onPress: doTrigger,
+              },
+            ]}
+            onClose={() => setConfirmForce(null)}
+          />
         </>
       )}
     </ScrollView>
