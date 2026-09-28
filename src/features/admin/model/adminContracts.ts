@@ -131,3 +131,31 @@ export interface AdminRoomPlayersResponse {
 }
 
 export type TimePreset = '1h' | '24h' | 'today' | '7d' | '30d' | 'custom';
+
+export type GameWordGame = 'fibking' | 'undercover';
+
+export interface GameWordsStats {
+  game: GameWordGame;
+  wordsByCategory: Array<{ category: string; active: number; total: number }>;
+  monthlySupply: {
+    month: string;
+    reserved: number;
+    published: number;
+    batchLimit: number;
+    wordTarget: number;
+  } | null;
+  reviewDecisions: Array<{ decision: string; count: number }>;
+  queryLeaderboard: Array<{
+    label: string;
+    detail: string | null;
+    publishedWords: number;
+    packs: number;
+  }>;
+  supplyEnabled: boolean;
+}
+
+export interface TriggerSupplyResult {
+  game: GameWordGame;
+  force: boolean;
+  workflowId: string;
+}

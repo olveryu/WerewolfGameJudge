@@ -29,12 +29,11 @@ export async function reserveUndercoverWordPack(
   db: D1Database,
   day: string,
   batchIndex: number,
+  opts: { force?: boolean; runId?: string } = {},
 ): Promise<UndercoverWordPack | null> {
   z.iso.date().parse(day);
-  z.int()
-    .min(0)
-    .max(UNDERCOVER_DAILY_BATCH_LIMIT - 1)
-    .parse(batchIndex);
+  const maxIndex = opts.force ? Number.MAX_SAFE_INTEGER : UNDERCOVER_DAILY_BATCH_LIMIT - 1;
+  z.int().min(0).max(maxIndex).parse(batchIndex);
   const categoryRows = await db
     .prepare(
       `SELECT category,
@@ -64,7 +63,11 @@ export async function reserveUndercoverWordPack(
     ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
     )
     .bind(
-      `${day}-${batchIndex}`,
+      // Manual runs (normal or force) carry a unique runId so repeated triggers on the
+      // same day never collide with each other or with the scheduled daily batches.
+      opts.runId
+        ? `${day}-${opts.force ? 'force' : 'manual'}-${opts.runId}-${batchIndex}`
+        : `${day}-${batchIndex}`,
       category,
       crypto.randomUUID(),
       new Date().toISOString(),

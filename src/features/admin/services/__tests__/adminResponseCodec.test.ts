@@ -7,6 +7,7 @@ import {
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
   parseAdminUsersResponse,
+  parseGameWordsStatsResponse,
 } from '@/features/admin/services/adminResponseCodec';
 
 describe('adminResponseCodec', () => {
@@ -235,5 +236,39 @@ describe('adminResponseCodec', () => {
       }),
   ])('fails fast for malformed payloads', (decode) => {
     expect(decode).toThrow();
+  });
+
+  it('decodes the game words dashboard including the per-row pack denominator', () => {
+    const decoded = parseGameWordsStatsResponse({
+      game: 'fibking',
+      wordsByCategory: [{ category: 'literary', active: 3, total: 4 }],
+      monthlySupply: {
+        month: '2026-09',
+        reserved: 10,
+        published: 8,
+        batchLimit: 60,
+        wordTarget: 500,
+      },
+      reviewDecisions: [{ decision: 'accepted', count: 2 }],
+      queryLeaderboard: [{ label: '跳舞草', detail: '植物', publishedWords: 5, packs: 2 }],
+      supplyEnabled: true,
+    });
+    expect(decoded.queryLeaderboard[0]).toEqual({
+      label: '跳舞草',
+      detail: '植物',
+      publishedWords: 5,
+      packs: 2,
+    });
+    // packs is required: a leaderboard row without it is rejected.
+    expect(() =>
+      parseGameWordsStatsResponse({
+        game: 'fibking',
+        wordsByCategory: [],
+        monthlySupply: null,
+        reviewDecisions: [],
+        queryLeaderboard: [{ label: 'x', detail: null, publishedWords: 1 }],
+        supplyEnabled: false,
+      }),
+    ).toThrow();
   });
 });

@@ -41,6 +41,9 @@ const log = createLogger('fib-word-supply');
 interface FibWordSupplyParams {
   readonly day: string;
   readonly batchLimit?: number;
+  readonly force?: boolean;
+  /** Unique id for admin manual triggers; keeps pack ids collision-free. */
+  readonly runId?: string;
 }
 
 function createRequest(
@@ -59,6 +62,8 @@ function createRequest(
 export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupplyParams> {
   async run(event: WorkflowEvent<FibWordSupplyParams>, step: WorkflowStep) {
     const day = z.iso.date().parse(event.payload.day);
+    const force = event.payload.force === true;
+    const runId = z.string().min(1).max(64).optional().parse(event.payload.runId);
     const batchLimit = z
       .int()
       .min(FIB_WORD_DAILY_BATCH_LIMIT)
@@ -77,7 +82,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
       );
       if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
       const pack = await step.do(`reserve-${batchIndex}`, () =>
-        reserveFibWordPack(this.env.DB, day, batchIndex, batchLimit),
+        reserveFibWordPack(this.env.DB, day, batchIndex, batchLimit, { force, runId }),
       );
       if (pack === null) continue;
       await this.processPack(step, pack, batchIndex);

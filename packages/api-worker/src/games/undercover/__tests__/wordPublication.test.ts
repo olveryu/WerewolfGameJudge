@@ -83,3 +83,27 @@ describe('Undercover editorial publication', () => {
     });
   });
 });
+
+describe('Undercover force reservation', () => {
+  it('allows batch indexes beyond the daily limit in its own id namespace', async () => {
+    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
+    if (first === null) throw new Error('Expected reservation');
+    // Normal mode rejects batchIndex >= daily limit.
+    await expect(reserveUndercoverWordPack(env.DB, '2026-09-01', 2)).rejects.toThrow();
+    // Force mode accepts it with a distinct id.
+    const forced = await reserveUndercoverWordPack(env.DB, '2026-09-01', 2, {
+      force: true,
+      runId: 'r1',
+    });
+    expect(forced?.id).toBe('2026-09-01-force-r1-2');
+    // A repeated manual run on the same day gets its own id.
+    const forcedAgain = await reserveUndercoverWordPack(env.DB, '2026-09-01', 2, {
+      force: true,
+      runId: 'r2',
+    });
+    expect(forcedAgain?.id).toBe('2026-09-01-force-r2-2');
+    // Same-day scheduled ids are untouched.
+    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 1);
+    expect(second?.id).toBe('2026-09-01-1');
+  });
+});
