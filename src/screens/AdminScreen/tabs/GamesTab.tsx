@@ -11,7 +11,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import type { GameWordGame, GameWordsStats } from '@/features/admin/model/adminContracts';
 import { fetchGameWordsStats, triggerGameWordSupply } from '@/features/admin/services/adminApi';
-import { colors, spacing } from '@/theme';
+import { borderRadius, colors, spacing, typography } from '@/theme';
 
 import { AdminEmptyState, BarChart, MetricCard } from '../components';
 
@@ -195,26 +195,26 @@ const styles = StyleSheet.create({
   segmented: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: 4,
+    borderRadius: borderRadius.small,
+    padding: spacing.tight,
     marginBottom: spacing.medium,
   },
   segment: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: spacing.small,
+    borderRadius: borderRadius.small,
     alignItems: 'center',
   },
   segmentSelected: {
     backgroundColor: colors.primary,
   },
   segmentLabel: {
-    fontSize: 14,
+    fontSize: typography.secondary,
     color: colors.textSecondary,
   },
   segmentLabelSelected: {
     color: colors.textInverse,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
   },
   metricsRow: {
     flexDirection: 'row',
@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: spacing.medium,
+    borderRadius: borderRadius.small,
     alignItems: 'center',
   },
   buttonPrimary: {
@@ -243,12 +243,12 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     color: colors.textInverse,
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: typography.body,
+    fontWeight: typography.weights.semibold,
   },
   hint: {
     marginTop: spacing.small,
-    fontSize: 12,
+    fontSize: typography.caption,
     color: colors.textSecondary,
     textAlign: 'center',
   },
