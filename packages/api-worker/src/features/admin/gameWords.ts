@@ -15,7 +15,7 @@ import {
 } from '../../games/fibking/wordPublication';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
 
-export const GAME_WORD_GAMES = ['fibking', 'undercover'] as const;
+const GAME_WORD_GAMES = ['fibking', 'undercover'] as const;
 export type GameWordGame = (typeof GAME_WORD_GAMES)[number];
 
 export const gameWordGameSchema = z.enum(GAME_WORD_GAMES);
