@@ -377,13 +377,13 @@ describe('Fib word force reservation', () => {
       runId: 'run-1',
     });
     expect(pack?.id).toBe('2026-09-16-force-run-1-0');
-    // requests_reserved hit 60, so the raw index 60 cycles back to 0.
-    expect(pack?.searchIndex).toBe(0);
+    // requests_reserved hit 60, so the raw index 60 continues into the extended query plan.
+    expect(pack?.searchIndex).toBe(60);
 
     const row = await env.DB.prepare('SELECT search_index FROM fib_word_packs WHERE id = ?')
       .bind('2026-09-16-force-run-1-0')
       .first<{ search_index: number }>();
-    expect(row?.search_index).toBe(0);
+    expect(row?.search_index).toBe(60);
   });
 
   it('never collides with scheduled pack ids on the same day', async () => {

@@ -12,6 +12,7 @@ import {
   type FibWordEditorialCandidate,
   type FibWordReview,
 } from './wordProviders/types';
+import { FIB_WORD_SEARCH_QUERY_COUNT } from './wordSearchPlan';
 
 export const FIB_WORD_MONTHLY_TARGET = 100;
 export const FIB_WORD_MONTHLY_BATCH_LIMIT = 60;
@@ -34,7 +35,7 @@ const packSchema = z.strictObject({
     .number()
     .int()
     .min(0)
-    .max(FIB_WORD_MONTHLY_BATCH_LIMIT - 1),
+    .max(FIB_WORD_SEARCH_QUERY_COUNT - 1),
 });
 export type FibWordPack = z.output<typeof packSchema>;
 
@@ -137,7 +138,8 @@ export async function reserveFibWordPack(
     .strictObject({ searchIndex: z.number().int().min(0) })
     .parse(reservation.results[0]).searchIndex;
   // Force mode cycles through the query plan instead of failing out of range.
-  const searchIndex = opts.force ? rawSearchIndex % FIB_WORD_MONTHLY_BATCH_LIMIT : rawSearchIndex;
+  const searchIndex =
+    opts.force === true ? rawSearchIndex % FIB_WORD_SEARCH_QUERY_COUNT : rawSearchIndex;
   await db
     .prepare('UPDATE fib_word_packs SET search_index = ? WHERE id = ? AND request_token = ?')
     .bind(searchIndex, id, requestToken)
