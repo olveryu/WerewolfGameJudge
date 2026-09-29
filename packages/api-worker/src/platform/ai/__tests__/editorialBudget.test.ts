@@ -26,4 +26,29 @@ describe('editorial request budget', () => {
       claimEditorialModelRequest(env.DB, 'request-0', 'fibking', 'model', now),
     ).rejects.toThrow('consumed or shared budget');
   });
+
+  it('lets force claims bypass the shared budget but keeps the idempotency ledger', async () => {
+    await env.DB.prepare('DELETE FROM editorial_model_requests').run();
+    const now = Date.parse('2026-09-22T12:00:00Z');
+    for (let index = 0; index < EDITORIAL_DAILY_REQUEST_LIMIT; index += 1) {
+      await claimEditorialModelRequest(env.DB, `fill-${index}`, 'fibking', 'model', now);
+    }
+    await expect(
+      claimEditorialModelRequest(env.DB, 'blocked', 'undercover', 'model', now),
+    ).rejects.toThrow('consumed or shared budget');
+    // Force exceeds the budget but still records the claim exactly once.
+    await claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', now, {
+      force: true,
+    });
+    // A repeated force claim for the same id is still rejected: the ledger stays idempotent.
+    await expect(
+      claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', now, {
+        force: true,
+      }),
+    ).rejects.toThrow('already consumed');
+    const count = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM editorial_model_requests WHERE id = 'forced-1'",
+    ).first<{ n: number }>();
+    expect(count?.n).toBe(1);
+  });
 });

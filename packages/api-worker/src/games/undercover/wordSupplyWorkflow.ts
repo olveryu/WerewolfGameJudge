@@ -51,7 +51,7 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
         reserveUndercoverWordPack(this.env.DB, day, batchIndex, { force, runId }),
       );
       if (pack === null) continue;
-      await this.processPack(step, pack, batchIndex);
+      await this.processPack(step, pack, batchIndex, force);
       await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
     }
     return { status: 'complete' };
@@ -61,6 +61,7 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
     step: WorkflowStep,
     pack: UndercoverWordPack,
     batchIndex: number,
+    force: boolean,
   ): Promise<void> {
     let failureStage = 'candidateSelection';
     try {
@@ -83,6 +84,8 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
             `undercover:${pack.id}:generation`,
             'undercover',
             UNDERCOVER_WORD_MODEL,
+            Date.now(),
+            { force },
           );
           return createUndercoverWordProvider(this.env.GEMINI_API_KEY).generateBatch(
             pack.category,
@@ -110,7 +113,7 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
       const reviews =
         candidates.length === 0
           ? []
-          : await this.reviewCandidates(step, pack, batchIndex, candidates);
+          : await this.reviewCandidates(step, pack, batchIndex, candidates, force);
       failureStage = 'publication';
       await step.do(`publish-${batchIndex}`, () =>
         publishUndercoverWordPack(this.env.DB, pack, candidates, reviews),
@@ -129,6 +132,7 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
     pack: UndercoverWordPack,
     batchIndex: number,
     candidates: Awaited<ReturnType<typeof getUndercoverReviewCandidates>>,
+    force: boolean,
   ) {
     await step.sleep(`review-spacing-${batchIndex}`, '20 seconds');
     return step.do(`review-${batchIndex}`, MODEL_STEP, async () => {
@@ -137,6 +141,8 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
         `undercover:${pack.id}:review`,
         'undercover',
         UNDERCOVER_WORD_MODEL,
+        Date.now(),
+        { force },
       );
       return createUndercoverWordProvider(this.env.GEMINI_API_KEY).reviewBatch(
         pack.category,

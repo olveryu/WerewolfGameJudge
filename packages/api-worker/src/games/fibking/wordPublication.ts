@@ -43,6 +43,7 @@ export async function claimFibWordProviderRequest(
   db: D1Database,
   pack: FibWordPack,
   operation: FibWordProviderOperation,
+  opts: { force?: boolean } = {},
 ): Promise<void> {
   const result = await db
     .prepare(
@@ -64,6 +65,8 @@ export async function claimFibWordProviderRequest(
       `fib:${pack.id}:${operation}`,
       'fibking',
       GEMINI_FIB_WORD_MODEL,
+      Date.now(),
+      { force: opts.force },
     );
   }
 }

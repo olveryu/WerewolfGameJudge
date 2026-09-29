@@ -85,13 +85,18 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         reserveFibWordPack(this.env.DB, day, batchIndex, batchLimit, { force, runId }),
       );
       if (pack === null) continue;
-      await this.processPack(step, pack, batchIndex);
+      await this.processPack(step, pack, batchIndex, force);
       await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
     }
     return { status: 'complete' };
   }
 
-  private async processPack(step: WorkflowStep, pack: FibWordPack, batchIndex: number) {
+  private async processPack(
+    step: WorkflowStep,
+    pack: FibWordPack,
+    batchIndex: number,
+    force: boolean,
+  ) {
     let failureStage = 'inventoryReviewSelection';
     try {
       let candidates = await step.do(`review-candidates-${batchIndex}`, () =>
@@ -100,7 +105,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
       if (candidates.length === 0) {
         failureStage = 'discovery';
         const discovery = await step.do(`discover-${batchIndex}`, EXTERNAL_STEP, async () => {
-          await claimFibWordProviderRequest(this.env.DB, pack, 'discovery');
+          await claimFibWordProviderRequest(this.env.DB, pack, 'discovery', { force });
           return searchFibWordEvidence(
             this.env.TAVILY_API_KEY,
             createFibWordSearchQuery(pack.searchIndex),
@@ -109,7 +114,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         if (discovery.length > 0) {
           failureStage = 'extraction';
           const extraction = await step.do(`extract-${batchIndex}`, EXTERNAL_STEP, async () => {
-            await claimFibWordProviderRequest(this.env.DB, pack, 'extraction');
+            await claimFibWordProviderRequest(this.env.DB, pack, 'extraction', { force });
             return extractFibWordEvidence(this.env.TAVILY_API_KEY, discovery);
           });
           if (extraction.evidence.length > 0) {
@@ -118,7 +123,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
               `generate-${batchIndex}`,
               MODEL_STEP,
               async () => {
-                await claimFibWordProviderRequest(this.env.DB, pack, 'generation');
+                await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
                 return [
                   ...(await createConfiguredFibWordProvider(this.env).generateBatch(
                     createRequest(pack.category, extraction.evidence),
@@ -147,7 +152,9 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           `verify-${batchIndex}-${candidateIndex}`,
           EXTERNAL_STEP,
           async () => {
-            await claimFibWordProviderRequest(this.env.DB, pack, `verification-${candidateIndex}`);
+            await claimFibWordProviderRequest(this.env.DB, pack, `verification-${candidateIndex}`, {
+              force,
+            });
             return searchFibWordEvidence(
               this.env.TAVILY_API_KEY,
               `"${candidate.word}" 词典 释义 出处`,
@@ -165,6 +172,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
                 this.env.DB,
                 pack,
                 `verification-extraction-${candidateIndex}`,
+                { force },
               );
               return extractFibWordEvidence(this.env.TAVILY_API_KEY, sources);
             },
@@ -184,7 +192,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         verifiedCandidates.length === 0
           ? []
           : await step.do(`review-${batchIndex}`, MODEL_STEP, async () => {
-              await claimFibWordProviderRequest(this.env.DB, pack, 'review');
+              await claimFibWordProviderRequest(this.env.DB, pack, 'review', { force });
               return [
                 ...(await createConfiguredFibWordProvider(this.env).reviewBatch(
                   createRequest(pack.category, []),
