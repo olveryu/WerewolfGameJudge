@@ -61,7 +61,22 @@ const SEARCH_QUERIES = [
   '古代绘画 装裱 技法 名词 解释',
   '中国书法 笔法 章法 术语 含义',
   '中国民间剪纸 年画 印染 工艺 名称 含义',
+  '电竞游戏 黑话 术语 名称 含义',
+  '网络直播 弹幕 流行语 含义 出处',
+  '饭圈追星 黑话 暗语 含义',
+  '法律 拉丁法谚 术语 名称 含义',
+  '金融证券 交易术语 行话 含义',
+  '影视剧组 拍摄制作 行话 术语 含义',
+  '粤语俚语 生僻词汇 含义 用法',
+  '吴语方言 土语 生僻词 含义',
+  '传统武术 招式 功法 名称 含义',
+  '武术器械 拳种流派 术语 名称 解释',
+  '语言学 语音语法 术语 名称 解释',
+  '文字训诂 音韵学 术语 名称 含义',
 ] as const;
+
+/** Total planned searches; force mode cycles the monthly ledger over all of them. */
+export const FIB_WORD_SEARCH_QUERY_COUNT = SEARCH_QUERIES.length;
 
 /** Every reserved monthly batch has one query; out-of-plan requests fail instead of cycling. */
 export function createFibWordSearchQuery(searchIndex: number): string {
