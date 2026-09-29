@@ -87,14 +87,25 @@ describe('GamesTab', () => {
     await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledTimes(2));
   });
 
-  it('warns about quota and cost on force trigger', async () => {
+  it('warns about the monthly quota on force trigger', async () => {
     render(<GamesTab />);
     await waitFor(() => expect(screen.getByText('强制补词')).toBeTruthy());
     fireEvent.press(screen.getByText('强制补词'));
     expect(screen.getByText('确认补词')).toBeTruthy();
-    expect(screen.getByText(/突破本月 60 次配额并产生额外 Tavily\/Gemini 费用/)).toBeTruthy();
+    expect(screen.getByText(/突破本月 60 次配额/)).toBeTruthy();
     pressModalConfirm();
     await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', true));
+  });
+
+  it('shows localized category names and the full query leaderboard', async () => {
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('在库词数')).toBeTruthy());
+    // Raw enum values are localized: literary -> 书面词.
+    expect(screen.getByText('书面词')).toBeTruthy();
+    expect(screen.queryByText('literary')).toBeNull();
+    // No Top-12 cut: the full leaderboard renders as a list.
+    expect(screen.getByText('各查询产出榜（全部 1 条）')).toBeTruthy();
+    expect(screen.getByText('5/2批')).toBeTruthy();
   });
 
   it('shows an error state when loading fails', async () => {
