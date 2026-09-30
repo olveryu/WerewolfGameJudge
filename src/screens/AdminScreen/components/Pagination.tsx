@@ -28,6 +28,8 @@ const PaginationComponent: React.FC<PaginationProps> = ({ page, totalPages, onPa
         style={[styles.pageBtn, page <= 1 && styles.pageBtnDisabled]}
         onPress={() => onPageChange(Math.max(1, page - 1))}
         disabled={page <= 1}
+        accessibilityRole="button"
+        accessibilityLabel="上一页"
       >
         <Ionicons name="chevron-back" size={componentSizes.icon.md} color={colors.text} />
       </PressableScale>
@@ -38,6 +40,8 @@ const PaginationComponent: React.FC<PaginationProps> = ({ page, totalPages, onPa
         style={[styles.pageBtn, page >= totalPages && styles.pageBtnDisabled]}
         onPress={() => onPageChange(Math.min(totalPages, page + 1))}
         disabled={page >= totalPages}
+        accessibilityRole="button"
+        accessibilityLabel="下一页"
       >
         <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.text} />
       </PressableScale>
