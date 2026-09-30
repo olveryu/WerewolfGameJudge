@@ -13,6 +13,7 @@ import {
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_TARGET,
 } from '../../games/fibking/wordPublication';
+import { FIB_WORD_REVIEW_VERSION } from '../../games/fibking/wordProviders/prompt';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
 
 const GAME_WORD_GAMES = ['fibking', 'undercover'] as const;
@@ -38,6 +39,11 @@ export interface GameWordsStats {
     wordTarget: number;
   } | null;
   reviewDecisions: Array<{ decision: string; count: number }>;
+  /**
+   * Fibking only: how many rejected reviews failed each quality check in the
+   * last 30 days under the current review rubric. Empty for undercover.
+   */
+  reviewCheckStats: Array<{ check: string; failCount: number }>;
   /** Per search query (fibking) or per category (undercover). */
   queryLeaderboard: Array<{
     label: string;
@@ -83,6 +89,37 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
          GROUP BY decision ORDER BY decision`,
       )
       .all<{ decision: string; count: number }>();
+    const checkStatsRow = await db
+      .prepare(
+        `SELECT
+           SUM(CASE WHEN decision = 'rejected' AND is_established_term = 0 THEN 1 ELSE 0 END) AS isEstablishedTerm,
+           SUM(CASE WHEN decision = 'rejected' AND is_definition_accurate = 0 THEN 1 ELSE 0 END) AS isDefinitionAccurate,
+           SUM(CASE WHEN decision = 'rejected' AND is_meaning_unfamiliar_to_most_players = 0 THEN 1 ELSE 0 END) AS isMeaningUnfamiliarToMostPlayers,
+           SUM(CASE WHEN decision = 'rejected' AND is_meaning_distinct_from_literal_reading = 0 THEN 1 ELSE 0 END) AS isMeaningDistinctFromLiteralReading,
+           SUM(CASE WHEN decision = 'rejected' AND has_multiple_plausible_wrong_definitions = 0 THEN 1 ELSE 0 END) AS hasMultiplePlausibleWrongDefinitions,
+           SUM(CASE WHEN decision = 'rejected' AND has_reveal_value = 0 THEN 1 ELSE 0 END) AS hasRevealValue
+         FROM fib_word_candidate_reviews
+         WHERE reviewed_at >= datetime('now', '-30 days') AND review_version = ?`,
+      )
+      .bind(FIB_WORD_REVIEW_VERSION)
+      .first<{
+        isEstablishedTerm: number | null;
+        isDefinitionAccurate: number | null;
+        isMeaningUnfamiliarToMostPlayers: number | null;
+        isMeaningDistinctFromLiteralReading: number | null;
+        hasMultiplePlausibleWrongDefinitions: number | null;
+        hasRevealValue: number | null;
+      }>();
+    const reviewCheckStats = (
+      [
+        'isEstablishedTerm',
+        'isDefinitionAccurate',
+        'isMeaningUnfamiliarToMostPlayers',
+        'isMeaningDistinctFromLiteralReading',
+        'hasMultiplePlausibleWrongDefinitions',
+        'hasRevealValue',
+      ] as const
+    ).map((check) => ({ check, failCount: Number(checkStatsRow?.[check] ?? 0) }));
     const boardRows = await db
       .prepare(
         `SELECT p.search_index AS searchIndex, c.prompt_version AS promptVersion,
@@ -131,6 +168,7 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
         decision: r.decision,
         count: Number(r.count),
       })),
+      reviewCheckStats,
       queryLeaderboard,
       supplyEnabled: env.FIB_WORD_SUPPLY_ENABLED === 'true',
     };
@@ -164,6 +202,7 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
       decision: r.decision,
       count: Number(r.count),
     })),
+    reviewCheckStats: [],
     queryLeaderboard: (boardRows.results ?? []).map((r) => ({
       label: r.category,
       detail: 'active 词对',

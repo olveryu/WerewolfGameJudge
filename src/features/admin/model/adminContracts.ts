@@ -145,6 +145,7 @@ export interface GameWordsStats {
     wordTarget: number;
   } | null;
   reviewDecisions: Array<{ decision: string; count: number }>;
+  reviewCheckStats: Array<{ check: string; failCount: number }>;
   queryLeaderboard: Array<{
     label: string;
     detail: string | null;

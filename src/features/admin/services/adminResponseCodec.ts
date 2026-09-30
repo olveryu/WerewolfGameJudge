@@ -531,6 +531,7 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
       'wordsByCategory',
       'monthlySupply',
       'reviewDecisions',
+      'reviewCheckStats',
       'queryLeaderboard',
       'supplyEnabled',
     ],
@@ -559,6 +560,18 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
         return {
           decision: parseNonEmptyString(o.decision, `${label} decision`),
           count: parseNonnegativeInteger(o.count, `${label} count`),
+        };
+      },
+    ),
+    reviewCheckStats: parseArray(
+      object.reviewCheckStats,
+      'Game words review check stats',
+      (item, label) => {
+        const o = requireObject(item, label);
+        assertExactKeys(o, ['check', 'failCount'], label);
+        return {
+          check: parseNonEmptyString(o.check, `${label} check`),
+          failCount: parseNonnegativeInteger(o.failCount, `${label} failCount`),
         };
       },
     ),

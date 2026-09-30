@@ -108,7 +108,6 @@ describe('Fib word publication', () => {
       qualityChecks: {
         isEstablishedTerm: true,
         isDefinitionAccurate: true,
-        isEasyToReadAloud: true,
         isMeaningUnfamiliarToMostPlayers: true,
         isMeaningDistinctFromLiteralReading: true,
         hasMultiplePlausibleWrongDefinitions: true,
@@ -277,7 +276,6 @@ describe('Fib word publication', () => {
       qualityChecks: {
         isEstablishedTerm: true,
         isDefinitionAccurate: true,
-        isEasyToReadAloud: true,
         isMeaningUnfamiliarToMostPlayers: true,
         isMeaningDistinctFromLiteralReading: true,
         hasMultiplePlausibleWrongDefinitions: true,

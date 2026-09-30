@@ -30,6 +30,16 @@ const FIBKING_CATEGORY_NAMES: Readonly<Record<string, string>> = {
   niche: '生僻概念',
 };
 
+/** Fibking v11 review check names shown in admin; API returns the raw field names. */
+const FIBKING_REVIEW_CHECK_LABELS: Readonly<Record<string, string>> = {
+  isEstablishedTerm: '真实词项',
+  isDefinitionAccurate: '释义准确',
+  isMeaningUnfamiliarToMostPlayers: '真义陌生',
+  isMeaningDistinctFromLiteralReading: '字面不泄底',
+  hasMultiplePlausibleWrongDefinitions: '假释义空间',
+  hasRevealValue: '揭晓价值',
+};
+
 function localizeCategory(game: GameWordGame, category: string): string {
   if (game === 'fibking') return FIBKING_CATEGORY_NAMES[category] ?? category;
   const names: Readonly<Record<string, string>> = UNDERCOVER_CATEGORY_NAMES;
@@ -93,6 +103,7 @@ export const GamesTab: React.FC = () => {
     () => data?.wordsByCategory.reduce((sum, c) => sum + c.active, 0) ?? 0,
     [data],
   );
+
   const reviewRate = useMemo(() => {
     const accepted = data?.reviewDecisions.find((d) => d.decision === 'accepted')?.count ?? 0;
     const rejected = data?.reviewDecisions.find((d) => d.decision === 'rejected')?.count ?? 0;
@@ -120,6 +131,15 @@ export const GamesTab: React.FC = () => {
         };
       }),
     [data, game],
+  );
+
+  const checkStatItems = useMemo(
+    () =>
+      (data?.reviewCheckStats ?? []).map((s) => ({
+        label: FIBKING_REVIEW_CHECK_LABELS[s.check] ?? s.check,
+        value: s.failCount,
+      })),
+    [data],
   );
 
   const remaining =
@@ -166,6 +186,19 @@ export const GamesTab: React.FC = () => {
           </View>
 
           <BarChart title="各分类在库词数" items={categoryItems} />
+          {game === 'fibking' && checkStatItems.length > 0 && (
+            <View style={styles.listCard}>
+              <Text style={styles.listTitle}>审核拒因分布（近 30 天）</Text>
+              {checkStatItems.map((item) => (
+                <View key={item.label} style={styles.listRow}>
+                  <Text style={styles.listLabel} numberOfLines={2}>
+                    {item.label} 不通过
+                  </Text>
+                  <Text style={styles.listValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           {game === 'fibking' ? (
             <View style={styles.listCard}>
               <Text style={styles.listTitle}>

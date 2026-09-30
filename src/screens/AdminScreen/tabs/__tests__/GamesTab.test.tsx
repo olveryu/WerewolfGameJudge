@@ -28,6 +28,14 @@ const FIBKING_STATS: GameWordsStats = {
     { decision: 'accepted', count: 8 },
     { decision: 'rejected', count: 2 },
   ],
+  reviewCheckStats: [
+    { check: 'isEstablishedTerm', failCount: 0 },
+    { check: 'isDefinitionAccurate', failCount: 1 },
+    { check: 'isMeaningUnfamiliarToMostPlayers', failCount: 1 },
+    { check: 'isMeaningDistinctFromLiteralReading', failCount: 0 },
+    { check: 'hasMultiplePlausibleWrongDefinitions', failCount: 2 },
+    { check: 'hasRevealValue', failCount: 2 },
+  ],
   queryLeaderboard: [{ label: '跳舞草', detail: '植物', publishedWords: 5, packs: 2 }],
   supplyEnabled: true,
 };
@@ -37,6 +45,7 @@ const UNDERCOVER_STATS: GameWordsStats = {
   wordsByCategory: [{ category: 'daily', active: 20, total: 20 }],
   monthlySupply: null,
   reviewDecisions: [],
+  reviewCheckStats: [],
   queryLeaderboard: [{ label: 'daily', detail: null, publishedWords: 20, packs: 4 }],
   supplyEnabled: true,
 };
@@ -64,6 +73,13 @@ describe('GamesTab', () => {
     expect(screen.getByText('80%')).toBeTruthy();
     expect(screen.getByText('本月剩余 30 次（配额 60）')).toBeTruthy();
     expect(screen.getByText('5/2批')).toBeTruthy();
+  });
+
+  it('shows the review rejection breakdown for fibking', async () => {
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('审核拒因分布（近 30 天）')).toBeTruthy());
+    expect(screen.getByText('释义准确 不通过')).toBeTruthy();
+    expect(screen.getByText('真义陌生 不通过')).toBeTruthy();
   });
 
   it('switches to undercover and shows its stats without a monthly budget', async () => {

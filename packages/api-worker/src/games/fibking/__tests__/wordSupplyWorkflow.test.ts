@@ -82,7 +82,6 @@ describe('Fib word supply workflow', () => {
         qualityChecks: {
           isEstablishedTerm: true,
           isDefinitionAccurate: true,
-          isEasyToReadAloud: true,
           isMeaningUnfamiliarToMostPlayers: true,
           isMeaningDistinctFromLiteralReading: true,
           hasMultiplePlausibleWrongDefinitions: true,
@@ -163,7 +162,6 @@ describe('Fib word supply workflow', () => {
       qualityChecks: {
         isEstablishedTerm: true,
         isDefinitionAccurate: true,
-        isEasyToReadAloud: true,
         isMeaningUnfamiliarToMostPlayers: false,
         isMeaningDistinctFromLiteralReading: true,
         hasMultiplePlausibleWrongDefinitions: true,

@@ -29,7 +29,6 @@ const CANDIDATES_RESPONSE = {
 const PASSING_QUALITY_CHECKS = {
   isEstablishedTerm: true,
   isDefinitionAccurate: true,
-  isEasyToReadAloud: true,
   isMeaningUnfamiliarToMostPlayers: true,
   isMeaningDistinctFromLiteralReading: true,
   hasMultiplePlausibleWrongDefinitions: true,
@@ -410,10 +409,6 @@ describe('Fib word candidate batches', () => {
       qualityChecks: { ...PASSING_QUALITY_CHECKS, isDefinitionAccurate: false },
     },
     {
-      failedCheck: 'isEasyToReadAloud',
-      qualityChecks: { ...PASSING_QUALITY_CHECKS, isEasyToReadAloud: false },
-    },
-    {
       failedCheck: 'isMeaningUnfamiliarToMostPlayers',
       qualityChecks: { ...PASSING_QUALITY_CHECKS, isMeaningUnfamiliarToMostPlayers: false },
     },
@@ -422,12 +417,12 @@ describe('Fib word candidate batches', () => {
       qualityChecks: { ...PASSING_QUALITY_CHECKS, isMeaningDistinctFromLiteralReading: false },
     },
     {
-      failedCheck: 'hasMultiplePlausibleWrongDefinitions',
-      qualityChecks: { ...PASSING_QUALITY_CHECKS, hasMultiplePlausibleWrongDefinitions: false },
-    },
-    {
-      failedCheck: 'hasRevealValue',
-      qualityChecks: { ...PASSING_QUALITY_CHECKS, hasRevealValue: false },
+      failedCheck: 'both fun signals',
+      qualityChecks: {
+        ...PASSING_QUALITY_CHECKS,
+        hasMultiplePlausibleWrongDefinitions: false,
+        hasRevealValue: false,
+      },
     },
   ])('derives rejection when $failedCheck fails', ({ qualityChecks }) => {
     const candidates = parseGeneratedFibWordCandidates(
@@ -444,6 +439,33 @@ describe('Fib word candidate batches', () => {
     expect(parseFibWordReviews(response, candidates)[0]).toMatchObject({
       word: '菡萏',
       decision: 'rejected',
+    });
+  });
+
+  it.each([
+    {
+      survivingCheck: 'hasMultiplePlausibleWrongDefinitions',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, hasRevealValue: false },
+    },
+    {
+      survivingCheck: 'hasRevealValue',
+      qualityChecks: { ...PASSING_QUALITY_CHECKS, hasMultiplePlausibleWrongDefinitions: false },
+    },
+  ])('derives acceptance when only $survivingCheck survives', ({ qualityChecks }) => {
+    const candidates = parseGeneratedFibWordCandidates(
+      CANDIDATES_RESPONSE,
+      'gemini',
+      createWordRequest(),
+    );
+    const response = {
+      reviews: REVIEWS_RESPONSE.reviews.map((review, candidateIndex) =>
+        candidateIndex === 0 ? { ...review, qualityChecks } : review,
+      ),
+    };
+
+    expect(parseFibWordReviews(response, candidates)[0]).toMatchObject({
+      word: '菡萏',
+      decision: 'accepted',
     });
   });
 });
@@ -635,13 +657,22 @@ describe('Gemini Fib word provider', () => {
       })),
     );
     expect(requestBody).toContain('独立审核');
-    expect(requestBody).toContain('游戏界面提供带声调拼音');
-    expect(requestBody).toContain('不得仅因生僻字、不会认字或原本不会读而设为 false');
+    expect(requestBody).not.toContain('带声调拼音');
+    expect(requestBody).not.toContain('不得仅因生僻字、不会认字或原本不会读而设为 false');
     expect(requestBody).not.toContain('仅认读困难时 isEasyToReadAloud 设为 false');
     expect(
-      FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews.items.properties.qualityChecks.properties
-        .isEasyToReadAloud.description,
-    ).toBe('多数普通玩家是否能借助界面提供的拼音口述词面，不要求原先认识汉字或知道读音');
+      FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews.items.properties.qualityChecks.properties,
+    ).not.toHaveProperty('isEasyToReadAloud');
+    expect(
+      FIB_WORD_REVIEWS_JSON_SCHEMA.properties.reviews.items.properties.qualityChecks.required,
+    ).toEqual([
+      'isEstablishedTerm',
+      'isDefinitionAccurate',
+      'isMeaningUnfamiliarToMostPlayers',
+      'isMeaningDistinctFromLiteralReading',
+      'hasMultiplePlausibleWrongDefinitions',
+      'hasRevealValue',
+    ]);
     expect(requestBody).toContain(
       `"word":{"type":"string","enum":${JSON.stringify(candidates.map(({ word }) => word))}}`,
     );

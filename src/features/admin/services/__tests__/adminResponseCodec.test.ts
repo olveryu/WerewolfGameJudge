@@ -250,9 +250,11 @@ describe('adminResponseCodec', () => {
         wordTarget: 500,
       },
       reviewDecisions: [{ decision: 'accepted', count: 2 }],
+      reviewCheckStats: [{ check: 'isDefinitionAccurate', failCount: 1 }],
       queryLeaderboard: [{ label: '跳舞草', detail: '植物', publishedWords: 5, packs: 2 }],
       supplyEnabled: true,
     });
+    expect(decoded.reviewCheckStats).toEqual([{ check: 'isDefinitionAccurate', failCount: 1 }]);
     expect(decoded.queryLeaderboard[0]).toEqual({
       label: '跳舞草',
       detail: '植物',
