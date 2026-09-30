@@ -484,6 +484,15 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
+      # Pre-build the web bundle OUTSIDE Playwright's webServer: the slow
+      # `expo export` used to share the webServer readiness timeout, causing
+      # "Timed out waiting 180000ms from config.webServer" flakes (#79/#80).
+      - name: Export web build
+        run: |
+          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
+          EXPO_PUBLIC_SENTRY_DSN='' \
+          npx expo export --platform web
+
       - name: Run E2E tests (shard ${{ matrix.shard }}/5)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
