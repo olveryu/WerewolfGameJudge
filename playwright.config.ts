@@ -24,7 +24,8 @@ const WEB_PORT = (process.env.WEB_PORT as string | undefined) || '8081';
  *   Two webServers launched in parallel (Playwright native):
  *   1. API — wrangler dev --local on :8787 (with D1 migration + .dev.vars setup)
  *   2. Web — production build served statically on :8081
- *      CI: `expo export` → `serve dist/` (deterministic, no compilation flakiness)
+ *      CI: workflow pre-builds `dist/` via `expo export`, webServer only runs
+ *      `serve dist/` (deterministic, no compilation flakiness)
  *      Local: reuses existing dev server (reuseExistingServer)
  *
  *   Playwright waits for BOTH servers to be ready before running tests.
@@ -97,12 +98,16 @@ export default defineConfig({
     },
     {
       name: 'Web',
+      // CI: `dist/` is pre-built by the workflow's "Export web build" step, so the
+      // webServer only starts `serve` (near-instant readiness). Previously the slow
+      // `expo export` ran inside this webServer and shared its readiness timeout,
+      // causing "Timed out waiting 180000ms from config.webServer" flakes (#79/#80).
       command: process.env.CI
-        ? `EXPO_PUBLIC_CF_API_URL=${LOCAL_CF_API_URL} npx expo export --platform web && npx serve dist -l ${WEB_PORT} -s`
+        ? `npx serve dist -l ${WEB_PORT} -s`
         : `npx expo start --web --port ${WEB_PORT}`,
       url: E2E_BASE_URL,
       reuseExistingServer: !process.env.CI,
-      timeout: 180 * 1000, // expo export can take ~60s on CI
+      timeout: 60 * 1000, // static serve starts in seconds
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
