@@ -15,7 +15,8 @@ import {
 import { FIB_WORD_SEARCH_QUERY_COUNT } from './wordSearchPlan';
 
 export const FIB_WORD_MONTHLY_TARGET = 100;
-export const FIB_WORD_MONTHLY_BATCH_LIMIT = 60;
+/** Monthly batch budget tracks the search plan 1:1 so scheduled supply can reach every query. */
+export const FIB_WORD_MONTHLY_BATCH_LIMIT = FIB_WORD_SEARCH_QUERY_COUNT;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
 export const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
 
