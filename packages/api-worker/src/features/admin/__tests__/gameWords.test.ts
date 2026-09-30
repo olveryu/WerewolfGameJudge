@@ -26,6 +26,7 @@ const postTriggerSupply = (path: string, token: string, body: unknown): Promise<
 
 beforeEach(async () => {
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
@@ -103,6 +104,60 @@ describe('GET /admin/games/words/stats', () => {
       { check: 'hasMultiplePlausibleWrongDefinitions', failCount: 1 },
       { check: 'hasRevealValue', failCount: 2 },
     ]);
+  });
+
+  it("counts this month's Tavily operations and reports the free-plan quota", async () => {
+    // The stats endpoint always uses the current UTC month; build fixtures from it
+    // so this test does not rot when the calendar month changes.
+    const now = new Date();
+    const month = now.toISOString().slice(0, 7);
+    const prevMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const prevMonth = prevMonthDate.toISOString().slice(0, 7);
+    const packA = `${month}-15-0`;
+    const packB = `${month}-15-manual-abc-1`;
+    const packPrev = `${prevMonth}-01-0`;
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO fib_word_supply_months (id, requests_reserved, published_count)
+         VALUES (?, 0, 0), (?, 0, 0)
+         ON CONFLICT (id) DO NOTHING`,
+      ).bind(month, prevMonth),
+      env.DB.prepare(
+        `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index)
+         VALUES (?, ?, 't1', 'literary', 'published', datetime('now'), 5),
+                (?, ?, 't2', 'literary', 'published', datetime('now'), 5),
+                (?, ?, 't3', 'literary', 'published', datetime('now'), 5)`,
+      ).bind(packA, month, packB, month, packPrev, prevMonth),
+      env.DB.prepare(
+        `INSERT INTO fib_word_provider_requests (pack_id, operation)
+         VALUES (?, 'discovery'),
+                (?, 'extraction'),
+                (?, 'generation'),
+                (?, 'review'),
+                (?, 'extraction'),
+                (?, 'discovery')`,
+      ).bind(packA, packA, packA, packA, packB, packPrev),
+    ]);
+    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as {
+      tavilyRequestsUsed: number;
+      tavilyMonthlyQuota: number;
+    };
+    // generation/review are Gemini model calls; the previous-month pack is another month.
+    expect(body.tavilyRequestsUsed).toBe(3);
+    expect(body.tavilyMonthlyQuota).toBe(1000);
+  });
+
+  it('returns null Tavily usage for games that do not use Tavily', async () => {
+    const resp = await fetchWordsStats('/admin/games/words/stats?game=undercover', ADMIN_TOKEN);
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as {
+      tavilyRequestsUsed: number | null;
+      tavilyMonthlyQuota: number | null;
+    };
+    expect(body.tavilyRequestsUsed).toBeNull();
+    expect(body.tavilyMonthlyQuota).toBeNull();
   });
 
   it('reports attempted packs alongside published words per search query', async () => {

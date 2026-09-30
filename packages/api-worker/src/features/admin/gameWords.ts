@@ -12,6 +12,7 @@ import type { Env } from '../../env';
 import {
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_TARGET,
+  FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
 } from '../../games/fibking/wordPublication';
 import { FIB_WORD_REVIEW_VERSION } from '../../games/fibking/wordProviders/prompt';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
@@ -38,6 +39,13 @@ export interface GameWordsStats {
     batchLimit: number;
     wordTarget: number;
   } | null;
+  /**
+   * This month's Tavily usage (upper bound on credits: every fibking Tavily
+   * operation costs at most one credit). Null for games that don't use Tavily.
+   */
+  tavilyRequestsUsed: number | null;
+  /** Tavily free-plan monthly credit quota. Null for games that don't use Tavily. */
+  tavilyMonthlyQuota: number | null;
   reviewDecisions: Array<{ decision: string; count: number }>;
   /**
    * Fibking only: how many rejected reviews failed each quality check in the
@@ -120,6 +128,18 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
         'hasRevealValue',
       ] as const
     ).map((check) => ({ check, failCount: Number(checkStatsRow?.[check] ?? 0) }));
+    // Pack ids start with the UTC date, so the prefix selects this month's packs.
+    // Only Tavily operations count (discovery/extraction and their verification
+    // variants); generation/review are Gemini model calls, not Tavily.
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const tavilyRow = await db
+      .prepare(
+        `SELECT COUNT(*) AS used FROM fib_word_provider_requests
+         WHERE pack_id LIKE ?
+           AND (operation IN ('discovery', 'extraction') OR operation LIKE 'verification-%')`,
+      )
+      .bind(`${currentMonth}-%`)
+      .first<{ used: number }>();
     const boardRows = await db
       .prepare(
         `SELECT p.search_index AS searchIndex, c.prompt_version AS promptVersion,
@@ -169,6 +189,8 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
         count: Number(r.count),
       })),
       reviewCheckStats,
+      tavilyRequestsUsed: Number(tavilyRow?.used ?? 0),
+      tavilyMonthlyQuota: FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
       queryLeaderboard,
       supplyEnabled: env.FIB_WORD_SUPPLY_ENABLED === 'true',
     };
@@ -198,6 +220,8 @@ export async function getGameWordsStats(env: Env, game: GameWordGame): Promise<G
     game,
     wordsByCategory,
     monthlySupply: null,
+    tavilyRequestsUsed: null,
+    tavilyMonthlyQuota: null,
     reviewDecisions: (reviewRows.results ?? []).map((r) => ({
       decision: r.decision,
       count: Number(r.count),

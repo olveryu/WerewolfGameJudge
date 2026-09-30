@@ -249,6 +249,8 @@ describe('adminResponseCodec', () => {
         batchLimit: 60,
         wordTarget: 500,
       },
+      tavilyRequestsUsed: 128,
+      tavilyMonthlyQuota: 1000,
       reviewDecisions: [{ decision: 'accepted', count: 2 }],
       reviewCheckStats: [{ check: 'isDefinitionAccurate', failCount: 1 }],
       queryLeaderboard: [{ label: '跳舞草', detail: '植物', publishedWords: 5, packs: 2 }],
@@ -261,12 +263,16 @@ describe('adminResponseCodec', () => {
       publishedWords: 5,
       packs: 2,
     });
+    expect(decoded.tavilyRequestsUsed).toBe(128);
+    expect(decoded.tavilyMonthlyQuota).toBe(1000);
     // packs is required: a leaderboard row without it is rejected.
     expect(() =>
       parseGameWordsStatsResponse({
         game: 'fibking',
         wordsByCategory: [],
         monthlySupply: null,
+        tavilyRequestsUsed: null,
+        tavilyMonthlyQuota: null,
         reviewDecisions: [],
         queryLeaderboard: [{ label: 'x', detail: null, publishedWords: 1 }],
         supplyEnabled: false,

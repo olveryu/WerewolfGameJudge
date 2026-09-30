@@ -165,6 +165,13 @@ export const GamesTab: React.FC = () => {
     data?.monthlySupply === null || data?.monthlySupply === undefined
       ? null
       : Math.max(0, data.monthlySupply.batchLimit - data.monthlySupply.reserved);
+  const tavilyUsage =
+    data?.tavilyRequestsUsed === null ||
+    data?.tavilyRequestsUsed === undefined ||
+    data?.tavilyMonthlyQuota === null ||
+    data?.tavilyMonthlyQuota === undefined
+      ? null
+      : `Tavily 本月已用 ${data.tavilyRequestsUsed}/${data.tavilyMonthlyQuota}`;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -274,7 +281,9 @@ export const GamesTab: React.FC = () => {
             {data.supplyEnabled
               ? remaining === null
                 ? '谁是卧底无月配额限制'
-                : `本月剩余 ${remaining} 次（配额 ${data.monthlySupply?.batchLimit}）`
+                : `本月剩余 ${remaining} 次（配额 ${data.monthlySupply?.batchLimit}）${
+                    tavilyUsage === null ? '' : ` · ${tavilyUsage}`
+                  }`
               : '词库供给未启用'}
           </Text>
           <AlertModal

@@ -144,6 +144,10 @@ export interface GameWordsStats {
     batchLimit: number;
     wordTarget: number;
   } | null;
+  /** This month's Tavily usage (upper bound on credits). Null when unused by the game. */
+  tavilyRequestsUsed: number | null;
+  /** Tavily free-plan monthly credit quota. Null when unused by the game. */
+  tavilyMonthlyQuota: number | null;
   reviewDecisions: Array<{ decision: string; count: number }>;
   reviewCheckStats: Array<{ check: string; failCount: number }>;
   queryLeaderboard: Array<{
