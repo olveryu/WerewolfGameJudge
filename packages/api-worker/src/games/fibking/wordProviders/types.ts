@@ -37,7 +37,6 @@ export interface FibWordEditorialCandidate extends FibWordCandidate {
 export interface FibWordQualityChecks {
   readonly isEstablishedTerm: boolean;
   readonly isDefinitionAccurate: boolean;
-  readonly isEasyToReadAloud: boolean;
   readonly isMeaningUnfamiliarToMostPlayers: boolean;
   readonly isMeaningDistinctFromLiteralReading: boolean;
   readonly hasMultiplePlausibleWrongDefinitions: boolean;

@@ -3,7 +3,10 @@
 import { z } from 'zod';
 
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
-import { assertFibWordReviewEvidence } from './wordProviders/candidate';
+import {
+  assertFibWordReviewEvidence,
+  deriveFibWordReviewDecision,
+} from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import {
@@ -161,12 +164,12 @@ function reviewStatement(
     .prepare(
       `INSERT INTO fib_word_candidate_reviews (
     id, word, core_meaning, usage_note, category, source,
-    is_established_term, is_definition_accurate, is_easy_to_read_aloud,
+    is_established_term, is_definition_accurate,
     is_meaning_unfamiliar_to_most_players, is_meaning_distinct_from_literal_reading,
     has_multiple_plausible_wrong_definitions, has_reveal_value,
     decision, reason, review_version, generation_cycle_id, reviewed_at,
     evidence_json, evidence_index, evidence_quote
-  ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved'`,
     )
     .bind(
@@ -178,7 +181,6 @@ function reviewStatement(
       candidate.source,
       Number(checks.isEstablishedTerm),
       Number(checks.isDefinitionAccurate),
-      Number(checks.isEasyToReadAloud),
       Number(checks.isMeaningUnfamiliarToMostPlayers),
       Number(checks.isMeaningDistinctFromLiteralReading),
       Number(checks.hasMultiplePlausibleWrongDefinitions),
@@ -213,8 +215,8 @@ export async function publishFibWordPack(
     const review = reviews[index];
     if (review === undefined || review.word !== candidate.word)
       throw new Error('Fib publication review mismatch');
-    if (review.decision === 'accepted' && !Object.values(review.qualityChecks).every(Boolean))
-      throw new Error('Fib publication accepted failed quality checks');
+    if (review.decision !== deriveFibWordReviewDecision(review.qualityChecks))
+      throw new Error('Fib publication review decision mismatches quality checks');
     assertFibWordReviewEvidence(candidate, review);
     statements.push(reviewStatement(db, pack, candidate, review, index, now));
     if (review.decision === 'rejected') {

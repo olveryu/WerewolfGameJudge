@@ -65,6 +65,46 @@ describe('GET /admin/games/words/stats', () => {
     expect(typeof body.supplyEnabled).toBe('boolean');
   });
 
+  it('reports per-check failure counts for rejected v11 reviews', async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at, completed_at)
+         VALUES ('stats-cycle', 'completed', 'gemini', 'gemini', '10', datetime('now'), datetime('now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidate_reviews (
+           id, word, core_meaning, usage_note, category, source,
+           is_established_term, is_definition_accurate,
+           is_meaning_unfamiliar_to_most_players, is_meaning_distinct_from_literal_reading,
+           has_multiple_plausible_wrong_definitions, has_reveal_value,
+           decision, reason, review_version, generation_cycle_id, reviewed_at
+         ) VALUES
+           ('stats-r1', '拒词一', '含义', '用法', 'niche', 'gemini',
+            1, 1, 0, 1, 0, 0, 'rejected', '词义太熟。', '11',
+            'stats-cycle', datetime('now')),
+           ('stats-r2', '拒词二', '含义', '用法', 'niche', 'gemini',
+            1, 0, 1, 1, 1, 0, 'rejected', '释义不准。', '11',
+            'stats-cycle', datetime('now')),
+           ('stats-a1', '过词一', '含义', '用法', 'niche', 'gemini',
+            1, 1, 1, 1, 1, 0, 'accepted', '通过。', '11',
+            'stats-cycle', datetime('now'))`,
+      ),
+    ]);
+    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as {
+      reviewCheckStats: Array<{ check: string; failCount: number }>;
+    };
+    expect(body.reviewCheckStats).toEqual([
+      { check: 'isEstablishedTerm', failCount: 0 },
+      { check: 'isDefinitionAccurate', failCount: 1 },
+      { check: 'isMeaningUnfamiliarToMostPlayers', failCount: 1 },
+      { check: 'isMeaningDistinctFromLiteralReading', failCount: 0 },
+      { check: 'hasMultiplePlausibleWrongDefinitions', failCount: 1 },
+      { check: 'hasRevealValue', failCount: 2 },
+    ]);
+  });
+
   it('reports attempted packs alongside published words per search query', async () => {
     await env.DB.batch([
       env.DB.prepare(

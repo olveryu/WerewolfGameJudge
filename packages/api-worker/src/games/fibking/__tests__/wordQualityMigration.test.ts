@@ -49,20 +49,20 @@ async function seedExistingInventory(): Promise<void> {
     env.DB.prepare(
       `INSERT INTO fib_word_candidate_reviews (
          id, word, core_meaning, usage_note, category, source,
-         is_established_term, is_definition_accurate, is_easy_to_read_aloud,
+         is_established_term, is_definition_accurate,
          is_meaning_unfamiliar_to_most_players,
          is_meaning_distinct_from_literal_reading,
          has_multiple_plausible_wrong_definitions, has_reveal_value,
          decision, reason, review_version, generation_cycle_id, reviewed_at
        ) VALUES
          ('rejected-review', '云监工', '测试含义', '测试说明', 'internet', 'gemini',
-          1, 1, 1, 0, 1, 1, 1, 'rejected', '属于高频流行语。', '3',
+          1, 1, 0, 1, 1, 1, 'rejected', '属于高频流行语。', '3',
           'legacy-rejected-cycle', '2026-08-01T00:01:00.000Z'),
          ('accepted-review', '工具箱思维', '测试含义', '测试说明', 'internet', 'gemini',
-          1, 1, 1, 1, 1, 1, 1, 'accepted', '七项质量检查全部通过。', '3',
+          1, 1, 1, 1, 1, 1, 'accepted', '六项质量检查全部通过。', '3',
           'legacy-accepted-cycle', '2026-08-01T00:03:00.000Z'),
          ('current-review', '却扇', '测试含义', '测试说明', 'niche', 'gemini',
-          1, 1, 1, 1, 1, 1, 1, 'accepted', '七项质量检查全部通过。', '3',
+          1, 1, 1, 1, 1, 1, 'accepted', '六项质量检查全部通过。', '3',
           'current-accepted-cycle', '2026-08-01T00:05:00.000Z')`,
     ),
     env.DB.prepare(

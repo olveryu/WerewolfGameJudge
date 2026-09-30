@@ -92,7 +92,6 @@ export const fibWordCandidateReviews = sqliteTable(
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
     isEstablishedTerm: integer('is_established_term', { mode: 'boolean' }).notNull(),
     isDefinitionAccurate: integer('is_definition_accurate', { mode: 'boolean' }).notNull(),
-    isEasyToReadAloud: integer('is_easy_to_read_aloud', { mode: 'boolean' }).notNull(),
     isMeaningUnfamiliarToMostPlayers: integer('is_meaning_unfamiliar_to_most_players', {
       mode: 'boolean',
     }).notNull(),

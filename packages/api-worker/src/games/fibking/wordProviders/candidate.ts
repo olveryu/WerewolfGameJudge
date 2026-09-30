@@ -18,8 +18,10 @@ import {
   FIB_WORD_REVIEW_BATCH_LIMIT,
   type FibWordCandidate,
   type FibWordEditorialCandidate,
+  type FibWordQualityChecks,
   type FibWordRequest,
   type FibWordReview,
+  type FibWordReviewDecision,
 } from './types';
 
 const FIB_WORD_EVIDENCE_QUOTE_MIN_LENGTH = 8;
@@ -69,7 +71,6 @@ const fibWordReviewsPayloadSchema = z.strictObject({
         qualityChecks: z.strictObject({
           isEstablishedTerm: z.boolean(),
           isDefinitionAccurate: z.boolean(),
-          isEasyToReadAloud: z.boolean(),
           isMeaningUnfamiliarToMostPlayers: z.boolean(),
           isMeaningDistinctFromLiteralReading: z.boolean(),
           hasMultiplePlausibleWrongDefinitions: z.boolean(),
@@ -171,7 +172,6 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
             required: [
               'isEstablishedTerm',
               'isDefinitionAccurate',
-              'isEasyToReadAloud',
               'isMeaningUnfamiliarToMostPlayers',
               'isMeaningDistinctFromLiteralReading',
               'hasMultiplePlausibleWrongDefinitions',
@@ -186,11 +186,6 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
                 type: 'boolean',
                 description: '核心释义是否真实准确且没有混入错误义项',
               },
-              isEasyToReadAloud: {
-                type: 'boolean',
-                description:
-                  '多数普通玩家是否能借助界面提供的拼音口述词面，不要求原先认识汉字或知道读音',
-              },
               isMeaningUnfamiliarToMostPlayers: {
                 type: 'boolean',
                 description: '多数普通玩家是否无法在揭晓前准确说出固定真义',
@@ -201,7 +196,7 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
               },
               hasMultiplePlausibleWrongDefinitions: {
                 type: 'boolean',
-                description: '是否容易编造至少两种彼此不同且可信的错误释义',
+                description: '是否能编造至少一种可信的错误释义，两种以上彼此不同的更佳',
               },
               hasRevealValue: {
                 type: 'boolean',
@@ -294,6 +289,17 @@ export function parseGeneratedFibWordCandidates(
   }));
 }
 
+/** Review rubric v11: four hard gates (all must pass) plus two fun signals (at least one). */
+export function deriveFibWordReviewDecision(checks: FibWordQualityChecks): FibWordReviewDecision {
+  const hardGatesPass =
+    checks.isEstablishedTerm &&
+    checks.isDefinitionAccurate &&
+    checks.isMeaningUnfamiliarToMostPlayers &&
+    checks.isMeaningDistinctFromLiteralReading;
+  const funSignalPass = checks.hasMultiplePlausibleWrongDefinitions || checks.hasRevealValue;
+  return hardGatesPass && funSignalPass ? 'accepted' : 'rejected';
+}
+
 /** Validate literal provenance; semantic support is a separate review judgment. */
 export function assertFibWordReviewEvidence(
   candidate: FibWordEditorialCandidate,
@@ -331,7 +337,7 @@ export function parseFibWordReviews(
     }
     const result: FibWordReview = {
       ...review,
-      decision: Object.values(review.qualityChecks).every(Boolean) ? 'accepted' : 'rejected',
+      decision: deriveFibWordReviewDecision(review.qualityChecks),
     };
     const evidence =
       review.evidenceIndex === null ? undefined : candidate.evidence[review.evidenceIndex];
