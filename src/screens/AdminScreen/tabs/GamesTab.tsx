@@ -12,6 +12,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AlertModal } from '@/components/AlertModal';
 import type { GameWordGame, GameWordsStats } from '@/features/admin/model/adminContracts';
 import { fetchGameWordsStats, triggerGameWordSupply } from '@/features/admin/services/adminApi';
+import { UNDERCOVER_CATEGORY_NAMES } from '@/games/undercover/room/undercoverRoomAdapter';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 
 import { AdminEmptyState, BarChart, MetricCard } from '../components';
@@ -20,6 +21,20 @@ const GAMES: Array<{ id: GameWordGame; label: string }> = [
   { id: 'fibking', label: '瞎掰王' },
   { id: 'undercover', label: '谁是卧底' },
 ];
+
+/** Fibking word categories shown in admin; API returns the raw enum values. */
+const FIBKING_CATEGORY_NAMES: Readonly<Record<string, string>> = {
+  literary: '书面词',
+  internet: '网络词',
+  compound: '复合词',
+  niche: '生僻概念',
+};
+
+function localizeCategory(game: GameWordGame, category: string): string {
+  if (game === 'fibking') return FIBKING_CATEGORY_NAMES[category] ?? category;
+  const names: Readonly<Record<string, string>> = UNDERCOVER_CATEGORY_NAMES;
+  return names[category] ?? category;
+}
 
 export const GamesTab: React.FC = () => {
   const [game, setGame] = useState<GameWordGame>('fibking');
@@ -50,14 +65,15 @@ export const GamesTab: React.FC = () => {
   const confirmMessage = useMemo(() => {
     if (confirmForce === null) return '';
     const gameLabel = game === 'fibking' ? '瞎掰王' : '谁是卧底';
+    // Model supply runs on dedicated free projects; force only breaks the budget cap.
     const forceDetail =
       game === 'fibking'
-        ? '突破本月 60 次配额并产生额外 Tavily/Gemini 费用'
-        : '突破每日批次上限并产生额外 Gemini 费用';
+        ? `突破本月 ${data?.monthlySupply?.batchLimit ?? '—'} 次配额`
+        : '突破每日批次上限';
     return confirmForce
       ? `将为「${gameLabel}」强制触发一次补词，${forceDetail}，确定吗？`
       : `为「${gameLabel}」立即触发一次补词，确定吗？`;
-  }, [confirmForce, game]);
+  }, [confirmForce, data?.monthlySupply?.batchLimit, game]);
 
   const doTrigger = useCallback(() => {
     if (confirmForce === null) return;
@@ -85,17 +101,25 @@ export const GamesTab: React.FC = () => {
   }, [data]);
 
   const categoryItems = useMemo(
-    () => data?.wordsByCategory.map((c) => ({ label: c.category, value: c.active })) ?? [],
-    [data],
+    () =>
+      data?.wordsByCategory.map((c) => ({
+        label: localizeCategory(game, c.category),
+        value: c.active,
+      })) ?? [],
+    [data, game],
   );
   const leaderboardItems = useMemo(
     () =>
-      (data?.queryLeaderboard ?? []).slice(0, 12).map((q) => ({
-        label: q.detail ? `${q.label}（${q.detail}）` : q.label,
-        value: q.publishedWords,
-        displayValue: `${q.publishedWords}/${q.packs}批`,
-      })),
-    [data],
+      (data?.queryLeaderboard ?? []).map((q) => {
+        // Undercover leaderboard rows are per-category; localize them too.
+        const baseLabel = game === 'fibking' ? q.label : localizeCategory(game, q.label);
+        return {
+          label: q.detail ? `${baseLabel}（${q.detail}）` : baseLabel,
+          value: q.publishedWords,
+          displayValue: `${q.publishedWords}/${q.packs}批`,
+        };
+      }),
+    [data, game],
   );
 
   const remaining =
@@ -142,11 +166,23 @@ export const GamesTab: React.FC = () => {
           </View>
 
           <BarChart title="各分类在库词数" items={categoryItems} />
-          <BarChart
-            title={game === 'fibking' ? '各查询产出榜（Top 12）' : '各分类词对数'}
-            items={leaderboardItems}
-            labelWidth={120}
-          />
+          {game === 'fibking' ? (
+            <View style={styles.listCard}>
+              <Text style={styles.listTitle}>
+                各查询产出榜（全部 {leaderboardItems.length} 条）
+              </Text>
+              {leaderboardItems.map((item) => (
+                <View key={item.label} style={styles.listRow}>
+                  <Text style={styles.listLabel} numberOfLines={2}>
+                    {item.label}
+                  </Text>
+                  <Text style={styles.listValue}>{item.displayValue}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <BarChart title="各分类词对数" items={leaderboardItems} labelWidth={120} />
+          )}
 
           <View style={styles.actions}>
             <Pressable
@@ -263,5 +299,33 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  listCard: {
+    marginTop: spacing.medium,
+  },
+  listTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+    marginBottom: spacing.tight,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.small,
+    paddingVertical: spacing.tight,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  listLabel: {
+    flex: 1,
+    fontSize: typography.secondary,
+    color: colors.text,
+  },
+  listValue: {
+    fontSize: typography.secondary,
+    color: colors.textSecondary,
+    fontWeight: typography.weights.semibold,
   },
 });
