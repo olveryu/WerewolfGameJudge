@@ -124,6 +124,53 @@ describe('GamesTab', () => {
     expect(screen.getByText('5/2批')).toBeTruthy();
   });
 
+  it('paginates the fibking query leaderboard at 15 rows per page', async () => {
+    const manyRows = Array.from({ length: 16 }, (_, i) => ({
+      label: `查询${i + 1}`,
+      detail: null,
+      publishedWords: 16 - i,
+      packs: 1,
+    }));
+    mockFetchGameWordsStats.mockResolvedValue({ ...FIBKING_STATS, queryLeaderboard: manyRows });
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('各查询产出榜（全部 16 条）')).toBeTruthy());
+    // First page shows 15 rows.
+    expect(screen.getByText('1 / 2')).toBeTruthy();
+    expect(screen.getByText('查询1')).toBeTruthy();
+    expect(screen.queryByText('查询16')).toBeNull();
+    // Next page shows the remaining row.
+    fireEvent.press(screen.getByLabelText('下一页'));
+    expect(screen.getByText('2 / 2')).toBeTruthy();
+    expect(screen.getByText('查询16')).toBeTruthy();
+    expect(screen.queryByText('查询1')).toBeNull();
+    // Previous page goes back.
+    fireEvent.press(screen.getByLabelText('上一页'));
+    expect(screen.getByText('1 / 2')).toBeTruthy();
+    expect(screen.getByText('查询1')).toBeTruthy();
+  });
+
+  it('resets the leaderboard page when switching games', async () => {
+    const manyRows = Array.from({ length: 16 }, (_, i) => ({
+      label: `查询${i + 1}`,
+      detail: null,
+      publishedWords: 16 - i,
+      packs: 1,
+    }));
+    mockFetchGameWordsStats.mockImplementation(async (game: string) =>
+      game === 'undercover' ? UNDERCOVER_STATS : { ...FIBKING_STATS, queryLeaderboard: manyRows },
+    );
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('各查询产出榜（全部 16 条）')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('下一页'));
+    expect(screen.getByText('2 / 2')).toBeTruthy();
+    // Switching games resets the page to 1.
+    fireEvent.press(screen.getByText('谁是卧底'));
+    await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledWith('undercover'));
+    fireEvent.press(screen.getByText('瞎掰王'));
+    await waitFor(() => expect(screen.getByText('1 / 2')).toBeTruthy());
+    expect(screen.getByText('查询1')).toBeTruthy();
+  });
+
   it('shows an error state when loading fails', async () => {
     mockFetchGameWordsStats.mockRejectedValue(new Error('boom'));
     render(<GamesTab />);

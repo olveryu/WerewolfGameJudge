@@ -15,12 +15,15 @@ import { fetchGameWordsStats, triggerGameWordSupply } from '@/features/admin/ser
 import { UNDERCOVER_CATEGORY_NAMES } from '@/games/undercover/room/undercoverRoomAdapter';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 
-import { AdminEmptyState, BarChart, MetricCard } from '../components';
+import { AdminEmptyState, BarChart, MetricCard, Pagination } from '../components';
 
 const GAMES: Array<{ id: GameWordGame; label: string }> = [
   { id: 'fibking', label: '瞎掰王' },
   { id: 'undercover', label: '谁是卧底' },
 ];
+
+/** Rows per page for the fibking query leaderboard list. */
+const LEADERBOARD_PAGE_SIZE = 15;
 
 /** Fibking word categories shown in admin; API returns the raw enum values. */
 const FIBKING_CATEGORY_NAMES: Readonly<Record<string, string>> = {
@@ -55,6 +58,8 @@ export const GamesTab: React.FC = () => {
   // Pending confirm dialog: null = hidden, otherwise whether it is a force trigger.
   // AlertModal replaces Alert.alert because react-native-web's Alert.alert is a no-op.
   const [confirmForce, setConfirmForce] = useState<boolean | null>(null);
+  // Current page of the fibking query leaderboard; resets when switching games.
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
 
   const load = useCallback(async (g: GameWordGame) => {
     setLoading(true);
@@ -132,6 +137,20 @@ export const GamesTab: React.FC = () => {
       }),
     [data, game],
   );
+  const leaderboardTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(leaderboardItems.length / LEADERBOARD_PAGE_SIZE)),
+    [leaderboardItems.length],
+  );
+  // Clamp: a reload may shrink the list while the user sits on a later page.
+  const safeLeaderboardPage = Math.min(leaderboardPage, leaderboardTotalPages);
+  const pagedLeaderboardItems = useMemo(
+    () =>
+      leaderboardItems.slice(
+        (safeLeaderboardPage - 1) * LEADERBOARD_PAGE_SIZE,
+        safeLeaderboardPage * LEADERBOARD_PAGE_SIZE,
+      ),
+    [leaderboardItems, safeLeaderboardPage],
+  );
 
   const checkStatItems = useMemo(
     () =>
@@ -156,7 +175,10 @@ export const GamesTab: React.FC = () => {
             <Pressable
               key={g.id}
               accessibilityRole="button"
-              onPress={() => setGame(g.id)}
+              onPress={() => {
+                setGame(g.id);
+                setLeaderboardPage(1);
+              }}
               style={[styles.segment, selected && styles.segmentSelected]}
             >
               <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>
@@ -204,7 +226,7 @@ export const GamesTab: React.FC = () => {
               <Text style={styles.listTitle}>
                 各查询产出榜（全部 {leaderboardItems.length} 条）
               </Text>
-              {leaderboardItems.map((item) => (
+              {pagedLeaderboardItems.map((item) => (
                 <View key={item.label} style={styles.listRow}>
                   <Text style={styles.listLabel} numberOfLines={2}>
                     {item.label}
@@ -212,6 +234,11 @@ export const GamesTab: React.FC = () => {
                   <Text style={styles.listValue}>{item.displayValue}</Text>
                 </View>
               ))}
+              <Pagination
+                page={safeLeaderboardPage}
+                totalPages={leaderboardTotalPages}
+                onPageChange={setLeaderboardPage}
+              />
             </View>
           ) : (
             <BarChart title="各分类词对数" items={leaderboardItems} labelWidth={120} />
