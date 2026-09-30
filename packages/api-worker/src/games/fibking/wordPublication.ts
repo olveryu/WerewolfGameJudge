@@ -22,6 +22,12 @@ export const FIB_WORD_MONTHLY_TARGET = 100;
 export const FIB_WORD_MONTHLY_BATCH_LIMIT = FIB_WORD_SEARCH_QUERY_COUNT;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
 export const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
+/**
+ * Tavily free (Researcher) plan: 1,000 credits/month. Every fibking Tavily
+ * operation uses basic search/extract, so each ledger row costs at most one
+ * credit and the row count is an upper bound on credits consumed.
+ */
+export const FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS = 1000;
 
 type FibWordProviderOperation =
   | 'discovery'

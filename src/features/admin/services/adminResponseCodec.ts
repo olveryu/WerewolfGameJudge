@@ -530,6 +530,8 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
       'game',
       'wordsByCategory',
       'monthlySupply',
+      'tavilyRequestsUsed',
+      'tavilyMonthlyQuota',
       'reviewDecisions',
       'reviewCheckStats',
       'queryLeaderboard',
@@ -539,6 +541,14 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
   );
   const monthlySupply =
     object.monthlySupply === null ? null : parseMonthlySupply(object.monthlySupply);
+  const tavilyRequestsUsed =
+    object.tavilyRequestsUsed === null
+      ? null
+      : parseNonnegativeInteger(object.tavilyRequestsUsed, 'Game words tavilyRequestsUsed');
+  const tavilyMonthlyQuota =
+    object.tavilyMonthlyQuota === null
+      ? null
+      : parseNonnegativeInteger(object.tavilyMonthlyQuota, 'Game words tavilyMonthlyQuota');
   return {
     game: parseGameWordGame(object.game, 'Game words stats game'),
     wordsByCategory: parseArray(object.wordsByCategory, 'Game words categories', (item, label) => {
@@ -551,6 +561,8 @@ export function parseGameWordsStatsResponse(value: unknown): GameWordsStats {
       };
     }),
     monthlySupply,
+    tavilyRequestsUsed,
+    tavilyMonthlyQuota,
     reviewDecisions: parseArray(
       object.reviewDecisions,
       'Game words review decisions',

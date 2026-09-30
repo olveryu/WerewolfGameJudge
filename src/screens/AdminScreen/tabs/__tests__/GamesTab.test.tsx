@@ -24,6 +24,8 @@ const FIBKING_STATS: GameWordsStats = {
     batchLimit: 60,
     wordTarget: 500,
   },
+  tavilyRequestsUsed: 128,
+  tavilyMonthlyQuota: 1000,
   reviewDecisions: [
     { decision: 'accepted', count: 8 },
     { decision: 'rejected', count: 2 },
@@ -44,6 +46,8 @@ const UNDERCOVER_STATS: GameWordsStats = {
   game: 'undercover',
   wordsByCategory: [{ category: 'daily', active: 20, total: 20 }],
   monthlySupply: null,
+  tavilyRequestsUsed: null,
+  tavilyMonthlyQuota: null,
   reviewDecisions: [],
   reviewCheckStats: [],
   queryLeaderboard: [{ label: 'daily', detail: null, publishedWords: 20, packs: 4 }],
@@ -71,7 +75,7 @@ describe('GamesTab', () => {
     expect(screen.getAllByText('10').length).toBeGreaterThan(0);
     expect(screen.getByText('25/500')).toBeTruthy();
     expect(screen.getByText('80%')).toBeTruthy();
-    expect(screen.getByText('本月剩余 30 次（配额 60）')).toBeTruthy();
+    expect(screen.getByText('本月剩余 30 次（配额 60） · Tavily 本月已用 128/1000')).toBeTruthy();
     expect(screen.getByText('5/2批')).toBeTruthy();
   });
 
