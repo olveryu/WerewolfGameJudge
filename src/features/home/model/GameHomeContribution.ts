@@ -5,10 +5,18 @@ import type React from 'react';
 
 export type GameModeIconName = React.ComponentProps<typeof Ionicons>['name'];
 
+/**
+ * Home placement tier of a game mode.
+ * - 'main': the flagship game (Werewolf) — hero placement in the create picker.
+ * - 'mini': lightweight party games — grouped under the 小游戏 section.
+ */
+export type GameHomeTier = 'main' | 'mini';
+
 export interface GameModePresentation {
   readonly displayName: string;
   readonly subtitle: string;
   readonly iconName: GameModeIconName;
+  readonly tier: GameHomeTier;
 }
 
 export interface GameAnnouncementTabContentProps {

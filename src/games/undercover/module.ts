@@ -35,6 +35,7 @@ export function createUndercoverUiModule({
         displayName: '谁是卧底',
         subtitle: '线下指人投票，房主揭晓',
         iconName: 'finger-print-outline',
+        tier: 'mini',
       },
       spotlight: null,
       announcementTabs: [],

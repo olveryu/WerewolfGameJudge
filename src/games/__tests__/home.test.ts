@@ -35,6 +35,7 @@ describe('createClientGameHome', () => {
         displayName: '狼人杀',
         subtitle: '经典身份推理',
         iconName: 'moon-outline',
+        tier: 'main',
       },
     ]);
     expect(home.guideOptions).toEqual(home.modeOptions);

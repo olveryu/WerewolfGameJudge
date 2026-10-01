@@ -79,6 +79,7 @@ const pictionaryClientModule = {
       displayName: '你画我猜',
       subtitle: '绘画猜词',
       iconName: 'bulb-outline',
+      tier: 'mini',
     },
     spotlight: null,
     announcementTabs: [],

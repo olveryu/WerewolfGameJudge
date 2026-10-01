@@ -7,6 +7,7 @@ export const pictionaryHomeContribution = {
     displayName: '你画我猜接龙',
     subtitle: '画与猜轮流传递，结局一起揭晓',
     iconName: 'brush-outline',
+    tier: 'mini',
   },
   spotlight: null,
   announcementTabs: [],

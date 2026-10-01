@@ -10,6 +10,7 @@ export const werewolfHomeContribution = {
     displayName: '狼人杀',
     subtitle: '经典身份推理',
     iconName: 'moon-outline',
+    tier: 'main',
   },
   spotlight: WerewolfHomeSpotlight,
   announcementTabs: [
