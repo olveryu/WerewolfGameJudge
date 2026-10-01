@@ -584,7 +584,7 @@ export const HomeScreen: React.FC = () => {
       {pickerPurpose !== null && (
         <GameModePickerModal
           visible
-          title={pickerPurpose === 'create' ? '选择游戏模式' : '选择游戏图鉴'}
+          title={pickerPurpose === 'create' ? '创建游戏' : '选择游戏图鉴'}
           subtitle={pickerPurpose === 'create' ? '选择本局要创建的游戏' : '选择要查看的游戏'}
           options={
             pickerPurpose === 'create' ? clientGameHome.modeOptions : clientGameHome.guideOptions

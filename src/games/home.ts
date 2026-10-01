@@ -5,6 +5,7 @@ import type React from 'react';
 
 import type {
   GameAnnouncementTabContentProps,
+  GameHomeTier,
   GameModeIconName,
 } from '@/features/home/model/GameHomeContribution';
 
@@ -15,6 +16,7 @@ export interface ClientGameModeOption {
   readonly displayName: string;
   readonly subtitle: string;
   readonly iconName: GameModeIconName;
+  readonly tier: GameHomeTier;
 }
 
 export interface ClientGameHomeSpotlight {

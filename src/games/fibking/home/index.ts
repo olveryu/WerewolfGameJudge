@@ -7,6 +7,7 @@ export const fibHomeContribution = {
     displayName: '瞎掰王',
     subtitle: '看词描述，真假难辨',
     iconName: 'bulb-outline',
+    tier: 'mini',
   },
   spotlight: null,
   announcementTabs: [],

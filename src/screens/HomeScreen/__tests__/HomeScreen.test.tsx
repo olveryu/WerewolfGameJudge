@@ -18,6 +18,7 @@ const mockClientGameHome = {
       displayName: '狼人杀',
       subtitle: '经典身份推理',
       iconName: 'moon-outline' as const,
+      tier: 'main' as const,
     },
   ],
   guideOptions: [
@@ -26,6 +27,7 @@ const mockClientGameHome = {
       displayName: '狼人杀',
       subtitle: '经典身份推理',
       iconName: 'moon-outline' as const,
+      tier: 'main' as const,
     },
   ],
   spotlights: [],

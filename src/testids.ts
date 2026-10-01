@@ -28,6 +28,8 @@ export const TESTIDS = {
   homeReturnLastGameButton: 'home-return-last-game-button',
   gameModePickerModal: 'game-mode-picker-modal',
   gameModePickerOption: (gameType: string) => `game-mode-picker-option-${gameType}`,
+  // Used by: GameModePickerModal.tsx — 小游戏 section label in the tiered picker
+  gameModePickerMiniSection: 'game-mode-picker-mini-section',
 
   // User bar / login (HomeScreen)
   homeUserName: 'home-user-name',
