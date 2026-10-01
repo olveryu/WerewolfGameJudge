@@ -5,16 +5,23 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import type { AdminUser } from '@/features/admin/model/adminContracts';
-import { fetchUsers } from '@/features/admin/services/adminApi';
+import {
+  AdminApiError,
+  fetchUsers,
+  getAdminWhoAmI,
+  setUserAdmin,
+} from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
+import { showAlert } from '@/utils/alert';
 
 import { AdminEmptyState, AdminPill, Pagination } from '../components';
 import { UserRewardsModal } from './UserRewardsModal';
@@ -34,8 +41,13 @@ const TYPE_OPTIONS = [
 ] as const;
 
 export const UsersTab: React.FC = () => {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [rewardUser, setRewardUser] = useState<AdminUser | null>(null);
+  // Pending grant/revoke confirm: null = hidden.
+  const [confirmAdmin, setConfirmAdmin] = useState<{ user: AdminUser; grant: boolean } | null>(
+    null,
+  );
 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('created_at');
@@ -66,6 +78,38 @@ export const UsersTab: React.FC = () => {
     retry: false,
   });
 
+  // Whether the current caller is a super admin (can grant/revoke admin rights).
+  const { data: whoAmI } = useQuery({
+    queryKey: ['adminWhoAmI'],
+    queryFn: ({ signal }) => getAdminWhoAmI(signal),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const isSuperAdmin = whoAmI?.isSuperAdmin === true;
+
+  const setAdminMutation = useMutation({
+    mutationFn: ({ user, grant }: { user: AdminUser; grant: boolean }) =>
+      setUserAdmin(user.id, grant),
+    onSuccess: (_result, { user, grant }) => {
+      setConfirmAdmin(null);
+      void queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      showAlert(
+        grant ? '任命成功' : '移除成功',
+        grant
+          ? `${user.displayName ?? '该用户'} 已成为管理员`
+          : `${user.displayName ?? '该用户'} 的管理员权限已移除`,
+      );
+    },
+    onError: (error: unknown) => {
+      setConfirmAdmin(null);
+      const message =
+        error instanceof AdminApiError
+          ? `操作失败（${error.status}）：${error.reason}`
+          : '操作失败，请重试';
+      showAlert('管理员任免失败', message);
+    },
+  });
+
   const handleSortPress = useCallback(
     (key: string) => {
       if (sort === key) {
@@ -90,34 +134,77 @@ export const UsersTab: React.FC = () => {
   }, []);
 
   const renderUser = useCallback(
-    ({ item }: { item: AdminUser }) => (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardName}>{item.displayName ?? '匿名用户'}</Text>
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelBadgeText}>Lv.{item.level}</Text>
+    ({ item }: { item: AdminUser }) => {
+      const isSelf = whoAmI?.userId === item.id;
+      // Super admin only: grant for non-admin non-anonymous users, revoke for
+      // other admins (never yourself — the server also enforces this).
+      const showGrant = isSuperAdmin && !item.isAdmin && !item.isAnonymous;
+      const showRevoke = isSuperAdmin && item.isAdmin && !isSelf;
+      return (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardName}>{item.displayName ?? '匿名用户'}</Text>
+            <View style={styles.badgeRow}>
+              {item.isAdmin && (
+                <View style={styles.adminBadge}>
+                  <Text style={styles.adminBadgeText}>管理员</Text>
+                </View>
+              )}
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>Lv.{item.level}</Text>
+              </View>
+            </View>
+          </View>
+          <Text selectable style={styles.cardId}>
+            ID: {item.id}
+          </Text>
+          <Text style={styles.cardDetail}>
+            {item.xp} XP · {item.gamesPlayed} 局
+          </Text>
+          <Text style={styles.cardMeta}>
+            {item.lastCountry ?? '?'} · {item.lastColo ?? '?'} · {item.createdAt.slice(0, 10)}
+          </Text>
+          <View style={styles.actionRow}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => setRewardUser(item)}
+              accessibilityLabel={`给${item.displayName ?? '匿名用户'}发放奖励`}
+              icon={
+                <Ionicons
+                  name="gift-outline"
+                  size={componentSizes.icon.sm}
+                  color={colors.primary}
+                />
+              }
+            >
+              发放奖励
+            </Button>
+            {showGrant && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => setConfirmAdmin({ user: item, grant: true })}
+                accessibilityLabel={`任命${item.displayName ?? '该用户'}为管理员`}
+              >
+                任命管理员
+              </Button>
+            )}
+            {showRevoke && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => setConfirmAdmin({ user: item, grant: false })}
+                accessibilityLabel={`移除${item.displayName ?? '该用户'}的管理员权限`}
+              >
+                移除管理员
+              </Button>
+            )}
           </View>
         </View>
-        <Text style={styles.cardDetail}>
-          {item.xp} XP · {item.gamesPlayed} 局
-        </Text>
-        <Text style={styles.cardMeta}>
-          {item.lastCountry ?? '?'} · {item.lastColo ?? '?'} · {item.createdAt.slice(0, 10)}
-        </Text>
-        <Button
-          variant="secondary"
-          size="sm"
-          onPress={() => setRewardUser(item)}
-          accessibilityLabel={`给${item.displayName ?? '匿名用户'}发放奖励`}
-          icon={
-            <Ionicons name="gift-outline" size={componentSizes.icon.sm} color={colors.primary} />
-          }
-        >
-          发放奖励
-        </Button>
-      </View>
-    ),
-    [],
+      );
+    },
+    [isSuperAdmin, whoAmI?.userId],
   );
 
   return (
@@ -129,6 +216,28 @@ export const UsersTab: React.FC = () => {
           onClose={() => setRewardUser(null)}
         />
       )}
+      <AlertModal
+        visible={confirmAdmin !== null}
+        title={confirmAdmin?.grant === true ? '任命管理员' : '移除管理员'}
+        message={
+          confirmAdmin === null
+            ? ''
+            : confirmAdmin.grant
+              ? `确定任命「${confirmAdmin.user.displayName ?? confirmAdmin.user.id}」为管理员？任命后对方即可进入 Admin Portal。`
+              : `确定移除「${confirmAdmin.user.displayName ?? confirmAdmin.user.id}」的管理员权限？`
+        }
+        buttons={[
+          { text: '取消', style: 'cancel' },
+          {
+            text: '确定',
+            style: confirmAdmin?.grant === true ? 'default' : 'destructive',
+            onPress: () => {
+              if (confirmAdmin !== null) setAdminMutation.mutate(confirmAdmin);
+            },
+          },
+        ]}
+        onClose={() => setConfirmAdmin(null)}
+      />
       {data !== undefined && !isError && <Text style={styles.summary}>总用户: {data.total}</Text>}
 
       <TextInput
@@ -258,6 +367,33 @@ const styles = StyleSheet.create({
     fontSize: typography.captionSmall,
     fontWeight: typography.weights.semibold,
     color: colors.textInverse,
+  },
+  adminBadge: {
+    backgroundColor: colors.warning,
+    paddingHorizontal: spacing.tight,
+    paddingVertical: spacing.micro,
+    borderRadius: borderRadius.small,
+  },
+  adminBadgeText: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.semibold,
+    color: colors.textInverse,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+  },
+  cardId: {
+    fontSize: typography.captionSmall,
+    color: colors.textMuted,
+    marginTop: spacing.micro,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.tight,
+    marginTop: spacing.tight,
   },
   cardDetail: {
     fontSize: typography.caption,

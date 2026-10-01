@@ -1,16 +1,28 @@
 /**
- * Admin room list — integration tests
+ * Admin identity-based auth — integration tests
  *
- * Verifies GET /admin/rooms returns the per-room game-start visibility fields
- * (gamesStarted / lastStartedAt) added in migration 0031, so the admin portal can
- * tell played vs never-played rooms without opening each room. Runs in the Workers
- * runtime via @cloudflare/vitest-pool-workers with D1.
+ * Verifies the admin portal no longer uses X-Admin-Token / ADMIN_PASSWORD.
+ * Auth is the app JWT system: requireAuth verifies the access token, then
+ * requireAdmin checks users.is_admin (or the ADMIN_USER_IDS super-admin
+ * allowlist, set to "test-super-admin" in wrangler.test.toml).
+ *
+ * Also covers:
+ * - GET /admin/rooms game-start visibility fields (gamesStarted / lastStartedAt)
+ * - GET /admin/whoami (super-admin flag for the portal UI)
+ * - POST /admin/users/:id/admin (super-admin-only grant/revoke)
+ *
+ * Runs in the Workers runtime via @cloudflare/vitest-pool-workers with D1.
  */
 
 import { env, SELF } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
+import { issueTokenPair } from '../../auth/tokenAuth';
+
+const SUPER_ADMIN_ID = 'test-super-admin';
+const ADMIN_USER_ID = 'admin-test-user';
+const REGULAR_USER_ID = 'regular-test-user';
+const ANON_USER_ID = 'anon-test-user';
 const HOST_USER_ID = 'admin-rooms-host-user';
 
 interface AdminRoom {
@@ -30,20 +42,45 @@ interface AdminRoomsResponse {
   total: number;
 }
 
-async function getRooms(token: string): Promise<Response> {
-  return SELF.fetch('https://test.local/admin/rooms', {
-    headers: { 'X-Admin-Token': token },
-  });
+interface AdminUserEntry {
+  id: string;
+  isAdmin: boolean;
+}
+
+interface AdminUsersResponse {
+  users: AdminUserEntry[];
+  total: number;
+}
+
+/** Insert a user row with explicit admin flags. */
+async function insertUser(id: string, isAnonymous: boolean, isAdmin: boolean): Promise<void> {
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO users
+       (id, display_name, last_country, is_anonymous, is_admin, token_version, created_at, updated_at)
+     VALUES (?, ?, 'JP', ?, ?, 0, datetime('now'), datetime('now'))`,
+  )
+    .bind(id, `User-${id}`, isAnonymous ? 1 : 0, isAdmin ? 1 : 0)
+    .run();
+}
+
+async function authHeaders(userId: string): Promise<Record<string, string>> {
+  const pair = await issueTokenPair(userId, env, 0);
+  return { Authorization: `Bearer ${pair.access_token}` };
+}
+
+async function getAdmin(path: string, userId: string): Promise<Response> {
+  return SELF.fetch(`https://test.local${path}`, { headers: await authHeaders(userId) });
 }
 
 beforeEach(async () => {
-  await env.DB.prepare('DELETE FROM rooms').run();
-  await env.DB.prepare(
-    `INSERT OR REPLACE INTO users (id, display_name, last_country, is_anonymous, created_at, updated_at)
-     VALUES (?, 'AdminHost', 'JP', 0, datetime('now'), datetime('now'))`,
-  )
-    .bind(HOST_USER_ID)
-    .run();
+  await env.DB.exec(
+    'DELETE FROM rooms; DELETE FROM refresh_tokens; DELETE FROM user_stats; DELETE FROM users;',
+  );
+  await insertUser(HOST_USER_ID, false, false);
+  await insertUser(SUPER_ADMIN_ID, false, false); // super via ADMIN_USER_IDS env, is_admin=0
+  await insertUser(ADMIN_USER_ID, false, true); // regular admin via DB flag
+  await insertUser(REGULAR_USER_ID, false, false);
+  await insertUser(ANON_USER_ID, true, false);
 });
 
 afterEach(() => {
@@ -67,12 +104,153 @@ async function insertRoom(
     .run();
 }
 
+describe('admin auth (JWT + is_admin)', () => {
+  it('rejects requests without a token (401)', async () => {
+    const res = await SELF.fetch('https://test.local/admin/rooms');
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects the legacy X-Admin-Token header (401)', async () => {
+    const res = await SELF.fetch('https://test.local/admin/rooms', {
+      headers: { 'X-Admin-Token': 'test-admin-password-12345' },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a regular authenticated user (403)', async () => {
+    expect((await getAdmin('/admin/rooms', REGULAR_USER_ID)).status).toBe(403);
+  });
+
+  it('rejects an anonymous user (403)', async () => {
+    expect((await getAdmin('/admin/rooms', ANON_USER_ID)).status).toBe(403);
+  });
+
+  it('allows a user with is_admin=1 (200)', async () => {
+    expect((await getAdmin('/admin/rooms', ADMIN_USER_ID)).status).toBe(200);
+  });
+
+  it('allows a super admin from ADMIN_USER_IDS even with is_admin=0 (200)', async () => {
+    expect((await getAdmin('/admin/rooms', SUPER_ADMIN_ID)).status).toBe(200);
+  });
+});
+
+describe('GET /admin/whoami', () => {
+  it('reports the super-admin flag', async () => {
+    const superRes = await getAdmin('/admin/whoami', SUPER_ADMIN_ID);
+    expect(superRes.status).toBe(200);
+    await expect(superRes.json()).resolves.toMatchObject({
+      userId: SUPER_ADMIN_ID,
+      isSuperAdmin: true,
+    });
+
+    const adminRes = await getAdmin('/admin/whoami', ADMIN_USER_ID);
+    expect(adminRes.status).toBe(200);
+    await expect(adminRes.json()).resolves.toMatchObject({
+      userId: ADMIN_USER_ID,
+      isSuperAdmin: false,
+    });
+  });
+
+  it('rejects non-admins (403)', async () => {
+    expect((await getAdmin('/admin/whoami', REGULAR_USER_ID)).status).toBe(403);
+  });
+});
+
+describe('GET /admin/users is_admin field', () => {
+  it('returns isAdmin for each user', async () => {
+    const res = await getAdmin('/admin/users', SUPER_ADMIN_ID);
+    expect(res.status).toBe(200);
+    const body = await res.json<AdminUsersResponse>();
+    const byId = new Map(body.users.map((u) => [u.id, u.isAdmin]));
+    expect(byId.get(SUPER_ADMIN_ID)).toBe(true); // super admin counts as admin
+    expect(byId.get(ADMIN_USER_ID)).toBe(true);
+    expect(byId.get(REGULAR_USER_ID)).toBe(false);
+  });
+});
+
+describe('POST /admin/users/:id/admin', () => {
+  async function setAdmin(targetId: string, isAdmin: boolean, callerId: string): Promise<Response> {
+    return SELF.fetch(`https://test.local/admin/users/${targetId}/admin`, {
+      method: 'POST',
+      headers: { ...(await authHeaders(callerId)), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isAdmin }),
+    });
+  }
+
+  async function dbIsAdmin(userId: string): Promise<number | null> {
+    const row = await env.DB.prepare('SELECT is_admin FROM users WHERE id = ?')
+      .bind(userId)
+      .first<{ is_admin: number }>();
+    return row?.is_admin ?? null;
+  }
+
+  it('grants admin to a regular user (super admin)', async () => {
+    const res = await setAdmin(REGULAR_USER_ID, true, SUPER_ADMIN_ID);
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      success: true,
+      id: REGULAR_USER_ID,
+      isAdmin: true,
+    });
+    expect(await dbIsAdmin(REGULAR_USER_ID)).toBe(1);
+  });
+
+  it('revokes admin from a regular admin (super admin)', async () => {
+    const res = await setAdmin(ADMIN_USER_ID, false, SUPER_ADMIN_ID);
+    expect(res.status).toBe(200);
+    expect(await dbIsAdmin(ADMIN_USER_ID)).toBe(0);
+  });
+
+  it('newly granted admin can access the portal', async () => {
+    await setAdmin(REGULAR_USER_ID, true, SUPER_ADMIN_ID);
+    expect(
+      (await getAdmin('/admin/stats?from=2026-01-01&to=2026-12-31', REGULAR_USER_ID)).status,
+    ).toBe(200);
+  });
+
+  it('rejects a regular admin caller (403 SUPER_ADMIN_FORBIDDEN)', async () => {
+    const res = await setAdmin(REGULAR_USER_ID, true, ADMIN_USER_ID);
+    expect(res.status).toBe(403);
+    expect(await dbIsAdmin(REGULAR_USER_ID)).toBe(0);
+  });
+
+  it('rejects a non-admin caller (403)', async () => {
+    const res = await setAdmin(REGULAR_USER_ID, true, REGULAR_USER_ID);
+    expect(res.status).toBe(403);
+  });
+
+  it('refuses to demote a super admin (403)', async () => {
+    const res = await setAdmin(SUPER_ADMIN_ID, false, SUPER_ADMIN_ID);
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 404 for an unknown user', async () => {
+    const res = await setAdmin('no-such-user', true, SUPER_ADMIN_ID);
+    expect(res.status).toBe(404);
+  });
+
+  it('refuses to grant an anonymous user (422)', async () => {
+    const res = await setAdmin(ANON_USER_ID, true, SUPER_ADMIN_ID);
+    expect(res.status).toBe(422);
+    expect(await dbIsAdmin(ANON_USER_ID)).toBe(0);
+  });
+
+  it('rejects an invalid body (400)', async () => {
+    const res = await SELF.fetch(`https://test.local/admin/users/${REGULAR_USER_ID}/admin`, {
+      method: 'POST',
+      headers: { ...(await authHeaders(SUPER_ADMIN_ID)), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isAdmin: 'yes' }),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('GET /admin/rooms game-start visibility', () => {
   it('returns gamesStarted + lastStartedAt for a played room', async () => {
     const startedAt = '2026-06-30T08:15:00.000Z';
     await insertRoom('room-played', '1111', 3, startedAt);
 
-    const res = await getRooms(ADMIN_TOKEN);
+    const res = await getAdmin('/admin/rooms', SUPER_ADMIN_ID);
     expect(res.status).toBe(200);
 
     const body = await res.json<AdminRoomsResponse>();
@@ -80,14 +258,14 @@ describe('GET /admin/rooms game-start visibility', () => {
     if (!room) throw new Error('room 1111 missing from /admin/rooms response');
     expect(room.gamesStarted).toBe(3);
     expect(room.lastStartedAt).toBe(startedAt);
-    expect(room.hostName).toBe('AdminHost');
+    expect(room.hostName).toBe(`User-${HOST_USER_ID}`);
     expect(room.hostCountry).toBe('JP');
   });
 
   it('returns zero / null for a never-started room', async () => {
     await insertRoom('room-fresh', '2222', 0, null);
 
-    const res = await getRooms(ADMIN_TOKEN);
+    const res = await getAdmin('/admin/rooms', SUPER_ADMIN_ID);
     expect(res.status).toBe(200);
 
     const body = await res.json<AdminRoomsResponse>();
@@ -95,13 +273,6 @@ describe('GET /admin/rooms game-start visibility', () => {
     if (!room) throw new Error('room 2222 missing from /admin/rooms response');
     expect(room.gamesStarted).toBe(0);
     expect(room.lastStartedAt).toBeNull();
-  });
-
-  it('rejects requests without the admin token', async () => {
-    await insertRoom('room-auth', '3333', 1, null);
-
-    const res = await SELF.fetch('https://test.local/admin/rooms');
-    expect(res.status).toBe(401);
   });
 });
 
@@ -157,7 +328,7 @@ describe('GET /admin/request-traffic', () => {
 
     const response = await SELF.fetch(
       'https://test.local/admin/request-traffic?from=2026-08-31T00%3A00%3A00Z&to=2026-08-31T01%3A00%3A00Z',
-      { headers: { 'X-Admin-Token': ADMIN_TOKEN } },
+      { headers: await authHeaders(SUPER_ADMIN_ID) },
     );
 
     expect(response.status).toBe(200);
@@ -175,8 +346,8 @@ describe('GET /admin/request-traffic', () => {
     vi.stubGlobal('fetch', externalFetch);
 
     const response = await SELF.fetch(
-      'https://test.local/admin/request-traffic?from=2026-07-01T00%3A00%3A00Z&to=2026-08-31T00%3A00%3A00Z',
-      { headers: { 'X-Admin-Token': ADMIN_TOKEN } },
+      'https://test.local/admin/request-traffic?from=2026-07-01T00%3A00%3A00Z&to=2026-08-31T01%3A00%3A00Z',
+      { headers: await authHeaders(SUPER_ADMIN_ID) },
     );
 
     expect(response.status).toBe(400);

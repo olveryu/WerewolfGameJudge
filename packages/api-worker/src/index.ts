@@ -108,7 +108,7 @@ app.use(
   cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id', 'x-admin-token'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id'],
     maxAge: 3600,
   }),
 );

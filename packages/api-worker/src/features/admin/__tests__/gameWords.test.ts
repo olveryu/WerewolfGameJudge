@@ -10,21 +10,28 @@
 import { env, SELF } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
+import { type AdminTestSession, createSuperAdminSession } from '../../../../test/adminTestSupport';
 
-const fetchWordsStats = (path: string, token: string | null): Promise<Response> =>
+let adminSession: AdminTestSession;
+
+const fetchWordsStats = (path: string, headers: Record<string, string> | null): Promise<Response> =>
   SELF.fetch(`https://test.local${path}`, {
-    headers: token === null ? {} : { 'X-Admin-Token': token },
+    headers: headers === null ? {} : headers,
   });
 
-const postTriggerSupply = (path: string, token: string, body: unknown): Promise<Response> =>
+const postTriggerSupply = (
+  path: string,
+  headers: Record<string, string>,
+  body: unknown,
+): Promise<Response> =>
   SELF.fetch(`https://test.local${path}`, {
     method: 'POST',
-    headers: { 'X-Admin-Token': token, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
 beforeEach(async () => {
+  adminSession = await createSuperAdminSession();
   await env.DB.batch([
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
@@ -48,7 +55,10 @@ beforeEach(async () => {
 
 describe('GET /admin/games/words/stats', () => {
   it('returns the fibking dashboard shape', async () => {
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    const resp = await fetchWordsStats(
+      '/admin/games/words/stats?game=fibking',
+      adminSession.headers,
+    );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
       game: string;
@@ -91,7 +101,10 @@ describe('GET /admin/games/words/stats', () => {
             'stats-cycle', datetime('now'))`,
       ),
     ]);
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    const resp = await fetchWordsStats(
+      '/admin/games/words/stats?game=fibking',
+      adminSession.headers,
+    );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
       reviewCheckStats: Array<{ check: string; failCount: number }>;
@@ -138,7 +151,10 @@ describe('GET /admin/games/words/stats', () => {
                 (?, 'discovery')`,
       ).bind(packA, packA, packA, packA, packB, packPrev),
     ]);
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    const resp = await fetchWordsStats(
+      '/admin/games/words/stats?game=fibking',
+      adminSession.headers,
+    );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
       tavilyRequestsUsed: number;
@@ -150,7 +166,10 @@ describe('GET /admin/games/words/stats', () => {
   });
 
   it('returns null Tavily usage for games that do not use Tavily', async () => {
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=undercover', ADMIN_TOKEN);
+    const resp = await fetchWordsStats(
+      '/admin/games/words/stats?game=undercover',
+      adminSession.headers,
+    );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
       tavilyRequestsUsed: number | null;
@@ -176,7 +195,10 @@ describe('GET /admin/games/words/stats', () => {
          VALUES ('w2', '词二', '含义', '用法', 'literary', 'local', 'active', 2, 'p1', datetime('now'), datetime('now'))`,
       ),
     ]);
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    const resp = await fetchWordsStats(
+      '/admin/games/words/stats?game=fibking',
+      adminSession.headers,
+    );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
       queryLeaderboard: Array<{ publishedWords: number; packs: number }>;
@@ -190,7 +212,10 @@ describe('GET /admin/games/words/stats', () => {
   });
 
   it('returns the undercover dashboard shape without a monthly budget', async () => {
-    const resp = await fetchWordsStats('/admin/games/words/stats?game=undercover', ADMIN_TOKEN);
+    const resp = await fetchWordsStats(
+      '/admin/games/words/stats?game=undercover',
+      adminSession.headers,
+    );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as { game: string; monthlySupply: unknown };
     expect(body.game).toBe('undercover');
@@ -198,7 +223,10 @@ describe('GET /admin/games/words/stats', () => {
   });
 
   it('rejects unknown games and missing tokens', async () => {
-    const badGame = await fetchWordsStats('/admin/games/words/stats?game=mahjong', ADMIN_TOKEN);
+    const badGame = await fetchWordsStats(
+      '/admin/games/words/stats?game=mahjong',
+      adminSession.headers,
+    );
     expect(badGame.status).toBe(400);
     const noToken = await fetchWordsStats('/admin/games/words/stats?game=fibking', null);
     expect(noToken.status).toBe(401);
@@ -207,10 +235,14 @@ describe('GET /admin/games/words/stats', () => {
 
 describe('POST /admin/games/words/trigger-supply', () => {
   it('enqueues a workflow run and echoes the request', async () => {
-    const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
-      game: 'fibking',
-      force: true,
-    });
+    const resp = await postTriggerSupply(
+      '/admin/games/words/trigger-supply',
+      adminSession.headers,
+      {
+        game: 'fibking',
+        force: true,
+      },
+    );
     expect(resp.status).toBe(202);
     const body = (await resp.json()) as { game: string; force: boolean; workflowId: string };
     expect(body).toMatchObject({ game: 'fibking', force: true });
@@ -218,13 +250,21 @@ describe('POST /admin/games/words/trigger-supply', () => {
   });
 
   it('rejects invalid bodies and missing tokens', async () => {
-    const badBody = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
-      game: 'mahjong',
-    });
+    const badBody = await postTriggerSupply(
+      '/admin/games/words/trigger-supply',
+      adminSession.headers,
+      {
+        game: 'mahjong',
+      },
+    );
     expect(badBody.status).toBe(400);
-    const wrongToken = await postTriggerSupply('/admin/games/words/trigger-supply', 'wrong', {
-      game: 'fibking',
-    });
-    expect(wrongToken.status).toBe(403);
+    const wrongToken = await postTriggerSupply(
+      '/admin/games/words/trigger-supply',
+      { Authorization: 'Bearer wrong' },
+      {
+        game: 'fibking',
+      },
+    );
+    expect(wrongToken.status).toBe(401);
   });
 });

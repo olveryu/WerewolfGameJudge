@@ -20,6 +20,7 @@ import { runInDurableObject, SELF } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { type AdminTestSession, createSuperAdminSession } from '../../../../test/adminTestSupport';
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { enqueueUserEvent } from '../../userEvents/inbox';
 import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
@@ -189,6 +190,7 @@ describe('GameRoom initialization', () => {
   it('requires admin authorization and records an idempotent settlement replay through completion', async () => {
     const stub = getStub();
     await initialize(stub);
+    const adminSession: AdminTestSession = await createSuperAdminSession();
     const effectId = 'failed-settlement';
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       state.storage.sql.exec(
@@ -212,19 +214,18 @@ describe('GameRoom initialization', () => {
       effectId,
       reason: 'dependency repaired',
     };
-    const request = (token?: string) =>
+    const request = (headers?: Record<string, string>) =>
       SELF.fetch('https://test.local/admin/effect-replays', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token === undefined ? {} : { 'X-Admin-Token': token }),
+          ...(headers === undefined ? {} : headers),
         },
         body: JSON.stringify(command),
       });
     expect((await request()).status).toBe(401);
-    expect((await request('invalid')).status).toBe(403);
-    const token = 'test-admin-token-do-not-use-in-production';
-    expect((await request(token)).status).toBe(202);
+    expect((await request({ Authorization: 'Bearer invalid' })).status).toBe(401);
+    expect((await request(adminSession.headers)).status).toBe(202);
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
       await instance.alarm();
       const replay = await instance.readEffectReplay(command);
@@ -240,10 +241,10 @@ describe('GameRoom initialization', () => {
       });
       await state.storage.deleteAlarm();
     });
-    expect((await request(token)).status).toBe(202);
+    expect((await request(adminSession.headers)).status).toBe(202);
     const response = await SELF.fetch('https://test.local/admin/effect-replays/read', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+      headers: { 'Content-Type': 'application/json', ...adminSession.headers },
       body: JSON.stringify({ ...roomIdentity(stub), id: command.id }),
     });
     expect(response.status).toBe(200);

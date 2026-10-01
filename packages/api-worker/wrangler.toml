@@ -85,7 +85,7 @@ SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.
 
 [secrets]
 required = [
-  "ADMIN_PASSWORD",
+  "ADMIN_USER_IDS",
   "CF_API_TOKEN",
   "GEMINI_API_KEY",
   "TAVILY_API_KEY",

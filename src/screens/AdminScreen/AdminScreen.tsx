@@ -1,25 +1,20 @@
 /**
  * AdminScreen — Admin portal dashboard
  *
- * Password verification → 6-tab dashboard (users/rooms/stats/analytics/requests/AI).
- * Password is cached in MMKV and auto-verified on next entry.
- * Does not use JWT auth; uses a standalone X-Admin-Token for authentication.
+ * JWT identity check on entry → 7-tab dashboard (users/rooms/stats/analytics/requests/AI/games).
+ * Access is granted by the worker when the caller is an admin (users.is_admin)
+ * or a super admin (ADMIN_USER_IDS allowlist). No standalone admin password.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PressableScale } from '@/components/PressableScale';
-import { verifyAdminPassword } from '@/features/admin/services/adminApi';
-import {
-  clearAdminCredential,
-  readAdminCredential,
-  writeAdminCredential,
-} from '@/features/admin/services/adminCredentialStore';
+import { AdminApiError, getAdminWhoAmI } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
@@ -45,94 +40,85 @@ const TABS: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphM
 ];
 const adminScreenLog = log.extend('AdminScreen');
 
+type GateState = 'checking' | 'allowed' | 'login-required' | 'forbidden' | 'error';
+
 /** Admin portal screen. */
 export const AdminScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [verifying, setVerifying] = useState(true);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [gate, setGate] = useState<GateState>('checking');
   const [activeTab, setActiveTab] = useState<TabId>('users');
 
-  // On mount, check if cached password is still valid
-  useEffect(() => {
-    const cached = readAdminCredential();
-    if (!cached) {
-      setVerifying(false);
-      return;
-    }
-    void verifyAdminPassword(cached)
-      .then((valid) => {
-        if (valid) {
-          setAuthenticated(true);
-        } else {
-          clearAdminCredential();
-        }
-      })
-      .catch((cause: unknown) => {
-        handleError(cause, {
-          label: '验证管理员身份',
-          logger: adminScreenLog,
-          feedback: false,
-        });
-        setError('验证失败，请重试');
-      })
-      .finally(() => {
-        setVerifying(false);
-      });
-  }, []);
-
-  const handleSubmit = useCallback(async () => {
-    if (!password.trim()) return;
-    setError(null);
-    setVerifying(true);
+  const checkAccess = useCallback(async () => {
+    setGate('checking');
     try {
-      const valid = await verifyAdminPassword(password.trim());
-      if (valid) {
-        writeAdminCredential(password.trim());
-        setAuthenticated(true);
-      } else {
-        setError('密码错误');
-      }
+      await getAdminWhoAmI();
+      setGate('allowed');
     } catch (cause: unknown) {
+      if (cause instanceof AdminApiError && cause.status === 401) {
+        setGate('login-required');
+        return;
+      }
+      if (cause instanceof AdminApiError && cause.status === 403) {
+        setGate('forbidden');
+        return;
+      }
       handleError(cause, {
         label: '验证管理员身份',
         logger: adminScreenLog,
         feedback: false,
       });
-      setError('网络错误，请重试');
-    } finally {
-      setVerifying(false);
+      setGate('error');
     }
-  }, [password]);
+  }, []);
 
-  if (verifying) {
+  // Re-check whenever the screen gains focus (e.g. back from the login screen).
+  useFocusEffect(
+    useCallback(() => {
+      void checkAccess();
+    }, [checkAccess]),
+  );
+
+  if (gate === 'checking') {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
-  if (!authenticated) {
+  if (gate !== 'allowed') {
+    const copy =
+      gate === 'login-required'
+        ? { title: '需要登录', message: '请先登录后再进入 Admin Portal' }
+        : gate === 'forbidden'
+          ? { title: '无管理员权限', message: '当前账号没有管理员权限' }
+          : { title: '验证失败', message: '网络错误，请重试' };
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.authCard}>
+      <SafeAreaView style={styles.centered}>
+        <View style={styles.gateCard}>
           <Ionicons name="lock-closed" size={componentSizes.icon.xl} color={colors.primary} />
-          <Text style={styles.authTitle}>Admin 验证</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="输入管理密码"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            onSubmitEditing={() => void handleSubmit()}
-            autoFocus
-          />
-          {error && <Text style={styles.errorText}>{error}</Text>}
-          <PressableScale style={styles.submitBtn} onPress={() => void handleSubmit()} haptic>
-            <Text style={styles.submitBtnText}>确认进入</Text>
+          <Text style={styles.gateTitle}>{copy.title}</Text>
+          <Text style={styles.gateMessage}>{copy.message}</Text>
+          {gate === 'login-required' ? (
+            <PressableScale
+              style={styles.primaryBtn}
+              onPress={() =>
+                navigation.navigate('AuthLogin', {
+                  loginTitle: '管理员登录',
+                  loginSubtitle: '登录后进入 Admin Portal',
+                })
+              }
+              haptic
+            >
+              <Text style={styles.primaryBtnText}>去登录</Text>
+            </PressableScale>
+          ) : (
+            <PressableScale style={styles.primaryBtn} onPress={() => void checkAccess()} haptic>
+              <Text style={styles.primaryBtnText}>重试</Text>
+            </PressableScale>
+          )}
+          <PressableScale onPress={() => navigation.goBack()} haptic>
+            <Text style={styles.backLink}>返回</Text>
           </PressableScale>
         </View>
       </SafeAreaView>
@@ -190,42 +176,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centered: {
+    flex: 1,
+    backgroundColor: colors.background,
     justifyContent: 'center',
   },
-  authCard: {
+  gateCard: {
     alignItems: 'center',
     padding: spacing.xlarge,
     gap: spacing.medium,
   },
-  authTitle: {
+  gateTitle: {
     fontSize: typography.title,
     fontWeight: typography.weights.bold,
     color: colors.text,
   },
-  input: {
-    width: '100%',
-    maxWidth: 300,
-    height: 48,
-    borderRadius: borderRadius.medium,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.medium,
+  gateMessage: {
     fontSize: typography.body,
-    color: colors.text,
+    color: colors.textMuted,
   },
-  errorText: {
-    color: colors.error,
-    fontSize: typography.caption,
-  },
-  submitBtn: {
+  primaryBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.xlarge,
     paddingVertical: spacing.small,
     borderRadius: borderRadius.medium,
   },
-  submitBtnText: {
+  primaryBtnText: {
     color: colors.textInverse,
     fontSize: typography.body,
     fontWeight: typography.weights.semibold,
+  },
+  backLink: {
+    color: colors.primary,
+    fontSize: typography.body,
   },
   header: {
     flexDirection: 'row',

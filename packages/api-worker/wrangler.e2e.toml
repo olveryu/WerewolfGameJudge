@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
-ADMIN_PASSWORD = "test-admin-token-do-not-use-in-production"
+ADMIN_USER_IDS = ""
 ENVIRONMENT = "test"
 CLOUDFLARE_ACCOUNT_ID = "test-cloudflare-account"
 CLOUDFLARE_WORKER_SCRIPT_NAME = "werewolf-api"

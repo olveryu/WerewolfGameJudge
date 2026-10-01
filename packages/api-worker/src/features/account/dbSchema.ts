@@ -21,6 +21,8 @@ export const users = sqliteTable(
     equippedSeatAnimation: text('equipped_seat_animation'),
     wechatOpenid: text('wechat_openid'),
     isAnonymous: integer('is_anonymous').notNull().default(1),
+    /** Admin portal access flag. 1 = admin (granted by a super admin via the portal). */
+    isAdmin: integer('is_admin').notNull().default(0),
     tokenVersion: integer('token_version').notNull().default(0),
     lastCountry: text('last_country'),
     lastColo: text('last_colo'),

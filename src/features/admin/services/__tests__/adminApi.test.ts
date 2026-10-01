@@ -1,88 +1,105 @@
+/**
+ * adminApi — JWT-backed admin client tests.
+ *
+ * The admin portal authenticates via the app JWT system (cfGet/cfPost);
+ * the standalone admin password and X-Admin-Token header are gone.
+ * Transport failures surface as AdminApiError with the worker's status/reason.
+ */
 import {
+  AdminApiError,
   fetchRequestTraffic,
-  fetchUserRewards,
+  getAdminWhoAmI,
   getTimeRange,
   grantUserReward,
-  verifyAdminPassword,
+  setUserAdmin,
 } from '@/features/admin/services/adminApi';
+import { cfGet, cfPost, CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 
-jest.mock('@/features/admin/services/adminCredentialStore', () => ({
-  readAdminCredential: jest.fn(() => 'credential'),
-}));
+jest.mock('@/services/cloudflare/cfFetch', () => {
+  const actual = jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
+    '@/services/cloudflare/cfFetch',
+  );
+  return { ...actual, cfGet: jest.fn(), cfPost: jest.fn() };
+});
 
-const mockFetch = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit?]>();
+const mockCfGet = jest.mocked(cfGet);
+const mockCfPost = jest.mocked(cfPost);
 
 describe('adminApi', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = mockFetch;
   });
 
-  it.each([401, 403])('treats status %s as an invalid credential', async (status) => {
-    mockFetch.mockResolvedValue(new Response(null, { status }));
-    await expect(verifyAdminPassword('credential')).resolves.toBe(false);
+  it('checks admin identity through the JWT-backed whoami endpoint', async () => {
+    mockCfGet.mockResolvedValue({ userId: 'u1', isSuperAdmin: true });
+    await expect(getAdminWhoAmI()).resolves.toEqual({ userId: 'u1', isSuperAdmin: true });
+    expect(mockCfGet).toHaveBeenCalledWith('/admin/whoami', expect.any(Function), {
+      signal: undefined,
+    });
   });
 
-  it('surfaces non-authentication failures instead of reporting a bad password', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ success: false, reason: 'INTERNAL_ERROR' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+  it('grants and revokes admin rights through the super-admin endpoint', async () => {
+    mockCfPost.mockResolvedValue({ success: true, id: 'target', isAdmin: true });
+    await expect(setUserAdmin('target', true)).resolves.toEqual({
+      success: true,
+      id: 'target',
+      isAdmin: true,
+    });
+    expect(mockCfPost).toHaveBeenCalledWith(
+      '/admin/users/target/admin',
+      { isAdmin: true },
+      expect.any(Function),
+      { signal: undefined },
     );
-    await expect(verifyAdminPassword('credential')).rejects.toThrow(
-      'Admin API 500: INTERNAL_ERROR',
-    );
   });
 
-  it('rejects non-canonical credential input before making a request', async () => {
-    await expect(verifyAdminPassword(' credential ')).rejects.toThrow('trimmed non-empty string');
-    expect(mockFetch).not.toHaveBeenCalled();
+  it('normalizes transport failures into AdminApiError', async () => {
+    mockCfGet.mockRejectedValue(
+      new CloudflareHttpError({ status: 403, reason: 'FORBIDDEN', body: null }),
+    );
+    const error = await getAdminWhoAmI().catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(AdminApiError);
+    expect(error).toMatchObject({ status: 403, reason: 'FORBIDDEN' });
+  });
+
+  it('passes non-HTTP failures through untouched', async () => {
+    const failure = new Error('Network timeout');
+    mockCfGet.mockRejectedValue(failure);
+    await expect(getAdminWhoAmI()).rejects.toBe(failure);
   });
 
   it('fetches request traffic for the exact selected time range', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          generatedAt: '2026-08-31T00:02:00.000Z',
-          platform: { requests: 0, errors: 0, subrequests: 0 },
-          requestCountDelta: 0,
-          http: {
-            totalRequests: 0,
-            clientErrorRequests: 0,
-            serverErrorRequests: 0,
-            successfulWebSocketConnections: 0,
-            failedWebSocketConnections: 0,
-            routes: [],
-            series: [],
-          },
-          realtime: {
-            stateSyncRequests: 0,
-            stateUpdateBroadcasts: 0,
-            stateUpdateDeliveries: 0,
-            stateUpdateBytes: 0,
-            downlinkDeliveries: 0,
-            downlinkBytes: 0,
-            invalidClientMessages: 0,
-          },
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
+    mockCfGet.mockResolvedValue({
+      generatedAt: '2026-08-31T00:02:00.000Z',
+      platform: { requests: 0, errors: 0, subrequests: 0 },
+      requestCountDelta: 0,
+      http: {
+        totalRequests: 0,
+        clientErrorRequests: 0,
+        serverErrorRequests: 0,
+        successfulWebSocketConnections: 0,
+        failedWebSocketConnections: 0,
+        routes: [],
+        series: [],
+      },
+      realtime: {
+        stateSyncRequests: 0,
+        stateUpdateBroadcasts: 0,
+        stateUpdateDeliveries: 0,
+        stateUpdateBytes: 0,
+        downlinkDeliveries: 0,
+        downlinkBytes: 0,
+        invalidClientMessages: 0,
+      },
+    });
 
     await expect(
       fetchRequestTraffic('2026-08-31T00:00:00Z', '2026-08-31T00:02:00Z'),
     ).resolves.toMatchObject({
       platform: { requests: 0 },
     });
-    const requestInput = mockFetch.mock.calls[0]?.[0];
-    if (requestInput === undefined) throw new Error('Expected one Admin API request');
-    const requestUrl =
-      typeof requestInput === 'string'
-        ? new URL(requestInput)
-        : requestInput instanceof URL
-          ? requestInput
-          : new URL(requestInput.url);
+    const path = mockCfGet.mock.calls[0]?.[0] as string;
+    const requestUrl = new URL(path, 'https://test.local');
     expect(requestUrl.pathname).toBe('/admin/request-traffic');
     expect(requestUrl.searchParams.get('from')).toBe('2026-08-31T00:00:00Z');
     expect(requestUrl.searchParams.get('to')).toBe('2026-08-31T00:02:00Z');
@@ -111,22 +128,12 @@ describe('adminApi', () => {
       balanceAfter: 105,
       createdAt: '2026-09-18T00:00:00Z',
     };
-    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(grant)));
+    mockCfPost.mockResolvedValueOnce(grant);
     await expect(grantUserReward('recipient', input)).resolves.toEqual(grant);
-    expect(mockFetch).toHaveBeenLastCalledWith(
-      expect.stringContaining('/admin/users/recipient/rewards'),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify(input),
-        headers: { 'X-Admin-Token': 'credential', 'Content-Type': 'application/json' },
-      }),
+    expect(mockCfPost).toHaveBeenLastCalledWith(
+      '/admin/users/recipient/rewards',
+      input,
+      expect.any(Function),
     );
-    mockFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ normalDraws: 0, goldenDraws: 105, grants: [grant] })),
-    );
-    await expect(fetchUserRewards('recipient')).resolves.toMatchObject({
-      goldenDraws: 105,
-      grants: [grant],
-    });
   });
 });

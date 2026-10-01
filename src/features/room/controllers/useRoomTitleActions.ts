@@ -1,15 +1,10 @@
-/** Shared room title gestures: admin navigation and password-gated debug visibility. */
+/** Shared room title gestures: admin navigation and identity-gated debug visibility. */
 
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useRef } from 'react';
 
-import { verifyAdminPassword } from '@/features/admin/services/adminApi';
-import {
-  clearAdminCredential,
-  readAdminCredential,
-  writeAdminCredential,
-} from '@/features/admin/services/adminCredentialStore';
-import { showAlert, showPrompt } from '@/utils/alert';
+import { AdminApiError, getAdminWhoAmI } from '@/features/admin/services/adminApi';
+import { showAlert } from '@/utils/alert';
 import { debugLogStore } from '@/utils/debugLogStore';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -24,20 +19,20 @@ export function useRoomTitleActions() {
   const tapCountRef = useRef(0);
   const isVerifying = useRef(false);
 
-  const verifyAndToggle = useCallback(async (credential: string) => {
+  const verifyAndToggle = useCallback(async () => {
     if (isVerifying.current) return;
     isVerifying.current = true;
     try {
-      const valid = await verifyAdminPassword(credential);
-      if (!valid) {
-        clearAdminCredential();
-        roomScreenLog.warn('Admin password rejected');
-        showAlert('打开调试日志失败', '管理员密码无效，请重试');
-        return;
-      }
-      writeAdminCredential(credential);
+      // Only admins can toggle the debug log; the worker checks the caller's
+      // JWT identity (users.is_admin or the super-admin allowlist).
+      await getAdminWhoAmI();
       debugLogStore.toggleVisibility();
     } catch (error: unknown) {
+      if (error instanceof AdminApiError && (error.status === 401 || error.status === 403)) {
+        roomScreenLog.warn('Admin identity rejected for debug log');
+        showAlert('打开调试日志失败', '需要管理员权限');
+        return;
+      }
       handleError(error, { label: '打开调试日志', logger: roomScreenLog });
     } finally {
       isVerifying.current = false;
@@ -62,18 +57,7 @@ export function useRoomTitleActions() {
   const handleTitleLongPress = useCallback(() => {
     lastTap.current = null;
     tapCountRef.current = 0;
-    const cached = readAdminCredential();
-    if (cached) {
-      void verifyAndToggle(cached);
-      return;
-    }
-    showPrompt('管理员密码', {
-      placeholder: '请输入管理员密码',
-      onConfirm: (value: string) => {
-        const credential = value.trim();
-        if (credential) void verifyAndToggle(credential);
-      },
-    });
+    void verifyAndToggle();
   }, [verifyAndToggle]);
 
   return { handleTitlePress, handleTitleLongPress };

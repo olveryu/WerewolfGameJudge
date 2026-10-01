@@ -20,6 +20,7 @@ describe('adminResponseCodec', () => {
             displayName: null,
             email: null,
             isAnonymous: true,
+            isAdmin: false,
             lastCountry: null,
             lastColo: null,
             createdAt: '2026-01-01',

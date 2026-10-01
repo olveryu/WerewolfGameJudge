@@ -12,9 +12,12 @@ import {
   AdminApiError,
   fetchUserRewards,
   fetchUsers,
+  getAdminWhoAmI,
   grantUserReward,
+  setUserAdmin,
 } from '@/features/admin/services/adminApi';
 import { storage } from '@/services/infra/localStorage';
+import { TESTIDS } from '@/testids';
 
 import { UsersTab } from '../tabs/UsersTab';
 
@@ -30,8 +33,13 @@ jest.mock('@/features/admin/services/adminApi', () => ({
   fetchUsers: jest.fn(),
   fetchUserRewards: jest.fn(),
   grantUserReward: jest.fn(),
+  getAdminWhoAmI: jest.fn(),
+  setUserAdmin: jest.fn(),
 }));
-jest.mock('@/utils/alert', () => ({ showAlert: jest.fn() }));
+jest.mock('@/utils/alert', () => ({
+  showAlert: jest.fn(),
+  getAlertGeneration: () => 0,
+}));
 jest.mock('@/components/BaseCenterModal', () => ({
   BaseCenterModal: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -40,6 +48,7 @@ describe('UsersTab request ownership', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     storage.clearAll();
+    jest.mocked(getAdminWhoAmI).mockResolvedValue({ userId: 'tester', isSuperAdmin: false });
   });
   it('cancels the old filter and never displays its late response', async () => {
     const pending: Array<{
@@ -75,6 +84,7 @@ describe('UsersTab request ownership', () => {
       displayName: '蒙鼓人',
       email: null,
       isAnonymous: true,
+      isAdmin: false,
       lastCountry: null,
       lastColo: null,
       createdAt: '2026-09-18',
@@ -136,6 +146,125 @@ describe('UsersTab request ownership', () => {
     await screen.findByText('发放成功：黄金抽 +100');
     await screen.findByText('普通抽：0 / 黄金抽：105');
     expect(grantUserReward).toHaveBeenLastCalledWith(user.id, input);
+    view.unmount();
+    client.clear();
+  });
+});
+
+describe('UsersTab admin grant/revoke', () => {
+  const makeUser = (overrides: Record<string, unknown> = {}) => ({
+    id: 'target-user',
+    displayName: '候选人',
+    email: null,
+    isAnonymous: false,
+    isAdmin: false,
+    lastCountry: null,
+    lastColo: null,
+    createdAt: '2026-09-18',
+    updatedAt: '2026-09-18',
+    level: 1,
+    xp: 0,
+    gamesPlayed: 0,
+    ...overrides,
+  });
+
+  const mountTab = () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <QueryClientProvider client={client}>
+        <UsersTab />
+      </QueryClientProvider>,
+    );
+    return { client, view };
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    storage.clearAll();
+  });
+
+  it('shows the grant button only for super admins and confirms via AlertModal', async () => {
+    jest.mocked(getAdminWhoAmI).mockResolvedValue({ userId: 'super', isSuperAdmin: true });
+    jest.mocked(fetchUsers).mockResolvedValue({
+      users: [makeUser()],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    jest
+      .mocked(setUserAdmin)
+      .mockResolvedValue({ success: true, id: 'target-user', isAdmin: true });
+    const { client, view } = mountTab();
+
+    await screen.findByText('候选人');
+    // UUID is visible and selectable for the super admin to copy.
+    expect(screen.getByText('ID: target-user')).toBeTruthy();
+    await fireEventAsync.press(screen.getByLabelText('任命候选人为管理员'));
+    // Confirm dialog (AlertModal, not Alert.alert). The modal title is located
+    // by testID because the card button carries the same text.
+    await screen.findByTestId(TESTIDS.alertTitle);
+    expect(screen.getByTestId(TESTIDS.alertTitle)).toHaveTextContent('任命管理员');
+    expect(setUserAdmin).not.toHaveBeenCalled();
+    await fireEventAsync.press(screen.getByText('确定'));
+    await waitFor(() => expect(setUserAdmin).toHaveBeenCalledWith('target-user', true));
+    view.unmount();
+    client.clear();
+  });
+
+  it('hides grant/revoke buttons for non-super-admins', async () => {
+    jest.mocked(getAdminWhoAmI).mockResolvedValue({ userId: 'tester', isSuperAdmin: false });
+    jest.mocked(fetchUsers).mockResolvedValue({
+      users: [makeUser()],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    const { client, view } = mountTab();
+
+    await screen.findByText('候选人');
+    expect(screen.queryByLabelText('任命候选人为管理员')).toBeNull();
+    expect(screen.queryByLabelText('移除候选人的管理员权限')).toBeNull();
+    view.unmount();
+    client.clear();
+  });
+
+  it('shows revoke for other admins but never for yourself', async () => {
+    jest.mocked(getAdminWhoAmI).mockResolvedValue({ userId: 'super', isSuperAdmin: true });
+    jest.mocked(fetchUsers).mockResolvedValue({
+      users: [
+        makeUser({ id: 'super', displayName: '我', isAdmin: true }),
+        makeUser({ id: 'other-admin', displayName: '同事', isAdmin: true }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 50,
+    });
+    const { client, view } = mountTab();
+
+    await screen.findByText('同事');
+    // Own card: no revoke button even for a super admin.
+    expect(screen.queryByLabelText('移除我的管理员权限')).toBeNull();
+    // Other admin card: revoke button present, grant button absent.
+    expect(screen.getByLabelText('移除同事的管理员权限')).toBeTruthy();
+    expect(screen.queryByLabelText('任命同事为管理员')).toBeNull();
+    // Admin badge shown for both.
+    expect(screen.getAllByText('管理员').length).toBeGreaterThanOrEqual(2);
+    view.unmount();
+    client.clear();
+  });
+
+  it('does not offer grant for anonymous users', async () => {
+    jest.mocked(getAdminWhoAmI).mockResolvedValue({ userId: 'super', isSuperAdmin: true });
+    jest.mocked(fetchUsers).mockResolvedValue({
+      users: [makeUser({ id: 'anon-1', displayName: null, isAnonymous: true })],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    const { client, view } = mountTab();
+
+    await screen.findByText('匿名用户');
+    expect(screen.queryByLabelText('任命该用户为管理员')).toBeNull();
     view.unmount();
     client.clear();
   });

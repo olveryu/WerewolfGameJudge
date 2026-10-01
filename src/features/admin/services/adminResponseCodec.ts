@@ -14,8 +14,10 @@ import type {
   AdminStats,
   AdminUser,
   AdminUsersResponse,
+  AdminWhoAmI,
   GameWordGame,
   GameWordsStats,
+  SetUserAdminResult,
   TriggerSupplyResult,
 } from '@/features/admin/model/adminContracts';
 
@@ -112,6 +114,7 @@ function parseAdminUser(value: unknown, label: string): AdminUser {
       'displayName',
       'email',
       'isAnonymous',
+      'isAdmin',
       'lastCountry',
       'lastColo',
       'createdAt',
@@ -127,6 +130,7 @@ function parseAdminUser(value: unknown, label: string): AdminUser {
     displayName: parseNullableString(object.displayName, `${label}.displayName`),
     email: parseNullableString(object.email, `${label}.email`),
     isAnonymous: parseBoolean(object.isAnonymous, `${label}.isAnonymous`),
+    isAdmin: parseBoolean(object.isAdmin, `${label}.isAdmin`),
     lastCountry: parseNullableString(object.lastCountry, `${label}.lastCountry`),
     lastColo: parseNullableString(object.lastColo, `${label}.lastColo`),
     createdAt: parseString(object.createdAt, `${label}.createdAt`),
@@ -628,5 +632,24 @@ export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
     game: parseGameWordGame(object.game, 'Trigger supply game'),
     force: parseBoolean(object.force, 'Trigger supply force'),
     workflowId: parseNonEmptyString(object.workflowId, 'Trigger supply workflowId'),
+  };
+}
+
+export function parseAdminWhoAmIResponse(value: unknown): AdminWhoAmI {
+  const object = requireObject(value, 'Admin whoami response');
+  assertExactKeys(object, ['userId', 'isSuperAdmin'], 'Admin whoami response');
+  return {
+    userId: parseNonEmptyString(object.userId, 'Admin whoami userId'),
+    isSuperAdmin: parseBoolean(object.isSuperAdmin, 'Admin whoami isSuperAdmin'),
+  };
+}
+
+export function parseSetUserAdminResponse(value: unknown): SetUserAdminResult {
+  const object = requireObject(value, 'Set user admin response');
+  assertExactKeys(object, ['success', 'id', 'isAdmin'], 'Set user admin response');
+  return {
+    success: parseBoolean(object.success, 'Set user admin success'),
+    id: parseNonEmptyString(object.id, 'Set user admin id'),
+    isAdmin: parseBoolean(object.isAdmin, 'Set user admin isAdmin'),
   };
 }

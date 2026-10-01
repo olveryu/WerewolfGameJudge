@@ -1,13 +1,23 @@
 /**
  * Admin feature routes.
  *
- * Password-protected admin endpoints. Provides user list, room list, active stats,
+ * Admin portal endpoints. Provides user list, room list, active stats,
  * load-performance telemetry, and request-traffic queries.
- * Auth uses X-Admin-Token header + timing-safe compare.
- * Bypasses the JWT auth system entirely.
+ * Auth uses the app's JWT system: requireAuth verifies the access token
+ * (sets c.var.userId / c.var.isAnonymous), then requireAdmin checks the
+ * identity-based admin flag (users.is_admin, or the ADMIN_USER_IDS
+ * super-admin allowlist).
  *
- * @throws 401 — X-Admin-Token missing or mismatched
- * @throws 400 — invalid query parameters
+ * Two tiers:
+ * - Super admin: UUID in ADMIN_USER_IDS env (dashboard-configured, never committed).
+ *   The only role that can grant/revoke admin, and cannot be demoted.
+ * - Admin: users.is_admin = 1 (granted by a super admin via the portal).
+ *
+ * @throws 401 — Authorization header missing or invalid (requireAuth)
+ * @throws 403 — authenticated but not an admin (ADMIN_FORBIDDEN) / not a super admin (SUPER_ADMIN_FORBIDDEN)
+ * @throws 400 — invalid query parameters or request body
+ * @throws 404 — target user not found (set-admin endpoint)
+ * @throws 422 — target is an anonymous user (set-admin endpoint)
  * @throws 502 — Cloudflare analytics provider failed or returned an invalid response
  */
 
@@ -15,6 +25,7 @@ import { and, count, desc, eq, inArray, like, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
@@ -22,6 +33,7 @@ import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
+import { requireAuth } from '../auth/tokenAuth';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
 import {
@@ -49,29 +61,48 @@ const log = createLogger('admin');
 // ── Admin auth middleware ────────────────────────────────────────────────────
 
 /**
- * Timing-safe string comparison to prevent timing attacks.
- * Uses byte-by-byte XOR accumulation — constant time regardless of match position.
+ * Super-admin allowlist: comma-separated admin UUIDs from the dashboard-configured
+ * ADMIN_USER_IDS env var (never committed). Bootstrap + escape hatch: the only
+ * role that can grant/revoke admin, and it cannot be demoted.
  */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  const encoder = new TextEncoder();
-  const bufA = encoder.encode(a);
-  const bufB = encoder.encode(b);
-  let diff = 0;
-  for (let i = 0; i < bufA.length; i++) {
-    diff |= bufA[i] ^ bufB[i];
-  }
-  return diff === 0;
+function parseSuperAdminIds(env: Env): ReadonlySet<string> {
+  return new Set(
+    (env.ADMIN_USER_IDS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
+  );
 }
 
-const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
-  const token = c.req.header('X-Admin-Token');
-  if (!token) {
-    throw new HTTPException(401, { message: 'ADMIN_TOKEN_REQUIRED' });
+function isSuperAdmin(userId: string, env: Env): boolean {
+  return parseSuperAdminIds(env).has(userId);
+}
+
+/** Admin = super admin, or users.is_admin = 1. */
+async function isAdminUser(userId: string, env: Env): Promise<boolean> {
+  if (isSuperAdmin(userId, env)) return true;
+  const db = createDb(env.DB);
+  const rows = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId));
+  return rows[0]?.isAdmin === 1;
+}
+
+/**
+ * Requires an authenticated non-anonymous admin principal.
+ * Must run after requireAuth (which sets c.var.userId / c.var.isAnonymous).
+ */
+const requireAdmin = createMiddleware<AppEnv>(async (c, next) => {
+  if (c.var.isAnonymous || !(await isAdminUser(c.var.userId, c.env))) {
+    log.warn('admin access denied');
+    throw new HTTPException(403, { message: 'ADMIN_FORBIDDEN' });
   }
-  if (!timingSafeEqual(token, c.env.ADMIN_PASSWORD)) {
-    log.warn('admin auth failed');
-    throw new HTTPException(403, { message: 'INVALID_ADMIN_TOKEN' });
+  await next();
+});
+
+/** Requires a super admin (ADMIN_USER_IDS allowlist). Used for admin grant/revoke. */
+const requireSuperAdmin = createMiddleware<AppEnv>(async (c, next) => {
+  if (!isSuperAdmin(c.var.userId, c.env)) {
+    log.warn('super admin required');
+    throw new HTTPException(403, { message: 'SUPER_ADMIN_FORBIDDEN' });
   }
   await next();
 });
@@ -80,6 +111,7 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
 /** Admin portal routes (admin permission required). */ export const adminRoutes =
   new Hono<AppEnv>();
 
+adminRoutes.use('*', requireAuth);
 adminRoutes.use('*', requireAdmin);
 adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
@@ -136,6 +168,7 @@ adminRoutes.get('/users', async (c) => {
       displayName: users.displayName,
       email: users.email,
       isAnonymous: users.isAnonymous,
+      isAdmin: users.isAdmin,
       lastCountry: users.lastCountry,
       lastColo: users.lastColo,
       createdAt: users.createdAt,
@@ -157,6 +190,7 @@ adminRoutes.get('/users', async (c) => {
       displayName: r.displayName,
       email: r.email,
       isAnonymous: r.isAnonymous === 1,
+      isAdmin: isSuperAdmin(r.id, c.env) || r.isAdmin === 1,
       lastCountry: r.lastCountry,
       lastColo: r.lastColo,
       createdAt: r.createdAt,
@@ -169,6 +203,45 @@ adminRoutes.get('/users', async (c) => {
     page,
     limit,
   });
+});
+
+// ── GET /admin/whoami ───────────────────────────────────────────────────────
+// Lets the portal decide whether to show the admin grant/revoke UI.
+adminRoutes.get('/whoami', async (c) => {
+  return c.json({
+    userId: c.var.userId,
+    isSuperAdmin: isSuperAdmin(c.var.userId, c.env),
+  });
+});
+
+// ── POST /admin/users/:id/admin ────────────────────────────────────────────
+// Grant or revoke the admin flag for a user. Super admin only.
+// A super admin can never be demoted; anonymous users cannot be granted.
+const setAdminSchema = z.strictObject({ isAdmin: z.boolean() });
+
+adminRoutes.post('/users/:id/admin', requireSuperAdmin, jsonBody(setAdminSchema), async (c) => {
+  const targetId = c.req.param('id');
+  const { isAdmin } = c.req.valid('json');
+  if (isSuperAdmin(targetId, c.env)) {
+    throw new HTTPException(403, { message: 'ADMIN_SUPER_DENIED' });
+  }
+  const db = createDb(c.env.DB);
+  const [target] = await db
+    .select({ isAnonymous: users.isAnonymous })
+    .from(users)
+    .where(eq(users.id, targetId));
+  if (!target) {
+    throw new HTTPException(404, { message: 'USER_NOT_FOUND' });
+  }
+  if (target.isAnonymous === 1) {
+    throw new HTTPException(422, { message: 'ADMIN_ANONYMOUS_DENIED' });
+  }
+  await db
+    .update(users)
+    .set({ isAdmin: isAdmin ? 1 : 0 })
+    .where(eq(users.id, targetId));
+  log.info('admin flag changed', { targetId, isAdmin, by: c.var.userId });
+  return c.json({ success: true, id: targetId, isAdmin });
 });
 
 // ── GET /admin/rooms ────────────────────────────────────────────────────────

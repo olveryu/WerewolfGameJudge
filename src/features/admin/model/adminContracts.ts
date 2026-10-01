@@ -7,6 +7,8 @@ export interface AdminUser {
   displayName: string | null;
   email: string | null;
   isAnonymous: boolean;
+  /** True when the user can access the admin portal (DB flag or super-admin allowlist). */
+  isAdmin: boolean;
   lastCountry: string | null;
   lastColo: string | null;
   createdAt: string;
@@ -163,4 +165,18 @@ export interface TriggerSupplyResult {
   game: GameWordGame;
   force: boolean;
   workflowId: string;
+}
+
+/** Identity of the current admin-portal caller. */
+export interface AdminWhoAmI {
+  userId: string;
+  /** True when the caller is a super admin (ADMIN_USER_IDS allowlist). */
+  isSuperAdmin: boolean;
+}
+
+/** Result of granting or revoking the admin flag for a user. */
+export interface SetUserAdminResult {
+  success: boolean;
+  id: string;
+  isAdmin: boolean;
 }

@@ -2,7 +2,10 @@
 import { env, SELF } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
+import { type AdminTestSession, createSuperAdminSession } from '../../../../test/adminTestSupport';
+
+let adminSession: AdminTestSession;
+
 const USER_ID = 'admin-reward-user';
 const URL = `https://test.local/admin/users/${USER_ID}/rewards`;
 
@@ -10,21 +13,22 @@ function createGrant() {
   return { id: crypto.randomUUID(), drawType: 'golden', count: 100, reason: '活动奖励' };
 }
 
-function sendGrant(body: unknown, token = ADMIN_TOKEN, url = URL) {
+function sendGrant(body: unknown, headers = adminSession.headers, url = URL) {
   return SELF.fetch(url, {
     method: 'POST',
-    headers: { 'X-Admin-Token': token, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 }
 
 async function readRewards() {
-  const response = await SELF.fetch(URL, { headers: { 'X-Admin-Token': ADMIN_TOKEN } });
+  const response = await SELF.fetch(URL, { headers: adminSession.headers });
   expect(response.status).toBe(200);
   return response.json<{ normalDraws: number; goldenDraws: number; grants: unknown[] }>();
 }
 
 beforeEach(async () => {
+  adminSession = await createSuperAdminSession();
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(USER_ID).run();
   await env.DB.prepare(
     `INSERT INTO users (id, display_name, is_anonymous, created_at, updated_at)
@@ -86,8 +90,13 @@ describe('admin reward grants', () => {
     expect((await sendGrant(request)).status).toBe(200);
     expect((await sendGrant({ ...request, count: 200 })).status).toBe(409);
     expect(
-      (await sendGrant(request, ADMIN_TOKEN, 'https://test.local/admin/users/other/rewards'))
-        .status,
+      (
+        await sendGrant(
+          request,
+          adminSession.headers,
+          'https://test.local/admin/users/other/rewards',
+        )
+      ).status,
     ).toBe(409);
     expect(await readRewards()).toMatchObject({ goldenDraws: 100 });
   });
@@ -102,7 +111,7 @@ describe('admin reward grants', () => {
 
   it('requires administrator credentials for reading and granting', async () => {
     expect((await SELF.fetch(URL)).status).toBe(401);
-    expect((await sendGrant(createGrant(), 'wrong-token')).status).toBe(403);
+    expect((await sendGrant(createGrant(), { Authorization: 'Bearer invalid' })).status).toBe(401);
     expect(await readRewards()).toEqual({ normalDraws: 0, goldenDraws: 0, grants: [] });
   });
 
@@ -111,7 +120,7 @@ describe('admin reward grants', () => {
       (
         await sendGrant(
           createGrant(),
-          ADMIN_TOKEN,
+          adminSession.headers,
           'https://test.local/admin/users/missing/rewards',
         )
       ).status,

@@ -1,14 +1,9 @@
-/** Verify shared title gestures and the admin credential gate without game state. */
+/** Verify shared title gestures and the admin identity gate without game state. */
 
 import { act, renderHook } from '@testing-library/react-native';
 
-import { verifyAdminPassword } from '@/features/admin/services/adminApi';
-import {
-  clearAdminCredential,
-  readAdminCredential,
-  writeAdminCredential,
-} from '@/features/admin/services/adminCredentialStore';
-import { showAlert, showPrompt } from '@/utils/alert';
+import { AdminApiError, getAdminWhoAmI } from '@/features/admin/services/adminApi';
+import { showAlert } from '@/utils/alert';
 import { debugLogStore } from '@/utils/debugLogStore';
 import { handleError } from '@/utils/errorPipeline';
 
@@ -18,20 +13,25 @@ const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
 }));
-jest.mock('@/features/admin/services/adminApi');
-jest.mock('@/features/admin/services/adminCredentialStore');
-jest.mock('@/utils/alert', () => ({ showAlert: jest.fn(), showPrompt: jest.fn() }));
+jest.mock('@/features/admin/services/adminApi', () => ({
+  ...jest.requireActual<typeof import('@/features/admin/services/adminApi')>(
+    '@/features/admin/services/adminApi',
+  ),
+  getAdminWhoAmI: jest.fn(),
+}));
+jest.mock('@/utils/alert', () => ({ showAlert: jest.fn() }));
 jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('@/utils/debugLogStore', () => ({
   debugLogStore: { toggleVisibility: jest.fn() },
 }));
 
+const mockGetAdminWhoAmI = jest.mocked(getAdminWhoAmI);
+
 describe('useRoomTitleActions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    jest.mocked(readAdminCredential).mockReturnValue('test-password');
-    jest.mocked(verifyAdminPassword).mockResolvedValue(true);
+    mockGetAdminWhoAmI.mockResolvedValue({ userId: 'admin', isSuperAdmin: true });
   });
 
   afterEach(() => jest.useRealTimers());
@@ -50,7 +50,7 @@ describe('useRoomTitleActions', () => {
     });
     expect(mockNavigate).toHaveBeenCalledWith('Admin');
     expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(verifyAdminPassword).not.toHaveBeenCalled();
+    expect(mockGetAdminWhoAmI).not.toHaveBeenCalled();
     expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
   });
 
@@ -66,7 +66,7 @@ describe('useRoomTitleActions', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('verifies a long press and clears the pending single tap', async () => {
+  it('toggles the debug log on long press when the caller is an admin', async () => {
     const { result } = renderHook(useRoomTitleActions);
     await act(async () => {
       result.current.handleTitlePress();
@@ -76,35 +76,21 @@ describe('useRoomTitleActions', () => {
     });
     act(() => result.current.handleTitlePress());
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(verifyAdminPassword).toHaveBeenCalledWith('test-password');
+    expect(mockGetAdminWhoAmI).toHaveBeenCalledTimes(1);
     expect(debugLogStore.toggleVisibility).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects invalid cached credentials with feedback', async () => {
-    jest.mocked(verifyAdminPassword).mockResolvedValue(false);
+  it('rejects non-admin long presses with feedback and keeps logs closed', async () => {
+    mockGetAdminWhoAmI.mockRejectedValueOnce(new AdminApiError(403, 'FORBIDDEN'));
     const { result } = renderHook(useRoomTitleActions);
     await act(async () => result.current.handleTitleLongPress());
-    expect(clearAdminCredential).toHaveBeenCalledTimes(1);
-    expect(showAlert).toHaveBeenCalledWith('打开调试日志失败', expect.any(String));
+    expect(showAlert).toHaveBeenCalledWith('打开调试日志失败', '需要管理员权限');
     expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
-  });
-
-  it('prompts and verifies before caching credentials and opening logs', async () => {
-    jest.mocked(readAdminCredential).mockReturnValue(null);
-    const { result } = renderHook(useRoomTitleActions);
-    act(() => result.current.handleTitleLongPress());
-    expect(showPrompt).toHaveBeenCalledWith('管理员密码', expect.any(Object));
-    expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
-    const options = jest.mocked(showPrompt).mock.calls[0]![1];
-    await act(async () => options.onConfirm(' new-password '));
-    expect(verifyAdminPassword).toHaveBeenCalledWith('new-password');
-    expect(writeAdminCredential).toHaveBeenCalledWith('new-password');
-    expect(debugLogStore.toggleVisibility).toHaveBeenCalledTimes(1);
   });
 
   it('reports verification errors and permits retry', async () => {
     const error = new Error('verification failed');
-    jest.mocked(verifyAdminPassword).mockRejectedValueOnce(error);
+    mockGetAdminWhoAmI.mockRejectedValueOnce(error);
     const { result } = renderHook(useRoomTitleActions);
     await act(async () => result.current.handleTitleLongPress());
     expect(handleError).toHaveBeenCalledWith(

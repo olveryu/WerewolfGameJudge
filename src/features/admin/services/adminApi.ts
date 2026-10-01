@@ -1,14 +1,17 @@
 /**
  * adminApi — Admin portal HTTP client
  *
- * Independent of cfFetch (does not use JWT auth); authenticates via X-Admin-Token header.
- * Returns typed JSON or throws an error.
+ * Authenticates via the app JWT system (cfGet/cfPost) — no standalone admin
+ * password. The worker grants access when the caller is an admin
+ * (users.is_admin) or a super admin (ADMIN_USER_IDS allowlist).
+ * Returns typed JSON or throws an AdminApiError.
  */
 
-import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type {
+  AdminWhoAmI,
   GameWordGame,
   GameWordsStats,
+  SetUserAdminResult,
   TimePreset,
   TriggerSupplyResult,
 } from '@/features/admin/model/adminContracts';
@@ -17,61 +20,31 @@ import {
   type AdminRewardInput,
   adminUserRewardsSchema,
 } from '@/features/admin/model/adminRewards';
-import { readAdminCredential } from '@/features/admin/services/adminCredentialStore';
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
-  parseAdminErrorResponse,
   parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
   parseAdminUsersResponse,
+  parseAdminWhoAmIResponse,
   parseGameWordsStatsResponse,
+  parseSetUserAdminResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
-import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
+import { cfGet, cfPost, CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-function getAdminToken(): string {
-  const token = readAdminCredential();
-  if (!token) throw new Error('ADMIN_NOT_AUTHENTICATED');
-  return token;
-}
-
-async function adminFetch<T>(
-  path: string,
-  parseResponse: (value: unknown) => T,
-  query?: Record<string, string>,
-  signal?: AbortSignal,
-  requestBody?: Record<string, unknown>,
-): Promise<T> {
-  const url = new URL(`${API_BASE_URL}${path}`);
-  if (query) {
-    for (const [k, v] of Object.entries(query)) {
-      if (v) url.searchParams.set(k, v);
-    }
+function withQuery(path: string, params: Record<string, string | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') search.set(key, value);
   }
-
-  const timeoutSignal = createTimeoutSignal(API_TIMEOUT_MS);
-  const composed = composeAbortSignals(signal ? [signal, timeoutSignal] : [timeoutSignal]);
-  try {
-    const resp = await fetch(url.toString(), {
-      headers: {
-        'X-Admin-Token': getAdminToken(),
-        ...(requestBody !== undefined && { 'Content-Type': 'application/json' }),
-      },
-      ...(requestBody !== undefined && { method: 'POST', body: JSON.stringify(requestBody) }),
-      signal: composed.signal,
-    });
-    const body: unknown = await resp.json();
-    if (!resp.ok) throw new AdminApiError(resp.status, parseAdminErrorResponse(body));
-    return parseResponse(body);
-  } finally {
-    composed.dispose();
-  }
+  const query = search.toString();
+  return query === '' ? path : `${path}?${query}`;
 }
 
 /**
@@ -87,6 +60,18 @@ export class AdminApiError extends Error {
   ) {
     super(`Admin API ${status}: ${reason}`);
     this.name = 'AdminApiError';
+  }
+}
+
+/** Run an admin call through cfGet/cfPost and normalize transport errors. */
+async function adminCall<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error: unknown) {
+    if (error instanceof CloudflareHttpError) {
+      throw new AdminApiError(error.status, error.reason);
+    }
+    throw error;
   }
 }
 
@@ -126,111 +111,117 @@ interface FetchUsersParams {
   search?: string;
 }
 
+/** Identity of the current caller; 401/403 means no admin access. */
+export function getAdminWhoAmI(signal?: AbortSignal): Promise<AdminWhoAmI> {
+  return adminCall(() => cfGet('/admin/whoami', parseAdminWhoAmIResponse, { signal }));
+}
+
+/**
+ * Grant or revoke the admin flag for a user. Super admin only.
+ * Throws AdminApiError with status 403 for non-super-admin callers.
+ */
+export function setUserAdmin(
+  userId: string,
+  isAdmin: boolean,
+  signal?: AbortSignal,
+): Promise<SetUserAdminResult> {
+  return adminCall(() =>
+    cfPost(
+      `/admin/users/${encodeURIComponent(userId)}/admin`,
+      { isAdmin },
+      parseSetUserAdminResponse,
+      { signal },
+    ),
+  );
+}
+
 export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) {
-  return adminFetch(
-    '/admin/users',
-    parseAdminUsersResponse,
-    {
-      page: String(params.page ?? 1),
-      limit: String(params.limit ?? 50),
-      sort: params.sort ?? 'created_at',
-      order: params.order ?? 'desc',
-      ...(params.country && { country: params.country }),
-      ...(params.type && { type: params.type }),
-      ...(params.search && { search: params.search }),
-    },
-    signal,
+  return adminCall(() =>
+    cfGet(
+      withQuery('/admin/users', {
+        page: String(params.page ?? 1),
+        limit: String(params.limit ?? 50),
+        sort: params.sort ?? 'created_at',
+        order: params.order ?? 'desc',
+        country: params.country,
+        type: params.type,
+        search: params.search,
+      }),
+      parseAdminUsersResponse,
+      { signal },
+    ),
   );
 }
 
 export function fetchRooms(params: { page?: number; limit?: number } = {}) {
-  return adminFetch('/admin/rooms', parseAdminRoomsResponse, {
-    page: String(params.page ?? 1),
-    limit: String(params.limit ?? 50),
-  });
+  return adminCall(() =>
+    cfGet(
+      withQuery('/admin/rooms', {
+        page: String(params.page ?? 1),
+        limit: String(params.limit ?? 50),
+      }),
+      parseAdminRoomsResponse,
+    ),
+  );
 }
 
 export function fetchRoomPlayers(roomCode: string) {
-  return adminFetch(`/admin/rooms/${roomCode}/players`, parseAdminRoomPlayersResponse);
+  return adminCall(() => cfGet(`/admin/rooms/${roomCode}/players`, parseAdminRoomPlayersResponse));
 }
 
 /** Read authoritative balances and the most recent admin grant records. */
 export function fetchUserRewards(userId: string, signal?: AbortSignal) {
-  return adminFetch(
-    `/admin/users/${encodeURIComponent(userId)}/rewards`,
-    (value) => adminUserRewardsSchema.parse(value),
-    undefined,
-    signal,
+  return adminCall(() =>
+    cfGet(
+      `/admin/users/${encodeURIComponent(userId)}/rewards`,
+      (value) => adminUserRewardsSchema.parse(value),
+      { signal },
+    ),
   );
 }
 
 /** Submit or replay one confirmed grant; callers retain its ID until the result is known. */
 export function grantUserReward(userId: string, input: AdminRewardInput) {
-  return adminFetch(
-    `/admin/users/${encodeURIComponent(userId)}/rewards`,
-    (value) => adminRewardGrantSchema.parse(value),
-    undefined,
-    undefined,
-    input,
+  return adminCall(() =>
+    cfPost(`/admin/users/${encodeURIComponent(userId)}/rewards`, input, (value) =>
+      adminRewardGrantSchema.parse(value),
+    ),
   );
 }
 
 export function fetchStats(from: string, to: string) {
-  return adminFetch('/admin/stats', parseAdminStatsResponse, { from, to });
+  return adminCall(() => cfGet(withQuery('/admin/stats', { from, to }), parseAdminStatsResponse));
 }
 
 export function fetchAnalytics(from: string, to: string) {
-  return adminFetch('/admin/analytics', parseAdminAnalyticsResponse, { from, to });
+  return adminCall(() =>
+    cfGet(withQuery('/admin/analytics', { from, to }), parseAdminAnalyticsResponse),
+  );
 }
 
 export function fetchAIUsage(from: string, to: string) {
-  return adminFetch('/admin/ai-usage', parseAdminAIUsageResponse, { from, to });
+  return adminCall(() =>
+    cfGet(withQuery('/admin/ai-usage', { from, to }), parseAdminAIUsageResponse),
+  );
 }
 
 export function fetchRequestTraffic(from: string, to: string) {
-  return adminFetch('/admin/request-traffic', parseAdminRequestTrafficResponse, { from, to });
+  return adminCall(() =>
+    cfGet(withQuery('/admin/request-traffic', { from, to }), parseAdminRequestTrafficResponse),
+  );
 }
 
 export function fetchGameWordsStats(game: GameWordGame): Promise<GameWordsStats> {
-  return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game });
+  return adminCall(() =>
+    cfGet(withQuery('/admin/games/words/stats', { game }), parseGameWordsStatsResponse),
+  );
 }
 
 export function triggerGameWordSupply(
   game: GameWordGame,
   force: boolean,
 ): Promise<TriggerSupplyResult> {
-  return adminFetch(
-    '/admin/games/words/trigger-supply',
-    parseTriggerSupplyResult,
-    undefined,
-    undefined,
-    {
-      game,
-      force,
-    },
+  return adminCall(() =>
+    cfPost('/admin/games/words/trigger-supply', { game, force }, parseTriggerSupplyResult),
   );
-}
-
-/**
- * Verify admin password by calling a lightweight endpoint.
- * Returns true if authenticated, false if 401/403.
- */
-export async function verifyAdminPassword(password: string): Promise<boolean> {
-  if (password.length === 0 || password !== password.trim()) {
-    throw new Error('[FAIL-FAST] Admin credential must be a trimmed non-empty string');
-  }
-  const url = new URL(`${API_BASE_URL}/admin/stats`);
-  // Use a minimal time range just to verify auth
-  url.searchParams.set('from', '2020-01-01T00:00:00Z');
-  url.searchParams.set('to', '2020-01-01T00:01:00Z');
-
-  const resp = await fetch(url.toString(), {
-    headers: { 'X-Admin-Token': password },
-    signal: createTimeoutSignal(API_TIMEOUT_MS),
-  });
-
-  if (resp.ok) return true;
-  if (resp.status === 401 || resp.status === 403) return false;
-  const body: unknown = await resp.json();
-  throw new AdminApiError(resp.status, parseAdminErrorResponse(body));
 }
