@@ -70,4 +70,39 @@ export function applyD1Migrations() {
       process.exit(1);
     }
   }
+  ensureIsAdminColumn(workerDir);
+}
+
+// ─── ensureIsAdminColumn ─────────────────────────────────────────────────────
+
+/**
+ * Defensive: ensure the users.is_admin column exists after migrations.
+ *
+ * Migration 0062 adds this column. In some CI environments the wrangler D1
+ * migration tracker reports 0062 as pending (🕒️) without actually applying
+ * the ALTER, which breaks /auth/anonymous (drizzle includes is_admin in the
+ * INSERT). This check applies the ALTER directly if the column is missing.
+ */
+export function ensureIsAdminColumn(workerDir) {
+  console.log('🔍 Verifying users.is_admin column...');
+  try {
+    const output = execSync(
+      'pnpm exec wrangler d1 execute werewolf-db --local --config wrangler.e2e.toml --command "PRAGMA table_info(users);"',
+      { cwd: workerDir, stdio: 'pipe', encoding: 'utf-8' },
+    );
+    if (output.includes('is_admin')) {
+      console.log('✅ users.is_admin column exists');
+      return;
+    }
+    console.log('⚠️  users.is_admin missing, applying ALTER directly...');
+    execSync(
+      'pnpm exec wrangler d1 execute werewolf-db --local --config wrangler.e2e.toml --command "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;"',
+      { cwd: workerDir, stdio: 'pipe', encoding: 'utf-8' },
+    );
+    console.log('✅ users.is_admin column created');
+  } catch (err) {
+    console.error('❌ Failed to verify/create users.is_admin column');
+    console.error((err.stdout || '') + (err.stderr || ''));
+    process.exit(1);
+  }
 }
