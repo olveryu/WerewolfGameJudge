@@ -1,6 +1,7 @@
 /** Centered game selector backed by the exhaustive client game catalog. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -19,25 +20,27 @@ interface GameModePickerModalProps {
   readonly onSelect: (option: ClientGameModeOption) => void;
 }
 
-function GameOptionRow({
+function MiniGameRow({
   option,
+  isLast,
   onSelect,
 }: {
   readonly option: ClientGameModeOption;
+  readonly isLast: boolean;
   readonly onSelect: (option: ClientGameModeOption) => void;
 }) {
   return (
     <PressableScale
-      style={styles.miniOption}
+      style={[styles.miniRow, !isLast && styles.miniRowDivider]}
       onPress={() => onSelect(option)}
       testID={TESTIDS.gameModePickerOption(option.gameType)}
     >
       <View style={styles.miniIconWrap}>
         <Ionicons name={option.iconName} size={componentSizes.icon.md} color={colors.primary} />
       </View>
-      <View style={styles.optionText}>
-        <Text style={styles.miniOptionTitle}>{option.displayName}</Text>
-        <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+      <View style={styles.rowText}>
+        <Text style={styles.miniTitle}>{option.displayName}</Text>
+        <Text style={styles.rowSubtitle}>{option.subtitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textMuted} />
     </PressableScale>
@@ -76,22 +79,30 @@ export const GameModePickerModal: React.FC<GameModePickerModalProps> = ({
         {mainOptions.map((option) => (
           <PressableScale
             key={option.gameType}
-            style={styles.heroOption}
             onPress={() => onSelect(option)}
             testID={TESTIDS.gameModePickerOption(option.gameType)}
           >
-            <View style={styles.heroIconWrap}>
+            <LinearGradient
+              colors={[colors.primaryLight, colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroGradient}
+            >
               <Ionicons
                 name={option.iconName}
                 size={componentSizes.icon.xl}
                 color={colors.textInverse}
               />
-            </View>
-            <View style={styles.optionText}>
-              <Text style={styles.heroTitle}>{option.displayName}</Text>
-              <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.primary} />
+              <View style={styles.rowText}>
+                <Text style={styles.heroTitle}>{option.displayName}</Text>
+                <Text style={styles.heroSubtitle}>{option.subtitle}</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={componentSizes.icon.md}
+                color={colors.textInverse}
+              />
+            </LinearGradient>
           </PressableScale>
         ))}
       </View>
@@ -101,9 +112,14 @@ export const GameModePickerModal: React.FC<GameModePickerModalProps> = ({
           <Text style={styles.miniSectionLabel} testID={TESTIDS.gameModePickerMiniSection}>
             小游戏
           </Text>
-          <View style={styles.miniOptions}>
-            {miniOptions.map((option) => (
-              <GameOptionRow key={option.gameType} option={option} onSelect={onSelect} />
+          <View>
+            {miniOptions.map((option, index) => (
+              <MiniGameRow
+                key={option.gameType}
+                option={option}
+                isLast={index === miniOptions.length - 1}
+                onSelect={onSelect}
+              />
             ))}
           </View>
         </View>
@@ -133,29 +149,22 @@ const styles = StyleSheet.create({
   heroSection: {
     gap: spacing.small,
   },
-  heroOption: {
-    minHeight: 96,
+  heroGradient: {
+    minHeight: 84,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.medium,
-    backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
-    borderWidth: 1,
-    borderColor: colors.primary,
     padding: spacing.medium,
-  },
-  heroIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   heroTitle: {
     fontSize: typography.title,
     fontWeight: typography.weights.semibold,
-    color: colors.text,
+    color: colors.textInverse,
+  },
+  heroSubtitle: {
+    fontSize: typography.caption,
+    color: colors.textInverse,
   },
   miniSection: {
     gap: spacing.small,
@@ -164,40 +173,36 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
     color: colors.textMuted,
-    marginTop: spacing.small,
   },
-  miniOptions: {
-    gap: spacing.small,
-  },
-  miniOption: {
-    minHeight: 64,
+  miniRow: {
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.medium,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.large,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    padding: spacing.small,
+    paddingVertical: spacing.small,
+  },
+  miniRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
   },
   miniIconWrap: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surfaceHover,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  miniOptionTitle: {
+  miniTitle: {
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
     color: colors.text,
   },
-  optionText: {
+  rowText: {
     flex: 1,
     gap: spacing.micro,
   },
-  optionSubtitle: {
+  rowSubtitle: {
     fontSize: typography.caption,
     color: colors.textMuted,
   },
