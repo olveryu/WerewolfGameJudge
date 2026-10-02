@@ -42,7 +42,7 @@ import { useClientGameHome } from '@/games/ClientGameCatalogContext';
 import type { ClientGameModeOption } from '@/games/home';
 import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout } from '@/theme';
+import { colors, componentSizes, layout, withAlpha } from '@/theme';
 import { gameBanners } from '@/utils/gameBanners';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
@@ -430,9 +430,9 @@ export const HomeScreen: React.FC = () => {
                 resizeMode="cover"
               >
                 <LinearGradient
-                  colors={[colors.overlay, 'transparent']}
+                  colors={[withAlpha(colors.text, 0.35), 'transparent']}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 0.7, y: 0 }}
+                  end={{ x: 0.5, y: 0 }}
                   style={styles.heroCardScrim}
                 />
                 <View style={styles.heroCardContent}>
