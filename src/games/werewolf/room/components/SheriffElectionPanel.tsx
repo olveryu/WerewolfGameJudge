@@ -9,17 +9,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import type React from 'react';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import type {
   SheriffElectionPanelModel,
   SheriffElectionPendingAction,
 } from '@/games/werewolf/room/hooks/useSheriffElection';
-import type {
-  SheriffBallotSelectionViewModel,
-  SheriffElectionRoundViewModel,
-} from '@/games/werewolf/room/sheriffElectionViewModel';
+import type { SheriffBallotSelectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -38,12 +35,10 @@ interface BallotChoiceProps {
   readonly onVote: (targetSeat: number | null) => Promise<void>;
   readonly testID: string;
   readonly styles: SheriffElectionPanelStyles;
-  /** Wide two-column layout when many candidates (W15). */
-  readonly wide?: boolean;
 }
 
 const BallotChoice: React.FC<BallotChoiceProps> = memo(
-  ({ targetSeat, isSelected, pendingAction, onVote, testID, styles, wide }) => {
+  ({ targetSeat, isSelected, pendingAction, onVote, testID, styles }) => {
     const handlePress = useCallback(() => {
       void onVote(targetSeat);
     }, [onVote, targetSeat]);
@@ -57,7 +52,6 @@ const BallotChoice: React.FC<BallotChoiceProps> = memo(
         disabled={isDisabled}
         style={({ pressed }) => [
           styles.ballotChoice,
-          wide === true && styles.ballotChoiceWide,
           isSelected && styles.ballotChoiceSelected,
           pressed && !isDisabled && styles.ballotChoicePressed,
           isDisabled && !isLoading && styles.ballotChoiceDisabled,
@@ -122,75 +116,6 @@ function getFinalResultText(result: SheriffElectionResult): string {
   }
 }
 
-const CompletedRoundSection: React.FC<{
-  readonly round: SheriffElectionRoundViewModel;
-  readonly styles: SheriffElectionPanelStyles;
-}> = memo(({ round, styles }) => {
-  const [showBallots, setShowBallots] = useState(false);
-  const toggleBallots = useCallback(() => setShowBallots((prev) => !prev), []);
-
-  return (
-    <View style={styles.roundSection} testID={TESTIDS.sheriffCompletedRound(round.key)}>
-      <View style={styles.roundTitleBadge}>
-        <Text style={styles.roundTitle}>{round.title}</Text>
-      </View>
-      <View style={styles.tallyList}>
-        {round.candidateSeats.map((seat) => {
-          const voteCount = round.voteCounts[seat];
-          if (voteCount === undefined) {
-            throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
-          }
-          return (
-            <View key={seat} style={styles.tallyRow}>
-              <Text style={styles.tallySeat}>{formatSeat(seat)}</Text>
-              <Text style={styles.tallyValue}>{voteCount}票</Text>
-            </View>
-          );
-        })}
-      </View>
-      <Pressable
-        onPress={toggleBallots}
-        style={styles.ballotListToggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: showBallots }}
-      >
-        <Text style={styles.ballotListTitle}>投票明细（{round.eligibleVoterSeats.length}）</Text>
-        <Ionicons
-          name={showBallots ? 'chevron-up' : 'chevron-down'}
-          size={componentSizes.icon.sm}
-          color={colors.textSecondary}
-        />
-      </Pressable>
-      {/*
-        Ballot details stay in the DOM when collapsed (display:none) so the
-        public authoritative history remains verifiable (e2e sheriff-election).
-      */}
-      <View style={[styles.ballotList, !showBallots && styles.ballotListHidden]}>
-        {round.eligibleVoterSeats.length === 0 ? (
-          <Text style={styles.emptyBallots}>无投票人</Text>
-        ) : (
-          round.eligibleVoterSeats.map((voterSeat) => {
-            const targetSeat = round.ballots[voterSeat];
-            if (targetSeat === undefined) {
-              throw new Error(`[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`);
-            }
-            return (
-              <View key={voterSeat} style={styles.ballotRow}>
-                <Text style={styles.ballotSeat}>{formatSeat(voterSeat)}</Text>
-                <Text style={styles.ballotArrow}>→</Text>
-                <Text style={styles.ballotTarget}>
-                  {targetSeat === null ? '弃票' : formatSeat(targetSeat)}
-                </Text>
-              </View>
-            );
-          })
-        )}
-      </View>
-    </View>
-  );
-});
-CompletedRoundSection.displayName = 'CompletedRoundSection';
-
 const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ model, styles }) => {
   const { view, pendingAction } = model;
   const myBallotText = getMyBallotText(view.myBallot);
@@ -200,7 +125,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
     !areSameSeats(candidateRecords.registeredSeats, candidateRecords.activeCandidateSeats);
   const activeCandidateLabel =
     view.phase === 'runoffSpeech' || view.phase === 'runoffVote' ? '平票候选' : '候选';
-  const wideBallot = view.candidateOptions.length > 4;
 
   return (
     <View style={styles.container} testID={TESTIDS.sheriffElectionPanel}>
@@ -277,7 +201,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
                     onVote={model.vote}
                     testID={TESTIDS.sheriffCandidateButton(option.seat)}
                     styles={styles}
-                    wide={wideBallot}
                   />
                 ))}
                 <BallotChoice
@@ -287,7 +210,6 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
                   onVote={model.vote}
                   testID={TESTIDS.sheriffAbstainButton}
                   styles={styles}
-                  wide={wideBallot}
                 />
               </View>
               {myBallotText !== null && <Text style={styles.ballotStatus}>{myBallotText}</Text>}
@@ -298,7 +220,51 @@ const SheriffElectionPanelComponent: React.FC<SheriffElectionPanelProps> = ({ mo
 
       {view.completedRounds.length > 0 && <View style={styles.divider} />}
       {view.completedRounds.map((round) => (
-        <CompletedRoundSection key={round.key} round={round} styles={styles} />
+        <View
+          key={round.key}
+          style={styles.roundSection}
+          testID={TESTIDS.sheriffCompletedRound(round.key)}
+        >
+          <Text style={styles.roundTitle}>{round.title}</Text>
+          <View style={styles.tallyList}>
+            {round.candidateSeats.map((seat) => {
+              const voteCount = round.voteCounts[seat];
+              if (voteCount === undefined) {
+                throw new Error(`[FAIL-FAST] Sheriff round view has no count for seat ${seat}`);
+              }
+              return (
+                <View key={seat} style={styles.tallyRow}>
+                  <Text style={styles.tallySeat}>{formatSeat(seat)}</Text>
+                  <Text style={styles.tallyValue}>{voteCount}票</Text>
+                </View>
+              );
+            })}
+          </View>
+          <Text style={styles.ballotListTitle}>投票明细</Text>
+          <View style={styles.ballotList}>
+            {round.eligibleVoterSeats.length === 0 ? (
+              <Text style={styles.emptyBallots}>无投票人</Text>
+            ) : (
+              round.eligibleVoterSeats.map((voterSeat) => {
+                const targetSeat = round.ballots[voterSeat];
+                if (targetSeat === undefined) {
+                  throw new Error(
+                    `[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`,
+                  );
+                }
+                return (
+                  <View key={voterSeat} style={styles.ballotRow}>
+                    <Text style={styles.ballotSeat}>{formatSeat(voterSeat)}</Text>
+                    <Text style={styles.ballotArrow}>→</Text>
+                    <Text style={styles.ballotTarget}>
+                      {targetSeat === null ? '弃票' : formatSeat(targetSeat)}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </View>
       ))}
 
       {view.finalResult !== null && (
