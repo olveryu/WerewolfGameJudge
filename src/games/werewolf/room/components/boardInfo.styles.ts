@@ -18,6 +18,7 @@ import {
 export interface BoardInfoCardStyles {
   boardInfoContainer: ViewStyle;
   headerRow: ViewStyle;
+  headerToggle: ViewStyle;
   headerRowRight: ViewStyle;
   boardInfoTitle: TextStyle;
   notepadBtn: ViewStyle;
@@ -47,6 +48,12 @@ export function createBoardInfoStyles(colors: ThemeColors): BoardInfoCardStyles 
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    headerToggle: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
     },
     headerRowRight: {
       flexDirection: 'row',
@@ -84,7 +91,7 @@ export function createBoardInfoStyles(colors: ThemeColors): BoardInfoCardStyles 
     roleCategoryLabel: {
       ...textStyles.secondarySemibold,
       color: colors.textSecondary,
-      width: spacing.xxlarge * 2 + spacing.tight, // ~70
+      minWidth: spacing.xxlarge * 2 + spacing.tight, // ~70
     },
     roleCategoryText: {
       flex: 1,

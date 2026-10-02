@@ -82,15 +82,21 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   return (
     <View style={containerStyle} testID={TESTIDS.bottomActionPanel}>
       {hasMessage && (
-        <Animated.Text
+        <Animated.View
           style={[
-            styles.message,
+            styles.messageBar,
             { opacity: messageFade, transform: [{ translateY: messageSlide }] },
           ]}
-          testID={TESTIDS.actionMessage}
         >
-          {message}
-        </Animated.Text>
+          <Ionicons
+            name="information-circle-outline"
+            size={componentSizes.icon.md}
+            color={colors.info}
+          />
+          <Animated.Text style={styles.message} testID={TESTIDS.actionMessage}>
+            {message}
+          </Animated.Text>
+        </Animated.View>
       )}
 
       {model.kind === 'dock' ? (
@@ -161,7 +167,8 @@ const StackedActions: React.FC<{
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
 }> = ({ model, hostManagement, onOpenHostManagement, styles }) => {
-  const hasPlayerActions = model.layout.primary.length > 0 || model.layout.secondary.length > 0;
+  const hasPlayerActions = model.layout.primary.length > 0;
+  const hasSecondaryActions = model.layout.secondary.length > 0 || model.layout.ghost.length > 0;
   return (
     <View style={styles.compactManagementStack}>
       {hasPlayerActions && (
@@ -169,14 +176,14 @@ const StackedActions: React.FC<{
           {model.layout.primary.map((button) => (
             <LayoutButton key={button.key} model={button} />
           ))}
-          {model.layout.secondary.map((button) => (
-            <LayoutButton key={button.key} model={button} />
-          ))}
         </View>
       )}
 
-      {model.layout.ghost.length > 0 && (
+      {hasSecondaryActions && (
         <View style={styles.ghostRow}>
+          {model.layout.secondary.map((button) => (
+            <LayoutButton key={button.key} model={button} />
+          ))}
           {model.layout.ghost.map((button) => (
             <LayoutButton key={button.key} model={button} />
           ))}

@@ -12,7 +12,7 @@ describe('RoomGuideButton', () => {
     const onPress = jest.fn();
     const view = render(<RoomGuideButton onPress={onPress} label="查看谁是卧底玩法说明" />);
 
-    expect(view.getByText('玩法')).toBeVisible();
+    expect(view.getByText('查看谁是卧底玩法说明')).toBeVisible();
     expect(view.getByLabelText('查看谁是卧底玩法说明')).toHaveProp('accessibilityRole', 'button');
     fireEvent.press(view.getByLabelText('查看谁是卧底玩法说明'));
     expect(onPress).toHaveBeenCalledTimes(1);

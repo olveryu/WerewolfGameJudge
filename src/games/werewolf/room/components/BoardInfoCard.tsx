@@ -9,6 +9,7 @@ import type React from 'react';
 import { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { PressableScale } from '@/components/PressableScale';
 import { UI_ICONS } from '@/config/iconTokens';
 import { FactionChip } from '@/games/werewolf/components/FactionChip';
 import { colors, componentSizes, fixed } from '@/theme';
@@ -113,12 +114,20 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
 
   return (
     <View style={styles.boardInfoContainer}>
-      <TouchableOpacity
-        style={styles.headerRow}
-        onPress={handleToggle}
-        activeOpacity={fixed.activeOpacity}
-      >
-        <Text style={styles.boardInfoTitle}>配置（{playerCount}人）</Text>
+      <View style={styles.headerRow}>
+        <PressableScale
+          onPress={handleToggle}
+          style={styles.headerToggle}
+          haptic
+          accessibilityRole="button"
+        >
+          <Text style={styles.boardInfoTitle}>配置（{playerCount}人）</Text>
+          <Ionicons
+            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+            size={componentSizes.icon.sm}
+            color={colors.textSecondary}
+          />
+        </PressableScale>
         <View style={styles.headerRowRight}>
           {onStrategyPress != null && (
             <TouchableOpacity
@@ -144,13 +153,8 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               <Text style={styles.notepadBtnText}>笔记</Text>
             </TouchableOpacity>
           )}
-          <Ionicons
-            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-            size={componentSizes.icon.sm}
-            color={colors.textSecondary}
-          />
         </View>
-      </TouchableOpacity>
+      </View>
 
       {!isCollapsed && (
         <View style={styles.boardInfoContent}>
@@ -212,14 +216,6 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
             </View>
           )}
           <View style={styles.nominationButtonRow}>
-            <Text style={styles.boardInfoHint} numberOfLines={1}>
-              <Ionicons
-                name={UI_ICONS.HINT}
-                size={componentSizes.icon.xs}
-                color={colors.textMuted}
-              />
-              {' 点击角色名查看说明'}
-            </Text>
             {showNominations && onNominatePress != null && (
               <TouchableOpacity
                 style={styles.nominationBtn}
@@ -251,6 +247,10 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               </TouchableOpacity>
             )}
           </View>
+          <Text style={styles.boardInfoHint}>
+            <Ionicons name={UI_ICONS.HINT} size={componentSizes.icon.xs} color={colors.textMuted} />
+            {' 点击角色名查看说明'}
+          </Text>
         </View>
       )}
     </View>

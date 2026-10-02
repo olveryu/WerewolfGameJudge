@@ -49,7 +49,7 @@ describe('RoomHostManagementPanel', () => {
       <RoomHostManagementPanel model={model} isVisible presentation="inspector" onClose={close} />,
     );
 
-    expect(screen.getByText('待处理：结束报名')).toBeTruthy();
+    expect(screen.queryByText('待处理：结束报名')).toBeNull();
     expect(screen.getByText('警长竞选 · 报名中')).toBeTruthy();
     const advanceButton = screen.getByLabelText('结束报名');
     fireEvent.press(advanceButton);
