@@ -1,112 +1,50 @@
 /** Compact access to bot-seat takeover while the active game workspace hides the room board. */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { memo, useCallback, useMemo } from 'react';
-import {
-  FlatList,
-  type ListRenderItemInfo,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { memo, useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { UI_ICONS } from '@/config/iconTokens';
-import { formatRoomSeat, type RoomSeatViewModel } from '@/features/room/model/RoomSeatDataSource';
+import {
+  BotTakeoverStrip,
+  type BotTakeoverItem,
+} from '@/features/room/components/BotTakeoverStrip';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
-import { TESTIDS } from '@/testids';
-import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
+import { spacing } from '@/theme';
 
 import { PICTIONARY_STAGE_MAX_WIDTH } from './PictionaryStageFrame';
-
-const LONG_PRESS_DELAY_MS = 500;
 
 interface PictionaryBotControlStripProps {
   readonly model: RoomSeatBoardModel;
 }
 
-interface PictionaryBotSeatButtonProps {
-  readonly seat: RoomSeatViewModel;
-  readonly isVisuallyDisabled: boolean;
-  readonly onTakeOver: (seat: number) => void;
-}
-
-const PictionaryBotSeatButton: React.FC<PictionaryBotSeatButtonProps> = memo(
-  ({ seat, isVisuallyDisabled, onTakeOver }) => {
-    const handleTakeOver = useCallback(() => onTakeOver(seat.seat), [onTakeOver, seat.seat]);
-    const displayName = seat.player?.displayName;
-    if (displayName === undefined) {
-      throw new Error(`[FAIL-FAST] Bot control seat ${seat.seat} has no player`);
-    }
-
-    return (
-      <TouchableOpacity
-        testID={TESTIDS.seatTilePressable(seat.seat)}
-        accessibilityRole="button"
-        accessibilityLabel={`${formatRoomSeat(seat.seat)} ${displayName}`}
-        accessibilityHint="轻点或长按接管机器人"
-        onPress={handleTakeOver}
-        onLongPress={handleTakeOver}
-        delayLongPress={LONG_PRESS_DELAY_MS}
-        activeOpacity={isVisuallyDisabled ? 1 : fixed.activeOpacity}
-        style={[
-          styles.seatButton,
-          seat.highlight === 'controlled' && styles.controlledSeatButton,
-          isVisuallyDisabled && styles.visuallyDisabled,
-        ]}
-      >
-        <Ionicons name={UI_ICONS.BOT} size={componentSizes.icon.sm} color={colors.primary} />
-        <View style={styles.seatCopy}>
-          <Text numberOfLines={1} style={styles.seatName}>
-            {displayName}
-          </Text>
-          <Text style={styles.seatLabel}>{formatRoomSeat(seat.seat)}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  },
-);
-PictionaryBotSeatButton.displayName = 'PictionaryBotSeatButton';
-
 const PictionaryBotControlStripComponent: React.FC<PictionaryBotControlStripProps> = ({
   model,
 }) => {
-  const botSeats = useMemo(
+  const bots: BotTakeoverItem[] = useMemo(
     () =>
-      Array.from({ length: model.source.count }, (_, seat) => model.source.getSeat(seat)).filter(
-        (seat) => seat.player?.kind === 'bot',
-      ),
-    [model.source],
+      Array.from({ length: model.source.count }, (_, seat) => model.source.getSeat(seat))
+        .filter((seat) => seat.player?.kind === 'bot')
+        .map((seat) => {
+          const displayName = seat.player?.displayName;
+          if (displayName === undefined) {
+            throw new Error(`[FAIL-FAST] Bot control seat ${seat.seat} has no player`);
+          }
+          return {
+            seat: seat.seat,
+            displayName,
+            isControlled: seat.highlight === 'controlled',
+            isDisabled: model.visuallyDisabled,
+          };
+        }),
+    [model.source, model.visuallyDisabled],
   );
   const onTakeOver = model.onBotSeatLongPress;
-  const renderSeat = useCallback(
-    ({ item }: ListRenderItemInfo<RoomSeatViewModel>) => {
-      if (onTakeOver === null) return null;
-      return (
-        <PictionaryBotSeatButton
-          seat={item}
-          isVisuallyDisabled={model.visuallyDisabled}
-          onTakeOver={onTakeOver}
-        />
-      );
-    },
-    [model.visuallyDisabled, onTakeOver],
-  );
-  const getSeatKey = useCallback((seat: RoomSeatViewModel) => String(seat.seat), []);
 
-  if (onTakeOver === null || botSeats.length === 0) return null;
+  if (onTakeOver === null || bots.length === 0) return null;
 
   return (
     <View style={styles.container}>
-      <FlatList
-        horizontal
-        data={botSeats}
-        renderItem={renderSeat}
-        keyExtractor={getSeatKey}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-      />
+      <BotTakeoverStrip bots={bots} onTakeOver={onTakeOver} testIDPrefix="pictionary-bot" />
     </View>
   );
 };
@@ -122,25 +60,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.medium,
     paddingTop: spacing.small,
   },
-  listContent: { gap: spacing.small },
-  seatButton: {
-    minWidth: componentSizes.chip.minWidth * 2,
-    minHeight: componentSizes.button.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-    paddingHorizontal: spacing.small,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    borderRadius: borderRadius.small,
-    backgroundColor: colors.surface,
-  },
-  controlledSeatButton: {
-    borderColor: colors.warning,
-    borderWidth: fixed.borderWidthThick,
-  },
-  visuallyDisabled: { opacity: fixed.disabledOpacity },
-  seatCopy: { minWidth: 0 },
-  seatName: { ...textStyles.secondarySemibold, color: colors.text },
-  seatLabel: { ...textStyles.caption, color: colors.textSecondary },
 });

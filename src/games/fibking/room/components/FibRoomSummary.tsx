@@ -70,7 +70,7 @@ const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
       headerRight={headerRight}
       icon="bulb-outline"
       title={`瞎掰王 · ${playerCount}人局`}
-      subtitle={`${PHASE_LABELS[phase]} · ${occupiedSeatCount}/${playerCount} 人就座`}
+      subtitle={`${PHASE_LABELS[phase]} · ${occupiedSeatCount}/${playerCount}人就座`}
     >
       {preparationStatus !== null ? (
         <View style={styles.preparationStatusRow} accessibilityLabel={preparationStatus}>

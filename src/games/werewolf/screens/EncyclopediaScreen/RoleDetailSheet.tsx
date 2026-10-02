@@ -224,13 +224,12 @@ function createStyles(colors: ThemeColors, bottomInset: number) {
     scrollContent: {
       paddingBottom: Math.max(spacing.medium, bottomInset + spacing.small),
     },
-    // AI pill in hero section
+    // AI pill in hero section (flex layout — was absolute, overlapped on narrow screens)
     aiPill: {
-      position: 'absolute',
-      right: spacing.small,
-      top: spacing.small,
       flexDirection: 'row',
       alignItems: 'center',
+      alignSelf: 'flex-start',
+      flexShrink: 0,
       gap: spacing.tight,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,

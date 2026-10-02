@@ -2,6 +2,7 @@
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 
+import { getUndercoverOccupiedSeatCount } from '@game-judge/game-engine/games/undercover/public';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -48,7 +49,7 @@ function UndercoverRoomContent(
           <RoomGameSummary
             icon="search-outline"
             title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
-            subtitle={`${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
+            subtitle={`${getUndercoverOccupiedSeatCount(state)}/${state.config.numberOfPlayers}人就座 · ${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
             testID="undercover-room"
             headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
           >

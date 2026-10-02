@@ -24,6 +24,7 @@ import { FormTextField } from '@/components/FormTextField';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing, type ThemeColors, withAlpha } from '@/theme';
 
+import { SegmentedControl } from './components/SegmentedControl';
 import { ALL_TAGS, TAG_LABELS } from './constants';
 import { createEncyclopediaStyles } from './EncyclopediaScreen.styles';
 import { RoleDetailSheet } from './RoleDetailSheet';
@@ -151,23 +152,14 @@ export const RolesGuideContent: React.FC<RolesGuideContentProps> = ({ state }) =
       )}
 
       {/* Faction Tabs */}
-      <View style={styles.tabBar}>
-        {FACTION_TABS.map((tab) => {
-          const isActive = activeFilter === tab.key;
-          return (
-            <Pressable
-              key={tab.key}
-              testID={TESTIDS.encyclopediaFactionTab(tab.key)}
-              style={[styles.tab, isActive && styles.tabActive]}
-              onPress={() => handleFactionChange(tab.key)}
-            >
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                {tab.label} · {getTabCount(tab.key)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SegmentedControl
+        segments={FACTION_TABS.map((tab) => ({
+          key: tab.key,
+          label: `${tab.label} · ${getTabCount(tab.key)}`,
+        }))}
+        activeKey={activeFilter === 'all' ? null : activeFilter}
+        onChangeKey={handleFactionChange}
+      />
 
       {/* Tag Dropdown Modal */}
       <Modal

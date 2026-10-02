@@ -4,9 +4,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getPlayerCount, type PresetTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import React, { useCallback, useMemo } from 'react';
-import { LayoutAnimation, Text, TouchableOpacity, View } from 'react-native';
+import { LayoutAnimation, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { PressableScale } from '@/components/PressableScale';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import {
@@ -14,7 +15,7 @@ import {
   FACTION_COLOR_MAP,
   getKeyRoles,
 } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import { colors, componentSizes, fixed, layout, spacing, typography, withAlpha } from '@/theme';
+import { colors, componentSizes, layout, spacing, typography, withAlpha } from '@/theme';
 
 import { type BoardPickerStyles } from './BoardPickerScreen.styles';
 
@@ -79,19 +80,18 @@ export const BoardCard = React.memo<BoardCardProps>(
     return (
       <View style={[styles.card, isExpanded && styles.cardSelected]}>
         {/* Tap header to expand/collapse */}
-        <TouchableOpacity
-          style={styles.cardHeader}
-          activeOpacity={fixed.activeOpacity}
-          onPress={handleToggle}
-        >
+        <PressableScale style={styles.cardHeader} onPress={handleToggle} haptic>
           {/* Row 1: Title + player count + chevron */}
           <View style={styles.cardTitleRow}>
             <Text style={styles.cardTitle} numberOfLines={1}>
               {template.name}
             </Text>
-            <View style={styles.cardPlayerBadge}>
-              <Text style={styles.cardPlayerText}>{getPlayerCount(template.roles)}人</Text>
-            </View>
+            {/* All 26 preset boards are 12-player; only show the badge when it differs */}
+            {getPlayerCount(template.roles) !== 12 && (
+              <View style={styles.cardPlayerBadge}>
+                <Text style={styles.cardPlayerText}>{getPlayerCount(template.roles)}人</Text>
+              </View>
+            )}
             <Ionicons
               name={isExpanded ? 'chevron-up' : 'chevron-down'}
               size={componentSizes.icon.sm}
@@ -166,7 +166,7 @@ export const BoardCard = React.memo<BoardCardProps>(
               {remainingCount > 0 && <Text style={styles.keyRoleMore}>+{remainingCount}</Text>}
             </View>
           )}
-        </TouchableOpacity>
+        </PressableScale>
 
         {/* Expanded: full role list + action buttons */}
         {isExpanded && (
@@ -184,13 +184,13 @@ export const BoardCard = React.memo<BoardCardProps>(
             <View style={showSelectButton ? cardActionRowStyle : cardActionRowCenteredStyle}>
               {hasStrategy && (
                 <Button
-                  variant={showSelectButton ? 'secondary' : 'primary'}
+                  variant="secondary"
                   size="sm"
                   icon={
                     <Ionicons
                       name="book-outline"
                       size={componentSizes.icon.sm}
-                      color={showSelectButton ? colors.text : colors.textInverse}
+                      color={colors.text}
                     />
                   }
                   onPress={handleStrategyPress}

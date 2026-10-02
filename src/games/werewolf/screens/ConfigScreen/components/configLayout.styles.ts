@@ -16,6 +16,7 @@ import {
   spacing,
   type ThemeColors,
   typography,
+  withAlpha,
 } from '@/theme';
 
 /** Create ConfigScreen layout styles. */
@@ -122,10 +123,10 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   templatePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: withAlpha(colors.primary, 0.1),
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
+    borderColor: withAlpha(colors.primary, 0.35),
     paddingHorizontal: componentSizes.chip.paddingH,
     paddingVertical: componentSizes.chip.paddingV,
     ...shadows.sm,

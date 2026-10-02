@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { GalleryControls } from '@/features/room/components/GalleryControls';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
@@ -191,72 +192,37 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
     ),
   );
   const controls = isHost ? (
-    <View style={styles.galleryControls}>
-      <Button
-        variant="ghost"
-        size="sm"
-        onPress={() =>
-          showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
-            await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
-          })
-        }
-      >
-        全部揭晓
-      </Button>
-      <Button
-        variant="icon"
-        size="md"
-        disabled={isFirstEntry || command.isSubmitting}
-        onPress={() => void command.submit('上一项', { type: 'pictionary.gallery.rewind' })}
-        accessibilityLabel="上一项"
-      >
-        <Ionicons name="play-skip-back" size={20} color={colors.text} />
-      </Button>
-      {!isAlbumEnd && state.config.galleryItemDurationSeconds !== null && (
-        <Button
-          variant="secondary"
-          accessibilityLabel={gallery.isPlaying ? '暂停' : '播放'}
-          size="md"
-          disabled={command.isSubmitting}
-          onPress={() =>
-            void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
-              type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
-            })
-          }
-          icon={
-            <Ionicons
-              name={gallery.isPlaying ? 'pause' : 'play'}
-              size={20}
-              color={colors.primary}
-            />
-          }
-        >
-          {gallery.isPlaying ? '暂停' : '播放'}
-        </Button>
-      )}
-      <Button
-        variant={isAlbumEnd ? 'primary' : 'icon'}
-        size="md"
-        disabled={command.isSubmitting}
-        onPress={() =>
-          void command.submit(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
-            type: 'pictionary.gallery.advance',
-          })
-        }
-        accessibilityLabel={isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项'}
-        testID={TESTIDS.pictionaryGalleryAdvanceButton}
-      >
-        {isAlbumEnd ? (
-          isFinalEntry ? (
-            '结束揭晓'
-          ) : (
-            '下一本'
-          )
-        ) : (
-          <Ionicons name="play-skip-forward" size={20} color={colors.text} />
-        )}
-      </Button>
-    </View>
+    <GalleryControls
+      onPrev={() => void command.submit('上一项', { type: 'pictionary.gallery.rewind' })}
+      onNext={() =>
+        void command.submit(isFinalEntry ? '结束揭晓' : isAlbumEnd ? '下一本' : '下一项', {
+          type: 'pictionary.gallery.advance',
+        })
+      }
+      onTogglePlay={
+        !isAlbumEnd && state.config.galleryItemDurationSeconds !== null
+          ? () =>
+              void command.submit(gallery.isPlaying ? '暂停揭晓' : '继续揭晓', {
+                type: gallery.isPlaying ? 'pictionary.gallery.pause' : 'pictionary.gallery.resume',
+              })
+          : null
+      }
+      onRevealAll={() =>
+        showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
+          await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
+        })
+      }
+      isFirst={isFirstEntry}
+      isLast={isAlbumEnd}
+      isPlaying={gallery.isPlaying}
+      isSubmitting={command.isSubmitting}
+      prevLabel="上一项"
+      nextLabel="下一项"
+      nextEndLabel={isFinalEntry ? '结束揭晓' : '下一本'}
+      playLabel="播放"
+      pauseLabel="暂停"
+      nextTestID={TESTIDS.pictionaryGalleryAdvanceButton}
+    />
   ) : (
     <View style={styles.viewerNotice}>
       <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
@@ -410,13 +376,6 @@ const styles = StyleSheet.create({
   missedDescription: { ...textStyles.secondary, color: colors.textSecondary },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tight },
   authorText: { ...textStyles.secondary, color: colors.textSecondary, flex: 1, minWidth: 0 },
-  galleryControls: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.small,
-  },
   viewerNotice: {
     minHeight: fixed.minTouchTarget,
     flexDirection: 'row',

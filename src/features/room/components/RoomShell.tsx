@@ -104,7 +104,11 @@ export const RoomShell: React.FC<RoomShellProps> = ({
     ) : null;
   const shouldRenderSideInspector = activeSideInspector !== null && isWideLayout;
 
-  const title = <Text style={styles.headerTitle}>房间 {model.roomCode}</Text>;
+  const title = (
+    <Text style={[styles.headerTitle, isHeaderStacked && styles.headerTitleStacked]}>
+      房间 {model.roomCode}
+    </Text>
+  );
   const shareCapability = model.capabilities.canShareRoom;
   const leadingHeaderActions = (
     <View style={styles.headerSide}>

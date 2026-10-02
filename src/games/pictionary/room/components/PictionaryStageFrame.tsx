@@ -1,13 +1,12 @@
 /** Shared visual frame for one active Pictionary task or reveal state. */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CountdownPill } from '@/features/room/components/CountdownPill';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { TESTIDS } from '@/testids';
-import { colors, spacing, textStyles, withAlpha } from '@/theme';
-import { componentSizes } from '@/theme/tokens';
+import { colors, spacing, textStyles } from '@/theme';
 
 export const PICTIONARY_STAGE_MAX_WIDTH = 430;
 
@@ -26,19 +25,12 @@ interface PictionaryStageHeadingProps {
   readonly remainingSeconds: number | null;
 }
 
-function formatRemainingTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${String(remainder).padStart(2, '0')}`;
-}
-
 export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
   eyebrow,
   title,
   description,
   remainingSeconds,
 }) => {
-  const isUrgent = remainingSeconds !== null && remainingSeconds <= 10;
   return (
     <View style={styles.headingRow}>
       <View style={styles.headingCopy}>
@@ -48,26 +40,7 @@ export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
         </Text>
         <Text style={styles.description}>{description}</Text>
       </View>
-      <View
-        style={[styles.timer, isUrgent && styles.urgentTimer]}
-        accessibilityLiveRegion="polite"
-        accessibilityLabel={
-          remainingSeconds === null ? '本阶段不限时' : `剩余 ${remainingSeconds} 秒`
-        }
-      >
-        <Ionicons
-          name={remainingSeconds === 0 ? 'sync-outline' : 'time-outline'}
-          size={componentSizes.icon.sm}
-          color={isUrgent ? colors.error : colors.textSecondary}
-        />
-        <Text style={[styles.timerText, isUrgent && styles.urgentTimerText]}>
-          {remainingSeconds === null
-            ? '不限时'
-            : remainingSeconds === 0
-              ? '切换中'
-              : formatRemainingTime(remainingSeconds)}
-        </Text>
-      </View>
+      <CountdownPill remainingSeconds={remainingSeconds} zeroLabel="切换中" />
     </View>
   );
 };
@@ -120,8 +93,4 @@ const styles = StyleSheet.create({
   },
   title: { ...roomSurfaceStyles.title, marginTop: spacing.tight },
   description: { ...textStyles.secondary, color: colors.textSecondary, marginTop: spacing.tight },
-  timer: roomSurfaceStyles.timer,
-  urgentTimer: { backgroundColor: withAlpha(colors.error, 0.15) },
-  timerText: roomSurfaceStyles.timerText,
-  urgentTimerText: { color: colors.error },
 });

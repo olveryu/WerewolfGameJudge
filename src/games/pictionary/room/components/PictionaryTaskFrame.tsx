@@ -1,6 +1,6 @@
 /** Viewport-bounded task layout; media fits available space without cropping or page scrolling. */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { CountdownPill } from '@/features/room/components/CountdownPill';
 import type React from 'react';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -21,8 +21,6 @@ interface PictionaryTaskFrameProps {
   readonly footer: React.ReactNode;
 }
 
-const FINAL_COUNTDOWN_SECONDS = 5;
-
 /** Keep the task timer and completion controls visible, including above the web keyboard. */
 export function PictionaryTaskFrame({
   eyebrow,
@@ -31,18 +29,6 @@ export function PictionaryTaskFrame({
   children,
   footer,
 }: PictionaryTaskFrameProps) {
-  const isFinalCountdown =
-    remainingSeconds !== null &&
-    remainingSeconds > 0 &&
-    remainingSeconds <= FINAL_COUNTDOWN_SECONDS;
-  const timerText =
-    remainingSeconds === null
-      ? '不限时'
-      : remainingSeconds === 0
-        ? '收稿中'
-        : isFinalCountdown
-          ? String(remainingSeconds)
-          : `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
   return (
     <RoomTaskViewport>
       <View style={styles.task} testID={TESTIDS.pictionaryStageFrame}>
@@ -53,24 +39,7 @@ export function PictionaryTaskFrame({
               {title}
             </Text>
           </View>
-          <View
-            style={[styles.timer, isFinalCountdown && styles.finalTimer]}
-            accessibilityLiveRegion={isFinalCountdown ? 'assertive' : 'none'}
-            accessibilityLabel={
-              remainingSeconds === null ? '本阶段不限时' : `剩余 ${remainingSeconds} 秒`
-            }
-          >
-            {!isFinalCountdown && (
-              <Ionicons
-                name="time-outline"
-                size={componentSizes.icon.sm}
-                color={colors.textSecondary}
-              />
-            )}
-            <Text style={[styles.timerText, isFinalCountdown && styles.countdownText]}>
-              {timerText}
-            </Text>
-          </View>
+          <CountdownPill remainingSeconds={remainingSeconds} zeroLabel="收稿中" />
         </View>
         <View style={styles.body}>{children}</View>
         <View style={styles.footer}>{footer}</View>
@@ -114,14 +83,6 @@ const styles = StyleSheet.create({
   headingCopy: { flex: 1, minWidth: 0 },
   eyebrow: { ...textStyles.caption, color: colors.textSecondary },
   title: roomSurfaceStyles.title,
-  timer: roomSurfaceStyles.timer,
-  timerText: roomSurfaceStyles.timerText,
-  finalTimer: { backgroundColor: colors.error, borderRadius: fixed.minTouchTarget / 2 },
-  countdownText: {
-    ...textStyles.headingBold,
-    color: colors.textInverse,
-    fontVariant: ['tabular-nums'],
-  },
   body: { flex: 1, minHeight: 0, gap: spacing.small },
   footer: {
     flexShrink: 0,

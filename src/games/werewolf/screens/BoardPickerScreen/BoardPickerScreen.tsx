@@ -20,7 +20,6 @@ import {
   ScrollView,
   SectionList,
   Text,
-  TouchableOpacity,
   UIManager,
   useWindowDimensions,
   View,
@@ -30,6 +29,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
+import { PressableScale } from '@/components/PressableScale';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -38,6 +38,7 @@ import { useBoardRolePreview } from '@/games/werewolf/screens/useBoardRolePrevie
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing, withAlpha } from '@/theme';
 
+import { SegmentedControl } from '../EncyclopediaScreen/components/SegmentedControl';
 import { BoardCard, estimateMaxChips } from './BoardCard';
 import { createBoardPickerStyles } from './BoardPickerScreen.styles';
 import { useBoardPickerScreenState } from './useBoardPickerScreenState';
@@ -134,10 +135,15 @@ interface BoardPickerScreenProps {
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: TemplateSectionData }) => {
-      // Pick accent color based on section position
-      const sectionColors: string[] = [colors.god, colors.warning];
-      const sectionIndex = sections.indexOf(section);
-      const accentColor = sectionColors[sectionIndex % sectionColors.length];
+      // Fixed accent color per category (was: cycled by section position)
+      const accentColor =
+        section.category === TemplateCategory.Classic
+          ? colors.god
+          : section.category === TemplateCategory.Advanced
+            ? colors.warning
+            : section.category === TemplateCategory.Special
+              ? colors.primary
+              : colors.third;
 
       return (
         <View style={styles.sectionHeader}>
@@ -146,7 +152,7 @@ interface BoardPickerScreenProps {
         </View>
       );
     },
-    [sections, styles],
+    [styles],
   );
 
   const keyExtractor = useCallback((item: PresetTemplate) => item.name, []);
@@ -217,26 +223,16 @@ interface BoardPickerScreenProps {
         />
       )}
 
-      {/* Category Tabs — hidden during search */}
-      {!searchVisible && (
-        <View style={styles.tabBar}>
-          {CATEGORY_TABS.map((cat) => {
-            const isActive = activeCategory === cat;
-            const count = categoryCounts.get(cat) ?? 0;
-            return (
-              <Pressable
-                key={cat}
-                style={[styles.tab, isActive && styles.tabActive]}
-                onPress={() => handleTabPress(cat)}
-              >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {TEMPLATE_CATEGORY_LABELS[cat]} {count}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+      {/* Category Tabs — disabled (not removed) during search */}
+      <SegmentedControl
+        segments={CATEGORY_TABS.map((cat) => ({
+          key: cat,
+          label: `${TEMPLATE_CATEGORY_LABELS[cat]} · ${categoryCounts.get(cat) ?? 0}`,
+        }))}
+        activeKey={activeCategory}
+        onChangeKey={handleTabPress}
+        disabled={searchVisible}
+      />
 
       {/* Role Filter Modal */}
       <Modal visible={filterVisible} transparent animationType="fade" onRequestClose={toggleFilter}>
@@ -340,10 +336,10 @@ interface BoardPickerScreenProps {
 
       {/* Bottom bar — custom entry */}
       <View style={[styles.bottomBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.customButtonRow} activeOpacity={0.7} onPress={handleCustom}>
+        <PressableScale style={styles.customButtonRow} onPress={handleCustom} haptic>
           <Ionicons name="create-outline" size={componentSizes.icon.md} color={colors.primary} />
           <Text style={styles.customButtonText}>从零开始自定义配置</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       {/* Role preview card */}

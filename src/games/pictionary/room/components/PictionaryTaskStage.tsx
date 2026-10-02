@@ -1337,6 +1337,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     overflow: 'hidden',
     backgroundColor: colors.borderLight,
+    borderRadius: borderRadius.full,
   },
   progressDone: { backgroundColor: colors.success },
   disabled: { opacity: fixed.disabledOpacity },

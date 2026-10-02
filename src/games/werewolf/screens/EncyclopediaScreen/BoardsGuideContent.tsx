@@ -46,6 +46,7 @@ import {
 } from '@/theme';
 
 import { createBoardsGuideStyles } from './BoardsGuideContent.styles';
+import { SegmentedControl } from './components/SegmentedControl';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -219,23 +220,12 @@ export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
         />
       )}
 
-      {/* Category chips */}
-      <View style={styles.categoryBar}>
-        {CATEGORY_TABS.map((tab) => {
-          const isActive = activeCategory === tab.key;
-          return (
-            <Pressable
-              key={tab.key}
-              style={[styles.categoryChip, isActive && styles.categoryChipActive]}
-              onPress={() => handleCategoryPress(tab.key)}
-            >
-              <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Category tabs */}
+      <SegmentedControl
+        segments={CATEGORY_TABS}
+        activeKey={activeCategory}
+        onChangeKey={handleCategoryPress}
+      />
 
       {/* Active tag filter badge */}
       {tagFilter && (

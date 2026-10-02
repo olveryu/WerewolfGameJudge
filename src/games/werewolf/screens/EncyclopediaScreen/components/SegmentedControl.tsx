@@ -4,9 +4,9 @@
  * Used for the top tab switch on EncyclopediaScreen ("Roles | Boards").
  * Pure presentational component — no business logic, no service dependencies.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, fixed, spacing, typography, withAlpha } from '@/theme';
 
 interface Segment<T extends string> {
   key: T;
@@ -15,18 +15,22 @@ interface Segment<T extends string> {
 
 interface SegmentedControlProps<T extends string> {
   segments: readonly Segment<T>[];
-  activeKey: T;
+  activeKey: T | null;
   onChangeKey: (key: T) => void;
+  style?: ViewStyle;
+  disabled?: boolean;
 }
 
-/** Generic segmented control. */
+/** Generic segmented control. Null activeKey renders no active segment. */
 export function SegmentedControl<T extends string>({
   segments,
   activeKey,
   onChangeKey,
+  style,
+  disabled = false,
 }: SegmentedControlProps<T>) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style, disabled && styles.containerDisabled]}>
       {segments.map((segment) => {
         const isActive = segment.key === activeKey;
         return (
@@ -34,8 +38,9 @@ export function SegmentedControl<T extends string>({
             key={segment.key}
             style={[styles.segment, isActive && styles.segmentActive]}
             onPress={() => onChangeKey(segment.key)}
+            disabled={disabled || undefined}
             accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
+            accessibilityState={{ selected: isActive, ...(disabled ? { disabled: true } : {}) }}
           >
             <Text style={[styles.label, isActive && styles.labelActive]}>{segment.label}</Text>
           </Pressable>
@@ -74,5 +79,8 @@ const styles = StyleSheet.create({
   labelActive: {
     color: colors.primary,
     fontWeight: typography.weights.semibold,
+  },
+  containerDisabled: {
+    opacity: fixed.disabledOpacity,
   },
 });

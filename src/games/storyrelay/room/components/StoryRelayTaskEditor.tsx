@@ -128,7 +128,7 @@ export function StoryRelayTaskEditor({
               <Ionicons
                 name={isReady ? 'arrow-undo-outline' : 'checkmark-outline'}
                 size={componentSizes.icon.sm}
-                color={colors.text}
+                color={colors.textInverse}
               />
             }
           >

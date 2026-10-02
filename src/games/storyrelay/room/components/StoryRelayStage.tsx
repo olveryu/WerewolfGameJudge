@@ -10,6 +10,11 @@ import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import {
+  BotTakeoverStrip,
+  type BotTakeoverItem,
+} from '@/features/room/components/BotTakeoverStrip';
+import { CountdownPill } from '@/features/room/components/CountdownPill';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
@@ -30,8 +35,24 @@ function StoryRelayProgress({
   readonly state: StoryRelayState;
   readonly seatModel: RoomSeatBoardModel;
 }) {
+  const takeOver = seatModel.onBotSeatLongPress;
+  const bots: BotTakeoverItem[] = state.participants
+    .filter((participant) => participant.userId === null)
+    .map((participant) => {
+      const seat = seatModel.source.getSeat(participant.seat);
+      return {
+        seat: participant.seat,
+        displayName: participant.displayName,
+        isControlled: seat.highlight === 'controlled',
+        isDisabled: false,
+      };
+    });
+
   return (
     <View>
+      {takeOver !== null && bots.length > 0 && (
+        <BotTakeoverStrip bots={bots} onTakeOver={takeOver} testIDPrefix="storyrelay-bot" />
+      )}
       <FlatList
         horizontal
         data={state.participants}
@@ -39,19 +60,11 @@ function StoryRelayProgress({
         contentContainerStyle={styles.progressList}
         renderItem={({ item }) => {
           const seat = seatModel.source.getSeat(item.seat);
-          const takeOver = seatModel.onBotSeatLongPress;
           return (
             <View style={styles.progressItem}>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={item.userId !== null || takeOver === null}
-                onPress={() => takeOver?.(item.seat)}
-                testID={`storyrelay-bot-${item.seat}`}
-                style={seat.highlight === 'controlled' ? styles.selected : undefined}
-              >
+              <Text style={styles.progressName} numberOfLines={1}>
                 {item.displayName}
-              </Button>
+              </Text>
               <Text style={styles.muted}>{seat.statusBadge?.label ?? '已收稿'}</Text>
             </View>
           );
@@ -104,7 +117,7 @@ function StoryRelayStageContent({
       {(remainingSeconds !== null || finalizer.status === 'failed') && (
         <View style={[styles.controls, styles.row]}>
           {remainingSeconds !== null && (
-            <Text style={styles.muted}>剩余 {remainingSeconds} 秒</Text>
+            <CountdownPill remainingSeconds={remainingSeconds} zeroLabel="收稿中" />
           )}
           {finalizer.status === 'failed' && (
             <Button

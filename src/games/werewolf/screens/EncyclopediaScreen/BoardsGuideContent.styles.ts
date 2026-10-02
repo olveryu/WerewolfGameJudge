@@ -30,35 +30,6 @@ export function createBoardsGuideStyles(colors: ThemeColors) {
       borderColor: colors.border,
       gap: spacing.small,
     },
-    categoryBar: {
-      flexDirection: 'row',
-      paddingHorizontal: spacing.screenH,
-      marginBottom: spacing.small,
-      gap: spacing.small,
-    },
-    categoryChip: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.small,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    categoryChipActive: {
-      backgroundColor: withAlpha(colors.primary, 0.15),
-      borderColor: colors.primary,
-    },
-    categoryText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.medium,
-      color: colors.text,
-    },
-    categoryTextActive: {
-      color: colors.primary,
-      fontWeight: typography.weights.semibold,
-    },
     list: {
       flex: 1,
     },

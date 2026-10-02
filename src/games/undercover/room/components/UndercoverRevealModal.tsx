@@ -1,15 +1,12 @@
 /** Responsive elimination confirmation; accepts only public player identity and reports intent. */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, View } from 'react-native';
 
-import { Modal } from '@/components/AppModal';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
-import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import type { RoomSeatPlayer } from '@/features/room/model/RoomSeatDataSource';
-import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
-import { colors, spacing } from '@/theme';
+import { colors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 
 import { undercoverStyles as styles } from '../../undercover.styles';
@@ -30,84 +27,56 @@ export function UndercoverRevealModal({
   onClose,
   onConfirm,
 }: UndercoverRevealModalProps) {
-  const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const isWideLayout = usesRoomSideInspector(width);
   return (
-    <Modal
-      visible
-      transparent
-      animationType={isWideLayout ? 'fade' : 'slide'}
-      onRequestClose={onClose}
-    >
-      <View style={[styles.revealOverlay, isWideLayout && styles.revealOverlayWide]}>
-        <View
-          style={[styles.revealPanel, isWideLayout && styles.revealPanelWide]}
-          accessibilityViewIsModal
-          accessibilityLabel="确认玩家出局"
-          testID="undercover-reveal-modal"
-        >
-          <View style={roomSurfaceStyles.header}>
-            <Text style={styles.title} accessibilityRole="header">
-              确认出局？
-            </Text>
-          </View>
-          <ScrollView
-            style={roomSurfaceStyles.scroll}
-            contentContainerStyle={roomSurfaceStyles.content}
+    <RoomDialog
+      title="确认出局？"
+      subtitle={`${seat + 1}号 · ${player.displayName}`}
+      onClose={onClose}
+      testID="undercover-reveal-modal"
+      footer={
+        <>
+          <Button
+            variant="secondary"
+            size="lg"
+            onPress={onClose}
+            disabled={isSubmitting}
+            testID="undercover-reveal-cancel"
           >
-            <View style={styles.revealIdentity}>
-              <Avatar
-                value={player.userId}
-                avatarUrl={player.avatarUrl}
-                size={componentSizes.avatar.lg}
+            取消
+          </Button>
+          <Button
+            variant="danger"
+            size="lg"
+            onPress={onConfirm}
+            loading={isSubmitting}
+            testID="undercover-reveal"
+            icon={
+              <Ionicons
+                name="person-remove-outline"
+                size={componentSizes.icon.sm}
+                color={colors.textInverse}
               />
-              <View style={styles.revealName}>
-                <Text style={styles.title}>{seat + 1} 号</Text>
-                <Text style={styles.text} testID="undercover-reveal-player">
-                  {player.displayName}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.muted}>确认后将揭晓身份，该玩家立即出局。此操作不可撤销。</Text>
-          </ScrollView>
-          <View
-            style={[
-              roomSurfaceStyles.footer,
-              styles.revealActions,
-              { paddingBottom: Math.max(spacing.large, insets.bottom) },
-            ]}
+            }
           >
-            <Button
-              variant="secondary"
-              size="lg"
-              onPress={onClose}
-              disabled={isSubmitting}
-              style={styles.revealAction}
-              testID="undercover-reveal-cancel"
-            >
-              取消
-            </Button>
-            <Button
-              variant="danger"
-              size="lg"
-              onPress={onConfirm}
-              loading={isSubmitting}
-              style={styles.revealAction}
-              icon={
-                <Ionicons
-                  name="person-remove-outline"
-                  size={componentSizes.icon.sm}
-                  color={colors.textInverse}
-                />
-              }
-              testID="undercover-reveal"
-            >
-              确认出局
-            </Button>
-          </View>
+            确认出局
+          </Button>
+        </>
+      }
+    >
+      <View style={styles.revealIdentity}>
+        <Avatar
+          value={player.userId}
+          avatarUrl={player.avatarUrl}
+          size={componentSizes.avatar.lg}
+        />
+        <View style={styles.revealName}>
+          <Text style={styles.title}>{seat + 1} 号</Text>
+          <Text style={styles.text} testID="undercover-reveal-player">
+            {player.displayName}
+          </Text>
         </View>
       </View>
-    </Modal>
+      <Text style={styles.muted}>确认后将揭晓身份，该玩家立即出局。此操作不可撤销。</Text>
+    </RoomDialog>
   );
 }

@@ -17,6 +17,7 @@ export const storyRelayStyles = StyleSheet.create({
   task: { flex: 1, minHeight: 0, paddingVertical: spacing.small, gap: spacing.small },
   progressList: { paddingHorizontal: spacing.medium, gap: spacing.small },
   progressItem: { paddingVertical: spacing.tight, gap: spacing.tight },
+  progressName: { ...textStyles.secondarySemibold, color: colors.text, maxWidth: 96 },
   title: { ...textStyles.subtitleSemibold, color: colors.text, flexShrink: 1 },
   text: { ...textStyles.body, color: colors.text },
   muted: { ...textStyles.secondary, color: colors.textSecondary },

@@ -1,5 +1,6 @@
 /** Hosts Story Relay inside the shared room entry, connection, seat and profile shell. */
 
+import { getStoryRelayOccupiedSeatCount } from '@game-judge/game-engine/games/storyrelay/public';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -46,8 +47,8 @@ function StoryRelayRoomContent(
               beforeSeatBoard: (
                 <RoomGameSummary
                   icon="book-outline"
-                  title="故事接龙"
-                  subtitle={`${config.numberOfPlayers} 人 · ${config.numberOfPlayers} 棒 · ${config.writingDurationSeconds === null ? '不限时写作' : `每棒 ${config.writingDurationSeconds} 秒`} · 间隔 ${config.transitionDurationSeconds} 秒`}
+                  title={`故事接龙 · ${config.numberOfPlayers}人局`}
+                  subtitle={`${getStoryRelayOccupiedSeatCount(screen.state)}/${config.numberOfPlayers}人就座 · ${config.numberOfPlayers}棒 · ${config.writingDurationSeconds === null ? '不限时写作' : `每棒${config.writingDurationSeconds}秒`} · 间隔${config.transitionDurationSeconds}秒`}
                   headerRight={
                     <RoomGuideButton onPress={screen.openRules} label="查看故事接龙玩法" />
                   }

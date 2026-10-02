@@ -75,6 +75,11 @@ export function createRoomShellStyles(colors: ThemeColors) {
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
+    // Narrow screens: title gets its own row — drop one type level to save vertical space (D1)
+    headerTitleStacked: {
+      fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
+    },
     headerSide: {
       flexDirection: 'row',
       alignItems: 'center',

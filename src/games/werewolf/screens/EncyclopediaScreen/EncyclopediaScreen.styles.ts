@@ -49,37 +49,6 @@ export function createEncyclopediaStyles(colors: ThemeColors) {
       lineHeight: typography.lineHeights.secondary,
       padding: 0,
     },
-    // Faction Tabs
-    tabBar: {
-      flexDirection: 'row',
-      paddingHorizontal: spacing.screenH,
-      marginTop: spacing.small,
-      marginBottom: spacing.small,
-      gap: spacing.small,
-    },
-    tab: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.small,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    tabActive: {
-      backgroundColor: withAlpha(colors.primary, 0.15),
-      borderColor: colors.primary,
-    },
-    tabText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.medium,
-      color: colors.text,
-    },
-    tabTextActive: {
-      color: colors.primary,
-      fontWeight: typography.weights.semibold,
-    },
     // Tag Dropdown Menu (Modal)
     dropdownOverlay: {
       flex: 1,

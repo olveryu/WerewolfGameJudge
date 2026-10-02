@@ -34,6 +34,9 @@ interface PressableScaleBaseProps {
   accessibilityLabel?: string;
   accessibilityRole?: 'button' | 'link' | 'tab';
   accessibilityState?: AccessibilityState;
+  accessibilityHint?: string;
+  onLongPress?: () => void;
+  delayLongPress?: number;
 }
 
 type PressableScaleProps = PressableScaleBaseProps &
@@ -59,6 +62,9 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   accessibilityLabel,
   accessibilityRole = 'button',
   accessibilityState,
+  accessibilityHint,
+  onLongPress,
+  delayLongPress,
 }) => {
   const scale = useSharedValue(1);
 
@@ -90,10 +96,13 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
       disabled={disabled}
       style={[animatedStyle, style]}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole}
       accessibilityState={accessibilityState ?? { disabled }}
     >

@@ -196,7 +196,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
             testID={TESTIDS.configOverflowReset}
             accessibilityLabel="重置配置"
           >
-            <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
+            <Ionicons name="refresh-outline" size={componentSizes.icon.md} color={colors.text} />
           </Button>
         </View>
       }

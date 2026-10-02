@@ -6,10 +6,13 @@
  * Pure presentational component; no service imports, no business logic.
  */
 import {
+  getRoleSpec,
+  isWolfRole,
   ROLE_SPECS,
   type RoleAbilityTag,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -41,6 +44,14 @@ interface RoleListItemProps {
 
 const BADGE_SIZE = componentSizes.avatar.md;
 
+function getFactionLabel(roleId: RoleId): string {
+  if (isWolfRole(roleId)) return '狼人';
+  const spec = getRoleSpec(roleId);
+  if (spec?.faction === Faction.God) return '神职';
+  if (spec?.faction === Faction.Special) return '第三方';
+  return '好人';
+}
+
 /** Role list row. */
 export const RoleListItem = React.memo<RoleListItemProps>(function RoleListItem({
   roleId,
@@ -66,6 +77,13 @@ export const RoleListItem = React.memo<RoleListItemProps>(function RoleListItem(
       <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
         {spec.displayName}
       </Text>
+
+      {/* Faction chip */}
+      <View style={[styles.factionChip, { backgroundColor: withAlpha(factionColor, 0.12) }]}>
+        <Text style={[styles.factionChipText, { color: factionColor }]}>
+          {getFactionLabel(roleId)}
+        </Text>
+      </View>
 
       {/* Tag chips */}
       {tags.length > 0 && (
@@ -133,5 +151,15 @@ const styles = StyleSheet.create({
   tagChipText: {
     fontSize: typography.captionSmall,
     fontWeight: typography.weights.medium,
+  },
+  factionChip: {
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.micro,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.tight,
+  },
+  factionChipText: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.semibold,
   },
 });
