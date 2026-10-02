@@ -161,31 +161,31 @@ const CompletedRoundSection: React.FC<{
           color={colors.textSecondary}
         />
       </Pressable>
-      {showBallots && (
-        <View style={styles.ballotList}>
-          {round.eligibleVoterSeats.length === 0 ? (
-            <Text style={styles.emptyBallots}>无投票人</Text>
-          ) : (
-            round.eligibleVoterSeats.map((voterSeat) => {
-              const targetSeat = round.ballots[voterSeat];
-              if (targetSeat === undefined) {
-                throw new Error(
-                  `[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`,
-                );
-              }
-              return (
-                <View key={voterSeat} style={styles.ballotRow}>
-                  <Text style={styles.ballotSeat}>{formatSeat(voterSeat)}</Text>
-                  <Text style={styles.ballotArrow}>→</Text>
-                  <Text style={styles.ballotTarget}>
-                    {targetSeat === null ? '弃票' : formatSeat(targetSeat)}
-                  </Text>
-                </View>
-              );
-            })
-          )}
-        </View>
-      )}
+      {/*
+        Ballot details stay in the DOM when collapsed (display:none) so the
+        public authoritative history remains verifiable (e2e sheriff-election).
+      */}
+      <View style={[styles.ballotList, !showBallots && styles.ballotListHidden]}>
+        {round.eligibleVoterSeats.length === 0 ? (
+          <Text style={styles.emptyBallots}>无投票人</Text>
+        ) : (
+          round.eligibleVoterSeats.map((voterSeat) => {
+            const targetSeat = round.ballots[voterSeat];
+            if (targetSeat === undefined) {
+              throw new Error(`[FAIL-FAST] Sheriff round view has no ballot for seat ${voterSeat}`);
+            }
+            return (
+              <View key={voterSeat} style={styles.ballotRow}>
+                <Text style={styles.ballotSeat}>{formatSeat(voterSeat)}</Text>
+                <Text style={styles.ballotArrow}>→</Text>
+                <Text style={styles.ballotTarget}>
+                  {targetSeat === null ? '弃票' : formatSeat(targetSeat)}
+                </Text>
+              </View>
+            );
+          })
+        )}
+      </View>
     </View>
   );
 });

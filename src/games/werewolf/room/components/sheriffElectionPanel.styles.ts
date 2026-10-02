@@ -73,6 +73,7 @@ export interface SheriffElectionPanelStyles {
   ballotListTitle: TextStyle;
   ballotListToggle: ViewStyle;
   ballotList: ViewStyle;
+  ballotListHidden: ViewStyle;
   ballotRow: ViewStyle;
   ballotSeat: TextStyle;
   ballotArrow: TextStyle;
@@ -365,6 +366,9 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
     },
     ballotList: {
       gap: spacing.tight,
+    },
+    ballotListHidden: {
+      display: 'none',
     },
     ballotRow: {
       flexDirection: 'row',
