@@ -7,6 +7,8 @@ export const storyRelayHomeContribution = {
     subtitle: '一人写一段，一起揭晓故事',
     iconName: 'book-outline',
     tier: 'mini',
+    playerLabel: '4–20人',
+    durationLabel: '约15分钟',
   },
   spotlight: null,
   announcementTabs: [],

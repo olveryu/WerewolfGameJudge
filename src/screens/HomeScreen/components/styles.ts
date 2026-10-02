@@ -38,11 +38,11 @@ export interface HomeScreenStyles {
   userNameHidden: TextStyle;
   // Hero Card (create room — primary gradient accent)
   heroCard: ViewStyle;
-  heroCardGradient: ViewStyle;
+  heroCardImage: ViewStyle;
+  heroCardImageRadius: ImageStyle;
+  heroCardScrim: ViewStyle;
   heroCardContent: ViewStyle;
   heroCardTitle: TextStyle;
-  heroCardSubtitle: TextStyle;
-  heroCardArrow: ViewStyle;
   // Action Row (dual compact cards)
   actionRow: ViewStyle;
   actionCard: ViewStyle;
@@ -58,6 +58,7 @@ export interface HomeScreenStyles {
   codeDisplay: ViewStyle;
   codeDigitBox: ViewStyle;
   codeDigitText: TextStyle;
+  errorSlot: ViewStyle;
   modalButtons: ViewStyle;
   modalButtonFlex: ViewStyle;
   primaryButton: ViewStyle;
@@ -97,18 +98,14 @@ export interface HomeScreenStyles {
   avatarStripLink: TextStyle;
   // Gacha entry card
   gachaCard: ViewStyle;
-  gachaCardAccentGold: ViewStyle;
-  gachaCardAccentBlue: ViewStyle;
-  gachaCardEmoji: TextStyle;
   gachaCardText: ViewStyle;
+  gachaCardTitleRow: ViewStyle;
   gachaCardTitle: TextStyle;
   gachaCardSubtitle: TextStyle;
   feedbackDot: ViewStyle;
   // Footer
   footer: ViewStyle;
   footerText: TextStyle;
-  footerLink: ViewStyle;
-  footerLinkText: TextStyle;
   // Install guide
   guideSteps: ViewStyle;
   guideStepRow: ViewStyle;
@@ -191,7 +188,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       height: 1,
       overflow: 'hidden',
     },
-    // ── Hero Card (gradient bg via LinearGradient child) ──
+    // ── Hero Card (key-art bg via ImageBackground child) ──
     heroCard: {
       overflow: 'hidden',
       borderRadius: borderRadius.large,
@@ -200,10 +197,17 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       marginBottom: spacing.large,
       ...shadows.lg,
     },
-    heroCardGradient: {
+    heroCardImage: {
+      minHeight: 120,
       flexDirection: 'row',
       alignItems: 'center',
       padding: spacing.medium,
+    },
+    heroCardImageRadius: {
+      borderRadius: borderRadius.large,
+    },
+    heroCardScrim: {
+      ...StyleSheet.absoluteFill,
     },
     heroCardContent: {
       flex: 1,
@@ -212,19 +216,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     heroCardTitle: {
       ...textStyles.titleBold,
       color: colors.textInverse,
-    },
-    heroCardSubtitle: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: withAlpha(colors.textInverse, 0.8),
-    },
-    heroCardArrow: {
-      width: componentSizes.button.md,
-      height: componentSizes.button.md,
-      borderRadius: borderRadius.large,
-      backgroundColor: withAlpha(colors.textInverse, 0.2),
-      justifyContent: 'center',
-      alignItems: 'center',
     },
     // ── Action Row ───────────────────────────────────────────
     actionRow: {
@@ -270,19 +261,13 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       marginBottom: spacing.small,
       gap: spacing.small,
     },
-    gachaCardAccentGold: {
-      borderLeftWidth: 3,
-      borderLeftColor: colors.warning,
-    },
-    gachaCardAccentBlue: {
-      borderLeftWidth: 3,
-      borderLeftColor: colors.info,
-    },
-    gachaCardEmoji: {
-      fontSize: 28,
-    },
     gachaCardText: {
       flex: 1,
+    },
+    gachaCardTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
     },
     gachaCardTitle: {
       ...textStyles.body,
@@ -334,7 +319,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     codeDigitBox: {
       width: componentSizes.button.lg,
-      height: componentSizes.button.lg + spacing.small,
+      height: componentSizes.button.lg,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       justifyContent: 'center',
@@ -343,10 +328,14 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       borderColor: colors.border,
     },
     codeDigitText: {
-      fontSize: typography.hero,
-      lineHeight: typography.lineHeights.hero,
+      fontSize: typography.heading,
+      lineHeight: typography.lineHeights.heading,
       fontWeight: typography.weights.bold,
       color: colors.text,
+    },
+    errorSlot: {
+      minHeight: spacing.large,
+      justifyContent: 'center',
     },
     modalButtons: {
       flexDirection: 'row',
@@ -402,17 +391,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
-    },
-    footerLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: spacing.small,
-      gap: spacing.tight,
-    },
-    footerLinkText: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
-      color: colors.primary,
     },
     guideSteps: {
       gap: spacing.medium,

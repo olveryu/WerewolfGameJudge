@@ -16,6 +16,7 @@ import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  ImageBackground,
   Pressable,
   ScrollView,
   Text,
@@ -42,6 +43,7 @@ import type { ClientGameModeOption } from '@/games/home';
 import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
+import { gameBanners } from '@/utils/gameBanners';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 
@@ -421,32 +423,31 @@ export const HomeScreen: React.FC = () => {
               testID={TESTIDS.homeCreateRoomButton}
               haptic
             >
-              <LinearGradient
-                colors={[colors.primaryLight, colors.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroCardGradient}
+              <ImageBackground
+                source={gameBanners.werewolf}
+                style={styles.heroCardImage}
+                imageStyle={styles.heroCardImageRadius}
+                resizeMode="cover"
               >
+                <LinearGradient
+                  colors={[colors.overlay, 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0.7, y: 0 }}
+                  style={styles.heroCardScrim}
+                />
                 <View style={styles.heroCardContent}>
                   <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
-                  <Text style={styles.heroCardSubtitle}>
-                    {clientGameHome.modeOptions
-                      .map((modeOption) => modeOption.displayName)
-                      .join(' · ')}
-                  </Text>
                 </View>
                 {isCreating ? (
                   <ActivityIndicator color={colors.textInverse} size="small" />
                 ) : (
-                  <View style={styles.heroCardArrow}>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={componentSizes.icon.lg}
-                      color={colors.textInverse}
-                    />
-                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={componentSizes.icon.lg}
+                    color={colors.textInverse}
+                  />
                 )}
-              </LinearGradient>
+              </ImageBackground>
             </PressableScale>
 
             {/* ── Action Row — Enter Room + Return to Last Game ── */}
@@ -469,11 +470,8 @@ export const HomeScreen: React.FC = () => {
               </PressableScale>
               <PressableScale
                 onPress={handleReturnLastGamePress}
-                disabled={authLoading || recentRooms.length === 0}
-                style={[
-                  styles.actionCard,
-                  (authLoading || recentRooms.length === 0) && styles.actionCardDisabled,
-                ]}
+                disabled={authLoading}
+                style={[styles.actionCard, authLoading && styles.actionCardDisabled]}
                 testID={TESTIDS.homeReturnLastGameButton}
               >
                 <View style={styles.actionCardIcon}>
@@ -485,19 +483,22 @@ export const HomeScreen: React.FC = () => {
                 </View>
                 <Text style={styles.actionCardTitle}>最近房间</Text>
                 <Text style={styles.actionCardSubtitle}>
-                  {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
+                  {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '暂无房间'}
                 </Text>
               </PressableScale>
             </View>
           </View>
           <View style={styles.taskColumn}>
+            {/* ── Install to Home Screen ─────────────────── */}
+            <InstallMenuItem styles={styles} colors={colors} />
+
             {/* ── Gacha Entry ─────────────────────────── */}
-            <PressableScale
-              onPress={handleNavigateGacha}
-              style={[styles.gachaCard, styles.gachaCardAccentGold]}
-              haptic
-            >
-              <Text style={styles.gachaCardEmoji}>🎰</Text>
+            <PressableScale onPress={handleNavigateGacha} style={styles.gachaCard} haptic>
+              <Ionicons
+                name="ticket-outline"
+                size={componentSizes.icon.md}
+                color={colors.primary}
+              />
               <View style={styles.gachaCardText}>
                 <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
                 <Text style={styles.gachaCardSubtitle}>用抽奖券解锁头像、头像框、装饰</Text>
@@ -512,18 +513,17 @@ export const HomeScreen: React.FC = () => {
 
             {/* ── Announcement & Feedback Card ────────────────────────── */}
             {ANNOUNCEMENT_VERSIONS.length > 0 && (
-              <PressableScale
-                onPress={handleOpenAnnouncement}
-                style={[styles.gachaCard, styles.gachaCardAccentBlue]}
-                haptic
-              >
+              <PressableScale onPress={handleOpenAnnouncement} style={styles.gachaCard} haptic>
                 <Ionicons
                   name="megaphone-outline"
                   size={componentSizes.icon.md}
                   color={colors.primary}
                 />
                 <View style={styles.gachaCardText}>
-                  <Text style={styles.gachaCardTitle}>公告与反馈</Text>
+                  <View style={styles.gachaCardTitleRow}>
+                    <Text style={styles.gachaCardTitle}>公告与反馈</Text>
+                    {hasUnreadFeedback && <View style={styles.feedbackDot} />}
+                  </View>
                   <Text style={styles.gachaCardSubtitle}>
                     {hasUnreadFeedback
                       ? `${unreadFeedbackCount} 条新回复`
@@ -532,7 +532,6 @@ export const HomeScreen: React.FC = () => {
                         : '查看更新 · 提交建议'}
                   </Text>
                 </View>
-                {hasUnreadFeedback && <View style={styles.feedbackDot} />}
                 <Ionicons
                   name="chevron-forward"
                   size={componentSizes.icon.sm}
@@ -545,7 +544,6 @@ export const HomeScreen: React.FC = () => {
         {/* Footer with author and version */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>{APP_VERSION} · 作者：严振宇</Text>
-          <InstallMenuItem styles={styles} colors={colors} />
         </View>
       </ScrollView>
 

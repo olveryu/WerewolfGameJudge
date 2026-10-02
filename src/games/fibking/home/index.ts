@@ -8,6 +8,8 @@ export const fibHomeContribution = {
     subtitle: '看词描述，真假难辨',
     iconName: 'bulb-outline',
     tier: 'mini',
+    playerLabel: '4–20人',
+    durationLabel: '约20分钟',
   },
   spotlight: null,
   announcementTabs: [],

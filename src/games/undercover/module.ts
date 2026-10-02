@@ -36,6 +36,8 @@ export function createUndercoverUiModule({
         subtitle: '线下指人投票，房主揭晓',
         iconName: 'finger-print-outline',
         tier: 'mini',
+        playerLabel: '4–12人',
+        durationLabel: '约15分钟',
       },
       spotlight: null,
       announcementTabs: [],

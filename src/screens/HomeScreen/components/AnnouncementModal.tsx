@@ -169,8 +169,8 @@ const AnnouncementTabButton: React.FC<AnnouncementTabButtonProps> = ({
 
 const styles = StyleSheet.create({
   modalContent: {
-    width: 320,
-    maxWidth: '90%',
+    width: '90%',
+    maxWidth: 420,
   },
   container: {
     alignItems: 'stretch',
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     gap: spacing.micro,
   },
   tabText: {
-    fontSize: typography.body,
+    fontSize: typography.secondary,
     fontWeight: typography.weights.medium,
     color: colors.textMuted,
   },
