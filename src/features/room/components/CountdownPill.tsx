@@ -18,7 +18,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-export const COUNTDOWN_URGENT_THRESHOLD_SECONDS = 10;
+const COUNTDOWN_URGENT_THRESHOLD_SECONDS = 10;
 
 interface CountdownPillProps {
   readonly remainingSeconds: number | null;
