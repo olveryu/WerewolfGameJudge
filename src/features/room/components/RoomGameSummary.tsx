@@ -63,7 +63,7 @@ export function RoomGuideButton({
       <View aria-hidden>
         <Ionicons name="book-outline" size={componentSizes.icon.sm} color={colors.primary} />
       </View>
-      <Text style={styles.guideTitle}>{label}</Text>
+      <Text style={styles.guideTitle}>玩法</Text>
       <View aria-hidden>
         <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textMuted} />
       </View>
@@ -93,10 +93,13 @@ const styles = StyleSheet.create({
   },
   container: {
     marginBottom: spacing.medium,
+    paddingBottom: spacing.small,
+    borderBottomWidth: fixed.borderWidth,
+    borderBottomColor: colors.borderLight,
   },
   summaryRow: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.small,
     paddingVertical: spacing.medium,

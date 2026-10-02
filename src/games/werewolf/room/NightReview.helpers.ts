@@ -154,19 +154,11 @@ function resolveWolfKillTarget(
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface NightReviewIdentity {
-  readonly seat: number;
-  readonly roleName: string;
-  readonly team: Team | null;
-}
-
 export interface NightReviewData {
   /** Per-action descriptions of the night */
   actionLines: string[];
-  /** Seat number -> Chinese role name (flat, kept for the share card) */
+  /** Seat number -> Chinese role name */
   identityLines: string[];
-  /** Structured identities for grouped display */
-  identities: NightReviewIdentity[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -566,27 +558,20 @@ export function buildActionLines(gameState: LocalGameState): string[] {
  * Build per-seat identity lines: "1号: 狼人" etc.
  */
 export function buildIdentityLines(players: Map<number, LocalPlayer | null>): string[] {
-  return buildIdentities(players).map(
-    (identity) => `${formatSeat(identity.seat)}: ${identity.roleName}`,
-  );
-}
-
-function buildIdentities(players: Map<number, LocalPlayer | null>): NightReviewIdentity[] {
-  const identities: NightReviewIdentity[] = [];
+  const lines: string[] = [];
   const seats = Array.from(players.keys()).sort((a, b) => a - b);
 
   for (const seat of seats) {
     const player = players.get(seat);
     if (!player) {
-      identities.push({ seat, roleName: '空座', team: null });
+      lines.push(`${formatSeat(seat)}: 空座`);
       continue;
     }
     const roleName = player.role ? getRoleDisplayName(player.role) : '未分配';
-    const team = player.role ? (ROLE_SPECS[player.role]?.team ?? null) : null;
-    identities.push({ seat, roleName, team });
+    lines.push(`${formatSeat(seat)}: ${roleName}`);
   }
 
-  return identities;
+  return lines;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -597,12 +582,8 @@ function buildIdentities(players: Map<number, LocalPlayer | null>): NightReviewI
  * Build full night review data from game state.
  */
 export function buildNightReviewData(gameState: LocalGameState): NightReviewData {
-  const identities = buildIdentities(gameState.players);
   return {
     actionLines: buildActionLines(gameState),
-    identityLines: identities.map(
-      (identity) => `${formatSeat(identity.seat)}: ${identity.roleName}`,
-    ),
-    identities,
+    identityLines: buildIdentityLines(gameState.players),
   };
 }

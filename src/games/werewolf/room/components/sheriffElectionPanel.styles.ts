@@ -14,7 +14,6 @@ import {
 } from '@/theme/tokens';
 
 const BALLOT_CHOICE_FOUR_COLUMN_BASIS = '22%' as const;
-const BALLOT_CHOICE_TWO_COLUMN_BASIS = '46%' as const;
 
 export interface SheriffElectionPanelStyles {
   hud: ViewStyle;
@@ -56,7 +55,6 @@ export interface SheriffElectionPanelStyles {
   sectionTitle: TextStyle;
   candidateGrid: ViewStyle;
   ballotChoice: ViewStyle;
-  ballotChoiceWide: ViewStyle;
   ballotChoiceSelected: ViewStyle;
   ballotChoicePressed: ViewStyle;
   ballotChoiceDisabled: ViewStyle;
@@ -64,16 +62,13 @@ export interface SheriffElectionPanelStyles {
   ballotChoiceText: TextStyle;
   ballotChoiceTextSelected: TextStyle;
   roundSection: ViewStyle;
-  roundTitleBadge: ViewStyle;
   roundTitle: TextStyle;
   tallyList: ViewStyle;
   tallyRow: ViewStyle;
   tallySeat: TextStyle;
   tallyValue: TextStyle;
   ballotListTitle: TextStyle;
-  ballotListToggle: ViewStyle;
   ballotList: ViewStyle;
-  ballotListHidden: ViewStyle;
   ballotRow: ViewStyle;
   ballotSeat: TextStyle;
   ballotArrow: TextStyle;
@@ -291,10 +286,6 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       borderColor: colors.primary,
       backgroundColor: withAlpha(colors.primary, 0.12),
     },
-    ballotChoiceWide: {
-      flexBasis: BALLOT_CHOICE_TWO_COLUMN_BASIS,
-      maxWidth: '48%',
-    },
     ballotChoicePressed: {
       backgroundColor: colors.surfaceHover,
     },
@@ -320,13 +311,6 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
     roundSection: {
       gap: spacing.small,
       marginBottom: spacing.medium,
-    },
-    roundTitleBadge: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.surfaceHover,
-      borderRadius: borderRadius.full,
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.micro,
     },
     roundTitle: {
       ...textStyles.secondarySemibold,
@@ -356,19 +340,10 @@ export function createSheriffElectionPanelStyles(colors: ThemeColors): SheriffEl
       ...textStyles.caption,
       fontWeight: typography.weights.semibold,
       color: colors.textSecondary,
-    },
-    ballotListToggle: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       marginTop: spacing.tight,
-      paddingVertical: spacing.tight,
     },
     ballotList: {
       gap: spacing.tight,
-    },
-    ballotListHidden: {
-      display: 'none',
     },
     ballotRow: {
       flexDirection: 'row',

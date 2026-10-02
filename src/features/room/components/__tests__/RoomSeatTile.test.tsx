@@ -78,21 +78,7 @@ describe('RoomSeatTile', () => {
       />,
     );
 
-    // info tone: slim color strip, no text
-    expect(screen.getByTestId('seat-status-badge-0')).toBeTruthy();
-    expect(screen.queryByText('发言')).toBeNull();
+    expect(screen.getByTestId('seat-status-badge-0')).toHaveTextContent('发言');
     expect(screen.getByTestId('seat-tile-pressable-0')).toHaveStyle(styles.dangerRing);
-  });
-
-  it('keeps the label text for warning and danger status tones', () => {
-    const screen = render(
-      <RoomSeatTile
-        {...createProps({
-          statusBadge: { label: '待投票', tone: 'warning' },
-        })}
-      />,
-    );
-
-    expect(screen.getByTestId('seat-status-badge-0')).toHaveTextContent('待投票');
   });
 });

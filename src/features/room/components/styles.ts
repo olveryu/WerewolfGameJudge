@@ -10,7 +10,6 @@ import { createStatusPanelStyles } from './statusPanels.styles';
 export interface BottomActionPanelStyles {
   container: ViewStyle;
   dockContainer: ViewStyle;
-  messageBar: ViewStyle;
   message: TextStyle;
   buttonRow: ViewStyle;
   compactManagementStack: ViewStyle;

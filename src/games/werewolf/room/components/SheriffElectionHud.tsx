@@ -1,16 +1,19 @@
 /** Compact, privacy-safe sheriff-election status shown persistently above the seat board. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import type React from 'react';
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/sheriffElectionDockModel';
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
 import type { SheriffElectionPanelStyles } from './sheriffElectionPanel.styles';
-import { getSheriffElectionSummary } from './sheriffElectionSummary';
 
 interface SheriffElectionHudProps {
   readonly model: SheriffElectionPanelModel;
@@ -18,8 +21,35 @@ interface SheriffElectionHudProps {
   readonly onOpenDetails: (() => void) | null;
 }
 
-/** Kept for backwards compatibility; prefer getSheriffElectionSummary. */
-export const getHudSummary = getSheriffElectionSummary;
+function getResultSummary(result: SheriffElectionResult): string {
+  return result.kind === 'elected' ? `${formatSeat(result.sheriffSeat)} 当选警长` : '本局没有警长';
+}
+
+export function getHudSummary(model: SheriffElectionPanelModel): string {
+  const { view } = model;
+  if (view.finalResult !== null) return getResultSummary(view.finalResult);
+  if (view.speakingInstruction !== null) return `发言顺序：${view.speakingInstruction}`;
+  if (view.voteProgress !== null) {
+    const { submittedCount, eligibleCount } = view.voteProgress;
+    const progress = `${submittedCount}/${eligibleCount} 人已投票`;
+    if (submittedCount >= eligibleCount) {
+      if (view.canAdvance && view.advanceLabel !== null) {
+        return `${progress}，请在「${HOST_MANAGEMENT_LABEL}」公布`;
+      }
+      return `${progress}，等待房主公布结果`;
+    }
+    const ballot = view.myBallot;
+    if (view.canVote && (ballot === null || ballot.kind === 'notSubmitted')) {
+      return `${progress}，点击下方「${getSheriffVoteButtonLabel(model)}」投票`;
+    }
+    return progress;
+  }
+  if (view.canCancelRegistration) return '你已报名，可在底部取消报名';
+  if (view.candidateRecords !== null) {
+    return `${view.candidateRecords.activeCandidateSeats.length} 位候选人留在警上`;
+  }
+  return view.phaseDescription;
+}
 
 const SheriffElectionHudComponent: React.FC<SheriffElectionHudProps> = ({
   model,
@@ -42,8 +72,8 @@ const SheriffElectionHudComponent: React.FC<SheriffElectionHudProps> = ({
         </View>
       </View>
       <View style={styles.hudSummaryRow}>
-        <Text style={styles.hudSummary} numberOfLines={2}>
-          {getSheriffElectionSummary(model)}
+        <Text style={styles.hudSummary} numberOfLines={1}>
+          {getHudSummary(model)}
         </Text>
         {onOpenDetails !== null && (
           <View style={styles.hudDetails} testID={TESTIDS.sheriffDetailsButton}>
