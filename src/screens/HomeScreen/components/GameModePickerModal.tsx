@@ -3,13 +3,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { PressableScale } from '@/components/PressableScale';
 import type { ClientGameModeOption } from '@/games/home';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
+import { gameBanners } from '@/utils/gameBanners';
 
 interface GameModePickerModalProps {
   readonly visible: boolean;
@@ -18,6 +19,65 @@ interface GameModePickerModalProps {
   readonly options: readonly ClientGameModeOption[];
   readonly onClose: () => void;
   readonly onSelect: (option: ClientGameModeOption) => void;
+}
+
+function decisionInfo(option: ClientGameModeOption): string {
+  const parts = [option.playerLabel, option.durationLabel].filter(
+    (part): part is string => part !== undefined,
+  );
+  return parts.length > 0 ? parts.join(' · ') : option.subtitle;
+}
+
+function HeroCard({
+  option,
+  onSelect,
+}: {
+  readonly option: ClientGameModeOption;
+  readonly onSelect: (option: ClientGameModeOption) => void;
+}) {
+  const banner = gameBanners[option.gameType];
+  const content = (
+    <>
+      <View style={styles.rowText}>
+        <Text style={styles.heroTitle}>{option.displayName}</Text>
+        <Text style={styles.heroSubtitle}>{decisionInfo(option)}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textInverse} />
+    </>
+  );
+
+  return (
+    <PressableScale
+      onPress={() => onSelect(option)}
+      testID={TESTIDS.gameModePickerOption(option.gameType)}
+    >
+      {banner !== undefined ? (
+        <ImageBackground
+          source={banner}
+          style={styles.heroImage}
+          imageStyle={styles.heroImageRadius}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={[colors.overlay, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.65, y: 0 }}
+            style={styles.heroScrim}
+          />
+          <View style={styles.heroContent}>{content}</View>
+        </ImageBackground>
+      ) : (
+        <LinearGradient
+          colors={[colors.primaryLight, colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroGradient}
+        >
+          {content}
+        </LinearGradient>
+      )}
+    </PressableScale>
+  );
 }
 
 function MiniGameRow({
@@ -42,6 +102,11 @@ function MiniGameRow({
         <Text style={styles.miniTitle}>{option.displayName}</Text>
         <Text style={styles.rowSubtitle}>{option.subtitle}</Text>
       </View>
+      {option.playerLabel !== undefined && (
+        <View style={styles.playerTag}>
+          <Text style={styles.playerTagText}>{option.playerLabel}</Text>
+        </View>
+      )}
       <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textMuted} />
     </PressableScale>
   );
@@ -77,33 +142,7 @@ export const GameModePickerModal: React.FC<GameModePickerModalProps> = ({
 
       <View style={styles.heroSection}>
         {mainOptions.map((option) => (
-          <PressableScale
-            key={option.gameType}
-            onPress={() => onSelect(option)}
-            testID={TESTIDS.gameModePickerOption(option.gameType)}
-          >
-            <LinearGradient
-              colors={[colors.primaryLight, colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroGradient}
-            >
-              <Ionicons
-                name={option.iconName}
-                size={componentSizes.icon.xl}
-                color={colors.textInverse}
-              />
-              <View style={styles.rowText}>
-                <Text style={styles.heroTitle}>{option.displayName}</Text>
-                <Text style={styles.heroSubtitle}>{option.subtitle}</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={componentSizes.icon.md}
-                color={colors.textInverse}
-              />
-            </LinearGradient>
-          </PressableScale>
+          <HeroCard key={option.gameType} option={option} onSelect={onSelect} />
         ))}
       </View>
 
@@ -157,6 +196,24 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.large,
     padding: spacing.medium,
   },
+  heroImage: {
+    minHeight: 112,
+    borderRadius: borderRadius.large,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  heroImageRadius: {
+    borderRadius: borderRadius.large,
+  },
+  heroScrim: {
+    ...StyleSheet.absoluteFill,
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.medium,
+    padding: spacing.medium,
+  },
   heroTitle: {
     fontSize: typography.title,
     fontWeight: typography.weights.semibold,
@@ -178,7 +235,7 @@ const styles = StyleSheet.create({
     minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.medium,
+    gap: spacing.small,
     paddingVertical: spacing.small,
   },
   miniRowDivider: {
@@ -197,6 +254,16 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
     color: colors.text,
+  },
+  playerTag: {
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.micro,
+  },
+  playerTagText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
   },
   rowText: {
     flex: 1,

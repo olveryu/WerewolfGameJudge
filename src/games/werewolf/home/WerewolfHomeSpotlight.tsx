@@ -145,7 +145,7 @@ export const WerewolfHomeSpotlight = memo(() => {
                 <Text style={[styles.badgeText, { color: faction.color }]}>{faction.label}</Text>
               </View>
             </View>
-            <Text style={styles.description} numberOfLines={2}>
+            <Text style={styles.description} numberOfLines={1}>
               {role.description}
             </Text>
           </View>
@@ -156,12 +156,7 @@ export const WerewolfHomeSpotlight = memo(() => {
             <Text style={[styles.actionText, { color: colors.primary }]}>换一个</Text>
           </PressableScale>
           <PressableScale onPress={handleDetail} style={styles.actionButton}>
-            <Text style={[styles.actionText, { color: colors.textSecondary }]}>详情</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={componentSizes.icon.sm}
-              color={colors.textSecondary}
-            />
+            <Text style={[styles.actionText, { color: colors.textSecondary }]}>详情 ›</Text>
           </PressableScale>
         </View>
       </Animated.View>
@@ -180,8 +175,6 @@ const styles = StyleSheet.create({
   },
   card: {
     ...shared.cardBase,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.god,
   },
   cardAbsolute: {
     position: 'absolute',

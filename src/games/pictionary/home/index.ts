@@ -8,6 +8,8 @@ export const pictionaryHomeContribution = {
     subtitle: '画与猜轮流传递，结局一起揭晓',
     iconName: 'brush-outline',
     tier: 'mini',
+    playerLabel: '4–20人',
+    durationLabel: '约20分钟',
   },
   spotlight: null,
   announcementTabs: [],
