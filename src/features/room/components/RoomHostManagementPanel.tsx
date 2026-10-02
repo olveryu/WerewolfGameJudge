@@ -98,15 +98,6 @@ const ManagementContent: React.FC<{
       contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}
       showsVerticalScrollIndicator
     >
-      <View style={styles.previewRow}>
-        <Ionicons
-          name="shield-checkmark-outline"
-          size={componentSizes.icon.md}
-          color={colors.primary}
-        />
-        <Text style={styles.preview}>{model.preview}</Text>
-      </View>
-
       {model.sections.map((section) => (
         <View key={section.key} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -225,19 +216,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.large,
     paddingTop: spacing.medium,
     gap: spacing.large,
-  },
-  previewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-    paddingBottom: spacing.medium,
-    borderBottomWidth: fixed.borderWidth,
-    borderBottomColor: colors.border,
-  },
-  preview: {
-    ...textStyles.bodySemibold,
-    color: colors.text,
-    flex: 1,
   },
   section: {
     gap: spacing.small,

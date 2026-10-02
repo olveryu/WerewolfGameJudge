@@ -93,22 +93,25 @@ export interface RoomSeatTileStyles {
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
   petWrapper: ViewStyle;
-  statusBadge: ViewStyle;
   statusBadgePrimary: ViewStyle;
   statusBadgeInfo: ViewStyle;
   statusBadgeSuccess: ViewStyle;
   statusBadgeWarning: ViewStyle;
   statusBadgeMuted: ViewStyle;
   statusBadgeDanger: ViewStyle;
-  statusBadgeText: TextStyle;
+  statusStrip: ViewStyle;
+  statusAlertPill: ViewStyle;
+  statusAlertText: TextStyle;
   statusEmphasis: ViewStyle;
-  levelBadge: ViewStyle;
-  levelBadgeText: TextStyle;
   emptyIndicator: TextStyle;
   emptyTile: ViewStyle;
+  nameRow: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
+  playerNamePlain: TextStyle;
   playerNamePlaceholder: ViewStyle;
+  levelInlineText: TextStyle;
+  botRoleBadge: ViewStyle;
   botRoleName: TextStyle;
 }
 
@@ -384,6 +387,14 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
     highlightRingStyle = hasFrame ? styles.dangerRingFramed : styles.dangerRing;
   }
 
+  // Name color: only my own seat uses the primary color; other names stay
+  // neutral so a full room doesn't become a wall of purple (W6).
+  const resolveNameStyle = (): TextStyle => {
+    if (isMySpot) return styles.playerNameHighlight;
+    if (isPlayerAnonymous) return styles.playerName;
+    return styles.playerNamePlain;
+  };
+
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <Animated.View style={tileAnimatedStyle}>
@@ -484,16 +495,17 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
 
           {statusBadge !== null && hasPlayer && (
             <View
-              style={[styles.statusBadge, getStatusBadgeToneStyle(statusBadge.tone, styles)]}
+              style={[
+                statusBadge.tone === 'warning' || statusBadge.tone === 'danger'
+                  ? styles.statusAlertPill
+                  : styles.statusStrip,
+                getStatusBadgeToneStyle(statusBadge.tone, styles),
+              ]}
               testID={TESTIDS.seatStatusBadge(seat)}
             >
-              <Text style={styles.statusBadgeText}>{statusBadge.label}</Text>
-            </View>
-          )}
-
-          {showLevel && playerLevel != null && hasPlayer && !secondaryLabel && (
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>Lv{playerLevel}</Text>
+              {(statusBadge.tone === 'warning' || statusBadge.tone === 'danger') && (
+                <Text style={styles.statusAlertText}>{statusBadge.label}</Text>
+              )}
             </View>
           )}
         </TouchableOpacity>
@@ -508,20 +520,27 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
       </View>
       {hasPlayer ? (
         <>
-          <NameStyleText
-            styleId={playerNameStyle}
-            style={isPlayerAnonymous ? styles.playerName : styles.playerNameHighlight}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
-            {isBot && ' '}
-            {playerDisplayName}
-          </NameStyleText>
+          <View style={styles.nameRow}>
+            <NameStyleText
+              styleId={playerNameStyle}
+              style={resolveNameStyle()}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
+              {isBot && ' '}
+              {playerDisplayName}
+            </NameStyleText>
+            {showLevel && playerLevel != null && !secondaryLabel && (
+              <Text style={styles.levelInlineText}>Lv{playerLevel}</Text>
+            )}
+          </View>
           {secondaryLabel && (
-            <Text style={styles.botRoleName} numberOfLines={1}>
-              {secondaryLabel}
-            </Text>
+            <View style={styles.botRoleBadge}>
+              <Text style={styles.botRoleName} numberOfLines={1}>
+                {secondaryLabel}
+              </Text>
+            </View>
           )}
         </>
       ) : (
@@ -652,14 +671,26 @@ export function createRoomSeatTileStyles(
       right: -Math.round(tileSize * 0.1),
       pointerEvents: 'none',
     },
-    statusBadge: {
+    statusStrip: {
       position: 'absolute',
-      bottom: spacing.tight + spacing.micro,
-      left: spacing.tight + spacing.micro,
-      paddingHorizontal: spacing.tight + spacing.micro,
+      bottom: spacing.micro,
+      left: spacing.tight,
+      right: spacing.tight,
+      height: 3,
+      borderRadius: borderRadius.full,
+    },
+    statusAlertPill: {
+      position: 'absolute',
+      bottom: spacing.micro,
+      alignSelf: 'center',
+      paddingHorizontal: spacing.small,
       paddingVertical: spacing.micro,
-      borderRadius: borderRadius.small,
-      overflow: 'hidden',
+      borderRadius: borderRadius.full,
+    },
+    statusAlertText: {
+      color: colors.textInverse,
+      fontSize: typography.captionSmall,
+      fontWeight: typography.weights.bold,
     },
     statusBadgePrimary: {
       backgroundColor: colors.primary,
@@ -679,11 +710,6 @@ export function createRoomSeatTileStyles(
     statusBadgeDanger: {
       backgroundColor: colors.error,
     },
-    statusBadgeText: {
-      color: colors.textInverse,
-      fontSize: typography.caption,
-      fontWeight: typography.weights.bold,
-    },
     statusEmphasis: {
       position: 'absolute',
       top: -spacing.tight,
@@ -694,59 +720,69 @@ export function createRoomSeatTileStyles(
       borderColor: colors.info,
       borderRadius: borderRadius.large,
     },
-    levelBadge: {
-      position: 'absolute',
-      bottom: -spacing.tight,
-      alignSelf: 'center',
-      backgroundColor: withAlpha(colors.background, 0.85),
-      paddingHorizontal: spacing.tight + spacing.micro,
-      paddingVertical: spacing.micro / 2,
-      borderRadius: borderRadius.full,
-      zIndex: 10,
-    },
-    levelBadgeText: {
-      fontSize: typography.captionSmall,
-      fontWeight: typography.weights.bold,
-      color: colors.textMuted,
-    },
     emptyIndicator: {
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
-      color: withAlpha(colors.primary, 0.4),
+      color: withAlpha(colors.primary, 0.65),
     },
     emptyTile: {
       borderStyle: 'dashed' as const,
-      borderColor: withAlpha(colors.primary, 0.25),
-      backgroundColor: withAlpha(colors.primary, 0.03),
+      borderColor: withAlpha(colors.primary, 0.45),
+      backgroundColor: withAlpha(colors.primary, 0.06),
+    },
+    nameRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: spacing.tight,
+      height: typography.subtitle,
+      maxWidth: tileSize,
     },
     playerName: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       textAlign: 'center',
-      marginTop: spacing.tight,
-      width: tileSize - spacing.tight,
-      height: typography.subtitle,
+      flexShrink: 1,
     },
     playerNameHighlight: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.primary,
       textAlign: 'center',
-      marginTop: spacing.tight,
-      width: tileSize - spacing.tight,
-      height: typography.subtitle,
+      flexShrink: 1,
+    },
+    playerNamePlain: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.text,
+      textAlign: 'center',
+      flexShrink: 1,
+    },
+    levelInlineText: {
+      fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
+      color: colors.textMuted,
+      marginLeft: spacing.micro,
+      flexShrink: 0,
     },
     playerNamePlaceholder: {
       marginTop: spacing.tight,
       height: typography.subtitle,
+    },
+    botRoleBadge: {
+      marginTop: spacing.micro,
+      paddingHorizontal: spacing.tight,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surfaceHover,
+      alignSelf: 'center',
+      maxWidth: tileSize - spacing.tight,
     },
     botRoleName: {
       fontSize: typography.captionSmall,
       lineHeight: typography.lineHeights.captionSmall,
       color: colors.textMuted,
       textAlign: 'center',
-      width: tileSize - spacing.tight,
     },
   });
 }

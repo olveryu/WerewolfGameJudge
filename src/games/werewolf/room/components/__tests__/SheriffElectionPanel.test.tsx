@@ -197,6 +197,9 @@ describe('SheriffElectionPanel', () => {
     const screen = render(<SheriffElectionPanel model={model} styles={styles} />);
 
     expect(screen.getByTestId(TESTIDS.sheriffRegisteredSeats)).toHaveTextContent('1号 · 2号');
+    // ballot details are collapsed by default; expand to verify
+    expect(screen.queryByText(/3号→1号/)).toBeNull();
+    fireEvent.press(screen.getByText(/投票明细/));
     expect(screen.getByTestId(TESTIDS.sheriffCompletedRound('first'))).toHaveTextContent(/3号→1号/);
     expect(screen.getByTestId(TESTIDS.sheriffElectionResult)).toHaveTextContent('1号 当选警长');
     expect(screen.queryByText(/Alice|Bob|Chen|Dana/)).toBeNull();
