@@ -9,14 +9,7 @@ import type React from 'react';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  spacing,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 const COUNTDOWN_URGENT_THRESHOLD_SECONDS = 10;
 

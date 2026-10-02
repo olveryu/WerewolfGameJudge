@@ -8,25 +8,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { memo, useCallback } from 'react';
-import {
-  FlatList,
-  type ListRenderItemInfo,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, type ListRenderItemInfo, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
 import { UI_ICONS } from '@/config/iconTokens';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  spacing,
-  typography,
-} from '@/theme';
+import { borderRadius, colors, componentSizes, fixed, spacing, typography } from '@/theme';
 
 export interface BotTakeoverItem {
   readonly seat: number;
