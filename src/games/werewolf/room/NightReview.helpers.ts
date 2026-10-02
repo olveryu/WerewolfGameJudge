@@ -571,7 +571,7 @@ export function buildIdentityLines(players: Map<number, LocalPlayer | null>): st
   );
 }
 
-export function buildIdentities(players: Map<number, LocalPlayer | null>): NightReviewIdentity[] {
+function buildIdentities(players: Map<number, LocalPlayer | null>): NightReviewIdentity[] {
   const identities: NightReviewIdentity[] = [];
   const seats = Array.from(players.keys()).sort((a, b) => a - b);
 
