@@ -24,7 +24,7 @@ function formatCountdown(seconds: number): string {
   if (seconds >= 60) {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   }
-  return `${seconds}秒`;
+  return String(seconds);
 }
 
 const CountdownPillComponent: React.FC<CountdownPillProps> = ({
