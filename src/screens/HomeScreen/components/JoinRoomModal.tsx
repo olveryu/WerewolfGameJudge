@@ -54,13 +54,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
             ))}
           </View>
 
-          {errorMessage ? (
-            <View style={styles.errorSlot}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : (
-            <View style={styles.errorSlot} />
-          )}
+          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
           {/* NumPad */}
           <NumPad

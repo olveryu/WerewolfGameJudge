@@ -61,11 +61,10 @@ describe('HomeScreen Performance Optimizations', () => {
         'topBarActions',
         'userNameHidden',
         'heroCard',
-        'heroCardImage',
-        'heroCardImageRadius',
-        'heroCardScrim',
         'heroCardContent',
         'heroCardTitle',
+        'heroCardSubtitle',
+        'heroCardArrow',
         'actionRow',
         'actionCard',
         'actionCardDisabled',
@@ -93,6 +92,8 @@ describe('HomeScreen Performance Optimizations', () => {
         'outlineButtonText',
         'footer',
         'footerText',
+        'footerLink',
+        'footerLinkText',
       ];
       expectedKeys.forEach((key) => {
         expect(styles).toHaveProperty(key);

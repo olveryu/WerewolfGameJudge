@@ -10,8 +10,6 @@ const mainOption: ClientGameModeOption = {
   subtitle: '经典身份推理',
   iconName: 'moon-outline',
   tier: 'main',
-  playerLabel: '12人',
-  durationLabel: '约40分钟',
 };
 
 const miniOption: ClientGameModeOption = {
@@ -20,8 +18,6 @@ const miniOption: ClientGameModeOption = {
   subtitle: '看词描述，真假难辨',
   iconName: 'bulb-outline',
   tier: 'mini',
-  playerLabel: '4–20人',
-  durationLabel: '约20分钟',
 };
 
 function renderModal(options: readonly ClientGameModeOption[] = [mainOption, miniOption]) {
@@ -56,22 +52,6 @@ describe('GameModePickerModal', () => {
     fireEvent.press(getByTestId(TESTIDS.gameModePickerOption('fibking')));
 
     expect(onSelect).toHaveBeenCalledWith(miniOption);
-  });
-
-  it('shows decision info on the hero and player tags on mini rows', () => {
-    const { getByText } = renderModal();
-
-    expect(getByText('12人 · 约40分钟')).toBeTruthy();
-    expect(getByText('4–20人')).toBeTruthy();
-  });
-
-  it('falls back to subtitle when decision labels are absent', () => {
-    const { getByText } = renderModal([
-      { ...mainOption, playerLabel: undefined, durationLabel: undefined },
-      { ...miniOption, playerLabel: undefined, durationLabel: undefined },
-    ]);
-
-    expect(getByText('经典身份推理')).toBeTruthy();
   });
 
   it('fails fast when no options are provided', () => {
