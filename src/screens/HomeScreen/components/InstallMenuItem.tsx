@@ -10,13 +10,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { memo, useCallback, useState } from 'react';
-import { Text, View, type ViewStyle } from 'react-native';
+import { Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
-import { PressableScale } from '@/components/PressableScale';
 import { usePWAInstall } from '@/features/home/controllers/usePWAInstall';
-import { componentSizes, spacing, type ThemeColors } from '@/theme';
+import { componentSizes, fixed, spacing, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -48,20 +47,16 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
 
   return (
     <>
-      <PressableScale
-        style={styles.gachaCard}
+      <TouchableOpacity
+        style={styles.footerLink}
         onPress={() => {
           void handlePress();
         }}
-        haptic
+        activeOpacity={fixed.activeOpacity}
       >
-        <Ionicons name="download-outline" size={componentSizes.icon.md} color={colors.primary} />
-        <View style={styles.gachaCardText}>
-          <Text style={styles.gachaCardTitle}>安装到主屏幕</Text>
-          <Text style={styles.gachaCardSubtitle}>像 App 一样使用，启动更快</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-      </PressableScale>
+        <Ionicons name="download-outline" size={componentSizes.icon.sm} color={colors.primary} />
+        <Text style={styles.footerLinkText}>安装到主屏幕</Text>
+      </TouchableOpacity>
 
       {/* iOS 浏览器引导 Modal */}
       <Modal visible={showGuide} transparent animationType="fade">

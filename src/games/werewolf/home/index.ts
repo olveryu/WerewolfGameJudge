@@ -11,8 +11,6 @@ export const werewolfHomeContribution = {
     subtitle: '经典身份推理',
     iconName: 'moon-outline',
     tier: 'main',
-    playerLabel: '12人',
-    durationLabel: '约40分钟',
   },
   spotlight: WerewolfHomeSpotlight,
   announcementTabs: [

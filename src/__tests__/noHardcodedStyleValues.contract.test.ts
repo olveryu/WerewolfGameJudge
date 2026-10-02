@@ -170,7 +170,7 @@ function findViolations(content: string): Violation[] {
 
 const KNOWN_VIOLATIONS: Record<string, number> = {
   // Emoji fontSize: 28 for 🐺 logo + 🎰 gacha entry
-  'src/screens/HomeScreen/components/styles.ts': 1,
+  'src/screens/HomeScreen/components/styles.ts': 2,
 
   // Badge text on solid primary background (same as RoleCardContent BADGE_TEXT_WHITE)
   'src/screens/HomeScreen/components/UserAvatar.tsx': 1,
