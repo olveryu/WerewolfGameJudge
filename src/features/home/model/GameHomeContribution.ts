@@ -17,8 +17,6 @@ export interface GameModePresentation {
   readonly subtitle: string;
   readonly iconName: GameModeIconName;
   readonly tier: GameHomeTier;
-  /** Decision info, e.g. "4–12人". Verified against engine player constants. */
-  readonly playerLabel?: string;
 }
 
 export interface GameAnnouncementTabContentProps {
