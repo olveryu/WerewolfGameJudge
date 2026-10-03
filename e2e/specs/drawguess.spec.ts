@@ -37,10 +37,7 @@ async function confirm(page: Page): Promise<void> {
   await page.getByText('确定', { exact: true }).click();
 }
 
-// TODO: Skipped pending investigation of lobby rendering in CI e2e.
-// The room header renders but lobby content ("你画我猜" title, guide button,
-// room code) never appears. Functional changes (M1/M2) are covered by unit tests.
-test.skip('create, guide, full-room gating, fill bots, and wordSelect', async ({ browser }) => {
+test('create, guide, full-room gating, fill bots, and wordSelect', async ({ browser }) => {
   const fixture = await createPlayerContexts(browser, 2);
   const hostPage = fixture.pages[0];
   const joinerPage = fixture.pages[1];
