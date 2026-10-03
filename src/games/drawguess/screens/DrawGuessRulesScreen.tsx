@@ -61,7 +61,7 @@ export function DrawGuessRulesScreen() {
         <RuleItem
           icon="people-outline"
           title="机器人由房主接管"
-          description="开了机器人补位后，空座变成机器人。机器人不会自己画也不会自己猜，由房主接管代打。轮到机器人画手时等待房主接管，超时无人接管则本轮无人得分。"
+          description="房主在大厅点“填充机器人”后，空座变成机器人。机器人不会自己画也不会自己猜，由房主接管代打。轮到机器人画手时等待房主接管，超时无人接管则本轮无人得分。"
         />
       </GameGuideSection>
       <GameNotice text="画手放弃本轮会直接进入结算并公布答案；结算展示 8 秒后自动进入下一轮。" />

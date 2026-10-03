@@ -15,7 +15,7 @@ import {
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { Switch, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -34,7 +34,7 @@ import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoom
 import { parseDrawGuessConfigRouteParams } from '@/games/drawguess/navigation/drawGuessGameNavigation';
 import { getDrawGuessRoomCommandFailureMessage } from '@/games/drawguess/room/drawGuessRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
-import { colors, withAlpha } from '@/theme';
+import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
@@ -128,21 +128,6 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
           <Text style={styles.hint}>
             每人画 {DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 共{' '}
             {config.numberOfPlayers * DRAWGUESS_ROUNDS_PER_DRAWER} 轮
-          </Text>
-        </View>
-        <View style={styles.section}>
-          <View style={styles.row}>
-            <Text style={styles.label}>机器人补位</Text>
-            <Switch
-              accessibilityLabel="机器人补位"
-              value={config.fillEmptySeatsWithBots}
-              onValueChange={(value) => update('fillEmptySeatsWithBots', value)}
-              trackColor={{ false: colors.border, true: withAlpha(colors.primary, 0.4) }}
-              thumbColor={config.fillEmptySeatsWithBots ? colors.primary : colors.textSecondary}
-            />
-          </View>
-          <Text style={styles.hint}>
-            空位变成机器人，由房主接管代打。机器人席位不计入开局所需真人数。
           </Text>
         </View>
         <View style={styles.section}>

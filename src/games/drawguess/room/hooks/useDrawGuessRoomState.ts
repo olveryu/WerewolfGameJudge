@@ -3,10 +3,9 @@
  */
 
 import {
-  DRAWGUESS_MIN_REAL_HUMANS_TO_START,
+  DRAWGUESS_MIN_SEATS_TO_START,
   type DrawGuessCommand,
   getDrawGuessOccupiedSeatCount,
-  getDrawGuessRealHumanCount,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useEffect, useRef } from 'react';
 
@@ -37,6 +36,7 @@ import {
 } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { TESTIDS } from '@/testids';
 
 import {
   createDrawGuessSeatDataSource,
@@ -90,7 +90,7 @@ export function useDrawGuessRoomState(
       isSetup: isLobby,
       isHost,
       mySeat,
-      supportsBots: false,
+      supportsBots: true,
       hasOccupiedSeats: getDrawGuessOccupiedSeatCount(state) > 0,
       isRoomFull: getDrawGuessOccupiedSeatCount(state) === state.config.numberOfPlayers,
       requestTakeSeat: seatController.requestTakeSeat,
@@ -135,9 +135,16 @@ export function useDrawGuessRoomState(
       : seatController.requestMoveSeat(seat);
   };
   const actions: RoomHostManagementAction[] = [];
-  for (const [key, label, icon, capability] of [
-    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame],
-    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats],
+  for (const [key, label, icon, capability, testID] of [
+    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame, undefined],
+    [
+      'fillBots',
+      '填充机器人',
+      'people-outline',
+      capabilities.canFillBots,
+      TESTIDS.roomFillBotsButton,
+    ],
+    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats, undefined],
   ] as const)
     if (capability.isAllowed)
       actions.push({
@@ -147,12 +154,13 @@ export function useDrawGuessRoomState(
         variant: 'secondary',
         isEnabled: true,
         onPress: capability.execute,
+        ...(testID !== undefined ? { testID } : {}),
       });
-  const realHumanCount = getDrawGuessRealHumanCount(state);
-  const canStart = realHumanCount >= DRAWGUESS_MIN_REAL_HUMANS_TO_START;
+  const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
+  const canStart = occupiedSeatCount >= DRAWGUESS_MIN_SEATS_TO_START;
   const startDisabledReason = canStart
     ? null
-    : `至少需要 ${DRAWGUESS_MIN_REAL_HUMANS_TO_START} 位真人玩家才能开始（当前 ${realHumanCount} 位，机器人不计入）`;
+    : `至少需要 ${DRAWGUESS_MIN_SEATS_TO_START} 个已入座席位才能开始（当前 ${occupiedSeatCount} 个，真人或机器人均可）`;
   const isTerminal = state.phase.kind === 'ended';
   const terminalHostManagement: RoomHostManagementModel | null = !isTerminal
     ? null
@@ -260,7 +268,7 @@ export function useDrawGuessRoomState(
       : isLobby
         ? {
             preview: '开始游戏',
-            status: `等待入座 · 真人 ${realHumanCount}/${state.config.numberOfPlayers}`,
+            status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
             sections: [
               {
                 key: 'game',
