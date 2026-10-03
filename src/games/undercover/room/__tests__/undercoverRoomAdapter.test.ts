@@ -135,9 +135,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     dispatch(state, { type: 'undercover.round.abort', roundId: state.round!.roundId }),
     { type: 'undercover.game.returnToLobby' },
   );
-  const empty = dispatch(dispatch(lobby, { type: 'undercover.bots.clear' }), {
-    type: 'room.seat.leave',
-  });
+  const empty = dispatch(lobby, { type: 'room.seat.clear' });
   const unseatedCapabilities = createUndercoverRoomCapabilities({
     state: empty,
     isHost: true,

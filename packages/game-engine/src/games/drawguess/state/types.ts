@@ -10,8 +10,6 @@ export const DRAWGUESS_STATE_VERSION = 1;
 export const DRAWGUESS_MIN_PLAYERS = 4;
 export const DRAWGUESS_MAX_PLAYERS = 12;
 const DRAWGUESS_DEFAULT_PLAYERS = 6;
-/** 开局要求的最少已入座席位数；真人 + 隐式机器人都计入。 */
-export const DRAWGUESS_MIN_SEATS_TO_START = 4;
 
 export const DRAWGUESS_DRAWING_DURATION_SECONDS = 90;
 export const DRAWGUESS_ROUNDS_PER_DRAWER = 2;
@@ -233,7 +231,7 @@ export function isDrawGuessImplicitBotSeat(state: DrawGuessState, seat: number):
   );
 }
 
-/** Counts real humans only; implicit bot seats never count toward the start threshold. */
+/** Counts real humans only (excludes implicit bot seats). */
 export function getDrawGuessRealHumanCount(state: DrawGuessState): number {
   return Object.values(state.realSeats).filter((seat) => seat !== undefined).length;
 }

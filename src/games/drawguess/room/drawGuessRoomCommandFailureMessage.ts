@@ -6,6 +6,7 @@ import type { DrawGuessState } from '@game-judge/game-engine/games/drawguess/pub
 
 import { getRoomCommandFailureReason } from '@/features/room/session/roomCommandResult';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
+import { translateReasonCode } from '@/utils/errorUtils';
 
 /** 把房间命令的失败原因翻译成用户可读的中文。 */
 export function getDrawGuessRoomCommandFailureMessage(
@@ -39,8 +40,10 @@ export function getDrawGuessRoomCommandFailureMessage(
       return '猜词内容无效，请检查输入';
     case 'PNG 预留无效或已存在':
       return '画作上传预留无效，请重试';
-    case '至少需要 4 位真人玩家才能开始，机器人不计入':
-      return '至少需要 4 位真人玩家才能开始，机器人不计入';
+    case '题目已下发':
+      return '题目已下发';
+    case '请先坐满所有座位，或填充机器人。':
+      return '请先坐满所有座位，或填充机器人。';
     case '目标人数之外的座位仍有玩家入座，请先让这些玩家离座':
       return '目标人数之外的座位仍有玩家入座，请先让这些玩家离座';
     case '当前阶段尚未到推进时间':
@@ -48,6 +51,6 @@ export function getDrawGuessRoomCommandFailureMessage(
     case '只能接管机器人席位':
       return '只能接管机器人席位';
     default:
-      return '操作失败，请稍后重试';
+      return translateReasonCode(reason);
   }
 }

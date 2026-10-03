@@ -41,7 +41,6 @@ export const undercoverPublicCommandSchema: z.ZodType<UndercoverPublicCommand> =
       type: z.literal('undercover.config.update'),
       config: undercoverCreateConfigSchema,
     }),
-    z.strictObject({ type: z.literal('undercover.bots.clear') }),
     z.strictObject({ type: z.literal('undercover.round.start'), shouldAllowRepeated: z.boolean() }),
     z.strictObject({
       type: z.literal('undercover.round.restart'),

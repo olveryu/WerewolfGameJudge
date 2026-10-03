@@ -54,6 +54,21 @@ const UNDERCOVER_STATS: GameWordsStats = {
   supplyEnabled: true,
 };
 
+const DRAWGUESS_STATS: GameWordsStats = {
+  game: 'drawguess',
+  wordsByCategory: [{ category: 'animals', active: 7, total: 9 }],
+  monthlySupply: null,
+  tavilyRequestsUsed: null,
+  tavilyMonthlyQuota: null,
+  reviewDecisions: [
+    { decision: 'accepted', count: 6 },
+    { decision: 'rejected', count: 2 },
+  ],
+  reviewCheckStats: [],
+  queryLeaderboard: [{ label: 'animals', detail: 'active 题目', publishedWords: 7, packs: 3 }],
+  supplyEnabled: true,
+};
+
 /** Press the modal's 确定 button. The modal renders title/message/buttons as real UI. */
 function pressModalConfirm() {
   fireEvent.press(screen.getByText('确定'));
@@ -92,7 +107,25 @@ describe('GamesTab', () => {
     fireEvent.press(screen.getByText('谁是卧底'));
     await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledWith('undercover'));
     expect(screen.getByText('无月配额')).toBeTruthy();
-    expect(screen.getByText('谁是卧底无月配额限制')).toBeTruthy();
+    expect(screen.getByText('「谁是卧底」无月配额限制')).toBeTruthy();
+  });
+
+  it('switches to drawguess and localizes its categories', async () => {
+    mockFetchGameWordsStats.mockImplementation(async (game: string) =>
+      game === 'drawguess' ? DRAWGUESS_STATS : FIBKING_STATS,
+    );
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('在库词数')).toBeTruthy());
+    fireEvent.press(screen.getByText('你画我猜'));
+    await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledWith('drawguess'));
+    expect(screen.getByText('无月配额')).toBeTruthy();
+    expect(screen.getByText('「你画我猜」无月配额限制')).toBeTruthy();
+    // Raw enum values are localized: animals -> 动物.
+    expect(screen.getByText('动物')).toBeTruthy();
+    expect(screen.queryByText('animals')).toBeNull();
+    // Non-fibking leaderboard uses the generic per-category output title.
+    expect(screen.getByText('各分类产出')).toBeTruthy();
+    expect(screen.getByText('动物（active 题目）')).toBeTruthy();
   });
 
   it('confirms and triggers a normal supply run', async () => {
@@ -115,6 +148,28 @@ describe('GamesTab', () => {
     expect(screen.getByText(/突破本月 60 次配额/)).toBeTruthy();
     pressModalConfirm();
     await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', true));
+  });
+
+  it('triggers ten serial supply runs on 补词×10', async () => {
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('补词×10')).toBeTruthy());
+    fireEvent.press(screen.getByText('补词×10'));
+    expect(screen.getByText('确认补词')).toBeTruthy();
+    expect(screen.getByText(/将为「瞎掰王」连续触发 10 次补词/)).toBeTruthy();
+    pressModalConfirm();
+    await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledTimes(10));
+    expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', false);
+    // Reloads stats after the batch completes.
+    await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledTimes(2));
+  });
+
+  it('uses the daily batch wording for undercover force trigger', async () => {
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('在库词数')).toBeTruthy());
+    fireEvent.press(screen.getByText('谁是卧底'));
+    await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledWith('undercover'));
+    fireEvent.press(screen.getByText('强制补词'));
+    expect(screen.getByText(/将为「谁是卧底」强制触发一次补词，突破每日批次上限/)).toBeTruthy();
   });
 
   it('shows localized category names and the full query leaderboard', async () => {

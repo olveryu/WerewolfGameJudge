@@ -35,7 +35,7 @@ it('retries account delivery using the committed reward after the room is gone',
 });
 function completion(
   settlementId: string,
-  gameType: 'fibking' | 'pictionary' | 'undercover' | 'storyrelay' = 'fibking',
+  gameType: 'fibking' | 'pictionary' | 'undercover' | 'storyrelay' | 'drawguess' = 'fibking',
 ): GameRewardInput {
   return {
     settlementId,
@@ -133,9 +133,49 @@ it('settles Story Relay exactly once, excludes anonymous users and retains prior
   const previousResults = await settleGameRewards(env.DB, previous);
   const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0059_storyrelay.sql');
   if (migration === undefined) throw new Error('Missing Story Relay migration');
+  const restoreMigration = env.TEST_MIGRATIONS.find(({ name }) => name === '0062_drawguess.sql');
+  if (restoreMigration === undefined) throw new Error('Missing DrawGuess migration');
   await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
-  expect(await settleGameRewards(env.DB, previous)).toEqual(previousResults);
-  const input = completion('story-round', 'storyrelay');
+  try {
+    expect(await settleGameRewards(env.DB, previous)).toEqual(previousResults);
+    const input = completion('story-round', 'storyrelay');
+    const [first, replay] = await Promise.all([
+      settleGameRewards(env.DB, input),
+      settleGameRewards(env.DB, input),
+    ]);
+    expect(first).toEqual(replay);
+    expect(first).toEqual([
+      expect.objectContaining({
+        userId: 'reward-user',
+        xpEarned: 15,
+        normalDrawsEarned: 3,
+        goldenDrawsEarned: 2,
+      }),
+    ]);
+    expect(
+      await env.DB.prepare(
+        "SELECT xp, games_played FROM user_stats WHERE user_id = 'reward-user'",
+      ).first(),
+    ).toEqual({ xp: 30, games_played: 2 });
+    expect(
+      await env.DB.prepare("SELECT * FROM user_stats WHERE user_id = 'reward-guest'").first(),
+    ).toBeNull();
+    expect(await env.DB.prepare('PRAGMA foreign_key_check').all()).toMatchObject({ results: [] });
+  } finally {
+    // 0059 rebuilds rooms/room_game_starts/room_participants/fib_round_word_selections/
+    // undercover_round_word_selections/product_game_reward_results with narrower game_type
+    // CHECKs. Restore the latest (0062) schema so later tests in this file are unaffected.
+    // drawguess_words already exists, so its creation statements are excluded.
+    await env.DB.batch(
+      restoreMigration.queries
+        .filter((query) => !query.includes('drawguess_words'))
+        .map((query) => env.DB.prepare(query)),
+    );
+  }
+});
+
+it('settles DrawGuess completion with its registered rewards', async () => {
+  const input = completion('drawguess-round', 'drawguess');
   const [first, replay] = await Promise.all([
     settleGameRewards(env.DB, input),
     settleGameRewards(env.DB, input),
@@ -146,18 +186,11 @@ it('settles Story Relay exactly once, excludes anonymous users and retains prior
       userId: 'reward-user',
       xpEarned: 15,
       normalDrawsEarned: 3,
-      goldenDrawsEarned: 2,
     }),
   ]);
   expect(
-    await env.DB.prepare(
-      "SELECT xp, games_played FROM user_stats WHERE user_id = 'reward-user'",
-    ).first(),
-  ).toEqual({ xp: 30, games_played: 2 });
-  expect(
     await env.DB.prepare("SELECT * FROM user_stats WHERE user_id = 'reward-guest'").first(),
   ).toBeNull();
-  expect(await env.DB.prepare('PRAGMA foreign_key_check').all()).toMatchObject({ results: [] });
 });
 
 it('preserves historical rewards and replay receipts when expanding the game constraint', async () => {

@@ -1,8 +1,8 @@
 /**
  * GamesTab — admin word-supply dashboard.
  *
- * Segmented per-game view (fibking / undercover): supply stats, per-query
- * leaderboard, and manual supply triggers (normal + force).
+ * Segmented per-game view (fibking / undercover / drawguess): supply stats, per-query
+ * leaderboard, and manual supply triggers (normal + force + batch x10).
  */
 
 import type React from 'react';
@@ -20,6 +20,7 @@ import { AdminEmptyState, BarChart, MetricCard, Pagination } from '../components
 const GAMES: Array<{ id: GameWordGame; label: string }> = [
   { id: 'fibking', label: '瞎掰王' },
   { id: 'undercover', label: '谁是卧底' },
+  { id: 'drawguess', label: '你画我猜' },
 ];
 
 /** Rows per page for the fibking query leaderboard list. */
@@ -43,8 +44,23 @@ const FIBKING_REVIEW_CHECK_LABELS: Readonly<Record<string, string>> = {
   hasRevealValue: '揭晓价值',
 };
 
+/** DrawGuess word categories shown in admin; API returns the raw enum values. */
+const DRAWGUESS_CATEGORY_NAMES: Readonly<Record<string, string>> = {
+  animals: '动物',
+  food: '食物',
+  dailyObjects: '日用品',
+  plants: '植物',
+  vehicles: '交通工具',
+  places: '场所',
+  sports: '运动',
+  people: '人物',
+  idioms: '成语',
+  internetMemes: '网络梗',
+};
+
 function localizeCategory(game: GameWordGame, category: string): string {
   if (game === 'fibking') return FIBKING_CATEGORY_NAMES[category] ?? category;
+  if (game === 'drawguess') return DRAWGUESS_CATEGORY_NAMES[category] ?? category;
   const names: Readonly<Record<string, string>> = UNDERCOVER_CATEGORY_NAMES;
   return names[category] ?? category;
 }
@@ -55,9 +71,9 @@ export const GamesTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
-  // Pending confirm dialog: null = hidden, otherwise whether it is a force trigger.
+  // Pending confirm dialog: null = hidden, otherwise the trigger params.
   // AlertModal replaces Alert.alert because react-native-web's Alert.alert is a no-op.
-  const [confirmForce, setConfirmForce] = useState<boolean | null>(null);
+  const [confirm, setConfirm] = useState<{ force: boolean; count: number } | null>(null);
   // Current page of the fibking query leaderboard; resets when switching games.
   const [leaderboardPage, setLeaderboardPage] = useState(1);
 
@@ -77,32 +93,37 @@ export const GamesTab: React.FC = () => {
     void load(game);
   }, [game, load]);
 
+  const gameLabel = GAMES.find((g) => g.id === game)?.label ?? game;
+
   const confirmMessage = useMemo(() => {
-    if (confirmForce === null) return '';
-    const gameLabel = game === 'fibking' ? '瞎掰王' : '谁是卧底';
+    if (confirm === null) return '';
     // Model supply runs on dedicated free projects; force only breaks the budget cap.
     const forceDetail =
       game === 'fibking'
         ? `突破本月 ${data?.monthlySupply?.batchLimit ?? '—'} 次配额`
         : '突破每日批次上限';
-    return confirmForce
+    if (confirm.count > 1) return `将为「${gameLabel}」连续触发 ${confirm.count} 次补词，确定吗？`;
+    return confirm.force
       ? `将为「${gameLabel}」强制触发一次补词，${forceDetail}，确定吗？`
       : `为「${gameLabel}」立即触发一次补词，确定吗？`;
-  }, [confirmForce, data?.monthlySupply?.batchLimit, game]);
+  }, [confirm, data?.monthlySupply?.batchLimit, game, gameLabel]);
 
-  const doTrigger = useCallback(() => {
-    if (confirmForce === null) return;
-    const force = confirmForce;
+  const doTrigger = useCallback(async () => {
+    if (confirm === null) return;
+    const { force, count } = confirm;
     setTriggering(true);
-    triggerGameWordSupply(game, force)
-      .then(() => load(game))
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : 'Unknown error');
-      })
-      .finally(() => {
-        setTriggering(false);
-      });
-  }, [confirmForce, game, load]);
+    try {
+      // Serial calls: the backend assigns a unique runId per trigger, so no conflicts.
+      for (let i = 0; i < count; i += 1) {
+        await triggerGameWordSupply(game, force);
+      }
+      await load(game);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setTriggering(false);
+    }
+  }, [confirm, game, load]);
 
   const totalActive = useMemo(
     () => data?.wordsByCategory.reduce((sum, c) => sum + c.active, 0) ?? 0,
@@ -248,14 +269,14 @@ export const GamesTab: React.FC = () => {
               />
             </View>
           ) : (
-            <BarChart title="各分类词对数" items={leaderboardItems} labelWidth={120} />
+            <BarChart title="各分类产出" items={leaderboardItems} labelWidth={120} />
           )}
 
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
               disabled={triggering || !data.supplyEnabled}
-              onPress={() => setConfirmForce(false)}
+              onPress={() => setConfirm({ force: false, count: 1 })}
               style={[
                 styles.button,
                 styles.buttonPrimary,
@@ -267,7 +288,7 @@ export const GamesTab: React.FC = () => {
             <Pressable
               accessibilityRole="button"
               disabled={triggering || !data.supplyEnabled}
-              onPress={() => setConfirmForce(true)}
+              onPress={() => setConfirm({ force: true, count: 1 })}
               style={[
                 styles.button,
                 styles.buttonDanger,
@@ -276,29 +297,41 @@ export const GamesTab: React.FC = () => {
             >
               <Text style={styles.buttonLabel}>强制补词</Text>
             </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={triggering || !data.supplyEnabled}
+              onPress={() => setConfirm({ force: false, count: 10 })}
+              style={[
+                styles.button,
+                styles.buttonPrimary,
+                (triggering || !data.supplyEnabled) && styles.buttonDisabled,
+              ]}
+            >
+              <Text style={styles.buttonLabel}>补词×10</Text>
+            </Pressable>
           </View>
           <Text style={styles.hint}>
             {data.supplyEnabled
               ? remaining === null
-                ? '谁是卧底无月配额限制'
+                ? `「${gameLabel}」无月配额限制`
                 : `本月剩余 ${remaining} 次（配额 ${data.monthlySupply?.batchLimit}）${
                     tavilyUsage === null ? '' : ` · ${tavilyUsage}`
                   }`
               : '词库供给未启用'}
           </Text>
           <AlertModal
-            visible={confirmForce !== null}
+            visible={confirm !== null}
             title="确认补词"
             message={confirmMessage}
             buttons={[
               { text: '取消', style: 'cancel' },
               {
                 text: '确定',
-                style: confirmForce === true ? 'destructive' : 'default',
+                style: confirm?.force === true ? 'destructive' : 'default',
                 onPress: doTrigger,
               },
             ]}
-            onClose={() => setConfirmForce(null)}
+            onClose={() => setConfirm(null)}
           />
         </>
       )}

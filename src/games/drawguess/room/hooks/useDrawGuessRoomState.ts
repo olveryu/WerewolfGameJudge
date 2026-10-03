@@ -3,8 +3,8 @@
  */
 
 import {
-  DRAWGUESS_MIN_SEATS_TO_START,
   type DrawGuessCommand,
+  getDrawGuessBotDisplayName,
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useEffect, useRef } from 'react';
@@ -34,9 +34,9 @@ import {
   type DrawGuessRoomSession,
   getDrawGuessUserSeat,
 } from '@/games/drawguess/model/DrawGuessRoomSession';
+import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
-import { TESTIDS } from '@/testids';
 
 import {
   createDrawGuessSeatDataSource,
@@ -135,32 +135,38 @@ export function useDrawGuessRoomState(
       : seatController.requestMoveSeat(seat);
   };
   const actions: RoomHostManagementAction[] = [];
-  for (const [key, label, icon, capability, testID] of [
-    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame, undefined],
+  for (const [key, label, icon, variant, capability, testID] of [
     [
-      'fillBots',
+      'configure',
+      '房间设置',
+      'options-outline',
+      'secondary',
+      capabilities.canConfigureGame,
+      undefined,
+    ],
+    [
+      'fill',
       '填充机器人',
       'people-outline',
+      'secondary',
       capabilities.canFillBots,
       TESTIDS.roomFillBotsButton,
     ],
-    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats, undefined],
+    ['clear', '清空座位', 'trash-outline', 'danger', capabilities.canClearSeats, undefined],
   ] as const)
     if (capability.isAllowed)
       actions.push({
         key,
         label,
         icon,
-        variant: 'secondary',
+        variant,
         isEnabled: true,
         onPress: capability.execute,
         ...(testID !== undefined ? { testID } : {}),
       });
   const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
-  const canStart = occupiedSeatCount >= DRAWGUESS_MIN_SEATS_TO_START;
-  const startDisabledReason = canStart
-    ? null
-    : `至少需要 ${DRAWGUESS_MIN_SEATS_TO_START} 个已入座席位才能开始（当前 ${occupiedSeatCount} 个，真人或机器人均可）`;
+  const canStart = occupiedSeatCount === state.config.numberOfPlayers;
+  const startDisabledReason = canStart ? null : '座位尚未坐满';
   const isTerminal = state.phase.kind === 'ended';
   const terminalHostManagement: RoomHostManagementModel | null = !isTerminal
     ? null
@@ -305,7 +311,7 @@ export function useDrawGuessRoomState(
         : {
             kind: 'controlled',
             seat: controlledSeat,
-            displayName: `机器人${controlledSeat + 1}号`,
+            displayName: getDrawGuessBotDisplayName(controlledSeat),
             onRelease: releaseBot,
           },
   };
