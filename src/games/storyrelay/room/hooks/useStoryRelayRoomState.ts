@@ -129,36 +129,20 @@ export function useStoryRelayRoomState(
       : seatController.requestMoveSeat(seat);
   };
   const actions: RoomHostManagementAction[] = [];
-  for (const [key, label, icon, capability] of [
-    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame],
-    ['fill', '填充机器人', 'people-outline', capabilities.canFillBots],
-    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats],
+  for (const [key, label, icon, capability, variant] of [
+    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame, 'secondary'],
+    ['fill', '填充机器人', 'people-outline', capabilities.canFillBots, 'secondary'],
+    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats, 'danger'],
   ] as const)
     if (capability.isAllowed)
       actions.push({
         key,
         label,
         icon,
-        variant: 'secondary',
+        variant,
         isEnabled: true,
         onPress: capability.execute,
       });
-  if (state.botSeats.length > 0)
-    actions.push({
-      key: 'clear-bots',
-      label: '移除所有机器人',
-      icon: 'remove-circle-outline',
-      variant: 'secondary',
-      isEnabled: true,
-      onPress: () =>
-        showAlert('移除机器人', '保留真人座位，移除全部机器人？', [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '移除',
-            onPress: () => void submit('移除机器人', { type: 'storyrelay.bots.clear' }),
-          },
-        ]),
-    });
   const canAbort =
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';

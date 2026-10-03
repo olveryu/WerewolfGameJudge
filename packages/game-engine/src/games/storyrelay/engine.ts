@@ -147,7 +147,6 @@ export function decideStoryRelayCommand(
     case 'room.seat.fillBots':
     case 'room.profile.update':
     case 'storyrelay.config.update':
-    case 'storyrelay.bots.clear':
       return decideStoryRelayRoom(state, command, context);
     case 'storyrelay.round.start':
       return state.phase === 'lobby'

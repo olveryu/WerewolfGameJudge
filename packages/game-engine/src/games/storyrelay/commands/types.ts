@@ -29,7 +29,6 @@ export type StoryRelayCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'storyrelay.config.update'; readonly config: StoryRelayConfig }
-  | { readonly type: 'storyrelay.bots.clear' }
   | {
       readonly type:
         | 'storyrelay.round.start'

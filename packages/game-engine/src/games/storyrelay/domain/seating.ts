@@ -29,7 +29,7 @@ import {
 
 type RoomCommand = Extract<
   StoryRelayCommand,
-  { readonly type: `room.${string}` | 'storyrelay.config.update' | 'storyrelay.bots.clear' }
+  { readonly type: `room.${string}` | 'storyrelay.config.update' }
 >;
 
 function seats(
@@ -115,8 +115,6 @@ export function decideStoryRelayRoom(
           (seat) => state.realSeats[seat] === undefined,
         ),
       );
-    case 'storyrelay.bots.clear':
-      return seats([], []);
     case 'room.seat.kick': {
       if (state.botSeats.includes(command.seat))
         return seats(

@@ -42,7 +42,6 @@ const commands = defineCommands([
   }),
   z.strictObject({
     type: z.literal([
-      'storyrelay.bots.clear',
       'storyrelay.round.start',
       'storyrelay.round.next',
       'storyrelay.game.returnToLobby',
