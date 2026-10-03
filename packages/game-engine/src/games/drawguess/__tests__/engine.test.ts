@@ -140,10 +140,9 @@ describe('DrawGuess engine', () => {
     ).toThrow();
   });
 
-  it('requires at least 4 real humans to start (bots do not count)', () => {
-    const session = game();
-    // Remove one human -> 3 humans left.
-    session.send({ type: 'room.seat.leave' }, 'u3');
+  it('rejects starting when the room is not full', () => {
+    const session = game(6);
+    // 4 humans seated in a 6-player room: 2 empty seats remain.
     const decision = drawGuessEngine.decide(
       session.state,
       { type: 'drawguess.round.start' },
@@ -156,10 +155,14 @@ describe('DrawGuess engine', () => {
       },
     );
     expect(decision.kind).toBe('reject');
+    if (decision.kind !== 'reject') throw new Error('expected rejection');
+    expect(decision.reason).toBe('请先坐满所有座位，或填充机器人。');
   });
 
   it('starts the game with an ascending drawer queue and deals word choices', () => {
     const session = game(6);
+    // Fill the 2 empty seats with implicit bots so the room is full.
+    session.send({ type: 'room.seat.fillBots' });
     session.send({ type: 'drawguess.round.start' });
     expect(session.state.phase.kind).toBe('wordSelect');
     if (session.state.phase.kind !== 'wordSelect') throw new Error('phase');
