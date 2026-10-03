@@ -133,6 +133,8 @@ it('settles Story Relay exactly once, excludes anonymous users and retains prior
   const previousResults = await settleGameRewards(env.DB, previous);
   const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0059_storyrelay.sql');
   if (migration === undefined) throw new Error('Missing Story Relay migration');
+  const restoreMigration = env.TEST_MIGRATIONS.find(({ name }) => name === '0062_drawguess.sql');
+  if (restoreMigration === undefined) throw new Error('Missing DrawGuess migration');
   await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
   try {
     expect(await settleGameRewards(env.DB, previous)).toEqual(previousResults);
@@ -164,10 +166,8 @@ it('settles Story Relay exactly once, excludes anonymous users and retains prior
     // undercover_round_word_selections/product_game_reward_results with narrower game_type
     // CHECKs. Restore the latest (0062) schema so later tests in this file are unaffected.
     // drawguess_words already exists, so its creation statements are excluded.
-    const restore = env.TEST_MIGRATIONS.find(({ name }) => name === '0062_drawguess.sql');
-    if (restore === undefined) throw new Error('Missing DrawGuess migration');
     await env.DB.batch(
-      restore.queries
+      restoreMigration.queries
         .filter((query) => !query.includes('drawguess_words'))
         .map((query) => env.DB.prepare(query)),
     );
