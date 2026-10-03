@@ -170,5 +170,31 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
     },
+    drawguess: {
+      gameType: 'drawguess',
+      home: {
+        mode: {
+          displayName: '你画我猜',
+          subtitle: '一人作画，其余人聊天框猜词',
+          iconName: 'pencil-outline',
+          tier: 'mini',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.drawguess.navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('drawguess'),
+      productUi: {
+        getAvatarDisplayName: () => null,
+        getRevealEffectPresentation: () => null,
+      },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
   };
 }

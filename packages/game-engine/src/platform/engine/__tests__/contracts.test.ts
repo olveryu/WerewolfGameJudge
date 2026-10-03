@@ -1,3 +1,4 @@
+import { drawGuessEngine } from '../../../games/drawguess/engine';
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
 import { storyRelayEngine } from '../../../games/storyrelay/engine';
@@ -120,6 +121,7 @@ describe('typed game engine contract', () => {
       pictionary: pictionaryEngine,
       undercover: undercoverEngine,
       storyrelay: storyRelayEngine,
+      drawguess: drawGuessEngine,
     });
 
     expect(catalog.werewolf).toBe(counterEngine);
@@ -137,6 +139,7 @@ describe('typed game engine contract', () => {
       pictionary: pictionaryEngine,
       undercover: undercoverEngine,
       storyrelay: storyRelayEngine,
+      drawguess: drawGuessEngine,
     });
     defineGameEngineCatalog({
       werewolf: counterEngine,
@@ -146,6 +149,7 @@ describe('typed game engine contract', () => {
       unregisteredExample: pictionaryEngine,
       undercover: undercoverEngine,
       storyrelay: storyRelayEngine,
+      drawguess: drawGuessEngine,
     });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
@@ -154,6 +158,7 @@ describe('typed game engine contract', () => {
       pictionary: pictionaryEngine,
       undercover: undercoverEngine,
       storyrelay: storyRelayEngine,
+      drawguess: drawGuessEngine,
     });
   });
 });

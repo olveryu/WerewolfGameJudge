@@ -22,6 +22,7 @@
     "hono": "4.13.2",
     "jose": "6.2.9",
     "opencc-js": "1.4.2",
+    "pinyin-pro": "^3.28.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

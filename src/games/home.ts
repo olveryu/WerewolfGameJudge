@@ -17,6 +17,7 @@ export interface ClientGameModeOption {
   readonly subtitle: string;
   readonly iconName: GameModeIconName;
   readonly tier: GameHomeTier;
+  readonly playerLabel?: string;
 }
 
 export interface ClientGameHomeSpotlight {

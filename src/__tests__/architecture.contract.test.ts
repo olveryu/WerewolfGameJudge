@@ -578,6 +578,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     expect(concreteGameImports).toEqual([
       './games/fibking/wordSupplyWorkflow',
       './games/undercover/wordSupplyWorkflow',
+      './games/drawguess/wordSupplyWorkflow',
     ]);
     expect(workerEntry).toContain(
       "export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';",
@@ -894,6 +895,7 @@ describe('Worker request boundary: client objects are strict', () => {
       'packages/api-worker/src/features/auth/wechat/WeChatAuthProxy.ts',
       'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
       'packages/api-worker/src/features/feedback/providers/github.ts',
+      'packages/api-worker/src/games/drawguess/wordProvider.ts',
       'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
       'packages/api-worker/src/games/fibking/wordProviders/tavily.ts',
       'packages/api-worker/src/games/undercover/wordProvider.ts',

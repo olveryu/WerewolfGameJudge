@@ -74,6 +74,10 @@ export async function runScheduledCron(env: Env, cron: string, nowMs: number): P
           { id: `undercover-${day}`, params: { day } },
         ]);
       }
+      if (env.DRAWGUESS_WORD_SUPPLY_ENABLED === 'true') {
+        const day = new Date(nowMs).toISOString().slice(0, 10);
+        await env.DRAWGUESS_WORD_SUPPLY.createBatch([{ id: `drawguess-${day}`, params: { day } }]);
+      }
       return;
     default:
       throw new Error(`Unknown cron trigger: ${cron}`);
