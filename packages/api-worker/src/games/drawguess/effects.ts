@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { dealDrawGuessWords } from './wordDeal';
 
 const dealWordsEffectSchema = z.strictObject({
@@ -17,16 +18,28 @@ const dealWordsEffectSchema = z.strictObject({
   payload: z.strictObject({
     turnIndex: z.int().nonnegative(),
   }),
-}) satisfies z.ZodType<DrawGuessEffect>;
+});
 
-export const drawGuessEffectSchema: z.ZodType<DrawGuessEffect> = dealWordsEffectSchema;
+const gameCompletedEffectSchema = z.strictObject({
+  type: z.literal('drawguess.game.completed'),
+  payload: z.strictObject({
+    roundId: z.string().min(1),
+    completedAt: z.number().int().nonnegative(),
+    participantUserIds: z.array(z.string().min(1)),
+  }),
+});
+
+export const drawGuessEffectSchema: z.ZodType<DrawGuessEffect> = z.union([
+  dealWordsEffectSchema,
+  gameCompletedEffectSchema,
+]);
 
 function isSupersededDealRejection(reason: string): boolean {
   return reason === DRAWGUESS_REASONS.stale || reason === DRAWGUESS_REASONS.wordsDealt;
 }
 
 async function handleDrawGuessDealWordsEffect(
-  effect: DrawGuessEffect,
+  effect: Extract<DrawGuessEffect, { type: 'drawguess.words.deal' }>,
   context: WorkerEffectContext<DrawGuessState, DrawGuessInternalCommand>,
 ): Promise<void> {
   const state = context.state;
@@ -70,7 +83,11 @@ export async function handleDrawGuessEffect(
     case 'drawguess.words.deal':
       await handleDrawGuessDealWordsEffect(effect, context);
       return;
-    default:
-      throw new Error(`[FAIL-FAST] Unknown DrawGuess effect type: ${effect.type}`);
+    case 'drawguess.game.completed':
+      await publishGameRewards(
+        { ...effect.payload, kind: 'completion', gameType: 'drawguess' },
+        context,
+      );
+      return;
   }
 }

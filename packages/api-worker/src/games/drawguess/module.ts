@@ -38,7 +38,9 @@ export const drawGuessWorkerModule = defineWorkerGameModule({
   parsePublicUserStats: (value) => drawGuessPublicStatsSchema.parse(value),
   getPublicUserStats: () => Promise.resolve({ gameType: 'drawguess' as const }),
   getEffectBusinessKey: (effect, context) =>
-    `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`,
+    effect.type === 'drawguess.words.deal'
+      ? `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`
+      : `drawguess:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
   getEffectFailureCommand: () => null,
   canReplayFailedEffect: () => true,
   handleEffect: handleDrawGuessEffect,

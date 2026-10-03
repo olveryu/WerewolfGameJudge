@@ -79,6 +79,7 @@ binding = "CF_VERSION_METADATA"
 ENVIRONMENT = "production"
 FIB_WORD_SUPPLY_ENABLED = "true"
 UNDERCOVER_WORD_SUPPLY_ENABLED = "true"
+DRAWGUESS_WORD_SUPPLY_ENABLED = "true"
 CLOUDFLARE_ACCOUNT_ID = "a38318fda66da2d2d931d8ab2d98e1c0"
 CLOUDFLARE_WORKER_SCRIPT_NAME = "werewolf-api"
 SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.us.sentry.io/4511310645035008"
@@ -115,6 +116,11 @@ class_name = "FibWordSupplyWorkflow"
 name = "undercover-word-supply"
 binding = "UNDERCOVER_WORD_SUPPLY"
 class_name = "UndercoverWordSupplyWorkflow"
+
+[[workflows]]
+name = "drawguess-word-supply"
+binding = "DRAWGUESS_WORD_SUPPLY"
+class_name = "DrawGuessWordSupplyWorkflow"
 
 # ── Local Dev Server ─────────────────────────────────────────────────────────
 # Bind to localhost so Expo Web (localhost:8081) and wrangler share the same
