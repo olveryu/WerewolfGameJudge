@@ -14,7 +14,6 @@ import { userStatsOptions } from '@/features/account/queries/accountQueryOptions
 import { useRoomSeatCommands as useSharedRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { RoomSessionClient } from '@/features/room/session/types';
-import { createWerewolfDefaultDisplayName } from '@/games/werewolf/profile/createWerewolfDefaultDisplayName';
 
 interface UseWerewolfSeatCommandsParams {
   readonly session: RoomSessionClient<GameState, WerewolfPublicCommand>;
@@ -31,9 +30,7 @@ export function useWerewolfSeatCommands({ session, user }: UseWerewolfSeatComman
           ? resolveRandomAnimation(identity.room.roomCode + identity.userId)
           : (user.equippedEffect ?? undefined);
       const profile: WerewolfSeatProfile = {
-        displayName:
-          user.displayName ??
-          createWerewolfDefaultDisplayName(`${identity.room.roomId}:${identity.userId}`),
+        displayName: user.displayName ?? '匿名玩家',
         avatarUrl: user.avatarUrl ?? undefined,
         avatarFrame: user.avatarFrame ?? undefined,
         seatFlair: user.seatFlair ?? undefined,
