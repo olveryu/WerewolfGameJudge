@@ -29,7 +29,7 @@ export const DRAWGUESS_GUESS_TEXT_MAX_LENGTH = 32;
 export const DRAWGUESS_PHASES = ['lobby', 'wordSelect', 'drawing', 'roundEnd', 'ended'] as const;
 export type DrawGuessPhaseKind = (typeof DRAWGUESS_PHASES)[number];
 
-/** 词语分类：只收适合绘画的具象名词；供词链路按分类轮询生成。 */
+/** 词语分类：只收适合绘画的内容；供词链路按分类轮询生成。 */
 export const DRAWGUESS_WORD_CATEGORIES = [
   'animals',
   'food',
@@ -39,6 +39,8 @@ export const DRAWGUESS_WORD_CATEGORIES = [
   'places',
   'sports',
   'people',
+  'idioms',
+  'internetMemes',
 ] as const;
 export type DrawGuessWordCategory = (typeof DRAWGUESS_WORD_CATEGORIES)[number];
 

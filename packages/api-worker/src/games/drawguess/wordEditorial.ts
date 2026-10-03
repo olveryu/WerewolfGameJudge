@@ -8,8 +8,8 @@ import { pinyin } from 'pinyin-pro';
 import { z } from 'zod';
 
 export const DRAWGUESS_WORD_BATCH_LIMIT = 30;
-export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v1';
-export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v1';
+export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v2';
+export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v2';
 
 const toSimplified = Converter({ from: 't', to: 'cn' });
 /** 2–8 个汉字（CJK 主体区 + 扩展 A），只收简体。 */

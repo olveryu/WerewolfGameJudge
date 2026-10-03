@@ -33,15 +33,17 @@ const CATEGORY_TOPICS: Record<DrawGuessWordCategory, string> = {
   places: '建筑场所：常见建筑物、场馆、自然地标，轮廓好画的',
   sports: '运动：常见运动项目、器材，一看就知道怎么画的',
   people: '人物身份：常见职业或身份，外形特征明显的（如消防员、医生）',
+  idioms: '成语：有典故画面感的四字成语，能画出故事场景的（如守株待兔、画蛇添足）',
+  internetMemes: '网络热梗：年轻人熟知的流行语，有标志性画面的（如躺平、内卷），选经久不衰不过时的',
 };
 const GENERATION_PROMPT = `你为中文聚会游戏「你画我猜」设计题目词。玩家一人作画、众人猜词，词必须好画、好猜。
 只生成指定分类，目标是完整提供${DRAWGUESS_WORD_BATCH_LIMIT}个不同的词，而不是几个示例；上限${DRAWGUESS_WORD_BATCH_LIMIT}个。确实找不到足够合格的词时可少于目标或零产出，不凑数量。
-每个词都必须是普通中文玩家无需解释就认识的**具体名词**，有明确可画的外形；2至8个简体汉字。不要抽象词（如幸福、时间）、动词、形容词、专有名词（人名地名品牌名）。
+每个词都必须是普通中文玩家无需解释就认识、有明确画法的内容：名词看外形、成语看典故场景、热梗看标志性画面；2至8个简体汉字。不要纯抽象词（如幸福、时间）、专有名词（人名地名品牌名）。
 difficulty 按绘画难度打分：easy 是人人会画的常见物，medium 是需要一点技巧的，hard 是形状复杂但仍可画的；再难就直接舍弃。
 potentialIssues 为0至4项，记录多音字、易混淆、难画部位等风险；词语2至8字，每项说明2至180字。排除历史样本中的重复词。输出只是未审核候选，不宣称试玩或审核通过。`;
 const REVIEW_PROMPT = `你独立审核中文聚会游戏「你画我猜」的题目词。只凭给定词语重新思考，不接受生成者的自评。不要新增、遗漏、调序或替换词语。
-每个词必须同时满足：是具体可画的名词（isConcreteAndDrawable）、简体中文（isSimplifiedChinese）、2至8个汉字（isLengthValid）、分类准确（isCategoryAccurate）、内容适宜无冒犯（isAppropriate）、无严重歧义不会导致猜词死局（isUnambiguous）。
-先找拒绝证据，再逐项判断，不要因为词常见就全填true。抽象词、动词、形容词、专有名词，isConcreteAndDrawable 必须 false。字数含标点或非汉字时 isLengthValid 必须 false。
+每个词必须同时满足：有明确画法（isConcreteAndDrawable：名词看外形、成语看典故场景、热梗看标志性画面）、简体中文（isSimplifiedChinese）、2至8个汉字（isLengthValid）、分类准确（isCategoryAccurate）、内容适宜无冒犯（isAppropriate）、无严重歧义不会导致猜词死局（isUnambiguous）。
+先找拒绝证据，再逐项判断，不要因为词常见就全填true。纯抽象词、专有名词，isConcreteAndDrawable 必须 false。字数含标点或非汉字时 isLengthValid 必须 false。
 不确定的任一质量项必须 false，不能靠其他项弥补。所有词都必须返回审核，包括不合格者。自己填写具体 reason（2至180字），说明通过或拒绝的依据。`;
 
 async function requestStructuredOutput<Output>(
