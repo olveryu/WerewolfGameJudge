@@ -2,6 +2,8 @@
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
+import { createDrawGuessUiModule } from '@/games/drawguess/module';
+import { drawGuessGameNavigation } from '@/games/drawguess/navigation/drawGuessGameNavigation';
 import { createFibUiModule } from '@/games/fibking/module';
 import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
 import { type ClientGameCatalog, registerClientGameModule } from '@/games/model/ClientGameCatalog';
@@ -45,6 +47,11 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
     navigation: undercoverGameNavigation,
     createModule: ({ sessionFactory }) => createUndercoverUiModule({ sessionFactory }),
   },
+  drawguess: {
+    gameType: 'drawguess',
+    navigation: drawGuessGameNavigation,
+    createModule: ({ sessionFactory }) => createDrawGuessUiModule({ sessionFactory }),
+  },
   storyrelay: {
     gameType: 'storyrelay',
     navigation: storyRelayGameNavigation,
@@ -67,6 +74,9 @@ export function createClientGameCatalog(
     ),
     undercover: registerClientGameModule(
       CLIENT_GAME_PLUGIN_CATALOG.undercover.createModule(dependencies),
+    ),
+    drawguess: registerClientGameModule(
+      CLIENT_GAME_PLUGIN_CATALOG.drawguess.createModule(dependencies),
     ),
     storyrelay: registerClientGameModule(
       CLIENT_GAME_PLUGIN_CATALOG.storyrelay.createModule(dependencies),
