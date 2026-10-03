@@ -303,7 +303,7 @@ export const GamesTab: React.FC = () => {
                 (triggering || !data.supplyEnabled) && styles.buttonDisabled,
               ]}
             >
-              <Text style={styles.buttonLabel}>强制补词</Text>
+              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '强制补词'}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -315,7 +315,7 @@ export const GamesTab: React.FC = () => {
                 (triggering || !data.supplyEnabled) && styles.buttonDisabled,
               ]}
             >
-              <Text style={styles.buttonLabel}>补词×10</Text>
+              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '补词×10'}</Text>
             </Pressable>
           </View>
           <Text style={styles.hint}>
