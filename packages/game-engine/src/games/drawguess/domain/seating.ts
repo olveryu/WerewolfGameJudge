@@ -30,7 +30,7 @@ import {
 
 type RoomCommand = Extract<
   DrawGuessCommand,
-  { readonly type: `room.${string}` | 'drawguess.config.update' }
+  { readonly type: `room.${string}` | 'drawguess.config.update' | 'drawguess.bots.clear' }
 >;
 
 function seats(
@@ -121,6 +121,13 @@ export function decideDrawGuessRoom(
         },
         { type: 'drawguess.seats.changed', changes: [], excludedBotSeats: [] },
       ]);
+    case 'drawguess.bots.clear': {
+      const clearedBotSeats: number[] = [];
+      for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+        if (isDrawGuessImplicitBotSeat(state, seat)) clearedBotSeats.push(seat);
+      }
+      return seats([], [...state.excludedBotSeats, ...clearedBotSeats]);
+    }
     case 'room.seat.kick': {
       if (isDrawGuessImplicitBotSeat(state, command.seat)) {
         return seats([], [...state.excludedBotSeats, command.seat]);

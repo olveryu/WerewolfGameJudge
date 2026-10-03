@@ -38,7 +38,6 @@ import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
   DRAWGUESS_GAME_TYPE,
   DRAWGUESS_MAX_STROKES_PER_TURN,
-  DRAWGUESS_MIN_SEATS_TO_START,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_SELECT_SECONDS,
@@ -95,7 +94,7 @@ function startGame(state: DrawGuessState, context: CommandContext): DrawGuessDec
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(DRAWGUESS_REASONS.phase);
-  if (getDrawGuessOccupiedSeatCount(state) < DRAWGUESS_MIN_SEATS_TO_START)
+  if (getDrawGuessOccupiedSeatCount(state) !== state.config.numberOfPlayers)
     return reject(DRAWGUESS_REASONS.full);
   const drawerQueue = Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat);
   const drawerSeat = drawerQueue[0];
@@ -453,6 +452,7 @@ function decidePublicCommand(
     case 'room.seat.fillBots':
     case 'room.profile.update':
     case 'drawguess.config.update':
+    case 'drawguess.bots.clear':
       return decideDrawGuessRoom(state, command, context);
     case 'drawguess.round.start':
       return startGame(state, context);

@@ -37,7 +37,7 @@ export const DRAWGUESS_REASONS = {
   invalidGuess: '猜词内容无效',
   wordsDealt: '题目已下发',
   reservation: 'PNG 预留无效或已存在',
-  full: '至少需要 4 位真人玩家才能开始，机器人不计入',
+  full: '请先坐满所有座位，或填充机器人。',
   occupied: '目标人数之外的座位仍有玩家入座，请先让这些玩家离座',
   deadline: '当前阶段尚未到推进时间',
   controlledSeatNotBot: '只能接管机器人席位',
