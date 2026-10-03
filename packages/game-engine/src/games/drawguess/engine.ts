@@ -38,7 +38,7 @@ import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
   DRAWGUESS_GAME_TYPE,
   DRAWGUESS_MAX_STROKES_PER_TURN,
-  DRAWGUESS_MIN_REAL_HUMANS_TO_START,
+  DRAWGUESS_MIN_SEATS_TO_START,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_SELECT_SECONDS,
@@ -46,7 +46,7 @@ import {
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessWordChoice,
-  getDrawGuessRealHumanCount,
+  getDrawGuessOccupiedSeatCount,
   getDrawGuessTotalTurns,
   isValidDrawGuessConfig,
 } from './state/types';
@@ -95,7 +95,7 @@ function startGame(state: DrawGuessState, context: CommandContext): DrawGuessDec
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     return reject(DRAWGUESS_REASONS.phase);
-  if (getDrawGuessRealHumanCount(state) < DRAWGUESS_MIN_REAL_HUMANS_TO_START)
+  if (getDrawGuessOccupiedSeatCount(state) < DRAWGUESS_MIN_SEATS_TO_START)
     return reject(DRAWGUESS_REASONS.full);
   const drawerQueue = Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat);
   const drawerSeat = drawerQueue[0];
