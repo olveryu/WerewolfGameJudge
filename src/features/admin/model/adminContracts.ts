@@ -132,7 +132,7 @@ export interface AdminRoomPlayersResponse {
 
 export type TimePreset = '1h' | '24h' | 'today' | '7d' | '30d' | 'custom';
 
-export type GameWordGame = 'fibking' | 'undercover';
+export type GameWordGame = 'fibking' | 'undercover' | 'drawguess';
 
 export interface GameWordsStats {
   game: GameWordGame;
