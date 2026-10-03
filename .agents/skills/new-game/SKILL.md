@@ -35,18 +35,18 @@ prevent exactly that.
 
 从用户输入中提取已知项，对照下表**主动追问**所有缺失的必填项，**不许猜**：
 
-| 必填项 | 说明 | 示例 |
-| ------ | ---- | ---- |
-| 游戏中文名 | 2-6 字，不带人数后缀 | `你画我猜` |
-| 一句话玩法 | 给 game picker 展示用 | `一人作画，其余人聊天框猜词` |
-| 人数范围 | 最小–最大，默认人数 | `4–12，默认 6` |
-| 核心循环 | 一局内重复的最小单元 | `选词 → 作画 → 猜词 → 结算` |
-| 回合结构 | 每人几轮、谁先手、顺序 | `每人画 2 轮，按入座顺序轮流` |
-| 计时 | 各阶段秒数、超时行为 | `作画 90s，超时按未猜中结算` |
-| 计分 | 公式必须精确到可实现 | `猜中：50 + round(100 × 剩余毫秒 / 90000)` |
-| 终局条件 | 什么情况下结束、排名规则 | `全部轮次结束，同分按 1,2,2,4 竞赛排名` |
+| 必填项     | 说明                             | 示例                                               |
+| ---------- | -------------------------------- | -------------------------------------------------- |
+| 游戏中文名 | 2-6 字，不带人数后缀             | `你画我猜`                                         |
+| 一句话玩法 | 给 game picker 展示用            | `一人作画，其余人聊天框猜词`                       |
+| 人数范围   | 最小–最大，默认人数              | `4–12，默认 6`                                     |
+| 核心循环   | 一局内重复的最小单元             | `选词 → 作画 → 猜词 → 结算`                        |
+| 回合结构   | 每人几轮、谁先手、顺序           | `每人画 2 轮，按入座顺序轮流`                      |
+| 计时       | 各阶段秒数、超时行为             | `作画 90s，超时按未猜中结算`                       |
+| 计分       | 公式必须精确到可实现             | `猜中：50 + round(100 × 剩余毫秒 / 90000)`         |
+| 终局条件   | 什么情况下结束、排名规则         | `全部轮次结束，同分按 1,2,2,4 竞赛排名`            |
 | 机器人策略 | 是否支持、谁可接管、未接管时行为 | `支持，仅房主接管；无人接管则等 deadline 超时结算` |
-| 词库需求 | 是否需要词/题库、首批数量 | `需要，首批 200 个可画名词` |
+| 词库需求   | 是否需要词/题库、首批数量        | `需要，首批 200 个可画名词`                        |
 
 ### 1b. 输出设计文档
 
@@ -81,20 +81,20 @@ XP/结算、测试计划。
 加新游戏时以下白名单/硬编码列表必须同步。通用找法：grep 现有游戏名
 （如 `pictionary`）在**测试文件**里的所有出现，逐个确认要不要加新项。
 
-| # | 位置 | 内容 |
-| - | ---- | ---- |
-| 1 | `packages/game-engine/src/platform/protocol/gameTypes.ts` | `GAME_TYPES` 加 ID |
-| 2 | `packages/game-engine/src/games/catalog.ts` | engine catalog 注册 |
-| 3 | `packages/game-engine/package.json` | `exports` 加 `./games/<game>/public` |
-| 4 | `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts` | `EXPECTED_PACKAGE_EXPORTS` |
-| 5 | `packages/api-worker/src/games/catalog.ts` | worker module 注册 |
-| 6 | `packages/api-worker/src/index.ts` | workflow export（如有供词等 workflow） |
-| 7 | `packages/api-worker/src/games/__tests__/catalog.test.ts` | httpRoutes 期望列表 |
-| 8 | `src/games/catalog.ts` | client catalog 注册 |
-| 9 | `src/test-utils/clientGameCatalog.tsx` | 测试用 catalog |
-| 10 | `src/__tests__/architecture.contract.test.ts` | 多处白名单（workflow 导出、permissive zod 等） |
-| 11 | migration | 所有 `game_type CHECK` 加新 ID + 新表 |
-| 12 | `pnpm-lock.yaml` | 加了新依赖必须同步 lockfile |
+| #   | 位置                                                                        | 内容                                           |
+| --- | --------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1   | `packages/game-engine/src/platform/protocol/gameTypes.ts`                   | `GAME_TYPES` 加 ID                             |
+| 2   | `packages/game-engine/src/games/catalog.ts`                                 | engine catalog 注册                            |
+| 3   | `packages/game-engine/package.json`                                         | `exports` 加 `./games/<game>/public`           |
+| 4   | `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts` | `EXPECTED_PACKAGE_EXPORTS`                     |
+| 5   | `packages/api-worker/src/games/catalog.ts`                                  | worker module 注册                             |
+| 6   | `packages/api-worker/src/index.ts`                                          | workflow export（如有供词等 workflow）         |
+| 7   | `packages/api-worker/src/games/__tests__/catalog.test.ts`                   | httpRoutes 期望列表                            |
+| 8   | `src/games/catalog.ts`                                                      | client catalog 注册                            |
+| 9   | `src/test-utils/clientGameCatalog.tsx`                                      | 测试用 catalog                                 |
+| 10  | `src/__tests__/architecture.contract.test.ts`                               | 多处白名单（workflow 导出、permissive zod 等） |
+| 11  | migration                                                                   | 所有 `game_type CHECK` 加新 ID + 新表          |
+| 12  | `pnpm-lock.yaml`                                                            | 加了新依赖必须同步 lockfile                    |
 
 ## Phase 3 — 实现
 
