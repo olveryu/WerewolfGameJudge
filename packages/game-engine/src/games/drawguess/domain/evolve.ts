@@ -36,6 +36,7 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
         phaseRevision: state.phaseRevision + 1,
         drawerQueue: [...event.drawerQueue],
         turnIndex: 0,
+        gameSequence: state.gameSequence + 1,
       };
     case 'drawguess.turn.started': {
       if (state.turnIndex + 1 !== event.turnIndex) return state;

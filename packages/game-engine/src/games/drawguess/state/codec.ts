@@ -334,6 +334,7 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
         turnIndex: parseInteger(raw.turnIndex, `${path}.turnIndex`),
         scores: scores(raw.scores, `${path}.scores`),
         usedWords: parseArray(raw.usedWords, `${path}.usedWords`, parseString),
+        gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
       },
       path,
     ),

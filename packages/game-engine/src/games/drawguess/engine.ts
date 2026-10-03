@@ -67,11 +67,26 @@ function createInitialState(config: DrawGuessConfig, context: CreateGameContext)
     turnIndex: 0,
     scores: {},
     usedWords: [],
+    gameSequence: 0,
   });
 }
 
 function dealEffect(turnIndex: number): DrawGuessEffect {
   return { type: 'drawguess.words.deal', payload: { turnIndex } };
+}
+
+/** 对局结束时发结算 effect，Worker 据此发 XP/抽卡奖励。 */
+function completionEffect(state: DrawGuessState, context: CommandContext): DrawGuessEffect {
+  return {
+    type: 'drawguess.game.completed',
+    payload: {
+      roundId: `drawguess:game:${state.gameSequence}`,
+      completedAt: context.nowMs,
+      participantUserIds: Object.values(state.realSeats)
+        .filter((seat) => seat !== undefined)
+        .map((seat) => seat.userId),
+    },
+  };
 }
 
 /** Host starts the game (or restarts from ended): build the drawer queue and deal words. */
@@ -401,9 +416,10 @@ function expirePhase(
       if (context.nowMs < state.phase.deadlineAt) return reject(DRAWGUESS_REASONS.deadline);
       const nextTurn = state.turnIndex + 1;
       if (nextTurn >= getDrawGuessTotalTurns(state)) {
-        return commitDrawGuess([
-          { type: 'drawguess.game.ended', totalScores: { ...state.scores } },
-        ]);
+        return commitDrawGuess(
+          [{ type: 'drawguess.game.ended', totalScores: { ...state.scores } }],
+          [completionEffect(state, context)],
+        );
       }
       const drawerSeat = state.drawerQueue[nextTurn % state.drawerQueue.length];
       if (drawerSeat === undefined) return reject(DRAWGUESS_REASONS.phase);

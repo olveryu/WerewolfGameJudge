@@ -15,9 +15,9 @@ import {
 } from '../state/types';
 
 const CHOICES: DrawGuessWordChoice[] = [
-  { word: '大熊猫', pinyinInitials: 'dxm' },
-  { word: '火锅', pinyinInitials: 'hg' },
-  { word: '风筝', pinyinInitials: 'fz' },
+  { word: '大熊猫', pinyinInitials: 'd x m' },
+  { word: '火锅', pinyinInitials: 'h g' },
+  { word: '风筝', pinyinInitials: 'f z' },
 ];
 
 function testStroke(id: string, seat: number): DrawGuessStroke {
@@ -184,7 +184,7 @@ describe('DrawGuess engine', () => {
     expect(phase.kind).toBe('drawing');
     if (phase.kind !== 'drawing') throw new Error('phase');
     expect(phase.word).toBe('大熊猫');
-    expect(phase.pinyinInitials).toBe('dxm');
+    expect(phase.pinyinInitials).toBe('d x m');
     expect(phase.revealOrder).toHaveLength(3);
     expect([...phase.revealOrder].sort()).toEqual([0, 1, 2]);
     expect(session.state.usedWords).toContain('大熊猫');

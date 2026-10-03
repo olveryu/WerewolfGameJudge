@@ -29,6 +29,19 @@ export const DRAWGUESS_GUESS_TEXT_MAX_LENGTH = 32;
 export const DRAWGUESS_PHASES = ['lobby', 'wordSelect', 'drawing', 'roundEnd', 'ended'] as const;
 export type DrawGuessPhaseKind = (typeof DRAWGUESS_PHASES)[number];
 
+/** 词语分类：只收适合绘画的具象名词；供词链路按分类轮询生成。 */
+export const DRAWGUESS_WORD_CATEGORIES = [
+  'animals',
+  'food',
+  'dailyObjects',
+  'plants',
+  'vehicles',
+  'places',
+  'sports',
+  'people',
+] as const;
+export type DrawGuessWordCategory = (typeof DRAWGUESS_WORD_CATEGORIES)[number];
+
 export interface DrawGuessConfig {
   readonly numberOfPlayers: number;
   readonly drawingDurationSeconds: typeof DRAWGUESS_DRAWING_DURATION_SECONDS;
@@ -183,6 +196,8 @@ export interface DrawGuessState extends BaseGameState<typeof DRAWGUESS_GAME_TYPE
   readonly scores: Readonly<Record<number, number>>;
   /** 本局已用题目，避免重复出题。 */
   readonly usedWords: readonly string[];
+  /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
+  readonly gameSequence: number;
 }
 
 /** Checks supported lobby settings without replacing invalid values. */

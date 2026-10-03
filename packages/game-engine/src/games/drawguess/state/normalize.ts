@@ -67,6 +67,7 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
     'phase revision',
   );
   invariant(Number.isSafeInteger(state.turnIndex) && state.turnIndex >= 0, 'turn index');
+  invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
   const users = Object.entries(state.realSeats);
   invariant(
     users.every(
@@ -155,7 +156,10 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
         'drawing drawer matches queue',
       );
       invariant(phase.word.length >= 2 && phase.word.length <= 8, 'drawing word');
-      invariant(phase.pinyinInitials.length === phase.word.length, 'pinyin initials length');
+      invariant(
+        phase.pinyinInitials.split(' ').length === phase.word.length,
+        'pinyin initials length',
+      );
       invariant(
         phase.revealOrder.length === phase.word.length &&
           new Set(phase.revealOrder).size === phase.word.length &&

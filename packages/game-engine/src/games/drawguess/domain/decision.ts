@@ -118,10 +118,16 @@ export type DrawGuessEvent =
     }
   | { readonly type: 'drawguess.game.returnedToLobby' };
 
-export interface DrawGuessEffect {
-  readonly type: 'drawguess.words.deal';
-  readonly payload: { readonly turnIndex: number };
-}
+export type DrawGuessEffect =
+  | { readonly type: 'drawguess.words.deal'; readonly payload: { readonly turnIndex: number } }
+  | {
+      readonly type: 'drawguess.game.completed';
+      readonly payload: {
+        readonly roundId: string;
+        readonly completedAt: number;
+        readonly participantUserIds: readonly string[];
+      };
+    };
 
 export type DrawGuessDecision = Decision<DrawGuessEvent, DrawGuessEffect>;
 

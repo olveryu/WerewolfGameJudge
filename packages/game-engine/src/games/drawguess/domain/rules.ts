@@ -85,7 +85,7 @@ export function computeRevealedCount(
   );
 }
 
-/** 猜题者看到的提示串，如 "d _ m"。 */
+/** 猜题者看到的提示串，如 "d x m"。首字母串按空格切分（zh/ch/sh 是双字母）。 */
 export function buildHintText(
   pinyinInitials: string,
   revealOrder: readonly number[],
@@ -93,19 +93,20 @@ export function buildHintText(
 ): string {
   const revealed = new Set(revealOrder.slice(0, revealedCount));
   return pinyinInitials
-    .split('')
+    .split(' ')
     .map((initial, index) => (revealed.has(index) ? initial : '_'))
     .join(' ');
 }
 
-/** 校验服务端下发的候选词：3 个不重复的简体词，且首字母串与词等长。 */
+/** 校验服务端下发的候选词：3 个不重复的简体词，首字母段数与字数相等。 */
 export function isValidWordChoice(choice: DrawGuessWordChoice): boolean {
+  const initials =
+    typeof choice.pinyinInitials === 'string' ? choice.pinyinInitials.split(' ') : [];
   return (
     typeof choice.word === 'string' &&
     choice.word.length >= 2 &&
     choice.word.length <= 8 &&
-    typeof choice.pinyinInitials === 'string' &&
-    choice.pinyinInitials.length === choice.word.length &&
-    /^[a-z]+$/.test(choice.pinyinInitials)
+    initials.length === choice.word.length &&
+    initials.every((part) => /^[a-z]+$/.test(part))
   );
 }
