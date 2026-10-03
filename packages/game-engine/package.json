@@ -28,6 +28,10 @@
       "types": "./src/games/storyrelay/public.ts",
       "default": "./dist/games/storyrelay/public.js"
     },
+    "./games/drawguess/public": {
+      "types": "./src/games/drawguess/public.ts",
+      "default": "./dist/games/drawguess/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"
