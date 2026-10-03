@@ -51,8 +51,8 @@ for (const viewport of [
       await page.getByText('确定', { exact: true }).click();
       await expect(page.getByText('等待入座 · 6/6', { exact: true })).toBeVisible();
       await room.openHostManagement();
-      await page.getByTestId('undercover-clear-bots').click();
-      await page.getByText('确定', { exact: true }).click();
+      await page.getByTestId('undercover-clear-seats').click();
+      await page.getByRole('button', { name: '清空座位', exact: true }).click();
       await expect(page.getByText('等待入座 · 0/6', { exact: true })).toBeVisible();
       await room.seatAt(0);
       await room.openHostManagement();

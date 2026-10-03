@@ -107,8 +107,6 @@ export function createUndercoverHostManagement(
         add('config', '房间设置', 'options-outline', capabilities.canConfigureGame.execute);
       if (capabilities.canFillBots.isAllowed)
         add('fill-bots', '填充机器人', 'people-outline', capabilities.canFillBots.execute);
-      if (state.botSeats.length > 0)
-        add('clear-bots', '移除机器人', 'remove-circle-outline', controls.clearBots);
       if (capabilities.canClearSeats.isAllowed)
         add(
           'clear-seats',

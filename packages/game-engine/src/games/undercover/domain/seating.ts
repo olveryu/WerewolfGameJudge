@@ -28,7 +28,7 @@ import {
 
 type RoomCommand = Extract<
   UndercoverPublicCommand,
-  { readonly type: `room.${string}` | 'undercover.config.update' | 'undercover.bots.clear' }
+  { readonly type: `room.${string}` | 'undercover.config.update' }
 >;
 
 function seatDecision(
@@ -114,8 +114,6 @@ export function decideUndercoverRoom(
       ).filter((seat) => state.realSeats[seat] === undefined);
       return seatDecision([], botSeats);
     }
-    case 'undercover.bots.clear':
-      return seatDecision([], []);
     case 'room.seat.kick': {
       if (state.botSeats.includes(command.seat))
         return seatDecision(

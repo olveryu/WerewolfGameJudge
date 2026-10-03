@@ -86,8 +86,8 @@ describe('Undercover room migration', () => {
     expect(
       await stub.dispatchUserCommand({
         ...commandContext,
-        commandId: 'clear-bots',
-        command: { type: 'undercover.bots.clear' },
+        commandId: 'kick-bot',
+        command: { type: 'room.seat.kick', seat: 1 },
       }),
     ).toMatchObject({
       kind: 'decided',
@@ -95,7 +95,7 @@ describe('Undercover room migration', () => {
         kind: 'committed',
         snapshot: {
           state: {
-            botSeats: [],
+            botSeats: [2, 3],
             realSeats: UNDERCOVER_STATE_CODEC.parse(expectedSnapshot.state).realSeats,
           },
         },

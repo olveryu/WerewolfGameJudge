@@ -36,7 +36,7 @@ import { getUndercoverRoleCounts, getUndercoverWinner, type UndercoverRole } fro
 
 type RoundCommand = Exclude<
   UndercoverCommand,
-  { readonly type: `room.${string}` | 'undercover.config.update' | 'undercover.bots.clear' }
+  { readonly type: `room.${string}` | 'undercover.config.update' }
 >;
 
 function selectionEffect(

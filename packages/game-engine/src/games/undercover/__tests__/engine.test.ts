@@ -540,7 +540,6 @@ describe('Undercover authoritative engine', () => {
       { type: 'room.seat.leave' },
       { type: 'room.seat.clear' },
       { type: 'room.seat.fillBots' },
-      { type: 'undercover.bots.clear' },
       { type: 'room.seat.kick', seat: 1 },
       { type: 'undercover.config.update', config: { ...config, category: 'food' } },
     ];

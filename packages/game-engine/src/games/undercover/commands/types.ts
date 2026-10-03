@@ -15,7 +15,6 @@ export type UndercoverPublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'undercover.config.update'; readonly config: UndercoverConfig }
-  | { readonly type: 'undercover.bots.clear' }
   | { readonly type: 'undercover.round.start'; readonly shouldAllowRepeated: boolean }
   | { readonly type: 'undercover.round.restart'; readonly roundId: string | null }
   | { readonly type: 'undercover.round.retry'; readonly roundId: string }

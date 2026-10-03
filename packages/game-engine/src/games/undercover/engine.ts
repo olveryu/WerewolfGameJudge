@@ -47,7 +47,6 @@ function decide(
     case 'room.seat.fillBots':
     case 'room.profile.update':
     case 'undercover.config.update':
-    case 'undercover.bots.clear':
       return decideUndercoverRoom(state, command, context);
     default:
       return decideUndercoverRound(state, command, context);
