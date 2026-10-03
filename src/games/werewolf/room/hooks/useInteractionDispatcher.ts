@@ -367,7 +367,7 @@ export function useInteractionDispatcher({
             seat: result.seat,
             userId: result.targetUserId,
             occupantKind: targetPlayer.isBot ? 'bot' : 'human',
-            rosterName: targetPlayer.displayName ?? `${result.seat + 1}号玩家`,
+            rosterName: targetPlayer.displayName ?? '匿名玩家',
           });
           return;
         }
