@@ -42,6 +42,11 @@ function MiniGameRow({
         <Text style={styles.miniTitle}>{option.displayName}</Text>
         <Text style={styles.rowSubtitle}>{option.subtitle}</Text>
       </View>
+      {option.playerLabel !== undefined && (
+        <View style={styles.playerTag}>
+          <Text style={styles.playerTagText}>{option.playerLabel}</Text>
+        </View>
+      )}
       <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textMuted} />
     </PressableScale>
   );
@@ -201,6 +206,16 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     gap: spacing.micro,
+  },
+  playerTag: {
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.micro,
+  },
+  playerTagText: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
   },
   rowSubtitle: {
     fontSize: typography.caption,
