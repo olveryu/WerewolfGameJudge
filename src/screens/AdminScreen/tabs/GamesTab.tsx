@@ -118,7 +118,7 @@ export const GamesTab: React.FC = () => {
     const { force, count } = confirm;
     setConfirm(null);
     setTriggering(true);
-    (async () => {
+    void (async () => {
       try {
         // Serial calls: the backend assigns a unique runId per trigger, so no conflicts.
         for (let i = 0; i < count; i += 1) {
