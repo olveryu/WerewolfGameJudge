@@ -65,14 +65,11 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       await confirm(hostPage);
     });
 
-    await test.step('fill bots, then the clear-bots action appears', async () => {
+    await test.step('fill bots to reach a full room', async () => {
       const panel = await room.openHostManagement();
       await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
       await confirm(hostPage);
       await expect(panel.getByText('等待入座 · 4/4', { exact: true })).toBeVisible();
-      await expect(
-        panel.getByRole('button', { name: '移除所有机器人', exact: true }),
-      ).toBeVisible();
     });
 
     await test.step('start the game and reach wordSelect', async () => {

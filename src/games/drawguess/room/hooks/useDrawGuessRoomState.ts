@@ -6,7 +6,6 @@ import {
   type DrawGuessCommand,
   getDrawGuessBotDisplayName,
   getDrawGuessOccupiedSeatCount,
-  isDrawGuessImplicitBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useEffect, useRef } from 'react';
 
@@ -165,29 +164,6 @@ export function useDrawGuessRoomState(
         onPress: capability.execute,
         ...(testID !== undefined ? { testID } : {}),
       });
-  let hasImplicitBots = false;
-  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-    if (isDrawGuessImplicitBotSeat(state, seat)) {
-      hasImplicitBots = true;
-      break;
-    }
-  }
-  if (hasImplicitBots)
-    actions.push({
-      key: 'clear-bots',
-      label: '移除所有机器人',
-      icon: 'remove-circle-outline',
-      variant: 'secondary',
-      isEnabled: true,
-      onPress: () =>
-        showAlert('移除机器人', '保留真人座位，移除全部机器人？', [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '移除',
-            onPress: () => void submit('移除机器人', { type: 'drawguess.bots.clear' }),
-          },
-        ]),
-    });
   const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
   const canStart = occupiedSeatCount === state.config.numberOfPlayers;
   const startDisabledReason = canStart ? null : '座位尚未坐满';

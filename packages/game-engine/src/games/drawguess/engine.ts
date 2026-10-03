@@ -452,7 +452,6 @@ function decidePublicCommand(
     case 'room.seat.fillBots':
     case 'room.profile.update':
     case 'drawguess.config.update':
-    case 'drawguess.bots.clear':
       return decideDrawGuessRoom(state, command, context);
     case 'drawguess.round.start':
       return startGame(state, context);
