@@ -14,6 +14,7 @@ import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes'
 import { describe, expect, it } from 'vitest';
 
 import { WORKER_GAME_CATALOG, WORKER_GAME_HTTP_ROUTES } from '../catalog';
+import { drawGuessMediaRoutes } from '../drawguess/mediaRoutes';
 import { fibEffectSchema } from '../fibking/effects';
 import {
   fibCreateConfigSchema,
@@ -156,6 +157,11 @@ describe('Worker game catalog', () => {
         gameType: 'undercover',
         path: '/api/games/undercover/inventory',
         router: undercoverInventoryRoutes,
+      },
+      {
+        gameType: 'drawguess',
+        path: '/api/games/drawguess/rooms',
+        router: drawGuessMediaRoutes,
       },
     ]);
     expect(WORKER_GAME_CATALOG.fibking.httpRoutes).toEqual([]);
