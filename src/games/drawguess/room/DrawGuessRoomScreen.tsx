@@ -745,6 +745,7 @@ const styles = StyleSheet.create({
   },
   canvasNarrow: {
     width: '100%',
+    maxHeight: '55%',
   },
   canvasWide: {
     flex: 1,
