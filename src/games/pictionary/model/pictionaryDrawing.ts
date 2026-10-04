@@ -10,6 +10,7 @@ export type PictionaryDrawingColor = `#${string}`;
 export function isPictionaryDrawingColor(value: unknown): value is PictionaryDrawingColor {
   return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value);
 }
+
 export type PictionaryDrawingWidth = (typeof PICTIONARY_DRAWING_WIDTHS)[number];
 export type PictionaryDrawingTool = 'brush' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'fill';
 

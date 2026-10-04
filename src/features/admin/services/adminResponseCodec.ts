@@ -518,7 +518,7 @@ export function parseAdminRequestTrafficResponse(value: unknown): AdminRequestTr
 }
 
 function parseGameWordGame(value: unknown, label: string): GameWordGame {
-  if (value === 'fibking' || value === 'undercover') return value;
+  if (value === 'fibking' || value === 'undercover' || value === 'drawguess') return value;
   throw new Error(`${label} has unsupported game`);
 }
 

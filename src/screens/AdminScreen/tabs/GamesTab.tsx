@@ -102,27 +102,35 @@ export const GamesTab: React.FC = () => {
       game === 'fibking'
         ? `突破本月 ${data?.monthlySupply?.batchLimit ?? '—'} 次配额`
         : '突破每日批次上限';
-    if (confirm.count > 1) return `将为「${gameLabel}」连续触发 ${confirm.count} 次补词，确定吗？`;
+    if (confirm.count > 1)
+      return `将为「${gameLabel}」连续强制触发 ${confirm.count} 次补词，${forceDetail}，确定吗？`;
     return confirm.force
       ? `将为「${gameLabel}」强制触发一次补词，${forceDetail}，确定吗？`
       : `为「${gameLabel}」立即触发一次补词，确定吗？`;
   }, [confirm, data?.monthlySupply?.batchLimit, game, gameLabel]);
 
-  const doTrigger = useCallback(async () => {
+  // Fire-and-forget: the AlertModal closes immediately on confirm (non-promise
+  // onPress), while the serial triggers run in the background. Errors surface
+  // via setError. This avoids holding the modal open with a spinner for the
+  // duration of 10 serial API calls.
+  const doTrigger = useCallback(() => {
     if (confirm === null) return;
     const { force, count } = confirm;
+    setConfirm(null);
     setTriggering(true);
-    try {
-      // Serial calls: the backend assigns a unique runId per trigger, so no conflicts.
-      for (let i = 0; i < count; i += 1) {
-        await triggerGameWordSupply(game, force);
+    void (async () => {
+      try {
+        // Serial calls: the backend assigns a unique runId per trigger, so no conflicts.
+        for (let i = 0; i < count; i += 1) {
+          await triggerGameWordSupply(game, force);
+        }
+        await load(game);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Unknown error');
+      } finally {
+        setTriggering(false);
       }
-      await load(game);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setTriggering(false);
-    }
+    })();
   }, [confirm, game, load]);
 
   const totalActive = useMemo(
@@ -295,19 +303,19 @@ export const GamesTab: React.FC = () => {
                 (triggering || !data.supplyEnabled) && styles.buttonDisabled,
               ]}
             >
-              <Text style={styles.buttonLabel}>强制补词</Text>
+              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '强制补词'}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               disabled={triggering || !data.supplyEnabled}
-              onPress={() => setConfirm({ force: false, count: 10 })}
+              onPress={() => setConfirm({ force: true, count: 10 })}
               style={[
                 styles.button,
                 styles.buttonPrimary,
                 (triggering || !data.supplyEnabled) && styles.buttonDisabled,
               ]}
             >
-              <Text style={styles.buttonLabel}>补词×10</Text>
+              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '补词×10'}</Text>
             </Pressable>
           </View>
           <Text style={styles.hint}>

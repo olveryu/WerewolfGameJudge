@@ -299,17 +299,15 @@ describe('DrawGuess engine', () => {
     expect(computeGuesserScore(-100)).toBe(50);
   });
 
-  it('ends the round early when all real humans have guessed', () => {
+  it('does NOT end the round early when all have guessed (Gartic.io rule: wait for timer)', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
     session.guess(1, '大熊猫');
     session.guess(2, '大熊猫');
     session.guess(3, '大熊猫');
-    expect(session.state.phase.kind).toBe('roundEnd');
-    if (session.state.phase.kind !== 'roundEnd') throw new Error('phase');
-    expect(session.state.phase.roundScores[1]).toBe(150);
-    expect(session.state.phase.roundScores[0]).toBe(60);
+    // Gartic.io: 猜中不提前结束，只等计时器
+    expect(session.state.phase.kind).toBe('drawing');
   });
 
   it('rate-limits guesses to 5 per seat per 10 seconds', () => {

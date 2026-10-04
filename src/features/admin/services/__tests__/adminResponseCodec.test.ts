@@ -279,4 +279,19 @@ describe('adminResponseCodec', () => {
       }),
     ).toThrow();
   });
+
+  it('accepts drawguess as a supported game word game', () => {
+    const decoded = parseGameWordsStatsResponse({
+      game: 'drawguess',
+      wordsByCategory: [{ category: 'animals', active: 0, total: 0 }],
+      monthlySupply: null,
+      tavilyRequestsUsed: null,
+      tavilyMonthlyQuota: null,
+      reviewDecisions: [],
+      reviewCheckStats: [],
+      queryLeaderboard: [],
+      supplyEnabled: true,
+    });
+    expect(decoded.game).toBe('drawguess');
+  });
 });
