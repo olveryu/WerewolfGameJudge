@@ -42,9 +42,9 @@ function GuessMessageRow({
   }
   if (message.correct) {
     return (
-      <View style={styles.messageRow}>
-        <Text style={styles.guessedText}>
-          {message.displayName} 猜中了{message.text === null ? '' : `：${message.text}`}
+      <View style={[styles.messageRow, styles.otherCorrectRow]}>
+        <Text style={styles.otherCorrectText}>
+          🎯 {message.displayName} 猜中了{message.text === null ? '' : `：${message.text}`}
         </Text>
       </View>
     );
@@ -190,6 +190,18 @@ const styles = StyleSheet.create({
   guessedText: {
     ...textStyles.secondarySemibold,
     color: colors.primary,
+  },
+  otherCorrectRow: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.success,
+  },
+  otherCorrectText: {
+    ...textStyles.secondarySemibold,
+    color: colors.success,
   },
   ownCorrectRow: {
     backgroundColor: colors.surface,

@@ -2,9 +2,10 @@
 
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 
@@ -13,7 +14,6 @@ import {
   usePictionaryAutoSubmission,
 } from '../hooks/usePictionaryAutoSubmission';
 import { usePictionaryStageDeadline } from '../hooks/usePictionaryStageDeadline';
-import { PictionaryBotControlStrip } from './PictionaryBotControlStrip';
 import { PictionaryEndedStage, PictionaryGalleryStage } from './PictionaryGalleryStage';
 import { PictionaryTaskStage } from './PictionaryTaskStage';
 
@@ -77,7 +77,12 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
 
   return (
     <View style={styles.container}>
-      <PictionaryBotControlStrip model={seatModel} />
+      <PictionaryTakeover
+        seatModel={seatModel}
+        isHost={isHost}
+        controlledSeat={controlledSeat}
+        remainingSeconds={deadline.remainingSeconds}
+      />
       <PictionaryTaskStage
         inputs={inputs}
         state={state}
@@ -96,3 +101,49 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
 const styles = StyleSheet.create({
   container: { flex: 1, minHeight: 0 },
 });
+
+/** Pictionary 接管：转接共用 BotTakeover 组件（2026 重设计）。 */
+function PictionaryTakeover({
+  seatModel,
+  isHost,
+  controlledSeat,
+  remainingSeconds,
+}: {
+  readonly seatModel: RoomSeatBoardModel;
+  readonly isHost: boolean;
+  readonly controlledSeat: number | null;
+  readonly remainingSeconds: number | null;
+}) {
+  const bots: BotTakeoverBot[] = useMemo(() => {
+    const result: BotTakeoverBot[] = [];
+    for (let seat = 0; seat < seatModel.source.count; seat += 1) {
+      const seatView = seatModel.source.getSeat(seat);
+      const displayName = seatView.player?.displayName;
+      if (seatView.player?.kind !== 'bot' || displayName === undefined) continue;
+      result.push({
+        seat,
+        displayName,
+        status: 'waiting',
+        statusLabel: seat === controlledSeat ? '接管中' : '待命',
+        actionLabel: '接管',
+      });
+    }
+    return result;
+  }, [seatModel.source, controlledSeat]);
+
+  const onTakeOver = seatModel.onBotSeatLongPress;
+  if (onTakeOver === null) return null;
+
+  return (
+    <BotTakeover
+      bots={bots}
+      activeSeat={null}
+      remainingSeconds={remainingSeconds}
+      controlledSeat={controlledSeat}
+      canControl={isHost}
+      isLobby={false}
+      onTakeOver={onTakeOver}
+      onRelease={() => onTakeOver(controlledSeat ?? 0)}
+    />
+  );
+}

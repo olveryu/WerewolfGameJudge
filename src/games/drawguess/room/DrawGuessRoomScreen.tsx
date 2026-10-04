@@ -12,12 +12,14 @@ import {
   getDrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -53,6 +55,8 @@ import { drawGuessStrokeToElement, useDrawGuessStrokeSync } from './hooks/useDra
 
 /** 游戏工作区最大宽度（与接龙版一致），水平居中。 */
 const DRAWGUESS_STAGE_MAX_WIDTH = 430;
+/** 宽屏断点：达到此宽度时作画区切换为左右分栏（画布左、工具+聊天右）。 */
+const DRAWGUESS_WIDE_LAYOUT_BREAKPOINT = 768;
 const PNG_UPLOAD_MAX_ATTEMPTS = 3;
 const PNG_UPLOAD_RETRY_MS = 5000;
 
@@ -229,40 +233,52 @@ function DrawGuessCountdown({
   );
 }
 
-/** 房主接管机器人席位的按钮条（仅房主可见）。 */
-function DrawGuessBotTakeoverStrip({
+/** 房主接管机器人：转接共用 BotTakeover 组件（2026 重设计）。 */
+function DrawGuessTakeover({
   screen,
   viewModel,
+  remainingSeconds,
 }: {
   readonly screen: DrawGuessScreenState;
   readonly viewModel: DrawGuessViewModel;
+  readonly remainingSeconds: number | null;
 }) {
-  const { isHost, canControlBots, controlledSeat, takeOver, releaseBot } = screen;
-  if (!isHost || !canControlBots) return null;
-  const botSeats = viewModel.seats.filter((seat) => seat.isBot);
-  if (botSeats.length === 0) return null;
+  const { state, isHost, canControlBots, controlledSeat, takeOver, releaseBot } = screen;
+  const isLobby = state.phase.kind === 'lobby';
+  const bots: BotTakeoverBot[] = viewModel.seats
+    .filter((seat) => seat.isBot)
+    .map((seat) => ({
+      seat: seat.seat,
+      displayName: seat.displayName,
+      status: seat.isLocked
+        ? ('done' as const)
+        : seat.isDrawer
+          ? ('acting' as const)
+          : ('waiting' as const),
+      statusLabel: seat.isDrawer
+        ? `正在作画${remainingSeconds !== null ? ` · 剩余 ${remainingSeconds}s` : ''}`
+        : seat.isLocked
+          ? '已猜中'
+          : '等待',
+      actionLabel: seat.isDrawer ? '接管代画' : '接管',
+    }));
+  const activeSeat =
+    state.phase.kind === 'drawing'
+      ? state.phase.drawerSeat
+      : state.phase.kind === 'wordSelect'
+        ? state.phase.drawerSeat
+        : null;
   return (
-    <View style={styles.botStrip} accessibilityLabel="机器人席位接管">
-      <Text style={styles.botStripTitle}>机器人席位（仅房主可接管代打）</Text>
-      {botSeats.map((seat) => (
-        <View key={seat.seat} style={styles.botRow}>
-          <Text style={styles.botName}>
-            {seat.displayName}
-            {seat.isDrawer ? ' · 画手' : ''}
-            {seat.isLocked ? ' · 已猜中' : ''}
-          </Text>
-          {controlledSeat === seat.seat ? (
-            <Button variant="secondary" size="sm" onPress={releaseBot}>
-              释放
-            </Button>
-          ) : (
-            <Button variant="secondary" size="sm" onPress={() => takeOver(seat.seat)}>
-              接管{seat.isDrawer ? '画手' : ''}
-            </Button>
-          )}
-        </View>
-      ))}
-    </View>
+    <BotTakeover
+      bots={bots}
+      activeSeat={activeSeat}
+      remainingSeconds={remainingSeconds}
+      controlledSeat={controlledSeat}
+      canControl={isHost && canControlBots}
+      isLobby={isLobby}
+      onTakeOver={takeOver}
+      onRelease={releaseBot}
+    />
   );
 }
 
@@ -316,7 +332,11 @@ function DrawGuessWordSelectView({
           <Text style={styles.hint}>选词结束后开始作画，请准备猜词。</Text>
         </View>
       )}
-      <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
+      <DrawGuessTakeover
+        screen={screen}
+        viewModel={viewModel}
+        remainingSeconds={remainingSeconds}
+      />
     </DrawGuessStageFrame>
   );
 }
@@ -335,6 +355,8 @@ function DrawGuessDrawingView({
   readonly remainingSeconds: number | null;
 }) {
   const { state, session, effectiveSeat, controlledSeat, isHost, submit } = screen;
+  const { width: windowWidth } = useWindowDimensions();
+  const isWideLayout = windowWidth >= DRAWGUESS_WIDE_LAYOUT_BREAKPOINT;
   const isDrawer = effectiveSeat === phase.drawerSeat;
   const [tool, setTool] = useState<DrawGuessDrawingTool>('brush');
   const [color, setColor] = useState<DrawGuessDrawingColor>(DRAWGUESS_DRAWING_PALETTE[0].value);
@@ -391,70 +413,76 @@ function DrawGuessDrawingView({
   };
 
   return (
-    <DrawGuessStageFrame
-      turnLabel={viewModel.turnLabel}
-      remainingSeconds={remainingSeconds}
-      countdownLabel="作画"
-    >
-      <DrawGuessHintBar
-        word={viewModel.word}
-        hintText={viewModel.hintText}
-        wordLength={viewModel.wordLength}
+    <>
+      <DrawGuessTakeover
+        screen={screen}
+        viewModel={viewModel}
+        remainingSeconds={remainingSeconds}
       />
-      <DrawGuessDrawingCanvas
-        elements={sync.elements}
-        tool={tool}
-        color={color}
-        strokeWidth={strokeWidth}
-        isEnabled={canDraw}
-        onElementChange={sync.onElementChange}
-        onElementComplete={sync.onElementComplete}
-        onFill={(point) => sync.onFill(point, color, strokeWidth)}
-      />
-      {isDrawer ? (
-        <View style={styles.section}>
-          <DrawGuessToolbar
-            tool={tool}
-            color={color}
-            strokeWidth={strokeWidth}
-            canUndo={sync.elements.length > 0}
-            disabled={!canDraw}
-            onToolChange={setTool}
-            onColorChange={setColor}
-            onWidthChange={setStrokeWidth}
-            onUndo={sync.undo}
-            onClear={sync.clear}
+      <RoomTaskViewport>
+        <DrawGuessStageFrame
+          turnLabel={viewModel.turnLabel}
+          remainingSeconds={remainingSeconds}
+          countdownLabel="作画"
+        >
+          <DrawGuessHintBar
+            word={viewModel.word}
+            hintText={viewModel.hintText}
+            wordLength={viewModel.wordLength}
           />
-          <View style={styles.drawerActions}>
-            {(isDrawer || isHost) && (
-              <Button variant="danger" size="sm" onPress={giveUp}>
-                放弃本轮
-              </Button>
-            )}
+          <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
+            <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
+              <DrawGuessDrawingCanvas
+                elements={sync.elements}
+                tool={tool}
+                color={color}
+                strokeWidth={strokeWidth}
+                isEnabled={canDraw}
+                onElementChange={sync.onElementChange}
+                onElementComplete={sync.onElementComplete}
+                onFill={(point) => sync.onFill(point, color, strokeWidth)}
+              />
+            </View>
+            <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
+              {isDrawer ? (
+                <>
+                  <DrawGuessToolbar
+                    tool={tool}
+                    color={color}
+                    strokeWidth={strokeWidth}
+                    canUndo={sync.elements.length > 0}
+                    disabled={!canDraw}
+                    onToolChange={setTool}
+                    onColorChange={setColor}
+                    onWidthChange={setStrokeWidth}
+                    onUndo={sync.undo}
+                    onClear={sync.clear}
+                  />
+                  <View style={styles.drawerActions}>
+                    {(isDrawer || isHost) && (
+                      <Button variant="danger" size="sm" onPress={giveUp}>
+                        放弃本轮
+                      </Button>
+                    )}
+                  </View>
+                  <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
+                </>
+              ) : null}
+              <View style={styles.guessPanelContainer}>
+                <DrawGuessGuessPanel
+                  messages={viewModel.messages}
+                  viewerSeat={effectiveSeat}
+                  isLocked={isDrawer ? false : isLocked}
+                  canGuess={isDrawer ? false : canGuess}
+                  readOnly={isDrawer}
+                  onSubmitGuess={submitGuess}
+                />
+              </View>
+            </View>
           </View>
-          <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
-          <DrawGuessGuessPanel
-            messages={viewModel.messages}
-            viewerSeat={effectiveSeat}
-            isLocked={false}
-            canGuess={false}
-            readOnly
-            onSubmitGuess={submitGuess}
-          />
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <DrawGuessGuessPanel
-            messages={viewModel.messages}
-            viewerSeat={effectiveSeat}
-            isLocked={isLocked}
-            canGuess={canGuess}
-            onSubmitGuess={submitGuess}
-          />
-        </View>
-      )}
-      <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
-    </DrawGuessStageFrame>
+        </DrawGuessStageFrame>
+      </RoomTaskViewport>
+    </>
   );
 }
 
@@ -652,6 +680,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenH,
     paddingVertical: spacing.small,
     gap: spacing.small,
+    flex: 1,
+    minHeight: 0,
   },
   stageHeader: {
     flexDirection: 'row',
@@ -698,6 +728,41 @@ const styles = StyleSheet.create({
   drawerActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+  },
+  drawingBodyNarrow: {
+    width: '100%',
+    flex: 1,
+    minHeight: 0,
+    gap: spacing.small,
+  },
+  drawingBodyWide: {
+    width: '100%',
+    flex: 1,
+    minHeight: 0,
+    flexDirection: 'row',
+    gap: spacing.small,
+    alignItems: 'stretch',
+  },
+  canvasNarrow: {
+    width: '100%',
+  },
+  canvasWide: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sidePanelNarrow: {
+    width: '100%',
+    gap: spacing.small,
+  },
+  sidePanelWide: {
+    width: 320,
+    flexShrink: 0,
+    gap: spacing.small,
+  },
+  guessPanelContainer: {
+    width: '100%',
+    minHeight: 200,
+    flex: 1,
   },
   answerBanner: {
     width: '100%',
