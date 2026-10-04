@@ -7,16 +7,15 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ColorPicker, {
   type ColorFormatsObject,
   HueSlider,
   Panel1,
   Preview,
 } from 'reanimated-color-picker';
-
-import { AppModal } from '@/components/AppModal/AppModal';
 
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -143,12 +142,27 @@ function ColorPickerPanel({
   );
 }
 
+const COLOR_POPOVER_WIDTH = 320;
+const COLOR_SHEET_BREAKPOINT = 600;
+
 export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
   const [activePanel, setActivePanel] = useState<ToolbarPanel | null>(null);
   const [recentColors, setRecentColors] = useState<readonly string[]>([]);
-  const { width } = useWindowDimensions();
+  const [panelAnchor, setPanelAnchor] = useState<{ left: number; top: number } | null>(null);
+  const [isColorPickerVisible, setIsColorPickerVisible] = useState(false);
+  const buttonRef = useRef<View>(null);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isCompact = width < WIDE_BREAKPOINT;
   const { disabled } = props;
+
+  useLayoutEffect(() => {
+    if (activePanel !== null) {
+      buttonRef.current?.measureInWindow((left, top) => setPanelAnchor({ left, top }));
+    } else {
+      setIsColorPickerVisible(false);
+    }
+  }, [activePanel, width, height]);
 
   const rememberColor = (hex: string) => {
     if (props.palette.some((swatch) => swatch.value.toUpperCase() === hex.toUpperCase())) return;
@@ -185,17 +199,19 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
         disabled={disabled}
         onPress={() => setActivePanel('tool')}
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="选择颜色"
-        accessibilityState={{ disabled }}
-        disabled={disabled}
-        onPress={() => setActivePanel('color')}
-        style={[styles.toolButton, disabled && styles.dimmed]}
-      >
-        <View style={[styles.colorDotLarge, { backgroundColor: props.color }]} />
-        <Text style={styles.toolLabel}>颜色</Text>
-      </Pressable>
+      <View ref={buttonRef} collapsable={false} style={styles.colorButtonAnchor}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="选择颜色"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={() => setActivePanel('color')}
+          style={[styles.toolButton, disabled && styles.dimmed]}
+        >
+          <View style={[styles.colorDotLarge, { backgroundColor: props.color }]} />
+          <Text style={styles.toolLabel}>颜色</Text>
+        </Pressable>
+      </View>
       <ToolButton
         label="选择粗细"
         caption="粗细"
@@ -230,123 +246,212 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
       )}
       <IconAction label="清空" icon="trash-outline" disabled={disabled} onPress={confirmClear} />
 
-      <AppModal visible={activePanel !== null} onRequestClose={() => setActivePanel(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setActivePanel(null)}>
-          <View style={[styles.modalSheet, isCompact ? styles.sheetBottom : styles.sheetCenter]}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{panelTitle}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="关闭"
-                onPress={() => setActivePanel(null)}
-                style={styles.sheetClose}
-              >
-                <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            {activePanel === 'tool' && (
-              <View style={styles.optionGrid}>
-                {TOOL_OPTIONS.map((option) => (
-                  <View key={option.tool} style={styles.toolOption}>
-                    <ToolButton
-                      label={option.label}
-                      caption={option.label}
-                      icon={option.icon}
-                      disabled={disabled}
-                      onPress={() => {
-                        props.onToolChange(option.tool);
-                        setActivePanel(null);
-                      }}
-                    />
-                  </View>
-                ))}
+      {/* 颜色面板：legacy 浮层定位（桌面端按钮旁浮层，移动端 bottom sheet） */}
+      {activePanel === 'color' && panelAnchor !== null && (
+        <Modal
+          visible={!disabled}
+          transparent
+          animationType="none"
+          onRequestClose={() => setActivePanel(null)}
+        >
+          <View style={StyleSheet.absoluteFill}>
+            <Pressable
+              accessibilityLabel="关闭颜色面板"
+              onPress={() => setActivePanel(null)}
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              accessibilityLabel="画笔颜色面板"
+              style={[
+                styles.colorOptions,
+                width < COLOR_SHEET_BREAKPOINT
+                  ? {
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      maxHeight: height - insets.top - spacing.medium,
+                      paddingBottom: Math.max(insets.bottom, spacing.medium),
+                    }
+                  : {
+                      left: Math.max(
+                        spacing.small,
+                        Math.min(panelAnchor.left, width - COLOR_POPOVER_WIDTH - spacing.small),
+                      ),
+                      bottom: height - panelAnchor.top + spacing.small,
+                      width: COLOR_POPOVER_WIDTH,
+                      maxHeight: panelAnchor.top - insets.top - spacing.medium,
+                    },
+              ]}
+            >
+              <View style={styles.colorHeader}>
+                {isColorPickerVisible && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="返回常用颜色"
+                    onPress={() => setIsColorPickerVisible(false)}
+                    style={styles.colorOptionButton}
+                  >
+                    <Ionicons name="arrow-back" size={spacing.large} color={colors.text} />
+                  </Pressable>
+                )}
+                <Text accessibilityRole="header" style={styles.colorTitle}>
+                  {isColorPickerVisible ? '调色板' : '颜色'}
+                </Text>
+                <View
+                  accessibilityLabel="当前颜色"
+                  style={[styles.colorCurrent, { backgroundColor: props.color }]}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="关闭选择面板"
+                  onPress={() => setActivePanel(null)}
+                  style={styles.colorOptionButton}
+                >
+                  <Ionicons name="close" size={spacing.large} color={colors.textSecondary} />
+                </Pressable>
               </View>
-            )}
-
-            {activePanel === 'color' && (
-              <View style={styles.panelBody}>
+              {isColorPickerVisible ? (
                 <ColorPickerPanel color={props.color} onColorChange={handleColorChange} />
-                <Text style={styles.panelSectionTitle}>预设颜色</Text>
-                <View style={styles.swatchGrid}>
-                  {props.palette.map((entry) => (
+              ) : (
+                <View style={styles.colorPaletteBody}>
+                  <View style={styles.swatchGrid}>
+                    {props.palette.map((entry) => (
+                      <Pressable
+                        key={entry.value}
+                        accessibilityRole="button"
+                        accessibilityLabel={`颜色${entry.name}`}
+                        accessibilityState={{
+                          selected: props.color.toUpperCase() === entry.value.toUpperCase(),
+                        }}
+                        onPress={() => {
+                          handleColorChange(entry.value);
+                          setActivePanel(null);
+                        }}
+                        style={[
+                          styles.swatch,
+                          { backgroundColor: entry.value },
+                          props.color.toUpperCase() === entry.value.toUpperCase() &&
+                            styles.selectedSwatch,
+                        ]}
+                      />
+                    ))}
                     <Pressable
-                      key={entry.value}
                       accessibilityRole="button"
-                      accessibilityLabel={`颜色${entry.name}`}
-                      accessibilityState={{
-                        selected: props.color.toUpperCase() === entry.value.toUpperCase(),
-                      }}
-                      onPress={() => {
-                        handleColorChange(entry.value);
-                        setActivePanel(null);
-                      }}
-                      style={[
-                        styles.swatch,
-                        { backgroundColor: entry.value },
-                        props.color.toUpperCase() === entry.value.toUpperCase() &&
-                          styles.selectedSwatch,
-                      ]}
-                    />
+                      accessibilityLabel="自定义颜色"
+                      onPress={() => setIsColorPickerVisible(true)}
+                      style={styles.customColorButton}
+                    >
+                      <Ionicons name="add" size={spacing.large} color={colors.textInverse} />
+                    </Pressable>
+                  </View>
+                  {recentColors.length > 0 && (
+                    <>
+                      <Text style={styles.panelSectionTitle}>最近使用</Text>
+                      <View style={styles.swatchGrid}>
+                        {recentColors.map((recent, index) => (
+                          <Pressable
+                            key={`${recent}-${index}`}
+                            accessibilityRole="button"
+                            accessibilityLabel={`最近颜色 ${index + 1}`}
+                            onPress={() => {
+                              handleColorChange(recent);
+                              setActivePanel(null);
+                            }}
+                            style={[styles.swatch, { backgroundColor: recent }]}
+                          />
+                        ))}
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* 工具/粗细面板：legacy 居中弹窗 */}
+      {activePanel !== null && activePanel !== 'color' && (
+        <Modal
+          visible={!disabled}
+          transparent
+          animationType="none"
+          onRequestClose={() => setActivePanel(null)}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setActivePanel(null)}>
+            <View style={[styles.modalSheet, isCompact ? styles.sheetBottom : styles.sheetCenter]}>
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>{panelTitle}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="关闭"
+                  onPress={() => setActivePanel(null)}
+                  style={styles.sheetClose}
+                >
+                  <Ionicons
+                    name="close"
+                    size={componentSizes.icon.md}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+
+              {activePanel === 'tool' && (
+                <View style={styles.optionGrid}>
+                  {TOOL_OPTIONS.map((option) => (
+                    <View key={option.tool} style={styles.toolOption}>
+                      <ToolButton
+                        label={option.label}
+                        caption={option.label}
+                        icon={option.icon}
+                        disabled={disabled}
+                        onPress={() => {
+                          props.onToolChange(option.tool);
+                          setActivePanel(null);
+                        }}
+                      />
+                    </View>
                   ))}
                 </View>
-                {recentColors.length > 0 && (
-                  <>
-                    <Text style={styles.panelSectionTitle}>最近使用</Text>
-                    <View style={styles.swatchGrid}>
-                      {recentColors.map((recent, index) => (
-                        <Pressable
-                          key={`${recent}-${index}`}
-                          accessibilityRole="button"
-                          accessibilityLabel={`最近颜色 ${index + 1}`}
-                          onPress={() => {
-                            handleColorChange(recent);
-                            setActivePanel(null);
-                          }}
-                          style={[styles.swatch, { backgroundColor: recent }]}
-                        />
-                      ))}
-                    </View>
-                  </>
-                )}
-              </View>
-            )}
+              )}
 
-            {activePanel === 'width' && (
-              <View style={styles.optionGrid}>
-                {props.widths.map((w) => (
-                  <Pressable
-                    key={w}
-                    accessibilityRole="button"
-                    accessibilityLabel={`笔宽 ${w}`}
-                    accessibilityState={{ selected: props.strokeWidth === w }}
-                    disabled={disabled}
-                    onPress={() => {
-                      props.onWidthChange(w);
-                      setActivePanel(null);
-                    }}
-                    style={[
-                      styles.widthOption,
-                      props.strokeWidth === w && styles.selectedWidthOption,
-                    ]}
-                  >
-                    <View
+              {activePanel === 'width' && (
+                <View style={styles.optionGrid}>
+                  {props.widths.map((w) => (
+                    <Pressable
+                      key={w}
+                      accessibilityRole="button"
+                      accessibilityLabel={`笔宽 ${w}`}
+                      accessibilityState={{ selected: props.strokeWidth === w }}
+                      disabled={disabled}
+                      onPress={() => {
+                        props.onWidthChange(w);
+                        setActivePanel(null);
+                      }}
                       style={[
-                        styles.widthDot,
-                        {
-                          width: Math.max(4, w),
-                          height: Math.max(4, w),
-                          backgroundColor: props.tool === 'eraser' ? colors.textMuted : props.color,
-                        },
+                        styles.widthOption,
+                        props.strokeWidth === w && styles.selectedWidthOption,
                       ]}
-                    />
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        </Pressable>
-      </AppModal>
+                    >
+                      <View
+                        style={[
+                          styles.widthDot,
+                          {
+                            width: Math.max(4, w),
+                            height: Math.max(4, w),
+                            backgroundColor:
+                              props.tool === 'eraser' ? colors.textMuted : props.color,
+                          },
+                        ]}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -403,6 +508,50 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
+  },
+  colorButtonAnchor: { flex: 1 },
+  colorOptions: {
+    position: 'absolute',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.medium,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    padding: spacing.medium,
+    gap: spacing.small,
+  },
+  colorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+    marginBottom: spacing.small,
+  },
+  colorTitle: {
+    ...textStyles.title,
+    flex: 1,
+  },
+  colorCurrent: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+  },
+  colorOptionButton: {
+    minWidth: fixed.minTouchTarget,
+    minHeight: fixed.minTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorPaletteBody: {
+    gap: spacing.small,
+  },
+  customColorButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
   },
   widthDot: {
     borderRadius: borderRadius.full,
