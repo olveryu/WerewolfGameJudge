@@ -18,6 +18,7 @@ import { Button } from '@/components/Button';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -395,68 +396,70 @@ function DrawGuessDrawingView({
   };
 
   return (
-    <DrawGuessStageFrame
-      turnLabel={viewModel.turnLabel}
-      remainingSeconds={remainingSeconds}
-      countdownLabel="作画"
-    >
-      <DrawGuessHintBar
-        word={viewModel.word}
-        hintText={viewModel.hintText}
-        wordLength={viewModel.wordLength}
-      />
-      <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
-        <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
-          <DrawGuessDrawingCanvas
-            elements={sync.elements}
-            tool={tool}
-            color={color}
-            strokeWidth={strokeWidth}
-            isEnabled={canDraw}
-            onElementChange={sync.onElementChange}
-            onElementComplete={sync.onElementComplete}
-            onFill={(point) => sync.onFill(point, color, strokeWidth)}
-          />
-        </View>
-        <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
-          {isDrawer ? (
-            <>
-              <DrawGuessToolbar
-                tool={tool}
-                color={color}
-                strokeWidth={strokeWidth}
-                canUndo={sync.elements.length > 0}
-                disabled={!canDraw}
-                onToolChange={setTool}
-                onColorChange={setColor}
-                onWidthChange={setStrokeWidth}
-                onUndo={sync.undo}
-                onClear={sync.clear}
-              />
-              <View style={styles.drawerActions}>
-                {(isDrawer || isHost) && (
-                  <Button variant="danger" size="sm" onPress={giveUp}>
-                    放弃本轮
-                  </Button>
-                )}
-              </View>
-              <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
-            </>
-          ) : null}
-          <View style={styles.guessPanelContainer}>
-            <DrawGuessGuessPanel
-              messages={viewModel.messages}
-              viewerSeat={effectiveSeat}
-              isLocked={isDrawer ? false : isLocked}
-              canGuess={isDrawer ? false : canGuess}
-              readOnly={isDrawer}
-              onSubmitGuess={submitGuess}
+    <RoomTaskViewport>
+      <DrawGuessStageFrame
+        turnLabel={viewModel.turnLabel}
+        remainingSeconds={remainingSeconds}
+        countdownLabel="作画"
+      >
+        <DrawGuessHintBar
+          word={viewModel.word}
+          hintText={viewModel.hintText}
+          wordLength={viewModel.wordLength}
+        />
+        <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
+          <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
+            <DrawGuessDrawingCanvas
+              elements={sync.elements}
+              tool={tool}
+              color={color}
+              strokeWidth={strokeWidth}
+              isEnabled={canDraw}
+              onElementChange={sync.onElementChange}
+              onElementComplete={sync.onElementComplete}
+              onFill={(point) => sync.onFill(point, color, strokeWidth)}
             />
           </View>
+          <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
+            {isDrawer ? (
+              <>
+                <DrawGuessToolbar
+                  tool={tool}
+                  color={color}
+                  strokeWidth={strokeWidth}
+                  canUndo={sync.elements.length > 0}
+                  disabled={!canDraw}
+                  onToolChange={setTool}
+                  onColorChange={setColor}
+                  onWidthChange={setStrokeWidth}
+                  onUndo={sync.undo}
+                  onClear={sync.clear}
+                />
+                <View style={styles.drawerActions}>
+                  {(isDrawer || isHost) && (
+                    <Button variant="danger" size="sm" onPress={giveUp}>
+                      放弃本轮
+                    </Button>
+                  )}
+                </View>
+                <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
+              </>
+            ) : null}
+            <View style={styles.guessPanelContainer}>
+              <DrawGuessGuessPanel
+                messages={viewModel.messages}
+                viewerSeat={effectiveSeat}
+                isLocked={isDrawer ? false : isLocked}
+                canGuess={isDrawer ? false : canGuess}
+                readOnly={isDrawer}
+                onSubmitGuess={submitGuess}
+              />
+            </View>
+          </View>
         </View>
-      </View>
-      <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
-    </DrawGuessStageFrame>
+        <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
+      </DrawGuessStageFrame>
+    </RoomTaskViewport>
   );
 }
 
@@ -654,6 +657,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenH,
     paddingVertical: spacing.small,
     gap: spacing.small,
+    flex: 1,
+    minHeight: 0,
   },
   stageHeader: {
     flexDirection: 'row',
@@ -703,13 +708,17 @@ const styles = StyleSheet.create({
   },
   drawingBodyNarrow: {
     width: '100%',
+    flex: 1,
+    minHeight: 0,
     gap: spacing.small,
   },
   drawingBodyWide: {
     width: '100%',
+    flex: 1,
+    minHeight: 0,
     flexDirection: 'row',
     gap: spacing.small,
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
   },
   canvasNarrow: {
     width: '100%',
