@@ -102,6 +102,7 @@ function ToolButton({
   readonly onPress: () => void;
   readonly children?: React.ReactNode;
 }) {
+  const [isLabelVisible, setIsLabelVisible] = useState(false);
   return (
     <Pressable
       accessibilityRole="button"
@@ -109,6 +110,10 @@ function ToolButton({
       accessibilityState={{ disabled, selected: isSelected }}
       disabled={disabled}
       onPress={onPress}
+      onHoverIn={() => setIsLabelVisible(true)}
+      onHoverOut={() => setIsLabelVisible(false)}
+      onFocus={() => setIsLabelVisible(true)}
+      onBlur={() => setIsLabelVisible(false)}
       style={({ pressed }) => [
         styles.toolButton,
         isSelected && styles.selectedToolButton,
@@ -119,6 +124,11 @@ function ToolButton({
       <Ionicons name={icon} size={18} color={isSelected ? colors.primary : colors.textSecondary} />
       <Text style={styles.toolLabel}>{caption}</Text>
       {children}
+      {isLabelVisible && (
+        <View style={styles.tooltip}>
+          <Text style={styles.tooltipText}>{label}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -590,6 +600,20 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: fixed.activeOpacity,
+  },
+  tooltip: {
+    position: 'absolute',
+    bottom: '100%',
+    minWidth: fixed.minTouchTarget,
+    padding: spacing.tight,
+    backgroundColor: colors.text,
+    borderRadius: borderRadius.small,
+    zIndex: 1,
+  },
+  tooltipText: {
+    ...textStyles.caption,
+    color: colors.textInverse,
+    textAlign: 'center',
   },
   toolLabel: {
     ...textStyles.caption,
