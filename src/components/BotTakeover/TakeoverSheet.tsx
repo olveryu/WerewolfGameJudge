@@ -2,7 +2,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { AppModal } from '@/components/AppModal/AppModal';
@@ -60,21 +60,23 @@ export const TakeoverSheet: React.FC<TakeoverSheetProps> = ({
               <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
             </Pressable>
           </View>
-          {sorted.map((bot) => (
-            <View key={bot.seat} style={styles.row}>
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle}>
-                  {STATUS_ICON[bot.status]} {bot.seat + 1}号位 · {bot.displayName}
-                </Text>
-                <Text style={styles.rowSubtitle}>{bot.statusLabel}</Text>
+          <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+            {sorted.map((bot) => (
+              <View key={bot.seat} style={styles.row}>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowTitle}>
+                    {STATUS_ICON[bot.status]} {bot.seat + 1}号位 · {bot.displayName}
+                  </Text>
+                  <Text style={styles.rowSubtitle}>{bot.statusLabel}</Text>
+                </View>
+                {bot.status !== 'done' && (
+                  <Button variant="secondary" size="sm" onPress={() => onTakeOver(bot.seat)}>
+                    {bot.actionLabel}
+                  </Button>
+                )}
               </View>
-              {bot.status !== 'done' && (
-                <Button variant="secondary" size="sm" onPress={() => onTakeOver(bot.seat)}>
-                  {bot.actionLabel}
-                </Button>
-              )}
-            </View>
-          ))}
+            ))}
+          </ScrollView>
         </View>
       </Pressable>
     </AppModal>
@@ -109,6 +111,13 @@ const styles = StyleSheet.create({
     minHeight: fixed.minTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  list: {
+    flex: 1,
+    minHeight: 0,
+  },
+  listContent: {
+    gap: spacing.small,
   },
   row: {
     flexDirection: 'row',
