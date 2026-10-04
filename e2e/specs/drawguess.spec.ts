@@ -69,7 +69,9 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       const panel = await room.openHostManagement();
       await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
       await confirm(hostPage);
-      await expect(panel.getByText('等待入座 · 4/4', { exact: true })).toBeVisible();
+      // The host management panel closes after fill bots; the 4/4 status
+      // is shown in the main lobby header.
+      await expect(hostPage.getByText('等待入座 · 4/4', { exact: true })).toBeVisible();
     });
 
     await test.step('start the game and reach wordSelect', async () => {
