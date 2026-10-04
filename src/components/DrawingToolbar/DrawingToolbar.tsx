@@ -366,12 +366,19 @@ const styles = StyleSheet.create({
   toolButton: {
     minWidth: fixed.minTouchTarget,
     minHeight: fixed.minTouchTarget,
+    flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.background,
     borderRadius: borderRadius.small,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.transparent,
     paddingHorizontal: spacing.tight,
     paddingVertical: spacing.tight,
     gap: spacing.tight / 2,
+    height: fixed.minTouchTarget + spacing.medium,
+    maxHeight: fixed.minTouchTarget + spacing.medium,
   },
   toolLabel: {
     ...textStyles.caption,
@@ -386,6 +393,13 @@ const styles = StyleSheet.create({
   colorDot: {
     width: componentSizes.icon.sm,
     height: componentSizes.icon.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+  },
+  colorDotLarge: {
+    width: 26,
+    height: 26,
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
