@@ -36,6 +36,7 @@ import {
   colors,
   componentSizes,
   fixed,
+  shadows,
   spacing,
   textStyles,
   withAlpha,
@@ -114,11 +115,7 @@ function ToolButton({
         disabled && styles.dimmed,
       ]}
     >
-      <Ionicons
-        name={icon}
-        size={componentSizes.icon.md}
-        color={isSelected ? colors.primary : colors.text}
-      />
+      <Ionicons name={icon} size={18} color={isSelected ? colors.primary : colors.textSecondary} />
       <Text style={styles.toolLabel}>{caption}</Text>
       {children}
     </Pressable>
@@ -281,8 +278,8 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
           style={[
             styles.widthDot,
             {
-              width: Math.max(4, props.strokeWidth),
-              height: Math.max(4, props.strokeWidth),
+              width: props.strokeWidth,
+              height: props.strokeWidth,
               backgroundColor: props.tool === 'eraser' ? colors.textMuted : props.color,
             },
           ]}
@@ -535,8 +532,8 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                           style={[
                             styles.widthDot,
                             {
-                              width: Math.max(4, w),
-                              height: Math.max(4, w),
+                              width: w,
+                              height: w,
                               backgroundColor:
                                 props.tool === 'eraser' ? colors.textMuted : props.color,
                             },
@@ -558,10 +555,6 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
 const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    width: '100%',
-    paddingVertical: spacing.tight,
     gap: spacing.tight,
     borderTopWidth: fixed.borderWidth,
     borderBottomWidth: fixed.borderWidth,
@@ -579,8 +572,7 @@ const styles = StyleSheet.create({
     borderWidth: fixed.borderWidth,
     borderColor: colors.transparent,
     paddingHorizontal: spacing.tight,
-    paddingVertical: spacing.tight,
-    gap: spacing.tight / 2,
+    gap: spacing.tight,
     height: fixed.minTouchTarget + spacing.medium,
     maxHeight: fixed.minTouchTarget + spacing.medium,
   },
@@ -616,11 +608,10 @@ const styles = StyleSheet.create({
   colorOptions: {
     position: 'absolute',
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
+    borderRadius: borderRadius.large,
     padding: spacing.medium,
     gap: spacing.small,
+    ...shadows.sm,
   },
   colorHeader: {
     flexDirection: 'row',
@@ -730,11 +721,11 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   swatch: {
-    width: fixed.minTouchTarget,
-    height: fixed.minTouchTarget,
+    width: spacing.xlarge,
+    height: spacing.xlarge,
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -754,7 +745,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   toolOption: {
-    width: '30%',
+    width: fixed.minTouchTarget,
   },
   widthOption: {
     width: fixed.minTouchTarget,
