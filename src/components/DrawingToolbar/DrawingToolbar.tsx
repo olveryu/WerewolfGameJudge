@@ -185,15 +185,17 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
         disabled={disabled}
         onPress={() => setActivePanel('tool')}
       />
-      <ToolButton
-        label="选择颜色"
-        caption="颜色"
-        icon="color-palette-outline"
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="选择颜色"
+        accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={() => setActivePanel('color')}
+        style={[styles.toolButton, disabled && styles.dimmed]}
       >
-        <View style={[styles.colorDot, { backgroundColor: props.color }]} />
-      </ToolButton>
+        <View style={[styles.colorDotLarge, { backgroundColor: props.color }]} />
+        <Text style={styles.toolLabel}>颜色</Text>
+      </Pressable>
       <ToolButton
         label="选择粗细"
         caption="粗细"
