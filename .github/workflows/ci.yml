@@ -452,9 +452,19 @@ jobs:
 
       # Run D1 migrations ONCE, share the migrated DB via artifact.
       # The 5 e2e shards download it instead of each running 62 migrations.
-      - name: Apply D1 migrations
+      # DEBUG 0062 hang: apply 0001-0061 normally, then 0062 statement-by-statement
+      - name: Apply D1 migrations (debug 0062)
         run: |
           cd packages/api-worker
+          # Temporarily move 0062+ out, apply 0001-0061
+          mkdir -p /tmp/migrations_hold
+          mv migrations/0062_drawguess.sql migrations/0063_drawguess_word_supply.sql migrations/0064_drawguess_words_table.sql /tmp/migrations_hold/
+          pnpm run db:migrate:local
+          # Now debug 0062 statement by statement
+          mv /tmp/migrations_hold/0062_drawguess.sql migrations/
+          node ../../scripts/debug-0062.mjs
+          # Restore rest and apply
+          mv /tmp/migrations_hold/*.sql migrations/
           pnpm run db:migrate:local
 
       - name: Package D1 state
