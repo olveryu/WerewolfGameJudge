@@ -9,11 +9,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const workerDir = join(__dirname, '..', 'packages', 'api-worker');
 const sql = readFileSync(join(workerDir, 'migrations', '0062_drawguess.sql'), 'utf-8');
 
-// Split by semicolon, filter empty
+// Split by semicolon, filter empty and comment-only statements
 const statements = sql
   .split(';')
   .map((s) => s.trim())
-  .filter((s) => s.length > 0);
+  .filter((s) => {
+    if (s.length === 0) return false;
+    // Skip if only SQL comments (lines starting with --)
+    const code = s
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('--'))
+      .join('\n')
+      .trim();
+    return code.length > 0;
+  });
 
 console.log(`Total statements: ${statements.length}`);
 
