@@ -396,70 +396,72 @@ function DrawGuessDrawingView({
   };
 
   return (
-    <RoomTaskViewport>
-      <DrawGuessStageFrame
-        turnLabel={viewModel.turnLabel}
-        remainingSeconds={remainingSeconds}
-        countdownLabel="作画"
-      >
-        <DrawGuessHintBar
-          word={viewModel.word}
-          hintText={viewModel.hintText}
-          wordLength={viewModel.wordLength}
-        />
-        <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
-          <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
-            <DrawGuessDrawingCanvas
-              elements={sync.elements}
-              tool={tool}
-              color={color}
-              strokeWidth={strokeWidth}
-              isEnabled={canDraw}
-              onElementChange={sync.onElementChange}
-              onElementComplete={sync.onElementComplete}
-              onFill={(point) => sync.onFill(point, color, strokeWidth)}
-            />
-          </View>
-          <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
-            {isDrawer ? (
-              <>
-                <DrawGuessToolbar
-                  tool={tool}
-                  color={color}
-                  strokeWidth={strokeWidth}
-                  canUndo={sync.elements.length > 0}
-                  disabled={!canDraw}
-                  onToolChange={setTool}
-                  onColorChange={setColor}
-                  onWidthChange={setStrokeWidth}
-                  onUndo={sync.undo}
-                  onClear={sync.clear}
-                />
-                <View style={styles.drawerActions}>
-                  {(isDrawer || isHost) && (
-                    <Button variant="danger" size="sm" onPress={giveUp}>
-                      放弃本轮
-                    </Button>
-                  )}
-                </View>
-                <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
-              </>
-            ) : null}
-            <View style={styles.guessPanelContainer}>
-              <DrawGuessGuessPanel
-                messages={viewModel.messages}
-                viewerSeat={effectiveSeat}
-                isLocked={isDrawer ? false : isLocked}
-                canGuess={isDrawer ? false : canGuess}
-                readOnly={isDrawer}
-                onSubmitGuess={submitGuess}
+    <>
+      <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
+      <RoomTaskViewport>
+        <DrawGuessStageFrame
+          turnLabel={viewModel.turnLabel}
+          remainingSeconds={remainingSeconds}
+          countdownLabel="作画"
+        >
+          <DrawGuessHintBar
+            word={viewModel.word}
+            hintText={viewModel.hintText}
+            wordLength={viewModel.wordLength}
+          />
+          <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
+            <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
+              <DrawGuessDrawingCanvas
+                elements={sync.elements}
+                tool={tool}
+                color={color}
+                strokeWidth={strokeWidth}
+                isEnabled={canDraw}
+                onElementChange={sync.onElementChange}
+                onElementComplete={sync.onElementComplete}
+                onFill={(point) => sync.onFill(point, color, strokeWidth)}
               />
             </View>
+            <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
+              {isDrawer ? (
+                <>
+                  <DrawGuessToolbar
+                    tool={tool}
+                    color={color}
+                    strokeWidth={strokeWidth}
+                    canUndo={sync.elements.length > 0}
+                    disabled={!canDraw}
+                    onToolChange={setTool}
+                    onColorChange={setColor}
+                    onWidthChange={setStrokeWidth}
+                    onUndo={sync.undo}
+                    onClear={sync.clear}
+                  />
+                  <View style={styles.drawerActions}>
+                    {(isDrawer || isHost) && (
+                      <Button variant="danger" size="sm" onPress={giveUp}>
+                        放弃本轮
+                      </Button>
+                    )}
+                  </View>
+                  <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
+                </>
+              ) : null}
+              <View style={styles.guessPanelContainer}>
+                <DrawGuessGuessPanel
+                  messages={viewModel.messages}
+                  viewerSeat={effectiveSeat}
+                  isLocked={isDrawer ? false : isLocked}
+                  canGuess={isDrawer ? false : canGuess}
+                  readOnly={isDrawer}
+                  onSubmitGuess={submitGuess}
+                />
+              </View>
+            </View>
           </View>
-        </View>
-        <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
-      </DrawGuessStageFrame>
-    </RoomTaskViewport>
+        </DrawGuessStageFrame>
+      </RoomTaskViewport>
+    </>
   );
 }
 
