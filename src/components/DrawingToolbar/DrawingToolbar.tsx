@@ -109,10 +109,11 @@ function ToolButton({
       accessibilityState={{ disabled, selected: isSelected }}
       disabled={disabled}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.toolButton,
         isSelected && styles.selectedToolButton,
         disabled && styles.dimmed,
+        pressed && styles.pressed,
       ]}
     >
       <Ionicons name={icon} size={18} color={isSelected ? colors.primary : colors.textSecondary} />
@@ -257,18 +258,25 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
       <View ref={buttonRef} collapsable={false} style={styles.colorButtonAnchor}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="选择颜色"
+          accessibilityLabel={`选择颜色，当前${
+            props.palette.find((s) => s.value.toUpperCase() === props.color.toUpperCase())?.name ??
+            '自定义颜色'
+          }`}
           accessibilityState={{ disabled }}
           disabled={disabled}
           onPress={() => setActivePanel('color')}
-          style={[styles.toolButton, disabled && styles.dimmed]}
+          style={({ pressed }) => [
+            styles.toolButton,
+            disabled && styles.dimmed,
+            pressed && styles.pressed,
+          ]}
         >
           <View style={[styles.colorDotLarge, { backgroundColor: props.color }]} />
           <Text style={styles.toolLabel}>颜色</Text>
         </Pressable>
       </View>
       <ToolButton
-        label="选择粗细"
+        label={`选择粗细，当前 ${props.strokeWidth} 像素`}
         caption="粗细"
         icon="ellipse"
         disabled={disabled}
@@ -579,6 +587,9 @@ const styles = StyleSheet.create({
   selectedToolButton: {
     backgroundColor: withAlpha(colors.primary, 0.15),
     borderColor: colors.primary,
+  },
+  pressed: {
+    opacity: fixed.activeOpacity,
   },
   toolLabel: {
     ...textStyles.caption,
