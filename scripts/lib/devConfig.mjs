@@ -8,7 +8,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const ROOT_DIR = join(__dirname, '..', '..');
+
+/** Max attempts for the idempotent `db:migrate:local` apply before failing. */
+const MAX_MIGRATION_ATTEMPTS = 3;
 
 // ─── writeDevVars ────────────────────────────────────────────────────────────
 
@@ -45,10 +48,45 @@ export function writeDevVars() {
  * Only needed for cloudflare E2E mode — ensures local D1 has the schema.
  *
  * Uses pipe stdio so wrangler detects non-interactive context and auto-confirms.
+ *
+ * Verifies completion by comparing the migration files on disk against the
+ * `d1_migrations` journal in the local database, retrying the idempotent apply
+ * when wrangler exits early. Fails fast naming the missing migrations instead of
+ * letting later seed steps die with cryptic "no such table" errors.
  */
 export function applyD1Migrations() {
   const workerDir = join(ROOT_DIR, 'packages', 'api-worker');
+  const migrationsDir = join(workerDir, 'migrations');
   console.log('🗄️  Applying D1 migrations (local)...');
+
+  let missing = [];
+
+  for (let attempt = 1; attempt <= MAX_MIGRATION_ATTEMPTS; attempt++) {
+    runMigrationApply(workerDir);
+    missing = findMissingMigrations(workerDir, migrationsDir);
+    if (missing.length === 0) {
+      console.log('✅ D1 migrations applied');
+      return;
+    }
+    console.warn(
+      `⚠️  D1 migration attempt ${attempt}/${MAX_MIGRATION_ATTEMPTS} incomplete, ` +
+        `missing: ${missing.join(', ')}`,
+    );
+  }
+
+  console.error(
+    `❌ D1 migrations did not complete after ${MAX_MIGRATION_ATTEMPTS} attempts. ` +
+      `Missing migrations: ${missing.join(', ')}`,
+  );
+  process.exit(1);
+}
+
+/**
+ * Run one `db:migrate:local` apply. Never throws: wrangler may partially apply
+ * before exiting non-zero, and the journal check in applyD1Migrations decides
+ * success — not the exit code, and never string-matching the output.
+ */
+function runMigrationApply(workerDir) {
   try {
     const output = execSync('pnpm run db:migrate:local', {
       cwd: workerDir,
@@ -56,18 +94,43 @@ export function applyD1Migrations() {
       encoding: 'utf-8',
     });
     console.log(output);
-    console.log('✅ D1 migrations applied');
   } catch (err) {
-    // execSync throws on non-zero exit but wrangler may still succeed
-    // Check if the output contains success indicators
+    console.warn('⚠️  db:migrate:local exited non-zero, verifying journal...');
     const combined = (err.stdout || '') + (err.stderr || '');
-    if (combined.includes('✅') || combined.includes('executed successfully')) {
+    if (combined) {
       console.log(combined);
-      console.log('✅ D1 migrations applied');
-    } else {
-      console.error('❌ Failed to apply D1 migrations');
-      console.error(combined);
-      process.exit(1);
     }
+  }
+}
+
+/**
+ * Return the migration filenames on disk that are absent from the local
+ * `d1_migrations` journal. Empty means the local schema is fully migrated.
+ */
+function findMissingMigrations(workerDir, migrationsDir) {
+  const expected = readdirSync(migrationsDir)
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
+  const applied = readAppliedMigrations(workerDir);
+  return expected.filter((name) => !applied.has(name));
+}
+
+/**
+ * Read the `d1_migrations` journal from the local D1 database.
+ * Returns an empty set when the journal is unreadable (e.g. no DB yet),
+ * which the caller treats as "everything missing".
+ */
+function readAppliedMigrations(workerDir) {
+  try {
+    const output = execSync(
+      'pnpm exec wrangler d1 execute werewolf-db --local --config wrangler.toml ' +
+        '--command "SELECT name FROM d1_migrations" --json',
+      { cwd: workerDir, stdio: 'pipe', encoding: 'utf-8' },
+    );
+    const parsed = JSON.parse(output);
+    const rows = parsed?.[0]?.results ?? [];
+    return new Set(rows.map((row) => row.name));
+  } catch {
+    return new Set();
   }
 }
