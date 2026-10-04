@@ -6,6 +6,11 @@ export const PICTIONARY_DRAWING_WIDTHS = [5, 14, 30] as const;
 
 export type PictionaryDrawingColor = `#${string}`;
 
+/** Validate opaque six-digit hex colors at picker and storage boundaries. */
+export function isPictionaryDrawingColor(value: unknown): value is PictionaryDrawingColor {
+  return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value);
+}
+
 export type PictionaryDrawingWidth = (typeof PICTIONARY_DRAWING_WIDTHS)[number];
 export type PictionaryDrawingTool = 'brush' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'fill';
 

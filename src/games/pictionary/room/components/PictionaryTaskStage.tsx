@@ -23,6 +23,7 @@ import {
   PICTIONARY_DRAWING_PALETTE,
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
+  isPictionaryDrawingColor,
   type PictionaryDrawingDraftAction,
   type PictionaryDrawingElement,
   type PictionaryDrawingPoint,
@@ -372,8 +373,13 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
             palette={PICTIONARY_DRAWING_PALETTE}
             widths={[...PICTIONARY_DRAWING_WIDTHS]}
             onToolChange={(t) => setTool(t)}
-            onColorChange={(c) => setColor(c as PictionaryDrawingColor)}
-            onWidthChange={(w) => setStrokeWidth(w as PictionaryDrawingWidth)}
+            onColorChange={(c) => {
+              if (isPictionaryDrawingColor(c)) setColor(c);
+            }}
+            onWidthChange={(w) => {
+              const valid = PICTIONARY_DRAWING_WIDTHS.find((v) => v === w);
+              if (valid !== undefined) setStrokeWidth(valid);
+            }}
             onUndo={() => updateDraft({ type: 'element.undo' })}
             onRedo={() => updateDraft({ type: 'element.redo' })}
             onClear={clearDrawing}

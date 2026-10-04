@@ -12,6 +12,7 @@ import {
   type DrawGuessDrawingColor,
   type DrawGuessDrawingTool,
   type DrawGuessDrawingWidth,
+  isDrawGuessDrawingColor,
 } from '../../model/drawGuessDrawing';
 
 export interface DrawGuessToolbarProps {
@@ -29,16 +30,21 @@ export interface DrawGuessToolbarProps {
 
 export const DrawGuessToolbar: React.FC<DrawGuessToolbarProps> = (props) => (
   <DrawingToolbar
-    tool={props.tool as SharedDrawingTool}
+    tool={props.tool}
     color={props.color}
     strokeWidth={props.strokeWidth}
     canUndo={props.canUndo}
     disabled={props.disabled}
     palette={DRAWGUESS_DRAWING_PALETTE}
     widths={[...DRAWGUESS_DRAWING_WIDTHS]}
-    onToolChange={(tool) => props.onToolChange(tool as DrawGuessDrawingTool)}
-    onColorChange={(color) => props.onColorChange(color as DrawGuessDrawingColor)}
-    onWidthChange={(width) => props.onWidthChange(width as DrawGuessDrawingWidth)}
+    onToolChange={props.onToolChange}
+    onColorChange={(color) => {
+      if (isDrawGuessDrawingColor(color)) props.onColorChange(color);
+    }}
+    onWidthChange={(width) => {
+      const valid = DRAWGUESS_DRAWING_WIDTHS.find((w) => w === width);
+      if (valid !== undefined) props.onWidthChange(valid);
+    }}
     onUndo={props.onUndo}
     onClear={props.onClear}
   />
