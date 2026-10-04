@@ -74,6 +74,8 @@ export const DrawGuessGuessPanel: React.FC<DrawGuessGuessPanelProps> = ({
   const shake = useRef(new Animated.Value(0)).current;
   const listRef = useRef<FlatList<DrawGuessGuessMessage>>(null);
   const tooFastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 用户是否在底部附近：只有在底部时才自动滚，不打扰翻看历史的用户
+  const isNearBottomRef = useRef(true);
 
   useEffect(
     () => () => {
@@ -82,7 +84,9 @@ export const DrawGuessGuessPanel: React.FC<DrawGuessGuessPanelProps> = ({
     [],
   );
   useEffect(() => {
-    if (messages.length > 0) listRef.current?.scrollToEnd({ animated: true });
+    if (messages.length > 0 && isNearBottomRef.current) {
+      listRef.current?.scrollToEnd({ animated: true });
+    }
   }, [messages.length]);
 
   const inputDisabled = !canGuess || isLocked;
@@ -118,6 +122,14 @@ export const DrawGuessGuessPanel: React.FC<DrawGuessGuessPanelProps> = ({
         style={styles.messageList}
         contentContainerStyle={styles.messageListContent}
         accessibilityLabel="猜词消息"
+        onScroll={(event) => {
+          const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+          const distanceFromBottom =
+            contentSize.height - contentOffset.y - layoutMeasurement.height;
+          // 40px 容差：用户在底部附近才算"在底部"
+          isNearBottomRef.current = distanceFromBottom < 40;
+        }}
+        scrollEventThrottle={100}
       />
       {isLocked ? (
         <View style={styles.lockedBar} accessibilityLabel="已猜中，等待本轮结束">
@@ -164,7 +176,8 @@ const styles = StyleSheet.create({
     gap: spacing.tight,
   },
   messageList: {
-    maxHeight: 180,
+    maxHeight: 280,
+    minHeight: 120,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.medium,
     borderWidth: fixed.borderWidth,
