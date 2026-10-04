@@ -305,25 +305,8 @@ function submitGuess(
       drawerScore: correct ? computeDrawerScore(1) : 0,
     },
   ];
-  if (correct) {
-    const drawerSeat = state.phase.drawerSeat;
-    const guessedSeats = [...state.phase.guessedSeats, resolved.seat];
-    const done = Object.entries(state.realSeats).every(
-      ([seat, occupant]) =>
-        occupant === undefined ||
-        Number(seat) === drawerSeat ||
-        guessedSeats.includes(Number(seat)),
-    );
-    if (done) {
-      events.push({
-        type: 'drawguess.round.ended',
-        turnIndex,
-        drawerSeat,
-        word: state.phase.word,
-        deadlineAt: context.nowMs + DRAWGUESS_ROUND_END_SECONDS * 1000,
-      });
-    }
-  }
+  // Gartic.io 规则：猜中不提前结束回合，只等计时器
+  // （删掉了原来的 "everyone guessed → round.ended" 逻辑）
   return commitDrawGuess(events);
 }
 
