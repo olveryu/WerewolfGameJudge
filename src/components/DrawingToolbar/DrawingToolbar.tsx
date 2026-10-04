@@ -13,6 +13,7 @@ import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ColorPicker, {
   type ColorFormatsObject,
+  colorKit,
   HueSlider,
   Panel1,
   Preview,
@@ -316,26 +317,32 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
               ) : (
                 <View style={styles.colorPaletteBody}>
                   <View style={styles.swatchGrid}>
-                    {props.palette.map((entry) => (
-                      <Pressable
-                        key={entry.value}
-                        accessibilityRole="button"
-                        accessibilityLabel={`颜色${entry.name}`}
-                        accessibilityState={{
-                          selected: props.color.toUpperCase() === entry.value.toUpperCase(),
-                        }}
-                        onPress={() => {
-                          handleColorChange(entry.value);
-                          setActivePanel(null);
-                        }}
-                        style={[
-                          styles.swatch,
-                          { backgroundColor: entry.value },
-                          props.color.toUpperCase() === entry.value.toUpperCase() &&
-                            styles.selectedSwatch,
-                        ]}
-                      />
-                    ))}
+                    {props.palette.map((entry) => {
+                      const isSelected = props.color.toUpperCase() === entry.value.toUpperCase();
+                      return (
+                        <Pressable
+                          key={entry.value}
+                          accessibilityRole="button"
+                          accessibilityLabel={`颜色${entry.name}`}
+                          accessibilityState={{ selected: isSelected }}
+                          onPress={() => {
+                            handleColorChange(entry.value);
+                            setActivePanel(null);
+                          }}
+                          style={[styles.swatch, { backgroundColor: entry.value }]}
+                        >
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark"
+                              size={spacing.large}
+                              color={
+                                colorKit.isDark(entry.value) ? colors.textInverse : colors.text
+                              }
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="自定义颜色"
@@ -655,6 +662,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedSwatch: {
     borderWidth: fixed.borderWidthThick,
