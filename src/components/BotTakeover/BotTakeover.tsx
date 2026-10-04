@@ -8,7 +8,6 @@
 import type React from 'react';
 import { useState } from 'react';
 
-import { TakeoverBanner } from './TakeoverBanner';
 import { TakeoverFab } from './TakeoverFab';
 import { TakeoverSheet } from './TakeoverSheet';
 import { useTakeoverUrgency } from './useTakeoverUrgency';
@@ -58,17 +57,8 @@ export const BotTakeover: React.FC<BotTakeoverProps> = (props) => {
 
   if (!canControl || bots.length === 0 || isLobby) return null;
 
-  // 接管中：顶部细条
-  if (controlledSeat !== null) {
-    const bot = bots.find((b) => b.seat === controlledSeat);
-    return (
-      <TakeoverBanner
-        seat={controlledSeat}
-        displayName={bot?.displayName ?? `${controlledSeat + 1} 号位`}
-        onRelease={props.onRelease}
-      />
-    );
-  }
+  // 接管中由 RoomShell 的 ControlledSeatBanner 显示，这里不重复
+  if (controlledSeat !== null) return null;
 
   const handleTakeOver = (seat: number) => {
     setSheetOpen(false);
