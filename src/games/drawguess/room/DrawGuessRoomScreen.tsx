@@ -12,7 +12,7 @@ import {
   getDrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
@@ -192,7 +192,13 @@ function DrawGuessStageFrame({
           <Text style={styles.turnLabel}>{turnLabel}</Text>
           <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
         </View>
-        {children}
+        <ScrollView
+          style={styles.stageScroll}
+          contentContainerStyle={styles.stageScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
       </View>
     </View>
   );
@@ -682,6 +688,14 @@ const styles = StyleSheet.create({
     gap: spacing.small,
     flex: 1,
     minHeight: 0,
+  },
+  stageScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  stageScrollContent: {
+    gap: spacing.small,
+    paddingBottom: spacing.medium,
   },
   stageHeader: {
     flexDirection: 'row',
