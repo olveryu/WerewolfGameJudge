@@ -431,12 +431,50 @@ jobs:
             -r 1
           rm -f /tmp/miniapp-key.pem
 
-  e2e:
+  e2e-setup:
     runs-on: ubuntu-latest
     if: |
       always() &&
       needs.quality.result == 'success'
     needs: [quality]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      # Run D1 migrations ONCE, share the migrated DB via artifact.
+      # The 5 e2e shards download it instead of each running 62 migrations.
+      - name: Apply D1 migrations
+        run: |
+          cd packages/api-worker
+          pnpm run db:migrate:local
+
+      - name: Package D1 state
+        run: |
+          cd packages/api-worker
+          tar -czf /tmp/d1-state.tar.gz .wrangler/state/v3/d1
+
+      - name: Upload D1 state
+        uses: actions/upload-artifact@v7
+        with:
+          name: d1-state
+          path: /tmp/d1-state.tar.gz
+          retention-days: 1
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.e2e-setup.result == 'success'
+    needs: [quality, e2e-setup]
     strategy:
       fail-fast: false
       matrix:
@@ -463,6 +501,19 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
+
+      # Download the pre-migrated D1 state from e2e-setup job.
+      # Migrations run ONCE in e2e-setup, not 5x (once per shard).
+      - name: Download D1 state
+        uses: actions/download-artifact@v7
+        with:
+          name: d1-state
+          path: /tmp
+
+      - name: Extract D1 state
+        run: |
+          cd packages/api-worker
+          tar -xzf /tmp/d1-state.tar.gz
 
       # ── Playwright ──────────────────────────────────────
       - name: Get Playwright version
