@@ -5,11 +5,23 @@
  * 点开弹出面板；颜色面板含 HSV 调色板 + 预设色 + 最近使用。
  */
 
+import {
+  GestureHandlerRootView,
+  ScrollView as GestureScrollView,
+} from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ColorPicker, {
   type ColorFormatsObject,
@@ -19,8 +31,16 @@ import ColorPicker, {
   Preview,
 } from 'reanimated-color-picker';
 
-import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  fixed,
+  spacing,
+  textStyles,
+  withAlpha,
+} from '@/theme';
+import { showDestructiveAlert } from '@/utils/alertPresets';
 
 export type SharedDrawingTool = 'brush' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'fill';
 
@@ -59,7 +79,7 @@ const TOOL_OPTIONS = [
   readonly icon: React.ComponentProps<typeof Ionicons>['name'];
 }[];
 
-const RECENT_COLOR_COUNT = 8;
+const RECENT_COLOR_COUNT = 5;
 const WIDE_BREAKPOINT = 768;
 
 type ToolbarPanel = 'tool' | 'color' | 'width';
@@ -68,6 +88,7 @@ function ToolButton({
   label,
   caption,
   icon,
+  isSelected = false,
   disabled,
   onPress,
   children,
@@ -75,6 +96,7 @@ function ToolButton({
   readonly label: string;
   readonly caption: string;
   readonly icon: React.ComponentProps<typeof Ionicons>['name'];
+  readonly isSelected?: boolean;
   readonly disabled: boolean;
   readonly onPress: () => void;
   readonly children?: React.ReactNode;
@@ -83,12 +105,20 @@ function ToolButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled, selected: isSelected }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.toolButton, disabled && styles.dimmed]}
+      style={[
+        styles.toolButton,
+        isSelected && styles.selectedToolButton,
+        disabled && styles.dimmed,
+      ]}
     >
-      <Ionicons name={icon} size={componentSizes.icon.md} color={colors.text} />
+      <Ionicons
+        name={icon}
+        size={componentSizes.icon.md}
+        color={isSelected ? colors.primary : colors.text}
+      />
       <Text style={styles.toolLabel}>{caption}</Text>
       {children}
     </Pressable>
@@ -133,14 +163,35 @@ function ColorPickerPanel({
   readonly onColorChange: (hex: string) => void;
 }) {
   const handleComplete = ({ hex }: ColorFormatsObject) => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      throw new Error('[FAIL-FAST] Color picker returned an invalid opaque color');
+    }
     onColorChange(hex);
   };
   return (
-    <ColorPicker value={color} onCompleteJS={handleComplete} boundedThumb style={styles.pickerGap}>
-      <Panel1 style={styles.colorPanel} />
-      <HueSlider style={styles.hueSlider} />
-      <Preview hideText style={styles.colorPreviewLarge} />
-    </ColorPicker>
+    <GestureHandlerRootView style={styles.colorPickerArea}>
+      <GestureScrollView>
+        <ColorPicker
+          value={color}
+          onCompleteJS={handleComplete}
+          boundedThumb
+          enableColorAnnouncements={false}
+          sliderThickness={fixed.minTouchTarget}
+          thumbSize={spacing.large}
+          style={styles.colorPicker}
+        >
+          <Panel1
+            accessibilityLabel="饱和度与明度"
+            accessibilityHint="左右调整饱和度，上下调整明度"
+            style={styles.colorPanel}
+          />
+          <HueSlider accessibilityLabel="色相" style={styles.hueSlider} />
+          <View accessibilityLabel="当前颜色预览">
+            <Preview hideText style={styles.colorPreview} />
+          </View>
+        </ColorPicker>
+      </GestureScrollView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -177,27 +228,32 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
   };
 
   const handleColorChange = (hex: string) => {
-    rememberColor(hex);
     props.onColorChange(hex);
+  };
+
+  const handleColorPanelClose = () => {
+    rememberColor(props.color);
+    setActivePanel(null);
   };
 
   const confirmClear = () => {
     if (disabled) return;
-    showConfirmAlert('清空画布', '确定要清空当前画作吗？此操作不可撤销。', props.onClear, {
-      confirmText: '清空',
-    });
+    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', props.onClear);
   };
 
   const selectedTool = TOOL_OPTIONS.find((option) => option.tool === props.tool);
+  if (selectedTool === undefined) {
+    throw new Error('[FAIL-FAST] Unknown drawing tool');
+  }
   const panelTitle =
     activePanel === 'tool' ? '绘画工具' : activePanel === 'color' ? '画笔颜色' : '画笔粗细';
 
   return (
     <View style={styles.toolbar}>
       <ToolButton
-        label={`选择工具，当前${selectedTool?.label ?? ''}`}
-        caption={selectedTool?.label ?? '工具'}
-        icon={selectedTool?.icon ?? 'brush-outline'}
+        label={`选择工具，当前${selectedTool.label}`}
+        caption={selectedTool.label}
+        icon={selectedTool.icon}
         disabled={disabled}
         onPress={() => setActivePanel('tool')}
       />
@@ -242,11 +298,10 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
         <IconAction
           label="重做"
           icon="arrow-redo-outline"
-          disabled={disabled}
+          disabled={disabled || !props.canRedo}
           onPress={props.onRedo}
         />
       )}
-      <IconAction label="清空" icon="trash-outline" disabled={disabled} onPress={confirmClear} />
 
       {/* 颜色面板：legacy 浮层定位（桌面端按钮旁浮层，移动端 bottom sheet） */}
       {activePanel === 'color' && panelAnchor !== null && (
@@ -254,12 +309,12 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
           visible={!disabled}
           transparent
           animationType="none"
-          onRequestClose={() => setActivePanel(null)}
+          onRequestClose={() => handleColorPanelClose()}
         >
           <View style={StyleSheet.absoluteFill}>
             <Pressable
               accessibilityLabel="关闭颜色面板"
-              onPress={() => setActivePanel(null)}
+              onPress={() => handleColorPanelClose()}
               style={StyleSheet.absoluteFill}
             />
             <View
@@ -306,7 +361,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="关闭选择面板"
-                  onPress={() => setActivePanel(null)}
+                  onPress={() => handleColorPanelClose()}
                   style={styles.colorOptionButton}
                 >
                   <Ionicons name="close" size={spacing.large} color={colors.textSecondary} />
@@ -327,7 +382,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                           accessibilityState={{ selected: isSelected }}
                           onPress={() => {
                             handleColorChange(entry.value);
-                            setActivePanel(null);
+                            handleColorPanelClose();
                           }}
                           style={[styles.swatch, { backgroundColor: entry.value }]}
                         >
@@ -376,7 +431,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                             accessibilityLabel={`最近颜色 ${index + 1}`}
                             onPress={() => {
                               handleColorChange(recent);
-                              setActivePanel(null);
+                              handleColorPanelClose();
                             }}
                             style={[styles.swatch, { backgroundColor: recent }]}
                           />
@@ -418,68 +473,79 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
               </View>
 
               {activePanel === 'tool' && (
-                <View style={styles.optionGrid}>
-                  {TOOL_OPTIONS.map((option) => (
-                    <View key={option.tool} style={styles.toolOption}>
+                <ScrollView
+                  style={styles.panelScroll}
+                  contentContainerStyle={styles.panelScrollContent}
+                >
+                  <View style={styles.optionGrid}>
+                    {TOOL_OPTIONS.map((option) => (
+                      <View key={option.tool} style={styles.toolOption}>
+                        <ToolButton
+                          label={option.label}
+                          caption={option.label}
+                          icon={option.icon}
+                          isSelected={props.tool === option.tool}
+                          disabled={disabled}
+                          onPress={() => {
+                            props.onToolChange(option.tool);
+                            setActivePanel(null);
+                          }}
+                        />
+                      </View>
+                    ))}
+                    <View style={styles.toolOption}>
                       <ToolButton
-                        label={option.label}
-                        caption={option.label}
-                        icon={option.icon}
-                        disabled={disabled}
+                        label="清空画布"
+                        caption="清空"
+                        icon="trash-outline"
+                        disabled={disabled || !props.canUndo}
                         onPress={() => {
-                          props.onToolChange(option.tool);
                           setActivePanel(null);
+                          confirmClear();
                         }}
                       />
                     </View>
-                  ))}
-                  <View style={styles.toolOption}>
-                    <ToolButton
-                      label="清空画布"
-                      caption="清空"
-                      icon="trash-outline"
-                      disabled={disabled}
-                      onPress={() => {
-                        setActivePanel(null);
-                        confirmClear();
-                      }}
-                    />
                   </View>
-                </View>
+                </ScrollView>
               )}
 
               {activePanel === 'width' && (
-                <View style={styles.optionGrid}>
-                  {props.widths.map((w) => (
-                    <Pressable
-                      key={w}
-                      accessibilityRole="button"
-                      accessibilityLabel={`笔宽 ${w}`}
-                      accessibilityState={{ selected: props.strokeWidth === w }}
-                      disabled={disabled}
-                      onPress={() => {
-                        props.onWidthChange(w);
-                        setActivePanel(null);
-                      }}
-                      style={[
-                        styles.widthOption,
-                        props.strokeWidth === w && styles.selectedWidthOption,
-                      ]}
-                    >
-                      <View
+                <ScrollView
+                  style={styles.panelScroll}
+                  contentContainerStyle={styles.panelScrollContent}
+                >
+                  <View style={styles.optionGrid}>
+                    {props.widths.map((w) => (
+                      <Pressable
+                        key={w}
+                        accessibilityRole="button"
+                        accessibilityLabel={`笔宽 ${w}`}
+                        accessibilityState={{ selected: props.strokeWidth === w }}
+                        disabled={disabled}
+                        onPress={() => {
+                          props.onWidthChange(w);
+                          setActivePanel(null);
+                        }}
                         style={[
-                          styles.widthDot,
-                          {
-                            width: Math.max(4, w),
-                            height: Math.max(4, w),
-                            backgroundColor:
-                              props.tool === 'eraser' ? colors.textMuted : props.color,
-                          },
+                          styles.widthOption,
+                          props.strokeWidth === w && styles.selectedWidthOption,
                         ]}
-                      />
-                    </Pressable>
-                  ))}
-                </View>
+                      >
+                        <View
+                          style={[
+                            styles.widthDot,
+                            {
+                              width: Math.max(4, w),
+                              height: Math.max(4, w),
+                              backgroundColor:
+                                props.tool === 'eraser' ? colors.textMuted : props.color,
+                            },
+                          ]}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
               )}
             </View>
           </Pressable>
@@ -517,6 +583,10 @@ const styles = StyleSheet.create({
     gap: spacing.tight / 2,
     height: fixed.minTouchTarget + spacing.medium,
     maxHeight: fixed.minTouchTarget + spacing.medium,
+  },
+  selectedToolButton: {
+    backgroundColor: withAlpha(colors.primary, 0.15),
+    borderColor: colors.primary,
   },
   toolLabel: {
     ...textStyles.caption,
@@ -637,19 +707,22 @@ const styles = StyleSheet.create({
     ...textStyles.secondarySemibold,
     color: colors.textSecondary,
   },
-  pickerGap: {
-    gap: spacing.small,
-  },
+  colorPickerArea: { height: 240, flexShrink: 1 },
+  colorPicker: { gap: spacing.small },
   colorPanel: {
-    height: 160,
+    width: '100%',
+    height: 144,
     borderRadius: borderRadius.small,
   },
   hueSlider: {
-    height: componentSizes.icon.md,
+    borderRadius: borderRadius.small,
   },
-  colorPreviewLarge: {
+  colorPreview: {
+    width: '100%',
     height: spacing.large,
     borderRadius: borderRadius.small,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
   },
   swatchGrid: {
     flexDirection: 'row',
@@ -673,6 +746,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.small,
+  },
+  panelScroll: {
+    maxHeight: 300,
+  },
+  panelScrollContent: {
+    flexGrow: 1,
   },
   toolOption: {
     width: '30%',
