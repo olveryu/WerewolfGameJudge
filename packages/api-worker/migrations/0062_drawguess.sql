@@ -122,6 +122,8 @@ CREATE INDEX idx_product_game_reward_daily ON product_game_reward_results(user_i
 
 -- DrawGuess word bank: concrete nouns suitable for drawing. pinyin_initials is
 -- generated at ingest time (same length as word, e.g. 大熊猫 -> dxm).
+-- NOTE: also maintained as idempotent 0064_drawguess_words_table.sql.
+-- If editing the schema, update BOTH (0062 is historical, 0064 is the source of truth for new DBs).
 CREATE TABLE drawguess_words (
   id TEXT PRIMARY KEY, -- 词条唯一 ID
   word TEXT NOT NULL UNIQUE, -- 题目：2-8 个简体汉字，具象名词优先

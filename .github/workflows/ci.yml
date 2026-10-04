@@ -433,6 +433,7 @@ jobs:
 
   e2e-setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: |
       always() &&
       needs.quality.result == 'success'
@@ -460,6 +461,12 @@ jobs:
         run: |
           cd packages/api-worker
           tar -czf /tmp/d1-state.tar.gz .wrangler/state/v3/d1
+          # 验证非空：wrangler 升级改路径时能立刻发现
+          tar -tzf /tmp/d1-state.tar.gz | head -5
+          if [ ! -s /tmp/d1-state.tar.gz ]; then
+            echo "❌ D1 state tarball is empty!"
+            exit 1
+          fi
 
       - name: Upload D1 state
         uses: actions/upload-artifact@v7
