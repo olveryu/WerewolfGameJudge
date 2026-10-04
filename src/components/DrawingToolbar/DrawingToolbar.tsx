@@ -10,18 +10,11 @@ import {
   ScrollView as GestureScrollView,
 } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Modal } from '@/components/AppModal';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ColorPicker, {
   type ColorFormatsObject,
@@ -256,6 +249,28 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
   const panelTitle =
     activePanel === 'tool' ? '绘画工具' : activePanel === 'color' ? '画笔颜色' : '画笔粗细';
 
+  // 颜色面板定位：legacy 浮层逻辑
+  const isColorSheetCompact = width < COLOR_SHEET_BREAKPOINT;
+  const colorPanelPosition = isColorSheetCompact
+    ? {
+        left: 0,
+        right: 0,
+        bottom: 0,
+        maxHeight: height - insets.top - spacing.medium,
+        paddingBottom: Math.max(insets.bottom, spacing.medium),
+      }
+    : panelAnchor !== null
+      ? {
+          left: Math.max(
+            spacing.small,
+            Math.min(panelAnchor.left, width - COLOR_POPOVER_WIDTH - spacing.small),
+          ),
+          bottom: height - panelAnchor.top + spacing.small,
+          width: COLOR_POPOVER_WIDTH,
+          maxHeight: panelAnchor.top - insets.top - spacing.medium,
+        }
+      : null;
+
   return (
     <View style={styles.toolbar}>
       <ToolButton
@@ -319,7 +334,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
       )}
 
       {/* 颜色面板：legacy 浮层定位（桌面端按钮旁浮层，移动端 bottom sheet） */}
-      {activePanel === 'color' && panelAnchor !== null && (
+      {activePanel === 'color' && colorPanelPosition !== null && (
         <Modal
           visible={!disabled}
           transparent
@@ -334,26 +349,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
             />
             <View
               accessibilityLabel="画笔颜色面板"
-              style={[
-                styles.colorOptions,
-                width < COLOR_SHEET_BREAKPOINT
-                  ? {
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      maxHeight: height - insets.top - spacing.medium,
-                      paddingBottom: Math.max(insets.bottom, spacing.medium),
-                    }
-                  : {
-                      left: Math.max(
-                        spacing.small,
-                        Math.min(panelAnchor.left, width - COLOR_POPOVER_WIDTH - spacing.small),
-                      ),
-                      bottom: height - panelAnchor.top + spacing.small,
-                      width: COLOR_POPOVER_WIDTH,
-                      maxHeight: panelAnchor.top - insets.top - spacing.medium,
-                    },
-              ]}
+              style={[styles.colorOptions, colorPanelPosition]}
             >
               <View style={styles.colorHeader}>
                 {isColorPickerVisible && (
