@@ -5,6 +5,7 @@
  * 点开弹出面板；颜色面板含 HSV 调色板 + 预设色 + 最近使用。
  */
 
+import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
@@ -341,7 +342,20 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                       onPress={() => setIsColorPickerVisible(true)}
                       style={styles.customColorButton}
                     >
-                      <Ionicons name="add" size={spacing.large} color={colors.textInverse} />
+                      <LinearGradient
+                        colors={[
+                          props.palette[2]?.value ?? '#FF0000',
+                          props.palette[4]?.value ?? '#00FF00',
+                          props.palette[5]?.value ?? '#0000FF',
+                          props.palette[7]?.value ?? '#FFFF00',
+                          props.palette[8]?.value ?? '#FF00FF',
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.customColorGradient}
+                      >
+                        <Ionicons name="add" size={spacing.large} color={colors.textInverse} />
+                      </LinearGradient>
                     </Pressable>
                   </View>
                   {recentColors.length > 0 && (
@@ -412,6 +426,18 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                       />
                     </View>
                   ))}
+                  <View style={styles.toolOption}>
+                    <ToolButton
+                      label="清空画布"
+                      caption="清空"
+                      icon="trash-outline"
+                      disabled={disabled}
+                      onPress={() => {
+                        setActivePanel(null);
+                        confirmClear();
+                      }}
+                    />
+                  </View>
                 </View>
               )}
 
@@ -549,9 +575,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
+    overflow: 'hidden',
+  },
+  customColorGradient: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
   },
   widthDot: {
     borderRadius: borderRadius.full,
@@ -639,12 +669,14 @@ const styles = StyleSheet.create({
     width: '30%',
   },
   widthOption: {
-    minWidth: fixed.minTouchTarget,
-    minHeight: fixed.minTouchTarget,
+    width: fixed.minTouchTarget,
+    height: fixed.minTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
     borderRadius: borderRadius.small,
-    padding: spacing.small,
+    backgroundColor: colors.surface,
   },
   selectedWidthOption: {
     backgroundColor: colors.surface,
