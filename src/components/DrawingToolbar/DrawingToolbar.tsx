@@ -417,11 +417,11 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                     >
                       <LinearGradient
                         colors={[
+                          props.palette[0]?.value ?? colors.primary,
+                          props.palette[1]?.value ?? colors.primary,
                           props.palette[2]?.value ?? colors.primary,
-                          props.palette[4]?.value ?? colors.success,
-                          props.palette[5]?.value ?? colors.info,
-                          props.palette[7]?.value ?? colors.warning,
-                          props.palette[8]?.value ?? colors.danger,
+                          props.palette[3]?.value ?? colors.primary,
+                          props.palette[4]?.value ?? colors.primary,
                         ]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
