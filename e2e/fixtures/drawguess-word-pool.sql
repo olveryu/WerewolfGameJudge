@@ -1,34 +1,22 @@
-INSERT INTO drawguess_words (
-  id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at
-)
-SELECT
-  'e2e-dg-' || key,
-  value ->> 'w',
-  value ->> 'p',
-  value ->> 'c',
-  value ->> 'd',
-  'active',
-  '2026-10-04T00:00:00.000Z',
-  NULL
-FROM json_each('[
-  {"w":"苹果","p":"pg","c":"食物","d":"easy"},
-  {"w":"香蕉","p":"xj","c":"食物","d":"easy"},
-  {"w":"猫","p":"m","c":"动物","d":"easy"},
-  {"w":"狗","p":"g","c":"动物","d":"easy"},
-  {"w":"太阳","p":"ty","c":"自然","d":"easy"},
-  {"w":"月亮","p":"yl","c":"自然","d":"easy"},
-  {"w":"汽车","p":"qc","c":"交通","d":"easy"},
-  {"w":"飞机","p":"fj","c":"交通","d":"easy"},
-  {"w":"雨伞","p":"ys","c":"日用品","d":"easy"},
-  {"w":"眼镜","p":"yj","c":"日用品","d":"easy"},
-  {"w":"大象","p":"dx","c":"动物","d":"medium"},
-  {"w":"长颈鹿","p":"cjl","c":"动物","d":"medium"},
-  {"w":"汉堡包","p":"hbb","c":"食物","d":"medium"},
-  {"w":"自行车","p":"zxc","c":"交通","d":"medium"},
-  {"w":"洗衣机","p":"xyj","c":"家电","d":"medium"},
-  {"w":"圣诞树","p":"sds","c":"节日","d":"medium"},
-  {"w":"变色龙","p":"bsl","c":"动物","d":"hard"},
-  {"w":"埃菲尔铁塔","p":"afett","c":"建筑","d":"hard"},
-  {"w":"潜水艇","p":"qst","c":"交通","d":"hard"},
-  {"w":"显微镜","p":"xwj","c":"工具","d":"hard"}
-]');
+-- DrawGuess e2e word pool fixture: 20 seed words (all active)
+INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at) VALUES
+  ('e2e-dg-0', '苹果', 'pg', '食物', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-1', '香蕉', 'xj', '食物', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-2', '猫', 'm', '动物', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-3', '狗', 'g', '动物', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-4', '太阳', 'ty', '自然', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-5', '月亮', 'yl', '自然', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-6', '汽车', 'qc', '交通', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-7', '飞机', 'fj', '交通', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-8', '雨伞', 'ys', '日用品', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-9', '眼镜', 'yj', '日用品', 'easy', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-10', '大象', 'dx', '动物', 'medium', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-11', '长颈鹿', 'cjl', '动物', 'medium', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-12', '汉堡包', 'hbb', '食物', 'medium', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-13', '自行车', 'zxc', '交通', 'medium', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-14', '洗衣机', 'xyj', '家电', 'medium', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-15', '圣诞树', 'sds', '节日', 'medium', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-16', '变色龙', 'bsl', '动物', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-17', '埃菲尔铁塔', 'afett', '建筑', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-18', '潜水艇', 'qst', '交通', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL),
+  ('e2e-dg-19', '显微镜', 'xwj', '工具', 'hard', 'active', '2026-10-04T00:00:00.000Z', NULL);
