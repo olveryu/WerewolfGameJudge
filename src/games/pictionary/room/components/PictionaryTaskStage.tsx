@@ -78,6 +78,7 @@ import type {
 } from '../hooks/usePictionaryAutoSubmission';
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryDrawingCanvas } from './PictionaryDrawingCanvas';
+import { DrawingToolbar, type SharedDrawingTool } from '@/components/DrawingToolbar/DrawingToolbar';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
 import { PictionaryStageFrame } from './PictionaryStageFrame';
 import { PictionaryTaskFrame, PictionaryTaskMedia } from './PictionaryTaskFrame';
@@ -695,7 +696,7 @@ const DrawingOptions: React.FC<DrawingOptionsProps> = ({ activePanel, toolbar, o
   </View>
 );
 
-const DrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
+const LegacyDrawingToolbar: React.FC<DrawingToolbarProps> = (toolbar) => {
   const [activePanel, setActivePanel] = useState<DrawingPanel | null>(null);
   const [recentColors, setRecentColors] = useState<readonly PictionaryDrawingColor[]>([]);
   const [colorAnchor, setColorAnchor] = useState<DrawingColorOptionsProps['anchor'] | null>(null);
@@ -920,15 +921,17 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
       footer={
         <>
           <DrawingToolbar
-            tool={tool}
+            tool={tool as SharedDrawingTool}
             color={color}
             strokeWidth={strokeWidth}
             canUndo={draft.elements.length > 0}
             canRedo={draft.redoElements.length > 0}
             disabled={!canEdit}
-            onToolChange={setTool}
-            onColorChange={setColor}
-            onWidthChange={setStrokeWidth}
+            palette={PICTIONARY_DRAWING_PALETTE}
+            widths={[...PICTIONARY_DRAWING_WIDTHS]}
+            onToolChange={(t) => setTool(t as PictionaryDrawingTool)}
+            onColorChange={(c) => setColor(c as PictionaryDrawingColor)}
+            onWidthChange={(w) => setStrokeWidth(w as PictionaryDrawingWidth)}
             onUndo={() => updateDraft({ type: 'element.undo' })}
             onRedo={() => updateDraft({ type: 'element.redo' })}
             onClear={clearDrawing}
