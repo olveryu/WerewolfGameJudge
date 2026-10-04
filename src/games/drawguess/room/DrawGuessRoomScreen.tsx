@@ -12,7 +12,7 @@ import {
   getDrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -53,6 +53,8 @@ import { drawGuessStrokeToElement, useDrawGuessStrokeSync } from './hooks/useDra
 
 /** 游戏工作区最大宽度（与接龙版一致），水平居中。 */
 const DRAWGUESS_STAGE_MAX_WIDTH = 430;
+/** 宽屏断点：达到此宽度时作画区切换为左右分栏（画布左、工具+聊天右）。 */
+const DRAWGUESS_WIDE_LAYOUT_BREAKPOINT = 768;
 const PNG_UPLOAD_MAX_ATTEMPTS = 3;
 const PNG_UPLOAD_RETRY_MS = 5000;
 
@@ -335,6 +337,8 @@ function DrawGuessDrawingView({
   readonly remainingSeconds: number | null;
 }) {
   const { state, session, effectiveSeat, controlledSeat, isHost, submit } = screen;
+  const { width: windowWidth } = useWindowDimensions();
+  const isWideLayout = windowWidth >= DRAWGUESS_WIDE_LAYOUT_BREAKPOINT;
   const isDrawer = effectiveSeat === phase.drawerSeat;
   const [tool, setTool] = useState<DrawGuessDrawingTool>('brush');
   const [color, setColor] = useState<DrawGuessDrawingColor>(DRAWGUESS_DRAWING_PALETTE[0].value);
@@ -401,58 +405,56 @@ function DrawGuessDrawingView({
         hintText={viewModel.hintText}
         wordLength={viewModel.wordLength}
       />
-      <DrawGuessDrawingCanvas
-        elements={sync.elements}
-        tool={tool}
-        color={color}
-        strokeWidth={strokeWidth}
-        isEnabled={canDraw}
-        onElementChange={sync.onElementChange}
-        onElementComplete={sync.onElementComplete}
-        onFill={(point) => sync.onFill(point, color, strokeWidth)}
-      />
-      {isDrawer ? (
-        <View style={styles.section}>
-          <DrawGuessToolbar
+      <View style={isWideLayout ? styles.drawingBodyWide : styles.drawingBodyNarrow}>
+        <View style={isWideLayout ? styles.canvasWide : styles.canvasNarrow}>
+          <DrawGuessDrawingCanvas
+            elements={sync.elements}
             tool={tool}
             color={color}
             strokeWidth={strokeWidth}
-            canUndo={sync.elements.length > 0}
-            disabled={!canDraw}
-            onToolChange={setTool}
-            onColorChange={setColor}
-            onWidthChange={setStrokeWidth}
-            onUndo={sync.undo}
-            onClear={sync.clear}
+            isEnabled={canDraw}
+            onElementChange={sync.onElementChange}
+            onElementComplete={sync.onElementComplete}
+            onFill={(point) => sync.onFill(point, color, strokeWidth)}
           />
-          <View style={styles.drawerActions}>
-            {(isDrawer || isHost) && (
-              <Button variant="danger" size="sm" onPress={giveUp}>
-                放弃本轮
-              </Button>
-            )}
+        </View>
+        <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
+          {isDrawer ? (
+            <>
+              <DrawGuessToolbar
+                tool={tool}
+                color={color}
+                strokeWidth={strokeWidth}
+                canUndo={sync.elements.length > 0}
+                disabled={!canDraw}
+                onToolChange={setTool}
+                onColorChange={setColor}
+                onWidthChange={setStrokeWidth}
+                onUndo={sync.undo}
+                onClear={sync.clear}
+              />
+              <View style={styles.drawerActions}>
+                {(isDrawer || isHost) && (
+                  <Button variant="danger" size="sm" onPress={giveUp}>
+                    放弃本轮
+                  </Button>
+                )}
+              </View>
+              <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
+            </>
+          ) : null}
+          <View style={styles.guessPanelContainer}>
+            <DrawGuessGuessPanel
+              messages={viewModel.messages}
+              viewerSeat={effectiveSeat}
+              isLocked={isDrawer ? false : isLocked}
+              canGuess={isDrawer ? false : canGuess}
+              readOnly={isDrawer}
+              onSubmitGuess={submitGuess}
+            />
           </View>
-          <Text style={styles.hint}>作画不许写字、写数字。猜词聊天流：</Text>
-          <DrawGuessGuessPanel
-            messages={viewModel.messages}
-            viewerSeat={effectiveSeat}
-            isLocked={false}
-            canGuess={false}
-            readOnly
-            onSubmitGuess={submitGuess}
-          />
         </View>
-      ) : (
-        <View style={styles.section}>
-          <DrawGuessGuessPanel
-            messages={viewModel.messages}
-            viewerSeat={effectiveSeat}
-            isLocked={isLocked}
-            canGuess={canGuess}
-            onSubmitGuess={submitGuess}
-          />
-        </View>
-      )}
+      </View>
       <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
     </DrawGuessStageFrame>
   );
@@ -698,6 +700,37 @@ const styles = StyleSheet.create({
   drawerActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+  },
+  drawingBodyNarrow: {
+    width: '100%',
+    gap: spacing.small,
+  },
+  drawingBodyWide: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: spacing.small,
+    alignItems: 'flex-start',
+  },
+  canvasNarrow: {
+    width: '100%',
+  },
+  canvasWide: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sidePanelNarrow: {
+    width: '100%',
+    gap: spacing.small,
+  },
+  sidePanelWide: {
+    width: 320,
+    flexShrink: 0,
+    gap: spacing.small,
+  },
+  guessPanelContainer: {
+    width: '100%',
+    minHeight: 200,
+    flex: 1,
   },
   answerBanner: {
     width: '100%',
