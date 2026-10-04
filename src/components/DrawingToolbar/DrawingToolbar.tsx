@@ -625,13 +625,6 @@ const styles = StyleSheet.create({
   dimmedText: {
     color: colors.textMuted,
   },
-  colorDot: {
-    width: componentSizes.icon.sm,
-    height: componentSizes.icon.sm,
-    borderRadius: borderRadius.full,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-  },
   colorDotLarge: {
     width: 26,
     height: 26,
@@ -655,12 +648,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.small,
   },
   colorTitle: {
-    ...textStyles.title,
+    ...textStyles.subtitleSemibold,
+    color: colors.text,
     flex: 1,
   },
   colorCurrent: {
-    width: 24,
-    height: 24,
+    width: spacing.large,
+    height: spacing.large,
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
@@ -691,7 +685,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: withAlpha(colors.text, 0.5),
     justifyContent: 'flex-end',
   },
   modalSheet: {
@@ -725,9 +719,6 @@ const styles = StyleSheet.create({
     minHeight: fixed.minTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  panelBody: {
-    gap: spacing.small,
   },
   panelSectionTitle: {
     ...textStyles.secondarySemibold,
@@ -763,10 +754,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  selectedSwatch: {
-    borderWidth: fixed.borderWidthThick,
-    borderColor: colors.primary,
   },
   optionGrid: {
     flexDirection: 'row',
