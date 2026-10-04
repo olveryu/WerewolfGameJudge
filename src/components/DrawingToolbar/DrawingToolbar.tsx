@@ -359,6 +359,9 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: spacing.tight,
     gap: spacing.tight,
+    borderTopWidth: fixed.borderWidth,
+    borderBottomWidth: fixed.borderWidth,
+    borderColor: colors.borderLight,
   },
   toolButton: {
     minWidth: fixed.minTouchTarget,
