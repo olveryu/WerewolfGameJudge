@@ -15,6 +15,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -232,40 +233,52 @@ function DrawGuessCountdown({
   );
 }
 
-/** 房主接管机器人席位的按钮条（仅房主可见）。 */
-function DrawGuessBotTakeoverStrip({
+/** 房主接管机器人：转接共用 BotTakeover 组件（2026 重设计）。 */
+function DrawGuessTakeover({
   screen,
   viewModel,
+  remainingSeconds,
 }: {
   readonly screen: DrawGuessScreenState;
   readonly viewModel: DrawGuessViewModel;
+  readonly remainingSeconds: number | null;
 }) {
-  const { isHost, canControlBots, controlledSeat, takeOver, releaseBot } = screen;
-  if (!isHost || !canControlBots) return null;
-  const botSeats = viewModel.seats.filter((seat) => seat.isBot);
-  if (botSeats.length === 0) return null;
+  const { state, isHost, canControlBots, controlledSeat, takeOver, releaseBot } = screen;
+  const isLobby = state.phase.kind === 'lobby';
+  const bots: BotTakeoverBot[] = viewModel.seats
+    .filter((seat) => seat.isBot)
+    .map((seat) => ({
+      seat: seat.seat,
+      displayName: seat.displayName,
+      status: seat.isLocked
+        ? ('done' as const)
+        : seat.isDrawer
+          ? ('acting' as const)
+          : ('waiting' as const),
+      statusLabel: seat.isDrawer
+        ? `正在作画${remainingSeconds !== null ? ` · 剩余 ${remainingSeconds}s` : ''}`
+        : seat.isLocked
+          ? '已猜中'
+          : '等待',
+      actionLabel: seat.isDrawer ? '接管代画' : '接管',
+    }));
+  const activeSeat =
+    state.phase.kind === 'drawing'
+      ? state.phase.drawerSeat
+      : state.phase.kind === 'wordSelect'
+        ? state.phase.drawerSeat
+        : null;
   return (
-    <View style={styles.botStrip} accessibilityLabel="机器人席位接管">
-      <Text style={styles.botStripTitle}>机器人席位（仅房主可接管代打）</Text>
-      {botSeats.map((seat) => (
-        <View key={seat.seat} style={styles.botRow}>
-          <Text style={styles.botName}>
-            {seat.displayName}
-            {seat.isDrawer ? ' · 画手' : ''}
-            {seat.isLocked ? ' · 已猜中' : ''}
-          </Text>
-          {controlledSeat === seat.seat ? (
-            <Button variant="secondary" size="sm" onPress={releaseBot}>
-              释放
-            </Button>
-          ) : (
-            <Button variant="secondary" size="sm" onPress={() => takeOver(seat.seat)}>
-              接管{seat.isDrawer ? '画手' : ''}
-            </Button>
-          )}
-        </View>
-      ))}
-    </View>
+    <BotTakeover
+      bots={bots}
+      activeSeat={activeSeat}
+      remainingSeconds={remainingSeconds}
+      controlledSeat={controlledSeat}
+      canControl={isHost && canControlBots}
+      isLobby={isLobby}
+      onTakeOver={takeOver}
+      onRelease={releaseBot}
+    />
   );
 }
 
@@ -319,7 +332,11 @@ function DrawGuessWordSelectView({
           <Text style={styles.hint}>选词结束后开始作画，请准备猜词。</Text>
         </View>
       )}
-      <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
+      <DrawGuessTakeover
+        screen={screen}
+        viewModel={viewModel}
+        remainingSeconds={remainingSeconds}
+      />
     </DrawGuessStageFrame>
   );
 }
@@ -397,7 +414,11 @@ function DrawGuessDrawingView({
 
   return (
     <>
-      <DrawGuessBotTakeoverStrip screen={screen} viewModel={viewModel} />
+      <DrawGuessTakeover
+        screen={screen}
+        viewModel={viewModel}
+        remainingSeconds={remainingSeconds}
+      />
       <RoomTaskViewport>
         <DrawGuessStageFrame
           turnLabel={viewModel.turnLabel}

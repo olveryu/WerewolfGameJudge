@@ -8,13 +8,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import ColorPicker, {
   type ColorFormatsObject,
   HueSlider,
   Panel1,
   Preview,
 } from 'reanimated-color-picker';
+
+import { AppModal } from '@/components/AppModal/AppModal';
 
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -226,12 +228,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
       )}
       <IconAction label="清空" icon="trash-outline" disabled={disabled} onPress={confirmClear} />
 
-      <Modal
-        visible={activePanel !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setActivePanel(null)}
-      >
+      <AppModal visible={activePanel !== null} onRequestClose={() => setActivePanel(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setActivePanel(null)}>
           <View style={[styles.modalSheet, isCompact ? styles.sheetBottom : styles.sheetCenter]}>
             <View style={styles.sheetHeader}>
@@ -347,7 +344,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
             )}
           </View>
         </Pressable>
-      </Modal>
+      </AppModal>
     </View>
   );
 };
