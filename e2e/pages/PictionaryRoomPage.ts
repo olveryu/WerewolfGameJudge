@@ -239,6 +239,10 @@ export class PictionaryRoomPage extends RoomPage {
     const stage = this.page
       .getByTestId(TESTIDS.pictionaryStageFrame)
       .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
+    this.page.on('console', (msg) => {
+      // eslint-disable-next-line no-console
+      if (msg.text().includes('[DEBUG-PICTIONARY]')) console.log(msg.text());
+    });
     await this.drawStroke(0);
     const undoButton = stage.getByRole('button', { name: '撤销', exact: true });
     const redoButton = stage.getByRole('button', { name: '重做', exact: true });

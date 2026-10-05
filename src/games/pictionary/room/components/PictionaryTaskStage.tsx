@@ -20,10 +20,10 @@ import { DrawingToolbar } from '@/components/DrawingToolbar/DrawingToolbar';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import {
   EMPTY_PICTIONARY_DRAWING_DRAFT,
+  isPictionaryDrawingColor,
   PICTIONARY_DRAWING_PALETTE,
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
-  isPictionaryDrawingColor,
   type PictionaryDrawingDraftAction,
   type PictionaryDrawingElement,
   type PictionaryDrawingPoint,
@@ -293,6 +293,10 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const updateDraft = useCallback(
     (action: PictionaryDrawingDraftAction): void => {
       const next = reducePictionaryDrawingDraft(draft, action);
+      // eslint-disable-next-line no-console
+      console.log(
+        `[DEBUG-PICTIONARY] updateDraft action=${action.type} before=${draft.elements.length} after=${next.elements.length} seat=${effectiveSeat}`,
+      );
       inputs.set(effectiveSeat, next);
       setDraft(next);
     },
@@ -334,9 +338,13 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   );
 
   const clearDrawing = (): void => {
-    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', () =>
-      updateDraft({ type: 'drawing.clear' }),
-    );
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG-PICTIONARY] clearDrawing called, showing alert');
+    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', () => {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG-PICTIONARY] clearDrawing confirmed, calling updateDraft');
+      updateDraft({ type: 'drawing.clear' });
+    });
   };
 
   const isReady = state.readySeats.includes(effectiveSeat);
