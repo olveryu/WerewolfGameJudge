@@ -125,6 +125,8 @@ export interface DrawGuessStrokeSync {
     width: DrawGuessDrawingWidth,
   ) => void;
   readonly undo: () => void;
+  readonly redo: () => void;
+  readonly canRedo: boolean;
   readonly clear: () => void;
 }
 
@@ -166,6 +168,8 @@ export function useDrawGuessStrokeSync({
   const [activeElement, setActiveElement] = useState<DrawGuessDrawingElement | null>(null);
   const [optimisticUndoneId, setOptimisticUndoneId] = useState<string | null>(null);
   const [optimisticallyCleared, setOptimisticallyCleared] = useState(false);
+  const redoStackRef = useRef<DrawGuessDrawingElement[]>([]);
+  const [canRedo, setCanRedo] = useState(false);
 
   const authoritativeIds = useMemo(
     () => new Set(authoritativeStrokes.map((stroke) => stroke.id)),
@@ -246,6 +250,11 @@ export function useDrawGuessStrokeSync({
     (element: DrawGuessDrawingElement): void => {
       setActiveElement(null);
       if (!latestRef.current.canDraw) return;
+      // 新笔画使重做栈失效（与 Pictionary 本地 draft 语义一致）
+      if (redoStackRef.current.length > 0) {
+        redoStackRef.current = [];
+        setCanRedo(false);
+      }
       enqueueStroke(element);
     },
     [enqueueStroke],
@@ -263,7 +272,14 @@ export function useDrawGuessStrokeSync({
         ...[...pendingRef.current.values()].map((entry) => entry.element),
       ];
       const fillElement = createDrawGuessFillElement(currentElements, point, color, width);
-      if (fillElement !== null) enqueueStroke(fillElement);
+      if (fillElement !== null) {
+        // 新填充使重做栈失效
+        if (redoStackRef.current.length > 0) {
+          redoStackRef.current = [];
+          setCanRedo(false);
+        }
+        enqueueStroke(fillElement);
+      }
     },
     [authoritativeStrokes, enqueueStroke],
   );
@@ -278,6 +294,11 @@ export function useDrawGuessStrokeSync({
         ...[...pendingRef.current.values()].map((entry) => entry.element),
       ];
       const last = displayed.at(-1);
+      if (last === undefined) return;
+      // 先乐观更新 UI，再发服务端（修"慢一拍"）；同时入重做栈
+      setOptimisticUndoneId(last.id);
+      redoStackRef.current.push(last);
+      setCanRedo(true);
       try {
         await session.dispatch(
           {
@@ -287,8 +308,11 @@ export function useDrawGuessStrokeSync({
           },
           { controlledSeat: latest.controlledSeat, label: '撤销笔画' },
         );
-        if (last !== undefined) setOptimisticUndoneId(last.id);
       } catch (error: unknown) {
+        // 失败回滚：恢复显示，弹出重做栈
+        setOptimisticUndoneId(null);
+        redoStackRef.current.pop();
+        setCanRedo(redoStackRef.current.length > 0);
         handleError(error, {
           label: '撤销笔画',
           logger: roomScreenLog,
@@ -297,6 +321,15 @@ export function useDrawGuessStrokeSync({
       }
     })();
   }, [authoritativeStrokes, flushPending, session]);
+
+  const redo = useCallback(() => {
+    if (!latestRef.current.canDraw) return;
+    const element = redoStackRef.current.pop();
+    if (element === undefined) return;
+    setCanRedo(redoStackRef.current.length > 0);
+    // 重做 = 把撤销的笔画重新发一遍（新 stroke.add，复用原 ID；服务端幂等，已删的不算重复）
+    enqueueStroke(element);
+  }, [enqueueStroke]);
 
   const clear = useCallback(() => {
     if (!latestRef.current.canDraw) return;
@@ -352,6 +385,8 @@ export function useDrawGuessStrokeSync({
     onElementComplete,
     onFill,
     undo,
+    redo,
+    canRedo,
     clear,
   };
 }

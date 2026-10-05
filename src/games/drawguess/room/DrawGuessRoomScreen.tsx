@@ -463,11 +463,13 @@ function DrawGuessDrawingView({
                     color={color}
                     strokeWidth={strokeWidth}
                     canUndo={sync.elements.length > 0}
+                    canRedo={sync.canRedo}
                     disabled={!canDraw}
                     onToolChange={setTool}
                     onColorChange={setColor}
                     onWidthChange={setStrokeWidth}
                     onUndo={sync.undo}
+                    onRedo={sync.redo}
                     onClear={sync.clear}
                   />
                   <View style={styles.drawerActions}>
