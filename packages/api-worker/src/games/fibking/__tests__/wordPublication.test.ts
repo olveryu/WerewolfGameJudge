@@ -361,25 +361,27 @@ describe('Fib word publication', () => {
 
 describe('Fib word force reservation', () => {
   it('bypasses the monthly budget in its own id namespace and cycles the search index', async () => {
-    // Exhaust the monthly budget: 18 days x 4 batches = 72 reserves.
-    for (let d = 1; d <= 18; d += 1) {
+    // Exhaust the monthly budget: 19 days x 4 batches + 2 = 78 reserves.
+    for (let d = 1; d <= 19; d += 1) {
       const day = `2026-09-${String(d).padStart(2, '0')}`;
       for (let b = 0; b < 4; b += 1) {
         expect(await reserveFibWordPack(env.DB, day, b, 4)).not.toBeNull();
       }
     }
-    expect(await reserveFibWordPack(env.DB, '2026-09-19', 0, 4)).toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-20', 0, 4)).not.toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-20', 1, 4)).not.toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-20', 2, 4)).toBeNull();
 
-    const pack = await reserveFibWordPack(env.DB, '2026-09-19', 0, 4, {
+    const pack = await reserveFibWordPack(env.DB, '2026-09-20', 2, 4, {
       force: true,
       runId: 'run-1',
     });
-    expect(pack?.id).toBe('2026-09-19-force-run-1-0');
-    // requests_reserved hit 72, so the raw index 72 cycles back to the first query.
+    expect(pack?.id).toBe('2026-09-20-force-run-1-2');
+    // requests_reserved hit 78, so the raw index 78 cycles back to the first query.
     expect(pack?.searchIndex).toBe(0);
 
     const row = await env.DB.prepare('SELECT search_index FROM fib_word_packs WHERE id = ?')
-      .bind('2026-09-19-force-run-1-0')
+      .bind('2026-09-20-force-run-1-2')
       .first<{ search_index: number }>();
     expect(row?.search_index).toBe(0);
   });
