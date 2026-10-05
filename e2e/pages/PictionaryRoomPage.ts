@@ -70,14 +70,16 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Assert a drawing task with its inherited text context and complete tool set. */
   async expectDrawingStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+    const stage = this.page
+      .getByTestId(TESTIDS.pictionaryStageFrame)
+      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
     await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
       timeout: 30_000,
     });
     await expect(stage.getByText('把这句话画出来', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
+    await expect(stage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
     await expect(stage.getByText('上一棒', { exact: true })).toBeVisible();
-    const canvasBounds = await this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
+    const canvasBounds = await stage.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
     if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');
     const toolbarBounds = [];
     for (const tool of [/^选择工具，/, /^选择颜色，/, /^选择粗细，/, /^撤销$/, /^重做$/]) {
@@ -285,7 +287,9 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait for a guess task and its protected source drawing. */
   async expectGuessStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+    const stage = this.page
+      .getByTestId(TESTIDS.pictionaryStageFrame)
+      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
     await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
       timeout: 30_000,
     });
