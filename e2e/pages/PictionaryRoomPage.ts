@@ -98,10 +98,10 @@ export class PictionaryRoomPage extends RoomPage {
     }
     await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
     await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await expect(this.page.getByRole('button', { name: '粉色', exact: true })).toBeInViewport({
+    await expect(this.page.getByTestId('drawing-toolbar-color-粉色')).toBeInViewport({
       ratio: 1,
     });
-    await this.page.getByRole('button', { name: '蓝色', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-color-蓝色').click();
     await expect(
       stage.getByRole('button', { name: '选择颜色，当前蓝色', exact: true }),
     ).toBeVisible();
@@ -135,9 +135,7 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(palette).toBeInViewport({ ratio: 1 });
     const paletteBounds = await palette.boundingBox();
     const viewport = this.page.viewportSize();
-    const presetBounds = await this.page
-      .getByRole('button', { name: '粉色', exact: true })
-      .boundingBox();
+    const presetBounds = await this.page.getByTestId('drawing-toolbar-color-粉色').boundingBox();
     const entryBounds = await this.page
       .getByRole('button', { name: '展开调色板', exact: true })
       .boundingBox();
@@ -155,7 +153,7 @@ export class PictionaryRoomPage extends RoomPage {
     const panel = this.page.getByLabel('饱和度与明度', { exact: true });
     const hue = this.page.getByLabel('色相', { exact: true });
     await expect(panel).toHaveCount(0);
-    await expect(this.page.getByRole('button', { name: '粉色', exact: true })).toBeInViewport({
+    await expect(this.page.getByTestId('drawing-toolbar-color-粉色')).toBeInViewport({
       ratio: 1,
     });
     await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();

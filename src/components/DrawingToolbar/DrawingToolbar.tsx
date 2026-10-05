@@ -391,6 +391,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                           accessibilityRole="button"
                           accessibilityLabel={`颜色${entry.name}`}
                           accessibilityState={{ selected: isSelected }}
+                          testID={`drawing-toolbar-color-${entry.name}`}
                           onPress={() => {
                             handleColorChange(entry.value);
                             handleColorPanelClose();
