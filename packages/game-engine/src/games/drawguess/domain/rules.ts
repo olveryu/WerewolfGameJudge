@@ -104,7 +104,7 @@ export function isValidWordChoice(choice: DrawGuessWordChoice): boolean {
     typeof choice.pinyinInitials === 'string' ? choice.pinyinInitials.split(' ') : [];
   return (
     typeof choice.word === 'string' &&
-    choice.word.length >= 2 &&
+    choice.word.length >= 1 &&
     choice.word.length <= 8 &&
     initials.length === choice.word.length &&
     initials.every((part) => /^[a-z]+$/.test(part))

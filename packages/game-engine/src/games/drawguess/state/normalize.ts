@@ -155,7 +155,7 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
         phase.drawerSeat === state.drawerQueue[state.turnIndex % state.drawerQueue.length],
         'drawing drawer matches queue',
       );
-      invariant(phase.word.length >= 2 && phase.word.length <= 8, 'drawing word');
+      invariant(phase.word.length >= 1 && phase.word.length <= 8, 'drawing word');
       invariant(
         phase.pinyinInitials.split(' ').length === phase.word.length,
         'pinyin initials length',
@@ -205,7 +205,7 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
       invariant(state.drawerQueue.length > 0, 'roundEnd queue');
       invariant(state.turnIndex < totalTurns, 'roundEnd turn bound');
       invariant(isSeat(phase.drawerSeat), 'roundEnd drawer');
-      invariant(phase.word.length >= 2, 'roundEnd word');
+      invariant(phase.word.length >= 1, 'roundEnd word');
       invariant(validateStrokes(phase.strokes), 'roundEnd strokes');
       invariant(
         Object.keys(phase.roundScores).every(
