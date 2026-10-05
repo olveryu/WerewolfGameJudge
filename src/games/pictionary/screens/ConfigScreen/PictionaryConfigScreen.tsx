@@ -16,6 +16,7 @@ import { useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
 import { GameSettingsStepper } from '@/components/GameSettings';
@@ -167,70 +168,81 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
   const durations = useDurationHandlers(state);
 
   return (
-    <GameScreen
-      testID={TESTIDS.configScreenRoot}
-      header={<ScreenHeader title="你画我猜接龙设置" onBack={state.goBack} topInset={insets.top} />}
-    >
-      <GameScreenContent contentContainerStyle={gameSettingsStyles.content}>
-        <View style={styles.section}>
-          <GameSettingsStepper
-            label="玩家人数"
-            onDecrement={state.decrementPlayers}
-            onIncrement={state.incrementPlayers}
-            isDecrementDisabled={state.config.numberOfPlayers === 4}
-            value={String(state.config.numberOfPlayers)}
-            testID={TESTIDS.pictionaryConfigPlayerCount}
+    <>
+      <GameScreen
+        testID={TESTIDS.configScreenRoot}
+        header={
+          <ScreenHeader title="你画我猜接龙设置" onBack={state.goBack} topInset={insets.top} />
+        }
+      >
+        <GameScreenContent contentContainerStyle={gameSettingsStyles.content}>
+          <View style={styles.section}>
+            <GameSettingsStepper
+              label="玩家人数"
+              onDecrement={state.decrementPlayers}
+              onIncrement={state.incrementPlayers}
+              isDecrementDisabled={state.config.numberOfPlayers === 4}
+              value={String(state.config.numberOfPlayers)}
+              testID={TESTIDS.pictionaryConfigPlayerCount}
+            />
+            <Text style={styles.sectionHint}>
+              支持 4 至 20 人 · 共 {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
+            </Text>
+          </View>
+          <DurationSection
+            setting="drawing"
+            title="绘画时间"
+            hint="默认 120 秒，足够画清重点"
+            values={PICTIONARY_DRAWING_DURATIONS}
+            selected={state.config.drawingDurationSeconds}
+            onSelect={durations.drawing}
           />
-          <Text style={styles.sectionHint}>
-            支持 4 至 20 人 · 共 {getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒
-          </Text>
-        </View>
-        <DurationSection
-          setting="drawing"
-          title="绘画时间"
-          hint="默认 120 秒，足够画清重点"
-          values={PICTIONARY_DRAWING_DURATIONS}
-          selected={state.config.drawingDurationSeconds}
-          onSelect={durations.drawing}
-        />
-        <DurationSection
-          setting="guess"
-          title="文字作答时间"
-          hint="用于开场出题和看图猜词"
-          values={PICTIONARY_GUESS_DURATIONS}
-          selected={state.config.guessDurationSeconds}
-          onSelect={durations.guess}
-        />
-        <DurationSection
-          setting="transition"
-          title="每棒间隔"
-          hint="给大家留一点换手时间"
-          values={PICTIONARY_TRANSITION_DURATIONS}
-          selected={state.config.transitionDurationSeconds}
-          onSelect={durations.transition}
-        />
-        <DurationSection
-          setting="gallery"
-          title="结果播放"
-          hint="不限时会改为房主手动翻页"
-          values={PICTIONARY_GALLERY_ITEM_DURATIONS}
-          selected={state.config.galleryItemDurationSeconds}
-          onSelect={durations.gallery}
-        />
-        <Text style={styles.estimate}>{getEstimatedMinutes(state.config)}</Text>
-      </GameScreenContent>
-      <GameScreenFooter>
-        <Text style={gameSettingsStyles.summary}>共 {state.config.numberOfPlayers} 人</Text>
-        <Button
-          variant="primary"
-          size="lg"
-          onPress={state.submit}
-          loading={state.isSubmitting}
-          testID={TESTIDS.pictionaryConfigSubmitButton}
-        >
-          {state.isEditMode ? '保存设置' : '创建房间'}
-        </Button>
-      </GameScreenFooter>
-    </GameScreen>
+          <DurationSection
+            setting="guess"
+            title="文字作答时间"
+            hint="用于开场出题和看图猜词"
+            values={PICTIONARY_GUESS_DURATIONS}
+            selected={state.config.guessDurationSeconds}
+            onSelect={durations.guess}
+          />
+          <DurationSection
+            setting="transition"
+            title="每棒间隔"
+            hint="给大家留一点换手时间"
+            values={PICTIONARY_TRANSITION_DURATIONS}
+            selected={state.config.transitionDurationSeconds}
+            onSelect={durations.transition}
+          />
+          <DurationSection
+            setting="gallery"
+            title="结果播放"
+            hint="不限时会改为房主手动翻页"
+            values={PICTIONARY_GALLERY_ITEM_DURATIONS}
+            selected={state.config.galleryItemDurationSeconds}
+            onSelect={durations.gallery}
+          />
+          <Text style={styles.estimate}>{getEstimatedMinutes(state.config)}</Text>
+        </GameScreenContent>
+        <GameScreenFooter>
+          <Text style={gameSettingsStyles.summary}>共 {state.config.numberOfPlayers} 人</Text>
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={state.submit}
+            loading={state.isSubmitting}
+            testID={TESTIDS.pictionaryConfigSubmitButton}
+          >
+            {state.isEditMode ? '保存设置' : '创建房间'}
+          </Button>
+        </GameScreenFooter>
+      </GameScreen>
+      <AlertModal
+        visible={state.alert !== null}
+        title={state.alert?.title ?? ''}
+        message={state.alert?.message}
+        buttons={state.alert?.buttons ?? []}
+        onClose={state.clearAlert}
+      />
+    </>
   );
 };

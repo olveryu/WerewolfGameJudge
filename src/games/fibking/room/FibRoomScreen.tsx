@@ -3,6 +3,7 @@
 import type React from 'react';
 import { useCallback } from 'react';
 
+import { AlertModal } from '@/components/AlertModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -62,37 +63,47 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
   });
 
   return (
-    <RoomShell
-      model={screen.shellModel}
-      leadingExtraActions={null}
-      trailingExtraActions={null}
-      content={{
-        kind: 'seats',
-        contextHeader: null,
-        afterSeatBoard: null,
-        sideInspector: null,
-        beforeSeatBoard: (
-          <FibRoomSummary
-            phase={screen.phase}
-            occupiedSeatCount={screen.occupiedSeatCount}
-            playerCount={screen.playerCount}
-            preparationStage={screen.preparationStage}
-            preparationFailureCode={screen.preparationFailureCode}
-            headerRight={
-              <RoomGuideButton
-                onPress={screen.openRules}
-                label="查看瞎掰王玩法说明"
-                testID={TESTIDS.fibRulesButton}
-              />
-            }
-          />
-        ),
-      }}
-      gameOverlays={
-        screen.isIdentityVisible && screen.roundView !== null ? (
-          <FibIdentityModal view={screen.roundView} onClose={screen.closeIdentity} />
-        ) : null
-      }
-    />
+    <>
+      <RoomShell
+        model={screen.shellModel}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          afterSeatBoard: null,
+          sideInspector: null,
+          beforeSeatBoard: (
+            <FibRoomSummary
+              phase={screen.phase}
+              occupiedSeatCount={screen.occupiedSeatCount}
+              playerCount={screen.playerCount}
+              preparationStage={screen.preparationStage}
+              preparationFailureCode={screen.preparationFailureCode}
+              headerRight={
+                <RoomGuideButton
+                  onPress={screen.openRules}
+                  label="查看瞎掰王玩法说明"
+                  testID={TESTIDS.fibRulesButton}
+                />
+              }
+            />
+          ),
+        }}
+        gameOverlays={
+          screen.isIdentityVisible && screen.roundView !== null ? (
+            <FibIdentityModal view={screen.roundView} onClose={screen.closeIdentity} />
+          ) : null
+        }
+      />
+      <AlertModal
+        visible={screen.alert !== null}
+        title={screen.alert?.title ?? ''}
+        message={screen.alert?.message}
+        buttons={screen.alert?.buttons ?? []}
+        input={screen.alert?.input}
+        onClose={screen.clearAlert}
+      />
+    </>
   );
 };

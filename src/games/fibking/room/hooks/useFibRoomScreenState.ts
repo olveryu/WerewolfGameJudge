@@ -15,6 +15,7 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { type AlertButton, type AlertInputConfig } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -32,7 +33,14 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+
+/** Alert config exposed by the hook for the owning screen to render via <AlertModal>. */
+export interface AlertState {
+  readonly title: string;
+  readonly message?: string;
+  readonly buttons: AlertButton[];
+  readonly input?: AlertInputConfig;
+}
 
 import {
   createFibBottomActions,
@@ -67,6 +75,8 @@ export interface FibRoomScreenState {
   readonly preparationStage: FibPreparationStage | null;
   readonly preparationFailureCode: FibPreparationFailureCode | null;
   readonly isHost: boolean;
+  readonly alert: AlertState | null;
+  readonly clearAlert: () => void;
 }
 
 export function useFibRoomScreenState({
@@ -123,6 +133,8 @@ export function useFibRoomScreenState({
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
   const hasAutoShownQR = useRef(false);
   const [isIdentityVisible, setIsIdentityVisible] = useState(false);
+  const [alert, setAlert] = useState<AlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
 
   const effectiveSeat = controlledSeat ?? mySeat;
   const roundView = useMemo(() => getFibRoundView(state, effectiveSeat), [effectiveSeat, state]);
@@ -172,44 +184,86 @@ export function useFibRoomScreenState({
 
   const cancelPreparing = useCallback(() => {
     const isReturningToLobby = state.phase === 'preparationFailed';
-    showConfirmAlert(
-      isReturningToLobby ? '返回大厅？' : '取消准备？',
-      isReturningToLobby
+    setAlert({
+      title: isReturningToLobby ? '返回大厅？' : '取消准备？',
+      message: isReturningToLobby
         ? '返回大厅后可以调整座位和房间设置。'
         : '本次词语准备会终止，座位和历史词语会保留。',
-      async () => {
-        await submitCommand(isReturningToLobby ? '返回大厅' : '取消准备', {
-          type: 'fib.round.cancelPreparing',
-        });
-      },
-    );
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            await submitCommand(isReturningToLobby ? '返回大厅' : '取消准备', {
+              type: 'fib.round.cancelPreparing',
+            });
+          },
+        },
+      ],
+    });
   }, [state.phase, submitCommand]);
 
   const revealRound = useCallback(() => {
-    showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
-      await submitCommand('公布答案', { type: 'fib.round.reveal' });
+    setAlert({
+      title: '公布答案？',
+      message: '公布后本轮结束，所有玩家都能看到真实释义和身份。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            await submitCommand('公布答案', { type: 'fib.round.reveal' });
+          },
+        },
+      ],
     });
   }, [submitCommand]);
 
   const redrawRound = useCallback(() => {
-    showConfirmAlert(
-      '重新抽词？',
-      '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
-      async () => {
-        await submitCommand('重新抽词', { type: 'fib.round.start' });
-      },
-    );
+    setAlert({
+      title: '重新抽词？',
+      message: '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            await submitCommand('重新抽词', { type: 'fib.round.start' });
+          },
+        },
+      ],
+    });
   }, [submitCommand]);
 
   const abandonGame = useCallback(() => {
-    showConfirmAlert('放弃游戏？', '放弃后将返回大厅；座位和已用词记录会保留。', async () => {
-      await submitCommand('放弃游戏', { type: 'fib.game.returnToLobby' });
+    setAlert({
+      title: '放弃游戏？',
+      message: '放弃后将返回大厅；座位和已用词记录会保留。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            await submitCommand('放弃游戏', { type: 'fib.game.returnToLobby' });
+          },
+        },
+      ],
     });
   }, [submitCommand]);
 
   const endGame = useCallback(() => {
-    showConfirmAlert('结束游戏？', '结束后返回大厅，座位和已用词记录会保留。', async () => {
-      await submitCommand('结束游戏', { type: 'fib.game.returnToLobby' });
+    setAlert({
+      title: '结束游戏？',
+      message: '结束后返回大厅，座位和已用词记录会保留。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            await submitCommand('结束游戏', { type: 'fib.game.returnToLobby' });
+          },
+        },
+      ],
     });
   }, [submitCommand]);
 
@@ -285,14 +339,18 @@ export function useFibRoomScreenState({
       });
       switch (roomIntent.kind) {
         case 'blocked':
-          showErrorAlert('不可选择', roomIntent.reason);
+          setAlert({ title: '不可选择', message: roomIntent.reason, buttons: [{ text: '确定' }] });
           return;
         case 'take':
         case 'move': {
           const capability =
             roomIntent.kind === 'take' ? capabilities.canTakeSeat : capabilities.canMoveSeat;
           if (!capability.isAllowed) {
-            showErrorAlert('无法操作座位', capability.reason ?? '当前阶段不可操作');
+            setAlert({
+              title: '无法操作座位',
+              message: capability.reason ?? '当前阶段不可操作',
+              buttons: [{ text: '确定' }],
+            });
             return;
           }
           capability.execute(roomIntent.seat);
@@ -301,7 +359,11 @@ export function useFibRoomScreenState({
         case 'profile': {
           const capability = capabilities.canViewProfiles;
           if (!capability.isAllowed) {
-            showErrorAlert('无法查看资料', capability.reason ?? '游戏进行中不能查看玩家资料');
+            setAlert({
+              title: '无法查看资料',
+              message: capability.reason ?? '游戏进行中不能查看玩家资料',
+              buttons: [{ text: '确定' }],
+            });
             return;
           }
           capability.execute(roomIntent.target);
@@ -388,7 +450,11 @@ export function useFibRoomScreenState({
   ]);
 
   const showStartRoundDisabled = useCallback(() => {
-    showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。');
+    setAlert({
+      title: '暂时不能开始',
+      message: '请先坐满所有座位，或填充机器人。',
+      buttons: [{ text: '确定' }],
+    });
   }, []);
 
   const hostManagement = useMemo(
@@ -521,5 +587,7 @@ export function useFibRoomScreenState({
     preparationFailureCode:
       state.phase === 'preparationFailed' ? state.preparationFailure.failureCode : null,
     isHost,
+    alert,
+    clearAlert,
   };
 }

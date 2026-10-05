@@ -304,6 +304,13 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
         ]}
         onClose={() => setConfirmConfig(null)}
       />
+      <AlertModal
+        visible={command.alert !== null}
+        title={command.alert?.title ?? ''}
+        message={command.alert?.message}
+        buttons={command.alert?.buttons ?? []}
+        onClose={command.clearAlert}
+      />
     </>
   );
 };

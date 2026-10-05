@@ -9,7 +9,6 @@ import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellModel';
 import { addRecentRoom } from '@/features/room/services/recentRooms';
 import type { ActiveRoomIdentity, RoomSessionClient } from '@/features/room/session/types';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -34,6 +33,12 @@ export interface RoomEntryController {
   readonly connection: RoomConnectionViewModel;
   readonly retry: () => void;
   readonly requestExit: (shouldConfirm: boolean) => void;
+  /** Whether the "leave room" confirm dialog should be visible. */
+  readonly exitConfirmVisible: boolean;
+  /** Confirm leaving: disconnects session and calls onExit. */
+  readonly confirmExit: () => void;
+  /** Dismiss the "leave room" confirm dialog. */
+  readonly dismissExitConfirm: () => void;
 }
 
 function matchesIdentity<TGameType extends string>(
@@ -195,10 +200,21 @@ export function useRoomEntryController<
     onExit();
   }, [onExit, session]);
 
+  const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
+
+  const dismissExitConfirm = useCallback(() => {
+    setExitConfirmVisible(false);
+  }, []);
+
+  const confirmExit = useCallback(() => {
+    setExitConfirmVisible(false);
+    performExit();
+  }, [performExit]);
+
   const requestExit = useCallback(
     (shouldConfirm: boolean) => {
       if (shouldConfirm) {
-        showConfirmAlert('离开房间？', '离开后将退出当前对局，座位可能被他人占用。', performExit);
+        setExitConfirmVisible(true);
         return;
       }
       performExit();
@@ -223,5 +239,8 @@ export function useRoomEntryController<
     },
     retry,
     requestExit,
+    exitConfirmVisible,
+    confirmExit,
+    dismissExitConfirm,
   };
 }
