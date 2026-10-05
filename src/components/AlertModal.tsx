@@ -136,7 +136,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent={true} animationType="none" onRequestClose={onClose}>
       <View style={styles.overlay} testID={TESTIDS.alertModalOverlay}>
         <View style={styles.alertBox} testID={TESTIDS.alertModal}>
           <Text style={styles.title} testID={TESTIDS.alertTitle}>
