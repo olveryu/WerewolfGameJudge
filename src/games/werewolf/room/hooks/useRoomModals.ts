@@ -9,11 +9,12 @@
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { AlertButton } from '@/components/AlertModal';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { DISMISS_BUTTON, dismissAlert, getAlertGeneration, showAlert } from '@/utils/alert';
-import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { isMiniProgram } from '@/utils/miniProgram';
+
+import type { HookAlertState } from '../hookAlert';
 
 /** useRoomModals deps */
 interface UseRoomModalsDeps {
@@ -60,6 +61,10 @@ interface RoomModalsState {
 
   // ── Last night info ──
   showLastNightInfo: () => void;
+
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  alert: HookAlertState | null;
+  clearAlert: () => void;
 }
 
 export function useRoomModals({
@@ -103,10 +108,13 @@ export function useRoomModals({
   // ── Night review modal ──
   const [nightReviewVisible, setNightReviewVisible] = useState(false);
 
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  const [alert, setAlert] = useState<HookAlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
+
   /** Tracks whether the "本局复盘" alert is still open (prevents re-showing after dismiss). */
   const detailAlertOpenRef = useRef(false);
   const detailAlertRequestRef = useRef(0);
-  const detailAlertGenerationRef = useRef<number | null>(null);
 
   useEffect(() => {
     detailAlertOpenRef.current = false;
@@ -117,33 +125,48 @@ export function useRoomModals({
     setShouldPlayRevealAnimation(false);
     setIsLoadingRole(false);
     setSkillPreviewRoleId(null);
+    setAlert(null);
     return () => {
       detailAlertOpenRef.current = false;
       detailAlertRequestRef.current += 1;
-      if (detailAlertGenerationRef.current !== null) {
-        dismissAlert(detailAlertGenerationRef.current);
-        detailAlertGenerationRef.current = null;
-      }
+      setAlert(null);
     };
   }, [reportScopeKey]);
 
+  /**
+   * Queue a follow-up alert after the current one closes.
+   * <AlertModal> auto-closes after a synchronous onPress, so a chained setAlert
+   * must land after onClose — queueMicrotask guarantees that ordering.
+   * The requestId re-check drops stale follow-ups after a scope change.
+   */
+  const queueFollowUpAlert = useCallback((fn: () => void) => {
+    const pressRequestId = detailAlertRequestRef.current;
+    queueMicrotask(() => {
+      if (detailAlertRequestRef.current === pressRequestId) fn();
+    });
+  }, []);
+
   const confirmOpenNightReview = useCallback(() => {
     const requestId = detailAlertRequestRef.current;
-    const isShown = showConfirmAlert(
-      '查看本局复盘？',
-      '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
-      () => {
-        if (detailAlertRequestRef.current === requestId) setNightReviewVisible(true);
-      },
-      { confirmText: '确定查看' },
-    );
-    detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
+    setAlert({
+      title: '查看本局复盘？',
+      message: '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定查看',
+          onPress: () => {
+            if (detailAlertRequestRef.current === requestId) setNightReviewVisible(true);
+          },
+        },
+      ],
+    });
   }, []);
 
   /**
    * Show the "本局复盘" alert with optional loading state on "分享战报" button.
    * Can be called twice: first with `reportLoading: true`, then with `false`
-   * once capture completes — `showAlert` seamlessly updates the existing modal.
+   * once capture completes — setting state again seamlessly updates the modal.
    */
   const showDetailAlert = useCallback(
     (reportLoading: boolean) => {
@@ -151,67 +174,68 @@ export function useRoomModals({
       const dismiss = () => {
         if (detailAlertRequestRef.current !== requestId) return false;
         detailAlertOpenRef.current = false;
-        detailAlertGenerationRef.current = null;
         return true;
       };
 
-      let isShown = false;
+      const shareReportButton: AlertButton = {
+        text: '分享战报',
+        loading: reportLoading,
+        onPress: () => {
+          if (dismiss()) void shareNightReviewReport();
+        },
+      };
+
       if (isHost) {
-        isShown = showAlert('本局复盘', '选择操作', [
-          {
-            text: '自己查看',
-            onPress: () => {
-              if (dismiss()) confirmOpenNightReview();
+        setAlert({
+          title: '本局复盘',
+          message: '选择操作',
+          buttons: [
+            {
+              text: '自己查看',
+              onPress: () => {
+                if (dismiss()) queueFollowUpAlert(confirmOpenNightReview);
+              },
             },
-          },
-          {
-            text: '授权玩家查看',
-            onPress: () => {
-              if (dismiss()) setShareReviewVisible(true);
+            {
+              text: '授权玩家查看',
+              onPress: () => {
+                if (dismiss()) setShareReviewVisible(true);
+              },
             },
-          },
-          {
-            text: '分享战报',
-            loading: reportLoading,
-            onPress: () => {
-              if (dismiss()) void shareNightReviewReport();
+            shareReportButton,
+            {
+              text: '取消',
+              style: 'cancel',
+              onPress: () => {
+                dismiss();
+              },
             },
-          },
-          {
-            text: '取消',
-            style: 'cancel',
-            onPress: () => {
-              dismiss();
-            },
-          },
-        ]);
+          ],
+        });
       } else if (canShareReport) {
-        isShown = showAlert('本局复盘', '选择操作', [
-          {
-            text: '查看',
-            onPress: () => {
-              if (dismiss()) confirmOpenNightReview();
+        setAlert({
+          title: '本局复盘',
+          message: '选择操作',
+          buttons: [
+            {
+              text: '查看',
+              onPress: () => {
+                if (dismiss()) queueFollowUpAlert(confirmOpenNightReview);
+              },
             },
-          },
-          {
-            text: '分享战报',
-            loading: reportLoading,
-            onPress: () => {
-              if (dismiss()) void shareNightReviewReport();
+            shareReportButton,
+            {
+              text: '取消',
+              style: 'cancel',
+              onPress: () => {
+                dismiss();
+              },
             },
-          },
-          {
-            text: '取消',
-            style: 'cancel',
-            onPress: () => {
-              dismiss();
-            },
-          },
-        ]);
+          ],
+        });
       }
-      detailAlertGenerationRef.current = isShown ? getAlertGeneration() : null;
     },
-    [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport],
+    [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport, queueFollowUpAlert],
   );
 
   const openNightReview = useCallback(() => {
@@ -231,11 +255,7 @@ export function useRoomModals({
 
     // Start capture in background; update alert to enable "分享战报" on completion
     void beginReportCapture().then(() => {
-      if (
-        detailAlertOpenRef.current &&
-        detailAlertRequestRef.current === requestId &&
-        detailAlertGenerationRef.current === getAlertGeneration()
-      ) {
+      if (detailAlertOpenRef.current && detailAlertRequestRef.current === requestId) {
         showDetailAlert(false);
       }
     });
@@ -261,30 +281,39 @@ export function useRoomModals({
 
   // ── Last night info ──
   const showLastNightInfo = useCallback(() => {
-    showConfirmAlert(
-      '提示',
-      '昨夜信息可能影响警长竞选，请确认是否现在查看。',
-      () => {
-        const info = getLastNightInfo();
-        const curseInfo = getCurseInfo();
-        const buttons: {
-          text: string;
-          onPress?: () => void;
-          style?: 'default' | 'cancel' | 'destructive';
-        }[] = [DISMISS_BUTTON];
-        if (curseInfo != null) {
-          buttons.unshift({
-            text: '查看诅咒',
-            onPress: () => {
-              showDismissAlert('乌鸦诅咒', curseInfo);
-            },
-          });
-        }
-        showAlert('昨夜信息', info, buttons);
-      },
-      { confirmText: '确定查看' },
-    );
-  }, [getLastNightInfo, getCurseInfo]);
+    setAlert({
+      title: '提示',
+      message: '昨夜信息可能影响警长竞选，请确认是否现在查看。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定查看',
+          onPress: () => {
+            const info = getLastNightInfo();
+            const curseInfo = getCurseInfo();
+            const buttons: AlertButton[] = [{ text: '知道了', style: 'default' }];
+            if (curseInfo != null) {
+              buttons.unshift({
+                text: '查看诅咒',
+                // Chained alert: queue after the current one auto-closes.
+                onPress: () => {
+                  queueFollowUpAlert(() =>
+                    setAlert({
+                      title: '乌鸦诅咒',
+                      message: curseInfo,
+                      buttons: [{ text: '知道了', style: 'default' }],
+                    }),
+                  );
+                },
+              });
+            }
+            // Chained alert: queue after the current one auto-closes.
+            queueFollowUpAlert(() => setAlert({ title: '昨夜信息', message: info, buttons }));
+          },
+        },
+      ],
+    });
+  }, [getLastNightInfo, getCurseInfo, queueFollowUpAlert]);
 
   return {
     roleCardVisible,
@@ -304,5 +333,7 @@ export function useRoomModals({
     closeShareReview,
     handleShareNightReview,
     showLastNightInfo,
+    alert,
+    clearAlert,
   };
 }

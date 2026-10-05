@@ -4,17 +4,18 @@
  * Only responsible for "how to display" dialogs.
  * Does NOT contain business rules or decide "when to display".
  * All onConfirm callbacks are provided by the caller (WerewolfRoomScreen orchestrator).
- * Calls showAlert, formats messages, and collects user input. Does not import
+ * Exposes dialogs as HookAlertState (rendered by the screen via <AlertModal>),
+ * formats messages, and collects user input. Does not import
  * services, does not contain business rules, and does not hold execution functions.
  */
 
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
-import type { AlertButton } from '@/utils/alert';
-import { showAlert } from '@/utils/alert';
-import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
+import type { AlertButton } from '@/components/AlertModal';
+
+import type { HookAlertState } from './hookAlert';
 
 /**
  * Witch context for UI display (simplified from WitchContextPayload).
@@ -80,16 +81,23 @@ export interface UseRoomActionDialogsResult {
       onPress: () => void | Promise<void>;
     },
   ) => void;
+
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  alert: HookAlertState | null;
+  clearAlert: () => void;
 }
 
 /** Action rejection / confirmation dialog hook. */
 export function useRoomActionDialogs(): UseRoomActionDialogsResult {
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  const [alert, setAlert] = useState<HookAlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
   // ─────────────────────────────────────────────────────────────────────────
   // Action rejected alert (unified UX for server rejections)
   // ─────────────────────────────────────────────────────────────────────────
 
   const showActionRejectedAlert = useCallback((reason: string) => {
-    showDismissAlert('操作失败', reason);
+    setAlert({ title: '操作失败', message: reason, buttons: [{ text: '知道了' }] });
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -99,7 +107,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showMagicianFirstAlert = useCallback((seat: number, schema: ActionSchema) => {
     const title = schema.ui!.firstTargetTitle!;
     const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', formatSeat(seat));
-    showDismissAlert(title, body);
+    setAlert({ title, message: body, buttons: [{ text: '知道了' }] });
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -108,7 +116,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showRevealDialog = useCallback(
     (title: string, message: string, onConfirm: () => void | Promise<void>) => {
-      showDismissAlert(title, message, onConfirm);
+      setAlert({ title, message, buttons: [{ text: '知道了', onPress: onConfirm }] });
     },
     [],
   );
@@ -124,7 +132,14 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       onConfirm: () => void | Promise<void>,
       onCancel?: () => void,
     ) => {
-      showConfirmAlert(title, message, onConfirm, onCancel ? { onCancel } : undefined);
+      setAlert({
+        title,
+        message,
+        buttons: [
+          { text: '取消', style: 'cancel', onPress: onCancel },
+          { text: '确定', onPress: onConfirm },
+        ],
+      });
     },
     [],
   );
@@ -153,7 +168,14 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           .replace('{seat}', formatSeat(targetSeat));
       }
 
-      showConfirmAlert(title, msg, onConfirm);
+      setAlert({
+        title,
+        message: msg,
+        buttons: [
+          { text: '取消', style: 'cancel' },
+          { text: '确定', onPress: onConfirm },
+        ],
+      });
     },
     [],
   );
@@ -183,15 +205,23 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       if (ctx.killedSeat >= 0) {
         if (ctx.canSave) {
           const msg = saveStep!.ui!.promptTemplate!.replace('{seat}', formatSeat(ctx.killedSeat));
-          showDismissAlert(title, msg, onDismiss);
+          setAlert({ title, message: msg, buttons: [{ text: '知道了', onPress: onDismiss }] });
         } else {
-          showDismissAlert(title, saveStep!.ui!.cannotSavePrompt!, onDismiss);
+          setAlert({
+            title,
+            message: saveStep!.ui!.cannotSavePrompt!,
+            buttons: [{ text: '知道了', onPress: onDismiss }],
+          });
         }
         return;
       }
 
       // Empty kill (killedSeat < 0)
-      showDismissAlert(currentSchema.ui!.emptyKillTitle!, poisonPrompt!, onDismiss);
+      setAlert({
+        title: currentSchema.ui!.emptyKillTitle!,
+        message: poisonPrompt!,
+        buttons: [{ text: '知道了', onPress: onDismiss }],
+      });
     },
     [],
   );
@@ -220,7 +250,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
         });
       }
       buttons.push({ text: buttonLabel ?? '知道了', style: 'default', onPress: onDismiss });
-      showAlert(title, actionMessage, buttons);
+      setAlert({ title, message: actionMessage, buttons });
     },
     [],
   );
@@ -233,5 +263,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     showWolfVoteDialog,
     showWitchInfoPrompt,
     showRoleActionPrompt,
+    alert,
+    clearAlert,
   };
 }

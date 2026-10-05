@@ -27,6 +27,8 @@ function createDialogs(onConfirmDialog: (callback: ConfirmCallback) => void) {
     showWolfVoteDialog: jest.fn(),
     showWitchInfoPrompt: jest.fn(),
     showRoleActionPrompt: jest.fn(),
+    alert: null,
+    clearAlert: jest.fn(),
   } satisfies UseRoomActionDialogsResult;
 }
 

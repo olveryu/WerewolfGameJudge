@@ -1,9 +1,9 @@
 /** Unit tests for the sheriff-election HUD summary copy. */
 
+import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { getHudSummary } from '@/games/werewolf/room/components/SheriffElectionHud';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
-import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'firstVote',
@@ -34,6 +34,8 @@ function createModel(viewOverrides: Partial<SheriffElectionViewModel>): SheriffE
     vote: jest.fn(async () => undefined),
     advance: jest.fn(async () => undefined),
     requestEndBySelfDestruct: jest.fn(),
+    alert: null,
+    clearAlert: jest.fn(),
   };
 }
 
