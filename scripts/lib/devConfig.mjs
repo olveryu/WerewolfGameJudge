@@ -19,8 +19,9 @@ const __dirname = dirname(__filename);
 
 const ROOT_DIR = join(__dirname, '..', '..');
 
-/** Max attempts for the idempotent `db:migrate:local` apply before failing. */
-const MAX_MIGRATION_ATTEMPTS = 3;
+/** Timeout for the wrangler migration apply (5 minutes). Migrations are deterministic;
+ * if wrangler hasn't finished by then, it's hung — fail fast instead of blocking CI. */
+const MIGRATION_TIMEOUT_MS = 5 * 60 * 1000;
 
 // ─── writeDevVars ────────────────────────────────────────────────────────────
 
@@ -49,9 +50,9 @@ export function writeDevVars() {
  *
  * Uses pipe stdio so wrangler detects non-interactive context and auto-confirms.
  *
+ * Runs once with a timeout (migrations are deterministic — no retry).
  * Verifies completion by comparing the migration files on disk against the
- * `d1_migrations` journal in the local database, retrying the idempotent apply
- * when wrangler exits early. Fails fast naming the missing migrations instead of
+ * `d1_migrations` journal. Fails fast naming the missing migrations instead of
  * letting later seed steps die with cryptic "no such table" errors.
  */
 export function applyD1Migrations() {
@@ -59,45 +60,30 @@ export function applyD1Migrations() {
   const migrationsDir = join(workerDir, 'migrations');
   console.log('🗄️  Applying D1 migrations (local)...');
 
-  let missing = [];
+  runMigrationApply(workerDir);
 
-  for (let attempt = 1; attempt <= MAX_MIGRATION_ATTEMPTS; attempt++) {
-    runMigrationApply(workerDir);
-    const applied = readAppliedMigrations(workerDir);
-    const expected = readdirSync(migrationsDir)
-      .filter((name) => name.endsWith('.sql'))
-      .sort();
-    missing = expected.filter((name) => !applied.has(name));
-    // Debug: show journal state on every attempt (helps diagnose CI-only hangs)
-    console.log(
-      `🔍 [debug] attempt ${attempt}: ${applied.size}/${expected.length} migrations in journal`,
-    );
-    if (missing.length === 0) {
-      console.log('✅ D1 migrations applied');
-      return;
-    }
-    console.warn(
-      `⚠️  D1 migration attempt ${attempt}/${MAX_MIGRATION_ATTEMPTS} incomplete, ` +
-        `missing: ${missing.join(', ')}`,
-    );
+  const expected = readdirSync(migrationsDir)
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
+  const applied = readAppliedMigrations(workerDir);
+  const missing = expected.filter((name) => !applied.has(name));
+
+  console.log(`🔍 [debug] ${applied.size}/${expected.length} migrations in journal`);
+  if (missing.length === 0) {
+    console.log('✅ D1 migrations applied');
+    return;
   }
 
-  // Debug: dump full journal on failure so CI logs show what actually applied
-  const finalApplied = [...readAppliedMigrations(workerDir)].sort();
-  console.error(`🔍 [debug] d1_migrations journal contents (${finalApplied.length} rows):`);
-  console.error(finalApplied.join('\n') || '(empty)');
-
-  console.error(
-    `❌ D1 migrations did not complete after ${MAX_MIGRATION_ATTEMPTS} attempts. ` +
-      `Missing migrations: ${missing.join(', ')}`,
-  );
+  console.error(`🔍 [debug] d1_migrations journal contents (${applied.size} rows):`);
+  console.error([...applied].sort().join('\n') || '(empty)');
+  console.error(`❌ D1 migrations incomplete. Missing: ${missing.join(', ')}`);
   process.exit(1);
 }
 
 /**
- * Run one `db:migrate:local` apply. Never throws: wrangler may partially apply
- * before exiting non-zero, and the journal check in applyD1Migrations decides
- * success — not the exit code, and never string-matching the output.
+ * Run one `db:migrate:local` apply with a timeout. Never throws: wrangler may
+ * partially apply before exiting non-zero, and the journal check in
+ * applyD1Migrations decides success — not the exit code.
  */
 function runMigrationApply(workerDir) {
   try {
@@ -105,27 +91,22 @@ function runMigrationApply(workerDir) {
       cwd: workerDir,
       stdio: 'pipe',
       encoding: 'utf-8',
+      timeout: MIGRATION_TIMEOUT_MS,
     });
     console.log(output);
   } catch (err) {
-    console.warn('⚠️  db:migrate:local exited non-zero, verifying journal...');
+    if (err.code === 'ETIMEDOUT') {
+      console.error(
+        `❌ db:migrate:local timed out after ${MIGRATION_TIMEOUT_MS / 1000}s — wrangler hung`,
+      );
+    } else {
+      console.warn('⚠️  db:migrate:local exited non-zero, verifying journal...');
+    }
     const combined = (err.stdout || '') + (err.stderr || '');
     if (combined) {
       console.log(combined);
     }
   }
-}
-
-/**
- * Return the migration filenames on disk that are absent from the local
- * `d1_migrations` journal. Empty means the local schema is fully migrated.
- */
-function findMissingMigrations(workerDir, migrationsDir) {
-  const expected = readdirSync(migrationsDir)
-    .filter((name) => name.endsWith('.sql'))
-    .sort();
-  const applied = readAppliedMigrations(workerDir);
-  return expected.filter((name) => !applied.has(name));
 }
 
 /**
