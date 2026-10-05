@@ -8,9 +8,9 @@ import type {
 import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { colors, componentSizes } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getStoryRelayVisibleStories } from '../storyRelayPresentation';
 import { StoryRelayImageShare } from './StoryRelayImageShare';
@@ -29,6 +29,12 @@ export function StoryRelayGallery({
   readonly isSubmitting: boolean;
 }) {
   const [selectedStory, setSelectedStory] = useState(0);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    title: string;
+    message: string;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
   const isPlayback = state.phase === 'gallery';
   const chainIndex =
     isPlayback && state.gallery !== null
@@ -145,8 +151,13 @@ export function StoryRelayGallery({
             variant="secondary"
             disabled={isSubmitting}
             onPress={() =>
-              showConfirmAlert('全部揭晓', '立即公开剩余故事并结束回放？', () => {
-                control('storyrelay.gallery.finish');
+              setConfirmConfig({
+                title: '全部揭晓',
+                message: '立即公开剩余故事并结束回放？',
+                confirmText: '确定',
+                onConfirm: () => {
+                  control('storyrelay.gallery.finish');
+                },
               })
             }
           >
@@ -159,6 +170,23 @@ export function StoryRelayGallery({
           <StoryRelayImageShare state={state} chainIndex={chainIndex} />
         </View>
       )}
+      <AlertModal
+        visible={confirmConfig !== null}
+        title={confirmConfig?.title ?? ''}
+        message={confirmConfig?.message}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setConfirmConfig(null) },
+          {
+            text: confirmConfig?.confirmText ?? '确定',
+            style: 'default',
+            onPress: () => {
+              confirmConfig?.onConfirm();
+              setConfirmConfig(null);
+            },
+          },
+        ]}
+        onClose={() => setConfirmConfig(null)}
+      />
     </View>
   );
 }

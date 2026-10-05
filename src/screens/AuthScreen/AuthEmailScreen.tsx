@@ -8,9 +8,10 @@
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { EmailForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAuthForm } from '@/features/auth/controllers/useAuthForm';
@@ -18,7 +19,6 @@ import { useSignOut } from '@/features/auth/controllers/useAuthMutations';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isExpectedError } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
@@ -47,6 +47,7 @@ export const AuthEmailScreen: React.FC = () => {
 
   const { error: authError, user } = useAuthContext();
   const { mutateAsync: signOut, isPending: isSignOutPending } = useSignOut();
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
 
   const handleSuccess = useCallback(() => {
     if (navigateSettingsOnSignUp && isSignUpRef.current) {
@@ -103,7 +104,7 @@ export const AuthEmailScreen: React.FC = () => {
           feedback: false,
           isExpected: isExpectedError,
         });
-        showErrorAlert('切换失败', getUserFacingMessage(e));
+        setErrorAlert({ title: '切换失败', message: getUserFacingMessage(e) });
         return;
       }
     }
@@ -146,6 +147,13 @@ export const AuthEmailScreen: React.FC = () => {
           colors={colors}
         />
       </View>
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
+      />
     </View>
   );
 };
