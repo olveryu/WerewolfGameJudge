@@ -1381,3 +1381,108 @@ describe('Layer boundary: screens → services runtime imports (forbidden)', () 
     expect(violations).toEqual([]);
   });
 });
+
+// ─── Rule: Confirmations must use <AlertModal>, not Alert.alert or showAlert ──
+// react-native-web's Alert.alert is a no-op on web. The showAlert/showDestructiveAlert
+// utility falls back to native window.confirm/window.alert on web when no listener
+// is set, which Playwright auto-dismisses and which looks inconsistent.
+// Use <AlertModal> from @/components/AlertModal directly.
+
+describe('UI: confirmations must use <AlertModal> (forbidden: Alert.alert, showAlert)', () => {
+  // Files that currently use showAlert - migrate to <AlertModal> directly.
+  // Do NOT add new files to this list.
+  const showAlertAllowlist = new Set([
+    'src/components/AlertModal.tsx',
+    'src/components/DrawingToolbar/DrawingToolbar.tsx',
+    'src/features/admin/queries/useAdminRewardGrant.ts',
+    'src/features/auth/controllers/useAuthForm.ts',
+    'src/features/gacha/queries/useGachaQuery.ts',
+    'src/features/room/controllers/useRoomCommandSubmission.ts',
+    'src/features/room/controllers/useRoomEntryController.ts',
+    'src/features/room/controllers/useRoomHostOperations.ts',
+    'src/features/room/controllers/useRoomProfileController.ts',
+    'src/features/room/controllers/useRoomSeatController.ts',
+    'src/features/room/controllers/useRoomShareController.ts',
+    'src/features/room/controllers/useRoomTitleActions.ts',
+    'src/games/drawguess/room/DrawGuessRoomScreen.tsx',
+    'src/games/drawguess/room/hooks/useDrawGuessRoomState.ts',
+    'src/games/drawguess/screens/DrawGuessConfigScreen.tsx',
+    'src/games/fibking/room/hooks/useFibRoomScreenState.ts',
+    'src/games/fibking/screens/ConfigScreen/useFibConfigScreenState.ts',
+    'src/games/pictionary/room/components/PictionaryGalleryStage.tsx',
+    'src/games/pictionary/room/hooks/usePictionaryRoomScreenState.ts',
+    'src/games/pictionary/room/hooks/usePictionaryStageCommand.ts',
+    'src/games/pictionary/screens/ConfigScreen/usePictionaryConfigScreenState.ts',
+    'src/games/storyrelay/room/components/StoryRelayGallery.tsx',
+    'src/games/storyrelay/room/components/StoryRelayTaskEditor.tsx',
+    'src/games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
+    'src/games/storyrelay/screens/StoryRelayConfigScreen.tsx',
+    'src/games/undercover/room/hooks/useUndercoverRoster.ts',
+    'src/games/undercover/room/hooks/useUndercoverRoundControls.ts',
+    'src/games/undercover/screens/UndercoverConfigScreen.tsx',
+    'src/games/werewolf/components/AIChatBubble/useChatMessages.ts',
+    'src/games/werewolf/hooks/useWerewolfGameActions.ts',
+    'src/games/werewolf/hooks/useWerewolfRoom.ts',
+    'src/games/werewolf/room/components/BoardNominationList.tsx',
+    'src/games/werewolf/room/components/ChooseBottomCardModal.tsx',
+    'src/games/werewolf/room/hooks/useInteractionDispatcher.ts',
+    'src/games/werewolf/room/hooks/useNightReviewShare.ts',
+    'src/games/werewolf/room/hooks/useRoomModals.ts',
+    'src/games/werewolf/room/hooks/useSheriffElection.ts',
+    'src/games/werewolf/room/useRoomActionDialogs.ts',
+    'src/games/werewolf/room/useRoomHostDialogs.ts',
+    'src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts',
+    'src/games/werewolf/screens/EncyclopediaScreen/RoleDetailSheet.tsx',
+    'src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx',
+    'src/games/werewolf/screens/NotepadScreen/NotepadScreen.tsx',
+    'src/games/werewolf/services/aiChatBridge.ts',
+    'src/screens/AppearanceScreen/hooks/useAppearanceSave.ts',
+    'src/screens/AppearanceScreen/hooks/useAppearanceState.ts',
+    'src/screens/AuthScreen/AuthEmailScreen.tsx',
+    'src/screens/AuthScreen/AuthLoginScreen.tsx',
+    'src/screens/SettingsScreen/SettingsScreen.tsx',
+    'src/screens/ShardExchangeScreen/ShardExchangeScreen.tsx',
+    'src/utils/errorPipeline.ts',
+  ]);
+
+  const srcFiles = getAllProductionFiles(path.join(process.cwd(), 'src'));
+
+  it('should find src files to check', () => {
+    expect(srcFiles.length).toBeGreaterThan(0);
+  });
+
+  it.each(srcFiles)('%s must not use Alert.alert from react-native', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    // Check for Alert.alert usage (not just import)
+    const hasAlertAlert = /Alert\s*\.\s*alert\s*\(/.test(content);
+    // Allow the alert.ts utility itself which provides the fallback
+    const isAlertUtility = filePath.endsWith('src/utils/alert.ts');
+    if (!isAlertUtility) {
+      expect(hasAlertAlert).toBe(false);
+    }
+  });
+
+  it.each(srcFiles)(
+    '%s must not import showAlert utilities (use <AlertModal> directly)',
+    (filePath) => {
+      const relativePath = path.relative(process.cwd(), filePath);
+      if (showAlertAllowlist.has(relativePath)) return;
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const specifiers = getModuleSpecifiers(filePath, content);
+      const violations = specifiers.filter(
+        (s) => s === '@/utils/alert' || s === '@/utils/alertPresets',
+      );
+      // Also check for named imports
+      const hasShowAlertImport =
+        /import\s*{[^}]*\b(showAlert|showDestructiveAlert|showConfirmAlert|showErrorAlert)\b[^}]*}\s*from\s*['"]@\/utils\/alert/.test(
+          content,
+        ) ||
+        /import\s*{[^}]*\b(showAlert|showDestructiveAlert|showConfirmAlert|showErrorAlert)\b[^}]*}\s*from\s*['"]@\/utils\/alertPresets/.test(
+          content,
+        );
+
+      expect([...violations, hasShowAlertImport ? 'showAlert import' : []].flat()).toEqual([]);
+    },
+  );
+});
