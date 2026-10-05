@@ -88,10 +88,8 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
 
     await test.step('drawer selects a word and drawing begins', async () => {
       // Click the first word choice button (words are dealt randomly).
-      const wordSection = hostPage.locator('div', {
-        hasText: '请选择本轮题目（3 选 1）',
-      });
-      await wordSection.getByRole('button').first().click();
+      // Use testID for reliable targeting (getByRole was flaky with RNW Pressable).
+      await hostPage.getByTestId('drawguess-word-choice-0').click();
       // After word selection, drawer should see the drawing canvas.
       // (Exact drawing-phase assertions depend on the phase transition;
       // at minimum the word choices should disappear.)

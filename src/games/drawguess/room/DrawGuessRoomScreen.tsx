@@ -306,19 +306,11 @@ function DrawGuessWordSelectView({
   const drawerName =
     viewModel.seats.find((seat) => seat.seat === viewModel.drawerSeat)?.displayName ?? '画手';
   const choose = (word: string) => {
-    roomScreenLog.warn('[drawguess] word choose clicked', {
-      word,
-      phaseRevision: state.phaseRevision,
-      turnIndex: state.turnIndex,
-      phaseKind: state.phase.kind,
-    });
     void submit('选择题目', {
       type: 'drawguess.word.choose',
       word,
       phaseRevision: state.phaseRevision,
       turnIndex: state.turnIndex,
-    }).then((ok) => {
-      roomScreenLog.warn('[drawguess] word choose submit result', { word, ok });
     });
   };
   return (
@@ -333,8 +325,14 @@ function DrawGuessWordSelectView({
           {viewModel.choices.length === 0 ? (
             <Text style={styles.hint}>题目准备中，请稍候…</Text>
           ) : (
-            viewModel.choices.map((word) => (
-              <Button key={word} variant="secondary" size="lg" onPress={() => choose(word)}>
+            viewModel.choices.map((word, index) => (
+              <Button
+                key={word}
+                variant="secondary"
+                size="lg"
+                testID={`drawguess-word-choice-${index}`}
+                onPress={() => choose(word)}
+              >
                 {word}
               </Button>
             ))
