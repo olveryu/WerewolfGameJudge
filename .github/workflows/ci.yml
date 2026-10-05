@@ -431,12 +431,46 @@ jobs:
             -r 1
           rm -f /tmp/miniapp-key.pem
 
-  e2e:
+  # Build the web bundle ONCE and share via artifact, instead of each e2e
+  # shard running `expo export` independently (5x waste).
+  build-web:
     runs-on: ubuntu-latest
     if: |
       always() &&
       needs.quality.result == 'success'
     needs: [quality]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Export web build
+        run: |
+          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
+          EXPO_PUBLIC_SENTRY_DSN='' \
+          npx expo export --platform web
+
+      - name: Upload web dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.build-web.result == 'success'
+    needs: [quality, build-web]
     strategy:
       fail-fast: false
       matrix:
@@ -484,14 +518,21 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      # Pre-build the web bundle OUTSIDE Playwright's webServer: the slow
-      # `expo export` used to share the webServer readiness timeout, causing
-      # "Timed out waiting 180000ms from config.webServer" flakes (#79/#80).
-      - name: Export web build
-        run: |
-          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
-          EXPO_PUBLIC_SENTRY_DSN='' \
-          npx expo export --platform web
+      # Download the pre-built web bundle from the build-web job.
+      # (Previously each shard ran `expo export` independently — 5x waste.
+      # PR #81 moved export out of the Playwright webServer; this dedupes it
+      # across shards.)
+      - name: Download web dist
+        uses: actions/download-artifact@v7
+        with:
+          name: web-dist
+          path: dist/
+
+      # Apply D1 migrations as a dedicated step (not buried inside the
+      # Playwright webServer) so migration failures fail fast with clear logs
+      # instead of hanging "Run E2E tests" with no visible cause.
+      - name: Setup D1 migrations
+        run: node scripts/setup-d1-migrations.mjs
 
       # Apply D1 migrations as a dedicated step (not buried inside the
       # Playwright webServer) so migration failures fail fast with clear logs
