@@ -1429,7 +1429,6 @@ describe('UI: confirmations must use <AlertModal> (forbidden: Alert.alert, showA
     'src/games/werewolf/services/aiChatBridge.ts',
     'src/screens/AppearanceScreen/hooks/useAppearanceSave.ts',
     'src/screens/AppearanceScreen/hooks/useAppearanceState.ts',
-    'src/screens/ShardExchangeScreen/ShardExchangeScreen.tsx',
     'src/utils/errorPipeline.ts',
   ]);
 
