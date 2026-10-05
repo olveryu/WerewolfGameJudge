@@ -11,6 +11,7 @@ import type {
   RecordActionAction,
 } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
+import { vi } from 'vitest';
 
 import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
@@ -46,13 +47,13 @@ function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext)
   return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
 }
 
-jest.mock('@game-judge/game-engine/games/werewolf/domain/resolvers', () => ({
+vi.mock('@game-judge/game-engine/games/werewolf/domain/resolvers', () => ({
   RESOLVERS: {
-    seerCheck: jest.fn(() => ({ valid: true, updates: { someUpdate: true } })),
+    seerCheck: vi.fn(() => ({ valid: true, updates: { someUpdate: true } })),
   },
 }));
 
-jest.mock('@game-judge/game-engine/games/werewolf/domain/models/roles/spec', () => ({
+vi.mock('@game-judge/game-engine/games/werewolf/domain/models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
   SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: must mock SCHEMAS
 }));

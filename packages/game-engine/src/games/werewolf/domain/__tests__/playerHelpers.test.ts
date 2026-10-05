@@ -5,6 +5,8 @@
  *         getBottomCardEffectiveRole, isBottomCardWolfVoteExcluded
  */
 
+import { vi } from 'vitest';
+
 import { WEREWOLF_STATE_IDENTITY } from '../../state/version';
 import type { RoleId } from '../models';
 import { GameStatus } from '../models';
@@ -197,7 +199,7 @@ describe('forEachSeatedPlayer', () => {
   });
 
   it('should not call callback for empty players', () => {
-    const cb = jest.fn();
+    const cb = vi.fn();
     forEachSeatedPlayer({}, cb);
     expect(cb).not.toHaveBeenCalled();
   });

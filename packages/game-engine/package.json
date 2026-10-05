@@ -95,7 +95,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "jest --no-coverage --forceExit"
+    "test": "vitest run"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "vitest": "~4.1.10"
+  }
 }
