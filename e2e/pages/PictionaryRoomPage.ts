@@ -235,8 +235,10 @@ export class PictionaryRoomPage extends RoomPage {
   }
 
   /** Exercise each drawing operation against the real Skia canvas. */
-  async exerciseDrawingTools(): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+  async exerciseDrawingTools(step: number, totalSteps: number): Promise<void> {
+    const stage = this.page
+      .getByTestId(TESTIDS.pictionaryStageFrame)
+      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
     await this.drawStroke(0);
     const undoButton = stage.getByRole('button', { name: '撤销', exact: true });
     const redoButton = stage.getByRole('button', { name: '重做', exact: true });

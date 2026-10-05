@@ -98,7 +98,7 @@ test.describe('Pictionary', () => {
 
       await test.step('exercise all tools and upload every first drawing', async () => {
         await Promise.all(rooms.map((room) => room.expectTaskFitsViewport('drawing')));
-        await hostRoom.exerciseDrawingTools();
+        await hostRoom.exerciseDrawingTools(2, RELAY_STEP_COUNT);
         for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
           await rooms[playerIndex]!.drawStroke(playerIndex);
         }
