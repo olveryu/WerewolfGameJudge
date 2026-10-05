@@ -1433,7 +1433,6 @@ describe('UI: confirmations must use <AlertModal> (forbidden: Alert.alert, showA
     'src/games/werewolf/room/useRoomHostDialogs.ts',
     'src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts',
     'src/games/werewolf/screens/EncyclopediaScreen/RoleDetailSheet.tsx',
-    'src/games/werewolf/screens/GameRulesScreen/GameRulesScreen.tsx',
     'src/games/werewolf/screens/NotepadScreen/NotepadScreen.tsx',
     'src/games/werewolf/services/aiChatBridge.ts',
     'src/screens/AppearanceScreen/hooks/useAppearanceSave.ts',
