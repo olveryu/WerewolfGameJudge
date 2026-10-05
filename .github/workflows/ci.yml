@@ -561,12 +561,6 @@ jobs:
       - name: Setup D1 migrations
         run: node scripts/setup-d1-migrations.mjs
 
-      # Apply D1 migrations as a dedicated step (not buried inside the
-      # Playwright webServer) so migration failures fail fast with clear logs
-      # instead of hanging "Run E2E tests" with no visible cause.
-      - name: Setup D1 migrations
-        run: node scripts/setup-d1-migrations.mjs
-
       - name: Run E2E tests (shard ${{ matrix.shard }}/6)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
