@@ -96,7 +96,7 @@ const PREVIEW_SIZE = 56;
   const { data: gachaStatus, isLoading: gachaLoading } = useGachaStatusQuery();
   const { data: statsData, isLoading: statsLoading } = useUserStatsQuery();
   const { mutate: exchange, isPending: isExchanging } = useExchangeShardMutation();
-  const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
+  const { pendingOperation, confirmRecovery, alert, clearAlert } = usePendingGachaOperation();
   const productUi = useClientProductUi();
 
   const [activeTab, setActiveTab] = useState<TypeTab>('avatar');
@@ -364,6 +364,13 @@ const PREVIEW_SIZE = 56;
           },
         ]}
         onClose={() => setExchangeConfirm(null)}
+      />
+      <AlertModal
+        visible={alert !== null}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        buttons={alert?.buttons ?? []}
+        onClose={clearAlert}
       />
     </SafeAreaView>
   );

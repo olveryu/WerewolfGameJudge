@@ -1,5 +1,6 @@
 /** Hosts Story Relay inside the shared room entry, connection, seat and profile shell. */
 
+import { AlertModal } from '@/components/AlertModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -34,44 +35,53 @@ function StoryRelayRoomContent(
   const screen = useStoryRelayRoomState(props);
   const config = screen.state.config;
   return (
-    <RoomShell
-      model={screen.shellModel}
-      content={
-        screen.state.phase === 'lobby'
-          ? {
-              kind: 'seats',
-              contextHeader: null,
-              afterSeatBoard: null,
-              sideInspector: null,
-              beforeSeatBoard: (
-                <RoomGameSummary
-                  icon="book-outline"
-                  title="故事接龙"
-                  subtitle={`${config.numberOfPlayers} 人 · ${config.numberOfPlayers} 棒 · ${config.writingDurationSeconds === null ? '不限时写作' : `每棒 ${config.writingDurationSeconds} 秒`} · 间隔 ${config.transitionDurationSeconds} 秒`}
-                  headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看故事接龙玩法" />
-                  }
-                />
-              ),
-            }
-          : {
-              kind: 'workspace',
-              element: (
-                <StoryRelayStage
-                  state={screen.state}
-                  effectiveSeat={screen.effectiveSeat}
-                  controlledSeat={screen.controlledSeat}
-                  userId={screen.userId}
-                  isHost={screen.isHost}
-                  seatModel={screen.shellModel.seats}
-                  session={props.session}
-                />
-              ),
-            }
-      }
-      leadingExtraActions={null}
-      trailingExtraActions={null}
-      gameOverlays={null}
-    />
+    <>
+      <RoomShell
+        model={screen.shellModel}
+        content={
+          screen.state.phase === 'lobby'
+            ? {
+                kind: 'seats',
+                contextHeader: null,
+                afterSeatBoard: null,
+                sideInspector: null,
+                beforeSeatBoard: (
+                  <RoomGameSummary
+                    icon="book-outline"
+                    title="故事接龙"
+                    subtitle={`${config.numberOfPlayers} 人 · ${config.numberOfPlayers} 棒 · ${config.writingDurationSeconds === null ? '不限时写作' : `每棒 ${config.writingDurationSeconds} 秒`} · 间隔 ${config.transitionDurationSeconds} 秒`}
+                    headerRight={
+                      <RoomGuideButton onPress={screen.openRules} label="查看故事接龙玩法" />
+                    }
+                  />
+                ),
+              }
+            : {
+                kind: 'workspace',
+                element: (
+                  <StoryRelayStage
+                    state={screen.state}
+                    effectiveSeat={screen.effectiveSeat}
+                    controlledSeat={screen.controlledSeat}
+                    userId={screen.userId}
+                    isHost={screen.isHost}
+                    seatModel={screen.shellModel.seats}
+                    session={props.session}
+                  />
+                ),
+              }
+        }
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />
+      <AlertModal
+        visible={screen.alert !== null}
+        title={screen.alert?.title ?? ''}
+        message={screen.alert?.message}
+        buttons={screen.alert?.buttons ?? []}
+        onClose={screen.clearAlert}
+      />
+    </>
   );
 }
