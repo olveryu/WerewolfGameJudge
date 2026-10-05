@@ -75,6 +75,8 @@ export const AuthEmailScreen: React.FC = () => {
     handleEmailAuth,
     toggleSignUp,
     isSubmitting,
+    formError,
+    clearFormError,
   } = useAuthForm({ onSuccess: handleSuccess, logger: authLog, showSuccessOnLogin });
 
   // Keep ref for handleSuccess to read current isSignUp
@@ -153,6 +155,13 @@ export const AuthEmailScreen: React.FC = () => {
         message={errorAlert?.message}
         buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
         onClose={() => setErrorAlert(null)}
+      />
+      <AlertModal
+        visible={formError !== null}
+        title={formError?.title ?? ''}
+        message={formError?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: clearFormError }]}
+        onClose={clearFormError}
       />
     </View>
   );
