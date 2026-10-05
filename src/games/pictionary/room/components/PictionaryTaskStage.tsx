@@ -12,7 +12,7 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { randomPick } from '@game-judge/game-engine/platform/random';
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -338,10 +338,18 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
     setShowClearConfirm(true);
   };
 
-  const confirmClearDrawing = (): void => {
+  const confirmClearDrawing = useCallback((): void => {
     setShowClearConfirm(false);
     updateDraft({ type: 'drawing.clear' });
-  };
+  }, [updateDraft]);
+
+  const clearConfirmButtons = useMemo(
+    () => [
+      { text: '取消', style: 'cancel' as const, onPress: () => setShowClearConfirm(false) },
+      { text: '清空', style: 'destructive' as const, onPress: confirmClearDrawing },
+    ],
+    [confirmClearDrawing],
+  );
 
   const isReady = state.readySeats.includes(effectiveSeat);
   const toggleReady = async (): Promise<void> => {
@@ -435,10 +443,7 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
         visible={showClearConfirm}
         title="清空画布？"
         message="所有绘画内容都会被删除。"
-        buttons={[
-          { text: '取消', style: 'cancel', onPress: () => setShowClearConfirm(false) },
-          { text: '清空', style: 'destructive', onPress: confirmClearDrawing },
-        ]}
+        buttons={clearConfirmButtons}
         onClose={() => setShowClearConfirm(false)}
       />
     </>
