@@ -268,11 +268,11 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeEnabled();
     await stage.getByRole('button', { name: /^选择工具，/ }).click();
     await this.page.getByRole('button', { name: '清空画布', exact: true }).click();
-    await this.page.getByRole('dialog').getByText('取消', { exact: true }).click();
+    await this.page.getByTestId(TESTIDS.alertButton(0)).click();
     await expect(undoButton).toBeEnabled();
     await stage.getByRole('button', { name: /^选择工具，/ }).click();
     await this.page.getByRole('button', { name: '清空画布', exact: true }).click();
-    await this.page.getByRole('dialog').getByText('清空', { exact: true }).click();
+    await this.page.getByTestId(TESTIDS.alertButton(1)).click();
     await expect(undoButton).toBeDisabled();
     await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton)).toBeDisabled();
     await stage.getByRole('button', { name: /^选择工具，/ }).click();

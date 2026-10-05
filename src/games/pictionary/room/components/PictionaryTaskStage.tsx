@@ -15,15 +15,16 @@ import type React from 'react';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { DrawingToolbar } from '@/components/DrawingToolbar/DrawingToolbar';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import {
   EMPTY_PICTIONARY_DRAWING_DRAFT,
+  isPictionaryDrawingColor,
   PICTIONARY_DRAWING_PALETTE,
   PICTIONARY_DRAWING_WIDTHS,
   type PictionaryDrawingColor,
-  isPictionaryDrawingColor,
   type PictionaryDrawingDraftAction,
   type PictionaryDrawingElement,
   type PictionaryDrawingPoint,
@@ -45,7 +46,6 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -288,6 +288,7 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const [tool, setTool] = useState<PictionaryDrawingTool>('brush');
   const [color, setColor] = useState<PictionaryDrawingColor>(PICTIONARY_DRAWING_PALETTE[0].value);
   const [strokeWidth, setStrokeWidth] = useState<PictionaryDrawingWidth>(14);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
 
   const updateDraft = useCallback(
@@ -334,9 +335,12 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   );
 
   const clearDrawing = (): void => {
-    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', () =>
-      updateDraft({ type: 'drawing.clear' }),
-    );
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearDrawing = (): void => {
+    setShowClearConfirm(false);
+    updateDraft({ type: 'drawing.clear' });
   };
 
   const isReady = state.readySeats.includes(effectiveSeat);
@@ -357,75 +361,87 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const canComplete = draft.elements.length > 0 && !isBusy && !isExpired;
 
   return (
-    <PictionaryTaskFrame
-      eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-      title="把这句话画出来"
-      remainingSeconds={remainingSeconds}
-      footer={
-        <>
-          <DrawingToolbar
+    <>
+      <PictionaryTaskFrame
+        eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
+        title="把这句话画出来"
+        remainingSeconds={remainingSeconds}
+        footer={
+          <>
+            <DrawingToolbar
+              tool={tool}
+              color={color}
+              strokeWidth={strokeWidth}
+              canUndo={draft.elements.length > 0}
+              canRedo={draft.redoElements.length > 0}
+              disabled={!canEdit}
+              palette={PICTIONARY_DRAWING_PALETTE}
+              widths={[...PICTIONARY_DRAWING_WIDTHS]}
+              onToolChange={(t) => setTool(t)}
+              onColorChange={(c) => {
+                if (isPictionaryDrawingColor(c)) setColor(c);
+              }}
+              onWidthChange={(w) => {
+                const valid = PICTIONARY_DRAWING_WIDTHS.find((v) => v === w);
+                if (valid !== undefined) setStrokeWidth(valid);
+              }}
+              onUndo={() => updateDraft({ type: 'element.undo' })}
+              onRedo={() => updateDraft({ type: 'element.redo' })}
+              onClear={clearDrawing}
+            />
+            <View style={styles.taskFooter}>
+              <View style={styles.primaryAction}>
+                <Button
+                  variant={isReady ? 'secondary' : 'primary'}
+                  onPress={() => void toggleReady()}
+                  disabled={isReady ? isExpired || isBusy : !canComplete}
+                  loading={isBusy}
+                  size="md"
+                  accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+                  testID={TESTIDS.pictionaryDrawingSubmitButton}
+                >
+                  {isReady ? '继续编辑' : '完成编辑'}
+                </Button>
+              </View>
+            </View>
+          </>
+        }
+      >
+        <View style={styles.promptStrip}>
+          <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
+          <View style={styles.promptCopy}>
+            <Text style={styles.contextLabel}>上一棒</Text>
+            <ScrollView style={styles.promptScroll} nestedScrollEnabled>
+              <Text style={styles.promptText}>
+                {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+        <PictionaryTaskMedia>
+          <PictionaryDrawingCanvas
+            elements={draft.elements}
             tool={tool}
             color={color}
             strokeWidth={strokeWidth}
-            canUndo={draft.elements.length > 0}
-            canRedo={draft.redoElements.length > 0}
-            disabled={!canEdit}
-            palette={PICTIONARY_DRAWING_PALETTE}
-            widths={[...PICTIONARY_DRAWING_WIDTHS]}
-            onToolChange={(t) => setTool(t)}
-            onColorChange={(c) => {
-              if (isPictionaryDrawingColor(c)) setColor(c);
-            }}
-            onWidthChange={(w) => {
-              const valid = PICTIONARY_DRAWING_WIDTHS.find((v) => v === w);
-              if (valid !== undefined) setStrokeWidth(valid);
-            }}
-            onUndo={() => updateDraft({ type: 'element.undo' })}
-            onRedo={() => updateDraft({ type: 'element.redo' })}
-            onClear={clearDrawing}
+            isEnabled={canEdit}
+            onElementChange={persistElement}
+            onElementComplete={addElement}
+            onFill={fillDrawing}
           />
-          <View style={styles.taskFooter}>
-            <View style={styles.primaryAction}>
-              <Button
-                variant={isReady ? 'secondary' : 'primary'}
-                onPress={() => void toggleReady()}
-                disabled={isReady ? isExpired || isBusy : !canComplete}
-                loading={isBusy}
-                size="md"
-                accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-                testID={TESTIDS.pictionaryDrawingSubmitButton}
-              >
-                {isReady ? '继续编辑' : '完成编辑'}
-              </Button>
-            </View>
-          </View>
-        </>
-      }
-    >
-      <View style={styles.promptStrip}>
-        <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
-        <View style={styles.promptCopy}>
-          <Text style={styles.contextLabel}>上一棒</Text>
-          <ScrollView style={styles.promptScroll} nestedScrollEnabled>
-            <Text style={styles.promptText}>
-              {previousEntry.kind === 'text' ? previousEntry.text : '上一棒未完成，请自由发挥'}
-            </Text>
-          </ScrollView>
-        </View>
-      </View>
-      <PictionaryTaskMedia>
-        <PictionaryDrawingCanvas
-          elements={draft.elements}
-          tool={tool}
-          color={color}
-          strokeWidth={strokeWidth}
-          isEnabled={canEdit}
-          onElementChange={persistElement}
-          onElementComplete={addElement}
-          onFill={fillDrawing}
-        />
-      </PictionaryTaskMedia>
-    </PictionaryTaskFrame>
+        </PictionaryTaskMedia>
+      </PictionaryTaskFrame>
+      <AlertModal
+        visible={showClearConfirm}
+        title="清空画布？"
+        message="所有绘画内容都会被删除。"
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setShowClearConfirm(false) },
+          { text: '清空', style: 'destructive', onPress: confirmClearDrawing },
+        ]}
+        onClose={() => setShowClearConfirm(false)}
+      />
+    </>
   );
 };
 
