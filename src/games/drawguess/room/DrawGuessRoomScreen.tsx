@@ -14,6 +14,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -375,6 +376,7 @@ function DrawGuessDrawingView({
   const [strokeWidth, setStrokeWidth] = useState<DrawGuessDrawingWidth>(
     DRAWGUESS_DRAWING_WIDTHS[1],
   );
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const canDraw = isDrawer && remainingSeconds !== null && remainingSeconds > 0;
   const sync = useDrawGuessStrokeSync({
     session,
@@ -385,6 +387,15 @@ function DrawGuessDrawingView({
     controlledSeat,
     canDraw,
   });
+
+  const clearDrawing = (): void => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearDrawing = (): void => {
+    setShowClearConfirm(false);
+    sync.clear();
+  };
   const viewerSeatView = viewModel.seats.find((seat) => seat.seat === effectiveSeat);
   const isLocked = viewerSeatView?.isLocked ?? false;
   const canGuess =
@@ -463,12 +474,14 @@ function DrawGuessDrawingView({
                     color={color}
                     strokeWidth={strokeWidth}
                     canUndo={sync.elements.length > 0}
+                    canRedo={sync.canRedo}
                     disabled={!canDraw}
                     onToolChange={setTool}
                     onColorChange={setColor}
                     onWidthChange={setStrokeWidth}
                     onUndo={sync.undo}
-                    onClear={sync.clear}
+                    onRedo={sync.redo}
+                    onClear={clearDrawing}
                   />
                   <View style={styles.drawerActions}>
                     {(isDrawer || isHost) && (
@@ -494,6 +507,16 @@ function DrawGuessDrawingView({
           </View>
         </DrawGuessStageFrame>
       </RoomTaskViewport>
+      <AlertModal
+        visible={showClearConfirm}
+        title="清空画布？"
+        message="所有绘画内容都会被删除。"
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setShowClearConfirm(false) },
+          { text: '清空', style: 'destructive', onPress: confirmClearDrawing },
+        ]}
+        onClose={() => setShowClearConfirm(false)}
+      />
     </>
   );
 }

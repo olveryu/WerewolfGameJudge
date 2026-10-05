@@ -34,7 +34,6 @@ import {
   textStyles,
   withAlpha,
 } from '@/theme';
-import { showDestructiveAlert } from '@/utils/alertPresets';
 
 export type SharedDrawingTool = 'brush' | 'eraser' | 'line' | 'rectangle' | 'ellipse' | 'fill';
 
@@ -239,7 +238,8 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
 
   const confirmClear = () => {
     if (disabled) return;
-    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', props.onClear);
+    // 确认框由各游戏自己弹（Pictionary 用 AlertModal），工具栏只透传 onClear，避免双弹窗
+    props.onClear();
   };
 
   const selectedTool = TOOL_OPTIONS.find((option) => option.tool === props.tool);
@@ -668,8 +668,8 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   customColorButton: {
-    width: 40,
-    height: 40,
+    width: spacing.xlarge,
+    height: spacing.xlarge,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },
