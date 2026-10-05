@@ -610,7 +610,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
 function getPlayerMessage(state: FibState, viewerSeat: number | null): string | null {
   switch (state.phase) {
     case 'lobby':
-      return viewerSeat === null ? '选择一个空位入座' : '等待房主开始本轮';
+      return viewerSeat === null ? null : '等待房主开始本轮';
     case 'preparing':
       return '房主正在准备本轮';
     case 'preparationFailed':

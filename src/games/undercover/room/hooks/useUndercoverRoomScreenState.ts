@@ -18,7 +18,6 @@ import {
 import {
   createUndercoverSeatDataSource,
   createUndercoverStatusRibbon,
-  getUndercoverUserSeat,
 } from '../undercoverRoomAdapter';
 import { useUndercoverRoster } from './useUndercoverRoster';
 import { useUndercoverRoundControls } from './useUndercoverRoundControls';
@@ -94,12 +93,7 @@ export function useUndercoverRoomScreenState({
     seatConfirmation: roster.seatConfirmation,
     profile: roster.profile,
     share,
-    bottomActions: createUndercoverBottomActions(
-      state,
-      isHost,
-      controls,
-      getUndercoverUserSeat(state, user.id),
-    ),
+    bottomActions: createUndercoverBottomActions(controls),
     hostManagement: createUndercoverHostManagement(state, isHost, roster.capabilities, controls),
     controlledSeat:
       roster.controlledSeat !== null
