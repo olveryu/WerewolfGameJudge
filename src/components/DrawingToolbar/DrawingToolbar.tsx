@@ -5,16 +5,15 @@
  * 点开弹出面板；颜色面板含 HSV 调色板 + 预设色 + 最近使用。
  */
 
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+import type React from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   GestureHandlerRootView,
   ScrollView as GestureScrollView,
 } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Modal } from '@/components/AppModal';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import type React from 'react';
-import { useLayoutEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ColorPicker, {
   type ColorFormatsObject,
@@ -24,6 +23,7 @@ import ColorPicker, {
   Preview,
 } from 'reanimated-color-picker';
 
+import { Modal } from '@/components/AppModal';
 import {
   borderRadius,
   colors,
@@ -471,7 +471,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                 <Text style={styles.sheetTitle}>{panelTitle}</Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="关闭"
+                  accessibilityLabel="关闭选择面板"
                   onPress={() => setActivePanel(null)}
                   style={styles.sheetClose}
                 >
