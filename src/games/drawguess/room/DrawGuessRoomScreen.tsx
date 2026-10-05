@@ -14,8 +14,8 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { Button } from '@/components/Button';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
+import { Button } from '@/components/Button';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -306,11 +306,19 @@ function DrawGuessWordSelectView({
   const drawerName =
     viewModel.seats.find((seat) => seat.seat === viewModel.drawerSeat)?.displayName ?? '画手';
   const choose = (word: string) => {
+    roomScreenLog.debug('[drawguess] word choose clicked', {
+      word,
+      phaseRevision: state.phaseRevision,
+      turnIndex: state.turnIndex,
+      phaseKind: state.phase.kind,
+    });
     void submit('选择题目', {
       type: 'drawguess.word.choose',
       word,
       phaseRevision: state.phaseRevision,
       turnIndex: state.turnIndex,
+    }).then((ok) => {
+      roomScreenLog.debug('[drawguess] word choose submit result', { word, ok });
     });
   };
   return (
