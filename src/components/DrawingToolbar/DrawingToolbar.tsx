@@ -668,8 +668,8 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   customColorButton: {
-    width: 40,
-    height: 40,
+    width: spacing.xlarge,
+    height: spacing.xlarge,
     borderRadius: borderRadius.full,
     overflow: 'hidden',
   },
