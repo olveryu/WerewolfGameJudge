@@ -215,7 +215,12 @@ function findDrawingEntry(state: PictionaryState, entryId: string): PictionaryDr
   return null;
 }
 
-function canReadDrawing(state: PictionaryState, seat: number | null, entryId: string): boolean {
+// Exported for unit testing the authorization matrix; production behavior unchanged.
+export function canReadDrawing(
+  state: PictionaryState,
+  seat: number | null,
+  entryId: string,
+): boolean {
   if (state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted') {
     return true;
   }

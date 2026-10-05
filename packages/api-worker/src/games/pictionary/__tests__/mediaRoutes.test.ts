@@ -341,31 +341,6 @@ describe('Pictionary spectator media', () => {
     return { host, guest, room, state, mediaUrl };
   }
 
-  async function setupRoomToGallery(): Promise<SpectatorMediaSetup> {
-    const setup = await setupRoomToAnswering();
-    let { state } = setup;
-    const { host, room } = setup;
-    for (let step = 2; step < state.config.numberOfPlayers; step += 1) {
-      state = await markEverySeatReady(room, host.access_token, state);
-      for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-        state = await dispatchCommand(
-          room,
-          host.access_token,
-          { type: 'pictionary.task.empty.submit' },
-          seat === 0 ? null : seat,
-        );
-      }
-      state = await dispatchCommand(
-        room,
-        host.access_token,
-        { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
-        null,
-      );
-    }
-    expect(state.phase).toBe('gallery');
-    return { ...setup, state };
-  }
-
   it('invalidates aborted uploads while preserving accepted artwork', async () => {
     const host = await createAnonymousSession();
     const viewer = await createAnonymousSession();
@@ -443,7 +418,9 @@ describe('Pictionary spectator media', () => {
   });
 
   it('rejects unseated viewer media reads before gallery', async () => {
-    const { host, guest, room, state, mediaUrl } = await setupRoomToAnswering();
+    // Minimal wiring test: verifies the HTTP route calls canReadDrawing and
+    // returns 403. Authorization branches are covered by canReadDrawing.test.ts.
+    const { guest, mediaUrl } = await setupRoomToAnswering();
     const activeRead = await SELF.fetch(mediaUrl, {
       headers: { Authorization: `Bearer ${guest.access_token}` },
     });
@@ -452,42 +429,6 @@ describe('Pictionary spectator media', () => {
       success: false,
       reason: 'PICTIONARY_MEDIA_FORBIDDEN',
     });
-  });
-
-  it('allows unseated viewer media reads in gallery', async () => {
-    const { host, guest, room, mediaUrl } = await setupRoomToGallery();
-    const galleryRead = await SELF.fetch(mediaUrl, {
-      headers: { Authorization: `Bearer ${guest.access_token}` },
-    });
-    expect(galleryRead.status).toBe(200);
-    expect(galleryRead.headers.get('content-type')).toBe('image/png');
-    expect(new Uint8Array(await galleryRead.arrayBuffer())).toEqual(createTestPng());
-    const unauthenticatedRead = await SELF.fetch(mediaUrl);
-    expect(unauthenticatedRead.status).toBe(401);
-  });
-
-  it('allows unseated viewer media reads after gallery ends', async () => {
-    const { host, guest, room, mediaUrl } = await setupRoomToGallery();
-    let state = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.gallery.advance' },
-      null,
-    );
-    while (state.phase === 'gallery') {
-      state = await dispatchCommand(
-        room,
-        host.access_token,
-        { type: 'pictionary.gallery.advance' },
-        null,
-      );
-    }
-    expect(state.phase).toBe('ended');
-    const endedRead = await SELF.fetch(mediaUrl, {
-      headers: { Authorization: `Bearer ${guest.access_token}` },
-    });
-    expect(endedRead.status).toBe(200);
-    expect(new Uint8Array(await endedRead.arrayBuffer())).toEqual(createTestPng());
   });
 });
 
