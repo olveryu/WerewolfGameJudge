@@ -510,7 +510,9 @@ jobs:
           - shard: 4
             specs: 'entry-flow.spec.ts db-recovery.spec.ts seating.spec.ts night-roles-eclipse-wolf-queen.spec.ts night-roles-thief-cupid.spec.ts night-roles-treasure.spec.ts night-verify.spec.ts night-2p.spec.ts night-6p.spec.ts offline-recovery-canary.spec.ts rejoin.spec.ts restart.spec.ts room-lifecycle.spec.ts home.spec.ts config.spec.ts sheriff-election.spec.ts'
           - shard: 5
-            specs: 'fibking.spec.ts fibking-responsive.spec.ts pictionary.spec.ts undercover.spec.ts storyrelay.spec.ts drawguess.spec.ts night-roles-hidden-wolf-crow.spec.ts'
+            specs: 'fibking.spec.ts fibking-responsive.spec.ts undercover.spec.ts storyrelay.spec.ts night-roles-hidden-wolf-crow.spec.ts'
+          - shard: 6
+            specs: 'pictionary.spec.ts drawguess.spec.ts'
     steps:
       - uses: actions/checkout@v6
 
@@ -565,7 +567,7 @@ jobs:
       - name: Setup D1 migrations
         run: node scripts/setup-d1-migrations.mjs
 
-      - name: Run E2E tests (shard ${{ matrix.shard }}/5)
+      - name: Run E2E tests (shard ${{ matrix.shard }}/6)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
       - name: Upload blob report
