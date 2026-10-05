@@ -391,6 +391,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                           accessibilityRole="button"
                           accessibilityLabel={`颜色${entry.name}`}
                           accessibilityState={{ selected: isSelected }}
+                          testID={`drawing-toolbar-color-${entry.name}`}
                           onPress={() => {
                             handleColorChange(entry.value);
                             handleColorPanelClose();
@@ -412,6 +413,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="自定义颜色"
+                      testID="drawing-toolbar-custom-color"
                       onPress={() => setIsColorPickerVisible(true)}
                       style={styles.customColorButton}
                     >
@@ -532,6 +534,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                         accessibilityRole="button"
                         accessibilityLabel={`笔宽 ${w}`}
                         accessibilityState={{ selected: props.strokeWidth === w }}
+                        testID={`drawing-toolbar-width-${w}`}
                         disabled={disabled}
                         onPress={() => {
                           props.onWidthChange(w);

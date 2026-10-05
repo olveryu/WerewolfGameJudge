@@ -98,7 +98,7 @@ test.describe('Pictionary', () => {
 
       await test.step('exercise all tools and upload every first drawing', async () => {
         await Promise.all(rooms.map((room) => room.expectTaskFitsViewport('drawing')));
-        await hostRoom.exerciseDrawingTools();
+        await hostRoom.exerciseDrawingTools(2, RELAY_STEP_COUNT);
         for (let playerIndex = 1; playerIndex < PLAYER_COUNT; playerIndex += 1) {
           await rooms[playerIndex]!.drawStroke(playerIndex);
         }
@@ -113,10 +113,7 @@ test.describe('Pictionary', () => {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',
           });
-          await fixture.pages[playerIndex]!.getByRole('button', {
-            name: '展开调色板',
-            exact: true,
-          }).click();
+          await fixture.pages[playerIndex]!.getByTestId('drawing-toolbar-custom-color').click();
           await test.info().attach(`pictionary-colors-${viewport}`, {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',

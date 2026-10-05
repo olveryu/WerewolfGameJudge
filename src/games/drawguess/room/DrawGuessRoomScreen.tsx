@@ -14,8 +14,8 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { Button } from '@/components/Button';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
+import { Button } from '@/components/Button';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -325,8 +325,14 @@ function DrawGuessWordSelectView({
           {viewModel.choices.length === 0 ? (
             <Text style={styles.hint}>题目准备中，请稍候…</Text>
           ) : (
-            viewModel.choices.map((word) => (
-              <Button key={word} variant="secondary" size="lg" onPress={() => choose(word)}>
+            viewModel.choices.map((word, index) => (
+              <Button
+                key={word}
+                variant="secondary"
+                size="lg"
+                testID={`drawguess-word-choice-${index}`}
+                onPress={() => choose(word)}
+              >
                 {word}
               </Button>
             ))

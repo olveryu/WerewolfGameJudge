@@ -47,8 +47,32 @@ jobs:
       - name: Format check
         run: pnpm run format
 
-      - name: Test
-        run: pnpm run test:all
+      - name: 'Test (fast: root + game-engine)'
+        run: pnpm --filter @game-judge/game-engine run test && pnpm --filter werewolf run test
+
+  # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
+  test-api-worker:
+    runs-on: ubuntu-latest
+    needs: [quality]
+    if: always() && needs.quality.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Test api-worker (shard ${{ matrix.shard }}/3)
+        run: pnpm --filter @game-judge/api-worker run test -- --shard=${{ matrix.shard }}/3
 
   deploy-api-worker:
     runs-on: ubuntu-latest
@@ -431,12 +455,47 @@ jobs:
             -r 1
           rm -f /tmp/miniapp-key.pem
 
-  e2e:
+  # Build the web bundle ONCE and share via artifact, instead of each e2e
+  # shard running `expo export` independently (5x waste).
+  build-web:
     runs-on: ubuntu-latest
     if: |
       always() &&
       needs.quality.result == 'success'
     needs: [quality]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Export web build
+        run: |
+          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
+          EXPO_PUBLIC_SENTRY_DSN='' \
+          npx expo export --platform web
+
+      - name: Upload web dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.build-web.result == 'success' &&
+      needs.test-api-worker.result == 'success'
+    needs: [quality, build-web, test-api-worker]
     strategy:
       fail-fast: false
       matrix:
@@ -447,11 +506,13 @@ jobs:
           - shard: 2
             specs: 'reconnect.spec.ts night-roles-block.spec.ts'
           - shard: 3
-            specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts night-roles-seed-wolf.spec.ts'
+            specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts night-roles-seed-wolf.spec.ts night-roles-hidden-wolf-crow.spec.ts'
           - shard: 4
             specs: 'entry-flow.spec.ts db-recovery.spec.ts seating.spec.ts night-roles-eclipse-wolf-queen.spec.ts night-roles-thief-cupid.spec.ts night-roles-treasure.spec.ts night-verify.spec.ts night-2p.spec.ts night-6p.spec.ts offline-recovery-canary.spec.ts rejoin.spec.ts restart.spec.ts room-lifecycle.spec.ts home.spec.ts config.spec.ts sheriff-election.spec.ts'
           - shard: 5
-            specs: 'fibking.spec.ts fibking-responsive.spec.ts pictionary.spec.ts undercover.spec.ts storyrelay.spec.ts drawguess.spec.ts night-roles-hidden-wolf-crow.spec.ts'
+            specs: 'fibking.spec.ts fibking-responsive.spec.ts undercover.spec.ts storyrelay.spec.ts'
+          - shard: 6
+            specs: 'pictionary.spec.ts drawguess.spec.ts'
     steps:
       - uses: actions/checkout@v6
 
@@ -484,16 +545,23 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      # Pre-build the web bundle OUTSIDE Playwright's webServer: the slow
-      # `expo export` used to share the webServer readiness timeout, causing
-      # "Timed out waiting 180000ms from config.webServer" flakes (#79/#80).
-      - name: Export web build
-        run: |
-          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
-          EXPO_PUBLIC_SENTRY_DSN='' \
-          npx expo export --platform web
+      # Download the pre-built web bundle from the build-web job.
+      # (Previously each shard ran `expo export` independently — 5x waste.
+      # PR #81 moved export out of the Playwright webServer; this dedupes it
+      # across shards.)
+      - name: Download web dist
+        uses: actions/download-artifact@v7
+        with:
+          name: web-dist
+          path: dist/
 
-      - name: Run E2E tests (shard ${{ matrix.shard }}/5)
+      # Apply D1 migrations as a dedicated step (not buried inside the
+      # Playwright webServer) so migration failures fail fast with clear logs
+      # instead of hanging "Run E2E tests" with no visible cause.
+      - name: Setup D1 migrations
+        run: node scripts/setup-d1-migrations.mjs
+
+      - name: Run E2E tests (shard ${{ matrix.shard }}/6)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
       - name: Upload blob report

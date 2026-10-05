@@ -70,14 +70,16 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Assert a drawing task with its inherited text context and complete tool set. */
   async expectDrawingStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+    const stage = this.page
+      .getByTestId(TESTIDS.pictionaryStageFrame)
+      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
     await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
       timeout: 30_000,
     });
     await expect(stage.getByText('把这句话画出来', { exact: true })).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
+    await expect(stage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toBeVisible();
     await expect(stage.getByText('上一棒', { exact: true })).toBeVisible();
-    const canvasBounds = await this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
+    const canvasBounds = await stage.getByTestId(TESTIDS.pictionaryDrawingCanvas).boundingBox();
     if (canvasBounds === null) throw new Error('Pictionary canvas has no browser layout box');
     const toolbarBounds = [];
     for (const tool of [/^选择工具，/, /^选择颜色，/, /^选择粗细，/, /^撤销$/, /^重做$/]) {
@@ -98,15 +100,12 @@ export class PictionaryRoomPage extends RoomPage {
     }
     await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
     await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await expect(this.page.getByRole('button', { name: '粉色', exact: true })).toBeInViewport({
-      ratio: 1,
-    });
-    await this.page.getByRole('button', { name: '蓝色', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-color-蓝色').click();
     await expect(
       stage.getByRole('button', { name: '选择颜色，当前蓝色', exact: true }),
     ).toBeVisible();
     await stage.getByRole('button', { name: /^选择粗细，/ }).click();
-    await this.page.getByRole('button', { name: '30 像素画笔', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-width-30').click();
     await expect(
       stage.getByRole('button', { name: '选择粗细，当前 30 像素', exact: true }),
     ).toBeVisible();
@@ -135,12 +134,8 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(palette).toBeInViewport({ ratio: 1 });
     const paletteBounds = await palette.boundingBox();
     const viewport = this.page.viewportSize();
-    const presetBounds = await this.page
-      .getByRole('button', { name: '粉色', exact: true })
-      .boundingBox();
-    const entryBounds = await this.page
-      .getByRole('button', { name: '展开调色板', exact: true })
-      .boundingBox();
+    const presetBounds = await this.page.getByTestId('drawing-toolbar-color-粉色').boundingBox();
+    const entryBounds = await this.page.getByTestId('drawing-toolbar-custom-color').boundingBox();
     if (!paletteBounds || !viewport || !colorButtonBounds || !presetBounds || !entryBounds) {
       throw new Error('Pictionary color palette has no browser layout box');
     }
@@ -155,10 +150,10 @@ export class PictionaryRoomPage extends RoomPage {
     const panel = this.page.getByLabel('饱和度与明度', { exact: true });
     const hue = this.page.getByLabel('色相', { exact: true });
     await expect(panel).toHaveCount(0);
-    await expect(this.page.getByRole('button', { name: '粉色', exact: true })).toBeInViewport({
+    await expect(this.page.getByTestId('drawing-toolbar-color-粉色')).toBeInViewport({
       ratio: 1,
     });
-    await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-custom-color').click();
     await expect(this.page.getByRole('textbox')).toHaveCount(0);
     await expect(this.page.getByText(/#[0-9a-f]{6}/i)).toHaveCount(0);
     for (const control of [panel, hue]) {
@@ -200,12 +195,12 @@ export class PictionaryRoomPage extends RoomPage {
     await this.drawStroke(2);
     await colorButton.click();
     await expect(panel).toHaveCount(0);
-    await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-custom-color').click();
     await expect(panel).toBeInViewport({ ratio: 1 });
     await this.page.getByRole('button', { name: '返回常用颜色', exact: true }).click();
     await expect(panel).toHaveCount(0);
     await expect(this.page.getByRole('button', { name: /^最近颜色 / })).toHaveCount(1);
-    await this.page.getByRole('button', { name: '红色', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-color-红色').click();
     await expect(colorButton).toHaveAccessibleName('选择颜色，当前红色');
     await colorButton.click();
     await this.page.getByRole('button', { name: '最近颜色 1', exact: true }).click();
@@ -240,8 +235,10 @@ export class PictionaryRoomPage extends RoomPage {
   }
 
   /** Exercise each drawing operation against the real Skia canvas. */
-  async exerciseDrawingTools(): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+  async exerciseDrawingTools(step: number, totalSteps: number): Promise<void> {
+    const stage = this.page
+      .getByTestId(TESTIDS.pictionaryStageFrame)
+      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
     await this.drawStroke(0);
     const undoButton = stage.getByRole('button', { name: '撤销', exact: true });
     const redoButton = stage.getByRole('button', { name: '重做', exact: true });
@@ -260,7 +257,7 @@ export class PictionaryRoomPage extends RoomPage {
       await this.drawStroke(toolIndex + 1);
     }
     await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await this.page.getByRole('button', { name: '红色', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-color-红色').click();
     await stage.getByRole('button', { name: /^选择工具，/ }).click();
     await this.page.getByRole('button', { name: '填充', exact: true }).click();
     const canvas = this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas);
@@ -292,7 +289,9 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Wait for a guess task and its protected source drawing. */
   async expectGuessStep(step: number, totalSteps: number): Promise<void> {
-    const stage = this.page.getByTestId(TESTIDS.pictionaryStageFrame);
+    const stage = this.page
+      .getByTestId(TESTIDS.pictionaryStageFrame)
+      .filter({ hasText: `第 ${step} / ${totalSteps} 棒` });
     await expect(stage.getByText(`第 ${step} / ${totalSteps} 棒`, { exact: true })).toBeVisible({
       timeout: 30_000,
     });

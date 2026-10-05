@@ -1,0 +1,79 @@
+name: E2E Single Spec
+
+# Manual workflow for debugging a single e2e spec quickly.
+# Skips quality and api-worker tests; only builds web and runs the specified spec.
+# Usage: Actions tab → E2E Single Spec → Run workflow → enter spec filename (e.g. pictionary.spec.ts)
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'Spec filename (e.g. pictionary.spec.ts)'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to run on (default: current branch)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-single:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Export web build
+        run: |
+          EXPO_PUBLIC_CF_API_URL=http://127.0.0.1:8787 \
+          EXPO_PUBLIC_SENTRY_DSN='' \
+          npx expo export --platform web
+
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Setup D1 migrations
+        run: node scripts/setup-d1-migrations.mjs
+
+      - name: Run single spec
+        env:
+          SPEC: ${{ inputs.spec }}
+        run: pnpm exec playwright test "$SPEC" --reporter=list --reporter=blob
+
+      - name: Upload blob report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: blob-report-single
+          path: blob-report/
+          retention-days: 1
