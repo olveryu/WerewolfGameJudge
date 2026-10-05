@@ -474,7 +474,7 @@ describe('FibKing room adapter', () => {
       openIdentity,
     });
     expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
-    expect(lobby.message).toBe('选择一个空位入座');
+    expect(lobby.message).toBeNull();
 
     const ongoingPlayer = createFibBottomActions({
       state: createOngoing(),

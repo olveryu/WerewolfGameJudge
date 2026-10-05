@@ -83,7 +83,7 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
         timeout: 30000,
       });
-      await expect(joinerPage.getByText(/正在选词/)).toBeVisible();
+      await expect(joinerPage.getByText(/正在选词…/)).toBeVisible();
     });
 
     await test.step('drawer selects a word and drawing begins', async () => {

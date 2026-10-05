@@ -29,6 +29,6 @@
     "@types/node": "^25.0.0",
     "@cloudflare/vitest-pool-workers": "~0.13.5",
     "vitest": "~4.1.10",
-    "wrangler": "^4.95.0"
+    "wrangler": "^4.147.0"
   }
 }

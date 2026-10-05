@@ -18,12 +18,7 @@ import type { useUndercoverRoundControls } from './hooks/useUndercoverRoundContr
 
 type Controls = ReturnType<typeof useUndercoverRoundControls>;
 
-export function createUndercoverBottomActions(
-  state: UndercoverState,
-  isHost: boolean,
-  controls: Controls,
-  mySeat: number | null,
-): RoomBottomActionModel {
+export function createUndercoverBottomActions(controls: Controls): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
   if (controls.canViewCard && !controls.isSelecting)
     actions.push({
@@ -50,12 +45,7 @@ export function createUndercoverBottomActions(
   }
   return {
     kind: 'info',
-    message:
-      state.phase === 'lobby' && !isHost && mySeat === null
-        ? '选择一个空位入座'
-        : controls.isSelecting
-          ? '选择本次出局玩家'
-          : null,
+    message: controls.isSelecting ? '选择本次出局玩家' : null,
     actions,
   };
 }

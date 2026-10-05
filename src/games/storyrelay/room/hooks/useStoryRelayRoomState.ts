@@ -314,8 +314,7 @@ export function useStoryRelayRoomState(
     share,
     bottomActions: {
       kind: 'info',
-      message:
-        isLobby && !isHost ? (mySeat === null ? '选择一个空位入座' : '等待房主开始游戏') : null,
+      message: isLobby && !isHost && mySeat !== null ? '等待房主开始游戏' : null,
       actions: [],
     },
     hostManagement: !isHost

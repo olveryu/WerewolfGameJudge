@@ -258,13 +258,7 @@ export function createPictionaryBottomActions(
   mySeat: number | null,
 ): RoomBottomInfoModel {
   const message =
-    state.phase !== 'lobby'
-      ? null
-      : mySeat === null
-        ? '选择一个空位入座'
-        : isHost
-          ? null
-          : '等待房主开始游戏';
+    state.phase !== 'lobby' || mySeat === null ? null : isHost ? null : '等待房主开始游戏';
   return { kind: 'info', message, actions: [] };
 }
 
