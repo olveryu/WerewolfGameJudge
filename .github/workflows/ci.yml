@@ -47,8 +47,32 @@ jobs:
       - name: Format check
         run: pnpm run format
 
-      - name: Test
-        run: pnpm run test:all
+      - name: 'Test (fast: root + game-engine)'
+        run: pnpm --filter @game-judge/game-engine run test && pnpm --filter werewolf run test
+
+  # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
+  test-api-worker:
+    runs-on: ubuntu-latest
+    needs: [quality]
+    if: always() && needs.quality.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Test api-worker (shard ${{ matrix.shard }}/3)
+        run: pnpm --filter @game-judge/api-worker run test -- --shard=${{ matrix.shard }}/3
 
   deploy-api-worker:
     runs-on: ubuntu-latest
@@ -469,8 +493,9 @@ jobs:
     if: |
       always() &&
       needs.quality.result == 'success' &&
-      needs.build-web.result == 'success'
-    needs: [quality, build-web]
+      needs.build-web.result == 'success' &&
+      needs.test-api-worker.result == 'success'
+    needs: [quality, build-web, test-api-worker]
     strategy:
       fail-fast: false
       matrix:
