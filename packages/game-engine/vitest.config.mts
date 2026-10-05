@@ -1,0 +1,14 @@
+import path from 'node:path';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@game-judge/game-engine': path.resolve(__dirname, 'src'),
+    },
+  },
+  test: {
+    globals: true,
+    include: ['src/**/__tests__/**/*.test.ts'],
+  },
+});

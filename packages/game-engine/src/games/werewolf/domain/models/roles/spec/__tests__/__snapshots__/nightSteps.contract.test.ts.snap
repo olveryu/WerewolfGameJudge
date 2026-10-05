@@ -1,4 +1,46 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NIGHT_STEPS contract > uniqueness > array order should be stable (snapshot) 1`] = `
+[
+  "thiefChoose",
+  "treasureMasterChoose",
+  "cupidChooseLovers",
+  "cupidLoversReveal",
+  "magicianSwap",
+  "slackerChooseIdol",
+  "wildChildChooseIdol",
+  "shadowChooseMimic",
+  "avengerConfirm",
+  "eclipseWolfQueenShelter",
+  "nightmareBlock",
+  "dreamcatcherDream",
+  "guardProtect",
+  "silenceElderSilence",
+  "votebanElderBan",
+  "crowCurse",
+  "wolfKill",
+  "seedWolfInfect",
+  "wolfQueenCharm",
+  "hiddenWolfReveal",
+  "witchAction",
+  "poisonerPoison",
+  "hunterConfirm",
+  "darkWolfKingConfirm",
+  "wolfRobotLearn",
+  "seerCheck",
+  "mirrorSeerCheck",
+  "drunkSeerCheck",
+  "wolfWitchCheck",
+  "gargoyleCheck",
+  "pureWhiteCheck",
+  "psychicCheck",
+  "awakenedGargoyleConvert",
+  "piperHypnotize",
+  "piperHypnotizedReveal",
+  "awakenedGargoyleConvertReveal",
+  "seedWolfInfectReveal",
+]
+`;
 
 exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot) 1`] = `
 [
