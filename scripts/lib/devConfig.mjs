@@ -63,7 +63,15 @@ export function applyD1Migrations() {
 
   for (let attempt = 1; attempt <= MAX_MIGRATION_ATTEMPTS; attempt++) {
     runMigrationApply(workerDir);
-    missing = findMissingMigrations(workerDir, migrationsDir);
+    const applied = readAppliedMigrations(workerDir);
+    const expected = readdirSync(migrationsDir)
+      .filter((name) => name.endsWith('.sql'))
+      .sort();
+    missing = expected.filter((name) => !applied.has(name));
+    // Debug: show journal state on every attempt (helps diagnose CI-only hangs)
+    console.log(
+      `🔍 [debug] attempt ${attempt}: ${applied.size}/${expected.length} migrations in journal`,
+    );
     if (missing.length === 0) {
       console.log('✅ D1 migrations applied');
       return;
@@ -73,6 +81,11 @@ export function applyD1Migrations() {
         `missing: ${missing.join(', ')}`,
     );
   }
+
+  // Debug: dump full journal on failure so CI logs show what actually applied
+  const finalApplied = [...readAppliedMigrations(workerDir)].sort();
+  console.error(`🔍 [debug] d1_migrations journal contents (${finalApplied.length} rows):`);
+  console.error(finalApplied.join('\n') || '(empty)');
 
   console.error(
     `❌ D1 migrations did not complete after ${MAX_MIGRATION_ATTEMPTS} attempts. ` +
