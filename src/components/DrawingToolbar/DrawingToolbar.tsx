@@ -533,6 +533,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                         accessibilityRole="button"
                         accessibilityLabel={`笔宽 ${w}`}
                         accessibilityState={{ selected: props.strokeWidth === w }}
+                        testID={`drawing-toolbar-width-${w}`}
                         disabled={disabled}
                         onPress={() => {
                           props.onWidthChange(w);

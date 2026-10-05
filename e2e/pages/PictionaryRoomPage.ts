@@ -106,7 +106,7 @@ export class PictionaryRoomPage extends RoomPage {
       stage.getByRole('button', { name: '选择颜色，当前蓝色', exact: true }),
     ).toBeVisible();
     await stage.getByRole('button', { name: /^选择粗细，/ }).click();
-    await this.page.getByRole('button', { name: '30 像素画笔', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-width-30').click();
     await expect(
       stage.getByRole('button', { name: '选择粗细，当前 30 像素', exact: true }),
     ).toBeVisible();
