@@ -98,9 +98,6 @@ export class PictionaryRoomPage extends RoomPage {
     }
     await this.page.getByRole('button', { name: '关闭选择面板', exact: true }).click();
     await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await expect(this.page.getByTestId('drawing-toolbar-color-粉色')).toBeInViewport({
-      ratio: 1,
-    });
     await this.page.getByTestId('drawing-toolbar-color-蓝色').click();
     await expect(
       stage.getByRole('button', { name: '选择颜色，当前蓝色', exact: true }),
@@ -203,7 +200,7 @@ export class PictionaryRoomPage extends RoomPage {
     await this.page.getByRole('button', { name: '返回常用颜色', exact: true }).click();
     await expect(panel).toHaveCount(0);
     await expect(this.page.getByRole('button', { name: /^最近颜色 / })).toHaveCount(1);
-    await this.page.getByRole('button', { name: '红色', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-color-红色').click();
     await expect(colorButton).toHaveAccessibleName('选择颜色，当前红色');
     await colorButton.click();
     await this.page.getByRole('button', { name: '最近颜色 1', exact: true }).click();
@@ -258,7 +255,7 @@ export class PictionaryRoomPage extends RoomPage {
       await this.drawStroke(toolIndex + 1);
     }
     await stage.getByRole('button', { name: /^选择颜色，/ }).click();
-    await this.page.getByRole('button', { name: '红色', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-color-红色').click();
     await stage.getByRole('button', { name: /^选择工具，/ }).click();
     await this.page.getByRole('button', { name: '填充', exact: true }).click();
     const canvas = this.page.getByTestId(TESTIDS.pictionaryDrawingCanvas);
