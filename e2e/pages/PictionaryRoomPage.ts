@@ -133,9 +133,7 @@ export class PictionaryRoomPage extends RoomPage {
     const paletteBounds = await palette.boundingBox();
     const viewport = this.page.viewportSize();
     const presetBounds = await this.page.getByTestId('drawing-toolbar-color-粉色').boundingBox();
-    const entryBounds = await this.page
-      .getByRole('button', { name: '展开调色板', exact: true })
-      .boundingBox();
+    const entryBounds = await this.page.getByTestId('drawing-toolbar-custom-color').boundingBox();
     if (!paletteBounds || !viewport || !colorButtonBounds || !presetBounds || !entryBounds) {
       throw new Error('Pictionary color palette has no browser layout box');
     }
@@ -153,7 +151,7 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(this.page.getByTestId('drawing-toolbar-color-粉色')).toBeInViewport({
       ratio: 1,
     });
-    await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-custom-color').click();
     await expect(this.page.getByRole('textbox')).toHaveCount(0);
     await expect(this.page.getByText(/#[0-9a-f]{6}/i)).toHaveCount(0);
     for (const control of [panel, hue]) {
@@ -195,7 +193,7 @@ export class PictionaryRoomPage extends RoomPage {
     await this.drawStroke(2);
     await colorButton.click();
     await expect(panel).toHaveCount(0);
-    await this.page.getByRole('button', { name: '展开调色板', exact: true }).click();
+    await this.page.getByTestId('drawing-toolbar-custom-color').click();
     await expect(panel).toBeInViewport({ ratio: 1 });
     await this.page.getByRole('button', { name: '返回常用颜色', exact: true }).click();
     await expect(panel).toHaveCount(0);

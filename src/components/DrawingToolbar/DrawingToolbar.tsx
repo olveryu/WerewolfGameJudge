@@ -413,6 +413,7 @@ export const DrawingToolbar: React.FC<SharedDrawingToolbarProps> = (props) => {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="自定义颜色"
+                      testID="drawing-toolbar-custom-color"
                       onPress={() => setIsColorPickerVisible(true)}
                       style={styles.customColorButton}
                     >

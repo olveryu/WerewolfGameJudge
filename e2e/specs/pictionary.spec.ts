@@ -113,10 +113,7 @@ test.describe('Pictionary', () => {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',
           });
-          await fixture.pages[playerIndex]!.getByRole('button', {
-            name: '展开调色板',
-            exact: true,
-          }).click();
+          await fixture.pages[playerIndex]!.getByTestId('drawing-toolbar-custom-color').click();
           await test.info().attach(`pictionary-colors-${viewport}`, {
             body: await fixture.pages[playerIndex]!.screenshot(),
             contentType: 'image/png',
