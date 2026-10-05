@@ -191,6 +191,7 @@ After writing code, go through the core principles checklist 🔍 self-check que
 - **Night-1 scope only.** No cross-night state/rules.
 - **`GameState` is the single source of truth.** Broadcast publicly, UI filters display by `myRole`. No dual-writes/drift.
 - **Trust model: assume no cheating by default.** Face-to-face party game — no additional anti-cheat architecture.
+- **Confirmations must use `<AlertModal>`, not `Alert.alert` or `showAlert`.** `react-native-web`'s `Alert.alert` is a no-op on web (empty implementation). The `showAlert`/`showDestructiveAlert` utility falls back to native `window.confirm`/`window.alert` on web when no listener is set, which Playwright auto-dismisses and which looks inconsistent. Use `<AlertModal>` from `@/components/AlertModal` directly for all confirmation dialogs.
 
 When in doubt, ask first. Do not fabricate repository facts.
 
