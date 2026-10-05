@@ -306,7 +306,7 @@ function DrawGuessWordSelectView({
   const drawerName =
     viewModel.seats.find((seat) => seat.seat === viewModel.drawerSeat)?.displayName ?? '画手';
   const choose = (word: string) => {
-    roomScreenLog.debug('[drawguess] word choose clicked', {
+    roomScreenLog.warn('[drawguess] word choose clicked', {
       word,
       phaseRevision: state.phaseRevision,
       turnIndex: state.turnIndex,
@@ -318,7 +318,7 @@ function DrawGuessWordSelectView({
       phaseRevision: state.phaseRevision,
       turnIndex: state.turnIndex,
     }).then((ok) => {
-      roomScreenLog.debug('[drawguess] word choose submit result', { word, ok });
+      roomScreenLog.warn('[drawguess] word choose submit result', { word, ok });
     });
   };
   return (
