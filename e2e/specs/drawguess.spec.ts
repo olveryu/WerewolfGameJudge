@@ -78,15 +78,20 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       await room.clickHostManagementAction('drawguess-start');
       // Host (seat 0) is the first drawer.
       await expect(hostPage.getByText('请选择本轮题目')).toBeVisible();
-      // E2E seeds 20 drawguess words, so choices should arrive (not "preparing").
-      // Wait for at least one word choice button to appear.
-      const wordButton = hostPage.getByRole('button', { name: '苹果' });
-      await expect(wordButton).toBeVisible({ timeout: 30000 });
+      // E2E seeds 20 drawguess words, so 3 choices should arrive (not "preparing").
+      // Words are dealt randomly; don't assert a specific word.
+      await expect(hostPage.getByText('请选择本轮题目（3 选 1）')).toBeVisible({
+        timeout: 30000,
+      });
       await expect(joinerPage.getByText(/正在选词/)).toBeVisible();
     });
 
     await test.step('drawer selects a word and drawing begins', async () => {
-      await hostPage.getByRole('button', { name: '苹果' }).click();
+      // Click the first word choice button (words are dealt randomly).
+      const wordSection = hostPage.locator('div', {
+        hasText: '请选择本轮题目（3 选 1）',
+      });
+      await wordSection.getByRole('button').first().click();
       // After word selection, drawer should see the drawing canvas.
       // (Exact drawing-phase assertions depend on the phase transition;
       // at minimum the word choices should disappear.)
