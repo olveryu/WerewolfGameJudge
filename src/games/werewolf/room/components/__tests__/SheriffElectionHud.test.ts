@@ -34,8 +34,6 @@ function createModel(viewOverrides: Partial<SheriffElectionViewModel>): SheriffE
     vote: jest.fn(async () => undefined),
     advance: jest.fn(async () => undefined),
     requestEndBySelfDestruct: jest.fn(),
-    alert: null,
-    clearAlert: jest.fn(),
   };
 }
 

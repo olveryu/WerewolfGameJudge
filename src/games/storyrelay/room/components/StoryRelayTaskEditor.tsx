@@ -9,12 +9,12 @@ import {
 import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
-import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
+import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { StoryRelayFinalizationStatus } from '../hooks/useStoryRelayAutoSubmission';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
@@ -44,7 +44,6 @@ export function StoryRelayTaskEditor({
   const [text, setText] = useState(
     () => inputs.get(task.authorSeat) ?? (entry?.kind === 'text' ? entry.text : ''),
   );
-  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const isReady = state.readySeats.includes(task.authorSeat);
   const canEdit = state.phase === 'answering' && !isReady && !isExpired;
@@ -55,7 +54,7 @@ export function StoryRelayTaskEditor({
   };
   const ready = () => {
     if (!isValid) {
-      setErrorAlert({ title: '无法准备', message: '正文超过 512 字符，请缩短后再准备' });
+      showErrorAlert('无法准备', '正文超过 512 字符，请缩短后再准备');
       return;
     }
     void submission.submit('更新准备状态', () =>
@@ -136,13 +135,6 @@ export function StoryRelayTaskEditor({
             {isReady ? '取消准备' : '准备好了'}
           </Button>
         )}
-        <AlertModal
-          visible={errorAlert !== null}
-          title={errorAlert?.title ?? ''}
-          message={errorAlert?.message}
-          buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
-          onClose={() => setErrorAlert(null)}
-        />
       </View>
     </RoomTaskViewport>
   );

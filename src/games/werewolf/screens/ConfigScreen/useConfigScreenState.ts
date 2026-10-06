@@ -22,7 +22,6 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner-native';
 
-import type { AlertButton } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
 import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
@@ -36,6 +35,7 @@ import { isExpectedStorageError } from '@/features/settings/services/SettingsSer
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { colors } from '@/theme';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { configLog } from '@/utils/logger';
@@ -56,13 +56,6 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ConfigNavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Config'>;
-
-/** Alert dialog state exposed for the screen to render via <AlertModal>. */
-interface AlertState {
-  title: string;
-  message?: string;
-  buttons: AlertButton[];
-}
 
 interface UseConfigScreenStateParams {
   existingRoomCode: string | undefined;
@@ -117,8 +110,6 @@ export function useConfigScreenState({
   );
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode || isNominateMode);
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
   const [selectedTemplate, setSelectedTemplate] = useState(
     presetInitial?.matchedPreset ??
       (isEditMode || isNominateMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
@@ -287,13 +278,13 @@ export function useConfigScreenState({
     }
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
-      setAlert({ title: '配置有误', message: '请至少选择一个角色', buttons: [{ text: '确定' }] });
+      showErrorAlert('配置有误', '请至少选择一个角色');
       return;
     }
 
     const validationError = validateTemplateRoles(roles);
     if (validationError) {
-      setAlert({ title: '配置有误', message: validationError, buttons: [{ text: '确定' }] });
+      showErrorAlert('配置有误', validationError);
       return;
     }
 
@@ -305,11 +296,7 @@ export function useConfigScreenState({
         const result = await client.boardNominate(displayName, roles);
         if (!isSuccessfulRoomCommand(result)) {
           const reason = getRoomCommandFailureReason(result);
-          setAlert({
-            title: '提交失败',
-            message: translateReasonCode(reason),
-            buttons: [{ text: '确定' }],
-          });
+          showErrorAlert('提交失败', translateReasonCode(reason));
           return;
         }
         if (result.decision.outcome.reason === 'DEDUPLICATED') {
@@ -330,11 +317,7 @@ export function useConfigScreenState({
         const result = await client.updateTemplate(template);
         if (!isSuccessfulRoomCommand(result)) {
           const reason = getRoomCommandFailureReason(result);
-          setAlert({
-            title: '更新失败',
-            message: translateReasonCode(reason),
-            buttons: [{ text: '确定' }],
-          });
+          showErrorAlert('更新失败', translateReasonCode(reason));
           return;
         }
         onExitFlow();
@@ -577,10 +560,6 @@ export function useConfigScreenState({
     isDisabled,
     isLoading,
     isSubmitting,
-
-    // Alert dialog (rendered by ConfigScreen via <AlertModal>)
-    alert,
-    clearAlert,
 
     // Core state
     selection,

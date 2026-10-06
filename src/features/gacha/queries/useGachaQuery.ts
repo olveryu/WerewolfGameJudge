@@ -8,10 +8,9 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { toast } from 'sonner-native';
 
-import type { AlertButton } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
@@ -26,6 +25,7 @@ import {
 } from '@/features/gacha/services/gachaApi';
 import { gachaOperationStore } from '@/features/gacha/services/GachaOperationStore';
 import { runGachaOperation } from '@/features/gacha/services/runGachaOperation';
+import { showAlert } from '@/utils/alert';
 import { gachaLog } from '@/utils/logger';
 
 import { gachaStatusOptions } from './gachaQueryOptions';
@@ -158,13 +158,6 @@ export function useExchangeShardMutation() {
   });
 }
 
-/** Alert dialog state exposed for the screen to render via <AlertModal>. */
-interface AlertState {
-  title: string;
-  message?: string;
-  buttons: AlertButton[];
-}
-
 /** Observe persisted uncertainty so recovery stays available after navigation or reload. */
 export function usePendingGachaOperation() {
   const { user } = useAuthContext();
@@ -174,16 +167,14 @@ export function usePendingGachaOperation() {
     user ? gachaOperationStore.readSerialized(user.id) : null,
   );
   const pendingOperation = user ? gachaOperationStore.parse(user.id, serialized) : null;
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
   const confirmRecovery = (): boolean => {
     if (pendingOperation === null) return false;
     if (!gachaOperationStore.isExpired(pendingOperation)) return true;
     const session = authService.getAuthSession();
-    setAlert({
-      title: '操作已超过恢复期限',
-      message: `无法确认原操作是否成功，不再重发。请核对余额与收藏，必要时通过反馈提供操作号：${pendingOperation.idempotencyKey}`,
-      buttons: [
+    showAlert(
+      '操作已超过恢复期限',
+      `无法确认原操作是否成功，不再重发。请核对余额与收藏，必要时通过反馈提供操作号：${pendingOperation.idempotencyKey}`,
+      [
         { text: '保留待核对', style: 'cancel' },
         {
           text: '结束等待',
@@ -207,8 +198,8 @@ export function usePendingGachaOperation() {
           },
         },
       ],
-    });
+    );
     return false;
   };
-  return { pendingOperation, confirmRecovery, alert, clearAlert };
+  return { pendingOperation, confirmRecovery };
 }

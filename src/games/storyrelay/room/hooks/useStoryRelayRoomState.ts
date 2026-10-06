@@ -4,9 +4,8 @@ import {
   getStoryRelayOccupiedSeatCount,
   type StoryRelayCommand,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-import type { AlertButton } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -32,6 +31,8 @@ import {
   getStoryRelayUserSeat,
   type StoryRelayRoomSession,
 } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import { showAlert } from '@/utils/alert';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createStoryRelaySeatDataSource,
@@ -40,13 +41,6 @@ import {
 } from '../storyRelayRoomAdapter';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { useStoryRelaySeatCommands } from './useStoryRelaySeatCommands';
-
-/** Alert dialog state exposed for the screen to render via <AlertModal>. */
-interface AlertState {
-  title: string;
-  message?: string;
-  buttons: AlertButton[];
-}
 
 /** Binds the current ready session to the room-shell controllers and commands. */
 export function useStoryRelayRoomState(
@@ -80,8 +74,6 @@ export function useStoryRelayRoomState(
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
   const canControlBots = isHost && (state.phase === 'answering' || state.phase === 'settling');
   useEffect(() => {
     if (controlledSeat !== null && (!canControlBots || !state.botSeats.includes(controlledSeat)))
@@ -117,33 +109,20 @@ export function useStoryRelayRoomState(
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
   const onSeatPress = (seat: number) => {
-    if (!isLobby) {
-      setAlert({
-        title: '不可选择',
-        message: '游戏进行中不能调整座位',
-        buttons: [{ text: '确定' }],
-      });
-      return;
-    }
+    if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     const target = getStoryRelayProfileTarget(state, seat);
-    if (target?.occupantKind === 'bot') {
-      setAlert({
-        title: target.rosterName,
-        message: '请选择对该机器人座位的操作',
-        buttons: [
-          { text: '取消', style: 'cancel' },
-          { text: '查看资料', onPress: () => profile.open(target) },
-          {
-            text: '替换机器人入座',
-            onPress: () =>
-              mySeat === null
-                ? seatController.requestTakeSeat(seat)
-                : seatController.requestMoveSeat(seat),
-          },
-        ],
-      });
-      return;
-    }
+    if (target?.occupantKind === 'bot')
+      return showAlert(target.rosterName, '请选择对该机器人座位的操作', [
+        { text: '取消', style: 'cancel' },
+        { text: '查看资料', onPress: () => profile.open(target) },
+        {
+          text: '替换机器人入座',
+          onPress: () =>
+            mySeat === null
+              ? seatController.requestTakeSeat(seat)
+              : seatController.requestMoveSeat(seat),
+        },
+      ]);
     if (target !== null) return profile.open(target);
     return mySeat === null
       ? seatController.requestTakeSeat(seat)
@@ -187,20 +166,13 @@ export function useStoryRelayRoomState(
                       isEnabled: true as const,
                       testID: 'storyrelay-next-round',
                       onPress: () =>
-                        setAlert({
-                          title: '再来一局',
-                          message:
-                            '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
-                          buttons: [
-                            { text: '取消', style: 'cancel' },
-                            {
-                              text: '确定',
-                              onPress: async () => {
-                                await submit('再来一局', { type: 'storyrelay.round.next' });
-                              },
-                            },
-                          ],
-                        }),
+                        showConfirmAlert(
+                          '再来一局',
+                          '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
+                          async () => {
+                            await submit('再来一局', { type: 'storyrelay.round.next' });
+                          },
+                        ),
                     },
                   ]
                 : []),
@@ -212,19 +184,13 @@ export function useStoryRelayRoomState(
                 isEnabled: true as const,
                 testID: 'storyrelay-return-lobby',
                 onPress: () =>
-                  setAlert({
-                    title: '返回大厅',
-                    message: '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。',
-                    buttons: [
-                      { text: '取消', style: 'cancel' },
-                      {
-                        text: '确定',
-                        onPress: async () => {
-                          await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
-                        },
-                      },
-                    ],
-                  }),
+                  showConfirmAlert(
+                    '返回大厅',
+                    '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。',
+                    async () => {
+                      await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
+                    },
+                  ),
               },
             ],
           },
@@ -252,22 +218,16 @@ export function useStoryRelayRoomState(
                         isEnabled: true as const,
                         testID: 'storyrelay-finish-step',
                         onPress: () =>
-                          setAlert({
-                            title: '结束本棒',
-                            message: '将自动收取当前文字，没有内容时自动交空白。',
-                            buttons: [
-                              { text: '取消', style: 'cancel' },
-                              {
-                                text: '确定',
-                                onPress: async () => {
-                                  await submit('结束本棒', {
-                                    type: 'storyrelay.phase.finish',
-                                    phaseRevision: state.phaseRevision,
-                                  });
-                                },
-                              },
-                            ],
-                          }),
+                          showConfirmAlert(
+                            '结束本棒',
+                            '将自动收取当前文字，没有内容时自动交空白。',
+                            async () => {
+                              await submit('结束本棒', {
+                                type: 'storyrelay.phase.finish',
+                                phaseRevision: state.phaseRevision,
+                              });
+                            },
+                          ),
                       },
                     ],
                   },
@@ -284,22 +244,16 @@ export function useStoryRelayRoomState(
                   variant: 'danger',
                   isEnabled: true,
                   onPress: () =>
-                    setAlert({
-                      title: '中止本局',
-                      message: '将公开已收录的故事片段，本局不结算奖励。',
-                      buttons: [
-                        { text: '取消', style: 'cancel' },
-                        {
-                          text: '确定',
-                          onPress: async () => {
-                            await submit('中止本局', {
-                              type: 'storyrelay.round.abort',
-                              phaseRevision: state.phaseRevision,
-                            });
-                          },
-                        },
-                      ],
-                    }),
+                    showConfirmAlert(
+                      '中止本局',
+                      '将公开已收录的故事片段，本局不结算奖励。',
+                      async () => {
+                        await submit('中止本局', {
+                          type: 'storyrelay.round.abort',
+                          phaseRevision: state.phaseRevision,
+                        });
+                      },
+                    ),
                 },
               ],
             },
@@ -393,11 +347,7 @@ export function useStoryRelayRoomState(
                             isEnabled: false as const,
                             disabledReason: '座位尚未坐满',
                             onDisabledPress: () =>
-                              setAlert({
-                                title: '暂时不能开始',
-                                message: '请先坐满所有座位，或填充机器人。',
-                                buttons: [{ text: '确定' }],
-                              }),
+                              showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。'),
                           }),
                   },
                 ],
@@ -433,8 +383,6 @@ export function useStoryRelayRoomState(
     effectiveSeat: controlledSeat ?? mySeat,
     controlledSeat,
     isHost,
-    alert,
-    clearAlert,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'storyrelay', roomCode: room.roomCode }),
   };

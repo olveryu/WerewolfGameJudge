@@ -7,9 +7,8 @@ import {
   getDrawGuessBotDisplayName,
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { type AlertButton, type AlertInputConfig } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -36,14 +35,8 @@ import {
   getDrawGuessUserSeat,
 } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { TESTIDS } from '@/testids';
-
-/** Alert config exposed by the hook for the owning screen to render via <AlertModal>. */
-export interface AlertState {
-  readonly title: string;
-  readonly message?: string;
-  readonly buttons: AlertButton[];
-  readonly input?: AlertInputConfig;
-}
+import { showAlert } from '@/utils/alert';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createDrawGuessSeatDataSource,
@@ -84,8 +77,6 @@ export function useDrawGuessRoomState(
   const titleActions = useRoomTitleActions();
   const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
   const submit = (label: string, command: DrawGuessCommand) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat, label }));
   // 机器人席位仅房主可接管；只在选词/作画阶段允许，离开阶段自动释放。
@@ -124,33 +115,20 @@ export function useDrawGuessRoomState(
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
   const onSeatPress = (seat: number) => {
-    if (!isLobby) {
-      setAlert({
-        title: '不可选择',
-        message: '游戏进行中不能调整座位',
-        buttons: [{ text: '确定' }],
-      });
-      return;
-    }
+    if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     const target = getDrawGuessProfileTarget(state, seat);
-    if (target?.occupantKind === 'bot') {
-      setAlert({
-        title: target.rosterName,
-        message: '请选择对该机器人座位的操作',
-        buttons: [
-          { text: '取消', style: 'cancel' },
-          { text: '查看资料', onPress: () => profile.open(target) },
-          {
-            text: '替换机器人入座',
-            onPress: () =>
-              mySeat === null
-                ? seatController.requestTakeSeat(seat)
-                : seatController.requestMoveSeat(seat),
-          },
-        ],
-      });
-      return;
-    }
+    if (target?.occupantKind === 'bot')
+      return showAlert(target.rosterName, '请选择对该机器人座位的操作', [
+        { text: '取消', style: 'cancel' },
+        { text: '查看资料', onPress: () => profile.open(target) },
+        {
+          text: '替换机器人入座',
+          onPress: () =>
+            mySeat === null
+              ? seatController.requestTakeSeat(seat)
+              : seatController.requestMoveSeat(seat),
+        },
+      ]);
     if (target !== null) return profile.open(target);
     return mySeat === null
       ? seatController.requestTakeSeat(seat)
@@ -208,19 +186,13 @@ export function useDrawGuessRoomState(
                 isEnabled: true as const,
                 testID: 'drawguess-next-round',
                 onPress: () =>
-                  setAlert({
-                    title: '再来一局',
-                    message: '重新生成画手队列并清零比分，开始新的一局。',
-                    buttons: [
-                      { text: '取消', style: 'cancel' },
-                      {
-                        text: '确定',
-                        onPress: async () => {
-                          await submit('再来一局', { type: 'drawguess.round.start' });
-                        },
-                      },
-                    ],
-                  }),
+                  showConfirmAlert(
+                    '再来一局',
+                    '重新生成画手队列并清零比分，开始新的一局。',
+                    async () => {
+                      await submit('再来一局', { type: 'drawguess.round.start' });
+                    },
+                  ),
               },
               {
                 key: 'return-lobby',
@@ -230,18 +202,8 @@ export function useDrawGuessRoomState(
                 isEnabled: true as const,
                 testID: 'drawguess-return-lobby',
                 onPress: () =>
-                  setAlert({
-                    title: '返回大厅',
-                    message: '保留座位和设置，清除当前对局。',
-                    buttons: [
-                      { text: '取消', style: 'cancel' },
-                      {
-                        text: '确定',
-                        onPress: async () => {
-                          await submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
-                        },
-                      },
-                    ],
+                  showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
+                    await submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
                   }),
               },
             ],
@@ -329,11 +291,7 @@ export function useDrawGuessRoomState(
                           isEnabled: false as const,
                           disabledReason: startDisabledReason,
                           onDisabledPress: () =>
-                            setAlert({
-                              title: '暂时不能开始',
-                              message: startDisabledReason ?? '请稍后重试',
-                              buttons: [{ text: '确定' }],
-                            }),
+                            showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
                         }
                       : {
                           isEnabled: true as const,
@@ -378,8 +336,6 @@ export function useDrawGuessRoomState(
     releaseBot,
     submit,
     session,
-    alert,
-    clearAlert,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'drawguess', roomCode: room.roomCode }),
   };

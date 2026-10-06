@@ -7,11 +7,19 @@ import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { AlertButton } from '@/components/AlertModal';
 import { useRoomHostDialogs } from '@/games/werewolf/room/useRoomHostDialogs';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+import { showAlert } from '@/utils/alert';
+
+// Mock showAlert
+jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
+  showAlert: jest.fn(),
+}));
+
+const mockShowAlert = showAlert as jest.MockedFunction<typeof showAlert>;
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -58,10 +66,6 @@ const createMockGameState = (playerCount: number): LocalGameState => {
   };
 };
 
-function getButtons(result: { current: { alert: { buttons: AlertButton[] } | null } }) {
-  return result.current.alert?.buttons ?? [];
-}
-
 describe('useRoomHostDialogs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -92,11 +96,9 @@ describe('useRoomHostDialogs', () => {
         result.current.showPrepareToFlipDialog();
       });
 
-      expect(result.current.alert).toMatchObject({
-        title: '无法开始游戏',
-        message: '还有空位未入座',
-        buttons: [{ text: '知道了' }],
-      });
+      expect(mockShowAlert).toHaveBeenCalledWith('无法开始游戏', '还有空位未入座', [
+        { text: '知道了', style: 'default' },
+      ]);
     });
 
     it('should show confirmation when all seats are occupied', () => {
@@ -120,11 +122,9 @@ describe('useRoomHostDialogs', () => {
         result.current.showPrepareToFlipDialog();
       });
 
-      expect(result.current.alert).toMatchObject({
-        title: '分配角色？',
-        message: '所有座位已满，将洗牌并分配角色',
-      });
-      expect(getButtons(result)).toEqual(
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        '分配角色？',
+        '所有座位已满，将洗牌并分配角色',
         expect.arrayContaining([
           expect.objectContaining({ text: '确定' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
@@ -175,7 +175,7 @@ describe('useRoomHostDialogs', () => {
         mvpUserId,
       });
       expect(restartGame).not.toHaveBeenCalled();
-      expect(result.current.alert).toBeNull();
+      expect(mockShowAlert).not.toHaveBeenCalled();
       expect(result.current.mvpSelection).toBeNull();
     });
 
@@ -201,11 +201,9 @@ describe('useRoomHostDialogs', () => {
         result.current.showRestartDialog();
       });
 
-      expect(result.current.alert).toMatchObject({
-        title: '重新开始游戏？',
-        message: '重新开始后本局复盘将无法查看，是否先分享战报？',
-      });
-      expect(getButtons(result)).toEqual(
+      expect(mockShowAlert).toHaveBeenCalledWith(
+        '重新开始游戏？',
+        '重新开始后本局复盘将无法查看，是否先分享战报？',
         expect.arrayContaining([
           expect.objectContaining({ text: '分享战报' }),
           expect.objectContaining({ text: '重新开始' }),
@@ -296,20 +294,22 @@ describe('useRoomHostDialogs', () => {
         result.current.showPrepareToFlipDialog();
       });
 
-      // Get the confirm button callback from the alert state
-      const confirmBtn = getButtons(result).find((b) => b.text === '确定');
+      // Get the confirm button callback
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn = buttons.find((b) => b.text === '确定');
       expect(confirmBtn).toBeDefined();
 
       // First press: should call assignRoles
       act(() => {
-        void confirmBtn?.onPress?.();
+        confirmBtn?.onPress?.();
       });
       expect(mockAssignRoles).toHaveBeenCalledTimes(1);
       expect(result.current.isHostActionSubmitting).toBe(true);
 
       // Second press while first still in-flight: should be rejected
       act(() => {
-        void confirmBtn?.onPress?.();
+        confirmBtn?.onPress?.();
       });
       expect(mockAssignRoles).toHaveBeenCalledTimes(1); // still 1
 
@@ -346,18 +346,20 @@ describe('useRoomHostDialogs', () => {
         result.current.showRestartDialog();
       });
 
-      const confirmBtn = getButtons(result).find((b) => b.text === '重新开始');
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn = buttons.find((b) => b.text === '重新开始');
 
       // First press
       await act(async () => {
-        void confirmBtn?.onPress?.();
+        confirmBtn?.onPress?.();
       });
       expect(mockRestartGame).toHaveBeenCalledTimes(1);
       expect(result.current.isHostActionSubmitting).toBe(true);
 
       // Second press rejected
       await act(async () => {
-        void confirmBtn?.onPress?.();
+        confirmBtn?.onPress?.();
       });
       expect(mockRestartGame).toHaveBeenCalledTimes(1);
 
@@ -387,27 +389,32 @@ describe('useRoomHostDialogs', () => {
         }),
       );
 
-      // showStartGameDialog sets the alert state, we need to press confirm
+      // showStartGameDialog calls showAlert, we need to press confirm
       act(() => {
         result.current.showStartGameDialog();
       });
 
-      const confirmBtn = getButtons(result).find((b) => b.text === '确定');
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn = buttons.find((b) => b.text === '确定');
 
       // First press via dialog confirm
       await act(async () => {
-        void confirmBtn?.onPress?.();
+        confirmBtn?.onPress?.();
       });
       expect(mockStartGame).toHaveBeenCalledTimes(1);
 
       // Trigger dialog again and press confirm — should be rejected (still in-flight)
+      mockShowAlert.mockClear();
       act(() => {
         result.current.showStartGameDialog();
       });
-      const confirmBtn2 = getButtons(result).find((b) => b.text === '确定');
+      const alertCall2 = mockShowAlert.mock.calls[0]!;
+      const buttons2 = alertCall2[2]! as Array<{ text: string; onPress?: () => void }>;
+      const confirmBtn2 = buttons2.find((b) => b.text === '确定');
 
       await act(async () => {
-        await confirmBtn2?.onPress?.();
+        confirmBtn2?.onPress?.();
       });
       expect(mockStartGame).toHaveBeenCalledTimes(1); // still 1
 

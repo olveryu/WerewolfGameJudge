@@ -48,9 +48,6 @@ function createController(isReady: boolean): RoomEntryController {
     },
     retry: jest.fn(),
     requestExit: jest.fn(),
-    exitConfirmVisible: false,
-    confirmExit: jest.fn(),
-    dismissExitConfirm: jest.fn(),
   };
 }
 

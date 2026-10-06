@@ -9,7 +9,6 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
 
-import { type AlertButton, type AlertInputConfig } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
@@ -21,14 +20,7 @@ import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryR
 import type { PictionaryConfigRouteParams } from '@/games/pictionary/navigation/types';
 import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/pictionaryRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
-
-/** Alert config exposed by the hook for the owning screen to render via <AlertModal>. */
-export interface AlertState {
-  readonly title: string;
-  readonly message?: string;
-  readonly buttons: AlertButton[];
-  readonly input?: AlertInputConfig;
-}
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -50,8 +42,6 @@ export interface PictionaryConfigScreenState {
   ) => void;
   readonly submit: () => void;
   readonly goBack: () => void;
-  readonly alert: AlertState | null;
-  readonly clearAlert: () => void;
 }
 
 function readInitialConfig(
@@ -78,8 +68,6 @@ export function usePictionaryConfigScreenState({
   const { createRoom, isCreating } = useRoomCreationController();
   const command = useRoomCommandSubmission(getPictionaryRoomCommandFailureMessage);
   const [config, setConfig] = useState(() => readInitialConfig(params, session));
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
 
   const updateConfig = useCallback(
     <TKey extends keyof PictionaryConfig>(key: TKey, value: PictionaryConfig[TKey]) => {
@@ -93,11 +81,7 @@ export function usePictionaryConfigScreenState({
   }, [config.numberOfPlayers, updateConfig]);
   const incrementPlayers = useCallback(() => {
     if (config.numberOfPlayers === PICTIONARY_MAX_PLAYERS) {
-      setAlert({
-        title: '人数设置有误',
-        message: `最多支持 ${PICTIONARY_MAX_PLAYERS} 人`,
-        buttons: [{ text: '确定' }],
-      });
+      showErrorAlert('人数设置有误', `最多支持 ${PICTIONARY_MAX_PLAYERS} 人`);
       return;
     }
     updateConfig('numberOfPlayers', config.numberOfPlayers + 1);
@@ -145,7 +129,5 @@ export function usePictionaryConfigScreenState({
     updateConfig,
     submit,
     goBack,
-    alert,
-    clearAlert,
   };
 }

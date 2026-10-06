@@ -12,7 +12,6 @@ import { type ComponentProps, type FC, useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
@@ -28,6 +27,7 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -93,12 +93,6 @@ export const GameRulesScreen: FC = () => {
   const nominateMode = route.params.nominateMode;
 
   const [rules, setRules] = useState<GameRuleOverrides>(initialRules);
-  const [confirmConfig, setConfirmConfig] = useState<{
-    title: string;
-    message: string;
-    confirmText: string;
-    onConfirm: () => void;
-  } | null>(null);
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
@@ -117,14 +111,14 @@ export const GameRulesScreen: FC = () => {
       const currentValue = rules[item.key] ?? false;
 
       if (!currentValue && item.confirmOnEnable) {
-        setConfirmConfig({
-          title: item.confirmOnEnable.title,
-          message: item.confirmOnEnable.message,
-          confirmText: item.confirmOnEnable.confirmText,
-          onConfirm: () => {
+        showConfirmAlert(
+          item.confirmOnEnable.title,
+          item.confirmOnEnable.message,
+          () => {
             setRules((prev) => ({ ...prev, [item.key]: true }));
           },
-        });
+          { confirmText: item.confirmOnEnable.confirmText },
+        );
       } else {
         setRules((prev) => ({ ...prev, [item.key]: !currentValue }));
       }
@@ -182,23 +176,6 @@ export const GameRulesScreen: FC = () => {
           完成
         </Button>
       </View>
-      <AlertModal
-        visible={confirmConfig !== null}
-        title={confirmConfig?.title ?? ''}
-        message={confirmConfig?.message}
-        buttons={[
-          { text: '取消', style: 'cancel', onPress: () => setConfirmConfig(null) },
-          {
-            text: confirmConfig?.confirmText ?? '确定',
-            style: 'default',
-            onPress: () => {
-              confirmConfig?.onConfirm();
-              setConfirmConfig(null);
-            },
-          },
-        ]}
-        onClose={() => setConfirmConfig(null)}
-      />
     </SafeAreaView>
   );
 };
