@@ -457,6 +457,9 @@ export async function listRoomsForReconciliation(
   return rows.map((row) => parseRoomDirectoryRecord(env, row));
 }
 
+/** Maximum room IDs per UPDATE batch. D1 rejects queries with too many bound parameters. */
+const ROOM_EXPIRY_UPDATE_BATCH_SIZE = 50;
+
 export async function markExpiredRoomsDeleting(
   env: Env,
   cutoffMs: number,
@@ -475,26 +478,34 @@ export async function markExpiredRoomsDeleting(
     .limit(limit);
   if (candidates.length === 0) return 0;
 
-  const marked = await db
-    .update(rooms)
-    .set({
-      status: 'deleting',
-      failureOperation: null,
-      lastError: null,
-      reconciliationAttemptCount: 0,
-      reconcileAfter: isoTimestamp(nowMs),
-      deleteRequestedBy: SYSTEM_ROOM_EXPIRY_ACTOR,
-      updatedAt: isoTimestamp(nowMs),
-    })
-    .where(
-      and(
-        eq(rooms.status, 'active'),
-        inArray(
-          rooms.id,
-          candidates.map(({ id }) => id),
+  // Batch the UPDATE: a single query with hundreds of IDs in the IN clause
+  // exceeds D1's bound-parameter limit and fails the entire expiry run.
+  let marked = 0;
+  const timestamp = isoTimestamp(nowMs);
+  for (let i = 0; i < candidates.length; i += ROOM_EXPIRY_UPDATE_BATCH_SIZE) {
+    const batch = candidates.slice(i, i + ROOM_EXPIRY_UPDATE_BATCH_SIZE);
+    const updated = await db
+      .update(rooms)
+      .set({
+        status: 'deleting',
+        failureOperation: null,
+        lastError: null,
+        reconciliationAttemptCount: 0,
+        reconcileAfter: timestamp,
+        deleteRequestedBy: SYSTEM_ROOM_EXPIRY_ACTOR,
+        updatedAt: timestamp,
+      })
+      .where(
+        and(
+          eq(rooms.status, 'active'),
+          inArray(
+            rooms.id,
+            batch.map(({ id }) => id),
+          ),
         ),
-      ),
-    )
-    .returning({ id: rooms.id });
-  return marked.length;
+      )
+      .returning({ id: rooms.id });
+    marked += updated.length;
+  }
+  return marked;
 }
