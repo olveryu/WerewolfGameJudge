@@ -11,14 +11,9 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
-import { AlertModal } from '@/components/AlertModal';
 import { PressableScale } from '@/components/PressableScale';
 import { type AdminRoom, type AdminRoomPlayer } from '@/features/admin/model/adminContracts';
-import {
-  fetchRoomPlayers,
-  fetchRooms,
-  triggerRoomCleanup,
-} from '@/features/admin/services/adminApi';
+import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
 import { enterRoomFromAdmin } from '@/features/room/navigation/roomFlowNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
@@ -36,10 +31,6 @@ export const RoomsTab: React.FC = () => {
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
   const [players, setPlayers] = useState<AdminRoomPlayer[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
-  // Manual expiry trigger: runs the same pipeline as the daily 03:00 UTC cron.
-  const [confirmCleanup, setConfirmCleanup] = useState(false);
-  const [cleaning, setCleaning] = useState(false);
-  const [cleanupResult, setCleanupResult] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -81,26 +72,6 @@ export const RoomsTab: React.FC = () => {
   );
 
   const totalPages = Math.ceil(total / 50);
-
-  const doCleanup = useCallback(() => {
-    setConfirmCleanup(false);
-    setCleaning(true);
-    setCleanupResult(null);
-    void (async () => {
-      try {
-        const result = await triggerRoomCleanup();
-        const errorSuffix = result.errors.length > 0 ? `，${result.errors.length} 个删除失败` : '';
-        setCleanupResult(
-          `标记过期 ${result.marked} 个，删除 ${result.reconciled} 个${errorSuffix}`,
-        );
-        await loadData();
-      } catch (e) {
-        setCleanupResult(`清理失败：${e instanceof Error ? e.message : 'Unknown error'}`);
-      } finally {
-        setCleaning(false);
-      }
-    })();
-  }, [loadData]);
 
   const renderRoom = useCallback(
     ({ item }: { item: AdminRoom }) => {
@@ -181,23 +152,7 @@ export const RoomsTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.summaryRow}>
-        <Text style={styles.summary}>总房间: {total}</Text>
-        <PressableScale
-          style={styles.cleanupButton}
-          accessibilityRole="button"
-          accessibilityLabel="清理过期房间"
-          disabled={cleaning}
-          onPress={() => setConfirmCleanup(true)}
-        >
-          {cleaning ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Text style={styles.cleanupButtonText}>清理过期房间</Text>
-          )}
-        </PressableScale>
-      </View>
-      {cleanupResult !== null && <Text style={styles.cleanupResult}>{cleanupResult}</Text>}
+      <Text style={styles.summary}>总房间: {total}</Text>
 
       {loading || error ? (
         <AdminEmptyState loading={loading} error={error} empty={false} />
@@ -212,50 +167,17 @@ export const RoomsTab: React.FC = () => {
       )}
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-
-      <AlertModal
-        visible={confirmCleanup}
-        title="清理过期房间"
-        message="将标记所有超过 24 小时的房间并删除（与每天 3 点定时任务相同），确定吗？"
-        buttons={[
-          { text: '取消', style: 'cancel' },
-          { text: '确定', onPress: doCleanup },
-        ]}
-        onClose={() => setConfirmCleanup(false)}
-      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: spacing.medium },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.tight,
-    marginTop: spacing.small,
-  },
   summary: {
     fontSize: typography.caption,
     color: colors.textSecondary,
-  },
-  cleanupButton: {
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.small,
-    borderRadius: borderRadius.medium,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cleanupButtonText: {
-    fontSize: typography.caption,
-    color: colors.primary,
-  },
-  cleanupResult: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
     marginBottom: spacing.tight,
+    marginTop: spacing.small,
   },
   list: { paddingBottom: spacing.medium },
   enterRoom: {

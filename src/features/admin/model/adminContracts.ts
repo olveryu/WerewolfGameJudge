@@ -164,9 +164,3 @@ export interface TriggerSupplyResult {
   force: boolean;
   workflowId: string;
 }
-
-export interface RoomCleanupResult {
-  marked: number;
-  reconciled: number;
-  errors: string[];
-}
