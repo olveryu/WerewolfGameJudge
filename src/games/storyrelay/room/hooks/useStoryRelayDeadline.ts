@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -16,6 +17,7 @@ export function useStoryRelayDeadline(
   session: StoryRelayRoomSession,
 ): number | null {
   const isVisible = useAppVisibility();
+  const { showRoomAlert } = useRoomAlert();
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   useEffect(() => {
     let isRunning = false;
@@ -41,12 +43,20 @@ export function useStoryRelayDeadline(
           { controlledSeat: null, label: '推进故事阶段', isRecoverable: true },
         );
       } catch (error: unknown) {
-        if (isMounted)
-          handleError(error, {
+        if (isMounted) {
+          const result = handleError(error, {
             label: '推进故事阶段',
             logger: roomScreenLog,
             alertMessage: '阶段推进失败，请重试',
           });
+          if (!result.aborted) {
+            showRoomAlert({
+              title: '推进故事阶段失败',
+              message: result.message,
+              buttons: [{ text: '确定', style: 'default' }],
+            });
+          }
+        }
       } finally {
         isRunning = false;
       }
@@ -58,6 +68,6 @@ export function useStoryRelayDeadline(
       isMounted = false;
       clearInterval(interval);
     };
-  }, [deadlineAt, isVisible, phaseRevision, session]);
+  }, [deadlineAt, isVisible, phaseRevision, session, showRoomAlert]);
   return remainingSeconds;
 }

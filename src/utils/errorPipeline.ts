@@ -1,22 +1,26 @@
 /**
- * errorPipeline — Unified error handling for catch blocks
+ * errorPipeline — Unified error classification for catch blocks
  *
- * Replaces the repetitive pattern of isAbortError guard → log → Sentry → showAlert
+ * Replaces the repetitive pattern of isAbortError guard → log → Sentry
  * with a single `handleError(err, opts)` call. Classifies errors into:
  *   - **abort**: AbortError from fetch/navigation — log.warn only, no Sentry, no UI
- *   - **expected**: User input / rate-limit / known HTTP status — log.warn + UI feedback, no Sentry
- *   - **unexpected**: Everything else — log.error + Sentry + UI feedback
+ *   - **network**: network failure/timeout — log.warn + caller UI, no Sentry
+ *   - **expected**: User input / rate-limit / known HTTP status — log.warn + caller UI, no Sentry
+ *   - **unexpected**: Everything else — log.error + Sentry + caller UI
+ *
+ * UI-free by design: `handleError` never shows alerts or toasts. It returns a
+ * {@link HandleErrorResult} and the caller decides how to present it
+ * (e.g. `<AlertModal>` in components, `showRoomAlert()` in room controllers,
+ * `toast.error()` for non-blocking feedback).
  *
  * Also provides `fireAndForget()` for promise rejections that need the same
  * classification but no UI (background tasks).
- * Does NOT replace `AuthContext.handleAuthError` (which uses `setError` state, not showAlert).
+ * Does NOT replace `AuthContext.handleAuthError` (which uses `setError` state).
  */
 
 import * as Sentry from '@sentry/react-native';
-import { toast } from 'sonner-native';
 
 import { NETWORK_ERROR } from '@/config/errorMessages';
-import { showAlert } from '@/utils/alert';
 import { getErrorMessage, isAbortError, isNetworkError } from '@/utils/errorUtils';
 
 import type { log as LoggerType } from './logger';
@@ -24,7 +28,7 @@ import type { log as LoggerType } from './logger';
 type Logger = Pick<ReturnType<typeof LoggerType.extend>, 'error' | 'warn'>;
 
 /** Options for `handleError()` */
-interface HandleErrorOptions {
+export interface HandleErrorOptions {
   /** Descriptive label for log output, e.g. '创建房间' or '[wolfVote]' */
   label: string;
 
@@ -38,23 +42,30 @@ interface HandleErrorOptions {
   expectedCodes?: number[];
 
   /**
-   * UI feedback mode:
-   * - 'alert' (default): show modal alert via showAlert
-   * - 'toast': show toast.error (use when called from within an open AlertModal callback)
-   * - false: suppress UI feedback entirely (background operations)
-   */
-  feedback?: 'alert' | 'toast' | false;
-
-  /**
-   * Custom alert/toast message. Defaults to `getErrorMessage(err)`.
+   * Custom user-facing message. Defaults to `getErrorMessage(err)`.
    */
   alertMessage?: string;
 
   /**
    * Custom predicate to classify additional errors as "expected".
-   * Return true to skip Sentry but still show UI feedback.
+   * Return true to skip Sentry (caller still shows UI feedback).
    */
   isExpected?: (err: unknown) => boolean;
+}
+
+/**
+ * Result of `handleError()` — the caller owns all UI decisions.
+ */
+export interface HandleErrorResult {
+  /** User-facing message (Chinese). */
+  message: string;
+  /** True when Sentry was skipped (abort / network / expected). */
+  isExpected: boolean;
+  /**
+   * True for AbortError — the caller must show NO UI at all
+   * (the operation was cancelled, e.g. navigation away).
+   */
+  aborted: boolean;
 }
 
 /**
@@ -73,36 +84,34 @@ function extractStatusCode(err: unknown): number | undefined {
 }
 
 /**
- * Unified error handler — replaces repetitive catch block patterns.
+ * Unified error classifier — replaces repetitive catch block patterns.
  *
- * Usage:
+ * Never shows UI. The caller decides presentation:
+ *
  * ```ts
  * try {
  *   await client.startNight();
  * } catch (err) {
- *   handleError(err, { label: '开始夜晚', logger: roomScreenLog });
+ *   const result = handleError(err, { label: '开始夜晚', logger: roomScreenLog });
+ *   if (!result.aborted) {
+ *     setAlert({ title: '开始夜晚失败', message: result.message });
+ *   }
  * }
  * ```
  */
-export function handleError(err: unknown, opts: HandleErrorOptions): void {
+export function handleError(err: unknown, opts: HandleErrorOptions): HandleErrorResult {
   const { label, logger, expectedCodes, alertMessage, isExpected } = opts;
-  const feedbackMode: 'alert' | 'toast' | false = opts.feedback ?? 'alert';
 
-  // ── Abort: log.warn only, no Sentry, no UI ──
+  // ── Abort: log.warn only, no Sentry, caller must show no UI ──
   if (isAbortError(err)) {
     logger.warn(`[${label}] aborted`, err);
-    return;
+    return { message: '', isExpected: true, aborted: true };
   }
 
-  // ── Network error: log.warn, no Sentry, show network-specific message ──
+  // ── Network error: log.warn, no Sentry, network-specific message ──
   if (isNetworkError(err)) {
     logger.warn(`[${label}] network error`, err);
-    if (feedbackMode === 'alert') {
-      showAlert(`${label}失败`, NETWORK_ERROR);
-    } else if (feedbackMode === 'toast') {
-      toast.error(NETWORK_ERROR);
-    }
-    return;
+    return { message: alertMessage ?? NETWORK_ERROR, isExpected: true, aborted: false };
   }
 
   // ── Expected: HTTP status code match ──
@@ -127,16 +136,11 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
     });
   }
 
-  // ── UI feedback ──
-  if (feedbackMode === false) return;
-
-  const message = alertMessage ?? getErrorMessage(err);
-
-  if (feedbackMode === 'toast') {
-    toast.error(message);
-  } else {
-    showAlert(`${label}失败`, message);
-  }
+  return {
+    message: alertMessage ?? getErrorMessage(err),
+    isExpected: expected,
+    aborted: false,
+  };
 }
 
 /**
@@ -158,6 +162,6 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
  */
 export function fireAndForget(promise: Promise<unknown>, label: string, logger: Logger): void {
   void promise.catch((err: unknown) => {
-    handleError(err, { label, logger, feedback: false });
+    handleError(err, { label, logger });
   });
 }

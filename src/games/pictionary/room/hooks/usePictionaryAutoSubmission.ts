@@ -11,6 +11,7 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -216,6 +217,7 @@ export function usePictionaryAutoSubmission(
 ): PictionaryAutoSubmission {
   const [status, setStatus] = useState<PictionarySubmissionStatus>('idle');
   const [attempt, setAttempt] = useState(0);
+  const { showRoomAlert } = useRoomAlert();
   const collectionKey = collectionKeyFor(state);
   const submitCurrentInputs = useEffectEvent(
     async (current: PictionaryState, signal: AbortSignal): Promise<void> => {
@@ -286,11 +288,18 @@ export function usePictionaryAutoSubmission(
         } else {
           hasTerminalFailure = true;
           setStatus('failed');
-          handleError(error, {
+          const result = handleError(error, {
             label: '发送最终内容',
             logger: roomScreenLog,
             alertMessage: '内容发送失败，请重试。',
           });
+          if (!result.aborted) {
+            showRoomAlert({
+              title: '发送最终内容失败',
+              message: result.message,
+              buttons: [{ text: '确定', style: 'default' }],
+            });
+          }
         }
       } finally {
         isSubmitting = false;
@@ -312,7 +321,7 @@ export function usePictionaryAutoSubmission(
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [attempt, collectionKey, session, userId]);
+  }, [attempt, collectionKey, session, showRoomAlert, userId]);
 
   const retry = useCallback(() => {
     setAttempt((current) => current + 1);

@@ -115,13 +115,15 @@ export function useAccountEvents(): void {
             );
           }
         } catch (error) {
-          handleError(error, {
+          const result = handleError(error, {
             label: '读取结算通知',
             logger: gameRoomLog,
-            feedback: 'toast',
             expectedCodes: [401, 403, 429],
             alertMessage: '结算通知读取失败，稍后自动重试',
           });
+          if (!result.aborted) {
+            toast.error(result.message);
+          }
         } finally {
           if (!signal.aborted)
             timer = setTimeout(() => {

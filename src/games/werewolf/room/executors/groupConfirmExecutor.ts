@@ -6,6 +6,7 @@
  */
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
+import { toast } from 'sonner-native';
 
 import {
   getRoomCommandFailureReason,
@@ -88,12 +89,14 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
           }
         },
         onError: (error) => {
-          handleError(error, {
+          const result = handleError(error, {
             label: '确认信息',
             logger: roomScreenLog,
-            feedback: 'toast',
             alertMessage: '请稍后重试',
           });
+          if (!result.aborted) {
+            toast.error(result.message);
+          }
           reject(error);
         },
       });

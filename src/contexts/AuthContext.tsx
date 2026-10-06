@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (e: unknown) {
         if (authService.getAuthSession() !== currentSession) return;
-        handleError(e, { label: '加载用户信息', logger: authLog, feedback: false });
+        handleError(e, { label: '加载用户信息', logger: authLog });
         setInitError(getUserFacingMessage(e));
       } finally {
         setIsInitializing(false);

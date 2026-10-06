@@ -3,7 +3,9 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
 import { handleError } from '@/utils/errorPipeline';
 
-jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
+jest.mock('@/utils/errorPipeline', () => ({
+  handleError: jest.fn().mockReturnValue({ message: '模拟错误', isExpected: true, aborted: false }),
+}));
 
 const mockGoBack = jest.fn();
 const mockPreviewStop = jest.fn();

@@ -424,11 +424,14 @@ function DrawGuessDrawingView({
           setErrorAlert({ title: '猜得太快了', message: '猜得太快了，稍后再试' });
           return;
         }
-        handleError(error, {
+        const result = handleError(error, {
           label: '提交猜词',
           logger: roomScreenLog,
           alertMessage: '提交猜词失败，请重试',
         });
+        if (!result.aborted) {
+          setErrorAlert({ title: '提交猜词失败', message: result.message });
+        }
       }
     })();
   };
@@ -574,6 +577,7 @@ function DrawGuessRoundEndView({
   const uploadFlight = useRef(false);
   const uploadAttempts = useRef(0);
   const [uploadRetryTick, setUploadRetryTick] = useState(0);
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
 
   // 画手：先拿一次性上传预留，再把终稿笔画渲染成 PNG 上传。
   useEffect(() => {
@@ -583,11 +587,14 @@ function DrawGuessRoundEndView({
       .dispatch({ type: 'drawguess.drawing.reserve' }, { controlledSeat, label: '预留画作上传' })
       .catch((error: unknown) => {
         reserveFlight.current = false;
-        handleError(error, {
+        const result = handleError(error, {
           label: '预留画作上传',
           logger: roomScreenLog,
           alertMessage: '画作上传预留失败，请重试',
         });
+        if (!result.aborted) {
+          setAlert({ title: '预留画作上传失败', message: result.message });
+        }
       });
   }, [isDrawer, phase.reservation, session, controlledSeat]);
 
@@ -614,11 +621,14 @@ function DrawGuessRoundEndView({
         roomScreenLog.warn('round-end PNG upload failed', {
           attempt: uploadAttempts.current,
         });
-        handleError(error, {
+        const result = handleError(error, {
           label: '上传终稿画作',
           logger: roomScreenLog,
           alertMessage: '画作上传失败，稍后自动重试',
         });
+        if (!result.aborted) {
+          setAlert({ title: '上传终稿画作失败', message: result.message });
+        }
         setTimeout(() => {
           if (!cancelled) setUploadRetryTick((tick) => tick + 1);
         }, PNG_UPLOAD_RETRY_MS);
@@ -660,7 +670,10 @@ function DrawGuessRoundEndView({
         roomScreenLog.warn('round-end PNG read failed, falling back to strokes', {
           entryId: reservation.entryId,
         });
-        handleError(error, { label: '读取终稿画作', logger: roomScreenLog });
+        const result = handleError(error, { label: '读取终稿画作', logger: roomScreenLog });
+        if (!result.aborted) {
+          setAlert({ title: '读取终稿画作失败', message: result.message });
+        }
         if (!cancelled) setPngUri(null);
       }
     })();
@@ -707,6 +720,13 @@ function DrawGuessRoundEndView({
         />
       )}
       <DrawGuessScoreboard title="本轮得分" competitionRanking={false} rows={roundRows} />
+      <AlertModal
+        visible={alert !== null}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setAlert(null) }]}
+        onClose={() => setAlert(null)}
+      />
     </DrawGuessStageFrame>
   );
 }

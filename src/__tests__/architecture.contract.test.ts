@@ -1391,10 +1391,7 @@ describe('Layer boundary: screens → services runtime imports (forbidden)', () 
 describe('UI: confirmations must use <AlertModal> (forbidden: Alert.alert, showAlert)', () => {
   // Files that currently use showAlert - migrate to <AlertModal> directly.
   // Do NOT add new files to this list.
-  const showAlertAllowlist = new Set([
-    'src/components/AlertModal.tsx',
-    'src/utils/errorPipeline.ts',
-  ]);
+  const showAlertAllowlist = new Set(['src/components/AlertModal.tsx']);
 
   const srcFiles = getAllProductionFiles(path.join(process.cwd(), 'src'));
 

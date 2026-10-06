@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { handleError } from '@/utils/errorPipeline';
@@ -58,6 +59,7 @@ export function usePictionaryStageDeadline({
   session,
 }: UsePictionaryStageDeadlineParams): PictionaryStageDeadline {
   const isAppVisible = useAppVisibility();
+  const { showRoomAlert } = useRoomAlert();
   const remainingSeconds = usePictionaryRemainingSeconds(deadlineAt);
 
   useEffect(() => {
@@ -81,11 +83,18 @@ export function usePictionaryStageDeadline({
         }
       } catch (error: unknown) {
         if (isMounted) {
-          handleError(error, {
+          const result = handleError(error, {
             label: '推进接龙阶段',
             logger: roomScreenLog,
             alertMessage: '接龙阶段推进失败，请稍后重试。',
           });
+          if (!result.aborted) {
+            showRoomAlert({
+              title: '推进接龙阶段失败',
+              message: result.message,
+              buttons: [{ text: '确定', style: 'default' }],
+            });
+          }
         }
       } finally {
         isExpiryInFlight = false;
@@ -98,7 +107,7 @@ export function usePictionaryStageDeadline({
       isMounted = false;
       clearInterval(interval);
     };
-  }, [canExpire, isAppVisible, phaseRevision, remainingSeconds, session]);
+  }, [canExpire, isAppVisible, phaseRevision, remainingSeconds, session, showRoomAlert]);
 
   return {
     remainingSeconds,

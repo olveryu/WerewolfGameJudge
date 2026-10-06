@@ -145,11 +145,18 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
     }
 
     if (settled.kind === 'error') {
-      handleError(settled.error, {
+      const result = handleError(settled.error, {
         label,
         logger: roomScreenLog,
         alertMessage: '房间响应异常，请重新进入房间后重试',
       });
+      if (!result.aborted) {
+        showRoomAlert({
+          title: `${label}失败`,
+          message: result.message,
+          buttons: [{ text: '确定', style: 'default' }],
+        });
+      }
       return;
     }
 

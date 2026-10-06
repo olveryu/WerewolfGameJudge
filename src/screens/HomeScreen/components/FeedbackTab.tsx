@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { toast } from 'sonner-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { APP_VERSION } from '@/config/version';
 import type { FeedbackItem } from '@/features/feedback/services/feedbackApi';
 import {
@@ -56,6 +57,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
   const [replyText, setReplyText] = useState('');
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FeedbackFilter>('open');
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const submitIntent = useRef<{ id: string; content: string } | null>(null);
   const replyIntent = useRef<{ id: string; content: string; feedbackId: string } | null>(null);
@@ -77,7 +79,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       })
       .catch((err) => {
         if (cancelled) return;
-        handleError(err, { label: '加载反馈历史', logger: homeLog, feedback: 'toast' });
+        const result = handleError(err, { label: '加载反馈历史', logger: homeLog });
+        if (!result.aborted) toast.error(result.message);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -107,7 +110,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       setFeedbackItems(await getFeedbackHistory());
       setView('list');
     } catch (err) {
-      handleError(err, { label: '提交反馈', logger: homeLog, feedback: 'toast' });
+      const result = handleError(err, { label: '提交反馈', logger: homeLog });
+      if (!result.aborted) toast.error(result.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +155,10 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
           );
           onUnreadChange(newUnread);
         } catch (err) {
-          handleError(err, { label: '标记已读', logger: homeLog });
+          const result = handleError(err, { label: '标记已读', logger: homeLog });
+          if (!result.aborted) {
+            setAlert({ title: '标记已读失败', message: result.message });
+          }
         }
       }
     },
@@ -185,7 +192,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       // Scroll to bottom after reply
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (err) {
-      handleError(err, { label: '发送追问', logger: homeLog, feedback: 'toast' });
+      const result = handleError(err, { label: '发送追问', logger: homeLog });
+      if (!result.aborted) toast.error(result.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -199,7 +207,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       if (result.syncStatus === 'synced') toast.success('反馈同步完成');
       else toast.info('结果仍未确认，请勿重复提交；需开发者人工核对');
     } catch (error) {
-      handleError(error, { label: '核对反馈', logger: homeLog, feedback: 'toast' });
+      const result = handleError(error, { label: '核对反馈', logger: homeLog });
+      if (!result.aborted) toast.error(result.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -241,7 +250,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       );
       toast.success(action === 'resolve' ? '已标记解决' : '已重新打开');
     } catch (err) {
-      handleError(err, { label: '更新状态', logger: homeLog, feedback: 'toast' });
+      const result = handleError(err, { label: '更新状态', logger: homeLog });
+      if (!result.aborted) toast.error(result.message);
     }
   }, []);
 
@@ -321,6 +331,13 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
   if (view === 'detail' && selectedFeedback) {
     return (
       <View style={[styles.feedbackArea, { maxHeight: scrollMaxHeight }]}>
+        <AlertModal
+          visible={alert !== null}
+          title={alert?.title ?? ''}
+          message={alert?.message}
+          buttons={[{ text: '确定', style: 'default', onPress: () => setAlert(null) }]}
+          onClose={() => setAlert(null)}
+        />
         <Pressable
           style={styles.backRow}
           onPress={() => setView('list')}

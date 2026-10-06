@@ -4,6 +4,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
+import { toast } from 'sonner-native';
 
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
 import { colors } from '@/theme';
@@ -87,12 +88,14 @@ export function useNightReviewShare(
         return base64;
       } catch (error) {
         if (scope.isActive) {
-          handleError(error, {
+          const result = handleError(error, {
             label: '生成战报',
             logger: roomScreenLog,
-            feedback: 'toast',
             alertMessage: '无法生成战报截图，请重试',
           });
+          if (!result.aborted) {
+            toast.error(result.message);
+          }
         }
         return null;
       } finally {
@@ -127,11 +130,18 @@ export function useNightReviewShare(
       return result === 'shared';
     } catch (error) {
       if (scope.isActive) {
-        handleError(error, {
+        const result = handleError(error, {
           label: '分享战报',
           logger: roomScreenLog,
           alertMessage: '无法分享战报，请稍后重试',
         });
+        if (!result.aborted) {
+          setAlert({
+            title: '分享战报失败',
+            message: result.message,
+            buttons: [{ text: '确定', style: 'default', onPress: () => setAlert(null) }],
+          });
+        }
       }
       return false;
     }

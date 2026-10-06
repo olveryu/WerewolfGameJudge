@@ -183,7 +183,7 @@ export function useConfigScreenState({
         }
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
-        handleError(error, { label: '加载房间', logger: configLog, feedback: false });
+        handleError(error, { label: '加载房间', logger: configLog });
       } finally {
         setIsLoading(false);
       }
@@ -272,15 +272,18 @@ export function useConfigScreenState({
         await settingsService.setSheriffElectionEnabled(isSheriffElectionEnabled);
         setRules((prev) => ({ ...prev, isSheriffElectionEnabled }));
       } catch (error) {
-        handleError(error, {
+        const result = handleError(error, {
           label: '保存警长设置',
           logger: configLog,
           alertMessage: '设置未保存，请检查浏览器存储权限后重试',
           isExpected: isExpectedStorageError,
         });
+        if (!result.aborted) {
+          showAlertError('保存警长设置失败', result.message);
+        }
       }
     },
-    [settingsService],
+    [settingsService, showAlertError],
   );
 
   const { createRoom, isCreating: isRoomCreating } = useRoomCreationController();
@@ -350,11 +353,15 @@ export function useConfigScreenState({
         onRoomCreated(roomCode);
       }
     } catch (e) {
-      handleError(e, {
-        label: isEditMode ? '更新房间' : '创建房间',
+      const label = isEditMode ? '更新房间' : '创建房间';
+      const result = handleError(e, {
+        label,
         logger: configLog,
         alertMessage: isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
       });
+      if (!result.aborted) {
+        showAlertError(`${label}失败`, result.message);
+      }
     } finally {
       setIsWorkflowSubmitting(false);
     }

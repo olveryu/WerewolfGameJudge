@@ -39,6 +39,8 @@ jest.mock('@/services/infra/appVisibility', () => ({
 jest.mock('@/services/cloudflare/cfFetch');
 jest.mock('@/utils/errorPipeline');
 
+const mockHandleError = jest.mocked(handleError);
+
 const event = {
   eventId: 'settlement-1',
   message: {
@@ -69,6 +71,7 @@ function createDeferred<T>() {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  mockHandleError.mockReturnValue({ message: '模拟错误', isExpected: true, aborted: false });
   mockSession = { userId: 'owner', initialUser: null };
   mockIsVisible = true;
   mockGet.mockReset().mockResolvedValue({ event: null });
@@ -126,8 +129,9 @@ it('refreshes before presentation, retries an uncertain ACK without another toas
   expect(toast.success).toHaveBeenCalledTimes(1);
   expect(handleError).toHaveBeenCalledWith(
     expect.any(Error),
-    expect.objectContaining({ feedback: 'toast' }),
+    expect.objectContaining({ label: '读取结算通知' }),
   );
+  expect(toast.error).toHaveBeenCalledWith('模拟错误');
   act(() => {
     mockIsVisible = false;
     mockVisibilityListener();

@@ -13,7 +13,6 @@ export async function refreshSavedProfile(refreshUser: () => Promise<void>): Pro
     handleError(error, {
       label: '刷新已保存的资料',
       logger: settingsLog,
-      feedback: false,
       isExpected: isExpectedError,
     });
     return false;

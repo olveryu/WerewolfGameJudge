@@ -229,7 +229,6 @@ export class RoomCommandRecovery<TState extends BaseGameState<string>> {
         handleError(error, {
           label: '恢复待确认房间操作',
           logger: roomSessionLog,
-          feedback: false,
         });
       })
       .finally(() => {

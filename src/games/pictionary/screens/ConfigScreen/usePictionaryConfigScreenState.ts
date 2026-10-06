@@ -110,11 +110,14 @@ export function usePictionaryConfigScreenState({
     void createRoom({ expectedHostUserId: user.id, gameType: 'pictionary', config: { ...config } })
       .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
       .catch((error: unknown) => {
-        handleError(error, {
+        const result = handleError(error, {
           label: '创建你画我猜接龙房间',
           logger: configLog,
           alertMessage: '创建房间失败，请重试',
         });
+        if (!result.aborted) {
+          setAlert({ title: '创建你画我猜接龙房间失败', message: result.message });
+        }
       });
   }, [command, config, createRoom, navigation, params, session, user]);
 

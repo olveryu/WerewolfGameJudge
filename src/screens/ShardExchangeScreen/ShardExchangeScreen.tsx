@@ -161,7 +161,6 @@ const PREVIEW_SIZE = 56;
               handleError(error, {
                 label: '兑换',
                 logger: gachaLog,
-                feedback: false,
                 isExpected: (e) =>
                   e instanceof Error &&
                   (e.message.includes('碎片不足') || e.message.includes('已拥有')),
@@ -271,7 +270,7 @@ const PREVIEW_SIZE = 56;
               exchange(pendingOperation.request.rewardId, {
                 onSuccess: () => toast.success('兑换成功'),
                 onError: (error) => {
-                  handleError(error, { label: '恢复兑换', logger: gachaLog, feedback: false });
+                  handleError(error, { label: '恢复兑换', logger: gachaLog });
                   toast.error(error.message);
                 },
               });

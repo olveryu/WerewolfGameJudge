@@ -239,7 +239,7 @@ export async function* streamChatMessage(
     } else {
       handleError(
         new Error(`Streaming API error: HTTP ${response.status}: ${errorText.slice(0, 200)}`),
-        { label: 'AI 流式请求', logger: chatLog, feedback: false },
+        { label: 'AI 流式请求', logger: chatLog },
       );
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
     }

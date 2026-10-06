@@ -7,6 +7,7 @@ import {
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { useEffect, useState } from 'react';
 
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -47,6 +48,7 @@ export function useStoryRelayAutoSubmission(
 ) {
   const [status, setStatus] = useState<StoryRelayFinalizationStatus>('idle');
   const [attempt, setAttempt] = useState(0);
+  const { showRoomAlert } = useRoomAlert();
   const roundId = state.roundId;
   const stepIndex = state.stepIndex;
   const phase = state.phase;
@@ -129,11 +131,18 @@ export function useStoryRelayAutoSubmission(
         if (isMounted) {
           hasFailure = true;
           setStatus('failed');
-          handleError(error, {
+          const result = handleError(error, {
             label: '提交故事稿件',
             logger: roomScreenLog,
             alertMessage: '收稿失败，请重试',
           });
+          if (!result.aborted) {
+            showRoomAlert({
+              title: '提交故事稿件失败',
+              message: result.message,
+              buttons: [{ text: '确定', style: 'default' }],
+            });
+          }
         }
       } finally {
         isRunning = false;
@@ -147,6 +156,6 @@ export function useStoryRelayAutoSubmission(
       isMounted = false;
       unsubscribe();
     };
-  }, [attempt, phase, roundId, session, stepIndex, userId, inputs]);
+  }, [attempt, phase, roundId, session, showRoomAlert, stepIndex, userId, inputs]);
   return { status, retry: () => setAttempt((current) => current + 1) };
 }

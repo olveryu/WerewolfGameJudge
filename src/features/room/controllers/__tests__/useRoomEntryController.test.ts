@@ -144,6 +144,7 @@ function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot())
 
 beforeEach(() => {
   mockHandleError.mockReset();
+  mockHandleError.mockImplementation(() => ({ message: '', isExpected: true, aborted: true }));
   mockAddRecentRoom.mockReset();
 });
 

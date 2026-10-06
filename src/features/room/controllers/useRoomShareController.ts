@@ -51,11 +51,18 @@ export function useRoomShareController({
           return;
       }
     } catch (error) {
-      handleError(error, {
+      const result = handleError(error, {
         label: '分享链接',
         logger: roomScreenLog,
         alertMessage: '无法复制链接，请手动分享房间号',
       });
+      if (!result.aborted) {
+        showRoomAlert({
+          title: '分享链接失败',
+          message: result.message,
+          buttons: [{ text: '确定', style: 'default' }],
+        });
+      }
     }
   }, [gameDisplayName, roomCode, showRoomAlert]);
 
@@ -64,14 +71,21 @@ export function useRoomShareController({
       try {
         await shareRoomQRCode(getBase64, roomCode, gameDisplayName);
       } catch (error) {
-        handleError(error, {
+        const result = handleError(error, {
           label: '分享二维码',
           logger: roomScreenLog,
           alertMessage: '无法分享二维码图片',
         });
+        if (!result.aborted) {
+          showRoomAlert({
+            title: '分享二维码失败',
+            message: result.message,
+            buttons: [{ text: '确定', style: 'default' }],
+          });
+        }
       }
     },
-    [gameDisplayName, roomCode],
+    [gameDisplayName, roomCode, showRoomAlert],
   );
 
   return useMemo(

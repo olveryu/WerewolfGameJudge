@@ -7,6 +7,7 @@
 import type { DrawGuessStroke } from '@game-judge/game-engine/games/drawguess/public';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { handleError } from '@/utils/errorPipeline';
@@ -170,6 +171,7 @@ export function useDrawGuessStrokeSync({
   const [optimisticallyCleared, setOptimisticallyCleared] = useState(false);
   const redoStackRef = useRef<DrawGuessDrawingElement[]>([]);
   const [canRedo, setCanRedo] = useState(false);
+  const { showRoomAlert } = useRoomAlert();
 
   const authoritativeIds = useMemo(
     () => new Set(authoritativeStrokes.map((stroke) => stroke.id)),
@@ -313,14 +315,21 @@ export function useDrawGuessStrokeSync({
         setOptimisticUndoneId(null);
         redoStackRef.current.pop();
         setCanRedo(redoStackRef.current.length > 0);
-        handleError(error, {
+        const result = handleError(error, {
           label: '撤销笔画',
           logger: roomScreenLog,
           alertMessage: '撤销失败，请重试',
         });
+        if (!result.aborted) {
+          showRoomAlert({
+            title: '撤销笔画失败',
+            message: result.message,
+            buttons: [{ text: '确定', style: 'default' }],
+          });
+        }
       }
     })();
-  }, [authoritativeStrokes, flushPending, session]);
+  }, [authoritativeStrokes, flushPending, session, showRoomAlert]);
 
   const redo = useCallback(() => {
     if (!latestRef.current.canDraw) return;
@@ -347,14 +356,21 @@ export function useDrawGuessStrokeSync({
         );
         setOptimisticallyCleared(true);
       } catch (error: unknown) {
-        handleError(error, {
+        const result = handleError(error, {
           label: '清空画布',
           logger: roomScreenLog,
           alertMessage: '清空失败，请重试',
         });
+        if (!result.aborted) {
+          showRoomAlert({
+            title: '清空画布失败',
+            message: result.message,
+            buttons: [{ text: '确定', style: 'default' }],
+          });
+        }
       }
     })();
-  }, [flushPending, session]);
+  }, [flushPending, session, showRoomAlert]);
 
   const elements = useMemo(() => {
     const confirmed = authoritativeStrokes

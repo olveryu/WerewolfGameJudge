@@ -69,6 +69,15 @@ export function RoomEntryBoundary<TState extends BaseGameState<GameType>, TComma
           ]}
           onClose={controller.dismissExitConfirm}
         />
+        {controller.alert !== null && (
+          <AlertModal
+            visible
+            title={controller.alert.title}
+            message={controller.alert.message}
+            buttons={controller.alert.buttons}
+            onClose={controller.clearAlert}
+          />
+        )}
       </>
     );
   }
