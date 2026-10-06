@@ -16,6 +16,7 @@ import type {
   AdminUsersResponse,
   GameWordGame,
   GameWordsStats,
+  RoomCleanupResult,
   TriggerSupplyResult,
 } from '@/features/admin/model/adminContracts';
 
@@ -628,5 +629,17 @@ export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
     game: parseGameWordGame(object.game, 'Trigger supply game'),
     force: parseBoolean(object.force, 'Trigger supply force'),
     workflowId: parseNonEmptyString(object.workflowId, 'Trigger supply workflowId'),
+  };
+}
+
+export function parseRoomCleanupResult(value: unknown): RoomCleanupResult {
+  const object = requireObject(value, 'Room cleanup response');
+  assertExactKeys(object, ['marked', 'reconciled', 'errors'], 'Room cleanup response');
+  return {
+    marked: parseNonnegativeInteger(object.marked, 'Room cleanup marked'),
+    reconciled: parseNonnegativeInteger(object.reconciled, 'Room cleanup reconciled'),
+    errors: parseArray(object.errors, 'Room cleanup errors', (item, label) =>
+      parseString(item, label),
+    ),
   };
 }

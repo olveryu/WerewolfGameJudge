@@ -21,6 +21,7 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
+import { expireStaleRooms, reconcileRooms } from '../../platform/room/maintenance';
 import { users, userStats } from '../account/dbSchema';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
@@ -229,6 +230,29 @@ adminRoutes.get('/rooms', async (c) => {
     page,
     limit,
   });
+});
+
+// ── POST /admin/rooms/cleanup-expired ─────────────────────────────────────────
+// Manual trigger for the daily room-expiry pipeline (mark stale rooms deleting,
+// then reconcile). Same code path as the 03:00 UTC cron; used for diagnosis and
+// remediation when the scheduled run is suspected to be ineffective.
+
+adminRoutes.post('/rooms/cleanup-expired', async (c) => {
+  const nowMs = Date.now();
+  const { marked } = await expireStaleRooms(c.env, nowMs);
+  let reconciled = 0;
+  const errors: string[] = [];
+  try {
+    ({ reconciled } = await reconcileRooms(c.env, nowMs));
+  } catch (error) {
+    const causes = error instanceof AggregateError ? error.errors : [error];
+    for (const cause of causes) {
+      errors.push(cause instanceof Error ? cause.message : String(cause));
+    }
+    log.error('manual room cleanup reconciliation failed', { errors });
+  }
+  log.info('manual room cleanup complete', { marked, reconciled, errorCount: errors.length });
+  return c.json({ marked, reconciled, errors });
 });
 
 // ── GET /admin/rooms/:roomCode/players ──────────────────────────────────────

@@ -105,6 +105,50 @@ describe('GET /admin/rooms game-start visibility', () => {
   });
 });
 
+describe('POST /admin/rooms/cleanup-expired', () => {
+  /** Insert a room with an explicit created_at for expiry testing. */
+  async function insertRoomWithAge(id: string, code: string, ageMs: number): Promise<void> {
+    const createdAt = new Date(Date.now() - ageMs).toISOString();
+    await env.DB.prepare(
+      `INSERT INTO rooms (
+        id, code, game_type, host_user_id, creation_id, config_json, status,
+        created_at, updated_at, games_started
+      ) VALUES (?, ?, 'werewolf', ?, ?, '{}', 'active', ?, ?, 0)`,
+    )
+      .bind(id, code, HOST_USER_ID, `creation-${id}`, createdAt, createdAt)
+      .run();
+  }
+
+  async function postCleanup(token?: string): Promise<Response> {
+    return SELF.fetch('https://test.local/admin/rooms/cleanup-expired', {
+      method: 'POST',
+      headers: token ? { 'X-Admin-Token': token } : {},
+    });
+  }
+
+  it('marks stale rooms deleting and reconciles them away, keeping fresh rooms', async () => {
+    const staleId = env.GAME_ROOM.newUniqueId().toString();
+    const freshId = env.GAME_ROOM.newUniqueId().toString();
+    await insertRoomWithAge(staleId, '4444', 2 * 24 * 3600 * 1000);
+    await insertRoomWithAge(freshId, '5555', 0);
+
+    const res = await postCleanup(ADMIN_TOKEN);
+    expect(res.status).toBe(200);
+    const body = await res.json<{ marked: number; reconciled: number; errors: string[] }>();
+    expect(body.marked).toBe(1);
+    expect(body.reconciled).toBe(1);
+    expect(body.errors).toEqual([]);
+
+    const remaining = await env.DB.prepare('SELECT code FROM rooms').all<{ code: string }>();
+    expect(remaining.results.map((r) => r.code)).toEqual(['5555']);
+  });
+
+  it('rejects requests without the admin token', async () => {
+    const res = await postCleanup();
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('GET /admin/request-traffic', () => {
   it('combines platform, HTTP, and WebSocket analytics behind admin authentication', async () => {
     const externalFetch = vi.fn<typeof fetch>(async (input, init) => {
