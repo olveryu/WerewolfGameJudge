@@ -141,10 +141,7 @@ async function reconcileOneRoom(env: Env, room: RoomDirectoryRecord, nowMs: numb
 }
 
 /** Reconcile every due room independently, then surface all failures to the scheduled event. */
-export async function reconcileRoomDirectory(
-  env: Env,
-  nowMs: number,
-): Promise<{ reconciled: number; failures: Error[] }> {
+export async function reconcileRoomDirectory(env: Env, nowMs: number): Promise<number> {
   const dueRooms = await listRoomsForReconciliation(env, nowMs, ROOM_RECONCILIATION_BATCH_SIZE);
   const failures: Error[] = [];
   let reconciled = 0;
@@ -169,5 +166,8 @@ export async function reconcileRoomDirectory(
     }
   }
 
-  return { reconciled, failures };
+  if (failures.length > 0) {
+    throw new AggregateError(failures, `${failures.length} room saga reconciliation failures`);
+  }
+  return reconciled;
 }

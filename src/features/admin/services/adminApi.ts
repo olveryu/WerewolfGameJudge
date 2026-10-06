@@ -9,7 +9,6 @@ import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type {
   GameWordGame,
   GameWordsStats,
-  RoomCleanupResult,
   TimePreset,
   TriggerSupplyResult,
 } from '@/features/admin/model/adminContracts';
@@ -29,7 +28,6 @@ import {
   parseAdminStatsResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
-  parseRoomCleanupResult,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
@@ -195,16 +193,6 @@ export function fetchRequestTraffic(from: string, to: string) {
 
 export function fetchGameWordsStats(game: GameWordGame): Promise<GameWordsStats> {
   return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game });
-}
-
-export function triggerRoomCleanup(): Promise<RoomCleanupResult> {
-  return adminFetch(
-    '/admin/rooms/cleanup-expired',
-    parseRoomCleanupResult,
-    undefined,
-    undefined,
-    {},
-  );
 }
 
 export function triggerGameWordSupply(

@@ -56,10 +56,7 @@ describe('room saga reconciliation', () => {
     expect(initialized.success).toBe(true);
     expect((await findRoomByCreationId(env, room.creationId))?.status).toBe('creating');
 
-    await expect(reconcileRoomDirectory(env, NOW_MS)).resolves.toMatchObject({
-      reconciled: 1,
-      failures: [],
-    });
+    await expect(reconcileRoomDirectory(env, NOW_MS)).resolves.toBe(1);
     expect((await findRoomByCreationId(env, room.creationId))?.status).toBe('active');
     await expect(
       getStub(room).getSnapshot({
@@ -75,10 +72,7 @@ describe('room saga reconciliation', () => {
     const { room } = await resumeRoomCreation(env, claimed, NOW_MS);
     const deleting = await beginRoomDeletion(env, room, 'host-1', NOW_MS + 1);
 
-    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toMatchObject({
-      reconciled: 1,
-      failures: [],
-    });
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toBe(1);
     expect(await findRoomByCreationId(env, room.creationId)).toBeNull();
     await expect(
       getStub(deleting).getSnapshot({
@@ -103,10 +97,7 @@ describe('room saga reconciliation', () => {
     ).resolves.toEqual({ success: true });
     expect((await findRoomByCreationId(env, room.creationId))?.status).toBe('deleting');
 
-    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toMatchObject({
-      reconciled: 1,
-      failures: [],
-    });
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toBe(1);
     expect(await findRoomByCreationId(env, room.creationId)).toBeNull();
   });
 
@@ -129,8 +120,9 @@ describe('room saga reconciliation', () => {
       `);
     });
 
-    const { failures } = await reconcileRoomDirectory(env, NOW_MS + 1);
-    expect(failures).toHaveLength(1);
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).rejects.toThrow(
+      'room saga reconciliation failures',
+    );
     const blocked = await findRoomByCreationId(env, room.creationId);
     expect(blocked).toMatchObject({
       status: 'deleting',
@@ -140,10 +132,7 @@ describe('room saga reconciliation', () => {
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'saga-effect'");
     });
-    await expect(reconcileRoomDirectory(env, NOW_MS + 5 * 60_000 + 1)).resolves.toMatchObject({
-      reconciled: 1,
-      failures: [],
-    });
+    await expect(reconcileRoomDirectory(env, NOW_MS + 5 * 60_000 + 1)).resolves.toBe(1);
     expect(await findRoomByCreationId(env, room.creationId)).toBeNull();
   });
 
@@ -166,10 +155,7 @@ describe('room saga reconciliation', () => {
       `);
     });
 
-    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toMatchObject({
-      reconciled: 1,
-      failures: [],
-    });
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).resolves.toBe(1);
     expect(await findRoomByCreationId(env, room.creationId)).toBeNull();
     await expect(
       stub.getSnapshot({
@@ -202,8 +188,9 @@ describe('room saga reconciliation', () => {
       );
     });
 
-    const { failures } = await reconcileRoomDirectory(env, NOW_MS + 1);
-    expect(failures).toHaveLength(1);
+    await expect(reconcileRoomDirectory(env, NOW_MS + 1)).rejects.toThrow(
+      'room saga reconciliation failures',
+    );
     expect(await findRoomByCreationId(env, room.creationId)).toMatchObject({
       status: 'deleting',
       reconciliationAttemptCount: 1,

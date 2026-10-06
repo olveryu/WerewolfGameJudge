@@ -21,7 +21,6 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
-import { expireStaleRooms, reconcileRoomsDetailed } from '../../platform/room/maintenance';
 import { users, userStats } from '../account/dbSchema';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
@@ -230,45 +229,6 @@ adminRoutes.get('/rooms', async (c) => {
     page,
     limit,
   });
-});
-
-// ── POST /admin/rooms/cleanup-expired ─────────────────────────────────────────
-// Manual trigger for the daily room-expiry pipeline (mark stale rooms deleting,
-// then reconcile). Same code path as the 03:00 UTC cron; used for diagnosis and
-// remediation when the scheduled run is suspected to be ineffective.
-
-adminRoutes.post('/rooms/cleanup-expired', async (c) => {
-  const nowMs = Date.now();
-  let marked = 0;
-  const errors: string[] = [];
-  // Optional limit for diagnosis (e.g., testing D1 parameter thresholds).
-  const body: unknown = await c.req.json().catch(() => ({}));
-  const limit =
-    typeof body === 'object' &&
-    body !== null &&
-    typeof (body as { limit?: unknown }).limit === 'number'
-      ? Math.floor((body as { limit: number }).limit)
-      : undefined;
-  try {
-    ({ marked } = await expireStaleRooms(c.env, nowMs, limit ?? 1000));
-  } catch (error) {
-    errors.push(`expireStaleRooms: ${error instanceof Error ? error.message : String(error)}`);
-    log.error('manual room cleanup expiry failed', { error: errors[0] });
-  }
-  let reconciled = 0;
-  if (errors.length === 0) {
-    try {
-      const result = await reconcileRoomsDetailed(c.env, nowMs);
-      reconciled = result.reconciled;
-      errors.push(...result.errors.map((message) => `reconcileRooms: ${message}`));
-    } catch (error) {
-      // reconcileRoomsDetailed does not throw; defensive for unexpected failures.
-      errors.push(`reconcileRooms: ${error instanceof Error ? error.message : String(error)}`);
-      log.error('manual room cleanup reconciliation failed', { error: errors[errors.length - 1] });
-    }
-  }
-  log.info('manual room cleanup complete', { marked, reconciled, errorCount: errors.length });
-  return c.json({ marked, reconciled, errors });
 });
 
 // ── GET /admin/rooms/:roomCode/players ──────────────────────────────────────
