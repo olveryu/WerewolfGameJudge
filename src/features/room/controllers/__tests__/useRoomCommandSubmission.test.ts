@@ -7,14 +7,7 @@ import {
   successfulRoomCommand,
   testRoomState,
 } from '@/test-utils/roomCommand';
-import { showErrorAlert } from '@/utils/alertPresets';
 
-jest.mock('@/utils/alertPresets', () => ({
-  ...jest.requireActual<typeof import('@/utils/alertPresets')>('@/utils/alertPresets'),
-  showErrorAlert: jest.fn(),
-}));
-
-const mockShowErrorAlert = showErrorAlert as jest.MockedFunction<typeof showErrorAlert>;
 const state = testRoomState('werewolf');
 
 describe('useRoomCommandSubmission', () => {
@@ -34,7 +27,7 @@ describe('useRoomCommandSubmission', () => {
 
     expect(succeeded).toBe(true);
     expect(getFailureMessage).not.toHaveBeenCalled();
-    expect(mockShowErrorAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
   });
 
   it('presents an authoritative rejection through the supplied game message policy', async () => {
@@ -52,6 +45,14 @@ describe('useRoomCommandSubmission', () => {
 
     expect(succeeded).toBe(false);
     expect(getFailureMessage).toHaveBeenCalledWith(rejection);
-    expect(mockShowErrorAlert).toHaveBeenCalledWith('清空座位失败', '当前状态不允许此操作');
+    expect(result.current.alert).toEqual({
+      title: '清空座位失败',
+      message: '当前状态不允许此操作',
+    });
+
+    act(() => {
+      result.current.clearAlert();
+    });
+    expect(result.current.alert).toBeNull();
   });
 });

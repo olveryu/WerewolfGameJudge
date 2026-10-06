@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
@@ -139,7 +140,8 @@ export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
   const [activeCategory, setActiveCategory] = useState<TemplateCategory | null>(null);
   const [expandedName, setExpandedName] = useState<string | null>(null);
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
-  const { handleRolePress, roleCardProps } = useBoardRolePreview();
+  const { handleRolePress, roleCardProps, aiConfirm, confirmAskAI, clearAiConfirm } =
+    useBoardRolePreview();
 
   const filteredTemplates = useMemo(() => {
     return PRESET_TEMPLATES.filter(
@@ -329,6 +331,16 @@ export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
       )}
 
       <RoleCardSimple {...roleCardProps} />
+      <AlertModal
+        visible={aiConfirm !== null}
+        title="AI 攻略"
+        message={aiConfirm ? `让 AI 分析「${aiConfirm.roleName}」的玩法？` : undefined}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: clearAiConfirm },
+          { text: '确定', style: 'default', onPress: confirmAskAI },
+        ]}
+        onClose={clearAiConfirm}
+      />
       <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
     </View>
   );

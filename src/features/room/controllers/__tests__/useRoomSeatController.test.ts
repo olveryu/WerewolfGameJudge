@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import type { RoomAlertConfig } from '@/features/room/components/RoomAlertContext';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
 import {
@@ -7,14 +8,15 @@ import {
   successfulRoomCommand,
   testRoomState,
 } from '@/test-utils/roomCommand';
-import { showAlert } from '@/utils/alert';
 
-jest.mock('@/utils/alert', () => ({
-  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
-  showAlert: jest.fn(),
+const mockShowRoomAlert = jest.fn<void, [RoomAlertConfig]>();
+jest.mock('@/features/room/components/RoomAlertContext', () => ({
+  useRoomAlert: () => ({
+    showRoomAlert: mockShowRoomAlert,
+    clearRoomAlert: jest.fn(),
+  }),
+  useOptionalRoomAlert: () => null,
 }));
-
-const mockShowAlert = showAlert as jest.MockedFunction<typeof showAlert>;
 const state = testRoomState('werewolf');
 
 function createSuccess(): Promise<RoomCommandDispatchOutcome<typeof state>> {
@@ -63,6 +65,11 @@ describe('useRoomSeatController', () => {
     act(() => result.current.requestTakeSeat(4));
     await act(async () => result.current.confirm());
     await waitFor(() => expect(result.current.pendingAction).toBeNull());
-    expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '5号座位已被占用，请选择其他位置。');
+    expect(mockShowRoomAlert).toHaveBeenCalledTimes(1);
+    const config = mockShowRoomAlert.mock.calls[0]![0];
+    expect(config.title).toBe('入座失败');
+    expect(config.message).toBe('5号座位已被占用，请选择其他位置。');
+    expect(config.buttons).toHaveLength(1);
+    expect(config.buttons[0]?.text).toBe('确定');
   });
 });

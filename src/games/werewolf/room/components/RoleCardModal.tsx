@@ -22,6 +22,7 @@ import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/produc
 import { Asset } from 'expo-asset';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
@@ -32,7 +33,11 @@ import {
   type RoleData,
   RoleRevealAnimator,
 } from '@/games/werewolf/components/RoleRevealEffects';
-import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import {
+  type AIAboutRoleRequest,
+  buildAIAboutRoleRequest,
+  requestAIChatMessage,
+} from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { log } from '@/utils/logger';
 
@@ -81,6 +86,12 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   seerLabelMap,
 }) => {
   const [animationDone, setAnimationDone] = useState(false);
+  const [aiConfirm, setAiConfirm] = useState<AIAboutRoleRequest | null>(null);
+
+  const handleAskAI = useCallback((rid: RoleId) => {
+    const req = buildAIAboutRoleRequest(rid);
+    if (req) setAiConfirm(req);
+  }, []);
 
   // Preload role avatar image during animation so it's decoded when the card flips
   useEffect(() => {
@@ -125,13 +136,35 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 
   if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
     return (
-      <RoleCardSimple
-        visible={visible}
-        roleId={roleId}
-        onClose={onClose}
-        seerLabel={seerLabel}
-        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, onClose) : undefined}
-      />
+      <>
+        <RoleCardSimple
+          visible={visible}
+          roleId={roleId}
+          onClose={onClose}
+          seerLabel={seerLabel}
+          onAskAI={isAIChatReady() ? handleAskAI : undefined}
+        />
+        <AlertModal
+          visible={aiConfirm !== null}
+          title="AI 攻略"
+          message={aiConfirm ? `让 AI 分析「${aiConfirm.roleName}」的玩法？` : undefined}
+          buttons={[
+            { text: '取消', style: 'cancel', onPress: () => setAiConfirm(null) },
+            {
+              text: '确定',
+              style: 'default',
+              onPress: () => {
+                if (aiConfirm) {
+                  onClose();
+                  requestAIChatMessage(aiConfirm.payload);
+                }
+                setAiConfirm(null);
+              },
+            },
+          ]}
+          onClose={() => setAiConfirm(null)}
+        />
+      </>
     );
   }
 

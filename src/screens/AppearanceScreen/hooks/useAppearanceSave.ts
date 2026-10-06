@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { toast } from 'sonner-native';
 
+import type { AlertButton } from '@/components/AlertModal';
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
 import { refreshSavedProfile } from '@/features/account/controllers/refreshSavedProfile';
@@ -19,7 +20,6 @@ import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
@@ -64,8 +64,21 @@ async function syncActiveRoomProfile(
 }
 
 /** Appearance save/upload hook. */
+export interface AppearanceSaveAlert {
+  title: string;
+  message?: string;
+  buttons: AlertButton[];
+}
+
 export function useAppearanceSave(params: UseAppearanceSaveParams) {
   const [saving, setSaving] = useState(false);
+  const [alert, setAlert] = useState<AppearanceSaveAlert | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
+  const showError = useCallback(
+    (title: string, message: string) =>
+      setAlert({ title, message, buttons: [{ text: '确定', style: 'default' }] }),
+    [],
+  );
   const ref = useRef(params);
   ref.current = params;
   const lifetime = useRef<{ isActive: boolean; isSaving: boolean } | null>(null);
@@ -86,12 +99,18 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!scope.isActive) return;
       if (status !== ImagePicker.PermissionStatus.GRANTED) {
-        showConfirmAlert(
-          '需要相册权限',
-          '请在系统设置中开启相册访问权限',
-          () => void Linking.openSettings(),
-          { confirmText: '去设置' },
-        );
+        setAlert({
+          title: '需要相册权限',
+          message: '请在系统设置中开启相册访问权限',
+          buttons: [
+            { text: '取消', style: 'cancel' },
+            {
+              text: '去设置',
+              style: 'default',
+              onPress: () => void Linking.openSettings(),
+            },
+          ],
+        });
         return;
       }
 
@@ -125,7 +144,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           if (!scope.isActive) return;
           const message = getErrorMessage(e);
           settingsLog.error('Avatar upload failed', { message }, e);
-          showErrorAlert('上传失败', message);
+          showError('上传失败', message);
         } finally {
           if (scope.isActive) setSaving(false);
         }
@@ -134,11 +153,11 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       if (!scope.isActive) return;
       const message = getErrorMessage(e);
       settingsLog.warn('Image picker failed', { message }, e);
-      showErrorAlert('选择图片失败', message);
+      showError('选择图片失败', message);
     } finally {
       scope.isSaving = false;
     }
-  }, []);
+  }, [showError]);
 
   const handleConfirm = useCallback(async () => {
     const p = ref.current;
@@ -250,12 +269,12 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       if (!scope.isActive) return;
       const message = getErrorMessage(e);
       settingsLog.error('Avatar/frame save failed', { message }, e);
-      showErrorAlert('保存失败', message);
+      showError('保存失败', message);
     } finally {
       scope.isSaving = false;
       if (scope.isActive) setSaving(false);
     }
-  }, []);
+  }, [showError]);
 
   const handleConfirmUnavailable = useCallback(() => {
     if (ref.current.hasSelection) {
@@ -298,12 +317,12 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       if (!scope.isActive) return;
       const message = getErrorMessage(e);
       settingsLog.error('Equip effect failed', { message }, e);
-      showErrorAlert('装备失败', message);
+      showError('装备失败', message);
     } finally {
       scope.isSaving = false;
       if (scope.isActive) setSaving(false);
     }
-  }, []);
+  }, [showError]);
 
   const handleEquipEffectUnavailable = useCallback(() => {
     const p = ref.current;
@@ -315,14 +334,16 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       return;
     }
     if (!p.heroEffectUnlocked) {
-      showErrorAlert('未解锁', '提升等级后随机解锁');
+      showError('未解锁', '提升等级后随机解锁');
       return;
     }
     throw new Error('[FAIL-FAST] Equip effect unavailable feedback requires a disabled action');
-  }, []);
+  }, [showError]);
 
   return {
     saving,
+    alert,
+    clearAlert,
     handleUpload,
     handleConfirm,
     handleConfirmUnavailable,

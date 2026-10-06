@@ -201,6 +201,13 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
         buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
         onClose={() => setErrorAlert(null)}
       />
+      <AlertModal
+        visible={submission.alert !== null}
+        title={submission.alert?.title ?? ''}
+        message={submission.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: submission.clearAlert }]}
+        onClose={submission.clearAlert}
+      />
     </GameScreen>
   );
 }

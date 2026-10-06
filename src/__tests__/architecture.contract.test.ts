@@ -1394,14 +1394,6 @@ describe('UI: confirmations must use <AlertModal> (forbidden: Alert.alert, showA
   const showAlertAllowlist = new Set([
     'src/components/AlertModal.tsx',
     'src/components/DrawingToolbar/DrawingToolbar.tsx',
-    'src/features/admin/queries/useAdminRewardGrant.ts',
-    'src/features/room/controllers/useRoomCommandSubmission.ts',
-    'src/games/werewolf/components/AIChatBubble/useChatMessages.ts',
-    'src/games/werewolf/hooks/useWerewolfGameActions.ts',
-    'src/games/werewolf/hooks/useWerewolfRoom.ts',
-    'src/games/werewolf/services/aiChatBridge.ts',
-    'src/screens/AppearanceScreen/hooks/useAppearanceSave.ts',
-    'src/screens/AppearanceScreen/hooks/useAppearanceState.ts',
     'src/utils/errorPipeline.ts',
   ]);
 

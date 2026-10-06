@@ -33,8 +33,6 @@ import type {
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
-import { setAlertBlocked } from '@/utils/alert';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
@@ -125,6 +123,10 @@ interface UseWerewolfRoomResult {
   resumeAfterRejoin: () => void;
   needsContinueOverlay: boolean;
   dismissContinueOverlay: () => void;
+
+  /** Alert state (delivery errors + rejected actions) rendered by the screen via <AlertModal> */
+  alert: { title: string; message: string } | null;
+  clearAlert: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,6 +158,12 @@ interface UseWerewolfRoomResult {
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
 
+  // Rejected-action alert (rendered by the screen via <AlertModal>)
+  const [rejectionAlert, setRejectionAlert] = useState<{ title: string; message: string } | null>(
+    null,
+  );
+  const clearRejectionAlert = useCallback(() => setRejectionAlert(null), []);
+
   const snapshot = sessionSnapshot.snapshot.state;
   const gameState = useMemo(() => toWerewolfLocalState(snapshot), [snapshot]);
   const { identity } = sessionSnapshot;
@@ -175,7 +183,7 @@ interface UseWerewolfRoomResult {
     const rejection = sessionSnapshot.lastRecoveredCommandRejection;
     if (!isFocused || rejection === null) return;
     session.acknowledgeRecoveredCommandRejection(rejection.commandId);
-    showErrorAlert('行动未提交', translateReasonCode(rejection.reason));
+    setRejectionAlert({ title: '行动未提交', message: translateReasonCode(rejection.reason) });
   }, [isFocused, session, sessionSnapshot.lastRecoveredCommandRejection]);
 
   // Toast notifications for XP gain / level-up after valid game settlement
@@ -188,7 +196,6 @@ interface UseWerewolfRoomResult {
     });
 
     if (isHost && snapshot.status === GameStatus.Ongoing && client.wasAudioInterrupted) {
-      setAlertBlocked(true);
       setShowContinueOverlay(true);
     }
   }, [client, isFocused, isHost, snapshot]);
@@ -215,12 +222,18 @@ interface UseWerewolfRoomResult {
     clearSeats: seatCommands.clearSeats,
   });
 
+  // Merged alert: game-action delivery errors take precedence over rejection notices
+  const alert = actions.alert ?? rejectionAlert;
+  const clearAlert = useCallback(() => {
+    actions.clearAlert();
+    clearRejectionAlert();
+  }, [actions, clearRejectionAlert]);
+
   // =========================================================================
   // Rejoin recovery
   // =========================================================================
 
   const resumeAfterRejoin = useCallback(() => {
-    setAlertBlocked(false);
     setShowContinueOverlay(false);
     bgm.startBgmIfEnabled();
     // Fire-and-forget: audio plays in background; overlay has already been dismissed immediately
@@ -228,7 +241,6 @@ interface UseWerewolfRoomResult {
   }, [client, bgm]);
 
   const dismissContinueOverlay = useCallback(() => {
-    setAlertBlocked(false);
     setShowContinueOverlay(false);
   }, []);
 
@@ -309,5 +321,8 @@ interface UseWerewolfRoomResult {
     // Hidden (blurred) screens must not render Modal (on Web, Modals float on top and are not affected by CSS hiding)
     needsContinueOverlay: isFocused && showContinueOverlay,
     dismissContinueOverlay,
+    // Alerts
+    alert,
+    clearAlert,
   };
 };

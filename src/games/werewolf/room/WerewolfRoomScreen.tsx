@@ -9,6 +9,7 @@
  * services / policy / helpers.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { findClosestPresetName } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
@@ -35,7 +36,11 @@ import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/games/werewolf/components/SkiaShaderWarmup';
 import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import {
+  type AIAboutRoleRequest,
+  buildAIAboutRoleRequest,
+  requestAIChatMessage,
+} from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import {
   createWerewolfBottomActionLayout,
@@ -259,9 +264,24 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     clearInteractionAlert,
     actionDialogsAlert,
     clearActionDialogsAlert,
+    roomAlert,
+    clearRoomAlert,
   } = useWerewolfRoomScreenState(room, navigation, entryController, client);
 
   const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
+  const [aiConfirm, setAiConfirm] = useState<AIAboutRoleRequest | null>(null);
+
+  const handleAskAI = useCallback((rid: RoleId) => {
+    const req = buildAIAboutRoleRequest(rid);
+    if (req) setAiConfirm(req);
+  }, []);
+  const confirmAskAI = useCallback(() => {
+    if (aiConfirm) {
+      handleSkillPreviewClose();
+      requestAIChatMessage(aiConfirm.payload);
+    }
+    setAiConfirm(null);
+  }, [aiConfirm, handleSkillPreviewClose]);
   const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
   const isSheriffInspectorVisible =
     sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
@@ -789,9 +809,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
             roleId={skillPreviewRoleId}
             onClose={handleSkillPreviewClose}
             showRealIdentity
-            onAskAI={
-              isAIChatReady() ? (rid) => askAIAboutRole(rid, handleSkillPreviewClose) : undefined
-            }
+            onAskAI={isAIChatReady() ? handleAskAI : undefined}
           />
 
           {/* Night Review Modal -- for Judge / spectators; shows night actions + all roles */}
@@ -912,6 +930,23 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
             message={sheriffElectionPanel?.alert?.message}
             buttons={sheriffElectionPanel?.alert?.buttons ?? []}
             onClose={() => sheriffElectionPanel?.clearAlert()}
+          />
+          <AlertModal
+            visible={roomAlert !== null && !needsContinueOverlay}
+            title={roomAlert?.title ?? ''}
+            message={roomAlert?.message}
+            buttons={[{ text: '确定', style: 'default', onPress: clearRoomAlert }]}
+            onClose={clearRoomAlert}
+          />
+          <AlertModal
+            visible={aiConfirm !== null}
+            title="AI 攻略"
+            message={aiConfirm ? `让 AI 分析「${aiConfirm.roleName}」的玩法？` : undefined}
+            buttons={[
+              { text: '取消', style: 'cancel', onPress: () => setAiConfirm(null) },
+              { text: '确定', style: 'default', onPress: confirmAskAI },
+            ]}
+            onClose={() => setAiConfirm(null)}
           />
         </>
       }

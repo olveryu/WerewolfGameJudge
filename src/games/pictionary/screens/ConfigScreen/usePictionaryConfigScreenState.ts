@@ -123,6 +123,12 @@ export function usePictionaryConfigScreenState({
     else navigation.navigate('Home');
   }, [navigation]);
 
+  const mergedAlert = command.alert ?? alert;
+  const clearMergedAlert = useCallback(() => {
+    command.clearAlert();
+    clearAlert();
+  }, [command, clearAlert]);
+
   return {
     config,
     isSubmitting: isCreating || command.isSubmitting,
@@ -132,7 +138,7 @@ export function usePictionaryConfigScreenState({
     updateConfig,
     submit,
     goBack,
-    alert,
-    clearAlert,
+    alert: mergedAlert,
+    clearAlert: clearMergedAlert,
   };
 }

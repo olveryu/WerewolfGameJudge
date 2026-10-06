@@ -3,6 +3,14 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { successfulRoomCommand, testRoomState } from '@/test-utils/roomCommand';
 
+jest.mock('@/features/room/components/RoomAlertContext', () => ({
+  useRoomAlert: () => ({
+    showRoomAlert: jest.fn(),
+    clearRoomAlert: jest.fn(),
+  }),
+  useOptionalRoomAlert: () => null,
+}));
+
 const state = testRoomState('werewolf');
 
 const otherPlayer = {

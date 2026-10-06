@@ -18,7 +18,11 @@ import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState'
 
 import { generateQuickQuestions } from './quickQuestions';
 import { useBubbleDrag } from './useBubbleDrag';
-import { useChatMessages, type UseChatMessagesReturn } from './useChatMessages';
+import {
+  type ChatAlertState,
+  useChatMessages,
+  type UseChatMessagesReturn,
+} from './useChatMessages';
 import { useKeyboardHeight } from './useKeyboardHeight';
 
 // ══════════════════════════════════════════════════════════
@@ -41,6 +45,9 @@ interface UseAIChatReturn {
   handleSend: () => Promise<void>;
   handleQuickQuestion: (question: string) => void;
   handleClearHistory: () => void;
+  /** Alert state rendered by AIChatBubble via <AlertModal> */
+  alert: ChatAlertState | null;
+  clearAlert: () => void;
 
   // Bubble position & drag
   position: { x: number; y: number };
@@ -129,6 +136,8 @@ export function useAIChat(
     handleSend: chat.handleSend,
     handleQuickQuestion: chat.handleQuickQuestion,
     handleClearHistory: chat.handleClearHistory,
+    alert: chat.alert,
+    clearAlert: chat.clearAlert,
     contextQuestions,
 
     // Open/close

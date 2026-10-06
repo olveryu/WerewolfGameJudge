@@ -9,9 +9,8 @@
 import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { buildRolePlayGuidePrompt } from '@/games/werewolf/components/AIChatBubble/rolePlayGuide';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
-interface AIChatBridgePayload {
+export interface AIChatBridgePayload {
   /** Full text sent to AI (notes content + prompt) */
   fullText: string;
   /** Short text displayed in the user message bubble */
@@ -40,23 +39,28 @@ export function requestAIChatMessage(payload: AIChatBridgePayload): void {
   listener?.(payload);
 }
 
+export interface AIAboutRoleRequest {
+  roleName: string;
+  payload: AIChatBridgePayload;
+}
+
 /**
- * After user confirms, request AI to analyze a role's playstyle.
- *
- * Business logic extracted from RoleCardSimple, passed in by the Screen layer via the `onAskAI` prop.
- * Silently returns if roleId is invalid or prompt construction fails.
+ * Build the AI role-analysis request for a role (pure — no UI).
+ * Callers show their own <AlertModal> confirm, then on confirm call
+ * requestAIChatMessage(request.payload).
+ * Returns null if the roleId is invalid or prompt construction fails.
  */
-export function askAIAboutRole(roleId: RoleId, onClose: () => void): void {
+export function buildAIAboutRoleRequest(roleId: RoleId): AIAboutRoleRequest | null {
   const prompt = buildRolePlayGuidePrompt(roleId);
-  if (!prompt) return;
+  if (!prompt) return null;
   const spec = ROLE_SPECS[roleId];
   const roleName = spec?.displayName ?? roleId;
-  showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
-    onClose();
-    requestAIChatMessage({
+  return {
+    roleName,
+    payload: {
       fullText: prompt,
       displayText: `${roleName} 攻略`,
       maxTokens: 1024,
-    });
-  });
+    },
+  };
 }

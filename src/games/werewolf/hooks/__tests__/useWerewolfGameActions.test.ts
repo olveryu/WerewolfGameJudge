@@ -7,6 +7,8 @@
 
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
+// Toast is mapped via moduleNameMapper → __mocks__/sonner-native.ts
+import { toast } from 'sonner-native';
 
 import type { WerewolfBgmControlState } from '@/games/werewolf/hooks/useWerewolfBgmControl';
 import type { WerewolfDebugModeState } from '@/games/werewolf/hooks/useWerewolfDebugMode';
@@ -18,16 +20,6 @@ import type {
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { domainRejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
-
-// Mock showAlert
-const mockShowAlert = jest.fn<void, [string, string]>();
-jest.mock('@/utils/alert', () => ({
-  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
-  showAlert: (...args: unknown[]) => mockShowAlert(...(args as [string, string])),
-}));
-
-// Toast is mapped via moduleNameMapper → __mocks__/sonner-native.ts
-import { toast } from 'sonner-native';
 
 // ---- Factory helpers ----
 
@@ -207,7 +199,7 @@ describe('useWerewolfGameActions - game control', () => {
 
     await act(() => result.current.assignRoles());
 
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
     expect(toast.error).toHaveBeenCalledWith('分配角色失败', {
       description: '角色数量与座位数不匹配',
     });
@@ -219,7 +211,7 @@ describe('useWerewolfGameActions - game control', () => {
 
     await act(() => result.current.assignRoles());
 
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
   });
 
   it('startGame should call client.startNight (BGM driven by gameStatus effect)', async () => {
@@ -545,7 +537,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     });
 
     expect(clearResult).toEqual(rejection);
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -561,7 +553,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
   });
 
   it('keeps a recoverable action pending when the server outcome is unknown', async () => {
@@ -576,7 +568,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
   });
 
   it('presents definitive non-delivery so the player can retry the action', async () => {
@@ -591,7 +583,10 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
-    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '服务暂时不可用，请稍后重试');
+    expect(result.current.alert).toEqual({
+      title: '提交行动失败',
+      message: '服务暂时不可用，请稍后重试',
+    });
   });
 
   it('should NOT alert on business rejection without onBusinessError callback', async () => {
@@ -606,7 +601,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
   });
 
   it('should show toast on business rejection with toastError callback (submitRevealAck)', async () => {
@@ -618,7 +613,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitRevealAck());
 
-    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
     expect(toast.error).toHaveBeenCalledWith('确认揭示失败', {
       description: '请等待语音播放完毕',
     });
@@ -633,7 +628,10 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
 
     await act(() => result.current.submitRevealAck());
 
-    expect(mockShowAlert).toHaveBeenCalledWith('确认揭示失败', '网络异常，请检查网络后重试');
+    expect(result.current.alert).toEqual({
+      title: '确认揭示失败',
+      message: '网络异常，请检查网络后重试',
+    });
     expect(toast.error).not.toHaveBeenCalled();
   });
 });

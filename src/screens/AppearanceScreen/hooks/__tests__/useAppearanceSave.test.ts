@@ -2,15 +2,9 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { toast } from 'sonner-native';
 
-import { showErrorAlert } from '@/utils/alertPresets';
-
 import { useAppearanceSave } from '../useAppearanceSave';
 
 jest.mock('expo-image-picker', () => ({}));
-jest.mock('@/utils/alertPresets', () => ({
-  showErrorAlert: jest.fn(),
-  showConfirmAlert: jest.fn(),
-}));
 
 function createParams(): Parameters<typeof useAppearanceSave>[0] {
   return {
@@ -68,7 +62,9 @@ it('keeps the draft available after a failed save and permits retry', async () =
   await act(async () => {
     await result.current.handleConfirm();
   });
-  expect(showErrorAlert).toHaveBeenCalled();
+  expect(result.current.alert?.title).toBe('保存失败');
+  expect(typeof result.current.alert?.message).toBe('string');
+  expect(result.current.alert?.buttons).toEqual([{ text: '确定', style: 'default' }]);
   expect(params.goBack).not.toHaveBeenCalled();
   expect(result.current.saving).toBe(false);
   await act(async () => {
@@ -98,5 +94,5 @@ it('reports account success with room-sync failure without retrying the account 
   });
   expect(params.updateProfile).toHaveBeenCalledTimes(1);
   expect(toast.warning).toHaveBeenCalledWith('形象已保存，游戏内可能需要重新入座刷新');
-  expect(showErrorAlert).not.toHaveBeenCalled();
+  expect(result.current.alert).toBeNull();
 });

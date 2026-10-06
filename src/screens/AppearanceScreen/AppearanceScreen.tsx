@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -485,6 +486,15 @@ function AppearanceEditor({
           onComplete={() => state.setPreviewEffectId(null)}
         />
       )}
+      <AlertModal
+        visible={state.alert !== null}
+        title={state.alert?.title ?? ''}
+        message={state.alert?.message}
+        buttons={
+          state.alert?.buttons ?? [{ text: '确定', style: 'default', onPress: state.clearAlert }]
+        }
+        onClose={state.clearAlert}
+      />
     </SafeAreaView>
   );
 }

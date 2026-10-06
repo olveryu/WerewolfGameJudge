@@ -11,6 +11,7 @@ import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 
+import type { AlertButton } from '@/components/AlertModal';
 import { NETWORK_ERROR } from '@/config/errorMessages';
 import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import {
@@ -26,7 +27,6 @@ import {
 } from '@/games/werewolf/services/AIChatService';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
-import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
 import { triggerHaptic } from '@/utils/haptics';
@@ -46,6 +46,12 @@ const TYPEWRITER_CHARS_PER_TICK = 2;
 
 // ── Return type ──────────────────────────────────────────
 
+export interface ChatAlertState {
+  title: string;
+  message?: string;
+  buttons: AlertButton[];
+}
+
 export interface UseChatMessagesReturn {
   messages: DisplayMessage[];
   inputText: string;
@@ -58,6 +64,9 @@ export interface UseChatMessagesReturn {
   /** Send full text to AI but display a shorter displayText in the chat bubble */
   sendWithDisplay: (fullText: string, displayText: string, maxTokens?: number) => void;
   handleClearHistory: () => void;
+  /** Alert state rendered by AIChatBubble via <AlertModal> */
+  alert: ChatAlertState | null;
+  clearAlert: () => void;
 }
 
 interface WerewolfRoomContextSource {
@@ -78,6 +87,13 @@ export function useChatMessages(
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [alert, setAlert] = useState<ChatAlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
+  const showError = useCallback(
+    (title: string, message: string) =>
+      setAlert({ title, message, buttons: [{ text: '确定', style: 'default' }] }),
+    [],
+  );
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadingRef = useRef(false);
@@ -155,7 +171,7 @@ export function useChatMessages(
       const mySeat = getWerewolfUserSeat(gameState, owner.userId);
       const gameContext = buildPlayerContext(gameState, mySeat);
       if (!isAIChatReady()) {
-        showErrorAlert('AI 助手', 'AI 助手暂不可用');
+        showError('AI 助手', 'AI 助手暂不可用');
         return;
       }
 
@@ -244,7 +260,7 @@ export function useChatMessages(
               typewriterTimerRef.current = null;
             }
             setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-            showErrorAlert('发送失败', chunk.content);
+            showError('发送失败', chunk.content);
             break;
           }
           // 'done' — streaming finished, let typewriter drain remaining buffer
@@ -312,20 +328,20 @@ export function useChatMessages(
         if (isNetworkError(err)) {
           chatLog.warn('sendMessage network error', err);
           setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-          showErrorAlert('发送失败', NETWORK_ERROR);
+          showError('发送失败', NETWORK_ERROR);
           return;
         }
         // Non-abort errors: route Sentry through the pipeline; custom UI cleanup stays inline
         handleError(err, { label: '发送消息', logger: chatLog, feedback: false });
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-        showErrorAlert('发送失败', getUserFacingMessage(err));
+        showError('发送失败', getUserFacingMessage(err));
       } finally {
         setIsLoading(false);
         loadingRef.current = false;
         setIsStreaming(false);
       }
     },
-    [owner, source],
+    [owner, source, showError],
   );
 
   // ── Public actions ─────────────────────────────────
@@ -350,19 +366,25 @@ export function useChatMessages(
   );
 
   const handleClearHistory = useCallback(() => {
-    showDestructiveAlert(
-      '清除聊天记录',
-      '确定要清除所有聊天记录吗？此操作不可恢复。',
-      '清除',
-      () => {
-        if (saveTimerRef.current) {
-          clearTimeout(saveTimerRef.current);
-          saveTimerRef.current = null;
-        }
-        setMessages([]);
-        clearAIChatMessages(owner);
-      },
-    );
+    setAlert({
+      title: '清除聊天记录',
+      message: '确定要清除所有聊天记录吗？此操作不可恢复。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '清除',
+          style: 'destructive',
+          onPress: () => {
+            if (saveTimerRef.current) {
+              clearTimeout(saveTimerRef.current);
+              saveTimerRef.current = null;
+            }
+            setMessages([]);
+            clearAIChatMessages(owner);
+          },
+        },
+      ],
+    });
   }, [owner]);
 
   return {
@@ -376,5 +398,7 @@ export function useChatMessages(
     handleQuickQuestion,
     sendWithDisplay,
     handleClearHistory,
+    alert,
+    clearAlert,
   };
 }

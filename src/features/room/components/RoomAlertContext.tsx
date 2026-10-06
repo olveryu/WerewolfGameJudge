@@ -41,6 +41,15 @@ export function useRoomAlert(): RoomAlertContextValue {
   return ctx;
 }
 
+/**
+ * 可选版本：不在 RoomAlertProvider 内时返回 null 而不是抛错。
+ * 供同时被房间内和房间外（配置页）调用的 hook 使用，
+ * 调用方在返回 null 时走本地 AlertModal state。
+ */
+export function useOptionalRoomAlert(): RoomAlertContextValue | null {
+  return useContext(RoomAlertContext);
+}
+
 /** 供 RoomEntryBoundary 包裹 children，统一渲染 AlertModal */
 export const RoomAlertProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [alert, setAlert] = useState<RoomAlertConfig | null>(null);

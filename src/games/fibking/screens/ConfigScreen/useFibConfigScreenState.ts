@@ -51,9 +51,12 @@ export function useFibConfigScreenState({
 }: UseFibConfigScreenStateParams): FibConfigScreenState {
   const { user } = useAuthContext();
   const { createRoom, isCreating } = useRoomCreationController();
-  const { isSubmitting: isCommandSubmitting, submit: submitRoomCommand } = useRoomCommandSubmission(
-    getFibRoomCommandFailureMessage,
-  );
+  const {
+    isSubmitting: isCommandSubmitting,
+    submit: submitRoomCommand,
+    alert: commandAlert,
+    clearAlert: clearCommandAlert,
+  } = useRoomCommandSubmission(getFibRoomCommandFailureMessage);
   const initialCount = (() => {
     if (params.mode === 'create') return FIB_DEFAULT_PLAYERS;
     const snapshot = session.getSnapshot();
@@ -158,6 +161,12 @@ export function useFibConfigScreenState({
 
   const parsedCount = parseFibPlayerCountInput(playerCountText);
 
+  const mergedAlert = commandAlert ?? alert;
+  const clearMergedAlert = useCallback(() => {
+    clearCommandAlert();
+    clearAlert();
+  }, [clearCommandAlert, clearAlert]);
+
   return {
     playerCountText,
     isSubmitting: isCreating || isCommandSubmitting,
@@ -168,7 +177,7 @@ export function useFibConfigScreenState({
     increment,
     submit,
     goBack,
-    alert,
-    clearAlert,
+    alert: mergedAlert,
+    clearAlert: clearMergedAlert,
   };
 }

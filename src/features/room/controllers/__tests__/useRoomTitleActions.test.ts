@@ -8,11 +8,20 @@ import {
   readAdminCredential,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
-import { showAlert, showPrompt } from '@/utils/alert';
+import type { RoomAlertConfig } from '@/features/room/components/RoomAlertContext';
 import { debugLogStore } from '@/utils/debugLogStore';
 import { handleError } from '@/utils/errorPipeline';
 
 import { useRoomTitleActions } from '../useRoomTitleActions';
+
+const mockShowRoomAlert = jest.fn<void, [RoomAlertConfig]>();
+jest.mock('@/features/room/components/RoomAlertContext', () => ({
+  useRoomAlert: () => ({
+    showRoomAlert: mockShowRoomAlert,
+    clearRoomAlert: jest.fn(),
+  }),
+  useOptionalRoomAlert: () => null,
+}));
 
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -20,7 +29,6 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('@/features/admin/services/adminApi');
 jest.mock('@/features/admin/services/adminCredentialStore');
-jest.mock('@/utils/alert', () => ({ showAlert: jest.fn(), showPrompt: jest.fn() }));
 jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('@/utils/debugLogStore', () => ({
   debugLogStore: { toggleVisibility: jest.fn() },
@@ -85,7 +93,11 @@ describe('useRoomTitleActions', () => {
     const { result } = renderHook(useRoomTitleActions);
     await act(async () => result.current.handleTitleLongPress());
     expect(clearAdminCredential).toHaveBeenCalledTimes(1);
-    expect(showAlert).toHaveBeenCalledWith('打开调试日志失败', expect.any(String));
+    expect(mockShowRoomAlert).toHaveBeenCalledWith({
+      title: '打开调试日志失败',
+      message: '管理员密码无效，请重试',
+      buttons: [{ text: '确定', style: 'default' }],
+    });
     expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
   });
 
@@ -93,10 +105,14 @@ describe('useRoomTitleActions', () => {
     jest.mocked(readAdminCredential).mockReturnValue(null);
     const { result } = renderHook(useRoomTitleActions);
     act(() => result.current.handleTitleLongPress());
-    expect(showPrompt).toHaveBeenCalledWith('管理员密码', expect.any(Object));
+    expect(mockShowRoomAlert).toHaveBeenCalledTimes(1);
+    const promptConfig = mockShowRoomAlert.mock.calls[0]![0];
+    expect(promptConfig.title).toBe('管理员密码');
+    expect(promptConfig.input).toEqual({ placeholder: '请输入管理员密码' });
+    expect(promptConfig.buttons.map((b) => b.text)).toEqual(['取消', '确定']);
     expect(debugLogStore.toggleVisibility).not.toHaveBeenCalled();
-    const options = jest.mocked(showPrompt).mock.calls[0]![1];
-    await act(async () => options.onConfirm(' new-password '));
+    const confirmButton = promptConfig.buttons.find((b) => b.text === '确定')!;
+    await act(async () => confirmButton.onPress?.(' new-password '));
     expect(verifyAdminPassword).toHaveBeenCalledWith('new-password');
     expect(writeAdminCredential).toHaveBeenCalledWith('new-password');
     expect(debugLogStore.toggleVisibility).toHaveBeenCalledTimes(1);

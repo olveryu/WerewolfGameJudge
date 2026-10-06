@@ -27,6 +27,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
@@ -69,7 +70,8 @@ interface BoardPickerScreenProps {
   const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();
   const maxChips = useMemo(() => estimateMaxChips(screenWidth), [screenWidth]);
-  const { handleRolePress, roleCardProps } = useBoardRolePreview();
+  const { handleRolePress, roleCardProps, aiConfirm, confirmAskAI, clearAiConfirm } =
+    useBoardRolePreview();
 
   const {
     searchQuery,
@@ -348,6 +350,16 @@ interface BoardPickerScreenProps {
 
       {/* Role preview card */}
       <RoleCardSimple {...roleCardProps} />
+      <AlertModal
+        visible={aiConfirm !== null}
+        title="AI 攻略"
+        message={aiConfirm ? `让 AI 分析「${aiConfirm.roleName}」的玩法？` : undefined}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: clearAiConfirm },
+          { text: '确定', style: 'default', onPress: confirmAskAI },
+        ]}
+        onClose={clearAiConfirm}
+      />
 
       {/* Board Strategy Modal */}
       <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />

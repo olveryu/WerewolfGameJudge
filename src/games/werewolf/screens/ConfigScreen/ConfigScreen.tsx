@@ -7,10 +7,11 @@
  * No hardcoded style values; no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,7 +23,11 @@ import { useServices } from '@/contexts/ServiceContext';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import {
+  type AIAboutRoleRequest,
+  buildAIAboutRoleRequest,
+  requestAIChatMessage,
+} from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
 import {
@@ -107,6 +112,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
   const route = useRoute<ConfigRouteProp>();
   const existingRoomCode = route.params?.existingRoomCode;
   const presetName = route.params?.presetName;
+  const [aiConfirm, setAiConfirm] = useState<AIAboutRoleRequest | null>(null);
   const nominateMode = route.params?.nominateMode;
   const updatedRules = route.params?.updatedRules;
 
@@ -361,7 +367,14 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
         variantIds={roleInfoVariantIds}
         activeVariant={roleInfoActiveVariant}
         onVariantSelect={handleRoleInfoVariantSelect}
-        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handleCloseRoleInfo) : undefined}
+        onAskAI={
+          isAIChatReady()
+            ? (rid: RoleId) => {
+                const req = buildAIAboutRoleRequest(rid);
+                if (req) setAiConfirm(req);
+              }
+            : undefined
+        }
       />
       {alert !== null && (
         <AlertModal
@@ -372,6 +385,26 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
           onClose={clearAlert}
         />
       )}
+      <AlertModal
+        visible={aiConfirm !== null}
+        title="AI 攻略"
+        message={aiConfirm ? `让 AI 分析「${aiConfirm.roleName}」的玩法？` : undefined}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setAiConfirm(null) },
+          {
+            text: '确定',
+            style: 'default',
+            onPress: () => {
+              if (aiConfirm) {
+                handleCloseRoleInfo();
+                requestAIChatMessage(aiConfirm.payload);
+              }
+              setAiConfirm(null);
+            },
+          },
+        ]}
+        onClose={() => setAiConfirm(null)}
+      />
     </GameScreen>
   );
 };

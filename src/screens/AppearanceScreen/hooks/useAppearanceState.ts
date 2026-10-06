@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo, useState } from 'react';
 
+import type { AlertButton } from '@/components/AlertModal';
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -24,7 +25,6 @@ import { useUploadAvatar } from '@/features/account/controllers/useUploadAvatar'
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { useActiveRoomAccount } from '@/games/ClientGameCatalogContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { showAlert } from '@/utils/alert';
 import { BUILTIN_AVATAR_PREFIX, isBuiltinAvatarUrl, makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
@@ -215,6 +215,8 @@ export function useAppearanceState(unlockedIds: string[]) {
 
   const {
     saving,
+    alert: saveAlert,
+    clearAlert: clearSaveAlert,
     handleUpload,
     handleConfirm,
     handleConfirmUnavailable,
@@ -240,6 +242,23 @@ export function useAppearanceState(unlockedIds: string[]) {
     goBack,
   });
 
+  // ── Alert state (unlocked-item notices + save hook alerts, rendered via <AlertModal>) ──
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
+  const showLockedAlert = useCallback(
+    (title: string, message: string) => setAlert({ title, message }),
+    [],
+  );
+  const mergedAlert: {
+    title: string;
+    message?: string;
+    buttons?: AlertButton[];
+  } | null = saveAlert ?? alert;
+  const clearMergedAlert = useCallback(() => {
+    clearSaveAlert();
+    clearAlert();
+  }, [clearSaveAlert, clearAlert]);
+
   // ── Selection handlers ──
 
   const handleGoBack = useCallback(() => {
@@ -256,12 +275,12 @@ export function useAppearanceState(unlockedIds: string[]) {
     (avatarId: string) => {
       if (readOnly) return;
       if (!unlockedAvatars.has(avatarId)) {
-        showAlert('未解锁', '提升等级后可解锁更多头像');
+        showLockedAlert('未解锁', '提升等级后可解锁更多头像');
         return;
       }
       setSelected(avatarId);
     },
-    [readOnly, unlockedAvatars],
+    [readOnly, unlockedAvatars, showLockedAlert],
   );
 
   const handlePressCustom = useCallback(() => {
@@ -272,36 +291,36 @@ export function useAppearanceState(unlockedIds: string[]) {
     (frameId: FrameId | 'none') => {
       if (readOnly) return;
       if (frameId !== 'none' && !isFrameUnlocked(frameId, unlockedIds)) {
-        showAlert('未解锁', '提升等级后随机解锁');
+        showLockedAlert('未解锁', '提升等级后随机解锁');
         return;
       }
       setSelectedFrame(frameId);
     },
-    [readOnly, unlockedIds],
+    [readOnly, unlockedIds, showLockedAlert],
   );
 
   const handlePressFlair = useCallback(
     (flairId: FlairId | 'none') => {
       if (readOnly) return;
       if (flairId !== 'none' && !isFlairUnlocked(flairId, unlockedIds)) {
-        showAlert('未解锁', '提升等级后随机解锁');
+        showLockedAlert('未解锁', '提升等级后随机解锁');
         return;
       }
       setSelectedFlair(flairId);
     },
-    [readOnly, unlockedIds],
+    [readOnly, unlockedIds, showLockedAlert],
   );
 
   const handlePressNameStyle = useCallback(
     (nameStyleId: NameStyleId | 'none') => {
       if (readOnly) return;
       if (nameStyleId !== 'none' && !isNameStyleUnlocked(nameStyleId, unlockedIds)) {
-        showAlert('未解锁', '提升等级后随机解锁');
+        showLockedAlert('未解锁', '提升等级后随机解锁');
         return;
       }
       setSelectedNameStyle(nameStyleId);
     },
-    [readOnly, unlockedIds],
+    [readOnly, unlockedIds, showLockedAlert],
   );
 
   const handlePressEffect = useCallback(
@@ -316,12 +335,12 @@ export function useAppearanceState(unlockedIds: string[]) {
     (animId: SeatAnimationId | 'none') => {
       if (readOnly) return;
       if (animId !== 'none' && !isSeatAnimationUnlocked(animId, unlockedIds)) {
-        showAlert('未解锁', '提升等级后随机解锁');
+        showLockedAlert('未解锁', '提升等级后随机解锁');
         return;
       }
       setSelectedSeatAnimation(animId);
     },
-    [readOnly, unlockedIds],
+    [readOnly, unlockedIds, showLockedAlert],
   );
 
   const handleTabChange = useCallback((tab: PickerTab) => {
@@ -343,8 +362,8 @@ export function useAppearanceState(unlockedIds: string[]) {
     if (heroEffectId !== 'none' && heroEffectId !== 'random') {
       throw new Error('[FAIL-FAST] Effect preview feedback requires a non-concrete effect');
     }
-    showAlert('无法预览', '请先选择一个具体特效');
-  }, [heroEffectId]);
+    showLockedAlert('无法预览', '请先选择一个具体特效');
+  }, [heroEffectId, showLockedAlert]);
 
   const handleLongPress = useCallback((avatarId: string) => {
     setPreviewAvatarId(avatarId);
@@ -427,5 +446,8 @@ export function useAppearanceState(unlockedIds: string[]) {
     saving,
     wolfPawIcon,
     unlockedAvatars,
+    // Alerts (rendered via <AlertModal>)
+    alert: mergedAlert,
+    clearAlert: clearMergedAlert,
   };
 }

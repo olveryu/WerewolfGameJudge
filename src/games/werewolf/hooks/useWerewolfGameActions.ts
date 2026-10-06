@@ -19,7 +19,7 @@ import type {
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner-native';
 
 import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
@@ -32,7 +32,6 @@ import type {
   WerewolfGameClient,
 } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
 
 import type { WerewolfBgmControlState } from './useWerewolfBgmControl';
@@ -60,13 +59,17 @@ function handleCommandOutcome(
   result: WerewolfCommandDispatchOutcome,
   actionLabel: string,
   onBusinessError?: BusinessErrorHandler,
+  onDeliveryError?: BusinessErrorHandler,
 ): void {
   if (isSuccessfulRoomCommand(result)) return;
   const reason = getRoomCommandFailureReason(result);
 
   // No authoritative Worker decision is available, so the UI must not continue the workflow.
   if (result.kind !== 'decided') {
-    showErrorAlert(`${actionLabel}失败`, reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR);
+    onDeliveryError?.(
+      `${actionLabel}失败`,
+      reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR,
+    );
     return;
   }
 
@@ -119,6 +122,10 @@ interface WerewolfGameActionsState {
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
   hasWolfVoted: (seat: number) => boolean;
+
+  /** Delivery-error alert rendered by the screen via <AlertModal> */
+  alert: { title: string; message: string } | null;
+  clearAlert: () => void;
 }
 
 interface WerewolfGameActionsDeps {
@@ -143,6 +150,14 @@ interface WerewolfGameActionsDeps {
 ): WerewolfGameActionsState {
   const { client, bgm, debug, isHost, mySeat, gameState, clearSeats } = deps;
 
+  // Delivery-error alert (undecided Worker outcome) — rendered by the screen
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
+  const reportDeliveryError = useCallback(
+    (title: string, message: string) => setAlert({ title, message }),
+    [],
+  );
+
   // =========================================================================
   // Game control (host-only)
   // =========================================================================
@@ -152,17 +167,17 @@ interface WerewolfGameActionsDeps {
     async (template: GameTemplate): Promise<void> => {
       if (!isHost) return;
       const result = await client.updateTemplate(template);
-      handleCommandOutcome(result, '更新模板', toastError);
+      handleCommandOutcome(result, '更新模板', toastError, reportDeliveryError);
     },
-    [client, isHost],
+    [client, isHost, reportDeliveryError],
   );
 
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!isHost) return;
     const result = await client.assignRoles();
-    handleCommandOutcome(result, '分配角色', toastError);
-  }, [client, isHost]);
+    handleCommandOutcome(result, '分配角色', toastError, reportDeliveryError);
+  }, [client, isHost, reportDeliveryError]);
 
   // Start game (host only)
   // BGM is driven by useWerewolfBgmControl's gameStatus->Ongoing reactive effect; not imperatively started here.
@@ -170,8 +185,8 @@ interface WerewolfGameActionsDeps {
     if (!isHost) return;
 
     const result = await client.startNight();
-    handleCommandOutcome(result, '开始游戏', toastError);
-  }, [client, isHost]);
+    handleCommandOutcome(result, '开始游戏', toastError, reportDeliveryError);
+  }, [client, isHost, reportDeliveryError]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
@@ -183,16 +198,16 @@ interface WerewolfGameActionsDeps {
       debug.releaseBot();
     }
     const result = await client.restartGame();
-    handleCommandOutcome(result, '重新开始', toastError);
-  }, [client, bgm, debug, isHost]);
+    handleCommandOutcome(result, '重新开始', toastError, reportDeliveryError);
+  }, [client, bgm, debug, isHost, reportDeliveryError]);
 
   const selectMvp = useCallback(
     async (selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome> => {
       const result = await client.selectMvp(selection);
-      handleCommandOutcome(result, '评选 MVP', toastError);
+      handleCommandOutcome(result, '评选 MVP', toastError, reportDeliveryError);
       return result;
     },
-    [client],
+    [client, reportDeliveryError],
   );
 
   // Clear all seats (host only)
@@ -210,10 +225,10 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Sharing Werewolf night review requires the host');
       }
       const result = await client.shareNightReview(allowedSeats);
-      handleCommandOutcome(result, '分享本局复盘', toastError);
+      handleCommandOutcome(result, '分享本局复盘', toastError, reportDeliveryError);
       return result;
     },
-    [client, isHost],
+    [client, isHost, reportDeliveryError],
   );
 
   // =========================================================================
@@ -229,9 +244,9 @@ interface WerewolfGameActionsDeps {
       throw new Error('[FAIL-FAST] Viewing a Werewolf role requires an effective seat');
     }
     const result = await client.markViewedRole(debug.controlledSeat);
-    handleCommandOutcome(result, '查看身份', toastError);
+    handleCommandOutcome(result, '查看身份', toastError, reportDeliveryError);
     return result;
-  }, [debug.controlledSeat, mySeat, client]);
+  }, [debug.controlledSeat, mySeat, client, reportDeliveryError]);
 
   // Submit action. effectiveSeat is a UI eligibility check; only controlledSeat crosses the wire.
   // Business rejection UX is handled by the state-driven actionRejected effect
@@ -242,18 +257,19 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Submitting a Werewolf action requires an effective seat');
       }
       const result = await client.submitAction(input, debug.controlledSeat);
-      if (result.kind !== 'deliveryUnknown') handleCommandOutcome(result, '提交行动');
+      if (result.kind !== 'deliveryUnknown')
+        handleCommandOutcome(result, '提交行动', undefined, reportDeliveryError);
       return result;
     },
-    [debug.controlledSeat, debug.effectiveSeat, client],
+    [debug.controlledSeat, debug.effectiveSeat, client, reportDeliveryError],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     const result = await client.submitRevealAck(debug.controlledSeat);
-    handleCommandOutcome(result, '确认揭示', toastError);
+    handleCommandOutcome(result, '确认揭示', toastError, reportDeliveryError);
     return result;
-  }, [debug.controlledSeat, client]);
+  }, [debug.controlledSeat, client, reportDeliveryError]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
   // Uses effectiveSeat internally to support debug bot control mode
@@ -263,9 +279,9 @@ interface WerewolfGameActionsDeps {
       throw new Error('[FAIL-FAST] Confirming a Werewolf reveal requires an effective seat');
     }
     const result = await client.submitGroupConfirmAck(debug.controlledSeat);
-    handleCommandOutcome(result, '确认催眠', toastError);
+    handleCommandOutcome(result, '确认催眠', toastError, reportDeliveryError);
     return result;
-  }, [debug.controlledSeat, debug.effectiveSeat, client]);
+  }, [debug.controlledSeat, debug.effectiveSeat, client, reportDeliveryError]);
 
   // WolfRobot hunter status viewed gate
   const sendWolfRobotHunterStatusViewed =
@@ -274,9 +290,9 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Confirming Hunter status requires an effective seat');
       }
       const result = await client.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
-      handleCommandOutcome(result, '确认猎人状态', toastError);
+      handleCommandOutcome(result, '确认猎人状态', toastError, reportDeliveryError);
       return result;
-    }, [debug.controlledSeat, debug.effectiveSeat, client]);
+    }, [debug.controlledSeat, debug.effectiveSeat, client, reportDeliveryError]);
 
   // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {
@@ -296,23 +312,23 @@ interface WerewolfGameActionsDeps {
         toast.info('已有相同板子建议，已自动为你投票');
         return;
       }
-      handleCommandOutcome(result, '提交建议', toastError);
+      handleCommandOutcome(result, '提交建议', toastError, reportDeliveryError);
     },
-    [client],
+    [client, reportDeliveryError],
   );
 
   const boardUpvote = useCallback(
     async (targetUserId: string): Promise<void> => {
       const result = await client.boardUpvote(targetUserId);
-      handleCommandOutcome(result, '点赞', toastError);
+      handleCommandOutcome(result, '点赞', toastError, reportDeliveryError);
     },
-    [client],
+    [client, reportDeliveryError],
   );
 
   const boardWithdraw = useCallback(async (): Promise<void> => {
     const result = await client.boardWithdraw();
-    handleCommandOutcome(result, '撤回建议', toastError);
-  }, [client]);
+    handleCommandOutcome(result, '撤回建议', toastError, reportDeliveryError);
+  }, [client, reportDeliveryError]);
 
   // =========================================================================
   // First-day Sheriff Election
@@ -324,9 +340,9 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Registering as sheriff candidate requires an effective seat');
       }
       const result = await client.registerSheriffCandidate(debug.controlledSeat);
-      handleCommandOutcome(result, '报名上警', toastError);
+      handleCommandOutcome(result, '报名上警', toastError, reportDeliveryError);
       return result;
-    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+    }, [client, debug.controlledSeat, debug.effectiveSeat, reportDeliveryError]);
 
   const cancelSheriffRegistration =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
@@ -334,9 +350,9 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Canceling sheriff registration requires an effective seat');
       }
       const result = await client.cancelSheriffRegistration(debug.controlledSeat);
-      handleCommandOutcome(result, '取消报名', toastError);
+      handleCommandOutcome(result, '取消报名', toastError, reportDeliveryError);
       return result;
-    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+    }, [client, debug.controlledSeat, debug.effectiveSeat, reportDeliveryError]);
 
   const withdrawSheriffCandidate =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
@@ -344,9 +360,9 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Withdrawing from sheriff election requires an effective seat');
       }
       const result = await client.withdrawSheriffCandidate(debug.controlledSeat);
-      handleCommandOutcome(result, '退水', toastError);
+      handleCommandOutcome(result, '退水', toastError, reportDeliveryError);
       return result;
-    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+    }, [client, debug.controlledSeat, debug.effectiveSeat, reportDeliveryError]);
 
   const castSheriffVote = useCallback(
     async (targetSeat: number | null): Promise<WerewolfCommandDispatchOutcome> => {
@@ -354,10 +370,10 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Casting a sheriff ballot requires an effective seat');
       }
       const result = await client.castSheriffVote(targetSeat, debug.controlledSeat);
-      handleCommandOutcome(result, '竞选投票', toastError);
+      handleCommandOutcome(result, '竞选投票', toastError, reportDeliveryError);
       return result;
     },
-    [client, debug.controlledSeat, debug.effectiveSeat],
+    [client, debug.controlledSeat, debug.effectiveSeat, reportDeliveryError],
   );
 
   const advanceSheriffElection = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
@@ -365,9 +381,9 @@ interface WerewolfGameActionsDeps {
       throw new Error('[FAIL-FAST] Advancing sheriff election requires the host');
     }
     const result = await client.advanceSheriffElection();
-    handleCommandOutcome(result, '推进竞选', toastError);
+    handleCommandOutcome(result, '推进竞选', toastError, reportDeliveryError);
     return result;
-  }, [client, isHost]);
+  }, [client, isHost, reportDeliveryError]);
 
   const endSheriffElectionBySelfDestruct =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
@@ -375,9 +391,9 @@ interface WerewolfGameActionsDeps {
         throw new Error('[FAIL-FAST] Ending sheriff election by self-destruct requires the host');
       }
       const result = await client.endSheriffElectionBySelfDestruct();
-      handleCommandOutcome(result, '自爆结束竞选', toastError);
+      handleCommandOutcome(result, '自爆结束竞选', toastError, reportDeliveryError);
       return result;
-    }, [client, isHost]);
+    }, [client, isHost, reportDeliveryError]);
 
   // =========================================================================
   // Game state queries
@@ -448,5 +464,7 @@ interface WerewolfGameActionsDeps {
     getLastNightInfo,
     getCurseInfo,
     hasWolfVoted,
+    alert,
+    clearAlert,
   };
 }

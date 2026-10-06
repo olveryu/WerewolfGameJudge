@@ -2,12 +2,17 @@
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useState } from 'react';
 
-import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import {
+  type AIAboutRoleRequest,
+  buildAIAboutRoleRequest,
+  requestAIChatMessage,
+} from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 
 /** Provides board role selection and the complete props for RoleCardSimple. */
 export function useBoardRolePreview() {
   const [previewRoleId, setPreviewRoleId] = useState<RoleId | null>(null);
+  const [aiConfirm, setAiConfirm] = useState<AIAboutRoleRequest | null>(null);
 
   const handleRolePress = useCallback((roleId: string) => {
     if (!isValidRoleId(roleId)) {
@@ -20,10 +25,20 @@ export function useBoardRolePreview() {
     setPreviewRoleId(null);
   }, []);
 
-  const handleAskAI = useCallback(
-    (roleId: RoleId) => askAIAboutRole(roleId, handlePreviewClose),
-    [handlePreviewClose],
-  );
+  const handleAskAI = useCallback((roleId: RoleId) => {
+    const req = buildAIAboutRoleRequest(roleId);
+    if (req) setAiConfirm(req);
+  }, []);
+
+  const confirmAskAI = useCallback(() => {
+    if (aiConfirm) {
+      handlePreviewClose();
+      requestAIChatMessage(aiConfirm.payload);
+    }
+    setAiConfirm(null);
+  }, [aiConfirm, handlePreviewClose]);
+
+  const clearAiConfirm = useCallback(() => setAiConfirm(null), []);
 
   return {
     handleRolePress,
@@ -34,5 +49,8 @@ export function useBoardRolePreview() {
       showRealIdentity: true,
       onAskAI: isAIChatReady() ? handleAskAI : undefined,
     },
+    aiConfirm,
+    confirmAskAI,
+    clearAiConfirm,
   };
 }

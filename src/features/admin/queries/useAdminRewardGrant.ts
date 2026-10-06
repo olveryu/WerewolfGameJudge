@@ -18,7 +18,6 @@ import {
   readAdminRewardOperation,
   writeAdminRewardOperation,
 } from '@/features/admin/services/adminRewardOperationStore';
-import { showAlert } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
 const adminLog = log.extend('AdminRewards');
@@ -92,12 +91,10 @@ export function useAdminRewardGrant(userId: string) {
                 : '发放参数无效，请检查数量和备注';
         adminLog.warn('Grant rejected', cause);
         setError(message);
-        showAlert('发放失败', message);
       } else {
         adminLog.error('Grant outcome unconfirmed', cause);
         Sentry.captureException(cause);
         setError('尚未确认到账结果，请重试本次发放');
-        showAlert('发放结果待确认', '请重试本次发放，不要新建相同奖励');
       }
     } finally {
       isSubmittingRef.current = false;

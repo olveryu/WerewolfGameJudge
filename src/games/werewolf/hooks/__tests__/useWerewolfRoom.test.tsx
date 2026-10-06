@@ -15,7 +15,6 @@ import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameCl
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 
 let mockAuthUserId = 'host-user';
-const mockShowErrorAlert = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuthContext: () => ({
@@ -37,12 +36,6 @@ jest.mock('@/contexts/AuthContext', () => ({
     isAuthenticated: true,
     refreshUser: jest.fn(async () => undefined),
   }),
-}));
-jest.mock('@/utils/alertPresets', () => ({
-  ...jest.requireActual<typeof import('@/utils/alertPresets')>('@/utils/alertPresets'),
-  showErrorAlert: (title: string, message: string) => {
-    mockShowErrorAlert(title, message);
-  },
 }));
 
 function createGameState(overrides: Partial<GameState> = {}): GameState {
@@ -169,8 +162,6 @@ function createWrapper(): React.FC<React.PropsWithChildren> {
 }
 
 describe('useWerewolfRoom shared-session composition', () => {
-  beforeEach(() => mockShowErrorAlert.mockClear());
-
   it('derives identity, seat, role, revision, and connection from one room session', () => {
     const client = createClient();
     const { result } = renderHook(() => useWerewolfRoom(client), {
@@ -244,19 +235,19 @@ describe('useWerewolfRoom shared-session composition', () => {
     const firstMount = renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
 
     await waitFor(() =>
-      expect(mockShowErrorAlert).toHaveBeenCalledWith(
-        '行动未提交',
-        '当前行动步骤已变化，请重新选择',
-      ),
+      expect(firstMount.result.current.alert).toEqual({
+        title: '行动未提交',
+        message: '当前行动步骤已变化，请重新选择',
+      }),
     );
     expect(client.roomSession.acknowledgeRecoveredCommandRejection).toHaveBeenCalledWith(
       'recovered-command',
     );
 
     firstMount.unmount();
-    renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
+    const secondMount = renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
     await act(async () => undefined);
 
-    expect(mockShowErrorAlert).toHaveBeenCalledTimes(1);
+    expect(secondMount.result.current.alert).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 import { PRESET_TEMPLATES, TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, within } from '@testing-library/react-native';
 
-import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import { buildAIAboutRoleRequest } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 
 import { BoardPickerScreen } from '../BoardPickerScreen/BoardPickerScreen';
@@ -16,7 +16,8 @@ jest.mock('@/games/werewolf/services/AIChatService', () => ({
   isAIChatReady: jest.fn(() => false),
 }));
 jest.mock('@/games/werewolf/services/aiChatBridge', () => ({
-  askAIAboutRole: jest.fn(),
+  buildAIAboutRoleRequest: jest.fn(),
+  requestAIChatMessage: jest.fn(),
 }));
 jest.mock('@/games/werewolf/components/BoardStrategy', () => ({
   BoardStrategyModal: () => null,
@@ -73,6 +74,10 @@ describe.each([
 
   it('offers AI guidance for the previewed role when AI is ready', () => {
     jest.mocked(isAIChatReady).mockReturnValue(true);
+    jest.mocked(buildAIAboutRoleRequest).mockReturnValue({
+      roleName: '预言家',
+      payload: { fullText: 'prompt', displayText: '预言家 攻略', maxTokens: 1024 },
+    });
     const template = PRESET_TEMPLATES.find(
       (template) => template.category === TemplateCategory.Classic,
     )!;
@@ -82,6 +87,7 @@ describe.each([
     fireEvent.press(view.getAllByText('预言家')[0]!);
     fireEvent.press(view.getByLabelText('AI 攻略'));
 
-    expect(askAIAboutRole).toHaveBeenCalledWith('seer', expect.any(Function));
+    expect(buildAIAboutRoleRequest).toHaveBeenCalledWith('seer');
+    expect(view.getByText('让 AI 分析「预言家」的玩法？')).toBeVisible();
   });
 });

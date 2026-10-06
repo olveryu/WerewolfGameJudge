@@ -28,6 +28,7 @@ import {
   View,
 } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Modal } from '@/components/AppModal';
 import { UI_ICONS } from '@/config/iconTokens';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
@@ -346,6 +347,13 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({
           </View>
         </View>
       </Modal>
+      <AlertModal
+        visible={chat.alert !== null}
+        title={chat.alert?.title ?? ''}
+        message={chat.alert?.message}
+        buttons={chat.alert?.buttons ?? []}
+        onClose={chat.clearAlert}
+      />
     </>
   );
 };

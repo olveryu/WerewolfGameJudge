@@ -141,6 +141,8 @@ export function useWerewolfRoomScreenState(
     resumeAfterRejoin,
     needsContinueOverlay,
     dismissContinueOverlay,
+    alert: roomAlert,
+    clearAlert: clearRoomAlert,
   } = useWerewolfRoom(client);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -890,5 +892,7 @@ export function useWerewolfRoomScreenState(
     clearInteractionAlert,
     actionDialogsAlert: actionDialogs.alert,
     clearActionDialogsAlert: actionDialogs.clearAlert,
+    roomAlert,
+    clearRoomAlert,
   };
 }
