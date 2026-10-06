@@ -21,7 +21,7 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
-import { expireStaleRooms, reconcileRooms } from '../../platform/room/maintenance';
+import { expireStaleRooms, reconcileRoomsDetailed } from '../../platform/room/maintenance';
 import { users, userStats } from '../account/dbSchema';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
@@ -239,17 +239,25 @@ adminRoutes.get('/rooms', async (c) => {
 
 adminRoutes.post('/rooms/cleanup-expired', async (c) => {
   const nowMs = Date.now();
-  const { marked } = await expireStaleRooms(c.env, nowMs);
-  let reconciled = 0;
+  let marked = 0;
   const errors: string[] = [];
   try {
-    ({ reconciled } = await reconcileRooms(c.env, nowMs));
+    ({ marked } = await expireStaleRooms(c.env, nowMs));
   } catch (error) {
-    const causes = error instanceof AggregateError ? error.errors : [error];
-    for (const cause of causes) {
-      errors.push(cause instanceof Error ? cause.message : String(cause));
+    errors.push(`expireStaleRooms: ${error instanceof Error ? error.message : String(error)}`);
+    log.error('manual room cleanup expiry failed', { error: errors[0] });
+  }
+  let reconciled = 0;
+  if (errors.length === 0) {
+    try {
+      const result = await reconcileRoomsDetailed(c.env, nowMs);
+      reconciled = result.reconciled;
+      errors.push(...result.errors.map((message) => `reconcileRooms: ${message}`));
+    } catch (error) {
+      // reconcileRoomsDetailed does not throw; defensive for unexpected failures.
+      errors.push(`reconcileRooms: ${error instanceof Error ? error.message : String(error)}`);
+      log.error('manual room cleanup reconciliation failed', { error: errors[errors.length - 1] });
     }
-    log.error('manual room cleanup reconciliation failed', { errors });
   }
   log.info('manual room cleanup complete', { marked, reconciled, errorCount: errors.length });
   return c.json({ marked, reconciled, errors });

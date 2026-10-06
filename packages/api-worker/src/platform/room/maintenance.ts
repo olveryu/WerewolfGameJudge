@@ -17,9 +17,23 @@ export async function expireStaleRooms(env: Env, nowMs: number): Promise<{ marke
   return { marked };
 }
 
-/** Recover interrupted room create and delete sagas. */
+/** Recover interrupted room create and delete sagas. Throws on any failure (cron path). */
 export async function reconcileRooms(env: Env, nowMs: number): Promise<{ reconciled: number }> {
-  const reconciled = await reconcileRoomDirectory(env, nowMs);
-  log.info('room reconciliation complete', { reconciled });
+  const { reconciled, failures } = await reconcileRoomDirectory(env, nowMs);
+  log.info('room reconciliation complete', { reconciled, failureCount: failures.length });
+  if (failures.length > 0) {
+    throw new AggregateError(failures, `${failures.length} room saga reconciliation failures`);
+  }
   return { reconciled };
+}
+
+/** Recover interrupted room sagas without throwing; returns per-room errors (admin diagnostic path). */
+export async function reconcileRoomsDetailed(
+  env: Env,
+  nowMs: number,
+): Promise<{ reconciled: number; errors: string[] }> {
+  const { reconciled, failures } = await reconcileRoomDirectory(env, nowMs);
+  const errors = failures.map((failure) => failure.message);
+  log.info('room reconciliation complete', { reconciled, failureCount: errors.length });
+  return { reconciled, errors };
 }
