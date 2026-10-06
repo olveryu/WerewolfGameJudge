@@ -3,13 +3,13 @@
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
@@ -58,6 +58,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
 }: UseRoomProfileControllerParams<TState>): RoomProfileController {
   const [target, setTarget] = useState<RoomProfileTarget | null>(null);
   const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
+  const { showRoomAlert } = useRoomAlert();
 
   const open = useCallback(
     (nextTarget: RoomProfileTarget) => {
@@ -94,7 +95,11 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
             if (isSuccessfulRoomCommand(result)) return;
             const reason = getRoomCommandFailureReason(result);
             roomScreenLog.warn(`${command.kind} seat rejected`, { seat: command.seat, reason });
-            showErrorAlert(`${command.label}失败`, translateReasonCode(reason));
+            showRoomAlert({
+              title: `${command.label}失败`,
+              message: translateReasonCode(reason),
+              buttons: [{ text: '确定', style: 'default' }],
+            });
           },
           (error: unknown) => {
             handleError(error, {
@@ -108,7 +113,7 @@ export function useRoomProfileController<TState extends BaseGameState<string>>({
           submissionRef.current = null;
         });
     },
-    [],
+    [showRoomAlert],
   );
 
   const kick = useCallback(

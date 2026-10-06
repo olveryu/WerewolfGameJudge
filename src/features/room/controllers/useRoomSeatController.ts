@@ -3,13 +3,13 @@
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useReducer, useRef } from 'react';
 
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import type { RoomSeatPendingAction } from '@/features/room/model/RoomSeatConfirmation';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { translateReasonCode } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
@@ -80,6 +80,7 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
 }: UseRoomSeatControllerParams<TState>): RoomSeatController {
   const [state, dispatch] = useReducer(transitionRoomSeatController, { kind: 'idle' });
   const submissionRef = useRef<Promise<RoomCommandDispatchOutcome<TState>> | null>(null);
+  const { showRoomAlert } = useRoomAlert();
 
   const requestTakeSeat = useCallback(
     (seat: number) => {
@@ -161,8 +162,12 @@ export function useRoomSeatController<TState extends BaseGameState<string>>({
         ? `${action.toSeat + 1}号座位已被占用，请选择其他位置。`
         : translateReasonCode(reason);
     roomScreenLog.warn(`${action.kind} seat rejected`, { action, reason });
-    showErrorAlert(`${label}失败`, rejectionMessage);
-  }, [state, takeSeat]);
+    showRoomAlert({
+      title: `${label}失败`,
+      message: rejectionMessage,
+      buttons: [{ text: '确定', style: 'default', onPress: () => {} }],
+    });
+  }, [state, takeSeat, showRoomAlert]);
 
   return {
     pendingAction: state.kind === 'idle' ? null : state.action,

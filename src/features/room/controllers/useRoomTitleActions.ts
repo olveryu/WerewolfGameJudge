@@ -9,7 +9,7 @@ import {
   readAdminCredential,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
-import { showAlert, showPrompt } from '@/utils/alert';
+import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import { debugLogStore } from '@/utils/debugLogStore';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -23,26 +23,34 @@ export function useRoomTitleActions() {
   const lastTap = useRef<number | null>(null);
   const tapCountRef = useRef(0);
   const isVerifying = useRef(false);
+  const { showRoomAlert } = useRoomAlert();
 
-  const verifyAndToggle = useCallback(async (credential: string) => {
-    if (isVerifying.current) return;
-    isVerifying.current = true;
-    try {
-      const valid = await verifyAdminPassword(credential);
-      if (!valid) {
-        clearAdminCredential();
-        roomScreenLog.warn('Admin password rejected');
-        showAlert('打开调试日志失败', '管理员密码无效，请重试');
-        return;
+  const verifyAndToggle = useCallback(
+    async (credential: string) => {
+      if (isVerifying.current) return;
+      isVerifying.current = true;
+      try {
+        const valid = await verifyAdminPassword(credential);
+        if (!valid) {
+          clearAdminCredential();
+          roomScreenLog.warn('Admin password rejected');
+          showRoomAlert({
+            title: '打开调试日志失败',
+            message: '管理员密码无效，请重试',
+            buttons: [{ text: '确定', style: 'default' }],
+          });
+          return;
+        }
+        writeAdminCredential(credential);
+        debugLogStore.toggleVisibility();
+      } catch (error: unknown) {
+        handleError(error, { label: '打开调试日志', logger: roomScreenLog });
+      } finally {
+        isVerifying.current = false;
       }
-      writeAdminCredential(credential);
-      debugLogStore.toggleVisibility();
-    } catch (error: unknown) {
-      handleError(error, { label: '打开调试日志', logger: roomScreenLog });
-    } finally {
-      isVerifying.current = false;
-    }
-  }, []);
+    },
+    [showRoomAlert],
+  );
 
   const handleTitlePress = useCallback(() => {
     const now = Date.now();
@@ -67,14 +75,22 @@ export function useRoomTitleActions() {
       void verifyAndToggle(cached);
       return;
     }
-    showPrompt('管理员密码', {
-      placeholder: '请输入管理员密码',
-      onConfirm: (value: string) => {
-        const credential = value.trim();
-        if (credential) void verifyAndToggle(credential);
-      },
+    showRoomAlert({
+      title: '管理员密码',
+      input: { placeholder: '请输入管理员密码' },
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          style: 'default',
+          onPress: (value?: string) => {
+            const credential = (value ?? '').trim();
+            if (credential) void verifyAndToggle(credential);
+          },
+        },
+      ],
     });
-  }, [verifyAndToggle]);
+  }, [verifyAndToggle, showRoomAlert]);
 
   return { handleTitlePress, handleTitleLongPress };
 }

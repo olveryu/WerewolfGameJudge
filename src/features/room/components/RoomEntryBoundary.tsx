@@ -19,6 +19,7 @@ import type { RoomSessionClient } from '@/features/room/session/types';
 import { colors, componentSizes } from '@/theme';
 import { isMiniProgram } from '@/utils/miniProgram';
 
+import { RoomAlertProvider } from './RoomAlertContext';
 import { RoomAuthGate } from './RoomAuthGate';
 import { roomEntryStyles as styles } from './roomEntry.styles';
 import { RoomMiniProgramAuthFailure } from './RoomMiniProgramAuthFailure';
@@ -57,7 +58,7 @@ export function RoomEntryBoundary<TState extends BaseGameState<GameType>, TComma
   if (controller.isReady) {
     return (
       <>
-        {children(controller)}
+        <RoomAlertProvider>{children(controller)}</RoomAlertProvider>
         <AlertModal
           visible={controller.exitConfirmVisible}
           title="离开房间？"
