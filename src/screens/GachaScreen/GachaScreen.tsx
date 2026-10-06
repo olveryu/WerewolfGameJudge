@@ -27,6 +27,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -77,7 +78,8 @@ function GachaSession({ navigation }: Props) {
     refetch,
   } = useGachaStatusQuery();
   const { mutate: draw, isPending: isDrawPending } = useDrawMutation();
-  const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
+  const { pendingOperation, confirmRecovery, recoveryAlert, clearRecoveryAlert } =
+    usePendingGachaOperation();
 
   const machineRef = useRef<CapsuleMachineRef>(null);
   const [currentDrawType, setCurrentDrawType] = useState<'normal' | 'golden'>('normal');
@@ -435,6 +437,15 @@ function GachaSession({ navigation }: Props) {
       )}
 
       <RateDisclosureModal visible={showRates} onClose={() => setShowRates(false)} />
+      {recoveryAlert !== null && (
+        <AlertModal
+          visible
+          title={recoveryAlert.title}
+          message={recoveryAlert.message}
+          buttons={recoveryAlert.buttons}
+          onClose={clearRecoveryAlert}
+        />
+      )}
     </SafeAreaView>
   );
 }

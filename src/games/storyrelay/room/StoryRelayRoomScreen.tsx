@@ -1,5 +1,6 @@
 /** Hosts Story Relay inside the shared room entry, connection, seat and profile shell. */
 
+import { AlertModal } from '@/components/AlertModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -71,7 +72,17 @@ function StoryRelayRoomContent(
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
-      gameOverlays={null}
+      gameOverlays={
+        screen.alert === null ? null : (
+          <AlertModal
+            visible
+            title={screen.alert.title}
+            message={screen.alert.message}
+            buttons={screen.alert.buttons}
+            onClose={screen.clearAlert}
+          />
+        )
+      }
     />
   );
 }

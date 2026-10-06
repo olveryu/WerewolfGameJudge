@@ -14,6 +14,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenFooter, gameScreenStyles } from '@/components/GameScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -155,6 +156,8 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     getBulkCount,
     handleBulkCountChange,
     getFactionAccentColor,
+    alert,
+    clearAlert,
   } = state;
 
   const activeRuleCount = [rules.witchCanSelfHeal, rules.isPlagueMode].filter(Boolean).length;
@@ -360,6 +363,15 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
         onVariantSelect={handleRoleInfoVariantSelect}
         onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handleCloseRoleInfo) : undefined}
       />
+      {alert !== null && (
+        <AlertModal
+          visible
+          title={alert.title}
+          message={alert.message}
+          buttons={alert.buttons}
+          onClose={clearAlert}
+        />
+      )}
     </GameScreen>
   );
 };

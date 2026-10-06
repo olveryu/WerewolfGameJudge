@@ -112,6 +112,10 @@ export function useUndercoverRoomScreenState({
     shellModel,
     controls,
     isControlled: roster.controlledSeat !== null,
+    rosterAlert: roster.alert,
+    clearRosterAlert: roster.clearAlert,
+    controlsAlert: controls.alert,
+    clearControlsAlert: controls.clearAlert,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'undercover', roomCode: room.roomCode }),
   };
