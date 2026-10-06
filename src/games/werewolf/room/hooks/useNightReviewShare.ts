@@ -7,11 +7,11 @@ import type { View } from 'react-native';
 
 import { uploadShareImage } from '@/features/room/services/uploadShareImage';
 import { colors } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
+import type { HookAlertState } from '../hookAlert';
 import { buildNightReviewData } from '../NightReview.helpers';
 import {
   captureNightReviewCard,
@@ -47,6 +47,10 @@ export function useNightReviewShare(
   const nightReviewShareCardRef = useRef<View>(null);
   const scopeRef = useRef<ReportCaptureScope | null>(null);
   const [capturingScopeKey, setCapturingScopeKey] = useState<string | null>(null);
+
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  const [alert, setAlert] = useState<HookAlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
 
   useEffect(() => {
     const scope: ReportCaptureScope = {
@@ -114,7 +118,12 @@ export function useNightReviewShare(
       if (!scope.isActive || base64 === null) return false;
       const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomCode);
       if (!scope.isActive) return false;
-      if (result === 'failed') showErrorAlert('分享失败', '无法分享战报，请稍后重试');
+      if (result === 'failed')
+        setAlert({
+          title: '分享失败',
+          message: '无法分享战报，请稍后重试',
+          buttons: [{ text: '确定', style: 'default', onPress: () => setAlert(null) }],
+        });
       return result === 'shared';
     } catch (error) {
       if (scope.isActive) {
@@ -135,5 +144,7 @@ export function useNightReviewShare(
     isCapturingShareCard: capturingScopeKey === reportScopeKey,
     beginReportCapture,
     shareNightReviewReportDirectly,
+    alert,
+    clearAlert,
   };
 }

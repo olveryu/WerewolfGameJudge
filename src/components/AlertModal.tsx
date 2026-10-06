@@ -66,7 +66,7 @@ function sortButtons(buttons: AlertButton[]): AlertButton[] {
   return [...rest, ...cancel];
 }
 
-interface AlertModalProps {
+export interface AlertModalProps {
   visible: boolean;
   title: string;
   message?: string;

@@ -43,6 +43,8 @@ jest.mock('@/utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
+jest.mock('@/components/AlertModal');
+
 jest.mock('../../useRoomHostDialogs', () => ({
   useRoomHostDialogs: () => ({
     showPrepareToFlipDialog: jest.fn(),

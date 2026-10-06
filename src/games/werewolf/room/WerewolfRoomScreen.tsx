@@ -248,6 +248,17 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
+    // Hook alerts (rendered via <AlertModal> in gameOverlays)
+    nightReviewShareAlert,
+    clearNightReviewShareAlert,
+    hostDialogsAlert,
+    clearHostDialogsAlert,
+    roomModalsAlert,
+    clearRoomModalsAlert,
+    interactionAlert,
+    clearInteractionAlert,
+    actionDialogsAlert,
+    clearActionDialogsAlert,
   } = useWerewolfRoomScreenState(room, navigation, entryController, client);
 
   const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
@@ -856,6 +867,52 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
           {/* Board Strategy Modal -- strategy details */}
           <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
+
+          {/* Hook alerts -- rendered from hook state via <AlertModal>.
+              Gated by !needsContinueOverlay to preserve the old alertBlocked
+              behavior (rejoin overlay suppresses lower-priority alerts). */}
+          <AlertModal
+            visible={nightReviewShareAlert !== null && !needsContinueOverlay}
+            title={nightReviewShareAlert?.title ?? ''}
+            message={nightReviewShareAlert?.message}
+            buttons={nightReviewShareAlert?.buttons ?? []}
+            onClose={clearNightReviewShareAlert}
+          />
+          <AlertModal
+            visible={hostDialogsAlert !== null && !needsContinueOverlay}
+            title={hostDialogsAlert?.title ?? ''}
+            message={hostDialogsAlert?.message}
+            buttons={hostDialogsAlert?.buttons ?? []}
+            onClose={clearHostDialogsAlert}
+          />
+          <AlertModal
+            visible={roomModalsAlert !== null && !needsContinueOverlay}
+            title={roomModalsAlert?.title ?? ''}
+            message={roomModalsAlert?.message}
+            buttons={roomModalsAlert?.buttons ?? []}
+            onClose={clearRoomModalsAlert}
+          />
+          <AlertModal
+            visible={interactionAlert !== null && !needsContinueOverlay}
+            title={interactionAlert?.title ?? ''}
+            message={interactionAlert?.message}
+            buttons={interactionAlert?.buttons ?? []}
+            onClose={clearInteractionAlert}
+          />
+          <AlertModal
+            visible={actionDialogsAlert !== null && !needsContinueOverlay}
+            title={actionDialogsAlert?.title ?? ''}
+            message={actionDialogsAlert?.message}
+            buttons={actionDialogsAlert?.buttons ?? []}
+            onClose={clearActionDialogsAlert}
+          />
+          <AlertModal
+            visible={sheriffElectionPanel?.alert != null && !needsContinueOverlay}
+            title={sheriffElectionPanel?.alert?.title ?? ''}
+            message={sheriffElectionPanel?.alert?.message}
+            buttons={sheriffElectionPanel?.alert?.buttons ?? []}
+            onClose={() => sheriffElectionPanel?.clearAlert()}
+          />
         </>
       }
     />

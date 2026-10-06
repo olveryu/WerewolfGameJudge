@@ -450,6 +450,8 @@ export function useWerewolfRoomScreenState(
     isCapturingShareCard,
     beginReportCapture,
     shareNightReviewReportDirectly,
+    alert: nightReviewShareAlert,
+    clearAlert: clearNightReviewShareAlert,
   } = useNightReviewShare(room.roomId, roomCode, myUserId, gameState);
 
   const {
@@ -461,6 +463,8 @@ export function useWerewolfRoomScreenState(
     mvpSelection,
     closeMvpSelection,
     showMvpSelection,
+    alert: hostDialogsAlert,
+    clearAlert: clearHostDialogsAlert,
   } = useRoomHostDialogs({
     gameState,
     assignRoles,
@@ -546,6 +550,8 @@ export function useWerewolfRoomScreenState(
     closeShareReview,
     handleShareNightReview,
     showLastNightInfo,
+    alert: roomModalsAlert,
+    clearAlert: clearRoomModalsAlert,
   } = useRoomModals({
     isHost,
     canShareReport:
@@ -569,7 +575,13 @@ export function useWerewolfRoomScreenState(
     requestExit(capabilities.shouldConfirmExit);
   }, [capabilities.shouldConfirmExit, requestExit]);
 
-  const { dispatchInteraction, onSeatTapped, onSeatLongPressed } = useInteractionDispatcher({
+  const {
+    dispatchInteraction,
+    onSeatTapped,
+    onSeatLongPressed,
+    alert: interactionAlert,
+    clearAlert: clearInteractionAlert,
+  } = useInteractionDispatcher({
     gameState,
     roomStatus,
     isAudioPlaying,
@@ -866,5 +878,17 @@ export function useWerewolfRoomScreenState(
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
+
+    // ── Hook alerts (rendered via <AlertModal> in gameOverlays) ──
+    nightReviewShareAlert,
+    clearNightReviewShareAlert,
+    hostDialogsAlert,
+    clearHostDialogsAlert,
+    roomModalsAlert,
+    clearRoomModalsAlert,
+    interactionAlert,
+    clearInteractionAlert,
+    actionDialogsAlert: actionDialogs.alert,
+    clearActionDialogsAlert: actionDialogs.clearAlert,
   };
 }

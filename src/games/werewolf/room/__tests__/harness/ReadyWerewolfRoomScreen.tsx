@@ -3,6 +3,7 @@
 import type React from 'react';
 import { useMemo } from 'react';
 
+import { RoomAlertProvider } from '@/features/room/components/RoomAlertContext';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { WerewolfRoomContent } from '@/games/werewolf/room/WerewolfRoomScreen';
@@ -35,5 +36,9 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
     [props.navigation],
   );
 
-  return <WerewolfRoomContent {...props} entryController={entryController} client={TEST_CLIENT} />;
+  return (
+    <RoomAlertProvider>
+      <WerewolfRoomContent {...props} entryController={entryController} client={TEST_CLIENT} />
+    </RoomAlertProvider>
+  );
 };

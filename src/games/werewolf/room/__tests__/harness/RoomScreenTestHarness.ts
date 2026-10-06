@@ -274,6 +274,25 @@ export class RoomScreenTestHarness {
   #events: DialogEvent[] = [];
 
   /**
+   * Active harness instance, set on construction.
+   * Used by the AlertModal jest mock to report rendered dialogs.
+   */
+  static active: RoomScreenTestHarness | null = null;
+
+  constructor() {
+    RoomScreenTestHarness.active = this;
+    // Register with AlertModal jest mock (test-only, avoids circular import)
+    try {
+      const mockModule = require('@/components/__mocks__/AlertModal') as {
+        setAlertModalTestHarness?: (h: RoomScreenTestHarness | null) => void;
+      };
+      mockModule.setAlertModalTestHarness?.(this);
+    } catch {
+      // Mock not loaded (non-board test) — ignore.
+    }
+  }
+
+  /**
    * Get all recorded dialog events
    */
   events(): DialogEvent[] {
