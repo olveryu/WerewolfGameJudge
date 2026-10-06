@@ -10,9 +10,13 @@ const ROOM_MAX_AGE_HOURS = 24;
 const ROOM_EXPIRY_BATCH_LIMIT = 1000;
 
 /** Mark stale rooms for authoritative saga deletion. */
-export async function expireStaleRooms(env: Env, nowMs: number): Promise<{ marked: number }> {
+export async function expireStaleRooms(
+  env: Env,
+  nowMs: number,
+  limit: number = ROOM_EXPIRY_BATCH_LIMIT,
+): Promise<{ marked: number }> {
   const cutoffMs = nowMs - ROOM_MAX_AGE_HOURS * 60 * 60 * 1_000;
-  const marked = await markExpiredRoomsDeleting(env, cutoffMs, nowMs, ROOM_EXPIRY_BATCH_LIMIT);
+  const marked = await markExpiredRoomsDeleting(env, cutoffMs, nowMs, limit);
   log.info('stale room expiry complete', { marked });
   return { marked };
 }
