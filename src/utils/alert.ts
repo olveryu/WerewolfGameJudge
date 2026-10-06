@@ -37,21 +37,6 @@ let alertListener: AlertListener | null = null;
  * Used by the "继续游戏" overlay to prevent lower-priority alerts
  * (e.g. night action) from covering the continue-game button.
  */
-let alertBlocked = false;
-
-/**
- * Block or unblock showAlert(). While blocked:
- * - New calls to showAlert() are silently dropped.
- * - The current visible alert (if any) is dismissed immediately.
- */
-export const setAlertBlocked = (blocked: boolean) => {
-  alertBlocked = blocked;
-  if (blocked) {
-    // Dismiss any currently visible alert
-    alertListener?.(null);
-  }
-};
-
 export interface AlertConfig {
   title: string;
   message?: string;
@@ -84,8 +69,6 @@ export function dismissAlert(expectedGeneration: number): void {
  * Uses custom modal for consistent UI across all platforms
  */
 export const showAlert = (title: string, message?: string, buttons?: AlertButton[]): boolean => {
-  if (alertBlocked) return false;
-
   alertGeneration++;
   const alertButtons = buttons || [{ text: '确定' }];
 
@@ -153,7 +136,6 @@ export const showPrompt = (
 ): boolean => {
   const { message, placeholder, defaultValue = '', onConfirm } = options;
 
-  if (alertBlocked) return false;
   alertGeneration++;
 
   const buttons: AlertButton[] = [
