@@ -19,7 +19,6 @@ export interface AlertButton {
 
 // ── Common button presets (DRY) ──────────────────────────────────────────
 /** "知道了" dismiss button (default style, no action) */
-export const DISMISS_BUTTON: AlertButton = { text: '知道了', style: 'default' } as const;
 /** "取消" cancel button */
 export const CANCEL_BUTTON: AlertButton = { text: '取消', style: 'cancel' } as const;
 /** Create a "确定" confirm button with the given onPress handler */
