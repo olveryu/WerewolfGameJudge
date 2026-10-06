@@ -230,17 +230,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     needsContinueOverlay,
     // Last night info
     showLastNightInfo,
-    // Hook alert states (each rendered via <AlertModal> below)
-    actionDialogAlert,
-    clearActionDialogAlert,
-    nightReviewShareAlert,
-    clearNightReviewShareAlert,
-    hostDialogAlert,
-    clearHostDialogAlert,
-    roomModalsAlert,
-    clearRoomModalsAlert,
-    interactionAlert,
-    clearInteractionAlert,
     // Night review modal
     nightReviewData,
     nightReviewShareCardRef,
@@ -761,52 +750,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
             message="点击下方按钮继续游戏并恢复音频"
             buttons={[{ text: '继续游戏', onPress: resumeAfterRejoin }]}
             onClose={resumeAfterRejoin}
-          />
-
-          {/* Hook-driven alerts -- state owned by room hooks, rendered here via <AlertModal>.
-              Suppressed while the rejoin-continue overlay is up (mirrors the old
-              setAlertBlocked guard); pending alerts surface after it dismisses. */}
-          <AlertModal
-            visible={actionDialogAlert != null && !needsContinueOverlay}
-            title={actionDialogAlert?.title ?? ''}
-            message={actionDialogAlert?.message}
-            buttons={actionDialogAlert?.buttons ?? []}
-            onClose={clearActionDialogAlert}
-          />
-          <AlertModal
-            visible={nightReviewShareAlert != null && !needsContinueOverlay}
-            title={nightReviewShareAlert?.title ?? ''}
-            message={nightReviewShareAlert?.message}
-            buttons={nightReviewShareAlert?.buttons ?? []}
-            onClose={clearNightReviewShareAlert}
-          />
-          <AlertModal
-            visible={hostDialogAlert != null && !needsContinueOverlay}
-            title={hostDialogAlert?.title ?? ''}
-            message={hostDialogAlert?.message}
-            buttons={hostDialogAlert?.buttons ?? []}
-            onClose={clearHostDialogAlert}
-          />
-          <AlertModal
-            visible={roomModalsAlert != null && !needsContinueOverlay}
-            title={roomModalsAlert?.title ?? ''}
-            message={roomModalsAlert?.message}
-            buttons={roomModalsAlert?.buttons ?? []}
-            onClose={clearRoomModalsAlert}
-          />
-          <AlertModal
-            visible={interactionAlert != null && !needsContinueOverlay}
-            title={interactionAlert?.title ?? ''}
-            message={interactionAlert?.message}
-            buttons={interactionAlert?.buttons ?? []}
-            onClose={clearInteractionAlert}
-          />
-          <AlertModal
-            visible={sheriffElectionPanel?.alert != null && !needsContinueOverlay}
-            title={sheriffElectionPanel?.alert?.title ?? ''}
-            message={sheriffElectionPanel?.alert?.message}
-            buttons={sheriffElectionPanel?.alert?.buttons ?? []}
-            onClose={() => sheriffElectionPanel?.clearAlert()}
           />
 
           {/* Role Card Modal */}

@@ -3,7 +3,7 @@
  *
  * Builds InteractionContext from game state / actor identity, calls RoomInteractionPolicy
  * (pure logic) and executes resulting instructions, owns dispatchInteraction / onSeatTapped /
- * onSeatLongPressed, and executes side effects (alert state, showDialog, navigation, role card,
+ * onSeatLongPressed, and executes side effects (showAlert, showDialog, navigation, role card,
  * bot takeover). Does not contain business rules / action processing (that's useActionOrchestrator),
  * does not import services directly, does not own night flow / audio logic, does not render UI
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
@@ -11,7 +11,7 @@
 
 import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
@@ -25,10 +25,9 @@ import {
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-
-import type { HookAlertState } from '../hookAlert';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -86,9 +85,6 @@ interface UseInteractionDispatcherResult {
   onSeatLongPressed: (seat: number) => void;
   /** Computed interaction context (exposed for BottomActionPanel / tests). */
   interactionContext: InteractionContext;
-  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
-  alert: HookAlertState | null;
-  clearAlert: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,9 +123,6 @@ export function useInteractionDispatcher({
   /** Throttle guard for audio-gate toast — avoids spamming when user taps repeatedly */
   const lastAudioToastRef = useRef(0);
   const AUDIO_TOAST_THROTTLE_MS = 3000;
-  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
-  const [alert, setAlert] = useState<HookAlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
 
   const handleSeatingTap = useCallback(
     (seat: number) => {
@@ -236,11 +229,7 @@ export function useInteractionDispatcher({
 
         case 'ALERT':
           roomScreenLog.debug('dispatchInteraction ALERT', { title: result.title });
-          setAlert({
-            title: result.title,
-            message: result.message,
-            buttons: [{ text: '知道了' }],
-          });
+          showDismissAlert(result.title, result.message);
           return;
 
         case 'SHOW_DIALOG':
@@ -431,7 +420,5 @@ export function useInteractionDispatcher({
     onSeatTapped,
     onSeatLongPressed,
     interactionContext,
-    alert,
-    clearAlert,
   };
 }

@@ -16,10 +16,10 @@ import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResu
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import type { RootStackParamList } from '@/navigation/types';
+import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
+import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-
-import type { HookAlertState } from './hookAlert';
 
 interface UseRoomHostDialogsParams {
   gameState: LocalGameState;
@@ -56,9 +56,6 @@ interface UseRoomHostDialogsResult {
   handleSettingsPress: () => void;
   /** True while any host action (assign/start/restart) is in-flight. */
   isHostActionSubmitting: boolean;
-  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
-  alert: HookAlertState | null;
-  clearAlert: () => void;
 }
 
 /** Host action dialog hook (assign / start / restart). */
@@ -76,9 +73,6 @@ export const useRoomHostDialogs = ({
   const submittingRef = useRef(false);
   const [isHostActionSubmitting, setIsHostActionSubmitting] = useState(false);
   const [mvpSelection, setMvpSelection] = useState<UseRoomHostDialogsResult['mvpSelection']>(null);
-  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
-  const [alert, setAlert] = useState<HookAlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
   const closeMvpSelection = useCallback(() => {
     if (!submittingRef.current) setMvpSelection(null);
   }, []);
@@ -101,42 +95,26 @@ export const useRoomHostDialogs = ({
         seatedCount,
         totalSeats,
       });
-      setAlert({
-        title: '无法开始游戏',
-        message: '还有空位未入座',
-        buttons: [{ text: '知道了' }],
-      });
+      showDismissAlert('无法开始游戏', '还有空位未入座');
       return;
     }
 
-    setAlert({
-      title: '分配角色？',
-      message: '所有座位已满，将洗牌并分配角色',
-      buttons: [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定',
-          // Return the promise so AlertModal shows loading until assign settles;
-          // on rejection the button recovers for retry.
-          onPress: async () => {
-            if (submittingRef.current) return;
-            markSubmitting(true);
-            roomScreenLog.debug('Assigning roles');
-            try {
-              await assignRoles();
-            } catch (err) {
-              handleError(err, {
-                label: '分配角色',
-                logger: roomScreenLog,
-                feedback: 'toast',
-              });
-              throw err;
-            } finally {
-              markSubmitting(false);
-            }
-          },
-        },
-      ],
+    showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', async () => {
+      if (submittingRef.current) return;
+      markSubmitting(true);
+      roomScreenLog.debug('Assigning roles');
+      try {
+        await assignRoles();
+      } catch (err) {
+        handleError(err, {
+          label: '分配角色',
+          logger: roomScreenLog,
+          feedback: 'toast',
+        });
+        throw err;
+      } finally {
+        markSubmitting(false);
+      }
     });
   }, [gameState, assignRoles, markSubmitting]);
 
@@ -161,18 +139,7 @@ export const useRoomHostDialogs = ({
   }, [markSubmitting, setIsStartingGame, startGame]);
 
   const showStartGameDialog = useCallback(() => {
-    setAlert({
-      title: '开始游戏？',
-      message: '请将手机音量调到最大',
-      buttons: [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定',
-          // Return the promise so AlertModal shows loading; on rejection the button recovers.
-          onPress: () => handleStartGame(),
-        },
-      ],
-    });
+    showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => handleStartGame());
   }, [handleStartGame]);
 
   const handleRestart = useCallback(async () => {
@@ -196,39 +163,23 @@ export const useRoomHostDialogs = ({
   const showRestartDialog = useCallback(() => {
     if (gameState.status !== GameStatus.Ended) {
       // Game not ended — no complete report to share, plain restart
-      setAlert({
-        title: '重新开始游戏？',
-        message: '使用相同配置开始新一局',
-        buttons: [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '确定',
-            // Return the promise so AlertModal shows loading; on rejection the button recovers.
-            onPress: () => handleRestart(),
-          },
-        ],
-      });
+      showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', () => handleRestart());
       return;
     }
 
-    setAlert({
-      title: '重新开始游戏？',
-      message: '重新开始后本局复盘将无法查看，是否先分享战报？',
-      buttons: [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '分享战报',
-          onPress: () => {
-            void shareNightReviewReport();
-          },
+    showAlert('重新开始游戏？', '重新开始后本局复盘将无法查看，是否先分享战报？', [
+      CANCEL_BUTTON,
+      {
+        text: '分享战报',
+        onPress: () => {
+          void shareNightReviewReport();
         },
-        {
-          text: '重新开始',
-          // Return the promise so AlertModal shows loading; on rejection the button recovers.
-          onPress: () => handleRestart(),
-        },
-      ],
-    });
+      },
+      {
+        text: '重新开始',
+        onPress: () => handleRestart(),
+      },
+    ]);
   }, [gameState.status, shareNightReviewReport, handleRestart]);
 
   const showMvpSelection = useCallback(() => {
@@ -236,11 +187,7 @@ export const useRoomHostDialogs = ({
     if (gameState.status !== GameStatus.Ended || gameState.mvpUserId !== undefined) return;
     const participants = gameState.startingParticipants;
     if (participants === undefined) {
-      setAlert({
-        title: '无法评选 MVP',
-        message: '本局缺少开局真人名单',
-        buttons: [{ text: '知道了' }],
-      });
+      showDismissAlert('无法评选 MVP', '本局缺少开局真人名单');
       return;
     }
     const roleRevealRandomNonce = gameState.roleRevealRandomNonce ?? null;
@@ -293,7 +240,5 @@ export const useRoomHostDialogs = ({
     showRestartDialog,
     handleSettingsPress,
     isHostActionSubmitting,
-    alert,
-    clearAlert,
   };
 };

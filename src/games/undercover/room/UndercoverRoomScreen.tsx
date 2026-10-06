@@ -2,7 +2,6 @@
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 
-import { AlertModal } from '@/components/AlertModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -33,7 +32,7 @@ export function UndercoverRoomScreen(props: UndercoverRoomScreenProps) {
 function UndercoverRoomContent(
   props: UndercoverRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const { state, shellModel, controls, isControlled, alert, clearAlert, openRules } =
+  const { state, shellModel, controls, isControlled, openRules } =
     useUndercoverRoomScreenState(props);
   return (
     <RoomShell
@@ -87,13 +86,6 @@ function UndercoverRoomContent(
               onConfirm={controls.reveal}
             />
           )}
-          <AlertModal
-            visible={alert !== null}
-            title={alert?.title ?? ''}
-            message={alert?.message}
-            buttons={alert?.buttons ?? []}
-            onClose={clearAlert}
-          />
         </>
       }
     />

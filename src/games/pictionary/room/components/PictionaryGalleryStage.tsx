@@ -9,13 +9,13 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryAlbumExport } from './PictionaryAlbumExport';
@@ -178,12 +178,6 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
     throw new Error('[FAIL-FAST] Pictionary gallery entry is missing');
   }
   const command = usePictionaryStageCommand(session, null, state);
-  const [confirmConfig, setConfirmConfig] = useState<{
-    title: string;
-    message: string;
-    confirmText: string;
-    onConfirm: () => void | Promise<void>;
-  } | null>(null);
   const isFirstEntry = gallery.chainIndex === 0 && gallery.entryIndex === 0;
   const isAlbumEnd = gallery.entryIndex === chain.entries.length - 1;
   const isFinalEntry =
@@ -202,13 +196,8 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
         variant="ghost"
         size="sm"
         onPress={() =>
-          setConfirmConfig({
-            title: '全部揭晓？',
-            message: '立即公开全部画册并结束同步回放。',
-            confirmText: '确定',
-            onConfirm: async () => {
-              await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
-            },
+          showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
+            await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
           })
         }
       >
@@ -278,40 +267,17 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   );
 
   return (
-    <>
-      <PictionaryAlbumStage
-        key={chain.id}
-        state={state}
-        entries={visibleEntries}
-        eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
-        title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
-        description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
-        remainingSeconds={remainingSeconds}
-        shouldFollowLatestEntry
-        controls={controls}
-      />
-      <AlertModal
-        visible={confirmConfig !== null}
-        title={confirmConfig?.title ?? ''}
-        message={confirmConfig?.message}
-        buttons={[
-          { text: '取消', style: 'cancel', onPress: () => setConfirmConfig(null) },
-          {
-            text: confirmConfig?.confirmText ?? '确定',
-            style: 'default',
-            onPress: () => confirmConfig?.onConfirm(),
-          },
-        ]}
-        onClose={() => setConfirmConfig(null)}
-      />
-      <AlertModal
-        visible={command.alert !== null}
-        title={command.alert?.title ?? ''}
-        message={command.alert?.message}
-        buttons={command.alert?.buttons ?? []}
-        onClose={command.clearAlert}
-      />
-    </>
+    <PictionaryAlbumStage
+      key={chain.id}
+      state={state}
+      entries={visibleEntries}
+      eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
+      title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
+      description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
+      remainingSeconds={remainingSeconds}
+      shouldFollowLatestEntry
+      controls={controls}
+    />
   );
 };
 

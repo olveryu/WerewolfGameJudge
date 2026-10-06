@@ -42,7 +42,6 @@ import { showAlert } from '@/utils/alert';
 // Mocks
 // =============================================================================
 
-jest.mock('@/components/AlertModal');
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),

@@ -39,8 +39,6 @@ const model: SheriffElectionPanelModel = {
   vote: jest.fn(async () => undefined),
   advance: jest.fn(async () => undefined),
   requestEndBySelfDestruct: jest.fn(),
-  alert: null,
-  clearAlert: jest.fn(),
 };
 const styles = createSheriffElectionPanelStyles(colors);
 

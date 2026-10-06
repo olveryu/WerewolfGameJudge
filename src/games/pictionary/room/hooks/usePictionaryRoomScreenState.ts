@@ -7,9 +7,8 @@ import {
   type PictionaryPublicCommand,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { type AlertButton, type AlertInputConfig } from '@/components/AlertModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -29,14 +28,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
 import type { RootStackParamList } from '@/navigation/types';
-
-/** Alert config exposed by the hook for the owning screen to render via <AlertModal>. */
-export interface AlertState {
-  readonly title: string;
-  readonly message?: string;
-  readonly buttons: AlertButton[];
-  readonly input?: AlertInputConfig;
-}
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
   createPictionaryBottomActions,
@@ -128,8 +120,6 @@ export function usePictionaryRoomScreenState({
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
   const hasAutoShownQR = useRef(false);
   const effectiveSeat = controlledSeat ?? mySeat;
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
 
   useEffect(() => {
     if (controlledSeat === null) return;
@@ -215,31 +205,19 @@ export function usePictionaryRoomScreenState({
         currentSeat: mySeat,
         disabledReason,
       });
-      if (intent.kind === 'blocked') {
-        setAlert({ title: '不可选择', message: intent.reason, buttons: [{ text: '确定' }] });
-        return;
-      }
-      if (intent.kind === 'profile') {
-        if (capabilities.canViewProfiles.isAllowed) {
-          return capabilities.canViewProfiles.execute(intent.target);
-        }
-        setAlert({
-          title: '无法查看资料',
-          message: capabilities.canViewProfiles.reason ?? '游戏进行中不能查看玩家资料',
-          buttons: [{ text: '确定' }],
-        });
-        return;
-      }
+      if (intent.kind === 'blocked') return showErrorAlert('不可选择', intent.reason);
+      if (intent.kind === 'profile')
+        return capabilities.canViewProfiles.isAllowed
+          ? capabilities.canViewProfiles.execute(intent.target)
+          : showErrorAlert(
+              '无法查看资料',
+              capabilities.canViewProfiles.reason ?? '游戏进行中不能查看玩家资料',
+            );
       const capability =
         intent.kind === 'take' ? capabilities.canTakeSeat : capabilities.canMoveSeat;
-      if (capability.isAllowed) {
-        return capability.execute(intent.seat);
-      }
-      setAlert({
-        title: '无法操作座位',
-        message: capability.reason ?? '当前阶段不可操作',
-        buttons: [{ text: '确定' }],
-      });
+      return capability.isAllowed
+        ? capability.execute(intent.seat)
+        : showErrorAlert('无法操作座位', capability.reason ?? '当前阶段不可操作');
     },
     [capabilities, mySeat, state],
   );
@@ -302,45 +280,25 @@ export function usePictionaryRoomScreenState({
         nextRound,
         returnToLobby,
         finishPhase: () =>
-          setAlert({
-            title: '结束编辑并收稿？',
-            message: '将自动收取当前文字和画作，没有内容时自动交空白。全部送达后进入下一棒。',
-            buttons: [
-              { text: '取消', style: 'cancel' },
-              {
-                text: '结束本棒',
-                onPress: async () => {
-                  await submitCommand(
-                    '结束本棒',
-                    createPictionaryCommand(state, { type: 'pictionary.phase.finish' }, null),
-                  );
-                },
-              },
-            ],
-          }),
+          showConfirmAlert(
+            '结束编辑并收稿？',
+            '将自动收取当前文字和画作，没有内容时自动交空白。全部送达后进入下一棒。',
+            async () => {
+              await submitCommand(
+                '结束本棒',
+                createPictionaryCommand(state, { type: 'pictionary.phase.finish' }, null),
+              );
+            },
+            { confirmText: '结束本棒' },
+          ),
         abortRound: () =>
-          setAlert({
-            title: '中止本轮？',
-            message: '保留已提交作品供回看；本局不结算完成奖励。',
-            buttons: [
-              { text: '取消', style: 'cancel' },
-              {
-                text: '确定',
-                onPress: async () => {
-                  await submitCommand(
-                    '中止本局',
-                    createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
-                  );
-                },
-              },
-            ],
+          showConfirmAlert('中止本轮？', '保留已提交作品供回看；本局不结算完成奖励。', async () => {
+            await submitCommand(
+              '中止本局',
+              createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
+            );
           }),
-        onStartDisabled: () =>
-          setAlert({
-            title: '暂时不能开始',
-            message: '请先坐满所有座位，或填充机器人。',
-            buttons: [{ text: '确定' }],
-          }),
+        onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。'),
       }),
     [
       capabilities,
@@ -439,7 +397,5 @@ export function usePictionaryRoomScreenState({
     isHost,
     openRules,
     session,
-    alert,
-    clearAlert,
   };
 }

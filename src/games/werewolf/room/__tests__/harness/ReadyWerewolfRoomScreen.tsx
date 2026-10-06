@@ -28,11 +28,6 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
         throw new Error('Ready room UI test cannot retry entry');
       },
       requestExit: () => props.navigation.navigate('Home'),
-      exitConfirmVisible: false,
-      confirmExit: () => {
-        throw new Error('Ready room UI test cannot confirm exit');
-      },
-      dismissExitConfirm: () => undefined,
     }),
     [props.navigation],
   );

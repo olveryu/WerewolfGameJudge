@@ -8,21 +8,13 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { type AlertButton, type AlertInputConfig } from '@/components/AlertModal';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
   type SuccessfulRoomCommandDispatchOutcome,
 } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-
-/** Alert config exposed by the hook for the owning screen to render via <AlertModal>. */
-export interface AlertState {
-  readonly title: string;
-  readonly message?: string;
-  readonly buttons: AlertButton[];
-  readonly input?: AlertInputConfig;
-}
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -34,8 +26,6 @@ interface PictionaryStageCommand {
     label: string,
     command: PictionaryCommandInput,
   ) => Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null>;
-  readonly alert: AlertState | null;
-  readonly clearAlert: () => void;
 }
 
 interface InFlightStageCommand {
@@ -52,8 +42,6 @@ export function usePictionaryStageCommand(
 ): PictionaryStageCommand {
   const inFlight = useRef<InFlightStageCommand | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alert, setAlert] = useState<AlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
 
   const submit = useCallback(
     (
@@ -79,11 +67,7 @@ export function usePictionaryStageCommand(
             commandType: command.type,
             reason,
           });
-          setAlert({
-            title: `${label}失败`,
-            message: getPictionaryRoomCommandFailureMessage(result),
-            buttons: [{ text: '确定' }],
-          });
+          showErrorAlert(`${label}失败`, getPictionaryRoomCommandFailureMessage(result));
           return null;
         })
         .catch((error: unknown) => {
@@ -105,8 +89,5 @@ export function usePictionaryStageCommand(
     [controlledSeat, session, state, effectiveSeat],
   );
 
-  return useMemo(
-    () => ({ isSubmitting, submit, alert, clearAlert }),
-    [isSubmitting, submit, alert, clearAlert],
-  );
+  return useMemo(() => ({ isSubmitting, submit }), [isSubmitting, submit]);
 }

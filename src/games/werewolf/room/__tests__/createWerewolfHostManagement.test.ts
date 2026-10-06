@@ -75,8 +75,6 @@ function createSheriffElection(
     vote: jest.fn().mockResolvedValue(undefined),
     advance: jest.fn().mockResolvedValue(undefined),
     requestEndBySelfDestruct: jest.fn(),
-    alert: null,
-    clearAlert: jest.fn(),
     ...callbacks,
   };
 }

@@ -72,7 +72,6 @@ function getWolfRobotHunterGatePromptText(): string {
 // Mocks
 // =============================================================================
 
-jest.mock('@/components/AlertModal');
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),

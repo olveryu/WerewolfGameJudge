@@ -34,7 +34,6 @@ import {
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { showAlert } from '@/utils/alert';
 
-jest.mock('@/components/AlertModal');
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),
