@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
 import { GameSettingsStepper } from '@/components/GameSettings';
@@ -34,7 +35,6 @@ import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoom
 import { parseDrawGuessConfigRouteParams } from '@/games/drawguess/navigation/drawGuessGameNavigation';
 import { getDrawGuessRoomCommandFailureMessage } from '@/games/drawguess/room/drawGuessRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -56,6 +56,7 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
   const insets = useSafeAreaInsets();
   const creation = useRoomCreationController();
   const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
   const [config, setConfig] = useState<DrawGuessConfig>(() => {
     if (params.mode === 'create') return DEFAULT_DRAWGUESS_CONFIG;
     const snapshot = session.getSnapshot();
@@ -71,8 +72,10 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
     setConfig((current) => ({ ...current, [key]: value }));
   const changePlayers = (difference: number) => {
     const count = config.numberOfPlayers + difference;
-    if (count < DRAWGUESS_MIN_PLAYERS || count > DRAWGUESS_MAX_PLAYERS)
-      return showErrorAlert('人数设置有误', '支持 4 至 12 人');
+    if (count < DRAWGUESS_MIN_PLAYERS || count > DRAWGUESS_MAX_PLAYERS) {
+      setErrorAlert({ title: '人数设置有误', message: '支持 4 至 12 人' });
+      return;
+    }
     update('numberOfPlayers', count);
   };
   const submit = () => {
@@ -149,6 +152,13 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
           {params.mode === 'edit' ? '保存设置' : '创建房间'}
         </Button>
       </GameScreenFooter>
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
+      />
     </GameScreen>
   );
 }

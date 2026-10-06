@@ -9,13 +9,13 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, type ListRenderItemInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryAlbumExport } from './PictionaryAlbumExport';
@@ -168,6 +168,7 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   session,
   remainingSeconds,
 }) => {
+  const [revealConfirm, setRevealConfirm] = useState(false);
   if (state.phase !== 'gallery' || state.gallery === null) {
     throw new Error('[FAIL-FAST] Gallery stage requires active Pictionary gallery state');
   }
@@ -192,15 +193,7 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   );
   const controls = isHost ? (
     <View style={styles.galleryControls}>
-      <Button
-        variant="ghost"
-        size="sm"
-        onPress={() =>
-          showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', async () => {
-            await command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
-          })
-        }
-      >
+      <Button variant="ghost" size="sm" onPress={() => setRevealConfirm(true)}>
         全部揭晓
       </Button>
       <Button
@@ -267,17 +260,35 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
   );
 
   return (
-    <PictionaryAlbumStage
-      key={chain.id}
-      state={state}
-      entries={visibleEntries}
-      eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
-      title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
-      description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
-      remainingSeconds={remainingSeconds}
-      shouldFollowLatestEntry
-      controls={controls}
-    />
+    <>
+      <PictionaryAlbumStage
+        key={chain.id}
+        state={state}
+        entries={visibleEntries}
+        eyebrow={`第 ${gallery.chainIndex + 1} / ${state.config.numberOfPlayers} 本画册`}
+        title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
+        description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
+        remainingSeconds={remainingSeconds}
+        shouldFollowLatestEntry
+        controls={controls}
+      />
+      <AlertModal
+        visible={revealConfirm}
+        title="全部揭晓？"
+        message="立即公开全部画册并结束同步回放。"
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setRevealConfirm(false) },
+          {
+            text: '揭晓',
+            style: 'destructive',
+            onPress: () => {
+              void command.submit('全部揭晓', { type: 'pictionary.gallery.finish' });
+            },
+          },
+        ]}
+        onClose={() => setRevealConfirm(false)}
+      />
+    </>
   );
 };
 

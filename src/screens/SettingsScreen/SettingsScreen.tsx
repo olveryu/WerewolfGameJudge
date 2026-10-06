@@ -14,6 +14,7 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -37,8 +38,6 @@ import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCa
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
-import { showPrompt } from '@/utils/alert';
-import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { handleError } from '@/utils/errorPipeline';
 import {
@@ -96,6 +95,27 @@ export const SettingsScreen: React.FC = () => {
   );
 
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  /** Unified alert state: error (single button), confirm (cancel+confirm), prompt (with input). */
+  const [alert, setAlert] = useState<
+    | { kind: 'error'; title: string; message: string }
+    | {
+        kind: 'confirm';
+        title: string;
+        message: string;
+        confirmText: string;
+        destructive?: boolean;
+        onConfirm: () => void | Promise<void>;
+      }
+    | {
+        kind: 'prompt';
+        title: string;
+        placeholder: string;
+        defaultValue: string;
+        onConfirm: (value: string) => void;
+      }
+    | null
+  >(null);
 
   // Growth system state (shared cache via TanStack Query)
   const { data: growthStats } = useUserStatsQuery();
@@ -166,7 +186,7 @@ export const SettingsScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.error('Sign out failed', { message }, e);
-      showErrorAlert('退出失败', message);
+      setAlert({ kind: 'error', title: '退出失败', message });
     }
   }, [signOut, user]);
 
@@ -183,7 +203,9 @@ export const SettingsScreen: React.FC = () => {
   }, [navigation]);
 
   const handleStartEditName = useCallback(() => {
-    showPrompt('修改昵称', {
+    setAlert({
+      kind: 'prompt',
+      title: '修改昵称',
       placeholder: '请输入昵称',
       defaultValue: user?.displayName || '',
       onConfirm: (value: string) => {
@@ -205,7 +227,7 @@ export const SettingsScreen: React.FC = () => {
           } catch (e: unknown) {
             const message = getErrorMessage(e);
             settingsLog.error('Update name failed', { message }, e);
-            showErrorAlert('更新失败', message);
+            setAlert({ kind: 'error', title: '更新失败', message });
           }
         })();
       },
@@ -252,7 +274,7 @@ export const SettingsScreen: React.FC = () => {
           const result = await activeRoom.leaveSeat();
           if (!isSuccessfulRoomCommand(result)) {
             const reason = getRoomCommandFailureReason(result);
-            showErrorAlert('离座失败', translateReasonCode(reason));
+            setAlert({ kind: 'error', title: '离座失败', message: translateReasonCode(reason) });
             return;
           }
         }
@@ -269,14 +291,19 @@ export const SettingsScreen: React.FC = () => {
           feedback: false,
           isExpected: isExpectedError,
         });
-        showErrorAlert('切换失败', getUserFacingMessage(e));
+        setAlert({ kind: 'error', title: '切换失败', message: getUserFacingMessage(e) });
       }
     };
 
     if (user?.isAnonymous) {
-      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', () =>
-        doSwitch(),
-      );
+      setAlert({
+        kind: 'confirm',
+        title: '切换账号',
+        message: '匿名数据将无法恢复，确定切换账号？',
+        confirmText: '切换',
+        destructive: true,
+        onConfirm: () => doSwitch(),
+      });
     } else {
       void doSwitch();
     }
@@ -301,7 +328,7 @@ export const SettingsScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.warn('Anonymous login failed', { message });
-      showErrorAlert('登录失败', message);
+      setAlert({ kind: 'error', title: '登录失败', message });
     }
   }, [signInAnonymously]);
 
@@ -621,6 +648,42 @@ export const SettingsScreen: React.FC = () => {
 
         <AboutSection styles={styles} />
       </ScrollView>
+      <AlertModal
+        visible={alert !== null}
+        title={alert?.title ?? ''}
+        message={alert?.kind === 'prompt' ? undefined : alert?.message}
+        input={
+          alert?.kind === 'prompt'
+            ? { placeholder: alert.placeholder, defaultValue: alert.defaultValue }
+            : undefined
+        }
+        buttons={
+          alert?.kind === 'error' || alert == null
+            ? [{ text: '确定', style: 'default', onPress: () => setAlert(null) }]
+            : alert.kind === 'prompt'
+              ? [
+                  { text: '取消', style: 'cancel', onPress: () => setAlert(null) },
+                  {
+                    text: '确定',
+                    style: 'default',
+                    onPress: (value?: string) => {
+                      alert.onConfirm(value ?? '');
+                      setAlert(null);
+                    },
+                  },
+                ]
+              : [
+                  { text: '取消', style: 'cancel', onPress: () => setAlert(null) },
+                  {
+                    text: alert.confirmText,
+                    style: alert.destructive ? 'destructive' : 'default',
+                    // 返回 Promise 让 AlertModal 显示 loading，完成后自动 onClose
+                    onPress: () => alert.onConfirm(),
+                  },
+                ]
+        }
+        onClose={() => setAlert(null)}
+      />
     </SafeAreaView>
   );
 };

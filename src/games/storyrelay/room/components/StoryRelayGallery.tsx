@@ -8,9 +8,9 @@ import type {
 import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { colors, componentSizes } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getStoryRelayVisibleStories } from '../storyRelayPresentation';
 import { StoryRelayImageShare } from './StoryRelayImageShare';
@@ -29,6 +29,7 @@ export function StoryRelayGallery({
   readonly isSubmitting: boolean;
 }) {
   const [selectedStory, setSelectedStory] = useState(0);
+  const [revealConfirm, setRevealConfirm] = useState(false);
   const isPlayback = state.phase === 'gallery';
   const chainIndex =
     isPlayback && state.gallery !== null
@@ -144,11 +145,7 @@ export function StoryRelayGallery({
           <Button
             variant="secondary"
             disabled={isSubmitting}
-            onPress={() =>
-              showConfirmAlert('全部揭晓', '立即公开剩余故事并结束回放？', () => {
-                control('storyrelay.gallery.finish');
-              })
-            }
+            onPress={() => setRevealConfirm(true)}
           >
             全部揭晓
           </Button>
@@ -159,6 +156,23 @@ export function StoryRelayGallery({
           <StoryRelayImageShare state={state} chainIndex={chainIndex} />
         </View>
       )}
+      <AlertModal
+        visible={revealConfirm}
+        title="全部揭晓"
+        message="立即公开剩余故事并结束回放？"
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setRevealConfirm(false) },
+          {
+            text: '揭晓',
+            style: 'destructive',
+            onPress: () => {
+              setRevealConfirm(false);
+              control('storyrelay.gallery.finish');
+            },
+          },
+        ]}
+        onClose={() => setRevealConfirm(false)}
+      />
     </View>
   );
 }

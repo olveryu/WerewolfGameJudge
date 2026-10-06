@@ -7,7 +7,7 @@
  */
 import { getRoleDisplayName, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -18,11 +18,11 @@ import {
   View,
 } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Modal } from '@/components/AppModal';
 import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 interface BottomCardItem {
   roleId: RoleId;
@@ -133,6 +133,10 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
 }) => {
   const { height: screenHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors, screenHeight), [screenHeight]);
+  const [confirmCard, setConfirmCard] = useState<{
+    index: number;
+    displayName: string;
+  } | null>(null);
 
   const cards: BottomCardItem[] = useMemo(
     () =>
@@ -144,54 +148,71 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   );
 
   const handleCardPress = (cardIndex: number, card: BottomCardItem) => {
-    showConfirmAlert('确认选择', `${confirmText}\n\n${card.displayName}`, () =>
-      onChoose(cardIndex),
-    );
+    setConfirmCard({ index: cardIndex, displayName: card.displayName });
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container} testID={TESTIDS.chooseBottomCardModal}>
-          <Text style={styles.title}>选择底牌</Text>
-          <Text style={styles.teamSubtitle}>{subtitle}</Text>
-          <ScrollView
-            style={styles.cardListScroll}
-            contentContainerStyle={styles.cardList}
-            showsVerticalScrollIndicator={false}
-          >
-            {cards.map((card, index) => {
-              const isDisabled = disabledIndices.includes(index);
-              return (
-                <TouchableOpacity
-                  key={`${card.roleId}-${index}`}
-                  testID={TESTIDS.chooseBottomCardOption(index)}
-                  style={[styles.card, isDisabled && styles.cardDisabled]}
-                  disabled={isDisabled}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: isDisabled }}
-                  activeOpacity={0.7}
-                  onPress={() => handleCardPress(index, card)}
-                >
-                  <Image source={getRoleBadge(card.roleId)} style={styles.cardBadge} />
-                  <View style={styles.cardInfo}>
-                    <Text style={[styles.cardName, isDisabled && styles.cardNameDisabled]}>
-                      {card.displayName}
-                    </Text>
-                    {isDisabled && disabledHint && (
-                      <Text style={styles.cardHint}>{disabledHint}</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
-            <Text style={styles.cancelText}>取消</Text>
-          </TouchableOpacity>
+    <>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <View style={styles.overlay}>
+          <View style={styles.container} testID={TESTIDS.chooseBottomCardModal}>
+            <Text style={styles.title}>选择底牌</Text>
+            <Text style={styles.teamSubtitle}>{subtitle}</Text>
+            <ScrollView
+              style={styles.cardListScroll}
+              contentContainerStyle={styles.cardList}
+              showsVerticalScrollIndicator={false}
+            >
+              {cards.map((card, index) => {
+                const isDisabled = disabledIndices.includes(index);
+                return (
+                  <TouchableOpacity
+                    key={`${card.roleId}-${index}`}
+                    testID={TESTIDS.chooseBottomCardOption(index)}
+                    style={[styles.card, isDisabled && styles.cardDisabled]}
+                    disabled={isDisabled}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: isDisabled }}
+                    activeOpacity={0.7}
+                    onPress={() => handleCardPress(index, card)}
+                  >
+                    <Image source={getRoleBadge(card.roleId)} style={styles.cardBadge} />
+                    <View style={styles.cardInfo}>
+                      <Text style={[styles.cardName, isDisabled && styles.cardNameDisabled]}>
+                        {card.displayName}
+                      </Text>
+                      {isDisabled && disabledHint && (
+                        <Text style={styles.cardHint}>{disabledHint}</Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
+              <Text style={styles.cancelText}>取消</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+      <AlertModal
+        visible={confirmCard !== null}
+        title="确认选择"
+        message={confirmCard ? `${confirmText}\n\n${confirmCard.displayName}` : undefined}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setConfirmCard(null) },
+          {
+            text: '确定',
+            style: 'default',
+            onPress: () => {
+              // 返回 Promise 让 AlertModal 显示 loading，完成后自动 onClose
+              return confirmCard !== null ? onChoose(confirmCard.index) : undefined;
+            },
+          },
+        ]}
+        onClose={() => setConfirmCard(null)}
+      />
+    </>
   );
 };
 

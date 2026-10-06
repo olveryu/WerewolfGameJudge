@@ -15,10 +15,11 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { UI_ICONS } from '@/config/iconTokens';
@@ -39,7 +40,6 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
 
@@ -79,6 +79,11 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
   const styles = useMemo(() => createStyles(colors, insets.bottom), [insets.bottom]);
 
   const showAIButton = isAIChatReady();
+  const [confirmConfig, setConfirmConfig] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const handleAskAI = useCallback(() => {
     if (!roleId) return;
@@ -86,13 +91,17 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
     if (!prompt) return;
     const spec = getRoleSpec(roleId);
     const roleName = spec?.displayName ?? roleId;
-    showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
-      onClose();
-      requestAIChatMessage({
-        fullText: prompt,
-        displayText: `${roleName} 攻略`,
-        maxTokens: 1024,
-      });
+    setConfirmConfig({
+      title: 'AI 攻略',
+      message: `让 AI 分析「${roleName}」的玩法？`,
+      onConfirm: () => {
+        onClose();
+        requestAIChatMessage({
+          fullText: prompt,
+          displayText: `${roleName} 攻略`,
+          maxTokens: 1024,
+        });
+      },
     });
   }, [roleId, onClose]);
 
@@ -193,6 +202,23 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
           </ScrollView>
         </View>
       </View>
+      <AlertModal
+        visible={confirmConfig !== null}
+        title={confirmConfig?.title ?? ''}
+        message={confirmConfig?.message}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setConfirmConfig(null) },
+          {
+            text: '确定',
+            style: 'default',
+            onPress: () => {
+              confirmConfig?.onConfirm();
+              setConfirmConfig(null);
+            },
+          },
+        ]}
+        onClose={() => setConfirmConfig(null)}
+      />
     </Modal>
   );
 };

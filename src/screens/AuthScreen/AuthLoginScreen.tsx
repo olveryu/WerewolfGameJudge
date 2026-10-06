@@ -8,16 +8,16 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { LoginOptions } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useSignInAnonymously } from '@/features/auth/controllers/useAuthMutations';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
@@ -32,6 +32,7 @@ export const AuthLoginScreen: React.FC = () => {
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthLogin'>>();
   const route = useRoute<RouteProp>();
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
 
   const { user, loading: authLoading } = useAuthContext();
   const isAnon = !!user?.isAnonymous;
@@ -62,7 +63,7 @@ export const AuthLoginScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       authLog.warn('Anonymous login failed', { message });
-      showErrorAlert('登录失败', message);
+      setErrorAlert({ title: '登录失败', message });
     }
   }, [signInAnonymously, navigation]);
 
@@ -93,6 +94,13 @@ export const AuthLoginScreen: React.FC = () => {
           styles={styles}
         />
       </View>
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
+      />
     </View>
   );
 };
