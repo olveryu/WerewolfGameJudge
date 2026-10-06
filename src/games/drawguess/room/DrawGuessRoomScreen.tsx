@@ -28,7 +28,6 @@ import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResu
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -377,6 +376,8 @@ function DrawGuessDrawingView({
     DRAWGUESS_DRAWING_WIDTHS[1],
   );
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
+  const [giveUpConfirm, setGiveUpConfirm] = useState(false);
   const canDraw = isDrawer && remainingSeconds !== null && remainingSeconds > 0;
   const sync = useDrawGuessStrokeSync({
     session,
@@ -414,10 +415,13 @@ function DrawGuessDrawingView({
           { controlledSeat, label: '提交猜词' },
         );
         if (!isSuccessfulRoomCommand(result))
-          showErrorAlert('提交猜词失败', getDrawGuessRoomCommandFailureMessage(result));
+          setErrorAlert({
+            title: '提交猜词失败',
+            message: getDrawGuessRoomCommandFailureMessage(result),
+          });
       } catch (error: unknown) {
         if (error instanceof CloudflareHttpError && error.status === 429) {
-          showErrorAlert('猜得太快了', '猜得太快了，稍后再试');
+          setErrorAlert({ title: '猜得太快了', message: '猜得太快了，稍后再试' });
           return;
         }
         handleError(error, {
@@ -430,9 +434,12 @@ function DrawGuessDrawingView({
   };
 
   const giveUp = () => {
-    showConfirmAlert('放弃本轮', '将直接进入结算并公布答案，确定放弃本轮作画吗？', () => {
-      void submit('放弃本轮', { type: 'drawguess.round.finish' });
-    });
+    setGiveUpConfirm(true);
+  };
+
+  const confirmGiveUp = () => {
+    setGiveUpConfirm(false);
+    void submit('放弃本轮', { type: 'drawguess.round.finish' });
   };
 
   return (
@@ -516,6 +523,31 @@ function DrawGuessDrawingView({
           { text: '清空', style: 'destructive', onPress: confirmClearDrawing },
         ]}
         onClose={() => setShowClearConfirm(false)}
+      />
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
+      />
+      <AlertModal
+        visible={giveUpConfirm}
+        title="放弃本轮"
+        message="将直接进入结算并公布答案，确定放弃本轮作画吗？"
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setGiveUpConfirm(false) },
+          { text: '放弃', style: 'destructive', onPress: confirmGiveUp },
+        ]}
+        onClose={() => setGiveUpConfirm(false)}
+      />
+      <AlertModal
+        visible={screen.alert !== null}
+        title={screen.alert?.title ?? ''}
+        message={screen.alert?.message}
+        buttons={screen.alert?.buttons ?? []}
+        input={screen.alert?.input}
+        onClose={screen.clearAlert}
       />
     </>
   );

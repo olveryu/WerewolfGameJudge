@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
 import { GameSettingsStepper } from '@/components/GameSettings';
@@ -33,7 +34,6 @@ import { parseStoryRelayConfigRouteParams } from '@/games/storyrelay/navigation/
 import { getStoryRelayRoomCommandFailureMessage } from '@/games/storyrelay/room/storyRelayRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -99,12 +99,15 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
       throw new Error('Story Relay settings require the active lobby');
     return snapshot.snapshot.state.config;
   });
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
   const update = <TKey extends keyof StoryRelayConfig>(key: TKey, value: StoryRelayConfig[TKey]) =>
     setConfig((current) => ({ ...current, [key]: value }));
   const changePlayers = (difference: number) => {
     const count = config.numberOfPlayers + difference;
-    if (count < STORY_RELAY_MIN_PLAYERS || count > STORY_RELAY_MAX_PLAYERS)
-      return showErrorAlert('人数设置有误', '支持 4 至 20 人');
+    if (count < STORY_RELAY_MIN_PLAYERS || count > STORY_RELAY_MAX_PLAYERS) {
+      setErrorAlert({ title: '人数设置有误', message: '支持 4 至 20 人' });
+      return;
+    }
     update('numberOfPlayers', count);
   };
   const submit = () => {
@@ -191,6 +194,13 @@ export function StoryRelayConfigScreen({ session }: { readonly session: StoryRel
           {params.mode === 'edit' ? '保存设置' : '创建房间'}
         </Button>
       </GameScreenFooter>
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
+      />
     </GameScreen>
   );
 }

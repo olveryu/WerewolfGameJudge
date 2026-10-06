@@ -22,6 +22,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
@@ -34,7 +35,6 @@ import {
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
-import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { gachaLog } from '@/utils/logger';
 
@@ -96,11 +96,16 @@ const PREVIEW_SIZE = 56;
   const { data: gachaStatus, isLoading: gachaLoading } = useGachaStatusQuery();
   const { data: statsData, isLoading: statsLoading } = useUserStatsQuery();
   const { mutate: exchange, isPending: isExchanging } = useExchangeShardMutation();
-  const { pendingOperation, confirmRecovery } = usePendingGachaOperation();
+  const { pendingOperation, confirmRecovery, alert, clearAlert } = usePendingGachaOperation();
   const productUi = useClientProductUi();
 
   const [activeTab, setActiveTab] = useState<TypeTab>('avatar');
   const [activeRarity, setActiveRarity] = useState<RarityFilter>('all');
+  const [exchangeConfirm, setExchangeConfirm] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const shards = gachaStatus?.shards ?? 0;
   const unlockedSet = useMemo(
@@ -143,30 +148,28 @@ const PREVIEW_SIZE = 56;
   const handleExchange = useCallback(
     (item: ExchangeItem) => {
       const displayName = getRewardDisplayName(productUi, item.type, item.id);
-      showAlert('确认兑换', `消耗 ✦ ${item.cost} 碎片兑换「${displayName}」？`, [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '兑换',
-          onPress: () => {
-            exchange(item.id, {
-              onSuccess: () => {
-                toast.success('兑换成功', { description: `获得「${displayName}」` });
-              },
-              onError: (error: Error) => {
-                handleError(error, {
-                  label: '兑换',
-                  logger: gachaLog,
-                  feedback: false,
-                  isExpected: (e) =>
-                    e instanceof Error &&
-                    (e.message.includes('碎片不足') || e.message.includes('已拥有')),
-                });
-                toast.error(error.message || '兑换失败，请稍后重试');
-              },
-            });
-          },
+      setExchangeConfirm({
+        title: '确认兑换',
+        message: `消耗 ✦ ${item.cost} 碎片兑换「${displayName}」？`,
+        onConfirm: () => {
+          exchange(item.id, {
+            onSuccess: () => {
+              toast.success('兑换成功', { description: `获得「${displayName}」` });
+            },
+            onError: (error: Error) => {
+              handleError(error, {
+                label: '兑换',
+                logger: gachaLog,
+                feedback: false,
+                isExpected: (e) =>
+                  e instanceof Error &&
+                  (e.message.includes('碎片不足') || e.message.includes('已拥有')),
+              });
+              toast.error(error.message || '兑换失败，请稍后重试');
+            },
+          });
         },
-      ]);
+      });
     },
     [exchange, productUi],
   );
@@ -345,6 +348,30 @@ const PREVIEW_SIZE = 56;
           showsVerticalScrollIndicator={false}
         />
       )}
+      <AlertModal
+        visible={exchangeConfirm !== null}
+        title={exchangeConfirm?.title ?? ''}
+        message={exchangeConfirm?.message}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setExchangeConfirm(null) },
+          {
+            text: '兑换',
+            style: 'default',
+            onPress: () => {
+              exchangeConfirm?.onConfirm();
+              setExchangeConfirm(null);
+            },
+          },
+        ]}
+        onClose={() => setExchangeConfirm(null)}
+      />
+      <AlertModal
+        visible={alert !== null}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        buttons={alert?.buttons ?? []}
+        onClose={clearAlert}
+      />
     </SafeAreaView>
   );
 }

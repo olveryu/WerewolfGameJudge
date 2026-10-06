@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
@@ -39,7 +40,6 @@ import {
 import type { RootStackParamList } from '@/navigation/types';
 import { colors, spacing, withAlpha } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -83,6 +83,7 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
   });
   const [playerCountText, setPlayerCountText] = useState(String(config.numberOfPlayers));
   const [isCategoryVisible, setIsCategoryVisible] = useState(false);
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
   const selectedConfig = { ...config, numberOfPlayers: Number(playerCountText) };
   const counts =
     /^\d+$/.test(playerCountText) && isValidUndercoverConfig(selectedConfig)
@@ -90,15 +91,15 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
       : null;
   const submit = async () => {
     if (!inventory.isSuccess) {
-      showErrorAlert('分类尚未就绪', '请等待分类加载完成，或重试读取分类');
+      setErrorAlert({ title: '分类尚未就绪', message: '请等待分类加载完成，或重试读取分类' });
       return;
     }
     if (!categories.includes(config.category)) {
-      showErrorAlert('暂无可用词语', '请选择有可用词语的分类，或稍后重试');
+      setErrorAlert({ title: '暂无可用词语', message: '请选择有可用词语的分类，或稍后重试' });
       return;
     }
     if (counts === null) {
-      showErrorAlert('设置有误', '人数需为 4 至 12 人；启用白板至少需要 6 人');
+      setErrorAlert({ title: '设置有误', message: '人数需为 4 至 12 人；启用白板至少需要 6 人' });
       return;
     }
     if (params.mode === 'edit') {
@@ -136,7 +137,7 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
       count < UNDERCOVER_MIN_PLAYERS ||
       count > UNDERCOVER_MAX_PLAYERS
     ) {
-      showErrorAlert('人数设置有误', '支持 4 至 12 人');
+      setErrorAlert({ title: '人数设置有误', message: '支持 4 至 12 人' });
       return;
     }
     setPlayerCountText(String(count));
@@ -268,6 +269,13 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
           </Button>
         </BaseCenterModal>
       )}
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
+      />
     </GameScreen>
   );
 }

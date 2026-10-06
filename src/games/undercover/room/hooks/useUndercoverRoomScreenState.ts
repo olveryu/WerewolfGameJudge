@@ -50,6 +50,12 @@ export function useUndercoverRoomScreenState({
     });
   const roster = useUndercoverRoster(state, session, user, configure, share.open);
   const controls = useUndercoverRoundControls(state, session, user.id, roster.controlledSeat);
+  // At most one alert is visible at a time; controls takes precedence.
+  const alert = controls.alert ?? roster.alert;
+  const clearAlert = () => {
+    controls.clearAlert();
+    roster.clearAlert();
+  };
   const hasAutoShownQR = useRef(false);
   const isHost = state.hostUserId === user.id;
   const openShare = share.open;
@@ -112,6 +118,8 @@ export function useUndercoverRoomScreenState({
     shellModel,
     controls,
     isControlled: roster.controlledSeat !== null,
+    alert,
+    clearAlert,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'undercover', roomCode: room.roomCode }),
   };

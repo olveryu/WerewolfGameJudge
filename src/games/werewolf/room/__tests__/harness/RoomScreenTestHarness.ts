@@ -2,7 +2,7 @@
  * RoomScreenTestHarness — WerewolfRoomScreen UI test infrastructure.
  *
  * Responsibilities:
- * - Intercept and record all showAlert calls
+ * - Intercept and record all showAlert calls and <AlertModal> renders
  * - Provide fluent API for event inspection and assertions
  * - Single source of truth for dialog type classification (centralized classification)
  * - Support loop detection and coverage verification
@@ -270,8 +270,29 @@ function classifyDialog(title: string, message: string): DialogType {
 // Harness Implementation
 // =============================================================================
 
+/**
+ * Active harness registry for the AlertModal test observer.
+ *
+ * Room dialogs migrated from showAlert() to hook-owned <AlertModal> state.
+ * The manual mock at src/components/__mocks__/AlertModal.tsx wraps the real
+ * AlertModal and reports visible transitions here, so dialog assertions
+ * (hasSeen/expectSeen/pressButton*) keep working without per-test rewrites.
+ * Module registries are per test file, so the latest constructed harness wins.
+ */
+let activeHarness: RoomScreenTestHarness | null = null;
+
+/** @internal Called by the AlertModal manual mock. */
+export function getActiveHarness(): RoomScreenTestHarness | null {
+  return activeHarness;
+}
+
 export class RoomScreenTestHarness {
   #events: DialogEvent[] = [];
+
+  constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    activeHarness = this;
+  }
 
   /**
    * Get all recorded dialog events

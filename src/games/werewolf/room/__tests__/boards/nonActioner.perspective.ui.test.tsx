@@ -26,6 +26,7 @@ import { showAlert } from '@/utils/alert';
 // Mocks — same as standard board but useActionerState returns imActioner=false
 // =============================================================================
 
+jest.mock('@/components/AlertModal');
 jest.mock('@/utils/alert', () => ({
   ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),

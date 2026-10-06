@@ -18,6 +18,7 @@ import {
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import {
   getRoomCommandFailureReason,
@@ -40,7 +41,6 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
 
 interface BoardNominationModalProps {
@@ -224,6 +224,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
   clearAllSeats,
   onClose,
 }: BoardNominationModalProps) {
+  const [errorAlert, setErrorAlert] = useState<{ title: string; message: string } | null>(null);
   const handleAdopt = useCallback(
     async (roles: readonly RoleId[]) => {
       const newCount = getPlayerCount(roles);
@@ -231,7 +232,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
         const clearResult = await clearAllSeats();
         if (!isSuccessfulRoomCommand(clearResult)) {
           const reason = getRoomCommandFailureReason(clearResult);
-          showErrorAlert('采纳失败', translateReasonCode(reason));
+          setErrorAlert({ title: '采纳失败', message: translateReasonCode(reason) });
           return;
         }
       }
@@ -239,7 +240,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
       const result = await client.updateTemplate(template);
       if (!isSuccessfulRoomCommand(result)) {
         const reason = getRoomCommandFailureReason(result);
-        showErrorAlert('采纳失败', translateReasonCode(reason));
+        setErrorAlert({ title: '采纳失败', message: translateReasonCode(reason) });
         return;
       }
       onClose();
@@ -321,6 +322,13 @@ export const BoardNominationModal = memo(function BoardNominationModal({
         roleId={previewRoleId}
         onClose={handlePreviewClose}
         showRealIdentity
+      />
+      <AlertModal
+        visible={errorAlert !== null}
+        title={errorAlert?.title ?? ''}
+        message={errorAlert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: () => setErrorAlert(null) }]}
+        onClose={() => setErrorAlert(null)}
       />
     </>
   );

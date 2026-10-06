@@ -4,20 +4,28 @@ import {
   type UndercoverPublicCommand,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
+import type { AlertButton } from '@/components/AlertModal';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import { getUndercoverRoomCommandFailureMessage } from '../undercoverRoomCommandFailureMessage';
+
+/** Alert dialog state exposed for the screen to render via <AlertModal>. */
+interface AlertState {
+  title: string;
+  message?: string;
+  buttons: AlertButton[];
+}
 
 function requestUndercoverRestart(
   state: UndercoverState,
   submit: (label: string, command: UndercoverPublicCommand) => Promise<boolean>,
   closeCard: () => void,
   clearSelection: () => void,
+  requestConfirm: (title: string, message: string, onConfirm: () => Promise<void>) => void,
 ) {
   if (state.phase === 'lobby') throw new Error('Restart requires an existing Undercover round');
   const roundId =
@@ -30,7 +38,7 @@ function requestUndercoverRestart(
   };
   if (state.phase === 'ended' || state.phase === 'aborted') void restart();
   else
-    showConfirmAlert(
+    requestConfirm(
       '重新开始？',
       '当前未结束的对局不计胜负，保留座位和设置，重新分配词语与身份。',
       restart,
@@ -46,6 +54,8 @@ export function useUndercoverRoundControls(
   const submission = useRoomCommandSubmission(getUndercoverRoomCommandFailureMessage);
   const [visibleCardKey, setVisibleCardKey] = useState<string | null>(null);
   const [selection, setSelection] = useState<{ roundId: string; seat: number | null } | null>(null);
+  const [alert, setAlert] = useState<AlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
   const isHost = state.hostUserId === userId;
   const card = getUndercoverWordCard(state, userId, controlledSeat);
   const cardKey =
@@ -87,9 +97,19 @@ export function useUndercoverRoundControls(
   };
   const abort = () => {
     if (roundId === undefined) throw new Error('Abort requires an active Undercover round');
-    showConfirmAlert('中止本局？', '本局不计胜负，不公开未揭晓身份和词语。', async () => {
-      closeCard();
-      await submit('中止本局', { type: 'undercover.round.abort', roundId });
+    setAlert({
+      title: '中止本局？',
+      message: '本局不计胜负，不公开未揭晓身份和词语。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            closeCard();
+            await submit('中止本局', { type: 'undercover.round.abort', roundId });
+          },
+        },
+      ],
     });
   };
   const confirmCard = () => {
@@ -114,14 +134,23 @@ export function useUndercoverRoundControls(
     });
   };
   const allowRepeated = () =>
-    showConfirmAlert(
-      '仅下一局允许重复词对？',
-      '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
-      async () => {
-        if (await submit('返回大厅', { type: 'undercover.game.returnToLobby' }))
-          await submit('开始本局', { type: 'undercover.round.start', shouldAllowRepeated: true });
-      },
-    );
+    setAlert({
+      title: '仅下一局允许重复词对？',
+      message: '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            if (await submit('返回大厅', { type: 'undercover.game.returnToLobby' }))
+              await submit('开始本局', {
+                type: 'undercover.round.start',
+                shouldAllowRepeated: true,
+              });
+          },
+        },
+      ],
+    });
   return {
     isSubmitting: submission.isSubmitting,
     controlledSeat,
@@ -174,8 +203,25 @@ export function useUndercoverRoundControls(
       void submit('重新准备', { type: 'undercover.round.retry', roundId });
     },
     abort,
-    restart: () => requestUndercoverRestart(state, submit, closeCard, () => setSelection(null)),
+    restart: () =>
+      requestUndercoverRestart(
+        state,
+        submit,
+        closeCard,
+        () => setSelection(null),
+        (title, message, onConfirm) =>
+          setAlert({
+            title,
+            message,
+            buttons: [
+              { text: '取消', style: 'cancel' },
+              { text: '确定', onPress: onConfirm },
+            ],
+          }),
+      ),
     returnToLobby,
     allowRepeated,
+    alert,
+    clearAlert,
   };
 }

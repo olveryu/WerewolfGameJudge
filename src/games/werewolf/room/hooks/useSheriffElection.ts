@@ -13,9 +13,10 @@ import {
 } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
-import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
+
+import type { HookAlertState } from '../hookAlert';
 
 export type SheriffElectionPendingAction =
   | { readonly kind: 'register' }
@@ -34,6 +35,9 @@ export interface SheriffElectionPanelModel {
   readonly vote: (targetSeat: number | null) => Promise<void>;
   readonly advance: () => Promise<void>;
   readonly requestEndBySelfDestruct: () => void;
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  readonly alert: HookAlertState | null;
+  readonly clearAlert: () => void;
 }
 
 interface UseSheriffElectionInput {
@@ -64,6 +68,9 @@ export function useSheriffElection(
     withdrawSheriffCandidate,
   } = input;
   const [pendingAction, setPendingAction] = useState<SheriffElectionPendingAction | null>(null);
+  /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
+  const [alert, setAlert] = useState<HookAlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
   const view = useMemo(
     () =>
       createSheriffElectionViewModel({
@@ -127,12 +134,21 @@ export function useSheriffElection(
     [endSheriffElectionBySelfDestruct, executeCommand],
   );
   const requestEndBySelfDestruct = useCallback(() => {
-    showDestructiveAlert(
-      '确认结束警长竞选？',
-      '确认后，本次警长竞选将直接结束且不产生警长。单爆、双爆，以及单爆后是否在下一天退水并直接投票，请按本局规则线下决定；应用不判断或记录自爆次数。',
-      '确认结束',
-      endBySelfDestruct,
-    );
+    setAlert({
+      title: '确认结束警长竞选？',
+      message:
+        '确认后，本次警长竞选将直接结束且不产生警长。单爆、双爆，以及单爆后是否在下一天退水并直接投票，请按本局规则线下决定；应用不判断或记录自爆次数。',
+      buttons: [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确认结束',
+          style: 'destructive',
+          // Return the promise so AlertModal shows loading until the command settles;
+          // on rejection the button recovers for retry.
+          onPress: () => endBySelfDestruct(),
+        },
+      ],
+    });
   }, [endBySelfDestruct]);
 
   return useMemo(
@@ -148,10 +164,14 @@ export function useSheriffElection(
             vote,
             advance,
             requestEndBySelfDestruct,
+            alert,
+            clearAlert,
           },
     [
       advance,
+      alert,
       cancelRegistration,
+      clearAlert,
       pendingAction,
       register,
       requestEndBySelfDestruct,

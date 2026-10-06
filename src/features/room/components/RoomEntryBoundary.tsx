@@ -6,6 +6,7 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 import type React from 'react';
 import { Text, View } from 'react-native';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -53,7 +54,23 @@ export function RoomEntryBoundary<TState extends BaseGameState<GameType>, TComma
     );
   }
 
-  if (controller.isReady) return children(controller);
+  if (controller.isReady) {
+    return (
+      <>
+        {children(controller)}
+        <AlertModal
+          visible={controller.exitConfirmVisible}
+          title="离开房间？"
+          message="离开后将退出当前对局，座位可能被他人占用。"
+          buttons={[
+            { text: '取消', style: 'cancel', onPress: controller.dismissExitConfirm },
+            { text: '确定', style: 'default', onPress: controller.confirmExit },
+          ]}
+          onClose={controller.dismissExitConfirm}
+        />
+      </>
+    );
+  }
 
   if (controller.showRetryButton) {
     return (

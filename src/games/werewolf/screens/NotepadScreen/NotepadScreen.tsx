@@ -12,10 +12,11 @@ import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
@@ -30,7 +31,6 @@ import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
@@ -55,6 +55,11 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
       : null;
   const gameState = activeNotepadRoom?.gameState ?? null;
   const notepad = useNotepad(activeNotepadRoom);
+  const [alertState, setAlertState] = useState<{
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  } | null>(null);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -67,7 +72,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
   const handleAIAnalysis = useCallback(() => {
     if (!isAIChatReady()) {
-      showErrorAlert('AI 助手', 'AI 助手暂不可用');
+      setAlertState({ title: 'AI 助手', message: 'AI 助手暂不可用' });
       return;
     }
 
@@ -86,16 +91,20 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
       notepad.sheriffCandidateStatuses,
     );
     if (!summary) {
-      showErrorAlert('笔记为空', '请先记录一些笔记再进行分析');
+      setAlertState({ title: '笔记为空', message: '请先记录一些笔记再进行分析' });
       return;
     }
 
-    showConfirmAlert('AI 分析', '将笔记发送给 AI 进行局势分析？', () => {
-      requestAIChatMessage({
-        fullText: summary,
-        displayText: '分析我的笔记',
-        maxTokens: 10000,
-      });
+    setAlertState({
+      title: 'AI 分析',
+      message: '将笔记发送给 AI 进行局势分析？',
+      onConfirm: () => {
+        requestAIChatMessage({
+          fullText: summary,
+          displayText: '分析我的笔记',
+          maxTokens: 10000,
+        });
+      },
     });
   }, [
     activeNotepadRoom?.userId,
@@ -253,6 +262,27 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
           <Text style={panelStyles.legendText}>第三方</Text>
         </View>
       </View>
+      <AlertModal
+        visible={alertState !== null}
+        title={alertState?.title ?? ''}
+        message={alertState?.message}
+        buttons={
+          alertState?.onConfirm
+            ? [
+                { text: '取消', style: 'cancel', onPress: () => setAlertState(null) },
+                {
+                  text: '确定',
+                  style: 'default',
+                  onPress: () => {
+                    alertState.onConfirm?.();
+                    setAlertState(null);
+                  },
+                },
+              ]
+            : [{ text: '确定', style: 'default', onPress: () => setAlertState(null) }]
+        }
+        onClose={() => setAlertState(null)}
+      />
     </SafeAreaView>
   );
 };

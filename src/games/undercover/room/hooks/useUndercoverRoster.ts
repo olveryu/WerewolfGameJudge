@@ -1,7 +1,8 @@
 /** Shared seating, profiles and explicit test-bot control bound to Undercover room facts. */
 import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import type { AlertButton } from '@/components/AlertModal';
 import type { User } from '@/contexts/AuthContext';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -9,7 +10,6 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
-import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import {
@@ -18,6 +18,13 @@ import {
   getUndercoverUserSeat,
 } from '../undercoverRoomAdapter';
 import { useUndercoverSeatCommands } from './useUndercoverSeatCommands';
+
+/** Alert dialog state exposed for the screen to render via <AlertModal>. */
+interface AlertState {
+  title: string;
+  message?: string;
+  buttons: AlertButton[];
+}
 
 export function useUndercoverRoster(
   state: UndercoverState,
@@ -49,6 +56,8 @@ export function useUndercoverRoster(
   useEffect(() => {
     if (bot.controlledSeat !== null && controlledSeat === null) release();
   }, [bot.controlledSeat, controlledSeat, release]);
+  const [alert, setAlert] = useState<AlertState | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
   const capabilities = createUndercoverRoomCapabilities({
     state,
     isHost,
@@ -90,7 +99,7 @@ export function useUndercoverRoster(
       disabledReason,
     });
     if (intent.kind === 'blocked') {
-      showErrorAlert('不可选择', intent.reason);
+      setAlert({ title: '不可选择', message: intent.reason, buttons: [{ text: '确定' }] });
       return;
     }
     if (intent.kind === 'profile') {
@@ -99,7 +108,11 @@ export function useUndercoverRoster(
     }
     const capability = intent.kind === 'take' ? capabilities.canTakeSeat : capabilities.canMoveSeat;
     if (!capability.isAllowed) {
-      showErrorAlert('无法操作座位', capability.reason ?? '当前不可操作');
+      setAlert({
+        title: '无法操作座位',
+        message: capability.reason ?? '当前不可操作',
+        buttons: [{ text: '确定' }],
+      });
       return;
     }
     capability.execute(seat);
@@ -117,6 +130,8 @@ export function useUndercoverRoster(
     release,
     onSeatPress,
     onBotLongPress,
+    alert,
+    clearAlert,
     isSubmitting: seatController.isSubmitting,
     seatConfirmation:
       seatController.pendingAction === null
