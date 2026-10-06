@@ -241,8 +241,16 @@ adminRoutes.post('/rooms/cleanup-expired', async (c) => {
   const nowMs = Date.now();
   let marked = 0;
   const errors: string[] = [];
+  // Optional limit for diagnosis (e.g., testing D1 parameter thresholds).
+  const body: unknown = await c.req.json().catch(() => ({}));
+  const limit =
+    typeof body === 'object' &&
+    body !== null &&
+    typeof (body as { limit?: unknown }).limit === 'number'
+      ? Math.floor((body as { limit: number }).limit)
+      : undefined;
   try {
-    ({ marked } = await expireStaleRooms(c.env, nowMs));
+    ({ marked } = await expireStaleRooms(c.env, nowMs, limit ?? 1000));
   } catch (error) {
     errors.push(`expireStaleRooms: ${error instanceof Error ? error.message : String(error)}`);
     log.error('manual room cleanup expiry failed', { error: errors[0] });
