@@ -14,7 +14,6 @@ import {
   type SuccessfulRoomCommandDispatchOutcome,
 } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -26,6 +25,8 @@ interface PictionaryStageCommand {
     label: string,
     command: PictionaryCommandInput,
   ) => Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null>;
+  readonly alert: { title: string; message: string } | null;
+  readonly clearAlert: () => void;
 }
 
 interface InFlightStageCommand {
@@ -42,6 +43,8 @@ export function usePictionaryStageCommand(
 ): PictionaryStageCommand {
   const inFlight = useRef<InFlightStageCommand | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
 
   const submit = useCallback(
     (
@@ -67,7 +70,10 @@ export function usePictionaryStageCommand(
             commandType: command.type,
             reason,
           });
-          showErrorAlert(`${label}失败`, getPictionaryRoomCommandFailureMessage(result));
+          setAlert({
+            title: `${label}失败`,
+            message: getPictionaryRoomCommandFailureMessage(result),
+          });
           return null;
         })
         .catch((error: unknown) => {
@@ -89,5 +95,8 @@ export function usePictionaryStageCommand(
     [controlledSeat, session, state, effectiveSeat],
   );
 
-  return useMemo(() => ({ isSubmitting, submit }), [isSubmitting, submit]);
+  return useMemo(
+    () => ({ isSubmitting, submit, alert, clearAlert }),
+    [isSubmitting, submit, alert, clearAlert],
+  );
 }

@@ -543,6 +543,13 @@ function DrawGuessDrawingView({
         ]}
         onClose={() => setGiveUpConfirm(false)}
       />
+      <AlertModal
+        visible={screen.alert !== null}
+        title={screen.alert?.title ?? ''}
+        message={screen.alert?.message}
+        buttons={screen.alert?.buttons ?? []}
+        onClose={screen.clearAlert}
+      />
     </>
   );
 }

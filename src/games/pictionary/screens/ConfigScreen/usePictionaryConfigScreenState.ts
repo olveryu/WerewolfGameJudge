@@ -20,7 +20,6 @@ import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryR
 import type { PictionaryConfigRouteParams } from '@/games/pictionary/navigation/types';
 import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/pictionaryRoomCommandFailureMessage';
 import type { RootStackParamList } from '@/navigation/types';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -42,6 +41,8 @@ export interface PictionaryConfigScreenState {
   ) => void;
   readonly submit: () => void;
   readonly goBack: () => void;
+  readonly alert: { title: string; message: string } | null;
+  readonly clearAlert: () => void;
 }
 
 function readInitialConfig(
@@ -68,6 +69,8 @@ export function usePictionaryConfigScreenState({
   const { createRoom, isCreating } = useRoomCreationController();
   const command = useRoomCommandSubmission(getPictionaryRoomCommandFailureMessage);
   const [config, setConfig] = useState(() => readInitialConfig(params, session));
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
 
   const updateConfig = useCallback(
     <TKey extends keyof PictionaryConfig>(key: TKey, value: PictionaryConfig[TKey]) => {
@@ -81,7 +84,7 @@ export function usePictionaryConfigScreenState({
   }, [config.numberOfPlayers, updateConfig]);
   const incrementPlayers = useCallback(() => {
     if (config.numberOfPlayers === PICTIONARY_MAX_PLAYERS) {
-      showErrorAlert('人数设置有误', `最多支持 ${PICTIONARY_MAX_PLAYERS} 人`);
+      setAlert({ title: '人数设置有误', message: `最多支持 ${PICTIONARY_MAX_PLAYERS} 人` });
       return;
     }
     updateConfig('numberOfPlayers', config.numberOfPlayers + 1);
@@ -129,5 +132,7 @@ export function usePictionaryConfigScreenState({
     updateConfig,
     submit,
     goBack,
+    alert,
+    clearAlert,
   };
 }

@@ -18,7 +18,6 @@ import {
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { FibConfigRouteParams } from '@/games/fibking/navigation/types';
 import type { RootStackParamList } from '@/navigation/types';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -41,6 +40,8 @@ export interface FibConfigScreenState {
   readonly increment: () => void;
   readonly submit: () => void;
   readonly goBack: () => void;
+  readonly alert: { title: string; message: string } | null;
+  readonly clearAlert: () => void;
 }
 
 export function useFibConfigScreenState({
@@ -65,11 +66,13 @@ export function useFibConfigScreenState({
     return snapshot.snapshot.state.numberOfPlayers;
   })();
   const [playerCountText, setPlayerCountText] = useState(String(initialCount));
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
 
   const getPlayerCount = useCallback((): number | null => {
     const result = parseFibPlayerCountInput(playerCountText);
     if (result.kind === 'valid') return result.value;
-    showErrorAlert('人数设置有误', result.reason);
+    setAlert({ title: '人数设置有误', message: result.reason });
     return null;
   }, [playerCountText]);
 
@@ -86,7 +89,7 @@ export function useFibConfigScreenState({
     const count = getPlayerCount();
     if (count === null) return;
     if (count === FIB_MAX_PLAYERS) {
-      showErrorAlert('人数设置有误', `最多支持 ${FIB_MAX_PLAYERS} 人`);
+      setAlert({ title: '人数设置有误', message: `最多支持 ${FIB_MAX_PLAYERS} 人` });
       return;
     }
     setPlayerCountText(String(count + 1));
@@ -165,5 +168,7 @@ export function useFibConfigScreenState({
     increment,
     submit,
     goBack,
+    alert,
+    clearAlert,
   };
 }

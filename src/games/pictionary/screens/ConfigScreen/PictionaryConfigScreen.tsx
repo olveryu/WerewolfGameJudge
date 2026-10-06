@@ -16,6 +16,7 @@ import { useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
 import { GameSettingsStepper } from '@/components/GameSettings';
@@ -231,6 +232,13 @@ export const PictionaryConfigScreen: React.FC<PictionaryConfigScreenProps> = ({ 
           {state.isEditMode ? '保存设置' : '创建房间'}
         </Button>
       </GameScreenFooter>
+      <AlertModal
+        visible={state.alert !== null}
+        title={state.alert?.title ?? ''}
+        message={state.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: state.clearAlert }]}
+        onClose={state.clearAlert}
+      />
     </GameScreen>
   );
 };

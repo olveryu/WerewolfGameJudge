@@ -288,6 +288,13 @@ export const PictionaryGalleryStage: React.FC<PictionaryGalleryStageProps> = ({
         ]}
         onClose={() => setRevealConfirm(false)}
       />
+      <AlertModal
+        visible={command.alert !== null}
+        title={command.alert?.title ?? ''}
+        message={command.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: command.clearAlert }]}
+        onClose={command.clearAlert}
+      />
     </>
   );
 };

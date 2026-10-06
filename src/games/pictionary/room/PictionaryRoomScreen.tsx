@@ -4,6 +4,7 @@ import { getPictionaryOccupiedSeatCount } from '@game-judge/game-engine/games/pi
 import type React from 'react';
 import { useCallback } from 'react';
 
+import { AlertModal } from '@/components/AlertModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -40,43 +41,55 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
   const screen = usePictionaryRoomScreenState({ ...props, entryController });
   const isLobby = screen.state.phase === 'lobby';
   return (
-    <RoomShell
-      model={screen.shellModel}
-      content={
-        isLobby
-          ? {
-              kind: 'seats',
-              contextHeader: null,
-              afterSeatBoard: null,
-              sideInspector: null,
-              beforeSeatBoard: (
-                <PictionaryRoomSummary
-                  config={screen.state.config}
-                  occupiedSeatCount={getPictionaryOccupiedSeatCount(screen.state)}
-                  headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看你画我猜接龙玩法说明" />
-                  }
-                />
-              ),
-            }
-          : {
-              kind: 'workspace',
-              element: (
-                <PictionaryStage
-                  state={screen.state}
-                  effectiveSeat={screen.effectiveSeat}
-                  controlledSeat={screen.controlledSeat}
-                  userId={screen.userId}
-                  isHost={screen.isHost}
-                  seatModel={screen.shellModel.seats}
-                  session={screen.session}
-                />
-              ),
-            }
-      }
-      leadingExtraActions={null}
-      trailingExtraActions={null}
-      gameOverlays={null}
-    />
+    <>
+      <RoomShell
+        model={screen.shellModel}
+        content={
+          isLobby
+            ? {
+                kind: 'seats',
+                contextHeader: null,
+                afterSeatBoard: null,
+                sideInspector: null,
+                beforeSeatBoard: (
+                  <PictionaryRoomSummary
+                    config={screen.state.config}
+                    occupiedSeatCount={getPictionaryOccupiedSeatCount(screen.state)}
+                    headerRight={
+                      <RoomGuideButton
+                        onPress={screen.openRules}
+                        label="查看你画我猜接龙玩法说明"
+                      />
+                    }
+                  />
+                ),
+              }
+            : {
+                kind: 'workspace',
+                element: (
+                  <PictionaryStage
+                    state={screen.state}
+                    effectiveSeat={screen.effectiveSeat}
+                    controlledSeat={screen.controlledSeat}
+                    userId={screen.userId}
+                    isHost={screen.isHost}
+                    seatModel={screen.shellModel.seats}
+                    session={screen.session}
+                  />
+                ),
+              }
+        }
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />
+      <AlertModal
+        visible={screen.alert !== null}
+        title={screen.alert?.title ?? ''}
+        message={screen.alert?.message}
+        buttons={screen.alert?.buttons ?? []}
+        onClose={screen.clearAlert}
+      />
+    </>
   );
 };

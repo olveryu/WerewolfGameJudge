@@ -205,68 +205,77 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
   };
 
   return (
-    <PictionaryTaskFrame
-      eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
-      title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
-      remainingSeconds={remainingSeconds}
-      footer={
-        <View style={styles.taskFooter}>
-          <View style={styles.primaryAction}>
-            <Button
-              variant={isReady ? 'secondary' : 'primary'}
-              onPress={() => void toggleReady()}
-              disabled={(!isReady && validationMessage !== null) || isExpired}
-              loading={command.isSubmitting}
-              size="md"
-              accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
-              testID={TESTIDS.pictionaryTextSubmitButton}
+    <>
+      <PictionaryTaskFrame
+        eyebrow={`第 ${state.stepIndex + 1} / ${getPictionaryRelayStepCount(state.config.numberOfPlayers)} 棒`}
+        title={isOpeningPrompt ? '写下一个题目' : '猜猜画的是什么'}
+        remainingSeconds={remainingSeconds}
+        footer={
+          <View style={styles.taskFooter}>
+            <View style={styles.primaryAction}>
+              <Button
+                variant={isReady ? 'secondary' : 'primary'}
+                onPress={() => void toggleReady()}
+                disabled={(!isReady && validationMessage !== null) || isExpired}
+                loading={command.isSubmitting}
+                size="md"
+                accessibilityLabel={isReady ? '继续编辑' : '完成编辑'}
+                testID={TESTIDS.pictionaryTextSubmitButton}
+              >
+                {isReady ? '继续编辑' : '完成编辑'}
+              </Button>
+            </View>
+          </View>
+        }
+      >
+        {!isOpeningPrompt && (
+          <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
+        )}
+        <View style={[styles.composer, isOpeningPrompt && styles.openingComposer]}>
+          <TextInput
+            value={text}
+            onChangeText={updateText}
+            editable={!isReady && !command.isSubmitting && !isExpired}
+            maxLength={PICTIONARY_TEXT_MAX_LENGTH}
+            multiline
+            placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
+            placeholderTextColor={colors.textMuted}
+            style={styles.textInput}
+            accessibilityLabel={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
+            testID={TESTIDS.pictionaryTextInput}
+          />
+          <View style={styles.composerMeta}>
+            <Text
+              style={[
+                styles.validationText,
+                validationMessage !== null && text.length > 0 && styles.invalidText,
+              ]}
             >
-              {isReady ? '继续编辑' : '完成编辑'}
-            </Button>
+              {text.length > 0 && validationMessage !== null
+                ? validationMessage
+                : isReady
+                  ? '已就绪'
+                  : ''}
+            </Text>
+            <Text
+              style={[
+                styles.countText,
+                graphemeCount > PICTIONARY_TEXT_MAX_LENGTH && styles.invalidText,
+              ]}
+            >
+              {graphemeCount}/{PICTIONARY_TEXT_MAX_LENGTH}
+            </Text>
           </View>
         </View>
-      }
-    >
-      {!isOpeningPrompt && (
-        <PreviousDrawing state={state} task={task} controlledSeat={controlledSeat} />
-      )}
-      <View style={[styles.composer, isOpeningPrompt && styles.openingComposer]}>
-        <TextInput
-          value={text}
-          onChangeText={updateText}
-          editable={!isReady && !command.isSubmitting && !isExpired}
-          maxLength={PICTIONARY_TEXT_MAX_LENGTH}
-          multiline
-          placeholder={isOpeningPrompt ? `例如：${openingPromptExample}` : '写下你的猜测'}
-          placeholderTextColor={colors.textMuted}
-          style={styles.textInput}
-          accessibilityLabel={isOpeningPrompt ? '接龙题目' : '看图猜词答案'}
-          testID={TESTIDS.pictionaryTextInput}
-        />
-        <View style={styles.composerMeta}>
-          <Text
-            style={[
-              styles.validationText,
-              validationMessage !== null && text.length > 0 && styles.invalidText,
-            ]}
-          >
-            {text.length > 0 && validationMessage !== null
-              ? validationMessage
-              : isReady
-                ? '已就绪'
-                : ''}
-          </Text>
-          <Text
-            style={[
-              styles.countText,
-              graphemeCount > PICTIONARY_TEXT_MAX_LENGTH && styles.invalidText,
-            ]}
-          >
-            {graphemeCount}/{PICTIONARY_TEXT_MAX_LENGTH}
-          </Text>
-        </View>
-      </View>
-    </PictionaryTaskFrame>
+      </PictionaryTaskFrame>
+      <AlertModal
+        visible={command.alert !== null}
+        title={command.alert?.title ?? ''}
+        message={command.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: command.clearAlert }]}
+        onClose={command.clearAlert}
+      />
+    </>
   );
 };
 
@@ -445,6 +454,13 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
         message="所有绘画内容都会被删除。"
         buttons={clearConfirmButtons}
         onClose={() => setShowClearConfirm(false)}
+      />
+      <AlertModal
+        visible={command.alert !== null}
+        title={command.alert?.title ?? ''}
+        message={command.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: command.clearAlert }]}
+        onClose={command.clearAlert}
       />
     </>
   );

@@ -6,6 +6,7 @@ import type React from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
 import { GameSettingsStepper } from '@/components/GameSettings';
@@ -67,6 +68,13 @@ export const FibConfigScreen: React.FC<FibConfigScreenProps> = ({ session }) => 
           <Text style={gameSettingsStyles.hint}>1 位大聪明、1 位老实人，其余玩家都是瞎掰王。</Text>
         </View>
       </GameScreenContent>
+      <AlertModal
+        visible={state.alert !== null}
+        title={state.alert?.title ?? ''}
+        message={state.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: state.clearAlert }]}
+        onClose={state.clearAlert}
+      />
     </GameScreen>
   );
 };

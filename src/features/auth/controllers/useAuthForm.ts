@@ -7,7 +7,7 @@
  * - handleAnonymousLogin (try/catch + onSuccess + error handling)
  * - resetForm / toggleSignUp
  *
- * Manages form state, calls AuthContext API and showAlert.
+ * Manages form state, calls AuthContext API and exposes formError for UI display.
  * No hardcoded style values, no console.*, no service-layer imports.
  */
 import { useCallback, useState } from 'react';
@@ -19,7 +19,6 @@ import {
   useSignInWithEmail,
   useSignUpWithEmail,
 } from '@/features/auth/controllers/useAuthMutations';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { getUserFacingMessage } from '@/utils/errorUtils';
 
 /** Logger interface — matches react-native-logs extended logger */
@@ -54,6 +53,10 @@ interface AuthFormResult {
   toggleSignUp: () => void;
   /** True while any auth mutation is in flight */
   isSubmitting: boolean;
+  /** Auth error for UI display via AlertModal; null when no error */
+  formError: { title: string; message: string } | null;
+  /** Clear the auth error (dismiss the modal) */
+  clearFormError: () => void;
 }
 
 /**
@@ -75,6 +78,9 @@ export function useAuthForm({
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [formError, setFormError] = useState<{ title: string; message: string } | null>(null);
+
+  const clearFormError = useCallback(() => setFormError(null), []);
 
   const resetForm = useCallback(() => {
     setEmail('');
@@ -114,7 +120,7 @@ export function useAuthForm({
     } catch (e: unknown) {
       const message = getUserFacingMessage(e);
       logger.warn('Email auth failed:', message);
-      showErrorAlert(isSignUp ? '注册失败' : '登录失败', message);
+      setFormError({ title: isSignUp ? '注册失败' : '登录失败', message });
     }
   }, [
     email,
@@ -140,7 +146,7 @@ export function useAuthForm({
     } catch (e: unknown) {
       const message = getUserFacingMessage(e);
       logger.warn('Anonymous login failed:', message);
-      showErrorAlert('登录失败', message);
+      setFormError({ title: '登录失败', message });
     }
   }, [signInAnonymously, onSuccess, logger, showSuccessOnLogin]);
 
@@ -164,5 +170,7 @@ export function useAuthForm({
     resetForm,
     toggleSignUp,
     isSubmitting,
+    formError,
+    clearFormError,
   };
 }
