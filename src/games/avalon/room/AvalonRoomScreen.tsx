@@ -17,6 +17,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 
@@ -24,7 +25,7 @@ import { AvalonAssassinView } from './components/AvalonAssassinView';
 import { AvalonEndedView } from './components/AvalonEndedView';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonLadyView } from './components/AvalonLadyView';
-import { AvalonNightView } from './components/AvalonNightView';
+import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonNominateView } from './components/AvalonNominateView';
 import { AvalonQuestView } from './components/AvalonQuestView';
 import { AvalonSeatPicker } from './components/AvalonSeatPicker';
@@ -42,6 +43,7 @@ type AvalonScreenState = ReturnType<typeof useAvalonRoomState>;
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
+  readonly audio: AvalonAudioRuntime;
 };
 
 /** 使用平台入场生命周期处理直链、加入与重连。 */
@@ -77,26 +79,31 @@ function AvalonRoomContent(
     !voteResultDismissed &&
     viewModel !== null &&
     (viewModel.phase === 'nominate' || viewModel.phase === 'quest');
+  // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
+  const isNight = viewModel !== null && viewModel.phase === 'night';
   return (
     <RoomShell
       model={screen.shellModel}
       content={
-        isLobby || viewModel === null
+        isLobby || viewModel === null || isNight
           ? {
               kind: 'seats',
               contextHeader: null,
               afterSeatBoard: null,
               sideInspector: null,
-              beforeSeatBoard: (
-                <RoomGameSummary
-                  icon="shield-outline"
-                  title="阿瓦隆"
-                  subtitle={`${config.numberOfPlayers} 人 · 投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
-                  headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
-                  }
-                />
-              ),
+              beforeSeatBoard:
+                isLobby || viewModel === null ? (
+                  <RoomGameSummary
+                    icon="shield-outline"
+                    title="阿瓦隆"
+                    subtitle={`${config.numberOfPlayers} 人 · 投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
+                    headerRight={
+                      <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
+                    }
+                  />
+                ) : (
+                  <></>
+                ),
             }
           : {
               kind: 'workspace',
@@ -137,6 +144,13 @@ function AvalonRoomContent(
                 result={voteResult}
                 seats={viewModel.seats}
                 onClose={() => setVoteResultDismissed(true)}
+              />
+            ) : null}
+            {isNight ? (
+              <AvalonNightConfirmModal
+                viewModel={viewModel}
+                isSubmitting={screen.isSubmitting}
+                onConfirm={() => void screen.submit('确认信息', { type: 'avalon.night.confirm' })}
               />
             ) : null}
           </>
@@ -212,12 +226,6 @@ function AvalonStage({
             </Button>
           </AvalonInfoCard>
         </AvalonStageFrame>
-      ) : kind === 'night' ? (
-        <AvalonNightView
-          viewModel={viewModel}
-          isSubmitting={isSubmitting}
-          onConfirm={() => void submit('确认', { type: 'avalon.night.confirm' })}
-        />
       ) : kind === 'nominate' ? (
         <AvalonNominateView
           viewModel={viewModel}

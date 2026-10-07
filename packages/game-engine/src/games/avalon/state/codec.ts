@@ -28,6 +28,7 @@ import {
   AVALON_ROLES,
   AVALON_STATE_VERSION,
   AVALON_VOTE_MODES,
+  type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonHumanSeat,
@@ -179,6 +180,21 @@ function ladyCheck(value: unknown, path: string): AvalonLadyCheckResult {
   );
 }
 
+function audioEffect(value: unknown, path: string): AvalonAudioEffect {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      audioKey: parseNonEmptyString(raw.audioKey, `${path}.audioKey`),
+      isEndAudio:
+        raw.isEndAudio === undefined
+          ? undefined
+          : parseBoolean(raw.isEndAudio, `${path}.isEndAudio`),
+    },
+    path,
+  );
+}
+
 function lastVoteResult(value: unknown, path: string): AvalonLastVoteResult {
   const raw = parseObject(value, path);
   return finishObject(
@@ -323,6 +339,12 @@ export function parseAvalonState(value: unknown): AvalonState {
         lastVoteResult: parseNullable(raw.lastVoteResult, `${path}.lastVoteResult`, lastVoteResult),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
+        pendingAudioEffects: parseArray(
+          raw.pendingAudioEffects,
+          `${path}.pendingAudioEffects`,
+          audioEffect,
+        ),
+        isAudioPlaying: parseBoolean(raw.isAudioPlaying, `${path}.isAudioPlaying`),
       },
       path,
     ),

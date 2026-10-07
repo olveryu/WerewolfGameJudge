@@ -62,7 +62,19 @@ function nightState(): AvalonState {
   );
   const started = commitState(seated, { type: 'avalon.game.start' }, HOST, null, 'start');
   if (started.phase.kind !== 'night') throw new Error('Expected night phase');
-  return started;
+  // 音频门控：先 ack 掉开局播报，否则 night.confirm 会被"播报尚未结束"拦截，
+  // 盖掉 controlledSeat 门控的测试目标。
+  let state = started;
+  while (state.isAudioPlaying) {
+    state = commitState(
+      state,
+      { type: 'avalon.audio.ack' },
+      HOST,
+      null,
+      `ack-${state.pendingAudioEffects.length}`,
+    );
+  }
+  return state;
 }
 
 describe('Avalon controlledSeat gate', () => {

@@ -35,6 +35,7 @@ import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
   AVALON_STATE_VERSION,
+  type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonPlay,
@@ -73,6 +74,8 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     lastVoteResult: null,
     gameSequence: 0,
     xpSettled: false,
+    pendingAudioEffects: [],
+    isAudioPlaying: false,
   });
 }
 
@@ -112,12 +115,22 @@ function startGame(state: AvalonState, context: CommandContext): AvalonDecision 
       ladyHolderSeat,
       gameSequence: state.gameSequence + 1,
     },
+    // 开局与 evilReveal 是同一事件，一次排入 night 开场 + 坏人互认（对齐狼人杀）。
+    queueAudio([{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]),
   ]);
+}
+
+/** 第一晚播报队列事件；空数组时由 evolve 忽略（fail-fast 在上游）。 */
+function queueAudio(effects: readonly AvalonAudioEffect[]): AvalonEvent {
+  if (effects.length === 0) throw new Error('[FAIL-FAST] Avalon audio queue requires effects');
+  return { type: 'avalon.audio.queued', effects: [...effects] };
 }
 
 /** Night step confirmation; advances the step (or dawn) once every participant confirmed. */
 function confirmNight(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'night') return reject(AVALON_REASONS.phase);
+  // 播报未播完时阻塞确认（对齐狼人杀 progression gate）。
+  if (state.isAudioPlaying) return reject(AVALON_REASONS.audioPlaying);
   const resolved = resolveAvalonSeat(state, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   const participants = getAvalonNightParticipants(state.roles, state.phase.step);
@@ -128,11 +141,23 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
     return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.seat }]);
   switch (state.phase.step) {
     case 'evilReveal':
-      return commitAvalon([{ type: 'avalon.night.stepped', step: 'merlinReveal' }]);
+      return commitAvalon([
+        { type: 'avalon.night.stepped', step: 'merlinReveal' },
+        queueAudio([{ audioKey: 'evil_reveal', isEndAudio: true }, { audioKey: 'merlin_reveal' }]),
+      ]);
     case 'merlinReveal':
-      return commitAvalon([{ type: 'avalon.night.stepped', step: 'percivalReveal' }]);
+      return commitAvalon([
+        { type: 'avalon.night.stepped', step: 'percivalReveal' },
+        queueAudio([
+          { audioKey: 'merlin_reveal', isEndAudio: true },
+          { audioKey: 'percival_reveal' },
+        ]),
+      ]);
     case 'percivalReveal':
-      return commitAvalon([{ type: 'avalon.night.completed' }]);
+      return commitAvalon([
+        { type: 'avalon.night.completed' },
+        queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
+      ]);
   }
 }
 
@@ -428,7 +453,16 @@ function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecis
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostReturnToLobby);
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(AVALON_REASONS.phase);
+  // 播报未播完时阻塞回大厅，避免 orphan 音频队列（用户 2026-10-07 确认）。
+  if (state.isAudioPlaying) return reject(AVALON_REASONS.audioPlaying);
   return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
+}
+
+/** 房主播完第一晚播报后提交 ack，清空队列、释放门控（对齐狼人杀 handleAudioAck）。 */
+function ackAudio(state: AvalonState, context: CommandContext): AvalonDecision {
+  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostAckAudio);
+  if (hostRejection !== null) return hostRejection;
+  return commitAvalon([{ type: 'avalon.audio.cleared' }]);
 }
 
 function decidePublicCommand(
@@ -469,6 +503,8 @@ function decidePublicCommand(
       return earlyStrike(state, command.seat, context);
     case 'avalon.game.returnToLobby':
       return returnToLobby(state, context);
+    case 'avalon.audio.ack':
+      return ackAudio(state, context);
     default:
       return reject(AVALON_REASONS.phase);
   }

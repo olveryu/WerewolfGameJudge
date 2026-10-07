@@ -36,6 +36,8 @@ import edge_tts
 ROOT_DIR = Path(__file__).resolve().parents[1]
 OUT_BEGIN_DIR = ROOT_DIR / "assets" / "audio"
 OUT_END_DIR = ROOT_DIR / "assets" / "audio_end"
+OUT_BEGIN_DIR_AVALON = ROOT_DIR / "assets" / "audio_avalon"
+OUT_END_DIR_AVALON = ROOT_DIR / "assets" / "audio_avalon_end"
 
 DEFAULT_VOICE = "zh-CN-YunjianNeural"
 DEFAULT_PITCH = "-20Hz"  # Lower pitch for deeper voice
@@ -137,6 +139,23 @@ END_TEXT: dict[str, str] = {
     "eclipse_wolf_queen": "蚀时狼妃请闭眼。",    "hidden_wolf": "隐狼请闭眼。",}
 
 
+# 阿瓦隆第一晚播报（App 改编版，去手势；用户 2026-10-07 定稿）。
+# 输出到 assets/audio_avalon/ 与 assets/audio_avalon_end/。
+BEGIN_TEXT_AVALON: dict[str, str] = {
+    "night": "天黑请闭眼。",
+    "night_end": "天亮了。",
+    "evil_reveal": "除奥伯伦外，坏人请睁眼，请互相确认身份。",
+    "merlin_reveal": "梅林请睁眼，请确认坏人身份。",
+    "percival_reveal": "派西维尔请睁眼，请记住梅林和莫甘娜。",
+}
+
+END_TEXT_AVALON: dict[str, str] = {
+    "evil_reveal": "坏人请闭眼。",
+    "merlin_reveal": "梅林请闭眼。",
+    "percival_reveal": "派西维尔请闭眼。",
+}
+
+
 def _apply_pronunciation_substitutions(text: str) -> str:
     synthesized_text = text
     for written_text, spoken_text in TTS_PRONUNCIATION_SUBSTITUTIONS.items():
@@ -155,6 +174,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Print what would be generated")
     parser.add_argument("--list-voices", action="store_true", help="Print available zh-CN male voices")
     parser.add_argument("--insecure", action="store_true", help="Skip SSL certificate verification (for corporate proxies like Netskope)")
+    parser.add_argument("--game", default="werewolf", choices=["werewolf", "avalon"], help="Which game's narration to generate (default: werewolf)")
     return parser.parse_args()
 
 
@@ -166,6 +186,8 @@ async def list_voices() -> None:
 
 
 async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, volume: str, out_path: Path, dry_run: bool, boost_db: int = 0) -> None:
+    import os as _os
+    proxy = _os.environ.get("https_proxy") or _os.environ.get("HTTPS_PROXY")
     if dry_run:
         silence = TRAILING_SILENCE.get(key, 0)
         parts = []
@@ -188,7 +210,7 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, v
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
             tmp_path = Path(tmp.name)
         try:
-            communicate = edge_tts.Communicate(synthesized_text, voice, pitch=pitch, rate=rate, volume=volume)
+            communicate = edge_tts.Communicate(synthesized_text, voice, pitch=pitch, rate=rate, volume=volume, proxy=proxy)
             await communicate.save(str(tmp_path))
 
             cmd: list[str] = ["ffmpeg", "-y", "-i", str(tmp_path)]
@@ -219,7 +241,7 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, v
         finally:
             tmp_path.unlink(missing_ok=True)
     else:
-        communicate = edge_tts.Communicate(synthesized_text, voice, pitch=pitch, rate=rate, volume=volume)
+        communicate = edge_tts.Communicate(synthesized_text, voice, pitch=pitch, rate=rate, volume=volume, proxy=proxy)
         await communicate.save(str(out_path))
         print(f"Generated {out_path}")
 
@@ -253,15 +275,22 @@ async def main() -> None:
 
     tasks = []
 
-    for key, text in BEGIN_TEXT.items():
-        if only and only != key:
-            continue
-        tasks.append(generate_one(key, text, args.voice, pitch, rate, volume, OUT_BEGIN_DIR / f"{key}.mp3", args.dry_run, boost))
+    if args.game == "avalon":
+        begin_text, end_text = BEGIN_TEXT_AVALON, END_TEXT_AVALON
+        begin_dir, end_dir = OUT_BEGIN_DIR_AVALON, OUT_END_DIR_AVALON
+    else:
+        begin_text, end_text = BEGIN_TEXT, END_TEXT
+        begin_dir, end_dir = OUT_BEGIN_DIR, OUT_END_DIR
 
-    for key, text in END_TEXT.items():
+    for key, text in begin_text.items():
         if only and only != key:
             continue
-        tasks.append(generate_one(key, text, args.voice, pitch, rate, volume, OUT_END_DIR / f"{key}.mp3", args.dry_run, boost))
+        tasks.append(generate_one(key, text, args.voice, pitch, rate, volume, begin_dir / f"{key}.mp3", args.dry_run, boost))
+
+    for key, text in end_text.items():
+        if only and only != key:
+            continue
+        tasks.append(generate_one(key, text, args.voice, pitch, rate, volume, end_dir / f"{key}.mp3", args.dry_run, boost))
 
     if not tasks:
         raise SystemExit(f"No tasks to run (only={only!r}).")
@@ -273,8 +302,8 @@ async def main() -> None:
     if not args.dry_run:
         print("Done.")
         print("Generated:")
-        print(f"  {OUT_BEGIN_DIR}")
-        print(f"  {OUT_END_DIR}")
+        print(f"  {begin_dir}")
+        print(f"  {end_dir}")
 
 
 if __name__ == "__main__":

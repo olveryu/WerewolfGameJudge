@@ -49,6 +49,7 @@ export {
   AVALON_VETO_LIMIT_MAX,
   AVALON_VETO_LIMIT_MIN,
   AVALON_VOTE_MODES,
+  type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonEndReason,

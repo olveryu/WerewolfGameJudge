@@ -262,6 +262,17 @@ export interface AvalonNightInfo {
   readonly percivalSees: readonly number[];
 }
 
+/**
+ * 第一晚播报 effect（对齐狼人杀 AudioEffect）。
+ * 由服务端在 night 转换时排队，房主设备按序播放后提交 `avalon.audio.ack`。
+ */
+export interface AvalonAudioEffect {
+  /** 音频 key（night / evil_reveal / merlin_reveal / percival_reveal / night_end）。 */
+  readonly audioKey: string;
+  /** true → audio_avalon_end 目录（结束语）。 */
+  readonly isEndAudio?: boolean;
+}
+
 /** 每轮历史记录：队长 / 队员 / 投票结果 / 任务结果。 */
 export interface AvalonQuestHistoryEntry {
   readonly round: AvalonQuestRound;
@@ -330,6 +341,10 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly gameSequence: number;
   /** winner 结算幂等标记：growth settlement effect 恰好触发一次。 */
   readonly xpSettled: boolean;
+  /** 待播放的第一晚播报队列；房主播完提交 ack 后清空。 */
+  readonly pendingAudioEffects: readonly AvalonAudioEffect[];
+  /** true 时阻塞 night 确认与回大厅，直到房主 ack（对齐狼人杀 progression gate）。 */
+  readonly isAudioPlaying: boolean;
 }
 
 export function getAvalonBotDisplayName(seat: number): string {
