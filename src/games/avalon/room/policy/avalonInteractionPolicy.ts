@@ -16,26 +16,21 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 
 /** Workspace content the RoomShell should render for an in-game phase. */
-export type AvalonStageContentKind =
-  | 'night'
-  | 'nominate'
-  | 'vote'
-  | 'quest'
-  | 'lady'
-  | 'assassin'
-  | 'ended';
+/** 晚上走 kind: 'seats' + 确认弹窗（对齐狼人杀丘比特），不进 workspace。 */
+export type AvalonStageContentKind = 'nominate' | 'vote' | 'quest' | 'lady' | 'assassin' | 'ended';
 
 /**
  * Maps an authoritative phase to the workspace content kind.
  * Lobby is rendered as the seats board by the screen shell, never here.
- * @throws when called with the lobby phase (caller error, fail fast).
+ * Night is rendered as the seats board + confirm modal (Cupid pattern), never here.
+ * @throws when called with the lobby or night phase (caller error, fail fast).
  */
 export function resolveAvalonStageKind(phase: AvalonPhase): AvalonStageContentKind {
   switch (phase.kind) {
     case 'lobby':
       throw new Error('[FAIL-FAST] Avalon workspace received the lobby phase');
     case 'night':
-      return 'night';
+      throw new Error('[FAIL-FAST] Avalon workspace received the night phase');
     case 'nominate':
       return 'nominate';
     case 'vote':
