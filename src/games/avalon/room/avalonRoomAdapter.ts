@@ -17,6 +17,8 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 
+import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
+
 /** 为共享资料卡控件返回公开的席位身份。 */
 export function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
   const occupant = state.realSeats[seat];
@@ -82,12 +84,14 @@ export function createAvalonSeatDataSource(
                 isAnonymous: true,
               };
       const statusLabel = avalonSeatStatusLabel(state, seat);
+      // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
+      const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
       return {
         seat,
         player,
         isSelf: occupant?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: null,
+        secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
         showReadyBadge: false,
         statusBadge:
           statusLabel === null
