@@ -66,7 +66,7 @@ function toConfirmDialog(
     case 'merlin':
       return {
         title: '梅林的视野',
-        message: `你看到的坏人（莫德雷德不在其中）：${instruction.sees.map((seat) => formatSeat(viewModel, seat)).join('、')}`,
+        message: `你看到的坏人：${instruction.sees.map((seat) => formatSeat(viewModel, seat)).join('、')}`,
       };
     case 'percival':
       return {

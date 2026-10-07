@@ -273,7 +273,11 @@ export function useAvalonRoomState(
                   showConfirmAlert(
                     '结束投票',
                     '未投票的座位将视为弃权，确定结束投票并结算吗？',
-                    () => void submit('结束投票', { type: 'avalon.vote.finish' }),
+                    () => {
+                      // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
+                      if (controlledSeat !== null) releaseBot();
+                      void submit('结束投票', { type: 'avalon.vote.finish' });
+                    },
                   ),
               }),
         },
@@ -296,11 +300,10 @@ export function useAvalonRoomState(
             : {
                 isEnabled: true as const,
                 onPress: () =>
-                  showConfirmAlert(
-                    '结束任务',
-                    '未出牌的队员将视为成功，确定提前结算吗？',
-                    () => void submit('结束任务', { type: 'avalon.quest.finish' }),
-                  ),
+                  showConfirmAlert('结束任务', '未出牌的队员将视为成功，确定提前结算吗？', () => {
+                    if (controlledSeat !== null) releaseBot();
+                    void submit('结束任务', { type: 'avalon.quest.finish' });
+                  }),
               }),
         },
       ],

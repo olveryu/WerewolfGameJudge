@@ -86,6 +86,13 @@ export function createAvalonSeatDataSource(
       const statusLabel = avalonSeatStatusLabel(state, seat);
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
       const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
+      // 投票阶段：显示已投票状态，房主可定位缺票者。
+      const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
+      const voteLabel = hasVoted ? '已投票' : null;
+      const combinedLabel =
+        statusLabel !== null && voteLabel !== null
+          ? `${statusLabel} · ${voteLabel}`
+          : (voteLabel ?? statusLabel);
       return {
         seat,
         player,
@@ -94,9 +101,16 @@ export function createAvalonSeatDataSource(
         secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
         showReadyBadge: false,
         statusBadge:
-          statusLabel === null
+          combinedLabel === null
             ? null
-            : { label: statusLabel, tone: statusLabel === '队员' ? 'success' : 'warning' },
+            : {
+                label: combinedLabel,
+                tone: combinedLabel.includes('已投票')
+                  ? 'success'
+                  : combinedLabel === '队员'
+                    ? 'success'
+                    : 'warning',
+              },
         isStatusEmphasized: false,
         showLevel: state.phase.kind === 'lobby',
         decorationsEnabled: state.phase.kind === 'lobby',

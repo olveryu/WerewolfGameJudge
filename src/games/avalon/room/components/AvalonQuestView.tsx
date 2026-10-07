@@ -20,13 +20,13 @@ const PLAY_COPY: Readonly<Record<AvalonPlay, string>> = {
   fail: '失败',
 };
 
-/** 组队通过后的投票结算面板：公投亮个人票，暗投只看数量（D7）。 */
+/** 投票结束后的结算面板：公投亮个人票，暗投只看数量（D7）。 */
 function AvalonVoteSettlement({ viewModel }: { readonly viewModel: AvalonViewModel }) {
   const instruction = resolveVoteInstruction(viewModel);
   if (instruction.ballots !== null) {
     const entries = Object.entries(instruction.ballots);
     return (
-      <AvalonInfoCard title="组队通过 · 投票明细" testID="avalon-vote-settlement-public">
+      <AvalonInfoCard title="投票结果 · 明细" testID="avalon-vote-settlement-public">
         {entries.map(([seatText, ballot]) => {
           const seat = Number(seatText);
           const name =
@@ -44,7 +44,7 @@ function AvalonVoteSettlement({ viewModel }: { readonly viewModel: AvalonViewMod
   const counts = instruction.voteCounts;
   if (counts === null) return null;
   return (
-    <AvalonInfoCard title="组队通过" testID="avalon-vote-settlement-secret">
+    <AvalonInfoCard title="投票结果" testID="avalon-vote-settlement-secret">
       <Text style={styles.body}>
         赞成 {counts.approve} · 反对 {counts.reject} · 弃权 {counts.abstain}
       </Text>

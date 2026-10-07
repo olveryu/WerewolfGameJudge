@@ -279,6 +279,7 @@ function AvalonStage({
         <AvalonVoteView
           viewModel={viewModel}
           onVote={(vote) => void submit('投票', { type: 'avalon.team.vote', vote })}
+          canTakeOverBots={screen.canControlBots}
         />
       ) : kind === 'quest' ? (
         <AvalonQuestView
