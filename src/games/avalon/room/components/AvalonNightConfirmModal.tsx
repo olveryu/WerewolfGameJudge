@@ -18,10 +18,12 @@ export function AvalonNightConfirmModal({
   viewModel,
   isSubmitting,
   onConfirm,
+  onClose,
 }: {
   readonly viewModel: AvalonViewModel;
   readonly isSubmitting: boolean;
   readonly onConfirm: () => void;
+  readonly onClose: () => void;
 }) {
   const instruction = resolveNightInstruction(viewModel);
   const dialog = toConfirmDialog(instruction, viewModel);
@@ -31,9 +33,7 @@ export function AvalonNightConfirmModal({
       visible
       title={dialog.title}
       message={dialog.message}
-      onClose={() => {
-        // 不允许通过关闭绕过确认，只能点"确认信息"。
-      }}
+      onClose={onClose}
       buttons={[
         {
           text: '确认信息',

@@ -105,8 +105,12 @@ export function createAvalonSeatDataSource(
 /** 公共状态条：不含私密信息。 */
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel {
   const phase = state.phase;
-  if (phase.kind === 'night')
-    return { kind: 'message', icon: 'guide', text: '天黑阶段', supportingText: null };
+  if (phase.kind === 'night') {
+    // 对齐狼人杀：显示确认进度。
+    const confirmed = phase.confirmedSeats.length;
+    const total = state.config.numberOfPlayers;
+    return { kind: 'progress', current: confirmed, total, label: '天黑确认' };
+  }
   if (phase.kind === 'nominate')
     return {
       kind: 'message',

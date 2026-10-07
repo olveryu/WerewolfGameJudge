@@ -10,7 +10,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { FactionChip } from '@/games/werewolf/components/FactionChip';
+import { FactionChip } from '@/components/FactionChip';
 import {
   computeFactionStats,
   groupRolesByFaction,

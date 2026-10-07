@@ -4,9 +4,11 @@
 
 import {
   type AvalonCommand,
+  type AvalonRoleId,
   getAvalonOccupiedSeatCount,
+  getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -42,6 +44,7 @@ import {
   getAvalonProfileTarget,
 } from '../avalonRoomAdapter';
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
+import { resolveNightInstruction } from '../policy/avalonInteractionPolicy';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 import { useAvalonSeatCommands } from './useAvalonSeatCommands';
 
@@ -81,6 +84,11 @@ export function useAvalonRoomState(
   });
   const mySeat = getAvalonUserSeat(state, user.id);
   const isLobby = state.phase.kind === 'lobby';
+  // 查看身份：角色卡弹窗状态（对齐狼人杀）。
+  const [roleCardVisible, setRoleCardVisible] = useState(false);
+  const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
+  // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
+  const [nightModalVisible, setNightModalVisible] = useState(false);
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -284,14 +292,18 @@ export function useAvalonRoomState(
         },
       ],
     });
-  const inGameHostManagement: RoomHostManagementModel | null =
-    inGameSections.length === 0
-      ? null
-      : {
-          preview: state.phase.kind === 'vote' ? '结束投票' : '结束任务',
-          status: null,
-          sections: inGameSections,
-        };
+  // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
+  // 投票/任务阶段额外出现"结束投票"/"结束任务"。
+  const inGameHostManagement: RoomHostManagementModel = {
+    preview:
+      state.phase.kind === 'vote'
+        ? '结束投票'
+        : state.phase.kind === 'quest'
+          ? '结束任务'
+          : '房主管理',
+    status: null,
+    sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
+  };
   const terminalHostManagement: RoomHostManagementModel = {
     preview: '本局已结束',
     status: null,
@@ -355,7 +367,8 @@ export function useAvalonRoomState(
         user.id,
         controlledSeat,
       ),
-      visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
+      visuallyDisabled:
+        state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
       // 狼人杀模式用点选接管，长按入口已移除。
       onBotSeatLongPress: null,
@@ -384,11 +397,74 @@ export function useAvalonRoomState(
             onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
           },
     share,
-    bottomActions: {
-      kind: 'info',
-      message: isLobby && !isHost && mySeat !== null ? '等待房主开始游戏' : null,
-      actions: [],
-    },
+    bottomActions: (() => {
+      const actions: Array<
+        {
+          readonly key: string;
+          readonly label: string;
+          readonly variant: 'primary' | 'secondary' | 'ghost';
+          readonly size: 'lg' | 'md';
+          readonly testID: string;
+        } & (
+          | { readonly isEnabled: true; readonly onPress: () => void }
+          | {
+              readonly isEnabled: false;
+              readonly disabledReason: string | null;
+              readonly onDisabledPress: (() => void) | null;
+            }
+        )
+      > = [];
+      // 查看身份：局内常驻（对齐狼人杀）。
+      if (!isLobby && mySeat !== null) {
+        actions.push({
+          key: 'viewRole',
+          label: '查看身份',
+          variant: 'secondary',
+          size: 'md',
+          isEnabled: true,
+          onPress: () => setRoleCardVisible(true),
+          testID: 'avalon-view-role',
+        });
+      }
+      // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
+      if (!isLobby && state.phase.kind === 'night' && effectiveSeat !== null) {
+        const vm = getAvalonViewModel(state, effectiveSeat);
+        const instruction = resolveNightInstruction(vm);
+        if (
+          instruction.kind === 'evilPeers' ||
+          instruction.kind === 'merlin' ||
+          instruction.kind === 'percival'
+        ) {
+          actions.push(
+            state.isAudioPlaying
+              ? {
+                  key: 'nightInfo',
+                  label: '语音播报中…',
+                  variant: 'primary',
+                  size: 'md',
+                  isEnabled: false as const,
+                  disabledReason: '语音播报尚未结束，请稍候',
+                  onDisabledPress: null,
+                  testID: 'avalon-night-info',
+                }
+              : {
+                  key: 'nightInfo',
+                  label: '确认信息',
+                  variant: 'primary',
+                  size: 'md',
+                  isEnabled: true as const,
+                  onPress: () => setNightModalVisible(true),
+                  testID: 'avalon-night-info',
+                },
+          );
+        }
+      }
+      return {
+        kind: 'info' as const,
+        message: isLobby && !isHost && mySeat !== null ? '等待房主开始游戏' : null,
+        actions,
+      };
+    })(),
     hostManagement: !isHost
       ? null
       : isLobby
@@ -423,5 +499,13 @@ export function useAvalonRoomState(
     session,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'avalon', roomCode: room.roomCode }),
+    // 查看身份弹窗（对齐狼人杀）。
+    roleCardVisible,
+    setRoleCardVisible,
+    rolePreviewId,
+    setRolePreviewId,
+    // 晚上确认弹窗：两步流程（底部按钮 → 弹窗）。
+    nightModalVisible,
+    setNightModalVisible,
   };
 }

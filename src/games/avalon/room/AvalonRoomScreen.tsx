@@ -18,16 +18,19 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
+import { getAvalonRoleDisplayName } from '@/games/avalon/model/avalonRoleDisplay';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 
 import { AvalonAssassinView } from './components/AvalonAssassinView';
+import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
 import { AvalonEndedView } from './components/AvalonEndedView';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonLadyView } from './components/AvalonLadyView';
 import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonNominateView } from './components/AvalonNominateView';
 import { AvalonQuestView } from './components/AvalonQuestView';
+import { AvalonRoleCardModal } from './components/AvalonRoleCardModal';
 import { AvalonSeatPicker } from './components/AvalonSeatPicker';
 import { AvalonInfoCard, AvalonStageFrame } from './components/AvalonStageFrame';
 import {
@@ -80,19 +83,20 @@ function AvalonRoomContent(
     viewModel !== null &&
     (viewModel.phase === 'nominate' || viewModel.phase === 'quest');
   // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
+  // 其他阶段：同样座位盘保持可见，阶段 UI 在座位盘下方（对齐狼人杀全程 seats 模式）。
   const isNight = viewModel !== null && viewModel.phase === 'night';
   return (
     <RoomShell
       model={screen.shellModel}
       content={
-        isLobby || viewModel === null || isNight
+        isLobby || viewModel === null
           ? {
               kind: 'seats',
               contextHeader: null,
               afterSeatBoard: null,
               sideInspector: null,
-              beforeSeatBoard:
-                isLobby || viewModel === null ? (
+              beforeSeatBoard: (
+                <>
                   <RoomGameSummary
                     icon="shield-outline"
                     title="阿瓦隆"
@@ -101,13 +105,31 @@ function AvalonRoomContent(
                       <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
                     }
                   />
-                ) : (
-                  <></>
-                ),
+                  <AvalonBoardInfoCard
+                    playerCount={config.numberOfPlayers}
+                    onRolePress={(roleId) => {
+                      screen.setRolePreviewId(roleId);
+                      screen.setRoleCardVisible(true);
+                    }}
+                  />
+                </>
+              ),
             }
           : {
-              kind: 'workspace',
-              element: (
+              kind: 'seats',
+              contextHeader: null,
+              sideInspector: null,
+              beforeSeatBoard: (
+                <AvalonBoardInfoCard
+                  playerCount={config.numberOfPlayers}
+                  collapsed
+                  onRolePress={(roleId) => {
+                    screen.setRolePreviewId(roleId);
+                    screen.setRoleCardVisible(true);
+                  }}
+                />
+              ),
+              afterSeatBoard: (
                 <AvalonStage
                   key={`${screen.state.phaseRevision}:${screen.state.phase.kind}`}
                   screen={screen}
@@ -132,29 +154,48 @@ function AvalonRoomContent(
         )
       }
       gameOverlays={
-        viewModel === null ? null : (
-          <>
-            <AvalonHistoryOverlay
-              visible={historyVisible}
-              viewModel={viewModel}
-              onClose={() => setHistoryVisible(false)}
-            />
-            {showVoteResult && voteResult !== null ? (
-              <AvalonVoteResultPanel
-                result={voteResult}
-                seats={viewModel.seats}
-                onClose={() => setVoteResultDismissed(true)}
-              />
-            ) : null}
-            {isNight ? (
-              <AvalonNightConfirmModal
+        <>
+          {viewModel === null ? null : (
+            <>
+              <AvalonHistoryOverlay
+                visible={historyVisible}
                 viewModel={viewModel}
-                isSubmitting={screen.isSubmitting}
-                onConfirm={() => void screen.submit('确认信息', { type: 'avalon.night.confirm' })}
+                onClose={() => setHistoryVisible(false)}
               />
-            ) : null}
-          </>
-        )
+              {showVoteResult && voteResult !== null ? (
+                <AvalonVoteResultPanel
+                  result={voteResult}
+                  seats={viewModel.seats}
+                  onClose={() => setVoteResultDismissed(true)}
+                />
+              ) : null}
+              {isNight && screen.nightModalVisible ? (
+                <AvalonNightConfirmModal
+                  viewModel={viewModel}
+                  isSubmitting={screen.isSubmitting}
+                  onConfirm={() => {
+                    screen.setNightModalVisible(false);
+                    void screen.submit('确认信息', { type: 'avalon.night.confirm' });
+                  }}
+                  onClose={() => screen.setNightModalVisible(false)}
+                />
+              ) : null}
+            </>
+          )}
+          <AvalonRoleCardModal
+            visible={screen.roleCardVisible}
+            roleId={screen.rolePreviewId ?? viewModel?.myRole ?? null}
+            title={
+              screen.rolePreviewId !== null
+                ? getAvalonRoleDisplayName(screen.rolePreviewId)
+                : undefined
+            }
+            onClose={() => {
+              screen.setRoleCardVisible(false);
+              screen.setRolePreviewId(null);
+            }}
+          />
+        </>
       }
     />
   );
@@ -169,9 +210,11 @@ function AvalonStage({
   readonly viewModel: AvalonViewModel;
 }) {
   const { submit, isSubmitting } = screen;
-  const kind = resolveAvalonStageKind(screen.state.phase);
   const [strikePickMode, setStrikePickMode] = useState(false);
   const [strikeConfirm, setStrikeConfirm] = useState<AvalonStrikeConfirmation | null>(null);
+  // 晚上走弹窗模式（Cupid 两步），不在 afterSeatBoard 渲染阶段 UI。
+  if (screen.state.phase.kind === 'night') return null;
+  const kind = resolveAvalonStageKind(screen.state.phase);
   const closeStrike = () => {
     setStrikeConfirm(null);
     setStrikePickMode(false);
