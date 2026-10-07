@@ -40,6 +40,7 @@ const avalonPublicCommandOptions = defineAvalonPublicCommandOptions([
   z.strictObject({ type: z.literal('avalon.game.start') }),
   z.strictObject({ type: z.literal('avalon.game.returnToLobby') }),
   z.strictObject({ type: z.literal('avalon.night.confirm') }),
+  z.strictObject({ type: z.literal('avalon.audio.ack') }),
   z.strictObject({
     type: z.literal('avalon.team.propose'),
     seats: z.array(z.number().int().nonnegative()).readonly(),

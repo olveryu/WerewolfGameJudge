@@ -17,6 +17,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 
@@ -42,6 +43,7 @@ type AvalonScreenState = ReturnType<typeof useAvalonRoomState>;
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
+  readonly audio: AvalonAudioRuntime;
 };
 
 /** 使用平台入场生命周期处理直链、加入与重连。 */

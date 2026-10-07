@@ -35,12 +35,14 @@ import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
+import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
 import {
   createAvalonSeatDataSource,
   createAvalonStatusRibbon,
   getAvalonProfileTarget,
 } from '../avalonRoomAdapter';
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
+import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 import { useAvalonSeatCommands } from './useAvalonSeatCommands';
 
 /** 机器人可被接管的阶段：大厅与终局除外（D12：机制保留，不做接管提示）。 */
@@ -60,15 +62,23 @@ export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
     readonly session: AvalonRoomSession;
     readonly entryController: RoomEntryController;
+    readonly audio: AvalonAudioRuntime;
   },
 ) {
-  const { session, room, navigation, entryController } = props;
+  const { session, room, navigation, entryController, audio } = props;
   const { user } = useAuthContext();
   const snapshot = useRoomSessionSnapshot(session);
   if (user === null || snapshot.phase !== 'ready')
     throw new Error('Avalon requires an authenticated ready session');
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
+  // 第一晚播报：房主按序播放服务端队列，播完 ack。
+  useAvalonAudioOrchestration({
+    session,
+    isHost,
+    pendingAudioEffects: state.pendingAudioEffects,
+    audio,
+  });
   const mySeat = getAvalonUserSeat(state, user.id);
   const isLobby = state.phase.kind === 'lobby';
   const botControl = useRoomBotControl();

@@ -14,6 +14,7 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.game.start' }
   | { readonly type: 'avalon.game.returnToLobby' }
   | { readonly type: 'avalon.night.confirm' }
+  | { readonly type: 'avalon.audio.ack' }
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote'; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.vote.finish' }

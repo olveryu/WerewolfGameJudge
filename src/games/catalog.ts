@@ -62,7 +62,8 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
   avalon: {
     gameType: 'avalon',
     navigation: avalonGameNavigation,
-    createModule: ({ sessionFactory }) => createAvalonUiModule({ sessionFactory }),
+    createModule: ({ sessionFactory, audioService }) =>
+      createAvalonUiModule({ sessionFactory, audioService }),
   },
 } satisfies ClientGamePluginCatalogShape;
 

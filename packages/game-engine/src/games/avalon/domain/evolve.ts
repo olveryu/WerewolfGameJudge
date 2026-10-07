@@ -27,6 +27,8 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     lastLadyCheck: null,
     lastVoteResult: null,
     xpSettled: false,
+    pendingAudioEffects: [],
+    isAudioPlaying: false,
   };
 }
 
@@ -91,6 +93,18 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, 1),
         },
       };
+    }
+    case 'avalon.audio.queued': {
+      if (event.effects.length === 0) return state;
+      return {
+        ...bumped,
+        pendingAudioEffects: [...event.effects],
+        isAudioPlaying: true,
+      };
+    }
+    case 'avalon.audio.cleared': {
+      if (!state.isAudioPlaying && state.pendingAudioEffects.length === 0) return state;
+      return { ...bumped, pendingAudioEffects: [], isAudioPlaying: false };
     }
     case 'avalon.team.proposed': {
       if (state.phase.kind !== 'nominate') return state;

@@ -16,6 +16,7 @@ import {
 import type { SeatChange } from '../../../platform/room/seating';
 import { findSeatByUserId } from '../../../platform/room/seating';
 import type {
+  AvalonAudioEffect,
   AvalonBallot,
   AvalonEndReason,
   AvalonHumanSeat,
@@ -57,6 +58,8 @@ export const AVALON_REASONS = {
   invalidVote: '投票选项无效',
   invalidPlay: '出牌选项无效',
   invalidTarget: '目标座位无效',
+  audioPlaying: '播报尚未结束，请稍候',
+  notHostAckAudio: '只有房主可以确认播报',
   controlledSeatNotBot: '只能接管机器人席位',
 } as const;
 
@@ -84,6 +87,11 @@ export type AvalonEvent =
   | { readonly type: 'avalon.night.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.night.stepped'; readonly step: AvalonNightStep }
   | { readonly type: 'avalon.night.completed' }
+  | {
+      readonly type: 'avalon.audio.queued';
+      readonly effects: readonly AvalonAudioEffect[];
+    }
+  | { readonly type: 'avalon.audio.cleared' }
   | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote.cast'; readonly seat: number; readonly vote: AvalonBallot }
   | {
