@@ -196,5 +196,31 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
     },
+    avalon: {
+      gameType: 'avalon',
+      home: {
+        mode: {
+          displayName: '阿瓦隆',
+          subtitle: '身份推理 · 组队做任务 · 刺杀梅林',
+          iconName: 'shield-outline',
+          tier: 'main',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.avalon.navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('avalon'),
+      productUi: {
+        getAvatarDisplayName: () => null,
+        getRevealEffectPresentation: () => null,
+      },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
   };
 }

@@ -32,6 +32,10 @@
       "types": "./src/games/drawguess/public.ts",
       "default": "./dist/games/drawguess/public.js"
     },
+    "./games/avalon/public": {
+      "types": "./src/games/avalon/public.ts",
+      "default": "./dist/games/avalon/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"
