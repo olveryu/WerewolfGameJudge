@@ -8,8 +8,8 @@ export const GAME_COMPLETION_REWARDS = {
   undercover: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
   storyrelay: { xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
   drawguess: { xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
-  // Main-tier session game (design D6-Q5: growth settlement at werewolf tier).
-  avalon: { xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+  // Main-tier session game (design D6-Q5: 2/3 of werewolf XP_BASE=50).
+  avalon: { xpEarned: 33, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
 } as const;
 
 export const DAILY_COMPLETION_GOLDEN_DRAWS = 2;

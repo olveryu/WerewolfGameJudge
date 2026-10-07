@@ -74,7 +74,7 @@ describe('Avalon completion effect', () => {
       expect.objectContaining({
         type: 'SETTLE_RESULT',
         gameType: 'avalon',
-        xpEarned: 15,
+        xpEarned: 33,
         normalDrawsEarned: 3,
       }),
     );
@@ -82,10 +82,10 @@ describe('Avalon completion effect', () => {
       env.DB.prepare(
         "SELECT xp, normal_draws, games_played FROM user_stats WHERE user_id = 'avalon-host'",
       ).first();
-    expect(await readStats()).toEqual({ xp: 15, normal_draws: 3, games_played: 1 });
+    expect(await readStats()).toEqual({ xp: 33, normal_draws: 3, games_played: 1 });
     // A redelivered effect must not award twice.
     await avalonWorkerModule.handleEffect(effect, { ...context, deliveryAttemptCount: 2 });
-    expect(await readStats()).toEqual({ xp: 15, normal_draws: 3, games_played: 1 });
+    expect(await readStats()).toEqual({ xp: 33, normal_draws: 3, games_played: 1 });
     expect(context.dispatchInternal).not.toHaveBeenCalled();
   });
 });
