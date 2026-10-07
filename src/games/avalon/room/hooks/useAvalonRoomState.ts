@@ -147,15 +147,6 @@ export function useAvalonRoomState(
   };
   const onSeatPress = (seat: number) => {
     if (!isLobby) {
-      // 狼人杀模式：房主点机器人座位接管/释放，不改变界面（D12 不做任何接管提示）。
-      if (canControlBots) {
-        const inGameTarget = getAvalonProfileTarget(state, seat);
-        if (inGameTarget?.occupantKind === 'bot') {
-          if (controlledSeat === seat) releaseBot();
-          else takeOver(seat);
-          return;
-        }
-      }
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
     const target = getAvalonProfileTarget(state, seat);
@@ -175,6 +166,23 @@ export function useAvalonRoomState(
     return mySeat === null
       ? seatController.requestTakeSeat(seat)
       : seatController.requestMoveSeat(seat);
+  };
+  // 长按机器人座位接管/释放，对齐 fibking/drawguess/werewolf（D12：不做任何接管提示）。
+  const onBotSeatLongPress = (seat: number) => {
+    const target = getAvalonProfileTarget(state, seat);
+    if (target?.occupantKind !== 'bot') {
+      throw new Error(`[FAIL-FAST] Avalon bot takeover received non-bot seat ${seat}`);
+    }
+    if (controlledSeat === seat) {
+      releaseBot();
+      return;
+    }
+    if (!capabilities.canTakeOverBots.isAllowed) {
+      throw new Error(
+        `[FAIL-FAST] Avalon bot takeover not allowed: ${capabilities.canTakeOverBots.reason}`,
+      );
+    }
+    takeOver(seat);
   };
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
@@ -375,8 +383,8 @@ export function useAvalonRoomState(
       visuallyDisabled:
         state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
-      // 狼人杀模式用点选接管，长按入口已移除。
-      onBotSeatLongPress: null,
+      // 对齐其他有座位游戏：长按机器人座位接管/释放。
+      onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
     seatConfirmation:
       seatController.pendingAction === null
