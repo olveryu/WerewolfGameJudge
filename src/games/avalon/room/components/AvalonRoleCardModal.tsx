@@ -12,10 +12,12 @@ import { getAvalonRoleMeta } from '../../model/avalonRoleMeta';
 export function AvalonRoleCardModal({
   visible,
   roleId,
+  title,
   onClose,
 }: {
   readonly visible: boolean;
   readonly roleId: AvalonRoleId | null;
+  readonly title?: string;
   readonly onClose: () => void;
 }) {
   if (!visible || roleId === null) return null;
@@ -23,7 +25,7 @@ export function AvalonRoleCardModal({
   return (
     <AlertModal
       visible
-      title="我的身份"
+      title={title ?? '我的身份'}
       message={`${meta.displayName} · ${meta.factionName}\n\n${meta.description}`}
       onClose={onClose}
       buttons={[{ text: '知道了', onPress: onClose }]}

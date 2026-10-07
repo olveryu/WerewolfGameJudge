@@ -398,15 +398,22 @@ export function useAvalonRoomState(
           },
     share,
     bottomActions: (() => {
-      const actions: Array<{
-        readonly key: string;
-        readonly label: string;
-        readonly variant: 'primary' | 'secondary' | 'ghost';
-        readonly size: 'lg' | 'md';
-        readonly isEnabled: true;
-        readonly onPress: () => void;
-        readonly testID: string;
-      }> = [];
+      const actions: Array<
+        {
+          readonly key: string;
+          readonly label: string;
+          readonly variant: 'primary' | 'secondary' | 'ghost';
+          readonly size: 'lg' | 'md';
+          readonly testID: string;
+        } & (
+          | { readonly isEnabled: true; readonly onPress: () => void }
+          | {
+              readonly isEnabled: false;
+              readonly disabledReason: string | null;
+              readonly onDisabledPress: (() => void) | null;
+            }
+        )
+      > = [];
       // 查看身份：局内常驻（对齐狼人杀）。
       if (!isLobby && mySeat !== null) {
         actions.push({
@@ -428,15 +435,28 @@ export function useAvalonRoomState(
           instruction.kind === 'merlin' ||
           instruction.kind === 'percival'
         ) {
-          actions.push({
-            key: 'nightInfo',
-            label: '确认信息',
-            variant: 'primary',
-            size: 'md',
-            isEnabled: true,
-            onPress: () => setNightModalVisible(true),
-            testID: 'avalon-night-info',
-          });
+          actions.push(
+            state.isAudioPlaying
+              ? {
+                  key: 'nightInfo',
+                  label: '语音播报中…',
+                  variant: 'primary',
+                  size: 'md',
+                  isEnabled: false as const,
+                  disabledReason: '语音播报尚未结束，请稍候',
+                  onDisabledPress: null,
+                  testID: 'avalon-night-info',
+                }
+              : {
+                  key: 'nightInfo',
+                  label: '确认信息',
+                  variant: 'primary',
+                  size: 'md',
+                  isEnabled: true as const,
+                  onPress: () => setNightModalVisible(true),
+                  testID: 'avalon-night-info',
+                },
+          );
         }
       }
       return {

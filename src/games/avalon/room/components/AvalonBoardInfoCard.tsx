@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   factionLabel: {
     ...textStyles.secondary,
     color: colors.textSecondary,
-    width: 36,
+    minWidth: spacing.large,
   },
   chip: {
     paddingHorizontal: spacing.small,
