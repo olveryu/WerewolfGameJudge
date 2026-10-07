@@ -5,7 +5,7 @@
  * `avalon.audio.ack`。非房主静默忽略。
  *
  * 简化点（vs 狼人杀 523 行版）：
- * - 无断线重播：night step 变化才排新队列，重连后当前 step 不重复播。
+ * - 断线重连：若 ack 已成功，队列已清空不重播；若 ack 未发出，重连后会重播当前队列（ack 成功前队列保留）。
  * - 无 BGM 联动：阿瓦隆无 BGM。
  * - 保留：重入 guard、单段失败跳过继续、空队列不 ack。
  */
@@ -36,6 +36,7 @@ export function useAvalonAudioOrchestration({
 }: UseAvalonAudioOrchestrationDeps): void {
   const isPlayingRef = useRef(false);
   const lastQueuedRef = useRef<string | null>(null);
+  const ackedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isHost || audio === null || pendingAudioEffects.length === 0) return;
@@ -43,10 +44,24 @@ export function useAvalonAudioOrchestration({
     const queueKey = pendingAudioEffects
       .map((e) => `${e.audioKey}:${e.isEndAudio === true ? 'end' : 'begin'}`)
       .join('|');
-    if (isPlayingRef.current || lastQueuedRef.current === queueKey) return;
+    if (isPlayingRef.current || lastQueuedRef.current === queueKey) {
+      // 队列已播完但 ack 失败时，只重试 ack，不重播（QA Bug 4）。
+      if (lastQueuedRef.current === queueKey && ackedRef.current !== queueKey) {
+        void session
+          .dispatch({ type: 'avalon.audio.ack' }, { controlledSeat: null, label: '播报确认' })
+          .then(() => {
+            ackedRef.current = queueKey;
+          })
+          .catch((error: unknown) => {
+            avalonAudioLog.warn('avalon audio ack retry failed', { error });
+          });
+      }
+      return;
+    }
     isPlayingRef.current = true;
     lastQueuedRef.current = queueKey;
 
+    let cancelled = false;
     const playQueue = async () => {
       try {
         // 先预加载全部 8 段，避免播放时卡顿（对齐狼人杀 startNight 后 preload）。
@@ -54,6 +69,7 @@ export function useAvalonAudioOrchestration({
           avalonAudioLog.warn('avalon audio preload failed', { error });
         });
         for (const effect of pendingAudioEffects) {
+          if (cancelled) break;
           try {
             await audio.playEffect(effect.audioKey, effect.isEndAudio);
           } catch (error) {
@@ -69,19 +85,26 @@ export function useAvalonAudioOrchestration({
       } finally {
         isPlayingRef.current = false;
       }
+      if (cancelled) return;
       // 播完（或全部跳过）后 ack，释放服务端门控。
       try {
         await session.dispatch(
           { type: 'avalon.audio.ack' },
           { controlledSeat: null, label: '播报确认' },
         );
+        ackedRef.current = queueKey;
       } catch (error) {
         avalonAudioLog.warn('avalon audio ack failed', { error });
-        // ack 失败时允许下一轮 effect 重试（lastQueuedRef 保留，等待 state 变化）。
-        lastQueuedRef.current = null;
+        // ack 失败不重置 lastQueuedRef，下次 effect 重跑时只重试 ack（QA Bug 4）。
       }
     };
 
     void playQueue();
+
+    // Unmount 或队列变化时停止播放（QA Bug 5）。
+    return () => {
+      cancelled = true;
+      audio.stopNarration();
+    };
   }, [session, isHost, pendingAudioEffects, audio]);
 }

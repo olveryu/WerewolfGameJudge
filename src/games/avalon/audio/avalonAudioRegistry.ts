@@ -41,7 +41,9 @@ const STEP_AUDIO: Readonly<Record<string, AvalonStepAudioEntry>> = {
 const NIGHT_AUDIO: AudioClip = { key: 'night', asset: nightBegin };
 const NIGHT_END_AUDIO: AudioClip = { key: 'night_end', asset: nightEndBegin };
 
-/** 解析 begin 播报（isEndAudio=false）；night / night_end 走专用 key。 */
+/** 解析 begin 播报（isEndAudio=false）；night / night_end 走专用 key。
+ * 注意：night_end 虽然是"结束语"，但 engine 排队时不设 isEndAudio，走 beginning
+ * 路径解析（registry 内特判）。行为正确，语义上容易误导，特此说明。 */
 export function resolveAvalonBeginningAudio(audioKey: string): AudioClip {
   if (audioKey === 'night') return NIGHT_AUDIO;
   if (audioKey === 'night_end') return NIGHT_END_AUDIO;

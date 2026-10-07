@@ -1152,4 +1152,36 @@ describe('Avalon engine', () => {
       { audioKey: 'night_end' },
     ]);
   });
+
+  it('blocks returnToLobby while audio is playing', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.send({ type: 'avalon.game.start' });
+    // 不 ack 开局播报，手动走完 night（每步 ack 转场播报，但保留最后的 night_end 未 ack）。
+    session.send({ type: 'avalon.audio.ack' }, 'host');
+    const evilSeats = [session.seatOfRole('morgana'), session.seatOfRole('assassin')];
+    for (const seat of evilSeats) {
+      session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
+    }
+    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send({ type: 'avalon.night.confirm' }, session.seatUser(session.seatOfRole('merlin')));
+    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send(
+      { type: 'avalon.night.confirm' },
+      session.seatUser(session.seatOfRole('percival')),
+    );
+    // 此时 night_end 播报未 ack，isAudioPlaying=true，phase=nominate。
+    expect(session.state.isAudioPlaying).toBe(true);
+    // 刺客提前刺杀结束游戏（nominate 阶段允许）。
+    session.send(
+      { type: 'avalon.assassin.earlyStrike', seat: session.seatOfRole('merlin') },
+      session.seatUser(session.seatOfRole('assassin')),
+    );
+    expect(session.state.phase.kind).toBe('ended');
+    // ended 但音频未播完，returnToLobby 被门控阻塞。
+    session.expectReject({ type: 'avalon.game.returnToLobby' }, '播报尚未结束，请稍候');
+    // ack 后放行。
+    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.send({ type: 'avalon.game.returnToLobby' });
+    expect(session.state.phase.kind).toBe('lobby');
+  });
 });
