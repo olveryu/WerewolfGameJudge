@@ -1,0 +1,39 @@
+name: Generate Avalon Audio
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch to generate audio on'
+        required: true
+        default: 'feat/avalon-night-audio'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install edge_tts
+        run: pip install edge_tts
+
+      - name: Generate Avalon audio
+        run: python3 scripts/generate_audio_edge_tts.py --game avalon
+
+      - name: Commit MP3s
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/audio_avalon/ assets/audio_avalon_end/
+          git diff --staged --quiet || git commit -m "chore(avalon): generate first-night narration mp3s"
+          git push origin ${{ inputs.ref }}
