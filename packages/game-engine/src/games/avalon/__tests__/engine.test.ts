@@ -3,6 +3,7 @@
 import type { CommandContext } from '../../../platform/engine';
 import type { AvalonCommand } from '../commands/types';
 import type { AvalonEffect } from '../domain/decision';
+import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
 import { parseAvalonState } from '../state/codec';
@@ -101,15 +102,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     /** 确认当前 night 步骤的全部参与者，直到天亮（机器人席位由房主接管确认）。 */
     passNight() {
       while (state.phase.kind === 'night') {
-        const step = state.phase.step;
-        const participants = Object.keys(state.roles)
-          .map(Number)
-          .filter((seat) => {
-            const role = state.roles[seat]!;
-            if (step === 'evilReveal') return isAvalonEvilRole(role);
-            if (step === 'merlinReveal') return role === 'merlin';
-            return role === 'percival';
-          });
+        const participants = getAvalonNightParticipants(state.roles, state.phase.step);
         for (const seat of participants) {
           if (state.realSeats[seat] === undefined) {
             send({ type: 'avalon.night.confirm' }, 'host', seat);
@@ -245,7 +238,7 @@ describe('Avalon engine', () => {
     expect(view.nightStep).toBe('evilReveal');
     expect([...view.evilPeers!].sort()).toEqual([assassin]);
     view = getAvalonViewModel(session.state, oberon);
-    expect(view.evilPeers).toEqual([]);
+    expect(view.evilPeers).toBeNull();
     // 非参与者无信息且确认被拒绝。
     view = getAvalonViewModel(session.state, loyal);
     expect(view.evilPeers).toBeNull();
@@ -255,8 +248,14 @@ describe('Avalon engine', () => {
       '你不在当前确认步骤内',
       session.seatUser(loyal),
     );
+    // 奥伯伦全程闭眼，不参与互认也不确认。
+    session.expectReject(
+      { type: 'avalon.night.confirm' },
+      '你不在当前确认步骤内',
+      session.seatUser(oberon),
+    );
 
-    for (const seat of [morgana, assassin, oberon]) {
+    for (const seat of [morgana, assassin]) {
       session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
     }
     expect(session.state.phase.kind).toBe('night');

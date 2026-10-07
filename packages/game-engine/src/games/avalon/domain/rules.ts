@@ -56,8 +56,8 @@ export function getAvalonNightParticipants(
   const seats = Object.keys(roles).map(Number);
   switch (step) {
     case 'evilReveal':
-      // 全部坏人席位（含奥伯伦；他看到"无人可认"但仍需点确认）。
-      return seats.filter((seat) => isAvalonEvilRole(roles[seat]!));
+      // 坏人互认：奥伯伦全程闭眼，不参与、不确认。
+      return seats.filter((seat) => isAvalonEvilRole(roles[seat]!) && roles[seat] !== 'oberon');
     case 'merlinReveal':
       return seats.filter((seat) => roles[seat] === 'merlin');
     case 'percivalReveal':
