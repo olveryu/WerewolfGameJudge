@@ -11,9 +11,9 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
+import type { RoleDisplayItem } from '@/features/room/model/SeatGameRoom';
 import { colors, componentSizes, fixed } from '@/theme';
 
-import type { RoleDisplayItem } from '../werewolfRoom.helpers';
 import { type BoardInfoCardStyles } from './boardInfo.styles';
 
 interface BoardInfoCardProps {

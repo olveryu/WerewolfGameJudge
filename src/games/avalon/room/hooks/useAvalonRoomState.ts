@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -167,23 +168,15 @@ export function useAvalonRoomState(
       ? seatController.requestTakeSeat(seat)
       : seatController.requestMoveSeat(seat);
   };
-  // 长按机器人座位接管/释放，对齐 fibking/drawguess/werewolf（D12：不做任何接管提示）。
-  const onBotSeatLongPress = (seat: number) => {
-    const target = getAvalonProfileTarget(state, seat);
-    if (target?.occupantKind !== 'bot') {
-      throw new Error(`[FAIL-FAST] Avalon bot takeover received non-bot seat ${seat}`);
-    }
-    if (controlledSeat === seat) {
-      releaseBot();
-      return;
-    }
-    if (!capabilities.canTakeOverBots.isAllowed) {
-      throw new Error(
-        `[FAIL-FAST] Avalon bot takeover not allowed: ${capabilities.canTakeOverBots.reason}`,
-      );
-    }
-    takeOver(seat);
-  };
+  // 长按机器人座位接管/释放：用共享 hook（D12：不做任何接管提示）。
+  const onBotSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    isBotSeat: (seat) => getAvalonProfileTarget(state, seat)?.occupantKind === 'bot',
+    gameName: 'Avalon',
+  });
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push({

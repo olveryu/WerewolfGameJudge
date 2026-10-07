@@ -20,6 +20,9 @@ import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
+import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { RoleCardModal } from '@/features/room/components/RoleCardModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -48,14 +51,11 @@ import { colors, componentSizes } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import { createBoardInfoStyles } from './components/boardInfo.styles';
-import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { createMvpSelectionStyles, MvpSelectionModal } from './components/MvpSelectionModal';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
-import { RoleCardModal } from './components/RoleCardModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import {
   SheriffElectionInspector,
