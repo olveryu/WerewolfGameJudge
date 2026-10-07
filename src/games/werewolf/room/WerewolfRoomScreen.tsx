@@ -404,6 +404,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       handleError(err, {
         label: 'markAllBotsViewed',
         logger: roomScreenLog,
+        feedback: false,
       });
     });
   }, [markAllBotsViewed]);
@@ -413,6 +414,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
       handleError(err, {
         label: 'markAllBotsGroupConfirmed',
         logger: roomScreenLog,
+        feedback: false,
       });
     });
   }, [markAllBotsGroupConfirmed]);

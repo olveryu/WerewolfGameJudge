@@ -32,9 +32,6 @@ export interface WerewolfBgmControlState {
   playBgm: () => void;
   /** Stop BGM immediately */
   stopBgm: () => void;
-  /** Settings-save failure alert rendered by the screen via <AlertModal> */
-  alert: { title: string; message: string } | null;
-  clearAlert: () => void;
 }
 
 /**
@@ -60,8 +57,6 @@ export function useWerewolfBgmControl(
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);
   const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const { settingsService, audioService } = useServices();
-  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
 
   // Load settings on mount
   useEffect(() => {
@@ -120,15 +115,12 @@ export function useWerewolfBgmControl(
     try {
       newValue = await settingsService.toggleBgm();
     } catch (error) {
-      const result = handleError(error, {
+      handleError(error, {
         label: '保存音乐设置',
         logger: bgmLog,
         alertMessage: '设置未保存，请检查浏览器存储权限后重试',
         isExpected: isExpectedStorageError,
       });
-      if (!result.aborted) {
-        setAlert({ title: '保存音乐设置失败', message: result.message });
-      }
       return;
     }
     setIsBgmEnabled(newValue);
@@ -182,7 +174,5 @@ export function useWerewolfBgmControl(
     startBgmIfEnabled,
     playBgm,
     stopBgm,
-    alert,
-    clearAlert,
   };
 }

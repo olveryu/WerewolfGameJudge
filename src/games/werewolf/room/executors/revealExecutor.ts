@@ -12,7 +12,6 @@
 
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-import { toast } from 'sonner-native';
 
 import {
   getRoomCommandFailureReason,
@@ -65,14 +64,12 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
             }
           },
           onError: (error) => {
-            const result = handleError(error, {
+            handleError(error, {
               label: '确认查验结果',
               logger: roomScreenLog,
+              feedback: 'toast',
               alertMessage: '请稍后重试',
             });
-            if (!result.aborted) {
-              toast.error(result.message);
-            }
             reject(error);
           },
         });

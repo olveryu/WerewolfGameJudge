@@ -342,6 +342,7 @@ export class ConnectionManager<TState extends BaseGameState<string>> {
     handleError(error, {
       label: '实时协议',
       logger: connectionLog,
+      feedback: false,
     });
     this.#dispatch({ type: 'PROTOCOL_FAILURE', error });
   }
@@ -355,6 +356,7 @@ export class ConnectionManager<TState extends BaseGameState<string>> {
       handleError(error, {
         label: '实时连接',
         logger: connectionLog,
+        feedback: false,
       });
       this.#dispatch({ type: 'WS_ERROR', error });
       this.#dispatch({ type: 'WS_CLOSE', code: 4001, reason: 'transport_connect_failed' });

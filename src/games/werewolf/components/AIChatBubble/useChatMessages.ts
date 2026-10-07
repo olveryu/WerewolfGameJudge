@@ -332,7 +332,7 @@ export function useChatMessages(
           return;
         }
         // Non-abort errors: route Sentry through the pipeline; custom UI cleanup stays inline
-        handleError(err, { label: '发送消息', logger: chatLog });
+        handleError(err, { label: '发送消息', logger: chatLog, feedback: false });
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         showError('发送失败', getUserFacingMessage(err));
       } finally {

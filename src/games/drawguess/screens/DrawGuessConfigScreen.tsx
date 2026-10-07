@@ -96,16 +96,13 @@ export function DrawGuessConfigScreen({ session }: { readonly session: DrawGuess
     void creation
       .createRoom({ expectedHostUserId: user.id, gameType: 'drawguess', config: { ...config } })
       .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
-      .catch((error: unknown) => {
-        const result = handleError(error, {
+      .catch((error: unknown) =>
+        handleError(error, {
           label: '创建你画我猜房间',
           logger: configLog,
           alertMessage: '创建失败，请重试',
-        });
-        if (!result.aborted) {
-          setErrorAlert({ title: '创建你画我猜房间失败', message: result.message });
-        }
-      });
+        }),
+      );
   };
   return (
     <GameScreen

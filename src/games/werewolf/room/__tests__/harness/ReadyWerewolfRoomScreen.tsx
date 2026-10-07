@@ -32,8 +32,6 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (pr
       exitConfirmVisible: false,
       confirmExit: () => props.navigation.navigate('Home'),
       dismissExitConfirm: () => undefined,
-      alert: null,
-      clearAlert: () => undefined,
     }),
     [props.navigation],
   );

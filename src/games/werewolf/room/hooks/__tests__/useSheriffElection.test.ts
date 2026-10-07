@@ -10,19 +10,10 @@ import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 const mockHandleError = jest.fn();
-const mockShowRoomAlert = jest.fn();
 jest.mock('@/utils/errorPipeline', () => ({
   handleError: (...args: unknown[]) => {
     mockHandleError(...args);
-    return { message: '', isExpected: true, aborted: true };
   },
-}));
-jest.mock('@/features/room/components/RoomAlertContext', () => ({
-  useRoomAlert: () => ({
-    showRoomAlert: mockShowRoomAlert,
-    clearRoomAlert: jest.fn(),
-  }),
-  useOptionalRoomAlert: () => null,
 }));
 
 function createDayState() {
@@ -79,7 +70,6 @@ function createInput(overrides: Partial<HookInput> = {}): HookInput {
 describe('useSheriffElection', () => {
   beforeEach(() => {
     mockHandleError.mockClear();
-    mockShowRoomAlert.mockClear();
   });
 
   it('returns null when no authoritative election exists', () => {

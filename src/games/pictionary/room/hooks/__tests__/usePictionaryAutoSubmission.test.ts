@@ -23,17 +23,7 @@ import {
 jest.mock('@/games/pictionary/services/renderPictionaryDrawing', () => ({
   renderPictionaryDrawing: jest.fn(),
 }));
-jest.mock('@/utils/errorPipeline', () => ({
-  handleError: jest.fn(() => ({ message: '', isExpected: true, aborted: true })),
-}));
-const mockShowRoomAlert = jest.fn();
-jest.mock('@/features/room/components/RoomAlertContext', () => ({
-  useRoomAlert: () => ({
-    showRoomAlert: mockShowRoomAlert,
-    clearRoomAlert: jest.fn(),
-  }),
-  useOptionalRoomAlert: () => null,
-}));
+jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 
 function createCollection() {
   let sequence = 0;
@@ -128,7 +118,6 @@ function createCollection() {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
-  mockShowRoomAlert.mockClear();
 });
 afterEach(() => jest.useRealTimers());
 

@@ -72,6 +72,7 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
         handleError(cause, {
           label: '加载房间元数据',
           logger: resolverLog,
+          feedback: false,
         });
         setState({ kind: 'error', message });
       });

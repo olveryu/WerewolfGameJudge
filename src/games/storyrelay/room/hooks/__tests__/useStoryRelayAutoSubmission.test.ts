@@ -15,17 +15,7 @@ import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayR
 
 import { useStoryRelayAutoSubmission } from '../useStoryRelayAutoSubmission';
 
-jest.mock('@/utils/errorPipeline', () => ({
-  handleError: jest.fn(() => ({ message: '', isExpected: true, aborted: true })),
-}));
-const mockShowRoomAlert = jest.fn();
-jest.mock('@/features/room/components/RoomAlertContext', () => ({
-  useRoomAlert: () => ({
-    showRoomAlert: mockShowRoomAlert,
-    clearRoomAlert: jest.fn(),
-  }),
-  useOptionalRoomAlert: () => null,
-}));
+jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 
 function createCollection() {
   let sequence = 0;

@@ -134,14 +134,11 @@ export function useFibConfigScreenState({
         replaceWithCreatedRoom(navigation, record.roomCode);
       })
       .catch((error: unknown) => {
-        const result = handleError(error, {
+        handleError(error, {
           label: '创建瞎掰王房间',
           logger: configLog,
           alertMessage: '创建房间失败，请重试',
         });
-        if (!result.aborted) {
-          setAlert({ title: '创建瞎掰王房间失败', message: result.message });
-        }
       });
   }, [
     createRoom,

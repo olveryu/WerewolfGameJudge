@@ -61,14 +61,11 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
     inventory.isSuccess && inventory.data.length > 0 ? ['all', ...inventory.data] : [];
   useEffect(() => {
     if (inventory.error !== null) {
-      const result = handleError(inventory.error, {
+      handleError(inventory.error, {
         label: '读取词语分类',
         logger: configLog,
         alertMessage: '读取词语分类失败，请重试',
       });
-      if (!result.aborted) {
-        setErrorAlert({ title: '读取词语分类失败', message: result.message });
-      }
     }
   }, [inventory.error]);
   const submission = useRoomCommandSubmission(getUndercoverRoomCommandFailureMessage);
@@ -126,14 +123,11 @@ export function UndercoverConfigScreen({ session }: { readonly session: Undercov
       });
       replaceWithCreatedRoom(navigation, room.roomCode);
     } catch (error) {
-      const result = handleError(error, {
+      handleError(error, {
         label: '创建谁是卧底房间',
         logger: configLog,
         alertMessage: '创建房间失败，请稍后重试',
       });
-      if (!result.aborted) {
-        setErrorAlert({ title: '创建谁是卧底房间失败', message: result.message });
-      }
     }
   };
   const stepCount = (delta: number) => {

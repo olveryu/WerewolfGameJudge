@@ -103,6 +103,7 @@ export const AuthEmailScreen: React.FC = () => {
         handleError(e, {
           label: '切换账号',
           logger: authLog,
+          feedback: false,
           isExpected: isExpectedError,
         });
         setErrorAlert({ title: '切换失败', message: getUserFacingMessage(e) });

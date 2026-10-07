@@ -7,12 +7,8 @@ import { TESTIDS } from '@/testids';
 import { FeedbackTab } from '../components/FeedbackTab';
 
 jest.mock('@/features/feedback/services/feedbackApi');
-jest.mock('@/utils/errorPipeline', () => ({
-  handleError: jest.fn().mockReturnValue({ message: '模拟错误', isExpected: true, aborted: false }),
-}));
-jest.mock('sonner-native', () => ({
-  toast: { success: jest.fn(), info: jest.fn(), error: jest.fn() },
-}));
+jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
+jest.mock('sonner-native', () => ({ toast: { success: jest.fn(), info: jest.fn() } }));
 
 function createDeferred<Value>() {
   let resolve!: (value: Value) => void;

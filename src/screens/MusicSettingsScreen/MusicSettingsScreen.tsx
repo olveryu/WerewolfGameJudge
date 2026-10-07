@@ -16,7 +16,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AlertModal } from '@/components/AlertModal';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import type { BgmTrackId, BgmTrackSetting } from '@/features/product/model/BgmCatalog';
@@ -55,7 +54,6 @@ export const MusicSettingsScreen: React.FC = () => {
   const [previewingGameAudio, setPreviewingGameAudio] = useState<
     ClientGameAudioPreview['gameType'] | null
   >(null);
-  const [saveAlert, setSaveAlert] = useState<{ title: string; message: string } | null>(null);
 
   // Track whether we started a preview so we can stop on unmount
   const previewActiveRef = useRef(false);
@@ -98,15 +96,12 @@ export const MusicSettingsScreen: React.FC = () => {
       setBgmEnabled(enabled);
       settingsService.setBgmEnabled(enabled).catch((e: unknown) => {
         setBgmEnabled(settingsService.isBgmEnabled());
-        const result = handleError(e, {
+        handleError(e, {
           label: '保存音乐设置',
           logger: musicSettingsLog,
           alertMessage: '设置未保存，请检查浏览器存储权限后重试',
           isExpected: isExpectedStorageError,
         });
-        if (!result.aborted) {
-          setSaveAlert({ title: '保存音乐设置失败', message: result.message });
-        }
       });
       if (!enabled && previewActiveRef.current) {
         audioService.stopBgm();
@@ -123,15 +118,12 @@ export const MusicSettingsScreen: React.FC = () => {
       setBgmTrack(track);
       settingsService.setBgmTrack(track).catch((e: unknown) => {
         setBgmTrack(settingsService.getBgmTrack());
-        const result = handleError(e, {
+        handleError(e, {
           label: '保存音乐设置',
           logger: musicSettingsLog,
           alertMessage: '设置未保存，请检查浏览器存储权限后重试',
           isExpected: isExpectedStorageError,
         });
-        if (!result.aborted) {
-          setSaveAlert({ title: '保存音乐设置失败', message: result.message });
-        }
       });
     },
     [settingsService],
@@ -183,15 +175,12 @@ export const MusicSettingsScreen: React.FC = () => {
       settingsService.setBgmVolume(value).catch((e: unknown) => {
         setBgmVolume(settingsService.getBgmVolume());
         audioService.setBgmVolume(settingsService.getBgmVolume());
-        const result = handleError(e, {
+        handleError(e, {
           label: '保存音乐设置',
           logger: musicSettingsLog,
           alertMessage: '设置未保存，请检查浏览器存储权限后重试',
           isExpected: isExpectedStorageError,
         });
-        if (!result.aborted) {
-          setSaveAlert({ title: '保存音乐设置失败', message: result.message });
-        }
       });
     },
     [settingsService, audioService],
@@ -212,15 +201,12 @@ export const MusicSettingsScreen: React.FC = () => {
       settingsService.setGameAudioVolume(value).catch((e: unknown) => {
         setGameAudioVolume(settingsService.getGameAudioVolume());
         audioService.setGameAudioVolume(settingsService.getGameAudioVolume());
-        const result = handleError(e, {
+        handleError(e, {
           label: '保存音乐设置',
           logger: musicSettingsLog,
           alertMessage: '设置未保存，请检查浏览器存储权限后重试',
           isExpected: isExpectedStorageError,
         });
-        if (!result.aborted) {
-          setSaveAlert({ title: '保存音乐设置失败', message: result.message });
-        }
       });
     },
     [settingsService, audioService],
@@ -404,13 +390,6 @@ export const MusicSettingsScreen: React.FC = () => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-      <AlertModal
-        visible={saveAlert !== null}
-        title={saveAlert?.title ?? ''}
-        message={saveAlert?.message}
-        buttons={[{ text: '确定', style: 'default', onPress: () => setSaveAlert(null) }]}
-        onClose={() => setSaveAlert(null)}
-      />
     </SafeAreaView>
   );
 };

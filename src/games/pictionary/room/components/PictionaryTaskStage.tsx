@@ -268,6 +268,13 @@ const PictionaryTextTask: React.FC<TaskViewProps> = ({
           </View>
         </View>
       </PictionaryTaskFrame>
+      <AlertModal
+        visible={command.alert !== null}
+        title={command.alert?.title ?? ''}
+        message={command.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: command.clearAlert }]}
+        onClose={command.clearAlert}
+      />
     </>
   );
 };
@@ -291,7 +298,6 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const [color, setColor] = useState<PictionaryDrawingColor>(PICTIONARY_DRAWING_PALETTE[0].value);
   const [strokeWidth, setStrokeWidth] = useState<PictionaryDrawingWidth>(14);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [fillAlert, setFillAlert] = useState<{ title: string; message: string } | null>(null);
   const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
 
   const updateDraft = useCallback(
@@ -327,14 +333,11 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
         const element = createPictionaryFillElement(draft.elements, point, color);
         if (element !== null) addElement(element);
       } catch (error: unknown) {
-        const result = handleError(error, {
+        handleError(error, {
           label: '填充画布',
           logger: roomScreenLog,
           alertMessage: '无法填充这个区域，请稍后重试。',
         });
-        if (!result.aborted) {
-          setFillAlert({ title: '填充画布失败', message: result.message });
-        }
       }
     },
     [addElement, color, draft.elements],
@@ -453,11 +456,11 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
         onClose={() => setShowClearConfirm(false)}
       />
       <AlertModal
-        visible={fillAlert !== null}
-        title={fillAlert?.title ?? ''}
-        message={fillAlert?.message}
-        buttons={[{ text: '确定', style: 'default', onPress: () => setFillAlert(null) }]}
-        onClose={() => setFillAlert(null)}
+        visible={command.alert !== null}
+        title={command.alert?.title ?? ''}
+        message={command.alert?.message}
+        buttons={[{ text: '确定', style: 'default', onPress: command.clearAlert }]}
+        onClose={command.clearAlert}
       />
     </>
   );

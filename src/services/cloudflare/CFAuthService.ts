@@ -241,6 +241,7 @@ export class CFAuthService implements IAuthService {
         label: '退出登录同步',
         logger: authLog,
         expectedCodes: [401, 404],
+        feedback: false,
       });
     }
     if (this.#authSession !== session) {

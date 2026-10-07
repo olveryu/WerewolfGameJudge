@@ -1,14 +1,18 @@
 /**
- * errorPipeline.test — Unit tests for the unified error classifier
- *
- * handleError is UI-free: it classifies, logs, reports to Sentry, and returns
- * a HandleErrorResult. Callers own all UI decisions.
+ * errorPipeline.test — Unit tests for the unified error handler
  */
 
 import * as Sentry from '@sentry/react-native';
 
+import { showAlert } from '@/utils/alert';
+
 import { handleError } from '../errorPipeline';
 import { NetworkTimeoutError } from '../errorUtils';
+
+jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
+  showAlert: jest.fn(),
+}));
 
 const mockLogger = {
   warn: jest.fn(),
@@ -24,29 +28,29 @@ describe('handleError', () => {
 
   // ── Abort ──
 
-  it('logs warn, skips Sentry, and marks aborted for AbortError', () => {
+  it('logs warn and skips Sentry + UI for AbortError', () => {
     const err = new Error('aborted');
     err.name = 'AbortError';
 
-    const result = handleError(err, baseOpts);
+    handleError(err, baseOpts);
 
     expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('aborted'), err);
     expect(mockLogger.error).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result).toEqual({ message: '', isExpected: true, aborted: true });
+    expect(showAlert).not.toHaveBeenCalled();
   });
 
-  it('marks aborted for wrapped AbortError', () => {
+  it('logs warn and skips Sentry + UI for wrapped AbortError', () => {
     const err = new Error('request wrapper', {
       cause: new DOMException('aborted', 'AbortError'),
     });
 
-    const result = handleError(err, baseOpts);
+    handleError(err, baseOpts);
 
     expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('aborted'), err);
     expect(mockLogger.error).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result.aborted).toBe(true);
+    expect(showAlert).not.toHaveBeenCalled();
   });
 
   it('classifies a wrapped fetch failure as a network error', () => {
@@ -54,41 +58,35 @@ describe('handleError', () => {
       cause: new TypeError('Failed to fetch'),
     });
 
-    const result = handleError(err, baseOpts);
+    handleError(err, baseOpts);
 
     expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('network error'), err);
     expect(mockLogger.error).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      message: '网络异常，请检查网络后重试',
-      isExpected: true,
-      aborted: false,
-    });
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '网络异常，请检查网络后重试');
   });
 
   it('classifies a typed network timeout without reporting it to Sentry', () => {
     const err = new NetworkTimeoutError('connectAndWait', 15_000);
 
-    const result = handleError(err, baseOpts);
+    handleError(err, baseOpts);
 
     expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('network error'), err);
     expect(mockLogger.error).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result.message).toBe('网络异常，请检查网络后重试');
-    expect(result.isExpected).toBe(true);
-    expect(result.aborted).toBe(false);
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '网络异常，请检查网络后重试');
   });
 
   // ── Unexpected ──
 
-  it('logs error + Sentry for unexpected errors', () => {
+  it('logs error + Sentry + showAlert for unexpected errors', () => {
     const err = new Error('network failure');
 
-    const result = handleError(err, baseOpts);
+    handleError(err, baseOpts);
 
     expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('unexpected'), err);
     expect(Sentry.captureException).toHaveBeenCalledWith(err);
-    expect(result).toEqual({ message: 'network failure', isExpected: false, aborted: false });
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', 'network failure');
   });
 
   // ── Expected by HTTP code ──
@@ -96,13 +94,11 @@ describe('handleError', () => {
   it('skips Sentry for expectedCodes match', () => {
     const err = { status: 429, message: 'rate limited' } as unknown;
 
-    const result = handleError(err, { ...baseOpts, expectedCodes: [429] });
+    handleError(err, { ...baseOpts, expectedCodes: [429] });
 
     expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('expected'), err);
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result.message).toBe('请稍后重试');
-    expect(result.isExpected).toBe(true);
-    expect(result.aborted).toBe(false);
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '请稍后重试');
   });
 
   // ── Expected by custom predicate ──
@@ -110,24 +106,34 @@ describe('handleError', () => {
   it('skips Sentry when isExpected returns true', () => {
     const err = new Error('user cancelled');
 
-    const result = handleError(err, { ...baseOpts, isExpected: () => true });
+    handleError(err, { ...baseOpts, isExpected: () => true });
 
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result.isExpected).toBe(true);
-    expect(result.aborted).toBe(false);
+    expect(showAlert).toHaveBeenCalled();
+  });
+
+  // ── feedback: false suppresses UI ──
+
+  it('suppresses UI when feedback is false', () => {
+    const err = new Error('background fail');
+
+    handleError(err, { ...baseOpts, feedback: false });
+
+    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(showAlert).not.toHaveBeenCalled();
   });
 
   // ── Custom alertMessage ──
 
-  it('uses custom alertMessage in result', () => {
+  it('uses custom alertMessage in alert', () => {
     const err = new Error('oops');
 
-    const result = handleError(err, {
+    handleError(err, {
       ...baseOpts,
       alertMessage: '自定义消息',
     });
 
-    expect(result.message).toBe('自定义消息');
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '自定义消息');
   });
 
   // ── PostgrestError-like code string ──
@@ -135,9 +141,8 @@ describe('handleError', () => {
   it('extracts status from string code field (PostgrestError)', () => {
     const err = { code: '403', message: 'forbidden' } as unknown;
 
-    const result = handleError(err, { ...baseOpts, expectedCodes: [403] });
+    handleError(err, { ...baseOpts, expectedCodes: [403] });
 
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(result.isExpected).toBe(true);
   });
 });

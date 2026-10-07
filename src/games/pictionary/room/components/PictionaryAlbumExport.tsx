@@ -8,7 +8,6 @@ import type {
 import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
@@ -57,7 +56,6 @@ function AlbumExportDialog({
   const [hasFailed, setHasFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [isSharing, setIsSharing] = useState(false);
-  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
   const drawings = chain.entries.filter((entry) => entry.kind === 'drawing');
   useEffect(() => {
     const controller = new AbortController();
@@ -80,14 +78,11 @@ function AlbumExportDialog({
     void load().catch((error: unknown) => {
       if (controller.signal.aborted) return;
       setHasFailed(true);
-      const result = handleError(error, {
+      handleError(error, {
         label: '加载画册',
         logger: roomScreenLog,
         alertMessage: '画作加载失败，请重试后再导出。',
       });
-      if (!result.aborted) {
-        setAlert({ title: '加载画册失败', message: result.message });
-      }
     });
     return () => controller.abort();
   }, [attempt, chain, state.roomCode]);
@@ -102,93 +97,81 @@ function AlbumExportDialog({
         '你画我猜接龙',
       );
     } catch (error) {
-      const result = handleError(error, {
+      handleError(error, {
         label: '导出画册',
         logger: roomScreenLog,
         alertMessage: '导出画册失败，请稍后重试。',
       });
-      if (!result.aborted) {
-        setAlert({ title: '导出画册失败', message: result.message });
-      }
     } finally {
       setIsSharing(false);
     }
   };
   return (
-    <>
-      <AlertModal
-        visible={alert !== null}
-        title={alert?.title ?? ''}
-        message={alert?.message}
-        buttons={[{ text: '确定', style: 'default', onPress: () => setAlert(null) }]}
-        onClose={() => setAlert(null)}
-      />
-      <RoomDialog
-        title="画册长图"
-        onClose={onClose}
-        footer={
-          hasFailed ? (
-            <Button onPress={() => setAttempt(attempt + 1)}>重新加载画作</Button>
-          ) : (
-            <Button
-              disabled={!isReady || isSharing}
-              loading={isSharing}
-              onPress={() => void share()}
-              icon={<Ionicons name="download-outline" size={20} color={colors.text} />}
-            >
-              {isReady ? '保存／分享长图' : '正在加载画作'}
-            </Button>
-          )
-        }
+    <RoomDialog
+      title="画册长图"
+      onClose={onClose}
+      footer={
+        hasFailed ? (
+          <Button onPress={() => setAttempt(attempt + 1)}>重新加载画作</Button>
+        ) : (
+          <Button
+            disabled={!isReady || isSharing}
+            loading={isSharing}
+            onPress={() => void share()}
+            icon={<Ionicons name="download-outline" size={20} color={colors.text} />}
+          >
+            {isReady ? '保存／分享长图' : '正在加载画作'}
+          </Button>
+        )
+      }
+    >
+      <View
+        key={attempt}
+        ref={ref}
+        collapsable={false}
+        style={styles.album}
+        testID="pictionary-export-album"
       >
-        <View
-          key={attempt}
-          ref={ref}
-          collapsable={false}
-          style={styles.album}
-          testID="pictionary-export-album"
-        >
-          <Text style={styles.title}>你画我猜接龙</Text>
-          <Text style={styles.text}>
-            {getPictionarySeatDisplayName(state, chain.originSeat)} 的画册 · 第 {state.roundNumber}{' '}
-            轮{state.phase === 'aborted' ? '（未完成，房主中止）' : ''}
-          </Text>
-          {chain.entries.map((entry, index) => (
-            <View key={entry.id} style={styles.entry}>
-              <Text style={styles.text}>
-                第 {index + 1} 棒 · {getPictionarySeatDisplayName(state, entry.authorSeat)}
+        <Text style={styles.title}>你画我猜接龙</Text>
+        <Text style={styles.text}>
+          {getPictionarySeatDisplayName(state, chain.originSeat)} 的画册 · 第 {state.roundNumber} 轮
+          {state.phase === 'aborted' ? '（未完成，房主中止）' : ''}
+        </Text>
+        {chain.entries.map((entry, index) => (
+          <View key={entry.id} style={styles.entry}>
+            <Text style={styles.text}>
+              第 {index + 1} 棒 · {getPictionarySeatDisplayName(state, entry.authorSeat)}
+            </Text>
+            {entry.kind === 'drawing' ? (
+              images?.[entry.id] !== undefined && (
+                <Image
+                  source={{ uri: images[entry.id] }}
+                  style={styles.image}
+                  resizeMode="contain"
+                  accessibilityLabel={`第 ${index + 1} 棒画作`}
+                  onLoad={() =>
+                    setLoaded((current) =>
+                      current.includes(entry.id) ? current : [...current, entry.id],
+                    )
+                  }
+                  onError={() => {
+                    setHasFailed(true);
+                    roomScreenLog.warn('Pictionary export image decode failed', {
+                      entryId: entry.id,
+                    });
+                  }}
+                />
+              )
+            ) : (
+              <Text selectable style={styles.text}>
+                {entry.kind === 'text' ? entry.text : '已交空白'}
               </Text>
-              {entry.kind === 'drawing' ? (
-                images?.[entry.id] !== undefined && (
-                  <Image
-                    source={{ uri: images[entry.id] }}
-                    style={styles.image}
-                    resizeMode="contain"
-                    accessibilityLabel={`第 ${index + 1} 棒画作`}
-                    onLoad={() =>
-                      setLoaded((current) =>
-                        current.includes(entry.id) ? current : [...current, entry.id],
-                      )
-                    }
-                    onError={() => {
-                      setHasFailed(true);
-                      roomScreenLog.warn('Pictionary export image decode failed', {
-                        entryId: entry.id,
-                      });
-                    }}
-                  />
-                )
-              ) : (
-                <Text selectable style={styles.text}>
-                  {entry.kind === 'text' ? entry.text : '已交空白'}
-                </Text>
-              )}
-            </View>
-          ))}
-          {chain.entries.length === 0 && <Text style={styles.text}>本册尚无已提交作品</Text>}
-        </View>
-      </RoomDialog>
-    </>
+            )}
+          </View>
+        ))}
+        {chain.entries.length === 0 && <Text style={styles.text}>本册尚无已提交作品</Text>}
+      </View>
+    </RoomDialog>
   );
 }
 

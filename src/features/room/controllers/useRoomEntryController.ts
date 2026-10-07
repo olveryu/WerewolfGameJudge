@@ -4,7 +4,6 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { AlertButton, AlertInputConfig } from '@/components/AlertModal';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellModel';
@@ -12,14 +11,6 @@ import { addRecentRoom } from '@/features/room/services/recentRooms';
 import type { ActiveRoomIdentity, RoomSessionClient } from '@/features/room/session/types';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-
-/** Alert state exposed by the entry controller for RoomEntryBoundary to render. */
-export interface RoomEntryAlertState {
-  title: string;
-  message?: string;
-  buttons: AlertButton[];
-  input?: AlertInputConfig;
-}
 
 const SLOW_CONNECTION_HINT_MS = 8_000;
 
@@ -48,10 +39,6 @@ export interface RoomEntryController {
   readonly confirmExit: () => void;
   /** Dismiss the exit confirmation AlertModal */
   readonly dismissExitConfirm: () => void;
-  /** Error alert state rendered by RoomEntryBoundary via <AlertModal> */
-  readonly alert: RoomEntryAlertState | null;
-  /** Dismiss the error AlertModal */
-  readonly clearAlert: () => void;
 }
 
 function matchesIdentity<TGameType extends string>(
@@ -81,9 +68,6 @@ export function useRoomEntryController<
   const sessionSnapshot = useRoomSessionSnapshot(session);
   const [retryGeneration, setRetryGeneration] = useState(0);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
-  /** Error alert state rendered by RoomEntryBoundary via <AlertModal> */
-  const [alert, setAlert] = useState<RoomEntryAlertState | null>(null);
-  const clearAlert = useCallback(() => setAlert(null), []);
   const reconnectAbortRef = useRef<AbortController | null>(null);
   const roomCreatedAtMs = room.createdAt.getTime();
   const stableRoom = useMemo<RoomRecord<TState['gameType']>>(
@@ -110,18 +94,11 @@ export function useRoomEntryController<
         gameType: current.identity.room.gameType,
       });
     } catch (error) {
-      const result = handleError(error, {
+      handleError(error, {
         label: '记录最近房间',
         logger: roomScreenLog,
         alertMessage: '最近房间记录保存失败',
       });
-      if (!result.aborted) {
-        setAlert({
-          title: '记录最近房间失败',
-          message: result.message,
-          buttons: [{ text: '确定', style: 'default', onPress: () => setAlert(null) }],
-        });
-      }
     }
   }, [authUserId, session, sessionSnapshot.phase, stableRoom]);
 
@@ -158,18 +135,11 @@ export function useRoomEntryController<
     };
 
     void enter().catch((error: unknown) => {
-      const result = handleError(error, {
+      handleError(error, {
         label: '加入房间',
         logger: roomScreenLog,
         alertMessage: '加入房间失败，请重试',
       });
-      if (!result.aborted) {
-        setAlert({
-          title: '加入房间失败',
-          message: result.message,
-          buttons: [{ text: '确定', style: 'default', onPress: () => setAlert(null) }],
-        });
-      }
     });
 
     return () => {
@@ -206,18 +176,11 @@ export function useRoomEntryController<
     void session
       .reconnect(controller.signal)
       .catch((error: unknown) => {
-        const result = handleError(error, {
+        handleError(error, {
           label: '重新连接房间',
           logger: roomScreenLog,
           alertMessage: '重新连接失败，请稍后重试',
         });
-        if (!result.aborted) {
-          setAlert({
-            title: '重新连接房间失败',
-            message: result.message,
-            buttons: [{ text: '确定', style: 'default', onPress: () => setAlert(null) }],
-          });
-        }
       })
       .finally(() => {
         if (reconnectAbortRef.current === controller) reconnectAbortRef.current = null;
@@ -275,7 +238,5 @@ export function useRoomEntryController<
     exitConfirmVisible,
     confirmExit,
     dismissExitConfirm,
-    alert,
-    clearAlert,
   };
 }

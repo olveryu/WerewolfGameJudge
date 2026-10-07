@@ -9,9 +9,7 @@ import { captureNightReviewCard, shareNightReviewReportImage } from '../../share
 import { useNightReviewShare } from '../useNightReviewShare';
 
 jest.mock('../../shareNightReview');
-jest.mock('@/utils/errorPipeline', () => ({
-  handleError: jest.fn(() => ({ message: '', isExpected: true, aborted: true })),
-}));
+jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('@/utils/miniProgram', () => ({ isMiniProgram: () => false }));
 
 const gameState = {

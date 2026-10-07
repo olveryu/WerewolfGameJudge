@@ -152,7 +152,7 @@ export function useInteractionDispatcher({
       });
       if (intent) {
         void handleActionIntent(intent).catch((err) => {
-          handleError(err, { label: 'handleActionTap', logger: roomScreenLog });
+          handleError(err, { label: 'handleActionTap', logger: roomScreenLog, feedback: false });
         });
       }
     },
@@ -274,6 +274,7 @@ export function useInteractionDispatcher({
                       handleError(err, {
                         label: '查看角色',
                         logger: roomScreenLog,
+                        feedback: false,
                       });
                       setRoleCardVisible(false);
                       setIsLoadingRole(false);
@@ -310,7 +311,7 @@ export function useInteractionDispatcher({
           });
           if (result.intent) {
             void handleActionIntent(result.intent).catch((err) => {
-              handleError(err, { label: 'ACTION_FLOW', logger: roomScreenLog });
+              handleError(err, { label: 'ACTION_FLOW', logger: roomScreenLog, feedback: false });
             });
           } else if (result.seat !== undefined) {
             handleActionTap(result.seat);

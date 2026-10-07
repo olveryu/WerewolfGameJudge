@@ -50,22 +50,11 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
           (error: unknown) => ({ kind: 'error', error }) as const,
         );
         if (settled.kind === 'error') {
-          const result = handleError(settled.error, {
+          handleError(settled.error, {
             label,
             logger: roomScreenLog,
             alertMessage: `${label}失败，请稍后重试`,
           });
-          if (!result.aborted) {
-            const failure = { title: `${label}失败`, message: result.message };
-            if (roomAlert) {
-              roomAlert.showRoomAlert({
-                ...failure,
-                buttons: [{ text: '确定', style: 'default' }],
-              });
-            } else {
-              setAlert(failure);
-            }
-          }
           return false;
         }
 

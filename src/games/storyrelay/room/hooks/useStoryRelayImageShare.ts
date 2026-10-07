@@ -4,7 +4,6 @@ import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/p
 import { useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
 import { shareImagesBase64 } from '@/features/room/services/shareImage';
 import { handleError } from '@/utils/errorPipeline';
@@ -16,7 +15,6 @@ import { formatStoryRelayStory } from '../storyRelayPresentation';
 export function useStoryRelayImageShare(state: StoryRelayState) {
   const [selection, setSelection] = useState<readonly number[] | null>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const { showRoomAlert } = useRoomAlert();
   const captureRefs = useRef(new Map<string, View>());
   const stories =
     selection?.map((chainIndex) => {
@@ -40,18 +38,11 @@ export function useStoryRelayImageShare(state: StoryRelayState) {
         '故事接龙',
       );
     } catch (error) {
-      const result = handleError(error, {
+      handleError(error, {
         label: '分享故事图片',
         logger: roomScreenLog,
         alertMessage: '故事图片分享失败，请稍后重试。',
       });
-      if (!result.aborted) {
-        showRoomAlert({
-          title: '分享故事图片失败',
-          message: result.message,
-          buttons: [{ text: '确定', style: 'default' }],
-        });
-      }
     } finally {
       setIsSharing(false);
     }

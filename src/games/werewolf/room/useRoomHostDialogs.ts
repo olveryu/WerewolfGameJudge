@@ -11,7 +11,6 @@ import {
 import { getMvpGoldenDraws } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useRef, useState } from 'react';
-import { toast } from 'sonner-native';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
@@ -126,13 +125,11 @@ export const useRoomHostDialogs = ({
             try {
               await assignRoles();
             } catch (err) {
-              const result = handleError(err, {
+              handleError(err, {
                 label: '分配角色',
                 logger: roomScreenLog,
+                feedback: 'toast',
               });
-              if (!result.aborted) {
-                toast.error(result.message);
-              }
               throw err;
             } finally {
               markSubmitting(false);
@@ -151,13 +148,11 @@ export const useRoomHostDialogs = ({
       setIsStartingGame(true);
       await startGame();
     } catch (err) {
-      const result = handleError(err, {
+      handleError(err, {
         label: '开始游戏',
         logger: roomScreenLog,
+        feedback: 'toast',
       });
-      if (!result.aborted) {
-        toast.error(result.message);
-      }
       throw err;
     } finally {
       markSubmitting(false);
@@ -187,13 +182,11 @@ export const useRoomHostDialogs = ({
     try {
       await restartGame();
     } catch (err) {
-      const result = handleError(err, {
+      handleError(err, {
         label: '重新开始',
         logger: roomScreenLog,
+        feedback: 'toast',
       });
-      if (!result.aborted) {
-        toast.error(result.message);
-      }
       throw err;
     } finally {
       markSubmitting(false);
@@ -271,10 +264,7 @@ export const useRoomHostDialogs = ({
           const result = await selectMvp({ roleRevealRandomNonce, mvpUserId });
           if (isSuccessfulRoomCommand(result)) setMvpSelection(null);
         } catch (err) {
-          const result = handleError(err, { label: '评选 MVP', logger: roomScreenLog });
-          if (!result.aborted) {
-            toast.error(result.message);
-          }
+          handleError(err, { label: '评选 MVP', logger: roomScreenLog, feedback: 'toast' });
         } finally {
           markSubmitting(false);
         }

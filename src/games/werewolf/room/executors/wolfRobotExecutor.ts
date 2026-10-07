@@ -12,8 +12,6 @@
  *   events while the mutation is pending.
  */
 
-import { toast } from 'sonner-native';
-
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -60,14 +58,12 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
           reject(new Error(reason));
         },
         onError: (error) => {
-          const result = handleError(error, {
+          handleError(error, {
             label: '机械狼确认猎人状态',
             logger: roomScreenLog,
+            feedback: 'toast',
             alertMessage: '确认失败，请稍后重试',
           });
-          if (!result.aborted) {
-            toast.error(result.message);
-          }
           reject(error);
         },
       });

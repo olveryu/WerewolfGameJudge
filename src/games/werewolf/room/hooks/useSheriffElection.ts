@@ -7,7 +7,6 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import {
   createSheriffElectionViewModel,
   type SheriffElectionViewModel,
@@ -72,7 +71,6 @@ export function useSheriffElection(
   /** Alert state rendered by the screen via <AlertModal> (hooks cannot render JSX). */
   const [alert, setAlert] = useState<HookAlertState | null>(null);
   const clearAlert = useCallback(() => setAlert(null), []);
-  const { showRoomAlert } = useRoomAlert();
   const view = useMemo(
     () =>
       createSheriffElectionViewModel({
@@ -93,23 +91,16 @@ export function useSheriffElection(
       try {
         await command();
       } catch (error) {
-        const result = handleError(error, {
+        handleError(error, {
           label,
           logger: roomScreenLog,
           alertMessage: `${label}失败，请重试`,
         });
-        if (!result.aborted) {
-          showRoomAlert({
-            title: `${label}失败`,
-            message: result.message,
-            buttons: [{ text: '确定', style: 'default' }],
-          });
-        }
       } finally {
         setPendingAction(null);
       }
     },
-    [showRoomAlert],
+    [],
   );
 
   const register = useCallback(

@@ -126,6 +126,7 @@ export class WerewolfAudioOrchestrator {
           handleError(error, {
             label: '音频效果队列',
             logger: werewolfRuntimeLog,
+            feedback: false,
           });
         });
       }
@@ -232,6 +233,7 @@ export class WerewolfAudioOrchestrator {
       handleError(e, {
         label: 'resumeAfterRejoin',
         logger: werewolfRuntimeLog,
+        feedback: false,
       });
     }
   }
@@ -415,6 +417,7 @@ export class WerewolfAudioOrchestrator {
       handleError(error, {
         label: '音频确认重试',
         logger: werewolfRuntimeLog,
+        feedback: false,
       });
     });
   }

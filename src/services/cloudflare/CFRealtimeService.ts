@@ -228,6 +228,7 @@ export class CFRealtimeService<
       handleError(error, {
         label: '实时协议',
         logger: realtimeLog,
+        feedback: false,
       });
       this.#requireHandlers().onError(error);
       ws.close(1002, 'protocol_error');

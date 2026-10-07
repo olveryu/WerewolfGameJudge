@@ -73,6 +73,7 @@ export const AdminScreen: React.FC = () => {
         handleError(cause, {
           label: '验证管理员身份',
           logger: adminScreenLog,
+          feedback: false,
         });
         setError('验证失败，请重试');
       })
@@ -97,6 +98,7 @@ export const AdminScreen: React.FC = () => {
       handleError(cause, {
         label: '验证管理员身份',
         logger: adminScreenLog,
+        feedback: false,
       });
       setError('网络错误，请重试');
     } finally {

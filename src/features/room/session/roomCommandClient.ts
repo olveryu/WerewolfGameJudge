@@ -108,6 +108,7 @@ function reportTransportError(error: unknown, label: string): void {
   handleError(error, {
     label,
     logger: roomSessionLog,
+    feedback: false,
     expectedCodes: EXPECTED_HTTP_STATUS_CODES,
     isExpected: isExpectedError,
   });

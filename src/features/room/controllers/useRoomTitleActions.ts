@@ -44,14 +44,7 @@ export function useRoomTitleActions() {
         writeAdminCredential(credential);
         debugLogStore.toggleVisibility();
       } catch (error: unknown) {
-        const result = handleError(error, { label: '打开调试日志', logger: roomScreenLog });
-        if (!result.aborted) {
-          showRoomAlert({
-            title: '打开调试日志失败',
-            message: result.message,
-            buttons: [{ text: '确定', style: 'default' }],
-          });
-        }
+        handleError(error, { label: '打开调试日志', logger: roomScreenLog });
       } finally {
         isVerifying.current = false;
       }

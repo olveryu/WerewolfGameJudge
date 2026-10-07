@@ -22,7 +22,6 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner-native';
 
 import {
   isSuccessfulRoomCommand,
@@ -177,14 +176,12 @@ export function useActionOrchestrator({
         // `gameState.actionRejected` effect below.
         return result;
       } catch (err) {
-        const result = handleError(err, {
+        handleError(err, {
           label: '提交操作',
           logger: roomScreenLog,
+          feedback: 'toast',
           alertMessage: '请稍后重试',
         });
-        if (!result.aborted) {
-          toast.error(result.message);
-        }
         throw err;
       } finally {
         markActionSubmitting(false);
@@ -332,7 +329,7 @@ export function useActionOrchestrator({
     roomScreenLog.debug('Triggering auto-intent', { key, intent: autoIntent.type });
     lastAutoIntentKeyRef.current = key;
     void handleActionIntent(autoIntent).catch((err) => {
-      handleError(err, { label: 'auto-trigger', logger: roomScreenLog });
+      handleError(err, { label: 'auto-trigger', logger: roomScreenLog, feedback: false });
     });
   }, [
     imActioner,

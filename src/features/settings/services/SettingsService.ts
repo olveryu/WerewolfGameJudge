@@ -148,6 +148,7 @@ export class SettingsService {
       handleError(e, {
         label: '加载设置',
         logger: settingsServiceLog,
+        feedback: false,
         isExpected: isExpectedStorageError,
       });
       this.#settings = { ...DEFAULT_SETTINGS };

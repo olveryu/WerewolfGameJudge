@@ -29,9 +29,7 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('@/features/admin/services/adminApi');
 jest.mock('@/features/admin/services/adminCredentialStore');
-jest.mock('@/utils/errorPipeline', () => ({
-  handleError: jest.fn(() => ({ message: '', isExpected: true, aborted: true })),
-}));
+jest.mock('@/utils/errorPipeline', () => ({ handleError: jest.fn() }));
 jest.mock('@/utils/debugLogStore', () => ({
   debugLogStore: { toggleVisibility: jest.fn() },
 }));

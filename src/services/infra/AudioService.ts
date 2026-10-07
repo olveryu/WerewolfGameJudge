@@ -81,7 +81,7 @@ export class AudioService {
         document.addEventListener('visibilitychange', this.#visibilityHandler);
       }
     } catch (error) {
-      handleError(error, { label: '音频初始化', logger: audioLog });
+      handleError(error, { label: '音频初始化', logger: audioLog, feedback: false });
     }
   }
 

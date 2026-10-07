@@ -8,7 +8,6 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { useRoomAlert } from '@/features/room/components/RoomAlertContext';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -26,6 +25,8 @@ interface PictionaryStageCommand {
     label: string,
     command: PictionaryCommandInput,
   ) => Promise<SuccessfulRoomCommandDispatchOutcome<PictionaryState> | null>;
+  readonly alert: { title: string; message: string } | null;
+  readonly clearAlert: () => void;
 }
 
 interface InFlightStageCommand {
@@ -42,7 +43,8 @@ export function usePictionaryStageCommand(
 ): PictionaryStageCommand {
   const inFlight = useRef<InFlightStageCommand | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showRoomAlert } = useRoomAlert();
+  const [alert, setAlert] = useState<{ title: string; message: string } | null>(null);
+  const clearAlert = useCallback(() => setAlert(null), []);
 
   const submit = useCallback(
     (
@@ -68,26 +70,18 @@ export function usePictionaryStageCommand(
             commandType: command.type,
             reason,
           });
-          showRoomAlert({
+          setAlert({
             title: `${label}失败`,
             message: getPictionaryRoomCommandFailureMessage(result),
-            buttons: [{ text: '确定', style: 'default' }],
           });
           return null;
         })
         .catch((error: unknown) => {
-          const result = handleError(error, {
+          handleError(error, {
             label,
             logger: roomScreenLog,
             alertMessage: `${label}失败，请稍后重试。`,
           });
-          if (!result.aborted) {
-            showRoomAlert({
-              title: `${label}失败`,
-              message: result.message,
-              buttons: [{ text: '确定', style: 'default' }],
-            });
-          }
           return null;
         })
         .finally(() => {
@@ -98,8 +92,11 @@ export function usePictionaryStageCommand(
       setIsSubmitting(true);
       return operation;
     },
-    [controlledSeat, session, state, effectiveSeat, showRoomAlert],
+    [controlledSeat, session, state, effectiveSeat],
   );
 
-  return useMemo(() => ({ isSubmitting, submit }), [isSubmitting, submit]);
+  return useMemo(
+    () => ({ isSubmitting, submit, alert, clearAlert }),
+    [isSubmitting, submit, alert, clearAlert],
+  );
 }

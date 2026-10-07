@@ -281,6 +281,7 @@ export const RequestTrafficTab: React.FC = () => {
       handleError(cause, {
         label: '加载请求监控',
         logger: requestTrafficTabLog,
+        feedback: false,
       });
       setError('请求监控加载失败，请重试');
     } finally {

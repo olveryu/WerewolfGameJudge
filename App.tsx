@@ -11,6 +11,7 @@ import { createAppServices } from '@/app/createAppServices';
 import { queryClient } from '@/app/queryClient';
 import { getSentryIntegrations } from '@/app/sentryIntegrations';
 import { useBootProgress } from '@/app/useBootProgress';
+import { AlertModal } from '@/components/AlertModal';
 import { ModalStackProvider } from '@/components/AppModal';
 import { DebugPanel } from '@/components/DebugPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -25,6 +26,7 @@ import { ClientGameCatalogProvider, useClientGameCatalog } from '@/games/ClientG
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { AppNavigator } from '@/navigation';
 import { colors } from '@/theme';
+import { type AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
 
@@ -239,8 +241,17 @@ function AppContent() {
   useAccountEvents();
   useAutoClaimDailyReward();
   useUnreadFeedback();
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const gameCatalog = useClientGameCatalog();
   const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);
+
+  // Set up global alert listener
+  useEffect(() => {
+    setAlertListener((config) => {
+      setAlertConfig(config);
+    });
+    return () => setAlertListener(null);
+  }, []);
 
   // ── Boot readiness ────────────────────────────────────────────────────
   // Expo standard pattern: keep splash visible, render nothing until ready.
@@ -302,6 +313,10 @@ function AppContent() {
     }
   }, []);
 
+  const handleAlertClose = useCallback(() => {
+    setAlertConfig(null);
+  }, []);
+
   // Mini-program requires WeChat login → show login entry screen (replaces normal UI).
   // Splash is already dismissed above via useEffect when needsWechatLogin becomes true.
   if (needsWechatLogin) {
@@ -324,6 +339,16 @@ function AppContent() {
       <StatusBar style="dark" />
       <AppNavigator onReady={handleNavReady} />
       <DebugPanel />
+      {alertConfig && (
+        <AlertModal
+          visible={true}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          buttons={alertConfig.buttons}
+          input={alertConfig.input}
+          onClose={handleAlertClose}
+        />
+      )}
       {gameModules.map((gameModule) => {
         const AppOverlay = gameModule.appOverlay;
         return AppOverlay === null ? null : <AppOverlay key={gameModule.gameType} />;

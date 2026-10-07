@@ -222,13 +222,12 @@ interface UseWerewolfRoomResult {
     clearSeats: seatCommands.clearSeats,
   });
 
-  // Merged alert: bgm settings errors take precedence over game-action delivery errors
-  const alert = bgm.alert ?? actions.alert ?? rejectionAlert;
+  // Merged alert: game-action delivery errors take precedence over rejection notices
+  const alert = actions.alert ?? rejectionAlert;
   const clearAlert = useCallback(() => {
-    bgm.clearAlert();
     actions.clearAlert();
     clearRejectionAlert();
-  }, [bgm, actions, clearRejectionAlert]);
+  }, [actions, clearRejectionAlert]);
 
   // =========================================================================
   // Rejoin recovery

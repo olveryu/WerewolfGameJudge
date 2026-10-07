@@ -288,6 +288,7 @@ export const SettingsScreen: React.FC = () => {
         handleError(e, {
           label: '切换账号',
           logger: settingsLog,
+          feedback: false,
           isExpected: isExpectedError,
         });
         setAlert({ kind: 'error', title: '切换失败', message: getUserFacingMessage(e) });
