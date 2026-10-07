@@ -175,3 +175,77 @@ it('does not truncate invalid input or block valid inputs from other bots', asyn
   expect(result.current.status).toBe('failed');
   expect(fixture.dispatch).toHaveBeenCalledTimes(3);
 });
+
+it('routes each bot draft through its own controlledSeat', async () => {
+  const fixture = createCollection();
+  for (let seat = 0; seat < 4; seat += 1) fixture.inputs.set(seat, `稿件${seat}`);
+  fixture.mount();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(fixture.dispatch).toHaveBeenCalledTimes(4);
+  // The host's own seat submits uncontrolled; every bot seat goes through takeover.
+  expect(fixture.dispatch.mock.calls.map(([, options]) => options.controlledSeat)).toEqual([
+    null,
+    1,
+    2,
+    3,
+  ]);
+});
+
+it('lets a non-host player submit only their own seat, never bot seats', async () => {
+  let sequence = 0;
+  let state = storyRelayEngine.createInitialState(
+    { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers: 4 },
+    { roomCode: '2468', hostUserId: 'host', commandId: 'create', nowMs: 1000 },
+  );
+  const execute = (command: StoryRelayCommand, actorUserId: string) => {
+    const decision = storyRelayEngine.decide(state, command, {
+      actor: { kind: 'user', userId: actorUserId },
+      controlledSeat: null,
+      nowMs: 1000,
+      commandId: `command-${sequence++}`,
+      randomSeed: 'round',
+    });
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    state = storyRelayEngine.normalize(decision.events.reduce(storyRelayEngine.evolve, state));
+  };
+  execute({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Player' } }, 'player');
+  execute({ type: 'room.seat.fillBots' }, 'host');
+  execute({ type: 'storyrelay.round.start' }, 'host');
+  execute({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision }, 'host');
+
+  const dispatch = jest.fn<
+    ReturnType<StoryRelayRoomSession['dispatch']>,
+    Parameters<StoryRelayRoomSession['dispatch']>
+  >(async () => ({
+    kind: 'decided',
+    decision: {
+      kind: 'committed',
+      commandId: `command-${sequence}`,
+      snapshot: createRoomSnapshot(state, sequence),
+      outcome: { kind: 'success' },
+    },
+  }));
+  const inputs = new Map<number, string>([[0, '我的稿件']]);
+  const session = {
+    getSnapshot: () => ({
+      phase: 'ready' as const,
+      connection: 'live' as const,
+      pendingCommandCount: 0,
+      snapshot: { state },
+    }),
+    subscribe: () => () => {},
+    dispatch,
+  } as unknown as StoryRelayRoomSession;
+  renderHook(() => useStoryRelayAutoSubmission(state, 'player', session, inputs));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(dispatch).toHaveBeenCalledTimes(1);
+  expect(dispatch.mock.calls[0]![0]).toMatchObject({
+    type: 'storyrelay.text.submit',
+    text: '我的稿件',
+  });
+  expect(dispatch.mock.calls[0]![1]).toMatchObject({ controlledSeat: null });
+});
