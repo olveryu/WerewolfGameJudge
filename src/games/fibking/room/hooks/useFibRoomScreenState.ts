@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -312,26 +313,21 @@ export function useFibRoomScreenState({
     [capabilities, mySeat, state],
   );
 
-  const onSeatLongPress = useCallback(
-    (seat: number) => {
-      const target = getFibProfileTarget(state, seat);
-      if (target?.occupantKind !== 'bot') {
-        throw new Error(`[FAIL-FAST] FibKing bot takeover received non-bot seat ${seat}`);
-      }
-      if (controlledSeat === seat) {
-        releaseBot();
-        return;
-      }
-      const capability = capabilities.canTakeOverBots;
-      if (!capability.isAllowed) {
-        throw new Error(
-          `[FAIL-FAST] FibKing bot takeover was wired while denied: ${capability.reason}`,
-        );
-      }
-      capability.execute(seat);
-    },
-    [capabilities.canTakeOverBots, controlledSeat, releaseBot, state],
+  const isBotSeat = useCallback(
+    (seat: number) => getFibProfileTarget(state, seat)?.occupantKind === 'bot',
+    [state],
   );
+  const onSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: takeOverBot,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    deniedReason: capabilities.canTakeOverBots.isAllowed
+      ? undefined
+      : (capabilities.canTakeOverBots.reason ?? undefined),
+    isBotSeat,
+    gameName: 'FibKing',
+  });
 
   const handleProfileKick = useCallback(() => {
     const selection = profileSelection;

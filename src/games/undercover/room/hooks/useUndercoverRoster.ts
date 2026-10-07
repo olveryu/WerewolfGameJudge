@@ -3,6 +3,7 @@ import type { UndercoverState } from '@game-judge/game-engine/games/undercover/p
 import { useEffect } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
@@ -104,12 +105,14 @@ export function useUndercoverRoster(
     }
     capability.execute(seat);
   };
-  const onBotLongPress = (seat: number) => {
-    if (!capabilities.canTakeOverBots.isAllowed || !state.botSeats.includes(seat))
-      throw new Error('Invalid Undercover bot control');
-    if (controlledSeat === seat) release();
-    else bot.takeOver(seat);
-  };
+  const onBotLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: bot.takeOver,
+    release,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    isBotSeat: (seat) => state.botSeats.includes(seat),
+    gameName: 'Undercover',
+  });
   return {
     capabilities,
     profile,

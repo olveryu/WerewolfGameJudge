@@ -19,6 +19,8 @@ export interface BotTakeoverLongPressOptions {
   readonly release: RoomBotControl['release'];
   /** 是否允许接管。 */
   readonly canTakeOver: boolean;
+  /** 拒绝原因（可选，用于 fail-fast 信息）。 */
+  readonly deniedReason?: string;
   /** 判断指定座位是否为机器人。游戏各自实现。 */
   readonly isBotSeat: (seat: number) => boolean;
   /** 游戏名，用于错误信息。 */
@@ -32,7 +34,8 @@ export interface BotTakeoverLongPressOptions {
 export function useBotTakeoverLongPress(
   options: BotTakeoverLongPressOptions,
 ): (seat: number) => void {
-  const { controlledSeat, takeOver, release, canTakeOver, isBotSeat, gameName } = options;
+  const { controlledSeat, takeOver, release, canTakeOver, deniedReason, isBotSeat, gameName } =
+    options;
   return useCallback(
     (seat: number) => {
       if (!isBotSeat(seat)) {
@@ -43,10 +46,11 @@ export function useBotTakeoverLongPress(
         return;
       }
       if (!canTakeOver) {
-        throw new Error(`[FAIL-FAST] ${gameName} bot takeover not allowed`);
+        const reason = deniedReason !== undefined ? `: ${deniedReason}` : '';
+        throw new Error(`[FAIL-FAST] ${gameName} bot takeover not allowed${reason}`);
       }
       takeOver(seat);
     },
-    [controlledSeat, takeOver, release, canTakeOver, isBotSeat, gameName],
+    [controlledSeat, takeOver, release, canTakeOver, deniedReason, isBotSeat, gameName],
   );
 }

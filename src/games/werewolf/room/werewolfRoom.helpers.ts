@@ -64,12 +64,10 @@ export interface ActionerState {
   showWolves: boolean;
 }
 
-/** Structured role item for BoardInfoCard touchable chips */
-export interface RoleDisplayItem {
-  roleId: string;
-  displayName: string;
-  count: number;
-}
+/** Structured role item for BoardInfoCard touchable chips.
+ * @deprecated Use RoleDisplayItem from '@/features/room/model/SeatGameRoom' instead. */
+import type { RoleDisplayItem as SharedRoleDisplayItem } from '@/features/room/model/SeatGameRoom';
+export type RoleDisplayItem = SharedRoleDisplayItem;
 
 interface RoleStats {
   roleCounts: Record<string, number>;
