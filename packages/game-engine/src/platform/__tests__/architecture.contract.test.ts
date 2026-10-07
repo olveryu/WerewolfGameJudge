@@ -33,6 +33,7 @@ const GAME_EXPORT_PATTERN = /^\.\/games\/([^/]+)(?:\/(.+))?$/;
 const ALLOWED_GAME_MODULE_ENTRYPOINTS = new Set(['public']);
 const EXPECTED_PACKAGE_EXPORTS = [
   './games/catalog',
+  './games/avalon/public',
   './games/drawguess/public',
   './games/fibking/public',
   './games/pictionary/public',

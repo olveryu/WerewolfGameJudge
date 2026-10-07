@@ -10,6 +10,7 @@ import {
   defineWorkerGameCatalog,
   registerWorkerGameModule,
 } from '../platform/gameModules/workerModule';
+import { avalonWorkerModule } from './avalon/module';
 import { drawGuessWorkerModule } from './drawguess/module';
 import { fibWorkerModule } from './fibking/module';
 import { pictionaryWorkerModule } from './pictionary/module';
@@ -24,6 +25,7 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, 
   undercover: registerWorkerGameModule(undercoverWorkerModule),
   storyrelay: registerWorkerGameModule(storyRelayWorkerModule),
   drawguess: registerWorkerGameModule(drawGuessWorkerModule),
+  avalon: registerWorkerGameModule(avalonWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

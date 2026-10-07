@@ -165,6 +165,7 @@ describe('Worker game catalog', () => {
       },
     ]);
     expect(WORKER_GAME_CATALOG.fibking.httpRoutes).toEqual([]);
+    expect(WORKER_GAME_CATALOG.avalon.httpRoutes).toEqual([]);
   });
 
   it('binds the concrete Werewolf engine, codec, and schemas', () => {
