@@ -2,7 +2,7 @@ import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
-import { extractRoomCode } from '../helpers/home';
+import { enterRoomCodeViaNumPad, extractRoomCode } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 
 /**
@@ -39,6 +39,15 @@ export class RoomPage {
 
   async getRoomCode(): Promise<string> {
     return extractRoomCode(this.page);
+  }
+
+  /** Join a room from the home screen by entering the room code on the numpad. */
+  async joinViaCode(roomCode: string): Promise<void> {
+    await this.page.getByTestId(TESTIDS.homeEnterRoomButton).click();
+    await expect(this.page.getByText('加入房间', { exact: true })).toBeVisible();
+    await enterRoomCodeViaNumPad(this.page, roomCode);
+    await this.page.getByText('加入', { exact: true }).click();
+    await waitForRoomScreenReady(this.page, { role: 'joiner' });
   }
 
   /** Count visible seat tiles (excludes pressable overlay). */
