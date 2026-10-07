@@ -59,7 +59,6 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
 
 describe('resolveAvalonStageKind', () => {
   it.each([
-    ['night', 'night'],
     ['nominate', 'nominate'],
     ['vote', 'vote'],
     ['quest', 'quest'],
@@ -68,6 +67,12 @@ describe('resolveAvalonStageKind', () => {
     ['ended', 'ended'],
   ] as const)('maps the %s phase to the %s view', (phaseKind, expected) => {
     expect(resolveAvalonStageKind({ kind: phaseKind } as never)).toBe(expected);
+  });
+
+  it('throws for the night phase (seat board + modal, not workspace)', () => {
+    expect(() => resolveAvalonStageKind({ kind: 'night' } as never)).toThrow(
+      '[FAIL-FAST] Avalon workspace received the night phase',
+    );
   });
 
   it('throws for the lobby phase', () => {

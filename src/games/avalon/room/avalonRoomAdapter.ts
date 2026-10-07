@@ -5,6 +5,7 @@
 import {
   type AvalonState,
   getAvalonBotDisplayName,
+  getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
   isAvalonImplicitBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -106,9 +107,10 @@ export function createAvalonSeatDataSource(
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel {
   const phase = state.phase;
   if (phase.kind === 'night') {
-    // 对齐狼人杀：显示确认进度。
+    // 对齐狼人杀：显示确认进度。total 是当前 step 的参与者数（非全员），
+    // 因为 confirmedSeats 在每次 step 推进时清零。
     const confirmed = phase.confirmedSeats.length;
-    const total = state.config.numberOfPlayers;
+    const total = getAvalonNightParticipants(state.roles, phase.step).length;
     return { kind: 'progress', current: confirmed, total, label: '天黑确认' };
   }
   if (phase.kind === 'nominate')

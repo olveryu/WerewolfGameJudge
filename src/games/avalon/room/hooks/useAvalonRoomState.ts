@@ -89,6 +89,11 @@ export function useAvalonRoomState(
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
+  // step 推进时重置弹窗状态，防止 stale（比如别人确认完推进了 step，自己开着的弹窗指令已失效）。
+  const nightStep = state.phase.kind === 'night' ? state.phase.step : null;
+  useEffect(() => {
+    setNightModalVisible(false);
+  }, [nightStep]);
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -414,8 +419,8 @@ export function useAvalonRoomState(
             }
         )
       > = [];
-      // 查看身份：局内常驻（对齐狼人杀）。
-      if (!isLobby && mySeat !== null) {
+      // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
+      if (!isLobby && effectiveSeat !== null) {
         actions.push({
           key: 'viewRole',
           label: '查看身份',
