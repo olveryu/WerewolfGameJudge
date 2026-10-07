@@ -123,7 +123,18 @@ export function useAvalonRoomState(
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
   const onSeatPress = (seat: number) => {
-    if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
+    if (!isLobby) {
+      // 狼人杀模式：房主点机器人座位接管/释放，不改变界面（D12 不做任何接管提示）。
+      if (canControlBots) {
+        const inGameTarget = getAvalonProfileTarget(state, seat);
+        if (inGameTarget?.occupantKind === 'bot') {
+          if (controlledSeat === seat) releaseBot();
+          else takeOver(seat);
+          return;
+        }
+      }
+      return showErrorAlert('不可选择', '游戏进行中不能调整座位');
+    }
     const target = getAvalonProfileTarget(state, seat);
     if (target?.occupantKind === 'bot')
       return showAlert(target.rosterName, '请选择对该机器人座位的操作', [
@@ -336,9 +347,8 @@ export function useAvalonRoomState(
       ),
       visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
-      onBotSeatLongPress: canControlBots
-        ? (seat) => (controlledSeat === seat ? releaseBot() : takeOver(seat))
-        : null,
+      // 狼人杀模式用点选接管，长按入口已移除。
+      onBotSeatLongPress: null,
     },
     seatConfirmation:
       seatController.pendingAction === null
@@ -377,7 +387,7 @@ export function useAvalonRoomState(
           ? terminalHostManagement
           : inGameHostManagement,
     // D12：不做任何关于 bot 接管的提示——不渲染受控席位 banner。
-    // 释放入口由局内接管卡片（AvalonTakeoverEntry）提供。
+    // 释放：房主点已接管的机器人座位即可释放（狼人杀模式）。
     controlledSeat: null,
   };
   const hasAutoShownQR = useRef(false);
@@ -398,8 +408,6 @@ export function useAvalonRoomState(
     controlledSeat,
     isHost,
     canControlBots,
-    takeOver,
-    releaseBot,
     submit,
     isSubmitting: submission.isSubmitting,
     session,

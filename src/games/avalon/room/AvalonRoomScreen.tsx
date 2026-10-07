@@ -33,7 +33,6 @@ import {
   type AvalonStrikeConfirmation,
   AvalonStrikeConfirmModal,
 } from './components/AvalonStrikeConfirmModal';
-import { AvalonTakeoverEntry } from './components/AvalonTakeoverEntry';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { AvalonVoteView } from './components/AvalonVoteView';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
@@ -255,13 +254,6 @@ function AvalonStage({
         seatName={strikeName}
         onConfirm={confirmStrike}
         onClose={closeStrike}
-      />
-      <AvalonTakeoverEntry
-        isHost={screen.isHost}
-        viewModel={viewModel}
-        controlledSeat={screen.controlledSeat}
-        onTakeOver={screen.takeOver}
-        onRelease={screen.releaseBot}
       />
     </>
   );
