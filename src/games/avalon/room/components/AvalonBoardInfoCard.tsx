@@ -1,6 +1,6 @@
 /**
  * 阿瓦隆板子信息卡：显示本局角色配置，点角色看技能介绍。
- * 对齐狼人杀 BoardInfoCard（可折叠、角色可点）。
+ * 对齐狼人杀 BoardInfoCard（可折叠、角色可点）；chip 复用共享 FactionChip。
  */
 
 import {
@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { FactionChip } from '@/components/FactionChip';
 import { borderRadius, colors, spacing, textStyles, typography } from '@/theme';
 
 import { getAvalonRoleMeta } from '../../model/avalonRoleMeta';
@@ -48,9 +49,11 @@ export function AvalonBoardInfoCard({
           <View style={styles.factionRow}>
             <Text style={styles.factionLabel}>好人</Text>
             {goodRoles.map((roleId, idx) => (
-              <RoleChip
+              <FactionChip
                 key={`${roleId}-${idx}`}
-                roleId={roleId}
+                label={getAvalonRoleMeta(roleId).displayName}
+                color={colors.primary}
+                size="md"
                 onPress={() => onRolePress(roleId)}
               />
             ))}
@@ -58,9 +61,11 @@ export function AvalonBoardInfoCard({
           <View style={styles.factionRow}>
             <Text style={styles.factionLabel}>坏人</Text>
             {evilRoles.map((roleId, idx) => (
-              <RoleChip
+              <FactionChip
                 key={`${roleId}-${idx}`}
-                roleId={roleId}
+                label={getAvalonRoleMeta(roleId).displayName}
+                color={colors.error}
+                size="md"
                 onPress={() => onRolePress(roleId)}
               />
             ))}
@@ -68,25 +73,6 @@ export function AvalonBoardInfoCard({
         </View>
       )}
     </View>
-  );
-}
-
-function RoleChip({
-  roleId,
-  onPress,
-}: {
-  readonly roleId: AvalonRoleId;
-  readonly onPress: () => void;
-}) {
-  const meta = getAvalonRoleMeta(roleId);
-  return (
-    <TouchableOpacity
-      style={[styles.chip, meta.isEvil ? styles.chipEvil : styles.chipGood]}
-      onPress={onPress}
-      testID={`avalon-role-chip-${roleId}`}
-    >
-      <Text style={meta.isEvil ? styles.chipTextEvil : styles.chipText}>{meta.displayName}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -125,26 +111,5 @@ const styles = StyleSheet.create({
     ...textStyles.secondary,
     color: colors.textSecondary,
     minWidth: spacing.large,
-  },
-  chip: {
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.tight,
-    borderRadius: borderRadius.medium,
-  },
-  chipGood: {
-    backgroundColor: colors.primaryLight,
-  },
-  chipEvil: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.error,
-  },
-  chipText: {
-    ...textStyles.secondary,
-    color: colors.text,
-  },
-  chipTextEvil: {
-    ...textStyles.secondary,
-    color: colors.error,
   },
 });
