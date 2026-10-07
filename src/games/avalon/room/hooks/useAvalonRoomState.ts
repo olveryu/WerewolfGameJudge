@@ -292,14 +292,18 @@ export function useAvalonRoomState(
         },
       ],
     });
-  const inGameHostManagement: RoomHostManagementModel | null =
-    inGameSections.length === 0
-      ? null
-      : {
-          preview: state.phase.kind === 'vote' ? '结束投票' : '结束任务',
-          status: null,
-          sections: inGameSections,
-        };
+  // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
+  // 投票/任务阶段额外出现"结束投票"/"结束任务"。
+  const inGameHostManagement: RoomHostManagementModel = {
+    preview:
+      state.phase.kind === 'vote'
+        ? '结束投票'
+        : state.phase.kind === 'quest'
+          ? '结束任务'
+          : '房主管理',
+    status: null,
+    sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
+  };
   const terminalHostManagement: RoomHostManagementModel = {
     preview: '本局已结束',
     status: null,
