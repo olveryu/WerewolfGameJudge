@@ -190,7 +190,9 @@ for (const viewport of [
       await expect(speakingHint).toHaveCount(0);
       await expect(hostPage.getByTestId('undercover-results')).toHaveCount(0);
       await expect(hostPage.getByText('已出局 · 平民', { exact: true })).toHaveCount(0);
-      await hostRoom.openHostManagement();
+      // NB: do NOT open the host management panel here. On narrow viewports it
+      // is a modal bottom sheet that covers the host's own view-word button,
+      // hanging the first confirm click until the test timeout.
       for (const page of allPages) {
         await page.getByTestId('undercover-view-word').click();
         await page.getByTestId('undercover-confirm').click();
