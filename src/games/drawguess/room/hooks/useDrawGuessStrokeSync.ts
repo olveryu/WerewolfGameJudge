@@ -287,14 +287,16 @@ export function useDrawGuessStrokeSync({
   const undo = useCallback(() => {
     if (!latestRef.current.canDraw) return;
     void (async () => {
-      await flushPending();
-      const latest = latestRef.current;
-      const displayed = [
+      // 先算出要撤销的是哪一笔（必须在 flush 清掉 pending 之前，
+      // 否则 authoritativeStrokes 还没收到服务端广播，会算出空数组导致第一下没反应）
+      const displayedBeforeFlush = [
         ...authoritativeStrokes.map(drawGuessStrokeToElement),
         ...[...pendingRef.current.values()].map((entry) => entry.element),
       ];
-      const last = displayed.at(-1);
+      const last = displayedBeforeFlush.at(-1);
       if (last === undefined) return;
+      await flushPending();
+      const latest = latestRef.current;
       // 先乐观更新 UI，再发服务端（修"慢一拍"）；同时入重做栈
       setOptimisticUndoneId(last.id);
       redoStackRef.current.push(last);
