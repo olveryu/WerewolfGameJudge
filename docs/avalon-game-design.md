@@ -437,7 +437,7 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
 > D6-Q3：要，测试用（隐式占位 + 仅房主代打，沿用现有机制，不做 AI）。D9（M1）：入口对齐 drawguess 定稿——大厅房主"填充机器人"按钮，配置页无开关。
 
 - 隐式机器人席位（`isAvalonImplicitBotSeat`，与 drawguess 同构判定）：房主在大厅点了"填充机器人"、座位在人数范围内、无真人入座、没被踢过；显示名"机器人X号"。
-- 接管：仅房主可接管（三层校验 `useRoomBotControl` → `canTakeOverBots: isHost` → engine `resolveEffectiveSeatActor`，非房主 `REASON_NOT_HOST`、目标非 bot `REASON_CONTROLLED_SEAT_NOT_BOT` 拒绝）；接管后房主以该席位代打（`controlledSeat`）。
+- 接管：仅房主可接管（三层校验 `useRoomBotControl` → `canTakeOverBots: isHost` → engine `resolveEffectiveSeatActor`，非房主 `REASON_NOT_HOST`、目标非 bot `REASON_CONTROLLED_SEAT_NOT_BOT` 拒绝）；局内房主点机器人座位直接接管/释放（对齐狼人杀，不做任何接管提示 UI，D12；2026-10-07 用户确认）；接管后房主以该席位代打（`controlledSeat`）。
 - 机器人无自主行动：晚上确认、组队、投票、出牌、湖仙查验、刺杀指认，全部需房主接管代操作；未接管则该步骤等待（D4 无计时，线下催促）。
 - 强推理游戏，bot 仅用于测试流程与凑人数，不做 AI 决策（非目标）。
 - 房主可踢掉单个机器人席位（走共享 `room.seat.kick` 平台命令，不自创按钮）；座位清空时机器人占位同步清理（对齐 drawguess §10）。
