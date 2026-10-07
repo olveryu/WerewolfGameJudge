@@ -1,12 +1,14 @@
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
-import { test } from '../fixtures/app.fixture';
+import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { startRoomCreation } from '../helpers/home';
 import { FibConfigPage } from '../pages/FibConfigPage';
 import { FibRoomPage } from '../pages/FibRoomPage';
 
-test.setTimeout(90_000);
+test.setTimeout(180_000);
+
+const MOBILE_VIEWPORT = { width: 320, height: 640 };
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page): Promise<void> {
   const viewport = page.viewportSize();
@@ -58,46 +60,69 @@ async function expectInsideViewport(
 }
 
 test('FibKing config, room, rules, and identity fit the small-mobile viewport', async ({
-  app: { page },
+  browser,
 }, testInfo) => {
-  await startRoomCreation(page, 'fibking');
-  const config = new FibConfigPage(page);
-  await config.waitForCreateMode();
-  await config.setPlayerCount(4);
-  await expectNoHorizontalOverflow(page);
-  await expectInsideViewport(page, TESTIDS.fibConfigSubmitButton);
-  await testInfo.attach('fibking-mobile-config.png', {
-    body: await page.screenshot(),
-    contentType: 'image/png',
-  });
-  await config.createRoom();
+  const fixture = await createPlayerContexts(browser, 4);
+  const [hostPage, ...joinerPages] = fixture.pages;
+  try {
+    for (const page of fixture.pages) await page.setViewportSize(MOBILE_VIEWPORT);
+    await startRoomCreation(hostPage, 'fibking');
+    const config = new FibConfigPage(hostPage);
+    await config.waitForCreateMode();
+    await config.setPlayerCount(4);
+    await expectNoHorizontalOverflow(hostPage);
+    await expectInsideViewport(hostPage, TESTIDS.fibConfigSubmitButton);
+    await testInfo.attach('fibking-mobile-config.png', {
+      body: await hostPage.screenshot(),
+      contentType: 'image/png',
+    });
+    await config.createRoom();
 
-  const room = new FibRoomPage(page);
-  await room.waitForReady('host');
-  await room.seatAt(0);
-  await expectNoHorizontalOverflow(page);
-  await expectInsideViewport(page, TESTIDS.roomHeader);
-  await expectInsideViewport(page, TESTIDS.bottomActionPanel);
-  await testInfo.attach('fibking-mobile-lobby.png', {
-    body: await page.screenshot(),
-    contentType: 'image/png',
-  });
+    const hostRoom = new FibRoomPage(hostPage);
+    await hostRoom.waitForReady('host');
+    await hostRoom.seatAt(0);
+    const roomCode = await hostRoom.getRoomCode();
+    const joinerRooms = joinerPages.map((page) => new FibRoomPage(page));
+    for (let i = 0; i < joinerRooms.length; i += 1) {
+      await joinerRooms[i]!.joinViaCode(roomCode);
+      await joinerRooms[i]!.seatAt(i + 1);
+    }
+    await expect(hostPage.getByText('等待入座 · 4/4', { exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expectNoHorizontalOverflow(hostPage);
+    await expectInsideViewport(hostPage, TESTIDS.roomHeader);
+    await expectInsideViewport(hostPage, TESTIDS.bottomActionPanel);
+    await testInfo.attach('fibking-mobile-lobby.png', {
+      body: await hostPage.screenshot(),
+      contentType: 'image/png',
+    });
 
-  await room.openRules();
-  await expectNoHorizontalOverflow(page);
-  await expect(page.getByRole('heading', { name: '三个身份', level: 2 })).toBeVisible();
-  await testInfo.attach('fibking-mobile-guide.png', {
-    body: await page.screenshot(),
-    contentType: 'image/png',
-  });
-  await room.returnFromRules();
+    await hostRoom.openRules();
+    await expectNoHorizontalOverflow(hostPage);
+    await expect(hostPage.getByRole('heading', { name: '三个身份', level: 2 })).toBeVisible();
+    await testInfo.attach('fibking-mobile-guide.png', {
+      body: await hostPage.screenshot(),
+      contentType: 'image/png',
+    });
+    await hostRoom.returnFromRules();
 
-  await room.fillEmptySeatsWithBots(4);
-  await room.startRound();
-  await room.viewIdentity();
-  await expectInsideViewport(page, TESTIDS.fibIdentityModal);
-  await testInfo.attach('fibking-mobile-identity.png', {
-    body: await page.screenshot(),
-    contentType: 'image/png',
-  });
+    await hostRoom.startRound();
+    // Every real player views their own identity; the modal must fit on each page.
+    const allRooms = [hostRoom, ...joinerRooms];
+    for (let i = 0; i < allRooms.length; i += 1) {
+      const page = fixture.pages[i]!;
+      await allRooms[i]!.viewIdentity();
+      await expectInsideViewport(page, TESTIDS.fibIdentityModal);
+      if (i === 0) {
+        await testInfo.attach('fibking-mobile-identity.png', {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        });
+      }
+      await allRooms[i]!.closeIdentity();
+    }
+  } finally {
+    await closeAll(fixture);
+  }
 });
