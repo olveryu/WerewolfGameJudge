@@ -40,6 +40,7 @@ import type {
 } from '@/features/drawing/model/drawing';
 import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
 import { createFillRectangles } from '@/features/drawing/services/floodFill';
+import { createStrokePath } from '@/features/drawing/services/strokePath';
 
 /** 终稿画作规格：固定 1024×768 PNG，单文件最大 2 MiB（设计 §8.3）。 */
 const DRAWGUESS_EXPORT_WIDTH = 1024;
@@ -47,27 +48,6 @@ const DRAWGUESS_EXPORT_HEIGHT = 768;
 const DRAWGUESS_EXPORT_MAX_BYTES = 2 * 1024 * 1024;
 
 const PNG_CONTENT_TYPE = 'image/png';
-
-function createDrawGuessStrokePath(
-  points: readonly DrawingPoint[],
-  width: number,
-  height: number,
-): SkPath {
-  const firstPoint = points[0];
-  if (firstPoint === undefined) {
-    throw new Error('[FAIL-FAST] DrawGuess stroke requires at least one point');
-  }
-  const path = Skia.Path.Make();
-  path.moveTo(firstPoint.x * width, firstPoint.y * height);
-  if (points.length === 1) {
-    path.lineTo(firstPoint.x * width + Number.EPSILON, firstPoint.y * height);
-    return path;
-  }
-  for (const point of points.slice(1)) {
-    path.lineTo(point.x * width, point.y * height);
-  }
-  return path;
-}
 
 function getShapeBounds(
   start: DrawingPoint,
@@ -96,9 +76,9 @@ export function createDrawGuessElementPath(
   switch (element.kind) {
     case 'brush':
     case 'eraser':
-      return createDrawGuessStrokePath(element.points, width, height);
+      return createStrokePath(element.points, width, height);
     case 'line':
-      return createDrawGuessStrokePath([element.start, element.end], width, height);
+      return createStrokePath([element.start, element.end], width, height);
     case 'rectangle': {
       const bounds = getShapeBounds(element.start, element.end, width, height);
       const path = Skia.Path.Make();

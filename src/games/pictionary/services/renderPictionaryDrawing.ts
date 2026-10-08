@@ -25,28 +25,8 @@ import type {
 } from '@/features/drawing/model/drawing';
 import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
 import { createFillRectangles } from '@/features/drawing/services/floodFill';
+import { createStrokePath } from '@/features/drawing/services/strokePath';
 import { PICTIONARY_CANVAS_BACKGROUND } from '@/theme/colors';
-
-function createPictionaryStrokePath(
-  points: readonly DrawingPoint[],
-  width: number,
-  height: number,
-): SkPath {
-  const firstPoint = points[0];
-  if (firstPoint === undefined) {
-    throw new Error('[FAIL-FAST] Pictionary stroke requires at least one point');
-  }
-  const path = Skia.Path.Make();
-  path.moveTo(firstPoint.x * width, firstPoint.y * height);
-  if (points.length === 1) {
-    path.lineTo(firstPoint.x * width + Number.EPSILON, firstPoint.y * height);
-    return path;
-  }
-  for (const point of points.slice(1)) {
-    path.lineTo(point.x * width, point.y * height);
-  }
-  return path;
-}
 
 function getShapeBounds(
   start: DrawingPoint,
@@ -75,9 +55,9 @@ export function createPictionaryElementPath(
   switch (element.kind) {
     case 'brush':
     case 'eraser':
-      return createPictionaryStrokePath(element.points, width, height);
+      return createStrokePath(element.points, width, height);
     case 'line':
-      return createPictionaryStrokePath([element.start, element.end], width, height);
+      return createStrokePath([element.start, element.end], width, height);
     case 'rectangle': {
       const bounds = getShapeBounds(element.start, element.end, width, height);
       const path = Skia.Path.Make();
