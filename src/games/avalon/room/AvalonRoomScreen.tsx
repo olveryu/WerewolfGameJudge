@@ -188,7 +188,7 @@ function AvalonRoomContent(
           <AvalonRoleCardModal
             visible={screen.roleCardVisible}
             roleId={screen.rolePreviewId ?? viewModel?.myRole ?? null}
-            effectType={null}
+            effectType={screen.rolePreviewId !== null ? null : screen.equippedRevealEffect}
             onClose={() => {
               screen.setRoleCardVisible(false);
               screen.setRolePreviewId(null);

@@ -517,6 +517,27 @@ export function useAvalonRoomState(
     controlledSeat,
     isHost,
     canControlBots,
+    equippedRevealEffect: (() => {
+      const effect = user.equippedEffect;
+      if (effect === 'random' || effect == null) return null;
+      // Validate against known RevealEffectType values
+      const validEffects = [
+        'fateReweave',
+        'oceanPearl',
+        'unfoldLandscape',
+        'fateDecree',
+        'roulette',
+        'roleHunt',
+        'scratch',
+        'tarot',
+        'gachaMachine',
+        'cardPick',
+        'sealBreak',
+      ] as const;
+      return (validEffects as readonly string[]).includes(effect)
+        ? (effect as (typeof validEffects)[number])
+        : null;
+    })(),
     submit,
     isSubmitting: submission.isSubmitting,
     session,
