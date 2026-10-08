@@ -45,26 +45,26 @@ const AVALON_ROLE_DESCRIPTIONS: Readonly<Record<AvalonRoleId, AvalonRoleDescript
   morgana: {
     passive: '晚上和坏人同伴互认（奥伯伦除外）。',
     special: '在派西维尔眼中伪装成梅林。',
-    winCondition: '破坏 3 个任务，或刺杀梅林。',
+    winCondition: '破坏 3 个任务。',
   },
   assassin: {
     trigger: '好人完成 3 个任务后，指认一名玩家为梅林。',
-    winCondition: '指认正确则坏人翻盘获胜。',
+    winCondition: '破坏 3 个任务，或刺杀梅林成功。',
   },
   mordred: {
     passive: '梅林看不到你。',
     special: '坏人阵营的隐藏王牌。',
-    winCondition: '破坏 3 个任务，或刺杀梅林。',
+    winCondition: '破坏 3 个任务。',
   },
   oberon: {
     passive: '不参与坏人互认，也看不到同伴。',
     special: '独自行动的卧底。',
-    winCondition: '破坏 3 个任务，或刺杀梅林。',
+    winCondition: '破坏 3 个任务。',
   },
   minion: {
     passive: '普通的坏人爪牙。',
     skill: '晚上参与互认，在任务中搞破坏。',
-    winCondition: '破坏 3 个任务，或刺杀梅林。',
+    winCondition: '破坏 3 个任务。',
   },
 };
 
