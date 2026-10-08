@@ -679,11 +679,22 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           >
             <BoardInfoCard
               playerCount={gameState.template.numberOfPlayers}
-              wolfRoleItems={wolfRoleItems}
-              godRoleItems={godRoleItems}
-              specialRoleItems={specialRoleItems}
-              villagerCount={villagerCount}
-              villagerRoleItems={villagerRoleItems}
+              sections={[
+                { title: '狼人', items: wolfRoleItems, color: colors.wolf },
+                { title: '神职', items: godRoleItems, color: colors.god },
+                { title: '特殊', items: specialRoleItems, color: colors.third },
+                {
+                  title: '村民',
+                  items:
+                    villagerCount > 0
+                      ? [
+                          { roleId: 'villager', displayName: '村民', count: villagerCount },
+                          ...villagerRoleItems,
+                        ]
+                      : villagerRoleItems,
+                  color: colors.villager,
+                },
+              ]}
               collapsed={
                 roomStatus === GameStatus.Ongoing ||
                 roomStatus === GameStatus.Day ||

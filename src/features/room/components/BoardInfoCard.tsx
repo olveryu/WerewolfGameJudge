@@ -1,8 +1,9 @@
 /**
  * BoardInfoCard - Role configuration info card (collapsible, Memoized)
  *
- * Displays a role configuration overview (wolf/god/villager counts). Tap a role name to view its skills.
- * Renders UI, handles collapse interaction, and reports onRolePress intent via callback; no service imports, no business logic.
+ * Generic board info renderer. Games pass their own sections; the component
+ * only handles rendering, collapse interaction, and onRolePress callbacks.
+ * No game-specific labels, colors, or logic baked in.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -16,19 +17,23 @@ import { colors, componentSizes, fixed } from '@/theme';
 
 import { type BoardInfoCardStyles } from './boardInfo.styles';
 
+/**
+ * 板子信息分组：标题 + 角色项 + 颜色。
+ * 各游戏传入自己的分组，共享组件只负责渲染。
+ * 狼人杀：[{ title: '狼人', items, color: colors.wolf }, ...]
+ * 阿瓦隆：[{ title: '坏人', items, color: colors.wolf }, ...]
+ */
+export interface BoardInfoSection {
+  readonly title: string;
+  readonly items: readonly RoleDisplayItem[];
+  readonly color: string;
+}
+
 interface BoardInfoCardProps {
   /** Total number of players */
   playerCount: number;
-  /** Wolf role items (roleId + displayName + count) */
-  wolfRoleItems: readonly RoleDisplayItem[];
-  /** God role items */
-  godRoleItems: readonly RoleDisplayItem[];
-  /** Special role items (optional) */
-  specialRoleItems: readonly RoleDisplayItem[];
-  /** Number of generic villagers */
-  villagerCount: number;
-  /** Villager-faction roles that are NOT generic villager (e.g. mirrorSeer) */
-  villagerRoleItems: readonly RoleDisplayItem[];
+  /** 分组列表：各游戏传入自己的分组 */
+  sections: readonly BoardInfoSection[];
   /** Whether the card should be collapsed */
   collapsed?: boolean;
   /** Callback when a role chip is pressed (reports roleId to parent) */
@@ -37,19 +42,9 @@ interface BoardInfoCardProps {
   onNotepadPress?: () => void;
   /** Callback when the strategy button is pressed */
   onStrategyPress?: () => void;
-  /**
-   * 可选的分组标题覆盖。缺省为狼人杀文案（狼人/神职/特殊/村民）。
-   * 阿瓦隆传入 { wolf: '坏人', god: '好人', villager: '忠臣' }。
-   */
-  sectionLabels?: {
-    readonly wolf?: string;
-    readonly god?: string;
-    readonly special?: string;
-    readonly villager?: string;
-  };
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
-  /** Whether to show nomination buttons (Unseated/Seated phase) */
+  /** Whether to show nomination buttons (werewolf-specific, optional) */
   showNominations?: boolean;
   /** Whether the current user has already submitted a nomination */
   hasMyNomination?: boolean;
@@ -61,40 +56,38 @@ interface BoardInfoCardProps {
   onViewNominations?: () => void;
 }
 
-/** Render a row of role chips for a faction category */
-function RoleChipRow({
-  items,
+/** Render a row of role chips for a section */
+function SectionChipRow({
+  section,
   onRolePress,
   styles,
-  color,
 }: {
-  items: readonly RoleDisplayItem[];
+  section: BoardInfoSection;
   onRolePress?: (roleId: string) => void;
   styles: BoardInfoCardStyles;
-  color: string;
 }) {
+  if (section.items.length === 0) return null;
   return (
-    <View style={styles.roleChipRow}>
-      {items.map((item) => (
-        <FactionChip
-          key={item.roleId}
-          label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-          color={color}
-          size="md"
-          onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
-        />
-      ))}
+    <View style={styles.roleCategory}>
+      <Text style={styles.roleCategoryLabel}>{section.title}：</Text>
+      <View style={styles.roleChipRow}>
+        {section.items.map((item) => (
+          <FactionChip
+            key={item.roleId}
+            label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
+            color={section.color}
+            size="md"
+            onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   playerCount,
-  wolfRoleItems,
-  godRoleItems,
-  specialRoleItems,
-  villagerCount,
-  villagerRoleItems,
+  sections,
   collapsed = false,
   onRolePress,
   onNotepadPress,
@@ -105,16 +98,9 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   nominationCount = 0,
   onNominatePress,
   onViewNominations,
-  sectionLabels,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
-
-  // 分组标题：缺省狼人杀文案，可被覆盖（如阿瓦隆）。
-  const wolfLabel = sectionLabels?.wolf ?? '狼人';
-  const godLabel = sectionLabels?.god ?? '神职';
-  const specialLabel = sectionLabels?.special ?? '特殊';
-  const villagerLabel = sectionLabels?.villager ?? '村民';
 
   // Sync with external collapsed prop only if user hasn't manually interacted
   useEffect(() => {
@@ -171,63 +157,14 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
 
       {!isCollapsed && (
         <View style={styles.boardInfoContent}>
-          {wolfRoleItems.length > 0 && (
-            <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>{wolfLabel}：</Text>
-              <RoleChipRow
-                items={wolfRoleItems}
-                onRolePress={onRolePress}
-                styles={styles}
-                color={colors.wolf}
-              />
-            </View>
-          )}
-          {godRoleItems.length > 0 && (
-            <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>{godLabel}：</Text>
-              <RoleChipRow
-                items={godRoleItems}
-                onRolePress={onRolePress}
-                styles={styles}
-                color={colors.god}
-              />
-            </View>
-          )}
-          {specialRoleItems.length > 0 && (
-            <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>{specialLabel}：</Text>
-              <RoleChipRow
-                items={specialRoleItems}
-                onRolePress={onRolePress}
-                styles={styles}
-                color={colors.third}
-              />
-            </View>
-          )}
-          {(villagerCount > 0 || villagerRoleItems.length > 0) && (
-            <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>{villagerLabel}：</Text>
-              <View style={styles.roleChipRow}>
-                {villagerCount > 0 && (
-                  <FactionChip
-                    label={villagerCount > 1 ? `村民×${villagerCount}` : '村民'}
-                    color={colors.villager}
-                    size="md"
-                    onPress={onRolePress ? () => onRolePress('villager') : undefined}
-                  />
-                )}
-                {villagerRoleItems.map((item) => (
-                  <FactionChip
-                    key={item.roleId}
-                    label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                    color={colors.villager}
-                    size="md"
-                    onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
+          {sections.map((section) => (
+            <SectionChipRow
+              key={section.title}
+              section={section}
+              onRolePress={onRolePress}
+              styles={styles}
+            />
+          ))}
           <View style={styles.nominationButtonRow}>
             <Text style={styles.boardInfoHint} numberOfLines={1}>
               <Ionicons

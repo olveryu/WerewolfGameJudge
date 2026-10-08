@@ -1,9 +1,8 @@
 /**
  * 阿瓦隆板子信息卡：共享 BoardInfoCard 的阿瓦隆适配器。
  *
- * 把阿瓦隆板子数据（AVALON_BOARDS）转成共享版 props 格式。
- * 映射：坏人→wolfRoleItems，好人特殊→godRoleItems，忠臣→villagerRoleItems。
- * （共享版 props 仍是 werewolf 命名，真正泛化是后续任务）
+ * 阿瓦隆只有两个阵营：好人 / 坏人。
+ * 忠臣是普通好人，不单独分组。
  */
 
 import {
@@ -13,8 +12,9 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 import { useCallback, useMemo } from 'react';
 
-import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoCard, type BoardInfoSection } from '@/features/room/components/BoardInfoCard';
 import type { RoleDisplayItem } from '@/features/room/model/SeatGameRoom';
+import { colors } from '@/theme';
 
 import { getAvalonRoleDisplayName } from '../../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../../model/avalonRoleMeta';
@@ -61,26 +61,24 @@ export function AvalonBoardInfoCard({
     [idByKey, onRolePress],
   );
 
+  const sections = useMemo((): readonly BoardInfoSection[] => {
+    if (board === null) return [];
+    const evilRoles = board.filter((r) => getAvalonRoleMeta(r).isEvil);
+    const goodRoles = board.filter((r) => !getAvalonRoleMeta(r).isEvil);
+    return [
+      { title: '坏人', items: toRoleItems(evilRoles), color: colors.wolf },
+      { title: '好人', items: toRoleItems(goodRoles), color: colors.god },
+    ];
+  }, [board]);
+
   if (board === null) return null;
-
-  const evilRoles = board.filter((r) => getAvalonRoleMeta(r).isEvil);
-  const goodSpecial = board.filter((r) => !getAvalonRoleMeta(r).isEvil && r !== 'loyalServant');
-  const loyalists = board.filter((r) => r === 'loyalServant');
-
-  // 阿瓦隆文案：坏人/好人/忠臣，而非狼人/神职/村民。
-  // 标题用缺省"配置（N人）"，板子信息已展示角色详情。
 
   return (
     <BoardInfoCard
       playerCount={playerCount}
-      wolfRoleItems={toRoleItems(evilRoles)}
-      godRoleItems={toRoleItems(goodSpecial)}
-      specialRoleItems={[]}
-      villagerCount={0}
-      villagerRoleItems={toRoleItems(loyalists)}
+      sections={sections}
       collapsed={collapsed}
       onRolePress={handleRolePress}
-      sectionLabels={{ wolf: '坏人', god: '好人', villager: '忠臣' }}
       styles={styles}
     />
   );
