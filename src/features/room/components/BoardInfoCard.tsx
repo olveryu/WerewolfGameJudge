@@ -156,7 +156,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               styles={styles}
             />
           ))}
-          <View style={styles.nominationButtonRow}>
+          <View style={styles.footerRow}>
             <Text style={styles.boardInfoHint} numberOfLines={1}>
               <Ionicons
                 name={UI_ICONS.HINT}

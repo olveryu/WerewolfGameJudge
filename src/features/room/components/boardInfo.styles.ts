@@ -28,7 +28,7 @@ export interface BoardInfoCardStyles {
   roleCategoryText: TextStyle;
   roleChipRow: ViewStyle;
   boardInfoHint: TextStyle;
-  nominationButtonRow: ViewStyle;
+  footerRow: ViewStyle;
   nominationBtn: ViewStyle;
   nominationBtnText: TextStyle;
 }
@@ -104,7 +104,7 @@ export function createBoardInfoStyles(colors: ThemeColors): BoardInfoCardStyles 
       color: colors.textMuted,
       flex: 1,
     },
-    nominationButtonRow: {
+    footerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.small,
