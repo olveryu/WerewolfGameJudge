@@ -30,7 +30,6 @@ export function AvalonRoleCardModal({
 }: {
   readonly visible: boolean;
   readonly roleId: AvalonRoleId | null;
-  readonly title?: string;
   readonly onClose: () => void;
 }) {
   return (

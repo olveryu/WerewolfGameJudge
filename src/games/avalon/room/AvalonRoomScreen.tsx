@@ -19,7 +19,6 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
-import { getAvalonRoleDisplayName } from '@/games/avalon/model/avalonRoleDisplay';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 
@@ -189,11 +188,6 @@ function AvalonRoomContent(
           <AvalonRoleCardModal
             visible={screen.roleCardVisible}
             roleId={screen.rolePreviewId ?? viewModel?.myRole ?? null}
-            title={
-              screen.rolePreviewId !== null
-                ? getAvalonRoleDisplayName(screen.rolePreviewId)
-                : undefined
-            }
             onClose={() => {
               screen.setRoleCardVisible(false);
               screen.setRolePreviewId(null);
