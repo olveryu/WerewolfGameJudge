@@ -47,11 +47,6 @@ interface BoardInfoCardProps {
     readonly special?: string;
     readonly villager?: string;
   };
-  /**
-   * 可选的卡片标题覆盖。缺省为"配置（{N}人）"。
-   * 阿瓦隆传入"{N}人局 · 好人{G} vs 坏人{E}"。
-   */
-  cardTitle?: string;
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
   /** Whether to show nomination buttons (Unseated/Seated phase) */
@@ -111,7 +106,6 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   onNominatePress,
   onViewNominations,
   sectionLabels,
-  cardTitle,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
@@ -141,7 +135,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         onPress={handleToggle}
         activeOpacity={fixed.activeOpacity}
       >
-        <Text style={styles.boardInfoTitle}>{cardTitle ?? `配置（${playerCount}人）`}</Text>
+        <Text style={styles.boardInfoTitle}>配置（{playerCount}人）</Text>
         <View style={styles.headerRowRight}>
           {onStrategyPress != null && (
             <TouchableOpacity

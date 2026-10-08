@@ -68,8 +68,7 @@ export function AvalonBoardInfoCard({
   const loyalists = board.filter((r) => r === 'loyalServant');
 
   // 阿瓦隆文案：坏人/好人/忠臣，而非狼人/神职/村民。
-  const evilCount = evilRoles.length;
-  const goodCount = goodSpecial.length + loyalists.length;
+  // 标题用缺省"配置（N人）"，板子信息已展示角色详情。
 
   return (
     <BoardInfoCard
@@ -81,7 +80,6 @@ export function AvalonBoardInfoCard({
       villagerRoleItems={toRoleItems(loyalists)}
       collapsed={collapsed}
       onRolePress={handleRolePress}
-      cardTitle={`${playerCount}人局 · 好人${goodCount} vs 坏人${evilCount}`}
       sectionLabels={{ wolf: '坏人', god: '好人', villager: '忠臣' }}
       styles={styles}
     />
