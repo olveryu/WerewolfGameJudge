@@ -24,6 +24,11 @@ interface RoleCardSimpleProps {
   readonly confirmText?: string;
   /** 底部额外内容（如变体切换、AI 按钮，由游戏传入） */
   readonly footer?: React.ReactNode;
+  /**
+   * 确认按钮颜色覆盖。缺省用 role.alignment 的阵营色。
+   * 狼人杀用：基于真实 roleId（非 displayAs）的颜色，如 mirrorSeer 显示村民绿。
+   */
+  readonly buttonColor?: string;
 }
 
 export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
@@ -32,6 +37,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   onClose,
   confirmText = '知道了',
   footer,
+  buttonColor,
 }) => {
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.82, 360);
@@ -39,7 +45,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 
   if (!visible || role === null) return null;
 
-  const factionColor = getRevealFactionColor(role.alignment, colors);
+  const factionColor = buttonColor ?? getRevealFactionColor(role.alignment, colors);
 
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>

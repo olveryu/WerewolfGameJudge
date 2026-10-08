@@ -157,6 +157,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
       onClose={onClose}
       confirmText="知道了"
       footer={footer}
+      buttonColor={realFactionColor}
     />
   );
 };
