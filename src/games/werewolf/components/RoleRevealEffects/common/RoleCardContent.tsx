@@ -365,9 +365,6 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   );
 };
 
-/** @internal Exported for RoleCardSimple to access faction color */
-export { getFactionColor };
-
 function createStyles(colors: ThemeColors, width: number, height: number) {
   return StyleSheet.create({
     card: {

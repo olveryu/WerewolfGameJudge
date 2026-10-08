@@ -4,8 +4,8 @@
  * Props 与原版完全一致，内部改用共享 `RoleCardSimple` + `toRevealRoleData` 适配器。
  * 狼人杀专属 UI（AI pill、变体 pill bar）通过共享组件的 `footer` 插槽传入。
  *
- * 注意：AI pill 和按钮的阵营色必须基于真实 roleId（非 displayAs 后），
- * 与原版 `getFactionColor(roleId)` 行为一致（如 mirrorSeer 显示村民绿）。
+ * 注意：所有 UI 颜色（卡片、AI pill、变体 bar、按钮）均基于 displayAs 后的显示身份，
+ * 与玩家看到的卡片一致。玩家不能知道自己的真实身份（如 mirrorSeer 显示为预言家）。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
@@ -15,7 +15,7 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { RoleCardSimple as SharedRoleCardSimple } from '@/features/room/components/RoleCardSimple';
-import { getFactionColor } from '@/games/werewolf/components/RoleRevealEffects/common/RoleCardContent';
+import { getRevealFactionColor } from '@/features/room/components/RoleCardContent';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, typography, withAlpha } from '@/theme';
 
@@ -74,8 +74,10 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
     [displayRoleId, showRealIdentity, seerLabel],
   );
 
-  // AI pill 和按钮的阵营色：基于真实 roleId（非 displayAs），与原版一致
-  const realFactionColor = roleId != null ? getFactionColor(roleId, colors) : colors.villager;
+  // AI pill 和变体 bar 的颜色：与卡片显示身份一致（displayAs 后），避免泄漏真实身份。
+  // 如 mirrorSeer 显示为预言家，相关 UI 均为神职蓝。
+  const displayFactionColor =
+    revealData != null ? getRevealFactionColor(revealData.alignment, colors) : colors.villager;
 
   const handleAskAI = useCallback(() => {
     if (displayRoleId == null || onAskAI == null) return;
@@ -92,16 +94,16 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
         {/* AI pill — overlaid on card, below faction badge */}
         {showAIButton && (
           <Pressable
-            style={[styles.aiPill, { backgroundColor: withAlpha(realFactionColor, 0.15) }]}
+            style={[styles.aiPill, { backgroundColor: withAlpha(displayFactionColor, 0.15) }]}
             onPress={handleAskAI}
             accessibilityLabel="AI 攻略"
           >
             <Ionicons
               name={UI_ICONS.AI_ASSISTANT}
               size={typography.caption}
-              color={realFactionColor}
+              color={displayFactionColor}
             />
-            <Text style={[styles.aiPillText, { color: realFactionColor }]}>AI 攻略</Text>
+            <Text style={[styles.aiPillText, { color: displayFactionColor }]}>AI 攻略</Text>
           </Pressable>
         )}
 
@@ -117,7 +119,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
                   testID={TESTIDS.configVariantOption(id)}
                   style={[
                     styles.variantPill,
-                    isActive && [styles.variantPillActive, { borderColor: realFactionColor }],
+                    isActive && [styles.variantPillActive, { borderColor: displayFactionColor }],
                   ]}
                   activeOpacity={fixed.activeOpacity}
                   onPress={() => onVariantSelect(id)}
@@ -125,7 +127,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
                   <Text
                     style={[
                       styles.variantPillText,
-                      isActive && [styles.variantPillTextActive, { color: realFactionColor }],
+                      isActive && [styles.variantPillTextActive, { color: displayFactionColor }],
                     ]}
                   >
                     {spec.displayName}
@@ -143,7 +145,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
     variantIds,
     activeVariant,
     onVariantSelect,
-    realFactionColor,
+    displayFactionColor,
     handleAskAI,
   ]);
 
@@ -157,7 +159,6 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
       onClose={onClose}
       confirmText="知道了"
       footer={footer}
-      buttonColor={realFactionColor}
     />
   );
 };
