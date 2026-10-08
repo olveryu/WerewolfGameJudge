@@ -30,6 +30,8 @@ export interface DescriptionField {
   readonly icon?: React.ComponentProps<typeof Ionicons>['name'];
   /** 测试定位（可选）：渲染到该字段的内容行，供单测/e2e 精确定位。 */
   readonly testID?: string;
+  /** 正文测试定位（可选）：渲染到包裹正文的容器，粒度比整行更细。 */
+  readonly contentTestID?: string;
   /**
    * 语义色调（影响 accent bar 和标签颜色）。
    * - default: 阵营色

@@ -135,16 +135,18 @@ const DescriptionSection: React.FC<{
           <Ionicons name={iconName} size={FIELD_ICON_SIZE} color={labelColor} />
           <Text style={[styles.sectionLabel, { color: labelColor }]}>{field.label}</Text>
         </View>
-        {useBullets ? (
-          bullets.map((item, i) => (
-            <View key={i} style={styles.bulletRow}>
-              <Text style={styles.bulletDot}>•</Text>
-              <Text style={styles.sectionText}>{item}</Text>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.sectionText}>{field.content}</Text>
-        )}
+        <View testID={field.contentTestID}>
+          {useBullets ? (
+            bullets.map((item, i) => (
+              <View key={i} style={styles.bulletRow}>
+                <Text style={styles.bulletDot}>•</Text>
+                <Text style={styles.sectionText}>{item}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.sectionText}>{field.content}</Text>
+          )}
+        </View>
       </View>
     </View>
   );
