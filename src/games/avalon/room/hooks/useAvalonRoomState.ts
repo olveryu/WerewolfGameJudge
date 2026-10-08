@@ -268,8 +268,14 @@ export function useAvalonRoomState(
                     '未投票的座位将视为弃权，确定结束投票并结算吗？',
                     () => {
                       // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
+                      // 注意：不能用 submit helper（闭包里的 controlledSeat 还是旧值），直接 dispatch 传 null。
                       if (controlledSeat !== null) releaseBot();
-                      void submit('结束投票', { type: 'avalon.vote.finish' });
+                      void submission.submit('结束投票', () =>
+                        session.dispatch(
+                          { type: 'avalon.vote.finish' },
+                          { controlledSeat: null, label: '结束投票' },
+                        ),
+                      );
                     },
                   ),
               }),
@@ -295,7 +301,12 @@ export function useAvalonRoomState(
                 onPress: () =>
                   showConfirmAlert('结束任务', '未出牌的队员将视为成功，确定提前结算吗？', () => {
                     if (controlledSeat !== null) releaseBot();
-                    void submit('结束任务', { type: 'avalon.quest.finish' });
+                    void submission.submit('结束任务', () =>
+                      session.dispatch(
+                        { type: 'avalon.quest.finish' },
+                        { controlledSeat: null, label: '结束任务' },
+                      ),
+                    );
                   }),
               }),
         },

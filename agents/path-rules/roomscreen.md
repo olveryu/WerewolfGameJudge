@@ -44,5 +44,5 @@ night UI must remain in this game-owned directory. State machine reference:
 - 没有但逻辑通用 → 抽到共享目录（`src/features/room/` 放 room 相关，`src/components/` 放纯展示），两个游戏共用。
 - 复制粘贴改个名字（如 `AvalonBoardInfoCard` vs `BoardInfoCard`）= drift，是违规。
 
-有座位游戏（werewolf/avalon/fibking/undercover/drawguess）和无座位游戏（pictionary/storyrelay）
+有座位游戏（werewolf/avalon/fibking/undercover）和无座位游戏（pictionary/drawguess/storyrelay）
 各抽一套共享逻辑+UI，详见 `~/workspace/werewolf-ui-unify-plan.md`。
