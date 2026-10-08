@@ -151,14 +151,16 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
             />
           ))}
           <View style={styles.footerRow}>
-            <Text style={styles.boardInfoHint} numberOfLines={1}>
-              <Ionicons
-                name={UI_ICONS.HINT}
-                size={componentSizes.icon.xs}
-                color={colors.textMuted}
-              />
-              {' 点击角色名查看说明'}
-            </Text>
+            {onRolePress && (
+              <Text style={styles.boardInfoHint} numberOfLines={1}>
+                <Ionicons
+                  name={UI_ICONS.HINT}
+                  size={componentSizes.icon.xs}
+                  color={colors.textMuted}
+                />
+                {' 点击角色名查看说明'}
+              </Text>
+            )}
             {footer}
           </View>
         </View>

@@ -74,7 +74,7 @@ function UndercoverRoomContent(
                 {
                   title: '卧底',
                   items: [{ roleId: 'undercover', displayName: '卧底', count: 1 }],
-                  color: '#E5484D',
+                  color: colors.wolf,
                 },
                 {
                   title: '平民',
@@ -85,14 +85,14 @@ function UndercoverRoomContent(
                       count: state.config.numberOfPlayers - 1 - (state.config.hasBlank ? 1 : 0),
                     },
                   ],
-                  color: '#3E9B4F',
+                  color: colors.villager,
                 },
                 ...(state.config.hasBlank
                   ? [
                       {
                         title: '白板',
                         items: [{ roleId: 'blank', displayName: '白板', count: 1 }],
-                        color: '#8E8E8E',
+                        color: colors.textMuted,
                       },
                     ]
                   : []),
