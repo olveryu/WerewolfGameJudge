@@ -22,7 +22,6 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
-import { RoleCardModal } from '@/features/room/components/RoleCardModal';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -39,6 +38,7 @@ import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/games/werewolf/components/SkiaShaderWarmup';
 import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
+import { WerewolfRoleCardModal } from '@/games/werewolf/room/components/WerewolfRoleCardModal';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
@@ -791,7 +791,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
           {/* Role Card Modal */}
           {(roleCardVisible || isLoadingRole) && effectiveRole && (
-            <RoleCardModal
+            <WerewolfRoleCardModal
               visible={roleCardVisible}
               isLoading={isLoadingRole}
               roleId={effectiveRole}

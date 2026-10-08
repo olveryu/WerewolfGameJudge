@@ -1,5 +1,9 @@
 /**
- * RoleCardModal — Role identity reveal modal
+ * WerewolfRoleCardModal — 狼人杀角色揭示弹窗（狼人杀专属）。
+ *
+ * 共享层提供 RoleCardSimple / RoleRevealAnimator / RevealRoleData；
+ * 本组件是狼人杀的组装：RoleId → RevealRoleData 转换、双预言家标签、
+ * AI 攻略入口、头像预加载。阿瓦隆有自己的薄组装（AvalonRoleCardModal）。
  *
  * Chooses render mode based on animation config:
  * - Animation is 'none' or should not play → static RoleCardSimple
@@ -43,7 +47,7 @@ const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
-interface RoleCardModalProps {
+interface WerewolfRoleCardModalProps {
   /** Whether the modal is visible. */
   visible: boolean;
   /** Awaiting server confirmation; shows a loading animation. */
@@ -66,7 +70,7 @@ interface RoleCardModalProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
+const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
   visible,
   isLoading,
   roleId,
@@ -160,4 +164,4 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   );
 };
 
-export const RoleCardModal = React.memo(RoleCardModalInner);
+export const WerewolfRoleCardModal = React.memo(WerewolfRoleCardModalInner);

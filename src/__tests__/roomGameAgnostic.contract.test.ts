@@ -9,12 +9,11 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-const ROOM_DIR = join(__dirname, '../features/room/components/RoleRevealEffects');
+const ROOM_DIR = join(__dirname, '../features/room');
 const FORBIDDEN_PATTERNS = [
   /from\s+['"]@\/games\//,
   /import\s*\(\s*['"]@\/games\//,
-  /@game-judge\/game-engine\/games\/werewolf/,
-  /@game-judge\/game-engine\/games\/avalon/,
+  /@game-judge\/game-engine\/games\//,
 ];
 
 function getAllTsFiles(dir: string): string[] {
