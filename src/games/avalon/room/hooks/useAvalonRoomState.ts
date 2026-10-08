@@ -24,6 +24,11 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import {
   createRoomSetupCapabilities,
@@ -37,7 +42,6 @@ import type {
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type AvalonRoomSession, getAvalonUserSeat } from '@/games/avalon/model/AvalonRoomSession';
-import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -190,33 +194,11 @@ export function useAvalonRoomState(
   });
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
-    roomActions.push({
-      key: 'configure',
-      label: '房间设置',
-      icon: 'options-outline',
-      variant: 'secondary',
-      isEnabled: true,
-      onPress: capabilities.canConfigureGame.execute,
-    });
+    roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
-    roomActions.push({
-      key: 'fill',
-      label: '填充机器人',
-      icon: 'people-outline',
-      variant: 'secondary',
-      isEnabled: true,
-      onPress: capabilities.canFillBots.execute,
-      testID: TESTIDS.roomFillBotsButton,
-    });
+    roomActions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
   if (capabilities.canClearSeats.isAllowed)
-    roomActions.push({
-      key: 'clear',
-      label: '清空座位',
-      icon: 'trash-outline',
-      variant: 'danger',
-      isEnabled: true,
-      onPress: capabilities.canClearSeats.execute,
-    });
+    roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   const occupiedSeatCount = getAvalonOccupiedSeatCount(state);
   const canStart = occupiedSeatCount === state.config.numberOfPlayers;
   const startDisabledReason = canStart

@@ -11,6 +11,11 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
 import {
   createRoomSetupCapabilities,
@@ -375,36 +380,23 @@ export function createPictionaryHostManagement(
   const roomActions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     roomActions.push(
-      hostAction(
-        'configure-game',
-        '房间设置',
-        'options-outline',
-        'secondary',
-        input.capabilities.canConfigureGame.execute,
-      ),
+      buildRoomConfigAction({
+        onPress: input.capabilities.canConfigureGame.execute,
+      }),
     );
   }
   if (input.capabilities.canFillBots.isAllowed) {
-    roomActions.push({
-      ...hostAction(
-        'fill-bots',
-        '填充机器人',
-        'people-outline',
-        'secondary',
-        input.capabilities.canFillBots.execute,
-      ),
-      testID: TESTIDS.roomFillBotsButton,
-    });
+    roomActions.push(
+      buildFillBotsAction({
+        onPress: input.capabilities.canFillBots.execute,
+      }),
+    );
   }
   if (input.capabilities.canClearSeats.isAllowed) {
     roomActions.push(
-      hostAction(
-        'clear-seats',
-        '清空座位',
-        'trash-outline',
-        'danger',
-        input.capabilities.canClearSeats.execute,
-      ),
+      buildClearSeatsAction({
+        onPress: input.capabilities.canClearSeats.execute,
+      }),
     );
   }
   const sections: RoomHostManagementSection[] = [

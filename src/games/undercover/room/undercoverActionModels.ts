@@ -4,6 +4,11 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomActionModel,
   RoomBottomButton,
@@ -94,16 +99,22 @@ export function createUndercoverHostManagement(
         getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers,
       );
       if (capabilities.canConfigureGame.isAllowed)
-        add('config', '房间设置', 'options-outline', capabilities.canConfigureGame.execute);
+        actions.push(
+          buildRoomConfigAction({
+            onPress: capabilities.canConfigureGame.execute,
+          }),
+        );
       if (capabilities.canFillBots.isAllowed)
-        add('fill-bots', '填充机器人', 'people-outline', capabilities.canFillBots.execute);
+        actions.push(
+          buildFillBotsAction({
+            onPress: capabilities.canFillBots.execute,
+          }),
+        );
       if (capabilities.canClearSeats.isAllowed)
-        add(
-          'clear-seats',
-          '清空座位',
-          'trash-outline',
-          capabilities.canClearSeats.execute,
-          'danger',
+        actions.push(
+          buildClearSeatsAction({
+            onPress: capabilities.canClearSeats.execute,
+          }),
         );
       break;
     case 'preparing':

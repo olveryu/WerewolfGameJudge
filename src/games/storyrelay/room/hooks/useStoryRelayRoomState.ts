@@ -19,6 +19,11 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
+import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -130,20 +135,12 @@ export function useStoryRelayRoomState(
       : seatController.requestMoveSeat(seat);
   };
   const actions: RoomHostManagementAction[] = [];
-  for (const [key, label, icon, capability, variant] of [
-    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame, 'secondary'],
-    ['fill', '填充机器人', 'people-outline', capabilities.canFillBots, 'secondary'],
-    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats, 'danger'],
-  ] as const)
-    if (capability.isAllowed)
-      actions.push({
-        key,
-        label,
-        icon,
-        variant,
-        isEnabled: true,
-        onPress: capability.execute,
-      });
+  if (capabilities.canConfigureGame.isAllowed)
+    actions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    actions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    actions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   const canAbort =
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';

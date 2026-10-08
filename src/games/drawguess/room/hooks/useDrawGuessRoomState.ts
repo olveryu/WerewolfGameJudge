@@ -22,6 +22,11 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
+import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -35,7 +40,6 @@ import {
   type DrawGuessRoomSession,
   getDrawGuessUserSeat,
 } from '@/games/drawguess/model/DrawGuessRoomSession';
-import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -136,35 +140,12 @@ export function useDrawGuessRoomState(
       : seatController.requestMoveSeat(seat);
   };
   const actions: RoomHostManagementAction[] = [];
-  for (const [key, label, icon, variant, capability, testID] of [
-    [
-      'configure',
-      '房间设置',
-      'options-outline',
-      'secondary',
-      capabilities.canConfigureGame,
-      undefined,
-    ],
-    [
-      'fill',
-      '填充机器人',
-      'people-outline',
-      'secondary',
-      capabilities.canFillBots,
-      TESTIDS.roomFillBotsButton,
-    ],
-    ['clear', '清空座位', 'trash-outline', 'danger', capabilities.canClearSeats, undefined],
-  ] as const)
-    if (capability.isAllowed)
-      actions.push({
-        key,
-        label,
-        icon,
-        variant,
-        isEnabled: true,
-        onPress: capability.execute,
-        ...(testID !== undefined ? { testID } : {}),
-      });
+  if (capabilities.canConfigureGame.isAllowed)
+    actions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    actions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    actions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
   const canStart = occupiedSeatCount === state.config.numberOfPlayers;
   const startDisabledReason = canStart ? null : '座位尚未坐满';
