@@ -13,7 +13,6 @@ import {
   getRoleDisplayName,
   getRoleSpec,
   getRoleStructuredDescription,
-  isWolfRole,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -26,13 +25,13 @@ import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { getFactionName } from '@/games/werewolf/components/roleDisplayUtils';
 
 /**
- * 阵营映射（与原版 getFactionColor 逻辑一致）。
- * 注意：先检查 team（isWolfRole），再按 faction 映射。
- * hiddenWolf 的 team=Good、faction=Wolf，原版显示村民绿（与其"查验为好人"特性一致）。
+ * 阵营映射：按 faction 直接映射。
+ * hiddenWolf 的 faction=Wolf，显示狼红色（玩家自己知道自己是狼，卡片就该是红色）。
+ * 注：原版 getFactionColor 先查 team 会导致隐狼显示绿，那是原版 bug，本次修正。
  */
 function getAlignment(roleId: RoleId): RevealAlignment {
-  if (isWolfRole(roleId)) return 'wolf';
   const spec = getRoleSpec(roleId);
+  if (spec?.faction === Faction.Wolf) return 'wolf';
   if (spec?.faction === Faction.God) return 'god';
   if (spec?.faction === Faction.Special) return 'third';
   return 'villager';
