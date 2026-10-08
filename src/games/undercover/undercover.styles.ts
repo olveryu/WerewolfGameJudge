@@ -2,18 +2,12 @@
 import { StyleSheet } from 'react-native';
 
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
-import { borderRadius, colors, spacing, textStyles } from '@/theme';
+import { borderRadius, colors, spacing } from '@/theme';
 
 export const undercoverStyles = StyleSheet.create({
   title: roomSurfaceStyles.title,
   text: roomSurfaceStyles.body,
   muted: roomSurfaceStyles.status,
-  word: {
-    ...textStyles.titleBold,
-    color: colors.text,
-    textAlign: 'center',
-    paddingVertical: spacing.large,
-  },
   section: roomSurfaceStyles.section,
   revealOverlay: {
     flex: 1,
