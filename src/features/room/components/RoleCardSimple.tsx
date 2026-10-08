@@ -24,6 +24,14 @@ interface RoleCardSimpleProps {
   readonly confirmText?: string;
   /** 底部额外内容（如变体切换、AI 按钮，由游戏传入） */
   readonly footer?: React.ReactNode;
+  /** 卡片 testID，缺省 'role-card-modal'；游戏可传自己的定位 ID。 */
+  readonly testID?: string;
+  /** 角色名文本 testID（可选）。 */
+  readonly nameTestID?: string;
+  /** 单字段描述模式的章节标题（可选），缺省 '技能介绍'。 */
+  readonly descriptionTitle?: string;
+  /** 确认按钮 testID（可选）。 */
+  readonly confirmTestID?: string;
 }
 
 export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
@@ -32,6 +40,10 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   onClose,
   confirmText = '知道了',
   footer,
+  testID = 'role-card-modal',
+  nameTestID,
+  descriptionTitle,
+  confirmTestID,
 }) => {
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.82, 360);
@@ -47,14 +59,21 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={styles.cardWrapper}>
           <RoleCardContent
-            testID="role-card-modal"
+            testID={testID}
+            nameTestID={nameTestID}
+            descriptionTitle={descriptionTitle}
             role={role}
             width={cardWidth}
             height={cardHeight}
           />
           {footer}
           <View style={styles.confirmButton}>
-            <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
+            <Button
+              variant="primary"
+              buttonColor={factionColor}
+              onPress={onClose}
+              testID={confirmTestID}
+            >
               {confirmText}
             </Button>
           </View>

@@ -60,6 +60,8 @@ export function getRevealFactionColor(alignment: RevealAlignment, theme: ThemeCo
       return theme.third;
     case 'villager':
       return theme.villager;
+    case 'neutral':
+      return theme.textSecondary;
   }
 }
 
@@ -74,6 +76,10 @@ interface RoleCardContentProps {
   readonly style?: ViewStyle;
   /** Test ID */
   readonly testID?: string;
+  /** 角色名文本的 testID（可选）：供需要精确定位大字的游戏使用。 */
+  readonly nameTestID?: string;
+  /** 单字段描述模式的章节标题（可选），缺省 '技能介绍'。 */
+  readonly descriptionTitle?: string;
   /** Optional bottom slot (e.g. confirm button) rendered below description */
   readonly children?: React.ReactNode;
   /**
@@ -110,6 +116,8 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   height = 392,
   style,
   testID,
+  nameTestID,
+  descriptionTitle,
   children,
   revealMode = false,
   revealGradient,
@@ -332,12 +340,15 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
 
       {revealMode ? (
         <Animated.Text
+          testID={nameTestID}
           style={[styles.roleName, styles.roleNameReveal, { color: factionColor }, nameAnimStyle]}
         >
           {role.name}
         </Animated.Text>
       ) : (
-        <Text style={[styles.roleName, { color: factionColor }]}>{role.name}</Text>
+        <Text testID={nameTestID} style={[styles.roleName, { color: factionColor }]}>
+          {role.name}
+        </Text>
       )}
 
       {revealMode ? (
@@ -351,6 +362,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
             fields={descriptionFields}
             descriptionFallback={descriptionFallback}
             factionColor={factionColor}
+            modeATitle={descriptionTitle}
           />
         </>
       )}

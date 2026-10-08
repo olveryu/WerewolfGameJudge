@@ -59,5 +59,6 @@ export function createAlignmentThemes(
     god: buildAlignmentTheme(colors.god),
     villager: VILLAGER_THEME,
     third: buildAlignmentTheme(colors.third),
+    neutral: buildAlignmentTheme(colors.textSecondary),
   };
 }

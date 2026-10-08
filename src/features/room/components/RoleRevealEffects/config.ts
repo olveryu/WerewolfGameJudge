@@ -288,6 +288,7 @@ export const CONFIG = {
       god: 3000,
       third: 4000,
       villager: 2500,
+      neutral: 2500,
     } satisfies Record<RevealAlignment, number>,
 
     // ── Screen flash ──

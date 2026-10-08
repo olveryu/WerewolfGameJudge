@@ -48,6 +48,8 @@ interface StructuredDescriptionViewProps {
   readonly factionColor: string;
   /** Enable internal scrolling (default true). Set false when embedded in an outer ScrollView. */
   readonly scrollEnabled?: boolean;
+  /** Mode A 章节标题，缺省 '技能介绍'。 */
+  readonly modeATitle?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -89,17 +91,24 @@ function getFieldLabelColor(tone: DescriptionField['tone'], colors: ThemeColors)
 // ─── Sub-components ──────────────────────────────────────────
 
 /** Mode A: single-field centered layout */
-const ModeA: React.FC<{ text: string; colors: ThemeColors }> = ({ text, colors }) => {
+const ModeA: React.FC<{
+  text: string;
+  title: string;
+  testID?: string;
+  colors: ThemeColors;
+}> = ({ text, title, testID, colors }) => {
   const styles = useMemo(() => createStyles(colors, ''), [colors]);
   return (
     <>
-      <Text style={styles.modeATitle}>技能介绍</Text>
+      <Text style={styles.modeATitle}>{title}</Text>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContentCenter}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.modeAText}>{text}</Text>
+        <Text style={styles.modeAText} testID={testID}>
+          {text}
+        </Text>
       </ScrollView>
     </>
   );
@@ -119,7 +128,7 @@ const DescriptionSection: React.FC<{
   const iconName = field.icon ?? FALLBACK_ICON_NAME;
 
   return (
-    <View style={[styles.sectionRow, !isLast && styles.sectionGap]}>
+    <View style={[styles.sectionRow, !isLast && styles.sectionGap]} testID={field.testID}>
       <View style={styles.accentBar} />
       <View style={styles.sectionContent}>
         <View style={styles.labelRow}>
@@ -148,6 +157,7 @@ export const StructuredDescriptionView: React.FC<StructuredDescriptionViewProps>
   descriptionFallback,
   factionColor,
   scrollEnabled = true,
+  modeATitle = '技能介绍',
 }) => {
   const validFields = useMemo(() => {
     if (!fields) return null;
@@ -161,7 +171,7 @@ export const StructuredDescriptionView: React.FC<StructuredDescriptionViewProps>
     // Single field → use that field's text, or fallback
     const firstField = validFields?.[0];
     const text = firstField?.content ?? descriptionFallback;
-    return <ModeA text={text} colors={colors} />;
+    return <ModeA text={text} title={modeATitle} testID={firstField?.testID} colors={colors} />;
   }
 
   // Mode B: structured sections with scroll + fade mask
