@@ -13,8 +13,8 @@ import {
 import { useCallback, useMemo } from 'react';
 
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
-import type { BoardInfoSection } from '@/features/room/model/SeatGameRoom';
-import type { RoleDisplayItem } from '@/features/room/model/SeatGameRoom';
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
+import type { RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import { colors } from '@/theme';
 
 import { getAvalonRoleDisplayName } from '../../model/avalonRoleDisplay';

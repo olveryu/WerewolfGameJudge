@@ -12,7 +12,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
-import type { BoardInfoSection } from '@/features/room/model/SeatGameRoom';
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import { colors, componentSizes, fixed } from '@/theme';
 
 import { type BoardInfoCardStyles } from './boardInfo.styles';

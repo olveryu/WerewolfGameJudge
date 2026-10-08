@@ -65,8 +65,8 @@ export interface ActionerState {
 }
 
 /** Structured role item for BoardInfoCard touchable chips.
- * @deprecated Use RoleDisplayItem from '@/features/room/model/SeatGameRoom' instead. */
-import type { RoleDisplayItem as SharedRoleDisplayItem } from '@/features/room/model/SeatGameRoom';
+ * @deprecated Use RoleDisplayItem from '@/features/room/model/BoardInfoSection' instead. */
+import type { RoleDisplayItem as SharedRoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 export type RoleDisplayItem = SharedRoleDisplayItem;
 
 interface RoleStats {
