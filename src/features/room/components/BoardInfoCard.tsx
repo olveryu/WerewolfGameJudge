@@ -37,6 +37,21 @@ interface BoardInfoCardProps {
   onNotepadPress?: () => void;
   /** Callback when the strategy button is pressed */
   onStrategyPress?: () => void;
+  /**
+   * 可选的分组标题覆盖。缺省为狼人杀文案（狼人/神职/特殊/村民）。
+   * 阿瓦隆传入 { wolf: '坏人', god: '好人', villager: '忠臣' }。
+   */
+  sectionLabels?: {
+    readonly wolf?: string;
+    readonly god?: string;
+    readonly special?: string;
+    readonly villager?: string;
+  };
+  /**
+   * 可选的卡片标题覆盖。缺省为"配置（{N}人）"。
+   * 阿瓦隆传入"{N}人局 · 好人{G} vs 坏人{E}"。
+   */
+  cardTitle?: string;
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
   /** Whether to show nomination buttons (Unseated/Seated phase) */
@@ -95,9 +110,17 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   nominationCount = 0,
   onNominatePress,
   onViewNominations,
+  sectionLabels,
+  cardTitle,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
+
+  // 分组标题：缺省狼人杀文案，可被覆盖（如阿瓦隆）。
+  const wolfLabel = sectionLabels?.wolf ?? '狼人';
+  const godLabel = sectionLabels?.god ?? '神职';
+  const specialLabel = sectionLabels?.special ?? '特殊';
+  const villagerLabel = sectionLabels?.villager ?? '村民';
 
   // Sync with external collapsed prop only if user hasn't manually interacted
   useEffect(() => {
@@ -118,7 +141,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         onPress={handleToggle}
         activeOpacity={fixed.activeOpacity}
       >
-        <Text style={styles.boardInfoTitle}>配置（{playerCount}人）</Text>
+        <Text style={styles.boardInfoTitle}>{cardTitle ?? `配置（${playerCount}人）`}</Text>
         <View style={styles.headerRowRight}>
           {onStrategyPress != null && (
             <TouchableOpacity
@@ -156,7 +179,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         <View style={styles.boardInfoContent}>
           {wolfRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>狼人：</Text>
+              <Text style={styles.roleCategoryLabel}>{wolfLabel}：</Text>
               <RoleChipRow
                 items={wolfRoleItems}
                 onRolePress={onRolePress}
@@ -167,7 +190,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
           )}
           {godRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>神职：</Text>
+              <Text style={styles.roleCategoryLabel}>{godLabel}：</Text>
               <RoleChipRow
                 items={godRoleItems}
                 onRolePress={onRolePress}
@@ -178,7 +201,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
           )}
           {specialRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>特殊：</Text>
+              <Text style={styles.roleCategoryLabel}>{specialLabel}：</Text>
               <RoleChipRow
                 items={specialRoleItems}
                 onRolePress={onRolePress}
@@ -189,7 +212,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
           )}
           {(villagerCount > 0 || villagerRoleItems.length > 0) && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>村民：</Text>
+              <Text style={styles.roleCategoryLabel}>{villagerLabel}：</Text>
               <View style={styles.roleChipRow}>
                 {villagerCount > 0 && (
                   <FactionChip

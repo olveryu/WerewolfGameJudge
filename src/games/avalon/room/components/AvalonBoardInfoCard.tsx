@@ -11,6 +11,7 @@ import {
   type AvalonRoleId,
   isAvalonPlayerCount,
 } from '@game-judge/game-engine/games/avalon/public';
+import { useCallback, useMemo } from 'react';
 
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
 import type { RoleDisplayItem } from '@/features/room/model/SeatGameRoom';
@@ -41,12 +42,34 @@ export function AvalonBoardInfoCard({
   readonly collapsed?: boolean;
   readonly styles: Parameters<typeof BoardInfoCard>[0]['styles'];
 }) {
-  if (!isAvalonPlayerCount(playerCount)) return null;
-  const board = AVALON_BOARDS[playerCount];
+  // Hooks 必须在 early return 之前调用。
+  const board = isAvalonPlayerCount(playerCount) ? AVALON_BOARDS[playerCount] : null;
+
+  const idByKey = useMemo(() => {
+    const map = new Map<string, AvalonRoleId>();
+    if (board !== null) {
+      for (const r of board) map.set(r, r);
+    }
+    return map;
+  }, [board]);
+
+  const handleRolePress = useCallback(
+    (roleId: string) => {
+      const id = idByKey.get(roleId);
+      if (id !== undefined) onRolePress(id);
+    },
+    [idByKey, onRolePress],
+  );
+
+  if (board === null) return null;
 
   const evilRoles = board.filter((r) => getAvalonRoleMeta(r).isEvil);
   const goodSpecial = board.filter((r) => !getAvalonRoleMeta(r).isEvil && r !== 'loyalServant');
   const loyalists = board.filter((r) => r === 'loyalServant');
+
+  // 阿瓦隆文案：坏人/好人/忠臣，而非狼人/神职/村民。
+  const evilCount = evilRoles.length;
+  const goodCount = goodSpecial.length + loyalists.length;
 
   return (
     <BoardInfoCard
@@ -57,8 +80,9 @@ export function AvalonBoardInfoCard({
       villagerCount={0}
       villagerRoleItems={toRoleItems(loyalists)}
       collapsed={collapsed}
-      // 适配器边界：roleId 必为 AvalonRoleId（来自 toRoleItems），此处转换是安全的。
-      onRolePress={(roleId) => onRolePress(roleId as AvalonRoleId)}
+      onRolePress={handleRolePress}
+      cardTitle={`${playerCount}人局 · 好人${goodCount} vs 坏人${evilCount}`}
+      sectionLabels={{ wolf: '坏人', god: '好人', villager: '忠臣' }}
       styles={styles}
     />
   );
