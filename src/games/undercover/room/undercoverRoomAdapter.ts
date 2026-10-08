@@ -59,13 +59,6 @@ export function getUndercoverProfileTarget(
     : null;
 }
 
-/** Find a real account's seat independently of local robot control. */
-export function getUndercoverUserSeat(state: UndercoverState, userId: string): number | null {
-  for (const human of Object.values(state.realSeats))
-    if (human !== undefined && human.userId === userId) return human.seat;
-  return null;
-}
-
 interface UndercoverCapabilitiesInput extends Omit<
   RoomSetupCapabilitiesInput,
   'isSetup' | 'supportsBots' | 'hasOccupiedSeats' | 'isRoomFull'

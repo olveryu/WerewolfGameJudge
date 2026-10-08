@@ -8,13 +8,13 @@ import {
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 
 import { storyRelayHomeContribution } from './home';
-import { getStoryRelayUserSeat } from './model/StoryRelayRoomSession';
 import { storyRelayGameNavigation } from './navigation/storyRelayGameNavigation';
 import { StoryRelayRoomScreen } from './room/StoryRelayRoomScreen';
 import { StoryRelayConfigScreen } from './screens/StoryRelayConfigScreen';
@@ -34,7 +34,7 @@ export function createStoryRelayUiModule({
   const roomAccount = createSessionRoomAccountCapability<'storyrelay', StoryRelayState>({
     gameType: 'storyrelay',
     session,
-    isUserSeated: (state, userId) => getStoryRelayUserSeat(state, userId) !== null,
+    isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
     canSwitchAccount: (state) => state.phase === 'lobby',
   });
   function BoundStoryRelayRoomScreen(props: GameRoomScreenProps<'storyrelay'>) {

@@ -9,6 +9,7 @@ import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOp
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -17,7 +18,6 @@ import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import {
   createUndercoverRoomCapabilities,
   getUndercoverProfileTarget,
-  getUndercoverUserSeat,
 } from '../undercoverRoomAdapter';
 import { useUndercoverSeatCommands } from './useUndercoverSeatCommands';
 
@@ -29,7 +29,7 @@ export function useUndercoverRoster(
   shareRoom: () => void,
 ) {
   const commands = useUndercoverSeatCommands(session, user);
-  const mySeat = getUndercoverUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
     takeSeat: commands.takeSeat,

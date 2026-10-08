@@ -21,6 +21,7 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -36,10 +37,7 @@ import type {
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import {
-  getStoryRelayUserSeat,
-  type StoryRelayRoomSession,
-} from '@/games/storyrelay/model/StoryRelayRoomSession';
+import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -65,7 +63,7 @@ export function useStoryRelayRoomState(
     throw new Error('Story Relay requires an authenticated ready session');
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
-  const mySeat = getStoryRelayUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;

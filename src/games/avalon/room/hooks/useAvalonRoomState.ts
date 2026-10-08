@@ -25,6 +25,7 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -42,7 +43,7 @@ import type {
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { type AvalonRoomSession, getAvalonUserSeat } from '@/games/avalon/model/AvalonRoomSession';
+import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -91,7 +92,7 @@ export function useAvalonRoomState(
     pendingAudioEffects: state.pendingAudioEffects,
     audio,
   });
-  const mySeat = getAvalonUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const isLobby = state.phase.kind === 'lobby';
   // 查看身份：角色卡弹窗状态（对齐狼人杀）。
   const [roleCardVisible, setRoleCardVisible] = useState(false);

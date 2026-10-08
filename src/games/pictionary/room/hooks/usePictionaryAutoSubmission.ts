@@ -12,12 +12,12 @@ import {
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
 import type { DrawingDraft } from '@/features/drawing/model/drawing';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
 import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { CloudflareHttpError, CloudflareResponseJsonError } from '@/services/cloudflare/cfFetch';
@@ -62,7 +62,7 @@ function collectionKeyFor(state: PictionaryState): string | null {
 }
 
 function getLocallyOwnedTasks(state: PictionaryState, userId: string): readonly LocallyOwnedTask[] {
-  const userSeat = getPictionaryUserSeat(state, userId);
+  const userSeat = getUserSeat(state.realSeats, userId);
   const isHost = state.hostUserId === userId;
   return Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).flatMap((seat) => {
     const isOwnSeat = seat === userSeat;

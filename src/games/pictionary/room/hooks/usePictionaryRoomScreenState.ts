@@ -23,13 +23,13 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -94,7 +94,7 @@ export function usePictionaryRoomScreenState({
   const state = snapshot.snapshot.state;
   const revision = snapshot.snapshot.revision;
   const isHost = state.hostUserId === user.id;
-  const mySeat = getPictionaryUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const seatCommands = usePictionarySeatCommands({ session, user });
   const { controlledSeat, takeOver: takeOverBot, release: releaseBot } = useRoomBotControl();
   const seatController = useRoomSeatController({

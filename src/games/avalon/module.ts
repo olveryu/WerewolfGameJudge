@@ -10,6 +10,7 @@ import {
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
@@ -19,7 +20,6 @@ import type { AudioService } from '@/services/infra/AudioService';
 import { AvalonAudioPlayer } from './audio/AvalonAudioPlayer';
 import { AvalonLockGate } from './components/AvalonLockGate';
 import { avalonHomeContribution } from './home';
-import { getAvalonUserSeat } from './model/AvalonRoomSession';
 import { avalonGameNavigation } from './navigation/avalonGameNavigation';
 import { AvalonRoomScreen } from './room/AvalonRoomScreen';
 import { AvalonConfigScreen } from './screens/AvalonConfigScreen';
@@ -42,7 +42,7 @@ export function createAvalonUiModule({
   const roomAccount = createSessionRoomAccountCapability<'avalon', AvalonState>({
     gameType: 'avalon',
     session,
-    isUserSeated: (state, userId) => getAvalonUserSeat(state, userId) !== null,
+    isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
     canSwitchAccount: (state) => state.phase.kind === 'lobby',
   });
   function BoundAvalonRoomScreen(props: GameRoomScreenProps<'avalon'>) {
