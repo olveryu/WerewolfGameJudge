@@ -1028,7 +1028,6 @@ describe('Client ownership: game-specific modules stay in game slices', () => {
     'src/screens/NotepadScreen',
     'src/components/AIChatBubble',
     'src/components/BoardStrategy',
-    'src/components/FactionChip.tsx',
     'src/components/FactionRoleList.tsx',
     'src/components/NotepadPanel.tsx',
     'src/components/RoleCardSimple.tsx',
@@ -1048,6 +1047,27 @@ describe('Client ownership: game-specific modules stay in game slices', () => {
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+
+  // FactionChip lives in src/components by design (PR #129 shared extraction);
+  // the guard is not "must not exist" but "must stay game-neutral".
+  it('src/components/FactionChip.tsx exists and stays game-neutral', () => {
+    const chipPath = path.join(process.cwd(), 'src/components/FactionChip.tsx');
+    expect(fs.existsSync(chipPath)).toBe(true);
+    const specifiers = getModuleSpecifiers(chipPath, fs.readFileSync(chipPath, 'utf-8'));
+    const isGameSpecific = (specifier: string): boolean => {
+      if (specifier.startsWith('@/games/')) return true;
+      if (specifier.startsWith('@game-judge/game-engine/games/')) return true;
+      if (specifier.startsWith('.')) {
+        const resolved = path.resolve(path.dirname(chipPath), specifier);
+        return (
+          resolved.includes(`${path.sep}src${path.sep}games${path.sep}`) ||
+          resolved.includes(`${path.sep}game-engine${path.sep}src${path.sep}games${path.sep}`)
+        );
+      }
+      return false;
+    };
+    expect(specifiers.filter(isGameSpecific)).toEqual([]);
   });
 
   it('does not restore a game-owned facade abstraction', () => {
