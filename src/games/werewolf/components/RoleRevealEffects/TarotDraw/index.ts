@@ -1,1 +1,0 @@
-export { TarotDraw } from './TarotDraw';
