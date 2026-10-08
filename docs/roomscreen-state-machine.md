@@ -118,7 +118,7 @@ election completes.
 | `AuthGateOverlay`          | No session when entering room via deep link | Unauthenticated users     |
 | AlertModal (Continue Game) | Host reconnect with `needsContinueOverlay`  | Host                      |
 | `SeatConfirmModal`         | Tap seat (Unseated/Seated phase)            | Tapper                    |
-| `RoleCardModal`            | Tap "View Role"                             | Players with seat         |
+| `WerewolfRoleCardModal`    | Tap "View Role"                             | Players with seat         |
 | `NightReviewModal`         | Tap "Night Review" (Ended phase)            | Host + authorized players |
 | `ShareReviewModal`         | Host taps "Last Night Info"                 | Host                      |
 | `QRCodeModal`              | Tap "Share Room"                            | All users                 |
