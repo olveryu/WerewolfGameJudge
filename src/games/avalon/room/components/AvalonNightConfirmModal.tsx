@@ -8,6 +8,7 @@
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 
 import { AlertModal } from '@/components/AlertModal';
+import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 
 import {
   type AvalonNightInstruction,
@@ -81,5 +82,5 @@ function toConfirmDialog(
 
 function formatSeat(viewModel: AvalonViewModel, seat: number): string {
   const name = viewModel.seats.find((entry) => entry.seat === seat)?.displayName;
-  return `${seat + 1}号${name ? `·${name}` : ''}`;
+  return `${formatRoomSeat(seat)}${name ? `·${name}` : ''}`;
 }

@@ -8,6 +8,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { colors } from '@/theme';
@@ -63,7 +64,7 @@ function UndercoverRoomContent(
                   <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
                   <Text style={styles.muted}>
                     出局顺序：
-                    {state.round.revelations.map((entry) => `${entry.seat + 1}号`).join(' → ')}
+                    {state.round.revelations.map((entry) => formatRoomSeat(entry.seat)).join(' → ')}
                   </Text>
                 </View>
               )}

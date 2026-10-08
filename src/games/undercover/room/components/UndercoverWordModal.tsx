@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 
 import { undercoverStyles as styles } from '../../undercover.styles';
 
@@ -26,7 +27,7 @@ export function UndercoverWordModal({
 }: UndercoverWordModalProps) {
   return (
     <RoomDialog
-      title={`${card.seat + 1}号词卡`}
+      title={`${formatRoomSeat(card.seat)}词卡`}
       subtitle={isControlled ? `正在接管 ${card.seat + 1} 号 · 机器人` : '你的词卡'}
       onClose={onClose}
       testID="undercover-word-modal"
