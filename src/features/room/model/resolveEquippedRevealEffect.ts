@@ -18,9 +18,12 @@ import {
 
 import type { RevealEffectType } from '../components/RoleRevealEffects/types';
 
+/** Canonical ID 集合（Set 查找，避免对元组类型做放宽断言）。 */
+const REVEAL_EFFECT_ID_SET: ReadonlySet<string> = new Set(ROLE_REVEAL_EFFECT_IDS);
+
 /** Type guard: narrows string to RevealEffectType via canonical ID list. */
 function isRevealEffectType(id: string): id is RevealEffectType {
-  return (ROLE_REVEAL_EFFECT_IDS as readonly string[]).includes(id);
+  return REVEAL_EFFECT_ID_SET.has(id);
 }
 
 export function resolveEquippedRevealEffect(
