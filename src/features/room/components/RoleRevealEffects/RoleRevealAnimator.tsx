@@ -95,45 +95,33 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
     testIDPrefix,
   };
 
-  // Render the appropriate effect
+  // Render the appropriate effect via exhaustive registry.
+  // Using Record<RevealEffectType, ...> ensures compile-time failure if a new
+  // effect type is added to the union but not registered here. No silent default.
   const renderEffect = () => {
-    switch (effectType) {
-      case 'fateReweave':
-        return <MythicCollectionReveal {...commonProps} collection="astral" />;
-      case 'oceanPearl':
-        return <MythicCollectionReveal {...commonProps} collection="ocean" />;
-      case 'unfoldLandscape':
-        return <MythicCollectionReveal {...commonProps} collection="ink" />;
-      case 'fateDecree':
-        return <FateDecree {...commonProps} />;
-      case 'roulette':
-        return <EnhancedRoulette {...commonProps} allRoles={rouletteRoles} />;
-      case 'roleHunt':
-        return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
-      case 'scratch':
-        return <ScratchReveal {...commonProps} />;
-      case 'tarot':
-        return <TarotDraw {...commonProps} />;
-      case 'gachaMachine':
-        return <GachaMachine {...commonProps} />;
-      case 'cardPick':
-        return <CardPick {...commonProps} remainingCards={remainingCards} />;
-      case 'sealBreak':
-        return <SealBreak {...commonProps} />;
-      case 'chainShatter':
-        return <ChainShatter {...commonProps} />;
-      case 'fortuneWheel':
-        return <FortuneWheel {...commonProps} allRoles={rouletteRoles} />;
-      case 'meteorStrike':
-        return <MeteorStrike {...commonProps} />;
-      case 'filmRewind':
-        return <FilmRewind {...commonProps} />;
-      case 'vortexCollapse':
-        return <VortexCollapse {...commonProps} />;
-      default:
-        // Default to roleHunt if unknown effect type
-        return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
+    const registry: Record<RevealEffectType, () => React.ReactNode> = {
+      fateReweave: () => <MythicCollectionReveal {...commonProps} collection="astral" />,
+      oceanPearl: () => <MythicCollectionReveal {...commonProps} collection="ocean" />,
+      unfoldLandscape: () => <MythicCollectionReveal {...commonProps} collection="ink" />,
+      fateDecree: () => <FateDecree {...commonProps} />,
+      roulette: () => <EnhancedRoulette {...commonProps} allRoles={rouletteRoles} />,
+      roleHunt: () => <RoleHunt {...commonProps} allRoles={rouletteRoles} />,
+      scratch: () => <ScratchReveal {...commonProps} />,
+      tarot: () => <TarotDraw {...commonProps} />,
+      gachaMachine: () => <GachaMachine {...commonProps} />,
+      cardPick: () => <CardPick {...commonProps} remainingCards={remainingCards} />,
+      sealBreak: () => <SealBreak {...commonProps} />,
+      chainShatter: () => <ChainShatter {...commonProps} />,
+      fortuneWheel: () => <FortuneWheel {...commonProps} allRoles={rouletteRoles} />,
+      meteorStrike: () => <MeteorStrike {...commonProps} />,
+      filmRewind: () => <FilmRewind {...commonProps} />,
+      vortexCollapse: () => <VortexCollapse {...commonProps} />,
+    };
+    const render = registry[effectType];
+    if (!render) {
+      throw new Error(`[FAIL-FAST] Unknown reveal effect type: ${effectType}`);
     }
+    return render();
   };
 
   return (
