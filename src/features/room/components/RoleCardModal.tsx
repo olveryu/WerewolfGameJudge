@@ -11,6 +11,7 @@
  * no StyleSheet.create (styles passed from parent or via shared components).
  */
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Faction,
@@ -21,19 +22,24 @@ import {
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import { Asset } from 'expo-asset';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
+import { UI_ICONS } from '@/config/iconTokens';
+import { RoleCardSimple as SharedRoleCardSimple } from '@/features/room/components/RoleCardSimple';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
-import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import {
   createRoleData,
   type RevealEffectType,
   type RoleData,
   RoleRevealAnimator,
 } from '@/games/werewolf/components/RoleRevealEffects';
+import { toRevealRoleData } from '@/games/werewolf/components/WerewolfRoleCardAdapter';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
+import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
@@ -43,6 +49,52 @@ const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
   [Faction.Villager]: 'villager',
   [Faction.Special]: 'third',
 };
+
+// ─── Werewolf-specific AI pill (passed as footer to shared RoleCardSimple) ──
+function WerewolfAIPill({
+  alignment,
+  onPress,
+}: {
+  readonly alignment: RevealRoleData['alignment'];
+  readonly onPress: () => void;
+}) {
+  const factionColor =
+    alignment === 'wolf'
+      ? colors.wolf
+      : alignment === 'god'
+        ? colors.god
+        : alignment === 'third'
+          ? colors.third
+          : colors.villager;
+  return (
+    <Pressable
+      style={[aiPillStyles.pill, { backgroundColor: withAlpha(factionColor, 0.15) }]}
+      onPress={onPress}
+      accessibilityLabel="AI 攻略"
+    >
+      <Ionicons name={UI_ICONS.AI_ASSISTANT} size={typography.caption} color={factionColor} />
+      <Text style={[aiPillStyles.text, { color: factionColor }]}>AI 攻略</Text>
+    </Pressable>
+  );
+}
+
+const aiPillStyles = StyleSheet.create({
+  pill: {
+    position: 'absolute',
+    right: spacing.small,
+    top: spacing.xlarge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+    borderRadius: borderRadius.full,
+  },
+  text: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.semibold,
+  },
+});
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -124,13 +176,21 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   const seerLabel = seerLabelMap?.[roleId];
 
   if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
+    const revealData: RevealRoleData = toRevealRoleData(roleId, { seerLabel });
+    const showAIButton = isAIChatReady();
     return (
-      <RoleCardSimple
+      <SharedRoleCardSimple
         visible={visible}
-        roleId={roleId}
+        role={revealData}
         onClose={onClose}
-        seerLabel={seerLabel}
-        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, onClose) : undefined}
+        footer={
+          showAIButton ? (
+            <WerewolfAIPill
+              alignment={revealData.alignment}
+              onPress={() => askAIAboutRole(roleId, onClose)}
+            />
+          ) : undefined
+        }
       />
     );
   }
