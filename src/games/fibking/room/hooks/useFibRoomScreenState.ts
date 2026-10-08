@@ -27,6 +27,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -330,14 +331,8 @@ export function useFibRoomScreenState({
   });
 
   const handleProfileKick = useCallback(() => {
-    const selection = profileSelection;
-    if (selection === null) throw new Error('[FAIL-FAST] Cannot kick without an open profile');
-    const capability = capabilities.canKickSeat;
-    if (!capability.isAllowed) {
-      throw new Error(`[FAIL-FAST] FibKing profile kick is denied: ${capability.reason}`);
-    }
-    capability.execute(selection.target.seat);
-  }, [capabilities.canKickSeat, profileSelection]);
+    executeProfileKick(capabilities, profileSelection);
+  }, [capabilities, profileSelection]);
 
   const handleProfileLeave = useCallback(() => {
     const capability = capabilities.canLeaveSeat;

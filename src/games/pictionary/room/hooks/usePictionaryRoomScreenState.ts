@@ -20,6 +20,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -64,9 +65,7 @@ function usePictionaryProfileModel(
       onClose: profileController.close,
       onKick:
         !selection.isSelf && capabilities.canKickSeat.isAllowed
-          ? () =>
-              capabilities.canKickSeat.isAllowed &&
-              capabilities.canKickSeat.execute(selection.target.seat)
+          ? () => executeProfileKick(capabilities, selection)
           : null,
       onLeaveSeat:
         selection.isSelf && capabilities.canLeaveSeat.isAllowed
@@ -74,7 +73,7 @@ function usePictionaryProfileModel(
           : null,
       gameDetails: null,
     };
-  }, [capabilities.canKickSeat, capabilities.canLeaveSeat, profileController.close, selection]);
+  }, [capabilities, profileController.close, selection]);
 }
 
 export function usePictionaryRoomScreenState({
