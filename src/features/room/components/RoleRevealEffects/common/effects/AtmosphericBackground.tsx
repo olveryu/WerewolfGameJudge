@@ -1,0 +1,165 @@
+/**
+ * AtmosphericBackground — Ambient particle atmosphere layer.
+ *
+ * Provides subtle background particle/halo motion during reveal animation interaction phases,
+ * enhancing immersion without overwhelming the foreground. Uses Reanimated Animated.View,
+ * (replacing the original Skia Canvas + Picture API to reduce the number of on-screen Canvases).
+ * Accepts a faction primary color and auto-generates ambient particles.
+ * No service imports, no business logic.
+ */
+import React, { useEffect } from 'react';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+
+const AMBIENT_COUNT = 12;
+const AMBIENT_PARTICLES = Array.from({ length: AMBIENT_COUNT }, (_, i) => {
+  const r1 = ((i * 73 + 17) % 100) / 100;
+  const r2 = ((i * 41 + 31) % 100) / 100;
+  const r3 = ((i * 59 + 7) % 100) / 100;
+  return {
+    xRatio: r1,
+    yRatio: r2,
+    size: 2 + r3 * 4,
+    driftX: (r1 - 0.5) * 30,
+    driftY: -15 - r2 * 25,
+    phase: ((i * 83 + 11) % 628) / 100,
+  };
+});
+
+/** Single ambient particle — Animated.View circle */
+const AmbientParticle = React.memo(function AmbientParticle({
+  xRatio,
+  yRatio,
+  size,
+  driftX,
+  driftY,
+  phase,
+  cycle,
+  color,
+  screenW,
+  screenH,
+}: {
+  xRatio: number;
+  yRatio: number;
+  size: number;
+  driftX: number;
+  driftY: number;
+  phase: number;
+  cycle: SharedValue<number>;
+  color: string;
+  screenW: number;
+  screenH: number;
+}) {
+  const baseX = xRatio * screenW;
+  const baseY = yRatio * screenH;
+
+  const style = useAnimatedStyle(() => {
+    const c = cycle.value;
+    const cx = baseX + driftX * Math.sin(c + phase);
+    const cy = baseY + driftY * Math.sin(c * 0.7 + phase);
+    const opacity = 0.15 + 0.15 * Math.sin(c * 1.3 + phase);
+    return {
+      position: 'absolute',
+      left: cx - size,
+      top: cy - size,
+      width: size * 2,
+      height: size * 2,
+      borderRadius: size,
+      backgroundColor: color,
+      opacity,
+    };
+  });
+
+  return <Animated.View style={style} />;
+});
+
+interface AtmosphericBackgroundProps {
+  /** Primary color for particles */
+  color: string;
+  /** Whether to animate */
+  animate: boolean;
+}
+
+export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ color, animate }) => {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const cycle = useSharedValue(0);
+  const glowPulse = useSharedValue(0);
+
+  useEffect(() => {
+    if (!animate) return;
+    cycle.value = withRepeat(
+      withTiming(Math.PI * 2, { duration: 8000, easing: Easing.linear }),
+      -1,
+    );
+    glowPulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+    );
+  }, [animate, cycle, glowPulse]);
+
+  const glowRadius = screenW * 0.6;
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: 0.06 + glowPulse.value * 0.04,
+  }));
+
+  if (!animate) return null;
+
+  return (
+    <View style={styles.fullScreen}>
+      {/* Subtle center radial glow — approximated with large blurred circle */}
+      <Animated.View
+        style={[
+          styles.glow,
+          {
+            left: screenW / 2 - glowRadius,
+            top: screenH * 0.45 - glowRadius,
+            width: glowRadius * 2,
+            height: glowRadius * 2,
+            borderRadius: glowRadius,
+            backgroundColor: color,
+          },
+          glowStyle,
+        ]}
+      />
+
+      {/* Floating ambient particles */}
+      {AMBIENT_PARTICLES.map((p, i) => (
+        <AmbientParticle
+          key={i}
+          xRatio={p.xRatio}
+          yRatio={p.yRatio}
+          size={p.size}
+          driftX={p.driftX}
+          driftY={p.driftY}
+          phase={p.phase}
+          cycle={cycle}
+          color={color}
+          screenW={screenW}
+          screenH={screenH}
+        />
+      ))}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  fullScreen: {
+    ...StyleSheet.absoluteFill,
+    pointerEvents: 'none',
+  },
+  glow: {
+    position: 'absolute',
+  },
+});
