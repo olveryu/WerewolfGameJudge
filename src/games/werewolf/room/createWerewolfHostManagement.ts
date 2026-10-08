@@ -3,6 +3,12 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+  buildStartGameAction,
+} from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomHostManagementAction,
@@ -130,12 +136,9 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
       return input.isPlagueMode
         ? []
         : [
-            createHostControlAction(input, 'startGame', {
-              key: 'start-game',
-              label: '开始游戏',
-              icon: 'play-outline',
-              variant: 'primary',
-              testID: TESTIDS.startGameButton,
+            buildStartGameAction({
+              onPress: () => input.onHostControl('startGame'),
+              isEnabled: !input.isHostActionSubmitting,
               isLoading: input.isHostActionSubmitting,
             }),
           ];
@@ -182,44 +185,23 @@ function createRoomManagementActions(
   const actions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     actions.push(
-      enabledAction(
-        {
-          key: 'configure-game',
-          label: '房间配置',
-          icon: 'options-outline',
-          variant: 'secondary',
-          testID: TESTIDS.roomSettingsButton,
-        },
-        input.capabilities.canConfigureGame.execute,
-      ),
+      buildRoomConfigAction({
+        onPress: input.capabilities.canConfigureGame.execute,
+      }),
     );
   }
   if (input.capabilities.canFillBots.isAllowed) {
     actions.push(
-      enabledAction(
-        {
-          key: 'fill-bots',
-          label: '填充机器人',
-          icon: 'people-outline',
-          variant: 'secondary',
-          testID: TESTIDS.roomFillBotsButton,
-        },
-        input.capabilities.canFillBots.execute,
-      ),
+      buildFillBotsAction({
+        onPress: input.capabilities.canFillBots.execute,
+      }),
     );
   }
   if (input.capabilities.canClearSeats.isAllowed) {
     actions.push(
-      enabledAction(
-        {
-          key: 'clear-seats',
-          label: '清空座位',
-          icon: 'trash-outline',
-          variant: 'danger',
-          testID: TESTIDS.roomClearSeatsButton,
-        },
-        input.capabilities.canClearSeats.execute,
-      ),
+      buildClearSeatsAction({
+        onPress: input.capabilities.canClearSeats.execute,
+      }),
     );
   }
   return actions;
