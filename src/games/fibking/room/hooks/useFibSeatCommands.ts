@@ -5,8 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
-import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useRoomSeatCommands as useSharedRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
+import { createSeatProfile } from '@/features/room/model/createSeatProfile';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 
 interface UseFibSeatCommandsParams {
@@ -16,21 +16,11 @@ interface UseFibSeatCommandsParams {
 
 export function useFibSeatCommands({ session, user }: UseFibSeatCommandsParams) {
   const queryClient = useQueryClient();
-  const createProfile = useCallback(() => {
-    const cachedStats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
-    const profile: FibSeatProfile = {
-      displayName: user.displayName ?? '匿名玩家',
-      avatarUrl: user.avatarUrl ?? undefined,
-      avatarFrame: user.avatarFrame ?? undefined,
-      seatFlair: user.seatFlair ?? undefined,
-      nameStyle: user.nameStyle ?? undefined,
-      level: user.isAnonymous ? undefined : cachedStats?.level,
-      revealEffect:
-        user.equippedEffect === 'random' ? undefined : (user.equippedEffect ?? undefined),
-      seatAnimation: user.seatAnimation ?? undefined,
-    };
-    return profile;
-  }, [queryClient, user]);
+  const createProfile = useCallback(
+    (identity: { readonly room: { readonly roomCode: string } }): FibSeatProfile =>
+      createSeatProfile(user, queryClient, identity.room.roomCode),
+    [queryClient, user],
+  );
 
   return useSharedRoomSeatCommands<FibState, FibSeatProfile>({
     session,

@@ -5,13 +5,12 @@ import type {
   WerewolfSeatProfile,
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { resolveRandomAnimation } from '@game-judge/game-engine/product/rewards';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
-import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useRoomSeatCommands as useSharedRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
+import { createSeatProfile } from '@/features/room/model/createSeatProfile';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { RoomSessionClient } from '@/features/room/session/types';
 
@@ -24,21 +23,8 @@ export function useWerewolfSeatCommands({ session, user }: UseWerewolfSeatComman
   const queryClient = useQueryClient();
   const createProfile = useCallback(
     (identity: ActiveRoomIdentity<'werewolf'>) => {
-      const cachedStats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
-      const equippedEffect =
-        user.equippedEffect === 'random'
-          ? resolveRandomAnimation(identity.room.roomCode + identity.userId)
-          : (user.equippedEffect ?? undefined);
-      const profile: WerewolfSeatProfile = {
-        displayName: user.displayName ?? '匿名玩家',
-        avatarUrl: user.avatarUrl ?? undefined,
-        avatarFrame: user.avatarFrame ?? undefined,
-        seatFlair: user.seatFlair ?? undefined,
-        nameStyle: user.nameStyle ?? undefined,
-        level: user.isAnonymous ? undefined : cachedStats?.level,
-        revealEffect: equippedEffect,
-        seatAnimation: user.seatAnimation ?? undefined,
-      };
+      const profile = createSeatProfile(user, queryClient, identity.room.roomCode);
+      // WerewolfSeatProfile is compatible with RoomSeatProfile
       return profile;
     },
     [queryClient, user],

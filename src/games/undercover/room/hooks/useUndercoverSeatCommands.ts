@@ -5,27 +5,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
-import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
+import { createSeatProfile } from '@/features/room/model/createSeatProfile';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 
 export function useUndercoverSeatCommands(session: UndercoverRoomSession, user: User) {
   const queryClient = useQueryClient();
-  const createProfile = useCallback((): RoomSeatProfile => {
-    const stats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
-    return {
-      displayName: user.displayName ?? '匿名玩家',
-      avatarUrl: user.avatarUrl ?? undefined,
-      avatarFrame: user.avatarFrame ?? undefined,
-      seatFlair: user.seatFlair ?? undefined,
-      nameStyle: user.nameStyle ?? undefined,
-      level: user.isAnonymous ? undefined : stats?.level,
-      revealEffect:
-        user.equippedEffect === 'random' ? undefined : (user.equippedEffect ?? undefined),
-      seatAnimation: user.seatAnimation ?? undefined,
-    };
-  }, [queryClient, user]);
+  const createProfile = useCallback(
+    (identity: { readonly room: { readonly roomCode: string } }): RoomSeatProfile =>
+      createSeatProfile(user, queryClient, identity.room.roomCode),
+    [queryClient, user],
+  );
   return useRoomSeatCommands<UndercoverState, RoomSeatProfile>({
     session,
     userId: user.id,

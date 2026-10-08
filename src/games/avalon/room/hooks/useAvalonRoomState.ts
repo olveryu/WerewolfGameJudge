@@ -23,6 +23,7 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -517,32 +518,7 @@ export function useAvalonRoomState(
     controlledSeat,
     isHost,
     canControlBots,
-    equippedRevealEffect: (() => {
-      const effect = user.equippedEffect;
-      if (effect === 'random' || effect == null) return null;
-      // Validate against known RevealEffectType values (16 total)
-      const validEffects = [
-        'fateReweave',
-        'oceanPearl',
-        'unfoldLandscape',
-        'fateDecree',
-        'roulette',
-        'roleHunt',
-        'scratch',
-        'tarot',
-        'gachaMachine',
-        'cardPick',
-        'sealBreak',
-        'chainShatter',
-        'fortuneWheel',
-        'meteorStrike',
-        'filmRewind',
-        'vortexCollapse',
-      ] as const;
-      return (validEffects as readonly string[]).includes(effect)
-        ? (effect as (typeof validEffects)[number])
-        : null;
-    })(),
+    equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     submit,
     isSubmitting: submission.isSubmitting,
     session,
