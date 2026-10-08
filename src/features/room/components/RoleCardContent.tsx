@@ -1,38 +1,35 @@
 /**
- * RoleCardContent - 通用角色卡牌内容（无 Modal 包装）。
+ * RoleCardContent - 游戏无关的角色卡内容区（无 Modal 包装）。
  *
- * 游戏无关的卡牌 UI，视觉与狼人杀原版逐像素一致：
- * - 卡片：surface 底色 + 阵营色边框 + 阴影
- * - 顶部阵营徽章（绝对定位）
- * - 角色立绘（38% 宽度）
- * - 角色名（阵营色，heading 字号）
- * - 分隔线 + 结构化描述
+ * 从狼人杀 RoleCardContent 逐行移植（静态模式），仅替换数据源：
+ * - roleId: RoleId → role: RevealRoleData（调用方预处理 displayAs/seerLabel）
+ * - getRoleSpec/getRoleAvatar/getFactionName → role 对象的字段
+ * - getFactionColor(roleId) → getRevealFactionColor(alignment)
+ * - RoleDescriptionView → StructuredDescriptionView
  *
- * 各游戏传入 RevealRoleData，组件只负责渲染。
+ * 视觉与原版逐像素一致：surface 纯色背景 + 阵营色边框 + 阴影 + 顶部阵营徽章
+ * + 38% 宽立绘 + 阵营色角色名 + 分隔线 + 结构化描述 + 底部插槽。
+ * 无立绘时显示阵营色占位（角色名首字）。
+ *
+ * 动画模式（revealMode/animateEntrance）在 Phase B 泛化 RoleRevealAnimator 时处理。
  */
 import type React from 'react';
 import { useMemo } from 'react';
 import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import type {
-  DescriptionField,
-  RevealAlignment,
-  RevealRoleData,
-} from '@/features/room/model/RevealRoleData';
-import {
-  borderRadius,
-  colors,
-  fixed,
-  spacing,
-  type ThemeColors,
-  typography,
-} from '@/theme';
+import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
 
-/** 白色文字（徽章/覆盖层用） */
+import type { RevealAlignment, RevealRoleData } from '../model/RevealRoleData';
+import { StructuredDescriptionView } from './StructuredDescriptionView';
+
+/** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
 
-/** 阵营色（从 theme tokens） */
-function getAlignmentColor(alignment: RevealAlignment, theme: ThemeColors): string {
+/**
+ * 阵营色（从 theme tokens）。
+ * 对应原版 getFactionColor：wolf→红，god→蓝，third→特殊色，villager→绿。
+ */
+export function getRevealFactionColor(alignment: RevealAlignment, theme: ThemeColors): string {
   switch (alignment) {
     case 'wolf':
       return theme.wolf;
@@ -46,101 +43,19 @@ function getAlignmentColor(alignment: RevealAlignment, theme: ThemeColors): stri
 }
 
 interface RoleCardContentProps {
-  /** 角色数据（游戏无关） */
+  /** 游戏无关的角色数据（调用方已处理 displayAs/seerLabel） */
   readonly role: RevealRoleData;
-  /** 卡牌宽度 */
+  /** Card width */
   readonly width?: number;
-  /** 卡牌高度 */
+  /** Card height */
   readonly height?: number;
-  /** 额外样式 */
+  /** Additional style */
   readonly style?: ViewStyle;
   /** Test ID */
   readonly testID?: string;
-  /** 底部插槽 */
+  /** Optional bottom slot (e.g. confirm button) rendered below description */
   readonly children?: React.ReactNode;
 }
-
-/**
- * 通用描述视图：支持结构化字段或简单字符串。
- * 结构化时显示标签 + 内容；简单时居中显示文本。
- */
-function DescriptionView({
-  description,
-  factionColor,
-}: {
-  readonly description: readonly DescriptionField[] | string | undefined;
-  readonly factionColor: string;
-}) {
-  if (description == null) {
-    return <Text style={descStyles.empty}>无技能描述</Text>;
-  }
-  if (typeof description === 'string') {
-    return <Text style={descStyles.simple}>{description}</Text>;
-  }
-  if (description.length === 0) {
-    return <Text style={descStyles.empty}>无技能描述</Text>;
-  }
-  // 单字段居中（阿瓦隆模式）
-  const firstField = description[0];
-  if (description.length === 1 && firstField !== undefined) {
-    return <Text style={descStyles.simple}>{firstField.content}</Text>;
-  }
-  // 多字段带标签（狼人杀模式）
-  return (
-    <View style={descStyles.container}>
-      {description.map((field, index) => (
-        <View key={index} style={descStyles.field}>
-          <View style={[descStyles.accentBar, { backgroundColor: factionColor }]} />
-          <View style={descStyles.fieldContent}>
-            <Text style={descStyles.label}>{field.label}</Text>
-            <Text style={descStyles.content}>{field.content}</Text>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-const descStyles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  field: {
-    flexDirection: 'row',
-    marginBottom: spacing.small,
-  },
-  accentBar: {
-    width: 2,
-    borderRadius: 1,
-    marginRight: spacing.small,
-    opacity: 0.3,
-  },
-  fieldContent: {
-    flex: 1,
-  },
-  label: {
-    fontSize: typography.caption,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  content: {
-    fontSize: typography.secondary,
-    color: colors.text,
-    lineHeight: typography.lineHeights.secondary,
-  },
-  simple: {
-    fontSize: typography.secondary,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: typography.lineHeights.secondary,
-  },
-  empty: {
-    fontSize: typography.secondary,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-});
 
 export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   role,
@@ -151,18 +66,22 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   children,
 }) => {
   const styles = useMemo(() => createStyles(colors, width, height), [width, height]);
-  const factionColor = getAlignmentColor(role.alignment, colors);
+
+  const factionColor = getRevealFactionColor(role.alignment, colors);
+  const factionName = role.factionName ?? '';
+  const descriptionFields = Array.isArray(role.description) ? role.description : undefined;
+  const descriptionFallback =
+    typeof role.description === 'string' ? role.description : '无技能描述';
 
   return (
     <View testID={testID} style={[styles.card, { borderColor: factionColor }, style]}>
-      {/* 阵营徽章 */}
-      {role.factionName != null && (
+      {/* Faction badge — top, full width */}
+      {factionName.length > 0 && (
         <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
-          <Text style={styles.factionText}>{role.factionName}</Text>
+          <Text style={styles.factionText}>{factionName}</Text>
         </View>
       )}
 
-      {/* 角色立绘 */}
       {role.image != null ? (
         <Image
           source={role.image}
@@ -171,29 +90,39 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
           testID="role-badge"
         />
       ) : (
-        <View style={[styles.placeholder, { backgroundColor: factionColor }]}>
-          <Text style={styles.placeholderText}>{role.name.charAt(0)}</Text>
+        /* 无立绘占位：阵营色圆角方块 + 角色名首字 */
+        <View
+          style={[
+            styles.roleIconImage,
+            styles.roleIconPlaceholder,
+            { backgroundColor: factionColor },
+          ]}
+          testID="role-badge"
+        >
+          <Text style={styles.roleIconPlaceholderText}>{role.name.charAt(0)}</Text>
         </View>
       )}
 
-      {/* 角色名（阵营色） */}
       <Text style={[styles.roleName, { color: factionColor }]}>{role.name}</Text>
 
-      {/* 分隔线 + 描述 */}
       <View style={styles.divider} />
-      <DescriptionView description={role.description} factionColor={factionColor} />
-
+      <StructuredDescriptionView
+        fields={descriptionFields}
+        descriptionFallback={descriptionFallback}
+        factionColor={factionColor}
+      />
       {children != null && <View style={styles.childrenSlot}>{children}</View>}
     </View>
   );
 };
 
-function createStyles(theme: ThemeColors, width: number, height: number) {
+function createStyles(colors: ThemeColors, width: number, height: number) {
+  const iconSize = Math.round(width * 0.38);
   return StyleSheet.create({
     card: {
       width,
       height,
-      backgroundColor: theme.surface,
+      backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
       borderWidth: fixed.borderWidthHighlight,
       padding: spacing.large,
@@ -217,24 +146,20 @@ function createStyles(theme: ThemeColors, width: number, height: number) {
       fontWeight: '600',
     },
     roleIconImage: {
-      width: Math.round(width * 0.38),
-      height: Math.round(width * 0.38),
+      width: iconSize,
+      height: iconSize,
       marginTop: spacing.xlarge,
       marginBottom: spacing.small,
     },
-    placeholder: {
-      width: Math.round(width * 0.38),
-      height: Math.round(width * 0.38),
-      marginTop: spacing.xlarge,
-      marginBottom: spacing.small,
-      borderRadius: borderRadius.medium,
-      justifyContent: 'center',
+    roleIconPlaceholder: {
+      borderRadius: borderRadius.large,
       alignItems: 'center',
+      justifyContent: 'center',
     },
-    placeholderText: {
+    roleIconPlaceholderText: {
       color: BADGE_TEXT_WHITE,
-      fontSize: Math.round(width * 0.15),
-      fontWeight: typography.weights.bold,
+      fontSize: Math.round(iconSize * 0.4),
+      fontWeight: '700',
     },
     roleName: {
       fontSize: typography.heading,
@@ -243,7 +168,7 @@ function createStyles(theme: ThemeColors, width: number, height: number) {
     divider: {
       width: '80%',
       height: 1,
-      backgroundColor: theme.border,
+      backgroundColor: colors.border,
       marginVertical: spacing.medium,
     },
     childrenSlot: {

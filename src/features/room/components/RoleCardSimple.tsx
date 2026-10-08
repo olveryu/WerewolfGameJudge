@@ -13,7 +13,7 @@ import { Button } from '@/components/Button';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { colors, spacing } from '@/theme';
 
-import { RoleCardContent } from './RoleCardContent';
+import { getRevealFactionColor, RoleCardContent } from './RoleCardContent';
 
 interface RoleCardSimpleProps {
   readonly visible: boolean;
@@ -39,6 +39,8 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 
   if (!visible || role === null) return null;
 
+  const factionColor = getRevealFactionColor(role.alignment, colors);
+
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -52,7 +54,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
           />
           {footer}
           <View style={styles.confirmButton}>
-            <Button variant="primary" onPress={onClose}>
+            <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
               {confirmText}
             </Button>
           </View>

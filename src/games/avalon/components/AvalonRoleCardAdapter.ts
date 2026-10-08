@@ -28,6 +28,15 @@ const FIELD_ICONS: Readonly<Record<keyof AvalonRoleDescription, string>> = {
   winCondition: 'trophy-outline',
 } as const;
 
+const FIELD_TONES: Readonly<Record<keyof AvalonRoleDescription, DescriptionField['tone']>> = {
+  skill: 'default',
+  passive: 'default',
+  trigger: 'default',
+  restriction: 'warning',
+  special: 'default',
+  winCondition: 'success',
+} as const;
+
 const FIELD_ORDER: ReadonlyArray<keyof AvalonRoleDescription> = [
   'skill',
   'passive',
@@ -46,6 +55,7 @@ function toDescriptionFields(desc: AvalonRoleDescription): readonly DescriptionF
         label: FIELD_LABELS[key],
         content,
         icon: FIELD_ICONS[key],
+        tone: FIELD_TONES[key],
       });
     }
   }

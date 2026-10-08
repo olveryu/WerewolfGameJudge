@@ -15,6 +15,25 @@ import type { ImageSourcePropType } from 'react-native';
  */
 export type RevealAlignment = 'wolf' | 'god' | 'villager' | 'third';
 
+/**
+ * 结构化描述字段（如"主动技能：..."）。
+ * 狼人杀：6 字段（主动技能/被动特性/触发效果/限制条件/特殊规则/胜利条件）
+ * 阿瓦隆：多字段（主动技能/被动特性/触发效果/限制条件/特殊规则/胜利条件）
+ */
+export interface DescriptionField {
+  readonly label: string;
+  readonly content: string;
+  /** Ionicons 图标名（可选） */
+  readonly icon?: string;
+  /**
+   * 语义色调（影响 accent bar 和标签颜色）。
+   * - default: 阵营色
+   * - warning: 警告色（用于"限制条件"）
+   * - success: 成功色（用于"胜利条件"）
+   */
+  readonly tone?: 'default' | 'warning' | 'success';
+}
+
 export interface RevealRoleData {
   /** 角色唯一标识（各游戏自己的 ID，如 'merlin'、'werewolf'） */
   readonly id: string;
@@ -24,8 +43,11 @@ export interface RevealRoleData {
   readonly alignment: RevealAlignment;
   /** 立绘（可选，无图时显示阵营色卡背） */
   readonly image?: ImageSourcePropType;
-  /** 角色描述（可选） */
-  readonly description?: string;
+  /**
+   * 角色描述：结构化字段数组，或简单字符串。
+   * 结构化：狼人杀/阿瓦隆多字段；简单：单段文本（居中显示）。
+   */
+  readonly description?: readonly DescriptionField[] | string;
   /** 阵营名（显示用，如"好人"/"坏人"） */
   readonly factionName?: string;
 }

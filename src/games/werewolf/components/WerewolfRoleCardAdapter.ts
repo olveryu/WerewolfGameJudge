@@ -16,7 +16,11 @@ import {
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { RevealAlignment, RevealRoleData } from '@/features/room/model/RevealRoleData';
+import type {
+  DescriptionField,
+  RevealAlignment,
+  RevealRoleData,
+} from '@/features/room/model/RevealRoleData';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { getFactionName } from '@/games/werewolf/components/roleDisplayUtils';
 
@@ -53,20 +57,52 @@ export function toRevealRoleData(roleId: RoleId, opts?: ToRevealRoleDataOptions)
     opts?.seerLabel != null ? `${opts.seerLabel}号预言家` : getRoleDisplayName(displayId);
 
   const desc = getRoleStructuredDescription(displayId);
-  const descriptionParts = [
-    desc?.skill,
-    desc?.passive,
-    desc?.trigger,
-    desc?.restriction,
-    desc?.special,
-  ].filter((s): s is string => typeof s === 'string' && s.length > 0);
+  // 6 字段完整保留（含胜利条件），带中文标签、图标、语义色调
+  const fields: DescriptionField[] = [];
+  if (desc?.skill)
+    fields.push({ label: '主动技能', content: desc.skill, icon: 'flash-outline', tone: 'default' });
+  if (desc?.passive)
+    fields.push({
+      label: '被动特性',
+      content: desc.passive,
+      icon: 'shield-outline',
+      tone: 'default',
+    });
+  if (desc?.trigger)
+    fields.push({
+      label: '触发效果',
+      content: desc.trigger,
+      icon: 'locate-outline',
+      tone: 'default',
+    });
+  if (desc?.restriction)
+    fields.push({
+      label: '限制条件',
+      content: desc.restriction,
+      icon: 'close-circle-outline',
+      tone: 'warning',
+    });
+  if (desc?.special)
+    fields.push({
+      label: '特殊规则',
+      content: desc.special,
+      icon: 'star-outline',
+      tone: 'default',
+    });
+  if (desc?.winCondition)
+    fields.push({
+      label: '胜利条件',
+      content: desc.winCondition,
+      icon: 'trophy-outline',
+      tone: 'success',
+    });
 
   return {
     id: roleId,
     name,
     alignment: spec != null ? (ALIGNMENT_MAP[spec.faction] ?? 'villager') : 'villager',
     image: getRoleAvatar(displayId),
-    description: descriptionParts.length > 0 ? descriptionParts.join('\n') : undefined,
+    description: fields.length > 0 ? fields : undefined,
     factionName: getFactionName(displayId),
   };
 }
