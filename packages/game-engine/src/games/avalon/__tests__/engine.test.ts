@@ -1109,8 +1109,13 @@ describe('Avalon engine', () => {
       '播报尚未结束，请稍候',
       raw.seatUser(morgana),
     );
-    // 非房主 ack 被拒绝。
-    raw.expectReject({ type: 'avalon.audio.ack' }, '只有房主可以确认播报', raw.seatUser(morgana));
+    // 非房主 ack 被拒绝（确保用非 0 号座位，莫甘娜可能随机分到房主座位）。
+    const nonHostSeat = morgana === 0 ? 1 : morgana;
+    raw.expectReject(
+      { type: 'avalon.audio.ack' },
+      '只有房主可以确认播报',
+      raw.seatUser(nonHostSeat),
+    );
     // 房主 ack 后放行。
     raw.send({ type: 'avalon.audio.ack' }, 'host');
     expect(raw.state.isAudioPlaying).toBe(false);
