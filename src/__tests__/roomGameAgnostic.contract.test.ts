@@ -8,7 +8,6 @@
 
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { describe, expect, it } from 'vitest';
 
 const ROOM_DIR = join(__dirname, '../features/room/components/RoleRevealEffects');
 const FORBIDDEN_PATTERNS = [

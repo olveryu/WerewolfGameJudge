@@ -2,7 +2,7 @@
  * RoleCardContent - 游戏无关的角色卡内容区（无 Modal 包装）。
  *
  * 从狼人杀 RoleCardContent 逐行移植，仅替换数据源：
- * - roleId: RoleId → role: RevealRoleData（调用方预处理 displayAs/seerLabel）
+ * - roleId → role: RevealRoleData（调用方预处理 displayAs/seerLabel）
  * - getRoleSpec/getRoleAvatar/getFactionName → role 对象的字段
  * - getFactionColor(roleId) → getRevealFactionColor(alignment)
  * - RoleDescriptionView → StructuredDescriptionView
@@ -34,7 +34,7 @@ import { CrackBackground } from './RoleRevealEffects/common/CrackBackground';
 import { StructuredDescriptionView } from './StructuredDescriptionView';
 
 /** White text color for badges/overlays on colored backgrounds */
-const BADGE_TEXT_WHITE = '#fff';
+const BADGE_TEXT_WHITE = colors.textInverse;
 
 // ─── Reveal animation timing (from CONFIG.alignmentEffects, game-agnostic) ───
 const EMOJI_POP_DELAY = 350;
@@ -397,7 +397,7 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
     factionText: {
       color: BADGE_TEXT_WHITE,
       fontSize: typography.secondary,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     roleIconImage: {
       width: iconSize,
@@ -419,15 +419,15 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
     roleIconPlaceholderText: {
       color: BADGE_TEXT_WHITE,
       fontSize: Math.round(iconSize * 0.4),
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
     },
     roleName: {
       fontSize: typography.heading,
-      fontWeight: '700',
+      fontWeight: typography.weights.bold,
     },
     roleNameReveal: {
       fontSize: Math.round(width * 0.114),
-      fontWeight: '800',
+      fontWeight: typography.weights.bold,
       letterSpacing: Math.round(width * 0.014),
     },
     roleSub: {

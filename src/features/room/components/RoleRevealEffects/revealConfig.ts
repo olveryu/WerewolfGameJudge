@@ -6,6 +6,7 @@
  */
 
 import type { RevealEffectType } from './types';
+import { ALL_REVEAL_EFFECTS } from './types';
 
 /** Configuration for a game's reveal animations */
 export interface RevealConfig {
@@ -22,24 +23,7 @@ export interface RevealConfig {
 /** Werewolf game reveal configuration: all 16 effects, default roleHunt */
 export const WEREWOLF_REVEAL_CONFIG: RevealConfig = {
   gameId: 'werewolf',
-  availableEffects: [
-    'cardPick',
-    'chainShatter',
-    'fateDecree',
-    'filmRewind',
-    'roulette',
-    'fortuneWheel',
-    'roleHunt',
-    'scratch',
-    'gachaMachine',
-    'meteorStrike',
-    'sealBreak',
-    'tarot',
-    'fateReweave',
-    'oceanPearl',
-    'unfoldLandscape',
-    'vortexCollapse',
-  ],
+  availableEffects: ALL_REVEAL_EFFECTS,
   defaultEffect: 'roleHunt',
   enableCrackEffect: true,
 } as const;
