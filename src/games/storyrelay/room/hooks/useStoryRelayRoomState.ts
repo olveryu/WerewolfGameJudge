@@ -382,7 +382,9 @@ export function useStoryRelayRoomState(
     userId: user.id,
     effectiveSeat: controlledSeat ?? mySeat,
     controlledSeat,
+    releaseBot,
     isHost,
+    canControlBots,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'storyrelay', roomCode: room.roomCode }),
   };

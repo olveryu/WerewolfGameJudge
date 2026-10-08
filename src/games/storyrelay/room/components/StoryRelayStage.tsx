@@ -6,9 +6,10 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
@@ -22,7 +23,7 @@ import { StoryRelayGallery } from './StoryRelayGallery';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 import { StoryRelayTaskEditor } from './StoryRelayTaskEditor';
 
-/** Shows public progress and explicit per-bot takeover without revealing story assignments. */
+/** Shows public progress without revealing story assignments. */
 function StoryRelayProgress({
   state,
   seatModel,
@@ -39,25 +40,65 @@ function StoryRelayProgress({
         contentContainerStyle={styles.progressList}
         renderItem={({ item }) => {
           const seat = seatModel.source.getSeat(item.seat);
-          const takeOver = seatModel.onBotSeatLongPress;
           return (
             <View style={styles.progressItem}>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={item.userId !== null || takeOver === null}
-                onPress={() => takeOver?.(item.seat)}
-                testID={`storyrelay-bot-${item.seat}`}
-                style={seat.highlight === 'controlled' ? styles.selected : undefined}
-              >
-                {item.displayName}
-              </Button>
+              <Text style={styles.muted}>{item.displayName}</Text>
               <Text style={styles.muted}>{seat.statusBadge?.label ?? '已收稿'}</Text>
             </View>
           );
         }}
       />
     </View>
+  );
+}
+
+/** StoryRelay 接管：转接共用 BotTakeover 组件。 */
+function StoryRelayTakeover({
+  seatModel,
+  isHost,
+  canControlBots,
+  controlledSeat,
+  releaseBot,
+  remainingSeconds,
+}: {
+  readonly seatModel: RoomSeatBoardModel;
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
+  readonly remainingSeconds: number | null;
+}) {
+  const bots: BotTakeoverBot[] = useMemo(() => {
+    const result: BotTakeoverBot[] = [];
+    for (let seat = 0; seat < seatModel.source.count; seat += 1) {
+      const seatView = seatModel.source.getSeat(seat);
+      const displayName = seatView.player?.displayName;
+      if (seatView.player?.kind !== 'bot' || displayName === undefined) continue;
+      result.push({
+        seat,
+        displayName,
+        status: 'waiting',
+        statusLabel: seat === controlledSeat ? '接管中' : '待命',
+        actionLabel: '接管',
+      });
+    }
+    return result;
+  }, [seatModel.source, controlledSeat]);
+
+  const onTakeOver = seatModel.onBotSeatLongPress;
+  if (onTakeOver === null) return null;
+
+  return (
+    <BotTakeover
+      bots={bots}
+      activeSeat={null}
+      remainingSeconds={remainingSeconds}
+      controlledSeat={controlledSeat}
+      canControl={isHost && canControlBots}
+      isLobby={false}
+      onTakeOver={onTakeOver}
+      onRelease={releaseBot}
+    />
   );
 }
 
@@ -75,8 +116,10 @@ interface StoryRelayStageProps {
   readonly state: StoryRelayState;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
   readonly userId: string;
   readonly isHost: boolean;
+  readonly canControlBots: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: StoryRelayRoomSession;
 }
@@ -85,8 +128,10 @@ function StoryRelayStageContent({
   state,
   effectiveSeat,
   controlledSeat,
+  releaseBot,
   userId,
   isHost,
+  canControlBots,
   seatModel,
   session,
 }: StoryRelayStageProps) {
@@ -133,6 +178,14 @@ function StoryRelayStageContent({
       ) : (
         <>
           <StoryRelayProgress state={state} seatModel={seatModel} />
+          <StoryRelayTakeover
+            seatModel={seatModel}
+            isHost={isHost}
+            canControlBots={canControlBots}
+            controlledSeat={controlledSeat}
+            releaseBot={releaseBot}
+            remainingSeconds={remainingSeconds}
+          />
           {state.phase === 'settling' && (
             <Text style={styles.settlingReminder}>
               等待期间请留在 App/小程序内并保持联网，以免收稿卡住

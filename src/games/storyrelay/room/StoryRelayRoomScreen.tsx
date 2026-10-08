@@ -61,8 +61,10 @@ function StoryRelayRoomContent(
                   state={screen.state}
                   effectiveSeat={screen.effectiveSeat}
                   controlledSeat={screen.controlledSeat}
+                  releaseBot={screen.releaseBot}
                   userId={screen.userId}
                   isHost={screen.isHost}
+                  canControlBots={screen.canControlBots}
                   seatModel={screen.shellModel.seats}
                   session={props.session}
                 />

@@ -95,8 +95,13 @@ describe('StoryRelayStage bot drafts', () => {
         state={state}
         effectiveSeat={takeover.effectiveSeat}
         controlledSeat={takeover.controlledSeat}
+        releaseBot={() => {
+          takeover.effectiveSeat = 0;
+          takeover.controlledSeat = 0;
+        }}
         userId="host"
         isHost
+        canControlBots
         seatModel={seatModel}
         session={session}
       />
