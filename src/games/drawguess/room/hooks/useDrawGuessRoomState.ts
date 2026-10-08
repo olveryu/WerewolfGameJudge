@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
@@ -88,9 +89,12 @@ export function useDrawGuessRoomState(
   // 机器人席位仅房主可接管；只在选词/作画阶段允许，离开阶段自动释放。
   const canControlBots =
     isHost && (state.phase.kind === 'wordSelect' || state.phase.kind === 'drawing');
-  useEffect(() => {
-    if (controlledSeat !== null && !canControlBots) releaseBot();
-  }, [canControlBots, controlledSeat, releaseBot]);
+  useBotTakeoverGuard({
+    controlledSeat,
+    canControlBots,
+    release: releaseBot,
+    gameName: 'DrawGuess',
+  });
   const capabilities: RoomCapabilities = {
     ...createRoomSetupCapabilities({
       isSetup: isLobby,
