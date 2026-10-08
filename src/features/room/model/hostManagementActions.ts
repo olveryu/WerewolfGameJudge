@@ -90,7 +90,7 @@ export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAct
 /** "房间配置" — secondary action for opening room settings. */
 export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
-    'room-config',
+    'configure-game',
     '房间配置',
     'options-outline',
     'secondary',
