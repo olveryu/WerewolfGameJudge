@@ -37,8 +37,8 @@ import type {
   DrawingElement,
   DrawingFillElement,
   DrawingPoint,
-  DrawingWidth,
 } from '@/features/drawing/model/drawing';
+import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
 
 import { createDrawGuessFillRectangles } from './drawGuessFloodFill';
 
@@ -201,7 +201,6 @@ export function createDrawGuessFillElement(
   elements: readonly DrawingElement[],
   point: DrawingPoint,
   color: DrawingColor,
-  width: DrawingWidth,
 ): DrawingFillElement | null {
   const pixels = renderCanonicalPixels(elements);
   const seedX = Math.min(DRAWGUESS_EXPORT_WIDTH - 1, Math.floor(point.x * DRAWGUESS_EXPORT_WIDTH));
@@ -225,7 +224,7 @@ export function createDrawGuessFillElement(
     id: crypto.randomUUID(),
     kind: 'fill',
     color,
-    width,
+    width: FILL_STROKE_WIDTH,
     rectangles: createDrawGuessFillRectangles(
       pixels,
       DRAWGUESS_EXPORT_WIDTH,

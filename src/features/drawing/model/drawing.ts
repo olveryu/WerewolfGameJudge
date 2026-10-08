@@ -58,6 +58,14 @@ export interface DrawingFillElement {
   readonly rectangles: readonly DrawingFillRectangle[];
 }
 
+/**
+ * 填充元素的占位笔宽。
+ *
+ * 填充渲染不使用 width，服务端笔画模型要求携带。此常量明确该值无实际意义，
+ * 两游戏统一使用，避免误以为与画笔宽度有关。
+ */
+export const FILL_STROKE_WIDTH: DrawingWidth = 5;
+
 export type DrawingElement = DrawingFreehandElement | DrawingShapeElement | DrawingFillElement;
 
 export interface DrawingDraft {

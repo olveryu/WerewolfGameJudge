@@ -112,7 +112,7 @@ export interface DrawGuessStrokeSync {
   readonly pendingCount: number;
   readonly onElementChange: (element: DrawingElement) => void;
   readonly onElementComplete: (element: DrawingElement) => void;
-  readonly onFill: (point: DrawingPoint, color: DrawingColor, width: DrawingWidth) => void;
+  readonly onFill: (point: DrawingPoint, color: DrawingColor) => void;
   readonly undo: () => void;
   readonly redo: () => void;
   readonly canRedo: boolean;
@@ -247,13 +247,13 @@ export function useDrawGuessStrokeSync({
   );
 
   const onFill = useCallback(
-    (point: DrawingPoint, color: DrawingColor, width: DrawingWidth): void => {
+    (point: DrawingPoint, color: DrawingColor): void => {
       if (!latestRef.current.canDraw) return;
       const currentElements = [
         ...authoritativeStrokes.map(drawGuessStrokeToElement),
         ...[...pendingRef.current.values()].map((entry) => entry.element),
       ];
-      const fillElement = createDrawGuessFillElement(currentElements, point, color, width);
+      const fillElement = createDrawGuessFillElement(currentElements, point, color);
       if (fillElement !== null) {
         // 新填充使重做栈失效
         if (redoStackRef.current.length > 0) {

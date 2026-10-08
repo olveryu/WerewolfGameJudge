@@ -23,6 +23,7 @@ import type {
   DrawingFillElement,
   DrawingPoint,
 } from '@/features/drawing/model/drawing';
+import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
 import { PICTIONARY_CANVAS_BACKGROUND } from '@/theme/colors';
 
 import { createPictionaryFillRectangles } from './pictionaryFloodFill';
@@ -205,7 +206,7 @@ export function createPictionaryFillElement(
     id: crypto.randomUUID(),
     kind: 'fill',
     color,
-    width: 5,
+    width: FILL_STROKE_WIDTH,
     rectangles: createPictionaryFillRectangles(
       pixels,
       PICTIONARY_DRAWING_WIDTH,

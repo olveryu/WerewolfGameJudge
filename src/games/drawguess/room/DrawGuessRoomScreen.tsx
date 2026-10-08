@@ -489,7 +489,7 @@ function DrawGuessDrawingView({
                 isEnabled={canDraw}
                 onElementChange={sync.onElementChange}
                 onElementComplete={sync.onElementComplete}
-                onFill={(point) => sync.onFill(point, color, strokeWidth)}
+                onFill={(point) => sync.onFill(point, color)}
               />
             </View>
             <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
