@@ -26,12 +26,9 @@ import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
-import {
-  createRoleData,
-  type RevealEffectType,
-  type RoleData,
-  RoleRevealAnimator,
-} from '@/games/werewolf/components/RoleRevealEffects';
+import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { log } from '@/utils/logger';
@@ -96,15 +93,15 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     setAnimationDone(true);
   }, []);
 
-  const allRolesData: RoleData[] = useMemo(
+  const allRolesData: RevealRoleData[] = useMemo(
     () =>
       allRoleIds.map((id) => {
         const spec = getRoleSpec(id);
-        return createRoleData(
+        return {
           id,
-          getRoleDisplayName(id),
-          ALIGNMENT_MAP[spec.faction] ?? 'villager',
-        );
+          name: getRoleDisplayName(id),
+          alignment: ALIGNMENT_MAP[spec.faction] ?? 'villager',
+        };
       }),
     [allRoleIds],
   );
@@ -142,11 +139,11 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : roleSpec;
   const baseName = getRoleDisplayName(displayRoleId);
   const displayName = seerLabel != null ? `${seerLabel}号${baseName}` : baseName;
-  const effectiveRoleData: RoleData = createRoleData(
-    displayRoleId,
-    displayName,
-    ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
-  );
+  const effectiveRoleData: RevealRoleData = {
+    id: displayRoleId,
+    name: displayName,
+    alignment: ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
+  };
 
   // resolvedAnimation is used directly as effectType (host has already resolved random → specific animation)
   const effectType: RevealEffectType = resolvedAnimation;
