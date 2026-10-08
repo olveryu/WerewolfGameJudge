@@ -7,28 +7,13 @@
  * 顺序：契约 → 共享组件 → 游戏接入。先有契约，后抽实现。
  */
 
+import type { BoardInfoSection } from '../components/BoardInfoCard';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 
 /** 通用角色展示项（从 werewolf 抽取）。 */
 export interface RoleDisplayItem {
   readonly roleId: string;
   readonly displayName: string;
-  readonly count: number;
-}
-
-/** 板子信息的一个分组（如"狼人阵营"）。 */
-export interface BoardInfoSection {
-  /** 分组标题，如"狼人阵营"。 */
-  readonly title: string;
-  /** 角色 chip 列表，如 [{ name: '狼人', count: 4 }]。 */
-  readonly roles: readonly BoardInfoRole[];
-  /** chip 底色调。 */
-  readonly tone: 'danger' | 'primary' | 'success' | 'muted';
-}
-
-export interface BoardInfoRole {
-  readonly name: string;
-  /** 数量，1 则不显示 ×N。 */
   readonly count: number;
 }
 
@@ -47,7 +32,7 @@ export interface TakeoverConfig {
  * 有座位游戏必须实现的 UI 数据契约。
  *
  * - werewolf/avalon/fibking/undercover 实现此接口
- * - 框架用这些数据渲染共享 UI（ControlledSeatBanner 等）
+ * - 框架用这些数据渲染共享 UI（BoardInfoCard、ControlledSeatBanner 等）
  * - 游戏不直接写这些 UI 组件
  */
 export interface SeatGameRoom {
@@ -55,4 +40,6 @@ export interface SeatGameRoom {
   readonly seatDataSource: RoomSeatDataSource;
   /** 机器人接管配置。 */
   readonly takeover: TakeoverConfig;
+  /** 板子信息分组：BoardInfoCard 渲染用。 */
+  readonly boardInfoSections: readonly BoardInfoSection[];
 }
