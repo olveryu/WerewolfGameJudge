@@ -21,6 +21,7 @@ interface PictionaryStageProps {
   readonly state: PictionaryState;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
   readonly userId: string;
   readonly isHost: boolean;
   readonly seatModel: RoomSeatBoardModel;
@@ -38,6 +39,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   state,
   effectiveSeat,
   controlledSeat,
+  releaseBot,
   userId,
   isHost,
   seatModel,
@@ -81,7 +83,9 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
         seatModel={seatModel}
         isHost={isHost}
         controlledSeat={controlledSeat}
+        releaseBot={releaseBot}
         remainingSeconds={deadline.remainingSeconds}
+        isLobby={false}
       />
       <PictionaryTaskStage
         inputs={inputs}
@@ -107,12 +111,16 @@ function PictionaryTakeover({
   seatModel,
   isHost,
   controlledSeat,
+  releaseBot,
   remainingSeconds,
+  isLobby,
 }: {
   readonly seatModel: RoomSeatBoardModel;
   readonly isHost: boolean;
   readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
   readonly remainingSeconds: number | null;
+  readonly isLobby: boolean;
 }) {
   const bots: BotTakeoverBot[] = useMemo(() => {
     const result: BotTakeoverBot[] = [];
@@ -141,9 +149,9 @@ function PictionaryTakeover({
       remainingSeconds={remainingSeconds}
       controlledSeat={controlledSeat}
       canControl={isHost}
-      isLobby={false}
+      isLobby={isLobby}
       onTakeOver={onTakeOver}
-      onRelease={() => onTakeOver(controlledSeat ?? 0)}
+      onRelease={releaseBot}
     />
   );
 }

@@ -393,6 +393,7 @@ export function usePictionaryRoomScreenState({
     state,
     effectiveSeat,
     controlledSeat,
+    releaseBot,
     userId: user.id,
     isHost,
     openRules,

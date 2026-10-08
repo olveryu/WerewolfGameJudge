@@ -66,6 +66,7 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
                   state={screen.state}
                   effectiveSeat={screen.effectiveSeat}
                   controlledSeat={screen.controlledSeat}
+                  releaseBot={screen.releaseBot}
                   userId={screen.userId}
                   isHost={screen.isHost}
                   seatModel={screen.shellModel.seats}
