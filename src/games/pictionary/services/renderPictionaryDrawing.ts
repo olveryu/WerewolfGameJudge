@@ -207,6 +207,7 @@ export function createPictionaryFillElement(
     id: crypto.randomUUID(),
     kind: 'fill',
     color,
+    width: 5,
     rectangles: createPictionaryFillRectangles(
       pixels,
       PICTIONARY_DRAWING_WIDTH,

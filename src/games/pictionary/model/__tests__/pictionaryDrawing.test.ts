@@ -19,6 +19,7 @@ const FILL_ELEMENT: PictionaryDrawingElement = {
   id: 'fill-1',
   kind: 'fill',
   color: '#E5484D',
+  width: 5,
   rectangles: [{ x: 1, y: 2, width: 10, height: 20 }],
 };
 
