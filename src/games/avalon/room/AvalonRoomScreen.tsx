@@ -4,7 +4,6 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
-  type AvalonRoleId,
   type AvalonViewModel,
   getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -111,7 +110,7 @@ function AvalonRoomContent(
                   <AvalonBoardInfoCard
                     playerCount={config.numberOfPlayers}
                     onRolePress={(roleId) => {
-                      screen.setRolePreviewId(roleId as AvalonRoleId);
+                      screen.setRolePreviewId(roleId);
                       screen.setRoleCardVisible(true);
                     }}
                     styles={boardInfoStyles}
@@ -128,7 +127,7 @@ function AvalonRoomContent(
                   playerCount={config.numberOfPlayers}
                   collapsed
                   onRolePress={(roleId) => {
-                    screen.setRolePreviewId(roleId as AvalonRoleId);
+                    screen.setRolePreviewId(roleId);
                     screen.setRoleCardVisible(true);
                   }}
                   styles={boardInfoStyles}

@@ -37,7 +37,7 @@ export function AvalonBoardInfoCard({
   styles,
 }: {
   readonly playerCount: number;
-  readonly onRolePress: (roleId: string) => void;
+  readonly onRolePress: (roleId: AvalonRoleId) => void;
   readonly collapsed?: boolean;
   readonly styles: Parameters<typeof BoardInfoCard>[0]['styles'];
 }) {
@@ -57,7 +57,8 @@ export function AvalonBoardInfoCard({
       villagerCount={0}
       villagerRoleItems={toRoleItems(loyalists)}
       collapsed={collapsed}
-      onRolePress={onRolePress}
+      // 适配器边界：roleId 必为 AvalonRoleId（来自 toRoleItems），此处转换是安全的。
+      onRolePress={(roleId) => onRolePress(roleId as AvalonRoleId)}
       styles={styles}
     />
   );

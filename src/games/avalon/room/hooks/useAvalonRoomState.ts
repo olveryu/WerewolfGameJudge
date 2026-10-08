@@ -110,8 +110,16 @@ export function useAvalonRoomState(
   const titleActions = useRoomTitleActions();
   const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getAvalonRoomCommandFailureMessage);
-  const submit = (label: string, command: AvalonCommand) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat, label }));
+  // 结构性修复：submit 接受 controlledSeat 显式参数，避免闭包捕获旧值。
+  // 调用方在需要时传入最新值（如释放接管后传 null），不传则用当前 render 的值。
+  const submit = (label: string, command: AvalonCommand, controlledSeatOverride?: number | null) =>
+    submission.submit(label, () =>
+      session.dispatch(command, {
+        controlledSeat:
+          controlledSeatOverride !== undefined ? controlledSeatOverride : controlledSeat,
+        label,
+      }),
+    );
   // 机器人席位仅房主可接管；离开可接管阶段自动释放。
   const canControlBots = isHost && canControlBotsInPhase(state.phase.kind);
   useEffect(() => {
@@ -268,14 +276,9 @@ export function useAvalonRoomState(
                     '未投票的座位将视为弃权，确定结束投票并结算吗？',
                     () => {
                       // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
-                      // 注意：不能用 submit helper（闭包里的 controlledSeat 还是旧值），直接 dispatch 传 null。
+                      // 显式传 null，避免闭包捕获旧的 controlledSeat。
                       if (controlledSeat !== null) releaseBot();
-                      void submission.submit('结束投票', () =>
-                        session.dispatch(
-                          { type: 'avalon.vote.finish' },
-                          { controlledSeat: null, label: '结束投票' },
-                        ),
-                      );
+                      void submit('结束投票', { type: 'avalon.vote.finish' }, null);
                     },
                   ),
               }),
@@ -301,12 +304,7 @@ export function useAvalonRoomState(
                 onPress: () =>
                   showConfirmAlert('结束任务', '未出牌的队员将视为成功，确定提前结算吗？', () => {
                     if (controlledSeat !== null) releaseBot();
-                    void submission.submit('结束任务', () =>
-                      session.dispatch(
-                        { type: 'avalon.quest.finish' },
-                        { controlledSeat: null, label: '结束任务' },
-                      ),
-                    );
+                    void submit('结束任务', { type: 'avalon.quest.finish' }, null);
                   }),
               }),
         },

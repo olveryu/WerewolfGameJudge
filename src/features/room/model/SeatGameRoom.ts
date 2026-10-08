@@ -47,15 +47,10 @@ export interface TakeoverConfig {
  * 有座位游戏必须实现的 UI 数据契约。
  *
  * - werewolf/avalon/fibking/undercover 实现此接口
- * - 框架用这些数据渲染共享 UI（BoardInfoCard、ControlledSeatBanner 等）
+ * - 框架用这些数据渲染共享 UI（ControlledSeatBanner 等）
  * - 游戏不直接写这些 UI 组件
- *
- * 注意：boardInfo 目前为规划中。现有的 BoardInfoCard 仍是 werewolf 专有 props，
- * 泛化为接受 BoardInfoSection[] 是后续任务。
  */
 export interface SeatGameRoom {
-  /** 板子信息：这局有什么角色。（规划中，暂未消费） */
-  readonly boardInfo: readonly BoardInfoSection[];
   /** 座位数据源：座位盘渲染用。 */
   readonly seatDataSource: RoomSeatDataSource;
   /** 机器人接管配置。 */
