@@ -8,6 +8,7 @@ import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -76,7 +77,7 @@ export function useUndercoverRoster(
           gameDetails: null,
           onKick:
             !profileSelection.isSelf && capabilities.canKickSeat.isAllowed
-              ? () => profileController.kick(profileSelection.target.seat)
+              ? () => executeProfileKick(capabilities, profileSelection)
               : null,
           onLeaveSeat:
             profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed

@@ -20,6 +20,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -257,8 +258,8 @@ export function useDrawGuessRoomState(
             onClose: profile.close,
             gameDetails: null,
             onKick:
-              isHost && isLobby && !selection.isSelf
-                ? () => profile.kick(selection.target.seat)
+              !selection.isSelf && capabilities.canKickSeat.isAllowed
+                ? () => executeProfileKick(capabilities, selection)
                 : null,
             onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
           },

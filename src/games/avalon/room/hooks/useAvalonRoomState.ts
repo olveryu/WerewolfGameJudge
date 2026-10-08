@@ -23,6 +23,7 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import {
   createRoomSetupCapabilities,
@@ -411,8 +412,8 @@ export function useAvalonRoomState(
             onClose: profile.close,
             gameDetails: null,
             onKick:
-              isHost && isLobby && !selection.isSelf
-                ? () => profile.kick(selection.target.seat)
+              !selection.isSelf && capabilities.canKickSeat.isAllowed
+                ? () => executeProfileKick(capabilities, selection)
                 : null,
             onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
           },
