@@ -29,26 +29,6 @@ export type RevealEffectType =
   | 'filmRewind'
   | 'vortexCollapse';
 
-/** 所有特效类型清单 */
-export const ALL_REVEAL_EFFECTS: readonly RevealEffectType[] = [
-  'fateReweave',
-  'oceanPearl',
-  'unfoldLandscape',
-  'fateDecree',
-  'roulette',
-  'roleHunt',
-  'scratch',
-  'tarot',
-  'gachaMachine',
-  'cardPick',
-  'sealBreak',
-  'chainShatter',
-  'fortuneWheel',
-  'meteorStrike',
-  'filmRewind',
-  'vortexCollapse',
-] as const;
-
 /**
  * 所有揭示特效组件的通用 props
  */

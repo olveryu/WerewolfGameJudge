@@ -6,7 +6,6 @@
  */
 
 import type { RevealEffectType } from './types';
-import { ALL_REVEAL_EFFECTS } from './types';
 
 /** Configuration for a game's reveal animations */
 export interface RevealConfig {
@@ -19,14 +18,6 @@ export interface RevealConfig {
   /** Whether to enable the crack background effect */
   readonly enableCrackEffect: boolean;
 }
-
-/** Werewolf game reveal configuration: all 16 effects, default roleHunt */
-export const WEREWOLF_REVEAL_CONFIG: RevealConfig = {
-  gameId: 'werewolf',
-  availableEffects: ALL_REVEAL_EFFECTS,
-  defaultEffect: 'roleHunt',
-  enableCrackEffect: true,
-} as const;
 
 /** Avalon game reveal configuration: all 16 effects, default tarot */
 export const AVALON_REVEAL_CONFIG: RevealConfig = {
