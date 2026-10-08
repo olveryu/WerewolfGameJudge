@@ -13,7 +13,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { findClosestPresetName } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -47,7 +47,7 @@ import {
   createWerewolfStatusRibbon,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes } from '@/theme';
+import { colors, componentSizes, fixed } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -704,11 +704,42 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
               onNotepadPress={handleNotepadPress}
               onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
               styles={boardInfoStyles}
-              showNominations={showNominations}
-              hasMyNomination={hasMyNomination}
-              nominationCount={nominationCount}
-              onNominatePress={handleNominate}
-              onViewNominations={handleViewNominations}
+              footer={
+                <>
+                  {showNominations && (
+                    <TouchableOpacity
+                      style={boardInfoStyles.nominationBtn}
+                      onPress={handleNominate}
+                      activeOpacity={fixed.activeOpacity}
+                    >
+                      <Ionicons
+                        name={hasMyNomination ? 'create-outline' : 'bulb-outline'}
+                        size={componentSizes.icon.sm}
+                        color={colors.primary}
+                      />
+                      <Text style={boardInfoStyles.nominationBtnText}>
+                        {hasMyNomination ? '修改建议' : '我来建议'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {showNominations && nominationCount > 0 && (
+                    <TouchableOpacity
+                      style={boardInfoStyles.nominationBtn}
+                      onPress={handleViewNominations}
+                      activeOpacity={fixed.activeOpacity}
+                    >
+                      <Ionicons
+                        name="list-outline"
+                        size={componentSizes.icon.sm}
+                        color={colors.primary}
+                      />
+                      <Text style={boardInfoStyles.nominationBtnText}>
+                        查看建议 ({nominationCount})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              }
             />
           </RoomGameSummary>
         ),

@@ -44,16 +44,11 @@ interface BoardInfoCardProps {
   onStrategyPress?: () => void;
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
-  /** Whether to show nomination buttons (werewolf-specific, optional) */
-  showNominations?: boolean;
-  /** Whether the current user has already submitted a nomination */
-  hasMyNomination?: boolean;
-  /** Total number of board nominations */
-  nominationCount?: number;
-  /** Callback: navigate to BoardPicker in nominate mode */
-  onNominatePress?: () => void;
-  /** Callback: open nominations modal */
-  onViewNominations?: () => void;
+  /**
+   * 游戏专属的底部内容（如狼人杀的提名按钮）。
+   * 共享组件只渲染板子信息，游戏特有 UI 由游戏传入。
+   */
+  footer?: React.ReactNode;
 }
 
 /** Render a row of role chips for a section */
@@ -93,11 +88,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   onNotepadPress,
   onStrategyPress,
   styles,
-  showNominations = false,
-  hasMyNomination = false,
-  nominationCount = 0,
-  onNominatePress,
-  onViewNominations,
+  footer,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
@@ -174,36 +165,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               />
               {' 点击角色名查看说明'}
             </Text>
-            {showNominations && onNominatePress != null && (
-              <TouchableOpacity
-                style={styles.nominationBtn}
-                onPress={onNominatePress}
-                activeOpacity={fixed.activeOpacity}
-              >
-                <Ionicons
-                  name={hasMyNomination ? 'create-outline' : 'bulb-outline'}
-                  size={componentSizes.icon.sm}
-                  color={colors.primary}
-                />
-                <Text style={styles.nominationBtnText}>
-                  {hasMyNomination ? '修改建议' : '我来建议'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            {showNominations && nominationCount > 0 && onViewNominations != null && (
-              <TouchableOpacity
-                style={styles.nominationBtn}
-                onPress={onViewNominations}
-                activeOpacity={fixed.activeOpacity}
-              >
-                <Ionicons
-                  name="list-outline"
-                  size={componentSizes.icon.sm}
-                  color={colors.primary}
-                />
-                <Text style={styles.nominationBtnText}>查看建议 ({nominationCount})</Text>
-              </TouchableOpacity>
-            )}
+            {footer}
           </View>
         </View>
       )}
