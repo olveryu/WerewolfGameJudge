@@ -8,6 +8,7 @@ import { useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -114,6 +115,17 @@ export function useStoryRelayRoomState(
       ? { isAllowed: true, execute: botControl.takeOver }
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
+  const onBotSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: botControl.takeOver,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    deniedReason: capabilities.canTakeOverBots.isAllowed
+      ? undefined
+      : (capabilities.canTakeOverBots.reason ?? undefined),
+    isBotSeat: (seat: number) => state.botSeats.includes(seat),
+    gameName: 'StoryRelay',
+  });
   const onSeatPress = (seat: number) => {
     if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     const target = getStoryRelayProfileTarget(state, seat);
@@ -282,9 +294,7 @@ export function useStoryRelayRoomState(
       ),
       visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
-      onBotSeatLongPress: canControlBots
-        ? (seat) => (controlledSeat === seat ? releaseBot() : botControl.takeOver(seat))
-        : null,
+      onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
     seatConfirmation:
       seatController.pendingAction === null
