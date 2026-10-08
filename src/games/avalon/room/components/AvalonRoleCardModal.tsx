@@ -6,22 +6,8 @@
 import type { AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
 
 import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
-import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 
-import { getAvalonRoleMeta } from '../../model/avalonRoleMeta';
-
-function toRevealRoleData(roleId: AvalonRoleId): RevealRoleData {
-  const meta = getAvalonRoleMeta(roleId);
-  return {
-    id: roleId,
-    name: meta.displayName,
-    // 坏人 → wolf（红），好人 → god（蓝）
-    alignment: meta.isEvil ? 'wolf' : 'god',
-    image: undefined, // 暂无立绘，显示阵营色占位
-    description: meta.description,
-    factionName: meta.factionName,
-  };
-}
+import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
 
 export function AvalonRoleCardModal({
   visible,
