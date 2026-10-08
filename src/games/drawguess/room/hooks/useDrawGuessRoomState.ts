@@ -4,7 +4,6 @@
 
 import {
   type DrawGuessCommand,
-  getDrawGuessBotDisplayName,
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useEffect, useRef } from 'react';
@@ -22,7 +21,9 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -300,15 +301,13 @@ export function useDrawGuessRoomState(
             ],
           }
         : terminalHostManagement,
-    controlledSeat:
-      controlledSeat === null
-        ? null
-        : {
-            kind: 'controlled',
-            seat: controlledSeat,
-            displayName: getDrawGuessBotDisplayName(controlledSeat),
-            onRelease: releaseBot,
-          },
+    controlledSeat: createControlledSeatModel({
+      isVisible: controlledSeat !== null,
+      controlledSeat,
+      controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+      release: releaseBot,
+      gameName: 'DrawGuess',
+    }),
   };
   const hasAutoShownQR = useRef(false);
   const openShare = share.open;

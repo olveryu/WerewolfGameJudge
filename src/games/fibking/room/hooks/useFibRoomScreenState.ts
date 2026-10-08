@@ -6,7 +6,6 @@ import {
   type FibPreparationStage,
   type FibPublicCommand,
   type FibRoundView,
-  getFibBotDisplayName,
   getFibOccupiedSeatCount,
   getFibRoundView,
   getFibUserSeat,
@@ -27,7 +26,9 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -423,21 +424,17 @@ export function useFibRoomScreenState({
     [effectiveSeat, isHost, openIdentity, state],
   );
 
-  const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
-    if (controlledSeat !== null) {
-      return {
-        kind: 'controlled',
-        seat: controlledSeat,
-        displayName: getFibBotDisplayName(controlledSeat),
-        onRelease: releaseBot,
-      };
-    }
-    const hasControllableBots =
-      capabilities.canTakeOverBots.isAllowed &&
-      state.fillEmptySeatsWithBots &&
-      Object.keys(state.realSeats).length < state.numberOfPlayers;
-    return hasControllableBots ? { kind: 'hint' } : null;
-  }, [capabilities.canTakeOverBots, controlledSeat, releaseBot, state]);
+  const hasControllableBots =
+    capabilities.canTakeOverBots.isAllowed &&
+    state.fillEmptySeatsWithBots &&
+    Object.keys(state.realSeats).length < state.numberOfPlayers;
+  const controlledSeatModel = createControlledSeatModel({
+    isVisible: controlledSeat !== null || hasControllableBots,
+    controlledSeat,
+    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    release: releaseBot,
+    gameName: 'FibKing',
+  });
 
   const shellModel = useMemo(
     (): RoomShellModel => ({
