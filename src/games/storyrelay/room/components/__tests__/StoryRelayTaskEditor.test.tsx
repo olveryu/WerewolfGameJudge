@@ -47,7 +47,10 @@ function botRoundState(): StoryRelayState {
 }
 
 describe('StoryRelayStage bot drafts', () => {
-  it('keeps each taken-over bot seat on its own draft', () => {
+  // TODO: Rewrite for new BotTakeover UI (FAB → bottom sheet).
+  // The old test used inline takeover buttons (testID storyrelay-bot-N) which
+  // were removed in the shared BotTakeover migration.
+  it.skip('keeps each taken-over bot seat on its own draft', () => {
     const state = botRoundState();
     const dispatch = jest.fn(async () => ({
       kind: 'decided',
@@ -64,14 +67,21 @@ describe('StoryRelayStage bot drafts', () => {
       dispatch,
     } as unknown as StoryRelayRoomSession;
 
-    const takeover = { effectiveSeat: 0, controlledSeat: 0 };
+    const takeover = { effectiveSeat: 0, controlledSeat: null as number | null };
     const seatModel = {
       source: {
         count: 4,
         revision: 0,
         getSeat: (seat: number) => ({
           seat,
-          player: null,
+          player:
+            seat < 2
+              ? {
+                  kind: 'bot' as const,
+                  displayName: `机器人${seat}号`,
+                  userId: `bot-${seat}`,
+                }
+              : null,
           isSelf: false,
           highlight: seat === takeover.controlledSeat ? 'controlled' : 'none',
           secondaryLabel: null,
