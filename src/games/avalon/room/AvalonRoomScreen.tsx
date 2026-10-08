@@ -4,13 +4,15 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  type AvalonRoleId,
   type AvalonViewModel,
   getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -70,6 +72,7 @@ function AvalonRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = isLobby ? null : getAvalonViewModel(screen.state, screen.effectiveSeat);
   const [historyVisible, setHistoryVisible] = useState(false);
+  const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）；
   // 新一轮提案会把 lastVoteResult 清零，届时重置 dismissed。
   const voteResult = viewModel?.lastVoteResult ?? null;
@@ -108,9 +111,10 @@ function AvalonRoomContent(
                   <AvalonBoardInfoCard
                     playerCount={config.numberOfPlayers}
                     onRolePress={(roleId) => {
-                      screen.setRolePreviewId(roleId);
+                      screen.setRolePreviewId(roleId as AvalonRoleId);
                       screen.setRoleCardVisible(true);
                     }}
+                    styles={boardInfoStyles}
                   />
                 </>
               ),
@@ -124,9 +128,10 @@ function AvalonRoomContent(
                   playerCount={config.numberOfPlayers}
                   collapsed
                   onRolePress={(roleId) => {
-                    screen.setRolePreviewId(roleId);
+                    screen.setRolePreviewId(roleId as AvalonRoleId);
                     screen.setRoleCardVisible(true);
                   }}
+                  styles={boardInfoStyles}
                 />
               ),
               afterSeatBoard: (
