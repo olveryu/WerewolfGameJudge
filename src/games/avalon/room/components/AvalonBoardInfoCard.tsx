@@ -12,7 +12,8 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 import { useCallback, useMemo } from 'react';
 
-import { BoardInfoCard, type BoardInfoSection } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import type { BoardInfoSection } from '@/features/room/model/SeatGameRoom';
 import type { RoleDisplayItem } from '@/features/room/model/SeatGameRoom';
 import { colors } from '@/theme';
 

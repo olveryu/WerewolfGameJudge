@@ -7,7 +7,6 @@
  * 顺序：契约 → 共享组件 → 游戏接入。先有契约，后抽实现。
  */
 
-import type { BoardInfoSection } from '../components/BoardInfoCard';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 
 /** 通用角色展示项（从 werewolf 抽取）。 */
@@ -15,6 +14,13 @@ export interface RoleDisplayItem {
   readonly roleId: string;
   readonly displayName: string;
   readonly count: number;
+}
+
+/** 板子信息的一个分组（如"狼人阵营"），BoardInfoCard 渲染用。 */
+export interface BoardInfoSection {
+  readonly title: string;
+  readonly items: readonly RoleDisplayItem[];
+  readonly color: string;
 }
 
 /** 机器人接管配置。 */

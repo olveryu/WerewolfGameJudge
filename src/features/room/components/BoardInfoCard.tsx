@@ -12,7 +12,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
-import type { RoleDisplayItem } from '@/features/room/model/SeatGameRoom';
+import type { BoardInfoSection } from '@/features/room/model/SeatGameRoom';
 import { colors, componentSizes, fixed } from '@/theme';
 
 import { type BoardInfoCardStyles } from './boardInfo.styles';
@@ -23,12 +23,6 @@ import { type BoardInfoCardStyles } from './boardInfo.styles';
  * 狼人杀：[{ title: '狼人', items, color: colors.wolf }, ...]
  * 阿瓦隆：[{ title: '坏人', items, color: colors.wolf }, ...]
  */
-export interface BoardInfoSection {
-  readonly title: string;
-  readonly items: readonly RoleDisplayItem[];
-  readonly color: string;
-}
-
 interface BoardInfoCardProps {
   /** Total number of players */
   playerCount: number;
