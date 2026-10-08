@@ -7,33 +7,21 @@
  *
  * - 'random' → deterministically resolved via `resolveRandomAnimation(roomCode + userId)`
  * - null/undefined → null (no animation)
- * - specific effect ID → validated against the 16 known RevealEffectType values,
+ * - specific effect ID → validated against canonical `ROLE_REVEAL_EFFECT_IDS`,
  *   invalid → null
  */
 
-import { resolveRandomAnimation } from '@game-judge/game-engine/product/rewards';
+import {
+  resolveRandomAnimation,
+  ROLE_REVEAL_EFFECT_IDS,
+} from '@game-judge/game-engine/product/rewards';
 
 import type { RevealEffectType } from '../components/RoleRevealEffects/types';
 
-/** All 16 valid reveal effect IDs (canonical source: ROLE_REVEAL_EFFECT_IDS). */
-const VALID_REVEAL_EFFECTS: readonly string[] = [
-  'fateReweave',
-  'oceanPearl',
-  'unfoldLandscape',
-  'fateDecree',
-  'roulette',
-  'roleHunt',
-  'scratch',
-  'tarot',
-  'gachaMachine',
-  'cardPick',
-  'sealBreak',
-  'chainShatter',
-  'fortuneWheel',
-  'meteorStrike',
-  'filmRewind',
-  'vortexCollapse',
-];
+/** Type guard: narrows string to RevealEffectType via canonical ID list. */
+function isRevealEffectType(id: string): id is RevealEffectType {
+  return (ROLE_REVEAL_EFFECT_IDS as readonly string[]).includes(id);
+}
 
 export function resolveEquippedRevealEffect(
   equippedEffect: string | null | undefined,
@@ -42,10 +30,8 @@ export function resolveEquippedRevealEffect(
 ): RevealEffectType | null {
   if (equippedEffect === 'random') {
     const resolved = resolveRandomAnimation(roomCode + userId);
-    return VALID_REVEAL_EFFECTS.includes(resolved) ? resolved : null;
+    return isRevealEffectType(resolved) ? resolved : null;
   }
   if (equippedEffect == null) return null;
-  return VALID_REVEAL_EFFECTS.includes(equippedEffect)
-    ? (equippedEffect as RevealEffectType)
-    : null;
+  return isRevealEffectType(equippedEffect) ? equippedEffect : null;
 }

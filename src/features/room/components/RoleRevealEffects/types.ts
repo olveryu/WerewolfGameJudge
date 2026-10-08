@@ -6,28 +6,15 @@
  * - `RoleAlignment` 保留（与 `RevealAlignment` 同值）
  * - `AlignmentTheme` + `createAlignmentThemes` 已通用，直接保留
  */
+import type { RoleRevealEffectId } from '@game-judge/game-engine/product/rewards';
+
 import type { RevealRoleData } from '../../model/RevealRoleData';
 
 /**
- * 揭示特效类型（14 种）
+ * 揭示特效类型 —— 直接从引擎的 canonical `ROLE_REVEAL_EFFECT_IDS` 派生。
+ * 新增特效只需改引擎一处，此处自动同步，无手抄。
  */
-export type RevealEffectType =
-  | 'fateReweave'
-  | 'oceanPearl'
-  | 'unfoldLandscape'
-  | 'fateDecree'
-  | 'roulette'
-  | 'roleHunt'
-  | 'scratch'
-  | 'tarot'
-  | 'gachaMachine'
-  | 'cardPick'
-  | 'sealBreak'
-  | 'chainShatter'
-  | 'fortuneWheel'
-  | 'meteorStrike'
-  | 'filmRewind'
-  | 'vortexCollapse';
+export type RevealEffectType = RoleRevealEffectId;
 
 /**
  * 所有揭示特效组件的通用 props
