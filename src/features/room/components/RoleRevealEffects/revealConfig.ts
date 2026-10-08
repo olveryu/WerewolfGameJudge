@@ -44,10 +44,27 @@ export const WEREWOLF_REVEAL_CONFIG: RevealConfig = {
   enableCrackEffect: true,
 } as const;
 
-/** Avalon game reveal configuration: 4 effects, default tarot */
+/** Avalon game reveal configuration: all 16 effects, default tarot */
 export const AVALON_REVEAL_CONFIG: RevealConfig = {
   gameId: 'avalon',
-  availableEffects: ['tarot', 'scratch', 'cardPick', 'sealBreak'],
+  availableEffects: [
+    'cardPick',
+    'chainShatter',
+    'fateDecree',
+    'filmRewind',
+    'roulette',
+    'fortuneWheel',
+    'roleHunt',
+    'scratch',
+    'gachaMachine',
+    'meteorStrike',
+    'sealBreak',
+    'tarot',
+    'fateReweave',
+    'oceanPearl',
+    'unfoldLandscape',
+    'vortexCollapse',
+  ],
   defaultEffect: 'tarot',
   enableCrackEffect: false,
 } as const;
