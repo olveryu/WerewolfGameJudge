@@ -11,7 +11,7 @@ import {
   type DrawGuessViewModel,
   getDrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -29,6 +29,7 @@ import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/Roo
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -50,7 +51,6 @@ import { DrawGuessHintBar } from './components/DrawGuessHintBar';
 import { DrawGuessScoreboard } from './components/DrawGuessScoreboard';
 import { DrawGuessToolbar } from './components/DrawGuessToolbar';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
-import { useDrawGuessDeadline } from './hooks/useDrawGuessDeadline';
 import { useDrawGuessRoomState } from './hooks/useDrawGuessRoomState';
 import { drawGuessStrokeToElement, useDrawGuessStrokeSync } from './hooks/useDrawGuessStrokeSync';
 
@@ -135,7 +135,35 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
     phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd'
       ? phase.deadlineAt
       : null;
-  const deadline = useDrawGuessDeadline(deadlineAt, state.phaseRevision, state.turnIndex, session);
+  const shouldExpire = useCallback(() => {
+    const current = session.getSnapshot();
+    return (
+      current.phase === 'ready' &&
+      current.connection === 'live' &&
+      current.pendingCommandCount === 0 &&
+      current.snapshot.state.phaseRevision === state.phaseRevision
+    );
+  }, [session, state.phaseRevision]);
+  const onExpire = useCallback(
+    () =>
+      session.dispatch(
+        {
+          type: 'drawguess.phase.expire',
+          phaseRevision: state.phaseRevision,
+          turnIndex: state.turnIndex,
+        },
+        { controlledSeat: null, label: '推进作画阶段', isRecoverable: true },
+      ),
+    [session, state.phaseRevision, state.turnIndex],
+  );
+  const remainingSeconds = useStageDeadline({
+    deadlineAt,
+    shouldExpire,
+    onExpire,
+    label: '推进作画阶段',
+  });
+  // drawguess 原 hook 返回 { remainingSeconds }，此处保持调用方兼容
+  const deadline = { remainingSeconds };
   const nowMs = useDrawGuessNowMs();
   // view model 每次渲染用当前时间重新计算，拼音首字母揭示随 1 秒 tick 更新。
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);

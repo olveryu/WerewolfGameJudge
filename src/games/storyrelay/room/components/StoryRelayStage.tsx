@@ -6,18 +6,18 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
 
 import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmission';
-import { useStoryRelayDeadline } from '../hooks/useStoryRelayDeadline';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { StoryRelayGallery } from './StoryRelayGallery';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
@@ -135,7 +135,29 @@ function StoryRelayStageContent({
   seatModel,
   session,
 }: StoryRelayStageProps) {
-  const remainingSeconds = useStoryRelayDeadline(state.deadlineAt, state.phaseRevision, session);
+  const shouldExpire = useCallback(() => {
+    const current = session.getSnapshot();
+    return (
+      current.phase === 'ready' &&
+      current.connection === 'live' &&
+      current.pendingCommandCount === 0 &&
+      current.snapshot.state.phaseRevision === state.phaseRevision
+    );
+  }, [session, state.phaseRevision]);
+  const onExpire = useCallback(
+    () =>
+      session.dispatch(
+        { type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision },
+        { controlledSeat: null, label: '推进故事阶段', isRecoverable: true },
+      ),
+    [session, state.phaseRevision],
+  );
+  const remainingSeconds = useStageDeadline({
+    deadlineAt: state.deadlineAt,
+    shouldExpire,
+    onExpire,
+    label: '推进故事阶段',
+  });
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
