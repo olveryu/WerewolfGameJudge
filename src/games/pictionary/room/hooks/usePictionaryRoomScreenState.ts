@@ -396,6 +396,7 @@ export function usePictionaryRoomScreenState({
     releaseBot,
     userId: user.id,
     isHost,
+    canControlBots: capabilities.canTakeOverBots.isAllowed,
     openRules,
     session,
   };

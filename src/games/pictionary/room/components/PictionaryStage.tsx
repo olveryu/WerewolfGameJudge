@@ -24,6 +24,7 @@ interface PictionaryStageProps {
   readonly releaseBot: () => void;
   readonly userId: string;
   readonly isHost: boolean;
+  readonly canControlBots: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: PictionaryRoomSession;
 }
@@ -42,6 +43,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   releaseBot,
   userId,
   isHost,
+  canControlBots,
   seatModel,
   session,
 }) => {
@@ -82,6 +84,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
       <PictionaryTakeover
         seatModel={seatModel}
         isHost={isHost}
+        canControlBots={canControlBots}
         controlledSeat={controlledSeat}
         releaseBot={releaseBot}
         remainingSeconds={deadline.remainingSeconds}
@@ -110,6 +113,7 @@ const styles = StyleSheet.create({
 function PictionaryTakeover({
   seatModel,
   isHost,
+  canControlBots,
   controlledSeat,
   releaseBot,
   remainingSeconds,
@@ -117,6 +121,7 @@ function PictionaryTakeover({
 }: {
   readonly seatModel: RoomSeatBoardModel;
   readonly isHost: boolean;
+  readonly canControlBots: boolean;
   readonly controlledSeat: number | null;
   readonly releaseBot: () => void;
   readonly remainingSeconds: number | null;
@@ -148,7 +153,7 @@ function PictionaryTakeover({
       activeSeat={null}
       remainingSeconds={remainingSeconds}
       controlledSeat={controlledSeat}
-      canControl={isHost}
+      canControl={isHost && canControlBots}
       isLobby={isLobby}
       onTakeOver={onTakeOver}
       onRelease={releaseBot}
