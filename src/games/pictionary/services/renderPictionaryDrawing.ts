@@ -24,9 +24,8 @@ import type {
   DrawingPoint,
 } from '@/features/drawing/model/drawing';
 import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
+import { createFillRectangles } from '@/features/drawing/services/floodFill';
 import { PICTIONARY_CANVAS_BACKGROUND } from '@/theme/colors';
-
-import { createPictionaryFillRectangles } from './pictionaryFloodFill';
 
 function createPictionaryStrokePath(
   points: readonly DrawingPoint[],
@@ -207,7 +206,7 @@ export function createPictionaryFillElement(
     kind: 'fill',
     color,
     width: FILL_STROKE_WIDTH,
-    rectangles: createPictionaryFillRectangles(
+    rectangles: createFillRectangles(
       pixels,
       PICTIONARY_DRAWING_WIDTH,
       PICTIONARY_DRAWING_HEIGHT,

@@ -39,8 +39,7 @@ import type {
   DrawingPoint,
 } from '@/features/drawing/model/drawing';
 import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
-
-import { createDrawGuessFillRectangles } from './drawGuessFloodFill';
+import { createFillRectangles } from '@/features/drawing/services/floodFill';
 
 /** 终稿画作规格：固定 1024×768 PNG，单文件最大 2 MiB（设计 §8.3）。 */
 const DRAWGUESS_EXPORT_WIDTH = 1024;
@@ -225,7 +224,7 @@ export function createDrawGuessFillElement(
     kind: 'fill',
     color,
     width: FILL_STROKE_WIDTH,
-    rectangles: createDrawGuessFillRectangles(
+    rectangles: createFillRectangles(
       pixels,
       DRAWGUESS_EXPORT_WIDTH,
       DRAWGUESS_EXPORT_HEIGHT,
