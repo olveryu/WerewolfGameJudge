@@ -520,7 +520,7 @@ export function useAvalonRoomState(
     equippedRevealEffect: (() => {
       const effect = user.equippedEffect;
       if (effect === 'random' || effect == null) return null;
-      // Validate against known RevealEffectType values
+      // Validate against known RevealEffectType values (16 total)
       const validEffects = [
         'fateReweave',
         'oceanPearl',
@@ -533,6 +533,11 @@ export function useAvalonRoomState(
         'gachaMachine',
         'cardPick',
         'sealBreak',
+        'chainShatter',
+        'fortuneWheel',
+        'meteorStrike',
+        'filmRewind',
+        'vortexCollapse',
       ] as const;
       return (validEffects as readonly string[]).includes(effect)
         ? (effect as (typeof validEffects)[number])
