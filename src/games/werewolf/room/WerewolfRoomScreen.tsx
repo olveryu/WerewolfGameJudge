@@ -28,6 +28,7 @@ import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/Roo
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
@@ -546,15 +547,8 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   ]);
 
   const handleProfileKick = useCallback(() => {
-    if (profileSelection === null) {
-      throw new Error('Cannot kick without an open profile');
-    }
-    const capability = capabilities.canKickSeat;
-    if (!capability.isAllowed) {
-      throw new Error(`Cannot kick from profile: ${capability.reason}`);
-    }
-    capability.execute(profileSelection.target.seat);
-  }, [capabilities.canKickSeat, profileSelection]);
+    executeProfileKick(capabilities, profileSelection);
+  }, [capabilities, profileSelection]);
 
   const handleProfileLeave = useCallback(() => {
     const capability = capabilities.canLeaveSeat;
