@@ -164,6 +164,7 @@ XP/结算、测试计划。
 ## Key Constraints（速查）
 
 - 新游戏不许自建第二套大厅/配置/房间外壳；先查 `src/features/room/` 和共享组件。
+- 新游戏不许复制角色卡或动画组件；角色展示用共享 `RoleCardSimple`/`RoleCardContent`（`src/features/room/components/`），动画用共享 `RoleRevealAnimator` + 自写 `RevealConfig` + `toRevealRoleData` adapter（见 `src/features/room/components/RoleRevealEffects/`）。
 - `docs/room-shell-contract.md` 是 UI 集成的唯一权威，细节不复制到本 skill。
 - 方案先行：用户明确批准前不写代码；design doc 先行，代码随后。
 - 词库表不许空表上线。
