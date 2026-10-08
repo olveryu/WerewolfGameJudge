@@ -4,7 +4,7 @@ import {
   getStoryRelayOccupiedSeatCount,
   type StoryRelayCommand,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -117,6 +117,7 @@ export function useStoryRelayRoomState(
       ? { isAllowed: true, execute: botControl.takeOver }
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
+  const isBotSeat = useCallback((seat: number) => state.botSeats.includes(seat), [state.botSeats]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver: botControl.takeOver,
@@ -125,7 +126,7 @@ export function useStoryRelayRoomState(
     deniedReason: capabilities.canTakeOverBots.isAllowed
       ? undefined
       : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat: (seat: number) => state.botSeats.includes(seat),
+    isBotSeat,
     gameName: 'StoryRelay',
   });
   const onSeatPress = (seat: number) => {

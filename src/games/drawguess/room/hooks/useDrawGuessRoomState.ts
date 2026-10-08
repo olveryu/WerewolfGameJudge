@@ -6,7 +6,7 @@ import {
   type DrawGuessCommand,
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -94,7 +94,6 @@ export function useDrawGuessRoomState(
     controlledSeat,
     canControlBots,
     release: releaseBot,
-    gameName: 'DrawGuess',
   });
   const capabilities: RoomCapabilities = {
     ...createRoomSetupCapabilities({
@@ -125,6 +124,10 @@ export function useDrawGuessRoomState(
       ? { isAllowed: true, execute: takeOver }
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
+  const isBotSeat = useCallback(
+    (seat: number) => getDrawGuessProfileTarget(state, seat)?.occupantKind === 'bot',
+    [state],
+  );
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver,
@@ -133,7 +136,7 @@ export function useDrawGuessRoomState(
     deniedReason: capabilities.canTakeOverBots.isAllowed
       ? undefined
       : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat: (seat: number) => getDrawGuessProfileTarget(state, seat)?.occupantKind === 'bot',
+    isBotSeat,
     gameName: 'DrawGuess',
   });
   const onSeatPress = (seat: number) => {

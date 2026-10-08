@@ -17,8 +17,6 @@ export interface BotTakeoverGuardOptions {
   readonly canControlBots: boolean;
   /** Release function. */
   readonly release: () => void;
-  /** Game name for logging. */
-  readonly gameName: string;
 }
 
 /**
@@ -29,7 +27,6 @@ export function useBotTakeoverGuard({
   controlledSeat,
   canControlBots,
   release,
-  gameName,
 }: BotTakeoverGuardOptions): void {
   useEffect(() => {
     if (controlledSeat !== null && !canControlBots) {
@@ -37,5 +34,5 @@ export function useBotTakeoverGuard({
       // Without this, the host could continue acting as the bot.
       release();
     }
-  }, [controlledSeat, canControlBots, release, gameName]);
+  }, [controlledSeat, canControlBots, release]);
 }

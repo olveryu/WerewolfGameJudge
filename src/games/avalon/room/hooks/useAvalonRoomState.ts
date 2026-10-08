@@ -134,7 +134,6 @@ export function useAvalonRoomState(
     controlledSeat,
     canControlBots,
     release: releaseBot,
-    gameName: 'Avalon',
   });
   const capabilities: RoomCapabilities = {
     ...createRoomSetupCapabilities({
