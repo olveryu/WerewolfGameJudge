@@ -85,7 +85,7 @@ export class FibRoomPage extends RoomPage {
 
   async openConfig(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.fibConfigureButton).click();
+    await this.page.getByTestId(TESTIDS.roomSettingsButton).click();
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible();
   }
 

@@ -87,14 +87,36 @@ export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAct
   );
 }
 
-/** "房间配置" — secondary action for opening room settings. */
+/** "房间设置" — secondary action for opening room settings. */
 export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
     'configure-game',
-    '房间配置',
+    '房间设置',
     'options-outline',
     'secondary',
     TESTIDS.roomSettingsButton,
     input,
   );
+}
+
+/** "下一轮" — primary action for starting the next round. */
+export function buildNextRoundAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction('next-round', '下一轮', 'play-forward-outline', 'primary', undefined, input);
+}
+
+/** "返回大厅" — secondary action for returning to lobby. */
+export function buildReturnToLobbyAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'return-lobby',
+    '返回大厅',
+    'return-down-back-outline',
+    'secondary',
+    undefined,
+    input,
+  );
+}
+
+/** "中止游戏" — danger action for aborting the game. */
+export function buildAbortGameAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction('abort-game', '中止游戏', 'stop-circle-outline', 'danger', undefined, input);
 }

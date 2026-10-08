@@ -11,6 +11,11 @@ import {
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomButton,
   RoomBottomStackModel,
@@ -402,44 +407,23 @@ function createFibRoomManagementActions(input: FibHostManagementInput): RoomHost
   const actions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     actions.push(
-      enabledHostAction(
-        {
-          key: 'configure-game',
-          label: '房间设置',
-          icon: 'options-outline',
-          variant: 'secondary',
-          testID: TESTIDS.fibConfigureButton,
-        },
-        input.capabilities.canConfigureGame.execute,
-      ),
+      buildRoomConfigAction({
+        onPress: input.capabilities.canConfigureGame.execute,
+      }),
     );
   }
   if (input.capabilities.canFillBots.isAllowed) {
     actions.push(
-      enabledHostAction(
-        {
-          key: 'fill-bots',
-          label: '填充机器人',
-          icon: 'people-outline',
-          variant: 'secondary',
-          testID: TESTIDS.roomFillBotsButton,
-        },
-        input.capabilities.canFillBots.execute,
-      ),
+      buildFillBotsAction({
+        onPress: input.capabilities.canFillBots.execute,
+      }),
     );
   }
   if (input.capabilities.canClearSeats.isAllowed) {
     actions.push(
-      enabledHostAction(
-        {
-          key: 'clear-seats',
-          label: '清空座位',
-          icon: 'trash-outline',
-          variant: 'danger',
-          testID: TESTIDS.roomClearSeatsButton,
-        },
-        input.capabilities.canClearSeats.execute,
-      ),
+      buildClearSeatsAction({
+        onPress: input.capabilities.canClearSeats.execute,
+      }),
     );
   }
   return actions;
