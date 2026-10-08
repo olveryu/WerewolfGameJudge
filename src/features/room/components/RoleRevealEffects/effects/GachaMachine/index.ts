@@ -1,0 +1,1 @@
+export { GachaMachine } from './GachaMachine';
