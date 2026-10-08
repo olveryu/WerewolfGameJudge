@@ -18,10 +18,7 @@ import type {
   RoomSeatStatusBadge,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
-import type {
-  RoomControlledSeatModel,
-  RoomStatusRibbonModel,
-} from '@/features/room/model/RoomShellModel';
+import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type {
   BottomLayout,
   ButtonBehavior,
@@ -206,27 +203,6 @@ export function createWerewolfStatusRibbon(
     };
   }
   return null;
-}
-
-export function createWerewolfControlledSeatModel(input: {
-  readonly isVisible: boolean;
-  readonly controlledSeat: number | null;
-  readonly controlledBotName: string | null;
-  readonly release: () => void;
-}): RoomControlledSeatModel | null {
-  if (!input.isVisible) return null;
-  if (input.controlledSeat === null) {
-    return { kind: 'hint' };
-  }
-  if (input.controlledBotName === null) {
-    throw new Error(`Controlled Werewolf bot seat ${input.controlledSeat} has no player`);
-  }
-  return {
-    kind: 'controlled',
-    seat: input.controlledSeat,
-    displayName: input.controlledBotName,
-    onRelease: input.release,
-  };
 }
 
 export function createWerewolfBottomActionLayout(input: {

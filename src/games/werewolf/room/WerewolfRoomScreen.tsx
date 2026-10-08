@@ -27,6 +27,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
@@ -42,7 +43,6 @@ import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import {
   createWerewolfBottomActionLayout,
-  createWerewolfControlledSeatModel,
   createWerewolfSeatDataSource,
   createWerewolfStatusRibbon,
 } from '@/games/werewolf/werewolfRoomAdapter';
@@ -469,7 +469,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
   const controlledSeatModel = useMemo(
     () =>
-      createWerewolfControlledSeatModel({
+      createControlledSeatModel({
         isVisible:
           isDebugMode &&
           isHost &&
@@ -482,6 +482,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
             ? null
             : (gameState?.players.get(controlledSeat)?.displayName ?? null),
         release: releaseBot,
+        gameName: 'Werewolf',
       }),
     [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, releaseBot],
   );

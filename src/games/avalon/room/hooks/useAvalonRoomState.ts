@@ -22,6 +22,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -490,9 +491,13 @@ export function useAvalonRoomState(
         : isTerminal
           ? terminalHostManagement
           : inGameHostManagement,
-    // D12：不做任何关于 bot 接管的提示——不渲染受控席位 banner。
-    // 释放：房主点已接管的机器人座位即可释放（狼人杀模式）。
-    controlledSeat: null,
+    controlledSeat: createControlledSeatModel({
+      isVisible: isHost && canControlBots,
+      controlledSeat,
+      controlledBotName: controlledSeat !== null ? `座位 ${controlledSeat + 1}` : null,
+      release: releaseBot,
+      gameName: 'Avalon',
+    }),
   };
   const hasAutoShownQR = useRef(false);
   const openShare = share.open;
