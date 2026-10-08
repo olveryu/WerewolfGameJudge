@@ -12,16 +12,16 @@ import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 
+import type {
+  DrawingColor,
+  DrawingElement,
+  DrawingPoint,
+  DrawingShapeElement,
+  DrawingTool,
+  DrawingWidth,
+} from '@/features/drawing/model/drawing';
 import { borderRadius, colors, fixed } from '@/theme';
 
-import type {
-  DrawGuessDrawingColor,
-  DrawGuessDrawingElement,
-  DrawGuessDrawingPoint,
-  DrawGuessDrawingShapeElement,
-  DrawGuessDrawingTool,
-  DrawGuessDrawingWidth,
-} from '../../model/drawGuessDrawing';
 import {
   createDrawGuessElementPath,
   DRAWGUESS_CANVAS_BACKGROUND,
@@ -31,14 +31,14 @@ const CANONICAL_CANVAS_WIDTH = 1024;
 const MIN_POINT_DISTANCE_SQUARED = 0.000_001;
 
 interface DrawGuessDrawingCanvasProps {
-  readonly elements: readonly DrawGuessDrawingElement[];
-  readonly tool: DrawGuessDrawingTool;
-  readonly color: DrawGuessDrawingColor;
-  readonly strokeWidth: DrawGuessDrawingWidth;
+  readonly elements: readonly DrawingElement[];
+  readonly tool: DrawingTool;
+  readonly color: DrawingColor;
+  readonly strokeWidth: DrawingWidth;
   readonly isEnabled: boolean;
-  readonly onElementChange: (element: DrawGuessDrawingElement) => void;
-  readonly onElementComplete: (element: DrawGuessDrawingElement) => void;
-  readonly onFill: (point: DrawGuessDrawingPoint) => void;
+  readonly onElementChange: (element: DrawingElement) => void;
+  readonly onElementComplete: (element: DrawingElement) => void;
+  readonly onFill: (point: DrawingPoint) => void;
 }
 
 interface CanvasSize {
@@ -50,10 +50,7 @@ function clampUnit(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function isDistinctPoint(
-  previous: DrawGuessDrawingPoint | undefined,
-  next: DrawGuessDrawingPoint,
-): boolean {
+function isDistinctPoint(previous: DrawingPoint | undefined, next: DrawingPoint): boolean {
   if (previous === undefined) return true;
   const deltaX = next.x - previous.x;
   const deltaY = next.y - previous.y;
@@ -74,12 +71,12 @@ export const DrawGuessDrawingCanvas: React.FC<DrawGuessDrawingCanvasProps> = ({
   const activePath = useSharedValue(Skia.Path.Make());
   const activeBuilder = useRef<SkPathBuilder | null>(null);
   const activeElementId = useRef('');
-  const activePoints = useRef<DrawGuessDrawingPoint[]>([]);
-  const activeShapeStart = useRef<DrawGuessDrawingPoint | null>(null);
-  const activeShapeEnd = useRef<DrawGuessDrawingPoint | null>(null);
+  const activePoints = useRef<DrawingPoint[]>([]);
+  const activeShapeStart = useRef<DrawingPoint | null>(null);
+  const activeShapeEnd = useRef<DrawingPoint | null>(null);
 
   const normalizedPoint = useCallback(
-    (x: number, y: number): DrawGuessDrawingPoint => {
+    (x: number, y: number): DrawingPoint => {
       if (canvasSize.width <= 0 || canvasSize.height <= 0) {
         throw new Error('[FAIL-FAST] DrawGuess canvas gesture started before layout');
       }
@@ -213,7 +210,7 @@ export const DrawGuessDrawingCanvas: React.FC<DrawGuessDrawingCanvasProps> = ({
       const start = activeShapeStart.current;
       const end = activeShapeEnd.current;
       if (start === null || end === null) return;
-      const element: DrawGuessDrawingShapeElement = {
+      const element: DrawingShapeElement = {
         id: activeElementId.current,
         kind: tool,
         color,

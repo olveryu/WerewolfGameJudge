@@ -5,26 +5,25 @@
 import type React from 'react';
 
 import { DrawingToolbar } from '@/components/DrawingToolbar/DrawingToolbar';
-
 import {
-  DRAWGUESS_DRAWING_PALETTE,
-  DRAWGUESS_DRAWING_WIDTHS,
-  type DrawGuessDrawingColor,
-  type DrawGuessDrawingTool,
-  type DrawGuessDrawingWidth,
-  isDrawGuessDrawingColor,
-} from '../../model/drawGuessDrawing';
+  DRAWING_PALETTE,
+  DRAWING_WIDTHS,
+  type DrawingColor,
+  type DrawingTool,
+  type DrawingWidth,
+  isDrawingColor,
+} from '@/features/drawing/model/drawing';
 
 export interface DrawGuessToolbarProps {
-  readonly tool: DrawGuessDrawingTool;
-  readonly color: DrawGuessDrawingColor;
-  readonly strokeWidth: DrawGuessDrawingWidth;
+  readonly tool: DrawingTool;
+  readonly color: DrawingColor;
+  readonly strokeWidth: DrawingWidth;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly disabled: boolean;
-  readonly onToolChange: (tool: DrawGuessDrawingTool) => void;
-  readonly onColorChange: (color: DrawGuessDrawingColor) => void;
-  readonly onWidthChange: (width: DrawGuessDrawingWidth) => void;
+  readonly onToolChange: (tool: DrawingTool) => void;
+  readonly onColorChange: (color: DrawingColor) => void;
+  readonly onWidthChange: (width: DrawingWidth) => void;
   readonly onUndo: () => void;
   readonly onRedo: () => void;
   readonly onClear: () => void;
@@ -38,14 +37,14 @@ export const DrawGuessToolbar: React.FC<DrawGuessToolbarProps> = (props) => (
     canUndo={props.canUndo}
     canRedo={props.canRedo}
     disabled={props.disabled}
-    palette={DRAWGUESS_DRAWING_PALETTE}
-    widths={[...DRAWGUESS_DRAWING_WIDTHS]}
+    palette={DRAWING_PALETTE}
+    widths={[...DRAWING_WIDTHS]}
     onToolChange={props.onToolChange}
     onColorChange={(color) => {
-      if (isDrawGuessDrawingColor(color)) props.onColorChange(color);
+      if (isDrawingColor(color)) props.onColorChange(color);
     }}
     onWidthChange={(width) => {
-      const valid = DRAWGUESS_DRAWING_WIDTHS.find((w) => w === width);
+      const valid = DRAWING_WIDTHS.find((w) => w === width);
       if (valid !== undefined) props.onWidthChange(valid);
     }}
     onUndo={props.onUndo}

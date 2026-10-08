@@ -4,7 +4,7 @@
  * 从接龙版 `src/games/pictionary/services/pictionaryFloodFill.ts` 复制并改名（游戏间禁止互相 import）。
  */
 
-import type { DrawGuessDrawingFillRectangle } from '../model/drawGuessDrawing';
+import type { DrawingFillRectangle } from '@/features/drawing/model/drawing';
 
 export type DrawGuessPixelColor = readonly [number, number, number, number];
 
@@ -26,7 +26,7 @@ function compressFillMask(
   mask: Uint8Array,
   width: number,
   height: number,
-): readonly DrawGuessDrawingFillRectangle[] {
+): readonly DrawingFillRectangle[] {
   const rectangles: Array<{ x: number; y: number; width: number; height: number }> = [];
   let previousRuns = new Map<string, number>();
   for (let y = 0; y < height; y += 1) {
@@ -66,7 +66,7 @@ export function createDrawGuessFillRectangles(
   height: number,
   seedIndex: number,
   targetColor: DrawGuessPixelColor,
-): readonly DrawGuessDrawingFillRectangle[] {
+): readonly DrawingFillRectangle[] {
   const pixelCount = width * height;
   if (
     !Number.isSafeInteger(width) ||

@@ -7,31 +7,31 @@ import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 
+import type {
+  DrawingColor,
+  DrawingElement,
+  DrawingPoint,
+  DrawingShapeElement,
+  DrawingTool,
+  DrawingWidth,
+} from '@/features/drawing/model/drawing';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, PICTIONARY_CANVAS_BACKGROUND } from '@/theme';
 
-import type {
-  PictionaryDrawingColor,
-  PictionaryDrawingElement,
-  PictionaryDrawingPoint,
-  PictionaryDrawingShapeElement,
-  PictionaryDrawingTool,
-  PictionaryDrawingWidth,
-} from '../../model/pictionaryDrawing';
 import { createPictionaryElementPath } from '../../services/renderPictionaryDrawing';
 
 const CANONICAL_CANVAS_WIDTH = 1024;
 const MIN_POINT_DISTANCE_SQUARED = 0.000_001;
 
 interface PictionaryDrawingCanvasProps {
-  readonly elements: readonly PictionaryDrawingElement[];
-  readonly tool: PictionaryDrawingTool;
-  readonly color: PictionaryDrawingColor;
-  readonly strokeWidth: PictionaryDrawingWidth;
+  readonly elements: readonly DrawingElement[];
+  readonly tool: DrawingTool;
+  readonly color: DrawingColor;
+  readonly strokeWidth: DrawingWidth;
   readonly isEnabled: boolean;
-  readonly onElementChange: (element: PictionaryDrawingElement) => void;
-  readonly onElementComplete: (element: PictionaryDrawingElement) => void;
-  readonly onFill: (point: PictionaryDrawingPoint) => void;
+  readonly onElementChange: (element: DrawingElement) => void;
+  readonly onElementComplete: (element: DrawingElement) => void;
+  readonly onFill: (point: DrawingPoint) => void;
 }
 
 interface CanvasSize {
@@ -43,10 +43,7 @@ function clampUnit(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function isDistinctPoint(
-  previous: PictionaryDrawingPoint | undefined,
-  next: PictionaryDrawingPoint,
-): boolean {
+function isDistinctPoint(previous: DrawingPoint | undefined, next: DrawingPoint): boolean {
   if (previous === undefined) return true;
   const deltaX = next.x - previous.x;
   const deltaY = next.y - previous.y;
@@ -67,12 +64,12 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
   const activePath = useSharedValue(Skia.Path.Make());
   const activeBuilder = useRef<SkPathBuilder | null>(null);
   const activeElementId = useRef('');
-  const activePoints = useRef<PictionaryDrawingPoint[]>([]);
-  const activeShapeStart = useRef<PictionaryDrawingPoint | null>(null);
-  const activeShapeEnd = useRef<PictionaryDrawingPoint | null>(null);
+  const activePoints = useRef<DrawingPoint[]>([]);
+  const activeShapeStart = useRef<DrawingPoint | null>(null);
+  const activeShapeEnd = useRef<DrawingPoint | null>(null);
 
   const normalizedPoint = useCallback(
-    (x: number, y: number): PictionaryDrawingPoint => {
+    (x: number, y: number): DrawingPoint => {
       if (canvasSize.width <= 0 || canvasSize.height <= 0) {
         throw new Error('[FAIL-FAST] Pictionary canvas gesture started before layout');
       }
@@ -206,7 +203,7 @@ export const PictionaryDrawingCanvas: React.FC<PictionaryDrawingCanvasProps> = (
       const start = activeShapeStart.current;
       const end = activeShapeEnd.current;
       if (start === null || end === null) return;
-      const element: PictionaryDrawingShapeElement = {
+      const element: DrawingShapeElement = {
         id: activeElementId.current,
         kind: tool,
         color,

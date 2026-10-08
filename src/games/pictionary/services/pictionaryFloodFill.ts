@@ -1,6 +1,6 @@
 /** Pure four-connected pixel-region search and rectangle compression for Pictionary fills. */
 
-import type { PictionaryDrawingFillRectangle } from '../model/pictionaryDrawing';
+import type { DrawingFillRectangle } from '@/features/drawing/model/drawing';
 
 export type PictionaryPixelColor = readonly [number, number, number, number];
 
@@ -22,7 +22,7 @@ function compressFillMask(
   mask: Uint8Array,
   width: number,
   height: number,
-): readonly PictionaryDrawingFillRectangle[] {
+): readonly DrawingFillRectangle[] {
   const rectangles: Array<{ x: number; y: number; width: number; height: number }> = [];
   let previousRuns = new Map<string, number>();
   for (let y = 0; y < height; y += 1) {
@@ -62,7 +62,7 @@ export function createPictionaryFillRectangles(
   height: number,
   seedIndex: number,
   targetColor: PictionaryPixelColor,
-): readonly PictionaryDrawingFillRectangle[] {
+): readonly DrawingFillRectangle[] {
   const pixelCount = width * height;
   if (
     !Number.isSafeInteger(width) ||

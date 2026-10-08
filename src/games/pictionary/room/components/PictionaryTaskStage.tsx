@@ -18,20 +18,20 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { DrawingToolbar } from '@/components/DrawingToolbar/DrawingToolbar';
-import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import {
-  EMPTY_PICTIONARY_DRAWING_DRAFT,
-  isPictionaryDrawingColor,
-  PICTIONARY_DRAWING_PALETTE,
-  PICTIONARY_DRAWING_WIDTHS,
-  type PictionaryDrawingColor,
-  type PictionaryDrawingDraftAction,
-  type PictionaryDrawingElement,
-  type PictionaryDrawingPoint,
-  type PictionaryDrawingTool,
-  type PictionaryDrawingWidth,
-  reducePictionaryDrawingDraft,
-} from '@/games/pictionary/model/pictionaryDrawing';
+  DRAWING_PALETTE,
+  DRAWING_WIDTHS,
+  type DrawingColor,
+  type DrawingDraftAction,
+  type DrawingElement,
+  type DrawingPoint,
+  type DrawingTool,
+  type DrawingWidth,
+  EMPTY_DRAWING_DRAFT,
+  isDrawingColor,
+  reduceDrawingDraft,
+} from '@/features/drawing/model/drawing';
+import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionaryCompletedCount } from '@/games/pictionary/model/pictionarySelectors';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
@@ -283,17 +283,17 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   const [draft, setDraft] = useState(() => {
     const input = inputs.get(effectiveSeat);
     if (typeof input === 'string') throw new Error('Expected drawing input');
-    return input ?? EMPTY_PICTIONARY_DRAWING_DRAFT;
+    return input ?? EMPTY_DRAWING_DRAFT;
   });
-  const [tool, setTool] = useState<PictionaryDrawingTool>('brush');
-  const [color, setColor] = useState<PictionaryDrawingColor>(PICTIONARY_DRAWING_PALETTE[0].value);
-  const [strokeWidth, setStrokeWidth] = useState<PictionaryDrawingWidth>(14);
+  const [tool, setTool] = useState<DrawingTool>('brush');
+  const [color, setColor] = useState<DrawingColor>(DRAWING_PALETTE[0].value);
+  const [strokeWidth, setStrokeWidth] = useState<DrawingWidth>(14);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const command = usePictionaryStageCommand(session, controlledSeat, state, effectiveSeat);
 
   const updateDraft = useCallback(
-    (action: PictionaryDrawingDraftAction): void => {
-      const next = reducePictionaryDrawingDraft(draft, action);
+    (action: DrawingDraftAction): void => {
+      const next = reduceDrawingDraft(draft, action);
       inputs.set(effectiveSeat, next);
       setDraft(next);
     },
@@ -301,10 +301,10 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   );
 
   const persistElement = useCallback(
-    (element: PictionaryDrawingElement): void => {
+    (element: DrawingElement): void => {
       inputs.set(
         effectiveSeat,
-        reducePictionaryDrawingDraft(draft, {
+        reduceDrawingDraft(draft, {
           type: 'element.add',
           element,
         }),
@@ -314,12 +314,12 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
   );
 
   const addElement = useCallback(
-    (element: PictionaryDrawingElement) => updateDraft({ type: 'element.add', element }),
+    (element: DrawingElement) => updateDraft({ type: 'element.add', element }),
     [updateDraft],
   );
 
   const fillDrawing = useCallback(
-    (point: PictionaryDrawingPoint): void => {
+    (point: DrawingPoint): void => {
       try {
         const element = createPictionaryFillElement(draft.elements, point, color);
         if (element !== null) addElement(element);
@@ -383,14 +383,14 @@ const PictionaryDrawingTask: React.FC<TaskViewProps> = ({
               canUndo={draft.elements.length > 0}
               canRedo={draft.redoElements.length > 0}
               disabled={!canEdit}
-              palette={PICTIONARY_DRAWING_PALETTE}
-              widths={[...PICTIONARY_DRAWING_WIDTHS]}
+              palette={DRAWING_PALETTE}
+              widths={[...DRAWING_WIDTHS]}
               onToolChange={(t) => setTool(t)}
               onColorChange={(c) => {
-                if (isPictionaryDrawingColor(c)) setColor(c);
+                if (isDrawingColor(c)) setColor(c);
               }}
               onWidthChange={(w) => {
-                const valid = PICTIONARY_DRAWING_WIDTHS.find((v) => v === w);
+                const valid = DRAWING_WIDTHS.find((v) => v === w);
                 if (valid !== undefined) setStrokeWidth(valid);
               }}
               onUndo={() => updateDraft({ type: 'element.undo' })}
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   toolPreview: {
-    height: Math.max(...PICTIONARY_DRAWING_WIDTHS),
+    height: Math.max(...DRAWING_WIDTHS),
     alignItems: 'center',
     justifyContent: 'center',
   },

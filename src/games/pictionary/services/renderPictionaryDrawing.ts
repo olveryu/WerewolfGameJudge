@@ -17,18 +17,18 @@ import {
   StrokeJoin,
 } from '@shopify/react-native-skia';
 
+import type {
+  DrawingColor,
+  DrawingElement,
+  DrawingFillElement,
+  DrawingPoint,
+} from '@/features/drawing/model/drawing';
 import { PICTIONARY_CANVAS_BACKGROUND } from '@/theme/colors';
 
-import type {
-  PictionaryDrawingColor,
-  PictionaryDrawingElement,
-  PictionaryDrawingFillElement,
-  PictionaryDrawingPoint,
-} from '../model/pictionaryDrawing';
 import { createPictionaryFillRectangles } from './pictionaryFloodFill';
 
 function createPictionaryStrokePath(
-  points: readonly PictionaryDrawingPoint[],
+  points: readonly DrawingPoint[],
   width: number,
   height: number,
 ): SkPath {
@@ -49,8 +49,8 @@ function createPictionaryStrokePath(
 }
 
 function getShapeBounds(
-  start: PictionaryDrawingPoint,
-  end: PictionaryDrawingPoint,
+  start: DrawingPoint,
+  end: DrawingPoint,
   width: number,
   height: number,
 ): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
@@ -68,7 +68,7 @@ function getShapeBounds(
 
 /** Build the path used by both the interactive canvas and final PNG export. */
 export function createPictionaryElementPath(
-  element: PictionaryDrawingElement,
+  element: DrawingElement,
   width: number,
   height: number,
 ): SkPath {
@@ -111,7 +111,7 @@ export function createPictionaryElementPath(
 
 function drawPictionaryElements(
   canvas: SkCanvas,
-  elements: readonly PictionaryDrawingElement[],
+  elements: readonly DrawingElement[],
   width: number,
   height: number,
 ): void {
@@ -134,7 +134,7 @@ function drawPictionaryElements(
   }
 }
 
-function renderCanonicalPixels(elements: readonly PictionaryDrawingElement[]): Uint8Array {
+function renderCanonicalPixels(elements: readonly DrawingElement[]): Uint8Array {
   const surface = Skia.Surface.MakeOffscreen(PICTIONARY_DRAWING_WIDTH, PICTIONARY_DRAWING_HEIGHT);
   if (surface === null) {
     throw new Error('无法创建填充计算画布');
@@ -167,9 +167,7 @@ function renderCanonicalPixels(elements: readonly PictionaryDrawingElement[]): U
   }
 }
 
-function parseOpaqueHexColor(
-  color: PictionaryDrawingColor,
-): readonly [number, number, number, 255] {
+function parseOpaqueHexColor(color: DrawingColor): readonly [number, number, number, 255] {
   const red = Number.parseInt(color.slice(1, 3), 16);
   const green = Number.parseInt(color.slice(3, 5), 16);
   const blue = Number.parseInt(color.slice(5, 7), 16);
@@ -178,10 +176,10 @@ function parseOpaqueHexColor(
 
 /** Create one undoable four-connected fill operation at canonical pixel precision. */
 export function createPictionaryFillElement(
-  elements: readonly PictionaryDrawingElement[],
-  point: PictionaryDrawingPoint,
-  color: PictionaryDrawingColor,
-): PictionaryDrawingFillElement | null {
+  elements: readonly DrawingElement[],
+  point: DrawingPoint,
+  color: DrawingColor,
+): DrawingFillElement | null {
   const pixels = renderCanonicalPixels(elements);
   const seedX = Math.min(
     PICTIONARY_DRAWING_WIDTH - 1,
@@ -223,7 +221,7 @@ export function createPictionaryFillElement(
  *
  * @throws When Skia cannot allocate the offscreen surface or the PNG exceeds 2 MiB.
  */
-export function renderPictionaryDrawing(elements: readonly PictionaryDrawingElement[]): Blob {
+export function renderPictionaryDrawing(elements: readonly DrawingElement[]): Blob {
   if (elements.length === 0) {
     throw new Error('[FAIL-FAST] Cannot export an empty Pictionary drawing');
   }

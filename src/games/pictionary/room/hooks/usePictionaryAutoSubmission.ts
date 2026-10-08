@@ -11,11 +11,11 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
+import type { DrawingDraft } from '@/features/drawing/model/drawing';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
-import type { PictionaryDrawingDraft } from '@/games/pictionary/model/pictionaryDrawing';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
 import { uploadPictionaryDrawing } from '@/games/pictionary/services/pictionaryMediaApi';
@@ -28,7 +28,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 export type PictionarySubmissionStatus = 'idle' | 'submitting' | 'retrying' | 'waiting' | 'failed';
 
-export type PictionaryTaskInput = string | PictionaryDrawingDraft;
+export type PictionaryTaskInput = string | DrawingDraft;
 
 interface PictionaryAutoSubmission {
   readonly status: PictionarySubmissionStatus;
@@ -130,7 +130,7 @@ async function reserveDrawing(
 async function submitDrawingInput(
   state: PictionaryState,
   ownedTask: LocallyOwnedTask,
-  drawing: PictionaryDrawingDraft,
+  drawing: DrawingDraft,
   session: PictionaryRoomSession,
   signal: AbortSignal,
 ): Promise<void> {

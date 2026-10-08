@@ -17,6 +17,13 @@ import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from '
 import { AlertModal } from '@/components/AlertModal';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
+import {
+  DRAWING_PALETTE,
+  DRAWING_WIDTHS,
+  type DrawingColor,
+  type DrawingTool,
+  type DrawingWidth,
+} from '@/features/drawing/model/drawing';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -32,13 +39,6 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import {
-  DRAWGUESS_DRAWING_PALETTE,
-  DRAWGUESS_DRAWING_WIDTHS,
-  type DrawGuessDrawingColor,
-  type DrawGuessDrawingTool,
-  type DrawGuessDrawingWidth,
-} from '../model/drawGuessDrawing';
 import {
   readDrawGuessDrawingDataUri,
   renderDrawGuessDrawing,
@@ -371,11 +371,9 @@ function DrawGuessDrawingView({
   const { width: windowWidth } = useWindowDimensions();
   const isWideLayout = windowWidth >= DRAWGUESS_WIDE_LAYOUT_BREAKPOINT;
   const isDrawer = effectiveSeat === phase.drawerSeat;
-  const [tool, setTool] = useState<DrawGuessDrawingTool>('brush');
-  const [color, setColor] = useState<DrawGuessDrawingColor>(DRAWGUESS_DRAWING_PALETTE[0].value);
-  const [strokeWidth, setStrokeWidth] = useState<DrawGuessDrawingWidth>(
-    DRAWGUESS_DRAWING_WIDTHS[1],
-  );
+  const [tool, setTool] = useState<DrawingTool>('brush');
+  const [color, setColor] = useState<DrawingColor>(DRAWING_PALETTE[0].value);
+  const [strokeWidth, setStrokeWidth] = useState<DrawingWidth>(DRAWING_WIDTHS[1]);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const canDraw = isDrawer && remainingSeconds !== null && remainingSeconds > 0;
   const sync = useDrawGuessStrokeSync({
@@ -665,8 +663,8 @@ function DrawGuessRoundEndView({
         <DrawGuessDrawingCanvas
           elements={phase.strokes.map(drawGuessStrokeToElement)}
           tool="brush"
-          color={DRAWGUESS_DRAWING_PALETTE[0].value}
-          strokeWidth={DRAWGUESS_DRAWING_WIDTHS[1]}
+          color={DRAWING_PALETTE[0].value}
+          strokeWidth={DRAWING_WIDTHS[1]}
           isEnabled={false}
           onElementChange={() => undefined}
           onElementComplete={() => undefined}

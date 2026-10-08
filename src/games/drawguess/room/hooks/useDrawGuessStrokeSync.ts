@@ -7,36 +7,32 @@
 import type { DrawGuessStroke } from '@game-judge/game-engine/games/drawguess/public';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  DRAWING_WIDTHS,
+  type DrawingColor,
+  type DrawingElement,
+  type DrawingPoint,
+  type DrawingWidth,
+  isDrawingColor,
+} from '@/features/drawing/model/drawing';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import {
-  DRAWGUESS_DRAWING_WIDTHS,
-  type DrawGuessDrawingColor,
-  type DrawGuessDrawingElement,
-  type DrawGuessDrawingPoint,
-  type DrawGuessDrawingWidth,
-  isDrawGuessDrawingColor,
-} from '../../model/drawGuessDrawing';
 import { createDrawGuessFillElement } from '../../services/drawGuessMediaApi';
 
 const STROKE_FLUSH_MS = 300;
 
-function toDrawGuessWidth(value: number): DrawGuessDrawingWidth {
-  if (
-    value === DRAWGUESS_DRAWING_WIDTHS[0] ||
-    value === DRAWGUESS_DRAWING_WIDTHS[1] ||
-    value === DRAWGUESS_DRAWING_WIDTHS[2]
-  )
+function toDrawGuessWidth(value: number): DrawingWidth {
+  if (value === DRAWING_WIDTHS[0] || value === DRAWING_WIDTHS[1] || value === DRAWING_WIDTHS[2])
     return value;
   throw new Error(`[FAIL-FAST] DrawGuess stroke width is invalid: ${value}`);
 }
 
 /** 权威笔画 → 本地渲染元素；损坏数据直接失败，不猜测修复。 */
-export function drawGuessStrokeToElement(stroke: DrawGuessStroke): DrawGuessDrawingElement {
-  if (!isDrawGuessDrawingColor(stroke.color)) {
+export function drawGuessStrokeToElement(stroke: DrawGuessStroke): DrawingElement {
+  if (!isDrawingColor(stroke.color)) {
     throw new Error('[FAIL-FAST] DrawGuess stroke color is invalid');
   }
   const width = toDrawGuessWidth(stroke.width);
@@ -73,10 +69,7 @@ export function drawGuessStrokeToElement(stroke: DrawGuessStroke): DrawGuessDraw
 }
 
 /** 本地元素 → 服务端笔画命令载荷。 */
-function drawGuessElementToStroke(
-  element: DrawGuessDrawingElement,
-  authorSeat: number,
-): DrawGuessStroke {
+function drawGuessElementToStroke(element: DrawingElement, authorSeat: number): DrawGuessStroke {
   switch (element.kind) {
     case 'brush':
     case 'eraser':
@@ -114,16 +107,12 @@ function drawGuessElementToStroke(
 
 export interface DrawGuessStrokeSync {
   /** 权威 + 本地待确认笔画的合并渲染列表。 */
-  readonly elements: readonly DrawGuessDrawingElement[];
+  readonly elements: readonly DrawingElement[];
   /** 待发送的笔画数（断线/重试时大于 0）。 */
   readonly pendingCount: number;
-  readonly onElementChange: (element: DrawGuessDrawingElement) => void;
-  readonly onElementComplete: (element: DrawGuessDrawingElement) => void;
-  readonly onFill: (
-    point: DrawGuessDrawingPoint,
-    color: DrawGuessDrawingColor,
-    width: DrawGuessDrawingWidth,
-  ) => void;
+  readonly onElementChange: (element: DrawingElement) => void;
+  readonly onElementComplete: (element: DrawingElement) => void;
+  readonly onFill: (point: DrawingPoint, color: DrawingColor, width: DrawingWidth) => void;
   readonly undo: () => void;
   readonly redo: () => void;
   readonly canRedo: boolean;
@@ -156,19 +145,16 @@ export function useDrawGuessStrokeSync({
   canDraw,
 }: UseDrawGuessStrokeSyncInput): DrawGuessStrokeSync {
   const pendingRef = useRef(
-    new Map<
-      string,
-      { readonly element: DrawGuessDrawingElement; readonly stroke: DrawGuessStroke }
-    >(),
+    new Map<string, { readonly element: DrawingElement; readonly stroke: DrawGuessStroke }>(),
   );
   const flushingRef = useRef(false);
   const latestRef = useRef({ phaseRevision, turnIndex, controlledSeat, canDraw });
   latestRef.current = { phaseRevision, turnIndex, controlledSeat, canDraw };
-  const [pendingElements, setPendingElements] = useState<readonly DrawGuessDrawingElement[]>([]);
-  const [activeElement, setActiveElement] = useState<DrawGuessDrawingElement | null>(null);
+  const [pendingElements, setPendingElements] = useState<readonly DrawingElement[]>([]);
+  const [activeElement, setActiveElement] = useState<DrawingElement | null>(null);
   const [optimisticUndoneId, setOptimisticUndoneId] = useState<string | null>(null);
   const [optimisticallyCleared, setOptimisticallyCleared] = useState(false);
-  const redoStackRef = useRef<DrawGuessDrawingElement[]>([]);
+  const redoStackRef = useRef<DrawingElement[]>([]);
   const [canRedo, setCanRedo] = useState(false);
 
   const authoritativeIds = useMemo(
@@ -231,7 +217,7 @@ export function useDrawGuessStrokeSync({
   }, [flushPending]);
 
   const enqueueStroke = useCallback(
-    (element: DrawGuessDrawingElement): void => {
+    (element: DrawingElement): void => {
       if (effectiveSeat === null) {
         throw new Error('[FAIL-FAST] DrawGuess stroke requires an effective seat');
       }
@@ -242,12 +228,12 @@ export function useDrawGuessStrokeSync({
     [effectiveSeat],
   );
 
-  const onElementChange = useCallback((element: DrawGuessDrawingElement) => {
+  const onElementChange = useCallback((element: DrawingElement) => {
     setActiveElement(element);
   }, []);
 
   const onElementComplete = useCallback(
-    (element: DrawGuessDrawingElement): void => {
+    (element: DrawingElement): void => {
       setActiveElement(null);
       if (!latestRef.current.canDraw) return;
       // 新笔画使重做栈失效（与 Pictionary 本地 draft 语义一致）
@@ -261,11 +247,7 @@ export function useDrawGuessStrokeSync({
   );
 
   const onFill = useCallback(
-    (
-      point: DrawGuessDrawingPoint,
-      color: DrawGuessDrawingColor,
-      width: DrawGuessDrawingWidth,
-    ): void => {
+    (point: DrawingPoint, color: DrawingColor, width: DrawingWidth): void => {
       if (!latestRef.current.canDraw) return;
       const currentElements = [
         ...authoritativeStrokes.map(drawGuessStrokeToElement),

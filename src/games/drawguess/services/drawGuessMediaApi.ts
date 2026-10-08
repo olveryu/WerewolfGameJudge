@@ -33,12 +33,13 @@ import { PICTIONARY_CANVAS_BACKGROUND as DRAWGUESS_CANVAS_BACKGROUND } from '@/t
 export { DRAWGUESS_CANVAS_BACKGROUND };
 
 import type {
-  DrawGuessDrawingColor,
-  DrawGuessDrawingElement,
-  DrawGuessDrawingFillElement,
-  DrawGuessDrawingPoint,
-  DrawGuessDrawingWidth,
-} from '../model/drawGuessDrawing';
+  DrawingColor,
+  DrawingElement,
+  DrawingFillElement,
+  DrawingPoint,
+  DrawingWidth,
+} from '@/features/drawing/model/drawing';
+
 import { createDrawGuessFillRectangles } from './drawGuessFloodFill';
 
 /** 终稿画作规格：固定 1024×768 PNG，单文件最大 2 MiB（设计 §8.3）。 */
@@ -49,7 +50,7 @@ const DRAWGUESS_EXPORT_MAX_BYTES = 2 * 1024 * 1024;
 const PNG_CONTENT_TYPE = 'image/png';
 
 function createDrawGuessStrokePath(
-  points: readonly DrawGuessDrawingPoint[],
+  points: readonly DrawingPoint[],
   width: number,
   height: number,
 ): SkPath {
@@ -70,8 +71,8 @@ function createDrawGuessStrokePath(
 }
 
 function getShapeBounds(
-  start: DrawGuessDrawingPoint,
-  end: DrawGuessDrawingPoint,
+  start: DrawingPoint,
+  end: DrawingPoint,
   width: number,
   height: number,
 ): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
@@ -89,7 +90,7 @@ function getShapeBounds(
 
 /** 交互画布与终稿 PNG 导出共用同一套路径构造。 */
 export function createDrawGuessElementPath(
-  element: DrawGuessDrawingElement,
+  element: DrawingElement,
   width: number,
   height: number,
 ): SkPath {
@@ -132,7 +133,7 @@ export function createDrawGuessElementPath(
 
 function drawDrawGuessElements(
   canvas: SkCanvas,
-  elements: readonly DrawGuessDrawingElement[],
+  elements: readonly DrawingElement[],
   width: number,
   height: number,
 ): void {
@@ -155,7 +156,7 @@ function drawDrawGuessElements(
   }
 }
 
-function renderCanonicalPixels(elements: readonly DrawGuessDrawingElement[]): Uint8Array {
+function renderCanonicalPixels(elements: readonly DrawingElement[]): Uint8Array {
   const surface = Skia.Surface.MakeOffscreen(DRAWGUESS_EXPORT_WIDTH, DRAWGUESS_EXPORT_HEIGHT);
   if (surface === null) {
     throw new Error('无法创建填充计算画布');
@@ -188,7 +189,7 @@ function renderCanonicalPixels(elements: readonly DrawGuessDrawingElement[]): Ui
   }
 }
 
-function parseOpaqueHexColor(color: DrawGuessDrawingColor): readonly [number, number, number, 255] {
+function parseOpaqueHexColor(color: DrawingColor): readonly [number, number, number, 255] {
   const red = Number.parseInt(color.slice(1, 3), 16);
   const green = Number.parseInt(color.slice(3, 5), 16);
   const blue = Number.parseInt(color.slice(5, 7), 16);
@@ -197,11 +198,11 @@ function parseOpaqueHexColor(color: DrawGuessDrawingColor): readonly [number, nu
 
 /** 在标准像素精度上创建一次可撤销的四连通填充操作。 */
 export function createDrawGuessFillElement(
-  elements: readonly DrawGuessDrawingElement[],
-  point: DrawGuessDrawingPoint,
-  color: DrawGuessDrawingColor,
-  width: DrawGuessDrawingWidth,
-): DrawGuessDrawingFillElement | null {
+  elements: readonly DrawingElement[],
+  point: DrawingPoint,
+  color: DrawingColor,
+  width: DrawingWidth,
+): DrawingFillElement | null {
   const pixels = renderCanonicalPixels(elements);
   const seedX = Math.min(DRAWGUESS_EXPORT_WIDTH - 1, Math.floor(point.x * DRAWGUESS_EXPORT_WIDTH));
   const seedY = Math.min(
@@ -240,7 +241,7 @@ export function createDrawGuessFillElement(
  *
  * @throws Skia 无法分配离屏画布，或 PNG 超过 2 MiB 时抛出。
  */
-export function renderDrawGuessDrawing(elements: readonly DrawGuessDrawingElement[]): Blob {
+export function renderDrawGuessDrawing(elements: readonly DrawingElement[]): Blob {
   if (elements.length === 0) {
     throw new Error('[FAIL-FAST] Cannot export an empty DrawGuess drawing');
   }
