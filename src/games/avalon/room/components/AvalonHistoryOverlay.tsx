@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   scroll: {
-    flexGrow: 0,
     minHeight: 0,
   },
   scrollContent: {

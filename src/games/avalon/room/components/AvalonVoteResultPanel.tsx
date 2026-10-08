@@ -125,7 +125,6 @@ const styles = StyleSheet.create({
     color: colors.error,
   },
   list: {
-    flexGrow: 0,
     minHeight: 0,
   },
   listContent: {
