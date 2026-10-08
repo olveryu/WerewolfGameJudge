@@ -2,7 +2,6 @@
 
 import {
   createPictionaryCommand,
-  getPictionaryBotDisplayName,
   isPictionaryImplicitBotSeat,
   type PictionaryPublicCommand,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -21,7 +20,9 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -301,22 +302,18 @@ export function usePictionaryRoomScreenState({
       submitCommand,
     ],
   );
-  const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
-    if (controlledSeat !== null) {
-      return {
-        kind: 'controlled',
-        seat: controlledSeat,
-        displayName: getPictionaryBotDisplayName(controlledSeat),
-        onRelease: releaseBot,
-      };
-    }
-    const hasControllableBots =
-      capabilities.canTakeOverBots.isAllowed &&
-      Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).some((seat) =>
-        isPictionaryImplicitBotSeat(state, seat),
-      );
-    return hasControllableBots ? { kind: 'hint' } : null;
-  }, [capabilities.canTakeOverBots, controlledSeat, releaseBot, state]);
+  const hasControllableBots =
+    capabilities.canTakeOverBots.isAllowed &&
+    Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).some((seat) =>
+      isPictionaryImplicitBotSeat(state, seat),
+    );
+  const controlledSeatModel = createControlledSeatModel({
+    isVisible: controlledSeat !== null || hasControllableBots,
+    controlledSeat,
+    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    release: releaseBot,
+    gameName: 'Pictionary',
+  });
   const shellModel = useMemo(
     (): RoomShellModel => ({
       roomCode: room.roomCode,

@@ -18,7 +18,9 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -364,17 +366,13 @@ export function useStoryRelayRoomState(
             ],
           }
         : activeHostManagement,
-    controlledSeat:
-      controlledSeat === null
-        ? canControlBots && state.botSeats.length > 0
-          ? { kind: 'hint' }
-          : null
-        : {
-            kind: 'controlled',
-            seat: controlledSeat,
-            displayName: `机器人${controlledSeat + 1}号`,
-            onRelease: releaseBot,
-          },
+    controlledSeat: createControlledSeatModel({
+      isVisible: controlledSeat !== null || (canControlBots && state.botSeats.length > 0),
+      controlledSeat,
+      controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+      release: releaseBot,
+      gameName: 'StoryRelay',
+    }),
   };
   const hasAutoShownQR = useRef(false);
   const openShare = share.open;
