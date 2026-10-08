@@ -7,26 +7,29 @@ import type { AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
 import { useState } from 'react';
 
 import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
-import { AVALON_REVEAL_CONFIG } from '@/features/room/components/RoleRevealEffects/revealConfig';
 import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 
 import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
 
 export function AvalonRoleCardModal({
   visible,
   roleId,
+  effectType,
   onClose,
 }: {
   readonly visible: boolean;
   readonly roleId: AvalonRoleId | null;
+  /** 装备的揭示动画；null/undefined 则直接显示静态卡（未装备装饰）。 */
+  readonly effectType?: RevealEffectType | null;
   readonly onClose: () => void;
 }) {
   const [animationDone, setAnimationDone] = useState(false);
 
   const role = roleId != null ? toRevealRoleData(roleId) : null;
 
-  // After animation completes, show static card
-  if (animationDone || role == null) {
+  // 未装备装饰或动画已播完，直接显示静态卡
+  if (animationDone || role == null || effectType == null) {
     return <RoleCardSimple visible={visible} role={role} onClose={onClose} confirmText="知道了" />;
   }
 
@@ -34,7 +37,7 @@ export function AvalonRoleCardModal({
     <RoleRevealAnimator
       visible={visible}
       role={role}
-      effectType={AVALON_REVEAL_CONFIG.defaultEffect}
+      effectType={effectType}
       onComplete={() => setAnimationDone(true)}
     />
   );
