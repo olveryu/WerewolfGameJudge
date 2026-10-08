@@ -18,7 +18,7 @@ import {
 } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
-import { uploadPictionaryDrawing } from '@/games/pictionary/services/pictionaryMediaApi';
+import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { CloudflareHttpError, CloudflareResponseJsonError } from '@/services/cloudflare/cfFetch';
 import { calculateBackoff } from '@/services/connection/backoff';
@@ -137,7 +137,7 @@ async function submitDrawingInput(
   const png = renderPictionaryDrawing(drawing.elements);
   const reservation = await reserveDrawing(state, ownedTask, session);
   signal.throwIfAborted();
-  const result = await uploadPictionaryDrawing(
+  const result = await pictionaryMediaTransport.uploadDrawing(
     state.roomCode,
     reservation.submissionId,
     png,

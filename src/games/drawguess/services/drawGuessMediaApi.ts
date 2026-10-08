@@ -1,20 +1,10 @@
 /**
- * 你画我猜媒体服务：笔画渲染、终稿 PNG 导出与 Worker 媒体路由上传/读取。
+ * 你画我猜媒体服务：笔画渲染与终稿 PNG 导出。
  *
- * 渲染部分从接龙版 `src/games/pictionary/services/renderPictionaryDrawing.ts` 复制并改名，
- * 上传/读取部分从接龙版 `src/games/pictionary/services/pictionaryMediaApi.ts` 复制并改名
- *（游戏间禁止互相 import）。
+ * 渲染部分从接龙版 `src/games/pictionary/services/renderPictionaryDrawing.ts` 演化；
+ * 上传/读取已迁共享工厂（`drawGuessMediaTransport.ts`）。
  */
 
-import {
-  DRAWGUESS_STATE_CODEC,
-  type DrawGuessState,
-} from '@game-judge/game-engine/games/drawguess/public';
-import {
-  parseRoomCommandResult,
-  RoomCommandProtocolError,
-  type RoomCommandResult,
-} from '@game-judge/game-engine/platform/protocol/commandResult';
 import {
   AlphaType,
   ColorType,
@@ -27,7 +17,6 @@ import {
   StrokeJoin,
 } from '@shopify/react-native-skia';
 
-import { cfGetBinary, cfPutBinary } from '@/services/cloudflare/cfFetch';
 import { PICTIONARY_CANVAS_BACKGROUND as DRAWGUESS_CANVAS_BACKGROUND } from '@/theme/colors';
 
 export { DRAWGUESS_CANVAS_BACKGROUND };
@@ -46,8 +35,6 @@ import { createStrokePath } from '@/features/drawing/services/strokePath';
 const DRAWGUESS_EXPORT_WIDTH = 1024;
 const DRAWGUESS_EXPORT_HEIGHT = 768;
 const DRAWGUESS_EXPORT_MAX_BYTES = 2 * 1024 * 1024;
-
-const PNG_CONTENT_TYPE = 'image/png';
 
 function getShapeBounds(
   start: DrawingPoint,
@@ -250,83 +237,4 @@ export function renderDrawGuessDrawing(elements: readonly DrawingElement[]): Blo
   } finally {
     surface.dispose();
   }
-}
-
-// ─── Worker 媒体路由 ───────────────────────────────────────────────────────────
-
-function encodePathSegment(value: string): string {
-  if (value.length === 0) throw new Error('[FAIL-FAST] DrawGuess media path segment is empty');
-  return encodeURIComponent(value);
-}
-
-function controlledSeatQuery(controlledSeat: number | null): string {
-  if (controlledSeat === null) return '';
-  if (!Number.isSafeInteger(controlledSeat) || controlledSeat < 0) {
-    throw new Error(`[FAIL-FAST] Invalid controlled DrawGuess seat: ${controlledSeat}`);
-  }
-  return `?controlledSeat=${controlledSeat}`;
-}
-
-function parseUploadResponse(
-  value: unknown,
-  expectedCommandId: string,
-): RoomCommandResult<DrawGuessState> {
-  const result = parseRoomCommandResult(value, DRAWGUESS_STATE_CODEC);
-  if (result.commandId !== expectedCommandId) {
-    throw new RoomCommandProtocolError(
-      `DrawGuess media commandId mismatch: expected ${expectedCommandId}, received ${result.commandId}`,
-    );
-  }
-  return result;
-}
-
-/**
- * 上传已预留的画作。返回的权威快照也会由房间 DO 广播。
- *
- * @throws {CloudflareHttpError} 预留过期、无效或上传失败时抛出。
- */
-export async function uploadDrawGuessDrawing(
-  roomCode: string,
-  submissionId: string,
-  png: Blob,
-  controlledSeat: number | null,
-  signal?: AbortSignal,
-): Promise<RoomCommandResult<DrawGuessState>> {
-  const commandId = `drawguess-media-commit:${submissionId}`;
-  return cfPutBinary(
-    `/api/games/drawguess/rooms/${encodePathSegment(roomCode)}/submissions/${encodePathSegment(submissionId)}${controlledSeatQuery(controlledSeat)}`,
-    png,
-    PNG_CONTENT_TYPE,
-    (value) => parseUploadResponse(value, commandId),
-    { signal },
-  );
-}
-
-function encodeBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 32_768;
-  let binary = '';
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-  }
-  return globalThis.btoa(binary);
-}
-
-/**
- * 读取受保护的画作，转为 React Native Image 可用的 data URI。
- *
- * @throws {CloudflareHttpError} 无权访问或媒体缺失时抛出。
- */
-export async function readDrawGuessDrawingDataUri(
-  roomCode: string,
-  entryId: string,
-  controlledSeat: number | null,
-  signal?: AbortSignal,
-): Promise<string> {
-  const bytes = await cfGetBinary(
-    `/api/games/drawguess/rooms/${encodePathSegment(roomCode)}/media/${encodePathSegment(entryId)}${controlledSeatQuery(controlledSeat)}`,
-    PNG_CONTENT_TYPE,
-    { signal },
-  );
-  return `data:${PNG_CONTENT_TYPE};base64,${encodeBase64(bytes)}`;
 }

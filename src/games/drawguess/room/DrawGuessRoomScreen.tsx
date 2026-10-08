@@ -40,11 +40,8 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import {
-  readDrawGuessDrawingDataUri,
-  renderDrawGuessDrawing,
-  uploadDrawGuessDrawing,
-} from '../services/drawGuessMediaApi';
+import { renderDrawGuessDrawing } from '../services/drawGuessMediaApi';
+import { drawGuessMediaTransport } from '../services/drawGuessMediaTransport';
 import { DrawGuessDrawingCanvas } from './components/DrawGuessDrawingCanvas';
 import { DrawGuessGuessPanel } from './components/DrawGuessGuessPanel';
 import { DrawGuessHintBar } from './components/DrawGuessHintBar';
@@ -602,7 +599,12 @@ function DrawGuessRoundEndView({
       try {
         const elements = phase.strokes.map(drawGuessStrokeToElement);
         const png = renderDrawGuessDrawing(elements);
-        await uploadDrawGuessDrawing(roomCode, reservation.submissionId, png, controlledSeat);
+        await drawGuessMediaTransport.uploadDrawing(
+          roomCode,
+          reservation.submissionId,
+          png,
+          controlledSeat,
+        );
       } catch (error: unknown) {
         roomScreenLog.warn('round-end PNG upload failed', {
           attempt: uploadAttempts.current,
@@ -643,7 +645,7 @@ function DrawGuessRoundEndView({
     let cancelled = false;
     void (async () => {
       try {
-        const uri = await readDrawGuessDrawingDataUri(
+        const uri = await drawGuessMediaTransport.readDrawingDataUri(
           roomCode,
           reservation.entryId,
           controlledSeat,

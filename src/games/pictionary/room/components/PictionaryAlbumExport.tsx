@@ -13,7 +13,7 @@ import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
 import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
-import { readPictionaryDrawingDataUri } from '@/games/pictionary/services/pictionaryMediaApi';
+import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { colors, spacing, textStyles } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -66,7 +66,7 @@ function AlbumExportDialog({
       const next: Record<string, string> = {};
       for (const entry of chain.entries) {
         if (entry.kind === 'drawing')
-          next[entry.id] = await readPictionaryDrawingDataUri(
+          next[entry.id] = await pictionaryMediaTransport.readDrawingDataUri(
             state.roomCode,
             entry.id,
             null,
