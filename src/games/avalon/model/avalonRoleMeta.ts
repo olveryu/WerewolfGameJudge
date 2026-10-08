@@ -49,7 +49,7 @@ const AVALON_ROLE_DESCRIPTIONS: Readonly<Record<AvalonRoleId, AvalonRoleDescript
   },
   assassin: {
     trigger: '好人完成 3 个任务后，指认一名玩家为梅林。',
-    winCondition: '破坏 3 个任务，或刺杀梅林成功。',
+    winCondition: '破坏 3 个任务，或者刺杀梅林。',
   },
   mordred: {
     passive: '梅林看不到你。',
