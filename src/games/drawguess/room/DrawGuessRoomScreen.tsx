@@ -30,6 +30,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -259,7 +260,7 @@ function DrawGuessCountdown({
       accessibilityRole="timer"
     >
       <Text style={[styles.countdownText, urgent && styles.countdownUrgent]}>
-        {minutes}:{String(seconds).padStart(2, '0')}
+        {formatCountdownSeconds(remainingSeconds)}
       </Text>
     </View>
   );
