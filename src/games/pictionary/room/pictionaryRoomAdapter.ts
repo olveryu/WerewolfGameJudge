@@ -92,28 +92,6 @@ export function createPictionaryRoomCapabilities(
   };
 }
 
-export function getPictionaryProfileTarget(
-  state: PictionaryState,
-  seat: number,
-): RoomProfileTarget | null {
-  const occupant = state.realSeats[seat];
-  if (occupant !== undefined) {
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  }
-  if (!isPictionaryImplicitBotSeat(state, seat)) return null;
-  return {
-    seat,
-    userId: getPictionaryBotUserId(state.roomCode, seat),
-    occupantKind: 'bot',
-    rosterName: getPictionaryBotDisplayName(seat),
-  };
-}
-
 interface PictionarySeatSourceInput {
   readonly state: PictionaryState;
   readonly revision: number;
@@ -200,10 +178,27 @@ export function getPictionarySeatTapIntent(input: {
   readonly currentSeat: number | null;
   readonly disabledReason?: string;
 }) {
+  const occupant = input.state.realSeats[input.seat];
+  const target: RoomProfileTarget | null =
+    occupant !== undefined
+      ? {
+          seat: input.seat,
+          userId: occupant.userId,
+          occupantKind: 'human',
+          rosterName: occupant.profile.displayName,
+        }
+      : isPictionaryImplicitBotSeat(input.state, input.seat)
+        ? {
+            seat: input.seat,
+            userId: getPictionaryBotUserId(input.state.roomCode, input.seat),
+            occupantKind: 'bot',
+            rosterName: getPictionaryBotDisplayName(input.seat),
+          }
+        : null;
   return getRoomSeatTapIntent({
     seat: input.seat,
     currentSeat: input.currentSeat,
-    target: getPictionaryProfileTarget(input.state, input.seat),
+    target,
     disabledReason: input.disabledReason,
   });
 }

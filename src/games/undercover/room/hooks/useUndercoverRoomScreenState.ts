@@ -7,6 +7,8 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 
@@ -95,17 +97,16 @@ export function useUndercoverRoomScreenState({
     share,
     bottomActions: createUndercoverBottomActions(controls),
     hostManagement: createUndercoverHostManagement(state, isHost, roster.capabilities, controls),
-    controlledSeat:
-      roster.controlledSeat !== null
-        ? {
-            kind: 'controlled',
-            seat: roster.controlledSeat,
-            displayName: `机器人 ${roster.controlledSeat + 1}`,
-            onRelease: roster.release,
-          }
-        : roster.capabilities.canTakeOverBots.isAllowed && state.botSeats.length > 0
-          ? { kind: 'hint' }
-          : null,
+    controlledSeat: createControlledSeatModel({
+      isVisible:
+        roster.controlledSeat !== null ||
+        (roster.capabilities.canTakeOverBots.isAllowed && state.botSeats.length > 0),
+      controlledSeat: roster.controlledSeat,
+      controlledBotName:
+        roster.controlledSeat !== null ? getBotDisplayName(roster.controlledSeat) : null,
+      release: roster.release,
+      gameName: 'Undercover',
+    }),
   };
   return {
     state,

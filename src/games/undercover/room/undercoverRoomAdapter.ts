@@ -7,6 +7,7 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -53,7 +54,7 @@ export function getUndercoverProfileTarget(
         seat,
         userId: `undercover-bot:${state.roomCode}:${seat}`,
         occupantKind: 'bot',
-        rosterName: `机器人 ${seat + 1}`,
+        rosterName: getBotDisplayName(seat),
       }
     : null;
 }
