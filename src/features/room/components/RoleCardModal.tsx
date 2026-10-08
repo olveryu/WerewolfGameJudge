@@ -24,11 +24,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
-import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
-import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
+import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
+import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { log } from '@/utils/logger';

@@ -4,12 +4,11 @@
  * 无立绘时显示阵营色占位（角色名首字）。
  */
 import type { AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
-
 import { useState } from 'react';
 
-import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
-import { AVALON_REVEAL_CONFIG } from '@/features/room/components/RoleRevealEffects/revealConfig';
 import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
+import { AVALON_REVEAL_CONFIG } from '@/features/room/components/RoleRevealEffects/revealConfig';
+import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
 
 import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
 

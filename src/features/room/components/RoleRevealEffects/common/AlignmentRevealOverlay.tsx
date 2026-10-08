@@ -21,8 +21,9 @@ import { ThirdRevealEffect } from '@/features/room/components/RoleRevealEffects/
 import { VillagerRevealEffect } from '@/features/room/components/RoleRevealEffects/common/effects/VillagerRevealEffect';
 import { WolfRevealEffect } from '@/features/room/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/features/room/components/RoleRevealEffects/config';
-import type { AlignmentTheme } from '../themes';
+
 import type { RevealAlignment } from '../../../model/RevealRoleData';
+import type { AlignmentTheme } from '../themes';
 const { alignmentEffects: AE } = CONFIG;
 
 interface AlignmentRevealOverlayProps {

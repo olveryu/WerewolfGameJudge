@@ -14,8 +14,8 @@ import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { RoleCardSimple as SharedRoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import { getRevealFactionColor } from '@/features/room/components/RoleCardContent';
+import { RoleCardSimple as SharedRoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, typography, withAlpha } from '@/theme';
 

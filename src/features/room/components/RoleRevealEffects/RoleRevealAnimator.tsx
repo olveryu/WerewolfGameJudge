@@ -27,8 +27,8 @@ import { RoleHunt } from './effects/RoleHunt';
 import { ScratchReveal } from './effects/ScratchReveal';
 import { SealBreak } from './effects/SealBreak';
 import { TarotDraw } from './effects/TarotDraw';
-import type { RevealEffectType, RoleRevealAnimatorProps } from './types';
 import { VortexCollapse } from './effects/VortexCollapse';
+import type { RevealEffectType, RoleRevealAnimatorProps } from './types';
 
 /** Effect types that play automatically (no user interaction required). */
 const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set([

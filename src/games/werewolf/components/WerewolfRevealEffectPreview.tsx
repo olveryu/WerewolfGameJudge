@@ -3,7 +3,6 @@
 import type React from 'react';
 
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
-
 import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 
