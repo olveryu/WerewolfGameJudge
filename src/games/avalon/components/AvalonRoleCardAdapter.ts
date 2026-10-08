@@ -4,11 +4,15 @@
  * 将结构化 AvalonRoleDescription 转换为 DescriptionField[]，
  * 字段顺序与狼人杀一致：skill → passive → trigger → restriction → special → winCondition。
  */
+import type Ionicons from '@expo/vector-icons/Ionicons';
 import type { AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
+import type React from 'react';
 
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
 
 import { type AvalonRoleDescription, getAvalonRoleMeta } from '../model/avalonRoleMeta';
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const FIELD_LABELS: Readonly<Record<keyof AvalonRoleDescription, string>> = {
   skill: '主动技能',
@@ -19,7 +23,7 @@ const FIELD_LABELS: Readonly<Record<keyof AvalonRoleDescription, string>> = {
   winCondition: '胜利条件',
 } as const;
 
-const FIELD_ICONS: Readonly<Record<keyof AvalonRoleDescription, string>> = {
+const FIELD_ICONS: Readonly<Record<keyof AvalonRoleDescription, IconName>> = {
   skill: 'flash-outline',
   passive: 'shield-outline',
   trigger: 'locate-outline',

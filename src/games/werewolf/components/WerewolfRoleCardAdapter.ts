@@ -13,6 +13,7 @@ import {
   getRoleDisplayName,
   getRoleSpec,
   getRoleStructuredDescription,
+  isWolfRole,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
 
@@ -24,12 +25,18 @@ import type {
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { getFactionName } from '@/games/werewolf/components/roleDisplayUtils';
 
-const ALIGNMENT_MAP: Record<Faction, RevealAlignment> = {
-  [Faction.Wolf]: 'wolf',
-  [Faction.God]: 'god',
-  [Faction.Villager]: 'villager',
-  [Faction.Special]: 'third',
-};
+/**
+ * 阵营映射（与原版 getFactionColor 逻辑一致）。
+ * 注意：先检查 team（isWolfRole），再按 faction 映射。
+ * hiddenWolf 的 team=Good、faction=Wolf，原版显示村民绿（与其"查验为好人"特性一致）。
+ */
+function getAlignment(roleId: RoleId): RevealAlignment {
+  if (isWolfRole(roleId)) return 'wolf';
+  const spec = getRoleSpec(roleId);
+  if (spec?.faction === Faction.God) return 'god';
+  if (spec?.faction === Faction.Special) return 'third';
+  return 'villager';
+}
 
 export interface ToRevealRoleDataOptions {
   /**
@@ -51,7 +58,6 @@ export function toRevealRoleData(roleId: RoleId, opts?: ToRevealRoleDataOptions)
   const showRealIdentity = opts?.showRealIdentity ?? false;
   // displayAs 伪装：翻牌时玩家看到伪装身份，法官视角看真实身份
   const displayId = showRealIdentity ? roleId : (getRoleDisplayAs(roleId) ?? roleId);
-  const spec = getRoleSpec(displayId);
 
   const name =
     opts?.seerLabel != null ? `${opts.seerLabel}号预言家` : getRoleDisplayName(displayId);
@@ -100,7 +106,7 @@ export function toRevealRoleData(roleId: RoleId, opts?: ToRevealRoleDataOptions)
   return {
     id: roleId,
     name,
-    alignment: spec != null ? (ALIGNMENT_MAP[spec.faction] ?? 'villager') : 'villager',
+    alignment: getAlignment(displayId),
     image: getRoleAvatar(displayId),
     description: fields.length > 0 ? fields : undefined,
     factionName: getFactionName(displayId),

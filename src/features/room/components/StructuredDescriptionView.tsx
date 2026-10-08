@@ -116,9 +116,7 @@ const DescriptionSection: React.FC<{
   const styles = useMemo(() => createStyles(colors, accentColor), [colors, accentColor]);
   const bullets = splitBullets(field.content);
   const useBullets = bullets.length > 1;
-  const iconName = (field.icon ?? FALLBACK_ICON_NAME) as React.ComponentProps<
-    typeof Ionicons
-  >['name'];
+  const iconName = field.icon ?? FALLBACK_ICON_NAME;
 
   return (
     <View style={[styles.sectionRow, !isLast && styles.sectionGap]}>

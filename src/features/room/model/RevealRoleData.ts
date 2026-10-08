@@ -6,6 +6,7 @@
  * 阿瓦隆：AvalonRoleId → RevealRoleData（直接构造）
  */
 
+import type Ionicons from '@expo/vector-icons/Ionicons';
 import type { ImageSourcePropType } from 'react-native';
 
 /**
@@ -24,7 +25,7 @@ export interface DescriptionField {
   readonly label: string;
   readonly content: string;
   /** Ionicons 图标名（可选） */
-  readonly icon?: string;
+  readonly icon?: React.ComponentProps<typeof Ionicons>['name'];
   /**
    * 语义色调（影响 accent bar 和标签颜色）。
    * - default: 阵营色
