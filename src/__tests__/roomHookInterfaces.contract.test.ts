@@ -81,3 +81,19 @@ describe('room hook interfaces — pictionary (P-2b batch 3)', () => {
     expect(screen).toMatch(/screen\.occupiedSeatCount/);
   });
 });
+
+describe('room hook interfaces — storyrelay (P-2b batch 4)', () => {
+  it('the hook exports StoryRelayRoomScreenState and annotates its return', () => {
+    const hook = readSource('games/storyrelay/room/hooks/useStoryRelayRoomState.ts');
+    expect(hook).toMatch(/export interface StoryRelayRoomScreenState/);
+    expect(hook).toMatch(/\): StoryRelayRoomScreenState \{/);
+    expectNoReturnSpread(hook);
+  });
+
+  it('the Screen carries no derivation of its own and consumes the hook result', () => {
+    const screen = readSource('games/storyrelay/room/StoryRelayRoomScreen.tsx');
+    expect(screen).not.toMatch(/getStoryRelayOccupiedSeatCount/);
+    expect(screen).not.toMatch(/useStageDeadline/);
+    expect(screen).toMatch(/useStoryRelayRoomState\(props\)/);
+  });
+});

@@ -3,13 +3,17 @@
 import {
   getStoryRelayOccupiedSeatCount,
   type StoryRelayCommand,
+  type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { useCallback, useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
-import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
+import {
+  type RoomBotControl,
+  useRoomBotControl,
+} from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -49,13 +53,30 @@ import {
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { useStoryRelaySeatCommands } from './useStoryRelaySeatCommands';
 
+/**
+ * 故事接龙房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
+ * Screen 无本地推导（仅透传字段给 StoryRelayStage），本接口把 hook 返回钉死防回潮。
+ * 阶段组件 StoryRelayStage 的内部交互状态属组件自身，不在此列。
+ */
+export interface StoryRelayRoomScreenState {
+  readonly state: StoryRelayState;
+  readonly shellModel: RoomShellModel;
+  readonly userId: string;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: RoomBotControl['release'];
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly openRules: () => void;
+}
+
 /** Binds the current ready session to the room-shell controllers and commands. */
 export function useStoryRelayRoomState(
   props: GameRoomScreenProps<'storyrelay'> & {
     readonly session: StoryRelayRoomSession;
     readonly entryController: RoomEntryController;
   },
-) {
+): StoryRelayRoomScreenState {
   const { session, room, navigation, entryController } = props;
   const { user } = useAuthContext();
   const snapshot = useRoomSessionSnapshot(session);
