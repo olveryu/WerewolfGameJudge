@@ -38,17 +38,26 @@ import {
 // =============================================================================
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
+  const { players: playersOverride, roster: rosterOverride, ...rest } = overrides ?? {};
+  const players: GameState['players'] = playersOverride ?? {
+    0: { seat: 0, role: 'villager', hasViewedRole: true },
+    1: { seat: 1, role: 'wolf', hasViewedRole: true },
+    2: { seat: 2, role: 'seer', hasViewedRole: true },
+  };
+  // Occupancy mirrors the seated players; this file's convention is that
+  // seat N is occupied by user `p${N + 1}`.
+  const derivedRoster: Record<number, { seat: number; userId: string }> = {};
+  for (const player of Object.values(players)) {
+    if (player) derivedRoster[player.seat] = { seat: player.seat, userId: `p${player.seat + 1}` };
+  }
+  const roster: GameState['roster'] = rosterOverride ?? derivedRoster;
   return {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
-    players: {
-      0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
-      1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
-      2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: true },
-    },
+    players,
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
@@ -58,9 +67,10 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
-    roster: {},
+    roster,
+    playerProfiles: {},
     currentNightResults: {},
-    ...overrides,
+    ...rest,
   };
 }
 
@@ -154,8 +164,8 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
     const state = createMinimalState({
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'seer', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
       currentNightResults: { blockedSeat: 0 },
     });
@@ -185,8 +195,8 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
     const state = createMinimalState({
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'seer', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
       currentNightResults: { blockedSeat: 0 },
     });
@@ -222,7 +232,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
       isAudioPlaying: true,
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'guard', hasViewedRole: true }, // wrong role for step
+        0: { seat: 0, role: 'guard', hasViewedRole: true }, // wrong role for step
       },
     });
     const context = createContext(state);
@@ -244,7 +254,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
       currentStepId: 'seerCheck' as SchemaId,
       players: {
         0: null, // empty seat
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
     });
     const context = createContext(state);
@@ -264,7 +274,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
       isAudioPlaying: true,
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        2: { userId: 'p3', seat: 2, role: 'villager', hasViewedRole: true }, // not seer
+        2: { seat: 2, role: 'villager', hasViewedRole: true }, // not seer
       },
     });
     const context = createContext(state);
@@ -284,7 +294,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
       isAudioPlaying: true,
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
+        0: { seat: 0, role: 'seer', hasViewedRole: true },
       },
       currentNightResults: { blockedSeat: 0 },
     });
@@ -306,7 +316,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
       isAudioPlaying: true,
       currentStepId: 'wolfKill' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true }, // not wolf
+        0: { seat: 0, role: 'villager', hasViewedRole: true }, // not wolf
       },
     });
     const context = createContext(state);
@@ -341,8 +351,8 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const state1 = createMinimalState({
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'seer', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
     });
     const context1 = createContext(state1);
@@ -357,9 +367,9 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const state2 = createMinimalState({
       currentStepId: 'witchAction' as SchemaId, // advanced past seerCheck
       players: {
-        0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
-        3: { userId: 'p4', seat: 3, role: 'witch', hasViewedRole: true },
+        0: { seat: 0, role: 'seer', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
+        3: { seat: 3, role: 'witch', hasViewedRole: true },
       },
     });
     const context2 = createContext(state2);
@@ -377,8 +387,8 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const state = createMinimalState({
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'seer', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
     });
     const context = createContext(state);
@@ -408,8 +418,8 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const state1 = createMinimalState({
       currentStepId: 'wolfKill' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'villager', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
     });
     const context1 = createContext(state1);
@@ -424,9 +434,9 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const state2 = createMinimalState({
       currentStepId: 'seerCheck' as SchemaId,
       players: {
-        0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
-        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
-        2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: true },
+        0: { seat: 0, role: 'villager', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
+        2: { seat: 2, role: 'seer', hasViewedRole: true },
       },
     });
     const context2 = createContext(state2);

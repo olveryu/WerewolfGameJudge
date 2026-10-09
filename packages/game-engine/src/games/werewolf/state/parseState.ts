@@ -15,6 +15,7 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { DeathReason } from '../domain/DeathCalculator';
 import { GameStatus } from '../domain/models/GameStatus';
 import { isValidRoleId, type RoleId } from '../domain/models/roles';
@@ -36,6 +37,7 @@ import type {
   SheriffElectionRoundResult,
   SheriffElectionState,
   SheriffSpeakingDirection,
+  WerewolfHumanSeat,
 } from '../domain/protocol/types';
 import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
@@ -137,6 +139,25 @@ function parsePlayer(value: unknown, path: string): Player {
   return finishObject(
     raw,
     {
+      seat: parseSeat(raw.seat, `${path}.seat`),
+      role: parseOptional(raw.role, `${path}.role`, (role, rolePath) =>
+        parseNullable(role, rolePath, parseRoleId),
+      ),
+      hasViewedRole: parseBoolean(raw.hasViewedRole, `${path}.hasViewedRole`),
+    },
+    path,
+  );
+}
+
+/** Parses the v5 player record (identity still embedded) for migration. */
+function parseLegacyPlayer(
+  value: unknown,
+  path: string,
+): { userId: string; seat: number; role?: RoleId | null; hasViewedRole: boolean; isBot?: boolean } {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
       userId: parseNonEmptyString(raw.userId, `${path}.userId`),
       seat: parseSeat(raw.seat, `${path}.seat`),
       role: parseOptional(raw.role, `${path}.role`, (role, rolePath) =>
@@ -187,12 +208,40 @@ function parseRosterEntry(value: unknown, path: string): RosterEntry {
   );
 }
 
-function parseRoster(value: unknown, path: string): Record<string, RosterEntry> {
+function parsePlayerProfiles(value: unknown, path: string): Record<string, RosterEntry> {
   const raw = parseObject(value, path);
-  const roster: Record<string, RosterEntry> = {};
+  const profiles: Record<string, RosterEntry> = {};
   for (const [userId, entry] of Object.entries(raw)) {
     if (userId.length === 0) fail(`${path}.${userId}`, 'a non-empty user ID key');
-    roster[userId] = parseRosterEntry(entry, `${path}.${userId}`);
+    profiles[userId] = parseRosterEntry(entry, `${path}.${userId}`);
+  }
+  return profiles;
+}
+
+function parseSeatRoster(
+  value: unknown,
+  path: string,
+): Record<number, WerewolfHumanSeat | BotSeatOccupant> {
+  const raw = parseObject(value, path);
+  const roster: Record<number, WerewolfHumanSeat | BotSeatOccupant> = {};
+  for (const [key, occupant] of Object.entries(raw)) {
+    const seat = parseSeatKey(key, `${path}.${key}`);
+    const rawOccupant = parseObject(occupant, `${path}.${key}`);
+    roster[seat] =
+      rawOccupant.kind === 'bot'
+        ? finishObject(
+            rawOccupant,
+            { seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`), kind: 'bot' as const },
+            `${path}.${key}`,
+          )
+        : finishObject(
+            rawOccupant,
+            {
+              seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`),
+              userId: parseNonEmptyString(rawOccupant.userId, `${path}.${key}.userId`),
+            },
+            `${path}.${key}`,
+          );
   }
   return roster;
 }
@@ -899,7 +948,8 @@ export function parseWerewolfState(value: unknown): GameState {
           );
         }),
     ),
-    roster: parseRoster(raw.roster, 'GameState.roster'),
+    roster: parseSeatRoster(raw.roster, 'GameState.roster'),
+    playerProfiles: parsePlayerProfiles(raw.playerProfiles, 'GameState.playerProfiles'),
     currentStepIndex: parseInteger(raw.currentStepIndex, 'GameState.currentStepIndex'),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
     roleRevealRandomNonce: parseOptional(
@@ -1065,4 +1115,41 @@ export function parseWerewolfState(value: unknown): GameState {
 
   finishObject(raw, parsed, 'GameState');
   return normalizeState(parsed);
+}
+
+/**
+ * Upgrades stored v5 rooms: v5 embedded identity in the player record
+ * (userId / isBot) and kept display profiles under `roster`. The v6
+ * shape splits them: occupancy goes to the unified seat roster, game
+ * data stays in players, and profiles move to `playerProfiles`.
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedWerewolfState(value: unknown): GameState {
+  const raw = parseObject(value, 'GameState');
+  if (raw.stateVersion === WEREWOLF_STATE_VERSION) return parseWerewolfState(raw);
+  if (raw.stateVersion !== 5) {
+    throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
+  }
+  const rawPlayers = parseObject(raw.players, 'GameState.players');
+  const players: Record<number, Player | null> = {};
+  const roster: Record<number, WerewolfHumanSeat | BotSeatOccupant> = {};
+  for (const [key, player] of Object.entries(rawPlayers)) {
+    const seat = parseSeatKey(key, `GameState.players.${key}`);
+    if (player === null) {
+      players[seat] = null;
+      continue;
+    }
+    const legacy = parseLegacyPlayer(player, `GameState.players.${key}`);
+    players[seat] = { seat, role: legacy.role, hasViewedRole: legacy.hasViewedRole };
+    roster[seat] = legacy.isBot === true ? { seat, kind: 'bot' } : { seat, userId: legacy.userId };
+  }
+  const playerProfiles = parsePlayerProfiles(raw.roster, 'GameState.roster');
+  const { roster: _legacyProfiles, ...rest } = raw;
+  return parseWerewolfState({
+    ...rest,
+    stateVersion: WEREWOLF_STATE_VERSION,
+    players,
+    roster,
+    playerProfiles,
+  });
 }

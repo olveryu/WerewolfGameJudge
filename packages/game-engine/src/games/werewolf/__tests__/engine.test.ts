@@ -24,6 +24,7 @@ import type { GameState, SheriffElectionState } from '../domain/protocol/types';
 import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
+import { isBotOccupant } from '../public';
 import { WEREWOLF_STATE_VERSION } from '../state/version';
 
 const TEMPLATE: GameTemplate = {
@@ -36,12 +37,17 @@ function createState(overrides: Partial<GameState> = {}): GameState {
   return {
     ...buildInitialGameState('1234', 'host', TEMPLATE),
     players: {
-      0: { userId: 'host', seat: 0, role: 'wolf', hasViewedRole: true },
-      1: { userId: 'user-1', seat: 1, role: 'seer', hasViewedRole: true },
-      2: { userId: 'bot-2', seat: 2, role: 'hunter', hasViewedRole: true, isBot: true },
+      0: { seat: 0, role: 'wolf', hasViewedRole: true },
+      1: { seat: 1, role: 'seer', hasViewedRole: true },
+      2: { seat: 2, role: 'hunter', hasViewedRole: true },
       3: null,
     },
     roster: {
+      0: { seat: 0, userId: 'host' },
+      1: { seat: 1, userId: 'user-1' },
+      2: { seat: 2, kind: 'bot' },
+    },
+    playerProfiles: {
       host: { displayName: 'Host' },
       'user-1': { displayName: 'User 1' },
       'bot-2': { displayName: 'Bot 2' },
@@ -105,12 +111,12 @@ describe('Werewolf authoritative actor resolution', () => {
       );
     }
     state = evolveCommittedCommand(state, { type: 'werewolf.roles.assign' }, userContext('host'));
-    for (const player of Object.values(state.players)) {
-      if (player !== null)
+    for (const occupant of Object.values(state.roster)) {
+      if (occupant != null && !isBotOccupant(occupant))
         state = evolveCommittedCommand(
           state,
           { type: 'werewolf.role.view' },
-          userContext(player.userId),
+          userContext(occupant.userId),
         );
     }
     state = evolveCommittedCommand(state, { type: 'werewolf.night.start' }, userContext('host'));
@@ -289,7 +295,7 @@ describe('Werewolf action input adapter', () => {
       currentStepId: stepId,
       players: {
         ...createState().players,
-        1: { userId: 'user-1', seat: 1, role, hasViewedRole: true },
+        1: { seat: 1, role, hasViewedRole: true },
       },
     });
 
@@ -343,7 +349,7 @@ describe('Werewolf action input adapter', () => {
       currentStepId: stepId,
       players: {
         ...createState().players,
-        1: { userId: 'user-1', seat: 1, role, hasViewedRole: true },
+        1: { seat: 1, role, hasViewedRole: true },
       },
     });
 
@@ -494,14 +500,12 @@ describe('Werewolf engine definition and catalog', () => {
         command.type === 'werewolf.config.update'
           ? createState({
               players: {
-                0: { userId: 'host', seat: 0, role: null, hasViewedRole: false },
-                1: { userId: 'user-1', seat: 1, role: null, hasViewedRole: false },
+                0: { seat: 0, role: null, hasViewedRole: false },
+                1: { seat: 1, role: null, hasViewedRole: false },
                 2: {
-                  userId: 'bot-2',
                   seat: 2,
                   role: null,
                   hasViewedRole: false,
-                  isBot: true,
                 },
                 3: null,
               },
@@ -737,7 +741,7 @@ describe('Werewolf engine definition and catalog', () => {
       isAudioPlaying: false,
       players: {
         ...createState().players,
-        1: { userId: 'user-1', seat: 1, hasViewedRole: true },
+        1: { seat: 1, hasViewedRole: true },
       },
     });
 
@@ -756,13 +760,20 @@ describe('Werewolf engine definition and catalog', () => {
       currentNightResults: {},
       isAudioPlaying: false,
       players: {
-        0: { userId: 'host', seat: 0, role: 'wolf', hasViewedRole: true },
-        1: { userId: 'user-1', seat: 1, role: 'seer', hasViewedRole: true },
-        2: { userId: 'bot-2', seat: 2, role: 'hunter', hasViewedRole: true, isBot: true },
-        3: { userId: 'user-3', seat: 3, role: 'villager', hasViewedRole: true },
-        4: { userId: 'user-4', seat: 4, role: 'villager', hasViewedRole: true },
+        0: { seat: 0, role: 'wolf', hasViewedRole: true },
+        1: { seat: 1, role: 'seer', hasViewedRole: true },
+        2: { seat: 2, role: 'hunter', hasViewedRole: true },
+        3: { seat: 3, role: 'villager', hasViewedRole: true },
+        4: { seat: 4, role: 'villager', hasViewedRole: true },
       },
       roster: {
+        0: { seat: 0, userId: 'host' },
+        1: { seat: 1, userId: 'user-1' },
+        2: { seat: 2, kind: 'bot' },
+        3: { seat: 3, userId: 'user-3' },
+        4: { seat: 4, userId: 'user-4' },
+      },
+      playerProfiles: {
         host: { displayName: 'Host' },
         'user-1': { displayName: 'User 1' },
         'bot-2': { displayName: 'Bot 2' },
@@ -1158,10 +1169,16 @@ describe('Werewolf engine definition and catalog', () => {
     const state = createState({
       status: GameStatus.Seated,
       players: {
-        0: { userId: 'host', seat: 0, hasViewedRole: false },
-        1: { userId: 'user-1', seat: 1, hasViewedRole: false },
-        2: { userId: 'user-2', seat: 2, hasViewedRole: false },
-        3: { userId: 'user-3', seat: 3, hasViewedRole: false },
+        0: { seat: 0, hasViewedRole: false },
+        1: { seat: 1, hasViewedRole: false },
+        2: { seat: 2, hasViewedRole: false },
+        3: { seat: 3, hasViewedRole: false },
+      },
+      roster: {
+        0: { seat: 0, userId: 'host' },
+        1: { seat: 1, userId: 'user-1' },
+        2: { seat: 2, userId: 'user-2' },
+        3: { seat: 3, userId: 'user-3' },
       },
     });
     const command = commandByType['werewolf.roles.assign'];

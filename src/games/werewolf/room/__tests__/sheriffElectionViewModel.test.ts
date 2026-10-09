@@ -8,13 +8,20 @@ import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalStat
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
 const PLAYERS: GameState['players'] = {
-  0: { userId: 'host-1', seat: 0, role: 'wolf', hasViewedRole: true },
-  1: { userId: 'user-1', seat: 1, role: 'seer', hasViewedRole: true },
-  2: { userId: 'user-2', seat: 2, role: 'hunter', hasViewedRole: true },
-  3: { userId: 'user-3', seat: 3, role: 'villager', hasViewedRole: true },
+  0: { seat: 0, role: 'wolf', hasViewedRole: true },
+  1: { seat: 1, role: 'seer', hasViewedRole: true },
+  2: { seat: 2, role: 'hunter', hasViewedRole: true },
+  3: { seat: 3, role: 'villager', hasViewedRole: true },
 };
 
 const ROSTER: NonNullable<GameState['roster']> = {
+  0: { seat: 0, userId: 'host-1' },
+  1: { seat: 1, userId: 'user-1' },
+  2: { seat: 2, userId: 'user-2' },
+  3: { seat: 3, userId: 'user-3' },
+};
+
+const PROFILES: GameState['playerProfiles'] = {
   'host-1': { displayName: 'Alice' },
   'user-1': { displayName: 'Bob' },
   'user-2': { displayName: 'Chen' },
@@ -28,6 +35,7 @@ function createLocalState(overrides: Partial<GameState>) {
       templateRoles: ['wolf', 'seer', 'hunter', 'villager'],
       players: PLAYERS,
       roster: ROSTER,
+      playerProfiles: PROFILES,
       rules: { isSheriffElectionEnabled: true },
       ...overrides,
     }),

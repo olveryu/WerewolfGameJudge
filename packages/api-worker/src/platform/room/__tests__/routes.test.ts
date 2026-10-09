@@ -197,7 +197,7 @@ describe('POST /room/command', () => {
     const result = parseRoomCommandResult(await response.json(), WEREWOLF_STATE_CODEC);
     expect(result.kind).toBe('committed');
     if (result.kind !== 'committed') throw new Error(result.reason);
-    expect(result.snapshot.state.players[1]?.userId).toBe(player.user.id);
+    expect(result.snapshot.state.roster[1]?.userId).toBe(player.user.id);
   });
 
   it('returns unavailable transport status without fabricating a command decision', async () => {

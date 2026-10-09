@@ -1,5 +1,6 @@
 /** Public pure API for the Werewolf game module. */
 
+export { isBotOccupant } from '../../platform/room/seating';
 export type {
   WerewolfActionInput,
   WerewolfCommand,
@@ -88,7 +89,10 @@ export {
   findSeatByRole,
   forEachSeatedPlayer,
   getBottomCardEffectiveRole,
+  getWerewolfBotSeats,
+  getWerewolfUserSeat,
   isBottomCardWolfVoteExcluded,
+  isWerewolfBotSeat,
 } from './domain/playerHelpers';
 export type {
   AudioEffect,
@@ -126,5 +130,5 @@ export {
   type WerewolfPublicStats,
 } from './publicStats';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
-export { parseWerewolfState } from './state/parseState';
+export { migratePersistedWerewolfState, parseWerewolfState } from './state/parseState';
 export { WEREWOLF_STATE_IDENTITY, WEREWOLF_STATE_VERSION } from './state/version';

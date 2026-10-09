@@ -6,6 +6,7 @@
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
@@ -24,18 +25,19 @@ function createStateWithPlayers(
 ): GameState {
   const templateRoles: RoleId[] = players.map(() => 'villager'); // placeholder
   const playersMap: GameState['players'] = {};
-  const roster: Record<string, RosterEntry> = {};
+  const roster: Record<number, WerewolfHumanSeat> = {};
+  const playerProfiles: Record<string, RosterEntry> = {};
 
   for (let i = 0; i < players.length; i++) {
     const p = players[i];
     if (p) {
       playersMap[i] = {
-        userId: p.userId,
         seat: i,
         role: p.role ?? null,
         hasViewedRole: false,
       };
-      roster[p.userId] = {
+      roster[i] = { seat: i, userId: p.userId };
+      playerProfiles[p.userId] = {
         displayName: p.displayName,
         avatarUrl: p.avatarUrl,
       };
@@ -55,6 +57,7 @@ function createStateWithPlayers(
     templateRoles,
     players: playersMap,
     roster,
+    playerProfiles,
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
@@ -80,10 +83,10 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf', 'villager'] },
     });
 
-    expect(newState.players[0]?.userId).toBe('u1');
-    expect(newState.roster['u1']?.displayName).toBe('Player1');
-    expect(newState.players[1]?.userId).toBe('u2');
-    expect(newState.roster['u2']?.displayName).toBe('Player2');
+    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
+    expect(newState.playerProfiles['u1']?.displayName).toBe('Player1');
+    expect(newState.roster[1]).toEqual({ seat: 1, userId: 'u2' });
+    expect(newState.playerProfiles['u2']?.displayName).toBe('Player2');
     expect(newState.status).toBe(GameStatus.Seated);
   });
 
@@ -98,8 +101,8 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf', 'villager', 'seer'] },
     });
 
-    expect(newState.players[0]?.userId).toBe('u1');
-    expect(newState.players[1]?.userId).toBe('u2');
+    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
+    expect(newState.roster[1]).toEqual({ seat: 1, userId: 'u2' });
     expect(newState.players[2]).toBeNull();
     expect(newState.status).toBe(GameStatus.Unseated); // has empty seats
   });
@@ -117,9 +120,12 @@ describe('UPDATE_TEMPLATE player retention', () => {
     });
 
     expect(Object.keys(newState.players).length).toBe(2);
-    expect(newState.players[0]?.userId).toBe('u1');
-    expect(newState.players[1]?.userId).toBe('u2');
+    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
+    expect(newState.roster[1]).toEqual({ seat: 1, userId: 'u2' });
     expect(newState.players[2]).toBeUndefined(); // removed
+    // Occupancy must be cut together with the players map, otherwise the
+    // stranded occupant makes every later actor resolution throw.
+    expect(newState.roster[2]).toBeUndefined();
     expect(newState.status).toBe(GameStatus.Seated);
   });
 
@@ -144,7 +150,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf'] },
     });
 
-    expect(newState.roster['u1']?.avatarUrl).toBe('https://example.com/avatar.png');
+    expect(newState.playerProfiles['u1']?.avatarUrl).toBe('https://example.com/avatar.png');
   });
 
   it('should handle partial seating correctly', () => {
@@ -161,9 +167,9 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf', 'villager', 'seer', 'witch'] },
     });
 
-    expect(newState.players[0]?.userId).toBe('u1');
+    expect(newState.roster[0]).toEqual({ seat: 0, userId: 'u1' });
     expect(newState.players[1]).toBeNull();
-    expect(newState.players[2]?.userId).toBe('u3');
+    expect(newState.roster[2]).toEqual({ seat: 2, userId: 'u3' });
     expect(newState.players[3]).toBeNull();
     expect(newState.status).toBe(GameStatus.Unseated);
   });

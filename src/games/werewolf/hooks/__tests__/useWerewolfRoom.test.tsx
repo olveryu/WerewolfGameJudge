@@ -54,13 +54,13 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
     templateRoles: ['wolf', 'seer'],
     players: {
       0: {
-        userId: 'host-user',
         seat: 0,
         role: 'wolf',
         hasViewedRole: true,
       },
     },
-    roster: {},
+    roster: { 0: { seat: 0, userId: 'host-user' } },
+    playerProfiles: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],

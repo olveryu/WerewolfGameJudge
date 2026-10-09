@@ -15,6 +15,7 @@ import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { ApplyResolverResultAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
@@ -26,17 +27,17 @@ import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 // =============================================================================
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
-  return {
+  const state: GameState = {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'witch'],
     players: {
-      0: { userId: 'p0', seat: 0, role: 'villager', hasViewedRole: true },
-      1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
-      2: { userId: 'p2', seat: 2, role: 'villager', hasViewedRole: true },
-      3: { userId: 'p3', seat: 3, role: 'witch', hasViewedRole: true },
+      0: { seat: 0, role: 'villager', hasViewedRole: true },
+      1: { seat: 1, role: 'wolf', hasViewedRole: true },
+      2: { seat: 2, role: 'villager', hasViewedRole: true },
+      3: { seat: 3, role: 'witch', hasViewedRole: true },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
@@ -48,11 +49,23 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     currentNightResults: {},
     currentStepId: 'witchAction',
     witchContext: { killedSeat: 0, canSave: true, canPoison: true },
     ...overrides,
   };
+  // Occupancy follows the players map in this factory (seat N is user `p<seat>`).
+  if (overrides?.roster === undefined) {
+    const roster: Record<number, WerewolfHumanSeat> = {};
+    for (const player of Object.values(state.players)) {
+      if (player !== null) {
+        roster[player.seat] = { seat: player.seat, userId: `p${player.seat}` };
+      }
+    }
+    return { ...state, roster };
+  }
+  return state;
 }
 
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {

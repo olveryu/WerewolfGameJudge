@@ -350,7 +350,7 @@ export function handleUpdateTemplate(
  * - status === GameStatus.Unseated
  *
  * Result:
- * - Create bot players for all empty seats (isBot: true)
+ * - Create bot players for all empty seats (bot occupants in the roster)
  * - Set debugMode.botsEnabled = true
  */
 export function handleFillWithBots(
@@ -366,12 +366,8 @@ export function handleFillWithBots(
 
   // Calculate empty seats and generate bot players
   const seatCount = getPlayerCount(state.templateRoles);
-  // Only seats with player !== null count as occupied
-  const occupiedSeats = new Set(
-    Object.entries(state.players)
-      .filter(([, player]) => player !== null)
-      .map(([seat]) => Number.parseInt(seat, 10)),
-  );
+  // Only seats with an occupant count as occupied
+  const occupiedSeats = new Set(Object.keys(state.roster).map((seat) => Number(seat)));
   const bots: Record<number, Player> = {};
   const botRoster: Record<string, RosterEntry> = {};
 
@@ -379,10 +375,8 @@ export function handleFillWithBots(
     if (!occupiedSeats.has(seat)) {
       const userId = `bot-${seat}`;
       bots[seat] = {
-        userId,
         seat: seat,
         hasViewedRole: false,
-        isBot: true,
       };
       botRoster[userId] = {
         displayName: `机器人${formatSeat(seat)}`,
@@ -405,7 +399,7 @@ export function handleFillWithBots(
  * - debugMode.botsEnabled === true
  * - status === GameStatus.Assigned
  *
- * Result: set hasViewedRole = true only for isBot === true players
+ * Result: set hasViewedRole = true only for bot seats (roster bot occupants)
  */
 export function handleMarkAllBotsViewed(
   _intent: MarkAllBotsViewedIntent,

@@ -153,8 +153,10 @@ export function normalizeState(raw: GameState): GameState {
     players: requireField(raw.players, 'players'),
     startingParticipants: raw.startingParticipants,
     mvpUserId: raw.mvpUserId,
-    // Player display info (roster), keyed by userId
+    // Seat occupancy roster (seat -> human occupant or bot marker)
     roster: raw.roster ?? {},
+    // Player display info, keyed by userId
+    playerProfiles: raw.playerProfiles ?? {},
     currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 

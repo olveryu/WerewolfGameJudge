@@ -26,9 +26,9 @@ function createAssignedState(): GameState {
     status: GameStatus.Assigned,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { userId: 'p0', seat: 0, role: 'seer', hasViewedRole: false },
-      1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: false },
-      2: { userId: 'p2', seat: 2, role: 'villager', hasViewedRole: false },
+      0: { seat: 0, role: 'seer', hasViewedRole: false },
+      1: { seat: 1, role: 'wolf', hasViewedRole: false },
+      2: { seat: 2, role: 'villager', hasViewedRole: false },
     },
     currentStepIndex: -1,
     isAudioPlaying: false,
@@ -39,7 +39,12 @@ function createAssignedState(): GameState {
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
-    roster: {},
+    roster: {
+      0: { seat: 0, userId: 'p0' },
+      1: { seat: 1, userId: 'p1' },
+      2: { seat: 2, userId: 'p2' },
+    },
+    playerProfiles: {},
   };
 }
 

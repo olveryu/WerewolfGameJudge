@@ -11,6 +11,7 @@
 import type { WerewolfGameType } from '../../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../../platform/protocol/roomSnapshot';
 import type { RosterEntry } from '../../../../platform/room/roster';
+import type { RosterMap, SeatOccupant } from '../../../../platform/room/seating';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
@@ -138,14 +139,16 @@ export interface AudioEffect {
 // =============================================================================
 
 export interface Player {
-  userId: string;
   seat: number;
   role?: RoleId | null;
   /** Whether this player has viewed their assigned role; set to false after assignRoles, true after viewRole.
    *  Host can only startNight after all players have hasViewedRole=true. */
   hasViewedRole: boolean;
-  /** true = bot placeholder (debug mode); affects: skip reveal ack, groupConfirm, XP settlement */
-  isBot?: boolean;
+}
+
+/** A human occupant of a seat in the unified roster (identity axis). */
+export interface WerewolfHumanSeat extends SeatOccupant {
+  readonly userId: string;
 }
 
 // =============================================================================
@@ -245,8 +248,16 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Game rule overrides (plague mode, witch self-heal, etc.) */
   rules?: GameRuleOverrides;
 
-  // Numeric seat index -> player assignment.
+  // Numeric seat index -> per-seat game data (role / hasViewedRole).
+  // Occupancy and identity live in `roster`; the two maps are seat-aligned:
+  // a seat has game data exactly when it has an occupant.
   players: Record<number, Player | null>;
+
+  /**
+   * Seat occupancy (unified roster): seat -> human occupant or bot marker.
+   * "Who is a bot" is read from here, never from the player record.
+   */
+  roster: RosterMap<WerewolfHumanSeat>;
 
   /** Immutable human participants captured at night start, retained through departures. */
   startingParticipants?: readonly { readonly userId: string; readonly seat: number }[];
@@ -256,8 +267,9 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * Player display info (RosterEntry), keyed by userId.
    * Display fields (displayName / avatarUrl / avatarFrame / level) separated from Player.
    * Written on join, removed on leave, updated on updateProfile.
+   * (Bot display entries are keyed by their synthetic `bot-<seat>` id.)
    */
-  roster: Record<string, RosterEntry>;
+  playerProfiles: Record<string, RosterEntry>;
 
   /**
    * Current night step index.

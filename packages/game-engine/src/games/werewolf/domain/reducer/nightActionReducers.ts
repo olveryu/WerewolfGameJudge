@@ -14,6 +14,7 @@
  *   - handleSetWolfKillOverride: @pre status === 'Ongoing'
  */
 
+import { getHumanSeatMap } from '../../../../platform/room/seating';
 import { GameStatus } from '../models';
 import type { GameState } from '../protocol/types';
 import type {
@@ -38,11 +39,9 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
   return {
     ...state,
     status: GameStatus.Ongoing,
-    startingParticipants: Object.values(state.players).flatMap((player) =>
-      player === null || player.isBot === true
-        ? []
-        : [{ userId: player.userId, seat: player.seat }],
-    ),
+    startingParticipants: Object.values(
+      getHumanSeatMap(state.roster, Object.keys(state.players).length),
+    ).map((occupant) => ({ userId: occupant.userId, seat: occupant.seat })),
     currentStepIndex,
     currentStepId: currentStepId ?? undefined,
     // Audio queue events own isAudioPlaying; step transitions never infer it.

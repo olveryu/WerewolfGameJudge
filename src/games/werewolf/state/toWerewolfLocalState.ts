@@ -9,6 +9,7 @@
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
+import { isBotOccupant } from '@game-judge/game-engine/games/werewolf/public';
 import {
   makeActionMagicianSwap,
   makeActionTarget,
@@ -28,11 +29,21 @@ import { parseResolvedRoleRevealAnimation } from '@game-judge/game-engine/produc
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 /**
- * Convert Player + RosterEntry to LocalPlayer
+ * Convert Player game data + roster occupant + profile entry to LocalPlayer.
+ * Identity and bot-ness come from the unified roster (single derivation
+ * point); display fields come from the by-user profile map.
  */
-function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPlayer {
+function toLocalPlayer(
+  bp: Player,
+  seat: number,
+  occupant: NonNullable<GameState['roster'][number]>,
+  profiles: Readonly<Record<string, RosterEntry>>,
+): LocalPlayer {
+  const isBot = isBotOccupant(occupant);
+  const userId = isBot ? `bot-${seat}` : occupant.userId;
+  const roster = profiles[userId];
   return {
-    userId: bp.userId,
+    userId,
     seat,
     displayName: roster?.displayName,
     avatarUrl: roster?.avatarUrl,
@@ -47,7 +58,7 @@ function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPla
     level: roster?.level,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,
-    isBot: bp.isBot,
+    isBot: isBot ? true : undefined,
   };
 }
 
@@ -78,6 +89,7 @@ export function toWerewolfLocalState(state: GameState): LocalGameState {
     lastNightDeaths,
     status,
     roster,
+    playerProfiles,
     ...passthroughFields
   } = state;
 
@@ -85,7 +97,15 @@ export function toWerewolfLocalState(state: GameState): LocalGameState {
   const playersMap = new Map<number, LocalPlayer | null>();
   for (const [seatStr, bp] of Object.entries(protocolPlayers)) {
     const seat = Number.parseInt(seatStr, 10);
-    playersMap.set(seat, bp ? toLocalPlayer(bp, seat, roster?.[bp.userId]) : null);
+    if (bp === null) {
+      playersMap.set(seat, null);
+      continue;
+    }
+    const occupant = roster[seat];
+    if (occupant == null) {
+      throw new Error(`[FAIL-FAST] Werewolf seat ${seat} has game data without an occupant`);
+    }
+    playersMap.set(seat, toLocalPlayer(bp, seat, occupant, playerProfiles));
   }
 
   // 2. templateRoles → template (using createTemplateFromRoles)

@@ -11,6 +11,7 @@
  */
 
 import { createSeededRng, type Rng } from '../../../../platform/random';
+import { isBotOccupant } from '../../../../platform/room/seating';
 import type { SubmitActionIntent } from '../intents/types';
 import { ROLE_SPECS, type RoleId, type SchemaId, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';
@@ -284,11 +285,13 @@ function buildRejectionResult(
     payload: {
       action: schemaId,
       reason: rejectReason,
-      targetUserId:
-        state.players[seat]?.userId ??
-        (() => {
+      targetUserId: ((): string => {
+        const occupant = state.roster[seat];
+        if (occupant == null) {
           throw new Error(`[FAIL-FAST] ACTION_REJECTED: no player at seat ${seat}`);
-        })(),
+        }
+        return isBotOccupant(occupant) ? `bot-${seat}` : occupant.userId;
+      })(),
       rejectionId,
     },
   };

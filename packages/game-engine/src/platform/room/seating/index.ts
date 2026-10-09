@@ -1,11 +1,4 @@
 export {
-  decideClearSeats,
-  decideKickSeat,
-  decideLeaveSeat,
-  decideTakeSeat,
-  findSeatByUserId,
-} from './kernel';
-export {
   applyRosterChanges,
   type BotSeatOccupant,
   botSeatOccupant,

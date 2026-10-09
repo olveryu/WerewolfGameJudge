@@ -26,9 +26,9 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { userId: 'p0', seat: 0, displayName: 'P0', role: 'seer', hasViewedRole: true },
-      1: { userId: 'p1', seat: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
-      2: { userId: 'p2', seat: 2, displayName: 'P2', role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'seer', hasViewedRole: true },
+      1: { seat: 1, role: 'wolf', hasViewedRole: true },
+      2: { seat: 2, role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     currentStepId: 'seerCheck',
@@ -36,7 +36,12 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     actions: [],
     currentNightResults: {},
     pendingRevealAcks: [],
-    roster: {},
+    roster: {
+      0: { seat: 0, userId: 'p0' },
+      1: { seat: 1, userId: 'p1' },
+      2: { seat: 2, userId: 'p2' },
+    },
+    playerProfiles: {},
     ...overrides,
   } as GameState;
 }
@@ -323,7 +328,7 @@ describe('validateActionPreconditions', () => {
       currentStepId: 'seerCheck',
       players: {
         0: null,
-        1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
     });
     const result = validateActionPreconditions(state, 0, 'seer');

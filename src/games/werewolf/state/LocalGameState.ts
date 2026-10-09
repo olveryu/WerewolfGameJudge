@@ -54,7 +54,8 @@ type TransformedKeys =
   | 'status' // string literal union → GameStatus enum
   | 'templateRoles' // RoleId[] → GameTemplate
   | 'players' // Record<number, Player> → Map<number, LocalPlayer>
-  | 'roster' // merged into LocalPlayer (display fields)
+  | 'roster' // seat occupancy: merged into LocalPlayer (identity + isBot)
+  | 'playerProfiles' // merged into LocalPlayer (display fields)
   | 'actions' // ProtocolAction[] → Map<RoleId, RoleAction>
   | 'currentNightResults' // optional → required (default {})
   | 'lastNightDeaths'; // optional → required (default [])

@@ -208,15 +208,15 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     // ── Growth ───────────────────────────────────────────
     case 'UPDATE_ROSTER_LEVELS': {
       const { levels } = action.payload;
-      const newRoster = { ...state.roster };
+      const newProfiles = { ...state.playerProfiles };
       let changed = false;
       for (const [userId, level] of Object.entries(levels)) {
-        if (newRoster[userId] && newRoster[userId].level !== level) {
-          newRoster[userId] = { ...newRoster[userId], level };
+        if (newProfiles[userId] && newProfiles[userId].level !== level) {
+          newProfiles[userId] = { ...newProfiles[userId], level };
           changed = true;
         }
       }
-      return changed ? { ...state, roster: newRoster } : state;
+      return changed ? { ...state, playerProfiles: newProfiles } : state;
     }
 
     default: {

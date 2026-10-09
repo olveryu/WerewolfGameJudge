@@ -7,7 +7,7 @@
 import { WEREWOLF_STATE_IDENTITY } from '../../../state/version';
 import type { ViewedRoleIntent } from '../../intents/types';
 import { GameStatus } from '../../models/GameStatus';
-import type { GameState } from '../../protocol/types';
+import type { GameState, WerewolfHumanSeat } from '../../protocol/types';
 import type { HandlerContext } from '../types';
 import { handleViewedRole } from '../viewedRoleHandler';
 import { expectError, expectSuccess } from './handlerTestUtils';
@@ -17,15 +17,15 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 // ---------------------------------------------------------------------------
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
-  return {
+  const state: GameState = {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Assigned,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { userId: 'p0', seat: 0, role: 'seer', hasViewedRole: false },
-      1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: false },
+      0: { seat: 0, role: 'seer', hasViewedRole: false },
+      1: { seat: 1, role: 'wolf', hasViewedRole: false },
     },
     currentStepIndex: -1,
     isAudioPlaying: false,
@@ -37,8 +37,20 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     ...overrides,
   };
+  // Occupancy follows the players map in this factory (seat N is user `p<seat>`).
+  if (overrides?.roster === undefined) {
+    const roster: Record<number, WerewolfHumanSeat> = {};
+    for (const player of Object.values(state.players)) {
+      if (player !== null) {
+        roster[player.seat] = { seat: player.seat, userId: `p${player.seat}` };
+      }
+    }
+    return { ...state, roster };
+  }
+  return state;
 }
 
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {

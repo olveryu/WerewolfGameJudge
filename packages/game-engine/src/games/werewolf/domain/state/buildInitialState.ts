@@ -29,6 +29,7 @@ export function buildInitialGameState(
     ...(template.rules ? { rules: template.rules } : {}),
     players,
     roster: {},
+    playerProfiles: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],

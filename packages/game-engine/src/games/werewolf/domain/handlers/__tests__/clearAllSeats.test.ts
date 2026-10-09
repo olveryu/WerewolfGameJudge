@@ -29,6 +29,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     ...overrides,
   };
 }
@@ -48,9 +49,14 @@ describe('handleClearAllSeats', () => {
   const seatedState = createMinimalState({
     status: GameStatus.Seated,
     players: {
-      0: { userId: 'p1', seat: 0, role: null, hasViewedRole: false },
-      1: { userId: 'p2', seat: 1, role: null, hasViewedRole: false },
-      2: { userId: 'p3', seat: 2, role: null, hasViewedRole: false },
+      0: { seat: 0, role: null, hasViewedRole: false },
+      1: { seat: 1, role: null, hasViewedRole: false },
+      2: { seat: 2, role: null, hasViewedRole: false },
+    },
+    roster: {
+      0: { seat: 0, userId: 'p1' },
+      1: { seat: 1, userId: 'p2' },
+      2: { seat: 2, userId: 'p3' },
     },
   });
 
@@ -72,9 +78,12 @@ describe('handleClearAllSeats', () => {
     const state = createMinimalState({
       status: GameStatus.Unseated,
       players: {
-        0: { userId: 'p1', seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'p1' },
       },
     });
     const context = createContext(state);

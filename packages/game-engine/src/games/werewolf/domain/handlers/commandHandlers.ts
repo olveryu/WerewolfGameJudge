@@ -1,5 +1,6 @@
 /** Pure Werewolf command handlers shared by the current Durable Object and typed engine. */
 
+import { getBotSeats, isBotOccupant } from '../../../../platform/room/seating';
 import { GameStatus } from '../models/GameStatus';
 import { SCHEMAS } from '../models/roles/spec/schemas';
 import type { StateAction } from '../reducer/types';
@@ -59,7 +60,10 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
   const player = state.players[seat];
   if (!player) return handlerError('no_player_at_seat');
 
-  if (player.userId !== context.myUserId && context.myUserId !== state.hostUserId) {
+  const occupant = state.roster[seat];
+  const isOwnSeat =
+    occupant != null && !isBotOccupant(occupant) && occupant.userId === context.myUserId;
+  if (!isOwnSeat && context.myUserId !== state.hostUserId) {
     return handlerError('userId_mismatch');
   }
 
@@ -118,10 +122,7 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
         : state.piperRevealAcks;
 
   const actions: StateAction[] = [];
-  for (const player of Object.values(state.players)) {
-    if (!player?.isBot) continue;
-
-    const seat = player.seat;
+  for (const seat of getBotSeats(state.roster)) {
     if (existingAcks.includes(seat)) continue;
 
     if (isConversionReveal) {
