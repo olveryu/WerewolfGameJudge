@@ -30,7 +30,7 @@ import { getNameStyleById, NAME_STYLES } from '@/components/nameStyles';
 import { getSeatAnimationById, SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
-import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import { getAnimationOption } from '@/features/room/model/roleRevealAnimationOptions';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 
