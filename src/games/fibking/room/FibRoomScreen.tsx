@@ -1,10 +1,12 @@
 /** FibKing room rendered entirely through the shared RoomEntryBoundary and RoomShell. */
 
+import type { FibRole } from '@game-judge/game-engine/games/fibking/public';
 import type React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -16,6 +18,7 @@ import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
 import { FibIdentityModal } from './components/FibIdentityModal';
+import { isFibRole, toFibRolePreviewData } from './components/FibRoleCardAdapter';
 import { FibRoomSummary } from './components/FibRoomSummary';
 import { getFibRoleName } from './fibRoomAdapter';
 import { useFibRoomScreenState } from './hooks/useFibRoomScreenState';
@@ -65,6 +68,8 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
     entryController,
   });
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
+  // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
+  const [previewRole, setPreviewRole] = useState<FibRole | null>(null);
 
   return (
     <RoomShell
@@ -118,21 +123,34 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
                 },
               ]}
               styles={boardInfoStyles}
+              onRolePress={(roleId) => {
+                if (isFibRole(roleId)) setPreviewRole(roleId);
+              }}
             />
           </>
         ),
       }}
       gameOverlays={
-        screen.isIdentityVisible && screen.roundView !== null ? (
-          <FibIdentityModal
-            view={screen.roundView}
-            effectType={screen.isBotTakeoverActive ? null : screen.equippedRevealEffect}
-            shouldPlay={screen.identityShouldPlay}
-            allRoles={screen.identityAllRoles}
-            confirmText={screen.identityConfirmText}
-            onConfirm={screen.confirmIdentity}
-          />
-        ) : null
+        <>
+          {screen.isIdentityVisible && screen.roundView !== null ? (
+            <FibIdentityModal
+              view={screen.roundView}
+              effectType={screen.isBotTakeoverActive ? null : screen.equippedRevealEffect}
+              shouldPlay={screen.identityShouldPlay}
+              allRoles={screen.identityAllRoles}
+              confirmText={screen.identityConfirmText}
+              onConfirm={screen.confirmIdentity}
+            />
+          ) : null}
+          {previewRole !== null ? (
+            <RoleCardSimple
+              visible={true}
+              role={toFibRolePreviewData(previewRole)}
+              onClose={() => setPreviewRole(null)}
+              confirmText="知道了"
+            />
+          ) : null}
+        </>
       }
     />
   );

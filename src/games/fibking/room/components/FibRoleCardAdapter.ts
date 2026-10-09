@@ -7,7 +7,7 @@
  * - alignment 与 BoardInfo 定色一致：大聪明 god、老实人 villager、瞎掰王 wolf；
  *   无身份（观战/已结束无角色）为 neutral。
  */
-import type { FibRoundView } from '@game-judge/game-engine/games/fibking/public';
+import type { FibRole, FibRoundView } from '@game-judge/game-engine/games/fibking/public';
 
 import type {
   DescriptionField,
@@ -20,14 +20,9 @@ import { TESTIDS } from '@/testids';
 import { getFibRoleName } from '../fibRoomAdapter';
 import { formatFibWordPinyin } from '../formatFibWordPinyin';
 
-function getRoleInstruction(view: FibRoundView): string {
-  if (view.phase === 'ended') return '本轮身份与真实释义已经公开。';
-  if (view.viewerRole === null) {
-    return view.phase === 'viewing'
-      ? '观战时可以查看本轮词语；真实释义将在公布答案时揭晓。'
-      : '观战时可以查看本轮词语和真实释义。';
-  }
-  switch (view.viewerRole) {
+/** 按身份种类的说明（与轮次无关）：身份卡与 BoardInfo 角色预览共用同一文案。 */
+export function getFibRoleInstruction(role: FibRole): string {
+  switch (role) {
     case 'guesser':
       return '听取其他玩家的描述，找出真实释义。';
     case 'honest':
@@ -37,17 +32,54 @@ function getRoleInstruction(view: FibRoundView): string {
   }
 }
 
-function getAlignment(view: FibRoundView): RevealAlignment {
-  switch (view.viewerRole) {
+function getRoleInstruction(view: FibRoundView): string {
+  if (view.phase === 'ended') return '本轮身份与真实释义已经公开。';
+  if (view.viewerRole === null) {
+    return view.phase === 'viewing'
+      ? '观战时可以查看本轮词语；真实释义将在公布答案时揭晓。'
+      : '观战时可以查看本轮词语和真实释义。';
+  }
+  return getFibRoleInstruction(view.viewerRole);
+}
+
+/** 按身份种类的阵营色（与 BoardInfo 定色一致）。 */
+function getFibRoleAlignment(role: FibRole): RevealAlignment {
+  switch (role) {
     case 'guesser':
       return 'god';
     case 'honest':
       return 'villager';
     case 'fibber':
       return 'wolf';
-    case null:
-      return 'neutral';
   }
+}
+
+function getAlignment(view: FibRoundView): RevealAlignment {
+  return view.viewerRole === null ? 'neutral' : getFibRoleAlignment(view.viewerRole);
+}
+
+/** BoardInfo 角色行回传的是字符串 id；判断是否为合法的瞎掰王身份种类。 */
+export function isFibRole(roleId: string): roleId is FibRole {
+  return roleId === 'guesser' || roleId === 'honest' || roleId === 'fibber';
+}
+
+/**
+ * BoardInfo 角色预览数据：只有种类名、阵营与角色说明——不含本轮词语/释义，
+ * 不触发身份查看协议（预览不播动画、不落查看记录，与阿瓦隆预览模式一致）。
+ */
+export function toFibRolePreviewData(role: FibRole): RevealRoleData {
+  return {
+    id: `fibking-${role}`,
+    name: getFibRoleName(role),
+    alignment: getFibRoleAlignment(role),
+    description: [
+      {
+        label: '角色说明',
+        content: getFibRoleInstruction(role),
+        icon: 'information-circle-outline',
+      },
+    ],
+  };
 }
 
 export function toFibRevealRoleData(view: FibRoundView): RevealRoleData {
