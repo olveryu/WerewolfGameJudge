@@ -3,10 +3,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  type AvalonViewModel,
-  getAvalonViewModel,
-} from '@game-judge/game-engine/games/avalon/public';
+import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -39,10 +36,10 @@ import {
 } from './components/AvalonStrikeConfirmModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { AvalonVoteView } from './components/AvalonVoteView';
-import { useAvalonRoomState } from './hooks/useAvalonRoomState';
+import { type AvalonRoomScreenState, useAvalonRoomState } from './hooks/useAvalonRoomState';
 import { eligibleStrikeTargets, resolveAvalonStageKind } from './policy/avalonInteractionPolicy';
 
-type AvalonScreenState = ReturnType<typeof useAvalonRoomState>;
+type AvalonScreenState = AvalonRoomScreenState;
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
@@ -68,7 +65,7 @@ function AvalonRoomContent(
   const screen = useAvalonRoomState(props);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
-  const viewModel = isLobby ? null : getAvalonViewModel(screen.state, screen.effectiveSeat);
+  const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）；

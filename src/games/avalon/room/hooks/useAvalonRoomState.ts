@@ -5,13 +5,16 @@
 import {
   type AvalonCommand,
   type AvalonRoleId,
+  type AvalonState,
+  type AvalonViewModel,
   getAvalonOccupiedSeatCount,
   getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
-import { useEffect, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -32,6 +35,7 @@ import {
   buildRoomConfigAction,
 } from '@/features/room/model/hostManagementActions';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -71,6 +75,43 @@ function canControlBotsInPhase(phaseKind: string): boolean {
   );
 }
 
+/**
+ * 阿瓦隆房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
+ * 领域推导全部在本 hook 内组装，Screen 只消费本接口渲染。
+ */
+export interface AvalonRoomScreenState {
+  readonly state: AvalonState;
+  readonly shellModel: RoomShellModel;
+  /** 当前视角的阶段视图模型；大厅阶段为 null（原在 Screen 内推导，P-2b 下沉）。 */
+  readonly viewModel: AvalonViewModel | null;
+  readonly roomCode: string;
+  readonly userId: string;
+  readonly mySeat: number | null;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly equippedRevealEffect: RevealEffectType | null;
+  readonly submit: (
+    label: string,
+    command: AvalonCommand,
+    controlledSeatOverride?: number | null,
+  ) => Promise<boolean>;
+  readonly isSubmitting: boolean;
+  readonly session: AvalonRoomSession;
+  readonly openRules: () => void;
+  readonly roleCardVisible: boolean;
+  readonly setRoleCardVisible: Dispatch<SetStateAction<boolean>>;
+  readonly rolePreviewId: AvalonRoleId | null;
+  readonly setRolePreviewId: Dispatch<SetStateAction<AvalonRoleId | null>>;
+  /** 身份查看协议锚点：有效座位未在服务端记录已查看时才播揭示动画。 */
+  readonly roleCardShouldPlay: boolean;
+  /** Animator 候选池：公开的完整角色分布（按座位序）。 */
+  readonly roleCardAllRoles: readonly RevealRoleData[];
+  readonly nightModalVisible: boolean;
+  readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
+}
+
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
@@ -78,7 +119,7 @@ export function useAvalonRoomState(
     readonly entryController: RoomEntryController;
     readonly audio: AvalonAudioRuntime;
   },
-) {
+): AvalonRoomScreenState {
   const { session, room, navigation, entryController, audio } = props;
   const { user } = useAuthContext();
   const snapshot = useRoomSessionSnapshot(session);
@@ -503,9 +544,11 @@ export function useAvalonRoomState(
       openShare();
     }
   }, [isHost, openShare, props.entryReason]);
+  const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);
   return {
     state,
     shellModel,
+    viewModel,
     roomCode: room.roomCode,
     userId: user.id,
     mySeat,
