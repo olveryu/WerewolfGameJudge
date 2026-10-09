@@ -21,13 +21,16 @@ import {
 } from '../../platform/protocol/reasons';
 import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
 import {
-  decideClearSeats,
-  decideKickSeat,
-  decideLeaveSeat,
-  decideTakeSeat,
-  findSeatByUserId,
-  type SeatChange,
-  type SeatOperationResult,
+  decideRosterClearSeats,
+  decideRosterFillBots,
+  decideRosterKickSeat,
+  decideRosterLeaveSeat,
+  decideRosterTakeSeat,
+  findRosterSeatByUserId,
+  getHumanSeatMap,
+  hasOccupantAtOrBeyond,
+  type RosterChange,
+  type RosterOperationResult,
 } from '../../platform/room/seating';
 import type { FibCommand } from './commands/types';
 import type { FibEvent } from './domain/events';
@@ -59,7 +62,7 @@ import {
   type FibSeatProfile,
   type FibState,
   getFibViewingParticipants,
-  isFibImplicitBotSeat,
+  isFibBotSeat,
   isFibRoomFull,
   isValidFibDefinitionField,
   isValidFibPlayerCount,
@@ -78,12 +81,12 @@ function commitFib(events: readonly FibEvent[], effects: readonly FibEffect[] = 
 }
 
 function rejectSeatOperation(
-  result: Extract<SeatOperationResult<FibHumanSeat>, { kind: 'rejected' }>,
+  result: Extract<RosterOperationResult<FibHumanSeat>, { kind: 'rejected' }>,
 ): FibDecision {
   return reject(result.reason);
 }
 
-function seatChangesEvent(changes: readonly SeatChange<FibHumanSeat>[]): FibEvent {
+function seatChangesEvent(changes: readonly RosterChange<FibHumanSeat>[]): FibEvent {
   return { type: 'fib.seats.changed', changes };
 }
 
@@ -102,8 +105,8 @@ function decideTakeFibSeat(
   const actor = resolveUncontrolledUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
 
-  const result = decideTakeSeat(
-    state.realSeats,
+  const result = decideRosterTakeSeat(
+    state.roster,
     state.numberOfPlayers,
     seat,
     actor.value,
@@ -123,7 +126,7 @@ function decideLeaveFibSeat(state: FibState, context: CommandContext): FibDecisi
   if (lobbyRejection !== null) return lobbyRejection;
   const actor = resolveUncontrolledUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideLeaveSeat(state.realSeats, state.numberOfPlayers, actor.value);
+  const result = decideRosterLeaveSeat(state.roster, state.numberOfPlayers, actor.value);
   return result.kind === 'rejected'
     ? rejectSeatOperation(result)
     : commitFib([seatChangesEvent(result.changes)]);
@@ -134,16 +137,9 @@ function decideKickFibSeat(state: FibState, seat: number, context: CommandContex
   if (lobbyRejection !== null) return lobbyRejection;
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  if (isFibImplicitBotSeat(state, seat)) {
-    return commitFib([{ type: 'fib.botSeat.excluded', seat }]);
-  }
-  const result = decideKickSeat(state.realSeats, state.numberOfPlayers, seat);
+  const result = decideRosterKickSeat(state.roster, state.numberOfPlayers, seat);
   if (result.kind === 'rejected') return rejectSeatOperation(result);
-  const events: FibEvent[] = [seatChangesEvent(result.changes)];
-  if (state.fillEmptySeatsWithBots && !state.excludedBotSeats.includes(seat)) {
-    events.push({ type: 'fib.botSeat.excluded', seat });
-  }
-  return commitFib(events);
+  return commitFib([seatChangesEvent(result.changes)]);
 }
 
 function decideClearFibSeats(state: FibState, context: CommandContext): FibDecision {
@@ -151,15 +147,11 @@ function decideClearFibSeats(state: FibState, context: CommandContext): FibDecis
   if (lobbyRejection !== null) return lobbyRejection;
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  const result = decideClearSeats(state.realSeats, state.numberOfPlayers);
+  const result = decideRosterClearSeats(state.roster, state.numberOfPlayers);
   if (result.kind === 'rejected') return rejectSeatOperation(result);
-
-  const events: FibEvent[] = [];
-  if (result.changes.length > 0) events.push(seatChangesEvent(result.changes));
-  if (state.fillEmptySeatsWithBots) {
-    events.push({ type: 'fib.botFill.changed', isEnabled: false });
-  }
-  return commitFib(events);
+  return result.changes.length === 0
+    ? commitFib([])
+    : commitFib([seatChangesEvent(result.changes)]);
 }
 
 function decideFillFibBots(state: FibState, context: CommandContext): FibDecision {
@@ -167,9 +159,11 @@ function decideFillFibBots(state: FibState, context: CommandContext): FibDecisio
   if (lobbyRejection !== null) return lobbyRejection;
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return state.fillEmptySeatsWithBots && state.excludedBotSeats.length === 0
+  const result = decideRosterFillBots(state.roster, state.numberOfPlayers);
+  if (result.kind === 'rejected') return rejectSeatOperation(result);
+  return result.changes.length === 0
     ? commitFib([])
-    : commitFib([{ type: 'fib.botFill.changed', isEnabled: true }]);
+    : commitFib([seatChangesEvent(result.changes)]);
 }
 
 function decideUpdateFibProfile(
@@ -179,7 +173,7 @@ function decideUpdateFibProfile(
 ): FibDecision {
   const actor = resolveUncontrolledUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  const seat = findSeatByUserId(state.realSeats, state.numberOfPlayers, actor.value);
+  const seat = findRosterSeatByUserId(state.roster, state.numberOfPlayers, actor.value);
   return seat === null
     ? reject(REASON_NOT_SEATED)
     : commitFib([{ type: 'fib.profile.updated', seat, profile: { ...profile } }]);
@@ -198,10 +192,8 @@ function decideUpdateFibConfig(
     return reject(REASON_FIB_PLAYER_COUNT_INVALID);
   }
 
-  const hasRemovedRealSeat = Object.keys(state.realSeats).some(
-    (seat) => Number(seat) >= numberOfPlayers,
-  );
-  if (hasRemovedRealSeat) return reject(REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE);
+  if (hasOccupantAtOrBeyond(state.roster, numberOfPlayers))
+    return reject(REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE);
   return numberOfPlayers === state.numberOfPlayers
     ? commitFib([])
     : commitFib([{ type: 'fib.config.updated', numberOfPlayers }]);
@@ -218,8 +210,8 @@ function getFibParticipantUserIds(state: FibState): readonly string[] {
   return [
     ...new Set([
       state.hostUserId,
-      ...Object.values(state.realSeats).flatMap((seat) =>
-        seat === undefined ? [] : [seat.userId],
+      ...Object.values(getHumanSeatMap(state.roster, state.numberOfPlayers)).map(
+        (seat) => seat.userId,
       ),
     ]),
   ].sort();
@@ -293,12 +285,12 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
   let seat: number | null;
   if (context.controlledSeat !== null) {
     if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!isFibImplicitBotSeat(state, context.controlledSeat)) {
+    if (!isFibBotSeat(state, context.controlledSeat)) {
       return reject(REASON_NOT_SEATED);
     }
     seat = context.controlledSeat;
   } else {
-    seat = findSeatByUserId(state.realSeats, state.numberOfPlayers, actor.value);
+    seat = findRosterSeatByUserId(state.roster, state.numberOfPlayers, actor.value);
   }
   if (seat === null) return reject(REASON_NOT_SEATED);
   const { viewedSeats } = state.round;
@@ -432,9 +424,7 @@ function createInitialFibState(config: FibConfig, context: CreateGameContext): F
     hostUserId: context.hostUserId,
     phase: 'lobby',
     numberOfPlayers: config.numberOfPlayers,
-    realSeats: {},
-    fillEmptySeatsWithBots: false,
-    excludedBotSeats: [],
+    roster: {},
     usedWords: [],
     pendingRound: null,
     preparationFailure: null,

@@ -4,7 +4,13 @@ import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
-import type { SeatOccupant } from '../../../platform/room/seating';
+import {
+  countOccupiedSeats,
+  getBotSeats,
+  isBotSeat,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
 
 export const FIB_MIN_PLAYERS = 4;
 export const FIB_DEFAULT_PLAYERS = 8;
@@ -115,10 +121,7 @@ export interface FibRound {
 
 interface FibStateBase extends BaseGameState<FibKingGameType> {
   readonly numberOfPlayers: number;
-  readonly realSeats: Readonly<Record<number, FibHumanSeat | undefined>>;
-  readonly fillEmptySeatsWithBots: boolean;
-  /** Sparse seats where a host explicitly removed an otherwise implicit bot. */
-  readonly excludedBotSeats: readonly number[];
+  readonly roster: RosterMap<FibHumanSeat>;
   readonly usedWords: readonly string[];
 }
 
@@ -190,24 +193,18 @@ export function getFibBotDisplayName(seat: number): string {
   return `机器人${seat + 1}号`;
 }
 
-export function isFibImplicitBotSeat(state: FibState, seat: number): boolean {
-  return (
-    state.fillEmptySeatsWithBots &&
-    Number.isSafeInteger(seat) &&
-    seat >= 0 &&
-    seat < state.numberOfPlayers &&
-    state.realSeats[seat] === undefined &&
-    !state.excludedBotSeats.includes(seat)
-  );
+/** Returns the seats held by bots, ascending. */
+export function getFibBotSeats(state: FibState): readonly number[] {
+  return getBotSeats(state.roster);
+}
+
+/** Returns whether a seat is held by a bot. */
+export function isFibBotSeat(state: FibState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
 }
 
 export function getFibOccupiedSeatCount(state: FibState): number {
-  if (!state.fillEmptySeatsWithBots) return Object.keys(state.realSeats).length;
-  const excludedEmptySeatCount = state.excludedBotSeats.reduce(
-    (count, seat) => count + (state.realSeats[seat] === undefined ? 1 : 0),
-    0,
-  );
-  return state.numberOfPlayers - excludedEmptySeatCount;
+  return countOccupiedSeats(state.roster);
 }
 
 export function isFibRoomFull(state: FibState): boolean {
@@ -218,9 +215,8 @@ export function isFibRoomFull(state: FibState): boolean {
 export function getFibViewingParticipants(state: FibState): readonly IdentityViewingParticipant[] {
   const participants: IdentityViewingParticipant[] = [];
   for (let seat = 0; seat < state.numberOfPlayers; seat += 1) {
-    const isBot = isFibImplicitBotSeat(state, seat);
-    if (state.realSeats[seat] === undefined && !isBot) continue;
-    participants.push({ seat, isBot });
+    if (state.roster[seat] == null) continue;
+    participants.push({ seat, isBot: isFibBotSeat(state, seat) });
   }
   return participants;
 }

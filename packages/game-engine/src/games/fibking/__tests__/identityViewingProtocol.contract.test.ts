@@ -71,6 +71,29 @@ function takeSeat(state: FibState, seat: number, userId: string): FibState {
 }
 
 /** Three humans (seats 0-2) plus one implicit bot (seat 3). */
+/** Rebuilds a genuine pre-roster document (trio fields) from a current state. */
+function downgradeRoster(state: FibState): Record<string, unknown> {
+  const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+  const roster = raw.roster as Record<string, { userId?: string }>;
+  delete raw.roster;
+  const realSeats: Record<string, unknown> = {};
+  const excludedBotSeats: number[] = [];
+  let hasBots = false;
+  const count = state.numberOfPlayers;
+  for (let seat = 0; seat < count; seat += 1) {
+    const occupant = roster[String(seat)];
+    if (occupant?.userId !== undefined) realSeats[String(seat)] = occupant;
+    else if (occupant !== undefined) hasBots = true;
+    else excludedBotSeats.push(seat);
+  }
+  return {
+    ...raw,
+    realSeats,
+    fillEmptySeatsWithBots: hasBots,
+    excludedBotSeats: hasBots ? excludedBotSeats : [],
+  };
+}
+
 function createRoom(): FibState {
   let state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
   state = takeSeat(state, 0, 'host');
@@ -203,7 +226,7 @@ describe('identity viewing protocol (fibking)', () => {
 
   it('migrates v5 rooms: in-flight rounds count as fully viewed', () => {
     const viewing = dealRound(createRoom());
-    const serialized = JSON.parse(JSON.stringify(viewing)) as Record<string, unknown>;
+    const serialized = downgradeRoster(viewing);
     const round = serialized.round as Record<string, unknown>;
     delete round.viewedSeats;
     serialized.stateVersion = 5;
@@ -214,16 +237,16 @@ describe('identity viewing protocol (fibking)', () => {
     expect(migrated.round.viewedSeats).toEqual([0, 1, 2, 3]);
     expect(parseFibState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
 
-    const lobby = JSON.parse(
-      JSON.stringify(fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT)),
-    ) as Record<string, unknown>;
+    const lobby = downgradeRoster(
+      fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT),
+    );
     lobby.stateVersion = 5;
     expect(migratePersistedFibState(lobby).phase).toBe('lobby');
 
     let ended = dealRound(createRoom());
     ended = confirm(confirm(confirm(ended, 'host'), 'alice'), 'bob');
     ended = dispatch(ended, { type: 'fib.round.reveal' }, userContext('host'));
-    const endedSerialized = JSON.parse(JSON.stringify(ended)) as Record<string, unknown>;
+    const endedSerialized = downgradeRoster(ended);
     delete (endedSerialized.round as Record<string, unknown>).viewedSeats;
     endedSerialized.stateVersion = 5;
     const migratedEnded = migratePersistedFibState(endedSerialized);

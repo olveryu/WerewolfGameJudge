@@ -34,8 +34,13 @@ describe('FibKing compact state and codec', () => {
     const state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
     const preparing = {
       ...state,
+      roster: {
+        0: { seat: 0, kind: 'bot' },
+        1: { seat: 1, kind: 'bot' },
+        2: { seat: 2, kind: 'bot' },
+        3: { seat: 3, kind: 'bot' },
+      },
       phase: 'preparing',
-      fillEmptySeatsWithBots: true,
       pendingRound: {
         roundId: 'fib-round:codec',
         requestedAt: 2,
@@ -58,8 +63,13 @@ describe('FibKing compact state and codec', () => {
     const state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
     const failed = {
       ...state,
+      roster: {
+        0: { seat: 0, kind: 'bot' },
+        1: { seat: 1, kind: 'bot' },
+        2: { seat: 2, kind: 'bot' },
+        3: { seat: 3, kind: 'bot' },
+      },
       phase: 'preparationFailed',
-      fillEmptySeatsWithBots: true,
       pendingRound: null,
       preparationFailure: {
         roundId: 'fib-round:codec',
@@ -81,7 +91,7 @@ describe('FibKing compact state and codec', () => {
     expect(() =>
       parseFibState({
         ...state,
-        realSeats: {
+        roster: {
           '01': { userId: 'alice', seat: 1, profile: { displayName: 'Alice' } },
         },
       }),
@@ -94,22 +104,29 @@ describe('FibKing compact state and codec', () => {
     );
   });
 
-  it('rejects non-canonical bot-seat exclusions', () => {
+  it('rejects malformed roster entries', () => {
     const state = fibEngine.createInitialState({ numberOfPlayers: 8 }, CREATE_CONTEXT);
-    const filled = { ...state, fillEmptySeatsWithBots: true };
 
-    expect(() => parseFibState({ ...filled, excludedBotSeats: [2, 2] })).toThrow(
-      'must be unique and strictly ascending',
-    );
-    expect(() => parseFibState({ ...filled, excludedBotSeats: [3, 1] })).toThrow(
-      'must be unique and strictly ascending',
-    );
-    expect(() => parseFibState({ ...filled, excludedBotSeats: [8] })).toThrow(
-      'must be within the configured Fib seat range',
-    );
-    expect(() => parseFibState({ ...state, excludedBotSeats: [1] })).toThrow(
-      'requires bot fill to be enabled',
-    );
+    // A bot occupant carries exactly {seat, kind}; extra fields are unknown.
+    expect(() =>
+      parseFibState({ ...state, roster: { 2: { seat: 2, kind: 'bot', userId: 'x' } } }),
+    ).toThrow('unknown field');
+    // A human occupant must not carry a kind discriminator.
+    expect(() =>
+      parseFibState({
+        ...state,
+        roster: {
+          2: { seat: 2, kind: 'human', userId: 'alice', profile: { displayName: 'Alice' } },
+        },
+      }),
+    ).toThrow('unknown field');
+    // The stored seat must match the roster key (normalize invariant).
+    expect(() =>
+      parseFibState({
+        ...state,
+        roster: { 2: { seat: 3, userId: 'alice', profile: { displayName: 'Alice' } } },
+      }),
+    ).toThrow('mismatched seat');
   });
 
   it('rejects phase payloads that do not match the discriminated state contract', () => {
@@ -127,7 +144,7 @@ describe('FibKing compact state and codec', () => {
     expect(() =>
       parseFibState({
         ...state,
-        realSeats: {
+        roster: {
           4: { userId: 'alice', seat: 4, profile: { displayName: 'Alice' } },
         },
       }),

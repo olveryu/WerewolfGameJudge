@@ -36,15 +36,13 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
     hostUserId: 'host',
     phase: 'lobby',
     numberOfPlayers,
-    realSeats: {
+    roster: {
       0: {
         userId: 'host',
         seat: 0,
         profile: { displayName: '房主' },
       },
     },
-    fillEmptySeatsWithBots: false,
-    excludedBotSeats: [],
     usedWords: [],
     pendingRound: null,
     preparationFailure: null,
@@ -52,11 +50,17 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
   };
 }
 
+/** Returns the state with explicit bot occupants on the given seats. */
+function withBotSeats<T extends FibState>(state: T, seats: readonly number[]): T {
+  const roster: Record<number, FibState['roster'][number]> = { ...state.roster };
+  for (const seat of seats) roster[seat] = { seat, kind: 'bot' };
+  return { ...state, roster };
+}
+
 function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
   return {
-    ...createLobby(4),
+    ...withBotSeats(createLobby(4), [1, 2, 3]),
     phase: 'ongoing',
-    fillEmptySeatsWithBots: true,
     usedWords: ['山谷'],
     pendingRound: null,
     round: {
@@ -92,7 +96,8 @@ describe('FibKing room adapter', () => {
     expect(capabilities.canFillBots.isAllowed).toBe(true);
     expect(capabilities.canConfigureGame.isAllowed).toBe(true);
     expect(capabilities.canShareRoom.isAllowed).toBe(true);
-    expect(capabilities.canTakeOverBots.isAllowed).toBe(false);
+    // 接管无阶段条件：大厅里房主也可接管机器人（用户裁决）。
+    expect(capabilities.canTakeOverBots.isAllowed).toBe(true);
   });
 
   it('executes profile leave and kick directly through the shared capabilities', () => {
@@ -133,11 +138,11 @@ describe('FibKing room adapter', () => {
     expect(capabilities.canTakeOverBots.isAllowed).toBe(true);
   });
 
-  it('projects sparse human seats and implicit bots at the product maximum', () => {
-    const state = {
-      ...createLobby(FIB_MAX_PLAYERS),
-      fillEmptySeatsWithBots: true,
-    } satisfies FibState;
+  it('projects sparse human seats and bot seats at the product maximum', () => {
+    const state = withBotSeats(
+      createLobby(FIB_MAX_PLAYERS),
+      Array.from({ length: FIB_MAX_PLAYERS - 1 }, (_, index) => index + 1),
+    ) satisfies FibState;
     const source = createFibSeatDataSource({
       state,
       revision: 7,
@@ -154,7 +159,10 @@ describe('FibKing room adapter', () => {
       player: { kind: 'bot' },
       highlight: 'controlled',
     });
-    expect(Object.keys(state.realSeats)).toEqual(['0']);
+    // Exactly one human is seated; every other seat is an explicit bot.
+    expect(
+      Object.values(state.roster).filter((occupant) => occupant != null && 'userId' in occupant),
+    ).toHaveLength(1);
   });
 
   it('reveals only the public guesser label during play and every role after reveal', () => {
@@ -181,7 +189,7 @@ describe('FibKing room adapter', () => {
     expect(endedSource.getSeat(3).secondaryLabel).toBe('瞎掰王');
   });
 
-  it('represents implicit bots as the same shared profile target kind used by the room shell', () => {
+  it('represents bot seats as the same shared profile target kind used by the room shell', () => {
     const ongoing = createOngoing();
     expect(getFibProfileTarget(ongoing, 0)).toEqual({
       seat: 0,
@@ -197,12 +205,8 @@ describe('FibKing room adapter', () => {
     });
   });
 
-  it('projects an explicitly kicked bot seat as empty without changing other implicit bots', () => {
-    const state = {
-      ...createLobby(4),
-      fillEmptySeatsWithBots: true,
-      excludedBotSeats: [2],
-    } satisfies FibState;
+  it('projects a kicked bot seat as empty without changing other bot seats', () => {
+    const state = withBotSeats(createLobby(4), [1, 3]) satisfies FibState;
     const source = createFibSeatDataSource({
       state,
       revision: 2,
@@ -215,8 +219,8 @@ describe('FibKing room adapter', () => {
     expect(source.getSeat(3).player).toMatchObject({ kind: 'bot' });
   });
 
-  it('routes an implicit lobby bot through the shared profile intent before replacement', () => {
-    const lobby = { ...createLobby(4), fillEmptySeatsWithBots: true } satisfies FibState;
+  it('routes a lobby bot seat through the shared profile intent', () => {
+    const lobby = withBotSeats(createLobby(4), [1, 2, 3]) satisfies FibState;
 
     expect(getFibSeatTapIntent({ state: lobby, seat: 2, currentSeat: null })).toEqual({
       kind: 'profile',
@@ -406,9 +410,8 @@ describe('FibKing room adapter', () => {
     const startRound = jest.fn();
     const cancelPreparing = jest.fn();
     const failed: FibState = {
-      ...createLobby(4),
+      ...withBotSeats(createLobby(4), [1, 2, 3]),
       phase: 'preparationFailed',
-      fillEmptySeatsWithBots: true,
       pendingRound: null,
       preparationFailure: {
         roundId: 'round-1',

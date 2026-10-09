@@ -1,6 +1,7 @@
 /** Fail-fast FibKing state invariant enforcement. */
 
 import { FIBKING_GAME_TYPE } from '../../../platform/protocol/gameTypes';
+import { isBotOccupant } from '../../../platform/room/seating';
 import {
   FIB_MAX_PLAYERS,
   FIB_MIN_PLAYERS,
@@ -38,40 +39,27 @@ function assertSeatInRange(seat: number, numberOfPlayers: number, label: string)
   }
 }
 
-function assertRealSeats(state: FibState): void {
+function assertRoster(state: FibState): void {
   const userIds = new Set<string>();
-  for (const [rawSeat, occupant] of Object.entries(state.realSeats)) {
+  for (const [rawSeat, occupant] of Object.entries(state.roster)) {
     const seat = Number(rawSeat);
     if (String(seat) !== rawSeat) {
-      throw new Error(`Fib real-seat key ${rawSeat} is not canonical`);
+      throw new Error(`Fib roster-seat key ${rawSeat} is not canonical`);
     }
-    assertSeatInRange(seat, state.numberOfPlayers, `Fib real seat ${rawSeat}`);
-    if (occupant === undefined) {
-      throw new Error(`Fib real seat ${seat} cannot store undefined`);
+    assertSeatInRange(seat, state.numberOfPlayers, `Fib roster seat ${rawSeat}`);
+    if (occupant == null) {
+      throw new Error(`Fib roster seat ${seat} cannot store undefined`);
     }
     if (occupant.seat !== seat) {
-      throw new Error(`Fib real seat ${seat} stores mismatched seat ${occupant.seat}`);
+      throw new Error(`Fib roster seat ${seat} stores mismatched seat ${occupant.seat}`);
     }
-    assertNonEmpty(occupant.userId, `Fib real seat ${seat} userId`);
-    assertNonEmpty(occupant.profile.displayName, `Fib real seat ${seat} displayName`);
+    if (isBotOccupant(occupant)) continue;
+    assertNonEmpty(occupant.userId, `Fib roster seat ${seat} userId`);
+    assertNonEmpty(occupant.profile.displayName, `Fib roster seat ${seat} displayName`);
     if (userIds.has(occupant.userId)) {
       throw new Error(`Fib user ${occupant.userId} occupies multiple seats`);
     }
     userIds.add(occupant.userId);
-  }
-}
-
-function assertExcludedBotSeats(state: FibState): void {
-  if (!state.fillEmptySeatsWithBots && state.excludedBotSeats.length > 0) {
-    throw new Error('Fib excludedBotSeats requires bot fill to be enabled');
-  }
-  let previousSeat = -1;
-  for (const seat of state.excludedBotSeats) {
-    assertSeatInRange(seat, state.numberOfPlayers, `Fib excluded bot seat ${seat}`);
-    if (seat <= previousSeat) {
-      throw new Error('Fib excludedBotSeats must be unique and strictly ascending');
-    }
-    previousSeat = seat;
   }
 }
 
@@ -129,8 +117,7 @@ export function normalizeFibState(state: FibState): FibState {
       `Fib numberOfPlayers must be an integer between ${FIB_MIN_PLAYERS} and ${FIB_MAX_PLAYERS}`,
     );
   }
-  assertRealSeats(state);
-  assertExcludedBotSeats(state);
+  assertRoster(state);
   assertUsedWords(state);
 
   switch (state.phase) {

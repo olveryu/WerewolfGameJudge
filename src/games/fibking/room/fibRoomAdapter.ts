@@ -8,7 +8,8 @@ import {
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
-  isFibImplicitBotSeat,
+  isBotOccupant,
+  isFibBotSeat,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 
@@ -95,15 +96,13 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
   return {
     ...setupCapabilities,
     canViewProfiles: allowed(input.openProfile),
-    canTakeOverBots:
-      input.isHost && input.state.phase === 'ongoing'
-        ? allowed(input.takeOverBot)
-        : denied('当前阶段不能接管机器人'),
+    canTakeOverBots: input.isHost ? allowed(input.takeOverBot) : denied('只有房主可以接管机器人'),
   };
 }
 
 export function getFibProfileTarget(state: FibState, seat: number): RoomProfileTarget | null {
-  const human = state.realSeats[seat];
+  const occupant = state.roster[seat];
+  const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
   if (human !== undefined) {
     return {
       seat,
@@ -112,7 +111,7 @@ export function getFibProfileTarget(state: FibState, seat: number): RoomProfileT
       rosterName: human.profile.displayName,
     };
   }
-  if (!isFibImplicitBotSeat(state, seat)) return null;
+  if (!isFibBotSeat(state, seat)) return null;
   return {
     seat,
     userId: getFibBotUserId(state.roomCode, seat),
@@ -169,8 +168,9 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
         throw new Error(`Fib seat source index is out of range: ${index}`);
       }
 
-      const human = input.state.realSeats[index];
-      const isBot = human === undefined && isFibImplicitBotSeat(input.state, index);
+      const occupant = input.state.roster[index];
+      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
+      const isBot = isFibBotSeat(input.state, index);
       const player =
         human !== undefined
           ? {
