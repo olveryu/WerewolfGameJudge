@@ -47,3 +47,13 @@ describe('role viewing protocol — shared gate boundary', () => {
     expect(source).not.toMatch(/useRoomStore|useGameStore|zustand/);
   });
 });
+
+describe('role viewing protocol — werewolf (batch A)', () => {
+  it('the werewolf role card renders through the shared gate', () => {
+    const source = readSource('games/werewolf/room/components/WerewolfRoleCardModal.tsx');
+    expect(source).toMatch(/<RevealAnimationGate/);
+    expect(source).toMatch(/shouldPlay=\{shouldPlayAnimation\}/);
+    // The hand-rolled play-once state must not come back.
+    expect(source).not.toMatch(/animationDone/);
+  });
+});

@@ -9,6 +9,9 @@
  * - Animation is 'none' or should not play → static RoleCardSimple
  * - First view → RoleRevealAnimator (with reveal animation)
  *
+ * The play-once gating itself is the shared RevealAnimationGate
+ * (Identity Viewing Protocol): this component only converts RoleId to
+ * RevealRoleData and supplies the anchor and animation data.
  * Renders RoleCardSimple or RoleRevealAnimator, converting RoleId to RoleData
  * (alignmentMap + createRoleData), optimized with React.memo. No
  * service / showAlert / navigation imports; no business gate in onPress,
@@ -24,12 +27,11 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import { Asset } from 'expo-asset';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
 import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
-import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
-import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { RevealAnimationGate } from '@/features/room/components/RevealAnimationGate';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
@@ -81,8 +83,6 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
   onClose,
   seerLabelMap,
 }) => {
-  const [animationDone, setAnimationDone] = useState(false);
-
   // Preload role avatar image during animation so it's decoded when the card flips
   useEffect(() => {
     if (visible) {
@@ -92,10 +92,6 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
       });
     }
   }, [visible, roleId]);
-
-  const handleAnimationComplete = useCallback(() => {
-    setAnimationDone(true);
-  }, []);
 
   const allRolesData: RevealRoleData[] = useMemo(
     () =>
@@ -119,26 +115,11 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
     );
   }
 
-  // If animation is 'none' or should not play, show the static card directly
-  // Also switch to static card after animation completes (with "我知道了" button)
   // Dual seer label: look up label from roleId when seerLabelMap is present
   const seerLabel = seerLabelMap?.[roleId];
 
-  if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
-    return (
-      <RoleCardSimple
-        visible={visible}
-        roleId={roleId}
-        onClose={onClose}
-        seerLabel={seerLabel}
-        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, onClose) : undefined}
-      />
-    );
-  }
-
-  // First view: play animation
-  const roleSpec = getRoleSpec(roleId);
   // Roles with displayAs (e.g., mirrorSeer): animation uses the disguised identity
+  const roleSpec = getRoleSpec(roleId);
   const displayRoleId = getRoleDisplayAs(roleId) ?? roleId;
   const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : roleSpec;
   const baseName = getRoleDisplayName(displayRoleId);
@@ -149,18 +130,27 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
     alignment: ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
   };
 
-  // resolvedAnimation is used directly as effectType (host has already resolved random → specific animation)
-  const effectType: RevealEffectType = resolvedAnimation;
-
+  // The shared gate owns the play-once mechanics: it renders the
+  // animator on the first view (resolvedAnimation already has 'random'
+  // resolved by the host; 'none' maps to no effect) and the static card
+  // otherwise / after completion.
   return (
-    <RoleRevealAnimator
+    <RevealAnimationGate
       visible={visible}
+      effectType={resolvedAnimation === 'none' ? null : resolvedAnimation}
+      shouldPlay={shouldPlayAnimation}
       role={effectiveRoleData}
-      effectType={effectType}
       allRoles={allRolesData}
       remainingCards={remainingCards}
-      onComplete={handleAnimationComplete}
-    />
+    >
+      <RoleCardSimple
+        visible={visible}
+        roleId={roleId}
+        onClose={onClose}
+        seerLabel={seerLabel}
+        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, onClose) : undefined}
+      />
+    </RevealAnimationGate>
   );
 };
 
