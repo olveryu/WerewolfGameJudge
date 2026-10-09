@@ -1,5 +1,6 @@
 /** Applies Avalon domain events; reset paths clear all game-owned state. */
 
+import { markSeatViewed } from '../../../platform/room/identityViewing';
 import {
   AVALON_LADY_MIN_PLAYERS,
   type AvalonLastVoteResult,
@@ -17,6 +18,7 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     phase: { kind: 'lobby' },
     phaseRevision: state.phaseRevision + 1,
     roles: {},
+    roleViewedSeats: [],
     nightInfo: { evilPeers: {}, merlinSees: [], percivalSees: [] },
     leaderSeat: -1,
     rejectStreak: 0,
@@ -78,6 +80,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         ...bumped,
         phase: { ...state.phase, confirmedSeats: [...state.phase.confirmedSeats, event.seat] },
       };
+    }
+    case 'avalon.role.viewed': {
+      if (state.roleViewedSeats.includes(event.seat)) return state;
+      return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
     case 'avalon.night.stepped': {
       if (state.phase.kind !== 'night') return state;

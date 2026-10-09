@@ -85,6 +85,7 @@ export type AvalonEvent =
       readonly gameSequence: number;
     }
   | { readonly type: 'avalon.night.confirmed'; readonly seat: number }
+  | { readonly type: 'avalon.role.viewed'; readonly seat: number }
   | { readonly type: 'avalon.night.stepped'; readonly step: AvalonNightStep }
   | { readonly type: 'avalon.night.completed' }
   | {

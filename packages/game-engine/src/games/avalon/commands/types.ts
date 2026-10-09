@@ -13,6 +13,7 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.config.update'; readonly config: AvalonConfig }
   | { readonly type: 'avalon.game.start' }
   | { readonly type: 'avalon.game.returnToLobby' }
+  | { readonly type: 'avalon.role.viewed' }
   | { readonly type: 'avalon.night.confirm' }
   | { readonly type: 'avalon.audio.ack' }
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }

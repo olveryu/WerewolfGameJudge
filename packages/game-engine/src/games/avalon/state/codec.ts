@@ -1,4 +1,4 @@
-/** Strict Avalon persistence and transport codec; version one has no legacy state variants. */
+/** Strict Avalon persistence and transport codec; v1 payloads migrate through migratePersistedAvalonState. */
 
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import {
@@ -335,6 +335,7 @@ export function parseAvalonState(value: unknown): AvalonState {
           `${path}.ladyExaminedSeats`,
           parseSeat,
         ),
+        roleViewedSeats: parseArray(raw.roleViewedSeats, `${path}.roleViewedSeats`, parseSeat),
         lastLadyCheck: parseNullable(raw.lastLadyCheck, `${path}.lastLadyCheck`, ladyCheck),
         lastVoteResult: parseNullable(raw.lastVoteResult, `${path}.lastVoteResult`, lastVoteResult),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
@@ -349,6 +350,19 @@ export function parseAvalonState(value: unknown): AvalonState {
       path,
     ),
   );
+}
+
+/**
+ * Upgrades stored v1 rooms: v1 predates role viewing, so no seat had a
+ * recorded view yet; the record starts empty.
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedAvalonState(value: unknown): AvalonState {
+  const raw = parseObject(value, 'AvalonState');
+  if (raw.stateVersion !== 1) return parseAvalonState(raw);
+  if ('roleViewedSeats' in raw)
+    return failDecode('AvalonState.roleViewedSeats', 'absent from version 1 states');
+  return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION, roleViewedSeats: [] });
 }
 
 export const AVALON_STATE_CODEC = {

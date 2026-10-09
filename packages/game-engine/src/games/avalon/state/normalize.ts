@@ -65,6 +65,11 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     'reject streak',
   );
   invariant(typeof state.xpSettled === 'boolean', 'xp settled flag');
+  invariant(
+    state.roleViewedSeats.every((seat) => isSeat(seat)) &&
+      new Set(state.roleViewedSeats).size === state.roleViewedSeats.length,
+    'role viewed seats',
+  );
 
   const inGame = state.phase.kind !== 'lobby';
   if (!inGame) {

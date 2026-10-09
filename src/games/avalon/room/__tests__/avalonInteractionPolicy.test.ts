@@ -33,6 +33,8 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    hasViewedRole: false,
+    unviewedRoleSeats: [],
     requiredSize: null,
     proposedSeats: null,
     teamSeats: null,

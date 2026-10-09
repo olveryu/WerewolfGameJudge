@@ -8,6 +8,7 @@ import {
   reject,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
+import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
 import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
 import {
   AVALON_REASONS,
@@ -42,6 +43,7 @@ import {
   type AvalonQuestHistoryEntry,
   type AvalonState,
   getAvalonOccupiedSeatCount,
+  getAvalonViewingParticipants,
   isAvalonEvilRole,
   isAvalonGoodRole,
   isAvalonOccupiedSeat,
@@ -63,6 +65,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     fillEmptySeatsWithBots: false,
     excludedBotSeats: [],
     roles: {},
+    roleViewedSeats: [],
     nightInfo: { evilPeers: {}, merlinSees: [], percivalSees: [] },
     leaderSeat: -1,
     rejectStreak: 0,
@@ -153,12 +156,50 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
           { audioKey: 'percival_reveal' },
         ]),
       ]);
-    case 'percivalReveal':
+    case 'percivalReveal': {
+      // Identity Viewing Protocol checkpoint: the first quest cannot
+      // start until every human has viewed their role. Hold the night
+      // open (this seat's step confirmation still lands); the last
+      // missing view releases the checkpoint from markRoleViewed.
+      if (!haveAllHumansViewed(getAvalonViewingParticipants(state), state.roleViewedSeats))
+        return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.seat }]);
       return commitAvalon([
         { type: 'avalon.night.completed' },
         queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
       ]);
+    }
   }
+}
+
+/**
+ * Identity Viewing Protocol: records that the actor's seat viewed its
+ * role card. Idempotent. When the night steps are done but the
+ * checkpoint was held for missing views, the last missing view also
+ * completes the night (with its usual closing narration).
+ */
+function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return reject(AVALON_REASONS.phase);
+  const resolved = resolveAvalonSeat(state, context);
+  if (resolved.kind === 'rejected') return reject(resolved.reason);
+  if (state.roleViewedSeats.includes(resolved.seat)) return commitAvalon([]);
+  const viewedSeats = markSeatViewed(state.roleViewedSeats, resolved.seat);
+  const events: AvalonEvent[] = [{ type: 'avalon.role.viewed', seat: resolved.seat }];
+  const phase = state.phase;
+  if (
+    phase.kind === 'night' &&
+    phase.step === 'percivalReveal' &&
+    getAvalonNightParticipants(state.roles, 'percivalReveal').every((seat) =>
+      phase.confirmedSeats.includes(seat),
+    ) &&
+    haveAllHumansViewed(getAvalonViewingParticipants(state), viewedSeats)
+  ) {
+    events.push(
+      { type: 'avalon.night.completed' },
+      queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
+    );
+  }
+  return commitAvalon(events);
 }
 
 /** Leader proposes exactly requiredSize team members (may include the leader). */
@@ -481,6 +522,8 @@ function decidePublicCommand(
       return decideAvalonRoom(state, command, context);
     case 'avalon.game.start':
       return startGame(state, context);
+    case 'avalon.role.viewed':
+      return markRoleViewed(state, context);
     case 'avalon.night.confirm':
       return confirmNight(state, context);
     case 'avalon.team.propose':

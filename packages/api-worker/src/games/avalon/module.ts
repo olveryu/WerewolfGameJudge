@@ -3,7 +3,7 @@
 import {
   AVALON_STATE_CODEC,
   avalonEngine,
-  parseAvalonState,
+  migratePersistedAvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
 import { z } from 'zod';
 
@@ -19,7 +19,7 @@ export const avalonWorkerModule = defineWorkerGameModule({
   gameType: 'avalon',
   engine: avalonEngine,
   stateCodec: AVALON_STATE_CODEC,
-  migratePersistedState: parseAvalonState,
+  migratePersistedState: migratePersistedAvalonState,
   createConfigSchema: avalonCreateConfigSchema,
   publicCommandSchema: avalonPublicCommandSchema,
   internalCommandSchema: z.never(),

@@ -1,11 +1,13 @@
 /** Authoritative Avalon （阿瓦隆） state; identity deduction with fixed boards, pure logic without IO. */
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import type { SeatOccupant } from '../../../platform/room/seating';
 
 export const AVALON_GAME_TYPE = 'avalon' as const;
-export const AVALON_STATE_VERSION = 1;
+/** v2 adds roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate with an empty record. */
+export const AVALON_STATE_VERSION = 2;
 
 export const AVALON_MIN_PLAYERS = 5;
 export const AVALON_MAX_PLAYERS = 10;
@@ -324,6 +326,8 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly excludedBotSeats: readonly number[];
   /** seat -> 角色；公开广播，UI 按 myRole 过滤（D6-Q1）。 */
   readonly roles: Readonly<Record<number, AvalonRoleId>>;
+  /** 已查看自己角色的座位（身份查看协议）；第一个任务开始前的检查点依据。 */
+  readonly roleViewedSeats: readonly number[];
   readonly nightInfo: AvalonNightInfo;
   /** 当前队长 seat；lobby 时为 -1。 */
   readonly leaderSeat: number;
@@ -380,4 +384,16 @@ export function getAvalonOccupiedSeatCount(state: AvalonState): number {
 /** Seat is playable: a real human or an implicit bot seat. */
 export function isAvalonOccupiedSeat(state: AvalonState, seat: number): boolean {
   return state.realSeats[seat] !== undefined || isAvalonImplicitBotSeat(state, seat);
+}
+
+/** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
+export function getAvalonViewingParticipants(
+  state: AvalonState,
+): readonly IdentityViewingParticipant[] {
+  const participants: IdentityViewingParticipant[] = [];
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (!isAvalonOccupiedSeat(state, seat)) continue;
+    participants.push({ seat, isBot: isAvalonImplicitBotSeat(state, seat) });
+  }
+  return participants;
 }
