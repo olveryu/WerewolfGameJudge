@@ -9,9 +9,8 @@ import {
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessPhase,
   type DrawGuessViewModel,
-  getDrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -29,7 +28,6 @@ import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/Roo
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -49,7 +47,10 @@ import { DrawGuessHintBar } from './components/DrawGuessHintBar';
 import { DrawGuessScoreboard } from './components/DrawGuessScoreboard';
 import { DrawGuessToolbar } from './components/DrawGuessToolbar';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
-import { useDrawGuessRoomState } from './hooks/useDrawGuessRoomState';
+import {
+  type DrawGuessRoomScreenState,
+  useDrawGuessRoomState,
+} from './hooks/useDrawGuessRoomState';
 import { drawGuessStrokeToElement, useDrawGuessStrokeSync } from './hooks/useDrawGuessStrokeSync';
 
 /** 游戏工作区最大宽度（与接龙版一致），水平居中。 */
@@ -59,7 +60,7 @@ const DRAWGUESS_WIDE_LAYOUT_BREAKPOINT = 768;
 const PNG_UPLOAD_MAX_ATTEMPTS = 3;
 const PNG_UPLOAD_RETRY_MS = 5000;
 
-type DrawGuessScreenState = ReturnType<typeof useDrawGuessRoomState>;
+type DrawGuessScreenState = DrawGuessRoomScreenState;
 type DrawGuessWordSelectPhase = Extract<DrawGuessPhase, { readonly kind: 'wordSelect' }>;
 type DrawGuessDrawingPhase = Extract<DrawGuessPhase, { readonly kind: 'drawing' }>;
 type DrawGuessRoundEndPhase = Extract<DrawGuessPhase, { readonly kind: 'roundEnd' }>;
@@ -125,53 +126,17 @@ function DrawGuessRoomContent(
   );
 }
 
-/** 按权威阶段选择视图；view model 按当前有效席位裁剪后传入各视图。 */
+/** 按权威阶段选择视图；view model 与阶段截止已由 hook 组装（P-2b），此处只做分发。 */
 function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
-  const { state, session, effectiveSeat } = screen;
+  const { state, viewModel, remainingSeconds } = screen;
   const phase = state.phase;
-  const deadlineAt =
-    phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd'
-      ? phase.deadlineAt
-      : null;
-  const shouldExpire = useCallback(() => {
-    const current = session.getSnapshot();
-    return (
-      current.phase === 'ready' &&
-      current.connection === 'live' &&
-      current.pendingCommandCount === 0 &&
-      current.snapshot.state.phaseRevision === state.phaseRevision
-    );
-  }, [session, state.phaseRevision]);
-  const onExpire = useCallback(
-    () =>
-      session.dispatch(
-        {
-          type: 'drawguess.phase.expire',
-          phaseRevision: state.phaseRevision,
-          turnIndex: state.turnIndex,
-        },
-        { controlledSeat: null, label: '推进作画阶段', isRecoverable: true },
-      ),
-    [session, state.phaseRevision, state.turnIndex],
-  );
-  const remainingSeconds = useStageDeadline({
-    deadlineAt,
-    shouldExpire,
-    onExpire,
-    label: '推进作画阶段',
-  });
-  // drawguess 原 hook 返回 { remainingSeconds }，此处保持调用方兼容
-  const deadline = { remainingSeconds };
-  const nowMs = useDrawGuessNowMs();
-  // view model 每次渲染用当前时间重新计算，拼音首字母揭示随 1 秒 tick 更新。
-  const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
   if (phase.kind === 'wordSelect') {
     return (
       <DrawGuessWordSelectView
         screen={screen}
         phase={phase}
         viewModel={viewModel}
-        remainingSeconds={deadline.remainingSeconds}
+        remainingSeconds={remainingSeconds}
       />
     );
   }
@@ -181,7 +146,7 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
         screen={screen}
         phase={phase}
         viewModel={viewModel}
-        remainingSeconds={deadline.remainingSeconds}
+        remainingSeconds={remainingSeconds}
       />
     );
   }
@@ -191,7 +156,7 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
         screen={screen}
         phase={phase}
         viewModel={viewModel}
-        remainingSeconds={deadline.remainingSeconds}
+        remainingSeconds={remainingSeconds}
       />
     );
   }
@@ -229,16 +194,6 @@ function DrawGuessStageFrame({
       </View>
     </View>
   );
-}
-
-/** 每秒更新的本地时钟：驱动拼音首字母揭示的显示 tick（effect 内更新，render 保持纯）。 */
-function useDrawGuessNowMs(): number {
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return nowMs;
 }
 
 /** 固定宽度 mm:ss 等宽倒计时；最后 5 秒醒目提示。 */

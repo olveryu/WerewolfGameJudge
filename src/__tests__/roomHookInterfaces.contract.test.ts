@@ -43,3 +43,24 @@ describe('room hook interfaces — avalon (P-2b batch 1)', () => {
     expect(screen).toMatch(/screen\.viewModel/);
   });
 });
+
+describe('room hook interfaces — drawguess (P-2b batch 2)', () => {
+  it('the hook exports DrawGuessRoomScreenState and annotates its return', () => {
+    const hook = readSource('games/drawguess/room/hooks/useDrawGuessRoomState.ts');
+    expect(hook).toMatch(/export interface DrawGuessRoomScreenState/);
+    expect(hook).toMatch(/\): DrawGuessRoomScreenState \{/);
+    expectNoReturnSpread(hook);
+  });
+
+  it('view model, stage deadline and tick are assembled in the hook, not the Screen', () => {
+    const hook = readSource('games/drawguess/room/hooks/useDrawGuessRoomState.ts');
+    expect(hook).toMatch(/getDrawGuessViewModel\(state, effectiveSeat, nowMs\)/);
+    expect(hook).toMatch(/useStageDeadline\(\{/);
+    expect(hook).toMatch(/useDrawGuessNowMs\(!isLobby\)/);
+    const screen = readSource('games/drawguess/room/DrawGuessRoomScreen.tsx');
+    expect(screen).not.toMatch(/getDrawGuessViewModel/);
+    expect(screen).not.toMatch(/useStageDeadline/);
+    expect(screen).not.toMatch(/useDrawGuessNowMs/);
+    expect(screen).toMatch(/screen\.viewModel|viewModel, remainingSeconds/);
+  });
+});
