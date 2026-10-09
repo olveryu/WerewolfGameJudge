@@ -6,11 +6,11 @@ import {
   AVALON_STATE_CODEC,
   type AvalonCommand,
   type AvalonState,
+  getAvalonUserSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
@@ -42,7 +42,7 @@ export function createAvalonUiModule({
   const roomAccount = createSessionRoomAccountCapability<'avalon', AvalonState>({
     gameType: 'avalon',
     session,
-    isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
+    isUserSeated: (state, userId) => getAvalonUserSeat(state, userId) !== null,
     canSwitchAccount: (state) => state.phase.kind === 'lobby',
   });
   function BoundAvalonRoomScreen(props: GameRoomScreenProps<'avalon'>) {

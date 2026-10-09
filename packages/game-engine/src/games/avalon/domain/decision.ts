@@ -13,8 +13,7 @@ import {
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
 } from '../../../platform/protocol/reasons';
-import type { SeatChange } from '../../../platform/room/seating';
-import { findSeatByUserId } from '../../../platform/room/seating';
+import { findRosterSeatByUserId, type RosterChange } from '../../../platform/room/seating';
 import type {
   AvalonAudioEffect,
   AvalonBallot,
@@ -27,7 +26,7 @@ import type {
   AvalonQuestRound,
   AvalonRoleId,
 } from '../state/types';
-import { type AvalonState, isAvalonImplicitBotSeat } from '../state/types';
+import { type AvalonState, isAvalonBotSeat } from '../state/types';
 
 /** 失败文案逐字照搬设计稿 §6.1（中文，走 AlertModal）。 */
 export const AVALON_REASONS = {
@@ -71,9 +70,7 @@ export function teamSizeReason(requiredSize: number): string {
 export type AvalonEvent =
   | {
       readonly type: 'avalon.seats.changed';
-      readonly changes: readonly SeatChange<AvalonHumanSeat>[];
-      readonly excludedBotSeats: readonly number[];
-      readonly fillEmptySeatsWithBots: boolean;
+      readonly changes: readonly RosterChange<AvalonHumanSeat>[];
     }
   | { readonly type: 'avalon.config.updated'; readonly config: AvalonState['config'] }
   | {
@@ -177,11 +174,11 @@ export function resolveAvalonSeat(state: AvalonState, context: CommandContext): 
   const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return rejectedSeat(actor.reason);
   if (context.controlledSeat === null) {
-    const seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
     return seat === null ? rejectedSeat(REASON_NOT_SEATED) : { kind: 'resolved', seat };
   }
   if (actor.value !== state.hostUserId) return rejectedSeat(REASON_NOT_HOST);
-  if (!isAvalonImplicitBotSeat(state, context.controlledSeat))
+  if (!isAvalonBotSeat(state, context.controlledSeat))
     return rejectedSeat(REASON_CONTROLLED_SEAT_NOT_BOT);
   return { kind: 'resolved', seat: context.controlledSeat };
 }

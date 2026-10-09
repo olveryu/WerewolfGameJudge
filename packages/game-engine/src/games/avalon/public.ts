@@ -1,5 +1,6 @@
 /** Public pure Avalon API for transport, persistence and the client game module. */
 
+export { isBotOccupant } from '../../platform/room/seating';
 export type { AvalonCommand, AvalonPublicCommand } from './commands/types';
 export {
   AVALON_REASONS,
@@ -74,12 +75,14 @@ export {
   type AvalonVoteMode,
   DEFAULT_AVALON_CONFIG,
   getAvalonBotDisplayName,
+  getAvalonBotSeats,
   getAvalonOccupiedSeatCount,
   getAvalonRealHumanCount,
+  getAvalonUserSeat,
   getAvalonViewingParticipants,
+  isAvalonBotSeat,
   isAvalonEvilRole,
   isAvalonGoodRole,
-  isAvalonImplicitBotSeat,
   isAvalonOccupiedSeat,
   isAvalonPlayerCount,
   isAvalonQuestRound,

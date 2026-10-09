@@ -1,6 +1,7 @@
 /** Applies Avalon domain events; reset paths clear all game-owned state. */
 
 import { markSeatViewed } from '../../../platform/room/identityViewing';
+import { applyRosterChanges } from '../../../platform/room/seating';
 import {
   AVALON_LADY_MIN_PLAYERS,
   type AvalonLastVoteResult,
@@ -42,19 +43,8 @@ function isLadyRound(round: AvalonQuestRound): round is 2 | 3 | 4 {
 export function evolveAvalonState(state: AvalonState, event: AvalonEvent): AvalonState {
   const bumped = { ...state, phaseRevision: state.phaseRevision + 1 };
   switch (event.type) {
-    case 'avalon.seats.changed': {
-      const realSeats = { ...state.realSeats };
-      for (const change of event.changes) {
-        if (change.next === null) delete realSeats[change.seat];
-        else realSeats[change.seat] = change.next;
-      }
-      return {
-        ...bumped,
-        realSeats,
-        excludedBotSeats: [...event.excludedBotSeats],
-        fillEmptySeatsWithBots: event.fillEmptySeatsWithBots,
-      };
-    }
+    case 'avalon.seats.changed':
+      return { ...bumped, roster: applyRosterChanges(state.roster, event.changes) };
     case 'avalon.config.updated':
       return { ...bumped, config: event.config };
     case 'avalon.game.started':

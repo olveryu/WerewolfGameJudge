@@ -9,6 +9,7 @@ import {
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
 import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
+import { getHumanSeatMap } from '../../platform/room/seating';
 import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
 import {
   AVALON_REASONS,
@@ -61,9 +62,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     phase: { kind: 'lobby' },
     phaseRevision: 0,
     config: { ...config },
-    realSeats: {},
-    fillEmptySeatsWithBots: false,
-    excludedBotSeats: [],
+    roster: {},
     roles: {},
     roleViewedSeats: [],
     nightInfo: { evilPeers: {}, merlinSees: [], percivalSees: [] },
@@ -89,9 +88,9 @@ function completionEffect(state: AvalonState, context: CommandContext): AvalonEf
     payload: {
       roundId: `avalon:game:${state.gameSequence}`,
       completedAt: context.nowMs,
-      participantUserIds: Object.values(state.realSeats)
-        .filter((seat) => seat !== undefined)
-        .map((seat) => seat.userId),
+      participantUserIds: Object.values(
+        getHumanSeatMap(state.roster, state.config.numberOfPlayers),
+      ).map((seat) => seat.userId),
     },
   };
 }

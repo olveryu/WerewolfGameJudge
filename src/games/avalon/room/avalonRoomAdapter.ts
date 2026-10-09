@@ -8,7 +8,8 @@ import {
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
   getAvalonViewingParticipants,
-  isAvalonImplicitBotSeat,
+  isAvalonBotSeat,
+  isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
 
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
@@ -22,15 +23,15 @@ import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 export function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
-  const occupant = state.realSeats[seat];
-  if (occupant !== undefined)
+  const occupant = state.roster[seat];
+  if (occupant != null && !isBotOccupant(occupant))
     return {
       seat,
       userId: occupant.userId,
       occupantKind: 'human',
       rosterName: occupant.profile.displayName,
     };
-  return isAvalonImplicitBotSeat(state, seat)
+  return isAvalonBotSeat(state, seat)
     ? {
         seat,
         userId: `avalon-bot:${state.roomCode}:${seat}`,
@@ -65,16 +66,17 @@ export function createAvalonSeatDataSource(
     getSeat(seat): RoomSeatViewModel {
       if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
         throw new Error('Avalon seat out of range');
-      const occupant = state.realSeats[seat];
+      const occupant = state.roster[seat];
       const target = getAvalonProfileTarget(state, seat);
+      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const player =
-        occupant !== undefined
+        human !== undefined
           ? {
               kind: 'human' as const,
-              userId: occupant.userId,
-              ...occupant.profile,
-              seatPetId: occupant.profile.revealEffect,
-              isAnonymous: occupant.profile.avatarUrl === undefined,
+              userId: human.userId,
+              ...human.profile,
+              seatPetId: human.profile.revealEffect,
+              isAnonymous: human.profile.avatarUrl === undefined,
             }
           : target === null
             ? null
@@ -97,7 +99,7 @@ export function createAvalonSeatDataSource(
       return {
         seat,
         player,
-        isSelf: occupant?.userId === userId,
+        isSelf: human?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
         showReadyBadge: false,
