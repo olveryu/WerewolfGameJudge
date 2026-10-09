@@ -1,5 +1,6 @@
 /** Pure FibKing event reducer. */
 
+import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { FIB_USED_WORD_LIMIT, type FibHumanSeat, type FibState } from '../state/types';
 import type { FibEvent } from './events';
 
@@ -110,7 +111,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
     case 'fib.round.started':
       return {
         ...state,
-        phase: 'ongoing',
+        phase: 'viewing',
         pendingRound: null,
         preparationFailure: null,
         round: {
@@ -119,9 +120,29 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
           definition: event.definition,
           source: event.source,
           roles: event.roles,
+          viewedSeats: [...event.initialViewedSeats],
         },
         usedWords: appendUsedWord(state.usedWords, event.word),
       };
+    case 'fib.role.viewed': {
+      if (state.phase !== 'viewing' || state.round === null) {
+        throw new Error('Fib role-viewed event requires a viewing state');
+      }
+      if (state.round.viewedSeats.includes(event.seat)) return state;
+      return {
+        ...state,
+        round: {
+          ...state.round,
+          viewedSeats: markSeatViewed(state.round.viewedSeats, event.seat),
+        },
+      };
+    }
+    case 'fib.round.viewingCompleted': {
+      if (state.phase !== 'viewing') {
+        throw new Error('Fib viewing-completed event requires a viewing state');
+      }
+      return { ...state, phase: 'ongoing' };
+    }
     case 'fib.round.ended':
       if (state.round === null) {
         throw new Error('Fib round-ended event requires an active round');

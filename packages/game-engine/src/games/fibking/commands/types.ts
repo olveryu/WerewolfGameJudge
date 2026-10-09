@@ -21,6 +21,7 @@ export type FibPublicCommand =
   | { readonly type: 'fib.game.returnToLobby' }
   | { readonly type: 'fib.round.start' }
   | { readonly type: 'fib.round.cancelPreparing' }
+  | { readonly type: 'fib.round.confirmRoleView' }
   | { readonly type: 'fib.round.reveal' };
 
 export interface FibCompleteRoundCommand {

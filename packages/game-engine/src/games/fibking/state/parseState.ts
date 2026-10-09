@@ -166,6 +166,7 @@ function parseRound(value: unknown, path: string): FibRound {
       definition: parseDefinition(raw.definition, `${path}.definition`),
       source: parseWordSource(raw.source, `${path}.source`),
       roles: parseRoles(raw.roles, `${path}.roles`),
+      viewedSeats: parseArray(raw.viewedSeats, `${path}.viewedSeats`, parseSeat),
     },
     path,
   );
@@ -234,6 +235,7 @@ export function parseFibState(value: unknown): FibState {
           'FibState',
         ),
       );
+    case 'viewing':
     case 'ongoing':
     case 'ended':
       return normalizeFibState(
@@ -252,4 +254,32 @@ export function parseFibState(value: unknown): FibState {
     default:
       return failDecode('FibState.phase', 'a valid Fib phase');
   }
+}
+
+/**
+ * Upgrades stored v5 rooms: v5 predates role viewing. A round already
+ * in flight keeps playing uninterrupted — every seat counts as having
+ * viewed (the viewing gate only applies to rounds dealt under v6).
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedFibState(value: unknown): FibState {
+  const raw = parseObject(value, 'FibState');
+  if (raw.stateVersion !== 5) return parseFibState(raw);
+  if (raw.round === null || raw.round === undefined) {
+    return parseFibState({ ...raw, stateVersion: FIB_STATE_VERSION });
+  }
+  const round = parseObject(raw.round, 'FibState.round');
+  if ('viewedSeats' in round) {
+    return failDecode('FibState.round.viewedSeats', 'absent from version 5 states');
+  }
+  const playerCount = raw.numberOfPlayers;
+  if (typeof playerCount !== 'number' || !Number.isSafeInteger(playerCount)) {
+    return failDecode('FibState.numberOfPlayers', 'a safe integer');
+  }
+  const viewedSeats = Array.from({ length: playerCount }, (_, seat) => seat);
+  return parseFibState({
+    ...raw,
+    stateVersion: FIB_STATE_VERSION,
+    round: { ...round, viewedSeats },
+  });
 }

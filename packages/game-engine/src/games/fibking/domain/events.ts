@@ -56,6 +56,10 @@ export type FibEvent =
       readonly definition: FibWordDefinition;
       readonly source: FibWordSource;
       readonly roles: FibRoleAssignment;
+      /** Bot seats are marked viewed at deal time (Identity Viewing Protocol). */
+      readonly initialViewedSeats: readonly number[];
     })
+  | (GameEvent & { readonly type: 'fib.role.viewed'; readonly seat: number })
+  | (GameEvent & { readonly type: 'fib.round.viewingCompleted' })
   | (GameEvent & { readonly type: 'fib.round.ended' })
   | (GameEvent & { readonly type: 'fib.game.returnedToLobby' });

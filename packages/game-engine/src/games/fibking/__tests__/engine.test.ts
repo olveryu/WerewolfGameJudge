@@ -105,11 +105,14 @@ function startPreparing(state: FibState, commandId = 'round-command-1'): FibStat
   return dispatch(state, { type: 'fib.round.start' }, userContext('host', { commandId }));
 }
 
+function confirmAllRoleViews(state: FibState): FibState {
+  if (state.phase !== 'viewing') throw new Error('Expected viewing state');
+  return dispatch(state, { type: 'fib.round.confirmRoleView' }, userContext('host'));
+}
+
 it('emits a completion reward roster only on the first host reveal', () => {
-  const state = completeRound(
-    startPreparing(createFullLobby()),
-    '云朵',
-    '悬浮在空中的水滴或冰晶集合',
+  const state = confirmAllRoleViews(
+    completeRound(startPreparing(createFullLobby()), '云朵', '悬浮在空中的水滴或冰晶集合'),
   );
   const decision = decideFibCommand(state, { type: 'fib.round.reveal' }, userContext('host'));
   expect(decision.kind).toBe('commit');
@@ -182,7 +185,7 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
-      stateVersion: 5,
+      stateVersion: 6,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',
@@ -466,13 +469,14 @@ describe('FibKing recoverable round workflow', () => {
         },
       ],
     });
-    const ongoing = applyDecision(preparing, completionDecision);
-    expect(ongoing.phase).toBe('ongoing');
-    if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing state');
-    expect(ongoing.round.roles.guesserSeat).not.toBe(ongoing.round.roles.honestSeat);
-    expect(getFibRole(ongoing.round.roles, ongoing.round.roles.guesserSeat)).toBe('guesser');
-    expect(getFibRole(ongoing.round.roles, ongoing.round.roles.honestSeat)).toBe('honest');
-    expect(ongoing.usedWords).toEqual(['海浪']);
+    const dealt = applyDecision(preparing, completionDecision);
+    expect(dealt.phase).toBe('viewing');
+    if (dealt.phase !== 'viewing') throw new Error('Expected viewing state');
+    expect(dealt.round.roles.guesserSeat).not.toBe(dealt.round.roles.honestSeat);
+    expect(getFibRole(dealt.round.roles, dealt.round.roles.guesserSeat)).toBe('guesser');
+    expect(getFibRole(dealt.round.roles, dealt.round.roles.honestSeat)).toBe('honest');
+    expect(dealt.usedWords).toEqual(['海浪']);
+    expect(confirmAllRoleViews(dealt).phase).toBe('ongoing');
   });
 
   it('accepts only monotonic system preparation stages for the current round', () => {
@@ -564,7 +568,7 @@ describe('FibKing recoverable round workflow', () => {
       '灯塔',
       '建在岸边用于指引船只航行方向的高塔。',
     );
-    state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(confirmAllRoleViews(state), { type: 'fib.round.reveal' }, userContext('host'));
     state = startPreparing(state, 'round-b');
     const realSeats = state.realSeats;
     state = dispatch(state, { type: 'fib.round.cancelPreparing' }, userContext('host'));
@@ -581,7 +585,7 @@ describe('FibKing recoverable round workflow', () => {
       '灯塔',
       '建在岸边用于指引船只航行方向的高塔。',
     );
-    state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(confirmAllRoleViews(state), { type: 'fib.round.reveal' }, userContext('host'));
     expect(state.phase).toBe('ended');
     const realSeats = state.realSeats;
 
@@ -652,7 +656,7 @@ describe('FibKing recoverable round workflow', () => {
       '灯塔',
       '建在岸边用于指引船只航行方向的高塔。',
     );
-    state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(confirmAllRoleViews(state), { type: 'fib.round.reveal' }, userContext('host'));
     const realSeats = state.realSeats;
     const usedWords = state.usedWords;
 
@@ -745,21 +749,25 @@ describe('FibKing recoverable round workflow', () => {
   it('maps game phases to the shared lifecycle without renaming domain phases', () => {
     const lobby = createFullLobby();
     const preparing = startPreparing(lobby);
-    const ongoing = completeRound(preparing, '山谷', '两座山之间低洼而狭长的地带或空间。');
+    const viewing = completeRound(preparing, '山谷', '两座山之间低洼而狭长的地带或空间。');
+    const ongoing = confirmAllRoleViews(viewing);
     const ended = dispatch(ongoing, { type: 'fib.round.reveal' }, userContext('host'));
 
     expect(getFibLifecycle(lobby)).toBe('setup');
     expect(getFibLifecycle(preparing)).toBe('ongoing');
+    expect(getFibLifecycle(viewing)).toBe('ongoing');
     expect(getFibLifecycle(ongoing)).toBe('ongoing');
     expect(getFibLifecycle(ended)).toBe('ended');
   });
 
   it('derives one authoritative round view for every seat perspective', () => {
-    const ongoing = completeRound(
-      startPreparing(createFullLobby()),
-      '山谷',
-      '两座山之间低洼而狭长的地带或空间。',
-      'visibility-seed',
+    const ongoing = confirmAllRoleViews(
+      completeRound(
+        startPreparing(createFullLobby()),
+        '山谷',
+        '两座山之间低洼而狭长的地带或空间。',
+        'visibility-seed',
+      ),
     );
     if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing state');
 

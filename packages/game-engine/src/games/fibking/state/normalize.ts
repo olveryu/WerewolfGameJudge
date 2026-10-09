@@ -104,6 +104,12 @@ function assertRound(
   if (round.roles.guesserSeat === round.roles.honestSeat) {
     throw new Error('Fib guesser and honest seats must differ');
   }
+  for (const seat of round.viewedSeats) {
+    assertSeatInRange(seat, state.numberOfPlayers, 'Fib viewed seat');
+  }
+  if (new Set(round.viewedSeats).size !== round.viewedSeats.length) {
+    throw new Error('Fib viewed seats must be unique');
+  }
   if (!state.usedWords.includes(round.word)) {
     throw new Error('Fib active word must be present in usedWords');
   }
@@ -172,6 +178,7 @@ export function normalizeFibState(state: FibState): FibState {
         throw new Error('Fib preparationFailed state requires a full room');
       }
       return state;
+    case 'viewing':
     case 'ongoing':
     case 'ended': {
       const phase = state.phase;

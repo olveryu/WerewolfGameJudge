@@ -11,9 +11,15 @@ import {
   resolveHostActorId,
   resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
+  resolveUserActorId,
 } from '../../platform/engine';
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol/gameTypes';
-import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
+import {
+  REASON_GAME_IN_PROGRESS,
+  REASON_NOT_HOST,
+  REASON_NOT_SEATED,
+} from '../../platform/protocol/reasons';
+import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
 import {
   decideClearSeats,
   decideKickSeat,
@@ -36,6 +42,7 @@ import {
   REASON_FIB_ROUND_NOT_FULL,
   REASON_FIB_ROUND_NOT_ONGOING,
   REASON_FIB_ROUND_NOT_PREPARING,
+  REASON_FIB_ROUND_NOT_VIEWING,
   REASON_FIB_WORD_INVALID,
   REASON_FIB_WORD_REUSED,
 } from './domain/reasons';
@@ -51,6 +58,7 @@ import {
   type FibProfileUpdate,
   type FibSeatProfile,
   type FibState,
+  getFibViewingParticipants,
   isFibImplicitBotSeat,
   isFibRoomFull,
   isValidFibDefinitionField,
@@ -278,10 +286,35 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
     : reject(REASON_FIB_ROUND_NOT_ONGOING);
 }
 
+function decideConfirmFibRoleView(state: FibState, context: CommandContext): FibDecision {
+  if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
+  const actor = resolveUserActorId(context);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  let seat: number | null;
+  if (context.controlledSeat !== null) {
+    if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
+    if (!isFibImplicitBotSeat(state, context.controlledSeat)) {
+      return reject(REASON_NOT_SEATED);
+    }
+    seat = context.controlledSeat;
+  } else {
+    seat = findSeatByUserId(state.realSeats, state.numberOfPlayers, actor.value);
+  }
+  if (seat === null) return reject(REASON_NOT_SEATED);
+  const { viewedSeats } = state.round;
+  if (viewedSeats.includes(seat)) return commitFib([]);
+  const nextViewedSeats = markSeatViewed(viewedSeats, seat);
+  const events: FibEvent[] = [{ type: 'fib.role.viewed', seat }];
+  if (haveAllHumansViewed(getFibViewingParticipants(state), nextViewedSeats)) {
+    events.push({ type: 'fib.round.viewingCompleted' });
+  }
+  return commitFib(events);
+}
+
 function decideReturnFibGameToLobby(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return state.phase === 'ongoing' || state.phase === 'ended'
+  return state.phase === 'viewing' || state.phase === 'ongoing' || state.phase === 'ended'
     ? commitFib([{ type: 'fib.game.returnedToLobby' }])
     : reject(REASON_FIB_GAME_NOT_ENDED);
 }
@@ -367,6 +400,9 @@ function decideCompleteFibRound(
         definition: command.definition,
         source: command.source,
         roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
+        initialViewedSeats: getFibViewingParticipants(state)
+          .filter((participant) => participant.isBot)
+          .map((participant) => participant.seat),
       },
     ],
     [
@@ -412,6 +448,7 @@ export function getFibLifecycle(state: FibState): CommonGameLifecycle {
       return 'setup';
     case 'preparing':
     case 'preparationFailed':
+    case 'viewing':
     case 'ongoing':
       return 'ongoing';
     case 'ended':
@@ -449,6 +486,8 @@ export function decideFibCommand(
       return decideCancelFibPreparation(state, context);
     case 'fib.round.reveal':
       return decideRevealFibRound(state, context);
+    case 'fib.round.confirmRoleView':
+      return decideConfirmFibRoleView(state, context);
     case 'fib.round.updatePreparationStage':
       return decideUpdateFibPreparationStage(state, command, context);
     case 'fib.round.failPreparation':
