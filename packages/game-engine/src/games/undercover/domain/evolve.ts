@@ -1,5 +1,6 @@
 /** Undercover event projection; resets discard phase-owned fields and preserve the roster. */
 
+import { applyRosterChanges } from '../../../platform/room/seating';
 import type { UndercoverState } from '../state/types';
 import type { UndercoverEvent } from './events';
 
@@ -14,19 +15,12 @@ export function evolveUndercoverState(
     roomCode: state.roomCode,
     hostUserId: state.hostUserId,
     config: state.config,
-    realSeats: state.realSeats,
-    botSeats: state.botSeats,
+    roster: state.roster,
     usedWordPairIds: state.usedWordPairIds,
   };
   switch (event.type) {
-    case 'undercover.seats.changed': {
-      const realSeats = { ...state.realSeats };
-      for (const change of event.changes) {
-        if (change.next === null) delete realSeats[change.seat];
-        else realSeats[change.seat] = change.next;
-      }
-      return { ...state, realSeats, botSeats: event.botSeats };
-    }
+    case 'undercover.seats.changed':
+      return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
     case 'undercover.config.updated':
       return { ...state, config: event.config };
     case 'undercover.round.preparing':

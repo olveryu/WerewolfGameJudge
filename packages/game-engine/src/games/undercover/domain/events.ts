@@ -1,6 +1,6 @@
 /** Pure Undercover events and deferred word-selection and completion-reward effects. */
 
-import type { SeatChange } from '../../../platform/room/seating';
+import type { RosterChange } from '../../../platform/room/seating';
 import type {
   UndercoverConfig,
   UndercoverHumanSeat,
@@ -14,8 +14,7 @@ import type { UndercoverRole } from './rules';
 export type UndercoverEvent =
   | {
       readonly type: 'undercover.seats.changed';
-      readonly changes: readonly SeatChange<UndercoverHumanSeat>[];
-      readonly botSeats: readonly number[];
+      readonly changes: readonly RosterChange<UndercoverHumanSeat>[];
     }
   | { readonly type: 'undercover.config.updated'; readonly config: UndercoverConfig }
   | { readonly type: 'undercover.round.preparing'; readonly pendingRound: UndercoverPendingRound }

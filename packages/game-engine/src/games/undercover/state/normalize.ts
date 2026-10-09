@@ -1,5 +1,6 @@
 /** Fail-fast Undercover invariants for the trusted typed engine state. */
 
+import { isBotOccupant } from '../../../platform/room/seating';
 import {
   getUndercoverRoleCounts,
   getUndercoverWinner,
@@ -42,13 +43,18 @@ export function isValidUndercoverWordPair(pair: UndercoverWordPair): boolean {
 
 function assertSeats(state: UndercoverState): void {
   const userIds = new Set<string>();
-  for (const [key, occupant] of Object.entries(state.realSeats)) {
+  for (const [key, occupant] of Object.entries(state.roster)) {
     const seat = Number(key);
     if (
-      occupant === undefined ||
+      occupant == null ||
       !isUndercoverSeat(state, seat) ||
       String(seat) !== key ||
-      occupant.seat !== seat ||
+      occupant.seat !== seat
+    ) {
+      throw new Error('Invalid Undercover seat');
+    }
+    if (isBotOccupant(occupant)) continue;
+    if (
       occupant.userId.length === 0 ||
       occupant.profile.displayName.trim().length === 0 ||
       userIds.has(occupant.userId)
@@ -57,13 +63,6 @@ function assertSeats(state: UndercoverState): void {
     }
     userIds.add(occupant.userId);
   }
-  if (
-    new Set(state.botSeats).size !== state.botSeats.length ||
-    state.botSeats.some(
-      (seat) => !isUndercoverSeat(state, seat) || state.realSeats[seat] !== undefined,
-    )
-  )
-    throw new Error('Invalid Undercover robot seats');
 }
 
 function assertRound(state: UndercoverState): void {

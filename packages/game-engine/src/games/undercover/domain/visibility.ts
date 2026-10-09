@@ -1,6 +1,6 @@
 /** Undercover display projections for authenticated humans and authorized robot control. */
 
-import { findSeatByUserId } from '../../../platform/room/seating';
+import { findRosterSeatByUserId, isBotSeat } from '../../../platform/room/seating';
 import type { UndercoverState } from '../state/types';
 
 export type UndercoverWordCard =
@@ -16,9 +16,9 @@ export function getUndercoverWordCard(
   if (state.phase !== 'reading' && state.phase !== 'ongoing') return null;
   let seat: number | null;
   if (controlledSeat !== null) {
-    if (userId !== state.hostUserId || !state.botSeats.includes(controlledSeat)) return null;
+    if (userId !== state.hostUserId || !isBotSeat(state.roster, controlledSeat)) return null;
     seat = controlledSeat;
-  } else seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, userId);
+  } else seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
   if (seat === null) return null;
   const role = state.round.roles[seat];
   switch (role) {

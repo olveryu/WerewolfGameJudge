@@ -1,13 +1,14 @@
 /** Undercover command-level scenarios use authoritative events, never mutate test state. */
 
 import type { CommandContext } from '../../../platform/engine';
+import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { UNDERCOVER_REASONS } from '../domain/decision';
 import type { UndercoverRole } from '../domain/rules';
 import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
 import { migratePersistedUndercoverState, UNDERCOVER_STATE_CODEC } from '../state/codec';
-import type { UndercoverConfig, UndercoverState } from '../state/types';
+import { getUndercoverBotSeats, type UndercoverConfig, type UndercoverState } from '../state/types';
 
 const config: UndercoverConfig = {
   numberOfPlayers: 8,
@@ -159,8 +160,7 @@ describe('Undercover authoritative engine', () => {
         roomCode: state.roomCode,
         hostUserId: state.hostUserId,
         config: state.config,
-        realSeats: state.realSeats,
-        botSeats: state.botSeats,
+        roster: state.roster,
         usedWordPairIds: state.usedWordPairIds,
         phase: 'preparing',
         round: null,
@@ -244,25 +244,27 @@ describe('Undercover authoritative engine', () => {
     for (const state of states) {
       expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(state)))).toEqual(state);
       expect(() => UNDERCOVER_STATE_CODEC.parse({ ...state, unexpected: true })).toThrow();
-      for (const stateVersion of [1, 2]) {
+      for (const stateVersion of [1, 2, 3]) {
         const legacyRound: Record<string, unknown> | null =
           state.round === null ? null : { ...state.round };
-        if (legacyRound !== null) delete legacyRound.speakingStartSeat;
+        if (legacyRound !== null && stateVersion !== 3) delete legacyRound.speakingStartSeat;
         const legacy = {
           ...state,
           stateVersion,
+          realSeats: getHumanSeatMap(state.roster, state.config.numberOfPlayers),
+          botSeats: getUndercoverBotSeats(state),
           round: legacyRound,
           config:
             stateVersion === 1
-              ? { ...state.config, isTestMode: state.botSeats.length > 0 }
+              ? { ...state.config, isTestMode: getUndercoverBotSeats(state).length > 0 }
               : state.config,
         };
         const migrated = migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)));
         expect(migrated).toEqual({
           ...state,
           round:
-            state.round === null
-              ? null
+            state.round === null || stateVersion === 3
+              ? state.round
               : { ...state.round, speakingStartSeat: expect.any(Number) as unknown },
         });
         expect(migratePersistedUndercoverState(legacy)).toEqual(migrated);
@@ -277,7 +279,7 @@ describe('Undercover authoritative engine', () => {
     expect(getUndercoverWordCard(state, 'visitor', null)).toBeNull();
     expect(getUndercoverWordCard(state, 'visitor', 1)).toBeNull();
     expect(getUndercoverWordCard(state, 'host', 0)).toBeNull();
-    for (const seat of state.botSeats) {
+    for (const seat of getUndercoverBotSeats(state)) {
       const card = getUndercoverWordCard(state, 'host', seat);
       expect(card).not.toBeNull();
       expect(card).not.toHaveProperty('role');
@@ -294,7 +296,7 @@ describe('Undercover authoritative engine', () => {
     const state = ongoing();
     expect(state.phase).toBe('ongoing');
     expect(state.round?.confirmedSeats).toHaveLength(8);
-    expect(state.botSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(getUndercoverBotSeats(state)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(state.usedWordPairIds).toEqual(['pair-1']);
     expect(reveal(state, 'civilian', user('host', 2)).round?.revelations).toHaveLength(1);
   });
@@ -373,9 +375,11 @@ describe('Undercover authoritative engine', () => {
 
   it('allows seated and unseated hosts to fill bots but rejects other users', () => {
     const state = createLobby();
-    expect(dispatch(state, { type: 'room.seat.fillBots' }).botSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(getUndercoverBotSeats(dispatch(state, { type: 'room.seat.fillBots' }))).toEqual([
+      1, 2, 3, 4, 5, 6, 7,
+    ]);
     const unseated = dispatch(state, { type: 'room.seat.leave' });
-    expect(dispatch(unseated, { type: 'room.seat.fillBots' }).botSeats).toEqual([
+    expect(getUndercoverBotSeats(dispatch(unseated, { type: 'room.seat.fillBots' }))).toEqual([
       0, 1, 2, 3, 4, 5, 6, 7,
     ]);
     expect(undercoverEngine.decide(state, { type: 'room.seat.fillBots' }, user('guest')).kind).toBe(
@@ -390,7 +394,7 @@ describe('Undercover authoritative engine', () => {
       user('guest'),
     );
     state = dispatch(state, { type: 'room.seat.fillBots' });
-    expect(state.botSeats).not.toContain(1);
+    expect(getUndercoverBotSeats(state)).not.toContain(1);
     state = complete(
       dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
     );
@@ -556,8 +560,7 @@ describe('Undercover authoritative engine', () => {
     expect(lobby).toMatchObject({
       phase: 'lobby',
       round: null,
-      botSeats: initial.botSeats,
-      realSeats: initial.realSeats,
+      roster: initial.roster,
       config,
       usedWordPairIds: ['pair-1'],
     });

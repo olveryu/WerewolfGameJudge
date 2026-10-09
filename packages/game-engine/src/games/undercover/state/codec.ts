@@ -16,6 +16,7 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 import { normalizeUndercoverState } from './normalize';
 import {
@@ -72,24 +73,38 @@ function parseProfile(value: unknown, path: string): RoomSeatProfile {
   );
 }
 
-function parseSeats(value: unknown, path: string): Readonly<Record<number, UndercoverHumanSeat>> {
+function parseRoster(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, UndercoverHumanSeat | BotSeatOccupant>> {
   const raw = parseObject(value, path);
-  const seats: Record<number, UndercoverHumanSeat> = {};
+  const roster: Record<number, UndercoverHumanSeat | BotSeatOccupant> = {};
   for (const [key, value] of Object.entries(raw)) {
     const seat = parseSeat(Number(key), `${path}.${key}`);
     if (String(seat) !== key) return failDecode(`${path}.${key}`, 'a canonical seat index');
     const occupant = parseObject(value, `${path}.${key}`);
-    seats[seat] = finishObject(
-      occupant,
-      {
-        seat: parseSeat(occupant.seat, `${path}.${key}.seat`),
-        userId: parseNonEmptyString(occupant.userId, `${path}.${key}.userId`),
-        profile: parseProfile(occupant.profile, `${path}.${key}.profile`),
-      },
-      `${path}.${key}`,
-    );
+    if (occupant.kind === 'bot') {
+      roster[seat] = finishObject(
+        occupant,
+        {
+          seat: parseSeat(occupant.seat, `${path}.${key}.seat`),
+          kind: 'bot' as const,
+        },
+        `${path}.${key}`,
+      );
+    } else {
+      roster[seat] = finishObject(
+        occupant,
+        {
+          seat: parseSeat(occupant.seat, `${path}.${key}.seat`),
+          userId: parseNonEmptyString(occupant.userId, `${path}.${key}.userId`),
+          profile: parseProfile(occupant.profile, `${path}.${key}.profile`),
+        },
+        `${path}.${key}`,
+      );
+    }
   }
-  return seats;
+  return roster;
 }
 
 function parseWordPair(value: unknown, path: string): UndercoverWordPair {
@@ -161,8 +176,7 @@ function parseUndercoverState(value: unknown): UndercoverState {
     roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
     hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
     config: parseConfig(raw.config, `${path}.config`),
-    realSeats: parseSeats(raw.realSeats, `${path}.realSeats`),
-    botSeats: parseArray(raw.botSeats, `${path}.botSeats`, parseSeat),
+    roster: parseRoster(raw.roster, `${path}.roster`),
     usedWordPairIds: parseArray(
       raw.usedWordPairIds,
       `${path}.usedWordPairIds`,
@@ -223,12 +237,13 @@ function parseUndercoverState(value: unknown): UndercoverState {
   return normalizeUndercoverState(finishObject(raw, state, path));
 }
 
-/** Upgrade stored v1/v2 rooms without changing roster, words, confirmations or results.
+/** Upgrade stored v1/v2/v3 rooms without changing roster, words, confirmations or results.
  * @throws When the stored configuration or migrated state is invalid.
  */
 export function migratePersistedUndercoverState(value: unknown): UndercoverState {
   const raw = parseObject(value, 'UndercoverState');
-  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseUndercoverState(raw);
+  if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
+    return parseUndercoverState(raw);
   const config = parseObject(raw.config, 'UndercoverState.config');
   const currentConfig = { ...config };
   if (raw.stateVersion === 1) {
@@ -238,8 +253,8 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
   const parsedConfig = parseConfig(currentConfig, 'UndercoverState.config');
   const round = parseNullable(raw.round, 'UndercoverState.round', parseObject);
   const migratedRound =
-    round === null
-      ? null
+    round === null || raw.stateVersion === 3
+      ? round
       : {
           ...round,
           speakingStartSeat: randomIntInclusive(
@@ -248,11 +263,22 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
             createSeededRng(parseNonEmptyString(round.roundId, 'UndercoverState.round.roundId')),
           ),
         };
+  // v1-v3 stored humans and bots separately; merge both into the unified roster.
+  const roster: Record<number, UndercoverHumanSeat | BotSeatOccupant> = {
+    ...parseRoster(raw.realSeats, 'UndercoverState.realSeats'),
+  };
+  for (const seat of parseArray(raw.botSeats, 'UndercoverState.botSeats', parseSeat)) {
+    if (roster[seat] !== undefined)
+      return failDecode('UndercoverState.botSeats', 'seats disjoint from realSeats');
+    roster[seat] = { seat, kind: 'bot' };
+  }
+  const { realSeats: _legacyRealSeats, botSeats: _legacyBotSeats, ...rest } = raw;
   return parseUndercoverState({
-    ...raw,
+    ...rest,
     stateVersion: UNDERCOVER_STATE_VERSION,
     config: parsedConfig,
     round: migratedRound,
+    roster,
   });
 }
 

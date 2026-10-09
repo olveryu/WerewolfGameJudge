@@ -21,7 +21,6 @@ import {
 import {
   SEAT_OPERATION_REASONS,
   type SeatChange,
-  type SeatMap,
   type SeatOccupant,
   type SeatOperationResult,
 } from './types';
@@ -73,7 +72,7 @@ function isSeatInRange(seat: number, seatCount: number): boolean {
 export function getHumanSeatMap<TSeat extends SeatOccupant>(
   roster: RosterMap<TSeat>,
   seatCount: number,
-): SeatMap<TSeat> {
+): Readonly<Record<number, TSeat>> {
   assertSeatCount(seatCount);
   const humans: Record<number, TSeat> = {};
   const seatsByUserId = new Map<string, number>();

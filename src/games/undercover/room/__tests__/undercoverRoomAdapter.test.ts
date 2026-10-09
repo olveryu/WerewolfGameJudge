@@ -1,6 +1,7 @@
 /** Public room projections must conceal live identities and distinguish test controls. */
 
 import {
+  getUndercoverUserSeat,
   type UndercoverCommand,
   undercoverEngine,
   type UndercoverState,
@@ -8,7 +9,6 @@ import {
 import { act, renderHook } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -71,8 +71,8 @@ it('conceals roles and words while everyone reads their cards', () => {
   for (let seat = 0; seat < source.count; seat += 1)
     expect(source.getSeat(seat).secondaryLabel).toBeNull();
   expect(source.getSeat(1).highlight).toBe('controlled');
-  expect(getUserSeat(state.realSeats, 'host')).toBe(0);
-  expect(getUserSeat(state.realSeats, 'visitor')).toBeNull();
+  expect(getUndercoverUserSeat(state, 'host')).toBe(0);
+  expect(getUndercoverUserSeat(state, 'visitor')).toBeNull();
   expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '确认词卡 · 0/6' });
 });
 

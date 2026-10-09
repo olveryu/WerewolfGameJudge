@@ -56,12 +56,50 @@ describe('Undercover room migration', () => {
     const expectedSnapshot = filled.result.snapshot;
     await runInDurableObject(stub, async (instance: GameRoomRuntime, durableState) => {
       const sql = durableState.storage.sql;
-      sql.exec(`UPDATE room_state SET state_version = 1,
-        game_state = json_set(game_state, '$.stateVersion', 1, '$.config.isTestMode', json('true')),
-        initialization_json = json_set(initialization_json, '$.config.isTestMode', json('true'))`);
-      sql.exec(`UPDATE command_receipts SET state_version = 1,
-        result_json = json_set(result_json, '$.snapshot.stateVersion', 1,
-          '$.snapshot.state.stateVersion', 1, '$.snapshot.state.config.isTestMode', json('true'))`);
+      // Downgrade the stored documents to genuine v1 shapes: the roster is
+      // split back into realSeats + botSeats and the v1 config flag returns.
+      const downgradeToV1 = (state: Record<string, unknown>): Record<string, unknown> => {
+        const { roster, ...rest } = state;
+        const realSeats: Record<string, unknown> = {};
+        const botSeats: number[] = [];
+        for (const [key, occupant] of Object.entries(
+          roster as Record<string, { kind?: string; seat: number }>,
+        )) {
+          if (occupant.kind === 'bot') botSeats.push(occupant.seat);
+          else realSeats[key] = occupant;
+        }
+        return {
+          ...rest,
+          stateVersion: 1,
+          config: { ...(state.config as Record<string, unknown>), isTestMode: true },
+          realSeats,
+          botSeats,
+        };
+      };
+      const stateRow = sql.exec('SELECT game_state FROM room_state').one();
+      sql.exec(
+        'UPDATE room_state SET state_version = 1, game_state = ?',
+        JSON.stringify(
+          downgradeToV1(JSON.parse(stateRow.game_state as string) as Record<string, unknown>),
+        ),
+      );
+      sql.exec(
+        `UPDATE room_state SET initialization_json = json_set(initialization_json, '$.config.isTestMode', json('true'))`,
+      );
+      for (const receipt of sql
+        .exec('SELECT command_id, result_json FROM command_receipts')
+        .toArray()) {
+        const result = JSON.parse(receipt.result_json as string) as {
+          snapshot: { stateVersion: number; state: Record<string, unknown> };
+        };
+        result.snapshot.stateVersion = 1;
+        result.snapshot.state = downgradeToV1(result.snapshot.state);
+        sql.exec(
+          'UPDATE command_receipts SET state_version = 1, result_json = ? WHERE command_id = ?',
+          JSON.stringify(result),
+          receipt.command_id,
+        );
+      }
       const before = sql.exec('SELECT * FROM room_state').one();
       const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
       expect(await instance.getSnapshot(identity)).toEqual(expectedSnapshot);
@@ -83,6 +121,8 @@ describe('Undercover room migration', () => {
         result: { kind: 'committed', snapshot: expectedSnapshot },
       });
     });
+    const parsedRoster = UNDERCOVER_STATE_CODEC.parse(expectedSnapshot.state).roster;
+    const { 1: _kickedBotSeat, ...rosterAfterKick } = parsedRoster;
     expect(
       await stub.dispatchUserCommand({
         ...commandContext,
@@ -95,8 +135,7 @@ describe('Undercover room migration', () => {
         kind: 'committed',
         snapshot: {
           state: {
-            botSeats: [2, 3],
-            realSeats: UNDERCOVER_STATE_CODEC.parse(expectedSnapshot.state).realSeats,
+            roster: rosterAfterKick,
           },
         },
       },

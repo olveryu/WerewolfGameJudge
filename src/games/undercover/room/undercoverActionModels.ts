@@ -1,5 +1,6 @@
 /** Undercover button availability projected from authoritative phase and explicit local selection. */
 import {
+  getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
@@ -121,7 +122,7 @@ export function createUndercoverHostManagement(
       add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
       break;
     case 'reading':
-      if (state.botSeats.some((seat) => !state.round.confirmedSeats.includes(seat)))
+      if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
         add(
           'mark-all-bots-viewed',
           '标记全部机器人已查看',
