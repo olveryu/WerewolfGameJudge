@@ -4,6 +4,7 @@ import {
   createPictionaryCommand,
   decidePictionaryCommand,
   DEFAULT_PICTIONARY_CONFIG,
+  getPictionaryUserSeat,
   type PictionaryCommandInput,
   pictionaryEngine,
   type PictionaryPublicCommand,
@@ -33,8 +34,7 @@ function createCollection() {
   );
   const dispatchEngine = (command: PictionaryCommandInput, userId = 'user-0') => {
     sequence += 1;
-    const seat =
-      Object.values(state.realSeats).find((occupant) => occupant?.userId === userId)?.seat ?? 0;
+    const seat = getPictionaryUserSeat(state, userId) ?? 0;
     const decision = decidePictionaryCommand(state, createPictionaryCommand(state, command, seat), {
       actor: { kind: 'user', userId },
       controlledSeat: null,

@@ -3,7 +3,8 @@
 import {
   createPictionaryCommand,
   getPictionaryTaskForSeat,
-  isPictionaryImplicitBotSeat,
+  getPictionaryUserSeat,
+  isPictionaryBotSeat,
   isValidPictionaryText,
   type PictionaryDrawingReservation,
   type PictionaryState,
@@ -12,7 +13,6 @@ import {
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
 import type { DrawingDraft } from '@/features/drawing/model/drawing';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -62,11 +62,11 @@ function collectionKeyFor(state: PictionaryState): string | null {
 }
 
 function getLocallyOwnedTasks(state: PictionaryState, userId: string): readonly LocallyOwnedTask[] {
-  const userSeat = getUserSeat(state.realSeats, userId);
+  const userSeat = getPictionaryUserSeat(state, userId);
   const isHost = state.hostUserId === userId;
   return Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).flatMap((seat) => {
     const isOwnSeat = seat === userSeat;
-    const isControlledBot = isHost && isPictionaryImplicitBotSeat(state, seat);
+    const isControlledBot = isHost && isPictionaryBotSeat(state, seat);
     if (!isOwnSeat && !isControlledBot) return [];
     const task = getPictionaryTaskForSeat(state, seat);
     if (task === null) {

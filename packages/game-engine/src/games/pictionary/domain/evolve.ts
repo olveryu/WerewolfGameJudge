@@ -1,18 +1,14 @@
 /** Pure Pictionary event reducer. */
 
-import type { PictionaryEntry, PictionaryHumanSeat, PictionaryState } from '../state/types';
+import { applyRosterChanges, isBotOccupant } from '../../../platform/room/seating';
+import type { PictionaryEntry, PictionaryState } from '../state/types';
 import type { PictionaryEvent } from './events';
 
 function applySeatChanges(
   state: PictionaryState,
   event: Extract<PictionaryEvent, { readonly type: 'pictionary.seats.changed' }>,
 ): PictionaryState {
-  const realSeats: Record<number, PictionaryHumanSeat | undefined> = { ...state.realSeats };
-  for (const change of event.changes) {
-    if (change.next === null) delete realSeats[change.seat];
-    else realSeats[change.seat] = change.next;
-  }
-  return { ...state, realSeats };
+  return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
 }
 
 function appendEntry(
@@ -33,14 +29,14 @@ export function evolvePictionaryState(
     case 'pictionary.seats.changed':
       return applySeatChanges(state, event);
     case 'pictionary.profile.updated': {
-      const occupant = state.realSeats[event.seat];
-      if (occupant === undefined) {
+      const occupant = state.roster[event.seat];
+      if (occupant == null || isBotOccupant(occupant)) {
         throw new Error(`Pictionary profile event references empty seat ${event.seat}`);
       }
       return {
         ...state,
-        realSeats: {
-          ...state.realSeats,
+        roster: {
+          ...state.roster,
           [event.seat]: {
             ...occupant,
             profile: { ...occupant.profile, ...event.profile },
@@ -48,29 +44,8 @@ export function evolvePictionaryState(
         },
       };
     }
-    case 'pictionary.botFill.changed':
-      return { ...state, fillEmptySeatsWithBots: event.isEnabled, excludedBotSeats: [] };
-    case 'pictionary.botSeat.excluded':
-      if (!state.fillEmptySeatsWithBots) {
-        throw new Error('Pictionary bot-seat exclusion requires bot fill to be enabled');
-      }
-      if (state.excludedBotSeats.includes(event.seat)) {
-        throw new Error(`Pictionary bot seat ${event.seat} is already excluded`);
-      }
-      return {
-        ...state,
-        excludedBotSeats: [...state.excludedBotSeats, event.seat].sort(
-          (left, right) => left - right,
-        ),
-      };
     case 'pictionary.config.updated':
-      return {
-        ...state,
-        config: event.config,
-        excludedBotSeats: state.excludedBotSeats.filter(
-          (seat) => seat < event.config.numberOfPlayers,
-        ),
-      };
+      return { ...state, config: event.config };
     case 'pictionary.round.started':
       return {
         ...state,

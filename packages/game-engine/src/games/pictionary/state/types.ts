@@ -3,7 +3,14 @@
 import type { PictionaryGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
-import type { SeatOccupant } from '../../../platform/room/seating';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  getBotSeats,
+  isBotSeat,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
 
 export const PICTIONARY_MIN_PLAYERS = 4;
 export const PICTIONARY_DEFAULT_PLAYERS = 6;
@@ -122,10 +129,7 @@ export interface PictionaryState extends BaseGameState<PictionaryGameType> {
   readonly phase: PictionaryPhase;
   readonly phaseRevision: number;
   readonly config: PictionaryConfig;
-  readonly realSeats: Readonly<Record<number, PictionaryHumanSeat | undefined>>;
-  readonly fillEmptySeatsWithBots: boolean;
-  /** Sparse seats where the host explicitly removed an otherwise implicit bot. */
-  readonly excludedBotSeats: readonly number[];
+  readonly roster: RosterMap<PictionaryHumanSeat>;
   readonly roundNumber: number;
   readonly roundId: string | null;
   readonly participants: readonly PictionaryParticipant[];
@@ -204,13 +208,23 @@ export function getPictionaryRelayStepCount(numberOfPlayers: number): number {
   return numberOfPlayers;
 }
 
+/** Returns the seats held by bots, ascending. */
+export function getPictionaryBotSeats(state: PictionaryState): readonly number[] {
+  return getBotSeats(state.roster);
+}
+
+/** Returns whether a seat is held by a bot. */
+export function isPictionaryBotSeat(state: PictionaryState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function getPictionaryUserSeat(state: PictionaryState, userId: string): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
+}
+
 export function getPictionaryOccupiedSeatCount(state: PictionaryState): number {
-  if (!state.fillEmptySeatsWithBots) return Object.keys(state.realSeats).length;
-  const excludedEmptySeatCount = state.excludedBotSeats.reduce(
-    (count, seat) => count + (state.realSeats[seat] === undefined ? 1 : 0),
-    0,
-  );
-  return state.config.numberOfPlayers - excludedEmptySeatCount;
+  return countOccupiedSeats(state.roster);
 }
 
 export function isPictionaryRoomFull(state: PictionaryState): boolean {
@@ -223,17 +237,6 @@ export function getPictionaryBotUserId(roomCode: string, seat: number): string {
 
 export function getPictionaryBotDisplayName(seat: number): string {
   return `机器人${seat + 1}号`;
-}
-
-export function isPictionaryImplicitBotSeat(state: PictionaryState, seat: number): boolean {
-  return (
-    state.fillEmptySeatsWithBots &&
-    Number.isSafeInteger(seat) &&
-    seat >= 0 &&
-    seat < state.config.numberOfPlayers &&
-    state.realSeats[seat] === undefined &&
-    !state.excludedBotSeats.includes(seat)
-  );
 }
 
 export function getPictionaryTaskForSeat(

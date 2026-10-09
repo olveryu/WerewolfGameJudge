@@ -14,6 +14,7 @@ import {
   pictionaryEngine,
 } from '../engine';
 import { parsePictionaryState } from '../state/parseState';
+import { getPictionaryUserSeat } from '../state/types';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -72,9 +73,7 @@ function decidePictionaryCommand(
 ) {
   const seat =
     context.controlledSeat ??
-    Object.values(state.realSeats).find(
-      (occupant) => context.actor.kind === 'user' && occupant?.userId === context.actor.userId,
-    )?.seat ??
+    (context.actor.kind === 'user' ? getPictionaryUserSeat(state, context.actor.userId) : null) ??
     0;
   return decideBoundPictionaryCommand(
     state,

@@ -4,6 +4,7 @@ import type { CommandContext, CreateGameContext, Decision } from '../../../platf
 import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_NOT_HOST,
+  REASON_SEAT_TAKEN,
 } from '../../../platform/protocol/reasons';
 import {
   createPictionaryCommand,
@@ -20,7 +21,8 @@ import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,
-  isPictionaryImplicitBotSeat,
+  getPictionaryUserSeat,
+  isPictionaryBotSeat,
   type PictionaryState,
 } from '../state/types';
 
@@ -73,9 +75,7 @@ function decidePictionaryCommand(
 ) {
   const seat =
     context.controlledSeat ??
-    Object.values(state.realSeats).find(
-      (occupant) => context.actor.kind === 'user' && occupant?.userId === context.actor.userId,
-    )?.seat ??
+    (context.actor.kind === 'user' ? getPictionaryUserSeat(state, context.actor.userId) : null) ??
     0;
   return decideBoundPictionaryCommand(
     state,
@@ -106,7 +106,7 @@ function markEverySeatReady(state: PictionaryState): PictionaryState {
     nextState = dispatch(
       nextState,
       { type: 'pictionary.task.ready.set', isReady: true },
-      userContext('host', seat === 0 && state.realSeats[0] !== undefined ? null : seat),
+      userContext('host', seat === 0 && getPictionaryUserSeat(state, 'host') === 0 ? null : seat),
     );
   }
   return nextState;
@@ -118,7 +118,7 @@ function advanceToDrawingCollection(state: PictionaryState): PictionaryState {
     nextState = dispatch(
       nextState,
       { type: 'pictionary.text.submit', text: `题目 ${seat + 1}` },
-      userContext('host', seat === 0 && state.realSeats[0] !== undefined ? null : seat),
+      userContext('host', seat === 0 && getPictionaryUserSeat(state, 'host') === 0 ? null : seat),
     );
   }
   if (nextState.deadlineAt === null) throw new Error('Pictionary transition deadline is missing');
@@ -143,12 +143,33 @@ function expireCurrentPhase(state: PictionaryState): PictionaryState {
 }
 
 describe('Pictionary bot control', () => {
-  it('fills empty lobby seats with implicit bots', () => {
+  it('fills empty lobby seats with bots', () => {
     const state = createBotRound();
 
     expect(getPictionaryOccupiedSeatCount(state)).toBe(4);
-    expect(isPictionaryImplicitBotSeat(state, 1)).toBe(true);
-    expect(isPictionaryImplicitBotSeat(state, 0)).toBe(false);
+    expect(isPictionaryBotSeat(state, 1)).toBe(true);
+    expect(isPictionaryBotSeat(state, 0)).toBe(false);
+  });
+
+  it('rejects taking a seat held by a bot', () => {
+    let state = pictionaryEngine.createInitialState(
+      { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4 },
+      CREATE_CONTEXT,
+    );
+    state = dispatch(
+      state,
+      { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } },
+      userContext('host'),
+    );
+    state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
+
+    expect(
+      decidePictionaryCommand(
+        state,
+        { type: 'room.seat.take', seat: 1, profile: { displayName: '客人' } },
+        userContext('guest'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_SEAT_TAKEN });
   });
 
   it('rejects bot filling from a non-host user', () => {
@@ -162,7 +183,7 @@ describe('Pictionary bot control', () => {
     ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
   });
 
-  it('clears real seats and disables implicit bot filling together', () => {
+  it('clears every seat and bot together', () => {
     let state = pictionaryEngine.createInitialState(
       { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers: 4 },
       CREATE_CONTEXT,
@@ -175,9 +196,7 @@ describe('Pictionary bot control', () => {
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
     state = dispatch(state, { type: 'room.seat.clear' }, userContext('host'));
 
-    expect(state.realSeats).toEqual({});
-    expect(state.fillEmptySeatsWithBots).toBe(false);
-    expect(state.excludedBotSeats).toEqual([]);
+    expect(state.roster).toEqual({});
     expect(getPictionaryOccupiedSeatCount(state)).toBe(0);
   });
 

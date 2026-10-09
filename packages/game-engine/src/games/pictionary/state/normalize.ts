@@ -1,6 +1,7 @@
 /** Fail-fast Pictionary state invariant enforcement. */
 
 import { PICTIONARY_GAME_TYPE } from '../../../platform/protocol/gameTypes';
+import { isBotOccupant } from '../../../platform/room/seating';
 import {
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
@@ -70,36 +71,21 @@ function assertEntry(
 
 function assertSeats(state: PictionaryState): void {
   const userIds = new Set<string>();
-  for (const [rawSeat, occupant] of Object.entries(state.realSeats)) {
+  for (const [rawSeat, occupant] of Object.entries(state.roster)) {
     const seat = Number(rawSeat);
     if (!Number.isSafeInteger(seat) || String(seat) !== rawSeat || seat < 0) {
       throw new Error(`Pictionary seat key ${rawSeat} is invalid`);
     }
-    if (seat >= state.config.numberOfPlayers || occupant === undefined || occupant.seat !== seat) {
+    if (seat >= state.config.numberOfPlayers || occupant == null || occupant.seat !== seat) {
       throw new Error(`Pictionary seat ${rawSeat} is outside the configured room`);
     }
+    if (isBotOccupant(occupant)) continue;
     assertNonEmpty(occupant.userId, `Pictionary seat ${seat} userId`);
     assertNonEmpty(occupant.profile.displayName, `Pictionary seat ${seat} displayName`);
     if (userIds.has(occupant.userId)) {
       throw new Error(`Pictionary user ${occupant.userId} occupies multiple seats`);
     }
     userIds.add(occupant.userId);
-  }
-}
-
-function assertExcludedBotSeats(state: PictionaryState): void {
-  if (!state.fillEmptySeatsWithBots && state.excludedBotSeats.length > 0) {
-    throw new Error('Pictionary excludedBotSeats requires bot fill to be enabled');
-  }
-  let previousSeat = -1;
-  for (const seat of state.excludedBotSeats) {
-    if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers) {
-      throw new Error(`Pictionary excluded bot seat ${seat} is outside the configured room`);
-    }
-    if (seat <= previousSeat) {
-      throw new Error('Pictionary excludedBotSeats must be unique and strictly ascending');
-    }
-    previousSeat = seat;
   }
 }
 
@@ -133,7 +119,9 @@ function assertRound(state: PictionaryState): void {
     if (!state.seatOrder.includes(participant.seat))
       throw new Error('Pictionary participant seat is invalid');
     assertNonEmpty(participant.displayName, 'Pictionary participant name');
-    if (participant.userId !== (state.realSeats[participant.seat]?.userId ?? null))
+    const occupant = state.roster[participant.seat];
+    const human = occupant != null && !isBotOccupant(occupant) ? occupant : null;
+    if (participant.userId !== (human?.userId ?? null))
       throw new Error('Pictionary participant identity changed');
   }
   if (
@@ -188,7 +176,6 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   }
   assertSafeTimestamp(state.deadlineAt, 'Pictionary deadlineAt');
   assertSeats(state);
-  assertExcludedBotSeats(state);
   assertReadySeats(state);
 
   if (state.phase === 'lobby') {
