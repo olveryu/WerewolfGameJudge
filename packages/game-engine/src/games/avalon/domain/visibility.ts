@@ -1,5 +1,6 @@
 /** Avalon per-seat view model: private night info is cropped by the viewer's role (UI-level privacy, D6-Q1). */
 
+import { listUnviewedSeats } from '../../../platform/room/identityViewing';
 import {
   type AvalonBallot,
   type AvalonEndReason,
@@ -12,6 +13,7 @@ import {
   type AvalonState,
   type AvalonVoteMode,
   getAvalonBotDisplayName,
+  getAvalonViewingParticipants,
   isAvalonEvilRole,
   isAvalonImplicitBotSeat,
   isAvalonOccupiedSeat,
@@ -73,6 +75,10 @@ export interface AvalonViewModel {
   /** 派西维尔看到的梅林 + 莫甘娜；他人为 null。 */
   readonly percivalSees: readonly number[] | null;
   readonly nightConfirmed: boolean;
+  /** 身份查看协议：本人是否已查看自己的角色（揭示动画锚点）。 */
+  readonly hasViewedRole: boolean;
+  /** 尚未查看角色的座位（公开信息，与狼人杀 roster 口径一致）。 */
+  readonly unviewedRoleSeats: readonly number[];
   readonly requiredSize: number | null;
   readonly proposedSeats: readonly number[] | null;
   readonly teamSeats: readonly number[] | null;
@@ -236,6 +242,10 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     merlinSees,
     percivalSees,
     nightConfirmed,
+    hasViewedRole: viewerSeat !== null && state.roleViewedSeats.includes(viewerSeat),
+    unviewedRoleSeats: listUnviewedSeats(getAvalonViewingParticipants(state), state.roleViewedSeats)
+      .filter((participant) => !participant.isBot)
+      .map((participant) => participant.seat),
     requiredSize,
     proposedSeats,
     teamSeats,

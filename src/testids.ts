@@ -145,7 +145,6 @@ export const TESTIDS = {
   fibNextRoundButton: 'fib-next-round-button',
   fibEndGameButton: 'fib-end-game-button',
   fibViewResultButton: 'fib-view-result-button',
-  fibConfigureButton: 'fib-configure-button',
 
   // Pictionary
   pictionaryConfigPlayerCount: 'pictionary-config-player-count',

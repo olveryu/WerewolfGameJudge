@@ -7,13 +7,13 @@ import {
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 
 import { undercoverGameNavigation } from './navigation/undercoverGameNavigation';
-import { getUndercoverUserSeat } from './room/undercoverRoomAdapter';
 import { UndercoverRoomScreen } from './room/UndercoverRoomScreen';
 import { UndercoverConfigScreen } from './screens/UndercoverConfigScreen';
 import { UndercoverRulesScreen } from './screens/UndercoverRulesScreen';
@@ -49,7 +49,7 @@ export function createUndercoverUiModule({
     roomAccount: createSessionRoomAccountCapability<'undercover', UndercoverState>({
       gameType: 'undercover',
       session,
-      isUserSeated: (state, userId) => getUndercoverUserSeat(state, userId) !== null,
+      isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
       canSwitchAccount: (state) => state.phase === 'lobby',
     }),
     productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },

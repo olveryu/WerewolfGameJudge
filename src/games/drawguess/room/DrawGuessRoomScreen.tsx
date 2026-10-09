@@ -9,7 +9,6 @@ import {
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessPhase,
   type DrawGuessViewModel,
-  getDrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -17,11 +16,19 @@ import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from '
 import { AlertModal } from '@/components/AlertModal';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
+import {
+  DRAWING_PALETTE,
+  DRAWING_WIDTHS,
+  type DrawingColor,
+  type DrawingTool,
+  type DrawingWidth,
+} from '@/features/drawing/model/drawing';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -32,26 +39,18 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import {
-  DRAWGUESS_DRAWING_PALETTE,
-  DRAWGUESS_DRAWING_WIDTHS,
-  type DrawGuessDrawingColor,
-  type DrawGuessDrawingTool,
-  type DrawGuessDrawingWidth,
-} from '../model/drawGuessDrawing';
-import {
-  readDrawGuessDrawingDataUri,
-  renderDrawGuessDrawing,
-  uploadDrawGuessDrawing,
-} from '../services/drawGuessMediaApi';
+import { renderDrawGuessDrawing } from '../services/drawGuessMediaApi';
+import { drawGuessMediaTransport } from '../services/drawGuessMediaTransport';
 import { DrawGuessDrawingCanvas } from './components/DrawGuessDrawingCanvas';
 import { DrawGuessGuessPanel } from './components/DrawGuessGuessPanel';
 import { DrawGuessHintBar } from './components/DrawGuessHintBar';
 import { DrawGuessScoreboard } from './components/DrawGuessScoreboard';
 import { DrawGuessToolbar } from './components/DrawGuessToolbar';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
-import { useDrawGuessDeadline } from './hooks/useDrawGuessDeadline';
-import { useDrawGuessRoomState } from './hooks/useDrawGuessRoomState';
+import {
+  type DrawGuessRoomScreenState,
+  useDrawGuessRoomState,
+} from './hooks/useDrawGuessRoomState';
 import { drawGuessStrokeToElement, useDrawGuessStrokeSync } from './hooks/useDrawGuessStrokeSync';
 
 /** 游戏工作区最大宽度（与接龙版一致），水平居中。 */
@@ -61,7 +60,7 @@ const DRAWGUESS_WIDE_LAYOUT_BREAKPOINT = 768;
 const PNG_UPLOAD_MAX_ATTEMPTS = 3;
 const PNG_UPLOAD_RETRY_MS = 5000;
 
-type DrawGuessScreenState = ReturnType<typeof useDrawGuessRoomState>;
+type DrawGuessScreenState = DrawGuessRoomScreenState;
 type DrawGuessWordSelectPhase = Extract<DrawGuessPhase, { readonly kind: 'wordSelect' }>;
 type DrawGuessDrawingPhase = Extract<DrawGuessPhase, { readonly kind: 'drawing' }>;
 type DrawGuessRoundEndPhase = Extract<DrawGuessPhase, { readonly kind: 'roundEnd' }>;
@@ -102,8 +101,8 @@ function DrawGuessRoomContent(
               beforeSeatBoard: (
                 <RoomGameSummary
                   icon="pencil-outline"
-                  title="你画我猜"
-                  subtitle={`${config.numberOfPlayers} 人 · 每人 ${DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 选词 ${DRAWGUESS_WORD_SELECT_SECONDS} 秒 · 作画 ${DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 · 结算 ${DRAWGUESS_ROUND_END_SECONDS} 秒`}
+                  title={`你画我猜 · ${config.numberOfPlayers}人局`}
+                  subtitle={`每人 ${DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 选词 ${DRAWGUESS_WORD_SELECT_SECONDS} 秒 · 作画 ${DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 · 结算 ${DRAWGUESS_ROUND_END_SECONDS} 秒`}
                   headerRight={
                     <RoomGuideButton onPress={screen.openRules} label="查看你画我猜玩法" />
                   }
@@ -127,25 +126,17 @@ function DrawGuessRoomContent(
   );
 }
 
-/** 按权威阶段选择视图；view model 按当前有效席位裁剪后传入各视图。 */
+/** 按权威阶段选择视图；view model 与阶段截止已由 hook 组装（P-2b），此处只做分发。 */
 function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
-  const { state, session, effectiveSeat } = screen;
+  const { state, viewModel, remainingSeconds } = screen;
   const phase = state.phase;
-  const deadlineAt =
-    phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd'
-      ? phase.deadlineAt
-      : null;
-  const deadline = useDrawGuessDeadline(deadlineAt, state.phaseRevision, state.turnIndex, session);
-  const nowMs = useDrawGuessNowMs();
-  // view model 每次渲染用当前时间重新计算，拼音首字母揭示随 1 秒 tick 更新。
-  const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
   if (phase.kind === 'wordSelect') {
     return (
       <DrawGuessWordSelectView
         screen={screen}
         phase={phase}
         viewModel={viewModel}
-        remainingSeconds={deadline.remainingSeconds}
+        remainingSeconds={remainingSeconds}
       />
     );
   }
@@ -155,7 +146,7 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
         screen={screen}
         phase={phase}
         viewModel={viewModel}
-        remainingSeconds={deadline.remainingSeconds}
+        remainingSeconds={remainingSeconds}
       />
     );
   }
@@ -165,7 +156,7 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessScreenState }) {
         screen={screen}
         phase={phase}
         viewModel={viewModel}
-        remainingSeconds={deadline.remainingSeconds}
+        remainingSeconds={remainingSeconds}
       />
     );
   }
@@ -205,16 +196,6 @@ function DrawGuessStageFrame({
   );
 }
 
-/** 每秒更新的本地时钟：驱动拼音首字母揭示的显示 tick（effect 内更新，render 保持纯）。 */
-function useDrawGuessNowMs(): number {
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return nowMs;
-}
-
 /** 固定宽度 mm:ss 等宽倒计时；最后 5 秒醒目提示。 */
 function DrawGuessCountdown({
   remainingSeconds,
@@ -234,7 +215,7 @@ function DrawGuessCountdown({
       accessibilityRole="timer"
     >
       <Text style={[styles.countdownText, urgent && styles.countdownUrgent]}>
-        {minutes}:{String(seconds).padStart(2, '0')}
+        {formatCountdownSeconds(remainingSeconds)}
       </Text>
     </View>
   );
@@ -371,11 +352,9 @@ function DrawGuessDrawingView({
   const { width: windowWidth } = useWindowDimensions();
   const isWideLayout = windowWidth >= DRAWGUESS_WIDE_LAYOUT_BREAKPOINT;
   const isDrawer = effectiveSeat === phase.drawerSeat;
-  const [tool, setTool] = useState<DrawGuessDrawingTool>('brush');
-  const [color, setColor] = useState<DrawGuessDrawingColor>(DRAWGUESS_DRAWING_PALETTE[0].value);
-  const [strokeWidth, setStrokeWidth] = useState<DrawGuessDrawingWidth>(
-    DRAWGUESS_DRAWING_WIDTHS[1],
-  );
+  const [tool, setTool] = useState<DrawingTool>('brush');
+  const [color, setColor] = useState<DrawingColor>(DRAWING_PALETTE[0].value);
+  const [strokeWidth, setStrokeWidth] = useState<DrawingWidth>(DRAWING_WIDTHS[1]);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const canDraw = isDrawer && remainingSeconds !== null && remainingSeconds > 0;
   const sync = useDrawGuessStrokeSync({
@@ -463,7 +442,7 @@ function DrawGuessDrawingView({
                 isEnabled={canDraw}
                 onElementChange={sync.onElementChange}
                 onElementComplete={sync.onElementComplete}
-                onFill={(point) => sync.onFill(point, color, strokeWidth)}
+                onFill={(point) => sync.onFill(point, color)}
               />
             </View>
             <View style={isWideLayout ? styles.sidePanelWide : styles.sidePanelNarrow}>
@@ -576,7 +555,12 @@ function DrawGuessRoundEndView({
       try {
         const elements = phase.strokes.map(drawGuessStrokeToElement);
         const png = renderDrawGuessDrawing(elements);
-        await uploadDrawGuessDrawing(roomCode, reservation.submissionId, png, controlledSeat);
+        await drawGuessMediaTransport.uploadDrawing(
+          roomCode,
+          reservation.submissionId,
+          png,
+          controlledSeat,
+        );
       } catch (error: unknown) {
         roomScreenLog.warn('round-end PNG upload failed', {
           attempt: uploadAttempts.current,
@@ -617,7 +601,7 @@ function DrawGuessRoundEndView({
     let cancelled = false;
     void (async () => {
       try {
-        const uri = await readDrawGuessDrawingDataUri(
+        const uri = await drawGuessMediaTransport.readDrawingDataUri(
           roomCode,
           reservation.entryId,
           controlledSeat,
@@ -665,8 +649,8 @@ function DrawGuessRoundEndView({
         <DrawGuessDrawingCanvas
           elements={phase.strokes.map(drawGuessStrokeToElement)}
           tool="brush"
-          color={DRAWGUESS_DRAWING_PALETTE[0].value}
-          strokeWidth={DRAWGUESS_DRAWING_WIDTHS[1]}
+          color={DRAWING_PALETTE[0].value}
+          strokeWidth={DRAWING_WIDTHS[1]}
           isEnabled={false}
           onElementChange={() => undefined}
           onElementComplete={() => undefined}

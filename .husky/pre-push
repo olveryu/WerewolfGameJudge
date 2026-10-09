@@ -4,3 +4,4 @@ if [ -f /opt/homebrew/opt/asdf/libexec/asdf.sh ]; then
 fi
 
 npx tsc --noEmit
+npx knip

@@ -6,7 +6,6 @@ import {
   type FibPreparationStage,
   type FibPublicCommand,
   type FibRoundView,
-  getFibBotDisplayName,
   getFibOccupiedSeatCount,
   getFibRoundView,
   getFibUserSeat,
@@ -17,6 +16,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -26,6 +27,11 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -34,6 +40,7 @@ import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
+import { getFibRevealRolePool } from '../components/FibRoleCardAdapter';
 import {
   createFibBottomActions,
   createFibHostManagement,
@@ -59,7 +66,16 @@ export interface FibRoomScreenState {
   readonly shellModel: RoomShellModel;
   readonly roundView: FibRoundView | null;
   readonly isIdentityVisible: boolean;
-  readonly closeIdentity: () => void;
+  /** 身份弹窗确认（唯一出口）：viewing 未确认时提交查看记录并关闭，其余等同关闭。 */
+  readonly confirmIdentity: () => void;
+  /** 身份弹窗确认按钮文案（viewing 未确认时为「我已看清」）。 */
+  readonly identityConfirmText: string;
+  /** 是否播放揭示动画（服务端查看记录锚点：本轮未记录已查看才播）。 */
+  readonly identityShouldPlay: boolean;
+  /** Animator 角色池（只有种类与计数，零泄密）。 */
+  readonly identityAllRoles: readonly RevealRoleData[];
+  /** 是否正接管机器人座位（接管时不播查看者本人的揭示动画，D-1）。 */
+  readonly isBotTakeoverActive: boolean;
   readonly openRules: () => void;
   readonly occupiedSeatCount: number;
   readonly playerCount: number;
@@ -67,6 +83,8 @@ export interface FibRoomScreenState {
   readonly preparationStage: FibPreparationStage | null;
   readonly preparationFailureCode: FibPreparationFailureCode | null;
   readonly isHost: boolean;
+  /** 当前用户装备的揭示动画（已解析）；null 表示未装备、直接显示静态卡。 */
+  readonly equippedRevealEffect: RevealEffectType | null;
 }
 
 export function useFibRoomScreenState({
@@ -135,7 +153,12 @@ export function useFibRoomScreenState({
   }, [controlledSeat, releaseBot, state]);
 
   useEffect(() => {
-    if (isIdentityVisible && state.phase !== 'ongoing' && state.phase !== 'ended') {
+    if (
+      isIdentityVisible &&
+      state.phase !== 'viewing' &&
+      state.phase !== 'ongoing' &&
+      state.phase !== 'ended'
+    ) {
       setIsIdentityVisible(false);
     }
   }, [isIdentityVisible, state.phase]);
@@ -223,12 +246,27 @@ export function useFibRoomScreenState({
     setIsIdentityVisible(true);
   }, [effectiveSeat, isIdentityVisible, state]);
 
-  const closeIdentity = useCallback(() => {
+  const confirmIdentity = useCallback(() => {
     if (!isIdentityVisible) {
       throw new Error('[FAIL-FAST] FibKing identity modal is not open');
     }
+    if (roundView?.phase === 'viewing' && !roundView.viewerHasViewed) {
+      void submitCommand('确认查看身份', { type: 'fib.round.confirmRoleView' });
+    }
     setIsIdentityVisible(false);
-  }, [isIdentityVisible]);
+  }, [isIdentityVisible, roundView, submitCommand]);
+
+  const identityHasViewed =
+    state.round !== null &&
+    effectiveSeat !== null &&
+    state.round.viewedSeats.includes(effectiveSeat);
+  const identityShouldPlay = roundView !== null && effectiveSeat !== null && !identityHasViewed;
+  const identityAllRoles = useMemo(
+    () => (state.round === null ? [] : getFibRevealRolePool(state.numberOfPlayers)),
+    [state.numberOfPlayers, state.round],
+  );
+  const identityConfirmText =
+    roundView?.phase === 'viewing' && !roundView.viewerHasViewed ? '我已看清' : '知道了';
 
   const capabilities = useMemo(
     () =>
@@ -312,36 +350,25 @@ export function useFibRoomScreenState({
     [capabilities, mySeat, state],
   );
 
-  const onSeatLongPress = useCallback(
-    (seat: number) => {
-      const target = getFibProfileTarget(state, seat);
-      if (target?.occupantKind !== 'bot') {
-        throw new Error(`[FAIL-FAST] FibKing bot takeover received non-bot seat ${seat}`);
-      }
-      if (controlledSeat === seat) {
-        releaseBot();
-        return;
-      }
-      const capability = capabilities.canTakeOverBots;
-      if (!capability.isAllowed) {
-        throw new Error(
-          `[FAIL-FAST] FibKing bot takeover was wired while denied: ${capability.reason}`,
-        );
-      }
-      capability.execute(seat);
-    },
-    [capabilities.canTakeOverBots, controlledSeat, releaseBot, state],
+  const isBotSeat = useCallback(
+    (seat: number) => getFibProfileTarget(state, seat)?.occupantKind === 'bot',
+    [state],
   );
+  const onSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: takeOverBot,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    deniedReason: capabilities.canTakeOverBots.isAllowed
+      ? undefined
+      : (capabilities.canTakeOverBots.reason ?? undefined),
+    isBotSeat,
+    gameName: 'FibKing',
+  });
 
   const handleProfileKick = useCallback(() => {
-    const selection = profileSelection;
-    if (selection === null) throw new Error('[FAIL-FAST] Cannot kick without an open profile');
-    const capability = capabilities.canKickSeat;
-    if (!capability.isAllowed) {
-      throw new Error(`[FAIL-FAST] FibKing profile kick is denied: ${capability.reason}`);
-    }
-    capability.execute(selection.target.seat);
-  }, [capabilities.canKickSeat, profileSelection]);
+    executeProfileKick(capabilities, profileSelection);
+  }, [capabilities, profileSelection]);
 
   const handleProfileLeave = useCallback(() => {
     const capability = capabilities.canLeaveSeat;
@@ -432,21 +459,17 @@ export function useFibRoomScreenState({
     [effectiveSeat, isHost, openIdentity, state],
   );
 
-  const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
-    if (controlledSeat !== null) {
-      return {
-        kind: 'controlled',
-        seat: controlledSeat,
-        displayName: getFibBotDisplayName(controlledSeat),
-        onRelease: releaseBot,
-      };
-    }
-    const hasControllableBots =
-      capabilities.canTakeOverBots.isAllowed &&
-      state.fillEmptySeatsWithBots &&
-      Object.keys(state.realSeats).length < state.numberOfPlayers;
-    return hasControllableBots ? { kind: 'hint' } : null;
-  }, [capabilities.canTakeOverBots, controlledSeat, releaseBot, state]);
+  const hasControllableBots =
+    capabilities.canTakeOverBots.isAllowed &&
+    state.fillEmptySeatsWithBots &&
+    Object.keys(state.realSeats).length < state.numberOfPlayers;
+  const controlledSeatModel = createControlledSeatModel({
+    isVisible: controlledSeat !== null || hasControllableBots,
+    controlledSeat,
+    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    release: releaseBot,
+    gameName: 'FibKing',
+  });
 
   const shellModel = useMemo(
     (): RoomShellModel => ({
@@ -512,7 +535,11 @@ export function useFibRoomScreenState({
     shellModel,
     roundView,
     isIdentityVisible,
-    closeIdentity,
+    confirmIdentity,
+    identityConfirmText,
+    identityShouldPlay,
+    identityAllRoles,
+    isBotTakeoverActive: controlledSeat !== null,
     openRules,
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     playerCount: state.numberOfPlayers,
@@ -521,5 +548,6 @@ export function useFibRoomScreenState({
     preparationFailureCode:
       state.phase === 'preparationFailed' ? state.preparationFailure.failureCode : null,
     isHost,
+    equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
   };
 }

@@ -12,6 +12,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -75,7 +76,7 @@ export function StoryRelayTaskEditor({
     <RoomTaskViewport>
       <View style={[styles.content, styles.task]} testID="storyrelay-task">
         <Text style={styles.title}>
-          {controlledSeat === null ? '我的稿件' : `机器人${controlledSeat + 1}号的稿件`}
+          {controlledSeat === null ? '我的稿件' : `${getBotDisplayName(controlledSeat)}的稿件`}
         </Text>
         {previous !== null && (
           <View style={styles.previous}>

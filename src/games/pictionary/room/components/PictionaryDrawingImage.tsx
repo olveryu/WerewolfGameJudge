@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
-import { readPictionaryDrawingDataUri } from '@/games/pictionary/services/pictionaryMediaApi';
+import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
 import { roomScreenLog } from '@/utils/logger';
@@ -39,14 +39,16 @@ export const PictionaryDrawingImage: React.FC<PictionaryDrawingImageProps> = ({
   useEffect(() => {
     const controller = new AbortController();
     setImageState({ kind: 'loading' });
-    void readPictionaryDrawingDataUri(roomCode, entryId, controlledSeat, controller.signal).then(
-      (uri) => setImageState({ kind: 'loaded', uri }),
-      (error: unknown) => {
-        if (controller.signal.aborted) return;
-        roomScreenLog.warn('Pictionary drawing could not be loaded', { entryId, error });
-        setImageState({ kind: 'failed' });
-      },
-    );
+    void pictionaryMediaTransport
+      .readDrawingDataUri(roomCode, entryId, controlledSeat, controller.signal)
+      .then(
+        (uri) => setImageState({ kind: 'loaded', uri }),
+        (error: unknown) => {
+          if (controller.signal.aborted) return;
+          roomScreenLog.warn('Pictionary drawing could not be loaded', { entryId, error });
+          setImageState({ kind: 'failed' });
+        },
+      );
     return () => controller.abort();
   }, [attempt, controlledSeat, entryId, roomCode]);
 

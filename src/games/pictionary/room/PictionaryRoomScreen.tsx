@@ -1,6 +1,5 @@
 /** Pictionary room hosted by the shared entry boundary and room shell. */
 
-import { getPictionaryOccupiedSeatCount } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
 import { useCallback } from 'react';
 
@@ -52,7 +51,7 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
               beforeSeatBoard: (
                 <PictionaryRoomSummary
                   config={screen.state.config}
-                  occupiedSeatCount={getPictionaryOccupiedSeatCount(screen.state)}
+                  occupiedSeatCount={screen.occupiedSeatCount}
                   headerRight={
                     <RoomGuideButton onPress={screen.openRules} label="查看你画我猜接龙玩法说明" />
                   }
@@ -66,8 +65,10 @@ const PictionaryRoomContent: React.FC<PictionaryRoomContentProps> = ({
                   state={screen.state}
                   effectiveSeat={screen.effectiveSeat}
                   controlledSeat={screen.controlledSeat}
+                  releaseBot={screen.releaseBot}
                   userId={screen.userId}
                   isHost={screen.isHost}
+                  canControlBots={screen.canControlBots}
                   seatModel={screen.shellModel.seats}
                   session={screen.session}
                 />

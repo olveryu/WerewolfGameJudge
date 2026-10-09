@@ -2,18 +2,20 @@
 
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
+import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
+import { roomScreenLog } from '@/utils/logger';
 
 import {
   type PictionaryTaskInput,
   usePictionaryAutoSubmission,
 } from '../hooks/usePictionaryAutoSubmission';
-import { usePictionaryStageDeadline } from '../hooks/usePictionaryStageDeadline';
 import { PictionaryEndedStage, PictionaryGalleryStage } from './PictionaryGalleryStage';
 import { PictionaryTaskStage } from './PictionaryTaskStage';
 
@@ -21,8 +23,10 @@ interface PictionaryStageProps {
   readonly state: PictionaryState;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
   readonly userId: string;
   readonly isHost: boolean;
+  readonly canControlBots: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: PictionaryRoomSession;
 }
@@ -38,20 +42,39 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
   state,
   effectiveSeat,
   controlledSeat,
+  releaseBot,
   userId,
   isHost,
+  canControlBots,
   seatModel,
   session,
 }) => {
   if (state.phase === 'lobby') {
     throw new Error('[FAIL-FAST] Pictionary lobby must use the shared seat workspace');
   }
-  const deadline = usePictionaryStageDeadline({
+  const canExpire = isHost || effectiveSeat !== null;
+  const shouldExpire = useCallback(() => canExpire, [canExpire]);
+  const onExpire = useCallback(async () => {
+    const result = await session.dispatch(
+      { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
+      { controlledSeat: null, label: '推进接龙阶段', isRecoverable: true },
+    );
+    if (!isSuccessfulRoomCommand(result)) {
+      roomScreenLog.warn('Pictionary phase expiry was not accepted', {
+        phaseRevision: state.phaseRevision,
+        outcomeKind: result.kind,
+      });
+    }
+  }, [session, state.phaseRevision]);
+  const remainingSeconds = useStageDeadline({
     deadlineAt: state.deadlineAt,
-    phaseRevision: state.phaseRevision,
-    canExpire: isHost || effectiveSeat !== null,
-    session,
+    shouldExpire,
+    onExpire,
+    label: '推进接龙阶段',
+    refreshIntervalMs: 250,
   });
+  // pictionary 原 hook 返回 { remainingSeconds, isExpired }，此处保持调用方兼容
+  const deadline = { remainingSeconds, isExpired: remainingSeconds === 0 };
   const [inputs] = useState(() => new Map<number, PictionaryTaskInput>());
   const autoSubmission = usePictionaryAutoSubmission(state, userId, session, inputs);
 
@@ -80,8 +103,11 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
       <PictionaryTakeover
         seatModel={seatModel}
         isHost={isHost}
+        canControlBots={canControlBots}
         controlledSeat={controlledSeat}
+        releaseBot={releaseBot}
         remainingSeconds={deadline.remainingSeconds}
+        isLobby={false}
       />
       <PictionaryTaskStage
         inputs={inputs}
@@ -106,13 +132,19 @@ const styles = StyleSheet.create({
 function PictionaryTakeover({
   seatModel,
   isHost,
+  canControlBots,
   controlledSeat,
+  releaseBot,
   remainingSeconds,
+  isLobby,
 }: {
   readonly seatModel: RoomSeatBoardModel;
   readonly isHost: boolean;
+  readonly canControlBots: boolean;
   readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
   readonly remainingSeconds: number | null;
+  readonly isLobby: boolean;
 }) {
   const bots: BotTakeoverBot[] = useMemo(() => {
     const result: BotTakeoverBot[] = [];
@@ -137,13 +169,16 @@ function PictionaryTakeover({
   return (
     <BotTakeover
       bots={bots}
+      // activeSeat 恒 null：传画接龙全体并行应答，没有单一行动座位（引擎无 drawerSeat，
+      // 那是 drawguess 的概念）；机器人任务由房主端自动提交兜底。传单个座位会让接管
+      // 组件的紧急提醒与列表置顶误指向某一个机器人。
       activeSeat={null}
       remainingSeconds={remainingSeconds}
       controlledSeat={controlledSeat}
-      canControl={isHost}
-      isLobby={false}
+      canControl={isHost && canControlBots}
+      isLobby={isLobby}
       onTakeOver={onTakeOver}
-      onRelease={() => onTakeOver(controlledSeat ?? 0)}
+      onRelease={releaseBot}
     />
   );
 }

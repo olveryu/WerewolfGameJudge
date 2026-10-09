@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
+import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 import { colors, fixed, spacing, textStyles } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -42,7 +43,7 @@ export function PictionaryTaskFrame({
         ? '收稿中'
         : isFinalCountdown
           ? String(remainingSeconds)
-          : `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+          : formatCountdownSeconds(remainingSeconds);
   return (
     <RoomTaskViewport>
       <View style={styles.task} testID={TESTIDS.pictionaryStageFrame}>

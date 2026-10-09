@@ -1,17 +1,27 @@
 /** Undercover room mounts exclusively through shared authentication, session and shell boundaries. */
-import { useCallback } from 'react';
+import type { UndercoverRole } from '@game-judge/game-engine/games/undercover/public';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
+import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
+import { colors } from '@/theme';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
 import { undercoverStyles as styles } from '../undercover.styles';
 import { UndercoverRevealModal } from './components/UndercoverRevealModal';
+import {
+  isUndercoverRole,
+  toUndercoverRolePreviewData,
+} from './components/UndercoverRoleCardAdapter';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
 import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenState';
 import { UNDERCOVER_CATEGORY_NAMES } from './undercoverRoomAdapter';
@@ -32,8 +42,19 @@ export function UndercoverRoomScreen(props: UndercoverRoomScreenProps) {
 function UndercoverRoomContent(
   props: UndercoverRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const { state, shellModel, controls, isControlled, openRules } =
-    useUndercoverRoomScreenState(props);
+  const {
+    state,
+    shellModel,
+    controls,
+    isControlled,
+    equippedRevealEffect,
+    revealPool,
+    roleCounts,
+    openRules,
+  } = useUndercoverRoomScreenState(props);
+  const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
+  // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
+  const [previewRole, setPreviewRole] = useState<UndercoverRole | null>(null);
   return (
     <RoomShell
       model={shellModel}
@@ -45,24 +66,62 @@ function UndercoverRoomContent(
         sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
-          <RoomGameSummary
-            icon="search-outline"
-            title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
-            subtitle={`${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
-            testID="undercover-room"
-            headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
-          >
-            {state.phase === 'ended' && (
-              <View style={styles.section} testID="undercover-results">
-                <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
-                <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
-                <Text style={styles.muted}>
-                  出局顺序：
-                  {state.round.revelations.map((entry) => `${entry.seat + 1}号`).join(' → ')}
-                </Text>
-              </View>
-            )}
-          </RoomGameSummary>
+          <>
+            <RoomGameSummary
+              icon="search-outline"
+              title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
+              subtitle={`${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
+              testID="undercover-room"
+              headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
+            >
+              {state.phase === 'ended' && (
+                <View style={styles.section} testID="undercover-results">
+                  <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
+                  <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
+                  <Text style={styles.muted}>
+                    出局顺序：
+                    {state.round.revelations.map((entry) => formatRoomSeat(entry.seat)).join(' → ')}
+                  </Text>
+                </View>
+              )}
+            </RoomGameSummary>
+            <BoardInfoCard
+              playerCount={state.config.numberOfPlayers}
+              sections={[
+                {
+                  title: '卧底',
+                  items: [
+                    { roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover },
+                  ],
+                  color: colors.wolf,
+                },
+                {
+                  title: '平民',
+                  items: [
+                    {
+                      roleId: 'civilian',
+                      displayName: '平民',
+                      count: roleCounts.civilian,
+                    },
+                  ],
+                  color: colors.villager,
+                },
+                ...(state.config.hasBlank
+                  ? [
+                      {
+                        title: '白板',
+                        items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
+                        color: colors.textMuted,
+                      },
+                    ]
+                  : []),
+              ]}
+              styles={boardInfoStyles}
+              onRolePress={(roleId) => {
+                if (isUndercoverRole(roleId)) setPreviewRole(roleId);
+              }}
+            />
+          </>
         ),
       }}
       gameOverlays={
@@ -70,6 +129,11 @@ function UndercoverRoomContent(
           {controls.card !== null && (
             <UndercoverWordModal
               card={controls.card}
+              effectType={isControlled ? null : equippedRevealEffect}
+              shouldPlay={
+                state.round !== null && !state.round.confirmedSeats.includes(controls.card.seat)
+              }
+              allRoles={revealPool}
               isControlled={isControlled}
               shouldConfirm={controls.shouldConfirm}
               isSubmitting={controls.isSubmitting}
@@ -86,6 +150,14 @@ function UndercoverRoomContent(
               onConfirm={controls.reveal}
             />
           )}
+          {previewRole !== null ? (
+            <RoleCardSimple
+              visible={true}
+              role={toUndercoverRolePreviewData(previewRole)}
+              onClose={() => setPreviewRole(null)}
+              confirmText="知道了"
+            />
+          ) : null}
         </>
       }
     />

@@ -5,6 +5,7 @@ import type React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 import { colors, spacing, textStyles, withAlpha } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
@@ -24,12 +25,6 @@ interface PictionaryStageHeadingProps {
   readonly title: string;
   readonly description: string;
   readonly remainingSeconds: number | null;
-}
-
-function formatRemainingTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${String(remainder).padStart(2, '0')}`;
 }
 
 export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
@@ -65,7 +60,7 @@ export const PictionaryStageHeading: React.FC<PictionaryStageHeadingProps> = ({
             ? '不限时'
             : remainingSeconds === 0
               ? '切换中'
-              : formatRemainingTime(remainingSeconds)}
+              : formatCountdownSeconds(remainingSeconds)}
         </Text>
       </View>
     </View>

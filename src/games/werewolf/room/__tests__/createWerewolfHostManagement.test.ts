@@ -120,7 +120,7 @@ describe('createWerewolfHostManagement', () => {
     expect(model?.preview).toBe('下一步：分配角色');
     expect(actionLabels(model!)).toEqual([
       '分配角色',
-      '房间配置',
+      '房间设置',
       '填充机器人',
       '清空座位',
       '音乐设置',

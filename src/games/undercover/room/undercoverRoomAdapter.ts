@@ -7,6 +7,7 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -53,16 +54,9 @@ export function getUndercoverProfileTarget(
         seat,
         userId: `undercover-bot:${state.roomCode}:${seat}`,
         occupantKind: 'bot',
-        rosterName: `机器人 ${seat + 1}`,
+        rosterName: getBotDisplayName(seat),
       }
     : null;
-}
-
-/** Find a real account's seat independently of local robot control. */
-export function getUndercoverUserSeat(state: UndercoverState, userId: string): number | null {
-  for (const human of Object.values(state.realSeats))
-    if (human !== undefined && human.userId === userId) return human.seat;
-  return null;
 }
 
 interface UndercoverCapabilitiesInput extends Omit<

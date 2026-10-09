@@ -7,10 +7,16 @@ import {
   getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
+  getFibViewingParticipants,
   isFibImplicitBotSeat,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomButton,
   RoomBottomStackModel,
@@ -141,7 +147,9 @@ function getSeatRoleLabel(state: FibState, seat: number): string | null {
     return null;
   }
   const role = getFibRole(state.round.roles, seat);
-  if (state.phase === 'ongoing' && role !== 'guesser') return null;
+  if ((state.phase === 'ongoing' || state.phase === 'viewing') && role !== 'guesser') {
+    return null;
+  }
   return FIB_ROLE_NAMES[role];
 }
 
@@ -228,6 +236,17 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel {
         text: '词语准备失败',
         supportingText: '暂无可用词语，请重新准备',
       };
+    case 'viewing': {
+      const unviewedCount = getFibViewingParticipants(state).filter(
+        (participant) => !participant.isBot && !state.round.viewedSeats.includes(participant.seat),
+      ).length;
+      return {
+        kind: 'message',
+        icon: 'guide',
+        text: '等待全员查看身份',
+        supportingText: `还差 ${unviewedCount} 人`,
+      };
+    }
     case 'ongoing':
       return {
         kind: 'message',
@@ -295,6 +314,8 @@ function commandHostAction(
 
 function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
   switch (input.state.phase) {
+    case 'viewing':
+      return [];
     case 'lobby': {
       const descriptor: FibHostActionDescriptor = {
         key: 'start-round',
@@ -402,44 +423,23 @@ function createFibRoomManagementActions(input: FibHostManagementInput): RoomHost
   const actions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     actions.push(
-      enabledHostAction(
-        {
-          key: 'configure-game',
-          label: '房间设置',
-          icon: 'options-outline',
-          variant: 'secondary',
-          testID: TESTIDS.fibConfigureButton,
-        },
-        input.capabilities.canConfigureGame.execute,
-      ),
+      buildRoomConfigAction({
+        onPress: input.capabilities.canConfigureGame.execute,
+      }),
     );
   }
   if (input.capabilities.canFillBots.isAllowed) {
     actions.push(
-      enabledHostAction(
-        {
-          key: 'fill-bots',
-          label: '填充机器人',
-          icon: 'people-outline',
-          variant: 'secondary',
-          testID: TESTIDS.roomFillBotsButton,
-        },
-        input.capabilities.canFillBots.execute,
-      ),
+      buildFillBotsAction({
+        onPress: input.capabilities.canFillBots.execute,
+      }),
     );
   }
   if (input.capabilities.canClearSeats.isAllowed) {
     actions.push(
-      enabledHostAction(
-        {
-          key: 'clear-seats',
-          label: '清空座位',
-          icon: 'trash-outline',
-          variant: 'danger',
-          testID: TESTIDS.roomClearSeatsButton,
-        },
-        input.capabilities.canClearSeats.execute,
-      ),
+      buildClearSeatsAction({
+        onPress: input.capabilities.canClearSeats.execute,
+      }),
     );
   }
   return actions;
@@ -447,6 +447,7 @@ function createFibRoomManagementActions(input: FibHostManagementInput): RoomHost
 
 function createFibDangerActions(input: FibHostManagementInput): RoomHostManagementAction[] {
   switch (input.state.phase) {
+    case 'viewing':
     case 'ongoing':
       return [
         commandHostAction(
@@ -498,6 +499,8 @@ function getFibHostPreview(state: FibState): string {
       return '正在准备，可取消';
     case 'preparationFailed':
       return '待处理：重新准备';
+    case 'viewing':
+      return '等待全员查看身份';
     case 'ongoing':
       return '可公布答案、重新抽词';
     case 'ended':
@@ -513,6 +516,8 @@ function getFibHostStatus(state: FibState): string {
       return '正在准备本轮词语';
     case 'preparationFailed':
       return '词语准备失败';
+    case 'viewing':
+      return '等待全员查看身份';
     case 'ongoing':
       return '描述进行中';
     case 'ended':
@@ -576,6 +581,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
     case 'preparing':
     case 'preparationFailed':
       break;
+    case 'viewing':
     case 'ongoing':
       secondary.push(
         enabledButton(
@@ -615,6 +621,8 @@ function getPlayerMessage(state: FibState, viewerSeat: number | null): string | 
       return '房主正在准备本轮';
     case 'preparationFailed':
       return '词语准备失败，等待房主重新准备';
+    case 'viewing':
+      return viewerSeat === null ? '等待玩家查看身份' : '请先查看你的身份';
     case 'ongoing':
     case 'ended':
       return null;

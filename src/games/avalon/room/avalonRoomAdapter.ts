@@ -5,7 +5,9 @@
 import {
   type AvalonState,
   getAvalonBotDisplayName,
+  getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
+  getAvalonViewingParticipants,
   isAvalonImplicitBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
@@ -15,6 +17,8 @@ import type {
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+
+import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 export function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
@@ -81,17 +85,33 @@ export function createAvalonSeatDataSource(
                 isAnonymous: true,
               };
       const statusLabel = avalonSeatStatusLabel(state, seat);
+      // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
+      const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
+      // 投票阶段：显示已投票状态，房主可定位缺票者。
+      const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
+      const voteLabel = hasVoted ? '已投票' : null;
+      const combinedLabel =
+        statusLabel !== null && voteLabel !== null
+          ? `${statusLabel} · ${voteLabel}`
+          : (voteLabel ?? statusLabel);
       return {
         seat,
         player,
         isSelf: occupant?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: null,
+        secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
         showReadyBadge: false,
         statusBadge:
-          statusLabel === null
+          combinedLabel === null
             ? null
-            : { label: statusLabel, tone: statusLabel === '队员' ? 'success' : 'warning' },
+            : {
+                label: combinedLabel,
+                tone: combinedLabel.includes('已投票')
+                  ? 'success'
+                  : combinedLabel === '队员'
+                    ? 'success'
+                    : 'warning',
+              },
         isStatusEmphasized: false,
         showLevel: state.phase.kind === 'lobby',
         decorationsEnabled: state.phase.kind === 'lobby',
@@ -106,9 +126,28 @@ export function createAvalonSeatDataSource(
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel {
   const phase = state.phase;
   if (phase.kind === 'night') {
-    // 对齐狼人杀：显示确认进度。
+    // 身份查看协议检查点：夜晚信息步已走完但还有真人没看角色时，
+    // 状态条明示阻塞原因（座位级名单在房主管理区，状态条只报人数）。
+    const stepParticipants = getAvalonNightParticipants(state.roles, phase.step);
+    const unviewedHumans = getAvalonViewingParticipants(state).filter(
+      (participant) => !participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    ).length;
+    if (
+      phase.step === 'percivalReveal' &&
+      unviewedHumans > 0 &&
+      stepParticipants.every((seat) => phase.confirmedSeats.includes(seat))
+    ) {
+      return {
+        kind: 'message',
+        icon: 'guide',
+        text: `等待全员查看身份 · 还差 ${unviewedHumans} 人`,
+        supportingText: null,
+      };
+    }
+    // 对齐狼人杀：显示确认进度。total 是当前 step 的参与者数（非全员），
+    // 因为 confirmedSeats 在每次 step 推进时清零。
     const confirmed = phase.confirmedSeats.length;
-    const total = state.config.numberOfPlayers;
+    const total = stepParticipants.length;
     return { kind: 'progress', current: confirmed, total, label: '天黑确认' };
   }
   if (phase.kind === 'nominate')

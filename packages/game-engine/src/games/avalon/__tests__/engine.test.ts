@@ -98,6 +98,10 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     },
     startGame() {
       send({ type: 'avalon.game.start' });
+      // 身份查看协议：全员先查看角色，否则第一个任务前的检查点不放行。
+      for (let seat = 0; seat < seatCount; seat += 1) {
+        send({ type: 'avalon.role.viewed' }, seatUser(seat));
+      }
       // 开局播报由房主 ack（测试模拟房主已播完）。
       if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
@@ -1109,8 +1113,13 @@ describe('Avalon engine', () => {
       '播报尚未结束，请稍候',
       raw.seatUser(morgana),
     );
-    // 非房主 ack 被拒绝。
-    raw.expectReject({ type: 'avalon.audio.ack' }, '只有房主可以确认播报', raw.seatUser(morgana));
+    // 非房主 ack 被拒绝（确保用非 0 号座位，莫甘娜可能随机分到房主座位）。
+    const nonHostSeat = morgana === 0 ? 1 : morgana;
+    raw.expectReject(
+      { type: 'avalon.audio.ack' },
+      '只有房主可以确认播报',
+      raw.seatUser(nonHostSeat),
+    );
     // 房主 ack 后放行。
     raw.send({ type: 'avalon.audio.ack' }, 'host');
     expect(raw.state.isAudioPlaying).toBe(false);
@@ -1120,6 +1129,10 @@ describe('Avalon engine', () => {
   it('queues step transition narration with end+begin pairs', () => {
     const session = game({ numberOfPlayers: 7 });
     session.send({ type: 'avalon.game.start' });
+    // 身份查看协议：全员先查看角色，夜晚完成不被检查点拦住。
+    for (let seat = 0; seat < 7; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
     // 开局队列：night + evil_reveal begin。
     expect(session.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
       'night',
@@ -1156,6 +1169,10 @@ describe('Avalon engine', () => {
   it('blocks returnToLobby while audio is playing', () => {
     const session = game({ numberOfPlayers: 6 });
     session.send({ type: 'avalon.game.start' });
+    // 身份查看协议：全员先查看角色，夜晚完成不被检查点拦住。
+    for (let seat = 0; seat < 6; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
     // 不 ack 开局播报，手动走完 night（每步 ack 转场播报，但保留最后的 night_end 未 ack）。
     session.send({ type: 'avalon.audio.ack' }, 'host');
     const evilSeats = [session.seatOfRole('morgana'), session.seatOfRole('assassin')];

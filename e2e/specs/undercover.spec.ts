@@ -62,7 +62,7 @@ for (const viewport of [
 
       // Clearing seats unseats everyone but keeps them in the room; all six re-seat.
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('undercover-clear-seats').click();
+      await hostPage.getByTestId(TESTIDS.roomClearSeatsButton).click();
       // Destructive alert has [Cancel, 清空座位]; the confirm is alert-button-1.
       await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
       await expect(hostPage.getByText('等待入座 · 0/6', { exact: true })).toBeVisible();

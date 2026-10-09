@@ -6,23 +6,24 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
 import { Button } from '@/components/Button';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
 
 import { useStoryRelayAutoSubmission } from '../hooks/useStoryRelayAutoSubmission';
-import { useStoryRelayDeadline } from '../hooks/useStoryRelayDeadline';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { StoryRelayGallery } from './StoryRelayGallery';
 import { storyRelayStyles as styles } from './StoryRelayStage.styles';
 import { StoryRelayTaskEditor } from './StoryRelayTaskEditor';
 
-/** Shows public progress and explicit per-bot takeover without revealing story assignments. */
+/** Shows public progress without revealing story assignments. */
 function StoryRelayProgress({
   state,
   seatModel,
@@ -39,25 +40,68 @@ function StoryRelayProgress({
         contentContainerStyle={styles.progressList}
         renderItem={({ item }) => {
           const seat = seatModel.source.getSeat(item.seat);
-          const takeOver = seatModel.onBotSeatLongPress;
           return (
             <View style={styles.progressItem}>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={item.userId !== null || takeOver === null}
-                onPress={() => takeOver?.(item.seat)}
-                testID={`storyrelay-bot-${item.seat}`}
-                style={seat.highlight === 'controlled' ? styles.selected : undefined}
-              >
-                {item.displayName}
-              </Button>
+              <Text style={styles.muted}>{item.displayName}</Text>
               <Text style={styles.muted}>{seat.statusBadge?.label ?? '已收稿'}</Text>
             </View>
           );
         }}
       />
     </View>
+  );
+}
+
+/** StoryRelay 接管：转接共用 BotTakeover 组件。 */
+function StoryRelayTakeover({
+  seatModel,
+  isHost,
+  canControlBots,
+  controlledSeat,
+  releaseBot,
+  remainingSeconds,
+}: {
+  readonly seatModel: RoomSeatBoardModel;
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
+  readonly remainingSeconds: number | null;
+}) {
+  const bots: BotTakeoverBot[] = useMemo(() => {
+    const result: BotTakeoverBot[] = [];
+    for (let seat = 0; seat < seatModel.source.count; seat += 1) {
+      const seatView = seatModel.source.getSeat(seat);
+      const displayName = seatView.player?.displayName;
+      if (seatView.player?.kind !== 'bot' || displayName === undefined) continue;
+      result.push({
+        seat,
+        displayName,
+        status: 'waiting',
+        statusLabel: seat === controlledSeat ? '接管中' : '待命',
+        actionLabel: '接管',
+      });
+    }
+    return result;
+  }, [seatModel.source, controlledSeat]);
+
+  const onTakeOver = seatModel.onBotSeatLongPress;
+  if (onTakeOver === null) return null;
+
+  return (
+    <BotTakeover
+      bots={bots}
+      // activeSeat 恒 null：故事接龙每棒全体并行创作，没有单一行动座位；机器人任务由
+      // 房主端自动提交兜底。传单个座位会让接管组件的紧急提醒与列表置顶误指向某一个
+      // 机器人。
+      activeSeat={null}
+      remainingSeconds={remainingSeconds}
+      controlledSeat={controlledSeat}
+      canControl={isHost && canControlBots}
+      isLobby={false}
+      onTakeOver={onTakeOver}
+      onRelease={releaseBot}
+    />
   );
 }
 
@@ -75,8 +119,10 @@ interface StoryRelayStageProps {
   readonly state: StoryRelayState;
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
   readonly userId: string;
   readonly isHost: boolean;
+  readonly canControlBots: boolean;
   readonly seatModel: RoomSeatBoardModel;
   readonly session: StoryRelayRoomSession;
 }
@@ -85,12 +131,36 @@ function StoryRelayStageContent({
   state,
   effectiveSeat,
   controlledSeat,
+  releaseBot,
   userId,
   isHost,
+  canControlBots,
   seatModel,
   session,
 }: StoryRelayStageProps) {
-  const remainingSeconds = useStoryRelayDeadline(state.deadlineAt, state.phaseRevision, session);
+  const shouldExpire = useCallback(() => {
+    const current = session.getSnapshot();
+    return (
+      current.phase === 'ready' &&
+      current.connection === 'live' &&
+      current.pendingCommandCount === 0 &&
+      current.snapshot.state.phaseRevision === state.phaseRevision
+    );
+  }, [session, state.phaseRevision]);
+  const onExpire = useCallback(
+    () =>
+      session.dispatch(
+        { type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision },
+        { controlledSeat: null, label: '推进故事阶段', isRecoverable: true },
+      ),
+    [session, state.phaseRevision],
+  );
+  const remainingSeconds = useStageDeadline({
+    deadlineAt: state.deadlineAt,
+    shouldExpire,
+    onExpire,
+    label: '推进故事阶段',
+  });
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
@@ -133,6 +203,14 @@ function StoryRelayStageContent({
       ) : (
         <>
           <StoryRelayProgress state={state} seatModel={seatModel} />
+          <StoryRelayTakeover
+            seatModel={seatModel}
+            isHost={isHost}
+            canControlBots={canControlBots}
+            controlledSeat={controlledSeat}
+            releaseBot={releaseBot}
+            remainingSeconds={remainingSeconds}
+          />
           {state.phase === 'settling' && (
             <Text style={styles.settlingReminder}>
               等待期间请留在 App/小程序内并保持联网，以免收稿卡住

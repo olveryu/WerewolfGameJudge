@@ -3,14 +3,12 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  type AvalonViewModel,
-  getAvalonViewModel,
-} from '@game-judge/game-engine/games/avalon/public';
-import { useEffect, useState } from 'react';
+import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -18,7 +16,6 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
-import { getAvalonRoleDisplayName } from '@/games/avalon/model/avalonRoleDisplay';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { borderRadius, colors, componentSizes, fixed, spacing, textStyles } from '@/theme';
 
@@ -39,10 +36,10 @@ import {
 } from './components/AvalonStrikeConfirmModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { AvalonVoteView } from './components/AvalonVoteView';
-import { useAvalonRoomState } from './hooks/useAvalonRoomState';
+import { type AvalonRoomScreenState, useAvalonRoomState } from './hooks/useAvalonRoomState';
 import { eligibleStrikeTargets, resolveAvalonStageKind } from './policy/avalonInteractionPolicy';
 
-type AvalonScreenState = ReturnType<typeof useAvalonRoomState>;
+type AvalonScreenState = AvalonRoomScreenState;
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
@@ -68,8 +65,9 @@ function AvalonRoomContent(
   const screen = useAvalonRoomState(props);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
-  const viewModel = isLobby ? null : getAvalonViewModel(screen.state, screen.effectiveSeat);
+  const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
+  const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）；
   // 新一轮提案会把 lastVoteResult 清零，届时重置 dismissed。
   const voteResult = viewModel?.lastVoteResult ?? null;
@@ -99,8 +97,8 @@ function AvalonRoomContent(
                 <>
                   <RoomGameSummary
                     icon="shield-outline"
-                    title="阿瓦隆"
-                    subtitle={`${config.numberOfPlayers} 人 · 投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
+                    title={`阿瓦隆 · ${config.numberOfPlayers}人局`}
+                    subtitle={`投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
                     headerRight={
                       <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
                     }
@@ -111,6 +109,7 @@ function AvalonRoomContent(
                       screen.setRolePreviewId(roleId);
                       screen.setRoleCardVisible(true);
                     }}
+                    styles={boardInfoStyles}
                   />
                 </>
               ),
@@ -127,6 +126,7 @@ function AvalonRoomContent(
                     screen.setRolePreviewId(roleId);
                     screen.setRoleCardVisible(true);
                   }}
+                  styles={boardInfoStyles}
                 />
               ),
               afterSeatBoard: (
@@ -185,11 +185,13 @@ function AvalonRoomContent(
           <AvalonRoleCardModal
             visible={screen.roleCardVisible}
             roleId={screen.rolePreviewId ?? viewModel?.myRole ?? null}
-            title={
-              screen.rolePreviewId !== null
-                ? getAvalonRoleDisplayName(screen.rolePreviewId)
-                : undefined
+            effectType={
+              screen.rolePreviewId !== null || screen.controlledSeat !== null
+                ? null
+                : screen.equippedRevealEffect
             }
+            shouldPlay={screen.rolePreviewId === null && screen.roleCardShouldPlay}
+            allRoles={screen.roleCardAllRoles}
             onClose={() => {
               screen.setRoleCardVisible(false);
               screen.setRolePreviewId(null);
@@ -279,6 +281,7 @@ function AvalonStage({
         <AvalonVoteView
           viewModel={viewModel}
           onVote={(vote) => void submit('投票', { type: 'avalon.team.vote', vote })}
+          canTakeOverBots={screen.canControlBots}
         />
       ) : kind === 'quest' ? (
         <AvalonQuestView

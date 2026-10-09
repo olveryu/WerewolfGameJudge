@@ -34,3 +34,15 @@ Werewolf-specific night policy or identity visibility into generic room componen
 Shared room shell and controllers live in `src/features/room/`. Werewolf policy, executors, and
 night UI must remain in this game-owned directory. State machine reference:
 `docs/roomscreen-state-machine.md`.
+
+## Anti-Drift Rule（2026-10-07 用户立规矩）
+
+"One game cannot import another game" 禁的是游戏间**直接 import**，不是禁共享。
+新游戏写 UI 前必须先查 `src/features/room/` 和 `src/components/` 有没有现成的：
+
+- 有现成的 → 直接用，不许重写。
+- 没有但逻辑通用 → 抽到共享目录（`src/features/room/` 放 room 相关，`src/components/` 放纯展示），两个游戏共用。
+- 复制粘贴改个名字（如 `AvalonBoardInfoCard` vs `BoardInfoCard`）= drift，是违规。
+
+有座位游戏（werewolf/avalon/fibking/undercover）和无座位游戏（pictionary/drawguess/storyrelay）
+各抽一套共享逻辑+UI，详见 `~/workspace/werewolf-ui-unify-plan.md`。

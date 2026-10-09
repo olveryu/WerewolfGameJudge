@@ -293,7 +293,8 @@ describe('Delegation Seat Identity Contract', () => {
      *
      * After the declarative layout refactor, view role visibility is driven by
      * LayoutContext.effectiveSeat in bottomLayoutConfig.ts + resolveBottomLayout.ts.
-     * WerewolfRoomScreen.tsx constructs LayoutContext from effectiveSeat.
+     * useWerewolfRoomScreenState.ts constructs LayoutContext from effectiveSeat
+     * (P2-1 batch 2 moved the construction out of WerewolfRoomScreen.tsx).
      */
     it('View Role button should check effectiveSeat, not mySeat', () => {
       // 1. LayoutContext must declare effectiveSeat, not mySeat
@@ -308,11 +309,19 @@ describe('Delegation Seat Identity Contract', () => {
       expect(resolverContent).toMatch(/ctx\.effectiveSeat\s*!==\s*null/);
       expect(resolverContent).not.toMatch(/mySeat/);
 
-      // 3. WerewolfRoomScreen constructs LayoutContext with effectiveSeat
-      const screenContent = readFileContent('src/games/werewolf/room/WerewolfRoomScreen.tsx');
-      expect(screenContent).toMatch(/effectiveSeat/);
-      // WerewolfRoomScreen should not pass mySeat into the layout context
-      expect(screenContent).not.toMatch(/mySeat.*layoutCtx|layoutCtx.*mySeat/);
+      // 3. useWerewolfRoomScreenState constructs LayoutContext with effectiveSeat
+      const hookContent = readFileContent(
+        'src/games/werewolf/room/hooks/useWerewolfRoomScreenState.ts',
+      );
+      const layoutCtxStart = hookContent.indexOf('layoutCtx');
+      const layoutCtxEnd = hookContent.indexOf('useBottomLayout', layoutCtxStart);
+      expect(layoutCtxStart).toBeGreaterThanOrEqual(0);
+      expect(layoutCtxEnd).toBeGreaterThan(layoutCtxStart);
+      const layoutCtxBlock = hookContent.slice(layoutCtxStart, layoutCtxEnd);
+      expect(layoutCtxBlock).toMatch(/LayoutContext/);
+      expect(layoutCtxBlock).toMatch(/effectiveSeat,/);
+      // The layout context must not be built from mySeat
+      expect(layoutCtxBlock).not.toMatch(/mySeat/);
     });
 
     /**

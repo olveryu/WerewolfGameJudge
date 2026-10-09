@@ -3,8 +3,10 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import type {
   RoomBottomActionLayout,
+  RoomBottomActionModel,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
 import {
@@ -13,22 +15,29 @@ import {
   type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type {
-  RoomControlledSeatModel,
+  RoomConnectionViewModel,
+  RoomShellModel,
   RoomStatusRibbonModel,
 } from '@/features/room/model/RoomShellModel';
+import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
 import type {
   BottomLayout,
   ButtonBehavior,
   ButtonConfig,
   StaticButtonAction,
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
-import type { ActionIntent } from '@/games/werewolf/room/policy/types';
+import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
+import type { ActionIntent, HostControlEvent } from '@/games/werewolf/room/policy/types';
+import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 
@@ -208,27 +217,6 @@ export function createWerewolfStatusRibbon(
   return null;
 }
 
-export function createWerewolfControlledSeatModel(input: {
-  readonly isVisible: boolean;
-  readonly controlledSeat: number | null;
-  readonly controlledBotName: string | null;
-  readonly release: () => void;
-}): RoomControlledSeatModel | null {
-  if (!input.isVisible) return null;
-  if (input.controlledSeat === null) {
-    return { kind: 'hint' };
-  }
-  if (input.controlledBotName === null) {
-    throw new Error(`Controlled Werewolf bot seat ${input.controlledSeat} has no player`);
-  }
-  return {
-    kind: 'controlled',
-    seat: input.controlledSeat,
-    displayName: input.controlledBotName,
-    onRelease: input.release,
-  };
-}
-
 export function createWerewolfBottomActionLayout(input: {
   readonly layout: BottomLayout;
   readonly isActionSubmitting: boolean;
@@ -286,5 +274,213 @@ export function createWerewolfBottomActionLayout(input: {
     primary: input.layout.primary.map(mapButton),
     secondary: input.layout.secondary.map(mapButton),
     ghost: input.layout.ghost.map(mapButton),
+  };
+}
+
+// ─── Whole-shell assembly ────────────────────────────────────────────────────
+
+/**
+ * Raw room facts and callbacks the Screen supplies for shell assembly.
+ * Everything derivable from these facts is derived inside
+ * createWerewolfRoomShellModel; the Screen only wires this input object.
+ */
+export interface WerewolfRoomShellModelInput {
+  // Shell pass-through models assembled elsewhere (header-adjacent state).
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly connection: RoomConnectionViewModel;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  // Header.
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly ticketCount: number | null;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly onAvatarPress: () => void;
+  // Room facts.
+  readonly roomStatus: GameStatus;
+  readonly isHost: boolean;
+  readonly isDebugMode: boolean;
+  readonly isAudioPlaying: boolean;
+  readonly isActionSubmitting: boolean;
+  readonly isStartingGame: boolean;
+  readonly isHostActionSubmitting: boolean;
+  readonly imActioner: boolean;
+  readonly isPlagueMode: boolean;
+  readonly actionMessage: string | null;
+  readonly guideMessage: string | null;
+  readonly nightProgress: WerewolfStatusRibbonInput['nightProgress'];
+  // Seats and takeover.
+  readonly seatViewModels: readonly SeatViewModel[];
+  readonly controlledSeat: number | null;
+  readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
+  readonly stateRevision: string | number;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onSeatLongPressed: (seat: number) => void;
+  readonly hasBots: boolean;
+  readonly controlledBotName: string | null;
+  readonly onReleaseBot: () => void;
+  // Host management.
+  readonly mvpSeat: number | null;
+  readonly onSelectMvp: () => void;
+  readonly currentSchemaKind: string | null;
+  readonly onHostControl: (action: HostControlEvent['action']) => void;
+  readonly onMusicSettings: () => void;
+  readonly onMarkAllBotsViewed: () => void;
+  readonly onMarkAllBotsGroupConfirmed: () => void;
+  readonly onNightReview: () => void;
+  readonly onLastNightInfo: () => void;
+  // Bottom actions.
+  readonly bottomLayout: BottomLayout;
+  readonly onSchemaButtonPress: (intent: ActionIntent) => void;
+  readonly onStaticButtonPress: (action: StaticButtonAction) => void;
+  readonly isSheriffInspectorVisible: boolean;
+  readonly openSheriffDetails: () => void;
+}
+
+/**
+ * Assemble the complete RoomShellModel from raw room facts.
+ *
+ * Single assembly point for the werewolf room shell: host management, seat
+ * data source, status ribbon, controlled-seat banner, and the three-way
+ * bottom-action branch (sheriff dock / ended info / stacked) all derive here
+ * so the Screen cannot drift from the factories' contracts.
+ */
+export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput): RoomShellModel {
+  const hostManagement = createWerewolfHostManagement({
+    isHost: input.isHost,
+    roomStatus: input.roomStatus,
+    isPlagueMode: input.isPlagueMode,
+    isAudioPlaying: input.isAudioPlaying,
+    isStartingGame: input.isStartingGame,
+    isHostActionSubmitting: input.isHostActionSubmitting,
+    mvpSeat: input.mvpSeat,
+    onSelectMvp: input.onSelectMvp,
+    canMarkAllBotsViewed: input.isDebugMode && input.roomStatus === GameStatus.Assigned,
+    canMarkAllBotsGroupConfirmed:
+      input.isDebugMode &&
+      !input.isAudioPlaying &&
+      input.roomStatus === GameStatus.Ongoing &&
+      input.currentSchemaKind === 'groupConfirm',
+    capabilities: input.capabilities,
+    sheriffElection: input.sheriffElectionPanel,
+    onHostControl: input.onHostControl,
+    onMusicSettings: input.onMusicSettings,
+    onMarkAllBotsViewed: input.onMarkAllBotsViewed,
+    onMarkAllBotsGroupConfirmed: input.onMarkAllBotsGroupConfirmed,
+    onNightReview: input.onNightReview,
+    onLastNightInfo: input.onLastNightInfo,
+  });
+
+  const seatSource = createWerewolfSeatDataSource({
+    seats: input.seatViewModels,
+    controlledSeat: input.controlledSeat,
+    showBotRoles: input.isDebugMode && input.isHost,
+    showLevels: input.roomStatus !== GameStatus.Ongoing && input.roomStatus !== GameStatus.Day,
+    decorationsEnabled:
+      input.roomStatus !== GameStatus.Ongoing && input.roomStatus !== GameStatus.Day,
+    sheriffElectionView: input.sheriffElectionPanel?.view ?? null,
+    revision: input.stateRevision,
+  });
+
+  const statusRibbon = createWerewolfStatusRibbon({
+    nightProgress: input.nightProgress,
+    guideMessage: input.guideMessage,
+  });
+
+  const controlledSeatModel = createControlledSeatModel({
+    isVisible:
+      input.isDebugMode &&
+      input.isHost &&
+      input.hasBots &&
+      input.roomStatus !== GameStatus.Unseated &&
+      input.roomStatus !== GameStatus.Seated,
+    controlledSeat: input.controlledSeat,
+    controlledBotName: input.controlledBotName,
+    release: input.onReleaseBot,
+    gameName: 'Werewolf',
+  });
+
+  const roomBottomActionLayout = createWerewolfBottomActionLayout({
+    layout: input.bottomLayout,
+    isActionSubmitting: input.isActionSubmitting,
+    onIntent: input.onSchemaButtonPress,
+    onStaticAction: input.onStaticButtonPress,
+  });
+
+  const bottomActions = createWerewolfBottomActions(input, roomBottomActionLayout);
+
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: {
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      userAction: {
+        user: input.user,
+        ticketCount: input.ticketCount,
+        onPress: input.onAvatarPress,
+      },
+    },
+    connection: input.connection,
+    statusRibbon,
+    seats: {
+      source: seatSource,
+      visuallyDisabled:
+        (input.roomStatus === GameStatus.Ongoing && input.isAudioPlaying) ||
+        input.isActionSubmitting,
+      onSeatPress: input.onSeatPress,
+      onBotSeatLongPress: input.capabilities.canTakeOverBots.isAllowed
+        ? input.onSeatLongPressed
+        : null,
+    },
+    seatConfirmation: input.seatConfirmation,
+    profile: input.profile,
+    share: input.share,
+    bottomActions,
+    hostManagement,
+    controlledSeat: controlledSeatModel,
+  };
+}
+
+function createWerewolfBottomActions(
+  input: WerewolfRoomShellModelInput,
+  roomBottomActionLayout: RoomBottomActionLayout,
+): RoomBottomActionModel {
+  if (input.roomStatus === GameStatus.Day && input.sheriffElectionPanel !== null) {
+    return createSheriffElectionDockModel({
+      election: input.sheriffElectionPanel,
+      roomTools: roomBottomActionLayout,
+      isInspectorVisible: input.isSheriffInspectorVisible,
+      openDetails: input.openSheriffDetails,
+    });
+  }
+
+  if (input.roomStatus === GameStatus.Ended) {
+    return {
+      kind: 'info',
+      message: input.actionMessage,
+      actions: [
+        ...roomBottomActionLayout.primary,
+        ...roomBottomActionLayout.secondary,
+        ...roomBottomActionLayout.ghost,
+      ],
+    };
+  }
+
+  return {
+    kind: 'stacked',
+    message:
+      !input.isAudioPlaying &&
+      (input.imActioner ||
+        (input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready))
+        ? input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready
+          ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
+          : input.actionMessage
+        : null,
+    layout: roomBottomActionLayout,
   };
 }

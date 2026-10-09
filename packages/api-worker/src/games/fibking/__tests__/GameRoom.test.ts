@@ -215,13 +215,22 @@ describe('FibKing generic GameRoom integration', () => {
 
     const snapshot = await stub.getSnapshot(roomIdentity(stub));
     if (snapshot === null) throw new Error('Expected Fib snapshot after alarm recovery');
-    const ongoing = FIB_STATE_CODEC.parse(snapshot.state);
+    const viewing = FIB_STATE_CODEC.parse(snapshot.state);
+    expect(viewing.phase).toBe('viewing');
+    if (viewing.phase !== 'viewing') throw new Error('Expected viewing Fib state');
+    expect(viewing.round.source).toBe('gemini');
+    expect(viewing.round.roles.guesserSeat).not.toBe(viewing.round.roles.honestSeat);
+    expect(viewing.usedWords).toEqual([viewing.round.word]);
+    expect(Object.keys(viewing.realSeats)).toEqual(['0']);
+    // Bots were auto-marked at deal time; the lone human's confirm starts play.
+    requireCommitted(
+      await dispatch(stub, stub, 'fib-confirm-role-view', { type: 'fib.round.confirmRoleView' }),
+    );
+    const startedSnapshot = await stub.getSnapshot(roomIdentity(stub));
+    if (startedSnapshot === null) throw new Error('Expected Fib snapshot after viewing confirm');
+    const ongoing = FIB_STATE_CODEC.parse(startedSnapshot.state);
     expect(ongoing.phase).toBe('ongoing');
     if (ongoing.phase !== 'ongoing') throw new Error('Expected ongoing Fib state');
-    expect(ongoing.round.source).toBe('gemini');
-    expect(ongoing.round.roles.guesserSeat).not.toBe(ongoing.round.roles.honestSeat);
-    expect(ongoing.usedWords).toEqual([ongoing.round.word]);
-    expect(Object.keys(ongoing.realSeats)).toEqual(['0']);
 
     const room = await env.DB.prepare('SELECT games_started FROM rooms WHERE id = ?')
       .bind(stub.id.toString())

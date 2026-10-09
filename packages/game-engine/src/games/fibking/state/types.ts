@@ -2,6 +2,7 @@
 
 import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import type { SeatOccupant } from '../../../platform/room/seating';
 
@@ -21,7 +22,13 @@ export const FIB_PREPARATION_STAGES = {
 } as const;
 export const FIB_PREPARATION_FAILURE_CODES = ['selectionFailed', 'inventoryExhausted'] as const;
 
-export type FibPhase = 'lobby' | 'preparing' | 'preparationFailed' | 'ongoing' | 'ended';
+export type FibPhase =
+  | 'lobby'
+  | 'preparing'
+  | 'preparationFailed'
+  | 'viewing'
+  | 'ongoing'
+  | 'ended';
 export type FibRole = 'guesser' | 'honest' | 'fibber';
 export type FibWordSource = (typeof FIB_WORD_SOURCES)[number];
 export type FibPreparationStage =
@@ -102,6 +109,8 @@ export interface FibRound {
   readonly definition: FibWordDefinition;
   readonly source: FibWordSource;
   readonly roles: FibRoleAssignment;
+  /** 已查看本轮身份的座位（身份查看协议）；机器人发牌时由引擎自动标记。 */
+  readonly viewedSeats: readonly number[];
 }
 
 interface FibStateBase extends BaseGameState<FibKingGameType> {
@@ -134,6 +143,13 @@ export interface FibPreparationFailedState extends FibStateBase {
   readonly round: null;
 }
 
+export interface FibViewingState extends FibStateBase {
+  readonly phase: 'viewing';
+  readonly pendingRound: null;
+  readonly preparationFailure: null;
+  readonly round: FibRound;
+}
+
 export interface FibOngoingState extends FibStateBase {
   readonly phase: 'ongoing';
   readonly pendingRound: null;
@@ -152,6 +168,7 @@ export type FibState =
   | FibLobbyState
   | FibPreparingState
   | FibPreparationFailedState
+  | FibViewingState
   | FibOngoingState
   | FibEndedState;
 
@@ -195,4 +212,15 @@ export function getFibOccupiedSeatCount(state: FibState): number {
 
 export function isFibRoomFull(state: FibState): boolean {
   return getFibOccupiedSeatCount(state) === state.numberOfPlayers;
+}
+
+/** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
+export function getFibViewingParticipants(state: FibState): readonly IdentityViewingParticipant[] {
+  const participants: IdentityViewingParticipant[] = [];
+  for (let seat = 0; seat < state.numberOfPlayers; seat += 1) {
+    const isBot = isFibImplicitBotSeat(state, seat);
+    if (state.realSeats[seat] === undefined && !isBot) continue;
+    participants.push({ seat, isBot });
+  }
+  return participants;
 }

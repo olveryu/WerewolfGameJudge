@@ -48,7 +48,7 @@ jobs:
         run: pnpm run format
 
       - name: 'Test (fast: root + game-engine)'
-        run: pnpm --filter @game-judge/game-engine run test && pnpm --filter werewolf run test
+        run: pnpm --filter @game-judge/game-engine run test && pnpm --filter werewolfgamejudge run test
 
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
   test-api-worker:

@@ -14,30 +14,44 @@ import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
+import { toast } from 'sonner-native';
 
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
+import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
+import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
 import {
   createWerewolfRoomCapabilities,
   WEREWOLF_DISPLAY_NAME,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import type { RootStackParamList } from '@/navigation/types';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { getWolfVoteSummary, toGameRoomLike } from '../werewolfRoom.helpers';
+import type { LayoutContext, StaticButtonAction } from './bottomLayoutConfig';
 import { STATIC_BUTTONS } from './bottomLayoutConfig';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
+import { useBottomLayout } from './useBottomLayout';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useNightReviewShare } from './useNightReviewShare';
@@ -45,6 +59,7 @@ import { useRoomActions } from './useRoomActions';
 import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomModals } from './useRoomModals';
+import type { SheriffElectionPanelModel } from './useSheriffElection';
 import { useSheriffElection } from './useSheriffElection';
 import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
 import { useWerewolfActionDraft } from './useWerewolfActionDraft';
@@ -66,6 +81,74 @@ const EMPTY_ACKS: readonly number[] = [];
 /** Navigation type required by useWerewolfRoomScreenState */
 type RoomScreenNavigation = NativeStackNavigationProp<RootStackParamList, 'Room'>;
 
+type CoreRoomState = ReturnType<typeof useWerewolfRoom>;
+type DerivedState = ReturnType<typeof useRoomDerived>;
+type HostDialogsState = ReturnType<typeof useRoomHostDialogs>;
+type NightReviewShareState = ReturnType<typeof useNightReviewShare>;
+
+/**
+ * Explicit contract between this hook and WerewolfRoomScreen.
+ *
+ * The room shell model is assembled here (including the profile card,
+ * whose gameDetails is a data description rendered by the Screen through
+ * RoomShell's profileDetailsRenderer); the remaining fields are exactly
+ * what the Screen's content sections render.
+ */
+export interface WerewolfRoomScreenState {
+  readonly roomShellModel: RoomShellModel;
+  readonly roomShare: RoomShareModel;
+  readonly gameState: CoreRoomState['gameState'];
+  readonly isHost: boolean;
+  readonly roomStatus: GameStatus;
+  readonly isAudioPlaying: boolean;
+  readonly resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
+  readonly effectiveSeat: number | null;
+  readonly effectiveRole: CoreRoomState['effectiveRole'];
+  readonly currentSchema: CoreRoomState['currentSchema'];
+  readonly clearAllSeats: CoreRoomState['clearAllSeats'];
+  readonly boardUpvote: CoreRoomState['boardUpvote'];
+  readonly boardWithdraw: CoreRoomState['boardWithdraw'];
+  readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
+  readonly isSheriffInspectorVisible: boolean;
+  readonly isSheriffDetailsVisible: boolean;
+  readonly openSheriffDetails: () => void;
+  readonly closeSheriffDetails: () => void;
+  readonly isBgmPlaying: boolean;
+  readonly playBgm: CoreRoomState['playBgm'];
+  readonly stopBgm: CoreRoomState['stopBgm'];
+  readonly villagerCount: DerivedState['villagerCount'];
+  readonly wolfRoleItems: DerivedState['wolfRoleItems'];
+  readonly godRoleItems: DerivedState['godRoleItems'];
+  readonly specialRoleItems: DerivedState['specialRoleItems'];
+  readonly villagerRoleItems: DerivedState['villagerRoleItems'];
+  readonly mvpSelection: HostDialogsState['mvpSelection'];
+  readonly closeMvpSelection: HostDialogsState['closeMvpSelection'];
+  readonly isHostActionSubmitting: boolean;
+  readonly roleCardVisible: boolean;
+  readonly shouldPlayRevealAnimation: boolean;
+  readonly isLoadingRole: boolean;
+  readonly handleRoleCardClose: () => void;
+  readonly skillPreviewRoleId: RoleId | null;
+  readonly handleSkillPreviewOpen: (roleId: string) => void;
+  readonly handleSkillPreviewClose: () => void;
+  readonly resumeAfterRejoin: () => void;
+  readonly needsContinueOverlay: boolean;
+  readonly nightReviewData: NightReviewShareState['nightReviewData'];
+  readonly nightReviewShareCardRef: NightReviewShareState['nightReviewShareCardRef'];
+  readonly isCapturingShareCard: boolean;
+  readonly nightReviewVisible: boolean;
+  readonly closeNightReview: () => void;
+  readonly shareReviewVisible: boolean;
+  readonly closeShareReview: () => void;
+  readonly shareNightReview: (allowedSeats: number[]) => Promise<void>;
+  readonly chooseCardModalVisible: boolean;
+  readonly closeChooseCardModal: () => void;
+  readonly handleChooseCard: (index: number) => Promise<void>;
+  readonly bottomCardDisabledIndices: number[];
+  readonly bottomCardDisabledHint: string | undefined;
+  readonly bottomCardSubtitle: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +158,7 @@ export function useWerewolfRoomScreenState(
   navigation: RoomScreenNavigation,
   entryController: RoomEntryController,
   client: WerewolfGameClient,
-) {
+): WerewolfRoomScreenState {
   const { roomCode } = room;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -124,7 +207,6 @@ export function useWerewolfRoomScreenState(
     // Progression
     postProgression,
     // Board nomination
-    boardNominate,
     boardUpvote,
     boardWithdraw,
     registerSheriffCandidate,
@@ -140,7 +222,6 @@ export function useWerewolfRoomScreenState(
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
-    dismissContinueOverlay,
   } = useWerewolfRoom(client);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -752,114 +833,311 @@ export function useWerewolfRoomScreenState(
     ],
   );
 
+  // ─── Profile card assembly ──────────────────────────────────────────────
+
+  const handleProfileKick = useCallback(() => {
+    executeProfileKick(capabilities, profileController.selection);
+  }, [capabilities, profileController.selection]);
+
+  const handleProfileLeave = useCallback(() => {
+    const capability = capabilities.canLeaveSeat;
+    if (!capability.isAllowed) {
+      throw new Error(`Cannot leave from profile: ${capability.reason}`);
+    }
+    capability.execute();
+  }, [capabilities.canLeaveSeat]);
+
+  const profile = useMemo((): RoomProfileCardModel | null => {
+    const profileSelection = profileController.selection;
+    if (profileSelection === null) return null;
+    return {
+      target: profileSelection.target,
+      isSelf: profileSelection.isSelf,
+      onClose: profileController.close,
+      onKick:
+        !profileSelection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
+      onLeaveSeat:
+        profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
+      gameDetails: {
+        title: '阵营分布',
+        statsUserId: profileSelection.target.userId,
+      },
+    };
+  }, [
+    capabilities.canKickSeat.isAllowed,
+    capabilities.canLeaveSeat.isAllowed,
+    handleProfileKick,
+    handleProfileLeave,
+    profileController.close,
+    profileController.selection,
+  ]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Shell assembly (the Screen renders the model; it no longer assembles it)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const { user } = useAuthContext();
+  const { data: gachaStatus } = useGachaStatusQuery();
+  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
+
+  const handleAvatarPress = useCallback(() => {
+    navigation.navigate('Settings', { roomCode });
+  }, [navigation, roomCode]);
+
+  const handleMusicSettings = useCallback(() => {
+    navigation.navigate('MusicSettings', { roomCode });
+  }, [navigation, roomCode]);
+
+  const { width: viewportWidth } = useWindowDimensions();
+  const isSheriffInspectorVisible =
+    sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
+  const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
+  const openSheriffDetails = useCallback(() => {
+    setIsSheriffDetailsVisible(true);
+  }, []);
+  const closeSheriffDetails = useCallback(() => {
+    setIsSheriffDetailsVisible(false);
+  }, []);
+
+  useEffect(() => {
+    if (sheriffElectionPanel === null || isSheriffInspectorVisible) {
+      setIsSheriffDetailsVisible(false);
+    }
+  }, [isSheriffInspectorVisible, sheriffElectionPanel]);
+
+  const layoutCtx: LayoutContext = useMemo(
+    () => ({
+      roomStatus,
+      isHost,
+      effectiveSeat,
+      imActioner,
+      isAudioPlaying,
+      nightReviewAllowedSeats: gameState.nightReviewAllowedSeats ?? [],
+    }),
+    [
+      roomStatus,
+      isHost,
+      effectiveSeat,
+      imActioner,
+      isAudioPlaying,
+      gameState.nightReviewAllowedSeats,
+    ],
+  );
+  const bottomLayout = useBottomLayout({ ctx: layoutCtx, schemaVM: getBottomAction() });
+
+  const handleSchemaButtonPress = useCallback(
+    (intent: ActionIntent) => {
+      dispatchInteraction({ kind: 'BOTTOM_ACTION', intent });
+    },
+    [dispatchInteraction],
+  );
+
+  const handleStaticButtonPress = useCallback(
+    (action: StaticButtonAction) => {
+      switch (action) {
+        case 'viewRole':
+          dispatchInteraction({ kind: 'VIEW_ROLE' });
+          break;
+        case 'waitForHost':
+          toast.info('等待房主开始分配角色');
+          break;
+        case 'nightReview':
+          openNightReview();
+          break;
+        default: {
+          const exhaustiveAction: never = action;
+          throw new Error(`Unhandled Werewolf static button action: ${exhaustiveAction}`);
+        }
+      }
+    },
+    [dispatchInteraction, openNightReview],
+  );
+
+  const handleHostControl = useCallback(
+    (action: HostControlEvent['action']) => {
+      dispatchInteraction({ kind: 'HOST_CONTROL', action });
+    },
+    [dispatchInteraction],
+  );
+
+  const executeMarkAllBotsViewed = useCallback(() => {
+    void markAllBotsViewed().catch((err) => {
+      handleError(err, {
+        label: 'markAllBotsViewed',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [markAllBotsViewed]);
+
+  const executeMarkAllBotsGroupConfirmed = useCallback(() => {
+    void markAllBotsGroupConfirmed().catch((err) => {
+      handleError(err, {
+        label: 'markAllBotsGroupConfirmed',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [markAllBotsGroupConfirmed]);
+
+  const roomShellModel = useMemo(
+    (): RoomShellModel =>
+      createWerewolfRoomShellModel({
+        roomCode,
+        capabilities,
+        connection: roomConnection.connection,
+        seatConfirmation,
+        profile,
+        share: shareController,
+        user,
+        ticketCount,
+        onBack: () => dispatchInteraction({ kind: 'LEAVE_ROOM' }),
+        onTitlePress: handleTitlePress,
+        onTitleLongPress: handleTitleLongPress,
+        onAvatarPress: handleAvatarPress,
+        roomStatus,
+        isHost,
+        isDebugMode,
+        isAudioPlaying,
+        isActionSubmitting,
+        isStartingGame,
+        isHostActionSubmitting,
+        imActioner,
+        isPlagueMode: gameState.rules?.isPlagueMode ?? false,
+        actionMessage: derived.actionMessage,
+        guideMessage,
+        nightProgress,
+        seatViewModels: derived.seatViewModels,
+        controlledSeat,
+        sheriffElectionPanel,
+        stateRevision,
+        onSeatPress: onSeatTapped,
+        onSeatLongPressed: onSeatLongPressed,
+        hasBots,
+        controlledBotName:
+          controlledSeat === null
+            ? null
+            : (gameState.players.get(controlledSeat)?.displayName ?? null),
+        onReleaseBot: releaseBot,
+        mvpSeat:
+          gameState.startingParticipants?.find(
+            (participant) => participant.userId === gameState.mvpUserId,
+          )?.seat ?? null,
+        onSelectMvp: showMvpSelection,
+        currentSchemaKind: currentSchema?.kind ?? null,
+        onHostControl: handleHostControl,
+        onMusicSettings: handleMusicSettings,
+        onMarkAllBotsViewed: executeMarkAllBotsViewed,
+        onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
+        onNightReview: openNightReview,
+        onLastNightInfo: () => {
+          void showLastNightInfo();
+        },
+        bottomLayout,
+        onSchemaButtonPress: handleSchemaButtonPress,
+        onStaticButtonPress: handleStaticButtonPress,
+        isSheriffInspectorVisible,
+        openSheriffDetails,
+      }),
+    [
+      roomCode,
+      capabilities,
+      roomConnection,
+      seatConfirmation,
+      profile,
+      shareController,
+      user,
+      ticketCount,
+      handleTitlePress,
+      handleTitleLongPress,
+      handleAvatarPress,
+      dispatchInteraction,
+      roomStatus,
+      isHost,
+      isDebugMode,
+      isAudioPlaying,
+      isActionSubmitting,
+      isStartingGame,
+      isHostActionSubmitting,
+      imActioner,
+      gameState,
+      derived,
+      guideMessage,
+      nightProgress,
+      controlledSeat,
+      sheriffElectionPanel,
+      stateRevision,
+      onSeatTapped,
+      onSeatLongPressed,
+      hasBots,
+      releaseBot,
+      showMvpSelection,
+      currentSchema,
+      handleHostControl,
+      handleMusicSettings,
+      executeMarkAllBotsViewed,
+      executeMarkAllBotsGroupConfirmed,
+      openNightReview,
+      showLastNightInfo,
+      bottomLayout,
+      handleSchemaButtonPress,
+      handleStaticButtonPress,
+      isSheriffInspectorVisible,
+      openSheriffDetails,
+    ],
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
   // ═══════════════════════════════════════════════════════════════════════════
 
   return {
-    // ── Route params ──
-    roomCode,
-
-    // ── Game state (from useWerewolfRoom) ──
+    roomShellModel,
+    roomShare: shareController,
     gameState,
-    stateRevision,
     isHost,
-    mySeat,
     roomStatus,
-    currentActionRole,
-    currentSchema,
     isAudioPlaying,
     resolvedRoleRevealAnimation,
     effectiveSeat,
     effectiveRole,
-    isDebugMode,
-    controlledSeat,
-    hasBots,
-    markAllBotsViewed,
-    markAllBotsGroupConfirmed,
+    currentSchema,
     clearAllSeats,
-    releaseBot,
-    capabilities,
-    roomConnection: roomConnection.connection,
-    roomShare: shareController,
-
-    // ── Board nomination ──
-    boardNominate,
     boardUpvote,
     boardWithdraw,
-
-    // ── First-day sheriff election ──
     sheriffElectionPanel,
-
-    // ── BGM manual control ──
+    isSheriffInspectorVisible,
+    isSheriffDetailsVisible,
+    openSheriffDetails,
+    closeSheriffDetails,
     isBgmPlaying,
     playBgm,
     stopBgm,
-
-    // ── Derived view models (from useRoomDerived) ──
-    ...derived,
-    nightProgress,
-    guideMessage,
-
-    // ── Actioner ──
-    imActioner,
-
-    // ── Interaction ──
-    dispatchInteraction,
-    onSeatTapped,
-    onSeatLongPressed,
-    getBottomAction,
-    handleTitlePress,
-    handleTitleLongPress,
-
-    // ── Player profile card ──
-    profileSelection: profileController.selection,
-    closeProfile: profileController.close,
-
-    // ── Local UI state ──
+    villagerCount: derived.villagerCount,
+    wolfRoleItems: derived.wolfRoleItems,
+    godRoleItems: derived.godRoleItems,
+    specialRoleItems: derived.specialRoleItems,
+    villagerRoleItems: derived.villagerRoleItems,
     mvpSelection,
     closeMvpSelection,
-    showMvpSelection,
-    isStartingGame,
     isHostActionSubmitting,
-    isActionSubmitting,
-
-    // ── Seat modal ──
-    seatConfirmation,
-
-    // ── Role card modal ──
     roleCardVisible,
     shouldPlayRevealAnimation,
     isLoadingRole,
     handleRoleCardClose,
-
-    // ── Skill preview modal ──
     skillPreviewRoleId,
     handleSkillPreviewOpen,
     handleSkillPreviewClose,
-
-    // ── Rejoin recovery ──
     resumeAfterRejoin,
     needsContinueOverlay,
-    dismissContinueOverlay,
-
-    // ── Last night info (all players) ──
-    showLastNightInfo,
-
-    // ── Night review modal ──
     nightReviewData,
     nightReviewShareCardRef,
     isCapturingShareCard,
     nightReviewVisible,
-    openNightReview,
     closeNightReview,
-
-    // ── Share review modal ──
     shareReviewVisible,
     closeShareReview,
     shareNightReview: handleShareNightReview,
-
-    // ── Choose card modal (treasureMaster / thief) ──
     chooseCardModalVisible,
     closeChooseCardModal,
     handleChooseCard,

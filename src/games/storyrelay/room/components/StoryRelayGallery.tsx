@@ -1,6 +1,5 @@
 /** Displays the server-revealed story prefix; terminal rounds permit rereading and image sharing. */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type {
   StoryRelayCommand,
   StoryRelayState,
@@ -8,8 +7,8 @@ import type {
 import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { colors, componentSizes } from '@/theme';
+import { GalleryPagerControls } from '@/features/room/components/GalleryPagerControls';
+import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getStoryRelayVisibleStories } from '../storyRelayPresentation';
@@ -49,28 +48,18 @@ export function StoryRelayGallery({
     <View style={styles.container} testID="storyrelay-gallery">
       <View style={styles.content}>
         <Text style={styles.title}>
-          {state.phase === 'aborted' ? '未完成的故事' : '故事揭晓'} · {chainIndex + 1} /{' '}
-          {stories.length}
+          {state.phase === 'aborted' ? '未完成的故事' : '故事揭晓'}
+          {isPlayback && ` · ${chainIndex + 1} / ${stories.length}`}
         </Text>
         {!isPlayback && (
-          <View style={styles.row}>
-            <Button
-              variant="icon"
-              accessibilityLabel="上一篇故事"
-              disabled={selectedStory === 0}
-              onPress={() => setSelectedStory(selectedStory - 1)}
-            >
-              <Ionicons name="chevron-back" size={componentSizes.icon.md} color={colors.text} />
-            </Button>
-            <Button
-              variant="icon"
-              accessibilityLabel="下一篇故事"
-              disabled={selectedStory === stories.length - 1}
-              onPress={() => setSelectedStory(selectedStory + 1)}
-            >
-              <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.text} />
-            </Button>
-          </View>
+          <GalleryPagerControls
+            current={selectedStory}
+            total={stories.length}
+            prevLabel="上一篇故事"
+            nextLabel="下一篇故事"
+            onPrev={() => setSelectedStory(selectedStory - 1)}
+            onNext={() => setSelectedStory(selectedStory + 1)}
+          />
         )}
       </View>
       <FlatList
@@ -104,55 +93,31 @@ export function StoryRelayGallery({
         }}
       />
       {isHost && isPlayback && state.gallery !== null && (
-        <View style={[styles.controls, styles.row]}>
-          <Button
-            variant="icon"
-            accessibilityLabel="上一段"
-            disabled={state.gallery.position === 0 || isSubmitting}
-            onPress={() => control('storyrelay.gallery.rewind')}
-          >
-            <Ionicons name="chevron-back" size={componentSizes.icon.md} color={colors.text} />
-          </Button>
-          <Button
-            variant="icon"
-            accessibilityLabel="下一段"
-            disabled={isSubmitting}
-            onPress={() => control('storyrelay.gallery.advance')}
-          >
-            <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.text} />
-          </Button>
-          {state.config.galleryItemDurationSeconds !== null && (
-            <Button
-              variant="icon"
-              accessibilityLabel={state.gallery.isPlaying ? '暂停回放' : '继续回放'}
-              disabled={isSubmitting}
-              onPress={() =>
-                control(
-                  state.gallery!.isPlaying
-                    ? 'storyrelay.gallery.pause'
-                    : 'storyrelay.gallery.resume',
-                )
-              }
-            >
-              <Ionicons
-                name={state.gallery.isPlaying ? 'pause-outline' : 'play-outline'}
-                size={componentSizes.icon.md}
-                color={colors.text}
-              />
-            </Button>
-          )}
-          <Button
-            variant="secondary"
-            disabled={isSubmitting}
-            onPress={() =>
-              showConfirmAlert('全部揭晓', '立即公开剩余故事并结束回放？', () => {
-                control('storyrelay.gallery.finish');
-              })
-            }
-          >
-            全部揭晓
-          </Button>
-        </View>
+        <GalleryPlaybackControls
+          style={[styles.controls, styles.row]}
+          isPlaying={state.gallery.isPlaying}
+          canTogglePlay={state.config.galleryItemDurationSeconds !== null}
+          isFirst={state.gallery.position === 0}
+          isSubmitting={isSubmitting}
+          advanceForm="icon"
+          advanceLabel="下一段"
+          rewindLabel="上一段"
+          playLabel="继续回放"
+          pauseLabel="暂停回放"
+          finishLabel="全部揭晓"
+          onRewind={() => control('storyrelay.gallery.rewind')}
+          onAdvance={() => control('storyrelay.gallery.advance')}
+          onTogglePlay={() =>
+            control(
+              state.gallery!.isPlaying ? 'storyrelay.gallery.pause' : 'storyrelay.gallery.resume',
+            )
+          }
+          onFinish={() =>
+            showConfirmAlert('全部揭晓', '立即公开剩余故事并结束回放？', () => {
+              control('storyrelay.gallery.finish');
+            })
+          }
+        />
       )}
       {!isPlayback && (
         <View style={[styles.controls, styles.row]}>

@@ -8,6 +8,7 @@
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 
 import { AlertModal } from '@/components/AlertModal';
+import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 
 import {
   type AvalonNightInstruction,
@@ -66,7 +67,7 @@ function toConfirmDialog(
     case 'merlin':
       return {
         title: '梅林的视野',
-        message: `你看到的坏人（莫德雷德不在其中）：${instruction.sees.map((seat) => formatSeat(viewModel, seat)).join('、')}`,
+        message: `你看到的坏人：${instruction.sees.map((seat) => formatSeat(viewModel, seat)).join('、')}`,
       };
     case 'percival':
       return {
@@ -81,5 +82,5 @@ function toConfirmDialog(
 
 function formatSeat(viewModel: AvalonViewModel, seat: number): string {
   const name = viewModel.seats.find((entry) => entry.seat === seat)?.displayName;
-  return `${seat + 1}号${name ? `·${name}` : ''}`;
+  return `${formatRoomSeat(seat)}${name ? `·${name}` : ''}`;
 }

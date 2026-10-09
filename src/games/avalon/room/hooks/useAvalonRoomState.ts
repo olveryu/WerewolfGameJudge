@@ -5,13 +5,18 @@
 import {
   type AvalonCommand,
   type AvalonRoleId,
+  type AvalonState,
+  type AvalonViewModel,
   getAvalonOccupiedSeatCount,
   getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
-import { useEffect, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -21,6 +26,16 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
+import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -32,12 +47,12 @@ import type {
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { type AvalonRoomSession, getAvalonUserSeat } from '@/games/avalon/model/AvalonRoomSession';
-import { TESTIDS } from '@/testids';
+import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
+import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
 import {
   createAvalonSeatDataSource,
   createAvalonStatusRibbon,
@@ -60,6 +75,43 @@ function canControlBotsInPhase(phaseKind: string): boolean {
   );
 }
 
+/**
+ * 阿瓦隆房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
+ * 领域推导全部在本 hook 内组装，Screen 只消费本接口渲染。
+ */
+export interface AvalonRoomScreenState {
+  readonly state: AvalonState;
+  readonly shellModel: RoomShellModel;
+  /** 当前视角的阶段视图模型；大厅阶段为 null（原在 Screen 内推导，P-2b 下沉）。 */
+  readonly viewModel: AvalonViewModel | null;
+  readonly roomCode: string;
+  readonly userId: string;
+  readonly mySeat: number | null;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly equippedRevealEffect: RevealEffectType | null;
+  readonly submit: (
+    label: string,
+    command: AvalonCommand,
+    controlledSeatOverride?: number | null,
+  ) => Promise<boolean>;
+  readonly isSubmitting: boolean;
+  readonly session: AvalonRoomSession;
+  readonly openRules: () => void;
+  readonly roleCardVisible: boolean;
+  readonly setRoleCardVisible: Dispatch<SetStateAction<boolean>>;
+  readonly rolePreviewId: AvalonRoleId | null;
+  readonly setRolePreviewId: Dispatch<SetStateAction<AvalonRoleId | null>>;
+  /** 身份查看协议锚点：有效座位未在服务端记录已查看时才播揭示动画。 */
+  readonly roleCardShouldPlay: boolean;
+  /** Animator 候选池：公开的完整角色分布（按座位序）。 */
+  readonly roleCardAllRoles: readonly RevealRoleData[];
+  readonly nightModalVisible: boolean;
+  readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
+}
+
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
@@ -67,7 +119,7 @@ export function useAvalonRoomState(
     readonly entryController: RoomEntryController;
     readonly audio: AvalonAudioRuntime;
   },
-) {
+): AvalonRoomScreenState {
   const { session, room, navigation, entryController, audio } = props;
   const { user } = useAuthContext();
   const snapshot = useRoomSessionSnapshot(session);
@@ -82,13 +134,18 @@ export function useAvalonRoomState(
     pendingAudioEffects: state.pendingAudioEffects,
     audio,
   });
-  const mySeat = getAvalonUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const isLobby = state.phase.kind === 'lobby';
   // 查看身份：角色卡弹窗状态（对齐狼人杀）。
   const [roleCardVisible, setRoleCardVisible] = useState(false);
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
+  // step 推进时重置弹窗状态，防止 stale（比如别人确认完推进了 step，自己开着的弹窗指令已失效）。
+  const nightStep = state.phase.kind === 'night' ? state.phase.step : null;
+  useEffect(() => {
+    setNightModalVisible(false);
+  }, [nightStep]);
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -104,13 +161,23 @@ export function useAvalonRoomState(
   const titleActions = useRoomTitleActions();
   const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getAvalonRoomCommandFailureMessage);
-  const submit = (label: string, command: AvalonCommand) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat, label }));
+  // 结构性修复：submit 接受 controlledSeat 显式参数，避免闭包捕获旧值。
+  // 调用方在需要时传入最新值（如释放接管后传 null），不传则用当前 render 的值。
+  const submit = (label: string, command: AvalonCommand, controlledSeatOverride?: number | null) =>
+    submission.submit(label, () =>
+      session.dispatch(command, {
+        controlledSeat:
+          controlledSeatOverride !== undefined ? controlledSeatOverride : controlledSeat,
+        label,
+      }),
+    );
   // 机器人席位仅房主可接管；离开可接管阶段自动释放。
   const canControlBots = isHost && canControlBotsInPhase(state.phase.kind);
-  useEffect(() => {
-    if (controlledSeat !== null && !canControlBots) releaseBot();
-  }, [canControlBots, controlledSeat, releaseBot]);
+  useBotTakeoverGuard({
+    controlledSeat,
+    canControlBots,
+    release: releaseBot,
+  });
   const capabilities: RoomCapabilities = {
     ...createRoomSetupCapabilities({
       isSetup: isLobby,
@@ -142,15 +209,6 @@ export function useAvalonRoomState(
   };
   const onSeatPress = (seat: number) => {
     if (!isLobby) {
-      // 狼人杀模式：房主点机器人座位接管/释放，不改变界面（D12 不做任何接管提示）。
-      if (canControlBots) {
-        const inGameTarget = getAvalonProfileTarget(state, seat);
-        if (inGameTarget?.occupantKind === 'bot') {
-          if (controlledSeat === seat) releaseBot();
-          else takeOver(seat);
-          return;
-        }
-      }
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
     const target = getAvalonProfileTarget(state, seat);
@@ -171,35 +229,22 @@ export function useAvalonRoomState(
       ? seatController.requestTakeSeat(seat)
       : seatController.requestMoveSeat(seat);
   };
+  // 长按机器人座位接管/释放：用共享 hook（D12：不做任何接管提示）。
+  const onBotSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    isBotSeat: (seat) => getAvalonProfileTarget(state, seat)?.occupantKind === 'bot',
+    gameName: 'Avalon',
+  });
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
-    roomActions.push({
-      key: 'configure',
-      label: '房间设置',
-      icon: 'options-outline',
-      variant: 'secondary',
-      isEnabled: true,
-      onPress: capabilities.canConfigureGame.execute,
-    });
+    roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
-    roomActions.push({
-      key: 'fill',
-      label: '填充机器人',
-      icon: 'people-outline',
-      variant: 'secondary',
-      isEnabled: true,
-      onPress: capabilities.canFillBots.execute,
-      testID: TESTIDS.roomFillBotsButton,
-    });
+    roomActions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
   if (capabilities.canClearSeats.isAllowed)
-    roomActions.push({
-      key: 'clear',
-      label: '清空座位',
-      icon: 'trash-outline',
-      variant: 'danger',
-      isEnabled: true,
-      onPress: capabilities.canClearSeats.execute,
-    });
+    roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   const occupiedSeatCount = getAvalonOccupiedSeatCount(state);
   const canStart = occupiedSeatCount === state.config.numberOfPlayers;
   const startDisabledReason = canStart
@@ -260,7 +305,12 @@ export function useAvalonRoomState(
                   showConfirmAlert(
                     '结束投票',
                     '未投票的座位将视为弃权，确定结束投票并结算吗？',
-                    () => void submit('结束投票', { type: 'avalon.vote.finish' }),
+                    () => {
+                      // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
+                      // 显式传 null，避免闭包捕获旧的 controlledSeat。
+                      if (controlledSeat !== null) releaseBot();
+                      void submit('结束投票', { type: 'avalon.vote.finish' }, null);
+                    },
                   ),
               }),
         },
@@ -283,11 +333,10 @@ export function useAvalonRoomState(
             : {
                 isEnabled: true as const,
                 onPress: () =>
-                  showConfirmAlert(
-                    '结束任务',
-                    '未出牌的队员将视为成功，确定提前结算吗？',
-                    () => void submit('结束任务', { type: 'avalon.quest.finish' }),
-                  ),
+                  showConfirmAlert('结束任务', '未出牌的队员将视为成功，确定提前结算吗？', () => {
+                    if (controlledSeat !== null) releaseBot();
+                    void submit('结束任务', { type: 'avalon.quest.finish' }, null);
+                  }),
               }),
         },
       ],
@@ -370,8 +419,8 @@ export function useAvalonRoomState(
       visuallyDisabled:
         state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
-      // 狼人杀模式用点选接管，长按入口已移除。
-      onBotSeatLongPress: null,
+      // 对齐其他有座位游戏：长按机器人座位接管/释放。
+      onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
     seatConfirmation:
       seatController.pendingAction === null
@@ -391,8 +440,8 @@ export function useAvalonRoomState(
             onClose: profile.close,
             gameDetails: null,
             onKick:
-              isHost && isLobby && !selection.isSelf
-                ? () => profile.kick(selection.target.seat)
+              !selection.isSelf && capabilities.canKickSeat.isAllowed
+                ? () => executeProfileKick(capabilities, selection)
                 : null,
             onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
           },
@@ -414,15 +463,22 @@ export function useAvalonRoomState(
             }
         )
       > = [];
-      // 查看身份：局内常驻（对齐狼人杀）。
-      if (!isLobby && mySeat !== null) {
+      // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
+      if (!isLobby && effectiveSeat !== null) {
         actions.push({
           key: 'viewRole',
           label: '查看身份',
           variant: 'secondary',
           size: 'md',
           isEnabled: true,
-          onPress: () => setRoleCardVisible(true),
+          onPress: () => {
+            setRoleCardVisible(true);
+            // 身份查看协议：打开角色卡即为当前座位落查看记录
+            //（接管时是被接管座位；引擎幂等，终局后不发）。
+            if (state.phase.kind !== 'ended' && !state.roleViewedSeats.includes(effectiveSeat)) {
+              void submit('查看身份', { type: 'avalon.role.viewed' });
+            }
+          },
           testID: 'avalon-view-role',
         });
       }
@@ -472,9 +528,13 @@ export function useAvalonRoomState(
         : isTerminal
           ? terminalHostManagement
           : inGameHostManagement,
-    // D12：不做任何关于 bot 接管的提示——不渲染受控席位 banner。
-    // 释放：房主点已接管的机器人座位即可释放（狼人杀模式）。
-    controlledSeat: null,
+    controlledSeat: createControlledSeatModel({
+      isVisible: isHost && canControlBots,
+      controlledSeat,
+      controlledBotName: controlledSeat !== null ? `座位 ${controlledSeat + 1}` : null,
+      release: releaseBot,
+      gameName: 'Avalon',
+    }),
   };
   const hasAutoShownQR = useRef(false);
   const openShare = share.open;
@@ -484,9 +544,11 @@ export function useAvalonRoomState(
       openShare();
     }
   }, [isHost, openShare, props.entryReason]);
+  const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);
   return {
     state,
     shellModel,
+    viewModel,
     roomCode: room.roomCode,
     userId: user.id,
     mySeat,
@@ -494,6 +556,7 @@ export function useAvalonRoomState(
     controlledSeat,
     isHost,
     canControlBots,
+    equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     submit,
     isSubmitting: submission.isSubmitting,
     session,
@@ -504,6 +567,11 @@ export function useAvalonRoomState(
     setRoleCardVisible,
     rolePreviewId,
     setRolePreviewId,
+    // 身份查看协议：动画锚点（服务端记录）与候选池（公开的完整角色分布）。
+    roleCardShouldPlay: effectiveSeat !== null && !state.roleViewedSeats.includes(effectiveSeat),
+    roleCardAllRoles: Object.entries(state.roles)
+      .sort(([seatA], [seatB]) => Number(seatA) - Number(seatB))
+      .map(([, roleId]) => toRevealRoleData(roleId)),
     // 晚上确认弹窗：两步流程（底部按钮 → 弹窗）。
     nightModalVisible,
     setNightModalVisible,

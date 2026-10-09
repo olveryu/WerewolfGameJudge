@@ -1,20 +1,10 @@
 /**
- * 你画我猜媒体服务：笔画渲染、终稿 PNG 导出与 Worker 媒体路由上传/读取。
+ * 你画我猜媒体服务：笔画渲染与终稿 PNG 导出。
  *
- * 渲染部分从接龙版 `src/games/pictionary/services/renderPictionaryDrawing.ts` 复制并改名，
- * 上传/读取部分从接龙版 `src/games/pictionary/services/pictionaryMediaApi.ts` 复制并改名
- *（游戏间禁止互相 import）。
+ * 渲染部分从接龙版 `src/games/pictionary/services/renderPictionaryDrawing.ts` 演化；
+ * 上传/读取已迁共享工厂（`drawGuessMediaTransport.ts`）。
  */
 
-import {
-  DRAWGUESS_STATE_CODEC,
-  type DrawGuessState,
-} from '@game-judge/game-engine/games/drawguess/public';
-import {
-  parseRoomCommandResult,
-  RoomCommandProtocolError,
-  type RoomCommandResult,
-} from '@game-judge/game-engine/platform/protocol/commandResult';
 import {
   AlphaType,
   ColorType,
@@ -27,51 +17,28 @@ import {
   StrokeJoin,
 } from '@shopify/react-native-skia';
 
-import { cfGetBinary, cfPutBinary } from '@/services/cloudflare/cfFetch';
 import { PICTIONARY_CANVAS_BACKGROUND as DRAWGUESS_CANVAS_BACKGROUND } from '@/theme/colors';
 
 export { DRAWGUESS_CANVAS_BACKGROUND };
 
 import type {
-  DrawGuessDrawingColor,
-  DrawGuessDrawingElement,
-  DrawGuessDrawingFillElement,
-  DrawGuessDrawingPoint,
-  DrawGuessDrawingWidth,
-} from '../model/drawGuessDrawing';
-import { createDrawGuessFillRectangles } from './drawGuessFloodFill';
+  DrawingColor,
+  DrawingElement,
+  DrawingFillElement,
+  DrawingPoint,
+} from '@/features/drawing/model/drawing';
+import { FILL_STROKE_WIDTH } from '@/features/drawing/model/drawing';
+import { createFillRectangles } from '@/features/drawing/services/floodFill';
+import { createStrokePath } from '@/features/drawing/services/strokePath';
 
 /** 终稿画作规格：固定 1024×768 PNG，单文件最大 2 MiB（设计 §8.3）。 */
 const DRAWGUESS_EXPORT_WIDTH = 1024;
 const DRAWGUESS_EXPORT_HEIGHT = 768;
 const DRAWGUESS_EXPORT_MAX_BYTES = 2 * 1024 * 1024;
 
-const PNG_CONTENT_TYPE = 'image/png';
-
-function createDrawGuessStrokePath(
-  points: readonly DrawGuessDrawingPoint[],
-  width: number,
-  height: number,
-): SkPath {
-  const firstPoint = points[0];
-  if (firstPoint === undefined) {
-    throw new Error('[FAIL-FAST] DrawGuess stroke requires at least one point');
-  }
-  const path = Skia.Path.Make();
-  path.moveTo(firstPoint.x * width, firstPoint.y * height);
-  if (points.length === 1) {
-    path.lineTo(firstPoint.x * width + Number.EPSILON, firstPoint.y * height);
-    return path;
-  }
-  for (const point of points.slice(1)) {
-    path.lineTo(point.x * width, point.y * height);
-  }
-  return path;
-}
-
 function getShapeBounds(
-  start: DrawGuessDrawingPoint,
-  end: DrawGuessDrawingPoint,
+  start: DrawingPoint,
+  end: DrawingPoint,
   width: number,
   height: number,
 ): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
@@ -89,16 +56,16 @@ function getShapeBounds(
 
 /** 交互画布与终稿 PNG 导出共用同一套路径构造。 */
 export function createDrawGuessElementPath(
-  element: DrawGuessDrawingElement,
+  element: DrawingElement,
   width: number,
   height: number,
 ): SkPath {
   switch (element.kind) {
     case 'brush':
     case 'eraser':
-      return createDrawGuessStrokePath(element.points, width, height);
+      return createStrokePath(element.points, width, height);
     case 'line':
-      return createDrawGuessStrokePath([element.start, element.end], width, height);
+      return createStrokePath([element.start, element.end], width, height);
     case 'rectangle': {
       const bounds = getShapeBounds(element.start, element.end, width, height);
       const path = Skia.Path.Make();
@@ -132,7 +99,7 @@ export function createDrawGuessElementPath(
 
 function drawDrawGuessElements(
   canvas: SkCanvas,
-  elements: readonly DrawGuessDrawingElement[],
+  elements: readonly DrawingElement[],
   width: number,
   height: number,
 ): void {
@@ -155,7 +122,7 @@ function drawDrawGuessElements(
   }
 }
 
-function renderCanonicalPixels(elements: readonly DrawGuessDrawingElement[]): Uint8Array {
+function renderCanonicalPixels(elements: readonly DrawingElement[]): Uint8Array {
   const surface = Skia.Surface.MakeOffscreen(DRAWGUESS_EXPORT_WIDTH, DRAWGUESS_EXPORT_HEIGHT);
   if (surface === null) {
     throw new Error('无法创建填充计算画布');
@@ -188,7 +155,7 @@ function renderCanonicalPixels(elements: readonly DrawGuessDrawingElement[]): Ui
   }
 }
 
-function parseOpaqueHexColor(color: DrawGuessDrawingColor): readonly [number, number, number, 255] {
+function parseOpaqueHexColor(color: DrawingColor): readonly [number, number, number, 255] {
   const red = Number.parseInt(color.slice(1, 3), 16);
   const green = Number.parseInt(color.slice(3, 5), 16);
   const blue = Number.parseInt(color.slice(5, 7), 16);
@@ -197,11 +164,10 @@ function parseOpaqueHexColor(color: DrawGuessDrawingColor): readonly [number, nu
 
 /** 在标准像素精度上创建一次可撤销的四连通填充操作。 */
 export function createDrawGuessFillElement(
-  elements: readonly DrawGuessDrawingElement[],
-  point: DrawGuessDrawingPoint,
-  color: DrawGuessDrawingColor,
-  width: DrawGuessDrawingWidth,
-): DrawGuessDrawingFillElement | null {
+  elements: readonly DrawingElement[],
+  point: DrawingPoint,
+  color: DrawingColor,
+): DrawingFillElement | null {
   const pixels = renderCanonicalPixels(elements);
   const seedX = Math.min(DRAWGUESS_EXPORT_WIDTH - 1, Math.floor(point.x * DRAWGUESS_EXPORT_WIDTH));
   const seedY = Math.min(
@@ -224,8 +190,8 @@ export function createDrawGuessFillElement(
     id: crypto.randomUUID(),
     kind: 'fill',
     color,
-    width,
-    rectangles: createDrawGuessFillRectangles(
+    width: FILL_STROKE_WIDTH,
+    rectangles: createFillRectangles(
       pixels,
       DRAWGUESS_EXPORT_WIDTH,
       DRAWGUESS_EXPORT_HEIGHT,
@@ -240,7 +206,7 @@ export function createDrawGuessFillElement(
  *
  * @throws Skia 无法分配离屏画布，或 PNG 超过 2 MiB 时抛出。
  */
-export function renderDrawGuessDrawing(elements: readonly DrawGuessDrawingElement[]): Blob {
+export function renderDrawGuessDrawing(elements: readonly DrawingElement[]): Blob {
   if (elements.length === 0) {
     throw new Error('[FAIL-FAST] Cannot export an empty DrawGuess drawing');
   }
@@ -271,83 +237,4 @@ export function renderDrawGuessDrawing(elements: readonly DrawGuessDrawingElemen
   } finally {
     surface.dispose();
   }
-}
-
-// ─── Worker 媒体路由 ───────────────────────────────────────────────────────────
-
-function encodePathSegment(value: string): string {
-  if (value.length === 0) throw new Error('[FAIL-FAST] DrawGuess media path segment is empty');
-  return encodeURIComponent(value);
-}
-
-function controlledSeatQuery(controlledSeat: number | null): string {
-  if (controlledSeat === null) return '';
-  if (!Number.isSafeInteger(controlledSeat) || controlledSeat < 0) {
-    throw new Error(`[FAIL-FAST] Invalid controlled DrawGuess seat: ${controlledSeat}`);
-  }
-  return `?controlledSeat=${controlledSeat}`;
-}
-
-function parseUploadResponse(
-  value: unknown,
-  expectedCommandId: string,
-): RoomCommandResult<DrawGuessState> {
-  const result = parseRoomCommandResult(value, DRAWGUESS_STATE_CODEC);
-  if (result.commandId !== expectedCommandId) {
-    throw new RoomCommandProtocolError(
-      `DrawGuess media commandId mismatch: expected ${expectedCommandId}, received ${result.commandId}`,
-    );
-  }
-  return result;
-}
-
-/**
- * 上传已预留的画作。返回的权威快照也会由房间 DO 广播。
- *
- * @throws {CloudflareHttpError} 预留过期、无效或上传失败时抛出。
- */
-export async function uploadDrawGuessDrawing(
-  roomCode: string,
-  submissionId: string,
-  png: Blob,
-  controlledSeat: number | null,
-  signal?: AbortSignal,
-): Promise<RoomCommandResult<DrawGuessState>> {
-  const commandId = `drawguess-media-commit:${submissionId}`;
-  return cfPutBinary(
-    `/api/games/drawguess/rooms/${encodePathSegment(roomCode)}/submissions/${encodePathSegment(submissionId)}${controlledSeatQuery(controlledSeat)}`,
-    png,
-    PNG_CONTENT_TYPE,
-    (value) => parseUploadResponse(value, commandId),
-    { signal },
-  );
-}
-
-function encodeBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 32_768;
-  let binary = '';
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-  }
-  return globalThis.btoa(binary);
-}
-
-/**
- * 读取受保护的画作，转为 React Native Image 可用的 data URI。
- *
- * @throws {CloudflareHttpError} 无权访问或媒体缺失时抛出。
- */
-export async function readDrawGuessDrawingDataUri(
-  roomCode: string,
-  entryId: string,
-  controlledSeat: number | null,
-  signal?: AbortSignal,
-): Promise<string> {
-  const bytes = await cfGetBinary(
-    `/api/games/drawguess/rooms/${encodePathSegment(roomCode)}/media/${encodePathSegment(entryId)}${controlledSeatQuery(controlledSeat)}`,
-    PNG_CONTENT_TYPE,
-    { signal },
-  );
-  return `data:${PNG_CONTENT_TYPE};base64,${encodeBase64(bytes)}`;
 }

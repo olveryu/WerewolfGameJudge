@@ -4,7 +4,7 @@ import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/publi
 import { HAND_DRAWN_AVATAR_IDS } from '@game-judge/game-engine/product/rewards';
 
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
-import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import { getAnimationOption } from '@/features/room/model/roleRevealAnimationOptions';
 import { WerewolfRevealEffectPreview } from '@/games/werewolf/components/WerewolfRevealEffectPreview';
 
 const WEREWOLF_AVATAR_IDS: ReadonlySet<string> = new Set(HAND_DRAWN_AVATAR_IDS);

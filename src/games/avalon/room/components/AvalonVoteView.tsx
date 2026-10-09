@@ -29,9 +29,11 @@ function ballotName(viewModel: AvalonViewModel, seat: number): string {
 export function AvalonVoteView({
   viewModel,
   onVote,
+  canTakeOverBots,
 }: {
   readonly viewModel: AvalonViewModel;
   readonly onVote: (vote: AvalonBallot) => void;
+  readonly canTakeOverBots: boolean;
 }) {
   const instruction = resolveVoteInstruction(viewModel);
   const proposed = viewModel.proposedSeats ?? [];
@@ -99,7 +101,9 @@ export function AvalonVoteView({
       ) : instruction.canVote ? (
         <Text style={styles.hint}>请选择赞成或反对；投票后可改票。</Text>
       ) : (
-        <Text style={styles.hint}>你不在座位上，无法投票。</Text>
+        <Text style={styles.hint}>
+          {canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。'}
+        </Text>
       )}
     </AvalonStageFrame>
   );

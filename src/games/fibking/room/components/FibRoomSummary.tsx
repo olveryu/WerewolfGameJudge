@@ -28,6 +28,7 @@ const PHASE_LABELS = {
   lobby: '等待入座',
   preparing: '准备词语',
   preparationFailed: '准备失败',
+  viewing: '查看身份',
   ongoing: '描述进行中',
   ended: '本轮已结束',
 } as const;

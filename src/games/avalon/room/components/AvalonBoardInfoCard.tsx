@@ -1,6 +1,8 @@
 /**
- * 阿瓦隆板子信息卡：显示本局角色配置，点角色看技能介绍。
- * 对齐狼人杀 BoardInfoCard（可折叠、角色可点）；chip 复用共享 FactionChip。
+ * 阿瓦隆板子信息卡：共享 BoardInfoCard 的阿瓦隆适配器。
+ *
+ * 阿瓦隆只有两个阵营：好人 / 坏人。
+ * 忠臣是普通好人，不单独分组。
  */
 
 import {
@@ -8,108 +10,77 @@ import {
   type AvalonRoleId,
   isAvalonPlayerCount,
 } from '@game-judge/game-engine/games/avalon/public';
-import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
 
-import { FactionChip } from '@/components/FactionChip';
-import { borderRadius, colors, spacing, textStyles, typography } from '@/theme';
+import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
+import type { RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
+import { colors } from '@/theme';
 
+import { getAvalonRoleDisplayName } from '../../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../../model/avalonRoleMeta';
+
+function toRoleItems(roles: readonly AvalonRoleId[]): RoleDisplayItem[] {
+  const counts = new Map<AvalonRoleId, number>();
+  for (const roleId of roles) {
+    counts.set(roleId, (counts.get(roleId) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([roleId, count]) => ({
+    roleId,
+    displayName: getAvalonRoleDisplayName(roleId),
+    count,
+  }));
+}
 
 export function AvalonBoardInfoCard({
   playerCount,
   onRolePress,
   collapsed = false,
+  styles,
 }: {
   readonly playerCount: number;
   readonly onRolePress: (roleId: AvalonRoleId) => void;
   readonly collapsed?: boolean;
+  readonly styles: Parameters<typeof BoardInfoCard>[0]['styles'];
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(collapsed);
-  if (!isAvalonPlayerCount(playerCount)) return null;
-  const board = AVALON_BOARDS[playerCount];
+  // Hooks 必须在 early return 之前调用。
+  const board = isAvalonPlayerCount(playerCount) ? AVALON_BOARDS[playerCount] : null;
 
-  const goodRoles = board.filter((r) => !getAvalonRoleMeta(r).isEvil);
-  const evilRoles = board.filter((r) => getAvalonRoleMeta(r).isEvil);
+  const idByKey = useMemo(() => {
+    const map = new Map<string, AvalonRoleId>();
+    if (board !== null) {
+      for (const r of board) map.set(r, r);
+    }
+    return map;
+  }, [board]);
+
+  const handleRolePress = useCallback(
+    (roleId: string) => {
+      const id = idByKey.get(roleId);
+      if (id !== undefined) onRolePress(id);
+    },
+    [idByKey, onRolePress],
+  );
+
+  const sections = useMemo((): readonly BoardInfoSection[] => {
+    if (board === null) return [];
+    const evilRoles = board.filter((r) => getAvalonRoleMeta(r).isEvil);
+    const goodRoles = board.filter((r) => !getAvalonRoleMeta(r).isEvil);
+    return [
+      { title: '坏人', items: toRoleItems(evilRoles), color: colors.wolf },
+      { title: '好人', items: toRoleItems(goodRoles), color: colors.god },
+    ];
+  }, [board]);
+
+  if (board === null) return null;
 
   return (
-    <View style={styles.card}>
-      <TouchableOpacity
-        style={styles.header}
-        onPress={() => setIsCollapsed(!isCollapsed)}
-        testID="avalon-board-info-toggle"
-      >
-        <Text style={styles.title}>
-          {playerCount}人局 · 好人{goodRoles.length} vs 坏人{evilRoles.length}
-        </Text>
-        <Text style={styles.toggle}>{isCollapsed ? '展开' : '收起'}</Text>
-      </TouchableOpacity>
-      {!isCollapsed && (
-        <View style={styles.body}>
-          <View style={styles.factionRow}>
-            <Text style={styles.factionLabel}>好人</Text>
-            {goodRoles.map((roleId, idx) => (
-              <FactionChip
-                key={`${roleId}-${idx}`}
-                label={getAvalonRoleMeta(roleId).displayName}
-                color={colors.primary}
-                size="md"
-                onPress={() => onRolePress(roleId)}
-              />
-            ))}
-          </View>
-          <View style={styles.factionRow}>
-            <Text style={styles.factionLabel}>坏人</Text>
-            {evilRoles.map((roleId, idx) => (
-              <FactionChip
-                key={`${roleId}-${idx}`}
-                label={getAvalonRoleMeta(roleId).displayName}
-                color={colors.error}
-                size="md"
-                onPress={() => onRolePress(roleId)}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-    </View>
+    <BoardInfoCard
+      playerCount={playerCount}
+      sections={sections}
+      collapsed={collapsed}
+      onRolePress={handleRolePress}
+      styles={styles}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    padding: spacing.small,
-    marginBottom: spacing.small,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    ...textStyles.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  },
-  toggle: {
-    ...textStyles.secondary,
-    color: colors.primary,
-  },
-  body: {
-    marginTop: spacing.small,
-    gap: spacing.small,
-  },
-  factionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.tight,
-  },
-  factionLabel: {
-    ...textStyles.secondary,
-    color: colors.textSecondary,
-    minWidth: spacing.large,
-  },
-});

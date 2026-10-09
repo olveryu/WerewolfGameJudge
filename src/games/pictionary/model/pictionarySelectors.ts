@@ -6,13 +6,6 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
-export function getPictionaryUserSeat(state: PictionaryState, userId: string): number | null {
-  for (const occupant of Object.values(state.realSeats)) {
-    if (occupant?.userId === userId) return occupant.seat;
-  }
-  return null;
-}
-
 export function getPictionaryCompletedCount(state: PictionaryState): number {
   if (state.stepIndex < 0) return 0;
   if (state.phase === 'answering') return state.readySeats.length;

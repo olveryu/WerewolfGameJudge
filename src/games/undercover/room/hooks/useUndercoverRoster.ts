@@ -3,10 +3,13 @@ import type { UndercoverState } from '@game-judge/game-engine/games/undercover/p
 import { useEffect } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -15,7 +18,6 @@ import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import {
   createUndercoverRoomCapabilities,
   getUndercoverProfileTarget,
-  getUndercoverUserSeat,
 } from '../undercoverRoomAdapter';
 import { useUndercoverSeatCommands } from './useUndercoverSeatCommands';
 
@@ -27,7 +29,7 @@ export function useUndercoverRoster(
   shareRoom: () => void,
 ) {
   const commands = useUndercoverSeatCommands(session, user);
-  const mySeat = getUndercoverUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
     takeSeat: commands.takeSeat,
@@ -75,7 +77,7 @@ export function useUndercoverRoster(
           gameDetails: null,
           onKick:
             !profileSelection.isSelf && capabilities.canKickSeat.isAllowed
-              ? () => profileController.kick(profileSelection.target.seat)
+              ? () => executeProfileKick(capabilities, profileSelection)
               : null,
           onLeaveSeat:
             profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed
@@ -104,12 +106,14 @@ export function useUndercoverRoster(
     }
     capability.execute(seat);
   };
-  const onBotLongPress = (seat: number) => {
-    if (!capabilities.canTakeOverBots.isAllowed || !state.botSeats.includes(seat))
-      throw new Error('Invalid Undercover bot control');
-    if (controlledSeat === seat) release();
-    else bot.takeOver(seat);
-  };
+  const onBotLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: bot.takeOver,
+    release,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    isBotSeat: (seat) => state.botSeats.includes(seat),
+    gameName: 'Undercover',
+  });
   return {
     capabilities,
     profile,

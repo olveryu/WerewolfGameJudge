@@ -120,7 +120,7 @@ test('FibKing config, room, rules, and identity fit the small-mobile viewport', 
           contentType: 'image/png',
         });
       }
-      await allRooms[i]!.closeIdentity();
+      await allRooms[i]!.confirmIdentityView();
     }
   } finally {
     await closeAll(fixture);

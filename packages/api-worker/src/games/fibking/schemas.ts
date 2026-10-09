@@ -41,6 +41,7 @@ const publicCommandOptions = defineFibPublicCommandOptions([
   z.strictObject({ type: z.literal('fib.game.returnToLobby') }),
   z.strictObject({ type: z.literal('fib.round.start') }),
   z.strictObject({ type: z.literal('fib.round.cancelPreparing') }),
+  z.strictObject({ type: z.literal('fib.round.confirmRoleView') }),
   z.strictObject({ type: z.literal('fib.round.reveal') }),
 ]);
 

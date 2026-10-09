@@ -8,10 +8,3 @@ import type {
 import type { RoomSessionClient } from '@/features/room/session/types';
 
 export type StoryRelayRoomSession = RoomSessionClient<StoryRelayState, StoryRelayCommand>;
-
-/** Finds the current user's real seat without treating controlled bots as the user's identity. */
-export function getStoryRelayUserSeat(state: StoryRelayState, userId: string): number | null {
-  return (
-    Object.values(state.realSeats).find((occupant) => occupant?.userId === userId)?.seat ?? null
-  );
-}

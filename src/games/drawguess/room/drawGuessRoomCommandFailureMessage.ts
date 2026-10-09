@@ -1,8 +1,14 @@
 /**
  * 你画我猜命令失败原因的中文文案。
+ *
+ * 匹配走引擎导出的 `DRAWGUESS_REASONS` 常量，不手抄中文原文。
+ * 若引擎修改文案，此处自动同步，无 drift。
  */
 
-import type { DrawGuessState } from '@game-judge/game-engine/games/drawguess/public';
+import {
+  DRAWGUESS_REASONS,
+  type DrawGuessState,
+} from '@game-judge/game-engine/games/drawguess/public';
 
 import { getRoomCommandFailureReason } from '@/features/room/session/roomCommandResult';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
@@ -14,41 +20,41 @@ export function getDrawGuessRoomCommandFailureMessage(
 ): string {
   const reason = getRoomCommandFailureReason(result);
   switch (reason) {
-    case '你画我猜配置无效':
+    case DRAWGUESS_REASONS.config:
       return '配置无效，请检查人数设置（4 至 12 人）';
-    case '当前阶段不能执行此操作':
+    case DRAWGUESS_REASONS.phase:
       return '当前阶段不能执行此操作';
-    case '对局已推进，请刷新后重试':
+    case DRAWGUESS_REASONS.stale:
       return '对局已推进，请稍后重试';
-    case '请先入座':
+    case DRAWGUESS_REASONS.notSeated:
       return '请先入座再操作';
-    case '只有当前画手可以操作':
+    case DRAWGUESS_REASONS.notDrawer:
       return '只有当前画手可以操作';
-    case '画手不能提交猜词':
+    case DRAWGUESS_REASONS.notGuesser:
       return '画手不能提交猜词';
-    case '本轮已猜中，等待结算':
+    case DRAWGUESS_REASONS.locked:
       return '本轮已猜中，请等待结算';
-    case '题目准备中，请稍候':
+    case DRAWGUESS_REASONS.emptyChoices:
       return '题目准备中，请稍候再选';
-    case '请选择候选词中的题目':
+    case DRAWGUESS_REASONS.invalidWord:
       return '只能选择候选词中的题目';
-    case '笔画数据无效':
+    case DRAWGUESS_REASONS.invalidStroke:
       return '笔画数据无效，请重试';
-    case '本轮笔画已达上限':
+    case DRAWGUESS_REASONS.strokeLimit:
       return '本轮笔画已达上限';
-    case '猜词内容无效':
+    case DRAWGUESS_REASONS.invalidGuess:
       return '猜词内容无效，请检查输入';
-    case 'PNG 预留无效或已存在':
+    case DRAWGUESS_REASONS.reservation:
       return '画作上传预留无效，请重试';
-    case '题目已下发':
+    case DRAWGUESS_REASONS.wordsDealt:
       return '题目已下发';
-    case '请先坐满所有座位，或填充机器人。':
+    case DRAWGUESS_REASONS.full:
       return '请先坐满所有座位，或填充机器人。';
-    case '目标人数之外的座位仍有玩家入座，请先让这些玩家离座':
+    case DRAWGUESS_REASONS.occupied:
       return '目标人数之外的座位仍有玩家入座，请先让这些玩家离座';
-    case '当前阶段尚未到推进时间':
+    case DRAWGUESS_REASONS.deadline:
       return '当前阶段尚未结束';
-    case '只能接管机器人席位':
+    case DRAWGUESS_REASONS.controlledSeatNotBot:
       return '只能接管机器人席位';
     default:
       return translateReasonCode(reason);

@@ -15,6 +15,7 @@ export {
   UNDERCOVER_MAX_PLAYERS,
   UNDERCOVER_MIN_PLAYERS,
   type UndercoverRole,
+  type UndercoverRoleCounts,
 } from './domain/rules';
 export { getUndercoverWordCard, type UndercoverWordCard } from './domain/visibility';
 export { type UndercoverEngine, undercoverEngine } from './engine';

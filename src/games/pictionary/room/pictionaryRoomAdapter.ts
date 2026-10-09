@@ -11,6 +11,11 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
 import {
   createRoomSetupCapabilities,
@@ -84,28 +89,6 @@ export function createPictionaryRoomCapabilities(
       input.isHost && (input.state.phase === 'answering' || input.state.phase === 'settling')
         ? allowed(input.takeOverBot)
         : denied('当前阶段不能接管机器人'),
-  };
-}
-
-export function getPictionaryProfileTarget(
-  state: PictionaryState,
-  seat: number,
-): RoomProfileTarget | null {
-  const occupant = state.realSeats[seat];
-  if (occupant !== undefined) {
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  }
-  if (!isPictionaryImplicitBotSeat(state, seat)) return null;
-  return {
-    seat,
-    userId: getPictionaryBotUserId(state.roomCode, seat),
-    occupantKind: 'bot',
-    rosterName: getPictionaryBotDisplayName(seat),
   };
 }
 
@@ -195,10 +178,27 @@ export function getPictionarySeatTapIntent(input: {
   readonly currentSeat: number | null;
   readonly disabledReason?: string;
 }) {
+  const occupant = input.state.realSeats[input.seat];
+  const target: RoomProfileTarget | null =
+    occupant !== undefined
+      ? {
+          seat: input.seat,
+          userId: occupant.userId,
+          occupantKind: 'human',
+          rosterName: occupant.profile.displayName,
+        }
+      : isPictionaryImplicitBotSeat(input.state, input.seat)
+        ? {
+            seat: input.seat,
+            userId: getPictionaryBotUserId(input.state.roomCode, input.seat),
+            occupantKind: 'bot',
+            rosterName: getPictionaryBotDisplayName(input.seat),
+          }
+        : null;
   return getRoomSeatTapIntent({
     seat: input.seat,
     currentSeat: input.currentSeat,
-    target: getPictionaryProfileTarget(input.state, input.seat),
+    target,
     disabledReason: input.disabledReason,
   });
 }
@@ -375,36 +375,23 @@ export function createPictionaryHostManagement(
   const roomActions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     roomActions.push(
-      hostAction(
-        'configure-game',
-        '房间设置',
-        'options-outline',
-        'secondary',
-        input.capabilities.canConfigureGame.execute,
-      ),
+      buildRoomConfigAction({
+        onPress: input.capabilities.canConfigureGame.execute,
+      }),
     );
   }
   if (input.capabilities.canFillBots.isAllowed) {
-    roomActions.push({
-      ...hostAction(
-        'fill-bots',
-        '填充机器人',
-        'people-outline',
-        'secondary',
-        input.capabilities.canFillBots.execute,
-      ),
-      testID: TESTIDS.roomFillBotsButton,
-    });
+    roomActions.push(
+      buildFillBotsAction({
+        onPress: input.capabilities.canFillBots.execute,
+      }),
+    );
   }
   if (input.capabilities.canClearSeats.isAllowed) {
     roomActions.push(
-      hostAction(
-        'clear-seats',
-        '清空座位',
-        'trash-outline',
-        'danger',
-        input.capabilities.canClearSeats.execute,
-      ),
+      buildClearSeatsAction({
+        onPress: input.capabilities.canClearSeats.execute,
+      }),
     );
   }
   const sections: RoomHostManagementSection[] = [

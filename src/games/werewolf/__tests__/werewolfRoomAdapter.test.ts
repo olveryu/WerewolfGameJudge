@@ -1,12 +1,15 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { EMPTY_LAYOUT } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfRoomCapabilities,
+  createWerewolfRoomShellModel,
   createWerewolfSeatDataSource,
   createWerewolfStatusRibbon,
+  type WerewolfRoomShellModelInput,
 } from '@/games/werewolf/werewolfRoomAdapter';
 
 function createCapabilityInput() {
@@ -302,5 +305,222 @@ describe('werewolfRoomAdapter', () => {
       onDisabledPress: null,
     });
     expect(onIntent).not.toHaveBeenCalled();
+  });
+});
+
+describe('createWerewolfRoomShellModel', () => {
+  function createShellModelInput(
+    overrides: Partial<WerewolfRoomShellModelInput> = {},
+  ): WerewolfRoomShellModelInput {
+    return {
+      roomCode: '1234',
+      capabilities: createWerewolfRoomCapabilities(createCapabilityInput()),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      seatConfirmation: null,
+      profile: null,
+      share: {
+        isVisible: false,
+        roomCode: '1234',
+        roomUrl: 'https://example.test/room/1234',
+        open: jest.fn(),
+        close: jest.fn(),
+        copyLink: jest.fn(),
+        shareImage: jest.fn(),
+      },
+      user: { id: 'user-1' },
+      ticketCount: null,
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      onAvatarPress: jest.fn(),
+      roomStatus: GameStatus.Ready,
+      isHost: false,
+      isDebugMode: false,
+      isAudioPlaying: false,
+      isActionSubmitting: false,
+      isStartingGame: false,
+      isHostActionSubmitting: false,
+      imActioner: false,
+      isPlagueMode: false,
+      actionMessage: null,
+      guideMessage: null,
+      nightProgress: null,
+      seatViewModels: [],
+      controlledSeat: null,
+      sheriffElectionPanel: null,
+      stateRevision: 1,
+      onSeatPress: jest.fn(),
+      onSeatLongPressed: jest.fn(),
+      hasBots: false,
+      controlledBotName: null,
+      onReleaseBot: jest.fn(),
+      mvpSeat: null,
+      onSelectMvp: jest.fn(),
+      currentSchemaKind: null,
+      onHostControl: jest.fn(),
+      onMusicSettings: jest.fn(),
+      onMarkAllBotsViewed: jest.fn(),
+      onMarkAllBotsGroupConfirmed: jest.fn(),
+      onNightReview: jest.fn(),
+      onLastNightInfo: jest.fn(),
+      bottomLayout: EMPTY_LAYOUT,
+      onSchemaButtonPress: jest.fn(),
+      onStaticButtonPress: jest.fn(),
+      isSheriffInspectorVisible: false,
+      openSheriffDetails: jest.fn(),
+      ...overrides,
+    };
+  }
+
+  it('shows the action message only for the current actioner while audio is silent', () => {
+    const acting = createWerewolfRoomShellModel(
+      createShellModelInput({ imActioner: true, actionMessage: '请选择要查验的玩家' }),
+    );
+    expect(acting.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '请选择要查验的玩家',
+    });
+
+    const watching = createWerewolfRoomShellModel(createShellModelInput());
+    expect(watching.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+
+    const audioPlaying = createWerewolfRoomShellModel(
+      createShellModelInput({
+        imActioner: true,
+        isAudioPlaying: true,
+        actionMessage: '请选择要查验的玩家',
+      }),
+    );
+    expect(audioPlaying.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+  });
+
+  it('shows the plague-mode host message in Ready regardless of actioner state', () => {
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({ isHost: true, isPlagueMode: true }),
+    );
+    expect(model.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
+    });
+  });
+
+  it('flattens the bottom layout into a single info action list when the game ended', () => {
+    const button = (key: string, label: string) =>
+      ({
+        key,
+        label,
+        variant: 'secondary',
+        size: 'md',
+        isEnabled: true,
+        behavior: { kind: 'static', action: 'viewRole' },
+      }) as const;
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        actionMessage: '对局结束',
+        bottomLayout: {
+          primary: [button('p1', '主操作')],
+          secondary: [button('s1', '次操作')],
+          ghost: [button('g1', '幽灵操作')],
+        },
+      }),
+    );
+    expect(model.bottomActions.kind).toBe('info');
+    if (model.bottomActions.kind === 'info') {
+      expect(model.bottomActions.message).toBe('对局结束');
+      expect(model.bottomActions.actions.map((a) => a.key)).toEqual(['p1', 's1', 'g1']);
+    }
+  });
+
+  it('disables the seat board visually during host audio or action submission', () => {
+    const audio = createWerewolfRoomShellModel(
+      createShellModelInput({ roomStatus: GameStatus.Ongoing, isAudioPlaying: true }),
+    );
+    expect(audio.seats.visuallyDisabled).toBe(true);
+
+    const submitting = createWerewolfRoomShellModel(
+      createShellModelInput({ isActionSubmitting: true }),
+    );
+    expect(submitting.seats.visuallyDisabled).toBe(true);
+
+    const idle = createWerewolfRoomShellModel(createShellModelInput());
+    expect(idle.seats.visuallyDisabled).toBe(false);
+  });
+
+  it('gates the bot-seat long press on the takeover capability', () => {
+    const onSeatLongPressed = jest.fn();
+    const allowed = createWerewolfRoomShellModel(createShellModelInput({ onSeatLongPressed }));
+    expect(allowed.seats.onBotSeatLongPress).toBe(onSeatLongPressed);
+
+    const deniedCapabilities = createWerewolfRoomCapabilities({
+      ...createCapabilityInput(),
+      status: GameStatus.Ongoing,
+      isDebugMode: false,
+    });
+    const denied = createWerewolfRoomShellModel(
+      createShellModelInput({ capabilities: deniedCapabilities, onSeatLongPressed }),
+    );
+    expect(denied.seats.onBotSeatLongPress).toBeNull();
+  });
+
+  it('builds host management only for the host', () => {
+    const guest = createWerewolfRoomShellModel(createShellModelInput({ isHost: false }));
+    expect(guest.hostManagement).toBeNull();
+
+    const host = createWerewolfRoomShellModel(createShellModelInput({ isHost: true }));
+    expect(host.hostManagement).not.toBeNull();
+  });
+
+  it('surfaces the controlled-seat banner only when every visibility condition holds', () => {
+    const visible = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        isDebugMode: true,
+        hasBots: true,
+        roomStatus: GameStatus.Ongoing,
+        controlledSeat: 2,
+        controlledBotName: '机器人乙',
+      }),
+    );
+    expect(visible.controlledSeat).toMatchObject({
+      kind: 'controlled',
+      seat: 2,
+      displayName: '机器人乙',
+    });
+    if (visible.controlledSeat?.kind === 'controlled') {
+      expect(typeof visible.controlledSeat.onRelease).toBe('function');
+    }
+
+    const noBots = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        isDebugMode: true,
+        hasBots: false,
+        roomStatus: GameStatus.Ongoing,
+        controlledSeat: 2,
+        controlledBotName: '机器人乙',
+      }),
+    );
+    expect(noBots.controlledSeat).toBeNull();
+
+    const visibleBase = {
+      isHost: true,
+      isDebugMode: true,
+      hasBots: true,
+      roomStatus: GameStatus.Ongoing,
+      controlledSeat: 2,
+      controlledBotName: '机器人乙',
+    } as const;
+    for (const flip of [
+      { roomStatus: GameStatus.Unseated },
+      { roomStatus: GameStatus.Seated },
+      { isHost: false },
+      { isDebugMode: false },
+    ]) {
+      const model = createWerewolfRoomShellModel(
+        createShellModelInput({ ...visibleBase, ...flip }),
+      );
+      expect(model.controlledSeat).toBeNull();
+    }
   });
 });

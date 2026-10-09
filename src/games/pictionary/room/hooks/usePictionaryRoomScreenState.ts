@@ -2,16 +2,21 @@
 
 import {
   createPictionaryCommand,
-  getPictionaryBotDisplayName,
+  getPictionaryOccupiedSeatCount,
   isPictionaryImplicitBotSeat,
   type PictionaryPublicCommand,
+  type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
-import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
+import {
+  type RoomBotControl,
+  useRoomBotControl,
+} from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -20,13 +25,16 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -36,7 +44,6 @@ import {
   createPictionaryRoomCapabilities,
   createPictionarySeatDataSource,
   createPictionaryStatusRibbon,
-  getPictionaryProfileTarget,
   getPictionarySeatTapIntent,
   PICTIONARY_DISPLAY_NAME,
 } from '../pictionaryRoomAdapter';
@@ -64,9 +71,7 @@ function usePictionaryProfileModel(
       onClose: profileController.close,
       onKick:
         !selection.isSelf && capabilities.canKickSeat.isAllowed
-          ? () =>
-              capabilities.canKickSeat.isAllowed &&
-              capabilities.canKickSeat.execute(selection.target.seat)
+          ? () => executeProfileKick(capabilities, selection)
           : null,
       onLeaveSeat:
         selection.isSelf && capabilities.canLeaveSeat.isAllowed
@@ -74,7 +79,27 @@ function usePictionaryProfileModel(
           : null,
       gameDetails: null,
     };
-  }, [capabilities.canKickSeat, capabilities.canLeaveSeat, profileController.close, selection]);
+  }, [capabilities, profileController.close, selection]);
+}
+
+/**
+ * 你画我猜（接龙）房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState
+ * 形态）：Screen 需要的状态推导全部在本 hook 内组装，Screen 只消费本接口渲染。
+ * 阶段组件 PictionaryStage 的内部交互状态（截止 tick、任务输入）属组件自身，不在此列。
+ */
+export interface PictionaryRoomScreenState {
+  readonly shellModel: RoomShellModel;
+  readonly state: PictionaryState;
+  /** 已占座位数（引擎口径）；原在 Screen 内调用引擎计数，P-2b 下沉。 */
+  readonly occupiedSeatCount: number;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: RoomBotControl['release'];
+  readonly userId: string;
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly openRules: () => void;
+  readonly session: PictionaryRoomSession;
 }
 
 export function usePictionaryRoomScreenState({
@@ -83,7 +108,7 @@ export function usePictionaryRoomScreenState({
   navigation,
   entryController,
   session,
-}: UsePictionaryRoomScreenStateParams) {
+}: UsePictionaryRoomScreenStateParams): PictionaryRoomScreenState {
   const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
   const { user } = useAuthContext();
   if (user === null) throw new Error('[FAIL-FAST] Ready Pictionary room requires a user');
@@ -94,7 +119,7 @@ export function usePictionaryRoomScreenState({
   const state = snapshot.snapshot.state;
   const revision = snapshot.snapshot.revision;
   const isHost = state.hostUserId === user.id;
-  const mySeat = getPictionaryUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const seatCommands = usePictionarySeatCommands({ session, user });
   const { controlledSeat, takeOver: takeOverBot, release: releaseBot } = useRoomBotControl();
   const seatController = useRoomSeatController({
@@ -221,26 +246,17 @@ export function usePictionaryRoomScreenState({
     },
     [capabilities, mySeat, state],
   );
-  const onSeatLongPress = useCallback(
-    (seat: number) => {
-      const target = getPictionaryProfileTarget(state, seat);
-      if (target?.occupantKind !== 'bot') {
-        throw new Error(`[FAIL-FAST] Pictionary bot takeover received non-bot seat ${seat}`);
-      }
-      if (controlledSeat === seat) {
-        releaseBot();
-        return;
-      }
-      const capability = capabilities.canTakeOverBots;
-      if (!capability.isAllowed) {
-        throw new Error(
-          `[FAIL-FAST] Pictionary bot takeover was wired while denied: ${capability.reason}`,
-        );
-      }
-      capability.execute(seat);
-    },
-    [capabilities.canTakeOverBots, controlledSeat, releaseBot, state],
-  );
+  const onSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: takeOverBot,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    deniedReason: capabilities.canTakeOverBots.isAllowed
+      ? undefined
+      : (capabilities.canTakeOverBots.reason ?? undefined),
+    isBotSeat: useCallback((seat: number) => isPictionaryImplicitBotSeat(state, seat), [state]),
+    gameName: 'Pictionary',
+  });
   const profile = usePictionaryProfileModel(capabilities, profileController);
   const seatConfirmation = useMemo(
     (): RoomSeatConfirmationModel | null =>
@@ -311,22 +327,18 @@ export function usePictionaryRoomScreenState({
       submitCommand,
     ],
   );
-  const controlledSeatModel = useMemo<RoomShellModel['controlledSeat']>(() => {
-    if (controlledSeat !== null) {
-      return {
-        kind: 'controlled',
-        seat: controlledSeat,
-        displayName: getPictionaryBotDisplayName(controlledSeat),
-        onRelease: releaseBot,
-      };
-    }
-    const hasControllableBots =
-      capabilities.canTakeOverBots.isAllowed &&
-      Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).some((seat) =>
-        isPictionaryImplicitBotSeat(state, seat),
-      );
-    return hasControllableBots ? { kind: 'hint' } : null;
-  }, [capabilities.canTakeOverBots, controlledSeat, releaseBot, state]);
+  const hasControllableBots =
+    capabilities.canTakeOverBots.isAllowed &&
+    Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).some((seat) =>
+      isPictionaryImplicitBotSeat(state, seat),
+    );
+  const controlledSeatModel = createControlledSeatModel({
+    isVisible: controlledSeat !== null || hasControllableBots,
+    controlledSeat,
+    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    release: releaseBot,
+    gameName: 'Pictionary',
+  });
   const shellModel = useMemo(
     (): RoomShellModel => ({
       roomCode: room.roomCode,
@@ -391,10 +403,13 @@ export function usePictionaryRoomScreenState({
   return {
     shellModel,
     state,
+    occupiedSeatCount: getPictionaryOccupiedSeatCount(state),
     effectiveSeat,
     controlledSeat,
+    releaseBot,
     userId: user.id,
     isHost,
+    canControlBots: capabilities.canTakeOverBots.isAllowed,
     openRules,
     session,
   };

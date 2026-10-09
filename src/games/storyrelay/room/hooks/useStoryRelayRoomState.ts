@@ -3,12 +3,17 @@
 import {
   getStoryRelayOccupiedSeatCount,
   type StoryRelayCommand,
+  type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
-import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
+import {
+  type RoomBotControl,
+  useRoomBotControl,
+} from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -17,6 +22,15 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
+import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildRoomConfigAction,
+} from '@/features/room/model/hostManagementActions';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -27,10 +41,7 @@ import type {
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import {
-  getStoryRelayUserSeat,
-  type StoryRelayRoomSession,
-} from '@/games/storyrelay/model/StoryRelayRoomSession';
+import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -42,13 +53,30 @@ import {
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { useStoryRelaySeatCommands } from './useStoryRelaySeatCommands';
 
+/**
+ * 故事接龙房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
+ * Screen 无本地推导（仅透传字段给 StoryRelayStage），本接口把 hook 返回钉死防回潮。
+ * 阶段组件 StoryRelayStage 的内部交互状态属组件自身，不在此列。
+ */
+export interface StoryRelayRoomScreenState {
+  readonly state: StoryRelayState;
+  readonly shellModel: RoomShellModel;
+  readonly userId: string;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: RoomBotControl['release'];
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly openRules: () => void;
+}
+
 /** Binds the current ready session to the room-shell controllers and commands. */
 export function useStoryRelayRoomState(
   props: GameRoomScreenProps<'storyrelay'> & {
     readonly session: StoryRelayRoomSession;
     readonly entryController: RoomEntryController;
   },
-) {
+): StoryRelayRoomScreenState {
   const { session, room, navigation, entryController } = props;
   const { user } = useAuthContext();
   const snapshot = useRoomSessionSnapshot(session);
@@ -56,7 +84,7 @@ export function useStoryRelayRoomState(
     throw new Error('Story Relay requires an authenticated ready session');
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
-  const mySeat = getStoryRelayUserSeat(state, user.id);
+  const mySeat = getUserSeat(state.realSeats, user.id);
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;
@@ -108,6 +136,18 @@ export function useStoryRelayRoomState(
       ? { isAllowed: true, execute: botControl.takeOver }
       : { isAllowed: false, reason: '当前不能接管机器人' },
   };
+  const isBotSeat = useCallback((seat: number) => state.botSeats.includes(seat), [state.botSeats]);
+  const onBotSeatLongPress = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: botControl.takeOver,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    deniedReason: capabilities.canTakeOverBots.isAllowed
+      ? undefined
+      : (capabilities.canTakeOverBots.reason ?? undefined),
+    isBotSeat,
+    gameName: 'StoryRelay',
+  });
   const onSeatPress = (seat: number) => {
     if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     const target = getStoryRelayProfileTarget(state, seat);
@@ -129,20 +169,12 @@ export function useStoryRelayRoomState(
       : seatController.requestMoveSeat(seat);
   };
   const actions: RoomHostManagementAction[] = [];
-  for (const [key, label, icon, capability, variant] of [
-    ['configure', '房间设置', 'options-outline', capabilities.canConfigureGame, 'secondary'],
-    ['fill', '填充机器人', 'people-outline', capabilities.canFillBots, 'secondary'],
-    ['clear', '清空座位', 'trash-outline', capabilities.canClearSeats, 'danger'],
-  ] as const)
-    if (capability.isAllowed)
-      actions.push({
-        key,
-        label,
-        icon,
-        variant,
-        isEnabled: true,
-        onPress: capability.execute,
-      });
+  if (capabilities.canConfigureGame.isAllowed)
+    actions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    actions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    actions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   const canAbort =
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
@@ -284,9 +316,7 @@ export function useStoryRelayRoomState(
       ),
       visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
-      onBotSeatLongPress: canControlBots
-        ? (seat) => (controlledSeat === seat ? releaseBot() : botControl.takeOver(seat))
-        : null,
+      onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
     seatConfirmation:
       seatController.pendingAction === null
@@ -306,8 +336,8 @@ export function useStoryRelayRoomState(
             onClose: profile.close,
             gameDetails: null,
             onKick:
-              isHost && isLobby && !selection.isSelf
-                ? () => profile.kick(selection.target.seat)
+              !selection.isSelf && capabilities.canKickSeat.isAllowed
+                ? () => executeProfileKick(capabilities, selection)
                 : null,
             onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
           },
@@ -356,17 +386,13 @@ export function useStoryRelayRoomState(
             ],
           }
         : activeHostManagement,
-    controlledSeat:
-      controlledSeat === null
-        ? canControlBots && state.botSeats.length > 0
-          ? { kind: 'hint' }
-          : null
-        : {
-            kind: 'controlled',
-            seat: controlledSeat,
-            displayName: `机器人${controlledSeat + 1}号`,
-            onRelease: releaseBot,
-          },
+    controlledSeat: createControlledSeatModel({
+      isVisible: controlledSeat !== null || (canControlBots && state.botSeats.length > 0),
+      controlledSeat,
+      controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+      release: releaseBot,
+      gameName: 'StoryRelay',
+    }),
   };
   const hasAutoShownQR = useRef(false);
   const openShare = share.open;
@@ -382,7 +408,9 @@ export function useStoryRelayRoomState(
     userId: user.id,
     effectiveSeat: controlledSeat ?? mySeat,
     controlledSeat,
+    releaseBot,
     isHost,
+    canControlBots,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'storyrelay', roomCode: room.roomCode }),
   };

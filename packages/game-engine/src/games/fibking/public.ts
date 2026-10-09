@@ -18,6 +18,7 @@ export {
   REASON_FIB_ROUND_NOT_FULL,
   REASON_FIB_ROUND_NOT_ONGOING,
   REASON_FIB_ROUND_NOT_PREPARING,
+  REASON_FIB_ROUND_NOT_VIEWING,
   REASON_FIB_WORD_INVALID,
   REASON_FIB_WORD_REUSED,
 } from './domain/reasons';
@@ -26,6 +27,7 @@ export {
   type FibEndedRoundView,
   type FibOngoingRoundView,
   type FibRoundView,
+  type FibViewingRoundView,
   getFibRoundView,
   getFibUserSeat,
 } from './domain/visibility';
@@ -33,7 +35,7 @@ export type { FibEffect, FibRecordWordUsageEffect, FibSelectWordEffect } from '.
 export { decideFibCommand, type FibEngine, fibEngine, getFibLifecycle } from './engine';
 export { type FibPublicStats, parseFibPublicStats } from './publicStats';
 export { FIB_STATE_CODEC } from './state/codec';
-export { parseFibState } from './state/parseState';
+export { migratePersistedFibState, parseFibState } from './state/parseState';
 export {
   FIB_DEFAULT_PLAYERS,
   FIB_DEFINITION_FIELD_MAX_LENGTH,
@@ -69,6 +71,7 @@ export {
   getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
+  getFibViewingParticipants,
   isFibImplicitBotSeat,
   isFibPreparationFailureCode,
   isFibPreparationStage,

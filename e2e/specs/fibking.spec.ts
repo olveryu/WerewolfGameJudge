@@ -166,7 +166,7 @@ test.describe('FibKing', () => {
         const identity = await room.viewIdentity();
         identities.push(identity);
         expectIdentityVisibility(identity);
-        await room.closeIdentity();
+        await room.confirmIdentityView();
       }
 
       expect(new Set(identities.map((identity) => identity.word)).size).toBe(1);
@@ -179,7 +179,7 @@ test.describe('FibKing', () => {
       const redrawnIdentity = await hostRoom.viewIdentity();
       expectIdentityVisibility(redrawnIdentity);
       expect(redrawnIdentity.word).not.toBe(firstWord);
-      await hostRoom.closeIdentity();
+      await hostRoom.confirmIdentityView();
 
       await hostRoom.abandonGame();
       for (let seat = 0; seat < 4; seat += 1) {
@@ -191,7 +191,11 @@ test.describe('FibKing', () => {
       const restartedIdentity = await hostRoom.viewIdentity();
       expectIdentityVisibility(restartedIdentity);
       expect([firstWord, redrawnIdentity.word]).not.toContain(restartedIdentity.word);
-      await hostRoom.closeIdentity();
+      await hostRoom.confirmIdentityView();
+      for (const room of [...firstBatchRooms, coldRoomPage]) {
+        await room.viewIdentity();
+        await room.confirmIdentityView();
+      }
 
       await hostRoom.screenshot(testInfo, 'fibking-ongoing.png');
       await hostRoom.revealRound();
@@ -200,6 +204,10 @@ test.describe('FibKing', () => {
       await hostRoom.closeIdentity();
 
       await hostRoom.startNextRound();
+      for (const room of realRooms) {
+        await room.viewIdentity();
+        await room.confirmIdentityView();
+      }
       for (let seat = 0; seat < 4; seat += 1) {
         expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
       }

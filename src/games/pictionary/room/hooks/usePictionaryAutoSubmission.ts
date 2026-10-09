@@ -11,14 +11,14 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
+import type { DrawingDraft } from '@/features/drawing/model/drawing';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
 } from '@/features/room/session/roomCommandResult';
-import type { PictionaryDrawingDraft } from '@/games/pictionary/model/pictionaryDrawing';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { getPictionaryUserSeat } from '@/games/pictionary/model/pictionarySelectors';
-import { uploadPictionaryDrawing } from '@/games/pictionary/services/pictionaryMediaApi';
+import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
 import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { CloudflareHttpError, CloudflareResponseJsonError } from '@/services/cloudflare/cfFetch';
 import { calculateBackoff } from '@/services/connection/backoff';
@@ -28,7 +28,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 export type PictionarySubmissionStatus = 'idle' | 'submitting' | 'retrying' | 'waiting' | 'failed';
 
-export type PictionaryTaskInput = string | PictionaryDrawingDraft;
+export type PictionaryTaskInput = string | DrawingDraft;
 
 interface PictionaryAutoSubmission {
   readonly status: PictionarySubmissionStatus;
@@ -62,7 +62,7 @@ function collectionKeyFor(state: PictionaryState): string | null {
 }
 
 function getLocallyOwnedTasks(state: PictionaryState, userId: string): readonly LocallyOwnedTask[] {
-  const userSeat = getPictionaryUserSeat(state, userId);
+  const userSeat = getUserSeat(state.realSeats, userId);
   const isHost = state.hostUserId === userId;
   return Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).flatMap((seat) => {
     const isOwnSeat = seat === userSeat;
@@ -130,14 +130,14 @@ async function reserveDrawing(
 async function submitDrawingInput(
   state: PictionaryState,
   ownedTask: LocallyOwnedTask,
-  drawing: PictionaryDrawingDraft,
+  drawing: DrawingDraft,
   session: PictionaryRoomSession,
   signal: AbortSignal,
 ): Promise<void> {
   const png = renderPictionaryDrawing(drawing.elements);
   const reservation = await reserveDrawing(state, ownedTask, session);
   signal.throwIfAborted();
-  const result = await uploadPictionaryDrawing(
+  const result = await pictionaryMediaTransport.uploadDrawing(
     state.roomCode,
     reservation.submissionId,
     png,

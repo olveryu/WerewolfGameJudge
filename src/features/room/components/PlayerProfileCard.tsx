@@ -47,6 +47,8 @@ import { getBuiltinAvatarId, isBuiltinAvatarUrl } from '@/utils/avatar';
 
 interface PlayerProfileCardProps {
   readonly model: RoomProfileCardModel;
+  /** Renders the game-specific stats section for gameDetails.statsUserId. */
+  readonly profileDetailsRenderer?: (statsUserId: string) => React.ReactNode;
 }
 
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
@@ -301,7 +303,10 @@ EquipmentShowcase.displayName = 'EquipmentShowcase';
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model }) => {
+const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
+  model,
+  profileDetailsRenderer,
+}) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const productUi = useClientProductUi();
@@ -489,7 +494,9 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
                   <Text style={styles.equipDividerLabel}>{model.gameDetails.title}</Text>
                   <View style={styles.equipDividerLine} />
                 </View>
-                {model.gameDetails.content}
+                {profileDetailsRenderer
+                  ? profileDetailsRenderer(model.gameDetails.statsUserId)
+                  : null}
               </View>
             )}
 

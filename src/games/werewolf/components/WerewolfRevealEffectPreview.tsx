@@ -3,17 +3,17 @@
 import type React from 'react';
 
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
+import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 
-import { createRoleData, RoleRevealAnimator } from './RoleRevealEffects';
-
-const PREVIEW_ROLE = createRoleData('villager', '村民', 'villager');
-const PREVIEW_ROLES = [
+const PREVIEW_ROLE: RevealRoleData = { id: 'villager', name: '村民', alignment: 'villager' };
+const PREVIEW_ROLES: RevealRoleData[] = [
   PREVIEW_ROLE,
-  createRoleData('wolf', '狼人', 'wolf'),
-  createRoleData('seer', '预言家', 'god'),
-  createRoleData('witch', '女巫', 'god'),
-  createRoleData('hunter', '猎人', 'god'),
-  createRoleData('guard', '守卫', 'god'),
+  { id: 'wolf', name: '狼人', alignment: 'wolf' },
+  { id: 'seer', name: '预言家', alignment: 'god' },
+  { id: 'witch', name: '女巫', alignment: 'god' },
+  { id: 'hunter', name: '猎人', alignment: 'god' },
+  { id: 'guard', name: '守卫', alignment: 'god' },
 ];
 
 export const WerewolfRevealEffectPreview: React.FC<RevealEffectPreviewProps> = ({

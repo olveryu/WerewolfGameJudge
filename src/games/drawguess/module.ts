@@ -10,13 +10,13 @@ import {
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 
 import { drawGuessHomeContribution } from './home';
-import { getDrawGuessUserSeat } from './model/DrawGuessRoomSession';
 import { drawGuessGameNavigation } from './navigation/drawGuessGameNavigation';
 import { DrawGuessRoomScreen } from './room/DrawGuessRoomScreen';
 import { DrawGuessConfigScreen } from './screens/DrawGuessConfigScreen';
@@ -36,7 +36,7 @@ export function createDrawGuessUiModule({
   const roomAccount = createSessionRoomAccountCapability<'drawguess', DrawGuessState>({
     gameType: 'drawguess',
     session,
-    isUserSeated: (state, userId) => getDrawGuessUserSeat(state, userId) !== null,
+    isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
     canSwitchAccount: (state) => state.phase.kind === 'lobby',
   });
   function BoundDrawGuessRoomScreen(props: GameRoomScreenProps<'drawguess'>) {

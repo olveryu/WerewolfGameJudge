@@ -1,12 +1,12 @@
 /** Pictionary drawing element history contracts. */
 
 import {
-  EMPTY_PICTIONARY_DRAWING_DRAFT,
-  type PictionaryDrawingElement,
-  reducePictionaryDrawingDraft,
-} from '../pictionaryDrawing';
+  type DrawingElement,
+  EMPTY_DRAWING_DRAFT,
+  reduceDrawingDraft,
+} from '@/features/drawing/model/drawing';
 
-const LINE_ELEMENT: PictionaryDrawingElement = {
+const LINE_ELEMENT: DrawingElement = {
   id: 'line-1',
   kind: 'line',
   color: '#171717',
@@ -15,51 +15,52 @@ const LINE_ELEMENT: PictionaryDrawingElement = {
   end: { x: 0.8, y: 0.7 },
 };
 
-const FILL_ELEMENT: PictionaryDrawingElement = {
+const FILL_ELEMENT: DrawingElement = {
   id: 'fill-1',
   kind: 'fill',
   color: '#E5484D',
+  width: 5,
   rectangles: [{ x: 1, y: 2, width: 10, height: 20 }],
 };
 
-describe('reducePictionaryDrawingDraft', () => {
+describe('reduceDrawingDraft', () => {
   it('retains an unfinished element and updates it without duplicating undo history', () => {
-    const started = reducePictionaryDrawingDraft(EMPTY_PICTIONARY_DRAWING_DRAFT, {
+    const started = reduceDrawingDraft(EMPTY_DRAWING_DRAFT, {
       type: 'element.add',
       element: LINE_ELEMENT,
     });
     const extended = { ...LINE_ELEMENT, end: { x: 0.9, y: 0.9 } };
-    const updated = reducePictionaryDrawingDraft(started, {
+    const updated = reduceDrawingDraft(started, {
       type: 'element.add',
       element: extended,
     });
     expect(updated.elements).toEqual([extended]);
-    expect(reducePictionaryDrawingDraft(updated, { type: 'element.undo' }).elements).toEqual([]);
+    expect(reduceDrawingDraft(updated, { type: 'element.undo' }).elements).toEqual([]);
   });
 
   it('undoes and redoes complete drawing elements', () => {
-    const withLine = reducePictionaryDrawingDraft(EMPTY_PICTIONARY_DRAWING_DRAFT, {
+    const withLine = reduceDrawingDraft(EMPTY_DRAWING_DRAFT, {
       type: 'element.add',
       element: LINE_ELEMENT,
     });
-    const withFill = reducePictionaryDrawingDraft(withLine, {
+    const withFill = reduceDrawingDraft(withLine, {
       type: 'element.add',
       element: FILL_ELEMENT,
     });
-    const undone = reducePictionaryDrawingDraft(withFill, { type: 'element.undo' });
+    const undone = reduceDrawingDraft(withFill, { type: 'element.undo' });
 
     expect(undone.elements).toEqual([LINE_ELEMENT]);
     expect(undone.redoElements).toEqual([FILL_ELEMENT]);
-    expect(reducePictionaryDrawingDraft(undone, { type: 'element.redo' })).toEqual(withFill);
+    expect(reduceDrawingDraft(undone, { type: 'element.redo' })).toEqual(withFill);
   });
 
   it('clears redo history when a new element is added', () => {
-    const withLine = reducePictionaryDrawingDraft(EMPTY_PICTIONARY_DRAWING_DRAFT, {
+    const withLine = reduceDrawingDraft(EMPTY_DRAWING_DRAFT, {
       type: 'element.add',
       element: LINE_ELEMENT,
     });
-    const undone = reducePictionaryDrawingDraft(withLine, { type: 'element.undo' });
-    const replaced = reducePictionaryDrawingDraft(undone, {
+    const undone = reduceDrawingDraft(withLine, { type: 'element.undo' });
+    const replaced = reduceDrawingDraft(undone, {
       type: 'element.add',
       element: FILL_ELEMENT,
     });

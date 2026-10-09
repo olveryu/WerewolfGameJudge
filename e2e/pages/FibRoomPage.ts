@@ -85,7 +85,7 @@ export class FibRoomPage extends RoomPage {
 
   async openConfig(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.fibConfigureButton).click();
+    await this.page.getByTestId(TESTIDS.roomSettingsButton).click();
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible();
   }
 
@@ -125,6 +125,13 @@ export class FibRoomPage extends RoomPage {
   async closeIdentity(): Promise<void> {
     const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
     await modal.getByText('知道了', { exact: true }).click();
+    await expect(modal).not.toBeVisible();
+  }
+
+  /** Viewing phase: confirm this round's role view (releases the checkpoint). */
+  async confirmIdentityView(): Promise<void> {
+    const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
+    await modal.getByText('我已看清', { exact: true }).click();
     await expect(modal).not.toBeVisible();
   }
 
