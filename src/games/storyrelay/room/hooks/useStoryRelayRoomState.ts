@@ -1,7 +1,10 @@
 /** Composes shared room controllers; Story Relay owns only phase and bot-control availability. */
 
 import {
+  getStoryRelayBotSeats,
   getStoryRelayOccupiedSeatCount,
+  getStoryRelayUserSeat,
+  isStoryRelayBotSeat,
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -9,6 +12,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
   type RoomBotControl,
@@ -25,7 +29,6 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -84,7 +87,7 @@ export function useStoryRelayRoomState(
     throw new Error('Story Relay requires an authenticated ready session');
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
-  const mySeat = getUserSeat(state.realSeats, user.id);
+  const mySeat = getStoryRelayUserSeat(state, user.id);
   const isLobby = state.phase === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot } = botControl;
@@ -102,11 +105,13 @@ export function useStoryRelayRoomState(
   const submission = useRoomCommandSubmission(getStoryRelayRoomCommandFailureMessage);
   const submit = (label: string, command: StoryRelayCommand) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: null, label }));
-  const canControlBots = isHost && (state.phase === 'answering' || state.phase === 'settling');
-  useEffect(() => {
-    if (controlledSeat !== null && (!canControlBots || !state.botSeats.includes(controlledSeat)))
-      releaseBot();
-  }, [canControlBots, controlledSeat, releaseBot, state.botSeats]);
+  const canControlBots = isHost;
+  useBotTakeoverGuard({
+    controlledSeat,
+    canControlBots,
+    seatStillBot: controlledSeat === null || isStoryRelayBotSeat(state, controlledSeat),
+    release: releaseBot,
+  });
   const capabilities: RoomCapabilities = {
     ...createRoomSetupCapabilities({
       isSetup: isLobby,
@@ -134,9 +139,9 @@ export function useStoryRelayRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: canControlBots
       ? { isAllowed: true, execute: botControl.takeOver }
-      : { isAllowed: false, reason: '当前不能接管机器人' },
+      : { isAllowed: false, reason: '只有房主可以接管机器人' },
   };
-  const isBotSeat = useCallback((seat: number) => state.botSeats.includes(seat), [state.botSeats]);
+  const isBotSeat = useCallback((seat: number) => isStoryRelayBotSeat(state, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver: botControl.takeOver,
@@ -387,7 +392,8 @@ export function useStoryRelayRoomState(
           }
         : activeHostManagement,
     controlledSeat: createControlledSeatModel({
-      isVisible: controlledSeat !== null || (canControlBots && state.botSeats.length > 0),
+      isVisible:
+        controlledSeat !== null || (canControlBots && getStoryRelayBotSeats(state).length > 0),
       controlledSeat,
       controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
       release: releaseBot,

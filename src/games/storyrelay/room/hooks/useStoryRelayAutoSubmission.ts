@@ -1,13 +1,14 @@
 /** Automatically submit current-page text through the platform's recoverable command queue. */
 
 import {
+  getStoryRelayBotSeats,
   getStoryRelayTaskForSeat,
+  getStoryRelayUserSeat,
   STORY_RELAY_TEXT_MAX_LENGTH,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { useEffect, useState } from 'react';
 
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   getRoomCommandFailureReason,
   isSuccessfulRoomCommand,
@@ -24,10 +25,10 @@ export type StoryRelayFinalizationStatus =
   | 'failed';
 
 function getStoryRelayOwnedTasks(state: StoryRelayState, userId: string) {
-  const mySeat = getUserSeat(state.realSeats, userId);
+  const mySeat = getStoryRelayUserSeat(state, userId);
   const seats = [
     ...(mySeat === null ? [] : [mySeat]),
-    ...(state.hostUserId === userId ? state.botSeats : []),
+    ...(state.hostUserId === userId ? getStoryRelayBotSeats(state) : []),
   ];
   return seats.map((seat) => {
     const task = getStoryRelayTaskForSeat(state, seat);
@@ -79,7 +80,7 @@ export function useStoryRelayAutoSubmission(
       isRunning = true;
       setStatus('submitting');
       try {
-        const mySeat = getUserSeat(current.snapshot.state.realSeats, userId);
+        const mySeat = getStoryRelayUserSeat(current.snapshot.state, userId);
         let hasInvalidInputs = false;
         for (const task of getStoryRelayOwnedTasks(current.snapshot.state, userId)) {
           if (task.isSubmitted) continue;

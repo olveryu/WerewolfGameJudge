@@ -1,5 +1,6 @@
 /** Applies Story Relay domain events; reset paths clear all round-owned state. */
 
+import { applyRosterChanges } from '../../../platform/room/seating';
 import type { StoryRelayState } from '../state/types';
 import type { StoryRelayEvent } from './decision';
 
@@ -30,20 +31,10 @@ export function evolveStoryRelayState(
   event: StoryRelayEvent,
 ): StoryRelayState {
   switch (event.type) {
-    case 'storyrelay.seats.changed': {
-      const realSeats = { ...state.realSeats };
-      for (const change of event.changes) {
-        if (change.next === null) delete realSeats[change.seat];
-        else realSeats[change.seat] = change.next;
-      }
-      return { ...state, realSeats, botSeats: event.botSeats };
-    }
+    case 'storyrelay.seats.changed':
+      return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
     case 'storyrelay.config.updated':
-      return {
-        ...state,
-        config: event.config,
-        botSeats: state.botSeats.filter((seat) => seat < event.config.numberOfPlayers),
-      };
+      return { ...state, config: event.config };
     case 'storyrelay.round.started':
       return {
         ...resetStoryRelayRound(state),

@@ -1,10 +1,12 @@
 /** Story Relay semantic invariants; invalid persisted or evolved states fail explicitly. */
 
+import { countOccupiedSeats, isBotOccupant, isBotSeat } from '../../../platform/room/seating';
 import {
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
   STORY_RELAY_STATE_VERSION,
   STORY_RELAY_TEXT_MAX_LENGTH,
+  type StoryRelayHumanSeat,
   type StoryRelayState,
 } from './types';
 
@@ -30,25 +32,23 @@ export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayStat
     state.deadlineAt === null || (Number.isSafeInteger(state.deadlineAt) && state.deadlineAt >= 0),
     'deadline',
   );
-  const users = Object.entries(state.realSeats);
+  const entries = Object.entries(state.roster);
   invariant(
-    users.every(
+    entries.every(
       ([seat, occupant]) =>
-        occupant !== undefined &&
+        occupant != null &&
         isSeat(Number(seat)) &&
         occupant.seat === Number(seat) &&
-        occupant.profile.displayName.trim().length > 0,
+        (isBotOccupant(occupant) || occupant.profile.displayName.trim().length > 0),
     ),
-    'real seats',
+    'roster seats',
+  );
+  const users = entries.filter(
+    (entry): entry is [string, StoryRelayHumanSeat] => entry[1] != null && !isBotOccupant(entry[1]),
   );
   invariant(
-    new Set(users.map(([, occupant]) => occupant!.userId)).size === users.length,
+    new Set(users.map(([, occupant]) => occupant.userId)).size === users.length,
     'duplicate user',
-  );
-  invariant(
-    state.botSeats.every((seat) => isSeat(seat) && state.realSeats[seat] === undefined) &&
-      new Set(state.botSeats).size === state.botSeats.length,
-    'bot seats',
   );
   invariant(
     state.readySeats.every(isSeat) && new Set(state.readySeats).size === state.readySeats.length,
@@ -80,18 +80,22 @@ export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayStat
     state.startedAt !== null && Number.isSafeInteger(state.startedAt) && state.startedAt >= 0,
     'start time',
   );
-  invariant(users.length + state.botSeats.length === count, 'occupied seats');
+  invariant(countOccupiedSeats(state.roster) === count, 'occupied seats');
   invariant(
     state.participants.length === count &&
       new Set(state.participants.map((participant) => participant.seat)).size === count &&
-      state.participants.every(
-        (participant) =>
+      state.participants.every((participant) => {
+        const occupant = state.roster[participant.seat];
+        return (
           isSeat(participant.seat) &&
           participant.displayName.trim().length > 0 &&
           (participant.userId === null
-            ? state.botSeats.includes(participant.seat)
-            : state.realSeats[participant.seat]?.userId === participant.userId),
-      ),
+            ? isBotSeat(state.roster, participant.seat)
+            : occupant != null &&
+              !isBotOccupant(occupant) &&
+              occupant.userId === participant.userId)
+        );
+      }),
     'participants',
   );
   invariant(

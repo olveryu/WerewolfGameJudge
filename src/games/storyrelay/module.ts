@@ -1,6 +1,7 @@
 /** Registers the complete text-only Story Relay client using shared room infrastructure. */
 
 import {
+  getStoryRelayUserSeat,
   STORY_RELAY_STATE_CODEC,
   type StoryRelayCommand,
   type StoryRelayState,
@@ -8,7 +9,6 @@ import {
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
@@ -34,7 +34,7 @@ export function createStoryRelayUiModule({
   const roomAccount = createSessionRoomAccountCapability<'storyrelay', StoryRelayState>({
     gameType: 'storyrelay',
     session,
-    isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
+    isUserSeated: (state, userId) => getStoryRelayUserSeat(state, userId) !== null,
     canSwitchAccount: (state) => state.phase === 'lobby',
   });
   function BoundStoryRelayRoomScreen(props: GameRoomScreenProps<'storyrelay'>) {

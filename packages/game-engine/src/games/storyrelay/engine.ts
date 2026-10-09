@@ -8,6 +8,7 @@ import {
   reject,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
+import { isBotOccupant } from '../../platform/room/seating';
 import type { StoryRelayCommand } from './commands/types';
 import { createStoryRelayAssignment } from './domain/assignment';
 import {
@@ -42,8 +43,7 @@ function createInitialState(config: StoryRelayConfig, context: CreateGameContext
     config: { ...config },
     phase: 'lobby',
     phaseRevision: 0,
-    realSeats: {},
-    botSeats: [],
+    roster: {},
     roundNumber: 0,
     roundId: null,
     startedAt: null,
@@ -68,11 +68,12 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
   const roundId = `storyrelay-round:${context.commandId}`;
   const assignment = createStoryRelayAssignment(state.config.numberOfPlayers, context.randomSeed);
   const participants = assignment.seatOrder.map((seat) => {
-    const occupant = state.realSeats[seat];
+    const occupant = state.roster[seat];
+    const human = occupant != null && !isBotOccupant(occupant) ? occupant : null;
     return {
       seat,
-      userId: occupant === undefined ? null : occupant.userId,
-      displayName: occupant === undefined ? `机器人${seat + 1}号` : occupant.profile.displayName,
+      userId: human === null ? null : human.userId,
+      displayName: human === null ? `机器人${seat + 1}号` : human.profile.displayName,
     };
   });
   return commitStoryRelay([

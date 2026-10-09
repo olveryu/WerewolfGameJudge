@@ -3,6 +3,8 @@
 import {
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
+  isBotOccupant,
+  isStoryRelayBotSeat,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 
@@ -19,15 +21,15 @@ export function getStoryRelayProfileTarget(
   state: StoryRelayState,
   seat: number,
 ): RoomProfileTarget | null {
-  const occupant = state.realSeats[seat];
-  if (occupant !== undefined)
+  const occupant = state.roster[seat];
+  if (occupant != null && !isBotOccupant(occupant))
     return {
       seat,
       userId: occupant.userId,
       occupantKind: 'human',
       rosterName: occupant.profile.displayName,
     };
-  return state.botSeats.includes(seat)
+  return isStoryRelayBotSeat(state, seat)
     ? {
         seat,
         userId: `storyrelay-bot:${state.roomCode}:${seat}`,
@@ -50,16 +52,17 @@ export function createStoryRelaySeatDataSource(
     getSeat(seat): RoomSeatViewModel {
       if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
         throw new Error('Story Relay seat out of range');
-      const occupant = state.realSeats[seat];
+      const occupant = state.roster[seat];
       const target = getStoryRelayProfileTarget(state, seat);
+      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const player =
-        occupant !== undefined
+        human !== undefined
           ? {
               kind: 'human' as const,
-              userId: occupant.userId,
-              ...occupant.profile,
-              seatPetId: occupant.profile.revealEffect,
-              isAnonymous: occupant.profile.avatarUrl === undefined,
+              userId: human.userId,
+              ...human.profile,
+              seatPetId: human.profile.revealEffect,
+              isAnonymous: human.profile.avatarUrl === undefined,
             }
           : target === null
             ? null
@@ -85,7 +88,7 @@ export function createStoryRelaySeatDataSource(
       return {
         seat,
         player,
-        isSelf: occupant?.userId === userId,
+        isSelf: human?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel: null,
         showReadyBadge: false,

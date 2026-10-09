@@ -7,7 +7,7 @@ import {
   reject,
   resolveHostActorId,
 } from '../../../platform/engine';
-import type { SeatChange } from '../../../platform/room/seating';
+import type { RosterChange } from '../../../platform/room/seating';
 import type {
   StoryRelayConfig,
   StoryRelayEntry,
@@ -30,8 +30,7 @@ export const STORY_RELAY_REASONS = {
 export type StoryRelayEvent =
   | {
       readonly type: 'storyrelay.seats.changed';
-      readonly changes: readonly SeatChange<StoryRelayHumanSeat>[];
-      readonly botSeats: readonly number[];
+      readonly changes: readonly RosterChange<StoryRelayHumanSeat>[];
     }
   | { readonly type: 'storyrelay.config.updated'; readonly config: StoryRelayConfig }
   | {

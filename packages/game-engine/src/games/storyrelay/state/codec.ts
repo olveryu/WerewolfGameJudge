@@ -1,4 +1,4 @@
-/** Strict Story Relay persistence and transport codec; version one has no legacy state variants. */
+/** Strict Story Relay persistence and transport codec; v1 states migrate at this boundary. */
 
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import {
@@ -15,6 +15,7 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeStoryRelayState } from './normalize';
 import {
   STORY_RELAY_GALLERY_DURATIONS,
@@ -83,7 +84,38 @@ function profile(value: unknown, path: string): RoomSeatProfile {
   );
 }
 
-function realSeats(value: unknown, path: string): StoryRelayState['realSeats'] {
+function roster(value: unknown, path: string): StoryRelayState['roster'] {
+  const raw = parseObject(value, path);
+  const result: Record<number, StoryRelayHumanSeat | BotSeatOccupant> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    const rawSeat = parseObject(value, `${path}.${key}`);
+    const seat = parseSeat(Number(key), `${path}.${key}`);
+    if (rawSeat.kind === 'bot') {
+      result[seat] = finishObject(
+        rawSeat,
+        { seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`), kind: 'bot' as const },
+        `${path}.${key}`,
+      );
+    } else {
+      result[seat] = finishObject(
+        rawSeat,
+        {
+          seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`),
+          userId: parseNonEmptyString(rawSeat.userId, `${path}.${key}.userId`),
+          profile: profile(rawSeat.profile, `${path}.${key}.profile`),
+        },
+        `${path}.${key}`,
+      );
+    }
+  }
+  return result;
+}
+
+function legacyRealSeats(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, StoryRelayHumanSeat>> {
   const raw = parseObject(value, path);
   const result: Record<number, StoryRelayHumanSeat> = {};
   for (const [key, value] of Object.entries(raw)) {
@@ -180,8 +212,7 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
         phase: choice(raw.phase, `${path}.phase`, STORY_RELAY_PHASES),
         phaseRevision: parseInteger(raw.phaseRevision, `${path}.phaseRevision`),
         config: parseStoryRelayConfig(raw.config, `${path}.config`),
-        realSeats: realSeats(raw.realSeats, `${path}.realSeats`),
-        botSeats: parseArray(raw.botSeats, `${path}.botSeats`, parseSeat),
+        roster: roster(raw.roster, `${path}.roster`),
         roundNumber: parseInteger(raw.roundNumber, `${path}.roundNumber`),
         roundId: parseNullable(raw.roundId, `${path}.roundId`, parseNonEmptyString),
         startedAt: parseNullable(raw.startedAt, `${path}.startedAt`, parseInteger),
@@ -199,6 +230,28 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
       path,
     ),
   );
+}
+
+/** Upgrades a stored v1 state (separate realSeats + botSeats) to the unified roster.
+ * @throws When the stored state is malformed or the two legacy seat sets overlap.
+ */
+export function migratePersistedStoryRelayState(value: unknown): StoryRelayState {
+  const raw = parseObject(value, 'StoryRelayState');
+  if (raw.stateVersion !== 1) return parseStoryRelayState(raw);
+  const merged: Record<number, StoryRelayHumanSeat | BotSeatOccupant> = {
+    ...legacyRealSeats(raw.realSeats, 'StoryRelayState.realSeats'),
+  };
+  for (const seat of parseArray(raw.botSeats, 'StoryRelayState.botSeats', parseSeat)) {
+    if (merged[seat] !== undefined)
+      return failDecode('StoryRelayState.botSeats', 'seats disjoint from realSeats');
+    merged[seat] = { seat, kind: 'bot' };
+  }
+  const { realSeats: _legacyRealSeats, botSeats: _legacyBotSeats, ...rest } = raw;
+  return parseStoryRelayState({
+    ...rest,
+    stateVersion: STORY_RELAY_STATE_VERSION,
+    roster: merged,
+  });
 }
 
 export const STORY_RELAY_STATE_CODEC = {

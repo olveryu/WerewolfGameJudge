@@ -11,7 +11,11 @@ import {
 import type { StoryRelayCommand } from '../commands/types';
 import { storyRelayEngine } from '../engine';
 import { parseStoryRelayState } from '../state/codec';
-import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayTaskForSeat } from '../state/types';
+import {
+  DEFAULT_STORY_RELAY_CONFIG,
+  getStoryRelayBotSeats,
+  getStoryRelayTaskForSeat,
+} from '../state/types';
 
 /** Mirrors the e2e setup: the host never takes a seat, all seats are filled with bots. */
 function botGame(seatHost: boolean) {
@@ -76,7 +80,7 @@ function botGame(seatHost: boolean) {
 describe('Story Relay bot takeover', () => {
   it('lets an unseated host submit independent texts for every bot seat', () => {
     const session = botGame(false);
-    expect(session.state.botSeats).toEqual([0, 1, 2, 3]);
+    expect(getStoryRelayBotSeats(session.state)).toEqual([0, 1, 2, 3]);
 
     for (let seat = 0; seat < 4; seat += 1) {
       session.send(
@@ -120,7 +124,7 @@ describe('Story Relay bot takeover', () => {
 
   it('rejects controlled-seat submissions targeting a real seat', () => {
     const session = botGame(true);
-    expect(session.state.botSeats).toEqual([1, 2, 3]);
+    expect(getStoryRelayBotSeats(session.state)).toEqual([1, 2, 3]);
     const decision = session.decide(
       {
         type: 'storyrelay.text.submit',
@@ -161,5 +165,58 @@ describe('Story Relay bot takeover', () => {
       if (entry.kind !== 'text') throw new Error('Expected a text entry');
       expect(entry.text).toBe(`机器人${chain.originSeat}的独立稿件`);
     }
+  });
+});
+
+describe('Story Relay unified roster rules', () => {
+  function lobbyWithBots(numberOfPlayers = 4) {
+    let state = storyRelayEngine.createInitialState(
+      { ...DEFAULT_STORY_RELAY_CONFIG, numberOfPlayers, transitionDurationSeconds: 0 },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+    );
+    const context = (actorUserId: string): CommandContext => ({
+      actor: { kind: 'user', userId: actorUserId },
+      controlledSeat: null,
+      nowMs: 1000,
+      commandId: 'test',
+      randomSeed: 'round',
+    });
+    const send = (command: StoryRelayCommand, actorUserId = 'host') => {
+      const decision = storyRelayEngine.decide(state, command, context(actorUserId));
+      if (decision.kind === 'reject') throw new Error(decision.reason);
+      state = storyRelayEngine.normalize(decision.events.reduce(storyRelayEngine.evolve, state));
+      return state;
+    };
+    send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+    send({ type: 'room.seat.fillBots' });
+    return {
+      get state() {
+        return state;
+      },
+      decide: (command: StoryRelayCommand, actorUserId = 'host') =>
+        storyRelayEngine.decide(state, command, context(actorUserId)),
+    };
+  }
+
+  it('rejects a human taking a bot seat (bots occupy seats like any player)', () => {
+    const session = lobbyWithBots();
+    expect(getStoryRelayBotSeats(session.state)).toEqual([1, 2, 3]);
+    const decision = session.decide(
+      { type: 'room.seat.take', seat: 2, profile: { displayName: 'Guest' } },
+      'guest',
+    );
+    expect(decision).toEqual({ kind: 'reject', reason: 'seat_taken' });
+  });
+
+  it('rejects a config shrink that would strand a bot seat', () => {
+    const session = lobbyWithBots(5);
+    expect(getStoryRelayBotSeats(session.state)).toEqual([1, 2, 3, 4]);
+    const decision = session.decide({
+      type: 'storyrelay.config.update',
+      config: { ...session.state.config, numberOfPlayers: 4 },
+    });
+    expect(decision.kind).toBe('reject');
+    if (decision.kind !== 'reject') throw new Error('Expected rejection');
+    expect(decision.reason).toBe('目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位');
   });
 });
