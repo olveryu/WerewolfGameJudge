@@ -72,10 +72,9 @@ interface WerewolfCapabilitiesInput {
 
 export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput): RoomCapabilities {
   const isSetup = input.status === GameStatus.Unseated || input.status === GameStatus.Seated;
-  const canTakeOver =
-    input.isHost &&
-    input.isDebugMode &&
-    !(input.status === GameStatus.Ongoing && input.isAudioPlaying);
+  // Takeover follows the unified rule: the host may take over a bot seat at
+  // any time, with no phase, debug-mode, or audio conditions.
+  const canTakeOver = input.isHost;
   const setupCapabilities = createRoomSetupCapabilities({
     isSetup,
     isHost: input.isHost,
@@ -99,7 +98,7 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
       input.status !== GameStatus.Ongoing && input.status !== GameStatus.Day
         ? allowed(input.openProfile)
         : denied('游戏进行中不能查看玩家资料'),
-    canTakeOverBots: canTakeOver ? allowed(input.takeOverBot) : denied('当前不能接管机器人'),
+    canTakeOverBots: canTakeOver ? allowed(input.takeOverBot) : denied('只有房主可以接管机器人'),
   };
 }
 

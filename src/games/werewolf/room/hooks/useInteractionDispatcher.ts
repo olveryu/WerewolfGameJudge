@@ -2,9 +2,10 @@
  * useInteractionDispatcher.ts - Interaction policy dispatcher & seat tap handlers
  *
  * Builds InteractionContext from game state / actor identity, calls RoomInteractionPolicy
- * (pure logic) and executes resulting instructions, owns dispatchInteraction / onSeatTapped /
- * onSeatLongPressed, and executes side effects (showAlert, showDialog, navigation, role card,
- * bot takeover). Does not contain business rules / action processing (that's useActionOrchestrator),
+ * (pure logic) and executes resulting instructions, owns dispatchInteraction / onSeatTapped,
+ * and executes side effects (showAlert, showDialog, navigation, role card). Bot takeover is
+ * handled by the shared long-press hook, not this dispatcher. Does not contain business rules
+ * / action processing (that's useActionOrchestrator),
  * does not import services directly, does not own night flow / audio logic, does not render UI
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
@@ -48,8 +49,7 @@ interface UseInteractionDispatcherParams {
   actorRoleForUi: RoleId | null;
   effectiveSeat: number | null;
 
-  // ── Debug mode ──
-  isDebugMode: boolean;
+  // ── Actor delegation ──
   controlledSeat: number | null;
   isDelegating: boolean;
 
@@ -60,7 +60,6 @@ interface UseInteractionDispatcherParams {
   // ── Shared room capabilities/controllers ──
   capabilities: RoomCapabilities;
   requestRoomExit: () => void;
-  releaseBot: () => void;
 
   // ── Seat operations (raw API) ──
   viewedRole: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -81,8 +80,6 @@ interface UseInteractionDispatcherResult {
   dispatchInteraction: (event: InteractionEvent) => void;
   /** Main seat tap handler — wraps dispatchInteraction with SEAT_TAP event. */
   onSeatTapped: (seat: number, disabledReason?: string) => void;
-  /** Seat long-press handler for bot takeover (debug mode). */
-  onSeatLongPressed: (seat: number) => void;
   /** Computed interaction context (exposed for BottomActionPanel / tests). */
   interactionContext: InteractionContext;
 }
@@ -102,14 +99,12 @@ export function useInteractionDispatcher({
   actorSeatForUi,
   actorRoleForUi,
   effectiveSeat,
-  isDebugMode,
   controlledSeat,
   isDelegating,
   handleActionIntent,
   getActionIntent,
   capabilities,
   requestRoomExit,
-  releaseBot,
   viewedRole,
   showPrepareToFlipDialog,
   showStartGameDialog,
@@ -171,16 +166,8 @@ export function useInteractionDispatcher({
       // Actor identity (for all action-related decisions)
       actorSeatForUi,
       actorRoleForUi,
-      // Debug mode fields
-      isDebugMode,
       controlledSeat,
       isDelegating,
-      getBotSeats: () => {
-        if (!gameState) return [];
-        return Array.from(gameState.players.entries())
-          .filter(([, player]) => player?.isBot)
-          .map(([seat]) => seat);
-      },
       isSeatOccupied: (seat: number) => {
         if (!gameState) return false;
         return gameState.players.get(seat) != null;
@@ -200,7 +187,6 @@ export function useInteractionDispatcher({
       myRole,
       actorSeatForUi,
       actorRoleForUi,
-      isDebugMode,
       controlledSeat,
       isDelegating,
     ],
@@ -326,23 +312,6 @@ export function useInteractionDispatcher({
           }
           return;
 
-        case 'TAKEOVER_BOT_SEAT':
-          roomScreenLog.debug('dispatchInteraction TAKEOVER_BOT_SEAT', {
-            seat: result.seat,
-          });
-          if (!capabilities.canTakeOverBots.isAllowed) {
-            throw new Error(
-              `Werewolf bot policy emitted denied capability: ${capabilities.canTakeOverBots.reason}`,
-            );
-          }
-          capabilities.canTakeOverBots.execute(result.seat);
-          return;
-
-        case 'RELEASE_BOT_SEAT':
-          roomScreenLog.debug('dispatchInteraction RELEASE_BOT_SEAT');
-          releaseBot();
-          return;
-
         case 'VIEW_PROFILE': {
           const targetPlayer = gameState?.players.get(result.seat);
           if (!targetPlayer) {
@@ -390,7 +359,6 @@ export function useInteractionDispatcher({
       showStartGameDialog,
       showRestartDialog,
       capabilities,
-      releaseBot,
       effectiveSeat,
       gameState,
       setRoleCardVisible,
@@ -408,17 +376,9 @@ export function useInteractionDispatcher({
     [dispatchInteraction],
   );
 
-  const onSeatLongPressed = useCallback(
-    (seat: number) => {
-      dispatchInteraction({ kind: 'TAKEOVER_BOT_SEAT', seat });
-    },
-    [dispatchInteraction],
-  );
-
   return {
     dispatchInteraction,
     onSeatTapped,
-    onSeatLongPressed,
     interactionContext,
   };
 }

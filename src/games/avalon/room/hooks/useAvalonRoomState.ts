@@ -49,7 +49,6 @@ import type {
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
-import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -202,18 +201,6 @@ export function useAvalonRoomState(
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
     const target = getAvalonProfileTarget(state, seat);
-    if (target?.occupantKind === 'bot')
-      return showAlert(target.rosterName, '请选择对该机器人座位的操作', [
-        { text: '取消', style: 'cancel' },
-        { text: '查看资料', onPress: () => profile.open(target) },
-        {
-          text: '替换机器人入座',
-          onPress: () =>
-            mySeat === null
-              ? seatController.requestTakeSeat(seat)
-              : seatController.requestMoveSeat(seat),
-        },
-      ]);
     if (target !== null) return profile.open(target);
     return mySeat === null
       ? seatController.requestTakeSeat(seat)

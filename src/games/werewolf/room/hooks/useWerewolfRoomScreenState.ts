@@ -19,6 +19,7 @@ import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
@@ -650,7 +651,7 @@ export function useWerewolfRoomScreenState(
     requestExit(capabilities.shouldConfirmExit);
   }, [capabilities.shouldConfirmExit, requestExit]);
 
-  const { dispatchInteraction, onSeatTapped, onSeatLongPressed } = useInteractionDispatcher({
+  const { dispatchInteraction, onSeatTapped } = useInteractionDispatcher({
     gameState,
     roomStatus,
     isAudioPlaying,
@@ -661,14 +662,12 @@ export function useWerewolfRoomScreenState(
     effectiveSeat,
     actorSeatForUi,
     actorRoleForUi,
-    isDebugMode,
     controlledSeat,
     isDelegating,
     handleActionIntent,
     getActionIntent,
     capabilities,
     requestRoomExit,
-    releaseBot,
     setShouldPlayRevealAnimation,
     setIsLoadingRole,
     setRoleCardVisible,
@@ -676,6 +675,17 @@ export function useWerewolfRoomScreenState(
     showPrepareToFlipDialog,
     showStartGameDialog,
     showRestartDialog,
+  });
+
+  // Bot takeover uses the shared long-press hook like every other seated
+  // game: host-only, no phase/debug/audio conditions (see capabilities).
+  const onSeatLongPressed = useBotTakeoverLongPress({
+    controlledSeat,
+    takeOver: takeOverBot,
+    release: releaseBot,
+    canTakeOver: capabilities.canTakeOverBots.isAllowed,
+    isBotSeat: (seat) => gameState?.players.get(seat)?.isBot === true,
+    gameName: 'Werewolf',
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

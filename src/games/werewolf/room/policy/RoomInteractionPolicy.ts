@@ -173,38 +173,6 @@ function handleLeaveRoom(): InteractionResult {
   return { kind: 'SHOW_DIALOG', dialogType: 'leaveRoom' };
 }
 
-/**
- * Handle takeover bot seat event (debug mode).
- * Validates debug mode and bot seat, then returns takeover/release instruction.
- */
-function handleTakeoverBotSeat(
-  ctx: InteractionContext,
-  event: { seat: number },
-): InteractionResult {
-  // Must be Host
-  if (!ctx.isHost) {
-    return { kind: 'NOOP', reason: 'host_only' };
-  }
-
-  // Must be in debug mode
-  if (!ctx.isDebugMode) {
-    return { kind: 'NOOP', reason: 'other_status' };
-  }
-
-  // Check if seat is a bot
-  const botSeats = ctx.getBotSeats?.() ?? [];
-  if (!botSeats.includes(event.seat)) {
-    return { kind: 'ALERT', title: '无法接管', message: '只能接管机器人座位' };
-  }
-
-  // Toggle: if already controlling this seat, release it
-  if (ctx.controlledSeat === event.seat) {
-    return { kind: 'RELEASE_BOT_SEAT' };
-  }
-
-  return { kind: 'TAKEOVER_BOT_SEAT', seat: event.seat };
-}
-
 // =============================================================================
 // Main Policy Function
 // =============================================================================
@@ -252,8 +220,6 @@ export function getInteractionResult(
       return handleViewRole(ctx);
     case 'LEAVE_ROOM':
       return handleLeaveRoom();
-    case 'TAKEOVER_BOT_SEAT':
-      return handleTakeoverBotSeat(ctx, event);
     default: {
       // Exhaustive check
       const _exhaustive: never = event;

@@ -24,6 +24,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type {
@@ -200,6 +201,16 @@ interface UseWerewolfRoomResult {
 
   // Debug mode: bot control
   const debug = useWerewolfDebugMode(client, mySeat, gameState, seatCommands.fillBots);
+
+  // Takeover lifecycle guard (shared by all seven games): auto-release when
+  // the host loses host status or the controlled seat stops being a bot.
+  useBotTakeoverGuard({
+    controlledSeat: debug.controlledSeat,
+    canControlBots: isHost,
+    seatStillBot:
+      debug.controlledSeat === null || gameState.players.get(debug.controlledSeat)?.isBot === true,
+    release: debug.releaseBot,
+  });
 
   // Night-phase derived values (pure computation)
   const nightDerived = useWerewolfNightDerived(gameState);
