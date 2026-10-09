@@ -24,7 +24,7 @@ interface RoleCardSimpleProps {
   readonly confirmText?: string;
   /** 底部额外内容（如变体切换、AI 按钮，由游戏传入） */
   readonly footer?: React.ReactNode;
-  /** 卡片 testID，缺省 'role-card-modal'；游戏可传自己的定位 ID。 */
+  /** 弹窗 testID，缺省 'role-card-modal'；落在装配容器上（含卡片、footer 与确认按钮），游戏可传自己的定位 ID。 */
   readonly testID?: string;
   /** 角色名文本 testID（可选）。 */
   readonly nameTestID?: string;
@@ -57,9 +57,8 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.cardWrapper}>
+        <View style={styles.cardWrapper} testID={testID}>
           <RoleCardContent
-            testID={testID}
             nameTestID={nameTestID}
             descriptionTitle={descriptionTitle}
             role={role}
