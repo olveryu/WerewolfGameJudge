@@ -135,6 +135,41 @@ XP/结算、测试计划。
 - 仅房主可接管/释放机器人席位；受控席位有 banner/hint。
 - 机器人无自主 AI；无人接管时按超时/deadline 默认行为结算，不自动跳过。
 
+### 3c-2. 名册与接管（平台统一结构，不允许各游戏自建）
+
+七个现有游戏已全量统一（名册全统一，2026-10），新游戏必须直接接入同一套：
+
+- **占用名册只有一份结构**：引擎持久化状态必须含 platform 的
+  `roster: RosterMap<THumanSeat>`（`packages/game-engine/src/platform/room/seating`），
+  座位占用值只有三种：真人 occupant `{seat, userId}`、机器人 occupant
+  `{seat, kind: 'bot'}`、无键=空位。游戏数据（如角色）与占用分开存，
+  不许把 userId/isBot 塞进玩家记录，更不许自建 `botSeats` /
+  `excludedBotSeats` / 隐式推导（如"有局内数据但不在真人表里就是 bot"）。
+- **座位变更全走 platform roster 决策函数**（decideRosterTakeSeat /
+  LeaveSeat / KickSeat / ClearSeats / FillBots + applyRosterChanges）；
+  "谁是 bot"只用 platform 选择器（getBotSeats / isBotSeat）。
+  （存量例外：狼人杀的填充机器人在 handler 内手写等价逻辑，新游戏不许效仿。）
+  微语义（七家一致）：真人坐 bot 位一律拒绝（seat_taken）、离座不复活、
+  踢 bot 变空位。改人数分两种：config 人数（卧底/阿瓦隆/瞎掰王/你画我猜/
+  故事接龙/drawguess）是任一越界占用（真人或 bot）即拒绝；狼人杀改板子
+  是截断越界座位（等于踢出），不要混为一谈。
+- **状态版本与迁移**：状态带 stateVersion；任何形状变更必须 bump 版本、
+  写真 migratePersisted 并在 api-worker 模块注册（未注册 migrate 时版本
+  bump 会砖化存量房间）、配逐座位迁移等价测试。
+- **接管入口唯一**：有座位表的游戏 = 房主长按机器人座位，走共享
+  `useBotTakeoverLongPress`；无座位表的游戏 = 开局后走共享 `BotTakeover`
+  菜单/浮钮。接管 capability 只有房主条件、文案统一
+  `'只有房主可以接管机器人'`——**不许给接管加任何阶段/模式/音频条件**
+  （狼人杀的 debugMode 只是人工测试脚手架，不是接管条件）。
+- **自动释放只走共享守卫** `useBotTakeoverGuard`（必填 canControlBots +
+  seatStillBot）：失去房主身份、或被接管座位不再是机器人时释放；
+  不许手写等价 effect。
+- **不许做"替换机器人入座"类菜单**：bot 座位点击就是普通座位行为（看资料）。
+- 防退化 contract 已锁定以上结构（引擎
+  `rosterUnification.contract.test.ts`、客户端同名 contract +
+  `botTakeoverGuard.contract.test.ts`）：新游戏的 state types 与房间 hook
+  必须补进这些 contract 的消费者/类型清单，contract 不绿不许合并。
+
 ### 3d. 词库（如需要）
 
 - 新表 + migration；Admin 触发接口走现有 `gameWords` 模式。
