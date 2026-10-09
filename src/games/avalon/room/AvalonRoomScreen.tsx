@@ -100,8 +100,8 @@ function AvalonRoomContent(
                 <>
                   <RoomGameSummary
                     icon="shield-outline"
-                    title="阿瓦隆"
-                    subtitle={`${config.numberOfPlayers} 人 · 投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
+                    title={`阿瓦隆 · ${config.numberOfPlayers}人局`}
+                    subtitle={`投票${config.voteMode === 'public' ? '公投' : '暗投'} · 否决上限 ${config.vetoLimit}`}
                     headerRight={
                       <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
                     }
