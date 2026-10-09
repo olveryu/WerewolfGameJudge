@@ -13,13 +13,11 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { findClosestPresetName } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { toast } from 'sonner-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -28,7 +26,6 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -40,11 +37,8 @@ import { WerewolfRoleCardModal } from '@/games/werewolf/room/components/Werewolf
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
-import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed } from '@/theme';
-import { handleError } from '@/utils/errorPipeline';
-import { roomScreenLog } from '@/utils/logger';
 
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
@@ -58,10 +52,7 @@ import {
 } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { createSheriffElectionPanelStyles } from './components/sheriffElectionPanel.styles';
-import type { LayoutContext, StaticButtonAction } from './hooks/bottomLayoutConfig';
-import { useBottomLayout } from './hooks/useBottomLayout';
 import { useWerewolfRoomScreenState } from './hooks/useWerewolfRoomScreenState';
-import type { ActionIntent, HostControlEvent } from './policy/types';
 import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 
 // ── Strategy Modal ───────────────────────────────────────────────────────────
@@ -111,7 +102,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   const sheriffElectionStyles = useMemo(() => createSheriffElectionPanelStyles(colors), []);
-  const { width: viewportWidth } = useWindowDimensions();
 
   // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
   // Moved here from App.tsx -- Skia is now lazy-loaded, so warmup runs when Skia is ready.
@@ -132,109 +122,60 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
   const hasAutoShownQR = useRef(false);
 
-  // Ticket count for top bar badge (shared cache via TanStack Query)
-  const { data: gachaStatus } = useGachaStatusQuery();
-  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-
-  const handleAvatarPress = useCallback(() => {
-    navigation.navigate('Settings', { roomCode });
-  }, [navigation, roomCode]);
-
   const handleEncyclopedia = useCallback(() => {
     navigation.navigate('GameGuide', { gameType: 'werewolf', roomCode });
   }, [navigation, roomCode]);
 
-  const handleMusicSettings = useCallback(() => {
-    navigation.navigate('MusicSettings', { roomCode });
-  }, [navigation, roomCode]);
-
   const {
-    // Route params
-    // Game state
+    roomShellModel: baseShellModel,
+    roomShare,
     gameState,
-    stateRevision,
     isHost,
     roomStatus,
-    currentSchema,
     isAudioPlaying,
     resolvedRoleRevealAnimation,
     effectiveSeat,
     effectiveRole,
-    isDebugMode,
-    controlledSeat,
-    hasBots,
-    markAllBotsViewed,
-    markAllBotsGroupConfirmed,
-    clearAllSeats,
-    releaseBot,
     capabilities,
-    roomConnection,
-    roomShare,
-    // Board nomination
+    currentSchema,
+    clearAllSeats,
     boardUpvote,
     boardWithdraw,
     sheriffElectionPanel,
-    // BGM manual control
+    isSheriffInspectorVisible,
+    isSheriffDetailsVisible,
+    openSheriffDetails,
+    closeSheriffDetails,
     isBgmPlaying,
     playBgm,
     stopBgm,
-    // Derived view models
-    seatViewModels,
     villagerCount,
     wolfRoleItems,
     godRoleItems,
     specialRoleItems,
     villagerRoleItems,
-    nightProgress,
-    guideMessage,
-    actionMessage,
-    // Actioner
-    imActioner,
-    // Interaction
-    dispatchInteraction,
-    onSeatTapped,
-    onSeatLongPressed,
-    getBottomAction,
-    handleTitlePress,
-    handleTitleLongPress,
-    // Player profile card
     profileSelection,
     closeProfile,
-    // Local UI state
     mvpSelection,
     closeMvpSelection,
-    showMvpSelection,
-    isStartingGame,
     isHostActionSubmitting,
-    isActionSubmitting,
-    // Seat modal
-    seatConfirmation,
-    // Role card modal
     roleCardVisible,
     shouldPlayRevealAnimation,
     isLoadingRole,
     handleRoleCardClose,
-    // Skill preview modal
     skillPreviewRoleId,
     handleSkillPreviewOpen,
     handleSkillPreviewClose,
-    // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
-    // Last night info
-    showLastNightInfo,
-    // Night review modal
     nightReviewData,
     nightReviewShareCardRef,
     isCapturingShareCard,
     nightReviewVisible,
-    openNightReview,
     closeNightReview,
-    // Share review modal
     shareReviewVisible,
     closeShareReview,
     shareNightReview,
-    // Choose card modal (treasureMaster / thief)
     chooseCardModalVisible,
     closeChooseCardModal,
     handleChooseCard,
@@ -243,22 +184,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardSubtitle,
   } = useWerewolfRoomScreenState(room, navigation, entryController, client);
 
-  const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
   const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
-  const isSheriffInspectorVisible =
-    sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
-  const openSheriffDetails = useCallback(() => {
-    setIsSheriffDetailsVisible(true);
-  }, []);
-  const closeSheriffDetails = useCallback(() => {
-    setIsSheriffDetailsVisible(false);
-  }, []);
-
-  useEffect(() => {
-    if (sheriffElectionPanel === null || isSheriffInspectorVisible) {
-      setIsSheriffDetailsVisible(false);
-    }
-  }, [isSheriffInspectorVisible, sheriffElectionPanel]);
 
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
@@ -304,83 +230,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     }
   }, [matchedStrategyName]);
 
-  // ─── Bottom panel layout ───────────────────────────────────────────────
-  const layoutCtx: LayoutContext = useMemo(
-    () => ({
-      roomStatus,
-      isHost,
-      effectiveSeat,
-      imActioner,
-      isAudioPlaying,
-      nightReviewAllowedSeats: gameState?.nightReviewAllowedSeats ?? [],
-    }),
-    [
-      roomStatus,
-      isHost,
-      effectiveSeat,
-      imActioner,
-      isAudioPlaying,
-      gameState?.nightReviewAllowedSeats,
-    ],
-  );
-  const schemaVM = getBottomAction();
-  const bottomLayout = useBottomLayout({ ctx: layoutCtx, schemaVM });
-
-  const handleSchemaButtonPress = useCallback(
-    (intent: ActionIntent) => {
-      dispatchInteraction({ kind: 'BOTTOM_ACTION', intent });
-    },
-    [dispatchInteraction],
-  );
-
-  const handleStaticButtonPress = useCallback(
-    (action: StaticButtonAction) => {
-      switch (action) {
-        case 'viewRole':
-          dispatchInteraction({ kind: 'VIEW_ROLE' });
-          break;
-        case 'waitForHost':
-          toast.info('等待房主开始分配角色');
-          break;
-        case 'nightReview':
-          openNightReview();
-          break;
-        default: {
-          const exhaustiveAction: never = action;
-          throw new Error(`Unhandled Werewolf static button action: ${exhaustiveAction}`);
-        }
-      }
-    },
-    [dispatchInteraction, openNightReview],
-  );
-
-  const handleHostControl = useCallback(
-    (action: HostControlEvent['action']) => {
-      dispatchInteraction({ kind: 'HOST_CONTROL', action });
-    },
-    [dispatchInteraction],
-  );
-
-  const executeMarkAllBotsViewed = useCallback(() => {
-    void markAllBotsViewed().catch((err) => {
-      handleError(err, {
-        label: 'markAllBotsViewed',
-        logger: roomScreenLog,
-        feedback: false,
-      });
-    });
-  }, [markAllBotsViewed]);
-
-  const executeMarkAllBotsGroupConfirmed = useCallback(() => {
-    void markAllBotsGroupConfirmed().catch((err) => {
-      handleError(err, {
-        label: 'markAllBotsGroupConfirmed',
-        logger: roomScreenLog,
-        feedback: false,
-      });
-    });
-  }, [markAllBotsGroupConfirmed]);
-
   const handleProfileKick = useCallback(() => {
     executeProfileKick(capabilities, profileSelection);
   }, [capabilities, profileSelection]);
@@ -417,110 +266,11 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     profileSelection,
   ]);
 
+  // The hook assembles the shell model with a null profile; inject the
+  // Screen-built profile here until batch 3 turns gameDetails into data.
   const roomShellModel = useMemo(
-    (): RoomShellModel =>
-      createWerewolfRoomShellModel({
-        roomCode,
-        capabilities,
-        connection: roomConnection,
-        seatConfirmation,
-        profile,
-        share: roomShare,
-        user,
-        ticketCount,
-        onBack: () => dispatchInteraction({ kind: 'LEAVE_ROOM' }),
-        onTitlePress: handleTitlePress,
-        onTitleLongPress: handleTitleLongPress,
-        onAvatarPress: handleAvatarPress,
-        roomStatus,
-        isHost,
-        isDebugMode,
-        isAudioPlaying,
-        isActionSubmitting,
-        isStartingGame,
-        isHostActionSubmitting,
-        imActioner,
-        isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
-        actionMessage,
-        guideMessage,
-        nightProgress,
-        seatViewModels,
-        controlledSeat,
-        sheriffElectionPanel,
-        stateRevision,
-        onSeatPress: onSeatTapped,
-        onSeatLongPressed: onSeatLongPressed,
-        hasBots,
-        controlledBotName:
-          controlledSeat === null
-            ? null
-            : (gameState?.players.get(controlledSeat)?.displayName ?? null),
-        onReleaseBot: releaseBot,
-        mvpSeat:
-          gameState.startingParticipants?.find(
-            (participant) => participant.userId === gameState.mvpUserId,
-          )?.seat ?? null,
-        onSelectMvp: showMvpSelection,
-        currentSchemaKind: currentSchema?.kind ?? null,
-        onHostControl: handleHostControl,
-        onMusicSettings: handleMusicSettings,
-        onMarkAllBotsViewed: executeMarkAllBotsViewed,
-        onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
-        onNightReview: openNightReview,
-        onLastNightInfo: showLastNightInfo,
-        bottomLayout,
-        onSchemaButtonPress: handleSchemaButtonPress,
-        onStaticButtonPress: handleStaticButtonPress,
-        isSheriffInspectorVisible,
-        openSheriffDetails,
-      }),
-    [
-      roomCode,
-      capabilities,
-      roomConnection,
-      seatConfirmation,
-      profile,
-      roomShare,
-      user,
-      ticketCount,
-      handleTitlePress,
-      handleTitleLongPress,
-      handleAvatarPress,
-      dispatchInteraction,
-      roomStatus,
-      isHost,
-      isDebugMode,
-      isAudioPlaying,
-      isActionSubmitting,
-      isStartingGame,
-      isHostActionSubmitting,
-      imActioner,
-      gameState,
-      actionMessage,
-      guideMessage,
-      nightProgress,
-      seatViewModels,
-      controlledSeat,
-      sheriffElectionPanel,
-      stateRevision,
-      onSeatTapped,
-      onSeatLongPressed,
-      hasBots,
-      releaseBot,
-      showMvpSelection,
-      currentSchema,
-      handleHostControl,
-      handleMusicSettings,
-      executeMarkAllBotsViewed,
-      executeMarkAllBotsGroupConfirmed,
-      openNightReview,
-      showLastNightInfo,
-      bottomLayout,
-      handleSchemaButtonPress,
-      handleStaticButtonPress,
-      isSheriffInspectorVisible,
-      openSheriffDetails,
-    ],
+    (): RoomShellModel => ({ ...baseShellModel, profile }),
+    [baseShellModel, profile],
   );
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
