@@ -1,5 +1,6 @@
 /** Applies DrawGuess domain events; reset paths clear all turn-owned state. */
 
+import { applyRosterChanges } from '../../../platform/room/seating';
 import type { DrawGuessState } from '../state/types';
 import type { DrawGuessEvent } from './decision';
 
@@ -19,14 +20,8 @@ function resetDrawGuessGame(state: DrawGuessState): DrawGuessState {
 /** Evolves a committed domain event without persistence or broadcasts. */
 export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEvent): DrawGuessState {
   switch (event.type) {
-    case 'drawguess.seats.changed': {
-      const realSeats = { ...state.realSeats };
-      for (const change of event.changes) {
-        if (change.next === null) delete realSeats[change.seat];
-        else realSeats[change.seat] = change.next;
-      }
-      return { ...state, realSeats, excludedBotSeats: event.excludedBotSeats };
-    }
+    case 'drawguess.seats.changed':
+      return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
     case 'drawguess.config.updated':
       return { ...state, config: event.config };
     case 'drawguess.game.started':

@@ -28,7 +28,6 @@ const drawGuessConfigSchema = z.strictObject({
   wordSelectSeconds: z.literal(DRAWGUESS_WORD_SELECT_SECONDS),
   roundEndSeconds: z.literal(DRAWGUESS_ROUND_END_SECONDS),
   hintRevealIntervalSeconds: z.literal(DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS),
-  fillEmptySeatsWithBots: z.boolean(),
 }) satisfies z.ZodType<DrawGuessConfig>;
 
 export const drawGuessCreateConfigSchema: z.ZodType<DrawGuessConfig> = drawGuessConfigSchema;

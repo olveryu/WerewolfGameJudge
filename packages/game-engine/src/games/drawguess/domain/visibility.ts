@@ -1,11 +1,11 @@
 /** DrawGuess per-seat view model: the answer never leaves the server for guessers. */
 
+import { isBotOccupant } from '../../../platform/room/seating';
 import {
-  type DrawGuessHumanSeat,
   type DrawGuessPhaseKind,
   type DrawGuessState,
   getDrawGuessBotDisplayName,
-  isDrawGuessImplicitBotSeat,
+  isDrawGuessBotSeat,
 } from '../state/types';
 import { buildHintText, computeRevealedCount } from './rules';
 
@@ -47,16 +47,16 @@ export interface DrawGuessViewModel {
 }
 
 function seatDisplayName(state: DrawGuessState, seat: number): string {
-  const occupant: DrawGuessHumanSeat | undefined = state.realSeats[seat];
-  if (occupant !== undefined) return occupant.profile.displayName;
+  const occupant = state.roster[seat];
+  if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
   return getDrawGuessBotDisplayName(seat);
 }
 
 function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawGuessSeatView[] {
   const views: DrawGuessSeatView[] = [];
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-    const isReal = state.realSeats[seat] !== undefined;
-    const isBot = isDrawGuessImplicitBotSeat(state, seat);
+    const isReal = state.roster[seat] != null && !isBotOccupant(state.roster[seat]);
+    const isBot = isDrawGuessBotSeat(state, seat);
     if (!isReal && !isBot) continue;
     const guessed = state.phase.kind === 'drawing' && state.phase.guessedSeats.includes(seat);
     views.push({

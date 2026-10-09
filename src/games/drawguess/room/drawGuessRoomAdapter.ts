@@ -6,7 +6,8 @@ import {
   type DrawGuessState,
   getDrawGuessBotDisplayName,
   getDrawGuessOccupiedSeatCount,
-  isDrawGuessImplicitBotSeat,
+  isBotOccupant,
+  isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
@@ -21,15 +22,15 @@ export function getDrawGuessProfileTarget(
   state: DrawGuessState,
   seat: number,
 ): RoomProfileTarget | null {
-  const occupant = state.realSeats[seat];
-  if (occupant !== undefined)
+  const occupant = state.roster[seat];
+  if (occupant != null && !isBotOccupant(occupant))
     return {
       seat,
       userId: occupant.userId,
       occupantKind: 'human',
       rosterName: occupant.profile.displayName,
     };
-  return isDrawGuessImplicitBotSeat(state, seat)
+  return isDrawGuessBotSeat(state, seat)
     ? {
         seat,
         userId: `drawguess-bot:${state.roomCode}:${seat}`,
@@ -60,16 +61,17 @@ export function createDrawGuessSeatDataSource(
     getSeat(seat): RoomSeatViewModel {
       if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
         throw new Error('DrawGuess seat out of range');
-      const occupant = state.realSeats[seat];
+      const occupant = state.roster[seat];
+      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const target = getDrawGuessProfileTarget(state, seat);
       const player =
-        occupant !== undefined
+        human !== undefined
           ? {
               kind: 'human' as const,
-              userId: occupant.userId,
-              ...occupant.profile,
-              seatPetId: occupant.profile.revealEffect,
-              isAnonymous: occupant.profile.avatarUrl === undefined,
+              userId: human.userId,
+              ...human.profile,
+              seatPetId: human.profile.revealEffect,
+              isAnonymous: human.profile.avatarUrl === undefined,
             }
           : target === null
             ? null
@@ -83,7 +85,7 @@ export function createDrawGuessSeatDataSource(
       return {
         seat,
         player,
-        isSelf: occupant?.userId === userId,
+        isSelf: human?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel: null,
         showReadyBadge: false,

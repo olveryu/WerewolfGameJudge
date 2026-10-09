@@ -15,6 +15,7 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeDrawGuessState } from './normalize';
 import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
@@ -65,10 +66,6 @@ export function parseDrawGuessConfig(value: unknown, path = 'DrawGuessConfig'): 
         `${path}.hintRevealIntervalSeconds`,
         [DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS] as const,
       ),
-      fillEmptySeatsWithBots: parseBoolean(
-        raw.fillEmptySeatsWithBots,
-        `${path}.fillEmptySeatsWithBots`,
-      ),
     },
     path,
   );
@@ -92,21 +89,44 @@ function profile(value: unknown, path: string): RoomSeatProfile {
   );
 }
 
-function realSeats(value: unknown, path: string): DrawGuessState['realSeats'] {
+function humanSeat(value: unknown, path: string): DrawGuessHumanSeat {
+  const rawSeat = parseObject(value, path);
+  return finishObject(
+    rawSeat,
+    {
+      seat: parseSeat(rawSeat.seat, `${path}.seat`),
+      userId: parseNonEmptyString(rawSeat.userId, `${path}.userId`),
+      profile: profile(rawSeat.profile, `${path}.profile`),
+    },
+    path,
+  );
+}
+
+function roster(value: unknown, path: string): DrawGuessState['roster'] {
+  const raw = parseObject(value, path);
+  const result: Record<number, DrawGuessHumanSeat | BotSeatOccupant> = {};
+  for (const [key, occupant] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    const seat = parseSeat(Number(key), `${path}.${key}`);
+    const rawOccupant = parseObject(occupant, `${path}.${key}`);
+    result[seat] =
+      rawOccupant.kind === 'bot'
+        ? finishObject(
+            rawOccupant,
+            { seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`), kind: 'bot' as const },
+            `${path}.${key}`,
+          )
+        : humanSeat(occupant, `${path}.${key}`);
+  }
+  return result;
+}
+
+function legacyRealSeats(value: unknown, path: string): Record<number, DrawGuessHumanSeat> {
   const raw = parseObject(value, path);
   const result: Record<number, DrawGuessHumanSeat> = {};
-  for (const [key, value] of Object.entries(raw)) {
+  for (const [key, occupant] of Object.entries(raw)) {
     if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
-    const rawSeat = parseObject(value, `${path}.${key}`);
-    result[parseSeat(Number(key), `${path}.${key}`)] = finishObject(
-      rawSeat,
-      {
-        seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`),
-        userId: parseNonEmptyString(rawSeat.userId, `${path}.${key}.userId`),
-        profile: profile(rawSeat.profile, `${path}.${key}.profile`),
-      },
-      `${path}.${key}`,
-    );
+    result[parseSeat(Number(key), `${path}.${key}`)] = humanSeat(occupant, `${path}.${key}`);
   }
   return result;
 }
@@ -328,8 +348,7 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
         phase: phase(raw.phase, `${path}.phase`),
         phaseRevision: parseInteger(raw.phaseRevision, `${path}.phaseRevision`),
         config: parseDrawGuessConfig(raw.config, `${path}.config`),
-        realSeats: realSeats(raw.realSeats, `${path}.realSeats`),
-        excludedBotSeats: parseArray(raw.excludedBotSeats, `${path}.excludedBotSeats`, parseSeat),
+        roster: roster(raw.roster, `${path}.roster`),
         drawerQueue: parseArray(raw.drawerQueue, `${path}.drawerQueue`, parseSeat),
         turnIndex: parseInteger(raw.turnIndex, `${path}.turnIndex`),
         scores: scores(raw.scores, `${path}.scores`),
@@ -346,3 +365,40 @@ export const DRAWGUESS_STATE_CODEC = {
   stateVersion: DRAWGUESS_STATE_VERSION,
   parse: parseDrawGuessState,
 } satisfies GameStateCodec<DrawGuessState>;
+
+/**
+ * Upgrades stored v1 rooms: v1 stored the roster as realSeats plus an
+ * excluded-seat list, with the bot-fill flag inside the config; the v2
+ * roster materializes exactly the seats the old derivation called bots
+ * and the config flag retires.
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
+  const path = 'DrawGuessState';
+  const raw = parseObject(value, path);
+  if (raw.stateVersion !== 1) return parseDrawGuessState(raw);
+  const rawConfig = parseObject(raw.config, `${path}.config`);
+  const fill = parseBoolean(
+    rawConfig.fillEmptySeatsWithBots,
+    `${path}.config.fillEmptySeatsWithBots`,
+  );
+  const { fillEmptySeatsWithBots: _legacyFill, ...configRest } = rawConfig;
+  const config = parseDrawGuessConfig(configRest, `${path}.config`);
+  const humans = legacyRealSeats(raw.realSeats, `${path}.realSeats`);
+  const excluded = parseArray(raw.excludedBotSeats, `${path}.excludedBotSeats`, parseSeat);
+  const nextRoster: Record<number, DrawGuessHumanSeat | BotSeatOccupant> = { ...humans };
+  if (fill) {
+    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
+      if (nextRoster[seat] === undefined && !excluded.includes(seat)) {
+        nextRoster[seat] = { seat, kind: 'bot' };
+      }
+    }
+  }
+  const { realSeats: _legacySeats, excludedBotSeats: _legacyExcluded, ...rest } = raw;
+  return parseDrawGuessState({
+    ...rest,
+    stateVersion: DRAWGUESS_STATE_VERSION,
+    config,
+    roster: nextRoster,
+  });
+}

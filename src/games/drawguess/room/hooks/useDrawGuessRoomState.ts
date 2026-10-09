@@ -7,7 +7,9 @@ import {
   type DrawGuessState,
   type DrawGuessViewModel,
   getDrawGuessOccupiedSeatCount,
+  getDrawGuessUserSeat,
   getDrawGuessViewModel,
+  isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -31,7 +33,6 @@ import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -114,7 +115,7 @@ export function useDrawGuessRoomState(
     throw new Error('DrawGuess requires an authenticated ready session');
   const state = snapshot.snapshot.state;
   const isHost = state.hostUserId === user.id;
-  const mySeat = getUserSeat(state.realSeats, user.id);
+  const mySeat = getDrawGuessUserSeat(state, user.id);
   const isLobby = state.phase.kind === 'lobby';
   const botControl = useRoomBotControl();
   const { controlledSeat, release: releaseBot, takeOver } = botControl;
@@ -169,12 +170,12 @@ export function useDrawGuessRoomState(
   });
   const nowMs = useDrawGuessNowMs(!isLobby);
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
-  // 机器人席位仅房主可接管；只在选词/作画阶段允许，离开阶段自动释放。
-  const canControlBots =
-    isHost && (state.phase.kind === 'wordSelect' || state.phase.kind === 'drawing');
+  // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
+  const canControlBots = isHost;
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots,
+    seatStillBot: controlledSeat === null || isDrawGuessBotSeat(state, controlledSeat),
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
@@ -204,7 +205,7 @@ export function useDrawGuessRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: canControlBots
       ? { isAllowed: true, execute: takeOver }
-      : { isAllowed: false, reason: '当前不能接管机器人' },
+      : { isAllowed: false, reason: '只有房主可以接管机器人' },
   };
   const isBotSeat = useCallback(
     (seat: number) => getDrawGuessProfileTarget(state, seat)?.occupantKind === 'bot',

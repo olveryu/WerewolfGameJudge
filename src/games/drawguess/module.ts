@@ -6,11 +6,11 @@ import {
   DRAWGUESS_STATE_CODEC,
   type DrawGuessCommand,
   type DrawGuessState,
+  getDrawGuessUserSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
@@ -36,7 +36,7 @@ export function createDrawGuessUiModule({
   const roomAccount = createSessionRoomAccountCapability<'drawguess', DrawGuessState>({
     gameType: 'drawguess',
     session,
-    isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
+    isUserSeated: (state, userId) => getDrawGuessUserSeat(state, userId) !== null,
     canSwitchAccount: (state) => state.phase.kind === 'lobby',
   });
   function BoundDrawGuessRoomScreen(props: GameRoomScreenProps<'drawguess'>) {

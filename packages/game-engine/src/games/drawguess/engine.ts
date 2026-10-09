@@ -9,6 +9,7 @@ import {
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { createSeededRng, randomPick } from '../../platform/random';
+import { getHumanSeatMap } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
   DrawGuessInternalCommand,
@@ -60,8 +61,7 @@ function createInitialState(config: DrawGuessConfig, context: CreateGameContext)
     phase: { kind: 'lobby' },
     phaseRevision: 0,
     config: { ...config },
-    realSeats: {},
-    excludedBotSeats: [],
+    roster: {},
     drawerQueue: [],
     turnIndex: 0,
     scores: {},
@@ -81,9 +81,9 @@ function completionEffect(state: DrawGuessState, context: CommandContext): DrawG
     payload: {
       roundId: `drawguess:game:${state.gameSequence}`,
       completedAt: context.nowMs,
-      participantUserIds: Object.values(state.realSeats)
-        .filter((seat) => seat !== undefined)
-        .map((seat) => seat.userId),
+      participantUserIds: Object.values(
+        getHumanSeatMap(state.roster, state.config.numberOfPlayers),
+      ).map((seat) => seat.userId),
     },
   };
 }

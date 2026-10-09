@@ -12,7 +12,8 @@
 import {
   DRAWGUESS_STATE_CODEC,
   type DrawGuessState,
-  isDrawGuessImplicitBotSeat,
+  getDrawGuessUserSeat,
+  isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -69,10 +70,7 @@ async function readDrawGuessRoom(
 }
 
 function findUserSeat(state: DrawGuessState, userId: string): number | null {
-  for (const occupant of Object.values(state.realSeats)) {
-    if (occupant !== undefined && occupant.userId === userId) return occupant.seat;
-  }
-  return null;
+  return getDrawGuessUserSeat(state, userId);
 }
 
 function parseControlledSeat(value: string | undefined): number | null {
@@ -89,7 +87,7 @@ function resolveMediaSeat(
 ): number | null {
   if (controlledSeat === null) return findUserSeat(state, userId);
   if (userId !== state.hostUserId) return fail(403, '只有房主可以代传画作');
-  if (!isDrawGuessImplicitBotSeat(state, controlledSeat)) {
+  if (!isDrawGuessBotSeat(state, controlledSeat)) {
     return fail(403, '只能代传机器人席位的画作');
   }
   return controlledSeat;
