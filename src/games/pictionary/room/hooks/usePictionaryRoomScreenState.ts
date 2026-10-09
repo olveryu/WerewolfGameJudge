@@ -2,8 +2,10 @@
 
 import {
   createPictionaryCommand,
+  getPictionaryOccupiedSeatCount,
   isPictionaryImplicitBotSeat,
   type PictionaryPublicCommand,
+  type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -11,7 +13,10 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
-import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
+import {
+  type RoomBotControl,
+  useRoomBotControl,
+} from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -77,13 +82,33 @@ function usePictionaryProfileModel(
   }, [capabilities, profileController.close, selection]);
 }
 
+/**
+ * 你画我猜（接龙）房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState
+ * 形态）：Screen 需要的状态推导全部在本 hook 内组装，Screen 只消费本接口渲染。
+ * 阶段组件 PictionaryStage 的内部交互状态（截止 tick、任务输入）属组件自身，不在此列。
+ */
+export interface PictionaryRoomScreenState {
+  readonly shellModel: RoomShellModel;
+  readonly state: PictionaryState;
+  /** 已占座位数（引擎口径）；原在 Screen 内调用引擎计数，P-2b 下沉。 */
+  readonly occupiedSeatCount: number;
+  readonly effectiveSeat: number | null;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: RoomBotControl['release'];
+  readonly userId: string;
+  readonly isHost: boolean;
+  readonly canControlBots: boolean;
+  readonly openRules: () => void;
+  readonly session: PictionaryRoomSession;
+}
+
 export function usePictionaryRoomScreenState({
   room,
   entryReason,
   navigation,
   entryController,
   session,
-}: UsePictionaryRoomScreenStateParams) {
+}: UsePictionaryRoomScreenStateParams): PictionaryRoomScreenState {
   const { handleTitlePress, handleTitleLongPress } = useRoomTitleActions();
   const { user } = useAuthContext();
   if (user === null) throw new Error('[FAIL-FAST] Ready Pictionary room requires a user');
@@ -378,6 +403,7 @@ export function usePictionaryRoomScreenState({
   return {
     shellModel,
     state,
+    occupiedSeatCount: getPictionaryOccupiedSeatCount(state),
     effectiveSeat,
     controlledSeat,
     releaseBot,

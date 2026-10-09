@@ -64,3 +64,20 @@ describe('room hook interfaces — drawguess (P-2b batch 2)', () => {
     expect(screen).toMatch(/screen\.viewModel|viewModel, remainingSeconds/);
   });
 });
+
+describe('room hook interfaces — pictionary (P-2b batch 3)', () => {
+  it('the hook exports PictionaryRoomScreenState and annotates its return', () => {
+    const hook = readSource('games/pictionary/room/hooks/usePictionaryRoomScreenState.ts');
+    expect(hook).toMatch(/export interface PictionaryRoomScreenState/);
+    expect(hook).toMatch(/\): PictionaryRoomScreenState \{/);
+    expectNoReturnSpread(hook);
+  });
+
+  it('the occupied seat count is assembled in the hook, not the Screen', () => {
+    const hook = readSource('games/pictionary/room/hooks/usePictionaryRoomScreenState.ts');
+    expect(hook).toMatch(/occupiedSeatCount: getPictionaryOccupiedSeatCount\(state\)/);
+    const screen = readSource('games/pictionary/room/PictionaryRoomScreen.tsx');
+    expect(screen).not.toMatch(/getPictionaryOccupiedSeatCount/);
+    expect(screen).toMatch(/screen\.occupiedSeatCount/);
+  });
+});
