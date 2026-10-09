@@ -27,11 +27,15 @@ test('Avalon first quest waits until every human viewed their role', async ({ br
     // Avalon is behind its temporary access lock: enter the password.
     await hostPage.getByPlaceholder('密码').fill('369');
     await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
-    // Player count is a stepper (default 6); step it to 5.
+    // Player count is a stepper (default 6); step it to 5. The veto
+    // stepper below shares the button labels, so take the first one.
     const countDisplay = hostPage.getByTestId('avalon-player-count');
     for (let i = 0; i < 5 && (await countDisplay.textContent()) !== '5'; i += 1) {
       const current = Number(await countDisplay.textContent());
-      await hostPage.getByRole('button', { name: current > 5 ? '减少人数' : '增加人数' }).click();
+      await hostPage
+        .getByRole('button', { name: current > 5 ? '减少人数' : '增加人数' })
+        .first()
+        .click();
     }
     await expect(countDisplay).toHaveText('5');
     await hostPage.getByTestId('avalon-config-submit').click();
