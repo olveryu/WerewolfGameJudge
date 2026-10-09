@@ -1,9 +1,11 @@
 /** Undercover room mounts exclusively through shared authentication, session and shell boundaries. */
-import { useCallback, useMemo } from 'react';
+import type { UndercoverRole } from '@game-judge/game-engine/games/undercover/public';
+import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -16,6 +18,10 @@ import { colors } from '@/theme';
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
 import { undercoverStyles as styles } from '../undercover.styles';
 import { UndercoverRevealModal } from './components/UndercoverRevealModal';
+import {
+  isUndercoverRole,
+  toUndercoverRolePreviewData,
+} from './components/UndercoverRoleCardAdapter';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
 import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenState';
 import { UNDERCOVER_CATEGORY_NAMES } from './undercoverRoomAdapter';
@@ -47,6 +53,8 @@ function UndercoverRoomContent(
     openRules,
   } = useUndercoverRoomScreenState(props);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
+  // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
+  const [previewRole, setPreviewRole] = useState<UndercoverRole | null>(null);
   return (
     <RoomShell
       model={shellModel}
@@ -109,6 +117,9 @@ function UndercoverRoomContent(
                   : []),
               ]}
               styles={boardInfoStyles}
+              onRolePress={(roleId) => {
+                if (isUndercoverRole(roleId)) setPreviewRole(roleId);
+              }}
             />
           </>
         ),
@@ -139,6 +150,14 @@ function UndercoverRoomContent(
               onConfirm={controls.reveal}
             />
           )}
+          {previewRole !== null ? (
+            <RoleCardSimple
+              visible={true}
+              role={toUndercoverRolePreviewData(previewRole)}
+              onClose={() => setPreviewRole(null)}
+              confirmText="知道了"
+            />
+          ) : null}
         </>
       }
     />

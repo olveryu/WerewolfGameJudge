@@ -30,8 +30,9 @@ interface BoardInfoCardProps {
   sections: readonly BoardInfoSection[];
   /** Whether the card should be collapsed */
   collapsed?: boolean;
-  /** Callback when a role chip is pressed (reports roleId to parent) */
-  onRolePress?: (roleId: string) => void;
+  /** Callback when a role chip is pressed (reports roleId to parent).
+   * 必填：角色行必须可点开预览——可选时期曾有两家游戏漏接、上线后点不动。 */
+  onRolePress: (roleId: string) => void;
   /** Callback when the notepad button is pressed */
   onNotepadPress?: () => void;
   /** Callback when the strategy button is pressed */
@@ -52,7 +53,7 @@ function SectionChipRow({
   styles,
 }: {
   section: BoardInfoSection;
-  onRolePress?: (roleId: string) => void;
+  onRolePress: (roleId: string) => void;
   styles: BoardInfoCardStyles;
 }) {
   if (section.items.length === 0) return null;
@@ -66,7 +67,7 @@ function SectionChipRow({
             label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
             color={section.color}
             size="md"
-            onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
+            onPress={() => onRolePress(item.roleId)}
           />
         ))}
       </View>
@@ -151,16 +152,14 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
             />
           ))}
           <View style={styles.footerRow}>
-            {onRolePress && (
-              <Text style={styles.boardInfoHint} numberOfLines={1}>
-                <Ionicons
-                  name={UI_ICONS.HINT}
-                  size={componentSizes.icon.xs}
-                  color={colors.textMuted}
-                />
-                {' 点击角色名查看说明'}
-              </Text>
-            )}
+            <Text style={styles.boardInfoHint} numberOfLines={1}>
+              <Ionicons
+                name={UI_ICONS.HINT}
+                size={componentSizes.icon.xs}
+                color={colors.textMuted}
+              />
+              {' 点击角色名查看说明'}
+            </Text>
             {footer}
           </View>
         </View>
