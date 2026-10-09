@@ -9,6 +9,7 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 
@@ -113,6 +114,7 @@ export function useUndercoverRoomScreenState({
     shellModel,
     controls,
     isControlled: roster.controlledSeat !== null,
+    equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'undercover', roomCode: room.roomCode }),
   };

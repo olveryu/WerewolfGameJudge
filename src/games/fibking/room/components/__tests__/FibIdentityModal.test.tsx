@@ -5,6 +5,17 @@ import { TESTIDS } from '@/testids';
 
 import { FibIdentityModal } from '../FibIdentityModal';
 
+jest.mock('@/features/room/components/RoleRevealEffects/RoleRevealAnimator', () => {
+  const { Pressable, Text } = require('react-native') as typeof import('react-native');
+  return {
+    RoleRevealAnimator: ({ onComplete }: { readonly onComplete: () => void }) => (
+      <Pressable testID="role-reveal-animator" onPress={onComplete}>
+        <Text>揭示动画</Text>
+      </Pressable>
+    ),
+  };
+});
+
 function createOngoingView(
   viewerRole: Exclude<Extract<FibRoundView, { phase: 'ongoing' }>['viewerRole'], null>,
   word = '山谷',
@@ -118,5 +129,65 @@ describe('FibIdentityModal', () => {
     expect(screen.getByText('其余座位 · 瞎掰王')).toBeTruthy();
     fireEvent.press(screen.getByText('知道了'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('equipped reveal animation gate', () => {
+    it('plays the animation first and swaps to the static card on completion', () => {
+      const view = render(
+        <FibIdentityModal
+          view={createOngoingView('guesser')}
+          onClose={jest.fn()}
+          effectType="tarot"
+        />,
+      );
+
+      expect(view.getByTestId('role-reveal-animator')).toBeTruthy();
+      expect(view.queryByTestId(TESTIDS.fibIdentityModal)).toBeNull();
+
+      fireEvent.press(view.getByTestId('role-reveal-animator'));
+
+      expect(view.queryByTestId('role-reveal-animator')).toBeNull();
+      expect(view.getByTestId(TESTIDS.fibIdentityModal)).toBeTruthy();
+      expect(view.getByTestId(TESTIDS.fibIdentityRole)).toHaveTextContent('大聪明');
+    });
+
+    it('shows the static card directly when no effect is equipped', () => {
+      const view = render(
+        <FibIdentityModal
+          view={createOngoingView('fibber')}
+          onClose={jest.fn()}
+          effectType={null}
+        />,
+      );
+
+      expect(view.queryByTestId('role-reveal-animator')).toBeNull();
+      expect(view.getByTestId(TESTIDS.fibIdentityModal)).toBeTruthy();
+    });
+
+    it('gates the ended result card behind the animation as well', () => {
+      const endedView: Extract<FibRoundView, { phase: 'ended' }> = {
+        phase: 'ended',
+        roundId: 'round-1',
+        viewerSeat: null,
+        viewerRole: null,
+        word: '山谷',
+        definition: {
+          coreMeaning: '两山之间低洼而且狭长的自然地形区域。',
+          usageNote: '常用于描述山地之间可供河流或道路穿行的低地。',
+        },
+        guesserSeat: 0,
+        honestSeat: 1,
+      };
+      const view = render(
+        <FibIdentityModal view={endedView} onClose={jest.fn()} effectType="tarot" />,
+      );
+
+      expect(view.getByTestId('role-reveal-animator')).toBeTruthy();
+      expect(view.queryByText('公开结果')).toBeNull();
+
+      fireEvent.press(view.getByTestId('role-reveal-animator'));
+
+      expect(view.getByText('公开结果')).toBeTruthy();
+    });
   });
 });

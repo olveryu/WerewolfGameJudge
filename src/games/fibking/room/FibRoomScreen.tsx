@@ -124,7 +124,11 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
       }}
       gameOverlays={
         screen.isIdentityVisible && screen.roundView !== null ? (
-          <FibIdentityModal view={screen.roundView} onClose={screen.closeIdentity} />
+          <FibIdentityModal
+            view={screen.roundView}
+            effectType={screen.equippedRevealEffect}
+            onClose={screen.closeIdentity}
+          />
         ) : null
       }
     />

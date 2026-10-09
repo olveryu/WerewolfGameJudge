@@ -36,7 +36,7 @@ export function UndercoverRoomScreen(props: UndercoverRoomScreenProps) {
 function UndercoverRoomContent(
   props: UndercoverRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const { state, shellModel, controls, isControlled, openRules } =
+  const { state, shellModel, controls, isControlled, equippedRevealEffect, openRules } =
     useUndercoverRoomScreenState(props);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   return (
@@ -108,6 +108,7 @@ function UndercoverRoomContent(
           {controls.card !== null && (
             <UndercoverWordModal
               card={controls.card}
+              effectType={equippedRevealEffect}
               isControlled={isControlled}
               shouldConfirm={controls.shouldConfirm}
               isSubmitting={controls.isSubmitting}

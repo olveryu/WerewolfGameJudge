@@ -6,18 +6,25 @@
  * - 卧底/平民不知道自己的身份：身份行只显示"?"，大字区显示分到的词。
  * 卡片恒为中立灰（neutral），不暗示阵营。
  * 组件只接收查看者有权看到的 card（服务端裁剪），挂载即展示、卸载即隐藏。
+ * 装备了揭示动画时先播 RoleRevealAnimator（数据恒为中立卡，不泄密），播完再切
+ * 静态卡——"我已记住"只在静态卡阶段出现；动画状态每次打开自动重置。
  */
 import type { UndercoverWordCard } from '@game-judge/game-engine/games/undercover/public';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { RoleCardSimple } from '@/features/room/components/RoleCardSimple';
+import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import { spacing } from '@/theme';
 
 interface UndercoverWordModalProps {
   readonly card: UndercoverWordCard;
+  /** 装备的揭示动画；null/undefined 则直接显示静态卡（未装备装饰）。 */
+  readonly effectType?: RevealEffectType | null;
   readonly isControlled: boolean;
   readonly shouldConfirm: boolean;
   readonly isSubmitting: boolean;
@@ -27,12 +34,14 @@ interface UndercoverWordModalProps {
 
 export function UndercoverWordModal({
   card,
+  effectType,
   isControlled,
   shouldConfirm,
   isSubmitting,
   onClose,
   onConfirm,
 }: UndercoverWordModalProps) {
+  const [animationDone, setAnimationDone] = useState(false);
   const isBlank = card.kind === 'blank';
   const fields: DescriptionField[] = [
     { label: '身份', content: isBlank ? '白板' : '?' },
@@ -47,6 +56,17 @@ export function UndercoverWordModal({
     factionName: `${formatRoomSeat(card.seat)}词卡`,
     description: fields,
   };
+
+  if (effectType != null && !animationDone) {
+    return (
+      <RoleRevealAnimator
+        visible={true}
+        role={role}
+        effectType={effectType}
+        onComplete={() => setAnimationDone(true)}
+      />
+    );
+  }
 
   return (
     <RoleCardSimple

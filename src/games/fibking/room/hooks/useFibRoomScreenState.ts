@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
@@ -29,6 +30,7 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -70,6 +72,8 @@ export interface FibRoomScreenState {
   readonly preparationStage: FibPreparationStage | null;
   readonly preparationFailureCode: FibPreparationFailureCode | null;
   readonly isHost: boolean;
+  /** 当前用户装备的揭示动画（已解析）；null 表示未装备、直接显示静态卡。 */
+  readonly equippedRevealEffect: RevealEffectType | null;
 }
 
 export function useFibRoomScreenState({
@@ -509,5 +513,6 @@ export function useFibRoomScreenState({
     preparationFailureCode:
       state.phase === 'preparationFailed' ? state.preparationFailure.failureCode : null,
     isHost,
+    equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
   };
 }
