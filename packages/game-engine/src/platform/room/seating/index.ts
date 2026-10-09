@@ -6,9 +6,31 @@ export {
   findSeatByUserId,
 } from './kernel';
 export {
+  applyRosterChanges,
+  type BotSeatOccupant,
+  botSeatOccupant,
+  countOccupiedSeats,
+  decideRosterClearSeats,
+  decideRosterFillBots,
+  decideRosterKickSeat,
+  decideRosterLeaveSeat,
+  decideRosterTakeSeat,
+  findRosterSeatByUserId,
+  getBotSeats,
+  getHumanSeatMap,
+  hasOccupantAtOrBeyond,
+  isBotOccupant,
+  isBotSeat,
+  type RosterChange,
+  type RosterMap,
+  type RosterOccupant,
+  type RosterOperationResult,
+} from './roster';
+export {
   type SeatChange,
   type SeatMap,
   type SeatOccupant,
   type SeatOperationReason,
   type SeatOperationResult,
+  type SeatSlotOccupant,
 } from './types';
