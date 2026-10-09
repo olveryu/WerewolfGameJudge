@@ -29,10 +29,13 @@ const productUi: ClientProductUi = {
   },
 };
 
-function renderProfile(model: RoomProfileCardModel) {
+function renderProfile(
+  model: RoomProfileCardModel,
+  profileDetailsRenderer?: (statsUserId: string) => React.ReactNode,
+) {
   return render(
     <ClientProductUiProvider value={productUi}>
-      <PlayerProfileCard model={model} />
+      <PlayerProfileCard model={model} profileDetailsRenderer={profileDetailsRenderer} />
     </ClientProductUiProvider>,
   );
 }
@@ -127,13 +130,14 @@ describe('PlayerProfileCard', () => {
         },
         gameDetails: {
           title: '阵营分布',
-          content: <Text>狼人杀阵营详情</Text>,
+          statsUserId: 'user-abc',
         },
       }),
+      (statsUserId) => <Text>{`狼人杀阵营详情 ${statsUserId}`}</Text>,
     );
 
     expect(view.getByText('Alice')).toBeTruthy();
-    expect(view.getByText('狼人杀阵营详情')).toBeTruthy();
+    expect(view.getByText('狼人杀阵营详情 user-abc')).toBeTruthy();
   });
 
   it('shows the next XP threshold above the former level cap', () => {

@@ -57,6 +57,8 @@ export interface RoomShellProps {
   readonly leadingExtraActions: React.ReactNode;
   readonly trailingExtraActions: React.ReactNode;
   readonly gameOverlays: React.ReactNode;
+  /** Renders the profile card's game-specific stats section, when the model carries gameDetails. */
+  readonly profileDetailsRenderer?: (statsUserId: string) => React.ReactNode;
 }
 
 export const RoomShell: React.FC<RoomShellProps> = ({
@@ -65,6 +67,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
   leadingExtraActions,
   trailingExtraActions,
   gameOverlays,
+  profileDetailsRenderer,
 }) => {
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
@@ -259,7 +262,9 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         />
       )}
 
-      {model.profile && <PlayerProfileCard model={model.profile} />}
+      {model.profile && (
+        <PlayerProfileCard model={model.profile} profileDetailsRenderer={profileDetailsRenderer} />
+      )}
 
       <QRCodeModal model={model.share} />
 

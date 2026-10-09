@@ -21,13 +21,14 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
-import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -88,10 +89,10 @@ type NightReviewShareState = ReturnType<typeof useNightReviewShare>;
 /**
  * Explicit contract between this hook and WerewolfRoomScreen.
  *
- * The room shell model is assembled here; the remaining fields are exactly
- * what the Screen's content sections render. The shell model's profile is
- * null in this contract: the Screen injects its profile memo until the
- * profile gameDetails becomes a data description (P2-1 batch 3).
+ * The room shell model is assembled here (including the profile card,
+ * whose gameDetails is a data description rendered by the Screen through
+ * RoomShell's profileDetailsRenderer); the remaining fields are exactly
+ * what the Screen's content sections render.
  */
 export interface WerewolfRoomScreenState {
   readonly roomShellModel: RoomShellModel;
@@ -103,7 +104,6 @@ export interface WerewolfRoomScreenState {
   readonly resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
   readonly effectiveSeat: number | null;
   readonly effectiveRole: CoreRoomState['effectiveRole'];
-  readonly capabilities: RoomCapabilities;
   readonly currentSchema: CoreRoomState['currentSchema'];
   readonly clearAllSeats: CoreRoomState['clearAllSeats'];
   readonly boardUpvote: CoreRoomState['boardUpvote'];
@@ -121,8 +121,6 @@ export interface WerewolfRoomScreenState {
   readonly godRoleItems: DerivedState['godRoleItems'];
   readonly specialRoleItems: DerivedState['specialRoleItems'];
   readonly villagerRoleItems: DerivedState['villagerRoleItems'];
-  readonly profileSelection: RoomProfileSelection | null;
-  readonly closeProfile: () => void;
   readonly mvpSelection: HostDialogsState['mvpSelection'];
   readonly closeMvpSelection: HostDialogsState['closeMvpSelection'];
   readonly isHostActionSubmitting: boolean;
@@ -835,6 +833,45 @@ export function useWerewolfRoomScreenState(
     ],
   );
 
+  // ─── Profile card assembly ──────────────────────────────────────────────
+
+  const handleProfileKick = useCallback(() => {
+    executeProfileKick(capabilities, profileController.selection);
+  }, [capabilities, profileController.selection]);
+
+  const handleProfileLeave = useCallback(() => {
+    const capability = capabilities.canLeaveSeat;
+    if (!capability.isAllowed) {
+      throw new Error(`Cannot leave from profile: ${capability.reason}`);
+    }
+    capability.execute();
+  }, [capabilities.canLeaveSeat]);
+
+  const profile = useMemo((): RoomProfileCardModel | null => {
+    const profileSelection = profileController.selection;
+    if (profileSelection === null) return null;
+    return {
+      target: profileSelection.target,
+      isSelf: profileSelection.isSelf,
+      onClose: profileController.close,
+      onKick:
+        !profileSelection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
+      onLeaveSeat:
+        profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
+      gameDetails: {
+        title: '阵营分布',
+        statsUserId: profileSelection.target.userId,
+      },
+    };
+  }, [
+    capabilities.canKickSeat.isAllowed,
+    capabilities.canLeaveSeat.isAllowed,
+    handleProfileKick,
+    handleProfileLeave,
+    profileController.close,
+    profileController.selection,
+  ]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Shell assembly (the Screen renders the model; it no longer assembles it)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -950,7 +987,7 @@ export function useWerewolfRoomScreenState(
         capabilities,
         connection: roomConnection.connection,
         seatConfirmation,
-        profile: null,
+        profile,
         share: shareController,
         user,
         ticketCount,
@@ -1007,6 +1044,7 @@ export function useWerewolfRoomScreenState(
       capabilities,
       roomConnection,
       seatConfirmation,
+      profile,
       shareController,
       user,
       ticketCount,
@@ -1063,7 +1101,6 @@ export function useWerewolfRoomScreenState(
     resolvedRoleRevealAnimation,
     effectiveSeat,
     effectiveRole,
-    capabilities,
     currentSchema,
     clearAllSeats,
     boardUpvote,
@@ -1081,8 +1118,6 @@ export function useWerewolfRoomScreenState(
     godRoleItems: derived.godRoleItems,
     specialRoleItems: derived.specialRoleItems,
     villagerRoleItems: derived.villagerRoleItems,
-    profileSelection: profileController.selection,
-    closeProfile: profileController.close,
     mvpSelection,
     closeMvpSelection,
     isHostActionSubmitting,

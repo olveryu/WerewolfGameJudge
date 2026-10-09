@@ -24,9 +24,6 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
-import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
@@ -127,7 +124,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   }, [navigation, roomCode]);
 
   const {
-    roomShellModel: baseShellModel,
+    roomShellModel,
     roomShare,
     gameState,
     isHost,
@@ -136,7 +133,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     resolvedRoleRevealAnimation,
     effectiveSeat,
     effectiveRole,
-    capabilities,
     currentSchema,
     clearAllSeats,
     boardUpvote,
@@ -154,8 +150,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     godRoleItems,
     specialRoleItems,
     villagerRoleItems,
-    profileSelection,
-    closeProfile,
     mvpSelection,
     closeMvpSelection,
     isHostActionSubmitting,
@@ -230,49 +224,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     }
   }, [matchedStrategyName]);
 
-  const handleProfileKick = useCallback(() => {
-    executeProfileKick(capabilities, profileSelection);
-  }, [capabilities, profileSelection]);
-
-  const handleProfileLeave = useCallback(() => {
-    const capability = capabilities.canLeaveSeat;
-    if (!capability.isAllowed) {
-      throw new Error(`Cannot leave from profile: ${capability.reason}`);
-    }
-    capability.execute();
-  }, [capabilities.canLeaveSeat]);
-
-  const profile = useMemo((): RoomProfileCardModel | null => {
-    if (profileSelection === null) return null;
-    return {
-      target: profileSelection.target,
-      isSelf: profileSelection.isSelf,
-      onClose: closeProfile,
-      onKick:
-        !profileSelection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
-      onLeaveSeat:
-        profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
-      gameDetails: {
-        title: '阵营分布',
-        content: <WerewolfProfileDetails userId={profileSelection.target.userId} />,
-      },
-    };
-  }, [
-    capabilities.canKickSeat.isAllowed,
-    capabilities.canLeaveSeat.isAllowed,
-    closeProfile,
-    handleProfileKick,
-    handleProfileLeave,
-    profileSelection,
-  ]);
-
-  // The hook assembles the shell model with a null profile; inject the
-  // Screen-built profile here until batch 3 turns gameDetails into data.
-  const roomShellModel = useMemo(
-    (): RoomShellModel => ({ ...baseShellModel, profile }),
-    [baseShellModel, profile],
-  );
-
   // ─── Auto-show QR invite card after room creation ─────────────────────
   useEffect(() => {
     if (isHost && entryReason === 'created' && !hasAutoShownQR.current) {
@@ -281,9 +232,15 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     }
   }, [entryReason, isHost, roomShare]);
 
+  const renderProfileDetails = useCallback(
+    (statsUserId: string) => <WerewolfProfileDetails userId={statsUserId} />,
+    [],
+  );
+
   return (
     <RoomShell
       model={roomShellModel}
+      profileDetailsRenderer={renderProfileDetails}
       content={{
         kind: 'seats',
         contextHeader:
