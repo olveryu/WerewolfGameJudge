@@ -97,3 +97,27 @@ describe('room hook interfaces — storyrelay (P-2b batch 4)', () => {
     expect(screen).toMatch(/useStoryRelayRoomState\(props\)/);
   });
 });
+
+describe('room hook interfaces — undercover (P-2b batch 5)', () => {
+  it('the hook exports UndercoverRoomScreenState and annotates its return', () => {
+    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
+    expect(hook).toMatch(/export interface UndercoverRoomScreenState/);
+    expect(hook).toMatch(/\): UndercoverRoomScreenState \{/);
+    expectNoReturnSpread(hook);
+  });
+
+  it('the round controls carry their own named contract', () => {
+    const controls = readSource('games/undercover/room/hooks/useUndercoverRoundControls.ts');
+    expect(controls).toMatch(/export interface UndercoverRoundControls/);
+    expect(controls).toMatch(/\): UndercoverRoundControls \{/);
+    expectNoReturnSpread(controls);
+  });
+
+  it('the reveal pool is assembled in the hook, not the Screen', () => {
+    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
+    expect(hook).toMatch(/getUndercoverRoleCounts\(state\.config\.numberOfPlayers/);
+    const screen = readSource('games/undercover/room/UndercoverRoomScreen.tsx');
+    expect(screen).not.toMatch(/getUndercoverRoleCounts/);
+    expect(screen).toMatch(/revealPool/);
+  });
+});

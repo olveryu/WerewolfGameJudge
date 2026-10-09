@@ -3,6 +3,7 @@ import {
   getUndercoverWordCard,
   type UndercoverPublicCommand,
   type UndercoverState,
+  type UndercoverWordCard,
 } from '@game-judge/game-engine/games/undercover/public';
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
@@ -37,12 +38,43 @@ function requestUndercoverRestart(
     );
 }
 
+/**
+ * 卧底回合控制的显式契约（P-2b）：词卡可见性、揭晓选择与回合命令的唯一出口，
+ * 由 useUndercoverRoomScreenState 的接口以 controls 字段引用。
+ */
+export interface UndercoverRoundControls {
+  readonly isSubmitting: boolean;
+  readonly controlledSeat: number | null;
+  /** 当前可见词卡；不可见或无权查看时为 null。 */
+  readonly card: UndercoverWordCard | null;
+  readonly canViewCard: boolean;
+  /** 身份查看协议：reading 阶段且本座位未在服务端确认时，词卡需要确认动作。 */
+  readonly shouldConfirm: boolean;
+  readonly openCard: () => void;
+  readonly closeCard: () => void;
+  readonly confirmCard: () => void;
+  readonly markAllBotsViewed: () => void;
+  readonly isSelecting: boolean;
+  readonly selectedSeat: number | null;
+  readonly reveal: () => void;
+  readonly selectSeat: (seat: number) => void;
+  readonly beginSelection: () => void;
+  readonly cancelRevelation: () => void;
+  readonly cancelSelection: () => void;
+  readonly start: () => void;
+  readonly retry: () => void;
+  readonly abort: () => void;
+  readonly restart: () => void;
+  readonly returnToLobby: () => void;
+  readonly allowRepeated: () => void;
+}
+
 export function useUndercoverRoundControls(
   state: UndercoverState,
   session: UndercoverRoomSession,
   userId: string,
   controlledSeat: number | null,
-) {
+): UndercoverRoundControls {
   const submission = useRoomCommandSubmission(getUndercoverRoomCommandFailureMessage);
   const [visibleCardKey, setVisibleCardKey] = useState<string | null>(null);
   const [selection, setSelection] = useState<{ roundId: string; seat: number | null } | null>(null);

@@ -1,5 +1,4 @@
 /** Undercover room mounts exclusively through shared authentication, session and shell boundaries. */
-import { getUndercoverRoleCounts } from '@game-judge/game-engine/games/undercover/public';
 import { useCallback, useMemo } from 'react';
 import { Text, View } from 'react-native';
 
@@ -9,7 +8,6 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -38,27 +36,9 @@ export function UndercoverRoomScreen(props: UndercoverRoomScreenProps) {
 function UndercoverRoomContent(
   props: UndercoverRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const { state, shellModel, controls, isControlled, equippedRevealEffect, openRules } =
+  const { state, shellModel, controls, isControlled, equippedRevealEffect, revealPool, openRules } =
     useUndercoverRoomScreenState(props);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
-  // Reveal pool for the animator: kind counts from the public config,
-  // expanded per seat-kind. Kinds and counts are public; which seat
-  // holds which kind is never included.
-  const revealPool = useMemo((): readonly RevealRoleData[] => {
-    const counts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
-    const kinds: { readonly id: string; readonly name: string; readonly count: number }[] = [
-      { id: 'civilian', name: '平民', count: counts.civilian },
-      { id: 'undercover', name: '卧底', count: counts.undercover },
-      { id: 'blank', name: '白板', count: counts.blank },
-    ];
-    return kinds.flatMap((kind) =>
-      Array.from({ length: kind.count }, () => ({
-        id: kind.id,
-        name: kind.name,
-        alignment: 'neutral' as const,
-      })),
-    );
-  }, [state.config.hasBlank, state.config.numberOfPlayers]);
   return (
     <RoomShell
       model={shellModel}

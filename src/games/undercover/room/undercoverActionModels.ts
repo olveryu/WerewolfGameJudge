@@ -19,9 +19,9 @@ import type {
   RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 
-import type { useUndercoverRoundControls } from './hooks/useUndercoverRoundControls';
+import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 
-type Controls = ReturnType<typeof useUndercoverRoundControls>;
+type Controls = UndercoverRoundControls;
 
 export function createUndercoverBottomActions(controls: Controls): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
