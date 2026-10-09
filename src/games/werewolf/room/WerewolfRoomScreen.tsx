@@ -26,9 +26,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
-import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -42,11 +40,7 @@ import { WerewolfRoleCardModal } from '@/games/werewolf/room/components/Werewolf
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
-import {
-  createWerewolfBottomActionLayout,
-  createWerewolfSeatDataSource,
-  createWerewolfStatusRibbon,
-} from '@/games/werewolf/werewolfRoomAdapter';
+import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';
@@ -64,12 +58,10 @@ import {
 } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { createSheriffElectionPanelStyles } from './components/sheriffElectionPanel.styles';
-import { createWerewolfHostManagement } from './createWerewolfHostManagement';
 import type { LayoutContext, StaticButtonAction } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useWerewolfRoomScreenState } from './hooks/useWerewolfRoomScreenState';
 import type { ActionIntent, HostControlEvent } from './policy/types';
-import { createSheriffElectionDockModel } from './sheriffElectionDockModel';
 import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 
 // ── Strategy Modal ───────────────────────────────────────────────────────────
@@ -389,163 +381,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     });
   }, [markAllBotsGroupConfirmed]);
 
-  const hostManagement = useMemo(
-    () =>
-      createWerewolfHostManagement({
-        isHost,
-        roomStatus,
-        isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
-        isAudioPlaying,
-        isStartingGame,
-        isHostActionSubmitting,
-        mvpSeat:
-          gameState.startingParticipants?.find(
-            (participant) => participant.userId === gameState.mvpUserId,
-          )?.seat ?? null,
-        onSelectMvp: showMvpSelection,
-        canMarkAllBotsViewed: isDebugMode && roomStatus === GameStatus.Assigned,
-        canMarkAllBotsGroupConfirmed:
-          isDebugMode &&
-          !isAudioPlaying &&
-          roomStatus === GameStatus.Ongoing &&
-          currentSchema?.kind === 'groupConfirm',
-        capabilities,
-        sheriffElection: sheriffElectionPanel,
-        onHostControl: handleHostControl,
-        onMusicSettings: handleMusicSettings,
-        onMarkAllBotsViewed: executeMarkAllBotsViewed,
-        onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
-        onNightReview: openNightReview,
-        onLastNightInfo: showLastNightInfo,
-      }),
-    [
-      capabilities,
-      currentSchema?.kind,
-      executeMarkAllBotsGroupConfirmed,
-      executeMarkAllBotsViewed,
-      gameState?.rules?.isPlagueMode,
-      gameState.startingParticipants,
-      gameState.mvpUserId,
-      showMvpSelection,
-      handleHostControl,
-      handleMusicSettings,
-      isAudioPlaying,
-      isDebugMode,
-      isHost,
-      isHostActionSubmitting,
-      isStartingGame,
-      openNightReview,
-      roomStatus,
-      sheriffElectionPanel,
-      showLastNightInfo,
-    ],
-  );
-
-  const seatSource = useMemo(
-    () =>
-      createWerewolfSeatDataSource({
-        seats: seatViewModels,
-        controlledSeat,
-        showBotRoles: isDebugMode && isHost,
-        showLevels: roomStatus !== GameStatus.Ongoing && roomStatus !== GameStatus.Day,
-        decorationsEnabled: roomStatus !== GameStatus.Ongoing && roomStatus !== GameStatus.Day,
-        sheriffElectionView: sheriffElectionPanel?.view ?? null,
-        revision: stateRevision,
-      }),
-    [
-      seatViewModels,
-      controlledSeat,
-      isDebugMode,
-      isHost,
-      roomStatus,
-      sheriffElectionPanel?.view,
-      stateRevision,
-    ],
-  );
-
-  const statusRibbon = useMemo(
-    () => createWerewolfStatusRibbon({ nightProgress, guideMessage }),
-    [nightProgress, guideMessage],
-  );
-
-  const controlledSeatModel = useMemo(
-    () =>
-      createControlledSeatModel({
-        isVisible:
-          isDebugMode &&
-          isHost &&
-          hasBots &&
-          roomStatus !== GameStatus.Unseated &&
-          roomStatus !== GameStatus.Seated,
-        controlledSeat,
-        controlledBotName:
-          controlledSeat === null
-            ? null
-            : (gameState?.players.get(controlledSeat)?.displayName ?? null),
-        release: releaseBot,
-        gameName: 'Werewolf',
-      }),
-    [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, releaseBot],
-  );
-
-  const roomBottomActionLayout = useMemo(
-    () =>
-      createWerewolfBottomActionLayout({
-        layout: bottomLayout,
-        isActionSubmitting,
-        onIntent: handleSchemaButtonPress,
-        onStaticAction: handleStaticButtonPress,
-      }),
-    [bottomLayout, handleSchemaButtonPress, handleStaticButtonPress, isActionSubmitting],
-  );
-
-  const bottomActions = useMemo((): RoomBottomActionModel => {
-    if (roomStatus === GameStatus.Day && sheriffElectionPanel !== null) {
-      return createSheriffElectionDockModel({
-        election: sheriffElectionPanel,
-        roomTools: roomBottomActionLayout,
-        isInspectorVisible: isSheriffInspectorVisible,
-        openDetails: openSheriffDetails,
-      });
-    }
-
-    if (roomStatus === GameStatus.Ended) {
-      return {
-        kind: 'info',
-        message: actionMessage,
-        actions: [
-          ...roomBottomActionLayout.primary,
-          ...roomBottomActionLayout.secondary,
-          ...roomBottomActionLayout.ghost,
-        ],
-      };
-    }
-
-    return {
-      kind: 'stacked',
-      message:
-        !isAudioPlaying &&
-        (imActioner ||
-          (gameState?.rules?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
-          ? gameState?.rules?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
-            ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
-            : actionMessage
-          : null,
-      layout: roomBottomActionLayout,
-    };
-  }, [
-    sheriffElectionPanel,
-    roomBottomActionLayout,
-    isSheriffInspectorVisible,
-    openSheriffDetails,
-    isAudioPlaying,
-    imActioner,
-    roomStatus,
-    gameState?.rules?.isPlagueMode,
-    isHost,
-    actionMessage,
-  ]);
-
   const handleProfileKick = useCallback(() => {
     executeProfileKick(capabilities, profileSelection);
   }, [capabilities, profileSelection]);
@@ -583,58 +418,108 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   ]);
 
   const roomShellModel = useMemo(
-    (): RoomShellModel => ({
-      roomCode,
-      capabilities,
-      header: {
+    (): RoomShellModel =>
+      createWerewolfRoomShellModel({
+        roomCode,
+        capabilities,
+        connection: roomConnection,
+        seatConfirmation,
+        profile,
+        share: roomShare,
+        user,
+        ticketCount,
         onBack: () => dispatchInteraction({ kind: 'LEAVE_ROOM' }),
         onTitlePress: handleTitlePress,
         onTitleLongPress: handleTitleLongPress,
-        userAction: {
-          user,
-          ticketCount,
-          onPress: handleAvatarPress,
-        },
-      },
-      connection: roomConnection,
-      statusRibbon,
-      seats: {
-        source: seatSource,
-        visuallyDisabled:
-          (roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting,
+        onAvatarPress: handleAvatarPress,
+        roomStatus,
+        isHost,
+        isDebugMode,
+        isAudioPlaying,
+        isActionSubmitting,
+        isStartingGame,
+        isHostActionSubmitting,
+        imActioner,
+        isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
+        actionMessage,
+        guideMessage,
+        nightProgress,
+        seatViewModels,
+        controlledSeat,
+        sheriffElectionPanel,
+        stateRevision,
         onSeatPress: onSeatTapped,
-        onBotSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPressed : null,
-      },
-      seatConfirmation,
-      profile,
-      share: roomShare,
-      bottomActions,
-      hostManagement,
-      controlledSeat: controlledSeatModel,
-    }),
+        onSeatLongPressed: onSeatLongPressed,
+        hasBots,
+        controlledBotName:
+          controlledSeat === null
+            ? null
+            : (gameState?.players.get(controlledSeat)?.displayName ?? null),
+        onReleaseBot: releaseBot,
+        mvpSeat:
+          gameState.startingParticipants?.find(
+            (participant) => participant.userId === gameState.mvpUserId,
+          )?.seat ?? null,
+        onSelectMvp: showMvpSelection,
+        currentSchemaKind: currentSchema?.kind ?? null,
+        onHostControl: handleHostControl,
+        onMusicSettings: handleMusicSettings,
+        onMarkAllBotsViewed: executeMarkAllBotsViewed,
+        onMarkAllBotsGroupConfirmed: executeMarkAllBotsGroupConfirmed,
+        onNightReview: openNightReview,
+        onLastNightInfo: showLastNightInfo,
+        bottomLayout,
+        onSchemaButtonPress: handleSchemaButtonPress,
+        onStaticButtonPress: handleStaticButtonPress,
+        isSheriffInspectorVisible,
+        openSheriffDetails,
+      }),
     [
       roomCode,
       capabilities,
-      handleTitlePress,
-      handleTitleLongPress,
-      user,
-      ticketCount,
-      handleAvatarPress,
-      dispatchInteraction,
       roomConnection,
-      statusRibbon,
-      seatSource,
-      roomStatus,
-      isAudioPlaying,
-      isActionSubmitting,
-      onSeatTapped,
-      onSeatLongPressed,
       seatConfirmation,
       profile,
       roomShare,
-      bottomActions,
-      hostManagement,
-      controlledSeatModel,
+      user,
+      ticketCount,
+      handleTitlePress,
+      handleTitleLongPress,
+      handleAvatarPress,
+      dispatchInteraction,
+      roomStatus,
+      isHost,
+      isDebugMode,
+      isAudioPlaying,
+      isActionSubmitting,
+      isStartingGame,
+      isHostActionSubmitting,
+      imActioner,
+      gameState,
+      actionMessage,
+      guideMessage,
+      nightProgress,
+      seatViewModels,
+      controlledSeat,
+      sheriffElectionPanel,
+      stateRevision,
+      onSeatTapped,
+      onSeatLongPressed,
+      hasBots,
+      releaseBot,
+      showMvpSelection,
+      currentSchema,
+      handleHostControl,
+      handleMusicSettings,
+      executeMarkAllBotsViewed,
+      executeMarkAllBotsGroupConfirmed,
+      openNightReview,
+      showLastNightInfo,
+      bottomLayout,
+      handleSchemaButtonPress,
+      handleStaticButtonPress,
+      isSheriffInspectorVisible,
+      openSheriffDetails,
     ],
   );
 
