@@ -76,6 +76,7 @@ export {
   getAvalonBotDisplayName,
   getAvalonOccupiedSeatCount,
   getAvalonRealHumanCount,
+  getAvalonViewingParticipants,
   isAvalonEvilRole,
   isAvalonGoodRole,
   isAvalonImplicitBotSeat,

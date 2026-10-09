@@ -58,6 +58,21 @@ describe('role viewing protocol — werewolf (batch A)', () => {
   });
 });
 
+describe('role viewing protocol — avalon (batch C)', () => {
+  it('the avalon role card renders through the shared gate with the server anchor', () => {
+    const modal = readSource('games/avalon/room/components/AvalonRoleCardModal.tsx');
+    expect(modal).toMatch(/<RevealAnimationGate/);
+    expect(modal).not.toMatch(/animationDone/);
+    const hook = readSource('games/avalon/room/hooks/useAvalonRoomState.ts');
+    // Opening the card records the view for the effective seat.
+    expect(hook).toMatch(/void submit\('查看身份', \{ type: 'avalon\.role\.viewed' \}\)/);
+    expect(hook).toMatch(/!state\.roleViewedSeats\.includes\(effectiveSeat\)/);
+    const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
+    // D-1: a controlled bot's card never plays the controller's effect.
+    expect(screen).toMatch(/screen\.controlledSeat !== null/);
+  });
+});
+
 describe('role viewing protocol — undercover (batch B)', () => {
   it('the undercover word card renders through the shared gate with the confirmedSeats anchor', () => {
     const modal = readSource('games/undercover/room/components/UndercoverWordModal.tsx');

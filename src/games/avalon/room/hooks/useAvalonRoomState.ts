@@ -48,6 +48,7 @@ import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
+import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
 import {
   createAvalonSeatDataSource,
   createAvalonStatusRibbon,
@@ -429,7 +430,14 @@ export function useAvalonRoomState(
           variant: 'secondary',
           size: 'md',
           isEnabled: true,
-          onPress: () => setRoleCardVisible(true),
+          onPress: () => {
+            setRoleCardVisible(true);
+            // 身份查看协议：打开角色卡即为当前座位落查看记录
+            //（接管时是被接管座位；引擎幂等，终局后不发）。
+            if (state.phase.kind !== 'ended' && !state.roleViewedSeats.includes(effectiveSeat)) {
+              void submit('查看身份', { type: 'avalon.role.viewed' });
+            }
+          },
           testID: 'avalon-view-role',
         });
       }
@@ -516,6 +524,11 @@ export function useAvalonRoomState(
     setRoleCardVisible,
     rolePreviewId,
     setRolePreviewId,
+    // 身份查看协议：动画锚点（服务端记录）与候选池（公开的完整角色分布）。
+    roleCardShouldPlay: effectiveSeat !== null && !state.roleViewedSeats.includes(effectiveSeat),
+    roleCardAllRoles: Object.entries(state.roles)
+      .sort(([seatA], [seatB]) => Number(seatA) - Number(seatB))
+      .map(([, roleId]) => toRevealRoleData(roleId)),
     // 晚上确认弹窗：两步流程（底部按钮 → 弹窗）。
     nightModalVisible,
     setNightModalVisible,

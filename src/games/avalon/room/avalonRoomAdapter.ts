@@ -7,6 +7,7 @@ import {
   getAvalonBotDisplayName,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
+  getAvalonViewingParticipants,
   isAvalonImplicitBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
@@ -125,10 +126,28 @@ export function createAvalonSeatDataSource(
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel {
   const phase = state.phase;
   if (phase.kind === 'night') {
+    // 身份查看协议检查点：夜晚信息步已走完但还有真人没看角色时，
+    // 状态条明示阻塞原因（座位级名单在房主管理区，状态条只报人数）。
+    const stepParticipants = getAvalonNightParticipants(state.roles, phase.step);
+    const unviewedHumans = getAvalonViewingParticipants(state).filter(
+      (participant) => !participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    ).length;
+    if (
+      phase.step === 'percivalReveal' &&
+      unviewedHumans > 0 &&
+      stepParticipants.every((seat) => phase.confirmedSeats.includes(seat))
+    ) {
+      return {
+        kind: 'message',
+        icon: 'guide',
+        text: `等待全员查看身份 · 还差 ${unviewedHumans} 人`,
+        supportingText: null,
+      };
+    }
     // 对齐狼人杀：显示确认进度。total 是当前 step 的参与者数（非全员），
     // 因为 confirmedSeats 在每次 step 推进时清零。
     const confirmed = phase.confirmedSeats.length;
-    const total = getAvalonNightParticipants(state.roles, phase.step).length;
+    const total = stepParticipants.length;
     return { kind: 'progress', current: confirmed, total, label: '天黑确认' };
   }
   if (phase.kind === 'nominate')
