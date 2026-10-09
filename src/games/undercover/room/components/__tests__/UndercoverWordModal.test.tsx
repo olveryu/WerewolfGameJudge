@@ -21,6 +21,8 @@ const blankCard: UndercoverWordCard = { kind: 'blank', seat: 0 };
 const baseProps = {
   isControlled: false,
   shouldConfirm: false,
+  shouldPlay: false,
+  allRoles: [],
   isSubmitting: false,
   onClose: jest.fn(),
   onConfirm: jest.fn(),
@@ -48,6 +50,7 @@ describe('UndercoverWordModal', () => {
         {...baseProps}
         card={wordCard}
         shouldConfirm
+        shouldPlay
         onConfirm={onConfirm}
         effectType="tarot"
       />,
@@ -68,6 +71,15 @@ describe('UndercoverWordModal', () => {
 
   it('shows the static card directly when no effect is equipped', () => {
     const view = render(<UndercoverWordModal {...baseProps} card={wordCard} effectType={null} />);
+
+    expect(view.queryByTestId('role-reveal-animator')).toBeNull();
+    expect(view.getByTestId('undercover-word')).toHaveTextContent('苹果');
+  });
+
+  it('shows the static card directly when the seat already confirmed (server anchor)', () => {
+    const view = render(
+      <UndercoverWordModal {...baseProps} card={wordCard} effectType="tarot" shouldPlay={false} />,
+    );
 
     expect(view.queryByTestId('role-reveal-animator')).toBeNull();
     expect(view.getByTestId('undercover-word')).toHaveTextContent('苹果');

@@ -57,3 +57,15 @@ describe('role viewing protocol — werewolf (batch A)', () => {
     expect(source).not.toMatch(/animationDone/);
   });
 });
+
+describe('role viewing protocol — undercover (batch B)', () => {
+  it('the undercover word card renders through the shared gate with the confirmedSeats anchor', () => {
+    const modal = readSource('games/undercover/room/components/UndercoverWordModal.tsx');
+    expect(modal).toMatch(/<RevealAnimationGate/);
+    expect(modal).not.toMatch(/animationDone/);
+    const screen = readSource('games/undercover/room/UndercoverRoomScreen.tsx');
+    expect(screen).toMatch(/!state\.round\.confirmedSeats\.includes\(controls\.card\.seat\)/);
+    // D-1: a controlled bot's card never plays the controller's effect.
+    expect(screen).toMatch(/effectType=\{isControlled \? null : equippedRevealEffect\}/);
+  });
+});
