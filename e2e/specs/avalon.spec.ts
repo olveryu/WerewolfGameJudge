@@ -2,8 +2,17 @@ import { expect, test } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
+
+/** The Avalon room screen sits behind the same temporary lock as the
+ * config screen; every participant unlocks it once per app session. */
+async function unlockAvalon(page: import('@playwright/test').Page): Promise<void> {
+  await page.getByPlaceholder('密码').fill('369');
+  await page.getByTestId(TESTIDS.alertButton(1)).click();
+}
 
 test.setTimeout(300_000);
 
@@ -25,8 +34,7 @@ test('Avalon first quest waits until every human viewed their role', async ({ br
   try {
     await new HomePage(hostPage).clickCreateRoom('avalon');
     // Avalon is behind its temporary access lock: enter the password.
-    await hostPage.getByPlaceholder('密码').fill('369');
-    await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
+    await unlockAvalon(hostPage);
     // Player count is a stepper (default 6); step it to 5. The veto
     // stepper below shares the button labels, so take the first one.
     const countDisplay = hostPage.getByTestId('avalon-player-count');
@@ -41,11 +49,19 @@ test('Avalon first quest waits until every human viewed their role', async ({ br
     await hostPage.getByTestId('avalon-config-submit').click();
     await hostRoom.waitForReady('host');
 
-    // Five real players take seats; no bots involved.
+    // Five real players take seats; no bots involved. Joining composes
+    // the generic join steps with the Avalon lock: the room screen
+    // only becomes ready after this participant unlocks it.
     const roomCode = await hostRoom.getRoomCode();
     await hostRoom.seatAt(0);
     for (let i = 0; i < joinerRooms.length; i += 1) {
-      await joinerRooms[i]!.joinViaCode(roomCode);
+      const joinerPage = joinerPages[i]!;
+      await joinerPage.getByTestId(TESTIDS.homeEnterRoomButton).click();
+      await expect(joinerPage.getByText('加入房间', { exact: true })).toBeVisible();
+      await enterRoomCodeViaNumPad(joinerPage, roomCode);
+      await joinerPage.getByText('加入', { exact: true }).click();
+      await unlockAvalon(joinerPage);
+      await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
       await joinerRooms[i]!.seatAt(i + 1);
     }
     await expect(hostPage.getByText('等待入座 · 5/5', { exact: true })).toBeVisible({
