@@ -24,6 +24,9 @@ test('Avalon first quest waits until every human viewed their role', async ({ br
   const lateViewer = allPages[4]!;
   try {
     await new HomePage(hostPage).clickCreateRoom('avalon');
+    // Avalon is behind its temporary access lock: enter the password.
+    await hostPage.getByPlaceholder('密码').fill('369');
+    await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
     await hostPage.getByTestId('avalon-player-count').fill('5');
     await expect(hostPage.getByTestId('avalon-player-count')).toHaveValue('5');
     await hostPage.getByTestId('avalon-config-submit').click();
