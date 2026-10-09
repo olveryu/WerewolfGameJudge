@@ -109,8 +109,14 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     expect(model.bottomActions.kind).toBe('stacked');
     if (model.bottomActions.kind === 'stacked') {
-      expect(typeof model.bottomActions.message).toBe('string');
-      expect(model.bottomActions.message).not.toBe('');
+      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+      expect(model.bottomActions.layout.primary).toEqual([]);
+      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['skip', '不用技能', 'secondary'],
+      ]);
+      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['viewRole', '查看身份', 'ghost'],
+      ]);
     }
   });
 
@@ -162,6 +168,12 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     const model = await captureModel(renderRoom());
 
     expect(model.bottomActions.kind).toBe('info');
+    if (model.bottomActions.kind === 'info') {
+      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+      expect(model.bottomActions.actions.map((a) => [a.key, a.label, a.variant])).toEqual([
+        ['viewRole', '查看身份', 'secondary'],
+      ]);
+    }
   });
 
   it('uses the sheriff-election dock model on the first day while the election runs', async () => {
@@ -188,6 +200,24 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     const model = await captureModel(renderRoom());
 
     expect(model.bottomActions.kind).toBe('dock');
+    if (model.bottomActions.kind === 'dock') {
+      expect(model.bottomActions.message).toBeNull();
+      expect(model.bottomActions.leading).toMatchObject({
+        key: 'viewRole',
+        label: '查看身份',
+        tone: 'default',
+        isEnabled: true,
+      });
+      expect(model.bottomActions.primary).toMatchObject({
+        key: 'sheriff-register',
+        label: '报名上警',
+        variant: 'primary',
+        size: 'lg',
+        testID: 'sheriff-register-button',
+        isEnabled: true,
+      });
+      expect(model.bottomActions.trailing).toBeNull();
+    }
   });
 
   it('shows the plague-mode judge message to the host in the ready state', async () => {
