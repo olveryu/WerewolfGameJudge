@@ -120,4 +120,14 @@ describe('room hook interfaces — undercover (P-2b batch 5)', () => {
     expect(screen).not.toMatch(/getUndercoverRoleCounts/);
     expect(screen).toMatch(/revealPool/);
   });
+
+  it('the BoardInfo role counts come from the engine counts via the hook', () => {
+    const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
+    expect(hook).toMatch(/roleCounts = getUndercoverRoleCounts\(/);
+    const screen = readSource('games/undercover/room/UndercoverRoomScreen.tsx');
+    expect(screen).toMatch(/roleCounts\.undercover/);
+    expect(screen).toMatch(/roleCounts\.civilian/);
+    expect(screen).toMatch(/roleCounts\.blank/);
+    expect(screen).not.toMatch(/numberOfPlayers - 1/);
+  });
 });

@@ -36,8 +36,16 @@ export function UndercoverRoomScreen(props: UndercoverRoomScreenProps) {
 function UndercoverRoomContent(
   props: UndercoverRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const { state, shellModel, controls, isControlled, equippedRevealEffect, revealPool, openRules } =
-    useUndercoverRoomScreenState(props);
+  const {
+    state,
+    shellModel,
+    controls,
+    isControlled,
+    equippedRevealEffect,
+    revealPool,
+    roleCounts,
+    openRules,
+  } = useUndercoverRoomScreenState(props);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   return (
     <RoomShell
@@ -74,7 +82,9 @@ function UndercoverRoomContent(
               sections={[
                 {
                   title: '卧底',
-                  items: [{ roleId: 'undercover', displayName: '卧底', count: 1 }],
+                  items: [
+                    { roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover },
+                  ],
                   color: colors.wolf,
                 },
                 {
@@ -83,7 +93,7 @@ function UndercoverRoomContent(
                     {
                       roleId: 'civilian',
                       displayName: '平民',
-                      count: state.config.numberOfPlayers - 1 - (state.config.hasBlank ? 1 : 0),
+                      count: roleCounts.civilian,
                     },
                   ],
                   color: colors.villager,
@@ -92,7 +102,7 @@ function UndercoverRoomContent(
                   ? [
                       {
                         title: '白板',
-                        items: [{ roleId: 'blank', displayName: '白板', count: 1 }],
+                        items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
                         color: colors.textMuted,
                       },
                     ]

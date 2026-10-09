@@ -1,6 +1,7 @@
 /** Compose Undercover controls and projections into the existing RoomShell contract. */
 import {
   getUndercoverRoleCounts,
+  type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 import { useEffect, useMemo, useRef } from 'react';
@@ -51,6 +52,8 @@ export interface UndercoverRoomScreenState {
   readonly equippedRevealEffect: RevealEffectType | null;
   /** Animator 候选池（公开配置展开，原在 Screen 内组装，P-2b 下沉）。 */
   readonly revealPool: readonly RevealRoleData[];
+  /** 身份构成计数（引擎口径：卧底人数随总人数变化），供 BoardInfo 展示。 */
+  readonly roleCounts: UndercoverRoleCounts;
   readonly openRules: () => void;
 }
 
@@ -77,6 +80,7 @@ export function useUndercoverRoomScreenState({
     });
   const roster = useUndercoverRoster(state, session, user, configure, share.open);
   const controls = useUndercoverRoundControls(state, session, user.id, roster.controlledSeat);
+  const roleCounts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
   // Reveal pool for the animator: kind counts from the public config,
   // expanded per seat-kind. Kinds and counts are public; which seat
   // holds which kind is never included.
@@ -158,6 +162,7 @@ export function useUndercoverRoomScreenState({
     isControlled: roster.controlledSeat !== null,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     revealPool,
+    roleCounts,
     openRules: () =>
       navigation.navigate('GameGuide', { gameType: 'undercover', roomCode: room.roomCode }),
   };
