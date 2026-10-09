@@ -31,6 +31,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -39,6 +40,7 @@ import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
+import { getFibRevealRolePool } from '../components/FibRoleCardAdapter';
 import {
   createFibBottomActions,
   createFibHostManagement,
@@ -64,7 +66,16 @@ export interface FibRoomScreenState {
   readonly shellModel: RoomShellModel;
   readonly roundView: FibRoundView | null;
   readonly isIdentityVisible: boolean;
-  readonly closeIdentity: () => void;
+  /** 身份弹窗确认（唯一出口）：viewing 未确认时提交查看记录并关闭，其余等同关闭。 */
+  readonly confirmIdentity: () => void;
+  /** 身份弹窗确认按钮文案（viewing 未确认时为「我已看清」）。 */
+  readonly identityConfirmText: string;
+  /** 是否播放揭示动画（服务端查看记录锚点：本轮未记录已查看才播）。 */
+  readonly identityShouldPlay: boolean;
+  /** Animator 角色池（只有种类与计数，零泄密）。 */
+  readonly identityAllRoles: readonly RevealRoleData[];
+  /** 是否正接管机器人座位（接管时不播查看者本人的揭示动画，D-1）。 */
+  readonly isBotTakeoverActive: boolean;
   readonly openRules: () => void;
   readonly occupiedSeatCount: number;
   readonly playerCount: number;
@@ -142,7 +153,12 @@ export function useFibRoomScreenState({
   }, [controlledSeat, releaseBot, state]);
 
   useEffect(() => {
-    if (isIdentityVisible && state.phase !== 'ongoing' && state.phase !== 'ended') {
+    if (
+      isIdentityVisible &&
+      state.phase !== 'viewing' &&
+      state.phase !== 'ongoing' &&
+      state.phase !== 'ended'
+    ) {
       setIsIdentityVisible(false);
     }
   }, [isIdentityVisible, state.phase]);
@@ -230,12 +246,27 @@ export function useFibRoomScreenState({
     setIsIdentityVisible(true);
   }, [effectiveSeat, isIdentityVisible, state]);
 
-  const closeIdentity = useCallback(() => {
+  const confirmIdentity = useCallback(() => {
     if (!isIdentityVisible) {
       throw new Error('[FAIL-FAST] FibKing identity modal is not open');
     }
+    if (roundView?.phase === 'viewing' && !roundView.viewerHasViewed) {
+      void submitCommand('确认查看身份', { type: 'fib.round.confirmRoleView' });
+    }
     setIsIdentityVisible(false);
-  }, [isIdentityVisible]);
+  }, [isIdentityVisible, roundView, submitCommand]);
+
+  const identityHasViewed =
+    state.round !== null &&
+    effectiveSeat !== null &&
+    state.round.viewedSeats.includes(effectiveSeat);
+  const identityShouldPlay = roundView !== null && effectiveSeat !== null && !identityHasViewed;
+  const identityAllRoles = useMemo(
+    () => (state.round === null ? [] : getFibRevealRolePool(state.numberOfPlayers)),
+    [state.numberOfPlayers, state.round],
+  );
+  const identityConfirmText =
+    roundView?.phase === 'viewing' && !roundView.viewerHasViewed ? '我已看清' : '知道了';
 
   const capabilities = useMemo(
     () =>
@@ -504,7 +535,11 @@ export function useFibRoomScreenState({
     shellModel,
     roundView,
     isIdentityVisible,
-    closeIdentity,
+    confirmIdentity,
+    identityConfirmText,
+    identityShouldPlay,
+    identityAllRoles,
+    isBotTakeoverActive: controlledSeat !== null,
     openRules,
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     playerCount: state.numberOfPlayers,

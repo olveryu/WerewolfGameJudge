@@ -10,6 +10,7 @@ import {
   REASON_FIB_ROUND_NOT_FULL,
   REASON_FIB_ROUND_NOT_ONGOING,
   REASON_FIB_ROUND_NOT_PREPARING,
+  REASON_FIB_ROUND_NOT_VIEWING,
   REASON_FIB_WORD_INVALID,
   REASON_FIB_WORD_REUSED,
 } from '@game-judge/game-engine/games/fibking/public';
@@ -38,6 +39,8 @@ export function getFibRoomCommandFailureMessage(
       return '当前没有正在准备的轮次';
     case REASON_FIB_ROUND_NOT_ONGOING:
       return '当前没有进行中的轮次';
+    case REASON_FIB_ROUND_NOT_VIEWING:
+      return '当前不在查看身份阶段';
     case REASON_FIB_ROUND_MISMATCH:
       return '本轮状态已变化，请等待房间状态刷新';
     case REASON_FIB_WORD_REUSED:

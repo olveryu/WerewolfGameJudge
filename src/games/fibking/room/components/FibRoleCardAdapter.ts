@@ -22,7 +22,11 @@ import { formatFibWordPinyin } from '../formatFibWordPinyin';
 
 function getRoleInstruction(view: FibRoundView): string {
   if (view.phase === 'ended') return '本轮身份与真实释义已经公开。';
-  if (view.viewerRole === null) return '观战时可以查看本轮词语和真实释义。';
+  if (view.viewerRole === null) {
+    return view.phase === 'viewing'
+      ? '观战时可以查看本轮词语；真实释义将在公布答案时揭晓。'
+      : '观战时可以查看本轮词语和真实释义。';
+  }
   switch (view.viewerRole) {
     case 'guesser':
       return '听取其他玩家的描述，找出真实释义。';
@@ -47,7 +51,7 @@ function getAlignment(view: FibRoundView): RevealAlignment {
 }
 
 export function toFibRevealRoleData(view: FibRoundView): RevealRoleData {
-  const isSpectator = view.phase === 'ongoing' && view.viewerRole === null;
+  const isSpectator = view.phase !== 'ended' && view.viewerRole === null;
   const roleName =
     view.phase === 'ended'
       ? '公开结果'
@@ -103,4 +107,19 @@ export function toFibRevealRoleData(view: FibRoundView): RevealRoleData {
     factionName: eyebrow,
     description: fields,
   };
+}
+
+/**
+ * Animator 计数池（身份查看协议）：只有种类与计数——大聪明 1、老实人 1、
+ * 其余为瞎掰王。不含任何座位信息，零泄密。
+ */
+export function getFibRevealRolePool(playerCount: number): readonly RevealRoleData[] {
+  const pool: RevealRoleData[] = [
+    { id: 'fibking-guesser', name: getFibRoleName('guesser'), alignment: 'god' },
+    { id: 'fibking-honest', name: getFibRoleName('honest'), alignment: 'villager' },
+  ];
+  for (let index = 0; index < playerCount - 2; index += 1) {
+    pool.push({ id: 'fibking-fibber', name: getFibRoleName('fibber'), alignment: 'wolf' });
+  }
+  return pool;
 }

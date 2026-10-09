@@ -84,3 +84,20 @@ describe('role viewing protocol — undercover (batch B)', () => {
     expect(screen).toMatch(/effectType=\{isControlled \? null : equippedRevealEffect\}/);
   });
 });
+
+describe('role viewing protocol — fibking (batch D)', () => {
+  it('the fibking identity card renders through the shared gate with the viewedSeats anchor', () => {
+    const modal = readSource('games/fibking/room/components/FibIdentityModal.tsx');
+    expect(modal).toMatch(/<RevealAnimationGate/);
+    expect(modal).not.toMatch(/animationDone/);
+    expect(modal).not.toMatch(/RoleRevealAnimator/);
+    const hook = readSource('games/fibking/room/hooks/useFibRoomScreenState.ts');
+    // The anchor is the server-side per-round viewed record.
+    expect(hook).toMatch(/state\.round\.viewedSeats\.includes\(effectiveSeat\)/);
+    // The modal confirm submits the viewing record while in the viewing phase.
+    expect(hook).toMatch(/\{ type: 'fib\.round\.confirmRoleView' \}/);
+    const screen = readSource('games/fibking/room/FibRoomScreen.tsx');
+    // D-1: a controlled bot's card never plays the controller's effect.
+    expect(screen).toMatch(/screen\.isBotTakeoverActive \? null : screen\.equippedRevealEffect/);
+  });
+});

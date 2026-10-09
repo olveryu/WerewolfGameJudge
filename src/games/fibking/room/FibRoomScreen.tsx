@@ -126,8 +126,11 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
         screen.isIdentityVisible && screen.roundView !== null ? (
           <FibIdentityModal
             view={screen.roundView}
-            effectType={screen.equippedRevealEffect}
-            onClose={screen.closeIdentity}
+            effectType={screen.isBotTakeoverActive ? null : screen.equippedRevealEffect}
+            shouldPlay={screen.identityShouldPlay}
+            allRoles={screen.identityAllRoles}
+            confirmText={screen.identityConfirmText}
+            onConfirm={screen.confirmIdentity}
           />
         ) : null
       }

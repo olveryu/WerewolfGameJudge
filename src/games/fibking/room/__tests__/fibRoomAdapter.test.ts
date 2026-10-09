@@ -68,6 +68,7 @@ function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
       },
       source: 'local',
       roles: { guesserSeat: 1, honestSeat: 2 },
+      viewedSeats: [0, 1, 2, 3],
     },
   };
 }
