@@ -169,6 +169,9 @@ function PictionaryTakeover({
   return (
     <BotTakeover
       bots={bots}
+      // activeSeat 恒 null：传画接龙全体并行应答，没有单一行动座位（引擎无 drawerSeat，
+      // 那是 drawguess 的概念）；机器人任务由房主端自动提交兜底。传单个座位会让接管
+      // 组件的紧急提醒与列表置顶误指向某一个机器人。
       activeSeat={null}
       remainingSeconds={remainingSeconds}
       controlledSeat={controlledSeat}

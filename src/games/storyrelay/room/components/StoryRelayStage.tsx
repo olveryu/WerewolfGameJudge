@@ -91,6 +91,9 @@ function StoryRelayTakeover({
   return (
     <BotTakeover
       bots={bots}
+      // activeSeat 恒 null：故事接龙每棒全体并行创作，没有单一行动座位；机器人任务由
+      // 房主端自动提交兜底。传单个座位会让接管组件的紧急提醒与列表置顶误指向某一个
+      // 机器人。
       activeSeat={null}
       remainingSeconds={remainingSeconds}
       controlledSeat={controlledSeat}
