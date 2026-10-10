@@ -25,6 +25,7 @@ import {
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -38,6 +39,7 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
   buildClearSeatsAction,
@@ -47,6 +49,7 @@ import {
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -248,9 +251,7 @@ export function useAvalonRoomState(
     canViewProfiles: isLobby
       ? { isAllowed: true, execute: profile.open }
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
-    canTakeOverBots: canControlBots
-      ? { isAllowed: true, execute: takeOver }
-      : { isAllowed: false, reason: '只有房主可以接管机器人' },
+    canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
   const onSeatPress = (seat: number) => {
     if (seatPickHandlerRef.current?.(seat) === true) return;
@@ -269,7 +270,7 @@ export function useAvalonRoomState(
     takeOver,
     release: releaseBot,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => getAvalonProfileTarget(state, seat)?.occupantKind === 'bot',
+    isBotSeat: (seat) => isAvalonBotSeat(state, seat),
     gameName: 'Avalon',
   });
   const roomActions: RoomHostManagementAction[] = [];
@@ -465,15 +466,7 @@ export function useAvalonRoomState(
       // 对齐其他有座位游戏：长按机器人座位接管/释放。
       onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
-    seatConfirmation:
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
+    seatConfirmation: createRoomSeatConfirmationModel(seatController),
     profile:
       selection === null
         ? null
@@ -580,14 +573,8 @@ export function useAvalonRoomState(
       gameName: 'Avalon',
     }),
   };
-  const hasAutoShownQR = useRef(false);
   const openShare = share.open;
-  useEffect(() => {
-    if (isHost && props.entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      openShare();
-    }
-  }, [isHost, openShare, props.entryReason]);
+  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);
   return {
     state,

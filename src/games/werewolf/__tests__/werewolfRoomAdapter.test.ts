@@ -1,8 +1,13 @@
+import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/public';
 
 import { EMPTY_LAYOUT } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfRoomCapabilities,
@@ -12,13 +17,46 @@ import {
   type WerewolfRoomShellModelInput,
 } from '@/games/werewolf/werewolfRoomAdapter';
 
+function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameState {
+  return toWerewolfLocalState({
+    ...WEREWOLF_STATE_IDENTITY,
+    roomCode: 'ROOM',
+    hostUserId: 'HOST',
+    status: GameStatus.Ongoing,
+    templateRoles: ['wolf', 'witch', 'seer'] as RoleId[],
+    players: {
+      0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
+      1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
+      2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
+    },
+    currentStepIndex: 0,
+    isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
+    roster: {
+      0: { seat: 0, userId: 'p0' },
+      1: { seat: 1, userId: 'p1' },
+      2: { seat: 2, userId: 'p2' },
+    },
+    playerProfiles: {
+      p0: { displayName: 'P1' },
+      p1: { displayName: 'P2' },
+      p2: { displayName: 'P3' },
+    },
+    ...overrides,
+  });
+}
+
 function createCapabilityInput() {
   return {
     status: GameStatus.Unseated,
     isHost: true,
     mySeat: null,
-    isDebugMode: true,
-    isAudioPlaying: false,
     hasOccupiedSeats: true,
     requestTakeSeat: jest.fn(),
     requestMoveSeat: jest.fn(),
@@ -207,12 +245,27 @@ describe('werewolfRoomAdapter', () => {
   });
 
   it('preserves the Werewolf status priority before rendering shared UI', () => {
+    const gameState = createLocalGameState();
+    const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
+    const step = plan.steps[1];
+    expect(step).toBeDefined();
     expect(
       createWerewolfStatusRibbon({
-        nightProgress: { current: 2, total: 8, roleName: '狼人' },
+        currentStepId: step?.stepId ?? null,
+        gameState,
         guideMessage: '等待玩家',
       }),
-    ).toEqual({ kind: 'progress', current: 2, total: 8, label: '狼人' });
+    ).toEqual({ kind: 'progress', current: 2, total: plan.length, label: step?.displayName });
+  });
+
+  it('falls back to the guide message, then to null, without night progress', () => {
+    const gameState = createLocalGameState();
+    expect(
+      createWerewolfStatusRibbon({ currentStepId: null, gameState, guideMessage: '等待玩家' }),
+    ).toEqual({ kind: 'message', icon: 'guide', text: '等待玩家', supportingText: null });
+    expect(
+      createWerewolfStatusRibbon({ currentStepId: null, gameState, guideMessage: null }),
+    ).toBeNull();
   });
 
   it('does not expose a second submit callback while a host action is disabled', () => {
@@ -344,7 +397,8 @@ describe('createWerewolfRoomShellModel', () => {
       isPlagueMode: false,
       actionMessage: null,
       guideMessage: null,
-      nightProgress: null,
+      currentStepId: null,
+      gameState: createLocalGameState(),
       seatViewModels: [],
       controlledSeat: null,
       sheriffElectionPanel: null,
@@ -458,7 +512,6 @@ describe('createWerewolfRoomShellModel', () => {
       ...createCapabilityInput(),
       isHost: false,
       status: GameStatus.Ongoing,
-      isDebugMode: false,
     });
     const denied = createWerewolfRoomShellModel(
       createShellModelInput({ capabilities: deniedCapabilities, onSeatLongPressed }),

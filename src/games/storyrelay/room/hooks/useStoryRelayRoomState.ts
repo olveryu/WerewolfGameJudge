@@ -8,10 +8,11 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -27,6 +28,7 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
@@ -35,6 +37,7 @@ import {
   buildRoomConfigAction,
 } from '@/features/room/model/hostManagementActions';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -136,9 +139,7 @@ export function useStoryRelayRoomState(
     canViewProfiles: isLobby
       ? { isAllowed: true, execute: profile.open }
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
-    canTakeOverBots: canControlBots
-      ? { isAllowed: true, execute: botControl.takeOver }
-      : { isAllowed: false, reason: '只有房主可以接管机器人' },
+    canTakeOverBots: createBotTakeoverCapability(canControlBots, botControl.takeOver),
   };
   const isBotSeat = useCallback((seat: number) => isStoryRelayBotSeat(state, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
@@ -310,15 +311,7 @@ export function useStoryRelayRoomState(
       onSeatPress,
       onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
-    seatConfirmation:
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
+    seatConfirmation: createRoomSeatConfirmationModel(seatController),
     profile:
       selection === null
         ? null
@@ -387,14 +380,8 @@ export function useStoryRelayRoomState(
       gameName: 'StoryRelay',
     }),
   };
-  const hasAutoShownQR = useRef(false);
   const openShare = share.open;
-  useEffect(() => {
-    if (isHost && props.entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      openShare();
-    }
-  }, [isHost, openShare, props.entryReason]);
+  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   return {
     state,
     shellModel,

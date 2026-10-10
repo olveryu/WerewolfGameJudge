@@ -12,6 +12,7 @@ import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
@@ -46,12 +47,8 @@ export function useUndercoverRoster(
   const bot = useRoomBotControl();
   const isHost = state.hostUserId === user.id;
   const canControl = isHost;
-  const controlledSeat =
-    canControl && bot.controlledSeat !== null && isUndercoverBotSeat(state, bot.controlledSeat)
-      ? bot.controlledSeat
-      : null;
+  const controlledSeat = bot.controlledSeat;
   const release = bot.release;
-  // 守卫作用于原始接管座位；上方派生的 controlledSeat 是给消费者的即时遮蔽，两层不合并。
   useBotTakeoverGuard({
     controlledSeat: bot.controlledSeat,
     canControlBots: canControl,
@@ -129,14 +126,6 @@ export function useUndercoverRoster(
     onSeatPress,
     onBotLongPress,
     isSubmitting: seatController.isSubmitting,
-    seatConfirmation:
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
+    seatConfirmation: createRoomSeatConfirmationModel(seatController),
   };
 }

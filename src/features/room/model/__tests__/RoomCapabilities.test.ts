@@ -1,6 +1,10 @@
 /** Contract tests for game-neutral setup-room capability policy. */
 
-import { createRoomSetupCapabilities, type RoomSetupCapabilitiesInput } from '../RoomCapabilities';
+import {
+  createBotTakeoverCapability,
+  createRoomSetupCapabilities,
+  type RoomSetupCapabilitiesInput,
+} from '../RoomCapabilities';
 
 function createInput(
   overrides: Partial<RoomSetupCapabilitiesInput> = {},
@@ -70,5 +74,20 @@ describe('createRoomSetupCapabilities', () => {
     expect(capabilities.canFillBots.isAllowed).toBe(false);
     expect(capabilities.canConfigureGame.isAllowed).toBe(false);
     expect(capabilities.canShareRoom.isAllowed).toBe(false);
+  });
+});
+
+describe('createBotTakeoverCapability', () => {
+  it('allows the host and routes execute to the given takeOver', () => {
+    const takeOver = jest.fn();
+    const capability = createBotTakeoverCapability(true, takeOver);
+    expect(capability.isAllowed).toBe(true);
+    if (capability.isAllowed) capability.execute(4);
+    expect(takeOver).toHaveBeenCalledWith(4);
+  });
+
+  it('denies non-hosts with the shared reason', () => {
+    const capability = createBotTakeoverCapability(false, jest.fn());
+    expect(capability).toEqual({ isAllowed: false, reason: '只有房主可以接管机器人' });
   });
 });

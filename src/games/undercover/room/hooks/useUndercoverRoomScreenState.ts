@@ -5,11 +5,12 @@ import {
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
@@ -100,15 +101,9 @@ export function useUndercoverRoomScreenState({
       })),
     );
   }, [state.config.hasBlank, state.config.numberOfPlayers]);
-  const hasAutoShownQR = useRef(false);
   const isHost = state.hostUserId === user.id;
   const openShare = share.open;
-  useEffect(() => {
-    if (isHost && entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      openShare();
-    }
-  }, [entryReason, isHost, openShare]);
+  useAutoShowRoomShareQr({ isHost, entryReason, openShare });
   const shellModel: RoomShellModel = {
     roomCode: room.roomCode,
     capabilities: roster.capabilities,

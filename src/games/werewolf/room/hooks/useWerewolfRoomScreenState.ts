@@ -26,6 +26,7 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
@@ -35,6 +36,7 @@ import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
 import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
 import {
   createWerewolfRoomCapabilities,
@@ -54,7 +56,6 @@ import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
 import { useBottomLayout } from './useBottomLayout';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
-import { useNightProgress } from './useNightProgress';
 import { useNightReviewShare } from './useNightReviewShare';
 import { useRoomActions } from './useRoomActions';
 import { useRoomDerived } from './useRoomDerived';
@@ -96,7 +97,7 @@ type NightReviewShareState = ReturnType<typeof useNightReviewShare>;
  * what the Screen's content sections render.
  */
 export interface WerewolfRoomScreenState {
-  readonly roomShellModel: RoomShellModel;
+  readonly shellModel: RoomShellModel;
   readonly roomShare: RoomShareModel;
   readonly gameState: CoreRoomState['gameState'];
   readonly isHost: boolean;
@@ -154,12 +155,17 @@ export interface WerewolfRoomScreenState {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface WerewolfRoomScreenStateProps {
+  readonly room: RoomRecord;
+  readonly navigation: RoomScreenNavigation;
+  readonly entryController: RoomEntryController;
+  readonly client: WerewolfGameClient;
+}
+
 export function useWerewolfRoomScreenState(
-  room: RoomRecord,
-  navigation: RoomScreenNavigation,
-  entryController: RoomEntryController,
-  client: WerewolfGameClient,
+  props: WerewolfRoomScreenStateProps,
 ): WerewolfRoomScreenState {
+  const { room, navigation, entryController, client } = props;
   const { roomCode } = room;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -572,8 +578,6 @@ export function useWerewolfRoomScreenState(
         status: roomStatus,
         isHost,
         mySeat,
-        isDebugMode,
-        isAudioPlaying,
         hasOccupiedSeats,
         requestTakeSeat: seatController.requestTakeSeat,
         requestMoveSeat: seatController.requestMoveSeat,
@@ -590,8 +594,6 @@ export function useWerewolfRoomScreenState(
       roomStatus,
       isHost,
       mySeat,
-      isDebugMode,
-      isAudioPlaying,
       hasOccupiedSeats,
       seatController.requestTakeSeat,
       seatController.requestMoveSeat,
@@ -684,17 +686,8 @@ export function useWerewolfRoomScreenState(
     takeOver: takeOverBot,
     release: releaseBot,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => gameState?.players.get(seat)?.isBot === true,
+    isBotSeat: (seat) => isWerewolfLocalBotSeat(gameState, seat),
     gameName: 'Werewolf',
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Night Progress
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const { nightProgress } = useNightProgress({
-    currentStepId,
-    gameState,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -827,19 +820,17 @@ export function useWerewolfRoomScreenState(
 
   const seatConfirmation = useMemo(
     () =>
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
+      createRoomSeatConfirmationModel({
+        pendingAction: seatController.pendingAction,
+        isSubmitting: seatController.isSubmitting,
+        confirm: seatController.confirm,
+        cancel: seatController.cancel,
+      }),
     [
-      seatController.cancel,
-      seatController.confirm,
-      seatController.isSubmitting,
       seatController.pendingAction,
+      seatController.isSubmitting,
+      seatController.confirm,
+      seatController.cancel,
     ],
   );
 
@@ -990,7 +981,7 @@ export function useWerewolfRoomScreenState(
     });
   }, [markAllBotsGroupConfirmed]);
 
-  const roomShellModel = useMemo(
+  const shellModel = useMemo(
     (): RoomShellModel =>
       createWerewolfRoomShellModel({
         roomCode,
@@ -1016,7 +1007,8 @@ export function useWerewolfRoomScreenState(
         isPlagueMode: gameState.rules?.isPlagueMode ?? false,
         actionMessage: derived.actionMessage,
         guideMessage,
-        nightProgress,
+        currentStepId,
+        gameState,
         seatViewModels: derived.seatViewModels,
         controlledSeat,
         sheriffElectionPanel,
@@ -1073,7 +1065,7 @@ export function useWerewolfRoomScreenState(
       gameState,
       derived,
       guideMessage,
-      nightProgress,
+      currentStepId,
       controlledSeat,
       sheriffElectionPanel,
       stateRevision,
@@ -1102,7 +1094,7 @@ export function useWerewolfRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   return {
-    roomShellModel,
+    shellModel,
     roomShare: shareController,
     gameState,
     isHost,

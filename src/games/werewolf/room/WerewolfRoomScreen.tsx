@@ -12,7 +12,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { findClosestPresetName } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -23,6 +23,7 @@ import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -117,14 +118,13 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   }, []);
 
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
-  const hasAutoShownQR = useRef(false);
 
   const handleEncyclopedia = useCallback(() => {
     navigation.navigate('GameGuide', { gameType: 'werewolf', roomCode });
   }, [navigation, roomCode]);
 
   const {
-    roomShellModel,
+    shellModel,
     roomShare,
     gameState,
     isHost,
@@ -176,7 +176,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
-  } = useWerewolfRoomScreenState(room, navigation, entryController, client);
+  } = useWerewolfRoomScreenState({ room, navigation, entryController, client });
 
   const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
 
@@ -225,12 +225,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   }, [matchedStrategyName]);
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
-  useEffect(() => {
-    if (isHost && entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      roomShare.open();
-    }
-  }, [entryReason, isHost, roomShare]);
+  useAutoShowRoomShareQr({ isHost, entryReason, openShare: roomShare.open });
 
   const renderProfileDetails = useCallback(
     (statsUserId: string) => <WerewolfProfileDetails userId={statsUserId} />,
@@ -239,7 +234,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
   return (
     <RoomShell
-      model={roomShellModel}
+      model={shellModel}
       profileDetailsRenderer={renderProfileDetails}
       content={{
         kind: 'seats',

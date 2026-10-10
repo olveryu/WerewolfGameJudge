@@ -231,7 +231,7 @@ function DrawGuessTakeover({
   readonly viewModel: DrawGuessViewModel;
   readonly remainingSeconds: number | null;
 }) {
-  const { state, isHost, canControlBots, controlledSeat, takeOver, releaseBot } = screen;
+  const { state, isHost, canControlBots, controlledSeat, releaseBot } = screen;
   const isLobby = state.phase.kind === 'lobby';
   const bots: BotTakeoverBot[] = viewModel.seats
     .filter((seat) => seat.isBot)
@@ -256,6 +256,10 @@ function DrawGuessTakeover({
       : state.phase.kind === 'wordSelect'
         ? state.phase.drawerSeat
         : null;
+  // 与故事接龙/传画一致：浮钮走共享接管 handler（fail-fast 校验 +
+  // capability 校验 + 再点释放），不裸接 botControl.takeOver。
+  const onTakeOver = screen.shellModel.seats.onBotSeatLongPress;
+  if (onTakeOver === null) return null;
   return (
     <BotTakeover
       bots={bots}
@@ -264,7 +268,7 @@ function DrawGuessTakeover({
       controlledSeat={controlledSeat}
       canControl={isHost && canControlBots}
       isLobby={isLobby}
-      onTakeOver={takeOver}
+      onTakeOver={onTakeOver}
       onRelease={releaseBot}
     />
   );

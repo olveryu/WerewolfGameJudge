@@ -12,10 +12,11 @@ import {
   getDrawGuessViewModel,
   isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -32,6 +33,7 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
@@ -40,6 +42,7 @@ import {
   buildRoomConfigAction,
 } from '@/features/room/model/hostManagementActions';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -203,14 +206,9 @@ export function useDrawGuessRoomState(
     canViewProfiles: isLobby
       ? { isAllowed: true, execute: profile.open }
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
-    canTakeOverBots: canControlBots
-      ? { isAllowed: true, execute: takeOver }
-      : { isAllowed: false, reason: '只有房主可以接管机器人' },
+    canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
-  const isBotSeat = useCallback(
-    (seat: number) => getDrawGuessProfileTarget(state, seat)?.occupantKind === 'bot',
-    [state],
-  );
+  const isBotSeat = useCallback((seat: number) => isDrawGuessBotSeat(state, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver,
@@ -310,15 +308,7 @@ export function useDrawGuessRoomState(
       onSeatPress,
       onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
-    seatConfirmation:
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
+    seatConfirmation: createRoomSeatConfirmationModel(seatController),
     profile:
       selection === null
         ? null
@@ -384,14 +374,8 @@ export function useDrawGuessRoomState(
       gameName: 'DrawGuess',
     }),
   };
-  const hasAutoShownQR = useRef(false);
   const openShare = share.open;
-  useEffect(() => {
-    if (isHost && props.entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      openShare();
-    }
-  }, [isHost, openShare, props.entryReason]);
+  useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   return {
     state,
     shellModel,
