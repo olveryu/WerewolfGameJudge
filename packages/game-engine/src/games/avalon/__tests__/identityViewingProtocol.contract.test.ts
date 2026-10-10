@@ -22,6 +22,7 @@ import {
   type AvalonConfig,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
+  getAvalonBotSeats,
   getAvalonViewingParticipants,
 } from '../state/types';
 
@@ -197,5 +198,17 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     expect(migrated.roleViewedSeats).toEqual([]);
     // The strict current-version parser still rejects the legacy shape.
     expect(() => parseAvalonState(persisted)).toThrow();
+  });
+});
+
+describe('getAvalonBotSeats', () => {
+  it('lists the implicit bot seats in ascending order', () => {
+    const session = game({ numberOfPlayers: 5 }, 3);
+    expect(getAvalonBotSeats(session.state)).toEqual([3, 4]);
+  });
+
+  it('is empty in an all-human room', () => {
+    const session = game({ numberOfPlayers: 5 });
+    expect(getAvalonBotSeats(session.state)).toEqual([]);
   });
 });

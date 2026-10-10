@@ -7,6 +7,7 @@ import {
   type AvalonRoleId,
   type AvalonState,
   type AvalonViewModel,
+  getAvalonBotSeats,
   getAvalonOccupiedSeatCount,
   getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -529,7 +530,8 @@ export function useAvalonRoomState(
           ? terminalHostManagement
           : inGameHostManagement,
     controlledSeat: createControlledSeatModel({
-      isVisible: isHost && canControlBots,
+      // 对齐故事接龙：接管中常驻；未接管时只有房里真有机器人可接管才提示。
+      isVisible: controlledSeat !== null || (canControlBots && getAvalonBotSeats(state).length > 0),
       controlledSeat,
       controlledBotName: controlledSeat !== null ? `座位 ${controlledSeat + 1}` : null,
       release: releaseBot,

@@ -74,6 +74,7 @@ export {
   type AvalonVoteMode,
   DEFAULT_AVALON_CONFIG,
   getAvalonBotDisplayName,
+  getAvalonBotSeats,
   getAvalonOccupiedSeatCount,
   getAvalonRealHumanCount,
   getAvalonViewingParticipants,

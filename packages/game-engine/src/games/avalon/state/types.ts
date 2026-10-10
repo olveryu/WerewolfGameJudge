@@ -355,6 +355,15 @@ export function getAvalonBotDisplayName(seat: number): string {
   return `机器人${seat + 1}号`;
 }
 
+/** 全部隐式机器人席位（升序）。 */
+export function getAvalonBotSeats(state: AvalonState): readonly number[] {
+  const seats: number[] = [];
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (isAvalonImplicitBotSeat(state, seat)) seats.push(seat);
+  }
+  return seats;
+}
+
 /** 隐式机器人席位：点了填充机器人、无真人入座、未被踢掉的空座。 */
 export function isAvalonImplicitBotSeat(state: AvalonState, seat: number): boolean {
   return (
