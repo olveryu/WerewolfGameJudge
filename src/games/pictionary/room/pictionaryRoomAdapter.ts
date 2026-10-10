@@ -36,6 +36,7 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
@@ -133,19 +134,7 @@ export function createPictionarySeatDataSource(
       const isBot = isPictionaryBotSeat(input.state, index);
       const player =
         human !== undefined
-          ? {
-              kind: 'human' as const,
-              userId: human.userId,
-              displayName: human.profile.displayName,
-              avatarUrl: human.profile.avatarUrl,
-              avatarFrame: human.profile.avatarFrame,
-              seatFlair: human.profile.seatFlair,
-              seatAnimation: human.profile.seatAnimation,
-              nameStyle: human.profile.nameStyle,
-              seatPetId: human.profile.revealEffect,
-              level: human.profile.level,
-              isAnonymous: human.profile.avatarUrl === undefined,
-            }
+          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
             ? {
                 kind: 'bot' as const,

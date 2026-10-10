@@ -40,6 +40,7 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
@@ -170,19 +171,7 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
       const isBot = isFibBotSeat(input.state, index);
       const player =
         human !== undefined
-          ? {
-              kind: 'human' as const,
-              userId: human.userId,
-              displayName: human.profile.displayName,
-              avatarUrl: human.profile.avatarUrl,
-              avatarFrame: human.profile.avatarFrame,
-              seatFlair: human.profile.seatFlair,
-              seatAnimation: human.profile.seatAnimation,
-              nameStyle: human.profile.nameStyle,
-              seatPetId: human.profile.revealEffect,
-              level: human.profile.level,
-              isAnonymous: human.profile.avatarUrl === undefined,
-            }
+          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
             ? {
                 kind: 'bot' as const,

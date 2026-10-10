@@ -19,6 +19,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
@@ -117,19 +118,12 @@ export function createUndercoverSeatDataSource(
         player:
           target === null
             ? null
-            : {
+            : toRoomSeatPlayer({
                 kind: target.occupantKind,
                 userId: target.userId,
+                ...human?.profile,
                 displayName: target.rosterName,
-                avatarUrl: human?.profile.avatarUrl,
-                avatarFrame: human?.profile.avatarFrame,
-                seatFlair: human?.profile.seatFlair,
-                seatAnimation: human?.profile.seatAnimation,
-                nameStyle: human?.profile.nameStyle,
-                seatPetId: human?.profile.revealEffect,
-                level: human?.profile.level,
-                isAnonymous: human?.profile.avatarUrl === undefined,
-              },
+              }),
         isSelf: human?.userId === myUserId,
         highlight:
           selectedSeat === seat ? 'selected' : controlledSeat === seat ? 'controlled' : 'none',

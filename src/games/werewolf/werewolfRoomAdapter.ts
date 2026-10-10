@@ -33,6 +33,7 @@ import type {
   RoomShellModel,
   RoomStatusRibbonModel,
 } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
 import type {
   BottomLayout,
@@ -158,7 +159,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
       return {
         seat: seat.seat,
         player: seat.player
-          ? {
+          ? toRoomSeatPlayer({
               kind: seat.player.isBot ? 'bot' : 'human',
               userId: seat.player.userId,
               displayName: seat.player.displayName,
@@ -167,10 +168,9 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
               seatFlair: seat.player.seatFlair,
               seatAnimation: seat.player.seatAnimation,
               nameStyle: seat.player.nameStyle,
-              seatPetId: seat.player.roleRevealEffect,
+              revealEffect: seat.player.roleRevealEffect,
               level: seat.player.level,
-              isAnonymous: !seat.player.avatarUrl,
-            }
+            })
           : null,
         isSelf: seat.isMySpot,
         highlight,

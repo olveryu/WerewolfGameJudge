@@ -15,6 +15,7 @@ import type {
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 /** Returns a public occupant identity for shared profile controls. */
 export function getStoryRelayProfileTarget(
@@ -62,13 +63,7 @@ export function createStoryRelaySeatDataSource(
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const player =
         human !== undefined
-          ? {
-              kind: 'human' as const,
-              userId: human.userId,
-              ...human.profile,
-              seatPetId: human.profile.revealEffect,
-              isAnonymous: human.profile.avatarUrl === undefined,
-            }
+          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
             : {
