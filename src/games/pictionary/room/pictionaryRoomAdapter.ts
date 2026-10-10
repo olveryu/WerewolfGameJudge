@@ -19,6 +19,7 @@ import {
 } from '@/features/room/model/hostManagementActions';
 import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
   type RoomCapability,
@@ -86,7 +87,7 @@ export function createPictionaryRoomCapabilities(
   return {
     ...setupCapabilities,
     canViewProfiles: isLobby ? allowed(input.openProfile) : denied('游戏进行中不能查看玩家资料'),
-    canTakeOverBots: input.isHost ? allowed(input.takeOverBot) : denied('只有房主可以接管机器人'),
+    canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
   };
 }
 

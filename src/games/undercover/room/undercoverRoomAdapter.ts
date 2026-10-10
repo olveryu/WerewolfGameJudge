@@ -11,6 +11,7 @@ import {
 
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
   type RoomProfileTarget,
@@ -84,9 +85,7 @@ export function createUndercoverRoomCapabilities(
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
     }),
     canViewProfiles: { isAllowed: true, execute: input.openProfile },
-    canTakeOverBots: input.isHost
-      ? { isAllowed: true, execute: input.takeOverBot }
-      : { isAllowed: false, reason: '只有房主可以接管机器人' },
+    canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
   };
 }
 

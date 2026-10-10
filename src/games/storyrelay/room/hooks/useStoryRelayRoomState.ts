@@ -37,6 +37,7 @@ import {
   buildRoomConfigAction,
 } from '@/features/room/model/hostManagementActions';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -138,9 +139,7 @@ export function useStoryRelayRoomState(
     canViewProfiles: isLobby
       ? { isAllowed: true, execute: profile.open }
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
-    canTakeOverBots: canControlBots
-      ? { isAllowed: true, execute: botControl.takeOver }
-      : { isAllowed: false, reason: '只有房主可以接管机器人' },
+    canTakeOverBots: createBotTakeoverCapability(canControlBots, botControl.takeOver),
   };
   const isBotSeat = useCallback((seat: number) => isStoryRelayBotSeat(state, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({

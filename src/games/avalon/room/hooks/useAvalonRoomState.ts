@@ -49,6 +49,7 @@ import {
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
@@ -250,9 +251,7 @@ export function useAvalonRoomState(
     canViewProfiles: isLobby
       ? { isAllowed: true, execute: profile.open }
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
-    canTakeOverBots: canControlBots
-      ? { isAllowed: true, execute: takeOver }
-      : { isAllowed: false, reason: '只有房主可以接管机器人' },
+    canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
   const onSeatPress = (seat: number) => {
     if (seatPickHandlerRef.current?.(seat) === true) return;

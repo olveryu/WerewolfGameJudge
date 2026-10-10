@@ -10,6 +10,7 @@ import type {
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
   type RoomCapability,
@@ -98,7 +99,7 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
       input.status !== GameStatus.Ongoing && input.status !== GameStatus.Day
         ? allowed(input.openProfile)
         : denied('游戏进行中不能查看玩家资料'),
-    canTakeOverBots: canTakeOver ? allowed(input.takeOverBot) : denied('只有房主可以接管机器人'),
+    canTakeOverBots: createBotTakeoverCapability(canTakeOver, input.takeOverBot),
   };
 }
 

@@ -23,6 +23,7 @@ import type {
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
 import {
+  createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
   type RoomCapability,
@@ -48,10 +49,6 @@ const FIB_ROLE_NAMES: Readonly<Record<FibRole, string>> = {
   honest: '老实人',
   fibber: '瞎掰王',
 };
-
-const denied = <TArgs extends readonly unknown[], TResult>(
-  reason: string,
-): RoomCapability<TArgs, TResult> => ({ isAllowed: false, reason });
 
 const allowed = <TArgs extends readonly unknown[], TResult>(
   execute: (...args: TArgs) => TResult,
@@ -96,7 +93,7 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
   return {
     ...setupCapabilities,
     canViewProfiles: allowed(input.openProfile),
-    canTakeOverBots: input.isHost ? allowed(input.takeOverBot) : denied('只有房主可以接管机器人'),
+    canTakeOverBots: createBotTakeoverCapability(input.isHost, input.takeOverBot),
   };
 }
 

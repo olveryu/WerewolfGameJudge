@@ -70,6 +70,18 @@ const allowed = <TArgs extends readonly unknown[], TResult>(
 ): RoomCapability<TArgs, TResult> => ({ isAllowed: true, execute });
 
 /**
+ * The one derivation of the bot-takeover capability: the host may take
+ * over bot seats; everyone else gets the shared denial. All seven games
+ * previously inlined this ternary (and the denial copy) per adapter/hook.
+ */
+export function createBotTakeoverCapability(
+  isHost: boolean,
+  takeOver: (seat: number) => void,
+): RoomCapability<readonly [seat: number]> {
+  return isHost ? allowed(takeOver) : denied('只有房主可以接管机器人');
+}
+
+/**
  * Derive game-neutral setup capabilities from authoritative room facts.
  *
  * @remarks Game adapters map their lifecycle into these facts but cannot redefine basic room policy.
