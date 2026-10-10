@@ -13,11 +13,12 @@ import {
   isFibBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
@@ -30,12 +31,12 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
@@ -141,7 +142,6 @@ export function useFibRoomScreenState({
   });
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-  const hasAutoShownQR = useRef(false);
   const [isIdentityVisible, setIsIdentityVisible] = useState(false);
 
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -402,20 +402,10 @@ export function useFibRoomScreenState({
     profileSelection,
   ]);
 
-  const seatConfirmation = useMemo((): RoomSeatConfirmationModel | null => {
-    if (seatController.pendingAction === null) return null;
-    return {
-      action: seatController.pendingAction,
-      isSubmitting: seatController.isSubmitting,
-      onConfirm: seatController.confirm,
-      onCancel: seatController.cancel,
-    };
-  }, [
-    seatController.cancel,
-    seatController.confirm,
-    seatController.isSubmitting,
-    seatController.pendingAction,
-  ]);
+  const seatConfirmation = useMemo(
+    () => createRoomSeatConfirmationModel(seatController),
+    [seatController],
+  );
 
   const showStartRoundDisabled = useCallback(() => {
     showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。');
@@ -524,12 +514,7 @@ export function useFibRoomScreenState({
     ],
   );
 
-  useEffect(() => {
-    if (isHost && entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      openShare();
-    }
-  }, [entryReason, isHost, openShare]);
+  useAutoShowRoomShareQr({ isHost, entryReason, openShare });
 
   return {
     shellModel,

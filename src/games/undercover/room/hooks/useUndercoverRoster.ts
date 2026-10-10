@@ -12,6 +12,7 @@ import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
@@ -129,14 +130,6 @@ export function useUndercoverRoster(
     onSeatPress,
     onBotLongPress,
     isSubmitting: seatController.isSubmitting,
-    seatConfirmation:
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
+    seatConfirmation: createRoomSeatConfirmationModel(seatController),
   };
 }

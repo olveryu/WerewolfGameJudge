@@ -26,6 +26,7 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
@@ -831,21 +832,8 @@ export function useWerewolfRoomScreenState(
   }, [bottomCards, isThiefChoose]);
 
   const seatConfirmation = useMemo(
-    () =>
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
-    [
-      seatController.cancel,
-      seatController.confirm,
-      seatController.isSubmitting,
-      seatController.pendingAction,
-    ],
+    () => createRoomSeatConfirmationModel(seatController),
+    [seatController],
   );
 
   // ─── Profile card assembly ──────────────────────────────────────────────

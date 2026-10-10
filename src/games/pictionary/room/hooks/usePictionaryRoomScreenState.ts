@@ -10,10 +10,11 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import {
@@ -29,11 +30,11 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
@@ -145,7 +146,6 @@ export function usePictionaryRoomScreenState({
   });
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-  const hasAutoShownQR = useRef(false);
   const effectiveSeat = controlledSeat ?? mySeat;
 
   // 接管是房主权限，无阶段条件（与入口 capability 同源，见 pictionaryRoomAdapter）。
@@ -263,21 +263,8 @@ export function usePictionaryRoomScreenState({
   });
   const profile = usePictionaryProfileModel(capabilities, profileController);
   const seatConfirmation = useMemo(
-    (): RoomSeatConfirmationModel | null =>
-      seatController.pendingAction === null
-        ? null
-        : {
-            action: seatController.pendingAction,
-            isSubmitting: seatController.isSubmitting,
-            onConfirm: seatController.confirm,
-            onCancel: seatController.cancel,
-          },
-    [
-      seatController.cancel,
-      seatController.confirm,
-      seatController.isSubmitting,
-      seatController.pendingAction,
-    ],
+    () => createRoomSeatConfirmationModel(seatController),
+    [seatController],
   );
   const seatSource = useMemo(
     () =>
@@ -393,12 +380,7 @@ export function usePictionaryRoomScreenState({
     ],
   );
 
-  useEffect(() => {
-    if (isHost && entryReason === 'created' && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      openShare();
-    }
-  }, [entryReason, isHost, openShare]);
+  useAutoShowRoomShareQr({ isHost, entryReason, openShare });
 
   return {
     shellModel,
