@@ -96,7 +96,7 @@ type NightReviewShareState = ReturnType<typeof useNightReviewShare>;
  * what the Screen's content sections render.
  */
 export interface WerewolfRoomScreenState {
-  readonly roomShellModel: RoomShellModel;
+  readonly shellModel: RoomShellModel;
   readonly roomShare: RoomShareModel;
   readonly gameState: CoreRoomState['gameState'];
   readonly isHost: boolean;
@@ -154,12 +154,17 @@ export interface WerewolfRoomScreenState {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface WerewolfRoomScreenStateProps {
+  readonly room: RoomRecord;
+  readonly navigation: RoomScreenNavigation;
+  readonly entryController: RoomEntryController;
+  readonly client: WerewolfGameClient;
+}
+
 export function useWerewolfRoomScreenState(
-  room: RoomRecord,
-  navigation: RoomScreenNavigation,
-  entryController: RoomEntryController,
-  client: WerewolfGameClient,
+  props: WerewolfRoomScreenStateProps,
 ): WerewolfRoomScreenState {
+  const { room, navigation, entryController, client } = props;
   const { roomCode } = room;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -990,7 +995,7 @@ export function useWerewolfRoomScreenState(
     });
   }, [markAllBotsGroupConfirmed]);
 
-  const roomShellModel = useMemo(
+  const shellModel = useMemo(
     (): RoomShellModel =>
       createWerewolfRoomShellModel({
         roomCode,
@@ -1102,7 +1107,7 @@ export function useWerewolfRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   return {
-    roomShellModel,
+    shellModel,
     roomShare: shareController,
     gameState,
     isHost,

@@ -124,7 +124,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   }, [navigation, roomCode]);
 
   const {
-    roomShellModel,
+    shellModel,
     roomShare,
     gameState,
     isHost,
@@ -176,7 +176,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
-  } = useWerewolfRoomScreenState(room, navigation, entryController, client);
+  } = useWerewolfRoomScreenState({ room, navigation, entryController, client });
 
   const mvpSelectionStyles = useMemo(() => createMvpSelectionStyles(), []);
 
@@ -239,7 +239,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
   return (
     <RoomShell
-      model={roomShellModel}
+      model={shellModel}
       profileDetailsRenderer={renderProfileDetails}
       content={{
         kind: 'seats',
