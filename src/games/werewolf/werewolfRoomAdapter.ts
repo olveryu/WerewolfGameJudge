@@ -56,8 +56,6 @@ interface WerewolfCapabilitiesInput {
   readonly status: GameStatus;
   readonly isHost: boolean;
   readonly mySeat: number | null;
-  readonly isDebugMode: boolean;
-  readonly isAudioPlaying: boolean;
   readonly hasOccupiedSeats: boolean;
   readonly requestTakeSeat: (seat: number) => void;
   readonly requestMoveSeat: (seat: number) => void;

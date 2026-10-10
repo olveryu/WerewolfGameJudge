@@ -17,8 +17,6 @@ function createCapabilityInput() {
     status: GameStatus.Unseated,
     isHost: true,
     mySeat: null,
-    isDebugMode: true,
-    isAudioPlaying: false,
     hasOccupiedSeats: true,
     requestTakeSeat: jest.fn(),
     requestMoveSeat: jest.fn(),
@@ -458,7 +456,6 @@ describe('createWerewolfRoomShellModel', () => {
       ...createCapabilityInput(),
       isHost: false,
       status: GameStatus.Ongoing,
-      isDebugMode: false,
     });
     const denied = createWerewolfRoomShellModel(
       createShellModelInput({ capabilities: deniedCapabilities, onSeatLongPressed }),
