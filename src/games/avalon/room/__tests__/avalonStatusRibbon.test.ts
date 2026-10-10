@@ -1,7 +1,8 @@
 /**
  * createAvalonStatusRibbon at the Identity Viewing checkpoint: while
  * the night is held for missing role views, the ribbon names the
- * blocker; at every other moment it keeps the night progress display.
+ * blocker; at every other moment it names the current night step
+ * as text (private confirmation counts are never shown).
  * States are produced by the real engine, never hand-assembled.
  */
 import {
@@ -63,11 +64,14 @@ function walkNightSteps(session: ReturnType<typeof startFivePlayerGame>) {
 }
 
 describe('createAvalonStatusRibbon — viewing checkpoint', () => {
-  it('keeps the night progress display while steps are still running', () => {
+  it('names the current night step as text while steps are still running (no private counts)', () => {
     const session = startFivePlayerGame();
-    const ribbon = createAvalonStatusRibbon(session.state);
-    expect(ribbon.kind).toBe('progress');
-    if (ribbon.kind === 'progress') expect(ribbon.label).toBe('天黑确认');
+    expect(createAvalonStatusRibbon(session.state)).toEqual({
+      kind: 'message',
+      icon: 'guide',
+      text: '天黑 · 坏人互认',
+      supportingText: null,
+    });
   });
 
   it('names the missing role views once the night is held at the checkpoint', () => {

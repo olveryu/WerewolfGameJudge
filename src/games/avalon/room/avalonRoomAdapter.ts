@@ -3,10 +3,12 @@
  */
 
 import {
+  type AvalonNightStep,
   type AvalonState,
   getAvalonBotDisplayName,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
+  getAvalonUserSeat,
   getAvalonViewingParticipants,
   isAvalonBotSeat,
   isBotOccupant,
@@ -60,6 +62,13 @@ export function createAvalonSeatDataSource(
   userId: string,
   controlledSeat: number | null,
 ): RoomSeatDataSource {
+  // 夜晚已确认徽标只给当前步参与者看（私密确认不计数、不外泄给非参与者）。
+  const nightPhase = state.phase.kind === 'night' ? state.phase : null;
+  const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;
+  const viewerSeat = controlledSeat ?? ownSeat;
+  const stepParticipants =
+    nightPhase === null ? [] : getAvalonNightParticipants(state.roles, nightPhase.step);
+  const viewerIsStepParticipant = viewerSeat !== undefined && stepParticipants.includes(viewerSeat);
   return {
     count: state.config.numberOfPlayers,
     revision: `${revision}:${controlledSeat ?? 'self'}`,
@@ -89,10 +98,18 @@ export function createAvalonSeatDataSource(
       const statusLabel = avalonSeatStatusLabel(state, seat);
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
       const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
-      // 投票/任务阶段：显示已投票/已出牌状态（只暴露是否行动，不暴露内容）。
+      // 投票/任务阶段显示已投票/已出牌；夜晚给参与者显示同伴已确认（只暴露是否行动）。
       const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
       const hasPlayed = state.phase.kind === 'quest' && state.phase.plays[seat] !== undefined;
-      const progressLabel = hasVoted ? '已投票' : hasPlayed ? '已出牌' : null;
+      const nightConfirmed =
+        nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
+      const progressLabel = hasVoted
+        ? '已投票'
+        : hasPlayed
+          ? '已出牌'
+          : nightConfirmed
+            ? '已确认'
+            : null;
       const combinedLabel =
         statusLabel !== null && progressLabel !== null
           ? `${statusLabel} · ${progressLabel}`
@@ -103,14 +120,17 @@ export function createAvalonSeatDataSource(
         isSelf: human?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
-        showReadyBadge: false,
+        // 夜晚逐座位已查看身份徽标（公开信息，对齐狼人杀 hasViewedRole ✅）。
+        showReadyBadge: nightPhase !== null && state.roleViewedSeats.includes(seat),
         statusBadge:
           combinedLabel === null
             ? null
             : {
                 label: combinedLabel,
                 tone:
-                  combinedLabel.includes('已投票') || combinedLabel.includes('已出牌')
+                  combinedLabel.includes('已投票') ||
+                  combinedLabel.includes('已出牌') ||
+                  combinedLabel.includes('已确认')
                     ? 'success'
                     : combinedLabel === '队员'
                       ? 'success'
@@ -125,6 +145,12 @@ export function createAvalonSeatDataSource(
     },
   };
 }
+
+const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
+  evilReveal: '坏人互认',
+  merlinReveal: '梅林的视野',
+  percivalReveal: '派西维尔的视野',
+};
 
 /** 公共状态条：不含私密信息。 */
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel {
@@ -148,11 +174,13 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
         supportingText: null,
       };
     }
-    // 对齐狼人杀：显示确认进度。total 是当前 step 的参与者数（非全员），
-    // 因为 confirmedSeats 在每次 step 推进时清零。
-    const confirmed = phase.confirmedSeats.length;
-    const total = stepParticipants.length;
-    return { kind: 'progress', current: confirmed, total, label: '天黑确认' };
+    // 夜晚只报当前步名：私密确认进度改由逐座位徽标呈现（仅参与者可见），不计数。
+    return {
+      kind: 'message',
+      icon: 'guide',
+      text: `天黑 · ${AVALON_NIGHT_STEP_LABELS[phase.step]}`,
+      supportingText: null,
+    };
   }
   if (phase.kind === 'nominate')
     return {
