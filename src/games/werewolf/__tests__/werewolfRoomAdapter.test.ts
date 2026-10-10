@@ -474,11 +474,12 @@ describe('createWerewolfRoomShellModel', () => {
     expect(host.hostManagement).not.toBeNull();
   });
 
-  it('surfaces the controlled-seat banner only when every visibility condition holds', () => {
+  it('surfaces the controlled-seat banner through the shared gate', () => {
+    // While a takeover is active the banner always shows: the release entry
+    // must never vanish, whatever the other inputs say.
     const visible = createWerewolfRoomShellModel(
       createShellModelInput({
         isHost: true,
-        isDebugMode: true,
         hasBots: true,
         roomStatus: GameStatus.Ongoing,
         controlledSeat: 2,
@@ -493,37 +494,37 @@ describe('createWerewolfRoomShellModel', () => {
     if (visible.controlledSeat?.kind === 'controlled') {
       expect(typeof visible.controlledSeat.onRelease).toBe('function');
     }
-
-    const noBots = createWerewolfRoomShellModel(
+    const controlledNoBots = createWerewolfRoomShellModel(
       createShellModelInput({
         isHost: true,
-        isDebugMode: true,
         hasBots: false,
         roomStatus: GameStatus.Ongoing,
         controlledSeat: 2,
         controlledBotName: '机器人乙',
       }),
     );
-    expect(noBots.controlledSeat).toBeNull();
+    expect(controlledNoBots.controlledSeat).toMatchObject({ kind: 'controlled', seat: 2 });
 
-    const visibleBase = {
-      isHost: true,
-      isDebugMode: true,
-      hasBots: true,
-      roomStatus: GameStatus.Ongoing,
-      controlledSeat: 2,
-      controlledBotName: '机器人乙',
-    } as const;
-    for (const flip of [
-      { roomStatus: GameStatus.Unseated },
-      { roomStatus: GameStatus.Seated },
-      { isHost: false },
-      { isDebugMode: false },
-    ]) {
-      const model = createWerewolfRoomShellModel(
-        createShellModelInput({ ...visibleBase, ...flip }),
-      );
-      expect(model.controlledSeat).toBeNull();
-    }
+    // Not controlling: the hint needs host capability and actual bot seats.
+    // Debug mode and seat status no longer gate the banner (shared gate).
+    const hint = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        hasBots: true,
+        roomStatus: GameStatus.Unseated,
+        controlledSeat: null,
+      }),
+    );
+    expect(hint.controlledSeat).toEqual({ kind: 'hint' });
+
+    const hostNoBots = createWerewolfRoomShellModel(
+      createShellModelInput({ isHost: true, hasBots: false, controlledSeat: null }),
+    );
+    expect(hostNoBots.controlledSeat).toBeNull();
+
+    const guestWithBots = createWerewolfRoomShellModel(
+      createShellModelInput({ isHost: false, hasBots: true, controlledSeat: null }),
+    );
+    expect(guestWithBots.controlledSeat).toBeNull();
   });
 });

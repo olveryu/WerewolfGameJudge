@@ -7,6 +7,7 @@ import {
   type AvalonRoleId,
   type AvalonState,
   type AvalonViewModel,
+  getAvalonBotSeats,
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
   getAvalonViewModel,
@@ -571,7 +572,8 @@ export function useAvalonRoomState(
           ? terminalHostManagement
           : inGameHostManagement,
     controlledSeat: createControlledSeatModel({
-      isVisible: isHost && canControlBots,
+      canControlBots,
+      hasBots: getAvalonBotSeats(state).length > 0,
       controlledSeat,
       controlledBotName: controlledSeat !== null ? `座位 ${controlledSeat + 1}` : null,
       release: releaseBot,

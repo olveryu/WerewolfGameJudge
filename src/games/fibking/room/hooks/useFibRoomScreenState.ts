@@ -462,10 +462,9 @@ export function useFibRoomScreenState({
     [effectiveSeat, isHost, openIdentity, state],
   );
 
-  const hasControllableBots =
-    capabilities.canTakeOverBots.isAllowed && getFibBotSeats(state).length > 0;
   const controlledSeatModel = createControlledSeatModel({
-    isVisible: controlledSeat !== null || hasControllableBots,
+    canControlBots: capabilities.canTakeOverBots.isAllowed,
+    hasBots: getFibBotSeats(state).length > 0,
     controlledSeat,
     controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
     release: releaseBot,
