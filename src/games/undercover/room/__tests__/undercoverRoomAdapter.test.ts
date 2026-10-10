@@ -67,7 +67,14 @@ function createReadingState() {
 
 it('conceals roles and words while everyone reads their cards', () => {
   const state = createReadingState();
-  const source = createUndercoverSeatDataSource(state, 4, 'host', 1, null, false);
+  const source = createUndercoverSeatDataSource({
+    state,
+    revision: 4,
+    myUserId: 'host',
+    controlledSeat: 1,
+    selectedSeat: null,
+    isSelecting: false,
+  });
   for (let seat = 0; seat < source.count; seat += 1)
     expect(source.getSeat(seat).secondaryLabel).toBeNull();
   expect(source.getSeat(1).highlight).toBe('controlled');
@@ -179,9 +186,16 @@ it('selects directly for confirmation, cancels without submission and invalidate
   act(() => result.current.beginSelection());
   act(() => result.current.selectSeat(1));
   expect(result.current.selectedSeat).toBe(1);
-  expect(createUndercoverSeatDataSource(state, 1, 'host', 1, 1, true).getSeat(1).highlight).toBe(
-    'selected',
-  );
+  expect(
+    createUndercoverSeatDataSource({
+      state,
+      revision: 1,
+      myUserId: 'host',
+      controlledSeat: 1,
+      selectedSeat: 1,
+      isSelecting: true,
+    }).getSeat(1).highlight,
+  ).toBe('selected');
   expect(createUndercoverBottomActions(result.current)).toMatchObject({
     kind: 'info',
     actions: [{ key: 'cancel' }],
@@ -195,7 +209,14 @@ it('selects directly for confirmation, cancels without submission and invalidate
   rerender({ currentState: eliminated });
   expect(result.current.selectedSeat).toBeNull();
   expect(
-    createUndercoverSeatDataSource(eliminated, 2, 'host', 1, null, true).getSeat(1).disabledReason,
+    createUndercoverSeatDataSource({
+      state: eliminated,
+      revision: 2,
+      myUserId: 'host',
+      controlledSeat: 1,
+      selectedSeat: null,
+      isSelecting: true,
+    }).getSeat(1).disabledReason,
   ).toBe('该玩家已出局');
   act(() => result.current.selectSeat(1));
   expect(result.current.selectedSeat).toBeNull();

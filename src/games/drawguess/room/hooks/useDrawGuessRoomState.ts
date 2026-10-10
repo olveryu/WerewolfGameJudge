@@ -298,12 +298,12 @@ export function useDrawGuessRoomState(
     connection: entryController.connection,
     statusRibbon: createDrawGuessStatusRibbon(state),
     seats: {
-      source: createDrawGuessSeatDataSource(
+      source: createDrawGuessSeatDataSource({
         state,
-        snapshot.snapshot.revision,
-        user.id,
+        revision: snapshot.snapshot.revision,
+        userId: user.id,
         controlledSeat,
-      ),
+      }),
       visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
       onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,

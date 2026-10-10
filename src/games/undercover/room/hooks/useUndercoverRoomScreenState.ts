@@ -120,14 +120,14 @@ export function useUndercoverRoomScreenState({
     connection: entryController.connection,
     statusRibbon: createUndercoverStatusRibbon(state),
     seats: {
-      source: createUndercoverSeatDataSource(
+      source: createUndercoverSeatDataSource({
         state,
-        snapshot.snapshot.revision,
-        user.id,
-        roster.controlledSeat,
-        controls.selectedSeat,
-        controls.isSelecting,
-      ),
+        revision: snapshot.snapshot.revision,
+        myUserId: user.id,
+        controlledSeat: roster.controlledSeat,
+        selectedSeat: controls.selectedSeat,
+        isSelecting: controls.isSelecting,
+      }),
       visuallyDisabled: controls.isSubmitting || roster.isSubmitting,
       onSeatPress: controls.isSelecting ? controls.selectSeat : roster.onSeatPress,
       onBotSeatLongPress:

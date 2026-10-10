@@ -64,13 +64,16 @@ function avalonSeatStatusLabel(
 const NO_PICKED_SEATS: ReadonlySet<number> = new Set();
 
 /** 创建共享座位表数据源：含队长 / 队员 / 湖仙状态徽标（不暴露角色）。 */
-export function createAvalonSeatDataSource(
-  state: AvalonState,
-  revision: number,
-  userId: string,
-  controlledSeat: number | null,
-  pickedSeats: ReadonlySet<number> = NO_PICKED_SEATS,
-): RoomSeatDataSource {
+export interface AvalonSeatSourceInput {
+  readonly state: AvalonState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+  readonly pickedSeats?: ReadonlySet<number>;
+}
+
+export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSeatDataSource {
+  const { state, revision, userId, controlledSeat, pickedSeats = NO_PICKED_SEATS } = input;
   // 夜晚已确认徽标只给当前步参与者看（私密确认不计数、不外泄给非参与者）。
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
   const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;

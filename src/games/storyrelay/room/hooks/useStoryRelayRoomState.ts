@@ -301,12 +301,12 @@ export function useStoryRelayRoomState(
     connection: entryController.connection,
     statusRibbon: createStoryRelayStatusRibbon(state),
     seats: {
-      source: createStoryRelaySeatDataSource(
+      source: createStoryRelaySeatDataSource({
         state,
-        snapshot.snapshot.revision,
-        user.id,
+        revision: snapshot.snapshot.revision,
+        userId: user.id,
         controlledSeat,
-      ),
+      }),
       visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,
       onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,

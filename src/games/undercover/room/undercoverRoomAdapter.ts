@@ -90,14 +90,19 @@ export function createUndercoverRoomCapabilities(
 }
 
 /** Public seats reveal only eliminated roles until the authoritative winning state arrives. */
+export interface UndercoverSeatSourceInput {
+  readonly state: UndercoverState;
+  readonly revision: number;
+  readonly myUserId: string;
+  readonly controlledSeat: number | null;
+  readonly selectedSeat: number | null;
+  readonly isSelecting: boolean;
+}
+
 export function createUndercoverSeatDataSource(
-  state: UndercoverState,
-  revision: number,
-  myUserId: string,
-  controlledSeat: number | null,
-  selectedSeat: number | null,
-  isSelecting: boolean,
+  input: UndercoverSeatSourceInput,
 ): RoomSeatDataSource {
+  const { state, revision, myUserId, controlledSeat, selectedSeat, isSelecting } = input;
   return {
     count: state.config.numberOfPlayers,
     revision: `${revision}:${controlledSeat}:${selectedSeat}:${isSelecting}`,

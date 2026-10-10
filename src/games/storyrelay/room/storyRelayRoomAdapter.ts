@@ -40,12 +40,17 @@ export function getStoryRelayProfileTarget(
 }
 
 /** Creates the shared seat-board source including public readiness and receipt status. */
+export interface StoryRelaySeatSourceInput {
+  readonly state: StoryRelayState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+}
+
 export function createStoryRelaySeatDataSource(
-  state: StoryRelayState,
-  revision: number,
-  userId: string,
-  controlledSeat: number | null,
+  input: StoryRelaySeatSourceInput,
 ): RoomSeatDataSource {
+  const { state, revision, userId, controlledSeat } = input;
   return {
     count: state.config.numberOfPlayers,
     revision: `${revision}:${controlledSeat ?? 'self'}`,

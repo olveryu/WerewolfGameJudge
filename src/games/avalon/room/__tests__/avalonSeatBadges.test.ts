@@ -72,7 +72,12 @@ describe('createAvalonSeatDataSource — quest played badge', () => {
     const session = questPhaseSession();
     const leader = session.leader;
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(leader));
-    const source = createAvalonSeatDataSource(session.state, 1, 'host', null);
+    const source = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 1,
+      userId: 'host',
+      controlledSeat: null,
+    });
     expect(source.getSeat(leader).statusBadge).toEqual({ label: '队长 · 已出牌', tone: 'success' });
     const other = (leader + 1) % 5;
     expect(source.getSeat(other).statusBadge).toEqual({ label: '队员', tone: 'success' });
@@ -120,7 +125,12 @@ describe('createAvalonSeatDataSource — night badges', () => {
   it('shows the viewed-role badge per seat during the night only', () => {
     const session = nightSession();
     session.send({ type: 'avalon.role.viewed' }, session.seatUser(2));
-    const source = createAvalonSeatDataSource(session.state, 1, 'host', null);
+    const source = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 1,
+      userId: 'host',
+      controlledSeat: null,
+    });
     expect(source.getSeat(2).showReadyBadge).toBe(true);
     expect(source.getSeat(1).showReadyBadge).toBe(false);
   });
@@ -137,17 +147,22 @@ describe('createAvalonSeatDataSource — night badges', () => {
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(firstEvil));
 
     // A fellow evil participant sees the confirmed badge on the confirmer.
-    const evilView = createAvalonSeatDataSource(
-      session.state,
-      1,
-      session.seatUser(secondEvil),
-      null,
-    );
+    const evilView = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 1,
+      userId: session.seatUser(secondEvil),
+      controlledSeat: null,
+    });
     expect(evilView.getSeat(firstEvil).statusBadge?.label).toContain('已确认');
     // A non-participant (good player) sees nothing about the private confirm.
     const goodSeat = [0, 1, 2, 3, 4].find((seat) => !evilSeats.includes(seat));
     if (goodSeat === undefined) throw new Error('expected a good seat');
-    const goodView = createAvalonSeatDataSource(session.state, 1, session.seatUser(goodSeat), null);
+    const goodView = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 1,
+      userId: session.seatUser(goodSeat),
+      controlledSeat: null,
+    });
     expect(goodView.getSeat(firstEvil).statusBadge?.label ?? '').not.toContain('已确认');
   });
 });
@@ -155,7 +170,12 @@ describe('createAvalonSeatDataSource — night badges', () => {
 describe('createAvalonSeatDataSource — night badge window closes', () => {
   it('drops the viewed badge once the night ends', () => {
     const session = questPhaseSession();
-    const source = createAvalonSeatDataSource(session.state, 1, 'host', null);
+    const source = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 1,
+      userId: 'host',
+      controlledSeat: null,
+    });
     for (let seat = 0; seat < 5; seat += 1) {
       expect(source.getSeat(seat).showReadyBadge).toBe(false);
     }
@@ -202,13 +222,13 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     const leader = state.leaderSeat;
     const pickedSeat = (leader + 1) % 5;
     const unpickedSeat = (leader + 2) % 5;
-    const source = createAvalonSeatDataSource(
+    const source = createAvalonSeatDataSource({
       state,
-      1,
-      'host',
-      null,
-      new Set([pickedSeat, leader]),
-    );
+      revision: 1,
+      userId: 'host',
+      controlledSeat: null,
+      pickedSeats: new Set([pickedSeat, leader]),
+    });
     expect(source.getSeat(pickedSeat).statusBadge).toEqual({ label: '队员', tone: 'success' });
     expect(source.getSeat(leader).statusBadge?.label).toBe('队长');
     expect(source.getSeat(unpickedSeat).statusBadge).toBeNull();

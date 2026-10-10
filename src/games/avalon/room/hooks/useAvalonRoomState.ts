@@ -453,13 +453,13 @@ export function useAvalonRoomState(
     connection: entryController.connection,
     statusRibbon: createAvalonStatusRibbon(state),
     seats: {
-      source: createAvalonSeatDataSource(
+      source: createAvalonSeatDataSource({
         state,
-        snapshot.snapshot.revision,
-        user.id,
+        revision: snapshot.snapshot.revision,
+        userId: user.id,
         controlledSeat,
         pickedSeats,
-      ),
+      }),
       visuallyDisabled:
         state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
       onSeatPress,

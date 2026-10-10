@@ -49,12 +49,15 @@ function drawerStatusLabel(state: DrawGuessState, seat: number): string | null {
 }
 
 /** 创建共享座位表数据源：含画手/已猜中状态徽标。 */
-export function createDrawGuessSeatDataSource(
-  state: DrawGuessState,
-  revision: number,
-  userId: string,
-  controlledSeat: number | null,
-): RoomSeatDataSource {
+export interface DrawGuessSeatSourceInput {
+  readonly state: DrawGuessState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+}
+
+export function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSeatDataSource {
+  const { state, revision, userId, controlledSeat } = input;
   return {
     count: state.config.numberOfPlayers,
     revision: `${revision}:${controlledSeat ?? 'self'}`,
