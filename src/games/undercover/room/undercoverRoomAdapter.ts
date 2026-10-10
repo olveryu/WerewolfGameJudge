@@ -149,7 +149,7 @@ export function createUndercoverSeatDataSource(
 }
 
 /** Status text contains no hidden identities or words. */
-export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatusRibbonModel {
+export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatusRibbonModel | null {
   let text: string;
   switch (state.phase) {
     case 'lobby':

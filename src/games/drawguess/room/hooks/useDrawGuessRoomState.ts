@@ -208,10 +208,7 @@ export function useDrawGuessRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
-  const isBotSeat = useCallback(
-    (seat: number) => getDrawGuessProfileTarget(state, seat)?.occupantKind === 'bot',
-    [state],
-  );
+  const isBotSeat = useCallback((seat: number) => isDrawGuessBotSeat(state, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver,

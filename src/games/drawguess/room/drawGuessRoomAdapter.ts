@@ -104,7 +104,7 @@ export function createDrawGuessSeatDataSource(
 }
 
 /** 公共状态条：不含答案与题目内容。 */
-export function createDrawGuessStatusRibbon(state: DrawGuessState): RoomStatusRibbonModel {
+export function createDrawGuessStatusRibbon(state: DrawGuessState): RoomStatusRibbonModel | null {
   const phase = state.phase;
   if (phase.kind === 'wordSelect')
     return { kind: 'message', icon: 'guide', text: '画手正在选词', supportingText: null };

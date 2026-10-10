@@ -123,12 +123,12 @@ describe('createAvalonStatusRibbon — public action counts', () => {
     }
     // Armed: everyone voted, the reveal countdown is running.
     const armed = createAvalonStatusRibbon(session.state);
-    if (armed.kind !== 'message') throw new Error('expected message ribbon');
+    if (!armed || armed.kind !== 'message') throw new Error('expected message ribbon');
     expect(armed.supportingText).toBe('已全部投票 · 即将揭晓');
     session.send({ type: 'avalon.vote.finish' });
     expect(session.state.phase.kind).toBe('quest');
     const quest = createAvalonStatusRibbon(session.state);
-    if (quest.kind !== 'message') throw new Error('expected message ribbon');
+    if (!quest || quest.kind !== 'message') throw new Error('expected message ribbon');
     expect(quest.supportingText).toBe('已出牌 0/2');
   });
 });

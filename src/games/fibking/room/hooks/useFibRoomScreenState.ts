@@ -51,7 +51,6 @@ import {
   createFibSeatDataSource,
   createFibStatusRibbon,
   FIB_DISPLAY_NAME,
-  getFibProfileTarget,
   getFibSeatTapIntent,
 } from '../fibRoomAdapter';
 import { getFibRoomCommandFailureMessage } from '../fibRoomCommandFailureMessage';
@@ -353,10 +352,7 @@ export function useFibRoomScreenState({
     [capabilities, mySeat, state],
   );
 
-  const isBotSeat = useCallback(
-    (seat: number) => getFibProfileTarget(state, seat)?.occupantKind === 'bot',
-    [state],
-  );
+  const isBotSeat = useCallback((seat: number) => isFibBotSeat(state, seat), [state]);
   const onSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver: takeOverBot,

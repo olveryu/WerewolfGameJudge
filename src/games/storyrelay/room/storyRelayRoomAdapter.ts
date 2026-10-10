@@ -104,7 +104,7 @@ export function createStoryRelaySeatDataSource(
 }
 
 /** Public status never includes story content or writer identity. */
-export function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonModel {
+export function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonModel | null {
   if (state.phase === 'answering' || state.phase === 'transition')
     return {
       kind: 'progress',

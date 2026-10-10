@@ -1,7 +1,11 @@
 /** Werewolf-owned derivation of neutral room-shell models. */
 
+import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleDisplayAs } from '@game-judge/game-engine/games/werewolf/public';
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import type {
@@ -41,6 +45,7 @@ import type { ActionIntent, HostControlEvent } from '@/games/werewolf/room/polic
 import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
 
@@ -185,23 +190,65 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
 }
 
 interface WerewolfStatusRibbonInput {
-  readonly nightProgress: {
-    readonly current: number;
-    readonly total: number;
-    readonly roleName?: string;
-  } | null;
+  readonly currentStepId: SchemaId | null;
+  readonly gameState: LocalGameState;
   readonly guideMessage: string | null;
+}
+
+interface WerewolfNightProgress {
+  readonly current: number;
+  readonly total: number;
+  readonly roleName?: string;
+}
+
+/**
+ * Pure night-progress derivation over the local state (the former
+ * useNightProgress hook body, moved into the factory so the ribbon
+ * takes raw room facts like the other six games' factories).
+ */
+function deriveWerewolfNightProgress(
+  currentStepId: SchemaId | null,
+  gameState: LocalGameState,
+): WerewolfNightProgress | null {
+  if (!currentStepId || gameState.status !== GameStatus.Ongoing) {
+    return null;
+  }
+  const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
+  const stepIndex = nightPlan.steps.findIndex((step) => step.stepId === currentStepId);
+  if (stepIndex === -1) return null;
+  const currentStep = nightPlan.steps[stepIndex];
+  let roleName = currentStep?.displayName;
+  if (currentStep) {
+    const displayAs = getRoleDisplayAs(currentStep.roleId);
+    if (displayAs) {
+      const displaySpec = getRoleSpec(displayAs);
+      roleName = displaySpec?.displayName ?? roleName;
+    }
+    const labelMap = gameState.seerLabelMap;
+    if (labelMap) {
+      const label = labelMap[currentStep.roleId];
+      if (label != null && roleName) {
+        roleName = `${label}号${roleName}`;
+      }
+    }
+  }
+  return {
+    current: stepIndex + 1,
+    total: nightPlan.length,
+    roleName,
+  };
 }
 
 export function createWerewolfStatusRibbon(
   input: WerewolfStatusRibbonInput,
 ): RoomStatusRibbonModel | null {
-  if (input.nightProgress) {
+  const nightProgress = deriveWerewolfNightProgress(input.currentStepId, input.gameState);
+  if (nightProgress) {
     return {
       kind: 'progress',
-      current: input.nightProgress.current,
-      total: input.nightProgress.total,
-      label: input.nightProgress.roleName ?? null,
+      current: nightProgress.current,
+      total: nightProgress.total,
+      label: nightProgress.roleName ?? null,
     };
   }
   if (input.guideMessage) {
@@ -309,7 +356,8 @@ export interface WerewolfRoomShellModelInput {
   readonly isPlagueMode: boolean;
   readonly actionMessage: string | null;
   readonly guideMessage: string | null;
-  readonly nightProgress: WerewolfStatusRibbonInput['nightProgress'];
+  readonly currentStepId: SchemaId | null;
+  readonly gameState: LocalGameState;
   // Seats and takeover.
   readonly seatViewModels: readonly SeatViewModel[];
   readonly controlledSeat: number | null;
@@ -384,7 +432,8 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
   });
 
   const statusRibbon = createWerewolfStatusRibbon({
-    nightProgress: input.nightProgress,
+    currentStepId: input.currentStepId,
+    gameState: input.gameState,
     guideMessage: input.guideMessage,
   });
 

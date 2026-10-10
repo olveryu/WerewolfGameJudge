@@ -36,6 +36,7 @@ import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
 import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
 import {
   createWerewolfRoomCapabilities,
@@ -55,7 +56,6 @@ import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
 import { useBottomLayout } from './useBottomLayout';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
-import { useNightProgress } from './useNightProgress';
 import { useNightReviewShare } from './useNightReviewShare';
 import { useRoomActions } from './useRoomActions';
 import { useRoomDerived } from './useRoomDerived';
@@ -686,17 +686,8 @@ export function useWerewolfRoomScreenState(
     takeOver: takeOverBot,
     release: releaseBot,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => gameState?.players.get(seat)?.isBot === true,
+    isBotSeat: (seat) => isWerewolfLocalBotSeat(gameState, seat),
     gameName: 'Werewolf',
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Night Progress
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const { nightProgress } = useNightProgress({
-    currentStepId,
-    gameState,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1005,7 +996,8 @@ export function useWerewolfRoomScreenState(
         isPlagueMode: gameState.rules?.isPlagueMode ?? false,
         actionMessage: derived.actionMessage,
         guideMessage,
-        nightProgress,
+        currentStepId,
+        gameState,
         seatViewModels: derived.seatViewModels,
         controlledSeat,
         sheriffElectionPanel,
@@ -1062,7 +1054,7 @@ export function useWerewolfRoomScreenState(
       gameState,
       derived,
       guideMessage,
-      nightProgress,
+      currentStepId,
       controlledSeat,
       sheriffElectionPanel,
       stateRevision,

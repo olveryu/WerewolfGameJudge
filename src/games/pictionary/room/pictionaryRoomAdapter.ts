@@ -204,7 +204,7 @@ export function getPictionarySeatTapIntent(input: {
   });
 }
 
-export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatusRibbonModel {
+export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatusRibbonModel | null {
   const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
   switch (state.phase) {
     case 'lobby':

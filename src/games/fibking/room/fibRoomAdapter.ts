@@ -210,7 +210,7 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
   };
 }
 
-export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel {
+export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | null {
   switch (state.phase) {
     case 'lobby':
       return {

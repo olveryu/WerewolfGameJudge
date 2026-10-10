@@ -270,7 +270,7 @@ export function useAvalonRoomState(
     takeOver,
     release: releaseBot,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => getAvalonProfileTarget(state, seat)?.occupantKind === 'bot',
+    isBotSeat: (seat) => isAvalonBotSeat(state, seat),
     gameName: 'Avalon',
   });
   const roomActions: RoomHostManagementAction[] = [];

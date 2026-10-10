@@ -162,7 +162,7 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
 };
 
 /** 公共状态条：不含私密信息。 */
-export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel {
+export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel | null {
   const phase = state.phase;
   if (phase.kind === 'night') {
     // 身份查看协议检查点：夜晚信息步已走完但还有真人没看角色时，

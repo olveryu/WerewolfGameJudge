@@ -47,12 +47,8 @@ export function useUndercoverRoster(
   const bot = useRoomBotControl();
   const isHost = state.hostUserId === user.id;
   const canControl = isHost;
-  const controlledSeat =
-    canControl && bot.controlledSeat !== null && isUndercoverBotSeat(state, bot.controlledSeat)
-      ? bot.controlledSeat
-      : null;
+  const controlledSeat = bot.controlledSeat;
   const release = bot.release;
-  // 守卫作用于原始接管座位；上方派生的 controlledSeat 是给消费者的即时遮蔽，两层不合并。
   useBotTakeoverGuard({
     controlledSeat: bot.controlledSeat,
     canControlBots: canControl,
