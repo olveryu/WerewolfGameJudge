@@ -92,3 +92,43 @@ describe('createAvalonStatusRibbon — viewing checkpoint', () => {
     });
   });
 });
+
+describe('createAvalonStatusRibbon — public action counts', () => {
+  it('counts cast ballots during the vote and plays during the quest', () => {
+    const session = startFivePlayerGame();
+    walkNightSteps(session);
+    // The night may still be held at the viewing gate; complete the views if so.
+    if (session.state.phase.kind === 'night') {
+      for (let seat = 0; seat < 5; seat += 1) {
+        session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+      }
+      walkNightSteps(session);
+    }
+    expect(session.state.phase.kind).toBe('nominate');
+    const leader = session.state.leaderSeat;
+    session.send(
+      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] },
+      session.seatUser(leader),
+    );
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(0));
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(1));
+    expect(createAvalonStatusRibbon(session.state)).toEqual({
+      kind: 'message',
+      icon: 'guide',
+      text: '第 1 轮 · 组队投票中',
+      supportingText: '已投 2/5',
+    });
+    for (let seat = 2; seat < 5; seat += 1) {
+      session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
+    }
+    // Armed: everyone voted, the reveal countdown is running.
+    const armed = createAvalonStatusRibbon(session.state);
+    if (armed.kind !== 'message') throw new Error('expected message ribbon');
+    expect(armed.supportingText).toBe('已全部投票 · 即将揭晓');
+    session.send({ type: 'avalon.vote.finish' });
+    expect(session.state.phase.kind).toBe('quest');
+    const quest = createAvalonStatusRibbon(session.state);
+    if (quest.kind !== 'message') throw new Error('expected message ribbon');
+    expect(quest.supportingText).toBe('已出牌 0/2');
+  });
+});

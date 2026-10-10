@@ -337,7 +337,9 @@ export function useAvalonRoomState(
                 onPress: () =>
                   showConfirmAlert(
                     '结束投票',
-                    '未投票的座位将视为弃权，确定结束投票并结算吗？',
+                    controlledSeat !== null
+                      ? '未投票的座位将视为弃权，确定结束投票并结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                      : '未投票的座位将视为弃权，确定结束投票并结算吗？',
                     () => {
                       // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
                       // 显式传 null，避免闭包捕获旧的 controlledSeat。
@@ -366,10 +368,16 @@ export function useAvalonRoomState(
             : {
                 isEnabled: true as const,
                 onPress: () =>
-                  showConfirmAlert('结束任务', '未出牌的队员将视为成功，确定提前结算吗？', () => {
-                    if (controlledSeat !== null) releaseBot();
-                    void submit('结束任务', { type: 'avalon.quest.finish' }, null);
-                  }),
+                  showConfirmAlert(
+                    '结束任务',
+                    controlledSeat !== null
+                      ? '未出牌的队员将视为成功，确定提前结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                      : '未出牌的队员将视为成功，确定提前结算吗？',
+                    () => {
+                      if (controlledSeat !== null) releaseBot();
+                      void submit('结束任务', { type: 'avalon.quest.finish' }, null);
+                    },
+                  ),
               }),
         },
       ],

@@ -198,20 +198,30 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
       text: `第 ${phase.round} 轮 · 队长组队中`,
       supportingText: null,
     };
-  if (phase.kind === 'vote')
+  if (phase.kind === 'vote') {
+    // 已投计数是公开信息（座位徽标同口径）；武装后进入揭晓倒计时。
+    const castCount = Object.keys(phase.ballots).length;
+    const totalCount = Object.keys(state.roster).length;
     return {
       kind: 'message',
       icon: 'guide',
       text: `第 ${phase.round} 轮 · 组队投票中`,
-      supportingText: null,
+      supportingText:
+        phase.deadlineAt !== null ? '已全部投票 · 即将揭晓' : `已投 ${castCount}/${totalCount}`,
     };
-  if (phase.kind === 'quest')
+  }
+  if (phase.kind === 'quest') {
+    const playedCount = phase.teamSeats.filter((seat) => phase.plays[seat] !== undefined).length;
     return {
       kind: 'message',
       icon: 'guide',
       text: `第 ${phase.round} 轮 · 任务执行中`,
-      supportingText: null,
+      supportingText:
+        phase.deadlineAt !== null
+          ? '已全部出牌 · 即将揭晓'
+          : `已出牌 ${playedCount}/${phase.teamSeats.length}`,
     };
+  }
   if (phase.kind === 'lady')
     return { kind: 'message', icon: 'guide', text: '湖中仙女查验', supportingText: null };
   if (phase.kind === 'assassin')
