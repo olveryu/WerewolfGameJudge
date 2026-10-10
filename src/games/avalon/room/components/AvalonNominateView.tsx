@@ -41,27 +41,11 @@ export function AvalonNominateView({
     seat: entry.seat,
     displayName: entry.displayName,
   }));
-  const lastHistory = viewModel.questHistory[viewModel.questHistory.length - 1];
   return (
     <AvalonStageFrame
       title={`${formatAvalonRoundLabel(viewModel.questResults.length + 1)} · 队长组队`}
       testID="avalon-nominate"
     >
-      {viewModel.rejectStreak > 0 ? (
-        <AvalonInfoCard title="组队被否决">
-          <Text style={styles.body}>
-            上次组队被否决（第 {viewModel.rejectStreak} 次），队长已顺时针移交。
-          </Text>
-        </AvalonInfoCard>
-      ) : null}
-      {lastHistory !== undefined ? (
-        <AvalonInfoCard title={`${formatAvalonRoundLabel(lastHistory.round)}任务结算`}>
-          <Text style={styles.body}>
-            任务{lastHistory.result === 'success' ? '成功' : '失败'}（成功{' '}
-            {lastHistory.successCount} · 失败 {lastHistory.failCount}）
-          </Text>
-        </AvalonInfoCard>
-      ) : null}
       {viewModel.ladyCheckResult !== null ? (
         <AvalonInfoCard title="湖仙查验结果">
           <Text style={styles.body}>
