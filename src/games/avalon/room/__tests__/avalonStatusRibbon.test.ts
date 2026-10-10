@@ -1,7 +1,8 @@
 /**
  * createAvalonStatusRibbon at the Identity Viewing checkpoint: while
  * the night is held for missing role views, the ribbon names the
- * blocker; at every other moment it keeps the night progress display.
+ * blocker; at every other moment it names the current night step
+ * as text (private confirmation counts are never shown).
  * States are produced by the real engine, never hand-assembled.
  */
 import {
@@ -63,11 +64,14 @@ function walkNightSteps(session: ReturnType<typeof startFivePlayerGame>) {
 }
 
 describe('createAvalonStatusRibbon — viewing checkpoint', () => {
-  it('keeps the night progress display while steps are still running', () => {
+  it('names the current night step as text while steps are still running (no private counts)', () => {
     const session = startFivePlayerGame();
-    const ribbon = createAvalonStatusRibbon(session.state);
-    expect(ribbon.kind).toBe('progress');
-    if (ribbon.kind === 'progress') expect(ribbon.label).toBe('天黑确认');
+    expect(createAvalonStatusRibbon(session.state)).toEqual({
+      kind: 'message',
+      icon: 'guide',
+      text: '天黑 · 坏人互认',
+      supportingText: null,
+    });
   });
 
   it('names the missing role views once the night is held at the checkpoint', () => {
@@ -86,5 +90,45 @@ describe('createAvalonStatusRibbon — viewing checkpoint', () => {
       text: '等待全员查看身份 · 还差 1 人',
       supportingText: null,
     });
+  });
+});
+
+describe('createAvalonStatusRibbon — public action counts', () => {
+  it('counts cast ballots during the vote and plays during the quest', () => {
+    const session = startFivePlayerGame();
+    walkNightSteps(session);
+    // The night may still be held at the viewing gate; complete the views if so.
+    if (session.state.phase.kind === 'night') {
+      for (let seat = 0; seat < 5; seat += 1) {
+        session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+      }
+      walkNightSteps(session);
+    }
+    expect(session.state.phase.kind).toBe('nominate');
+    const leader = session.state.leaderSeat;
+    session.send(
+      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] },
+      session.seatUser(leader),
+    );
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(0));
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(1));
+    expect(createAvalonStatusRibbon(session.state)).toEqual({
+      kind: 'message',
+      icon: 'guide',
+      text: '第 1 轮 · 组队投票中',
+      supportingText: '已投 2/5',
+    });
+    for (let seat = 2; seat < 5; seat += 1) {
+      session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
+    }
+    // Armed: everyone voted, the reveal countdown is running.
+    const armed = createAvalonStatusRibbon(session.state);
+    if (armed.kind !== 'message') throw new Error('expected message ribbon');
+    expect(armed.supportingText).toBe('已全部投票 · 即将揭晓');
+    session.send({ type: 'avalon.vote.finish' });
+    expect(session.state.phase.kind).toBe('quest');
+    const quest = createAvalonStatusRibbon(session.state);
+    if (quest.kind !== 'message') throw new Error('expected message ribbon');
+    expect(quest.supportingText).toBe('已出牌 0/2');
   });
 });

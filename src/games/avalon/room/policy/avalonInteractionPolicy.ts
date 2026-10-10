@@ -153,7 +153,7 @@ export type AvalonLadyInstruction =
   | { readonly kind: 'holderPick'; readonly eligibleSeats: readonly number[] }
   | { readonly kind: 'holderWait'; readonly targetSeat: number }
   | { readonly kind: 'targetConfirm'; readonly holderSeat: number }
-  | { readonly kind: 'watching'; readonly holderSeat: number }
+  | { readonly kind: 'watching'; readonly holderSeat: number; readonly targetSeat: number | null }
   | {
       readonly kind: 'result';
       readonly targetSeat: number;
@@ -161,12 +161,20 @@ export type AvalonLadyInstruction =
     };
 
 /**
- * Lady-of-the-lake check flow for this viewer.
- * @throws when the view model carries no lady data (caller error, fail fast).
+ * Lady-of-the-lake flow for this viewer. Inside the lady phase the phase
+ * data drives pick / wait / confirm / watching; after the phase the last
+ * check result (holder-only in the view model) resolves to `result`.
+ * @throws when the view model carries neither lady data nor a check
+ * result (caller error, fail fast).
  */
 export function resolveLadyInstruction(viewModel: AvalonViewModel): AvalonLadyInstruction {
   const lady = viewModel.lady;
-  if (lady === null) throw new Error('[FAIL-FAST] Avalon lady instruction without lady data');
+  if (lady === null) {
+    const result = viewModel.ladyCheckResult;
+    if (result === null)
+      throw new Error('[FAIL-FAST] Avalon lady instruction without lady data or result');
+    return { kind: 'result', targetSeat: result.targetSeat, faction: result.faction };
+  }
   const mySeat = viewModel.mySeat;
   const isHolder = mySeat !== null && mySeat === lady.holderSeat;
   const isTarget = mySeat !== null && mySeat === lady.targetSeat;
@@ -178,8 +186,9 @@ export function resolveLadyInstruction(viewModel: AvalonViewModel): AvalonLadyIn
   }
   if (lady.targetSeat !== null && isTarget)
     return { kind: 'targetConfirm', holderSeat: lady.holderSeat };
-  if (lady.targetSeat !== null) return { kind: 'holderWait', targetSeat: lady.targetSeat };
-  return { kind: 'watching', holderSeat: lady.holderSeat };
+  if (lady.targetSeat !== null && isHolder)
+    return { kind: 'holderWait', targetSeat: lady.targetSeat };
+  return { kind: 'watching', holderSeat: lady.holderSeat, targetSeat: lady.targetSeat };
 }
 
 export type AvalonAssassinInstruction =

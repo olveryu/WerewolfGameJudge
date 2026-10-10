@@ -3,6 +3,7 @@
 import type { CommandContext } from '../../../platform/engine';
 import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { AvalonCommand } from '../commands/types';
+import { getAvalonNightParticipants } from '../domain/rules';
 import { avalonEngine } from '../engine';
 import { migratePersistedAvalonState, parseAvalonState } from '../state/codec';
 import { type AvalonState, DEFAULT_AVALON_CONFIG, getAvalonBotSeats } from '../state/types';
@@ -156,5 +157,77 @@ describe('Avalon unified roster rules', () => {
       context('host', 'shrink'),
     );
     expect(shrink.kind).toBe('reject');
+  });
+});
+
+describe('Avalon v3 -> v4 countdown migration', () => {
+  /** Drives a 5-human game into the vote phase with two ballots cast. */
+  function votePhaseState(): AvalonState {
+    let state = lobby(5);
+    state = dispatch(state, { type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
+    }
+    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    while (state.phase.kind === 'night') {
+      const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+      for (const seat of participants) {
+        state = dispatch(
+          state,
+          { type: 'avalon.night.confirm' },
+          seat === 0 ? 'host' : `user-${seat}`,
+        );
+      }
+      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    }
+    const leader = state.leaderSeat;
+    state = dispatch(
+      state,
+      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] },
+      leader === 0 ? 'host' : `user-${leader}`,
+    );
+    state = dispatch(state, { type: 'avalon.team.vote', vote: 'approve' }, 'host');
+    state = dispatch(state, { type: 'avalon.team.vote', vote: 'reject' }, 'user-1');
+    return state;
+  }
+
+  /** Rebuilds the exact document a v3 store would have persisted. */
+  function downgradeToV3(state: AvalonState): Record<string, unknown> {
+    const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    const phase = raw.phase as Record<string, unknown>;
+    delete phase.deadlineAt;
+    return { ...raw, stateVersion: 3 };
+  }
+
+  it('migrates an in-progress vote with a null deadline, ballots intact', () => {
+    const state = votePhaseState();
+    if (state.phase.kind !== 'vote') throw new Error('expected vote phase');
+    const migrated = migratePersistedAvalonState(downgradeToV3(state));
+    expect(migrated.stateVersion).toBe(4);
+    if (migrated.phase.kind !== 'vote') throw new Error('expected vote phase');
+    expect(migrated.phase.deadlineAt).toBeNull();
+    expect(migrated.phase.ballots).toEqual(state.phase.kind === 'vote' ? state.phase.ballots : {});
+    expect({ ...migrated, phase: state.phase }).toEqual(state);
+    // The migrated v4 document (null deadline) must round-trip through the strict parser.
+    expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
+  });
+
+  it('migrates an in-progress quest with a null deadline', () => {
+    let state = votePhaseState();
+    for (const seat of [2, 3, 4]) {
+      state = dispatch(
+        state,
+        { type: 'avalon.team.vote', vote: 'approve' },
+        seat === 0 ? 'host' : `user-${seat}`,
+      );
+    }
+    // The completed ballot set only arms the countdown; the host finish settles it.
+    state = dispatch(state, { type: 'avalon.vote.finish' });
+    if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    const migrated = migratePersistedAvalonState(downgradeToV3(state));
+    if (migrated.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(migrated.phase.deadlineAt).toBeNull();
+    expect({ ...migrated, phase: state.phase }).toEqual(state);
+    expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 });

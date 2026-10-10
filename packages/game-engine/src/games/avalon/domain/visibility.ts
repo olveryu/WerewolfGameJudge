@@ -61,6 +61,12 @@ export interface AvalonLastVoteResultView {
   readonly abstainCount: number;
 }
 
+/** 湖仙查验结果的持有人视图：被查验座位与其阵营。 */
+export interface AvalonLadyCheckResultView {
+  readonly targetSeat: number;
+  readonly faction: 'good' | 'evil';
+}
+
 export interface AvalonViewModel {
   readonly phase: AvalonPhaseKind;
   readonly mySeat: number | null;
@@ -94,8 +100,8 @@ export interface AvalonViewModel {
   readonly questResults: ReadonlyArray<'success' | 'fail'>;
   readonly questHistory: readonly AvalonQuestHistoryView[];
   readonly lady: AvalonLadyView | null;
-  /** 最近一次湖仙查验结果，仅查验时的持有人可见。 */
-  readonly ladyCheckResult: 'good' | 'evil' | null;
+  /** 最近一次湖仙查验结果（目标座位 + 阵营），仅查验时的持有人可见。 */
+  readonly ladyCheckResult: AvalonLadyCheckResultView | null;
   readonly isAssassin: boolean;
   /** D13：night 结束后、终局前，刺客端常驻刺杀按钮。 */
   readonly canEarlyStrike: boolean;
@@ -215,7 +221,9 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
 
   const lastCheck = state.lastLadyCheck;
   const ladyCheckResult =
-    lastCheck !== null && viewerSeat === lastCheck.holderSeat ? lastCheck.faction : null;
+    lastCheck !== null && viewerSeat === lastCheck.holderSeat
+      ? { targetSeat: lastCheck.targetSeat, faction: lastCheck.faction }
+      : null;
 
   // 投票结算面板：公投亮逐人投票，暗投只给汇总数量（D7）。
   const lastVote = state.lastVoteResult;

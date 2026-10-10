@@ -38,6 +38,7 @@ export const AVALON_REASONS = {
   notLeader: '只有当前队长可以组队',
   notVotePhase: '当前不在投票阶段',
   notHostFinishVote: '只有房主可以结束投票',
+  deadline: '尚未到截止时间',
   notTeamMember: '你不在本轮任务队伍中',
   goodMustSucceed: '好人只能出成功牌',
   notHostFinishQuest: '只有房主可以结束任务',
@@ -92,6 +93,7 @@ export type AvalonEvent =
   | { readonly type: 'avalon.audio.cleared' }
   | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote.cast'; readonly seat: number; readonly vote: AvalonBallot }
+  | { readonly type: 'avalon.vote.allCast'; readonly deadlineAt: number }
   | {
       readonly type: 'avalon.vote.settled';
       readonly approved: boolean;
@@ -103,6 +105,7 @@ export type AvalonEvent =
       readonly vetoLimitReached: boolean;
     }
   | { readonly type: 'avalon.quest.played'; readonly seat: number; readonly play: AvalonPlay }
+  | { readonly type: 'avalon.quest.allPlayed'; readonly deadlineAt: number }
   | {
       readonly type: 'avalon.quest.settled';
       readonly round: AvalonQuestRound;

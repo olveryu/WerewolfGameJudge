@@ -19,6 +19,7 @@ export {
   nextAvalonLeaderSeat,
 } from './domain/rules';
 export {
+  type AvalonLadyCheckResultView,
   type AvalonLadyView,
   type AvalonLastVoteResultView,
   type AvalonQuestHistoryView,

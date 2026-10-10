@@ -12,7 +12,14 @@ import {
   getAvalonViewModel,
   isAvalonBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -28,6 +35,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
@@ -96,11 +104,19 @@ export interface AvalonRoomScreenState {
   readonly roleCardShouldPlay: boolean;
   /** Animator 候选池：公开的完整角色分布（按座位序）。 */
   readonly roleCardAllRoles: readonly RevealRoleData[];
+  /** 投票/任务阶段倒计时剩余秒数；不在限时阶段或无截止时为 null。 */
+  readonly phaseRemainingSeconds: number | null;
   readonly nightModalVisible: boolean;
   readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
+  /** 座位盘选人（提名）：Screen 同步本地选中集，adapter 据此给选中座位上「队员」徽标。 */
+  readonly setPickedSeats: Dispatch<SetStateAction<ReadonlySet<number>>>;
+  /** 注册座位点选处理器：返回 true 表示本次点按已被选人消费，不走默认座位行为。 */
+  readonly setSeatPickHandler: (handler: ((seat: number) => boolean) | null) => void;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
+const EMPTY_PICKED_SEATS: ReadonlySet<number> = new Set();
+
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
     readonly session: AvalonRoomSession;
@@ -129,6 +145,11 @@ export function useAvalonRoomState(
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
+  const [pickedSeats, setPickedSeats] = useState<ReadonlySet<number>>(EMPTY_PICKED_SEATS);
+  const seatPickHandlerRef = useRef<((seat: number) => boolean) | null>(null);
+  const setSeatPickHandler = useCallback((handler: ((seat: number) => boolean) | null) => {
+    seatPickHandlerRef.current = handler;
+  }, []);
   // step 推进时重置弹窗状态，防止 stale（比如别人确认完推进了 step，自己开着的弹窗指令已失效）。
   const nightStep = state.phase.kind === 'night' ? state.phase.step : null;
   useEffect(() => {
@@ -159,6 +180,40 @@ export function useAvalonRoomState(
         label,
       }),
     );
+  // 投票/任务倒计时：到点由任一未接管客户端提交超时结算（引擎校验截止时间，先到者生效）。
+  const phaseDeadlineAt =
+    state.phase.kind === 'vote' || state.phase.kind === 'quest' ? state.phase.deadlineAt : null;
+  // 超时结算走静默派发（对齐 drawguess 的 expire）：全场客户端会同时提交，
+  // 先到者结算、其余被引擎阶段校验拒绝——拒绝是预期结果，绝不能弹错误框。
+  const expirePhase = useCallback(async () => {
+    if (state.phase.kind === 'vote') {
+      await session.dispatch(
+        { type: 'avalon.vote.timeout' },
+        { controlledSeat: null, label: '投票超时结算', isRecoverable: true },
+      );
+    } else if (state.phase.kind === 'quest') {
+      await session.dispatch(
+        { type: 'avalon.quest.timeout' },
+        { controlledSeat: null, label: '任务超时结算', isRecoverable: true },
+      );
+    }
+  }, [state.phase.kind, session]);
+  const shouldExpirePhase = useCallback(() => {
+    if (phaseDeadlineAt === null || controlledSeat !== null) return false;
+    const current = session.getSnapshot();
+    return (
+      current.phase === 'ready' &&
+      current.connection === 'live' &&
+      current.pendingCommandCount === 0 &&
+      current.snapshot.state.phaseRevision === state.phaseRevision
+    );
+  }, [phaseDeadlineAt, controlledSeat, session, state.phaseRevision]);
+  const phaseRemainingSeconds = useStageDeadline({
+    deadlineAt: phaseDeadlineAt,
+    shouldExpire: shouldExpirePhase,
+    onExpire: expirePhase,
+    label: '阶段超时结算',
+  });
   // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
   const canControlBots = isHost;
   useBotTakeoverGuard({
@@ -197,6 +252,7 @@ export function useAvalonRoomState(
       : { isAllowed: false, reason: '只有房主可以接管机器人' },
   };
   const onSeatPress = (seat: number) => {
+    if (seatPickHandlerRef.current?.(seat) === true) return;
     if (!isLobby) {
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
@@ -281,7 +337,9 @@ export function useAvalonRoomState(
                 onPress: () =>
                   showConfirmAlert(
                     '结束投票',
-                    '未投票的座位将视为弃权，确定结束投票并结算吗？',
+                    controlledSeat !== null
+                      ? '未投票的座位将视为弃权，确定结束投票并结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                      : '未投票的座位将视为弃权，确定结束投票并结算吗？',
                     () => {
                       // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
                       // 显式传 null，避免闭包捕获旧的 controlledSeat。
@@ -310,10 +368,16 @@ export function useAvalonRoomState(
             : {
                 isEnabled: true as const,
                 onPress: () =>
-                  showConfirmAlert('结束任务', '未出牌的队员将视为成功，确定提前结算吗？', () => {
-                    if (controlledSeat !== null) releaseBot();
-                    void submit('结束任务', { type: 'avalon.quest.finish' }, null);
-                  }),
+                  showConfirmAlert(
+                    '结束任务',
+                    controlledSeat !== null
+                      ? '未出牌的队员将视为成功，确定提前结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                      : '未出牌的队员将视为成功，确定提前结算吗？',
+                    () => {
+                      if (controlledSeat !== null) releaseBot();
+                      void submit('结束任务', { type: 'avalon.quest.finish' }, null);
+                    },
+                  ),
               }),
         },
       ],
@@ -392,6 +456,7 @@ export function useAvalonRoomState(
         snapshot.snapshot.revision,
         user.id,
         controlledSeat,
+        pickedSeats,
       ),
       visuallyDisabled:
         state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
@@ -534,6 +599,7 @@ export function useAvalonRoomState(
     isHost,
     canControlBots,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
+    phaseRemainingSeconds,
     submit,
     isSubmitting: submission.isSubmitting,
     session,
@@ -552,5 +618,7 @@ export function useAvalonRoomState(
     // 晚上确认弹窗：两步流程（底部按钮 → 弹窗）。
     nightModalVisible,
     setNightModalVisible,
+    setPickedSeats,
+    setSeatPickHandler,
   };
 }

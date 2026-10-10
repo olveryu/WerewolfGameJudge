@@ -6,6 +6,7 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
 import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
@@ -24,6 +25,7 @@ import {
 } from './domain/decision';
 import { evolveAvalonState } from './domain/evolve';
 import {
+  AVALON_SETTLE_COUNTDOWN_SECONDS,
   buildAvalonNightInfo,
   getAvalonFailsNeeded,
   getAvalonLadyInitialHolderSeat,
@@ -228,13 +230,72 @@ function proposeTeam(
   return commitAvalon([{ type: 'avalon.team.proposed', seats: [...seats] }]);
 }
 
-/** Casts (or overwrites, D15) one ballot; every occupied seat votes. */
+/** Builds the settlement event + effect for a ballot set (shared by auto and manual settle). */
+function buildVoteSettlement(
+  state: AvalonState,
+  ballots: Readonly<Record<number, AvalonBallot>>,
+  context: CommandContext,
+): { readonly events: readonly AvalonEvent[]; readonly effects: readonly AvalonEffect[] } {
+  const count = state.config.numberOfPlayers;
+  let approveCount = 0;
+  let rejectCount = 0;
+  for (let seat = 0; seat < count; seat += 1) {
+    if (!isAvalonOccupiedSeat(state, seat)) continue;
+    const ballot = ballots[seat];
+    if (ballot === 'approve') approveCount += 1;
+    else if (ballot === 'reject') rejectCount += 1;
+  }
+  const abstainCount = getAvalonOccupiedSeatCount(state) - approveCount - rejectCount;
+  const approved = approveCount > rejectCount;
+  const vetoLimitReached = !approved && state.rejectStreak + 1 >= state.config.vetoLimit;
+  return {
+    events: [
+      {
+        type: 'avalon.vote.settled',
+        approved,
+        ballots: { ...ballots },
+        approveCount,
+        rejectCount,
+        abstainCount,
+        nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
+        vetoLimitReached,
+      },
+    ],
+    effects: vetoLimitReached && !state.xpSettled ? [completionEffect(state, context)] : [],
+  };
+}
+
+/**
+ * Casts (or overwrites, D15) one ballot; every occupied seat votes. The ballot
+ * that completes the set arms the reveal countdown (avalon.vote.allCast);
+ * settlement happens when it expires or when the host finishes manually.
+ * Ballots stay changeable until settlement, and changing one never re-arms.
+ */
 function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.notVotePhase);
   if (vote !== 'approve' && vote !== 'reject') return reject(AVALON_REASONS.invalidVote);
   const resolved = resolveAvalonSeat(state, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  return commitAvalon([{ type: 'avalon.team.vote.cast', seat: resolved.seat, vote }]);
+  const castEvent: AvalonEvent = { type: 'avalon.team.vote.cast', seat: resolved.seat, vote };
+  const prospective: Record<number, AvalonBallot> = {
+    ...state.phase.ballots,
+    [resolved.seat]: vote,
+  };
+  let allCast = true;
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (isAvalonOccupiedSeat(state, seat) && prospective[seat] === undefined) {
+      allCast = false;
+      break;
+    }
+  }
+  if (!allCast || state.phase.deadlineAt !== null) return commitAvalon([castEvent]);
+  return commitAvalon([
+    castEvent,
+    {
+      type: 'avalon.vote.allCast',
+      deadlineAt: context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000,
+    },
+  ]);
 }
 
 /**
@@ -246,39 +307,29 @@ function finishVote(state: AvalonState, context: CommandContext): AvalonDecision
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishVote);
   if (hostRejection !== null) return hostRejection;
-  const count = state.config.numberOfPlayers;
-  let approveCount = 0;
-  let rejectCount = 0;
-  for (let seat = 0; seat < count; seat += 1) {
-    if (!isAvalonOccupiedSeat(state, seat)) continue;
-    const ballot = state.phase.ballots[seat];
-    if (ballot === 'approve') approveCount += 1;
-    else if (ballot === 'reject') rejectCount += 1;
-  }
-  const abstainCount = getAvalonOccupiedSeatCount(state) - approveCount - rejectCount;
-  const approved = approveCount > rejectCount;
-  const vetoLimitReached = !approved && state.rejectStreak + 1 >= state.config.vetoLimit;
-  return commitAvalon(
-    [
-      {
-        type: 'avalon.vote.settled',
-        approved,
-        ballots: { ...state.phase.ballots },
-        approveCount,
-        rejectCount,
-        abstainCount,
-        nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
-        vetoLimitReached,
-      },
-    ],
-    vetoLimitReached && !state.xpSettled ? [completionEffect(state, context)] : [],
-  );
+  const settlement = buildVoteSettlement(state, state.phase.ballots, context);
+  return commitAvalon(settlement.events, settlement.effects);
+}
+
+/**
+ * Settles the vote when the reveal countdown expires. The countdown is armed
+ * only once every seat has voted, so this settles the final ballot set.
+ * Submitted by clients via the stage-deadline hook; only valid at/after it.
+ */
+function timeoutVote(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
+  const actor = resolveUncontrolledUserActorId(context);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
+  if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
+  const settlement = buildVoteSettlement(state, state.phase.ballots, context);
+  return commitAvalon(settlement.events, settlement.effects);
 }
 
 /**
  * Settles one quest: counts fails against the round threshold, appends history, and routes
  * to assassin (3 successes), evil win (3 fails), lady check (9/10 players, rounds 2-4) or
- * the next round. Shared by auto-settle (all plays in) and the host's manual finish.
+ * the next round. Shared by the countdown timeout and the host's manual finish.
  */
 function commitQuestSettled(
   priorEvents: readonly AvalonEvent[],
@@ -337,23 +388,48 @@ function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext
   if (play === 'fail' && isAvalonGoodRole(role)) return reject(AVALON_REASONS.goodMustSucceed);
   const plays = { ...state.phase.plays, [resolved.seat]: play };
   const playedEvent: AvalonEvent = { type: 'avalon.quest.played', seat: resolved.seat, play };
-  // 收齐自动洗混结算（D16 保持不变）。
-  if (state.phase.teamSeats.every((seat) => plays[seat] !== undefined)) {
-    return commitQuestSettled([playedEvent], state, plays, context);
-  }
-  return commitAvalon([playedEvent]);
+  // 收齐后武装揭晓倒计时（D16 洗混结算口径不变，结算推迟到倒计时到期或房主手动结束）。
+  const allPlayed = state.phase.teamSeats.every((seat) => plays[seat] !== undefined);
+  if (!allPlayed || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
+  return commitAvalon([
+    playedEvent,
+    {
+      type: 'avalon.quest.allPlayed',
+      deadlineAt: context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000,
+    },
+  ]);
 }
 
-/** Host ends the quest early (D16): seats that did not play count as success. */
-function finishQuest(state: AvalonState, context: CommandContext): AvalonDecision {
+/** Settles the quest with unplayed team seats counting as success (D16). */
+function settleQuestWithDefaults(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishQuest);
-  if (hostRejection !== null) return hostRejection;
   const plays: Record<number, AvalonPlay> = { ...state.phase.plays };
   for (const seat of state.phase.teamSeats) {
     if (plays[seat] === undefined) plays[seat] = 'success';
   }
   return commitQuestSettled([], state, plays, context);
+}
+
+/** Host ends the quest early (D16). */
+function finishQuest(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
+  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishQuest);
+  if (hostRejection !== null) return hostRejection;
+  return settleQuestWithDefaults(state, context);
+}
+
+/**
+ * Settles the quest when the reveal countdown expires. The countdown is
+ * armed only once every team seat has played, so this settles the final
+ * play set. Submitted by clients via the stage-deadline hook.
+ */
+function timeoutQuest(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
+  const actor = resolveUncontrolledUserActorId(context);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
+  if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
+  return settleQuestWithDefaults(state, context);
 }
 
 /** Lady holder picks a player who has never held the token (not the holder). */
@@ -533,8 +609,12 @@ function decidePublicCommand(
       return playQuest(state, command.play, context);
     case 'avalon.vote.finish':
       return finishVote(state, context);
+    case 'avalon.vote.timeout':
+      return timeoutVote(state, context);
     case 'avalon.quest.finish':
       return finishQuest(state, context);
+    case 'avalon.quest.timeout':
+      return timeoutQuest(state, context);
     case 'avalon.lady.check':
       return checkLady(state, command.seat, context);
     case 'avalon.lady.acknowledge':

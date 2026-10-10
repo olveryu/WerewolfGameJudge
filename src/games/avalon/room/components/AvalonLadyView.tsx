@@ -1,5 +1,6 @@
 /**
- * 阿瓦隆湖中仙女：持有人点选查验目标 → 被查验者确认 → 持有人看到阵营。
+ * 阿瓦隆湖中仙女阶段条：持有人在座位盘上点选查验目标（点选后走二次确认弹窗），
+ * 被查验者的确认展示走弹窗，本条只做状态说明与弹窗重开入口。
  */
 
 import { type AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
@@ -10,7 +11,6 @@ import { colors, textStyles } from '@/theme';
 
 import { getAvalonCheckedFactionDisplayName } from '../../model/avalonRoleDisplay';
 import { resolveLadyInstruction } from '../policy/avalonInteractionPolicy';
-import { AvalonSeatPicker } from './AvalonSeatPicker';
 import { AvalonInfoCard, AvalonStageFrame } from './AvalonStageFrame';
 
 function seatName(viewModel: AvalonViewModel, seat: number): string {
@@ -19,38 +19,22 @@ function seatName(viewModel: AvalonViewModel, seat: number): string {
   return `${seat + 1} 号 · ${name}`;
 }
 
-/** 湖仙视图：查验点选 / 等待确认 / 确认展示，意图上报调用方。 */
+/** 湖仙阶段条：按视角呈现选人提示 / 等待 / 确认入口 / 旁观文案。 */
 export function AvalonLadyView({
   viewModel,
-  isSubmitting,
-  onCheck,
-  onAcknowledge,
+  onShowAcknowledge,
 }: {
   readonly viewModel: AvalonViewModel;
-  readonly isSubmitting: boolean;
-  readonly onCheck: (seat: number) => void;
-  readonly onAcknowledge: () => void;
+  readonly onShowAcknowledge: () => void;
 }) {
   const instruction = resolveLadyInstruction(viewModel);
   return (
     <AvalonStageFrame title="湖中仙女查验" testID="avalon-lady">
       {instruction.kind === 'holderPick' ? (
-        <AvalonInfoCard title="选择查验目标" testID="avalon-lady-picker">
+        <AvalonInfoCard title="在座位盘上选择查验目标" testID="avalon-lady-picker">
           <Text style={styles.body}>
-            点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏）。
+            点座位盘点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏），点选后会再次确认。
           </Text>
-          <AvalonSeatPicker
-            seats={instruction.eligibleSeats.map((seat) => ({
-              seat,
-              displayName:
-                viewModel.seats.find((seatView) => seatView.seat === seat)?.displayName ??
-                `座位${seat + 1}`,
-            }))}
-            selectedSeats={new Set()}
-            disabledSeats={new Set()}
-            onSelect={onCheck}
-            testIDPrefix="avalon-lady"
-          />
         </AvalonInfoCard>
       ) : instruction.kind === 'holderWait' ? (
         <AvalonInfoCard title="等待确认">
@@ -62,16 +46,15 @@ export function AvalonLadyView({
         <AvalonInfoCard title="湖仙查验" testID="avalon-lady-confirm">
           <Text style={styles.body}>
             {seatName(viewModel, instruction.holderSeat)}
-            要查验你的阵营，点确认后对方将看到你是好人还是坏人。
+            要查验你的阵营，确认展示后对方将看到你是好人还是坏人。
           </Text>
           <Button
             variant="primary"
             size="lg"
-            loading={isSubmitting}
-            onPress={onAcknowledge}
-            testID="avalon-lady-acknowledge"
+            onPress={onShowAcknowledge}
+            testID="avalon-lady-acknowledge-open"
           >
-            确认展示
+            查看查验请求
           </Button>
         </AvalonInfoCard>
       ) : instruction.kind === 'result' ? (
@@ -85,7 +68,9 @@ export function AvalonLadyView({
       ) : (
         <AvalonInfoCard title="湖仙查验中">
           <Text style={styles.body}>
-            {seatName(viewModel, instruction.holderSeat)}正在查验，请等待。
+            {instruction.targetSeat !== null
+              ? `${seatName(viewModel, instruction.holderSeat)}正在查验${seatName(viewModel, instruction.targetSeat)}，请等待。`
+              : `${seatName(viewModel, instruction.holderSeat)}正在选择查验目标，请等待。`}
           </Text>
         </AvalonInfoCard>
       )}
