@@ -53,7 +53,7 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import {
   createStoryRelaySeatDataSource,
   createStoryRelayStatusRibbon,
-  getStoryRelayProfileTarget,
+  getStoryRelaySeatTapIntent,
 } from '../storyRelayRoomAdapter';
 import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommandFailureMessage';
 import { useStoryRelaySeatCommands } from './useStoryRelaySeatCommands';
@@ -153,13 +153,24 @@ export function useStoryRelayRoomState(
     isBotSeat,
     gameName: 'StoryRelay',
   });
-  const onSeatPress = (seat: number) => {
+  const onSeatPress = (seat: number, disabledReason?: string) => {
     if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
-    const target = getStoryRelayProfileTarget(state, seat);
-    if (target !== null) return profile.open(target);
-    return mySeat === null
-      ? seatController.requestTakeSeat(seat)
-      : seatController.requestMoveSeat(seat);
+    const intent = getStoryRelaySeatTapIntent({
+      state,
+      seat,
+      currentSeat: mySeat,
+      disabledReason,
+    });
+    switch (intent.kind) {
+      case 'blocked':
+        return showErrorAlert('不可选择', intent.reason);
+      case 'profile':
+        return profile.open(intent.target);
+      case 'take':
+        return seatController.requestTakeSeat(intent.seat);
+      case 'move':
+        return seatController.requestMoveSeat(intent.seat);
+    }
   };
   const actions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)

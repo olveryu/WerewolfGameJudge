@@ -15,14 +15,12 @@ import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-export function getDrawGuessProfileTarget(
-  state: DrawGuessState,
-  seat: number,
-): RoomProfileTarget | null {
+function getDrawGuessProfileTarget(state: DrawGuessState, seat: number): RoomProfileTarget | null {
   const occupant = state.roster[seat];
   if (occupant != null && !isBotOccupant(occupant))
     return {
@@ -55,6 +53,23 @@ export interface DrawGuessSeatSourceInput {
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
+}
+
+interface DrawGuessSeatTapInput {
+  readonly state: DrawGuessState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/** Project DrawGuess seating into the shared room seat-tap contract. */
+export function getDrawGuessSeatTapIntent(input: DrawGuessSeatTapInput) {
+  return getRoomSeatTapIntent({
+    seat: input.seat,
+    currentSeat: input.currentSeat,
+    target: getDrawGuessProfileTarget(input.state, input.seat),
+    disabledReason: input.disabledReason,
+  });
 }
 
 export function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSeatDataSource {

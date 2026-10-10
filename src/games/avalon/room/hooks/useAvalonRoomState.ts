@@ -68,7 +68,7 @@ import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
 import {
   createAvalonSeatDataSource,
   createAvalonStatusRibbon,
-  getAvalonProfileTarget,
+  getAvalonSeatTapIntent,
 } from '../avalonRoomAdapter';
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
 import { resolveNightInstruction } from '../policy/avalonInteractionPolicy';
@@ -253,16 +253,27 @@ export function useAvalonRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
-  const onSeatPress = (seat: number) => {
+  const onSeatPress = (seat: number, disabledReason?: string) => {
     if (seatPickHandlerRef.current?.(seat) === true) return;
     if (!isLobby) {
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
-    const target = getAvalonProfileTarget(state, seat);
-    if (target !== null) return profile.open(target);
-    return mySeat === null
-      ? seatController.requestTakeSeat(seat)
-      : seatController.requestMoveSeat(seat);
+    const intent = getAvalonSeatTapIntent({
+      state,
+      seat,
+      currentSeat: mySeat,
+      disabledReason,
+    });
+    switch (intent.kind) {
+      case 'blocked':
+        return showErrorAlert('不可选择', intent.reason);
+      case 'profile':
+        return profile.open(intent.target);
+      case 'take':
+        return seatController.requestTakeSeat(intent.seat);
+      case 'move':
+        return seatController.requestMoveSeat(intent.seat);
+    }
   };
   // 长按机器人座位接管/释放：用共享 hook（D12：不做任何接管提示）。
   const onBotSeatLongPress = useBotTakeoverLongPress({

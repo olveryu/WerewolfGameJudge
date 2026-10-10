@@ -19,13 +19,14 @@ import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-export function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
+function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
   const occupant = state.roster[seat];
   if (occupant != null && !isBotOccupant(occupant))
     return {
@@ -71,6 +72,23 @@ export interface AvalonSeatSourceInput {
   readonly userId: string;
   readonly controlledSeat: number | null;
   readonly pickedSeats?: ReadonlySet<number>;
+}
+
+interface AvalonSeatTapInput {
+  readonly state: AvalonState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/** Project Avalon seating into the shared room seat-tap contract. */
+export function getAvalonSeatTapIntent(input: AvalonSeatTapInput) {
+  return getRoomSeatTapIntent({
+    seat: input.seat,
+    currentSeat: input.currentSeat,
+    target: getAvalonProfileTarget(input.state, input.seat),
+    disabledReason: input.disabledReason,
+  });
 }
 
 export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSeatDataSource {

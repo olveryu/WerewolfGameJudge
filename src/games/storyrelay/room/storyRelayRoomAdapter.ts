@@ -14,11 +14,12 @@ import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 /** Returns a public occupant identity for shared profile controls. */
-export function getStoryRelayProfileTarget(
+function getStoryRelayProfileTarget(
   state: StoryRelayState,
   seat: number,
 ): RoomProfileTarget | null {
@@ -46,6 +47,23 @@ export interface StoryRelaySeatSourceInput {
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
+}
+
+interface StoryRelaySeatTapInput {
+  readonly state: StoryRelayState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/** Project StoryRelay seating into the shared room seat-tap contract. */
+export function getStoryRelaySeatTapIntent(input: StoryRelaySeatTapInput) {
+  return getRoomSeatTapIntent({
+    seat: input.seat,
+    currentSeat: input.currentSeat,
+    target: getStoryRelayProfileTarget(input.state, input.seat),
+    disabledReason: input.disabledReason,
+  });
 }
 
 export function createStoryRelaySeatDataSource(

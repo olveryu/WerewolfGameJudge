@@ -58,7 +58,7 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import {
   createDrawGuessSeatDataSource,
   createDrawGuessStatusRibbon,
-  getDrawGuessProfileTarget,
+  getDrawGuessSeatTapIntent,
 } from '../drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
 import { useDrawGuessSeatCommands } from './useDrawGuessSeatCommands';
@@ -220,13 +220,24 @@ export function useDrawGuessRoomState(
     isBotSeat,
     gameName: 'DrawGuess',
   });
-  const onSeatPress = (seat: number) => {
+  const onSeatPress = (seat: number, disabledReason?: string) => {
     if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
-    const target = getDrawGuessProfileTarget(state, seat);
-    if (target !== null) return profile.open(target);
-    return mySeat === null
-      ? seatController.requestTakeSeat(seat)
-      : seatController.requestMoveSeat(seat);
+    const intent = getDrawGuessSeatTapIntent({
+      state,
+      seat,
+      currentSeat: mySeat,
+      disabledReason,
+    });
+    switch (intent.kind) {
+      case 'blocked':
+        return showErrorAlert('不可选择', intent.reason);
+      case 'profile':
+        return profile.open(intent.target);
+      case 'take':
+        return seatController.requestTakeSeat(intent.seat);
+      case 'move':
+        return seatController.requestMoveSeat(intent.seat);
+    }
   };
   const actions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
