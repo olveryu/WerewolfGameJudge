@@ -212,3 +212,30 @@ describe('getAvalonBotSeats', () => {
     expect(getAvalonBotSeats(session.state)).toEqual([]);
   });
 });
+
+describe('bot seats start out marked as viewed (fibking pattern)', () => {
+  it('records every bot seat in roleViewedSeats at deal time, and no human seat', () => {
+    const session = game({ numberOfPlayers: 5 }, 3);
+    session.startGame();
+    expect(session.state.roleViewedSeats).toEqual([3, 4]);
+    // A human viewing afterwards joins the same record.
+    session.view(1);
+    expect(session.state.roleViewedSeats).toEqual([1, 3, 4]);
+  });
+
+  it('records nothing in an all-human room', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    expect(session.state.roleViewedSeats).toEqual([]);
+  });
+
+  it('keeps the checkpoint semantics: bots never block and humans still gate the night', () => {
+    const session = game({ numberOfPlayers: 5 }, 3);
+    session.startGame();
+    session.walkNight();
+    // Night steps are done but two humans have not viewed: still held.
+    expect(session.state.phase.kind).toBe('night');
+    session.viewAllHumans();
+    expect(session.state.phase.kind).toBe('nominate');
+  });
+});
