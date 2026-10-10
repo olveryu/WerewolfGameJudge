@@ -25,8 +25,7 @@ import {
 } from './domain/decision';
 import { evolveAvalonState } from './domain/evolve';
 import {
-  AVALON_QUEST_DURATION_SECONDS,
-  AVALON_VOTE_DURATION_SECONDS,
+  AVALON_SETTLE_COUNTDOWN_SECONDS,
   buildAvalonNightInfo,
   getAvalonFailsNeeded,
   getAvalonLadyInitialHolderSeat,
@@ -228,13 +227,7 @@ function proposeTeam(
     )
   )
     return reject(AVALON_REASONS.invalidSeats);
-  return commitAvalon([
-    {
-      type: 'avalon.team.proposed',
-      seats: [...seats],
-      deadlineAt: context.nowMs + AVALON_VOTE_DURATION_SECONDS * 1000,
-    },
-  ]);
+  return commitAvalon([{ type: 'avalon.team.proposed', seats: [...seats] }]);
 }
 
 /** Builds the settlement event + effect for a ballot set (shared by auto and manual settle). */
@@ -266,7 +259,6 @@ function buildVoteSettlement(
         abstainCount,
         nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
         vetoLimitReached,
-        questDeadlineAt: context.nowMs + AVALON_QUEST_DURATION_SECONDS * 1000,
       },
     ],
     effects: vetoLimitReached && !state.xpSettled ? [completionEffect(state, context)] : [],
@@ -274,9 +266,10 @@ function buildVoteSettlement(
 }
 
 /**
- * Casts (or overwrites, D15) one ballot; every occupied seat votes. When this ballot
- * completes the set, the vote settles immediately (same path as a manual finish);
- * until then the ballot stays changeable.
+ * Casts (or overwrites, D15) one ballot; every occupied seat votes. The ballot
+ * that completes the set arms the reveal countdown (avalon.vote.allCast);
+ * settlement happens when it expires or when the host finishes manually.
+ * Ballots stay changeable until settlement, and changing one never re-arms.
  */
 function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.notVotePhase);
@@ -295,9 +288,14 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
       break;
     }
   }
-  if (!allCast) return commitAvalon([castEvent]);
-  const settlement = buildVoteSettlement(state, prospective, context);
-  return commitAvalon([castEvent, ...settlement.events], settlement.effects);
+  if (!allCast || state.phase.deadlineAt !== null) return commitAvalon([castEvent]);
+  return commitAvalon([
+    castEvent,
+    {
+      type: 'avalon.vote.allCast',
+      deadlineAt: context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000,
+    },
+  ]);
 }
 
 /**
@@ -314,8 +312,9 @@ function finishVote(state: AvalonState, context: CommandContext): AvalonDecision
 }
 
 /**
- * Settles the vote when the countdown expires: unvoted seats abstain.
- * Submitted by clients via the stage-deadline hook; only valid at/after the deadline.
+ * Settles the vote when the reveal countdown expires. The countdown is armed
+ * only once every seat has voted, so this settles the final ballot set.
+ * Submitted by clients via the stage-deadline hook; only valid at/after it.
  */
 function timeoutVote(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
@@ -330,7 +329,7 @@ function timeoutVote(state: AvalonState, context: CommandContext): AvalonDecisio
 /**
  * Settles one quest: counts fails against the round threshold, appends history, and routes
  * to assassin (3 successes), evil win (3 fails), lady check (9/10 players, rounds 2-4) or
- * the next round. Shared by auto-settle (all plays in) and the host's manual finish.
+ * the next round. Shared by the countdown timeout and the host's manual finish.
  */
 function commitQuestSettled(
   priorEvents: readonly AvalonEvent[],
@@ -389,11 +388,16 @@ function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext
   if (play === 'fail' && isAvalonGoodRole(role)) return reject(AVALON_REASONS.goodMustSucceed);
   const plays = { ...state.phase.plays, [resolved.seat]: play };
   const playedEvent: AvalonEvent = { type: 'avalon.quest.played', seat: resolved.seat, play };
-  // 收齐自动洗混结算（D16 保持不变）。
-  if (state.phase.teamSeats.every((seat) => plays[seat] !== undefined)) {
-    return commitQuestSettled([playedEvent], state, plays, context);
-  }
-  return commitAvalon([playedEvent]);
+  // 收齐后武装揭晓倒计时（D16 洗混结算口径不变，结算推迟到倒计时到期或房主手动结束）。
+  const allPlayed = state.phase.teamSeats.every((seat) => plays[seat] !== undefined);
+  if (!allPlayed || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
+  return commitAvalon([
+    playedEvent,
+    {
+      type: 'avalon.quest.allPlayed',
+      deadlineAt: context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000,
+    },
+  ]);
 }
 
 /** Settles the quest with unplayed team seats counting as success (D16). */
@@ -415,8 +419,9 @@ function finishQuest(state: AvalonState, context: CommandContext): AvalonDecisio
 }
 
 /**
- * Settles the quest when the countdown expires: unplayed seats count as success.
- * Submitted by clients via the stage-deadline hook; only valid at/after the deadline.
+ * Settles the quest when the reveal countdown expires. The countdown is
+ * armed only once every team seat has played, so this settles the final
+ * play set. Submitted by clients via the stage-deadline hook.
  */
 function timeoutQuest(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);

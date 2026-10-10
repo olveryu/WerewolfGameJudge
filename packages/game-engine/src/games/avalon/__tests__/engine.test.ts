@@ -142,8 +142,8 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       }
     },
     finishVote() {
-      // Ballots settle automatically once everyone has voted; the manual
-      // finish only remains for partial ballots.
+      // Settlement runs on the reveal countdown or this manual finish;
+      // send only while the vote is still open or counting down.
       if (state.phase.kind === 'vote') send({ type: 'avalon.vote.finish' });
     },
     playAll(plays: Readonly<Record<number, AvalonPlay>>) {
@@ -152,9 +152,9 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       }
     },
     finishQuest() {
-      send({ type: 'avalon.quest.finish' });
+      if (state.phase.kind === 'quest') send({ type: 'avalon.quest.finish' });
     },
-    /** 走完一轮：组队 → 全票赞成（自动结算）→ 出牌（收齐自动结算）。 */
+    /** 走完一轮：组队 → 全票赞成 → 房主结束投票 → 出牌 → 房主结束任务（跳过揭晓倒计时）。 */
     passQuestRound(team: readonly number[], plays: Readonly<Record<number, AvalonPlay>>) {
       if (api.phase().kind !== 'nominate') throw new Error('expected nominate phase');
       api.proposeTeam(team);
@@ -400,53 +400,79 @@ describe('Avalon engine', () => {
     expect(session.state.rejectStreak).toBe(0);
   });
 
-  it('stamps a 60s deadline on the vote and settles by timeout with abstentions', () => {
+  it('arms a 5s reveal countdown when the last ballot lands, then settles on timeout', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();
     session.passNight();
     session.proposeTeam([0, 1]);
     if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
-    expect(session.state.phase.deadlineAt).toBe(1000 + 60_000);
-    // Too early: the timeout command rejects.
+    // Ballots open: no countdown is running and the timeout rejects.
+    expect(session.state.phase.deadlineAt).toBeNull();
     session.expectReject({ type: 'avalon.vote.timeout' }, '尚未到截止时间', session.seatUser(2));
-    for (const seat of [0, 1, 2]) {
+    for (const seat of [0, 1, 2, 3]) {
       session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
     }
-    session.setNow(1000 + 60_000);
+    if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
+    expect(session.state.phase.deadlineAt).toBeNull();
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(4));
+    if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
+    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    session.expectReject({ type: 'avalon.vote.timeout' }, '尚未到截止时间', session.seatUser(2));
+    session.setNow(1000 + 5000);
     session.send({ type: 'avalon.vote.timeout' }, session.seatUser(3));
-    const settledPhase = session.phase();
-    expect(settledPhase.kind).toBe('quest');
-    if (settledPhase.kind === 'quest') {
-      expect(settledPhase.approveCount).toBe(3);
-      expect(settledPhase.abstainCount).toBe(2);
-      expect(settledPhase.deadlineAt).toBe(1000 + 120_000);
-    }
+    expect(session.state.phase.kind).toBe('quest');
+    expect(session.state.lastVoteResult?.approveCount).toBe(5);
   });
 
-  it('settles the quest by timeout with unplayed seats counting as success', () => {
+  it('settles a reject majority when the countdown expires and rotates the leader', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    const firstLeader = session.state.leaderSeat;
+    session.proposeTeam([0, 1]);
+    session.voteAll('reject');
+    expect(session.state.phase.kind).toBe('vote');
+    session.setNow(1000 + 5000);
+    session.send({ type: 'avalon.vote.timeout' }, session.seatUser(0));
+    expect(session.state.phase.kind).toBe('nominate');
+    expect(session.state.rejectStreak).toBe(1);
+    expect(session.state.leaderSeat).toBe((firstLeader + 1) % 5);
+  });
+
+  it('keeps ballots changeable during the countdown without re-arming it', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();
     session.passNight();
     session.proposeTeam([0, 1]);
-    session.voteAll('approve');
-    if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
-    session.expectReject({ type: 'avalon.quest.timeout' }, '尚未到截止时间', session.seatUser(0));
-    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(0));
-    session.setNow(1000 + 120_000);
-    session.send({ type: 'avalon.quest.timeout' }, session.seatUser(1));
-    expect(session.state.phase.kind).toBe('nominate');
-    expect(session.state.questResults[0]).toBe('success');
+    for (const seat of [0, 1, 2, 3]) {
+      session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
+    }
+    session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(4));
+    if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
+    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    // Seat 0 changes their mind inside the countdown window; the deadline stands.
+    session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(0));
+    if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
+    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    session.setNow(1000 + 5000);
+    session.send({ type: 'avalon.vote.timeout' }, session.seatUser(1));
+    expect(session.state.phase.kind).toBe('quest');
+    expect(session.state.lastVoteResult?.approveCount).toBe(3);
+    expect(session.state.lastVoteResult?.rejectCount).toBe(2);
   });
 
-  it('ends the game by auto-settle alone when rejections hit the veto limit (no manual finish)', () => {
+  it('ends the game when countdown settlements hit the veto limit (no manual finish)', () => {
     const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
     session.startGame();
     session.passNight();
+    let now = 1000;
     for (let round = 0; round < 3; round += 1) {
       const leader = session.state.leaderSeat;
       session.proposeTeam([leader, (leader + 1) % 5]);
       session.voteAll('reject');
-      // Deliberately no finishVote(): the last ballot must settle on its own.
+      now += 5000;
+      session.setNow(now);
+      session.send({ type: 'avalon.vote.timeout' }, session.seatUser(0));
       if (round < 2) expect(session.state.phase.kind).toBe('nominate');
     }
     expect(session.state.phase.kind).toBe('ended');
@@ -459,78 +485,66 @@ describe('Avalon engine', () => {
     );
   });
 
-  it('rejects timeouts from a bot-takeover actor, on a null deadline, and after settlement', () => {
+  it('rejects timeouts from a bot-takeover actor, before arming, and after settlement', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();
     session.passNight();
     session.proposeTeam([0, 1]);
-    session.setNow(1000 + 60_000);
+    // Not armed yet (ballots still open): any timeout rejects.
+    session.expectReject({ type: 'avalon.vote.timeout' }, '尚未到截止时间', session.seatUser(2));
+    session.voteAll('approve');
+    session.setNow(1000 + 5000);
     // A host acting through a taken-over bot seat may not submit the timeout.
     const controlled = session.decideAs({ type: 'avalon.vote.timeout' }, 'host', 2);
     expect(controlled.kind).toBe('reject');
-    // A migrated phase (deadlineAt null) has no countdown to expire.
-    const migratedJson = JSON.parse(JSON.stringify(session.state)) as {
-      phase: Record<string, unknown>;
-    };
-    migratedJson.phase.deadlineAt = null;
-    const migrated = parseAvalonState(migratedJson);
-    const nullDeadline = avalonEngine.decide(
-      migrated,
-      { type: 'avalon.vote.timeout' },
-      {
-        actor: { kind: 'user', userId: 'host' },
-        controlledSeat: null,
-        nowMs: 1000 + 120_000,
-        commandId: 'timeout-null-deadline',
-        randomSeed: 'seed',
-      },
-    );
-    expect(nullDeadline.kind).toBe('reject');
-    // Once settled, a late timeout hits the phase guard instead of double-settling.
     session.send({ type: 'avalon.vote.timeout' }, session.seatUser(3));
-    expect(session.state.phase.kind).toBe('nominate');
+    expect(session.state.phase.kind).toBe('quest');
+    // Once settled, a late timeout hits the phase guard instead of double-settling.
     session.expectReject({ type: 'avalon.vote.timeout' }, '当前阶段不能执行此操作', 'host');
   });
 
-  it('settles the vote automatically once every seat has voted (approve path)', () => {
+  it('arms the quest reveal countdown when the last play lands, then settles on timeout', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();
     session.passNight();
     session.proposeTeam([0, 1]);
     session.voteAll('approve');
-    // No avalon.vote.finish was sent: the last ballot settled the vote.
-    expect(session.state.phase.kind).toBe('quest');
-    expect(session.state.lastVoteResult?.approveCount).toBe(5);
-  });
-
-  it('settles automatically on a reject majority and rotates the leader', () => {
-    const session = game({ numberOfPlayers: 5 });
-    session.startGame();
-    session.passNight();
-    const firstLeader = session.state.leaderSeat;
-    session.proposeTeam([0, 1]);
-    session.voteAll('reject');
+    session.finishVote();
+    if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(session.state.phase.deadlineAt).toBeNull();
+    session.expectReject({ type: 'avalon.quest.timeout' }, '尚未到截止时间', session.seatUser(0));
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(0));
+    if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(session.state.phase.deadlineAt).toBeNull();
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(1));
+    if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    session.setNow(1000 + 5000);
+    session.send({ type: 'avalon.quest.timeout' }, session.seatUser(1));
     expect(session.state.phase.kind).toBe('nominate');
-    expect(session.state.rejectStreak).toBe(1);
-    expect(session.state.leaderSeat).toBe((firstLeader + 1) % 5);
+    expect(session.state.questResults[0]).toBe('success');
   });
 
-  it('keeps ballots changeable until the last seat votes, then settles with the final ballot set', () => {
+  it('keeps quest plays changeable during the countdown without re-arming it', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();
     session.passNight();
-    session.proposeTeam([0, 1]);
-    for (const seat of [0, 1, 2, 3]) {
-      session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
-    }
-    expect(session.state.phase.kind).toBe('vote');
-    // Seat 0 changes their mind before the set completes.
-    session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(0));
-    expect(session.state.phase.kind).toBe('vote');
-    session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(4));
-    expect(session.state.phase.kind).toBe('quest');
-    expect(session.state.lastVoteResult?.approveCount).toBe(3);
-    expect(session.state.lastVoteResult?.rejectCount).toBe(2);
+    const evil = session.evilSeats()[0]!;
+    const good = session.goodSeats()[0]!;
+    session.proposeTeam([evil, good]);
+    session.voteAll('approve');
+    session.finishVote();
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(evil));
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(good));
+    if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    // The evil member flips to a fail inside the countdown; the deadline stands.
+    session.send({ type: 'avalon.quest.play', play: 'fail' }, session.seatUser(evil));
+    if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
+    session.setNow(1000 + 5000);
+    session.send({ type: 'avalon.quest.timeout' }, session.seatUser(good));
+    expect(session.state.questResults[0]).toBe('fail');
   });
 
   it('rejects vote.finish from non-hosts', () => {
@@ -570,6 +584,7 @@ describe('Avalon engine', () => {
     const openView = getAvalonViewModel(open.state, 2);
     expect(openView.ballots?.[0]).toBe('approve');
     open.playAll({ 0: 'success', 1: 'success' });
+    open.finishQuest();
     const openSettledView = getAvalonViewModel(open.state, 2);
     expect(openSettledView.questHistory[0]?.ballots?.[0]).toBe('approve');
 
@@ -583,6 +598,7 @@ describe('Avalon engine', () => {
     expect(secretView.ballots).toBeNull();
     expect(secretView.voteCounts).toEqual({ approve: 6, reject: 0, abstain: 0 });
     secret.playAll({ 0: 'success', 1: 'success' });
+    secret.finishQuest();
     const secretSettledView = getAvalonViewModel(secret.state, 2);
     expect(secretSettledView.questHistory[0]?.ballots).toBeNull();
     expect(secretSettledView.questHistory[0]?.approveCount).toBe(6);
@@ -671,6 +687,7 @@ describe('Avalon engine', () => {
       [good[2]!]: 'success',
       [evil[0]!]: 'fail',
     });
+    session.finishQuest();
     expect(session.state.questResults).toEqual(['success', 'fail', 'success', 'success']);
   });
 
@@ -705,6 +722,7 @@ describe('Avalon engine', () => {
       [good[1]!]: 'success',
       [evil[0]!]: 'fail',
     });
+    session.finishQuest();
     expect(session.state.questResults).toEqual(['success', 'fail', 'success', 'fail']);
   });
 
@@ -725,6 +743,7 @@ describe('Avalon engine', () => {
       session.voteAll('approve');
       session.finishVote();
       session.playAll(plays);
+      session.finishQuest();
     }
     expect(session.state.phase.kind).toBe('ended');
     if (session.state.phase.kind === 'ended') {
@@ -752,6 +771,7 @@ describe('Avalon engine', () => {
       [good[2]!]: 'success',
       [good[3]!]: 'success',
     });
+    session.finishQuest();
     expect(session.state.phase.kind).toBe('lady');
     if (session.state.phase.kind !== 'lady') throw new Error('expected lady phase');
     const holder = session.state.phase.holderSeat;
@@ -797,6 +817,7 @@ describe('Avalon engine', () => {
       [good[2]!]: 'success',
       [evil[0]!]: 'fail',
     });
+    session.finishQuest();
     expect(session.state.phase.kind).toBe('lady');
     if (session.state.phase.kind !== 'lady') throw new Error('expected lady phase');
     expect(session.state.phase.holderSeat).toBe(target);
@@ -1035,6 +1056,7 @@ describe('Avalon engine', () => {
     session.voteAll('approve');
     session.finishVote();
     session.playAll({ [team[0]!]: 'success', [team[1]!]: 'success' });
+    session.finishQuest();
     expect(session.state.questHistory).toHaveLength(1);
     const entry = session.state.questHistory[0]!;
     expect(entry.round).toBe(1);

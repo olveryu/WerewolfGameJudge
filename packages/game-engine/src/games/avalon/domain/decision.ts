@@ -91,12 +91,9 @@ export type AvalonEvent =
       readonly effects: readonly AvalonAudioEffect[];
     }
   | { readonly type: 'avalon.audio.cleared' }
-  | {
-      readonly type: 'avalon.team.proposed';
-      readonly seats: readonly number[];
-      readonly deadlineAt: number;
-    }
+  | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote.cast'; readonly seat: number; readonly vote: AvalonBallot }
+  | { readonly type: 'avalon.vote.allCast'; readonly deadlineAt: number }
   | {
       readonly type: 'avalon.vote.settled';
       readonly approved: boolean;
@@ -106,10 +103,9 @@ export type AvalonEvent =
       readonly abstainCount: number;
       readonly nextLeaderSeat: number;
       readonly vetoLimitReached: boolean;
-      /** Deadline for the quest phase created when the vote approves. */
-      readonly questDeadlineAt: number;
     }
   | { readonly type: 'avalon.quest.played'; readonly seat: number; readonly play: AvalonPlay }
+  | { readonly type: 'avalon.quest.allPlayed'; readonly deadlineAt: number }
   | {
       readonly type: 'avalon.quest.settled';
       readonly round: AvalonQuestRound;

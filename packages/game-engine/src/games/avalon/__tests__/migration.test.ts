@@ -202,7 +202,6 @@ describe('Avalon v3 -> v4 countdown migration', () => {
   it('migrates an in-progress vote with a null deadline, ballots intact', () => {
     const state = votePhaseState();
     if (state.phase.kind !== 'vote') throw new Error('expected vote phase');
-    expect(state.phase.deadlineAt).not.toBeNull();
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
     expect(migrated.stateVersion).toBe(4);
     if (migrated.phase.kind !== 'vote') throw new Error('expected vote phase');
@@ -222,6 +221,8 @@ describe('Avalon v3 -> v4 countdown migration', () => {
         seat === 0 ? 'host' : `user-${seat}`,
       );
     }
+    // The completed ballot set only arms the countdown; the host finish settles it.
+    state = dispatch(state, { type: 'avalon.vote.finish' });
     if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
     if (migrated.phase.kind !== 'quest') throw new Error('expected quest phase');

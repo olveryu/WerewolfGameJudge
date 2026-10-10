@@ -111,11 +111,15 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           round: state.phase.round,
           proposedSeats: [...event.seats],
           ballots: {},
-          deadlineAt: event.deadlineAt,
+          deadlineAt: null,
         },
         // 新一轮组队开始，上一轮的结算面板不再展示。
         lastVoteResult: null,
       };
+    }
+    case 'avalon.vote.allCast': {
+      if (state.phase.kind !== 'vote') return state;
+      return { ...bumped, phase: { ...state.phase, deadlineAt: event.deadlineAt } };
     }
     case 'avalon.team.vote.cast': {
       if (state.phase.kind !== 'vote') return state;
@@ -156,7 +160,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             round: state.phase.round,
             teamSeats: [...state.phase.proposedSeats],
             plays: {},
-            deadlineAt: event.questDeadlineAt,
+            deadlineAt: null,
             ballots: { ...event.ballots },
             approveCount: event.approveCount,
             rejectCount: event.rejectCount,
@@ -177,6 +181,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         leaderSeat: event.nextLeaderSeat,
         rejectStreak: state.rejectStreak + 1,
       };
+    }
+    case 'avalon.quest.allPlayed': {
+      if (state.phase.kind !== 'quest') return state;
+      return { ...bumped, phase: { ...state.phase, deadlineAt: event.deadlineAt } };
     }
     case 'avalon.quest.played': {
       if (state.phase.kind !== 'quest') return state;
