@@ -109,20 +109,13 @@ export interface LeaveRoomEvent {
   kind: 'LEAVE_ROOM';
 }
 
-/** Takeover bot seat - Host wants to control a bot seat (debug mode) */
-export interface TakeoverBotSeatEvent {
-  kind: 'TAKEOVER_BOT_SEAT';
-  seat: number;
-}
-
 /** Union type of all interaction events. */
 export type InteractionEvent =
   | SeatTapEvent
   | BottomActionEvent
   | HostControlEvent
   | ViewRoleEvent
-  | LeaveRoomEvent
-  | TakeoverBotSeatEvent;
+  | LeaveRoomEvent;
 
 // =============================================================================
 // Interaction Results - What the orchestrator should do
@@ -173,17 +166,6 @@ export interface InteractionResultHostControl {
   action: 'prepareToFlip' | 'startGame' | 'restart';
 }
 
-/** Takeover bot seat (debug mode) */
-export interface InteractionResultTakeoverBotSeat {
-  kind: 'TAKEOVER_BOT_SEAT';
-  seat: number;
-}
-
-/** Release bot seat control (debug mode) */
-export interface InteractionResultReleaseBotSeat {
-  kind: 'RELEASE_BOT_SEAT';
-}
-
 /** View player profile card */
 export interface InteractionResultViewProfile {
   kind: 'VIEW_PROFILE';
@@ -199,8 +181,6 @@ export type InteractionResult =
   | InteractionResultSeatingFlow
   | InteractionResultActionFlow
   | InteractionResultHostControl
-  | InteractionResultTakeoverBotSeat
-  | InteractionResultReleaseBotSeat
   | InteractionResultViewProfile;
 
 // =============================================================================
@@ -232,12 +212,10 @@ export interface InteractionContext {
   actorRoleForUi: RoleId | null;
   imActioner: boolean; // computed from actorSeatForUi
 
-  // Debug mode (required to prevent silent drift)
-  isDebugMode: boolean;
+  // Actor delegation (required to prevent silent drift). Bot takeover is
+  // not routed through this policy: the shared long-press hook handles it.
   controlledSeat: number | null;
   isDelegating: boolean;
-  /** Function to get all bot seat indices (for takeover logic) */
-  getBotSeats?: () => number[];
   /** Check if a seat is occupied (for kick logic) */
   isSeatOccupied?: (seat: number) => boolean;
   /** Get the UID of the player at a seat (for profile card) */

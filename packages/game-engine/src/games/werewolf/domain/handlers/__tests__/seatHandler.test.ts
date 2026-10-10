@@ -48,6 +48,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     ...overrides,
   };
 }
@@ -84,9 +85,12 @@ describe('handleJoinSeat', () => {
   it('should fail when seat is taken', () => {
     const state = createMinimalState({
       players: {
-        0: { userId: 'other', seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'other' },
       },
     });
     const context = createContext(state);
@@ -163,13 +167,15 @@ describe('handleJoinSeat', () => {
     const state = createMinimalState({
       players: {
         0: {
-          userId: 'player-1',
           seat: 0,
           role: null,
           hasViewedRole: false,
         },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state);
@@ -196,13 +202,15 @@ describe('handleJoinSeat', () => {
     const state = createMinimalState({
       players: {
         0: {
-          userId: 'player-1',
           seat: 0,
           role: null,
           hasViewedRole: false,
         },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state);
@@ -227,9 +235,12 @@ describe('handleLeaveMySeat', () => {
   it('should succeed when leaving own seat (mySeat from context)', () => {
     const state = createMinimalState({
       players: {
-        0: { userId: 'player-1', seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -263,9 +274,12 @@ describe('handleLeaveMySeat', () => {
   it('should fail with not_authenticated when userId is empty', () => {
     const state = createMinimalState({
       players: {
-        0: { userId: 'player-1', seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -284,9 +298,12 @@ describe('handleLeaveMySeat', () => {
     const state = createMinimalState({
       status: GameStatus.Ongoing,
       players: {
-        0: { userId: 'player-1', seat: 0, role: 'villager', hasViewedRole: true },
+        0: { seat: 0, role: 'villager', hasViewedRole: true },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -307,9 +324,12 @@ describe('handleLeaveMySeat', () => {
       const state = createMinimalState({
         status,
         players: {
-          0: { userId: 'player-1', seat: 0, role: 'villager', hasViewedRole: true },
+          0: { seat: 0, role: 'villager', hasViewedRole: true },
           1: null,
           2: null,
+        },
+        roster: {
+          0: { seat: 0, userId: 'player-1' },
         },
       });
       const context = createContext(state, { mySeat: 0 });
@@ -359,9 +379,12 @@ describe('handleUpdatePlayerProfile', () => {
   it('should succeed and produce UPDATE_PLAYER_PROFILE action when seated', () => {
     const state = createMinimalState({
       players: {
-        0: { userId: 'player-1', seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -385,9 +408,12 @@ describe('handleUpdatePlayerProfile', () => {
   it('should pass only displayName when avatarUrl is undefined', () => {
     const state = createMinimalState({
       players: {
-        0: { userId: 'player-1', seat: 0, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
+      },
+      roster: {
+        0: { seat: 0, userId: 'player-1' },
       },
     });
     const context = createContext(state, { mySeat: 0 });
@@ -421,8 +447,11 @@ describe('handleKickPlayer', () => {
       hostUserId: 'host-1',
       players: {
         0: null,
-        1: { userId: 'p2', seat: 1, role: null, hasViewedRole: false },
+        1: { seat: 1, role: null, hasViewedRole: false },
         2: null,
+      },
+      roster: {
+        1: { seat: 1, userId: 'p2' },
       },
     });
     const context = createContext(state, { myUserId: 'not-host' });
@@ -459,9 +488,14 @@ describe('handleKickPlayer', () => {
     const state = createMinimalState({
       status: GameStatus.Seated,
       players: {
-        0: { userId: 'host-1', seat: 0, role: null, hasViewedRole: false },
-        1: { userId: 'p2', seat: 1, role: null, hasViewedRole: false },
-        2: { userId: 'p3', seat: 2, role: null, hasViewedRole: false },
+        0: { seat: 0, role: null, hasViewedRole: false },
+        1: { seat: 1, role: null, hasViewedRole: false },
+        2: { seat: 2, role: null, hasViewedRole: false },
+      },
+      roster: {
+        0: { seat: 0, userId: 'host-1' },
+        1: { seat: 1, userId: 'p2' },
+        2: { seat: 2, userId: 'p3' },
       },
     });
     const context = createContext(state, { myUserId: 'host-1' });

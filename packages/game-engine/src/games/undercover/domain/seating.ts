@@ -1,4 +1,4 @@
-/** Undercover room commands using the shared seating kernel; no IO or direct writes.
+/** Undercover room commands using the shared roster decisions; no IO or direct writes.
  * @remarks Roster changes are lobby-only; profile changes preserve frozen participant identity.
  */
 
@@ -9,12 +9,16 @@ import {
 } from '../../../platform/engine';
 import { REASON_NOT_SEATED, REASON_SEAT_TAKEN } from '../../../platform/protocol/reasons';
 import {
-  decideClearSeats,
-  decideKickSeat,
-  decideLeaveSeat,
-  decideTakeSeat,
-  findSeatByUserId,
-  type SeatChange,
+  decideRosterClearSeats,
+  decideRosterFillBots,
+  decideRosterKickSeat,
+  decideRosterLeaveSeat,
+  decideRosterTakeSeat,
+  findRosterSeatByUserId,
+  hasOccupantAtOrBeyond,
+  isBotOccupant,
+  isBotSeat,
+  type RosterChange,
 } from '../../../platform/room/seating';
 import type { UndercoverPublicCommand } from '../commands/types';
 import { isValidUndercoverConfig } from '../state/normalize';
@@ -31,11 +35,8 @@ type RoomCommand = Extract<
   { readonly type: `room.${string}` | 'undercover.config.update' }
 >;
 
-function seatDecision(
-  changes: readonly SeatChange<UndercoverHumanSeat>[],
-  botSeats: readonly number[],
-): UndercoverDecision {
-  return commitUndercover([{ type: 'undercover.seats.changed', changes, botSeats }]);
+function seatDecision(changes: readonly RosterChange<UndercoverHumanSeat>[]): UndercoverDecision {
+  return commitUndercover([{ type: 'undercover.seats.changed', changes }]);
 }
 
 function decideProfile(
@@ -45,21 +46,20 @@ function decideProfile(
 ): UndercoverDecision {
   const actor = resolveUncontrolledUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  const seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+  const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
   if (seat === null) return reject(REASON_NOT_SEATED);
-  const occupant = state.realSeats[seat]!;
+  const occupant = state.roster[seat];
+  if (occupant == null || isBotOccupant(occupant))
+    throw new Error('Undercover profile update resolved to a non-human seat');
   if (command.profile.displayName !== undefined && command.profile.displayName.trim().length === 0)
     return reject(UNDERCOVER_REASONS.config);
-  return seatDecision(
-    [
-      {
-        seat,
-        previous: occupant,
-        next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
-      },
-    ],
-    state.botSeats,
-  );
+  return seatDecision([
+    {
+      seat,
+      previous: occupant,
+      next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
+    },
+  ]);
 }
 
 /** Decides shared room and configuration commands with game-specific lobby gates. */
@@ -74,13 +74,13 @@ export function decideUndercoverRoom(
     const actor = resolveUncontrolledUserActorId(context);
     if (actor.kind === 'rejected') return reject(actor.reason);
     if (command.type === 'room.seat.take') {
-      if (state.botSeats.includes(command.seat)) return reject(REASON_SEAT_TAKEN);
+      if (isBotSeat(state.roster, command.seat)) return reject(REASON_SEAT_TAKEN);
       if (command.profile.displayName.trim().length === 0) return reject(UNDERCOVER_REASONS.config);
     }
     const result =
       command.type === 'room.seat.take'
-        ? decideTakeSeat(
-            state.realSeats,
+        ? decideRosterTakeSeat(
+            state.roster,
             state.config.numberOfPlayers,
             command.seat,
             actor.value,
@@ -90,44 +90,31 @@ export function decideUndercoverRoom(
               profile: { ...command.profile },
             }),
           )
-        : decideLeaveSeat(state.realSeats, state.config.numberOfPlayers, actor.value);
-    return result.kind === 'rejected'
-      ? reject(result.reason)
-      : seatDecision(result.changes, state.botSeats);
+        : decideRosterLeaveSeat(state.roster, state.config.numberOfPlayers, actor.value);
+    return result.kind === 'rejected' ? reject(result.reason) : seatDecision(result.changes);
   }
   const hostRejection = requireUndercoverHost(state, context);
   if (hostRejection !== null) return hostRejection;
   switch (command.type) {
     case 'undercover.config.update': {
       if (!isValidUndercoverConfig(command.config)) return reject(UNDERCOVER_REASONS.config);
-      const occupied = [...Object.keys(state.realSeats).map(Number), ...state.botSeats];
-      if (occupied.some((seat) => seat >= command.config.numberOfPlayers))
+      if (hasOccupantAtOrBeyond(state.roster, command.config.numberOfPlayers))
         return reject(UNDERCOVER_REASONS.occupied);
       return commitUndercover([
         { type: 'undercover.config.updated', config: { ...command.config } },
       ]);
     }
     case 'room.seat.fillBots': {
-      const botSeats = Array.from(
-        { length: state.config.numberOfPlayers },
-        (_, seat) => seat,
-      ).filter((seat) => state.realSeats[seat] === undefined);
-      return seatDecision([], botSeats);
+      const result = decideRosterFillBots(state.roster, state.config.numberOfPlayers);
+      return result.kind === 'rejected' ? reject(result.reason) : seatDecision(result.changes);
     }
     case 'room.seat.kick': {
-      if (state.botSeats.includes(command.seat))
-        return seatDecision(
-          [],
-          state.botSeats.filter((seat) => seat !== command.seat),
-        );
-      const result = decideKickSeat(state.realSeats, state.config.numberOfPlayers, command.seat);
-      return result.kind === 'rejected'
-        ? reject(result.reason)
-        : seatDecision(result.changes, state.botSeats);
+      const result = decideRosterKickSeat(state.roster, state.config.numberOfPlayers, command.seat);
+      return result.kind === 'rejected' ? reject(result.reason) : seatDecision(result.changes);
     }
     case 'room.seat.clear': {
-      const result = decideClearSeats(state.realSeats, state.config.numberOfPlayers);
-      return result.kind === 'rejected' ? reject(result.reason) : seatDecision(result.changes, []);
+      const result = decideRosterClearSeats(state.roster, state.config.numberOfPlayers);
+      return result.kind === 'rejected' ? reject(result.reason) : seatDecision(result.changes);
     }
   }
 }

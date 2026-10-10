@@ -8,7 +8,9 @@ import {
   type AvalonState,
   type AvalonViewModel,
   getAvalonOccupiedSeatCount,
+  getAvalonUserSeat,
   getAvalonViewModel,
+  isAvalonBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
 
@@ -28,7 +30,6 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -48,7 +49,6 @@ import type {
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
-import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
@@ -62,18 +62,6 @@ import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureM
 import { resolveNightInstruction } from '../policy/avalonInteractionPolicy';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 import { useAvalonSeatCommands } from './useAvalonSeatCommands';
-
-/** 机器人可被接管的阶段：大厅与终局除外（D12：机制保留，不做接管提示）。 */
-function canControlBotsInPhase(phaseKind: string): boolean {
-  return (
-    phaseKind === 'night' ||
-    phaseKind === 'nominate' ||
-    phaseKind === 'vote' ||
-    phaseKind === 'quest' ||
-    phaseKind === 'lady' ||
-    phaseKind === 'assassin'
-  );
-}
 
 /**
  * 阿瓦隆房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
@@ -134,7 +122,7 @@ export function useAvalonRoomState(
     pendingAudioEffects: state.pendingAudioEffects,
     audio,
   });
-  const mySeat = getUserSeat(state.realSeats, user.id);
+  const mySeat = getAvalonUserSeat(state, user.id);
   const isLobby = state.phase.kind === 'lobby';
   // 查看身份：角色卡弹窗状态（对齐狼人杀）。
   const [roleCardVisible, setRoleCardVisible] = useState(false);
@@ -171,11 +159,12 @@ export function useAvalonRoomState(
         label,
       }),
     );
-  // 机器人席位仅房主可接管；离开可接管阶段自动释放。
-  const canControlBots = isHost && canControlBotsInPhase(state.phase.kind);
+  // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
+  const canControlBots = isHost;
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots,
+    seatStillBot: controlledSeat === null || isAvalonBotSeat(state, controlledSeat),
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
@@ -205,25 +194,13 @@ export function useAvalonRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: canControlBots
       ? { isAllowed: true, execute: takeOver }
-      : { isAllowed: false, reason: '当前不能接管机器人' },
+      : { isAllowed: false, reason: '只有房主可以接管机器人' },
   };
   const onSeatPress = (seat: number) => {
     if (!isLobby) {
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
     const target = getAvalonProfileTarget(state, seat);
-    if (target?.occupantKind === 'bot')
-      return showAlert(target.rosterName, '请选择对该机器人座位的操作', [
-        { text: '取消', style: 'cancel' },
-        { text: '查看资料', onPress: () => profile.open(target) },
-        {
-          text: '替换机器人入座',
-          onPress: () =>
-            mySeat === null
-              ? seatController.requestTakeSeat(seat)
-              : seatController.requestMoveSeat(seat),
-        },
-      ]);
     if (target !== null) return profile.open(target);
     return mySeat === null
       ? seatController.requestTakeSeat(seat)

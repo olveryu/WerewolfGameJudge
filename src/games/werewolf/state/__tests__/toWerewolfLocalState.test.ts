@@ -13,9 +13,9 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'seer'] as RoleId[],
     players: {
-      0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
-      1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
-      2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
+      0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
+      1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
+      2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
@@ -27,6 +27,11 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
     roster: {
+      0: { seat: 0, userId: 'p0' },
+      1: { seat: 1, userId: 'p1' },
+      2: { seat: 2, userId: 'p2' },
+    },
+    playerProfiles: {
       p0: { displayName: 'P1' },
       p1: { displayName: 'P2' },
       p2: { displayName: 'P3' },
@@ -38,7 +43,7 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
 describe('toWerewolfLocalState', () => {
   it('fails fast before rendering a stale reveal effect', () => {
     const state = makeBaseGameState({
-      roster: {
+      playerProfiles: {
         p0: { displayName: 'P1', revealEffect: 'retiredEffect' },
         p1: { displayName: 'P2' },
         p2: { displayName: 'P3' },

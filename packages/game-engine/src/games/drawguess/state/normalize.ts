@@ -1,5 +1,6 @@
 /** DrawGuess semantic invariants; invalid persisted or evolved states fail explicitly. */
 
+import { isBotOccupant } from '../../../platform/room/seating';
 import { isValidWordChoice } from '../domain/rules';
 import {
   DRAWGUESS_GAME_TYPE,
@@ -8,6 +9,7 @@ import {
   DRAWGUESS_ROUNDS_PER_DRAWER,
   DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_CHOICE_COUNT,
+  type DrawGuessHumanSeat,
   type DrawGuessState,
   type DrawGuessStroke,
   isValidDrawGuessConfig,
@@ -68,25 +70,24 @@ export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
   );
   invariant(Number.isSafeInteger(state.turnIndex) && state.turnIndex >= 0, 'turn index');
   invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
-  const users = Object.entries(state.realSeats);
+  const occupants = Object.entries(state.roster);
   invariant(
-    users.every(
+    occupants.every(
       ([seat, occupant]) =>
-        occupant !== undefined &&
-        isSeat(Number(seat)) &&
-        occupant.seat === Number(seat) &&
-        occupant.profile.displayName.trim().length > 0,
+        occupant != null && isSeat(Number(seat)) && occupant.seat === Number(seat),
     ),
-    'real seats',
+    'roster seats',
+  );
+  const humans = occupants.filter(
+    (entry): entry is [string, DrawGuessHumanSeat] => !isBotOccupant(entry[1]),
   );
   invariant(
-    new Set(users.map(([, occupant]) => occupant!.userId)).size === users.length,
+    humans.every(([, occupant]) => occupant.profile.displayName.trim().length > 0),
+    'human seat profiles',
+  );
+  invariant(
+    new Set(humans.map(([, occupant]) => occupant.userId)).size === humans.length,
     'duplicate user',
-  );
-  invariant(
-    state.excludedBotSeats.every((seat) => isSeat(seat) && state.realSeats[seat] === undefined) &&
-      new Set(state.excludedBotSeats).size === state.excludedBotSeats.length,
-    'excluded bot seats',
   );
   invariant(
     state.drawerQueue.every(isSeat) && new Set(state.drawerQueue).size === state.drawerQueue.length,

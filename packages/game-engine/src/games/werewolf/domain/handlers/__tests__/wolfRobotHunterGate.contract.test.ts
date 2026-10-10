@@ -20,7 +20,10 @@ import { handleAdvanceNight as executeAdvanceNight } from '@game-judge/game-engi
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@game-judge/game-engine/games/werewolf/domain/handlers/wolfRobotHunterGateHandler';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import type {
+  GameState,
+  WerewolfHumanSeat,
+} from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
@@ -34,16 +37,16 @@ function handleAdvanceNight(
 
 // Create minimal state for testing
 function createTestState(overrides?: Partial<GameState>): GameState {
-  return {
+  const state: GameState = {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,
     templateRoles: ['wolfRobot', 'hunter', 'villager'],
     players: {
-      0: { userId: 'U1', seat: 0, role: 'wolfRobot', hasViewedRole: true },
-      1: { userId: 'U2', seat: 1, role: 'hunter', hasViewedRole: true },
-      2: { userId: 'U3', seat: 2, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'wolfRobot', hasViewedRole: true },
+      1: { seat: 1, role: 'hunter', hasViewedRole: true },
+      2: { seat: 2, role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
@@ -56,6 +59,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     wolfRobotReveal: {
       targetSeat: 1,
       result: 'hunter',
@@ -65,6 +69,17 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     wolfRobotHunterStatusViewed: false,
     ...overrides,
   };
+  // Occupancy follows the players map in this factory (seat N is user `U<seat+1>`).
+  if (overrides?.roster === undefined) {
+    const roster: Record<number, WerewolfHumanSeat> = {};
+    for (const player of Object.values(state.players)) {
+      if (player !== null) {
+        roster[player.seat] = { seat: player.seat, userId: `U${player.seat + 1}` };
+      }
+    }
+    return { ...state, roster };
+  }
+  return state;
 }
 
 describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)', () => {

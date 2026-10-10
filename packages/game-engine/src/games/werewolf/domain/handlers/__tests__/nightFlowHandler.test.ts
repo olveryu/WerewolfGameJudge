@@ -29,6 +29,7 @@ import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/domain/mo
 import type {
   GameState,
   Player,
+  WerewolfHumanSeat,
 } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type { EndNightAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
@@ -51,7 +52,6 @@ function handleEndNight(intent: EndNightIntent, context: HandlerContext) {
  */
 function createPlayer(seat: number, role: string, overrides?: Partial<Player>): Player {
   return {
-    userId: `player-${seat}`,
     seat: seat,
     role: role as Player['role'],
     hasViewedRole: true,
@@ -63,7 +63,7 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
  * Create a basic ongoing state
  */
 function createOngoingState(overrides?: Partial<GameState>): GameState {
-  return {
+  const state: GameState = {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-uid',
@@ -90,8 +90,20 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     ...overrides,
   };
+  // Occupancy follows the players map in this factory (seat N is user `player-N`).
+  if (overrides?.roster === undefined) {
+    const roster: Record<number, WerewolfHumanSeat> = {};
+    for (const player of Object.values(state.players)) {
+      if (player !== null) {
+        roster[player.seat] = { seat: player.seat, userId: `player-${player.seat}` };
+      }
+    }
+    return { ...state, roster };
+  }
+  return state;
 }
 
 describe('nightFlowHandler', () => {
@@ -357,13 +369,11 @@ describe('nightFlowHandler', () => {
           templateRoles: ['wolf', 'villager'],
           players: {
             0: {
-              userId: 'u0',
               seat: 0,
               role: 'wolf',
               hasViewedRole: true,
             },
             1: {
-              userId: 'u1',
               seat: 1,
               role: 'villager',
               hasViewedRole: true,
@@ -383,7 +393,11 @@ describe('nightFlowHandler', () => {
           conversionRevealAcks: [],
           seedWolfInfectionRevealAcks: [],
           cupidLoversRevealAcks: [],
-          roster: {},
+          roster: {
+            0: { seat: 0, userId: 'u0' },
+            1: { seat: 1, userId: 'u1' },
+          },
+          playerProfiles: {},
         },
       };
 

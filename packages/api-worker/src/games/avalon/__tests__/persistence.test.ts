@@ -43,9 +43,13 @@ describe('Avalon restart recovery', () => {
     );
     if (created.kind !== 'created') throw new Error(created.reason);
     const seated = applyCommand(
-      applyCommand(created.state, { type: 'room.seat.fillBots' }, 'fill'),
-      { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } },
-      'seat',
+      applyCommand(
+        created.state,
+        { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } },
+        'seat',
+      ),
+      { type: 'room.seat.fillBots' },
+      'fill',
     );
     expect(restartRecover(seated)).toEqual(seated);
   });
@@ -56,12 +60,12 @@ describe('Avalon restart recovery', () => {
       { roomCode: '1234', hostUserId: HOST, nowMs: 1, commandId: 'create' },
     );
     if (created.kind !== 'created') throw new Error(created.reason);
-    let state = applyCommand(created.state, { type: 'room.seat.fillBots' }, 'fill');
-    state = applyCommand(
-      state,
+    let state = applyCommand(
+      created.state,
       { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } },
       'seat',
     );
+    state = applyCommand(state, { type: 'room.seat.fillBots' }, 'fill');
     state = applyCommand(state, { type: 'avalon.game.start' }, 'start');
     if (state.phase.kind !== 'night') throw new Error('Expected night phase');
     const recovered = restartRecover(state);

@@ -29,10 +29,14 @@ function createDayState() {
     status: GameStatus.Day,
     rules: { isSheriffElectionEnabled: true },
     players: {
-      0: { userId: 'host-1', seat: 0, role: 'wolf', hasViewedRole: true },
-      1: { userId: 'user-1', seat: 1, role: 'seer', hasViewedRole: true },
+      0: { seat: 0, role: 'wolf', hasViewedRole: true },
+      1: { seat: 1, role: 'seer', hasViewedRole: true },
     },
     roster: {
+      0: { seat: 0, userId: 'host-1' },
+      1: { seat: 1, userId: 'user-1' },
+    },
+    playerProfiles: {
       'host-1': { displayName: 'Host' },
       'user-1': { displayName: 'Player' },
     },

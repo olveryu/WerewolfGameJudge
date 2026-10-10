@@ -1,8 +1,12 @@
 /** Generic seat-map contracts used by game-specific room adapters. */
 
-export interface SeatOccupant {
-  readonly userId: string;
+/** Anything that can sit in a seat slot; humans add a user identity. */
+export interface SeatSlotOccupant {
   readonly seat: number;
+}
+
+export interface SeatOccupant extends SeatSlotOccupant {
+  readonly userId: string;
 }
 
 /**
@@ -13,13 +17,13 @@ export type SeatMap<TSeat extends SeatOccupant> = Readonly<
   Record<number, TSeat | null | undefined>
 >;
 
-export interface SeatChange<TSeat extends SeatOccupant> {
+export interface SeatChange<TSeat extends SeatSlotOccupant> {
   readonly seat: number;
   readonly previous: TSeat | null;
   readonly next: TSeat | null;
 }
 
-export type SeatOperationResult<TSeat extends SeatOccupant> =
+export type SeatOperationResult<TSeat extends SeatSlotOccupant> =
   | {
       readonly kind: 'accepted';
       readonly changes: readonly SeatChange<TSeat>[];

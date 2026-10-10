@@ -15,7 +15,7 @@ import {
   REASON_NOT_SEATED,
   REASON_SEAT_EMPTY,
 } from '../../../platform/protocol/reasons';
-import { findSeatByUserId } from '../../../platform/room/seating';
+import { findRosterSeatByUserId, isBotOccupant } from '../../../platform/room/seating';
 import type { HandlerContext } from './handlers/types';
 import type { GameState } from './protocol/types';
 
@@ -47,7 +47,7 @@ export function resolveUserActor(
   const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return actor;
   const userId = actor.value;
-  const mySeat = findSeatByUserId(state.players, seatCount(state), userId);
+  const mySeat = findRosterSeatByUserId(state.roster, seatCount(state), userId);
   return resolved({
     userId,
     handlerContext: { state, myUserId: userId, mySeat },
@@ -94,11 +94,11 @@ export function resolveEffectiveSeatActor(
     return rejected(REASON_INVALID_SEAT);
   }
 
-  const controlledPlayer = state.players[controlledSeat];
-  if (controlledPlayer == null) {
+  const controlledOccupant = state.roster[controlledSeat];
+  if (controlledOccupant == null) {
     return rejected(REASON_SEAT_EMPTY);
   }
-  if (controlledPlayer.isBot !== true) {
+  if (!isBotOccupant(controlledOccupant)) {
     return rejected(REASON_CONTROLLED_SEAT_NOT_BOT);
   }
 

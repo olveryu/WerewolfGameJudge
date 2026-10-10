@@ -1,22 +1,15 @@
 /** Pure FibKing event reducer. */
 
 import { markSeatViewed } from '../../../platform/room/identityViewing';
-import { FIB_USED_WORD_LIMIT, type FibHumanSeat, type FibState } from '../state/types';
+import { applyRosterChanges, isBotOccupant } from '../../../platform/room/seating';
+import { FIB_USED_WORD_LIMIT, type FibState } from '../state/types';
 import type { FibEvent } from './events';
 
 function applySeatChanges(
   state: FibState,
   event: Extract<FibEvent, { readonly type: 'fib.seats.changed' }>,
 ): FibState {
-  const realSeats: Record<number, FibHumanSeat | undefined> = { ...state.realSeats };
-  for (const change of event.changes) {
-    if (change.next === null) {
-      delete realSeats[change.seat];
-    } else {
-      realSeats[change.seat] = change.next;
-    }
-  }
-  return { ...state, realSeats };
+  return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
 }
 
 function appendUsedWord(words: readonly string[], word: string): readonly string[] {
@@ -29,14 +22,14 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
     case 'fib.seats.changed':
       return applySeatChanges(state, event);
     case 'fib.profile.updated': {
-      const occupant = state.realSeats[event.seat];
-      if (occupant === undefined) {
+      const occupant = state.roster[event.seat];
+      if (occupant == null || isBotOccupant(occupant)) {
         throw new Error(`Fib profile event references empty real seat ${event.seat}`);
       }
       return {
         ...state,
-        realSeats: {
-          ...state.realSeats,
+        roster: {
+          ...state.roster,
           [event.seat]: {
             ...occupant,
             profile: { ...occupant.profile, ...event.profile },
@@ -44,27 +37,8 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
       };
     }
-    case 'fib.botFill.changed':
-      return { ...state, fillEmptySeatsWithBots: event.isEnabled, excludedBotSeats: [] };
-    case 'fib.botSeat.excluded':
-      if (!state.fillEmptySeatsWithBots) {
-        throw new Error('Fib bot-seat exclusion requires bot fill to be enabled');
-      }
-      if (state.excludedBotSeats.includes(event.seat)) {
-        throw new Error(`Fib bot seat ${event.seat} is already excluded`);
-      }
-      return {
-        ...state,
-        excludedBotSeats: [...state.excludedBotSeats, event.seat].sort(
-          (left, right) => left - right,
-        ),
-      };
     case 'fib.config.updated':
-      return {
-        ...state,
-        numberOfPlayers: event.numberOfPlayers,
-        excludedBotSeats: state.excludedBotSeats.filter((seat) => seat < event.numberOfPlayers),
-      };
+      return { ...state, numberOfPlayers: event.numberOfPlayers };
     case 'fib.round.preparing':
       return {
         ...state,

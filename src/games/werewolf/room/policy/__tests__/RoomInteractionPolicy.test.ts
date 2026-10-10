@@ -33,8 +33,7 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
     // Actor identity (for actions)
     actorSeatForUi: 0,
     actorRoleForUi: 'villager',
-    // Debug mode (required, non-optional)
-    isDebugMode: false,
+    // Actor delegation (required, non-optional)
     controlledSeat: null,
     isDelegating: false,
     ...overrides,
@@ -492,7 +491,6 @@ describe('RoomInteractionPolicy - Event Routing', () => {
         actorSeatForUi: 3,
         controlledSeat: 3,
         isDelegating: true,
-        isDebugMode: true,
       });
       const event = createViewRoleEvent();
 

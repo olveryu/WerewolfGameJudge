@@ -30,7 +30,7 @@ type Players = GameState['players'];
 function mkPlayers(entries: Array<[number, RoleId | null]>): Players {
   const players: Players = {};
   for (const [seat, role] of entries) {
-    players[seat] = role ? { userId: `p${seat}`, seat: seat, role, hasViewedRole: true } : null;
+    players[seat] = role ? { seat: seat, role, hasViewedRole: true } : null;
   }
   return players;
 }
@@ -43,7 +43,8 @@ function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['thief', 'seer', 'villager'],
     players: mkPlayers([[0, 'thief']]),
-    roster: {},
+    roster: { 0: { seat: 0, userId: 'p0' } },
+    playerProfiles: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
@@ -83,7 +84,7 @@ describe('buildSeatRoleMap', () => {
 
   it('should skip players with null role', () => {
     const players: Players = {
-      0: { userId: 'p0', seat: 0, role: null, hasViewedRole: false },
+      0: { seat: 0, role: null, hasViewedRole: false },
     };
     const map = buildSeatRoleMap(players);
     expect(map.size).toBe(0);
@@ -190,11 +191,11 @@ describe('forEachSeatedPlayer', () => {
     ]);
     const entries: Array<[number, string]> = [];
     forEachSeatedPlayer(players, (seat, player) => {
-      entries.push([seat, player.userId]);
+      entries.push([seat, player.role ?? '']);
     });
     expect(entries).toEqual([
-      [0, 'p0'],
-      [2, 'p2'],
+      [0, 'seer'],
+      [2, 'wolf'],
     ]);
   });
 

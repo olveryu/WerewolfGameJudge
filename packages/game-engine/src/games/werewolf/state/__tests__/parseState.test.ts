@@ -18,12 +18,18 @@ function createFullState(): GameState {
       witchCanSelfHeal: true,
     },
     players: {
-      0: { userId: 'host', seat: 0, role: 'treasureMaster', hasViewedRole: true },
-      1: { userId: 'player', seat: 1, role: 'wolf', hasViewedRole: true, isBot: false },
-      2: { userId: 'seer', seat: 2, role: 'seer', hasViewedRole: true },
-      3: { userId: 'villager', seat: 3, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'treasureMaster', hasViewedRole: true },
+      1: { seat: 1, role: 'wolf', hasViewedRole: true },
+      2: { seat: 2, role: 'seer', hasViewedRole: true },
+      3: { seat: 3, role: 'villager', hasViewedRole: true },
     },
     roster: {
+      0: { seat: 0, userId: 'host' },
+      1: { seat: 1, userId: 'player' },
+      2: { seat: 2, userId: 'seer' },
+      3: { seat: 3, userId: 'villager' },
+    },
+    playerProfiles: {
       host: {
         displayName: 'Host',
         avatarUrl: 'avatar',
@@ -202,13 +208,13 @@ describe('parseWerewolfState', () => {
     const state = createFullState();
     const encoded = {
       ...state,
-      roster: {
-        ...state.roster,
-        host: { ...state.roster.host, revealEffect: '' },
+      playerProfiles: {
+        ...state.playerProfiles,
+        host: { ...state.playerProfiles.host, revealEffect: '' },
       },
     };
 
-    expect(parseWerewolfState(encoded).roster.host?.revealEffect).toBe('none');
+    expect(parseWerewolfState(encoded).playerProfiles.host?.revealEffect).toBe('none');
   });
 
   it('rejects an unknown top-level field', () => {
@@ -219,12 +225,32 @@ describe('parseWerewolfState', () => {
     );
   });
 
+  it('rejects malformed roster occupants', () => {
+    const botWithUserId = {
+      ...createFullState(),
+      roster: { 0: { seat: 0, kind: 'bot', userId: 'bot-0' } },
+    };
+    expect(() => parseWerewolfState(botWithUserId)).toThrow('unknown field: userId');
+
+    const humanWithKind = {
+      ...createFullState(),
+      roster: { 0: { seat: 0, userId: 'host', kind: 'bot' } },
+    };
+    // kind:'bot' routes to the bot branch, which rejects the human field.
+    expect(() => parseWerewolfState(humanWithKind)).toThrow('unknown field: userId');
+
+    const unknownKind = {
+      ...createFullState(),
+      roster: { 0: { seat: 0, userId: 'host', kind: 'ghost' } },
+    };
+    expect(() => parseWerewolfState(unknownKind)).toThrow('unknown field: kind');
+  });
+
   it('rejects an unknown nested field', () => {
     const encoded = {
       ...createFullState(),
       players: {
         0: {
-          userId: 'host',
           seat: 0,
           hasViewedRole: true,
           legacyBot: true,

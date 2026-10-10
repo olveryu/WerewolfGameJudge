@@ -3,11 +3,21 @@
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
-import type { SeatOccupant } from '../../../platform/room/seating';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  getBotSeats,
+  getHumanSeatMap,
+  isBotSeat,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
 
 export const AVALON_GAME_TYPE = 'avalon' as const;
-/** v2 adds roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate with an empty record. */
-export const AVALON_STATE_VERSION = 2;
+/** v3: unified roster replaces realSeats + the implicit-bot derivation inputs.
+ * v2 added roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate
+ * with an empty viewing record. */
+export const AVALON_STATE_VERSION = 3;
 
 export const AVALON_MIN_PLAYERS = 5;
 export const AVALON_MAX_PLAYERS = 10;
@@ -319,11 +329,7 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly phase: AvalonPhase;
   readonly phaseRevision: number;
   readonly config: AvalonConfig;
-  readonly realSeats: Readonly<Record<number, AvalonHumanSeat | undefined>>;
-  /** 大厅房主点了"填充机器人"后为 true；配置页无此开关（D9）。 */
-  readonly fillEmptySeatsWithBots: boolean;
-  /** 房主显式踢掉的隐式机器人席位。 */
-  readonly excludedBotSeats: readonly number[];
+  readonly roster: RosterMap<AvalonHumanSeat>;
   /** seat -> 角色；公开广播，UI 按 myRole 过滤（D6-Q1）。 */
   readonly roles: Readonly<Record<number, AvalonRoleId>>;
   /** 已查看自己角色的座位（身份查看协议）；第一个任务开始前的检查点依据。 */
@@ -355,35 +361,34 @@ export function getAvalonBotDisplayName(seat: number): string {
   return `机器人${seat + 1}号`;
 }
 
-/** 隐式机器人席位：点了填充机器人、无真人入座、未被踢掉的空座。 */
-export function isAvalonImplicitBotSeat(state: AvalonState, seat: number): boolean {
-  return (
-    state.fillEmptySeatsWithBots &&
-    Number.isSafeInteger(seat) &&
-    seat >= 0 &&
-    seat < state.config.numberOfPlayers &&
-    state.realSeats[seat] === undefined &&
-    !state.excludedBotSeats.includes(seat)
-  );
+/** Returns the seats held by bots, ascending. */
+export function getAvalonBotSeats(state: AvalonState): readonly number[] {
+  return getBotSeats(state.roster);
 }
 
-/** Counts real humans only (excludes implicit bot seats). */
+/** Returns whether a seat is held by a bot. */
+export function isAvalonBotSeat(state: AvalonState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function getAvalonUserSeat(state: AvalonState, userId: string): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
+}
+
+/** Counts real humans only (excludes bot seats). */
 export function getAvalonRealHumanCount(state: AvalonState): number {
-  return Object.values(state.realSeats).filter((seat) => seat !== undefined).length;
+  return Object.keys(getHumanSeatMap(state.roster, state.config.numberOfPlayers)).length;
 }
 
-/** Counts real humans plus implicit bot seats (occupied seats for display). */
+/** Counts occupied seats (real humans plus bots). */
 export function getAvalonOccupiedSeatCount(state: AvalonState): number {
-  let count = getAvalonRealHumanCount(state);
-  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-    if (isAvalonImplicitBotSeat(state, seat)) count += 1;
-  }
-  return count;
+  return countOccupiedSeats(state.roster);
 }
 
-/** Seat is playable: a real human or an implicit bot seat. */
+/** Seat is playable: occupied by a real human or a bot. */
 export function isAvalonOccupiedSeat(state: AvalonState, seat: number): boolean {
-  return state.realSeats[seat] !== undefined || isAvalonImplicitBotSeat(state, seat);
+  return state.roster[seat] != null;
 }
 
 /** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
@@ -393,7 +398,7 @@ export function getAvalonViewingParticipants(
   const participants: IdentityViewingParticipant[] = [];
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
     if (!isAvalonOccupiedSeat(state, seat)) continue;
-    participants.push({ seat, isBot: isAvalonImplicitBotSeat(state, seat) });
+    participants.push({ seat, isBot: isAvalonBotSeat(state, seat) });
   }
   return participants;
 }

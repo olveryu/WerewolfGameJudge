@@ -2,10 +2,17 @@
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
-import type { SeatOccupant } from '../../../platform/room/seating';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  getBotSeats,
+  isBotSeat,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 
-export const UNDERCOVER_STATE_VERSION = 3;
+export const UNDERCOVER_STATE_VERSION = 4;
 export const UNDERCOVER_CATEGORIES = [
   'food',
   'dailyLife',
@@ -67,8 +74,7 @@ export type UndercoverPreparationFailure =
 
 interface UndercoverStateBase extends BaseGameState<'undercover'> {
   readonly config: UndercoverConfig;
-  readonly realSeats: Readonly<Record<number, UndercoverHumanSeat | undefined>>;
-  readonly botSeats: readonly number[];
+  readonly roster: RosterMap<UndercoverHumanSeat>;
   readonly usedWordPairIds: readonly string[];
 }
 
@@ -96,7 +102,22 @@ export function isUndercoverSeat(state: UndercoverState, seat: number): boolean 
   return Number.isSafeInteger(seat) && seat >= 0 && seat < state.config.numberOfPlayers;
 }
 
-/** Returns the number of occupied human and explicitly filled robot seats. */
+/** Returns the number of occupied seats (humans and bots). */
 export function getUndercoverOccupiedSeatCount(state: UndercoverState): number {
-  return Object.keys(state.realSeats).length + state.botSeats.length;
+  return countOccupiedSeats(state.roster);
+}
+
+/** Returns the seats held by bots, ascending. */
+export function getUndercoverBotSeats(state: UndercoverState): readonly number[] {
+  return getBotSeats(state.roster);
+}
+
+/** Returns whether a seat is held by a bot. */
+export function isUndercoverBotSeat(state: UndercoverState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function getUndercoverUserSeat(state: UndercoverState, userId: string): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
 }

@@ -1,18 +1,22 @@
 /** Public pure Story Relay API for transport, persistence and the client game module. */
 
+export { isBotOccupant } from '../../platform/room/seating';
 export type { StoryRelayCommand, StoryRelayTaskIdentity } from './commands/types';
 export { STORY_RELAY_REASONS, type StoryRelayEffect } from './domain/decision';
 export { decideStoryRelayCommand, getStoryRelayLifecycle, storyRelayEngine } from './engine';
 export {
-  parseStoryRelayState as migratePersistedStoryRelayState,
+  migratePersistedStoryRelayState,
   parseStoryRelayConfig,
   parseStoryRelayState,
   STORY_RELAY_STATE_CODEC,
 } from './state/codec';
 export {
   DEFAULT_STORY_RELAY_CONFIG,
+  getStoryRelayBotSeats,
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
+  getStoryRelayUserSeat,
+  isStoryRelayBotSeat,
   isValidStoryRelayConfig,
   STORY_RELAY_GALLERY_DURATIONS,
   STORY_RELAY_GAME_TYPE,

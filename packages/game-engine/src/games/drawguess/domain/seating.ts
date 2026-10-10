@@ -1,4 +1,4 @@
-/** Lobby-only DrawGuess seating using shared seat operations; implicit bot seats need no records. */
+/** Lobby-only DrawGuess seating on the unified roster; bot seats are explicit occupants. */
 
 import {
   type CommandContext,
@@ -7,18 +7,20 @@ import {
 } from '../../../platform/engine';
 import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import {
-  decideClearSeats,
-  decideKickSeat,
-  decideLeaveSeat,
-  decideTakeSeat,
-  findSeatByUserId,
-  type SeatChange,
+  decideRosterClearSeats,
+  decideRosterFillBots,
+  decideRosterKickSeat,
+  decideRosterLeaveSeat,
+  decideRosterTakeSeat,
+  findRosterSeatByUserId,
+  hasOccupantAtOrBeyond,
+  isBotOccupant,
+  type RosterChange,
 } from '../../../platform/room/seating';
 import type { DrawGuessCommand } from '../commands/types';
 import {
   type DrawGuessHumanSeat,
   type DrawGuessState,
-  isDrawGuessImplicitBotSeat,
   isValidDrawGuessConfig,
 } from '../state/types';
 import {
@@ -33,18 +35,15 @@ type RoomCommand = Extract<
   { readonly type: `room.${string}` | 'drawguess.config.update' }
 >;
 
-function seats(
-  changes: readonly SeatChange<DrawGuessHumanSeat>[],
-  excludedBotSeats: readonly number[],
-): DrawGuessDecision {
-  return commitDrawGuess([{ type: 'drawguess.seats.changed', changes, excludedBotSeats }]);
+function seats(changes: readonly RosterChange<DrawGuessHumanSeat>[]): DrawGuessDecision {
+  return commitDrawGuess([{ type: 'drawguess.seats.changed', changes }]);
 }
 
 function rejectSeatOperation(reason: string): DrawGuessDecision {
   return reject(reason);
 }
 
-/** Decides lobby and profile changes with authenticated ownership and implicit bots. */
+/** Decides lobby and profile changes with authenticated ownership. */
 export function decideDrawGuessRoom(
   state: DrawGuessState,
   command: RoomCommand,
@@ -53,20 +52,17 @@ export function decideDrawGuessRoom(
   if (command.type === 'room.profile.update') {
     const actor = resolveUncontrolledUserActorId(context);
     if (actor.kind === 'rejected') return reject(actor.reason);
-    const seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
     if (seat === null) return reject(REASON_NOT_SEATED);
-    const occupant = state.realSeats[seat];
-    if (occupant === undefined) return reject(REASON_NOT_SEATED);
-    return seats(
-      [
-        {
-          seat,
-          previous: occupant,
-          next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
-        },
-      ],
-      state.excludedBotSeats,
-    );
+    const occupant = state.roster[seat];
+    if (occupant == null || isBotOccupant(occupant)) return reject(REASON_NOT_SEATED);
+    return seats([
+      {
+        seat,
+        previous: occupant,
+        next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
+      },
+    ]);
   }
   if (state.phase.kind !== 'lobby') return reject(DRAWGUESS_REASONS.phase);
   if (command.type === 'room.seat.take' || command.type === 'room.seat.leave') {
@@ -76,8 +72,8 @@ export function decideDrawGuessRoom(
       return reject(DRAWGUESS_REASONS.config);
     const result =
       command.type === 'room.seat.take'
-        ? decideTakeSeat(
-            state.realSeats,
+        ? decideRosterTakeSeat(
+            state.roster,
             state.config.numberOfPlayers,
             command.seat,
             actor.value,
@@ -87,58 +83,33 @@ export function decideDrawGuessRoom(
               profile: { ...command.profile },
             }),
           )
-        : decideLeaveSeat(state.realSeats, state.config.numberOfPlayers, actor.value);
+        : decideRosterLeaveSeat(state.roster, state.config.numberOfPlayers, actor.value);
     if (result.kind === 'rejected') return rejectSeatOperation(result.reason);
-    return seats(
-      result.changes,
-      command.type === 'room.seat.take'
-        ? state.excludedBotSeats.filter((seat) => seat !== command.seat)
-        : state.excludedBotSeats,
-    );
+    return seats(result.changes);
   }
   const hostRejection = requireDrawGuessHost(state, context);
   if (hostRejection !== null) return hostRejection;
   switch (command.type) {
     case 'drawguess.config.update': {
       if (!isValidDrawGuessConfig(command.config)) return reject(DRAWGUESS_REASONS.config);
-      if (
-        Object.keys(state.realSeats).some((seat) => Number(seat) >= command.config.numberOfPlayers)
-      )
+      if (hasOccupantAtOrBeyond(state.roster, command.config.numberOfPlayers))
         return reject(DRAWGUESS_REASONS.occupied);
-      const excludedBotSeats = command.config.fillEmptySeatsWithBots
-        ? state.excludedBotSeats.filter((seat) => seat < command.config.numberOfPlayers)
-        : [];
-      return commitDrawGuess([
-        { type: 'drawguess.config.updated', config: { ...command.config } },
-        { type: 'drawguess.seats.changed', changes: [], excludedBotSeats },
-      ]);
+      return commitDrawGuess([{ type: 'drawguess.config.updated', config: { ...command.config } }]);
     }
-    case 'room.seat.fillBots':
-      return commitDrawGuess([
-        {
-          type: 'drawguess.config.updated',
-          config: { ...state.config, fillEmptySeatsWithBots: true },
-        },
-        { type: 'drawguess.seats.changed', changes: [], excludedBotSeats: [] },
-      ]);
-    case 'room.seat.kick': {
-      if (isDrawGuessImplicitBotSeat(state, command.seat)) {
-        return seats([], [...state.excludedBotSeats, command.seat]);
-      }
-      const result = decideKickSeat(state.realSeats, state.config.numberOfPlayers, command.seat);
+    case 'room.seat.fillBots': {
+      const result = decideRosterFillBots(state.roster, state.config.numberOfPlayers);
       if (result.kind === 'rejected') return rejectSeatOperation(result.reason);
-      return seats(result.changes, state.excludedBotSeats);
+      return result.changes.length === 0 ? commitDrawGuess([]) : seats(result.changes);
+    }
+    case 'room.seat.kick': {
+      const result = decideRosterKickSeat(state.roster, state.config.numberOfPlayers, command.seat);
+      if (result.kind === 'rejected') return rejectSeatOperation(result.reason);
+      return seats(result.changes);
     }
     case 'room.seat.clear': {
-      const result = decideClearSeats(state.realSeats, state.config.numberOfPlayers);
+      const result = decideRosterClearSeats(state.roster, state.config.numberOfPlayers);
       if (result.kind === 'rejected') return rejectSeatOperation(result.reason);
-      return commitDrawGuess([
-        {
-          type: 'drawguess.config.updated',
-          config: { ...state.config, fillEmptySeatsWithBots: false },
-        },
-        { type: 'drawguess.seats.changed', changes: result.changes, excludedBotSeats: [] },
-      ]);
+      return result.changes.length === 0 ? commitDrawGuess([]) : seats(result.changes);
     }
     default:
       return reject(DRAWGUESS_REASONS.phase);

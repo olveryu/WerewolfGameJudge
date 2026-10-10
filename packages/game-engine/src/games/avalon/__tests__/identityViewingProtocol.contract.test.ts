@@ -23,6 +23,7 @@ import {
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonViewingParticipants,
+  isAvalonBotSeat,
 } from '../state/types';
 
 function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) {
@@ -85,7 +86,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     },
     viewAllHumans() {
       for (let seat = 0; seat < numberOfPlayers; seat += 1) {
-        if (state.realSeats[seat] !== undefined) api.view(seat);
+        if (!isAvalonBotSeat(state, seat)) api.view(seat);
       }
     },
     /** Confirms every night step's participants, in order. */
@@ -95,7 +96,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
         const participants = getAvalonNightParticipants(state.roles, step);
         for (const seat of participants) {
-          if (state.realSeats[seat] === undefined) {
+          if (isAvalonBotSeat(state, seat)) {
             send({ type: 'avalon.night.confirm' }, 'host', seat);
           } else {
             send({ type: 'avalon.night.confirm' }, seatUser(seat));
@@ -192,8 +193,16 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     const persisted = JSON.parse(JSON.stringify(session.state)) as Record<string, unknown>;
     delete persisted.roleViewedSeats;
     persisted.stateVersion = 1;
+    // A genuine v1 document stores the implicit-bot trio, not a roster.
+    const roster = persisted.roster as Record<string, { userId?: string }>;
+    delete persisted.roster;
+    persisted.realSeats = Object.fromEntries(
+      Object.entries(roster).filter(([, occupant]) => occupant.userId !== undefined),
+    );
+    persisted.fillEmptySeatsWithBots = true;
+    persisted.excludedBotSeats = [];
     const migrated = migratePersistedAvalonState(persisted);
-    expect(migrated.stateVersion).toBe(2);
+    expect(migrated.stateVersion).toBe(3);
     expect(migrated.roleViewedSeats).toEqual([]);
     // The strict current-version parser still rejects the legacy shape.
     expect(() => parseAvalonState(persisted)).toThrow();

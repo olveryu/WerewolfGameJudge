@@ -15,6 +15,7 @@ import {
   type AvalonPlay,
   type AvalonRoleId,
   DEFAULT_AVALON_CONFIG,
+  isAvalonBotSeat,
   isAvalonEvilRole,
   isAvalonGoodRole,
 } from '../state/types';
@@ -116,7 +117,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       while (state.phase.kind === 'night') {
         const participants = getAvalonNightParticipants(state.roles, state.phase.step);
         for (const seat of participants) {
-          if (state.realSeats[seat] === undefined) {
+          if (isAvalonBotSeat(state, seat)) {
             send({ type: 'avalon.night.confirm' }, 'host', seat);
           } else {
             send({ type: 'avalon.night.confirm' }, seatUser(seat));

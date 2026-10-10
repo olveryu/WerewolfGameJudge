@@ -1,6 +1,7 @@
 /** Worker runtime module for Werewolf. */
 
 import {
+  migratePersistedWerewolfState,
   parseWerewolfPublicStats,
   WEREWOLF_STATE_CODEC,
   werewolfEngine,
@@ -22,6 +23,7 @@ export const werewolfWorkerModule = defineWorkerGameModule({
   gameType: 'werewolf',
   engine: werewolfEngine,
   stateCodec: WEREWOLF_STATE_CODEC,
+  migratePersistedState: migratePersistedWerewolfState,
   createConfigSchema: werewolfCreateConfigSchema,
   publicCommandSchema: werewolfPublicCommandSchema,
   internalCommandSchema: werewolfInternalCommandSchema,

@@ -6,7 +6,7 @@ import {
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
 } from '../../../platform/protocol/reasons';
-import { findSeatByUserId } from '../../../platform/room/seating';
+import { findRosterSeatByUserId, isBotSeat } from '../../../platform/room/seating';
 import type { StoryRelayCommand, StoryRelayTaskIdentity } from '../commands/types';
 import {
   getStoryRelayTaskForSeat,
@@ -119,8 +119,8 @@ export function decideStoryRelayTask(
   let seat = context.controlledSeat;
   if (seat !== null) {
     if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!state.botSeats.includes(seat)) return reject(REASON_CONTROLLED_SEAT_NOT_BOT);
-  } else seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+    if (!isBotSeat(state.roster, seat)) return reject(REASON_CONTROLLED_SEAT_NOT_BOT);
+  } else seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
   if (seat === null) return reject(REASON_NOT_SEATED);
   if (!matchesTask(state, command, seat)) return reject(STORY_RELAY_REASONS.task);
   const task = getStoryRelayTaskForSeat(state, seat)!;

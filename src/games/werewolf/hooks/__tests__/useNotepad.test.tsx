@@ -34,6 +34,7 @@ function createGameState(
     templateRoles: ['wolf', 'seer'],
     players: {},
     roster: {},
+    playerProfiles: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],

@@ -28,7 +28,9 @@ import type { DispatchRoomResult, InitializeRoomResult } from '../types';
 
 const ROOM_CODE = '1234';
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
-const UNSUPPORTED_WEREWOLF_STATE_VERSION = WEREWOLF_STATE_VERSION - 1;
+// v5 became a supported migration source with the roster split (v6), so an
+// unsupported version must be one no migration path exists for.
+const UNSUPPORTED_WEREWOLF_STATE_VERSION = WEREWOLF_STATE_VERSION - 2;
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();
@@ -363,7 +365,7 @@ describe('GameRoom command receipts', () => {
 
     expect(first.isReplay).toBe(false);
     expect(first.result.snapshot.revision).toBe(2);
-    expect(first.result.snapshot.state.players[0]?.userId).toBe('host-1');
+    expect(first.result.snapshot.state.roster[0]?.userId).toBe('host-1');
     expect(replay.isReplay).toBe(true);
     expect(replay.result).toEqual(first.result);
     expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(2);

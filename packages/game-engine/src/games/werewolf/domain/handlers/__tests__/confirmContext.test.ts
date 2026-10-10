@@ -11,7 +11,10 @@ import {
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/confirmContext';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import { Team } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
-import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import type {
+  GameState,
+  WerewolfHumanSeat,
+} from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 // =============================================================================
@@ -19,20 +22,20 @@ import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/
 // =============================================================================
 
 function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
-  return {
+  const state: GameState = {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch', 'hunter'],
     players: {
-      0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-      1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-      2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-      3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-      4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-      5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-      6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
+      0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+      1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+      2: { seat: 2, hasViewedRole: true, role: 'villager' },
+      3: { seat: 3, hasViewedRole: true, role: 'villager' },
+      4: { seat: 4, hasViewedRole: true, role: 'seer' },
+      5: { seat: 5, hasViewedRole: true, role: 'witch' },
+      6: { seat: 6, hasViewedRole: true, role: 'hunter' },
     },
     currentStepIndex: 0,
     currentStepId: 'hunterConfirm',
@@ -46,9 +49,22 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     seedWolfInfectionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     currentNightResults: {},
     ...overrides,
   };
+  // Every fixture in this file seats user `p<seat>` at each occupied seat;
+  // derive the occupancy roster from the effective players map to match.
+  if (overrides.roster === undefined) {
+    const roster: Record<number, WerewolfHumanSeat> = {};
+    for (const player of Object.values(state.players)) {
+      if (player !== null) {
+        roster[player.seat] = { seat: player.seat, userId: `p${player.seat}` };
+      }
+    }
+    return { ...state, roster };
+  }
+  return state;
 }
 
 // =============================================================================
@@ -61,9 +77,9 @@ describe('maybeCreateConfirmStatusAction', () => {
       const state = createOngoingState({
         templateRoles: ['wolf', 'seedWolf', 'villager'],
         players: {
-          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seedWolf' },
-          2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
+          0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+          1: { seat: 1, hasViewedRole: true, role: 'seedWolf' },
+          2: { seat: 2, hasViewedRole: true, role: 'villager' },
         },
       });
 
@@ -77,9 +93,9 @@ describe('maybeCreateConfirmStatusAction', () => {
       const state = createOngoingState({
         templateRoles: ['wolf', 'seedWolf', 'villager'],
         players: {
-          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seedWolf' },
-          2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
+          0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+          1: { seat: 1, hasViewedRole: true, role: 'seedWolf' },
+          2: { seat: 2, hasViewedRole: true, role: 'villager' },
         },
       });
 
@@ -140,13 +156,13 @@ describe('maybeCreateConfirmStatusAction', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'darkWolfKing', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
       },
       currentNightResults: { poisonedSeat: 1 },
     });
@@ -161,13 +177,13 @@ describe('maybeCreateConfirmStatusAction', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'darkWolfKing', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
       },
       currentNightResults: { poisonedSeat: 3 },
     });
@@ -184,8 +200,8 @@ describe('maybeCreateConfirmStatusAction', () => {
     const state = createOngoingState({
       // templateRoles still contains hunter, but players does not
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'villager' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'villager' },
       },
       currentNightResults: {},
     });
@@ -265,14 +281,14 @@ describe('maybeCreateConfirmStatusAction', () => {
         'dreamcatcher',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
+        7: { seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
       },
       witchContext: { killedSeat: 7, canSave: true, canPoison: true },
       currentNightResults: { dreamingSeat: 6 },
@@ -297,14 +313,14 @@ describe('maybeCreateConfirmStatusAction', () => {
         'dreamcatcher',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
+        7: { seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
       },
       currentNightResults: { dreamingSeat: 1, poisonedSeat: 7 },
     });
@@ -328,14 +344,14 @@ describe('maybeCreateConfirmStatusAction', () => {
         'dreamcatcher',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
+        7: { seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
       },
       currentNightResults: { dreamingSeat: 6 },
     });
@@ -352,13 +368,13 @@ describe('maybeCreateConfirmStatusAction', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'wolfQueen', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolfQueen' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolfQueen' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
       },
       currentNightResults: { charmedSeat: 6, poisonedSeat: 1 },
     });
@@ -373,13 +389,13 @@ describe('maybeCreateConfirmStatusAction', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'wolfQueen', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolfQueen' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolfQueen' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
       },
       currentNightResults: { charmedSeat: 6 },
     });
@@ -408,17 +424,17 @@ describe('maybeCreateConfirmStatusAction', () => {
         'avenger',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'wolf' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'villager' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'seer' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'witch' },
-        8: { userId: 'p8', seat: 8, hasViewedRole: true, role: 'guard' },
-        9: { userId: 'p9', seat: 9, hasViewedRole: true, role: 'shadow' },
-        10: { userId: 'p10', seat: 10, hasViewedRole: true, role: 'avenger' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'wolf' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { seat: 5, hasViewedRole: true, role: 'villager' },
+        6: { seat: 6, hasViewedRole: true, role: 'seer' },
+        7: { seat: 7, hasViewedRole: true, role: 'witch' },
+        8: { seat: 8, hasViewedRole: true, role: 'guard' },
+        9: { seat: 9, hasViewedRole: true, role: 'shadow' },
+        10: { seat: 10, hasViewedRole: true, role: 'avenger' },
       },
       currentNightResults: { shadowMimicTarget: 3, avengerFaction: Team.Wolf }, // shadow mimics villager (Good team)
     });
@@ -445,17 +461,17 @@ describe('maybeCreateConfirmStatusAction', () => {
         'avenger',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'wolf' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'villager' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'seer' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'witch' },
-        8: { userId: 'p8', seat: 8, hasViewedRole: true, role: 'guard' },
-        9: { userId: 'p9', seat: 9, hasViewedRole: true, role: 'shadow' },
-        10: { userId: 'p10', seat: 10, hasViewedRole: true, role: 'avenger' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'wolf' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { seat: 5, hasViewedRole: true, role: 'villager' },
+        6: { seat: 6, hasViewedRole: true, role: 'seer' },
+        7: { seat: 7, hasViewedRole: true, role: 'witch' },
+        8: { seat: 8, hasViewedRole: true, role: 'guard' },
+        9: { seat: 9, hasViewedRole: true, role: 'shadow' },
+        10: { seat: 10, hasViewedRole: true, role: 'avenger' },
       },
       currentNightResults: { shadowMimicTarget: 0, avengerFaction: Team.Good }, // shadow mimics wolf (Wolf team)
     });
@@ -482,17 +498,17 @@ describe('maybeCreateConfirmStatusAction', () => {
         'avenger',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'wolf' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'villager' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'seer' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'witch' },
-        8: { userId: 'p8', seat: 8, hasViewedRole: true, role: 'guard' },
-        9: { userId: 'p9', seat: 9, hasViewedRole: true, role: 'shadow' },
-        10: { userId: 'p10', seat: 10, hasViewedRole: true, role: 'avenger' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'wolf' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { seat: 5, hasViewedRole: true, role: 'villager' },
+        6: { seat: 6, hasViewedRole: true, role: 'seer' },
+        7: { seat: 7, hasViewedRole: true, role: 'witch' },
+        8: { seat: 8, hasViewedRole: true, role: 'guard' },
+        9: { seat: 9, hasViewedRole: true, role: 'shadow' },
+        10: { seat: 10, hasViewedRole: true, role: 'avenger' },
       },
       currentNightResults: {}, // no shadowMimicTarget
     });
@@ -517,17 +533,17 @@ describe('maybeCreateConfirmStatusAction', () => {
         'avenger',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'wolf' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'villager' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'seer' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'witch' },
-        8: { userId: 'p8', seat: 8, hasViewedRole: true, role: 'guard' },
-        9: { userId: 'p9', seat: 9, hasViewedRole: true, role: 'shadow' },
-        10: { userId: 'p10', seat: 10, hasViewedRole: true, role: 'avenger' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'wolf' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { seat: 5, hasViewedRole: true, role: 'villager' },
+        6: { seat: 6, hasViewedRole: true, role: 'seer' },
+        7: { seat: 7, hasViewedRole: true, role: 'witch' },
+        8: { seat: 8, hasViewedRole: true, role: 'guard' },
+        9: { seat: 9, hasViewedRole: true, role: 'shadow' },
+        10: { seat: 10, hasViewedRole: true, role: 'avenger' },
       },
       currentNightResults: { shadowMimicTarget: 10, avengerFaction: Team.Third },
     });
@@ -576,14 +592,14 @@ describe('computeCanShootForSeat', () => {
         'dreamcatcher',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
+        7: { seat: 7, hasViewedRole: true, role: 'dreamcatcher' },
       },
       witchContext: { killedSeat: 7, canSave: true, canPoison: true },
       currentNightResults: { dreamingSeat: 6 },
@@ -595,13 +611,13 @@ describe('computeCanShootForSeat', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'wolfQueen', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolfQueen' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'witch' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'hunter' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolfQueen' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
+        5: { seat: 5, hasViewedRole: true, role: 'witch' },
+        6: { seat: 6, hasViewedRole: true, role: 'hunter' },
       },
       currentNightResults: { charmedSeat: 6, poisonedSeat: 1 },
     });
@@ -636,18 +652,18 @@ describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {
         'crow',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'wolf' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'hiddenWolf' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'villager' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'villager' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'villager' },
-        8: { userId: 'p8', seat: 8, hasViewedRole: true, role: 'seer' },
-        9: { userId: 'p9', seat: 9, hasViewedRole: true, role: 'witch' },
-        10: { userId: 'p10', seat: 10, hasViewedRole: true, role: 'hunter' },
-        11: { userId: 'p11', seat: 11, hasViewedRole: true, role: 'crow' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'wolf' },
+        3: { seat: 3, hasViewedRole: true, role: 'hiddenWolf' },
+        4: { seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { seat: 5, hasViewedRole: true, role: 'villager' },
+        6: { seat: 6, hasViewedRole: true, role: 'villager' },
+        7: { seat: 7, hasViewedRole: true, role: 'villager' },
+        8: { seat: 8, hasViewedRole: true, role: 'seer' },
+        9: { seat: 9, hasViewedRole: true, role: 'witch' },
+        10: { seat: 10, hasViewedRole: true, role: 'hunter' },
+        11: { seat: 11, hasViewedRole: true, role: 'crow' },
       },
       currentStepId: 'hiddenWolfReveal',
     });
@@ -671,14 +687,14 @@ describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {
         'hunter',
       ],
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'hiddenWolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'villager' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
-        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'seer' },
-        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'witch' },
-        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'hunter' },
+        0: { seat: 0, hasViewedRole: true, role: 'hiddenWolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'villager' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { seat: 5, hasViewedRole: true, role: 'seer' },
+        6: { seat: 6, hasViewedRole: true, role: 'witch' },
+        7: { seat: 7, hasViewedRole: true, role: 'hunter' },
       },
       currentStepId: 'hiddenWolfReveal',
     });

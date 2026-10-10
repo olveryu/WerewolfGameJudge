@@ -5,6 +5,7 @@
  * this module never repairs, drops, or synthesizes game facts.
  */
 
+import { isBotOccupant } from '../../../../platform/room/seating';
 import {
   Faction,
   GameStatus,
@@ -395,11 +396,47 @@ function assertSheriffElection(state: GameState): void {
   }
 }
 
+/**
+ * Since the v6 split, occupancy (roster) and per-seat game data (players)
+ * are two maps that must stay seat-aligned: a seat has game data exactly
+ * when it has an occupant, every occupant sits inside the seat range and
+ * stores its own seat, and human userIds are unique.
+ */
+function assertRosterAlignment(state: GameState): void {
+  const seatCount = Object.keys(state.players).length;
+  const seenUserIds = new Set<string>();
+  for (const [key, occupant] of Object.entries(state.roster)) {
+    const seat = Number(key);
+    if (occupant == null) fail(`roster seat ${key} holds an empty occupant`);
+    if (occupant.seat !== seat) {
+      fail(`roster occupant at seat ${key} stores seat ${occupant.seat}`);
+    }
+    if (seat < 0 || seat >= seatCount) {
+      fail(`roster occupant seat ${seat} is outside the ${seatCount}-seat players map`);
+    }
+    if (state.players[seat] == null) {
+      fail(`roster occupant at seat ${seat} has no player record`);
+    }
+    if (!isBotOccupant(occupant)) {
+      if (seenUserIds.has(occupant.userId)) {
+        fail(`roster userId ${occupant.userId} occupies more than one seat`);
+      }
+      seenUserIds.add(occupant.userId);
+    }
+  }
+  for (const [key, player] of Object.entries(state.players)) {
+    if (player != null && state.roster[Number(key)] == null) {
+      fail(`player record at seat ${key} has no roster occupant`);
+    }
+  }
+}
+
 /** Reject semantic state combinations that the command pipeline cannot produce. */
 export function assertWerewolfStateInvariants(state: GameState): void {
   const templateError = validateTemplateRoles(state.templateRoles);
   if (templateError !== null) fail(`templateRoles are invalid: ${templateError}`);
 
+  assertRosterAlignment(state);
   assertSheriffElection(state);
 
   const hasNightResults = state.currentNightResults !== undefined;

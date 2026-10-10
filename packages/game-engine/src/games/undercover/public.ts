@@ -1,5 +1,6 @@
 /** Public Undercover module contract; domain implementation remains package-private. */
 
+export { isBotOccupant } from '../../platform/room/seating';
 export type {
   UndercoverCommand,
   UndercoverInternalCommand,
@@ -22,7 +23,10 @@ export { type UndercoverEngine, undercoverEngine } from './engine';
 export { migratePersistedUndercoverState, UNDERCOVER_STATE_CODEC } from './state/codec';
 export { isValidUndercoverConfig, isValidUndercoverWordPair } from './state/normalize';
 export {
+  getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
+  getUndercoverUserSeat,
+  isUndercoverBotSeat,
   isUndercoverSeat,
   UNDERCOVER_CATEGORIES,
   UNDERCOVER_STATE_VERSION,

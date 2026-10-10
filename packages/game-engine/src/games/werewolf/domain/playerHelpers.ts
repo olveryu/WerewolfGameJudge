@@ -5,6 +5,7 @@
  * avoiding manual Number.parseInt(seatStr, 10) key conversion every time.
  * Pure functions only, no IO.
  */
+import { findRosterSeatByUserId, getBotSeats, isBotSeat } from '../../../platform/room/seating';
 import type { RoleId, SchemaId } from './models';
 import { getStepSpec } from './models/roles/spec';
 import type { GameState } from './protocol/types';
@@ -124,4 +125,19 @@ export function getBottomCardEffectiveRole(
  */
 export function isBottomCardWolfVoteExcluded(originalRole: RoleId): boolean {
   return originalRole === 'treasureMaster';
+}
+
+/** Returns the seats held by bots (unified roster), ascending. */
+export function getWerewolfBotSeats(state: GameState): readonly number[] {
+  return getBotSeats(state.roster);
+}
+
+/** Returns whether a seat is held by a bot (unified roster). */
+export function isWerewolfBotSeat(state: GameState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function getWerewolfUserSeat(state: GameState, userId: string): number | null {
+  return findRosterSeatByUserId(state.roster, Object.keys(state.players).length, userId);
 }

@@ -18,6 +18,7 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizePictionaryState } from './normalize';
 import {
   PICTIONARY_DRAWING_DURATIONS,
@@ -140,7 +141,32 @@ function parseHumanSeat(value: unknown, path: string): PictionaryHumanSeat {
   );
 }
 
-function parseRealSeats(
+function parseRoster(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, PictionaryHumanSeat | BotSeatOccupant>> {
+  const raw = parseObject(value, path);
+  const seats: Record<number, PictionaryHumanSeat | BotSeatOccupant> = {};
+  for (const [key, occupant] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) {
+      failDecode(`${path}.${key}`, 'a canonical non-negative integer key');
+    }
+    const seat = parseSeat(Number(key), `${path}.${key}`);
+    const rawOccupant = parseObject(occupant, `${path}.${key}`);
+    if (rawOccupant.kind === 'bot') {
+      seats[seat] = finishObject(
+        rawOccupant,
+        { seat: parseSeat(rawOccupant.seat, `${path}.${key}.seat`), kind: 'bot' as const },
+        `${path}.${key}`,
+      );
+    } else {
+      seats[seat] = parseHumanSeat(occupant, `${path}.${key}`);
+    }
+  }
+  return seats;
+}
+
+function parseLegacyRealSeats(
   value: unknown,
   path: string,
 ): Readonly<Record<number, PictionaryHumanSeat>> {
@@ -278,16 +304,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         phase: parsePhase(raw.phase, 'PictionaryState.phase'),
         phaseRevision: parseInteger(raw.phaseRevision, 'PictionaryState.phaseRevision'),
         config: parseConfig(raw.config, 'PictionaryState.config'),
-        realSeats: parseRealSeats(raw.realSeats, 'PictionaryState.realSeats'),
-        fillEmptySeatsWithBots: parseBoolean(
-          raw.fillEmptySeatsWithBots,
-          'PictionaryState.fillEmptySeatsWithBots',
-        ),
-        excludedBotSeats: parseArray(
-          raw.excludedBotSeats,
-          'PictionaryState.excludedBotSeats',
-          parseSeat,
-        ),
+        roster: parseRoster(raw.roster, 'PictionaryState.roster'),
         roundNumber: parseInteger(raw.roundNumber, 'PictionaryState.roundNumber'),
         roundId: parseNullable(raw.roundId, 'PictionaryState.roundId', parseNonEmptyString),
         participants: parseArray(
@@ -322,4 +339,34 @@ export function parsePictionaryState(value: unknown): PictionaryState {
       'PictionaryState',
     ),
   );
+}
+
+/**
+ * Upgrades stored v8 rooms: v8 stored the roster as realSeats plus the
+ * implicit-bot derivation inputs; the v9 roster materializes exactly the
+ * seats the old derivation would have called bots.
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedPictionaryState(value: unknown): PictionaryState {
+  const raw = parseObject(value, 'PictionaryState');
+  if (raw.stateVersion !== 8) return parsePictionaryState(raw);
+  const config = parseConfig(raw.config, 'PictionaryState.config');
+  const humans = parseLegacyRealSeats(raw.realSeats, 'PictionaryState.realSeats');
+  const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'PictionaryState.fillEmptySeatsWithBots');
+  const excluded = parseArray(raw.excludedBotSeats, 'PictionaryState.excludedBotSeats', parseSeat);
+  const roster: Record<number, PictionaryHumanSeat | BotSeatOccupant> = { ...humans };
+  if (fill) {
+    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
+      if (roster[seat] === undefined && !excluded.includes(seat)) {
+        roster[seat] = { seat, kind: 'bot' };
+      }
+    }
+  }
+  const {
+    realSeats: _legacyRealSeats,
+    fillEmptySeatsWithBots: _legacyFill,
+    excludedBotSeats: _legacyExcluded,
+    ...rest
+  } = raw;
+  return parsePictionaryState({ ...rest, stateVersion: PICTIONARY_STATE_VERSION, roster });
 }

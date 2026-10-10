@@ -15,7 +15,12 @@ import {
   randomIntInclusive,
   shuffleArray,
 } from '../../../platform/random';
-import { findSeatByUserId } from '../../../platform/room/seating';
+import {
+  findRosterSeatByUserId,
+  getBotSeats,
+  getHumanSeatMap,
+  isBotSeat,
+} from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
 import {
@@ -139,10 +144,10 @@ function decideConfirmation(
   let seat: number | null;
   if (context.controlledSeat !== null) {
     if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!state.botSeats.includes(context.controlledSeat)) return reject(UNDERCOVER_REASONS.bot);
+    if (!isBotSeat(state.roster, context.controlledSeat)) return reject(UNDERCOVER_REASONS.bot);
     seat = context.controlledSeat;
   } else {
-    seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+    seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
   }
   if (seat === null) return reject(REASON_NOT_SEATED);
   return state.round.confirmedSeats.includes(seat)
@@ -174,9 +179,9 @@ function decideRevelation(
             payload: {
               roundId: state.round.roundId,
               completedAt: context.nowMs,
-              participantUserIds: Object.values(state.realSeats)
-                .filter((seat) => seat !== undefined)
-                .map((seat) => seat.userId),
+              participantUserIds: Object.values(
+                getHumanSeatMap(state.roster, state.config.numberOfPlayers),
+              ).map((seat) => seat.userId),
             },
           },
         ],
@@ -223,7 +228,7 @@ export function decideUndercoverRound(
     case 'undercover.round.markAllBotsViewed':
       return state.phase === 'reading'
         ? commitUndercover(
-            state.botSeats
+            getBotSeats(state.roster)
               .filter((seat) => !state.round.confirmedSeats.includes(seat))
               .map((seat) => ({ type: 'undercover.round.confirmed', seat })),
           )

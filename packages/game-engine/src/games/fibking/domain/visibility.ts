@@ -1,7 +1,7 @@
 /** Authoritative FibKing round visibility for human and controlled-bot perspectives. */
 
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
-import { findSeatByUserId } from '../../../platform/room/seating';
+import { findRosterSeatByUserId } from '../../../platform/room/seating';
 import type { FibRole, FibState, FibWordDefinition } from '../state/types';
 import { getFibRole, getFibViewingParticipants } from '../state/types';
 
@@ -45,7 +45,7 @@ export interface FibEndedRoundView {
 export type FibRoundView = FibViewingRoundView | FibOngoingRoundView | FibEndedRoundView;
 
 export function getFibUserSeat(state: FibState, userId: string): number | null {
-  return findSeatByUserId(state.realSeats, state.numberOfPlayers, userId);
+  return findRosterSeatByUserId(state.roster, state.numberOfPlayers, userId);
 }
 
 function assertViewerSeat(state: FibState, viewerSeat: number): void {

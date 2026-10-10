@@ -1,5 +1,6 @@
 /** Public pure API for the FibKing game module. */
 
+export { isBotOccupant } from '../../platform/room/seating';
 export type {
   FibCommand,
   FibCompleteRoundCommand,
@@ -68,11 +69,12 @@ export {
   type FibWordDefinition,
   type FibWordSource,
   getFibBotDisplayName,
+  getFibBotSeats,
   getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
-  isFibImplicitBotSeat,
+  isFibBotSeat,
   isFibPreparationFailureCode,
   isFibPreparationStage,
   isFibRoomFull,

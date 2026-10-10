@@ -17,6 +17,7 @@ import type {
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
+  WerewolfHumanSeat,
 } from '../protocol/types';
 import type { AudioEffect, BoardNomination } from '../protocol/types';
 
@@ -55,6 +56,9 @@ export interface PlayerJoinAction {
   type: 'PLAYER_JOIN';
   payload: {
     seat: number;
+    /** Roster occupant (identity axis). */
+    occupant: WerewolfHumanSeat;
+    /** Per-seat game data (role / hasViewedRole axis). */
     player: Player;
     rosterEntry: RosterEntry;
   };
@@ -324,16 +328,16 @@ export interface SetWolfRobotHunterStatusViewedAction {
 export interface FillWithBotsAction {
   type: 'FILL_WITH_BOTS';
   payload: {
-    /** bot players to add (keyed by seat number) */
+    /** bot seats to add: per-seat game data keyed by seat number */
     bots: Record<number, Player>;
-    /** bot roster entries to add (keyed by userId) */
+    /** bot profile entries to add (keyed by synthetic bot userId) */
     botRoster: Record<string, RosterEntry>;
   };
 }
 
 /**
  * Mark all bots as having viewed roles action
- * Set hasViewedRole = true only for isBot === true players
+ * Set hasViewedRole = true only for bot seats (roster bot occupants)
  */
 export interface MarkAllBotsViewedAction {
   type: 'MARK_ALL_BOTS_VIEWED';

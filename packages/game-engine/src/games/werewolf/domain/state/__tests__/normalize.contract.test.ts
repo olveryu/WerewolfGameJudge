@@ -31,6 +31,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'startingParticipants',
   'mvpUserId',
   'roster',
+  'playerProfiles',
   'currentStepIndex',
   'isAudioPlaying',
 
@@ -134,10 +135,14 @@ describe('normalizeState contract', () => {
       templateRoles: ['villager', 'wolf'],
       rules: { isPlagueMode: false },
       players: {
-        0: { userId: 'p0', seat: 0, role: 'villager', hasViewedRole: true },
-        1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
+        0: { seat: 0, role: 'villager', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
       },
-      roster: { p0: { displayName: 'P0' }, p1: { displayName: 'P1' } },
+      roster: {
+        0: { seat: 0, userId: 'p0' },
+        1: { seat: 1, userId: 'p1' },
+      },
+      playerProfiles: { p0: { displayName: 'P0' }, p1: { displayName: 'P1' } },
       currentStepIndex: 0,
       isAudioPlaying: false,
 
@@ -290,6 +295,7 @@ describe('normalizeState contract', () => {
       cupidLoversRevealAcks: [],
       seedWolfInfectionRevealAcks: [],
       roster: {},
+      playerProfiles: {},
     };
 
     const normalized = normalizeState(minimalState);

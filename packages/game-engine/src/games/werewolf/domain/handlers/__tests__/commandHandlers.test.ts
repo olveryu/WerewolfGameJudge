@@ -32,19 +32,21 @@ function createState(overrides: Partial<GameState> = {}): GameState {
     templateRoles: ['wolf', 'villager'],
     players: {
       0: {
-        userId: HOST_USER_ID,
         seat: 0,
         role: 'wolf',
         hasViewedRole: true,
       },
       [PLAYER_SEAT]: {
-        userId: PLAYER_USER_ID,
         seat: PLAYER_SEAT,
         role: 'villager',
         hasViewedRole: true,
       },
     },
-    roster: {},
+    roster: {
+      0: { seat: 0, userId: HOST_USER_ID },
+      [PLAYER_SEAT]: { seat: PLAYER_SEAT, userId: PLAYER_USER_ID },
+    },
+    playerProfiles: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
@@ -322,42 +324,42 @@ describe('Werewolf command handlers', () => {
               ...botState,
               debugMode: { botsEnabled: true },
               players: {
-                3: {
-                  userId: 'bot-a',
-                  seat: 8,
-                  role: 'wolf',
+                2: {
+                  seat: 2,
+                  role: 'villager',
                   hasViewedRole: true,
-                  isBot: true,
                 },
-                4: {
-                  userId: 'bot-b',
+                [ACKED_BOT_SEAT]: {
                   seat: ACKED_BOT_SEAT,
                   role: 'villager',
                   hasViewedRole: true,
-                  isBot: true,
                 },
                 5: {
-                  userId: 'human',
                   seat: 5,
                   role: 'villager',
                   hasViewedRole: true,
                 },
-                6: {
-                  userId: 'bot-c',
-                  seat: 2,
-                  role: 'villager',
-                  hasViewedRole: true,
-                  isBot: true,
-                },
                 7: null,
+                8: {
+                  seat: 8,
+                  role: 'wolf',
+                  hasViewedRole: true,
+                },
+              },
+              roster: {
+                2: { seat: 2, kind: 'bot' },
+                [ACKED_BOT_SEAT]: { seat: ACKED_BOT_SEAT, kind: 'bot' },
+                5: { seat: 5, userId: 'human' },
+                8: { seat: 8, kind: 'bot' },
               },
             }),
           ),
         );
 
+        // getBotSeats yields bot seats ascending; seat 4 is already acked.
         expect(expectSuccess(result).actions).toEqual([
-          { type: actionType, payload: { seat: 8 } },
           { type: actionType, payload: { seat: 2 } },
+          { type: actionType, payload: { seat: 8 } },
         ]);
       },
     );
@@ -370,20 +372,20 @@ describe('Werewolf command handlers', () => {
             debugMode: { botsEnabled: true },
             piperRevealAcks: [2, 4],
             players: {
-              0: {
-                userId: 'bot-a',
+              2: {
                 seat: 2,
                 role: 'wolf',
                 hasViewedRole: true,
-                isBot: true,
               },
-              1: {
-                userId: 'bot-b',
+              4: {
                 seat: 4,
                 role: 'villager',
                 hasViewedRole: true,
-                isBot: true,
               },
+            },
+            roster: {
+              2: { seat: 2, kind: 'bot' },
+              4: { seat: 4, kind: 'bot' },
             },
           }),
         ),

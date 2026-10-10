@@ -2,6 +2,8 @@
 
 import {
   getUndercoverOccupiedSeatCount,
+  isBotOccupant,
+  isUndercoverBotSeat,
   type UndercoverCategory,
   type UndercoverRole,
   type UndercoverState,
@@ -41,15 +43,15 @@ export function getUndercoverProfileTarget(
   state: UndercoverState,
   seat: number,
 ): RoomProfileTarget | null {
-  const human = state.realSeats[seat];
-  if (human !== undefined)
+  const occupant = state.roster[seat];
+  if (occupant != null && !isBotOccupant(occupant))
     return {
       seat,
-      userId: human.userId,
+      userId: occupant.userId,
       occupantKind: 'human',
-      rosterName: human.profile.displayName,
+      rosterName: occupant.profile.displayName,
     };
-  return state.botSeats.includes(seat)
+  return isUndercoverBotSeat(state, seat)
     ? {
         seat,
         userId: `undercover-bot:${state.roomCode}:${seat}`,
@@ -82,10 +84,9 @@ export function createUndercoverRoomCapabilities(
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
     }),
     canViewProfiles: { isAllowed: true, execute: input.openProfile },
-    canTakeOverBots:
-      input.isHost && (input.state.phase === 'reading' || input.state.phase === 'ongoing')
-        ? { isAllowed: true, execute: input.takeOverBot }
-        : { isAllowed: false, reason: '当前不能接管机器人' },
+    canTakeOverBots: input.isHost
+      ? { isAllowed: true, execute: input.takeOverBot }
+      : { isAllowed: false, reason: '只有房主可以接管机器人' },
   };
 }
 
@@ -103,7 +104,8 @@ export function createUndercoverSeatDataSource(
     revision: `${revision}:${controlledSeat}:${selectedSeat}:${isSelecting}`,
     getSeat(seat) {
       const target = getUndercoverProfileTarget(state, seat);
-      const human = state.realSeats[seat];
+      const occupant = state.roster[seat];
+      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const revelation = state.round?.revelations.find((entry) => entry.seat === seat);
       const role = state.phase === 'ended' ? state.round.roles[seat] : revelation?.role;
       return {

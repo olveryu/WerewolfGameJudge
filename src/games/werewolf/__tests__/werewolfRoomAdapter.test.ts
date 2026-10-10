@@ -452,8 +452,11 @@ describe('createWerewolfRoomShellModel', () => {
     const allowed = createWerewolfRoomShellModel(createShellModelInput({ onSeatLongPressed }));
     expect(allowed.seats.onBotSeatLongPress).toBe(onSeatLongPressed);
 
+    // Under the unified takeover rule the only denial is not being host:
+    // phase, debug mode, and audio no longer gate the long press.
     const deniedCapabilities = createWerewolfRoomCapabilities({
       ...createCapabilityInput(),
+      isHost: false,
       status: GameStatus.Ongoing,
       isDebugMode: false,
     });

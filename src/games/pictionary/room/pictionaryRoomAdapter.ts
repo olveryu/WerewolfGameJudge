@@ -6,7 +6,8 @@ import {
   getPictionaryOccupiedSeatCount,
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
-  isPictionaryImplicitBotSeat,
+  isBotOccupant,
+  isPictionaryBotSeat,
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -85,10 +86,7 @@ export function createPictionaryRoomCapabilities(
   return {
     ...setupCapabilities,
     canViewProfiles: isLobby ? allowed(input.openProfile) : denied('游戏进行中不能查看玩家资料'),
-    canTakeOverBots:
-      input.isHost && (input.state.phase === 'answering' || input.state.phase === 'settling')
-        ? allowed(input.takeOverBot)
-        : denied('当前阶段不能接管机器人'),
+    canTakeOverBots: input.isHost ? allowed(input.takeOverBot) : denied('只有房主可以接管机器人'),
   };
 }
 
@@ -129,22 +127,23 @@ export function createPictionarySeatDataSource(
       ) {
         throw new Error(`Pictionary seat source index is out of range: ${index}`);
       }
-      const occupant = input.state.realSeats[index];
-      const isBot = occupant === undefined && isPictionaryImplicitBotSeat(input.state, index);
+      const occupant = input.state.roster[index];
+      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
+      const isBot = isPictionaryBotSeat(input.state, index);
       const player =
-        occupant !== undefined
+        human !== undefined
           ? {
               kind: 'human' as const,
-              userId: occupant.userId,
-              displayName: occupant.profile.displayName,
-              avatarUrl: occupant.profile.avatarUrl,
-              avatarFrame: occupant.profile.avatarFrame,
-              seatFlair: occupant.profile.seatFlair,
-              seatAnimation: occupant.profile.seatAnimation,
-              nameStyle: occupant.profile.nameStyle,
-              seatPetId: occupant.profile.revealEffect,
-              level: occupant.profile.level,
-              isAnonymous: occupant.profile.avatarUrl === undefined,
+              userId: human.userId,
+              displayName: human.profile.displayName,
+              avatarUrl: human.profile.avatarUrl,
+              avatarFrame: human.profile.avatarFrame,
+              seatFlair: human.profile.seatFlair,
+              seatAnimation: human.profile.seatAnimation,
+              nameStyle: human.profile.nameStyle,
+              seatPetId: human.profile.revealEffect,
+              level: human.profile.level,
+              isAnonymous: human.profile.avatarUrl === undefined,
             }
           : isBot
             ? {
@@ -157,7 +156,7 @@ export function createPictionarySeatDataSource(
       return {
         seat: index,
         player,
-        isSelf: occupant?.userId === input.myUserId,
+        isSelf: human?.userId === input.myUserId,
         highlight: input.controlledSeat === index ? 'controlled' : 'none',
         secondaryLabel: null,
         disabledReason:
@@ -178,16 +177,17 @@ export function getPictionarySeatTapIntent(input: {
   readonly currentSeat: number | null;
   readonly disabledReason?: string;
 }) {
-  const occupant = input.state.realSeats[input.seat];
+  const occupant = input.state.roster[input.seat];
+  const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
   const target: RoomProfileTarget | null =
-    occupant !== undefined
+    human !== undefined
       ? {
           seat: input.seat,
-          userId: occupant.userId,
+          userId: human.userId,
           occupantKind: 'human',
-          rosterName: occupant.profile.displayName,
+          rosterName: human.profile.displayName,
         }
-      : isPictionaryImplicitBotSeat(input.state, input.seat)
+      : isPictionaryBotSeat(input.state, input.seat)
         ? {
             seat: input.seat,
             userId: getPictionaryBotUserId(input.state.roomCode, input.seat),

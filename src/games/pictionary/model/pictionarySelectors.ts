@@ -2,7 +2,8 @@
 
 import {
   getPictionaryBotDisplayName,
-  isPictionaryImplicitBotSeat,
+  isBotOccupant,
+  isPictionaryBotSeat,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
@@ -21,8 +22,8 @@ export function getPictionarySeatDisplayName(state: PictionaryState, seat: numbe
     if (participant === undefined) throw new Error('Pictionary participant snapshot is missing');
     return participant.displayName;
   }
-  const occupant = state.realSeats[seat];
-  if (occupant !== undefined) return occupant.profile.displayName;
-  if (isPictionaryImplicitBotSeat(state, seat)) return getPictionaryBotDisplayName(seat);
+  const occupant = state.roster[seat];
+  if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
+  if (isPictionaryBotSeat(state, seat)) return getPictionaryBotDisplayName(seat);
   throw new Error(`[FAIL-FAST] Pictionary state references empty seat ${seat}`);
 }

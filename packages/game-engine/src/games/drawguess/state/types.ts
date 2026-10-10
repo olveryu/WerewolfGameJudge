@@ -2,10 +2,21 @@
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
-import type { SeatOccupant } from '../../../platform/room/seating';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  getBotSeats,
+  getHumanSeatMap,
+  isBotSeat,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
 
 export const DRAWGUESS_GAME_TYPE = 'drawguess' as const;
-export const DRAWGUESS_STATE_VERSION = 1;
+/** v2 replaces realSeats plus the implicit-bot derivation inputs (the fill
+ * flag lived inside the config) with the unified roster. v1 payloads
+ * migrate through migratePersistedDrawGuessState. */
+export const DRAWGUESS_STATE_VERSION = 2;
 
 export const DRAWGUESS_MIN_PLAYERS = 4;
 export const DRAWGUESS_MAX_PLAYERS = 12;
@@ -49,7 +60,6 @@ export interface DrawGuessConfig {
   readonly wordSelectSeconds: typeof DRAWGUESS_WORD_SELECT_SECONDS;
   readonly roundEndSeconds: typeof DRAWGUESS_ROUND_END_SECONDS;
   readonly hintRevealIntervalSeconds: typeof DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS;
-  readonly fillEmptySeatsWithBots: boolean;
 }
 
 export const DEFAULT_DRAWGUESS_CONFIG: DrawGuessConfig = {
@@ -59,7 +69,6 @@ export const DEFAULT_DRAWGUESS_CONFIG: DrawGuessConfig = {
   wordSelectSeconds: DRAWGUESS_WORD_SELECT_SECONDS,
   roundEndSeconds: DRAWGUESS_ROUND_END_SECONDS,
   hintRevealIntervalSeconds: DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS,
-  fillEmptySeatsWithBots: false,
 };
 
 export interface DrawGuessHumanSeat extends SeatOccupant {
@@ -185,9 +194,7 @@ export interface DrawGuessState extends BaseGameState<typeof DRAWGUESS_GAME_TYPE
   readonly phase: DrawGuessPhase;
   readonly phaseRevision: number;
   readonly config: DrawGuessConfig;
-  readonly realSeats: Readonly<Record<number, DrawGuessHumanSeat | undefined>>;
-  /** 房主显式踢掉的隐式机器人席位。 */
-  readonly excludedBotSeats: readonly number[];
+  readonly roster: RosterMap<DrawGuessHumanSeat>;
   /** 座位升序的画手轮换队列（含隐式机器人席位），开局时生成。 */
   readonly drawerQueue: readonly number[];
   /** 当前第几回合（从 0 开始），总回合数 = drawerQueue.length × roundsPerDrawer。 */
@@ -210,8 +217,7 @@ export function isValidDrawGuessConfig(config: DrawGuessConfig): boolean {
     config.roundsPerDrawer === DRAWGUESS_ROUNDS_PER_DRAWER &&
     config.wordSelectSeconds === DRAWGUESS_WORD_SELECT_SECONDS &&
     config.roundEndSeconds === DRAWGUESS_ROUND_END_SECONDS &&
-    config.hintRevealIntervalSeconds === DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS &&
-    typeof config.fillEmptySeatsWithBots === 'boolean'
+    config.hintRevealIntervalSeconds === DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS
   );
 }
 
@@ -219,30 +225,29 @@ export function getDrawGuessBotDisplayName(seat: number): string {
   return `机器人${seat + 1}号`;
 }
 
-/** 隐式机器人席位：开了补机器人开关、无真人入座、未被踢掉的空座。 */
-export function isDrawGuessImplicitBotSeat(state: DrawGuessState, seat: number): boolean {
-  return (
-    state.config.fillEmptySeatsWithBots &&
-    Number.isSafeInteger(seat) &&
-    seat >= 0 &&
-    seat < state.config.numberOfPlayers &&
-    state.realSeats[seat] === undefined &&
-    !state.excludedBotSeats.includes(seat)
-  );
+/** Returns the seats held by bots, ascending. */
+export function getDrawGuessBotSeats(state: DrawGuessState): readonly number[] {
+  return getBotSeats(state.roster);
 }
 
-/** Counts real humans only (excludes implicit bot seats). */
+/** Returns whether a seat is held by a bot. */
+export function isDrawGuessBotSeat(state: DrawGuessState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function getDrawGuessUserSeat(state: DrawGuessState, userId: string): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
+}
+
+/** Counts real humans only (excludes bot seats). */
 export function getDrawGuessRealHumanCount(state: DrawGuessState): number {
-  return Object.values(state.realSeats).filter((seat) => seat !== undefined).length;
+  return Object.keys(getHumanSeatMap(state.roster, state.config.numberOfPlayers)).length;
 }
 
-/** Counts real humans plus implicit bot seats (occupied seats for display). */
+/** Counts every occupied seat (real humans plus bots). */
 export function getDrawGuessOccupiedSeatCount(state: DrawGuessState): number {
-  let count = getDrawGuessRealHumanCount(state);
-  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-    if (isDrawGuessImplicitBotSeat(state, seat)) count += 1;
-  }
-  return count;
+  return countOccupiedSeats(state.roster);
 }
 
 /** Total turns in a game: every drawer (including implicit bots) draws roundsPerDrawer times. */

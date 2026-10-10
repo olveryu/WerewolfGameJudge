@@ -17,10 +17,11 @@ import {
   REASON_NOT_SEATED,
 } from '../../../../platform/protocol/reasons';
 import {
-  decideClearSeats,
-  decideKickSeat,
-  decideLeaveSeat,
-  decideTakeSeat,
+  decideRosterClearSeats,
+  decideRosterKickSeat,
+  decideRosterLeaveSeat,
+  decideRosterTakeSeat,
+  isBotOccupant,
 } from '../../../../platform/room/seating';
 import type {
   ClearAllSeatsIntent,
@@ -30,7 +31,6 @@ import type {
   UpdatePlayerProfileIntent,
 } from '../intents/types';
 import { GameStatus } from '../models';
-import type { Player } from '../protocol/types';
 import type {
   PlayerJoinAction,
   PlayerLeaveAction,
@@ -68,16 +68,17 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     return handlerError(REASON_INVALID_SEAT);
   }
 
-  const seatDecision = decideTakeSeat<Player>(
-    state.players,
+  const seatDecision = decideRosterTakeSeat(
+    state.roster,
     Object.keys(state.players).length,
     seat,
     userId,
+    // Key order intentionally matches parseSeatRoster: the room repository
+    // detects state changes by comparing serialized snapshots, so producer
+    // and parser must build occupants with identical key order.
     (targetSeat) => ({
-      userId,
       seat: targetSeat,
-      role: null,
-      hasViewedRole: false,
+      userId,
     }),
   );
   if (seatDecision.kind === 'rejected') {
@@ -90,21 +91,23 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   }
 
   const actions: (PlayerJoinAction | PlayerLeaveAction)[] = seatDecision.changes.map((change) =>
-    change.next === null
+    change.next === null || isBotOccupant(change.next)
       ? { type: 'PLAYER_LEAVE', payload: { seat: change.seat } }
       : {
           type: 'PLAYER_JOIN',
           payload: {
             seat: change.seat,
-            player: change.next,
+            occupant: change.next,
+            player: { seat: change.seat, role: null, hasViewedRole: false },
+            // Key order matches parseRosterEntry for the same reason as above.
             rosterEntry: {
               displayName,
               avatarUrl,
               avatarFrame,
               seatFlair,
+              seatAnimation,
               nameStyle,
               revealEffect,
-              seatAnimation,
               level,
             },
           },
@@ -142,8 +145,8 @@ export function handleLeaveMySeat(
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  const seatDecision = decideLeaveSeat<Player>(
-    state.players,
+  const seatDecision = decideRosterLeaveSeat(
+    state.roster,
     Object.keys(state.players).length,
     userId,
   );
@@ -175,7 +178,7 @@ export function handleClearAllSeats(
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  const seatDecision = decideClearSeats<Player>(state.players, Object.keys(state.players).length);
+  const seatDecision = decideRosterClearSeats(state.roster, Object.keys(state.players).length);
   if (seatDecision.kind === 'rejected') {
     return handlerError(seatDecision.reason);
   }
@@ -255,8 +258,8 @@ export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerConte
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  const seatDecision = decideKickSeat<Player>(
-    state.players,
+  const seatDecision = decideRosterKickSeat(
+    state.roster,
     Object.keys(state.players).length,
     targetSeat,
   );

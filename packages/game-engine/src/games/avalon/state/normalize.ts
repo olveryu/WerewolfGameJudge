@@ -1,5 +1,6 @@
 /** Avalon semantic invariants; invalid persisted or evolved states fail explicitly. */
 
+import { isBotOccupant } from '../../../platform/room/seating';
 import {
   buildAvalonNightInfo,
   getAvalonNightParticipants,
@@ -11,6 +12,7 @@ import {
   AVALON_LADY_MIN_PLAYERS,
   AVALON_STATE_VERSION,
   type AvalonBallot,
+  type AvalonHumanSeat,
   type AvalonPlay,
   type AvalonState,
   isAvalonEvilRole,
@@ -37,27 +39,24 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     'phase revision',
   );
   invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
-  const users = Object.entries(state.realSeats);
+  const entries = Object.entries(state.roster);
   invariant(
-    users.every(
+    entries.every(
       ([seat, occupant]) =>
-        occupant !== undefined &&
+        occupant != null &&
         isSeat(Number(seat)) &&
         occupant.seat === Number(seat) &&
-        occupant.profile.displayName.trim().length > 0,
+        (isBotOccupant(occupant) || occupant.profile.displayName.trim().length > 0),
     ),
-    'real seats',
+    'roster seats',
+  );
+  const users = entries.filter(
+    (entry): entry is [string, AvalonHumanSeat] => entry[1] != null && !isBotOccupant(entry[1]),
   );
   invariant(
-    new Set(users.map(([, occupant]) => occupant!.userId)).size === users.length,
+    new Set(users.map(([, occupant]) => occupant.userId)).size === users.length,
     'duplicate user',
   );
-  invariant(
-    state.excludedBotSeats.every((seat) => isSeat(seat) && state.realSeats[seat] === undefined) &&
-      new Set(state.excludedBotSeats).size === state.excludedBotSeats.length,
-    'excluded bot seats',
-  );
-  invariant(typeof state.fillEmptySeatsWithBots === 'boolean', 'fill bots flag');
   invariant(
     Number.isSafeInteger(state.rejectStreak) &&
       state.rejectStreak >= 0 &&

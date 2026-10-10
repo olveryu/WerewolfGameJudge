@@ -2,10 +2,17 @@
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
-import type { SeatOccupant } from '../../../platform/room/seating';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  getBotSeats,
+  isBotSeat,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
 
 export const STORY_RELAY_GAME_TYPE = 'storyrelay' as const;
-export const STORY_RELAY_STATE_VERSION = 1;
+export const STORY_RELAY_STATE_VERSION = 2;
 export const STORY_RELAY_MIN_PLAYERS = 4;
 export const STORY_RELAY_MAX_PLAYERS = 20;
 export const STORY_RELAY_TEXT_MAX_LENGTH = 512;
@@ -63,8 +70,7 @@ export interface StoryRelayState extends BaseGameState<typeof STORY_RELAY_GAME_T
   readonly phase: (typeof STORY_RELAY_PHASES)[number];
   readonly phaseRevision: number;
   readonly config: StoryRelayConfig;
-  readonly realSeats: Readonly<Record<number, StoryRelayHumanSeat | undefined>>;
-  readonly botSeats: readonly number[];
+  readonly roster: RosterMap<StoryRelayHumanSeat>;
   readonly roundNumber: number;
   readonly roundId: string | null;
   readonly startedAt: number | null;
@@ -141,10 +147,22 @@ export function getStoryRelayTaskForSeat(
   };
 }
 
-/** Counts real participants and explicitly occupied bot seats. */
+/** Counts occupied seats (humans and bots). */
 export function getStoryRelayOccupiedSeatCount(state: StoryRelayState): number {
-  return (
-    Object.values(state.realSeats).filter((seat) => seat !== undefined).length +
-    state.botSeats.length
-  );
+  return countOccupiedSeats(state.roster);
+}
+
+/** Returns the seats held by bots, ascending. */
+export function getStoryRelayBotSeats(state: StoryRelayState): readonly number[] {
+  return getBotSeats(state.roster);
+}
+
+/** Returns whether a seat is held by a bot. */
+export function isStoryRelayBotSeat(state: StoryRelayState, seat: number): boolean {
+  return isBotSeat(state.roster, seat);
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function getStoryRelayUserSeat(state: StoryRelayState, userId: string): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
 }

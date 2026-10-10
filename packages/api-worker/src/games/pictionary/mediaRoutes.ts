@@ -8,7 +8,8 @@
 
 import {
   getPictionaryTaskForSeat,
-  isPictionaryImplicitBotSeat,
+  getPictionaryUserSeat,
+  isPictionaryBotSeat,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
@@ -74,10 +75,7 @@ async function readPictionaryRoom(
 }
 
 function findUserSeat(state: PictionaryState, userId: string): number | null {
-  for (const occupant of Object.values(state.realSeats)) {
-    if (occupant !== undefined && occupant.userId === userId) return occupant.seat;
-  }
-  return null;
+  return getPictionaryUserSeat(state, userId);
 }
 
 function parseControlledSeat(value: string | undefined): number | null {
@@ -93,7 +91,7 @@ function resolveMediaSeat(
 ): number | null {
   if (controlledSeat === null) return findUserSeat(state, userId);
   if (userId !== state.hostUserId) return fail(403, 'NOT_HOST');
-  if (!isPictionaryImplicitBotSeat(state, controlledSeat)) {
+  if (!isPictionaryBotSeat(state, controlledSeat)) {
     return fail(403, 'CONTROLLED_SEAT_NOT_BOT');
   }
   return controlledSeat;

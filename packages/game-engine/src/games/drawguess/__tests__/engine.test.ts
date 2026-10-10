@@ -12,6 +12,7 @@ import {
   DRAWGUESS_WORD_CHOICE_COUNT,
   type DrawGuessStroke,
   type DrawGuessWordChoice,
+  getDrawGuessOccupiedSeatCount,
 } from '../state/types';
 
 const CHOICES: DrawGuessWordChoice[] = [
@@ -396,14 +397,15 @@ describe('DrawGuess engine', () => {
     expect(drawer.messages.find((m) => m.seat === 1)?.text).toBe('大熊猫');
   });
 
-  it('lets the host take over an implicit bot seat to draw', () => {
+  it('lets the host take over a bot seat to draw', () => {
     const session = game(4);
     session.send({ type: 'room.seat.fillBots' });
-    // Seats 4..5 become implicit bots; make drawer seat 4 by starting and advancing.
+    // Seats 4..5 become bots; make drawer seat 4 by starting and advancing.
     session.send({ type: 'drawguess.round.start' });
     // Simulate 4 turns to reach a bot drawer... instead directly test takeover auth:
     const state = session.state;
-    expect(state.config.fillEmptySeatsWithBots).toBe(true);
+    // The 4-seat room is already full of humans, so filling adds no bots.
+    expect(getDrawGuessOccupiedSeatCount(state)).toBe(4);
     // Host controlling a real seat's number that is NOT a bot -> rejected.
     const decision = drawGuessEngine.decide(
       state,

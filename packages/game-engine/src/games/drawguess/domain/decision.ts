@@ -13,14 +13,9 @@ import {
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
 } from '../../../platform/protocol/reasons';
-import type { SeatChange } from '../../../platform/room/seating';
-import { findSeatByUserId } from '../../../platform/room/seating';
+import { findRosterSeatByUserId, type RosterChange } from '../../../platform/room/seating';
 import type { DrawGuessMedia, DrawGuessStroke, DrawGuessWordChoice } from '../state/types';
-import {
-  type DrawGuessHumanSeat,
-  type DrawGuessState,
-  isDrawGuessImplicitBotSeat,
-} from '../state/types';
+import { type DrawGuessHumanSeat, type DrawGuessState, isDrawGuessBotSeat } from '../state/types';
 
 export const DRAWGUESS_REASONS = {
   config: '你画我猜配置无效',
@@ -46,8 +41,7 @@ export const DRAWGUESS_REASONS = {
 export type DrawGuessEvent =
   | {
       readonly type: 'drawguess.seats.changed';
-      readonly changes: readonly SeatChange<DrawGuessHumanSeat>[];
-      readonly excludedBotSeats: readonly number[];
+      readonly changes: readonly RosterChange<DrawGuessHumanSeat>[];
     }
   | { readonly type: 'drawguess.config.updated'; readonly config: DrawGuessState['config'] }
   | {
@@ -167,11 +161,11 @@ export function resolveDrawGuessSeat(
   const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return rejectedSeat(actor.reason);
   if (context.controlledSeat === null) {
-    const seat = findSeatByUserId(state.realSeats, state.config.numberOfPlayers, actor.value);
+    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
     return seat === null ? rejectedSeat(REASON_NOT_SEATED) : { kind: 'resolved', seat };
   }
   if (actor.value !== state.hostUserId) return rejectedSeat(REASON_NOT_HOST);
-  if (!isDrawGuessImplicitBotSeat(state, context.controlledSeat))
+  if (!isDrawGuessBotSeat(state, context.controlledSeat))
     return rejectedSeat(REASON_CONTROLLED_SEAT_NOT_BOT);
   return { kind: 'resolved', seat: context.controlledSeat };
 }

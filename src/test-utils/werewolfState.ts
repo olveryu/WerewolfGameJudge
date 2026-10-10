@@ -12,6 +12,7 @@ export function buildWerewolfTestState(overrides: Partial<GameState> = {}): Game
     templateRoles: [],
     players: {},
     roster: {},
+    playerProfiles: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],

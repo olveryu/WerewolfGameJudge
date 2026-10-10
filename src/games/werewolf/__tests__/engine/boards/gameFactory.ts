@@ -6,6 +6,7 @@ import {
   type GameState,
   getBottomCardCount,
   getPlayerCount,
+  isBotOccupant,
   PRESET_TEMPLATES,
   type RoleId,
   type SchemaId,
@@ -197,12 +198,13 @@ export function createGame(
     execution?: TestCommandExecution,
   ): RoomCommandResult<GameState> => {
     const player = internal.state.players[seat];
-    if (player === null || player === undefined) {
+    const occupant = internal.state.roster[seat];
+    if (player === null || player === undefined || occupant == null) {
       throw new Error(`[FAIL-FAST] Cannot dispatch as vacant seat ${seat}`);
     }
-    const actor: TestCommandActor = player.isBot
+    const actor: TestCommandActor = isBotOccupant(occupant)
       ? { userId: HOST_USER_ID, controlledSeat: seat }
-      : { userId: player.userId, controlledSeat: null };
+      : { userId: occupant.userId, controlledSeat: null };
     return dispatch(command, actor, execution);
   };
 

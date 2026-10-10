@@ -1,7 +1,7 @@
 /** Worker runtime module for Pictionary. */
 
 import {
-  parsePictionaryState,
+  migratePersistedPictionaryState,
   PICTIONARY_STATE_CODEC,
   pictionaryEngine,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -27,7 +27,7 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
   gameType: 'pictionary',
   engine: pictionaryEngine,
   stateCodec: PICTIONARY_STATE_CODEC,
-  migratePersistedState: parsePictionaryState,
+  migratePersistedState: migratePersistedPictionaryState,
   createConfigSchema: pictionaryCreateConfigSchema,
   publicCommandSchema: pictionaryPublicCommandSchema,
   internalCommandSchema: pictionaryInternalCommandSchema,

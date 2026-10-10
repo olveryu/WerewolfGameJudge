@@ -12,13 +12,13 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     templateRoles: ['treasureMaster', 'wolf', 'seer', 'villager'],
     players: {
       0: {
-        userId: 'host',
         seat: 0,
         role: 'treasureMaster',
         hasViewedRole: false,
       },
     },
-    roster: {},
+    roster: { 0: { seat: 0, userId: 'host' } },
+    playerProfiles: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
@@ -39,7 +39,7 @@ function createThiefState(overrides: Partial<GameState> = {}): GameState {
     ...createTreasureMasterState(),
     templateRoles: ['thief', 'wolf', 'seer'],
     players: {
-      0: { userId: 'host', seat: 0, role: 'thief', hasViewedRole: false },
+      0: { seat: 0, role: 'thief', hasViewedRole: false },
     },
     bottomCards: ['wolf', 'seer'],
     treasureMasterSeat: undefined,
@@ -57,12 +57,18 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
     templateRoles: ['wolf', 'seer', 'hunter', 'villager'],
     rules: { isSheriffElectionEnabled: true },
     players: {
-      0: { userId: 'host', seat: 0, role: 'wolf', hasViewedRole: true },
-      1: { userId: 'p1', seat: 1, role: 'seer', hasViewedRole: true },
-      2: { userId: 'p2', seat: 2, role: 'hunter', hasViewedRole: true },
-      3: { userId: 'p3', seat: 3, role: 'villager', hasViewedRole: true },
+      0: { seat: 0, role: 'wolf', hasViewedRole: true },
+      1: { seat: 1, role: 'seer', hasViewedRole: true },
+      2: { seat: 2, role: 'hunter', hasViewedRole: true },
+      3: { seat: 3, role: 'villager', hasViewedRole: true },
     },
-    roster: {},
+    roster: {
+      0: { seat: 0, userId: 'host' },
+      1: { seat: 1, userId: 'p1' },
+      2: { seat: 2, userId: 'p2' },
+      3: { seat: 3, userId: 'p3' },
+    },
+    playerProfiles: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
@@ -114,10 +120,10 @@ describe('assertWerewolfStateInvariants', () => {
         createSheriffElectionState({
           templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
           players: {
-            0: { userId: 'host', seat: 0, role: 'seedWolf', hasViewedRole: true },
-            1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
-            2: { userId: 'p2', seat: 2, role: 'wolf', hasViewedRole: true },
-            3: { userId: 'p3', seat: 3, role: 'villager', hasViewedRole: true },
+            0: { seat: 0, role: 'seedWolf', hasViewedRole: true },
+            1: { seat: 1, role: 'wolf', hasViewedRole: true },
+            2: { seat: 2, role: 'wolf', hasViewedRole: true },
+            3: { seat: 3, role: 'villager', hasViewedRole: true },
           },
           seedWolfInfectionResult: { outcome: 'converted', targetSeat: 2 },
         }),
@@ -131,10 +137,10 @@ describe('assertWerewolfStateInvariants', () => {
         createSheriffElectionState({
           templateRoles: ['seedWolf', 'wolf', 'seer', 'villager'],
           players: {
-            0: { userId: 'host', seat: 0, role: 'seedWolf', hasViewedRole: true },
-            1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
-            2: { userId: 'p2', seat: 2, role: 'seer', hasViewedRole: true },
-            3: { userId: 'p3', seat: 3, role: 'villager', hasViewedRole: true },
+            0: { seat: 0, role: 'seedWolf', hasViewedRole: true },
+            1: { seat: 1, role: 'wolf', hasViewedRole: true },
+            2: { seat: 2, role: 'seer', hasViewedRole: true },
+            3: { seat: 3, role: 'villager', hasViewedRole: true },
           },
           seedWolfInfectionResult: { outcome: 'converted', targetSeat: 2 },
         }),
@@ -163,12 +169,15 @@ describe('assertWerewolfStateInvariants', () => {
           templateRoles: ['treasureMaster', 'wolf', 'seer', 'villager', 'witch'],
           players: {
             0: {
-              userId: 'host',
               seat: 0,
               role: 'treasureMaster',
               hasViewedRole: false,
             },
-            1: { userId: 'p1', seat: 1, role: 'seer', hasViewedRole: false },
+            1: { seat: 1, role: 'seer', hasViewedRole: false },
+          },
+          roster: {
+            0: { seat: 0, userId: 'host' },
+            1: { seat: 1, userId: 'p1' },
           },
         }),
       ),
@@ -220,7 +229,7 @@ describe('assertWerewolfStateInvariants', () => {
     const plagueTreasureMasterState = createTreasureMasterState({
       rules: { isPlagueMode: true },
       players: {
-        0: { userId: 'host', seat: 0, role: 'villager', hasViewedRole: false },
+        0: { seat: 0, role: 'villager', hasViewedRole: false },
       },
       bottomCards: undefined,
       treasureMasterSeat: undefined,
@@ -413,5 +422,61 @@ describe('assertWerewolfStateInvariants', () => {
         }),
       ),
     ).toThrow('vote count is incorrect for candidate 0');
+  });
+
+  it('rejects roster/players misalignment in both directions', () => {
+    expect(() => assertWerewolfStateInvariants(createTreasureMasterState({ roster: {} }))).toThrow(
+      'player record at seat 0 has no roster occupant',
+    );
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createTreasureMasterState({
+          roster: {
+            0: { seat: 0, userId: 'host' },
+            1: { seat: 1, userId: 'p1' },
+          },
+        }),
+      ),
+    ).toThrow('outside the 1-seat players map');
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createTreasureMasterState({
+          players: { 0: { seat: 0, role: 'treasureMaster', hasViewedRole: false }, 1: null },
+          roster: {
+            0: { seat: 0, userId: 'host' },
+            1: { seat: 1, userId: 'p1' },
+          },
+        }),
+      ),
+    ).toThrow('roster occupant at seat 1 has no player record');
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createTreasureMasterState({
+          roster: { 0: { seat: 0, userId: 'host' }, 1: { seat: 0, userId: 'p1' } },
+          players: {
+            0: { seat: 0, role: 'treasureMaster', hasViewedRole: false },
+            1: { seat: 1, role: null, hasViewedRole: false },
+          },
+        }),
+      ),
+    ).toThrow('roster occupant at seat 1 stores seat 0');
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createTreasureMasterState({
+          roster: { 0: { seat: 0, userId: 'host' }, 1: { seat: 1, userId: 'host' } },
+          players: {
+            0: { seat: 0, role: 'treasureMaster', hasViewedRole: false },
+            1: { seat: 1, role: null, hasViewedRole: false },
+          },
+        }),
+      ),
+    ).toThrow('roster userId host occupies more than one seat');
+    expect(() =>
+      assertWerewolfStateInvariants(
+        createTreasureMasterState({
+          roster: { 0: null } as unknown as GameState['roster'],
+        }),
+      ),
+    ).toThrow('roster seat 0 holds an empty occupant');
   });
 });

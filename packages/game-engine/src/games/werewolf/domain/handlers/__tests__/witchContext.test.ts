@@ -25,7 +25,6 @@ function maybeCreateWitchContextAction(nextStepId: SchemaId, state: GameState) {
 
 function createPlayer(seat: number, role: string): Player {
   return {
-    userId: `uid-${seat}`,
     seat: seat,
     role: role as Player['role'],
     hasViewedRole: true,
@@ -48,7 +47,12 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     actions: [],
     currentNightResults: {},
     pendingRevealAcks: [],
-    roster: {},
+    roster: {
+      0: { seat: 0, userId: 'uid-0' },
+      1: { seat: 1, userId: 'uid-1' },
+      2: { seat: 2, userId: 'uid-2' },
+    },
+    playerProfiles: {},
     deaths: [],
     wolfKillOverride: undefined,
     isAudioPlaying: false,

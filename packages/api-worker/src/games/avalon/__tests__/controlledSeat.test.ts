@@ -46,20 +46,14 @@ function nightState(): AvalonState {
     { roomCode: '1234', hostUserId: HOST, nowMs: 1, commandId: 'create' },
   );
   if (created.kind !== 'created') throw new Error(created.reason);
-  const filled = commitState(
+  const seatedFirst = commitState(
     created.state,
-    { type: 'room.seat.fillBots' },
-    HOST,
-    null,
-    'fill-bots',
-  );
-  const seated = commitState(
-    filled,
     { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } },
     HOST,
     null,
     'seat-host',
   );
+  const seated = commitState(seatedFirst, { type: 'room.seat.fillBots' }, HOST, null, 'fill-bots');
   const started = commitState(seated, { type: 'avalon.game.start' }, HOST, null, 'start');
   if (started.phase.kind !== 'night') throw new Error('Expected night phase');
   // 音频门控：先 ack 掉开局播报，否则 night.confirm 会被"播报尚未结束"拦截，

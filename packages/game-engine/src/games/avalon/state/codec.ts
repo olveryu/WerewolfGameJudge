@@ -15,6 +15,7 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeAvalonState } from './normalize';
 import {
   AVALON_BALLOTS,
@@ -87,7 +88,35 @@ function profile(value: unknown, path: string): RoomSeatProfile {
   );
 }
 
-function realSeats(value: unknown, path: string): AvalonState['realSeats'] {
+function rosterSeats(value: unknown, path: string): AvalonState['roster'] {
+  const raw = parseObject(value, path);
+  const result: Record<number, AvalonHumanSeat | BotSeatOccupant> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    const rawSeat = parseObject(value, `${path}.${key}`);
+    const seat = parseSeat(Number(key), `${path}.${key}`);
+    if (rawSeat.kind === 'bot') {
+      result[seat] = finishObject(
+        rawSeat,
+        { seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`), kind: 'bot' as const },
+        `${path}.${key}`,
+      );
+    } else {
+      result[seat] = finishObject(
+        rawSeat,
+        {
+          seat: parseSeat(rawSeat.seat, `${path}.${key}.seat`),
+          userId: parseNonEmptyString(rawSeat.userId, `${path}.${key}.userId`),
+          profile: profile(rawSeat.profile, `${path}.${key}.profile`),
+        },
+        `${path}.${key}`,
+      );
+    }
+  }
+  return result;
+}
+
+function legacyRealSeats(value: unknown, path: string): Readonly<Record<number, AvalonHumanSeat>> {
   const raw = parseObject(value, path);
   const result: Record<number, AvalonHumanSeat> = {};
   for (const [key, value] of Object.entries(raw)) {
@@ -315,12 +344,7 @@ export function parseAvalonState(value: unknown): AvalonState {
         phase: phase(raw.phase, `${path}.phase`),
         phaseRevision: parseInteger(raw.phaseRevision, `${path}.phaseRevision`),
         config: parseAvalonConfig(raw.config, `${path}.config`),
-        realSeats: realSeats(raw.realSeats, `${path}.realSeats`),
-        fillEmptySeatsWithBots: parseBoolean(
-          raw.fillEmptySeatsWithBots,
-          `${path}.fillEmptySeatsWithBots`,
-        ),
-        excludedBotSeats: parseArray(raw.excludedBotSeats, `${path}.excludedBotSeats`, parseSeat),
+        roster: rosterSeats(raw.roster, `${path}.roster`),
         roles: roles(raw.roles, `${path}.roles`),
         nightInfo: nightInfo(raw.nightInfo, `${path}.nightInfo`),
         leaderSeat: parseInteger(raw.leaderSeat, `${path}.leaderSeat`),
@@ -353,16 +377,40 @@ export function parseAvalonState(value: unknown): AvalonState {
 }
 
 /**
- * Upgrades stored v1 rooms: v1 predates role viewing, so no seat had a
- * recorded view yet; the record starts empty.
+ * Upgrades stored v1/v2 rooms. v1 predates role viewing, so its record
+ * starts empty. v2 stored the roster as realSeats plus the implicit-bot
+ * derivation inputs; the v3 roster materializes exactly the seats the
+ * old derivation would have called bots.
  * @throws When the stored state is malformed or invalid after migration.
  */
 export function migratePersistedAvalonState(value: unknown): AvalonState {
   const raw = parseObject(value, 'AvalonState');
-  if (raw.stateVersion !== 1) return parseAvalonState(raw);
-  if ('roleViewedSeats' in raw)
+  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
+  if (raw.stateVersion === 1 && 'roleViewedSeats' in raw)
     return failDecode('AvalonState.roleViewedSeats', 'absent from version 1 states');
-  return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION, roleViewedSeats: [] });
+  const config = parseAvalonConfig(raw.config, 'AvalonState.config');
+  const humans = legacyRealSeats(raw.realSeats, 'AvalonState.realSeats');
+  const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'AvalonState.fillEmptySeatsWithBots');
+  const excluded = parseArray(raw.excludedBotSeats, 'AvalonState.excludedBotSeats', parseSeat);
+  const roster: Record<number, AvalonHumanSeat | BotSeatOccupant> = { ...humans };
+  if (fill) {
+    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
+      if (roster[seat] === undefined && !excluded.includes(seat))
+        roster[seat] = { seat, kind: 'bot' };
+    }
+  }
+  const {
+    realSeats: _legacyRealSeats,
+    fillEmptySeatsWithBots: _legacyFill,
+    excludedBotSeats: _legacyExcluded,
+    ...rest
+  } = raw;
+  return parseAvalonState({
+    ...rest,
+    stateVersion: AVALON_STATE_VERSION,
+    roleViewedSeats: raw.stateVersion === 1 ? [] : raw.roleViewedSeats,
+    roster,
+  });
 }
 
 export const AVALON_STATE_CODEC = {

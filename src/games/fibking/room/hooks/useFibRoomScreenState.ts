@@ -6,10 +6,11 @@ import {
   type FibPreparationStage,
   type FibPublicCommand,
   type FibRoundView,
+  getFibBotSeats,
   getFibOccupiedSeatCount,
   getFibRoundView,
   getFibUserSeat,
-  isFibImplicitBotSeat,
+  isFibBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
@@ -145,12 +147,13 @@ export function useFibRoomScreenState({
   const effectiveSeat = controlledSeat ?? mySeat;
   const roundView = useMemo(() => getFibRoundView(state, effectiveSeat), [effectiveSeat, state]);
 
-  useEffect(() => {
-    if (controlledSeat === null) return;
-    if (state.phase !== 'ongoing' || !isFibImplicitBotSeat(state, controlledSeat)) {
-      releaseBot();
-    }
-  }, [controlledSeat, releaseBot, state]);
+  // 接管是房主权限，无阶段条件（与入口 capability 同源，见 fibRoomAdapter）。
+  useBotTakeoverGuard({
+    controlledSeat,
+    canControlBots: isHost,
+    seatStillBot: controlledSeat === null || isFibBotSeat(state, controlledSeat),
+    release: releaseBot,
+  });
 
   useEffect(() => {
     if (
@@ -460,9 +463,7 @@ export function useFibRoomScreenState({
   );
 
   const hasControllableBots =
-    capabilities.canTakeOverBots.isAllowed &&
-    state.fillEmptySeatsWithBots &&
-    Object.keys(state.realSeats).length < state.numberOfPlayers;
+    capabilities.canTakeOverBots.isAllowed && getFibBotSeats(state).length > 0;
   const controlledSeatModel = createControlledSeatModel({
     isVisible: controlledSeat !== null || hasControllableBots,
     controlledSeat,

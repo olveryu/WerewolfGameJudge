@@ -1,15 +1,18 @@
 /** Shared seating, profiles and explicit test-bot control bound to Undercover room facts. */
-import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
-import { useEffect } from 'react';
+import {
+  getUndercoverUserSeat,
+  isUndercoverBotSeat,
+  type UndercoverState,
+} from '@game-judge/game-engine/games/undercover/public';
 
 import type { User } from '@/contexts/AuthContext';
+import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useBotTakeoverLongPress } from '@/features/room/controllers/useBotTakeoverLongPress';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -29,7 +32,7 @@ export function useUndercoverRoster(
   shareRoom: () => void,
 ) {
   const commands = useUndercoverSeatCommands(session, user);
-  const mySeat = getUserSeat(state.realSeats, user.id);
+  const mySeat = getUndercoverUserSeat(state, user.id);
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
     takeSeat: commands.takeSeat,
@@ -42,15 +45,19 @@ export function useUndercoverRoster(
   const operations = useRoomHostOperations(commands);
   const bot = useRoomBotControl();
   const isHost = state.hostUserId === user.id;
-  const canControl = isHost && (state.phase === 'reading' || state.phase === 'ongoing');
+  const canControl = isHost;
   const controlledSeat =
-    canControl && bot.controlledSeat !== null && state.botSeats.includes(bot.controlledSeat)
+    canControl && bot.controlledSeat !== null && isUndercoverBotSeat(state, bot.controlledSeat)
       ? bot.controlledSeat
       : null;
   const release = bot.release;
-  useEffect(() => {
-    if (bot.controlledSeat !== null && controlledSeat === null) release();
-  }, [bot.controlledSeat, controlledSeat, release]);
+  // 守卫作用于原始接管座位；上方派生的 controlledSeat 是给消费者的即时遮蔽，两层不合并。
+  useBotTakeoverGuard({
+    controlledSeat: bot.controlledSeat,
+    canControlBots: canControl,
+    seatStillBot: bot.controlledSeat === null || isUndercoverBotSeat(state, bot.controlledSeat),
+    release,
+  });
   const capabilities = createUndercoverRoomCapabilities({
     state,
     isHost,
@@ -111,7 +118,7 @@ export function useUndercoverRoster(
     takeOver: bot.takeOver,
     release,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => state.botSeats.includes(seat),
+    isBotSeat: (seat) => isUndercoverBotSeat(state, seat),
     gameName: 'Undercover',
   });
   return {

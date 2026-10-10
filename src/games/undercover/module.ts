@@ -1,5 +1,6 @@
 /** Undercover client plugin over shared navigation, room session, account and shell contracts. */
 import {
+  getUndercoverUserSeat,
   UNDERCOVER_STATE_CODEC,
   type UndercoverPublicCommand,
   type UndercoverState,
@@ -7,7 +8,6 @@ import {
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import { getUserSeat } from '@/features/room/model/getUserSeat';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
@@ -49,7 +49,7 @@ export function createUndercoverUiModule({
     roomAccount: createSessionRoomAccountCapability<'undercover', UndercoverState>({
       gameType: 'undercover',
       session,
-      isUserSeated: (state, userId) => getUserSeat(state.realSeats, userId) !== null,
+      isUserSeated: (state, userId) => getUndercoverUserSeat(state, userId) !== null,
       canSwitchAccount: (state) => state.phase === 'lobby',
     }),
     productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },

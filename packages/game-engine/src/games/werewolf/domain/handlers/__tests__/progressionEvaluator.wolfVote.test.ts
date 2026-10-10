@@ -12,7 +12,10 @@ import {
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/progressionEvaluator';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import type {
+  GameState,
+  WerewolfHumanSeat,
+} from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 // =============================================================================
@@ -20,18 +23,18 @@ import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/
 // =============================================================================
 
 function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
-  return {
+  const state: GameState = {
     ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer'],
     players: {
-      0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-      1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-      2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-      3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-      4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
+      0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+      1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+      2: { seat: 2, hasViewedRole: true, role: 'villager' },
+      3: { seat: 3, hasViewedRole: true, role: 'villager' },
+      4: { seat: 4, hasViewedRole: true, role: 'seer' },
     },
     currentStepIndex: 0,
     currentStepId: 'wolfKill',
@@ -44,9 +47,21 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
     roster: {},
+    playerProfiles: {},
     currentNightResults: {},
     ...overrides,
   };
+  // Occupancy follows the players map in this factory (seat N is user `p<seat>`).
+  if (overrides?.roster === undefined) {
+    const roster: Record<number, WerewolfHumanSeat> = {};
+    for (const player of Object.values(state.players)) {
+      if (player !== null) {
+        roster[player.seat] = { seat: player.seat, userId: `p${player.seat}` };
+      }
+    }
+    return { ...state, roster };
+  }
+  return state;
 }
 
 // =============================================================================
@@ -76,9 +91,9 @@ describe('isWolfVoteAllComplete', () => {
   it('fails fast when an ongoing player has no assigned role', () => {
     const state = createWolfKillState({
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: null }, // role missing
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: null }, // role missing
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
       },
       currentNightResults: {
         wolfVotesBySeat: { '0': 2 },
@@ -92,8 +107,8 @@ describe('isWolfVoteAllComplete', () => {
   it('fails fast when wolfKill has no participating wolves', () => {
     const state = createWolfKillState({
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'villager' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seer' },
+        0: { seat: 0, hasViewedRole: true, role: 'villager' },
+        1: { seat: 1, hasViewedRole: true, role: 'seer' },
       },
       currentNightResults: {},
     });
@@ -128,11 +143,11 @@ describe('isWolfVoteAllComplete', () => {
     const state = createWolfKillState({
       // All 5 players have roles — the only valid ongoing state
       players: {
-        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
-        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
-        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
-        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'seer' },
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' },
       },
       currentNightResults: {
         wolfVotesBySeat: { '0': 2, '1': 3 },

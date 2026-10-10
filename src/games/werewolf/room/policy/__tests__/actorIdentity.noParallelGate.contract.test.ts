@@ -192,14 +192,15 @@ describe('Actor Identity Anti-Drift Contracts', () => {
   });
 
   describe('Actor identity required fields', () => {
-    it('InteractionContext should have required debug mode fields (non-optional)', () => {
+    it('InteractionContext should have required actor delegation fields (non-optional)', () => {
       const typesContent = readFileContent('src/games/werewolf/room/policy/types.ts');
 
-      // These fields should be required (no ? after the field name)
-      // isDebugMode: boolean (not isDebugMode?: boolean)
-      expect(typesContent).toMatch(/isDebugMode:\s*boolean;/);
-      expect(typesContent).not.toMatch(/isDebugMode\?:\s*boolean;/);
+      // Bot takeover no longer routes through the interaction policy (the
+      // shared long-press hook owns it), so the policy context must not
+      // carry a debug-mode gate at all.
+      expect(typesContent).not.toMatch(/isDebugMode/);
 
+      // These fields should be required (no ? after the field name)
       // controlledSeat: number | null (not controlledSeat?: number | null)
       expect(typesContent).toMatch(/controlledSeat:\s*number\s*\|\s*null;/);
       expect(typesContent).not.toMatch(/controlledSeat\?:/);

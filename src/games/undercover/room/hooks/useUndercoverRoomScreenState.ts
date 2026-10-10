@@ -1,5 +1,6 @@
 /** Compose Undercover controls and projections into the existing RoomShell contract. */
 import {
+  getUndercoverBotSeats,
   getUndercoverRoleCounts,
   type UndercoverRoleCounts,
   type UndercoverState,
@@ -147,7 +148,7 @@ export function useUndercoverRoomScreenState({
     controlledSeat: createControlledSeatModel({
       isVisible:
         roster.controlledSeat !== null ||
-        (roster.capabilities.canTakeOverBots.isAllowed && state.botSeats.length > 0),
+        (roster.capabilities.canTakeOverBots.isAllowed && getUndercoverBotSeats(state).length > 0),
       controlledSeat: roster.controlledSeat,
       controlledBotName:
         roster.controlledSeat !== null ? getBotDisplayName(roster.controlledSeat) : null,
