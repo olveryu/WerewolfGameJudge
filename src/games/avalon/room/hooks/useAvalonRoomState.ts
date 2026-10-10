@@ -39,8 +39,8 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -478,20 +478,12 @@ export function useAvalonRoomState(
       onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
     },
     seatConfirmation: createRoomSeatConfirmationModel(seatController),
-    profile:
-      selection === null
-        ? null
-        : {
-            target: selection.target,
-            isSelf: selection.isSelf,
-            onClose: profile.close,
-            gameDetails: null,
-            onKick:
-              !selection.isSelf && capabilities.canKickSeat.isAllowed
-                ? () => executeProfileKick(capabilities, selection)
-                : null,
-            onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
-          },
+    profile: createRoomProfileCardModel({
+      selection,
+      capabilities,
+      onClose: profile.close,
+      onLeaveSeat: profile.leaveSelf,
+    }),
     share,
     bottomActions: (() => {
       const actions: Array<

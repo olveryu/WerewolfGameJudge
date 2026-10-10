@@ -26,8 +26,8 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
@@ -836,10 +836,6 @@ export function useWerewolfRoomScreenState(
 
   // ─── Profile card assembly ──────────────────────────────────────────────
 
-  const handleProfileKick = useCallback(() => {
-    executeProfileKick(capabilities, profileController.selection);
-  }, [capabilities, profileController.selection]);
-
   const handleProfileLeave = useCallback(() => {
     const capability = capabilities.canLeaveSeat;
     if (!capability.isAllowed) {
@@ -850,28 +846,17 @@ export function useWerewolfRoomScreenState(
 
   const profile = useMemo((): RoomProfileCardModel | null => {
     const profileSelection = profileController.selection;
-    if (profileSelection === null) return null;
-    return {
-      target: profileSelection.target,
-      isSelf: profileSelection.isSelf,
+    return createRoomProfileCardModel({
+      selection: profileSelection,
+      capabilities,
       onClose: profileController.close,
-      onKick:
-        !profileSelection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
-      onLeaveSeat:
-        profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
-      gameDetails: {
-        title: '阵营分布',
-        statsUserId: profileSelection.target.userId,
-      },
-    };
-  }, [
-    capabilities.canKickSeat.isAllowed,
-    capabilities.canLeaveSeat.isAllowed,
-    handleProfileKick,
-    handleProfileLeave,
-    profileController.close,
-    profileController.selection,
-  ]);
+      onLeaveSeat: handleProfileLeave,
+      gameDetails:
+        profileSelection === null
+          ? null
+          : { title: '阵营分布', statsUserId: profileSelection.target.userId },
+    });
+  }, [capabilities, handleProfileLeave, profileController.close, profileController.selection]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Shell assembly (the Screen renders the model; it no longer assembles it)

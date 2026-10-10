@@ -30,8 +30,8 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
@@ -66,23 +66,18 @@ function usePictionaryProfileModel(
   profileController: ReturnType<typeof useRoomProfileController>,
 ): RoomProfileCardModel | null {
   const selection = profileController.selection;
-  return useMemo(() => {
-    if (selection === null) return null;
-    return {
-      target: selection.target,
-      isSelf: selection.isSelf,
-      onClose: profileController.close,
-      onKick:
-        !selection.isSelf && capabilities.canKickSeat.isAllowed
-          ? () => executeProfileKick(capabilities, selection)
-          : null,
-      onLeaveSeat:
-        selection.isSelf && capabilities.canLeaveSeat.isAllowed
-          ? () => capabilities.canLeaveSeat.isAllowed && capabilities.canLeaveSeat.execute()
-          : null,
-      gameDetails: null,
-    };
-  }, [capabilities, profileController.close, selection]);
+  return useMemo(
+    () =>
+      createRoomProfileCardModel({
+        selection,
+        capabilities,
+        onClose: profileController.close,
+        onLeaveSeat: () => {
+          if (capabilities.canLeaveSeat.isAllowed) capabilities.canLeaveSeat.execute();
+        },
+      }),
+    [capabilities, profileController.close, selection],
+  );
 }
 
 /**

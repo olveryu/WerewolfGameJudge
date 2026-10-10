@@ -12,8 +12,8 @@ import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -71,23 +71,12 @@ export function useUndercoverRoster(
     shareRoom,
   });
   const profileSelection = profileController.selection;
-  const profile: RoomProfileCardModel | null =
-    profileSelection === null
-      ? null
-      : {
-          target: profileSelection.target,
-          isSelf: profileSelection.isSelf,
-          onClose: profileController.close,
-          gameDetails: null,
-          onKick:
-            !profileSelection.isSelf && capabilities.canKickSeat.isAllowed
-              ? () => executeProfileKick(capabilities, profileSelection)
-              : null,
-          onLeaveSeat:
-            profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed
-              ? profileController.leaveSelf
-              : null,
-        };
+  const profile: RoomProfileCardModel | null = createRoomProfileCardModel({
+    selection: profileSelection,
+    capabilities,
+    onClose: profileController.close,
+    onLeaveSeat: profileController.leaveSelf,
+  });
   const onSeatPress = (seat: number, disabledReason?: string) => {
     const intent = getRoomSeatTapIntent({
       seat,

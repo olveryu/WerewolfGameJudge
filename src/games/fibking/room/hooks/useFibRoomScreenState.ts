@@ -31,8 +31,8 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
@@ -365,10 +365,6 @@ export function useFibRoomScreenState({
     gameName: 'FibKing',
   });
 
-  const handleProfileKick = useCallback(() => {
-    executeProfileKick(capabilities, profileSelection);
-  }, [capabilities, profileSelection]);
-
   const handleProfileLeave = useCallback(() => {
     const capability = capabilities.canLeaveSeat;
     if (!capability.isAllowed) {
@@ -377,26 +373,16 @@ export function useFibRoomScreenState({
     capability.execute();
   }, [capabilities.canLeaveSeat]);
 
-  const profile = useMemo((): RoomProfileCardModel | null => {
-    const selection = profileSelection;
-    if (selection === null) return null;
-    return {
-      target: selection.target,
-      isSelf: selection.isSelf,
-      onClose: closeProfile,
-      onKick: !selection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
-      onLeaveSeat:
-        selection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
-      gameDetails: null,
-    };
-  }, [
-    capabilities.canKickSeat.isAllowed,
-    capabilities.canLeaveSeat.isAllowed,
-    handleProfileKick,
-    handleProfileLeave,
-    closeProfile,
-    profileSelection,
-  ]);
+  const profile = useMemo(
+    (): RoomProfileCardModel | null =>
+      createRoomProfileCardModel({
+        selection: profileSelection,
+        capabilities,
+        onClose: closeProfile,
+        onLeaveSeat: handleProfileLeave,
+      }),
+    [capabilities, closeProfile, handleProfileLeave, profileSelection],
+  );
 
   const seatConfirmation = useMemo(
     () =>
