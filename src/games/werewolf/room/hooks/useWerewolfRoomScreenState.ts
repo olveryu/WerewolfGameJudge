@@ -819,8 +819,19 @@ export function useWerewolfRoomScreenState(
   }, [bottomCards, isThiefChoose]);
 
   const seatConfirmation = useMemo(
-    () => createRoomSeatConfirmationModel(seatController),
-    [seatController],
+    () =>
+      createRoomSeatConfirmationModel({
+        pendingAction: seatController.pendingAction,
+        isSubmitting: seatController.isSubmitting,
+        confirm: seatController.confirm,
+        cancel: seatController.cancel,
+      }),
+    [
+      seatController.pendingAction,
+      seatController.isSubmitting,
+      seatController.confirm,
+      seatController.cancel,
+    ],
   );
 
   // ─── Profile card assembly ──────────────────────────────────────────────

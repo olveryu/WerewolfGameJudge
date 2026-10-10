@@ -399,8 +399,19 @@ export function useFibRoomScreenState({
   ]);
 
   const seatConfirmation = useMemo(
-    () => createRoomSeatConfirmationModel(seatController),
-    [seatController],
+    () =>
+      createRoomSeatConfirmationModel({
+        pendingAction: seatController.pendingAction,
+        isSubmitting: seatController.isSubmitting,
+        confirm: seatController.confirm,
+        cancel: seatController.cancel,
+      }),
+    [
+      seatController.pendingAction,
+      seatController.isSubmitting,
+      seatController.confirm,
+      seatController.cancel,
+    ],
   );
 
   const showStartRoundDisabled = useCallback(() => {

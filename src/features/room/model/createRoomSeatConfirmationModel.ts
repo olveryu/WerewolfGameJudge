@@ -3,19 +3,25 @@
 import type { RoomSeatController } from '../controllers/useRoomSeatController';
 import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
 
+/** The slice of the seat controller the confirmation projection reads. */
+export type RoomSeatConfirmationSource = Pick<
+  RoomSeatController,
+  'pendingAction' | 'isSubmitting' | 'confirm' | 'cancel'
+>;
+
 /**
  * The single projection from the seat controller's pending take/move
  * action to the shell's confirmation model. Returns null when no action
  * is pending. All seven games previously inlined this four-field mapping.
  */
 export function createRoomSeatConfirmationModel(
-  controller: RoomSeatController,
+  source: RoomSeatConfirmationSource,
 ): RoomSeatConfirmationModel | null {
-  if (controller.pendingAction === null) return null;
+  if (source.pendingAction === null) return null;
   return {
-    action: controller.pendingAction,
-    isSubmitting: controller.isSubmitting,
-    onConfirm: controller.confirm,
-    onCancel: controller.cancel,
+    action: source.pendingAction,
+    isSubmitting: source.isSubmitting,
+    onConfirm: source.confirm,
+    onCancel: source.cancel,
   };
 }
