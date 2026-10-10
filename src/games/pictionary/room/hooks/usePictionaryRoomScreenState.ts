@@ -331,10 +331,9 @@ export function usePictionaryRoomScreenState({
       submitCommand,
     ],
   );
-  const hasControllableBots =
-    capabilities.canTakeOverBots.isAllowed && getPictionaryBotSeats(state).length > 0;
   const controlledSeatModel = createControlledSeatModel({
-    isVisible: controlledSeat !== null || hasControllableBots,
+    canControlBots: capabilities.canTakeOverBots.isAllowed,
+    hasBots: getPictionaryBotSeats(state).length > 0,
     controlledSeat,
     controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
     release: releaseBot,

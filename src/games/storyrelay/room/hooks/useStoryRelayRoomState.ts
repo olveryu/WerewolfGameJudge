@@ -379,8 +379,8 @@ export function useStoryRelayRoomState(
           }
         : activeHostManagement,
     controlledSeat: createControlledSeatModel({
-      isVisible:
-        controlledSeat !== null || (canControlBots && getStoryRelayBotSeats(state).length > 0),
+      canControlBots,
+      hasBots: getStoryRelayBotSeats(state).length > 0,
       controlledSeat,
       controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
       release: releaseBot,

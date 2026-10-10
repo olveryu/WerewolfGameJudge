@@ -6,6 +6,7 @@ import {
   type DrawGuessCommand,
   type DrawGuessState,
   type DrawGuessViewModel,
+  getDrawGuessBotSeats,
   getDrawGuessOccupiedSeatCount,
   getDrawGuessUserSeat,
   getDrawGuessViewModel,
@@ -375,7 +376,8 @@ export function useDrawGuessRoomState(
           }
         : terminalHostManagement,
     controlledSeat: createControlledSeatModel({
-      isVisible: controlledSeat !== null,
+      canControlBots,
+      hasBots: getDrawGuessBotSeats(state).length > 0,
       controlledSeat,
       controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
       release: releaseBot,

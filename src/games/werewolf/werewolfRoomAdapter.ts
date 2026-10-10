@@ -390,12 +390,8 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
   });
 
   const controlledSeatModel = createControlledSeatModel({
-    isVisible:
-      input.isDebugMode &&
-      input.isHost &&
-      input.hasBots &&
-      input.roomStatus !== GameStatus.Unseated &&
-      input.roomStatus !== GameStatus.Seated,
+    canControlBots: input.isHost,
+    hasBots: input.hasBots,
     controlledSeat: input.controlledSeat,
     controlledBotName: input.controlledBotName,
     release: input.onReleaseBot,

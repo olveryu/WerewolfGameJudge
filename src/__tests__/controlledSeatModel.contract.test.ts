@@ -40,6 +40,38 @@ describe('controlled seat model contract', () => {
     expect(violations).toEqual([]);
   });
 
+  it('the visibility gate lives in the factory, fed by two inputs from every game', () => {
+    const factory = readFileSync(
+      join(__dirname, '../features/room/model/createControlledSeatModel.ts'),
+      'utf-8',
+    );
+    // The factory owns the gate; its input carries no precomputed visibility.
+    expect(factory).not.toMatch(/isVisible: boolean/);
+    expect(factory).toMatch(/canControlBots: boolean;/);
+    expect(factory).toMatch(/hasBots: boolean;/);
+    expect(factory).toMatch(
+      /input\.controlledSeat !== null \|\| \(input\.canControlBots && input\.hasBots\)/,
+    );
+    // Every game passes both gate inputs; none hand-writes the visibility rule.
+    const consumers = [
+      'avalon/room/hooks/useAvalonRoomState.ts',
+      'drawguess/room/hooks/useDrawGuessRoomState.ts',
+      'fibking/room/hooks/useFibRoomScreenState.ts',
+      'pictionary/room/hooks/usePictionaryRoomScreenState.ts',
+      'storyrelay/room/hooks/useStoryRelayRoomState.ts',
+      'undercover/room/hooks/useUndercoverRoomScreenState.ts',
+      'werewolf/werewolfRoomAdapter.ts',
+    ];
+    for (const consumer of consumers) {
+      const source = readFileSync(join(GAMES_DIR, consumer), 'utf-8');
+      const call = /createControlledSeatModel\(\{[\s\S]*?\}\)/.exec(source);
+      if (call === null) throw new Error(`No factory call found in ${consumer}`);
+      expect(call[0]).toMatch(/canControlBots[:,]/);
+      expect(call[0]).toMatch(/hasBots[:,]/);
+      expect(call[0]).not.toMatch(/isVisible/);
+    }
+  });
+
   it('the shared factory is the single producer of the controlled kind', () => {
     const factory = readFileSync(
       join(__dirname, '../features/room/model/createControlledSeatModel.ts'),

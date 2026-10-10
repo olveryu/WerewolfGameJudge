@@ -146,9 +146,8 @@ export function useUndercoverRoomScreenState({
     bottomActions: createUndercoverBottomActions(controls),
     hostManagement: createUndercoverHostManagement(state, isHost, roster.capabilities, controls),
     controlledSeat: createControlledSeatModel({
-      isVisible:
-        roster.controlledSeat !== null ||
-        (roster.capabilities.canTakeOverBots.isAllowed && getUndercoverBotSeats(state).length > 0),
+      canControlBots: roster.capabilities.canTakeOverBots.isAllowed,
+      hasBots: getUndercoverBotSeats(state).length > 0,
       controlledSeat: roster.controlledSeat,
       controlledBotName:
         roster.controlledSeat !== null ? getBotDisplayName(roster.controlledSeat) : null,
