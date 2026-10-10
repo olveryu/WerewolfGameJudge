@@ -274,6 +274,10 @@ function phase(value: unknown, path: string): AvalonPhase {
           round: questRound(raw.round, `${path}.round`),
           proposedSeats: parseArray(raw.proposedSeats, `${path}.proposedSeats`, parseSeat),
           ballots: ballotRecord(raw.ballots, `${path}.ballots`),
+          deadlineAt:
+            raw.deadlineAt === undefined
+              ? null
+              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -285,6 +289,10 @@ function phase(value: unknown, path: string): AvalonPhase {
           round: questRound(raw.round, `${path}.round`),
           teamSeats: parseArray(raw.teamSeats, `${path}.teamSeats`, parseSeat),
           plays: playRecord(raw.plays, `${path}.plays`),
+          deadlineAt:
+            raw.deadlineAt === undefined
+              ? null
+              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
           ballots: ballotRecord(raw.ballots, `${path}.ballots`),
           approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
           rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
@@ -385,6 +393,8 @@ export function parseAvalonState(value: unknown): AvalonState {
  */
 export function migratePersistedAvalonState(value: unknown): AvalonState {
   const raw = parseObject(value, 'AvalonState');
+  if (raw.stateVersion === 3)
+    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
   if (raw.stateVersion === 1 && 'roleViewedSeats' in raw)
     return failDecode('AvalonState.roleViewedSeats', 'absent from version 1 states');

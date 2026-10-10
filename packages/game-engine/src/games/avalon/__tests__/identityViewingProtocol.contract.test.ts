@@ -19,6 +19,7 @@ import { avalonEngine } from '../engine';
 import { migratePersistedAvalonState, parseAvalonState } from '../state/codec';
 import {
   AVALON_NIGHT_STEPS,
+  AVALON_STATE_VERSION,
   type AvalonConfig,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
@@ -202,7 +203,7 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     persisted.fillEmptySeatsWithBots = true;
     persisted.excludedBotSeats = [];
     const migrated = migratePersistedAvalonState(persisted);
-    expect(migrated.stateVersion).toBe(3);
+    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
     expect(migrated.roleViewedSeats).toEqual([]);
     // The strict current-version parser still rejects the legacy shape.
     expect(() => parseAvalonState(persisted)).toThrow();

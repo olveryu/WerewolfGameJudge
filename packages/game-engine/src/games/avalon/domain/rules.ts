@@ -12,6 +12,12 @@ import {
   isAvalonEvilRole,
 } from '../state/types';
 
+/** 组队投票倒计时（秒）：投满自动结算；到点未投完由超时结算（未投算弃权）。 */
+export const AVALON_VOTE_DURATION_SECONDS = 60;
+
+/** 任务出牌倒计时（秒）：出满自动结算；到点未出完由超时结算（未出算成功）。 */
+export const AVALON_QUEST_DURATION_SECONDS = 60;
+
 /** 第 R 轮需要的队员数（官方任务人数表）。 */
 export function getAvalonQuestSize(
   numberOfPlayers: AvalonPlayerCount,

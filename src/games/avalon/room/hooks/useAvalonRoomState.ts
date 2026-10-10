@@ -12,7 +12,14 @@ import {
   getAvalonViewModel,
   isAvalonBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -28,6 +35,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
@@ -96,6 +104,8 @@ export interface AvalonRoomScreenState {
   readonly roleCardShouldPlay: boolean;
   /** Animator 候选池：公开的完整角色分布（按座位序）。 */
   readonly roleCardAllRoles: readonly RevealRoleData[];
+  /** 投票/任务阶段倒计时剩余秒数；不在限时阶段或无截止时为 null。 */
+  readonly phaseRemainingSeconds: number | null;
   readonly nightModalVisible: boolean;
   readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
 }
@@ -159,6 +169,40 @@ export function useAvalonRoomState(
         label,
       }),
     );
+  // 投票/任务倒计时：到点由任一未接管客户端提交超时结算（引擎校验截止时间，先到者生效）。
+  const phaseDeadlineAt =
+    state.phase.kind === 'vote' || state.phase.kind === 'quest' ? state.phase.deadlineAt : null;
+  // 超时结算走静默派发（对齐 drawguess 的 expire）：全场客户端会同时提交，
+  // 先到者结算、其余被引擎阶段校验拒绝——拒绝是预期结果，绝不能弹错误框。
+  const expirePhase = useCallback(async () => {
+    if (state.phase.kind === 'vote') {
+      await session.dispatch(
+        { type: 'avalon.vote.timeout' },
+        { controlledSeat: null, label: '投票超时结算', isRecoverable: true },
+      );
+    } else if (state.phase.kind === 'quest') {
+      await session.dispatch(
+        { type: 'avalon.quest.timeout' },
+        { controlledSeat: null, label: '任务超时结算', isRecoverable: true },
+      );
+    }
+  }, [state.phase.kind, session]);
+  const shouldExpirePhase = useCallback(() => {
+    if (phaseDeadlineAt === null || controlledSeat !== null) return false;
+    const current = session.getSnapshot();
+    return (
+      current.phase === 'ready' &&
+      current.connection === 'live' &&
+      current.pendingCommandCount === 0 &&
+      current.snapshot.state.phaseRevision === state.phaseRevision
+    );
+  }, [phaseDeadlineAt, controlledSeat, session, state.phaseRevision]);
+  const phaseRemainingSeconds = useStageDeadline({
+    deadlineAt: phaseDeadlineAt,
+    shouldExpire: shouldExpirePhase,
+    onExpire: expirePhase,
+    label: '阶段超时结算',
+  });
   // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
   const canControlBots = isHost;
   useBotTakeoverGuard({
@@ -534,6 +578,7 @@ export function useAvalonRoomState(
     isHost,
     canControlBots,
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
+    phaseRemainingSeconds,
     submit,
     isSubmitting: submission.isSubmitting,
     session,

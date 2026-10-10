@@ -17,7 +17,8 @@ export const AVALON_GAME_TYPE = 'avalon' as const;
 /** v3: unified roster replaces realSeats + the implicit-bot derivation inputs.
  * v2 added roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate
  * with an empty viewing record. */
-export const AVALON_STATE_VERSION = 3;
+/** v4 adds deadlineAt to the vote and quest phases (phase countdowns); v3 rooms migrate with null deadlines. */
+export const AVALON_STATE_VERSION = 4;
 
 export const AVALON_MIN_PLAYERS = 5;
 export const AVALON_MAX_PLAYERS = 10;
@@ -223,6 +224,12 @@ export type AvalonPhase =
       readonly round: AvalonQuestRound;
       readonly proposedSeats: readonly number[];
       readonly ballots: Readonly<Record<number, AvalonBallot>>;
+      /**
+       * Ballot deadline (epoch ms): at/after it, any client may submit
+       * avalon.vote.timeout to settle with unvoted seats abstaining.
+       * Null only on phases migrated from v3 (no countdown was running).
+       */
+      readonly deadlineAt: number | null;
     }
   | {
       readonly kind: 'quest';
@@ -230,6 +237,12 @@ export type AvalonPhase =
       readonly teamSeats: readonly number[];
       /** 结算前不向他人揭晓个人选择。 */
       readonly plays: Readonly<Record<number, AvalonPlay>>;
+      /**
+       * Play deadline (epoch ms): at/after it, any client may submit
+       * avalon.quest.timeout to settle with unplayed seats counting as success.
+       * Null only on phases migrated from v3 (no countdown was running).
+       */
+      readonly deadlineAt: number | null;
       /** 通过的组队投票结果，随任务结算写入历史记录。 */
       readonly ballots: Readonly<Record<number, AvalonBallot>>;
       readonly approveCount: number;

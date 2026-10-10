@@ -50,6 +50,8 @@ const avalonPublicCommandOptions = defineAvalonPublicCommandOptions([
     vote: z.enum(['approve', 'reject']),
   }),
   z.strictObject({ type: z.literal('avalon.vote.finish') }),
+  z.strictObject({ type: z.literal('avalon.vote.timeout') }),
+  z.strictObject({ type: z.literal('avalon.quest.timeout') }),
   z.strictObject({
     type: z.literal('avalon.quest.play'),
     play: z.enum(['success', 'fail']),

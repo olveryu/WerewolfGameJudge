@@ -111,6 +111,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           round: state.phase.round,
           proposedSeats: [...event.seats],
           ballots: {},
+          deadlineAt: event.deadlineAt,
         },
         // 新一轮组队开始，上一轮的结算面板不再展示。
         lastVoteResult: null,
@@ -155,6 +156,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             round: state.phase.round,
             teamSeats: [...state.phase.proposedSeats],
             plays: {},
+            deadlineAt: event.questDeadlineAt,
             ballots: { ...event.ballots },
             approveCount: event.approveCount,
             rejectCount: event.rejectCount,

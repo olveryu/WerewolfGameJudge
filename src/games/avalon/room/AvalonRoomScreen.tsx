@@ -67,6 +67,26 @@ function AvalonRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
+  // 刺杀二次确认住在 overlays 层：阶段组件重挂载（阶段切换）不能把它吞掉。
+  const [strikeConfirm, setStrikeConfirm] = useState<AvalonStrikeConfirmation | null>(null);
+  const [strikePickMode, setStrikePickMode] = useState(false);
+  const closeStrike = () => {
+    setStrikeConfirm(null);
+    setStrikePickMode(false);
+  };
+  const confirmStrike = () => {
+    if (strikeConfirm === null) return;
+    const { seat, mode } = strikeConfirm;
+    setStrikeConfirm(null);
+    if (mode === 'accuse') void screen.submit('指认', { type: 'avalon.assassin.accuse', seat });
+    else void screen.submit('提前刺杀', { type: 'avalon.assassin.earlyStrike', seat });
+    setStrikePickMode(false);
+  };
+  const strikeName =
+    strikeConfirm === null || viewModel === null
+      ? ''
+      : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
+        `座位${strikeConfirm.seat + 1}`);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
   // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）；
   // 新一轮提案会把 lastVoteResult 清零，届时重置 dismissed。
@@ -131,9 +151,12 @@ function AvalonRoomContent(
               ),
               afterSeatBoard: (
                 <AvalonStage
-                  key={`${screen.state.phaseRevision}:${screen.state.phase.kind}`}
+                  key={screen.state.phase.kind}
                   screen={screen}
                   viewModel={viewModel}
+                  onRequestStrike={setStrikeConfirm}
+                  strikePickMode={strikePickMode}
+                  setStrikePickMode={setStrikePickMode}
                 />
               ),
             }
@@ -169,6 +192,12 @@ function AvalonRoomContent(
                   onClose={() => setVoteResultDismissed(true)}
                 />
               ) : null}
+              <AvalonStrikeConfirmModal
+                confirmation={strikeConfirm}
+                seatName={strikeName}
+                onConfirm={confirmStrike}
+                onClose={closeStrike}
+              />
               {isNight && screen.nightModalVisible ? (
                 <AvalonNightConfirmModal
                   viewModel={viewModel}
@@ -207,32 +236,20 @@ function AvalonRoomContent(
 function AvalonStage({
   screen,
   viewModel,
+  onRequestStrike,
+  strikePickMode,
+  setStrikePickMode,
 }: {
   readonly screen: AvalonScreenState;
   readonly viewModel: AvalonViewModel;
+  readonly onRequestStrike: (confirmation: AvalonStrikeConfirmation) => void;
+  readonly strikePickMode: boolean;
+  readonly setStrikePickMode: (active: boolean) => void;
 }) {
   const { submit, isSubmitting } = screen;
-  const [strikePickMode, setStrikePickMode] = useState(false);
-  const [strikeConfirm, setStrikeConfirm] = useState<AvalonStrikeConfirmation | null>(null);
   // 晚上走弹窗模式（Cupid 两步），不在 afterSeatBoard 渲染阶段 UI。
   if (screen.state.phase.kind === 'night') return null;
   const kind = resolveAvalonStageKind(screen.state.phase);
-  const closeStrike = () => {
-    setStrikeConfirm(null);
-    setStrikePickMode(false);
-  };
-  const confirmStrike = () => {
-    if (strikeConfirm === null) return;
-    const { seat, mode } = strikeConfirm;
-    closeStrike();
-    if (mode === 'accuse') void submit('指认', { type: 'avalon.assassin.accuse', seat });
-    else void submit('提前刺杀', { type: 'avalon.assassin.earlyStrike', seat });
-  };
-  const strikeName =
-    strikeConfirm === null
-      ? ''
-      : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
-        `座位${strikeConfirm.seat + 1}`);
   return (
     <>
       {viewModel.canEarlyStrike && !strikePickMode ? (
@@ -263,7 +280,7 @@ function AvalonStage({
               }))}
               selectedSeats={new Set()}
               disabledSeats={new Set()}
-              onSelect={(seat) => setStrikeConfirm({ seat, mode: 'earlyStrike' })}
+              onSelect={(seat) => onRequestStrike({ seat, mode: 'earlyStrike' })}
               testIDPrefix="avalon-early-strike"
             />
             <Button variant="secondary" size="md" onPress={() => setStrikePickMode(false)}>
@@ -298,17 +315,11 @@ function AvalonStage({
       ) : kind === 'assassin' ? (
         <AvalonAssassinView
           viewModel={viewModel}
-          onSelectSeat={(seat) => setStrikeConfirm({ seat, mode: 'accuse' })}
+          onSelectSeat={(seat) => onRequestStrike({ seat, mode: 'accuse' })}
         />
       ) : (
         <AvalonEndedView viewModel={viewModel} />
       )}
-      <AvalonStrikeConfirmModal
-        confirmation={strikeConfirm}
-        seatName={strikeName}
-        onConfirm={confirmStrike}
-        onClose={closeStrike}
-      />
     </>
   );
 }
