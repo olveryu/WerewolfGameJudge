@@ -108,9 +108,15 @@ export interface AvalonRoomScreenState {
   readonly phaseRemainingSeconds: number | null;
   readonly nightModalVisible: boolean;
   readonly setNightModalVisible: Dispatch<SetStateAction<boolean>>;
+  /** 座位盘选人（提名）：Screen 同步本地选中集，adapter 据此给选中座位上「队员」徽标。 */
+  readonly setPickedSeats: Dispatch<SetStateAction<ReadonlySet<number>>>;
+  /** 注册座位点选处理器：返回 true 表示本次点按已被选人消费，不走默认座位行为。 */
+  readonly setSeatPickHandler: (handler: ((seat: number) => boolean) | null) => void;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
+const EMPTY_PICKED_SEATS: ReadonlySet<number> = new Set();
+
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
     readonly session: AvalonRoomSession;
@@ -139,6 +145,11 @@ export function useAvalonRoomState(
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
+  const [pickedSeats, setPickedSeats] = useState<ReadonlySet<number>>(EMPTY_PICKED_SEATS);
+  const seatPickHandlerRef = useRef<((seat: number) => boolean) | null>(null);
+  const setSeatPickHandler = useCallback((handler: ((seat: number) => boolean) | null) => {
+    seatPickHandlerRef.current = handler;
+  }, []);
   // step 推进时重置弹窗状态，防止 stale（比如别人确认完推进了 step，自己开着的弹窗指令已失效）。
   const nightStep = state.phase.kind === 'night' ? state.phase.step : null;
   useEffect(() => {
@@ -241,6 +252,7 @@ export function useAvalonRoomState(
       : { isAllowed: false, reason: '只有房主可以接管机器人' },
   };
   const onSeatPress = (seat: number) => {
+    if (seatPickHandlerRef.current?.(seat) === true) return;
     if (!isLobby) {
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
@@ -436,6 +448,7 @@ export function useAvalonRoomState(
         snapshot.snapshot.revision,
         user.id,
         controlledSeat,
+        pickedSeats,
       ),
       visuallyDisabled:
         state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
@@ -597,5 +610,7 @@ export function useAvalonRoomState(
     // 晚上确认弹窗：两步流程（底部按钮 → 弹窗）。
     nightModalVisible,
     setNightModalVisible,
+    setPickedSeats,
+    setSeatPickHandler,
   };
 }

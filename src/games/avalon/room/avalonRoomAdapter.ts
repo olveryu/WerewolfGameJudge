@@ -43,10 +43,16 @@ export function getAvalonProfileTarget(state: AvalonState, seat: number): RoomPr
     : null;
 }
 
-function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null {
+function avalonSeatStatusLabel(
+  state: AvalonState,
+  seat: number,
+  pickedSeats: ReadonlySet<number>,
+): string | null {
   if (state.leaderSeat === seat && state.phase.kind !== 'lobby') return '队长';
   const phase = state.phase;
   if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
+  // 提名阶段队长在座位盘上的本地选中集（尚未提交）：选中即「队员」徽标。
+  if (phase.kind === 'nominate' && pickedSeats.has(seat)) return '队员';
   if (phase.kind === 'nominate' || phase.kind === 'vote') {
     const proposed = phase.kind === 'nominate' ? null : phase.proposedSeats.includes(seat);
     if (proposed === true) return '队员';
@@ -55,12 +61,15 @@ function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null 
   return null;
 }
 
+const NO_PICKED_SEATS: ReadonlySet<number> = new Set();
+
 /** 创建共享座位表数据源：含队长 / 队员 / 湖仙状态徽标（不暴露角色）。 */
 export function createAvalonSeatDataSource(
   state: AvalonState,
   revision: number,
   userId: string,
   controlledSeat: number | null,
+  pickedSeats: ReadonlySet<number> = NO_PICKED_SEATS,
 ): RoomSeatDataSource {
   // 夜晚已确认徽标只给当前步参与者看（私密确认不计数、不外泄给非参与者）。
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
@@ -95,7 +104,7 @@ export function createAvalonSeatDataSource(
                 displayName: target.rosterName,
                 isAnonymous: true,
               };
-      const statusLabel = avalonSeatStatusLabel(state, seat);
+      const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
       const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
       // 投票/任务阶段显示已投票/已出牌；夜晚给参与者显示同伴已确认（只暴露是否行动）。

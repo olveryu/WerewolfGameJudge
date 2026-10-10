@@ -803,7 +803,10 @@ describe('Avalon engine', () => {
     if (afterPhase.kind === 'nominate') expect(afterPhase.round).toBe(3);
     expect(session.state.ladyHolderSeat).toBe(target);
     expect(session.state.ladyExaminedSeats).toEqual([holder, target]);
-    expect(getAvalonViewModel(session.state, holder).ladyCheckResult).toBe('good');
+    expect(getAvalonViewModel(session.state, holder).ladyCheckResult).toEqual({
+      targetSeat: target,
+      faction: 'good',
+    });
     expect(getAvalonViewModel(session.state, nonHolder).ladyCheckResult).toBeNull();
     // R3 失败后再次进入 lady（第 3 轮成功会直接进刺杀）：不能查验当过湖仙的玩家。
     const evil = session.evilSeats();

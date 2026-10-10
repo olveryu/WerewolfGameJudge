@@ -161,3 +161,56 @@ describe('createAvalonSeatDataSource — night badge window closes', () => {
     }
   });
 });
+
+describe('createAvalonSeatDataSource — nominate picked badge', () => {
+  it('marks locally picked seats as 队员 during nomination (leader keeps 队长)', () => {
+    let commandNumber = 0;
+    let state: AvalonState = avalonEngine.createInitialState(
+      { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+    );
+    const send = (command: AvalonCommand, userId = 'host') => {
+      const context: CommandContext = {
+        actor: { kind: 'user', userId },
+        controlledSeat: null,
+        nowMs: 1000,
+        commandId: `command:${commandNumber++}`,
+        randomSeed: `seed:${commandNumber}`,
+      };
+      const decision = avalonEngine.decide(state, command, context);
+      if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+      state = decision.events.reduce(avalonEngine.evolve, state);
+      return state;
+    };
+    const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
+    for (let seat = 0; seat < 5; seat += 1) {
+      send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
+    }
+    send({ type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      send({ type: 'avalon.role.viewed' }, seatUser(seat));
+    }
+    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
+      if (state.phase.kind !== 'night') break;
+      for (const seat of getAvalonNightParticipants(state.roles, step)) {
+        send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      }
+      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+    }
+    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    const leader = state.leaderSeat;
+    const pickedSeat = (leader + 1) % 5;
+    const unpickedSeat = (leader + 2) % 5;
+    const source = createAvalonSeatDataSource(
+      state,
+      1,
+      'host',
+      null,
+      new Set([pickedSeat, leader]),
+    );
+    expect(source.getSeat(pickedSeat).statusBadge).toEqual({ label: '队员', tone: 'success' });
+    expect(source.getSeat(leader).statusBadge?.label).toBe('队长');
+    expect(source.getSeat(unpickedSeat).statusBadge).toBeNull();
+  });
+});

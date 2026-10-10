@@ -241,7 +241,25 @@ describe('resolveLadyInstruction', () => {
     ).toEqual({ kind: 'targetConfirm', holderSeat: 1 });
   });
 
-  it('shows waiting to everyone else once a target is chosen', () => {
+  it('shows holderWait to the holder once a target is chosen', () => {
+    expect(
+      resolveLadyInstruction(
+        baseViewModel({
+          phase: 'lady',
+          mySeat: 1,
+          lady: {
+            holderSeat: 1,
+            examinedSeats: [1],
+            targetSeat: 2,
+            canCheck: false,
+            needsAcknowledge: false,
+          },
+        }),
+      ),
+    ).toEqual({ kind: 'holderWait', targetSeat: 2 });
+  });
+
+  it('shows watching (not holderWait) to spectators once a target is chosen', () => {
     expect(
       resolveLadyInstruction(
         baseViewModel({
@@ -256,12 +274,24 @@ describe('resolveLadyInstruction', () => {
           },
         }),
       ),
-    ).toEqual({ kind: 'holderWait', targetSeat: 2 });
+    ).toEqual({ kind: 'watching', holderSeat: 1, targetSeat: 2 });
   });
 
-  it('throws without lady data', () => {
+  it('resolves the result for the holder after the lady phase', () => {
+    expect(
+      resolveLadyInstruction(
+        baseViewModel({
+          phase: 'nominate',
+          mySeat: 1,
+          ladyCheckResult: { targetSeat: 2, faction: 'evil' },
+        }),
+      ),
+    ).toEqual({ kind: 'result', targetSeat: 2, faction: 'evil' });
+  });
+
+  it('throws without lady data or a result', () => {
     expect(() => resolveLadyInstruction(baseViewModel({ phase: 'lady' }))).toThrow(
-      '[FAIL-FAST] Avalon lady instruction without lady data',
+      '[FAIL-FAST] Avalon lady instruction without lady data or result',
     );
   });
 });
