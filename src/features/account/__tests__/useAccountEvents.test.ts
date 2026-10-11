@@ -79,7 +79,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-it.each(['fibking', 'pictionary', 'undercover'])(
+it.each(['fibking', 'pictionary', 'undercover', 'storyrelay', 'drawguess', 'avalon'])(
   'presents %s daily golden rewards without requiring a level-up',
   async (gameType) => {
     mockGet.mockResolvedValueOnce({
@@ -165,6 +165,56 @@ it('cancels the old account read and never presents or acknowledges its late res
   });
   expect(mockPost).not.toHaveBeenCalled();
   expect(toast.success).not.toHaveBeenCalled();
+  unmount();
+});
+
+it('dead-letters an undecodable event, reports it, and still delivers the next event', async () => {
+  const poisonEvent = {
+    eventId: 'undecodable-1',
+    message: { ...event.message, eventId: 'undecodable-1', gameType: 'unknown-game' },
+  };
+  mockGet
+    .mockResolvedValueOnce({ event: poisonEvent })
+    .mockResolvedValueOnce({ event })
+    .mockResolvedValue({ event: null });
+  const { unmount } = renderHook(useAccountEvents);
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(0);
+  });
+  expect(mockPost).toHaveBeenCalledTimes(2);
+  expect(mockPost.mock.calls[0]?.[0]).toBe('/api/user/events/undecodable-1/ack');
+  expect(mockPost.mock.calls[1]?.[0]).toBe('/api/user/events/settlement-1/ack');
+  expect(toast.success).toHaveBeenCalledTimes(1);
+  expect(handleError).toHaveBeenCalledWith(
+    expect.any(Error),
+    expect.objectContaining({ feedback: false, label: '丢弃无法解码的结算通知' }),
+  );
+  const reported = jest
+    .mocked(handleError)
+    .mock.calls.find((call) => (call[1] as { feedback?: unknown }).feedback === false)?.[0];
+  expect(reported).toBeInstanceOf(Error);
+  expect((reported as Error).message).toContain('undecodable-1');
+  expect((reported as Error).message).toContain('SETTLE_RESULT gameType is invalid: unknown-game');
+  unmount();
+});
+
+it('dead-letters an identity-mismatched event instead of blocking the queue', async () => {
+  const mismatchedEvent = {
+    eventId: 'envelope-1',
+    message: { ...event.message, eventId: 'someone-else' },
+  };
+  mockGet.mockResolvedValueOnce({ event: mismatchedEvent }).mockResolvedValue({ event: null });
+  const { unmount } = renderHook(useAccountEvents);
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(0);
+  });
+  expect(mockPost).toHaveBeenCalledTimes(1);
+  expect(mockPost.mock.calls[0]?.[0]).toBe('/api/user/events/envelope-1/ack');
+  expect(toast.success).not.toHaveBeenCalled();
+  expect(handleError).toHaveBeenCalledWith(
+    expect.any(Error),
+    expect.objectContaining({ feedback: false, label: '丢弃无法解码的结算通知' }),
+  );
   unmount();
 });
 
