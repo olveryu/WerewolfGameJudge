@@ -45,6 +45,36 @@ function showSettleToast(result: AccountSettlementEvent): void {
 }
 
 /**
+ * Decode one inbox message. An undecodable message is reported loudly and
+ * dead-lettered (returns null so the caller still acknowledges it): one
+ * poison event must never block every later settlement notification.
+ */
+function decodeAccountEvent(event: {
+  eventId: string;
+  message: unknown;
+}): AccountSettlementEvent | null {
+  try {
+    const result = parseAccountEvent(event.message);
+    if (result.eventId !== event.eventId) {
+      throw new Error(
+        `Account event identity mismatch (envelope: ${event.eventId}, message: ${result.eventId})`,
+      );
+    }
+    return result;
+  } catch (error) {
+    handleError(
+      new Error(
+        `Undecodable account event dead-lettered (eventId: ${event.eventId}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ),
+      { label: '丢弃无法解码的结算通知', logger: gameRoomLog, feedback: false },
+    );
+    return null;
+  }
+}
+
+/**
  * Consume authenticated account events while visible; cancel on identity or visibility changes.
  */
 export function useAccountEvents(): void {
@@ -90,10 +120,8 @@ export function useAccountEvents(): void {
             );
             assertActive();
             if (event === null) break;
-            const result = parseAccountEvent(event.message);
-            if (result.eventId !== event.eventId)
-              throw new Error('Account event identity mismatch');
-            if (lastDeliveredEventId !== event.eventId) {
+            const result = decodeAccountEvent(event);
+            if (result !== null && lastDeliveredEventId !== event.eventId) {
               await Promise.all([
                 queryClient.invalidateQueries({
                   queryKey: gachaStatusOptions(currentSession.userId).queryKey,
