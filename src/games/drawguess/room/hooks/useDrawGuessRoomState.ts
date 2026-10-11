@@ -12,6 +12,7 @@ import {
   getDrawGuessViewModel,
   isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -35,7 +36,6 @@ import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,

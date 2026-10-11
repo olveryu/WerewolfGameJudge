@@ -57,7 +57,7 @@ function bannerModel(
     canControlBots: input.isHost,
     hasBots: getAvalonBotSeats(state).length > 0,
     controlledSeat: input.controlledSeat,
-    controlledBotName: input.controlledSeat !== null ? `座位 ${input.controlledSeat + 1}` : null,
+    controlledBotName: input.controlledSeat !== null ? `机器人${input.controlledSeat + 1}号` : null,
     release: () => undefined,
     gameName: 'Avalon',
   });

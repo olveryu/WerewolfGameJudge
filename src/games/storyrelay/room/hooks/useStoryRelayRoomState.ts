@@ -8,6 +8,7 @@ import {
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { useCallback } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -30,7 +31,6 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,

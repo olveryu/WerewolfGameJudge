@@ -13,6 +13,7 @@ import {
   getAvalonViewModel,
   isAvalonBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import {
   type Dispatch,
   type SetStateAction,
@@ -571,7 +572,7 @@ export function useAvalonRoomState(
       canControlBots,
       hasBots: getAvalonBotSeats(state).length > 0,
       controlledSeat,
-      controlledBotName: controlledSeat !== null ? `座位 ${controlledSeat + 1}` : null,
+      controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
       release: releaseBot,
       gameName: 'Avalon',
     }),

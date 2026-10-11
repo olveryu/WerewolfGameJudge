@@ -1,6 +1,7 @@
 /** Authoritative DrawGuess (经典你画我猜) state; Gartic-style draw-and-guess, pure logic without IO. */
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
@@ -222,7 +223,7 @@ export function isValidDrawGuessConfig(config: DrawGuessConfig): boolean {
 }
 
 export function getDrawGuessBotDisplayName(seat: number): string {
-  return `机器人${seat + 1}号`;
+  return getBotDisplayName(seat);
 }
 
 /** Returns the seats held by bots, ascending. */

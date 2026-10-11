@@ -6,13 +6,13 @@ import {
   type StoryRelayState,
   type StoryRelayTask,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { colors, componentSizes } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';

@@ -7,8 +7,8 @@ import {
   isStoryRelayBotSeat,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomSeatDataSource,

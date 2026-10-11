@@ -5,6 +5,7 @@ import {
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { useMemo } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,7 +17,6 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';

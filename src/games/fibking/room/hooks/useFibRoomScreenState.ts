@@ -12,6 +12,7 @@ import {
   getFibUserSeat,
   isFibBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -33,7 +34,6 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';

@@ -52,6 +52,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './platform/protocol/roomSnapshot',
   './platform/random',
   './platform/room/formatSeat',
+  './platform/room/getBotDisplayName',
   './platform/room/roster',
   './product/growth',
   './product/rewards',

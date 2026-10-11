@@ -9,6 +9,7 @@ import {
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo } from 'react';
 
@@ -32,7 +33,6 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';

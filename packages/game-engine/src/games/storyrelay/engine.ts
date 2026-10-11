@@ -8,6 +8,7 @@ import {
   reject,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
+import { getBotDisplayName } from '../../platform/room/getBotDisplayName';
 import { isBotOccupant } from '../../platform/room/seating';
 import type { StoryRelayCommand } from './commands/types';
 import { createStoryRelayAssignment } from './domain/assignment';
@@ -73,7 +74,7 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
     return {
       seat,
       userId: human === null ? null : human.userId,
-      displayName: human === null ? `机器人${seat + 1}号` : human.profile.displayName,
+      displayName: human === null ? getBotDisplayName(seat) : human.profile.displayName,
     };
   });
   return commitStoryRelay([

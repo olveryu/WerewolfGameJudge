@@ -9,9 +9,9 @@ import {
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,

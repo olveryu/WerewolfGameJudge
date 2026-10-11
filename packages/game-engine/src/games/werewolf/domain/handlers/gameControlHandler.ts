@@ -11,7 +11,7 @@
  */
 
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
-import { formatSeat } from '../../../../platform/room/formatSeat';
+import { getBotDisplayName } from '../../../../platform/room/getBotDisplayName';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
@@ -379,7 +379,7 @@ export function handleFillWithBots(
         hasViewedRole: false,
       };
       botRoster[userId] = {
-        displayName: `机器人${formatSeat(seat)}`,
+        displayName: getBotDisplayName(seat),
       };
     }
   }
