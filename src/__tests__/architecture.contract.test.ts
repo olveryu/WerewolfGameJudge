@@ -1401,3 +1401,23 @@ describe('Layer boundary: screens → services runtime imports (forbidden)', () 
     expect(violations).toEqual([]);
   });
 });
+
+// ─── Account settlement events: game types come from the platform single source ───
+
+describe('Client account events: game type validation uses the platform single source', () => {
+  const accountEventPath = path.join(srcDir, 'features', 'account', 'model', 'accountEvent.ts');
+
+  it('accountEvent.ts imports isGameType from the platform gameTypes module', () => {
+    const source = fs.readFileSync(accountEventPath, 'utf-8');
+    const specifiers = getModuleSpecifiers(accountEventPath, source);
+    expect(specifiers).toContain('@game-judge/game-engine/platform/protocol/gameTypes');
+    expect(source).toContain('isGameType');
+  });
+
+  it('accountEvent.ts contains no game id literals (no hand-written game list)', () => {
+    const source = fs.readFileSync(accountEventPath, 'utf-8');
+    for (const gameType of GAME_TYPES) {
+      expect(source).not.toMatch(new RegExp(`['"]${gameType}['"]`));
+    }
+  });
+});

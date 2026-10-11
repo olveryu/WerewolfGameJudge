@@ -1,9 +1,11 @@
 /** Account settlement notifications shared by all games; strictly decoded at the inbox boundary. */
 
+import { type GameType, isGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+
 export interface AccountSettlementEvent {
   readonly type: 'SETTLE_RESULT';
   readonly eventId: string;
-  readonly gameType: 'werewolf' | 'fibking' | 'pictionary' | 'undercover';
+  readonly gameType: GameType;
   readonly settlementId: string;
   readonly endedRevision: number;
   readonly xpEarned: number;
@@ -65,18 +67,14 @@ export function parseAccountEvent(value: unknown): AccountSettlementEvent {
   if (value.type !== 'SETTLE_RESULT') {
     throw new Error(`Unsupported account event type: ${String(value.type)}`);
   }
-  if (
-    value.gameType !== 'werewolf' &&
-    value.gameType !== 'fibking' &&
-    value.gameType !== 'pictionary' &&
-    value.gameType !== 'undercover'
-  ) {
+  if (!isGameType(value.gameType)) {
     throw new Error(`SETTLE_RESULT gameType is invalid: ${String(value.gameType)}`);
   }
+  const gameType = value.gameType;
   return {
     type: value.type,
     eventId: requireNonEmptyString(value.eventId, 'SETTLE_RESULT.eventId'),
-    gameType: value.gameType,
+    gameType,
     settlementId: requireNonEmptyString(value.settlementId, 'SETTLE_RESULT.settlementId'),
     endedRevision: requirePositiveInteger(value.endedRevision, 'SETTLE_RESULT.endedRevision'),
     xpEarned: requireNonNegativeInteger(value.xpEarned, 'SETTLE_RESULT.xpEarned'),
