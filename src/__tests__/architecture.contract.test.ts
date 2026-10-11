@@ -1411,13 +1411,13 @@ describe('Client account events: game type validation uses the platform single s
     const source = fs.readFileSync(accountEventPath, 'utf-8');
     const specifiers = getModuleSpecifiers(accountEventPath, source);
     expect(specifiers).toContain('@game-judge/game-engine/platform/protocol/gameTypes');
-    expect(source).toContain('isGameType');
+    expect(source).toContain('isGameType(');
   });
 
   it('accountEvent.ts contains no game id literals (no hand-written game list)', () => {
     const source = fs.readFileSync(accountEventPath, 'utf-8');
     for (const gameType of GAME_TYPES) {
-      expect(source).not.toMatch(new RegExp(`['"]${gameType}['"]`));
+      expect(source).not.toMatch(new RegExp(`['"\`]${gameType}['"\`]`));
     }
   });
 });
