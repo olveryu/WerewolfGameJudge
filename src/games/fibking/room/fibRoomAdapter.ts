@@ -13,6 +13,7 @@ import {
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -42,6 +43,7 @@ import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
 
@@ -617,4 +619,25 @@ function getPlayerMessage(state: FibState, viewerSeat: number | null): string | 
 
 export function getFibRoleName(role: FibRole): string {
   return FIB_ROLE_NAMES[role];
+}
+
+/** 瞎掰王板子信息分组：大聪明 1 + 老实人 1 + 瞎掰王 N−2。 */
+export function createFibBoardInfoSections(playerCount: number): readonly BoardInfoSection[] {
+  return [
+    {
+      title: getFibRoleName('guesser'),
+      items: [{ roleId: 'guesser', displayName: getFibRoleName('guesser'), count: 1 }],
+      color: colors.god,
+    },
+    {
+      title: getFibRoleName('honest'),
+      items: [{ roleId: 'honest', displayName: getFibRoleName('honest'), count: 1 }],
+      color: colors.villager,
+    },
+    {
+      title: getFibRoleName('fibber'),
+      items: [{ roleId: 'fibber', displayName: getFibRoleName('fibber'), count: playerCount - 2 }],
+      color: colors.wolf,
+    },
+  ];
 }

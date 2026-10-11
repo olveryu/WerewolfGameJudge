@@ -3,7 +3,9 @@
  */
 
 import {
+  AVALON_BOARDS,
   type AvalonNightStep,
+  type AvalonRoleId,
   type AvalonState,
   getAvalonBotDisplayName,
   getAvalonNightParticipants,
@@ -11,9 +13,11 @@ import {
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   isAvalonBotSeat,
+  isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomSeatDataSource,
@@ -22,8 +26,10 @@ import type {
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
+import { colors } from '@/theme';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
+import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
@@ -250,4 +256,43 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
     text: `等待入座 · ${getAvalonOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
     supportingText: null,
   };
+}
+
+/**
+ * 把棋盘按阵营分组成板子信息分组（坏人 / 好人，忠臣归好人）；
+ * 人数不在棋盘表内时返回 null（卡片不渲染）。
+ */
+export function createAvalonBoardInfoSections(
+  playerCount: number,
+): readonly BoardInfoSection[] | null {
+  if (!isAvalonPlayerCount(playerCount)) return null;
+  const board = AVALON_BOARDS[playerCount];
+  const toItems = (roles: readonly AvalonRoleId[]): RoleDisplayItem[] => {
+    const counts = new Map<AvalonRoleId, number>();
+    for (const roleId of roles) counts.set(roleId, (counts.get(roleId) ?? 0) + 1);
+    return [...counts.entries()].map(([roleId, count]) => ({
+      roleId,
+      displayName: getAvalonRoleDisplayName(roleId),
+      count,
+    }));
+  };
+  return [
+    {
+      title: '坏人',
+      items: toItems(board.filter((roleId) => getAvalonRoleMeta(roleId).isEvil)),
+      color: colors.wolf,
+    },
+    {
+      title: '好人',
+      items: toItems(board.filter((roleId) => !getAvalonRoleMeta(roleId).isEvil)),
+      color: colors.god,
+    },
+  ];
+}
+
+const AVALON_ROLE_ID_SET: ReadonlySet<string> = new Set(Object.values(AVALON_BOARDS).flat());
+
+/** 共享板子卡以 string 回报 roleId；用棋盘全集把有效值压回 AvalonRoleId。 */
+export function isAvalonRoleId(roleId: string): roleId is AvalonRoleId {
+  return AVALON_ROLE_ID_SET.has(roleId);
 }

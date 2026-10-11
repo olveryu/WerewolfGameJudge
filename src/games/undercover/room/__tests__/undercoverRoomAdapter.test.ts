@@ -18,6 +18,7 @@ import {
   createUndercoverHostManagement,
 } from '../undercoverActionModels';
 import {
+  createUndercoverBoardInfoSections,
   createUndercoverRoomCapabilities,
   createUndercoverSeatDataSource,
   createUndercoverStatusRibbon,
@@ -303,4 +304,25 @@ it('requires confirmation to restart an active round and exposes restart in host
   });
   expect(showConfirmAlert).not.toHaveBeenCalled();
   expect(session.dispatch).toHaveBeenCalledTimes(2);
+});
+
+describe('createUndercoverBoardInfoSections', () => {
+  it('builds undercover and civilian sections without a blank section', () => {
+    const sections = createUndercoverBoardInfoSections({
+      roleCounts: { undercover: 1, civilian: 5, blank: 0 },
+      hasBlank: false,
+    });
+    expect(sections.map((section) => section.title)).toEqual(['卧底', '平民']);
+    expect(sections[0]?.items[0]).toMatchObject({ roleId: 'undercover', count: 1 });
+    expect(sections[1]?.items[0]).toMatchObject({ roleId: 'civilian', count: 5 });
+  });
+
+  it('appends the blank section only for blank games', () => {
+    const sections = createUndercoverBoardInfoSections({
+      roleCounts: { undercover: 1, civilian: 4, blank: 1 },
+      hasBlank: true,
+    });
+    expect(sections.map((section) => section.title)).toEqual(['卧底', '平民', '白板']);
+    expect(sections[2]?.items[0]).toMatchObject({ roleId: 'blank', count: 1 });
+  });
 });

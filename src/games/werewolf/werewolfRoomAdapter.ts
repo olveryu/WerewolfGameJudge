@@ -7,6 +7,7 @@ import { getRoleDisplayAs } from '@game-judge/game-engine/games/werewolf/public'
 import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 import { getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
+import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import type {
   RoomBottomActionLayout,
@@ -47,6 +48,7 @@ import { createSheriffElectionDockModel } from '@/games/werewolf/room/sheriffEle
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/sheriffElectionViewModel';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { colors } from '@/theme';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
 
@@ -526,4 +528,37 @@ function createWerewolfBottomActions(
         : null,
     layout: roomBottomActionLayout,
   };
+}
+
+export interface WerewolfBoardInfoSectionsInput {
+  readonly wolfRoleItems: readonly RoleDisplayItem[];
+  readonly godRoleItems: readonly RoleDisplayItem[];
+  readonly specialRoleItems: readonly RoleDisplayItem[];
+  readonly villagerRoleItems: readonly RoleDisplayItem[];
+  readonly villagerCount: number;
+}
+
+/**
+ * 狼人杀板子信息分组：狼人 / 神职 / 特殊 / 村民。
+ * 村民组在有普通村民时把「村民 ×N」置于村民类角色之前。
+ */
+export function createWerewolfBoardInfoSections(
+  input: WerewolfBoardInfoSectionsInput,
+): readonly BoardInfoSection[] {
+  return [
+    { title: '狼人', items: input.wolfRoleItems, color: colors.wolf },
+    { title: '神职', items: input.godRoleItems, color: colors.god },
+    { title: '特殊', items: input.specialRoleItems, color: colors.third },
+    {
+      title: '村民',
+      items:
+        input.villagerCount > 0
+          ? [
+              { roleId: 'villager', displayName: '村民', count: input.villagerCount },
+              ...input.villagerRoleItems,
+            ]
+          : input.villagerRoleItems,
+      color: colors.villager,
+    },
+  ];
 }

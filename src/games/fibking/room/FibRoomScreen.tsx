@@ -20,7 +20,7 @@ import { colors } from '@/theme';
 import { FibIdentityModal } from './components/FibIdentityModal';
 import { isFibRole, toFibRolePreviewData } from './components/FibRoleCardAdapter';
 import { FibRoomSummary } from './components/FibRoomSummary';
-import { getFibRoleName } from './fibRoomAdapter';
+import { createFibBoardInfoSections } from './fibRoomAdapter';
 import { useFibRoomScreenState } from './hooks/useFibRoomScreenState';
 
 interface FibRoomScreenProps extends GameRoomScreenProps<'fibking'> {
@@ -99,29 +99,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
             />
             <BoardInfoCard
               playerCount={screen.playerCount}
-              sections={[
-                {
-                  title: getFibRoleName('guesser'),
-                  items: [{ roleId: 'guesser', displayName: getFibRoleName('guesser'), count: 1 }],
-                  color: colors.god,
-                },
-                {
-                  title: getFibRoleName('honest'),
-                  items: [{ roleId: 'honest', displayName: getFibRoleName('honest'), count: 1 }],
-                  color: colors.villager,
-                },
-                {
-                  title: getFibRoleName('fibber'),
-                  items: [
-                    {
-                      roleId: 'fibber',
-                      displayName: getFibRoleName('fibber'),
-                      count: screen.playerCount - 2,
-                    },
-                  ],
-                  color: colors.wolf,
-                },
-              ]}
+              sections={createFibBoardInfoSections(screen.playerCount)}
               styles={boardInfoStyles}
               onRolePress={(roleId) => {
                 if (isFibRole(roleId)) setPreviewRole(roleId);

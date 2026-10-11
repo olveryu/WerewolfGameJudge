@@ -6,9 +6,11 @@ import {
   isUndercoverBotSeat,
   type UndercoverCategory,
   type UndercoverRole,
+  type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   createBotTakeoverCapability,
@@ -20,6 +22,7 @@ import {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
+import { colors } from '@/theme';
 
 const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
@@ -187,4 +190,36 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
         ? `首轮从 ${state.round.speakingStartSeat + 1} 号开始发言（随机）`
         : null,
   };
+}
+
+export interface UndercoverBoardInfoSectionsInput {
+  readonly roleCounts: UndercoverRoleCounts;
+  readonly hasBlank: boolean;
+}
+
+/** 卧底板子信息分组：卧底 / 平民，白板局时多一组白板。 */
+export function createUndercoverBoardInfoSections(
+  input: UndercoverBoardInfoSectionsInput,
+): readonly BoardInfoSection[] {
+  const { roleCounts } = input;
+  const sections: BoardInfoSection[] = [
+    {
+      title: '卧底',
+      items: [{ roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover }],
+      color: colors.wolf,
+    },
+    {
+      title: '平民',
+      items: [{ roleId: 'civilian', displayName: '平民', count: roleCounts.civilian }],
+      color: colors.villager,
+    },
+  ];
+  if (input.hasBlank) {
+    sections.push({
+      title: '白板',
+      items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
+      color: colors.textMuted,
+    });
+  }
+  return sections;
 }

@@ -5,6 +5,7 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 
 import {
+  createFibBoardInfoSections,
   createFibBottomActions,
   createFibHostManagement,
   createFibRoomCapabilities,
@@ -508,5 +509,14 @@ describe('FibKing room adapter', () => {
         isEnabled: true,
       },
     ]);
+  });
+});
+
+describe('createFibBoardInfoSections', () => {
+  it('builds the guesser / honest / fibber sections with fibber count N-2', () => {
+    const sections = createFibBoardInfoSections(4);
+    expect(sections.map((section) => section.title)).toEqual(['大聪明', '老实人', '瞎掰王']);
+    expect(sections.map((section) => section.items[0]?.count)).toEqual([1, 1, 2]);
+    expect(createFibBoardInfoSections(6)[2]?.items[0]?.count).toBe(4);
   });
 });

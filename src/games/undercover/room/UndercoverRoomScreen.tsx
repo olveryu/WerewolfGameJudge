@@ -24,7 +24,10 @@ import {
 } from './components/UndercoverRoleCardAdapter';
 import { UndercoverWordModal } from './components/UndercoverWordModal';
 import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenState';
-import { UNDERCOVER_CATEGORY_NAMES } from './undercoverRoomAdapter';
+import {
+  createUndercoverBoardInfoSections,
+  UNDERCOVER_CATEGORY_NAMES,
+} from './undercoverRoomAdapter';
 
 interface UndercoverRoomScreenProps extends GameRoomScreenProps<'undercover'> {
   readonly session: UndercoverRoomSession;
@@ -87,35 +90,10 @@ function UndercoverRoomContent(
             </RoomGameSummary>
             <BoardInfoCard
               playerCount={state.config.numberOfPlayers}
-              sections={[
-                {
-                  title: '卧底',
-                  items: [
-                    { roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover },
-                  ],
-                  color: colors.wolf,
-                },
-                {
-                  title: '平民',
-                  items: [
-                    {
-                      roleId: 'civilian',
-                      displayName: '平民',
-                      count: roleCounts.civilian,
-                    },
-                  ],
-                  color: colors.villager,
-                },
-                ...(state.config.hasBlank
-                  ? [
-                      {
-                        title: '白板',
-                        items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
-                        color: colors.textMuted,
-                      },
-                    ]
-                  : []),
-              ]}
+              sections={createUndercoverBoardInfoSections({
+                roleCounts,
+                hasBlank: state.config.hasBlank,
+              })}
               styles={boardInfoStyles}
               onRolePress={(roleId) => {
                 if (isUndercoverRole(roleId)) setPreviewRole(roleId);
