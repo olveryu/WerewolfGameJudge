@@ -42,11 +42,10 @@ import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import {
-  createPictionaryBottomActions,
   createPictionaryHostManagement,
   createPictionaryRoomCapabilities,
+  createPictionaryRoomShellModel,
   createPictionarySeatDataSource,
-  createPictionaryStatusRibbon,
   getPictionarySeatTapIntent,
   PICTIONARY_DISPLAY_NAME,
 } from '../pictionaryRoomAdapter';
@@ -140,7 +139,6 @@ export function usePictionaryRoomScreenState({
     fillBots: seatCommands.fillBots,
   });
   const { data: gachaStatus } = useGachaStatusQuery();
-  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
   const effectiveSeat = controlledSeat ?? mySeat;
 
   // 接管是房主权限，无阶段条件（与入口 capability 同源，见 pictionaryRoomAdapter）。
@@ -333,40 +331,37 @@ export function usePictionaryRoomScreenState({
     gameName: 'Pictionary',
   });
   const shellModel = useMemo(
-    (): RoomShellModel => ({
-      roomCode: room.roomCode,
-      capabilities,
-      header: {
+    (): RoomShellModel =>
+      createPictionaryRoomShellModel({
+        roomCode: room.roomCode,
+        capabilities,
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
         onTitlePress: handleTitlePress,
         onTitleLongPress: handleTitleLongPress,
-        userAction: {
-          user,
-          ticketCount,
-          onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
-        },
-      },
-      connection: entryController.connection,
-      statusRibbon: createPictionaryStatusRibbon(state),
-      seats: {
-        source: seatSource,
-        visuallyDisabled: commandSubmission.isSubmitting || seatController.isSubmitting,
+        user,
+        gachaStatus,
+        onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
+        connection: entryController.connection,
+        state,
+        isHost,
+        mySeat: effectiveSeat,
+        seatSource,
+        seatsVisuallyDisabled: commandSubmission.isSubmitting || seatController.isSubmitting,
         onSeatPress,
         onBotSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPress : null,
-      },
-      seatConfirmation,
-      profile,
-      share,
-      bottomActions: createPictionaryBottomActions(state, isHost, effectiveSeat),
-      hostManagement,
-      controlledSeat: controlledSeatModel,
-    }),
+        seatConfirmation,
+        profile,
+        share,
+        hostManagement,
+        controlledSeat: controlledSeatModel,
+      }),
     [
       capabilities,
       commandSubmission.isSubmitting,
       controlledSeatModel,
       effectiveSeat,
       entryController,
+      gachaStatus,
       handleTitlePress,
       handleTitleLongPress,
       hostManagement,
@@ -381,7 +376,6 @@ export function usePictionaryRoomScreenState({
       seatSource,
       share,
       state,
-      ticketCount,
       user,
     ],
   );
