@@ -7,16 +7,16 @@ import { parseAccountEvent } from '@/features/account/model/accountEvent';
 function buildSettleResult(gameType: string) {
   return {
     type: 'SETTLE_RESULT',
-    eventId: 'settlement-1',
+    eventId: 'event-1',
     gameType,
-    settlementId: 'settlement-1',
+    settlementId: 'settlement-9',
     endedRevision: 12,
     xpEarned: 15,
     newXp: 40,
     newLevel: 2,
     previousLevel: 1,
-    normalDrawsEarned: 2,
-    goldenDrawsEarned: 1,
+    normalDrawsEarned: 3,
+    goldenDrawsEarned: 4,
   };
 }
 
