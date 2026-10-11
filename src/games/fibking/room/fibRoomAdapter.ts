@@ -15,6 +15,10 @@ import {
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import {
+  buildRoomHeaderModel,
+  type RoomHeaderGachaStatus,
+} from '@/features/room/model/buildRoomHeaderModel';
+import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildRoomConfigAction,
@@ -23,6 +27,7 @@ import type {
   RoomBottomButton,
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
+import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -35,12 +40,20 @@ import type {
   RoomHostManagementModel,
   RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import type {
+  RoomConnectionViewModel,
+  RoomControlledSeatModel,
+  RoomShellModel,
+} from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -640,4 +653,57 @@ export function createFibBoardInfoSections(playerCount: number): readonly BoardI
       color: colors.wolf,
     },
   ];
+}
+
+export interface FibRoomShellModelInput {
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  readonly onUserActionPress: () => void;
+  readonly connection: RoomConnectionViewModel;
+  readonly state: FibState;
+  readonly seatSource: RoomSeatDataSource;
+  readonly seatsVisuallyDisabled: boolean;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  readonly bottomActions: RoomBottomActionModel;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly controlledSeat: RoomControlledSeatModel | null;
+}
+
+/** Assembles the FibKing RoomShellModel from the hook's projections. */
+export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShellModel {
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: buildRoomHeaderModel({
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      user: input.user,
+      gachaStatus: input.gachaStatus,
+      onUserActionPress: input.onUserActionPress,
+    }),
+    connection: input.connection,
+    statusRibbon: createFibStatusRibbon(input.state),
+    seats: {
+      source: input.seatSource,
+      visuallyDisabled: input.seatsVisuallyDisabled,
+      onSeatPress: input.onSeatPress,
+      onBotSeatLongPress: input.onBotSeatLongPress,
+    },
+    seatConfirmation: input.seatConfirmation,
+    profile: input.profile,
+    share: input.share,
+    bottomActions: input.bottomActions,
+    hostManagement: input.hostManagement,
+    controlledSeat: input.controlledSeat,
+  };
 }

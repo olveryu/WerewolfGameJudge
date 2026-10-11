@@ -48,8 +48,8 @@ import {
   createFibBottomActions,
   createFibHostManagement,
   createFibRoomCapabilities,
+  createFibRoomShellModel,
   createFibSeatDataSource,
-  createFibStatusRibbon,
   FIB_DISPLAY_NAME,
   getFibSeatTapIntent,
 } from '../fibRoomAdapter';
@@ -140,7 +140,6 @@ export function useFibRoomScreenState({
     fillBots: seatCommands.fillBots,
   });
   const { data: gachaStatus } = useGachaStatusQuery();
-  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
   const [isIdentityVisible, setIsIdentityVisible] = useState(false);
 
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -455,39 +454,35 @@ export function useFibRoomScreenState({
   });
 
   const shellModel = useMemo(
-    (): RoomShellModel => ({
-      roomCode: room.roomCode,
-      capabilities,
-      header: {
+    (): RoomShellModel =>
+      createFibRoomShellModel({
+        roomCode: room.roomCode,
+        capabilities,
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
         onTitlePress: handleTitlePress,
         onTitleLongPress: handleTitleLongPress,
-        userAction: {
-          user,
-          ticketCount,
-          onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
-        },
-      },
-      connection: entryController.connection,
-      statusRibbon: createFibStatusRibbon(state),
-      seats: {
-        source: seatSource,
-        visuallyDisabled: isCommandSubmitting || seatController.isSubmitting,
+        user,
+        gachaStatus,
+        onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
+        connection: entryController.connection,
+        state,
+        seatSource,
+        seatsVisuallyDisabled: isCommandSubmitting || seatController.isSubmitting,
         onSeatPress,
         onBotSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPress : null,
-      },
-      seatConfirmation,
-      profile,
-      share,
-      bottomActions,
-      hostManagement,
-      controlledSeat: controlledSeatModel,
-    }),
+        seatConfirmation,
+        profile,
+        share,
+        bottomActions,
+        hostManagement,
+        controlledSeat: controlledSeatModel,
+      }),
     [
       bottomActions,
       capabilities,
       controlledSeatModel,
       entryController,
+      gachaStatus,
       handleTitlePress,
       handleTitleLongPress,
       navigation,
@@ -502,7 +497,6 @@ export function useFibRoomScreenState({
       seatSource,
       share,
       state,
-      ticketCount,
       user,
     ],
   );

@@ -9,6 +9,7 @@ import {
   createFibBottomActions,
   createFibHostManagement,
   createFibRoomCapabilities,
+  createFibRoomShellModel,
   createFibSeatDataSource,
   createFibStatusRibbon,
   getFibProfileTarget,
@@ -518,5 +519,78 @@ describe('createFibBoardInfoSections', () => {
     expect(sections.map((section) => section.title)).toEqual(['大聪明', '老实人', '瞎掰王']);
     expect(sections.map((section) => section.items[0]?.count)).toEqual([1, 1, 2]);
     expect(createFibBoardInfoSections(6)[2]?.items[0]?.count).toBe(4);
+  });
+});
+
+describe('createFibRoomShellModel', () => {
+  it('assembles the shell from the hook projections (AU-01 characterization)', () => {
+    const state = createLobby(4);
+    const capabilities = createFibRoomCapabilities({
+      state,
+      isHost: true,
+      mySeat: null,
+      ...callbacks,
+    });
+    const seatSource = createFibSeatDataSource({
+      state,
+      revision: 1,
+      myUserId: 'host',
+      controlledSeat: null,
+    });
+    const share = {
+      isVisible: false,
+      roomCode: '1234',
+      roomUrl: 'https://example.test/1234',
+      open: jest.fn(),
+      close: jest.fn(),
+      copyLink: jest.fn(async () => undefined),
+      shareImage: jest.fn(async () => undefined),
+    };
+    const bottomActions = { kind: 'info' as const, message: null, actions: [] };
+    const connection = {
+      status: 'live' as const,
+      pendingCommandCount: 0,
+      onManualReconnect: jest.fn(),
+    };
+    const onBack = jest.fn();
+    const onSeatPress = jest.fn();
+    const model = createFibRoomShellModel({
+      roomCode: '1234',
+      capabilities,
+      onBack,
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: { normalDraws: 3, goldenDraws: 2 },
+      onUserActionPress: jest.fn(),
+      connection,
+      state,
+      seatSource,
+      seatsVisuallyDisabled: true,
+      onSeatPress,
+      onBotSeatLongPress: null,
+      seatConfirmation: null,
+      profile: null,
+      share,
+      bottomActions,
+      hostManagement: null,
+      controlledSeat: null,
+    });
+    expect(model.roomCode).toBe('1234');
+    expect(model.capabilities).toBe(capabilities);
+    expect(model.header.onBack).toBe(onBack);
+    expect(model.header.userAction?.ticketCount).toBe(5);
+    expect(model.connection).toBe(connection);
+    expect(model.statusRibbon).toEqual(createFibStatusRibbon(state));
+    expect(model.seats).toEqual({
+      source: seatSource,
+      visuallyDisabled: true,
+      onSeatPress,
+      onBotSeatLongPress: null,
+    });
+    expect(model.share).toBe(share);
+    expect(model.bottomActions).toBe(bottomActions);
+    expect(model.hostManagement).toBeNull();
+    expect(model.controlledSeat).toBeNull();
   });
 });
