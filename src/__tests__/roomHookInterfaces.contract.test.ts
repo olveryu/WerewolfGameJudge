@@ -125,9 +125,13 @@ describe('room hook interfaces — undercover (P-2b batch 5)', () => {
     const hook = readSource('games/undercover/room/hooks/useUndercoverRoomScreenState.ts');
     expect(hook).toMatch(/roleCounts = getUndercoverRoleCounts\(/);
     const screen = readSource('games/undercover/room/UndercoverRoomScreen.tsx');
-    expect(screen).toMatch(/roleCounts\.undercover/);
-    expect(screen).toMatch(/roleCounts\.civilian/);
-    expect(screen).toMatch(/roleCounts\.blank/);
+    // AU-06: the Screen hands the hook's counts to the adapter factory,
+    // which is where they are consumed into BoardInfo sections.
+    expect(screen).toMatch(/createUndercoverBoardInfoSections\(\{[\s\S]*?roleCounts,/);
+    const adapter = readSource('games/undercover/room/undercoverRoomAdapter.ts');
+    expect(adapter).toMatch(/roleCounts\.undercover/);
+    expect(adapter).toMatch(/roleCounts\.civilian/);
+    expect(adapter).toMatch(/roleCounts\.blank/);
     expect(screen).not.toMatch(/numberOfPlayers - 1/);
   });
 });

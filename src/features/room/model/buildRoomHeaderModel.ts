@@ -21,7 +21,7 @@ export interface BuildRoomHeaderModelInput {
  * The one header assembly: title handlers pass through, and the user
  * action carries the summed gacha ticket count (null while the balance
  * is unknown). Six games previously inlined this block verbatim in
- * their shell literals; werewolf's factory takes the precomputed count.
+ * their shell literals; one factory takes the precomputed count.
  */
 export function buildRoomHeaderModel(input: BuildRoomHeaderModelInput): RoomHeaderModel {
   return {

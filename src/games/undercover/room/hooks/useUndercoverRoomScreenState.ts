@@ -20,7 +20,6 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
-import {} from '../undercoverActionModels';
 import { createUndercoverRoomShellModel } from '../undercoverRoomAdapter';
 import { useUndercoverRoster } from './useUndercoverRoster';
 import {

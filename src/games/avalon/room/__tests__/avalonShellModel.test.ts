@@ -190,4 +190,55 @@ describe('createAvalonRoomShellModel', () => {
     if (viewRole && viewRole.isEnabled) viewRole.onPress();
     expect(onViewRolePress).toHaveBeenCalledTimes(1);
   });
+
+  it('pins the night info action: disabled while audio plays, confirm opens the modal after', () => {
+    const running = session(5);
+    running.send({ type: 'avalon.game.start' });
+    const evilSeat = Number(
+      Object.entries(running.state.roles).find(([, roleId]) =>
+        ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
+      )?.[0],
+    );
+    const nightInput = {
+      ...baseInput(running.state),
+      isLobby: false,
+      mySeat: evilSeat,
+      effectiveSeat: evilSeat,
+      userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+    };
+    // Audio is still playing right after the start: the action is disabled.
+    const during = createAvalonRoomShellModel(nightInput);
+    if (during.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
+    expect(during.bottomActions.actions.find((action) => action.key === 'nightInfo')).toMatchObject(
+      {
+        label: '语音播报中…',
+        isEnabled: false,
+        disabledReason: '语音播报尚未结束，请稍候',
+        onDisabledPress: null,
+        testID: 'avalon-night-info',
+      },
+    );
+    // Drain the queued narration; the action becomes the confirm step.
+    let guard = 0;
+    while (running.state.isAudioPlaying && guard < 10) {
+      running.send({ type: 'avalon.audio.ack' });
+      guard += 1;
+    }
+    expect(running.state.isAudioPlaying).toBe(false);
+    const onNightInfoPress = jest.fn();
+    const after = createAvalonRoomShellModel({
+      ...nightInput,
+      state: running.state,
+      onNightInfoPress,
+    });
+    if (after.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
+    const nightInfo = after.bottomActions.actions.find((action) => action.key === 'nightInfo');
+    expect(nightInfo).toMatchObject({
+      label: '确认信息',
+      isEnabled: true,
+      testID: 'avalon-night-info',
+    });
+    if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
+    expect(onNightInfoPress).toHaveBeenCalledTimes(1);
+  });
 });
