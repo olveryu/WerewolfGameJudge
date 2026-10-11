@@ -5,8 +5,8 @@ import type { RoomSeatPlayer } from './RoomSeatDataSource';
 /**
  * Source facts for a seat player. Mirrors the engine roster profile
  * (RoomSeatProfile) plus identity, so roster games can spread a profile
- * straight in; werewolf maps its local player's roleRevealEffect onto
- * revealEffect at the call site.
+ * straight in; a game whose local model names the reveal effect
+ * differently maps it onto revealEffect at the call site.
  */
 export interface RoomSeatPlayerSource {
   readonly kind: 'human' | 'bot';
