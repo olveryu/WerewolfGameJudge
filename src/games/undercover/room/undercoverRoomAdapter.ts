@@ -1,6 +1,7 @@
 /** Undercover projections for the shared room shell; no I/O or client-side game decisions. */
 
 import {
+  getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
   isBotOccupant,
   isUndercoverBotSeat,
@@ -13,16 +14,31 @@ import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotD
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import {
+  buildRoomHeaderModel,
+  type RoomHeaderGachaStatus,
+} from '@/features/room/model/buildRoomHeaderModel';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
   type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
+import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { colors } from '@/theme';
+
+import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
+import {
+  createUndercoverBottomActions,
+  createUndercoverHostManagement,
+} from './undercoverActionModels';
 
 const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
@@ -222,4 +238,84 @@ export function createUndercoverBoardInfoSections(
     });
   }
   return sections;
+}
+
+export interface UndercoverRoomShellModelInput {
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  readonly onUserActionPress: () => void;
+  readonly connection: RoomConnectionViewModel;
+  readonly state: UndercoverState;
+  readonly revision: number;
+  readonly myUserId: string;
+  readonly controlledSeat: number | null;
+  readonly selectedSeat: number | null;
+  readonly isSelecting: boolean;
+  readonly seatsVisuallyDisabled: boolean;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  readonly isHost: boolean;
+  readonly controls: UndercoverRoundControls;
+  readonly release: () => void;
+}
+
+/** Assembles the Undercover RoomShellModel from the hook's projections. */
+export function createUndercoverRoomShellModel(
+  input: UndercoverRoomShellModelInput,
+): RoomShellModel {
+  const { state } = input;
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: buildRoomHeaderModel({
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      user: input.user,
+      gachaStatus: input.gachaStatus,
+      onUserActionPress: input.onUserActionPress,
+    }),
+    connection: input.connection,
+    statusRibbon: createUndercoverStatusRibbon(state),
+    seats: {
+      source: createUndercoverSeatDataSource({
+        state,
+        revision: input.revision,
+        myUserId: input.myUserId,
+        controlledSeat: input.controlledSeat,
+        selectedSeat: input.selectedSeat,
+        isSelecting: input.isSelecting,
+      }),
+      visuallyDisabled: input.seatsVisuallyDisabled,
+      onSeatPress: input.onSeatPress,
+      onBotSeatLongPress: input.onBotSeatLongPress,
+    },
+    seatConfirmation: input.seatConfirmation,
+    profile: input.profile,
+    share: input.share,
+    bottomActions: createUndercoverBottomActions(input.controls),
+    hostManagement: createUndercoverHostManagement(
+      state,
+      input.isHost,
+      input.capabilities,
+      input.controls,
+    ),
+    controlledSeat: createControlledSeatModel({
+      canControlBots: input.capabilities.canTakeOverBots.isAllowed,
+      hasBots: getUndercoverBotSeats(state).length > 0,
+      controlledSeat: input.controlledSeat,
+      controlledBotName:
+        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+      release: input.release,
+      gameName: 'Undercover',
+    }),
+  };
 }

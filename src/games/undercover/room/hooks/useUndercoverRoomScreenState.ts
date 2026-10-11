@@ -1,11 +1,9 @@
 /** Compose Undercover controls and projections into the existing RoomShell contract. */
 import {
-  getUndercoverBotSeats,
   getUndercoverRoleCounts,
   type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { useMemo } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,21 +14,14 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
-import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
-import {
-  createUndercoverBottomActions,
-  createUndercoverHostManagement,
-} from '../undercoverActionModels';
-import {
-  createUndercoverSeatDataSource,
-  createUndercoverStatusRibbon,
-} from '../undercoverRoomAdapter';
+import {} from '../undercoverActionModels';
+import { createUndercoverRoomShellModel } from '../undercoverRoomAdapter';
 import { useUndercoverRoster } from './useUndercoverRoster';
 import {
   type UndercoverRoundControls,
@@ -104,52 +95,35 @@ export function useUndercoverRoomScreenState({
   const isHost = state.hostUserId === user.id;
   const openShare = share.open;
   useAutoShowRoomShareQr({ isHost, entryReason, openShare });
-  const shellModel: RoomShellModel = {
+  const shellModel: RoomShellModel = createUndercoverRoomShellModel({
     roomCode: room.roomCode,
     capabilities: roster.capabilities,
-    header: {
-      onBack: () => entryController.requestExit(roster.capabilities.shouldConfirmExit),
-      onTitlePress: title.handleTitlePress,
-      onTitleLongPress: title.handleTitleLongPress,
-      userAction: {
-        user,
-        ticketCount: gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null,
-        onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
-      },
-    },
+    onBack: () => entryController.requestExit(roster.capabilities.shouldConfirmExit),
+    onTitlePress: title.handleTitlePress,
+    onTitleLongPress: title.handleTitleLongPress,
+    user,
+    gachaStatus,
+    onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
-    statusRibbon: createUndercoverStatusRibbon(state),
-    seats: {
-      source: createUndercoverSeatDataSource({
-        state,
-        revision: snapshot.snapshot.revision,
-        myUserId: user.id,
-        controlledSeat: roster.controlledSeat,
-        selectedSeat: controls.selectedSeat,
-        isSelecting: controls.isSelecting,
-      }),
-      visuallyDisabled: controls.isSubmitting || roster.isSubmitting,
-      onSeatPress: controls.isSelecting ? controls.selectSeat : roster.onSeatPress,
-      onBotSeatLongPress:
-        !controls.isSelecting && roster.capabilities.canTakeOverBots.isAllowed
-          ? roster.onBotLongPress
-          : null,
-    },
+    state,
+    revision: snapshot.snapshot.revision,
+    myUserId: user.id,
+    controlledSeat: roster.controlledSeat,
+    selectedSeat: controls.selectedSeat,
+    isSelecting: controls.isSelecting,
+    seatsVisuallyDisabled: controls.isSubmitting || roster.isSubmitting,
+    onSeatPress: controls.isSelecting ? controls.selectSeat : roster.onSeatPress,
+    onBotSeatLongPress:
+      !controls.isSelecting && roster.capabilities.canTakeOverBots.isAllowed
+        ? roster.onBotLongPress
+        : null,
     seatConfirmation: roster.seatConfirmation,
     profile: roster.profile,
     share,
-    bottomActions: createUndercoverBottomActions(controls),
-    hostManagement: createUndercoverHostManagement(state, isHost, roster.capabilities, controls),
-    controlledSeat: createControlledSeatModel({
-      canControlBots: roster.capabilities.canTakeOverBots.isAllowed,
-      hasBots: getUndercoverBotSeats(state).length > 0,
-      controlledSeat: roster.controlledSeat,
-      controlledBotName:
-        roster.controlledSeat !== null ? getBotDisplayName(roster.controlledSeat) : null,
-      release: roster.release,
-      gameName: 'Undercover',
-    }),
-  };
+    isHost,
+    controls,
+    release: roster.release,
+  });
   return {
     state,
     shellModel,
