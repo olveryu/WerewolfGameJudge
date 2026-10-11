@@ -22,10 +22,8 @@ function buildSettleResult(gameType: string) {
 
 describe('parseAccountEvent', () => {
   it.each(GAME_TYPES)('decodes a SETTLE_RESULT for %s', (gameType) => {
-    const parsed = parseAccountEvent(buildSettleResult(gameType));
-    expect(parsed.gameType).toBe(gameType);
-    expect(parsed.eventId).toBe('settlement-1');
-    expect(parsed.xpEarned).toBe(15);
+    const message = buildSettleResult(gameType);
+    expect(parseAccountEvent(message)).toEqual(message);
   });
 
   it('rejects an unknown gameType', () => {
