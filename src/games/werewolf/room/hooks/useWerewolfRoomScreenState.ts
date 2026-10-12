@@ -236,11 +236,15 @@ export function useWerewolfRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation = useMemo(() => {
+    // D-1: a bot card opened through takeover never animates (the bot
+    // has no equipped effect); the other games null the effect the
+    // same way when the controlled seat is not the viewer's own.
+    if (controlledSeat !== null) return 'none';
     if (mySeat === null || !gameState) return 'none';
     const effect = gameState.players.get(mySeat)?.roleRevealEffect;
     if (!effect) return 'none';
     return effect;
-  }, [mySeat, gameState]);
+  }, [controlledSeat, mySeat, gameState]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Derived primitives

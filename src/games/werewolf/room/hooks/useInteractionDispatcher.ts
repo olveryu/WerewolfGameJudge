@@ -225,9 +225,14 @@ export function useInteractionDispatcher({
                 const effectivePlayer =
                   effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
                 const alreadyViewed = effectivePlayer?.hasViewedRole ?? false;
+                // Anchor (Identity Viewing Protocol): decide from the
+                // pre-open server record, frozen for this open. The
+                // viewed POST below lands the record before the card
+                // shows, so a live re-read would never play; the other
+                // games derive the same value from their viewed records.
+                setShouldPlayRevealAnimation(!alreadyViewed);
                 if (alreadyViewed) {
                   // Already viewed → show card directly, no animation, no POST
-                  setShouldPlayRevealAnimation(false);
                   setRoleCardVisible(true);
                 } else {
                   // First view → show loading immediately → switch to role card after POST succeeds
@@ -238,11 +243,11 @@ export function useInteractionDispatcher({
                       const result = await viewedRole();
                       if (!isSuccessfulRoomCommand(result)) {
                         // handleMutationResult already handles user feedback inside viewedRole
+                        setShouldPlayRevealAnimation(false);
                         setRoleCardVisible(false);
                         setIsLoadingRole(false);
                         return;
                       }
-                      setShouldPlayRevealAnimation(true);
                       setIsLoadingRole(false);
                     } catch (err) {
                       handleError(err, {
