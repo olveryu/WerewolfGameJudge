@@ -5,12 +5,14 @@
  * roster (humans carry userId, bots are explicit bot occupants), the
  * players record keeps only per-seat game data (role / hasViewedRole),
  * and the by-user display map is renamed roster -> playerProfiles.
+ * v7 drops the debugMode record (the flag is deleted; bot gates key
+ * off roster bot seats). v6 payloads migrate by dropping the field.
  * v5 payloads migrate through migratePersistedWerewolfState.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 6;
+export const WEREWOLF_STATE_VERSION = 7;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

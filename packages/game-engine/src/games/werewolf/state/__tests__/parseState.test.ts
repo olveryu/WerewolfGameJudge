@@ -146,7 +146,6 @@ function createFullState(): GameState {
         promptOverride: { title: 'title', text: 'text' },
       },
     },
-    debugMode: { botsEnabled: true },
     seerLabelMap: { seer: 1 },
     nightReviewAllowedSeats: [0, 1],
     hypnotizedSeats: [1],

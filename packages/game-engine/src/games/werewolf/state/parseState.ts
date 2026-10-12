@@ -720,15 +720,6 @@ function parseCurrentActorHint(
   );
 }
 
-function parseDebugMode(value: unknown, path: string): NonNullable<GameState['debugMode']> {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    { botsEnabled: parseBoolean(raw.botsEnabled, `${path}.botsEnabled`) },
-    path,
-  );
-}
-
 function parseStringNumberRecord(value: unknown, path: string): Readonly<Record<string, number>> {
   const raw = parseObject(value, path);
   const result: Record<string, number> = {};
@@ -1058,7 +1049,6 @@ export function parseWerewolfState(value: unknown): GameState {
       (effects, p) => parseArray(effects, p, parseAudioEffect),
     ),
     ui: parseOptional(raw.ui, 'GameState.ui', parseUi),
-    debugMode: parseOptional(raw.debugMode, 'GameState.debugMode', parseDebugMode),
     seerLabelMap: parseOptional(
       raw.seerLabelMap,
       'GameState.seerLabelMap',
@@ -1127,6 +1117,13 @@ export function parseWerewolfState(value: unknown): GameState {
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   if (raw.stateVersion === WEREWOLF_STATE_VERSION) return parseWerewolfState(raw);
+  if (raw.stateVersion === 6) {
+    // v7 deletes the debugMode record: drop the field, then the
+    // current strict parser validates the rest unchanged.
+    const upgraded: Record<string, unknown> = { ...raw, stateVersion: WEREWOLF_STATE_VERSION };
+    delete upgraded.debugMode;
+    return parseWerewolfState(upgraded);
+  }
   if (raw.stateVersion !== 5) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
   }

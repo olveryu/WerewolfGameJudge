@@ -111,7 +111,6 @@ export function createBaseWerewolfRoomMock({
     myUserId: `p${mySeat}`,
 
     // Debug mode fields
-    isDebugMode: false,
     controlledSeat: null,
     effectiveSeat: mySeat,
     effectiveRole: myRole,

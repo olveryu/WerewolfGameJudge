@@ -349,7 +349,6 @@ export interface WerewolfRoomShellModelInput {
   // Room facts.
   readonly roomStatus: GameStatus;
   readonly isHost: boolean;
-  readonly isDebugMode: boolean;
   readonly isAudioPlaying: boolean;
   readonly isActionSubmitting: boolean;
   readonly isStartingGame: boolean;
@@ -406,9 +405,10 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     isHostActionSubmitting: input.isHostActionSubmitting,
     mvpSeat: input.mvpSeat,
     onSelectMvp: input.onSelectMvp,
-    canMarkAllBotsViewed: input.isDebugMode && input.roomStatus === GameStatus.Assigned,
+    // AU-17: scaffold actions key off bot existence.
+    canMarkAllBotsViewed: input.hasBots && input.roomStatus === GameStatus.Assigned,
     canMarkAllBotsGroupConfirmed:
-      input.isDebugMode &&
+      input.hasBots &&
       !input.isAudioPlaying &&
       input.roomStatus === GameStatus.Ongoing &&
       input.currentSchemaKind === 'groupConfirm',
@@ -425,7 +425,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
   const seatSource = createWerewolfSeatDataSource({
     seats: input.seatViewModels,
     controlledSeat: input.controlledSeat,
-    showBotRoles: input.isDebugMode && input.isHost,
+    showBotRoles: input.hasBots && input.isHost,
     showLevels: input.roomStatus !== GameStatus.Ongoing && input.roomStatus !== GameStatus.Day,
     decorationsEnabled:
       input.roomStatus !== GameStatus.Ongoing && input.roomStatus !== GameStatus.Day,

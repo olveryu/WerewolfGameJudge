@@ -389,7 +389,6 @@ describe('createWerewolfRoomShellModel', () => {
       onAvatarPress: jest.fn(),
       roomStatus: GameStatus.Ready,
       isHost: false,
-      isDebugMode: false,
       isAudioPlaying: false,
       isActionSubmitting: false,
       isStartingGame: false,

@@ -94,7 +94,6 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'pendingAudioEffects',
 
   // Debug mode
-  'debugMode',
 
   // UI Hints
   'ui',
@@ -210,7 +209,6 @@ describe('normalizeState contract', () => {
       pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: true }],
 
       // Debug mode
-      debugMode: { botsEnabled: true },
 
       // Night review share permissions
       nightReviewAllowedSeats: [0, 2],
@@ -268,15 +266,6 @@ describe('normalizeState contract', () => {
     }
   });
 
-  it('should preserve debugMode.botsEnabled value exactly', () => {
-    const stateWithDebugMode = createFullState();
-    stateWithDebugMode.debugMode = { botsEnabled: true };
-
-    const normalized = normalizeState(stateWithDebugMode);
-
-    expect(normalized.debugMode).toEqual({ botsEnabled: true });
-  });
-
   it('should preserve undefined optional fields as undefined', () => {
     const minimalState: GameState = {
       ...WEREWOLF_STATE_IDENTITY,
@@ -301,7 +290,6 @@ describe('normalizeState contract', () => {
     const normalized = normalizeState(minimalState);
 
     // Optional fields should remain undefined
-    expect(normalized.debugMode).toBeUndefined();
     expect(normalized.witchContext).toBeUndefined();
     expect(normalized.seerReveal).toBeUndefined();
   });

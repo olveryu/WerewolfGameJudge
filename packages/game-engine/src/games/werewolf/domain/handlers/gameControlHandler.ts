@@ -39,6 +39,7 @@ import {
 } from '../models';
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
+import { getWerewolfBotSeats } from '../playerHelpers';
 import type { AudioEffect, Player } from '../protocol/types';
 import type {
   AssignRolesAction,
@@ -351,7 +352,6 @@ export function handleUpdateTemplate(
  *
  * Result:
  * - Create bot players for all empty seats (bot occupants in the roster)
- * - Set debugMode.botsEnabled = true
  */
 export function handleFillWithBots(
   _intent: FillWithBotsIntent,
@@ -393,10 +393,11 @@ export function handleFillWithBots(
 }
 
 /**
- * Handle mark all bots as having viewed roles (Debug-only, Host-only)
+ * Handle mark all bots as having viewed roles (host bot-test scaffold).
  *
  * Preconditions:
- * - debugMode.botsEnabled === true
+ * - the roster holds at least one bot seat (AU-17: the gate is bot
+ *   existence; the old debugMode flag is deleted)
  * - status === GameStatus.Assigned
  *
  * Result: set hasViewedRole = true only for bot seats (roster bot occupants)
@@ -407,8 +408,8 @@ export function handleMarkAllBotsViewed(
 ): HandlerResult {
   const { state } = context;
 
-  // Gate: debugMode.botsEnabled must be true
-  if (!state.debugMode?.botsEnabled) {
+  // Gate: at least one bot seat must exist
+  if (getWerewolfBotSeats(state).length === 0) {
     return handlerError('debug_not_enabled');
   }
 

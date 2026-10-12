@@ -21,7 +21,6 @@ function createInput(overrides: Record<string, unknown> = {}) {
     isHostActionSubmitting: false,
     mvpSeat: null,
     onSelectMvp: jest.fn(),
-    isDebugMode: false,
     canMarkAllBotsViewed: false,
     canMarkAllBotsGroupConfirmed: false,
     capabilities: {

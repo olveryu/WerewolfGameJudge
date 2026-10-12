@@ -215,7 +215,6 @@ export interface EndSheriffElectionBySelfDestructIntent {
  * Precondition: status === Unseated
  * Result:
  * - Create bot players for all empty seats (bot occupants in the roster)
- * - Set debugMode.botsEnabled = true
  */
 export interface FillWithBotsIntent {
   type: 'FILL_WITH_BOTS';
@@ -224,7 +223,7 @@ export interface FillWithBotsIntent {
 /**
  * Mark all bots as having viewed roles Intent (Host-only, Debug-only)
  *
- * Precondition: debugMode.botsEnabled === true && status === Assigned
+ * Precondition: status === Assigned (the roster holds bot seats)
  * Result: set hasViewedRole = true only for bot seats (roster bot occupants)
  */
 export interface MarkAllBotsViewedIntent {

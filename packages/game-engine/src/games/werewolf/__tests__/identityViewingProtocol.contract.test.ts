@@ -4,18 +4,22 @@
  * Werewolf is the protocol's reference implementation: the engine keeps
  * a per-player hasViewedRole record (false at deal time), the viewed
  * action flips it idempotently, and the status advances Assigned ->
- * Ready only when every seated player has viewed. Bot seats never
- * block: the host marks them viewed (mark-all-bots) before the flip.
- * Same-named scenario files live in each compliant game's __tests__.
+ * Ready only when every seated player has viewed - bot seats count
+ * like everyone else; the host marks them viewed (mark-all-bots)
+ * through the scaffold action. Same-named scenario files live in
+ * each compliant game's __tests__.
  */
 
 import {
-  haveAllHumansViewed,
+  haveAllViewed,
   type IdentityViewingParticipant,
 } from '../../../platform/room/identityViewing';
 import { GameStatus } from '../domain/models/GameStatus';
 import type { GameState } from '../domain/protocol/types';
-import { handlePlayerViewedRole } from '../domain/reducer/lifecycleReducers';
+import {
+  handleMarkAllBotsViewed,
+  handlePlayerViewedRole,
+} from '../domain/reducer/lifecycleReducers';
 import { WEREWOLF_STATE_IDENTITY } from '../state/version';
 
 function createAssignedState(): GameState {
@@ -93,12 +97,31 @@ describe('Identity Viewing Protocol — werewolf record and Ready checkpoint', (
       isBot: false,
     }));
     for (const seat of [0, 2, 1]) {
-      expect(haveAllHumansViewed(participants, viewedSeats(state))).toBe(
+      expect(haveAllViewed(participants, viewedSeats(state))).toBe(
         state.status === GameStatus.Ready,
       );
       state = view(state, seat);
     }
     expect(state.status).toBe(GameStatus.Ready);
-    expect(haveAllHumansViewed(participants, viewedSeats(state))).toBe(true);
+    expect(haveAllViewed(participants, viewedSeats(state))).toBe(true);
+  });
+});
+
+describe('Identity Viewing Protocol - werewolf bot seats count at the checkpoint', () => {
+  it('holds Assigned while a bot seat is unmarked, even with every human viewed', () => {
+    const base = createAssignedState();
+    let state: GameState = {
+      ...base,
+      roster: { ...base.roster, 2: { seat: 2, kind: 'bot' } },
+    };
+
+    state = view(state, 0);
+    state = view(state, 1);
+    expect(state.status).toBe(GameStatus.Assigned);
+    expect(viewedSeats(state)).toEqual([0, 1]);
+
+    state = handleMarkAllBotsViewed(state);
+    expect(viewedSeats(state)).toEqual([0, 1, 2]);
+    expect(state.status).toBe(GameStatus.Ready);
   });
 });

@@ -66,8 +66,6 @@ interface UseWerewolfRoomResult {
   effectiveRole: RoleId | null;
   takeOverBot: (seat: number) => void;
   releaseBot: () => void;
-  // Debug scaffold (from useWerewolfDebugMode)
-  isDebugMode: boolean;
   fillWithBots: () => Promise<WerewolfCommandDispatchOutcome>;
   markAllBotsViewed: () => Promise<WerewolfCommandDispatchOutcome>;
   markAllBotsGroupConfirmed: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -264,7 +262,6 @@ interface UseWerewolfRoomResult {
     effectiveRole: botControl.effectiveRole,
     takeOverBot: botControl.takeOverBot,
     releaseBot: botControl.releaseBot,
-    isDebugMode: debug.isDebugMode,
     fillWithBots: debug.fillWithBots,
     markAllBotsViewed: debug.markAllBotsViewed,
     markAllBotsGroupConfirmed: debug.markAllBotsGroupConfirmed,

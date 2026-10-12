@@ -115,7 +115,6 @@ function createBaseWerewolfRoomMock(overrides?: Record<string, unknown>) {
     myRole: 'wolfQueen',
 
     // Debug mode - effectiveSeat/effectiveRole are used in WerewolfRoomScreen
-    isDebugMode: false,
     controlledSeat: null,
     effectiveSeat: 0,
     effectiveRole: 'wolfQueen',

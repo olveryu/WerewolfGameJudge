@@ -1,10 +1,10 @@
 /**
  * useWerewolfDebugMode - Host bot-test scaffold (AU-14).
  *
- * Only the debugMode flag and the bulk bot actions live here.
- * Takeover state (controlled seat, guard, effective identity) is
- * owned by useWerewolfBotControl; this hook never carried product
- * behavior - debugMode is the host's manual testing scaffold.
+ * Only the bulk bot actions live here (fill, mark viewed, mark
+ * group-confirmed). Takeover state is owned by
+ * useWerewolfBotControl. The scaffold gates key off bot existence
+ * (AU-17); the old debugMode state flag is deleted.
  */
 
 import { useCallback } from 'react';
@@ -16,8 +16,6 @@ import type {
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export interface WerewolfDebugModeState {
-  /** Whether debug bot mode is active */
-  isDebugMode: boolean;
   /** Fill all empty seats with bots */
   fillWithBots: () => Promise<WerewolfCommandDispatchOutcome>;
   /** Mark all bot seats as having viewed their roles */
@@ -31,9 +29,6 @@ export function useWerewolfDebugMode(
   gameState: LocalGameState,
   fillBots: () => Promise<WerewolfCommandDispatchOutcome>,
 ): WerewolfDebugModeState {
-  // Whether debug bot mode is active
-  const isDebugMode = gameState.debugMode?.botsEnabled === true;
-
   // Fill all empty seats with bots
   const fillWithBots = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
     return fillBots();
@@ -51,7 +46,6 @@ export function useWerewolfDebugMode(
     }, [client]);
 
   return {
-    isDebugMode,
     fillWithBots,
     markAllBotsViewed,
     markAllBotsGroupConfirmed,

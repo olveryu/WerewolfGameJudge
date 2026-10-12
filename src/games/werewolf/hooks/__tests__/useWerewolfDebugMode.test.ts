@@ -34,9 +34,7 @@ function createSeatCommands(overrides?: {
   };
 }
 
-function makeGameState(
-  overrides: Partial<Pick<LocalGameState, 'players' | 'debugMode'>> = {},
-): LocalGameState {
+function makeGameState(overrides: Partial<Pick<LocalGameState, 'players'>> = {}): LocalGameState {
   const players = new Map<number, LocalPlayer | null>();
   players.set(1, {
     userId: 'u1',
@@ -52,7 +50,6 @@ function makeGameState(
   });
   return {
     players,
-    debugMode: { botsEnabled: false },
     ...overrides,
   } as unknown as LocalGameState;
 }
@@ -76,13 +73,6 @@ function renderDebugMode(options?: {
 
 describe('useWerewolfDebugMode', () => {
   beforeEach(() => jest.clearAllMocks());
-
-  it('reflects the authoritative botsEnabled flag', () => {
-    const gameState = makeGameState({ debugMode: { botsEnabled: true } });
-    const { result } = renderDebugMode({ gameState });
-
-    expect(result.current.isDebugMode).toBe(true);
-  });
 
   it('fills empty seats without removing the seated host', async () => {
     const { result, seatCommands } = renderDebugMode();
