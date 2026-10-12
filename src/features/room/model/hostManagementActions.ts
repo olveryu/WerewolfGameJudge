@@ -5,7 +5,7 @@
  * in every game's host management panel. Games provide callbacks; the shared
  * builders ensure consistent labels, icons, and variants.
  *
- * Game-specific actions (e.g., werewolf's sheriff election, avalon's end vote)
+ * Game-specific actions (e.g., an election advance or a manual settle)
  * stay in the game.
  */
 

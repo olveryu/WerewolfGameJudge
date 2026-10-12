@@ -306,7 +306,7 @@ export function createUndercoverHostManagement(
       ...(controls.isSubmitting || !isAllowed
         ? ({
             isEnabled: false,
-            disabledReason: isAllowed ? null : '请先坐满所有座位，或填充机器人。',
+            disabledReason: isAllowed ? null : ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
             onDisabledPress: null,
           } as const)
         : ({ isEnabled: true, onPress } as const)),

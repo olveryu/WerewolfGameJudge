@@ -39,6 +39,7 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -400,7 +401,7 @@ export function useFibRoomScreenState({
   );
 
   const showStartRoundDisabled = useCallback(() => {
-    showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。');
+    showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL);
   }, []);
 
   const hostManagement = useMemo(
