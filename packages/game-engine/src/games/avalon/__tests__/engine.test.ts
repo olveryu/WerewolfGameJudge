@@ -1,8 +1,7 @@
 /** Exercises Avalon through authoritative commands, never injecting progressed state. */
 
-import type { CommandContext } from '../../../platform/engine';
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { AvalonCommand } from '../commands/types';
-import type { AvalonEffect } from '../domain/decision';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
@@ -23,39 +22,18 @@ import {
 const GOOD_COUNTS: Record<number, number> = { 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 6 };
 
 function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) {
-  let nowMs = 1000;
-  let commandNumber = 0;
   const numberOfPlayers = configOverrides.numberOfPlayers ?? DEFAULT_AVALON_CONFIG.numberOfPlayers;
-  let state = avalonEngine.createInitialState(
-    { ...DEFAULT_AVALON_CONFIG, ...configOverrides },
-    { roomCode: '1234', hostUserId: 'host', nowMs, commandId: 'create' },
-  );
-  const effects: AvalonEffect[] = [];
-  const context = (userId: string, controlledSeat: number | null = null): CommandContext => ({
-    actor: { kind: 'user', userId },
-    controlledSeat,
-    nowMs,
-    commandId: `command:${commandNumber++}`,
-    randomSeed: `seed:${commandNumber}`,
+  const session = createEngineSession(avalonEngine, {
+    config: { ...DEFAULT_AVALON_CONFIG, ...configOverrides },
+    parse: parseAvalonState,
   });
-  const apply = (command: AvalonCommand, ctx: CommandContext) => {
-    const decision = avalonEngine.decide(state, command, ctx);
-    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
-    state = parseAvalonState(
-      JSON.parse(
-        JSON.stringify(avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state))),
-      ),
-    );
-    effects.push(...decision.effects);
-    return state;
-  };
   const send = (command: AvalonCommand, userId = 'host', controlledSeat: number | null = null) =>
-    apply(command, context(userId, controlledSeat));
+    session.send(command, userId, controlledSeat);
   const decideAs = (
     command: AvalonCommand,
     userId = 'host',
     controlledSeat: number | null = null,
-  ) => avalonEngine.decide(state, command, context(userId, controlledSeat));
+  ) => session.decide(command, userId, controlledSeat);
   const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
   const seatCount = humanCount ?? numberOfPlayers;
   for (let seat = 0; seat < seatCount; seat += 1) {
@@ -63,12 +41,12 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
   }
   const api = {
     get state() {
-      return state;
+      return session.state;
     },
     phase() {
-      return state.phase;
+      return session.state.phase;
     },
-    effects,
+    effects: session.effects,
     send,
     decideAs,
     seatUser,
@@ -83,57 +61,63 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       if (decision.kind === 'reject') expect(decision.reason).toBe(reason);
     },
     seatOfRole(role: AvalonRoleId): number {
-      const seat = Object.keys(state.roles).find((key) => state.roles[Number(key)] === role);
+      const seat = Object.keys(session.state.roles).find(
+        (key) => session.state.roles[Number(key)] === role,
+      );
       if (seat === undefined) throw new Error(`role ${role} not dealt`);
       return Number(seat);
     },
     goodSeats(): number[] {
-      return Object.keys(state.roles)
+      return Object.keys(session.state.roles)
         .map(Number)
-        .filter((seat) => isAvalonGoodRole(state.roles[seat]!));
+        .filter((seat) => isAvalonGoodRole(session.state.roles[seat]!));
     },
     evilSeats(): number[] {
-      return Object.keys(state.roles)
+      return Object.keys(session.state.roles)
         .map(Number)
-        .filter((seat) => isAvalonEvilRole(state.roles[seat]!));
+        .filter((seat) => isAvalonEvilRole(session.state.roles[seat]!));
     },
     startGame() {
       send({ type: 'avalon.game.start' });
       // 身份查看协议：真人各自查看角色，机器人由房主标记已查看，
       // 否则第一个任务前的检查点不放行。
       for (let seat = 0; seat < seatCount; seat += 1) {
-        if (!isAvalonBotSeat(state, seat)) send({ type: 'avalon.role.viewed' }, seatUser(seat));
+        if (!isAvalonBotSeat(session.state, seat))
+          send({ type: 'avalon.role.viewed' }, seatUser(seat));
       }
       send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
       // 开局播报由房主 ack（测试模拟房主已播完）。
-      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
     /** 步进转场后的播报由房主 ack。 */
     ackAudio() {
-      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
     /** 确认当前 night 步骤的全部参与者，直到天亮（机器人席位由房主接管确认）。 */
     passNight() {
       // 开局播报先 ack（对齐狼人杀：房主播完才放行确认）。
-      if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
-      while (state.phase.kind === 'night') {
-        const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+      if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+      while (session.state.phase.kind === 'night') {
+        const participants = getAvalonNightParticipants(
+          session.state.roles,
+          session.state.phase.step,
+        );
         for (const seat of participants) {
-          if (isAvalonBotSeat(state, seat)) {
+          if (isAvalonBotSeat(session.state, seat)) {
             send({ type: 'avalon.night.confirm' }, 'host', seat);
           } else {
             send({ type: 'avalon.night.confirm' }, seatUser(seat));
           }
         }
         // 每步转场都排播报，ack 后才能继续。
-        if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
+        if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
       }
     },
     setNow(ms: number) {
-      nowMs = ms;
+      session.setNow(ms);
     },
     leaderUser() {
-      return seatUser(state.leaderSeat);
+      return seatUser(session.state.leaderSeat);
     },
     proposeTeam(team: readonly number[]) {
       send({ type: 'avalon.team.propose', seats: [...team] }, api.leaderUser());
@@ -146,7 +130,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     finishVote() {
       // Settlement runs on the reveal countdown or this manual finish;
       // send only while the vote is still open or counting down.
-      if (state.phase.kind === 'vote') send({ type: 'avalon.vote.finish' });
+      if (session.state.phase.kind === 'vote') send({ type: 'avalon.vote.finish' });
     },
     playAll(plays: Readonly<Record<number, AvalonPlay>>) {
       for (const [seat, play] of Object.entries(plays)) {
@@ -154,7 +138,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       }
     },
     finishQuest() {
-      if (state.phase.kind === 'quest') send({ type: 'avalon.quest.finish' });
+      if (session.state.phase.kind === 'quest') send({ type: 'avalon.quest.finish' });
     },
     /** 走完一轮：组队 → 全票赞成 → 房主结束投票 → 出牌 → 房主结束任务（跳过揭晓倒计时）。 */
     passQuestRound(team: readonly number[], plays: Readonly<Record<number, AvalonPlay>>) {
