@@ -3,9 +3,10 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { z } from 'zod';
 
 import type { Env } from '../../env';
-import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
-import { createLogger } from '../../platform/observability/logger';
-import { measureDatabaseCapacity } from '../../platform/storage/capacity';
+import {
+  runWordSupplyWorkflow,
+  type WordSupplyParams,
+} from '../../platform/wordSupply/wordSupplyWorkflow';
 import { parseUndercoverCandidates } from './wordEditorial';
 import { createUndercoverWordProvider, UNDERCOVER_WORD_MODEL } from './wordProvider';
 import {
@@ -15,139 +16,37 @@ import {
   reserveUndercoverWordPack,
   storeUndercoverWordCandidates,
   UNDERCOVER_DAILY_BATCH_LIMIT,
-  type UndercoverWordPack,
 } from './wordPublication';
 
-const MODEL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '130 seconds' } as const;
-const log = createLogger('undercover-word-supply');
 const historySchema = z.array(z.strictObject({ wordA: z.string(), wordB: z.string() }));
-interface UndercoverWordSupplyParams {
-  readonly day: string;
-  readonly force?: boolean;
-  /** Unique id for admin manual triggers; keeps pack ids collision-free. */
-  readonly runId?: string;
-}
 
 /** Durable single-day batches with independent review and non-repeatable external operations. */
-export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<
-  Env,
-  UndercoverWordSupplyParams
-> {
-  async run(event: WorkflowEvent<UndercoverWordSupplyParams>, step: WorkflowStep) {
-    const day = z.iso.date().parse(event.payload.day);
-    if (!(await step.do('enabled', async () => this.env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true')))
-      return { status: 'disabled' };
-    if (day !== new Date().toISOString().slice(0, 10)) return { status: 'expired' };
-    const force = event.payload.force === true;
-    const runId = z.string().min(1).max(64).optional().parse(event.payload.runId);
-    // Force mode runs one extra full daily cycle beyond the scheduled limit.
-    const totalBatches = UNDERCOVER_DAILY_BATCH_LIMIT + (force ? UNDERCOVER_DAILY_BATCH_LIMIT : 0);
-    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex += 1) {
-      const capacity = await step.do(`capacity-${batchIndex}`, () =>
-        measureDatabaseCapacity(this.env.DB),
-      );
-      if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
-      const pack = await step.do(`reserve-${batchIndex}`, () =>
-        reserveUndercoverWordPack(this.env.DB, day, batchIndex, { force, runId }),
-      );
-      if (pack === null) continue;
-      await this.processPack(step, pack, batchIndex, force);
-      await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
-    }
-    return { status: 'complete' };
-  }
-
-  private async processPack(
-    step: WorkflowStep,
-    pack: UndercoverWordPack,
-    batchIndex: number,
-    force: boolean,
-  ): Promise<void> {
-    let failureStage = 'candidateSelection';
-    try {
-      let candidates = await step.do(`candidates-${batchIndex}`, () =>
-        getUndercoverReviewCandidates(this.env.DB, pack),
-      );
-      if (candidates.length === 0) {
-        const history = await step.do(`history-${batchIndex}`, async () => {
-          const rows = await this.env.DB.prepare(
+export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSupplyParams> {
+  async run(event: WorkflowEvent<WordSupplyParams>, step: WorkflowStep) {
+    return runWordSupplyWorkflow(this.env, event.payload, step, {
+      gameLabel: 'undercover',
+      isEnabled: (env) => env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true',
+      dailyBatchLimit: UNDERCOVER_DAILY_BATCH_LIMIT,
+      model: UNDERCOVER_WORD_MODEL,
+      packsTable: 'undercover_word_packs',
+      loadHistory: async (db, category) => {
+        const rows = await db
+          .prepare(
             `SELECT word_a AS wordA, word_b AS wordB FROM undercover_word_candidates WHERE category = ? ORDER BY created_at DESC LIMIT 60`,
           )
-            .bind(pack.category)
-            .all();
-          return historySchema.parse(rows.results);
-        });
-        failureStage = 'generation';
-        const generated = await step.do(`generate-${batchIndex}`, MODEL_STEP, async () => {
-          await claimEditorialModelRequest(
-            this.env.DB,
-            `undercover:${pack.id}:generation`,
-            'undercover',
-            UNDERCOVER_WORD_MODEL,
-            Date.now(),
-            { force },
-          );
-          return createUndercoverWordProvider(this.env.GEMINI_API_KEY).generateBatch(
-            pack.category,
-            history,
-          );
-        });
-        failureStage = 'candidateStorage';
-        await step.do(`store-${batchIndex}`, async () => {
-          await this.env.DB.prepare(
-            `UPDATE undercover_word_packs SET generation_json = ? WHERE id = ? AND request_token = ? AND status = 'reserved'`,
-          )
-            .bind(JSON.stringify(generated), pack.id, pack.request_token)
-            .run();
-          await storeUndercoverWordCandidates(
-            this.env.DB,
-            pack,
-            parseUndercoverCandidates(generated, pack.category),
-          );
-        });
-        candidates = await step.do(`generated-candidates-${batchIndex}`, () =>
-          getUndercoverReviewCandidates(this.env.DB, pack),
-        );
-      }
-      failureStage = 'review';
-      const reviews =
-        candidates.length === 0
-          ? []
-          : await this.reviewCandidates(step, pack, batchIndex, candidates, force);
-      failureStage = 'publication';
-      await step.do(`publish-${batchIndex}`, () =>
-        publishUndercoverWordPack(this.env.DB, pack, candidates, reviews),
-      );
-    } catch (error) {
-      await step.do(`fail-${batchIndex}`, async () => {
-        await failUndercoverWordPack(this.env.DB, pack, failureStage);
-        log.error('editorial pack failed', { packId: pack.id, failureStage });
-      });
-      throw error;
-    }
-  }
-
-  private async reviewCandidates(
-    step: WorkflowStep,
-    pack: UndercoverWordPack,
-    batchIndex: number,
-    candidates: Awaited<ReturnType<typeof getUndercoverReviewCandidates>>,
-    force: boolean,
-  ) {
-    await step.sleep(`review-spacing-${batchIndex}`, '20 seconds');
-    return step.do(`review-${batchIndex}`, MODEL_STEP, async () => {
-      await claimEditorialModelRequest(
-        this.env.DB,
-        `undercover:${pack.id}:review`,
-        'undercover',
-        UNDERCOVER_WORD_MODEL,
-        Date.now(),
-        { force },
-      );
-      return createUndercoverWordProvider(this.env.GEMINI_API_KEY).reviewBatch(
-        pack.category,
-        candidates,
-      );
+          .bind(category)
+          .all();
+        return historySchema.parse(rows.results);
+      },
+      createProvider: createUndercoverWordProvider,
+      parseCandidates: parseUndercoverCandidates,
+      publication: {
+        reserve: reserveUndercoverWordPack,
+        getReviewCandidates: getUndercoverReviewCandidates,
+        storeCandidates: storeUndercoverWordCandidates,
+        publish: publishUndercoverWordPack,
+        fail: failUndercoverWordPack,
+      },
     });
   }
 }
