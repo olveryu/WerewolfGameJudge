@@ -23,7 +23,7 @@ export interface FibRecordWordUsageEffect extends GameEffect {
 }
 
 export interface FibCompletedEffect extends GameEffect {
-  readonly type: 'fib.round.ended';
+  readonly type: 'fib.game.completed';
   readonly payload: {
     readonly roundId: string;
     readonly completedAt: number;

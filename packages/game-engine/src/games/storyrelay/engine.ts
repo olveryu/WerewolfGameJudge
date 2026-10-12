@@ -29,10 +29,10 @@ import {
   getStoryRelayOccupiedSeatCount,
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
-  STORY_RELAY_STATE_VERSION,
   type StoryRelayConfig,
   type StoryRelayState,
 } from './state/types';
+import { STORY_RELAY_STATE_VERSION } from './state/version';
 
 function createInitialState(config: StoryRelayConfig, context: CreateGameContext): StoryRelayState {
   if (!isValidStoryRelayConfig(config)) throw new Error(STORY_RELAY_REASONS.config);

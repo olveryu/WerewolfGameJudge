@@ -5,7 +5,7 @@ import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { AvalonCommand } from '../commands/types';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { avalonEngine } from '../engine';
-import { migratePersistedAvalonState, parseAvalonState } from '../state/codec';
+import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
 import { type AvalonState, DEFAULT_AVALON_CONFIG, getAvalonBotSeats } from '../state/types';
 
 function context(actorUserId: string, commandId: string): CommandContext {

@@ -102,6 +102,6 @@ export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalComman
 );
 
 export const pictionaryEffectSchema = z.strictObject({
-  type: z.literal('pictionary.round.completed'),
+  type: z.literal('pictionary.game.completed'),
   payload: gameCompletionPayloadSchema,
 });

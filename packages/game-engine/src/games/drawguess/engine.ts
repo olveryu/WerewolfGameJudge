@@ -1,6 +1,7 @@
 /** Authoritative DrawGuess engine; delegates persistence and delivery to the platform. */
 
 import {
+  buildGameCompletionPayload,
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -40,7 +41,6 @@ import {
   DRAWGUESS_GAME_TYPE,
   DRAWGUESS_MAX_STROKES_PER_TURN,
   DRAWGUESS_ROUND_END_SECONDS,
-  DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessConfig,
   type DrawGuessState,
@@ -50,6 +50,7 @@ import {
   getDrawGuessTotalTurns,
   isValidDrawGuessConfig,
 } from './state/types';
+import { DRAWGUESS_STATE_VERSION } from './state/version';
 
 function createInitialState(config: DrawGuessConfig, context: CreateGameContext): DrawGuessState {
   if (!isValidDrawGuessConfig(config)) throw new Error(DRAWGUESS_REASONS.config);
@@ -78,13 +79,11 @@ function dealEffect(turnIndex: number): DrawGuessEffect {
 function completionEffect(state: DrawGuessState, context: CommandContext): DrawGuessEffect {
   return {
     type: 'drawguess.game.completed',
-    payload: {
+    payload: buildGameCompletionPayload({
       roundId: `drawguess:game:${state.gameSequence}`,
       completedAt: context.nowMs,
-      participantUserIds: Object.values(
-        getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-      ).map((seat) => seat.userId),
-    },
+      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    }),
   };
 }
 

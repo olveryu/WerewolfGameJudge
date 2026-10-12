@@ -2,10 +2,8 @@
 
 import {
   type CommandContext,
-  commit,
   type CommonGameLifecycle,
   type CreateGameContext,
-  type Decision,
   type GameEngineDefinition,
   reject,
   resolveHostActorId,
@@ -13,6 +11,7 @@ import {
   resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../platform/engine';
+import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol/gameTypes';
 import {
   REASON_GAME_IN_PROGRESS,
@@ -37,6 +36,7 @@ import {
   type RosterOperationResult,
 } from '../../platform/room/seating';
 import type { FibCommand } from './commands/types';
+import { commitFib, type FibDecision } from './domain/decision';
 import type { FibEvent } from './domain/events';
 import { evolveFibState } from './domain/evolve';
 import {
@@ -73,16 +73,6 @@ import {
   isValidFibWord,
 } from './state/types';
 import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
-
-type FibDecision = Decision<FibEvent, FibEffect>;
-
-function commitFib(events: readonly FibEvent[], effects: readonly FibEffect[] = []): FibDecision {
-  return commit({
-    events,
-    effects,
-    broadcast: events.length === 0 ? 'none' : 'state',
-  });
-}
 
 function rejectSeatOperation(
   result: Extract<RosterOperationResult<FibHumanSeat>, { kind: 'rejected' }>,
@@ -270,12 +260,12 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
         [{ type: 'fib.round.ended' }],
         [
           {
-            type: 'fib.round.ended',
-            payload: {
+            type: 'fib.game.completed',
+            payload: buildGameCompletionPayload({
               roundId: state.round.roundId,
               completedAt: context.nowMs,
-              participantUserIds: getFibParticipantUserIds(state),
-            },
+              humans: Object.values(getHumanSeatMap(state.roster, state.numberOfPlayers)),
+            }),
           },
         ],
       )
@@ -302,7 +292,7 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
   const nextViewedSeats = markSeatViewed(viewedSeats, seat);
   const events: FibEvent[] = [{ type: 'fib.role.viewed', seat }];
   if (haveAllViewed(getFibViewingParticipants(state), nextViewedSeats)) {
-    events.push({ type: 'fib.round.viewingCompleted' });
+    events.push({ type: 'fib.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -328,7 +318,7 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
     viewedSeats = markSeatViewed(viewedSeats, participant.seat);
   }
   if (haveAllViewed(getFibViewingParticipants(state), viewedSeats)) {
-    events.push({ type: 'fib.round.viewingCompleted' });
+    events.push({ type: 'fib.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -363,7 +353,7 @@ function decideUpdateFibPreparationStage(
 
   return commitFib([
     {
-      type: 'fib.round.preparationStageUpdated',
+      type: 'fib.round.preparation.stage.updated',
       stage: command.stage,
     },
   ]);

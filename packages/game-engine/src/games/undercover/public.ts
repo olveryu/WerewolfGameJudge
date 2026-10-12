@@ -20,8 +20,9 @@ export {
 } from './domain/rules';
 export { getUndercoverWordCard, type UndercoverWordCard } from './domain/visibility';
 export { type UndercoverEngine, undercoverEngine } from './engine';
-export { migratePersistedUndercoverState, UNDERCOVER_STATE_CODEC } from './state/codec';
+export { UNDERCOVER_STATE_CODEC } from './state/codec';
 export { isValidUndercoverConfig, isValidUndercoverWordPair } from './state/normalize';
+export { migratePersistedUndercoverState } from './state/parseState';
 export {
   getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
@@ -29,7 +30,6 @@ export {
   isUndercoverBotSeat,
   isUndercoverSeat,
   UNDERCOVER_CATEGORIES,
-  UNDERCOVER_STATE_VERSION,
   type UndercoverCategory,
   type UndercoverConfig,
   type UndercoverHumanSeat,
@@ -38,3 +38,4 @@ export {
   type UndercoverState,
   type UndercoverWordPair,
 } from './state/types';
+export { UNDERCOVER_STATE_IDENTITY, UNDERCOVER_STATE_VERSION } from './state/version';

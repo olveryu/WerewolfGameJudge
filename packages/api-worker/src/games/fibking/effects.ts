@@ -46,7 +46,7 @@ const recordWordUsageEffectSchema = z.strictObject({
 export const fibEffectSchema: z.ZodType<FibEffect> = z.discriminatedUnion('type', [
   selectWordEffectSchema,
   recordWordUsageEffectSchema,
-  z.strictObject({ type: z.literal('fib.round.ended'), payload: gameCompletionPayloadSchema }),
+  z.strictObject({ type: z.literal('fib.game.completed'), payload: gameCompletionPayloadSchema }),
 ]);
 
 function isSupersededRoundRejection(reason: string): boolean {
@@ -204,7 +204,7 @@ export async function handleFibEffect(
     case 'fib.word.recordUsage':
       await handleFibRecordWordUsageEffect(effect, context);
       return;
-    case 'fib.round.ended':
+    case 'fib.game.completed':
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'fibking' },
         context,

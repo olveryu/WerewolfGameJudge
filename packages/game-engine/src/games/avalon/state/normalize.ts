@@ -1,5 +1,10 @@
 /** Avalon semantic invariants; invalid persisted or evolved states fail explicitly. */
 
+import {
+  assertStateIdentity,
+  createStateInvariant,
+  type StateInvariant,
+} from '../../../platform/protocol/stateInvariant';
 import { isBotOccupant } from '../../../platform/room/seating';
 import {
   buildAvalonNightInfo,
@@ -8,9 +13,7 @@ import {
   isAvalonBoardCompositionValid,
 } from '../domain/rules';
 import {
-  AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
-  AVALON_STATE_VERSION,
   type AvalonBallot,
   type AvalonHumanSeat,
   type AvalonPlay,
@@ -20,17 +23,13 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './types';
+import { AVALON_STATE_IDENTITY } from './version';
 
-function invariant(condition: boolean, message: string): asserts condition {
-  if (!condition) throw new Error(`Invalid Avalon state: ${message}`);
-}
+const invariant: StateInvariant = createStateInvariant('Avalon');
 
 /** Validates authoritative state without repairing or dropping submitted content. */
 export function normalizeAvalonState(state: AvalonState): AvalonState {
-  invariant(
-    state.gameType === AVALON_GAME_TYPE && state.stateVersion === AVALON_STATE_VERSION,
-    'identity',
-  );
+  assertStateIdentity(state, AVALON_STATE_IDENTITY, 'Avalon');
   invariant(isValidAvalonConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;

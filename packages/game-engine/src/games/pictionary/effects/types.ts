@@ -3,7 +3,7 @@
 import type { GameEffect } from '../../../platform/engine';
 
 export interface PictionaryEffect extends GameEffect {
-  readonly type: 'pictionary.round.completed';
+  readonly type: 'pictionary.game.completed';
   readonly payload: {
     readonly roundId: string;
     readonly completedAt: number;

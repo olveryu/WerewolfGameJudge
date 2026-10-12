@@ -1,5 +1,9 @@
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
 import {
+  applyDecision as applyEngineDecision,
+  dispatchCommand,
+} from '../../../platform/engine/__tests__/engineSession';
+import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_GAME_IN_PROGRESS,
   REASON_NOT_HOST,
@@ -73,18 +77,11 @@ function createLobby(numberOfPlayers = 4): FibState {
 }
 
 function applyDecision(state: FibState, decision: Decision<FibEvent, FibEffect>): FibState {
-  if (decision.kind !== 'commit') {
-    throw new Error(`Expected committed Fib decision, received ${decision.reason}`);
-  }
-  let nextState = state;
-  for (const event of decision.events) {
-    nextState = fibEngine.evolve(nextState, event);
-  }
-  return fibEngine.normalize(nextState);
+  return applyEngineDecision(fibEngine, state, decision);
 }
 
 function dispatch(state: FibState, command: FibCommand, context: CommandContext): FibState {
-  return applyDecision(state, decideFibCommand(state, command, context));
+  return dispatchCommand(fibEngine, state, command, context);
 }
 
 /** Test helper: the human occupant at a seat, failing loudly otherwise. */
@@ -134,7 +131,7 @@ it('emits a completion reward roster only on the first host reveal', () => {
   if (decision.kind !== 'commit') throw new Error(decision.reason);
   expect(decision.effects).toEqual([
     {
-      type: 'fib.round.ended',
+      type: 'fib.game.completed',
       payload: {
         roundId: state.round!.roundId,
         completedAt: 2000,

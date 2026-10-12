@@ -1,6 +1,11 @@
 /** Story Relay task ownership, readiness and final submission decisions; no persistence or IO. */
 
-import { type CommandContext, reject, resolveUserActorId } from '../../../platform/engine';
+import {
+  buildGameCompletionPayload,
+  type CommandContext,
+  reject,
+  resolveUserActorId,
+} from '../../../platform/engine';
 import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_NOT_HOST,
@@ -9,7 +14,6 @@ import {
 import { findRosterSeatByUserId, isBotSeat } from '../../../platform/room/seating';
 import type { StoryRelayCommand, StoryRelayTaskIdentity } from '../commands/types';
 import {
-  getStoryRelayTaskForSeat,
   STORY_RELAY_TEXT_MAX_LENGTH,
   type StoryRelayEntry,
   type StoryRelayState,
@@ -21,6 +25,7 @@ import {
   type StoryRelayEffect,
   type StoryRelayEvent,
 } from './decision';
+import { getStoryRelayTaskForSeat } from './visibility';
 
 /** Builds a phase event; absolute deadlines are decided only by the server. */
 export function storyRelayPhase(
@@ -78,16 +83,17 @@ function appendEntries(
           .map((entry) => entry.authorSeat),
       );
       effects.push({
-        type: 'storyrelay.round.completed',
-        payload: {
+        type: 'storyrelay.game.completed',
+        payload: buildGameCompletionPayload({
           roundId: state.roundId,
           completedAt: nowMs,
-          participantUserIds: state.participants.flatMap((participant) =>
-            participant.userId !== null && authors.has(participant.seat)
-              ? [participant.userId]
+          humans: state.participants.flatMap((participant) =>
+            participant.userId !== null
+              ? [{ seat: participant.seat, userId: participant.userId }]
               : [],
           ),
-        },
+          includeSeat: (seat) => authors.has(seat.seat),
+        }),
       });
     }
   }

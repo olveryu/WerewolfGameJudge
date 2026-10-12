@@ -1,23 +1,25 @@
 /** DrawGuess semantic invariants; invalid persisted or evolved states fail explicitly. */
 
+import {
+  assertStateIdentity,
+  createStateInvariant,
+  type StateInvariant,
+} from '../../../platform/protocol/stateInvariant';
 import { isBotOccupant } from '../../../platform/room/seating';
 import { isValidWordChoice } from '../domain/rules';
 import {
-  DRAWGUESS_GAME_TYPE,
   DRAWGUESS_GUESS_TEXT_MAX_LENGTH,
   DRAWGUESS_MAX_STROKES_PER_TURN,
   DRAWGUESS_ROUNDS_PER_DRAWER,
-  DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_CHOICE_COUNT,
   type DrawGuessHumanSeat,
   type DrawGuessState,
   type DrawGuessStroke,
   isValidDrawGuessConfig,
 } from './types';
+import { DRAWGUESS_STATE_IDENTITY } from './version';
 
-function invariant(condition: boolean, message: string): asserts condition {
-  if (!condition) throw new Error(`Invalid DrawGuess state: ${message}`);
-}
+const invariant: StateInvariant = createStateInvariant('DrawGuess');
 
 function isValidStroke(stroke: DrawGuessStroke, seatCount: number): boolean {
   if (
@@ -57,10 +59,7 @@ function isValidStroke(stroke: DrawGuessStroke, seatCount: number): boolean {
 
 /** Validates authoritative state without repairing or dropping submitted content. */
 export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
-  invariant(
-    state.gameType === DRAWGUESS_GAME_TYPE && state.stateVersion === DRAWGUESS_STATE_VERSION,
-    'identity',
-  );
+  assertStateIdentity(state, DRAWGUESS_STATE_IDENTITY, 'DrawGuess');
   invariant(isValidDrawGuessConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;

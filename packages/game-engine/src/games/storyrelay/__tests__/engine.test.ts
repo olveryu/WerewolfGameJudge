@@ -1,70 +1,56 @@
 /** Exercises Story Relay through authoritative commands, never injecting progressed state. */
 
-import type { CommandContext } from '../../../platform/engine';
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { StoryRelayCommand } from '../commands/types';
-import type { StoryRelayEffect } from '../domain/decision';
+import { getStoryRelayTaskForSeat } from '../domain/visibility';
 import { storyRelayEngine } from '../engine';
-import { parseStoryRelayState } from '../state/codec';
-import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayTaskForSeat } from '../state/types';
+import { parseStoryRelayState } from '../state/parseState';
+import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 function game(numberOfPlayers = 4, galleryItemDurationSeconds: 10 | null = null) {
-  let nowMs = 1000;
-  let commandNumber = 0;
-  let state = storyRelayEngine.createInitialState(
-    {
+  const session = createEngineSession(storyRelayEngine, {
+    config: {
       ...DEFAULT_STORY_RELAY_CONFIG,
       numberOfPlayers,
       transitionDurationSeconds: 0,
       galleryItemDurationSeconds,
     },
-    { roomCode: '1234', hostUserId: 'host', nowMs, commandId: 'create' },
-  );
-  const effects: StoryRelayEffect[] = [];
-  const context = (seat: number | null = null): CommandContext => ({
-    actor: { kind: 'user', userId: 'host' },
-    controlledSeat: seat,
-    nowMs,
-    commandId: `command:${commandNumber++}`,
+    parse: parseStoryRelayState,
     randomSeed: 'round',
   });
-  const send = (command: StoryRelayCommand, seat: number | null = null) => {
-    const decision = storyRelayEngine.decide(state, command, context(seat));
-    if (decision.kind === 'reject') throw new Error(decision.reason);
-    state = parseStoryRelayState(
-      JSON.parse(
-        JSON.stringify(
-          storyRelayEngine.normalize(decision.events.reduce(storyRelayEngine.evolve, state)),
-        ),
-      ),
-    );
-    effects.push(...decision.effects);
-    return state;
-  };
+  const send = (command: StoryRelayCommand, seat: number | null = null) =>
+    session.send(command, 'host', seat);
   send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
   send({ type: 'room.seat.fillBots' });
   send({ type: 'storyrelay.round.start' });
   return {
     get state() {
-      return state;
+      return session.state;
     },
-    effects,
-    context,
+    effects: session.effects,
+    context: (seat: number | null = null) => session.context('host', seat),
     send,
     advanceTime(milliseconds: number) {
-      nowMs += milliseconds;
+      session.advance(milliseconds);
     },
     task(seat: number) {
-      const task = getStoryRelayTaskForSeat(state, seat);
+      const task = getStoryRelayTaskForSeat(session.state, seat);
       if (task === null) throw new Error('Missing task');
       return { roundId: task.roundId, stepIndex: task.stepIndex, chainId: task.chainId };
     },
     finish() {
-      return send({ type: 'storyrelay.phase.finish', phaseRevision: state.phaseRevision });
+      return send({
+        type: 'storyrelay.phase.finish',
+        phaseRevision: session.state.phaseRevision,
+      });
     },
     expire() {
-      if (state.deadlineAt === null) throw new Error('Missing deadline');
-      nowMs = state.deadlineAt;
-      return send({ type: 'storyrelay.phase.expire', phaseRevision: state.phaseRevision });
+      if (session.state.deadlineAt === null) throw new Error('Missing deadline');
+      session.setNow(session.state.deadlineAt);
+      return send({
+        type: 'storyrelay.phase.expire',
+        phaseRevision: session.state.phaseRevision,
+      });
     },
   };
 }

@@ -1,6 +1,7 @@
 /** Authoritative Avalon engine; delegates persistence and delivery to the platform. */
 
 import {
+  buildGameCompletionPayload,
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -42,7 +43,6 @@ import { normalizeAvalonState } from './state/normalize';
 import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
-  AVALON_STATE_VERSION,
   type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
@@ -57,6 +57,7 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './state/types';
+import { AVALON_STATE_VERSION } from './state/version';
 
 function createInitialState(config: AvalonConfig, context: CreateGameContext): AvalonState {
   if (!isValidAvalonConfig(config)) throw new Error(AVALON_REASONS.config);
@@ -91,13 +92,11 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
 function completionEffect(state: AvalonState, context: CommandContext): AvalonEffect {
   return {
     type: 'avalon.game.completed',
-    payload: {
+    payload: buildGameCompletionPayload({
       roundId: `avalon:game:${state.gameSequence}`,
       completedAt: context.nowMs,
-      participantUserIds: Object.values(
-        getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-      ).map((seat) => seat.userId),
-    },
+      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    }),
   };
 }
 

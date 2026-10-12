@@ -8,22 +8,22 @@ import {
 } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import { REASON_PICTIONARY_PHASE_INVALID } from '../domain/reasons';
+import { getPictionaryTaskForSeat } from '../domain/visibility';
 import type { PictionaryEffect } from '../effects/types';
 import {
   decidePictionaryCommand as decideBoundPictionaryCommand,
   pictionaryEngine,
 } from '../engine';
 import { parsePictionaryState } from '../state/parseState';
-import { getPictionaryUserSeat } from '../state/types';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
-  getPictionaryTaskForSeat,
   PICTIONARY_MAX_PLAYERS,
   PICTIONARY_MIN_PLAYERS,
   type PictionaryState,
 } from '../state/types';
+import { decidePictionaryInput } from './commandBinding';
 
 const CREATE_CONTEXT: CreateGameContext = {
   roomCode: '2468',
@@ -71,17 +71,7 @@ function decidePictionaryCommand(
   command: PictionaryCommandInput | PictionaryInternalCommand,
   context: CommandContext,
 ) {
-  const seat =
-    context.controlledSeat ??
-    (context.actor.kind === 'user' ? getPictionaryUserSeat(state, context.actor.userId) : null) ??
-    0;
-  return decideBoundPictionaryCommand(
-    state,
-    command.type === 'pictionary.drawing.commit'
-      ? command
-      : createPictionaryCommand(state, command, seat),
-    context,
-  );
+  return decidePictionaryInput(state, command, context);
 }
 
 function createFullLobby(numberOfPlayers = 4): PictionaryState {
@@ -312,7 +302,7 @@ describe('Pictionary task sequence', () => {
           step === 3
             ? [
                 {
-                  type: 'pictionary.round.completed',
+                  type: 'pictionary.game.completed',
                   payload: {
                     roundId: state.roundId,
                     completedAt: context.nowMs,

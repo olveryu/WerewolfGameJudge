@@ -13,7 +13,6 @@ import {
 } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 
-export const UNDERCOVER_STATE_VERSION = 4;
 export const UNDERCOVER_CATEGORIES = [
   'food',
   'dailyLife',

@@ -9,13 +9,10 @@ import {
   REASON_NOT_HOST,
 } from '../../../platform/protocol/reasons';
 import type { StoryRelayCommand } from '../commands/types';
+import { getStoryRelayTaskForSeat } from '../domain/visibility';
 import { storyRelayEngine } from '../engine';
-import { parseStoryRelayState } from '../state/codec';
-import {
-  DEFAULT_STORY_RELAY_CONFIG,
-  getStoryRelayBotSeats,
-  getStoryRelayTaskForSeat,
-} from '../state/types';
+import { parseStoryRelayState } from '../state/parseState';
+import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayBotSeats } from '../state/types';
 
 /** Mirrors the e2e setup: the host never takes a seat, all seats are filled with bots. */
 function botGame(seatHost: boolean) {

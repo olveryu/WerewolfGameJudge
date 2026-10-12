@@ -1,11 +1,11 @@
 /** v5 -> v6 player-record split migration: identity moves to the roster. */
 
-import { GameStatus } from '../../domain/models/GameStatus';
-import { createTemplateFromRoles } from '../../domain/models/Template';
-import type { GameState } from '../../domain/protocol/types';
-import { gameReducer } from '../../domain/reducer/gameReducer';
-import { buildInitialGameState } from '../../domain/state/buildInitialState';
-import { migratePersistedWerewolfState, parseWerewolfState } from '../parseState';
+import { GameStatus } from '../domain/models/GameStatus';
+import { createTemplateFromRoles } from '../domain/models/Template';
+import type { GameState } from '../domain/protocol/types';
+import { gameReducer } from '../domain/reducer/gameReducer';
+import { buildInitialGameState } from '../domain/state/buildInitialState';
+import { migratePersistedWerewolfState, parseWerewolfState } from '../state/parseState';
 
 function buildV6State(): GameState {
   let state = buildInitialGameState(

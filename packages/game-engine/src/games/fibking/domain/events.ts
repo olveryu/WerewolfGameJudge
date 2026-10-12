@@ -32,7 +32,7 @@ export type FibEvent =
       readonly pendingRound: PendingFibRound;
     })
   | (GameEvent & {
-      readonly type: 'fib.round.preparationStageUpdated';
+      readonly type: 'fib.round.preparation.stage.updated';
       readonly stage: FibPreparationStage;
     })
   | (GameEvent & { readonly type: 'fib.round.preparationCancelled' })
@@ -52,6 +52,6 @@ export type FibEvent =
       readonly initialViewedSeats: readonly number[];
     })
   | (GameEvent & { readonly type: 'fib.role.viewed'; readonly seat: number })
-  | (GameEvent & { readonly type: 'fib.round.viewingCompleted' })
+  | (GameEvent & { readonly type: 'fib.round.viewing.completed' })
   | (GameEvent & { readonly type: 'fib.round.ended' })
   | (GameEvent & { readonly type: 'fib.game.returnedToLobby' });

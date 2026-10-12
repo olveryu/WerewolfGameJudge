@@ -18,16 +18,16 @@ import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
-import { migratePersistedAvalonState, parseAvalonState } from '../state/codec';
+import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
 import {
   AVALON_NIGHT_STEPS,
-  AVALON_STATE_VERSION,
   type AvalonConfig,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonViewingParticipants,
   isAvalonBotSeat,
 } from '../state/types';
+import { AVALON_STATE_VERSION } from '../state/version';
 
 function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) {
   const nowMs = 1000;

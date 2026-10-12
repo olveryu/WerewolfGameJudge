@@ -2,10 +2,8 @@
 
 import {
   type CommandContext,
-  commit,
   type CommonGameLifecycle,
   type CreateGameContext,
-  type Decision,
   type GameEngineDefinition,
   reject,
   resolveHostActorId,
@@ -13,6 +11,7 @@ import {
   resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../platform/engine';
+import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
 import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
@@ -35,6 +34,7 @@ import {
   type RosterOperationResult,
 } from '../../platform/room/seating';
 import type { PictionaryCommand } from './commands/types';
+import { commitPictionary, type PictionaryDecision } from './domain/decision';
 import type { PictionaryEvent } from './domain/events';
 import { evolvePictionaryState } from './domain/evolve';
 import {
@@ -49,13 +49,13 @@ import {
   REASON_PICTIONARY_TEXT_INVALID,
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from './domain/reasons';
+import { getPictionaryTaskForSeat } from './domain/visibility';
 import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
 import {
   getPictionaryBotDisplayName,
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
-  getPictionaryTaskForSeat,
   isPictionaryBotSeat,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
@@ -74,15 +74,6 @@ import {
   type PictionaryState,
 } from './state/types';
 import { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';
-
-type PictionaryDecision = Decision<PictionaryEvent, PictionaryEffect>;
-
-function commitPictionary(
-  events: readonly PictionaryEvent[],
-  effects: readonly PictionaryEffect[] = [],
-): PictionaryDecision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
-}
 
 function requireLobby(state: PictionaryState): PictionaryDecision | null {
   return state.phase === 'lobby' ? null : reject(REASON_GAME_IN_PROGRESS);
@@ -504,25 +495,21 @@ function expireTransitionPhase(
         [galleryStartEvent(state, context.nowMs)],
         [
           {
-            type: 'pictionary.round.completed',
-            payload: {
+            type: 'pictionary.game.completed',
+            payload: buildGameCompletionPayload({
               roundId: state.roundId,
               completedAt: context.nowMs,
-              participantUserIds: Object.values(
-                getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-              )
-                .filter((player) =>
-                  state.chains.some((chain) =>
-                    chain.entries.some(
-                      (entry) =>
-                        entry.authorSeat === player.seat &&
-                        (entry.kind === 'drawing' ||
-                          (entry.kind === 'text' && entry.text.trim().length > 0)),
-                    ),
+              humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+              includeSeat: (player) =>
+                state.chains.some((chain) =>
+                  chain.entries.some(
+                    (entry) =>
+                      entry.authorSeat === player.seat &&
+                      (entry.kind === 'drawing' ||
+                        (entry.kind === 'text' && entry.text.trim().length > 0)),
                   ),
-                )
-                .map((player) => player.userId),
-            },
+                ),
+            }),
           },
         ],
       )
