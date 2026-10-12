@@ -8,15 +8,14 @@
 import type { WerewolfGameEndedEffect } from '@game-judge/game-engine/games/werewolf/public';
 import { type CampBucket, getRoleCamp } from '@game-judge/game-engine/games/werewolf/public';
 import { createSeededRng } from '@game-judge/game-engine/platform/random';
-import {
-  getLevel,
-  LEVEL_PROGRESSION_SEGMENTS,
-  rollXp,
-  XP_BASE,
-  XP_RANDOM_BASE,
-} from '@game-judge/game-engine/product/growth';
+import { getLevel, rollXp, XP_BASE, XP_RANDOM_BASE } from '@game-judge/game-engine/product/growth';
 import { rollGoldenDraws, rollNormalDraws } from '@game-judge/game-engine/product/rewards';
 
+import {
+  createApplyStatsStatement,
+  createMarkStatsAppliedStatement,
+  LEVEL_FROM_NEW_XP_SQL,
+} from '../../../features/account/settlementLedger';
 import type { gameSettlementResults } from '../dbSchema';
 
 const MIN_HUMAN_PLAYERS = 6;
@@ -132,14 +131,6 @@ async function createParticipantFingerprint(effect: WerewolfGameEndedEffect): Pr
   return sha256Hex(JSON.stringify({ roomCode: effect.payload.roomCode, participants }));
 }
 
-const LEVEL_FROM_NEW_XP_SQL = LEVEL_PROGRESSION_SEGMENTS.map((segment, index) => {
-  const nextSegment = LEVEL_PROGRESSION_SEGMENTS[index + 1];
-  const levelExpression = `${segment.startingLevel} + CAST((new_xp - ${segment.startingXp}) / ${segment.xpPerLevel} AS INTEGER)`;
-  return nextSegment === undefined
-    ? `ELSE ${levelExpression}`
-    : `WHEN new_xp < ${nextSegment.startingXp} THEN ${levelExpression}`;
-}).join(' ');
-
 function createInsertResultStatement(
   db: D1Database,
   input: {
@@ -235,61 +226,6 @@ function createInsertResultStatement(
       goldenDrawsCandidate,
       input.settledAt,
     );
-}
-
-function createApplyStatsStatement(
-  db: D1Database,
-  effectId: string,
-  userId: string,
-): D1PreparedStatement {
-  return db
-    .prepare(
-      `INSERT INTO user_stats (
-        user_id,
-        xp,
-        level,
-        games_played,
-        normal_draws,
-        golden_draws,
-        settled_at,
-        updated_at
-      )
-      SELECT
-        user_id,
-        new_xp,
-        new_level,
-        1,
-        normal_draws_earned,
-        golden_draws_earned,
-        settled_at,
-        settled_at
-      FROM game_settlement_results
-      WHERE effect_id = ?1 AND user_id = ?2 AND stats_applied = 0
-      ON CONFLICT (user_id) DO UPDATE SET
-        xp = excluded.xp,
-        level = excluded.level,
-        games_played = user_stats.games_played + 1,
-        normal_draws = user_stats.normal_draws + excluded.normal_draws,
-        golden_draws = user_stats.golden_draws + excluded.golden_draws,
-        version = user_stats.version + 1,
-        settled_at = excluded.settled_at,
-        updated_at = excluded.updated_at`,
-    )
-    .bind(effectId, userId);
-}
-
-function createMarkAppliedStatement(
-  db: D1Database,
-  effectId: string,
-  userId: string,
-): D1PreparedStatement {
-  return db
-    .prepare(
-      `UPDATE game_settlement_results
-      SET stats_applied = 1
-      WHERE effect_id = ?1 AND user_id = ?2 AND stats_applied = 0`,
-    )
-    .bind(effectId, userId);
 }
 
 function createCampSettlementStatement(
@@ -455,8 +391,21 @@ export async function settleGameResults(
         participant,
         settledAt,
       }),
-      createApplyStatsStatement(env.DB, effectId, participant.userId),
-      createMarkAppliedStatement(env.DB, effectId, participant.userId),
+      createApplyStatsStatement(env.DB, {
+        resultsTable: 'game_settlement_results',
+        keyColumn: 'effect_id',
+        settlementKey: effectId,
+        userId: participant.userId,
+        gamesPlayedSql: '1',
+        trackSettledAt: true,
+      }),
+      createMarkStatsAppliedStatement(env.DB, {
+        resultsTable: 'game_settlement_results',
+        keyColumn: 'effect_id',
+        settlementKey: effectId,
+        userId: participant.userId,
+        onlyUnapplied: true,
+      }),
       createCampSettlementStatement(env.DB, effectId, participant.userId),
     );
   }

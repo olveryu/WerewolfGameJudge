@@ -2,7 +2,7 @@
 
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import { createSeededRng } from '@game-judge/game-engine/platform/random';
-import { getLevel, LEVEL_PROGRESSION_SEGMENTS } from '@game-judge/game-engine/product/growth';
+import { getLevel } from '@game-judge/game-engine/product/growth';
 import {
   DAILY_COMPLETION_GOLDEN_DRAWS,
   GAME_COMPLETION_REWARDS,
@@ -13,6 +13,11 @@ import { z } from 'zod';
 
 import type { Env } from '../../env';
 import type { WorkerEffectRoomIdentity } from '../../platform/gameModules/runtimeGameModule';
+import {
+  createApplyStatsStatement,
+  createMarkStatsAppliedStatement,
+  LEVEL_FROM_NEW_XP_SQL,
+} from './settlementLedger';
 
 export const gameCompletionPayloadSchema = z.strictObject({
   roundId: z.string().min(1),
@@ -43,14 +48,6 @@ const rewardResultSchema = z.strictObject({
   statsApplied: z.literal(1),
 });
 
-const levelSql = LEVEL_PROGRESSION_SEGMENTS.map((segment, index) => {
-  const next = LEVEL_PROGRESSION_SEGMENTS[index + 1];
-  const expression = `${segment.startingLevel} + CAST((new_xp - ${segment.startingXp}) / ${segment.xpPerLevel} AS INTEGER)`;
-  return next === undefined
-    ? `ELSE ${expression}`
-    : `WHEN new_xp < ${next.startingXp} THEN ${expression}`;
-}).join(' ');
-
 function insertResult(db: D1Database, input: GameRewardInput, userId: string): D1PreparedStatement {
   const policy = input.kind === 'completion' ? GAME_COMPLETION_REWARDS[input.gameType] : null;
   const goldenCandidate = rollGoldenDraws(
@@ -66,7 +63,7 @@ function insertResult(db: D1Database, input: GameRewardInput, userId: string): D
     ), earned AS (
       SELECT previous_xp, previous_level, previous_xp + ?6 AS new_xp FROM current_stats
     ), leveled AS (
-      SELECT *, CASE ${levelSql} END AS new_level FROM earned
+      SELECT *, CASE ${LEVEL_FROM_NEW_XP_SQL} END AS new_level FROM earned
     )
     INSERT INTO product_game_reward_results (
       settlement_id, user_id, game_type, reward_kind, reward_date,
@@ -101,25 +98,6 @@ function insertResult(db: D1Database, input: GameRewardInput, userId: string): D
     );
 }
 
-function applyStats(db: D1Database, settlementId: string, userId: string): D1PreparedStatement {
-  return db
-    .prepare(
-      `
-    INSERT INTO user_stats (user_id, xp, level, games_played, normal_draws, golden_draws, updated_at)
-    SELECT user_id, new_xp, new_level, CASE WHEN reward_kind = 'completion' THEN 1 ELSE 0 END,
-      normal_draws_earned, golden_draws_earned, datetime('now')
-    FROM product_game_reward_results WHERE settlement_id = ?1 AND user_id = ?2 AND stats_applied = 0
-    ON CONFLICT (user_id) DO UPDATE SET
-      xp = excluded.xp, level = excluded.level,
-      games_played = user_stats.games_played + excluded.games_played,
-      normal_draws = user_stats.normal_draws + excluded.normal_draws,
-      golden_draws = user_stats.golden_draws + excluded.golden_draws,
-      version = user_stats.version + 1, updated_at = excluded.updated_at
-  `,
-    )
-    .bind(settlementId, userId);
-}
-
 /** Settle a server-authored round once; retries return its original committed rewards. */
 export async function settleGameRewards(db: D1Database, input: GameRewardInput) {
   if (!input.settlementId || !Number.isSafeInteger(input.completedAt) || input.completedAt < 0) {
@@ -150,12 +128,21 @@ export async function settleGameRewards(db: D1Database, input: GameRewardInput) 
   for (const userId of participantUserIds) {
     statements.push(
       insertResult(db, input, userId),
-      applyStats(db, input.settlementId, userId),
-      db
-        .prepare(
-          'UPDATE product_game_reward_results SET stats_applied = 1 WHERE settlement_id = ?1 AND user_id = ?2',
-        )
-        .bind(input.settlementId, userId),
+      createApplyStatsStatement(db, {
+        resultsTable: 'product_game_reward_results',
+        keyColumn: 'settlement_id',
+        settlementKey: input.settlementId,
+        userId,
+        gamesPlayedSql: "CASE WHEN reward_kind = 'completion' THEN 1 ELSE 0 END",
+        trackSettledAt: false,
+      }),
+      createMarkStatsAppliedStatement(db, {
+        resultsTable: 'product_game_reward_results',
+        keyColumn: 'settlement_id',
+        settlementKey: input.settlementId,
+        userId,
+        onlyUnapplied: false,
+      }),
     );
   }
   const read = db
