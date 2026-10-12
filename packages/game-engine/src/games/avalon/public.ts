@@ -52,7 +52,6 @@ export {
   AVALON_QUEST_ROUNDS,
   AVALON_QUEST_SIZES,
   AVALON_ROLES,
-  AVALON_STATE_VERSION,
   AVALON_VETO_LIMIT_MAX,
   AVALON_VETO_LIMIT_MIN,
   AVALON_VOTE_MODES,
@@ -91,3 +90,4 @@ export {
   isAvalonVoteMode,
   isValidAvalonConfig,
 } from './state/types';
+export { AVALON_STATE_IDENTITY, AVALON_STATE_VERSION } from './state/version';

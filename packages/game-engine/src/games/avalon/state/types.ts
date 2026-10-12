@@ -19,7 +19,6 @@ export const AVALON_GAME_TYPE = 'avalon' as const;
  * v2 added roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate
  * with an empty viewing record. */
 /** v4 adds deadlineAt to the vote and quest phases (settle countdown); v3 rooms migrate with null deadlines. */
-export const AVALON_STATE_VERSION = 4;
 
 export const AVALON_MIN_PLAYERS = 5;
 export const AVALON_MAX_PLAYERS = 10;

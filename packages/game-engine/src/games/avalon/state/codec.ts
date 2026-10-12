@@ -27,7 +27,6 @@ import {
   AVALON_PLAYS,
   AVALON_QUEST_ROUNDS,
   AVALON_ROLES,
-  AVALON_STATE_VERSION,
   AVALON_VOTE_MODES,
   type AvalonAudioEffect,
   type AvalonBallot,
@@ -45,6 +44,7 @@ import {
   isAvalonPlayerCount,
   isAvalonVetoLimit,
 } from './types';
+import { AVALON_STATE_IDENTITY, AVALON_STATE_VERSION } from './version';
 
 function choice<T extends string | number>(value: unknown, path: string, values: readonly T[]): T {
   const match = values.find((candidate) => candidate === value);
@@ -424,7 +424,6 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
 }
 
 export const AVALON_STATE_CODEC = {
-  gameType: AVALON_GAME_TYPE,
-  stateVersion: AVALON_STATE_VERSION,
+  ...AVALON_STATE_IDENTITY,
   parse: parseAvalonState,
 } satisfies GameStateCodec<AvalonState>;

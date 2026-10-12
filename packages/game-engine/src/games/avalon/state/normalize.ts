@@ -10,7 +10,6 @@ import {
 import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
-  AVALON_STATE_VERSION,
   type AvalonBallot,
   type AvalonHumanSeat,
   type AvalonPlay,
@@ -20,6 +19,7 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './types';
+import { AVALON_STATE_VERSION } from './version';
 
 function invariant(condition: boolean, message: string): asserts condition {
   if (!condition) throw new Error(`Invalid Avalon state: ${message}`);

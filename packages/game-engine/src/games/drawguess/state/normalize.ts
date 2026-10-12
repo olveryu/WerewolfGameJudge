@@ -7,13 +7,13 @@ import {
   DRAWGUESS_GUESS_TEXT_MAX_LENGTH,
   DRAWGUESS_MAX_STROKES_PER_TURN,
   DRAWGUESS_ROUNDS_PER_DRAWER,
-  DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_CHOICE_COUNT,
   type DrawGuessHumanSeat,
   type DrawGuessState,
   type DrawGuessStroke,
   isValidDrawGuessConfig,
 } from './types';
+import { DRAWGUESS_STATE_VERSION } from './version';
 
 function invariant(condition: boolean, message: string): asserts condition {
   if (!condition) throw new Error(`Invalid DrawGuess state: ${message}`);

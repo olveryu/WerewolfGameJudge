@@ -1,5 +1,6 @@
 /** Strict Undercover persistence/network decoder; unknown input never crosses this boundary. */
 
+import { UNDERCOVER_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import {
   failDecode,
@@ -21,7 +22,6 @@ import type { UndercoverRole } from '../domain/rules';
 import { normalizeUndercoverState } from './normalize';
 import {
   UNDERCOVER_CATEGORIES,
-  UNDERCOVER_STATE_VERSION,
   type UndercoverCategory,
   type UndercoverConfig,
   type UndercoverHumanSeat,
@@ -30,6 +30,7 @@ import {
   type UndercoverState,
   type UndercoverWordPair,
 } from './types';
+import { UNDERCOVER_STATE_IDENTITY, UNDERCOVER_STATE_VERSION } from './version';
 
 function parseRole(value: unknown, path: string): UndercoverRole {
   if (value !== 'civilian' && value !== 'undercover' && value !== 'blank')
@@ -167,7 +168,8 @@ function parseRound(value: unknown, path: string): UndercoverRound {
 function parseUndercoverState(value: unknown): UndercoverState {
   const path = 'UndercoverState';
   const raw = parseObject(value, path);
-  if (raw.gameType !== 'undercover') return failDecode(`${path}.gameType`, 'undercover');
+  if (raw.gameType !== UNDERCOVER_GAME_TYPE)
+    return failDecode(`${path}.gameType`, UNDERCOVER_GAME_TYPE);
   if (raw.stateVersion !== UNDERCOVER_STATE_VERSION)
     return failDecode(`${path}.stateVersion`, `version ${UNDERCOVER_STATE_VERSION}`);
   const base = {
@@ -283,7 +285,6 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
 }
 
 export const UNDERCOVER_STATE_CODEC = {
-  gameType: 'undercover',
-  stateVersion: UNDERCOVER_STATE_VERSION,
+  ...UNDERCOVER_STATE_IDENTITY,
   parse: parseUndercoverState,
 } satisfies GameStateCodec<UndercoverState>;

@@ -17,7 +17,6 @@ export const DRAWGUESS_GAME_TYPE = 'drawguess' as const;
 /** v2 replaces realSeats plus the implicit-bot derivation inputs (the fill
  * flag lived inside the config) with the unified roster. v1 payloads
  * migrate through migratePersistedDrawGuessState. */
-export const DRAWGUESS_STATE_VERSION = 2;
 
 export const DRAWGUESS_MIN_PLAYERS = 4;
 export const DRAWGUESS_MAX_PLAYERS = 12;

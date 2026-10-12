@@ -4,11 +4,11 @@ import { countOccupiedSeats, isBotOccupant, isBotSeat } from '../../../platform/
 import {
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
-  STORY_RELAY_STATE_VERSION,
   STORY_RELAY_TEXT_MAX_LENGTH,
   type StoryRelayHumanSeat,
   type StoryRelayState,
 } from './types';
+import { STORY_RELAY_STATE_VERSION } from './version';
 
 function invariant(condition: boolean, message: string): asserts condition {
   if (!condition) throw new Error(`Invalid Story Relay state: ${message}`);

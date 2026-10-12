@@ -21,7 +21,6 @@ import {
   STORY_RELAY_GALLERY_DURATIONS,
   STORY_RELAY_GAME_TYPE,
   STORY_RELAY_PHASES,
-  STORY_RELAY_STATE_VERSION,
   STORY_RELAY_TRANSITION_DURATIONS,
   STORY_RELAY_WRITING_DURATIONS,
   type StoryRelayConfig,
@@ -29,6 +28,7 @@ import {
   type StoryRelayHumanSeat,
   type StoryRelayState,
 } from './types';
+import { STORY_RELAY_STATE_IDENTITY, STORY_RELAY_STATE_VERSION } from './version';
 
 function choice<T extends string | number | null>(
   value: unknown,
@@ -255,7 +255,6 @@ export function migratePersistedStoryRelayState(value: unknown): StoryRelayState
 }
 
 export const STORY_RELAY_STATE_CODEC = {
-  gameType: STORY_RELAY_GAME_TYPE,
-  stateVersion: STORY_RELAY_STATE_VERSION,
+  ...STORY_RELAY_STATE_IDENTITY,
   parse: parseStoryRelayState,
 } satisfies GameStateCodec<StoryRelayState>;

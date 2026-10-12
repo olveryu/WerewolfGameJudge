@@ -40,7 +40,6 @@ import {
   DRAWGUESS_GAME_TYPE,
   DRAWGUESS_MAX_STROKES_PER_TURN,
   DRAWGUESS_ROUND_END_SECONDS,
-  DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessConfig,
   type DrawGuessState,
@@ -50,6 +49,7 @@ import {
   getDrawGuessTotalTurns,
   isValidDrawGuessConfig,
 } from './state/types';
+import { DRAWGUESS_STATE_VERSION } from './state/version';
 
 function createInitialState(config: DrawGuessConfig, context: CreateGameContext): DrawGuessState {
   if (!isValidDrawGuessConfig(config)) throw new Error(DRAWGUESS_REASONS.config);

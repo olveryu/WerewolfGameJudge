@@ -42,7 +42,6 @@ import { normalizeAvalonState } from './state/normalize';
 import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
-  AVALON_STATE_VERSION,
   type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
@@ -57,6 +56,7 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './state/types';
+import { AVALON_STATE_VERSION } from './state/version';
 
 function createInitialState(config: AvalonConfig, context: CreateGameContext): AvalonState {
   if (!isValidAvalonConfig(config)) throw new Error(AVALON_REASONS.config);

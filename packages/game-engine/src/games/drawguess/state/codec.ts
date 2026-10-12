@@ -24,7 +24,6 @@ import {
   DRAWGUESS_PHASES,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_ROUNDS_PER_DRAWER,
-  DRAWGUESS_STATE_VERSION,
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessConfig,
   type DrawGuessDrawingReservation,
@@ -36,6 +35,7 @@ import {
   type DrawGuessStroke,
   type DrawGuessWordChoice,
 } from './types';
+import { DRAWGUESS_STATE_IDENTITY, DRAWGUESS_STATE_VERSION } from './version';
 
 function choice<T extends string | number>(value: unknown, path: string, values: readonly T[]): T {
   const match = values.find((candidate) => candidate === value);
@@ -361,8 +361,7 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
 }
 
 export const DRAWGUESS_STATE_CODEC = {
-  gameType: DRAWGUESS_GAME_TYPE,
-  stateVersion: DRAWGUESS_STATE_VERSION,
+  ...DRAWGUESS_STATE_IDENTITY,
   parse: parseDrawGuessState,
 } satisfies GameStateCodec<DrawGuessState>;
 

@@ -12,7 +12,6 @@ import {
 } from '../../../platform/room/seating';
 
 export const STORY_RELAY_GAME_TYPE = 'storyrelay' as const;
-export const STORY_RELAY_STATE_VERSION = 2;
 export const STORY_RELAY_MIN_PLAYERS = 4;
 export const STORY_RELAY_MAX_PLAYERS = 20;
 export const STORY_RELAY_TEXT_MAX_LENGTH = 512;

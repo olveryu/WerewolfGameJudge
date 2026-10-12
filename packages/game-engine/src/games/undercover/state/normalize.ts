@@ -12,11 +12,11 @@ import {
   getUndercoverOccupiedSeatCount,
   isUndercoverSeat,
   UNDERCOVER_CATEGORIES,
-  UNDERCOVER_STATE_VERSION,
   type UndercoverConfig,
   type UndercoverState,
   type UndercoverWordPair,
 } from './types';
+import { UNDERCOVER_STATE_VERSION } from './version';
 
 /** Validates a configuration without substituting defaults. */
 export function isValidUndercoverConfig(config: UndercoverConfig): boolean {

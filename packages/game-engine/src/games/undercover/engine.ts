@@ -6,6 +6,7 @@ import type {
   CreateGameContext,
   GameEngineDefinition,
 } from '../../platform/engine';
+import { UNDERCOVER_GAME_TYPE, type UndercoverGameType } from '../../platform/protocol/gameTypes';
 import type { UndercoverCommand } from './commands/types';
 import type { UndercoverDecision } from './domain/decision';
 import type { UndercoverEffect, UndercoverEvent } from './domain/events';
@@ -13,15 +14,12 @@ import { evolveUndercoverState } from './domain/evolve';
 import { decideUndercoverRound } from './domain/round';
 import { decideUndercoverRoom } from './domain/seating';
 import { normalizeUndercoverState } from './state/normalize';
-import {
-  UNDERCOVER_STATE_VERSION,
-  type UndercoverConfig,
-  type UndercoverState,
-} from './state/types';
+import { type UndercoverConfig, type UndercoverState } from './state/types';
+import { UNDERCOVER_STATE_VERSION } from './state/version';
 
 function createInitialState(config: UndercoverConfig, context: CreateGameContext): UndercoverState {
   return normalizeUndercoverState({
-    gameType: 'undercover',
+    gameType: UNDERCOVER_GAME_TYPE,
     stateVersion: UNDERCOVER_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
@@ -68,7 +66,7 @@ function getLifecycle(state: UndercoverState): CommonGameLifecycle {
 }
 
 export const undercoverEngine = {
-  gameType: 'undercover',
+  gameType: UNDERCOVER_GAME_TYPE,
   stateVersion: UNDERCOVER_STATE_VERSION,
   createInitialState,
   decide,
@@ -76,7 +74,7 @@ export const undercoverEngine = {
   normalize: normalizeUndercoverState,
   getLifecycle,
 } satisfies GameEngineDefinition<
-  'undercover',
+  UndercoverGameType,
   UndercoverState,
   UndercoverConfig,
   UndercoverCommand,
