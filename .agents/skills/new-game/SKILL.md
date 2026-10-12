@@ -108,6 +108,35 @@ XP/结算、测试计划。
 - **client** (`src/games/<game>/`)：screens / room / components，只做展示与意图上报。
   遵守 screens.instructions.md 的三层分离（policy / orchestrator / presentational）。
 
+### 3a-2. 引擎骨架清单（game-engine 侧，AU-34 定版，contract 钉死）
+
+`packages/game-engine/src/games/<game>/` 必须包含以下模块（新游戏照单全建，
+`platform/__tests__/engineSkeleton.contract.test.ts` 会逐项校验）：
+
+| 模块                                     | 职责                                                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `engine.ts`                              | `GameEngineDefinition`（createInitialState/decide/evolve/normalize/getLifecycle）                                                    |
+| `public.ts`                              | 包的公开面（codec、parse、migrate、投影、常量从这里出）                                                                              |
+| `commands/types.ts`                      | 命令词汇（公开命令与内部命令分开）                                                                                                   |
+| `domain/decision.ts`                     | `XDecision` 类型别名 + `commitX` 拼装点                                                                                              |
+| `domain/evolve.ts`                       | 事件应用（definition 的 evolve 本体）                                                                                                |
+| `domain/visibility.ts`                   | 按 viewer 的投影（隐私边界之家；按座投影函数只许住这里，不许放 state/types）                                                         |
+| `domain/events.ts` / `domain/reasons.ts` | 事件词汇 / 拒绝码（按需）                                                                                                            |
+| `effects/types.ts`                       | effect 词汇（结算 effect 一律 `<game>.game.completed`，不许与事件同串）                                                              |
+| `state/version.ts`                       | `X_STATE_VERSION` + `X_STATE_IDENTITY`（codec 一律 `{...IDENTITY, parse}`）                                                          |
+| `state/codec.ts`                         | 薄轨 codec 壳（约 11 行）                                                                                                            |
+| `state/parseState.ts`                    | 严格 parser + 持久化迁移（legacy 名册物化用平台 `materializeLegacyRoster`）                                                          |
+| `state/normalize.ts`                     | 语义不变量（用平台 `createStateInvariant`/`assertStateIdentity` 开头）                                                               |
+| `state/types.ts`                         | 状态形状、config、状态派生助手                                                                                                       |
+| `__tests__/engine.test.ts`               | 引擎主干测试：一律走平台 harness `platform/engine/__tests__/engineSession.ts` 的 `createEngineSession`，只许命令流、不许注入进度状态 |
+
+平台共享件（先查再造，不许各游戏重写）：`buildGameCompletionPayload`
+（结算 payload 拼装）、`parseChoice`（runtimeDecoder）、身份查看协议
+（`platform/room` 的 identityViewing）。登记例外只有狼人杀一家（reducer
+架构：evolve 在 `domain/reducer/`、normalize 与状态构造在 `domain/state/`、
+状态类型在 `domain/models`+`domain/protocol/`、无单一 visibility 模块），
+新游戏不得援引为例外。
+
 ### 3b. 铁律（违反即返工）
 
 - 服务端是玩法逻辑的唯一权威；客户端完全对等，不许藏逻辑。

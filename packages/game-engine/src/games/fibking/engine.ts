@@ -2,10 +2,8 @@
 
 import {
   type CommandContext,
-  commit,
   type CommonGameLifecycle,
   type CreateGameContext,
-  type Decision,
   type GameEngineDefinition,
   reject,
   resolveHostActorId,
@@ -38,6 +36,7 @@ import {
   type RosterOperationResult,
 } from '../../platform/room/seating';
 import type { FibCommand } from './commands/types';
+import { commitFib, type FibDecision } from './domain/decision';
 import type { FibEvent } from './domain/events';
 import { evolveFibState } from './domain/evolve';
 import {
@@ -74,16 +73,6 @@ import {
   isValidFibWord,
 } from './state/types';
 import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
-
-type FibDecision = Decision<FibEvent, FibEffect>;
-
-function commitFib(events: readonly FibEvent[], effects: readonly FibEffect[] = []): FibDecision {
-  return commit({
-    events,
-    effects,
-    broadcast: events.length === 0 ? 'none' : 'state',
-  });
-}
 
 function rejectSeatOperation(
   result: Extract<RosterOperationResult<FibHumanSeat>, { kind: 'rejected' }>,

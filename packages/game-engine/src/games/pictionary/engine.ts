@@ -2,10 +2,8 @@
 
 import {
   type CommandContext,
-  commit,
   type CommonGameLifecycle,
   type CreateGameContext,
-  type Decision,
   type GameEngineDefinition,
   reject,
   resolveHostActorId,
@@ -36,6 +34,7 @@ import {
   type RosterOperationResult,
 } from '../../platform/room/seating';
 import type { PictionaryCommand } from './commands/types';
+import { commitPictionary, type PictionaryDecision } from './domain/decision';
 import type { PictionaryEvent } from './domain/events';
 import { evolvePictionaryState } from './domain/evolve';
 import {
@@ -75,15 +74,6 @@ import {
   type PictionaryState,
 } from './state/types';
 import { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';
-
-type PictionaryDecision = Decision<PictionaryEvent, PictionaryEffect>;
-
-function commitPictionary(
-  events: readonly PictionaryEvent[],
-  effects: readonly PictionaryEffect[] = [],
-): PictionaryDecision {
-  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
-}
 
 function requireLobby(state: PictionaryState): PictionaryDecision | null {
   return state.phase === 'lobby' ? null : reject(REASON_GAME_IN_PROGRESS);
