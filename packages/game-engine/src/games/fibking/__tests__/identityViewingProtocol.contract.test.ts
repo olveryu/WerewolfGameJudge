@@ -9,6 +9,7 @@
 
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
 import { REASON_NOT_HOST } from '../../../platform/protocol/reasons';
+import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
 import { REASON_FIB_ROUND_NOT_ONGOING, REASON_FIB_ROUND_NOT_VIEWING } from '../domain/reasons';
@@ -16,6 +17,7 @@ import { getFibRoundView } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine } from '../engine';
 import { migratePersistedFibState, parseFibState } from '../state/parseState';
+import { getFibViewingParticipants } from '../state/types';
 import { FIB_PREPARATION_STAGES, type FibState } from '../state/types';
 
 const CREATE_CONTEXT: CreateGameContext = {
@@ -274,4 +276,34 @@ describe('identity viewing protocol (fibking)', () => {
     if (migratedEnded.phase !== 'ended') throw new Error('Expected ended state');
     expect(migratedEnded.round.viewedSeats).toEqual([0, 1, 2, 3]);
   });
+});
+
+describeIdentityViewingProtocol({
+  game: 'fibking',
+  makeSession: () => {
+    let state = dealRound(createRoom());
+    const users: Readonly<Record<number, string>> = { 0: 'host', 1: 'alice', 2: 'bob' };
+    const attempt = (command: FibCommand, context: CommandContext) => {
+      const decision = decideFibCommand(state, command, context);
+      if (decision.kind === 'commit') state = applyDecision(state, decision);
+    };
+    return {
+      viewedSeats: () => (state.round === null ? [] : state.round.viewedSeats),
+      participants: () => getFibViewingParticipants(state),
+      view: (seat) => {
+        if (users[seat] !== undefined) {
+          attempt({ type: 'fib.round.confirmRoleView' }, userContext(users[seat]));
+        } else {
+          // Bot seats view through the host's takeover confirmation.
+          attempt(
+            { type: 'fib.round.confirmRoleView' },
+            userContext('host', { controlledSeat: seat }),
+          );
+        }
+      },
+      markAllBotsViewed: () =>
+        attempt({ type: 'fib.round.markAllBotsViewed' }, userContext('host')),
+      isCheckpointOpen: () => state.phase === 'ongoing',
+    };
+  },
 });

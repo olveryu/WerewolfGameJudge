@@ -11,6 +11,7 @@
  */
 
 import type { CommandContext } from '../../../platform/engine';
+import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { haveAllViewed, listUnviewedSeats } from '../../../platform/room/identityViewing';
 import type { AvalonCommand } from '../commands/types';
 import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
@@ -249,4 +250,35 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     // The strict current-version parser still rejects the legacy shape.
     expect(() => parseAvalonState(persisted)).toThrow();
   });
+});
+
+describeIdentityViewingProtocol({
+  game: 'avalon',
+  makeSession: () => {
+    const session = game({ numberOfPlayers: 5 }, 3);
+    session.startGame();
+    let walked = false;
+    return {
+      viewedSeats: () => session.state.roleViewedSeats,
+      participants: () => getAvalonViewingParticipants(session.state),
+      view: (seat) => {
+        // Bot seats have no user to view with; the driver marks them
+        // through the host scaffold action (all bots at once).
+        if (isAvalonBotSeat(session.state, seat)) session.markAllBotsViewed();
+        else session.view(seat);
+      },
+      markAllBotsViewed: () => session.markAllBotsViewed(),
+      isCheckpointOpen: () => {
+        // The checkpoint releases the night itself; walking the
+        // night steps once is how the session finds out. Later
+        // views/marks complete the night through their own
+        // handlers, so the walk must not repeat.
+        if (!walked && session.state.phase.kind === 'night') {
+          walked = true;
+          session.walkNight();
+        }
+        return session.state.phase.kind !== 'night';
+      },
+    };
+  },
 });

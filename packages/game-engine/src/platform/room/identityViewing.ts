@@ -37,16 +37,6 @@ export function listUnviewedSeats(
   return participants.filter((participant) => !viewedSeats.includes(participant.seat));
 }
 
-/** Checkpoint predicate: every non-bot participant has viewed. */
-export function haveAllHumansViewed(
-  participants: readonly IdentityViewingParticipant[],
-  viewedSeats: readonly number[],
-): boolean {
-  return participants.every(
-    (participant) => participant.isBot || viewedSeats.includes(participant.seat),
-  );
-}
-
 /** Checkpoint predicate (the start gate): every participant has viewed. */
 export function haveAllViewed(
   participants: readonly IdentityViewingParticipant[],

@@ -10,11 +10,13 @@
  * each compliant game's __tests__.
  */
 
+import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import {
   haveAllViewed,
   type IdentityViewingParticipant,
 } from '../../../platform/room/identityViewing';
 import { GameStatus } from '../domain/models/GameStatus';
+import { getWerewolfViewingParticipants } from '../domain/playerHelpers';
 import type { GameState } from '../domain/protocol/types';
 import {
   handleMarkAllBotsViewed,
@@ -124,4 +126,23 @@ describe('Identity Viewing Protocol - werewolf bot seats count at the checkpoint
     expect(viewedSeats(state)).toEqual([0, 1, 2]);
     expect(state.status).toBe(GameStatus.Ready);
   });
+});
+
+describeIdentityViewingProtocol({
+  game: 'werewolf',
+  makeSession: () => {
+    const base = createAssignedState();
+    let state: GameState = { ...base, roster: { ...base.roster, 2: { seat: 2, kind: 'bot' } } };
+    return {
+      viewedSeats: () => viewedSeats(state),
+      participants: () => getWerewolfViewingParticipants(state),
+      view: (seat) => {
+        state = view(state, seat);
+      },
+      markAllBotsViewed: () => {
+        state = handleMarkAllBotsViewed(state);
+      },
+      isCheckpointOpen: () => state.status === GameStatus.Ready,
+    };
+  },
 });

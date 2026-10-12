@@ -16,6 +16,7 @@
  */
 
 import type { CommandContext } from '../../../platform/engine';
+import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { haveAllViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import type { UndercoverCommand } from '../commands/types';
 import { undercoverEngine } from '../engine';
@@ -163,4 +164,34 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
     );
     expect(state.phase).toBe('ongoing');
   });
+});
+
+describeIdentityViewingProtocol({
+  game: 'undercover',
+  makeSession: () => {
+    let state = readingState();
+    const attempt = (next: () => UndercoverState) => {
+      try {
+        state = next();
+      } catch {
+        // Redundant marks/views are rejected by the phase gate; the
+        // suite asserts the recorded state, not acceptance.
+      }
+    };
+    return {
+      viewedSeats: () => state.round?.confirmedSeats ?? [],
+      participants: () => getUndercoverViewingParticipants(state),
+      view: (seat) => attempt(() => confirmSeat(state, seat)),
+      markAllBotsViewed: () =>
+        attempt(() =>
+          state.round === null
+            ? state
+            : dispatch(state, {
+                type: 'undercover.round.markAllBotsViewed',
+                roundId: state.round.roundId,
+              }),
+        ),
+      isCheckpointOpen: () => state.phase === 'ongoing',
+    };
+  },
 });
