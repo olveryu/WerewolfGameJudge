@@ -4,6 +4,7 @@ import {
   PICTIONARY_GAME_TYPE,
   type PictionaryGameType,
 } from '../../../platform/protocol/gameTypes';
+import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
   finishObject,
@@ -354,14 +355,12 @@ export function migratePersistedPictionaryState(value: unknown): PictionaryState
   const humans = parseLegacyRealSeats(raw.realSeats, 'PictionaryState.realSeats');
   const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'PictionaryState.fillEmptySeatsWithBots');
   const excluded = parseArray(raw.excludedBotSeats, 'PictionaryState.excludedBotSeats', parseSeat);
-  const roster: Record<number, PictionaryHumanSeat | BotSeatOccupant> = { ...humans };
-  if (fill) {
-    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
-      if (roster[seat] === undefined && !excluded.includes(seat)) {
-        roster[seat] = { seat, kind: 'bot' };
-      }
-    }
-  }
+  const roster = materializeLegacyRoster({
+    humans,
+    fillEmptySeatsWithBots: fill,
+    excludedBotSeats: excluded,
+    numberOfPlayers: config.numberOfPlayers,
+  });
   const {
     realSeats: _legacyRealSeats,
     fillEmptySeatsWithBots: _legacyFill,

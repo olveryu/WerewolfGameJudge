@@ -1,6 +1,7 @@
 /** Runtime decoder for persisted and transported FibKing state. */
 
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../../platform/protocol/gameTypes';
+import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
   finishObject,
@@ -290,14 +291,12 @@ function withMaterializedRoster(raw: Record<string, unknown>): Record<string, un
   const humans = parseLegacyRealSeats(raw.realSeats, 'FibState.realSeats');
   const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'FibState.fillEmptySeatsWithBots');
   const excluded = parseArray(raw.excludedBotSeats, 'FibState.excludedBotSeats', parseSeat);
-  const roster: Record<number, FibHumanSeat | BotSeatOccupant> = { ...humans };
-  if (fill) {
-    for (let seat = 0; seat < playerCount; seat += 1) {
-      if (roster[seat] === undefined && !excluded.includes(seat)) {
-        roster[seat] = { seat, kind: 'bot' };
-      }
-    }
-  }
+  const roster = materializeLegacyRoster({
+    humans,
+    fillEmptySeatsWithBots: fill,
+    excludedBotSeats: excluded,
+    numberOfPlayers: playerCount,
+  });
   const {
     realSeats: _legacyRealSeats,
     fillEmptySeatsWithBots: _legacyFill,

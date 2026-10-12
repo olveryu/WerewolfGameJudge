@@ -1,5 +1,6 @@
 /** Strict Avalon persistence and transport codec; v1 payloads migrate through migratePersistedAvalonState. */
 
+import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import {
   failDecode,
@@ -398,13 +399,12 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   const humans = legacyRealSeats(raw.realSeats, 'AvalonState.realSeats');
   const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'AvalonState.fillEmptySeatsWithBots');
   const excluded = parseArray(raw.excludedBotSeats, 'AvalonState.excludedBotSeats', parseSeat);
-  const roster: Record<number, AvalonHumanSeat | BotSeatOccupant> = { ...humans };
-  if (fill) {
-    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
-      if (roster[seat] === undefined && !excluded.includes(seat))
-        roster[seat] = { seat, kind: 'bot' };
-    }
-  }
+  const roster = materializeLegacyRoster({
+    humans,
+    fillEmptySeatsWithBots: fill,
+    excludedBotSeats: excluded,
+    numberOfPlayers: config.numberOfPlayers,
+  });
   const {
     realSeats: _legacyRealSeats,
     fillEmptySeatsWithBots: _legacyFill,

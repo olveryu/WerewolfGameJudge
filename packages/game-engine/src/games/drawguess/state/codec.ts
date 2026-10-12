@@ -1,5 +1,6 @@
 /** Strict DrawGuess persistence and transport codec; version one has no legacy state variants. */
 
+import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import {
   failDecode,
@@ -385,14 +386,12 @@ export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
   const config = parseDrawGuessConfig(configRest, `${path}.config`);
   const humans = legacyRealSeats(raw.realSeats, `${path}.realSeats`);
   const excluded = parseArray(raw.excludedBotSeats, `${path}.excludedBotSeats`, parseSeat);
-  const nextRoster: Record<number, DrawGuessHumanSeat | BotSeatOccupant> = { ...humans };
-  if (fill) {
-    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
-      if (nextRoster[seat] === undefined && !excluded.includes(seat)) {
-        nextRoster[seat] = { seat, kind: 'bot' };
-      }
-    }
-  }
+  const nextRoster = materializeLegacyRoster({
+    humans,
+    fillEmptySeatsWithBots: fill,
+    excludedBotSeats: excluded,
+    numberOfPlayers: config.numberOfPlayers,
+  });
   const { realSeats: _legacySeats, excludedBotSeats: _legacyExcluded, ...rest } = raw;
   return parseDrawGuessState({
     ...rest,
