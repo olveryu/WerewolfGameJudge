@@ -1,3 +1,11 @@
+/**
+ * Handler/decision unit suite (AU-44 registered category): these
+ * tests construct mid-game states directly to pin handler,
+ * resolver, and actor behavior in isolation. State injection is
+ * allowed here by design; the decide mainline is covered
+ * through authoritative commands in mainline.test.ts.
+ */
+
 import type { CommandContext, CreateGameContext } from '../../../platform/engine';
 import { GAME_TYPES } from '../../../platform/protocol/gameTypes';
 import {
