@@ -22,6 +22,7 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildRoomConfigAction,
+  buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomButton,
@@ -318,25 +319,15 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
     case 'viewing':
       return [];
     case 'lobby': {
-      const descriptor: FibHostActionDescriptor = {
-        key: 'start-round',
-        label: '开始本轮',
-        icon: 'play-outline',
-        variant: 'primary',
-        testID: TESTIDS.fibStartRoundButton,
-      };
-      if (input.isCommandSubmitting) {
-        return [commandHostAction(input, descriptor, input.startRound)];
-      }
       return [
-        isFibRoomFull(input.state)
-          ? enabledHostAction(descriptor, input.startRound)
-          : {
-              ...descriptor,
-              isEnabled: false,
-              disabledReason: '座位尚未坐满',
-              onDisabledPress: input.onStartDisabled,
-            },
+        buildStartGameAction({
+          label: '开始本轮',
+          onPress: input.startRound,
+          isEnabled: !input.isCommandSubmitting && isFibRoomFull(input.state),
+          isLoading: input.isCommandSubmitting || undefined,
+          disabledReason: input.isCommandSubmitting ? null : '座位尚未坐满',
+          onDisabledPress: input.isCommandSubmitting ? null : input.onStartDisabled,
+        }),
       ];
     }
     case 'preparing':

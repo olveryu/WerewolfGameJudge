@@ -102,7 +102,7 @@ export class FibRoomPage extends RoomPage {
 
   async startRound(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.fibStartRoundButton).click();
+    await this.page.getByTestId(TESTIDS.startGameButton).click();
     await this.expectHostManagementClosed();
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,

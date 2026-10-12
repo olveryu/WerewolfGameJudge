@@ -40,7 +40,10 @@ import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildNextRoundAction,
+  buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
@@ -300,25 +303,14 @@ export function useAvalonRoomState(
         key: 'game',
         title: '游戏',
         actions: [
-          {
-            key: 'start',
-            label: '开始游戏',
-            icon: 'play-outline',
-            variant: 'primary',
+          buildStartGameAction({
+            onPress: () => void submit('开始游戏', { type: 'avalon.game.start' }),
+            isEnabled: !submission.isSubmitting && canStart,
+            disabledReason: startDisabledReason,
+            onDisabledPress: () =>
+              showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
             isLoading: submission.isSubmitting,
-            testID: 'avalon-start',
-            ...(submission.isSubmitting || !canStart
-              ? {
-                  isEnabled: false as const,
-                  disabledReason: startDisabledReason,
-                  onDisabledPress: () =>
-                    showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-                }
-              : {
-                  isEnabled: true as const,
-                  onPress: () => void submit('开始游戏', { type: 'avalon.game.start' }),
-                }),
-          },
+          }),
         ],
       },
       { key: 'room', title: '房间管理', actions: roomActions },
@@ -410,34 +402,22 @@ export function useAvalonRoomState(
         key: 'current-flow',
         title: '当前流程',
         actions: [
-          {
-            key: 'next-round',
-            label: '再来一局',
-            icon: 'play-forward-outline',
-            variant: 'primary',
-            isEnabled: true,
-            testID: 'avalon-next-round',
+          buildNextRoundAction({
             onPress: () =>
               showConfirmAlert(
                 '再来一局',
                 '重新发牌并清零比分，开始新的一局。',
                 () => void submit('再来一局', { type: 'avalon.game.start' }),
               ),
-          },
-          {
-            key: 'return-lobby',
-            label: '返回大厅',
-            icon: 'return-down-back-outline',
-            variant: 'secondary',
-            isEnabled: true,
-            testID: 'avalon-return-lobby',
+          }),
+          buildReturnLobbyAction({
             onPress: () =>
               showConfirmAlert(
                 '返回大厅',
                 '保留座位和设置，清除当前对局。',
                 () => void submit('返回大厅', { type: 'avalon.game.returnToLobby' }),
               ),
-          },
+          }),
         ],
       },
     ],

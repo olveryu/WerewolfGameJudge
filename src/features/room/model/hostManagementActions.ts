@@ -18,6 +18,10 @@ interface ActionInput {
   readonly isEnabled?: boolean;
   readonly disabledReason?: string | null;
   readonly isLoading?: boolean;
+  /** Overrides the builder's default label (e.g. a game's own round wording). */
+  readonly label?: string;
+  /** Feedback for pressing while disabled; defaults to no feedback. */
+  readonly onDisabledPress?: (() => void) | null;
 }
 
 function buildAction(
@@ -41,7 +45,7 @@ function buildAction(
       ...base,
       isEnabled: false,
       disabledReason: input.disabledReason ?? null,
-      onDisabledPress: null,
+      onDisabledPress: input.onDisabledPress ?? null,
     };
   }
   return {
@@ -55,10 +59,34 @@ function buildAction(
 export function buildStartGameAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
     'start-game',
-    '开始游戏',
+    input.label ?? '开始游戏',
     'play-outline',
     'primary',
     TESTIDS.startGameButton,
+    input,
+  );
+}
+
+/** "再来一局" — primary terminal action; the game's confirm copy stays in onPress. */
+export function buildNextRoundAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'next-round',
+    '再来一局',
+    'play-forward-outline',
+    'primary',
+    TESTIDS.nextRoundButton,
+    input,
+  );
+}
+
+/** "返回大厅" — secondary terminal action; the game's confirm copy stays in onPress. */
+export function buildReturnLobbyAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'return-lobby',
+    '返回大厅',
+    'return-down-back-outline',
+    'secondary',
+    TESTIDS.returnLobbyButton,
     input,
   );
 }

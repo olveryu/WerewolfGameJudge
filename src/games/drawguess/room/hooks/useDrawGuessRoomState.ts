@@ -34,7 +34,10 @@ import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildNextRoundAction,
+  buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import {
   createBotTakeoverCapability,
@@ -255,13 +258,7 @@ export function useDrawGuessRoomState(
             key: 'current-flow',
             title: '当前流程',
             actions: [
-              {
-                key: 'next-round',
-                label: '再来一局',
-                icon: 'play-forward-outline' as const,
-                variant: 'primary' as const,
-                isEnabled: true as const,
-                testID: 'drawguess-next-round',
+              buildNextRoundAction({
                 onPress: () =>
                   showConfirmAlert(
                     '再来一局',
@@ -270,19 +267,13 @@ export function useDrawGuessRoomState(
                       await submit('再来一局', { type: 'drawguess.round.start' });
                     },
                   ),
-              },
-              {
-                key: 'return-lobby',
-                label: '返回大厅',
-                icon: 'return-down-back-outline' as const,
-                variant: 'secondary' as const,
-                isEnabled: true as const,
-                testID: 'drawguess-return-lobby',
+              }),
+              buildReturnLobbyAction({
                 onPress: () =>
                   showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
                     await submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
                   }),
-              },
+              }),
             ],
           },
         ],
@@ -299,25 +290,14 @@ export function useDrawGuessRoomState(
               key: 'game',
               title: '游戏',
               actions: [
-                {
-                  key: 'start',
-                  label: '开始游戏',
-                  icon: 'play-outline',
-                  variant: 'primary',
+                buildStartGameAction({
+                  onPress: () => void submit('开始游戏', { type: 'drawguess.round.start' }),
+                  isEnabled: !submission.isSubmitting && canStart,
+                  disabledReason: startDisabledReason,
+                  onDisabledPress: () =>
+                    showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
                   isLoading: submission.isSubmitting,
-                  testID: 'drawguess-start',
-                  ...(submission.isSubmitting || !canStart
-                    ? {
-                        isEnabled: false as const,
-                        disabledReason: startDisabledReason,
-                        onDisabledPress: () =>
-                          showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-                      }
-                    : {
-                        isEnabled: true as const,
-                        onPress: () => void submit('开始游戏', { type: 'drawguess.round.start' }),
-                      }),
-                },
+                }),
               ],
             },
             { key: 'room', title: '房间管理', actions },

@@ -9,6 +9,7 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildRoomConfigAction,
+  buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomActionModel,
@@ -19,6 +20,7 @@ import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
+import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 
@@ -91,13 +93,18 @@ export function createUndercoverHostManagement(
     add('restart', '重新开始', 'refresh-outline', controls.restart);
   switch (state.phase) {
     case 'lobby':
-      add(
-        'start',
-        '开始本局',
-        'play-outline',
-        controls.start,
-        'primary',
-        getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers,
+      actions.push(
+        buildStartGameAction({
+          label: '开始本局',
+          onPress: controls.start,
+          isEnabled:
+            !controls.isSubmitting &&
+            getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers,
+          disabledReason:
+            getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers
+              ? null
+              : ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
+        }),
       );
       if (capabilities.canConfigureGame.isAllowed)
         actions.push(

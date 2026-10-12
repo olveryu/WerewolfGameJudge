@@ -29,7 +29,10 @@ import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleAct
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildNextRoundAction,
+  buildReturnLobbyAction,
   buildRoomConfigAction,
+  buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import {
   createBotTakeoverCapability,
@@ -46,6 +49,7 @@ import {
 } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -192,13 +196,7 @@ export function useStoryRelayRoomState(
             actions: [
               ...(state.phase === 'ended'
                 ? [
-                    {
-                      key: 'next-round',
-                      label: '再来一局',
-                      icon: 'play-forward-outline' as const,
-                      variant: 'primary' as const,
-                      isEnabled: true as const,
-                      testID: 'storyrelay-next-round',
+                    buildNextRoundAction({
                       onPress: () =>
                         showConfirmAlert(
                           '再来一局',
@@ -207,16 +205,10 @@ export function useStoryRelayRoomState(
                             await submit('再来一局', { type: 'storyrelay.round.next' });
                           },
                         ),
-                    },
+                    }),
                   ]
                 : []),
-              {
-                key: 'return-lobby',
-                label: '返回大厅',
-                icon: 'return-down-back-outline' as const,
-                variant: 'secondary' as const,
-                isEnabled: true as const,
-                testID: 'storyrelay-return-lobby',
+              buildReturnLobbyAction({
                 onPress: () =>
                   showConfirmAlert(
                     '返回大厅',
@@ -225,7 +217,7 @@ export function useStoryRelayRoomState(
                       await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
                     },
                   ),
-              },
+              }),
             ],
           },
         ],
@@ -305,28 +297,17 @@ export function useStoryRelayRoomState(
               key: 'game',
               title: '游戏',
               actions: [
-                {
-                  key: 'start',
-                  label: '开始游戏',
-                  icon: 'play-outline',
-                  variant: 'primary',
+                buildStartGameAction({
+                  onPress: () => void submit('开始游戏', { type: 'storyrelay.round.start' }),
+                  isEnabled:
+                    !submission.isSubmitting &&
+                    getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
+                  disabledReason: submission.isSubmitting ? null : '座位尚未坐满',
+                  onDisabledPress: submission.isSubmitting
+                    ? null
+                    : () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
                   isLoading: submission.isSubmitting,
-                  testID: 'storyrelay-start',
-                  ...(submission.isSubmitting
-                    ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
-                    : getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers
-                      ? {
-                          isEnabled: true as const,
-                          onPress: () =>
-                            void submit('开始游戏', { type: 'storyrelay.round.start' }),
-                        }
-                      : {
-                          isEnabled: false as const,
-                          disabledReason: '座位尚未坐满',
-                          onDisabledPress: () =>
-                            showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。'),
-                        }),
-                },
+                }),
               ],
             },
             { key: 'room', title: '房间管理', actions },
