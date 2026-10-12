@@ -116,6 +116,7 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
               effectType={screen.isBotTakeoverActive ? null : screen.equippedRevealEffect}
               shouldPlay={screen.identityShouldPlay}
               allRoles={screen.identityAllRoles}
+              remainingCards={screen.identityRemainingCards}
               confirmText={screen.identityConfirmText}
               onConfirm={screen.confirmIdentity}
             />

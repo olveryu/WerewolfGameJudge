@@ -41,6 +41,14 @@ export interface DescriptionField {
   readonly tone?: 'default' | 'warning' | 'success';
 }
 
+/** Table cards still face-down for a reveal: seats taken minus seats whose view is on record. */
+export function deriveRemainingRevealCards(
+  occupiedSeatCount: number,
+  viewedSeatCount: number,
+): number {
+  return Math.max(0, occupiedSeatCount - viewedSeatCount);
+}
+
 export interface RevealRoleData {
   /** 角色唯一标识（各游戏自己的 ID，如 'merlin'、'werewolf'） */
   readonly id: string;

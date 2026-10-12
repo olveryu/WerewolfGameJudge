@@ -38,7 +38,10 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
-import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
+import {
+  deriveRemainingRevealCards,
+  type RevealRoleData,
+} from '@/features/room/model/RevealRoleData';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -95,6 +98,7 @@ export interface AvalonRoomScreenState {
   readonly setRolePreviewId: Dispatch<SetStateAction<AvalonRoleId | null>>;
   /** 身份查看协议锚点：有效座位未在服务端记录已查看时才播揭示动画。 */
   readonly roleCardShouldPlay: boolean;
+  readonly roleCardRemainingCards: number;
   /** Animator 候选池：公开的完整角色分布（按座位序）。 */
   readonly roleCardAllRoles: readonly RevealRoleData[];
   /** 投票/任务阶段倒计时剩余秒数；不在限时阶段或无截止时为 null。 */
@@ -358,6 +362,10 @@ export function useAvalonRoomState(
     setRolePreviewId,
     // 身份查看协议：动画锚点（服务端记录）与候选池（公开的完整角色分布）。
     roleCardShouldPlay: effectiveSeat !== null && !state.roleViewedSeats.includes(effectiveSeat),
+    roleCardRemainingCards: deriveRemainingRevealCards(
+      getAvalonOccupiedSeatCount(state),
+      state.roleViewedSeats.length,
+    ),
     roleCardAllRoles: Object.entries(state.roles)
       .sort(([seatA], [seatB]) => Number(seatA) - Number(seatB))
       .map(([, roleId]) => toRevealRoleData(roleId)),

@@ -30,6 +30,8 @@ interface UndercoverWordModalProps {
   readonly shouldPlay: boolean;
   /** 动画候选池：种类计数展开（平民/卧底/白板），来自公开配置。 */
   readonly allRoles: readonly RevealRoleData[];
+  /** 桌上未看牌数（已占座位数 − 已确认数）。 */
+  readonly remainingCards: number;
   readonly isControlled: boolean;
   readonly shouldConfirm: boolean;
   readonly isSubmitting: boolean;
@@ -42,6 +44,7 @@ export function UndercoverWordModal({
   effectType,
   shouldPlay,
   allRoles,
+  remainingCards,
   isControlled,
   shouldConfirm,
   isSubmitting,
@@ -70,6 +73,7 @@ export function UndercoverWordModal({
       shouldPlay={shouldPlay}
       role={role}
       allRoles={allRoles}
+      remainingCards={remainingCards}
     >
       <RoleCardSimple
         visible={true}

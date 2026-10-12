@@ -26,6 +26,8 @@ interface FibIdentityModalProps {
   readonly shouldPlay: boolean;
   /** Animator 的角色池（只有种类与计数，零泄密）。 */
   readonly allRoles: readonly RevealRoleData[];
+  /** 桌上未看牌数（已占座位数 − 已查看数）。 */
+  readonly remainingCards: number;
   /** 确认按钮文案：viewing 未确认时为「我已看清」，其余为「知道了」。 */
   readonly confirmText: string;
   /** 确认按钮动作：viewing 未确认时提交查看记录并关闭，其余等同关闭。 */
@@ -37,6 +39,7 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({
   effectType,
   shouldPlay,
   allRoles,
+  remainingCards,
   confirmText,
   onConfirm,
 }) => {
@@ -61,6 +64,7 @@ const FibIdentityModalComponent: React.FC<FibIdentityModalProps> = ({
       shouldPlay={shouldPlay}
       role={role}
       allRoles={allRoles}
+      remainingCards={remainingCards}
     >
       {card}
     </RevealAnimationGate>
