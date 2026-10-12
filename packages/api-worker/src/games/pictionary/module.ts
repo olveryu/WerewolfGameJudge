@@ -7,8 +7,8 @@ import {
 } from '@game-judge/game-engine/games/pictionary/public';
 import { z } from 'zod';
 
-import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
+import { handlePictionaryEffect } from './effects';
 import { pictionaryMediaRoutes } from './mediaRoutes';
 import {
   pictionaryCreateConfigSchema,
@@ -41,6 +41,5 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
   parsePublicUserStats: (value) => pictionaryPublicStatsSchema.parse(value),
   getPublicUserStats: () => Promise.resolve({ gameType: 'pictionary' as const }),
   getEffectBusinessKey: (effect) => effect.payload.roundId,
-  handleEffect: (effect, context) =>
-    publishGameRewards({ ...effect.payload, kind: 'completion', gameType: 'pictionary' }, context),
+  handleEffect: handlePictionaryEffect,
 });
