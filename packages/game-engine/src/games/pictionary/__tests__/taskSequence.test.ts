@@ -14,7 +14,6 @@ import {
   pictionaryEngine,
 } from '../engine';
 import { parsePictionaryState } from '../state/parseState';
-import { getPictionaryUserSeat } from '../state/types';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -24,6 +23,7 @@ import {
   PICTIONARY_MIN_PLAYERS,
   type PictionaryState,
 } from '../state/types';
+import { decidePictionaryInput } from './commandBinding';
 
 const CREATE_CONTEXT: CreateGameContext = {
   roomCode: '2468',
@@ -71,17 +71,7 @@ function decidePictionaryCommand(
   command: PictionaryCommandInput | PictionaryInternalCommand,
   context: CommandContext,
 ) {
-  const seat =
-    context.controlledSeat ??
-    (context.actor.kind === 'user' ? getPictionaryUserSeat(state, context.actor.userId) : null) ??
-    0;
-  return decideBoundPictionaryCommand(
-    state,
-    command.type === 'pictionary.drawing.commit'
-      ? command
-      : createPictionaryCommand(state, command, seat),
-    context,
-  );
+  return decidePictionaryInput(state, command, context);
 }
 
 function createFullLobby(numberOfPlayers = 4): PictionaryState {

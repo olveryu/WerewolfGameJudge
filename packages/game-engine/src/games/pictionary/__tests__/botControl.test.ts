@@ -6,17 +6,10 @@ import {
   REASON_NOT_HOST,
   REASON_SEAT_TAKEN,
 } from '../../../platform/protocol/reasons';
-import {
-  createPictionaryCommand,
-  type PictionaryCommandInput,
-  type PictionaryInternalCommand,
-} from '../commands/types';
+import { type PictionaryCommandInput, type PictionaryInternalCommand } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import type { PictionaryEffect } from '../effects/types';
-import {
-  decidePictionaryCommand as decideBoundPictionaryCommand,
-  pictionaryEngine,
-} from '../engine';
+import { pictionaryEngine } from '../engine';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -25,6 +18,7 @@ import {
   isPictionaryBotSeat,
   type PictionaryState,
 } from '../state/types';
+import { decidePictionaryInput } from './commandBinding';
 
 const CREATE_CONTEXT: CreateGameContext = {
   roomCode: '2468',
@@ -73,17 +67,7 @@ function decidePictionaryCommand(
   command: PictionaryCommandInput | PictionaryInternalCommand,
   context: CommandContext,
 ) {
-  const seat =
-    context.controlledSeat ??
-    (context.actor.kind === 'user' ? getPictionaryUserSeat(state, context.actor.userId) : null) ??
-    0;
-  return decideBoundPictionaryCommand(
-    state,
-    command.type === 'pictionary.drawing.commit'
-      ? command
-      : createPictionaryCommand(state, command, seat),
-    context,
-  );
+  return decidePictionaryInput(state, command, context);
 }
 
 function createBotRound(): PictionaryState {

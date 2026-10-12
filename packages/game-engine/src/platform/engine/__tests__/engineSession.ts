@@ -44,7 +44,12 @@ export interface EngineSessionOptions<TState, TConfig> {
   readonly randomSeed?: string;
 }
 
-export interface EngineSession<TState, TCommand, TEvent, TEffect> {
+export interface EngineSession<
+  TState,
+  TCommand extends GameCommand,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+> {
   /** The current authoritative state. */
   readonly state: TState;
   /** Every effect committed so far, in order. */
