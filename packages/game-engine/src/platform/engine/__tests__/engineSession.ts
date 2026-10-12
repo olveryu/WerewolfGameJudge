@@ -36,6 +36,12 @@ export interface EngineSessionOptions<TState, TConfig> {
    * states the persistence layer would accept.
    */
   readonly parse?: (value: unknown) => TState;
+  /**
+   * Constant random seed for every command context. Suites whose
+   * incumbent harness pinned one seed (storyrelay used 'round')
+   * keep it, so seed-derived layouts stay identical.
+   */
+  readonly randomSeed?: string;
 }
 
 export interface EngineSession<TState, TCommand, TEvent, TEffect> {
@@ -95,8 +101,10 @@ export function createEngineSession<
   const effects: TEffect[] = [];
 
   const nextExecution = () => {
-    commandNumber += 1;
-    return { nowMs, commandId: `command:${commandNumber}`, randomSeed: `seed:${commandNumber}` };
+    // Matches the incumbent avalon/drawguess harness pairing:
+    // command N carries seed N+1.
+    const commandId = `command:${commandNumber++}`;
+    return { nowMs, commandId, randomSeed: options.randomSeed ?? `seed:${commandNumber}` };
   };
 
   const context = (userId = 'host', controlledSeat: number | null = null): CommandContext => ({
