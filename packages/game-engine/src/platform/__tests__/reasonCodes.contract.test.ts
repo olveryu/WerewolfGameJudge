@@ -7,12 +7,12 @@
  * table (its handler literals are already English codes).
  */
 
-import { AVALON_REASONS, teamSizeReason } from '../avalon/domain/decision';
-import { DRAWGUESS_REASONS } from '../drawguess/domain/decision';
-import * as fibReasons from '../fibking/domain/reasons';
-import * as pictionaryReasons from '../pictionary/domain/reasons';
-import { STORY_RELAY_REASONS } from '../storyrelay/domain/decision';
-import { UNDERCOVER_REASONS } from '../undercover/domain/decision';
+import { AVALON_REASONS, teamSizeReason } from '../../games/avalon/domain/decision';
+import { DRAWGUESS_REASONS } from '../../games/drawguess/domain/decision';
+import * as fibReasons from '../../games/fibking/domain/reasons';
+import * as pictionaryReasons from '../../games/pictionary/domain/reasons';
+import { STORY_RELAY_REASONS } from '../../games/storyrelay/domain/decision';
+import { UNDERCOVER_REASONS } from '../../games/undercover/domain/decision';
 
 const CODE_PATTERN = /^[a-z][a-z0-9_]*$/;
 
