@@ -81,8 +81,12 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
     }
   }, [visible, roleId]);
 
+  // The pool is the public board composition: entries carry their
+  // real identities (a mirrorSeer slot shows as mirrorSeer), exactly
+  // like the hand-built pool did. Only the owner's own card presents
+  // the disguise.
   const allRolesData: RevealRoleData[] = useMemo(
-    () => allRoleIds.map((id) => toRevealRoleData(id)),
+    () => allRoleIds.map((id) => toRevealRoleData(id, { showRealIdentity: true })),
     [allRoleIds],
   );
 

@@ -50,8 +50,18 @@ export function deriveRemainingRevealCards(
 }
 
 export interface RevealRoleData {
-  /** 角色唯一标识（各游戏自己的 ID，如 'merlin'、'werewolf'） */
+  /**
+   * 角色唯一标识（各游戏自己的 ID，如 'merlin'、'werewolf'）。
+   * 这是匹配用身份：动画 effect 按它在候选池中定位目标卡。
+   */
   readonly id: string;
+  /**
+   * 展示用身份：卡面呈现的身份 ID。仅当角色以伪装身份示人时与 id
+   * 不同（如狼人杀 mirrorSeer 以预言家身份示人，displayId='seer'）。
+   * 英文副标题等纯展示元素用它，绝不用 id——id 是真实身份，会泄漏伪装。
+   * 缺省时与 id 相同。
+   */
+  readonly displayId?: string;
   /** 显示名（中文） */
   readonly name: string;
   /** 阵营（用于视觉主题） */

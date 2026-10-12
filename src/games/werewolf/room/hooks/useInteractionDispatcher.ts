@@ -255,6 +255,7 @@ export function useInteractionDispatcher({
                         logger: roomScreenLog,
                         feedback: false,
                       });
+                      setShouldPlayRevealAnimation(false);
                       setRoleCardVisible(false);
                       setIsLoadingRole(false);
                     }
