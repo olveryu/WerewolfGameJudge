@@ -511,7 +511,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
     } | null;
   };
 
-  // --- Debug mode ---
   /**
    * Dual seer label mapping (generated when seer + mirrorSeer coexist in template)
    *

@@ -201,7 +201,7 @@ export function useWerewolfRoomScreenState(
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
     kickPlayer,
-    // Debug mode
+    // Bot-test scaffold actions
     fillWithBots,
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
