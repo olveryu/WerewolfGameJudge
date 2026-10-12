@@ -63,7 +63,7 @@ export type StoryRelayEvent =
   | { readonly type: 'storyrelay.game.returnedToLobby' };
 
 export interface StoryRelayEffect {
-  readonly type: 'storyrelay.round.completed';
+  readonly type: 'storyrelay.game.completed';
   readonly payload: {
     readonly roundId: string;
     readonly completedAt: number;

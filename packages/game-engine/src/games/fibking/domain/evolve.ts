@@ -47,7 +47,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         preparationFailure: null,
         round: null,
       };
-    case 'fib.round.preparationStageUpdated':
+    case 'fib.round.preparation.stage.updated':
       if (state.phase !== 'preparing') {
         throw new Error('Fib preparation-stage event requires a preparing state');
       }
@@ -111,7 +111,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
       };
     }
-    case 'fib.round.viewingCompleted': {
+    case 'fib.round.viewing.completed': {
       if (state.phase !== 'viewing') {
         throw new Error('Fib viewing-completed event requires a viewing state');
       }

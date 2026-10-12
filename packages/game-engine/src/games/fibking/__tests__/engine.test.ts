@@ -131,7 +131,7 @@ it('emits a completion reward roster only on the first host reveal', () => {
   if (decision.kind !== 'commit') throw new Error(decision.reason);
   expect(decision.effects).toEqual([
     {
-      type: 'fib.round.ended',
+      type: 'fib.game.completed',
       payload: {
         roundId: state.round!.roundId,
         completedAt: 2000,

@@ -270,7 +270,7 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
         [{ type: 'fib.round.ended' }],
         [
           {
-            type: 'fib.round.ended',
+            type: 'fib.game.completed',
             payload: {
               roundId: state.round.roundId,
               completedAt: context.nowMs,
@@ -302,7 +302,7 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
   const nextViewedSeats = markSeatViewed(viewedSeats, seat);
   const events: FibEvent[] = [{ type: 'fib.role.viewed', seat }];
   if (haveAllViewed(getFibViewingParticipants(state), nextViewedSeats)) {
-    events.push({ type: 'fib.round.viewingCompleted' });
+    events.push({ type: 'fib.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -328,7 +328,7 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
     viewedSeats = markSeatViewed(viewedSeats, participant.seat);
   }
   if (haveAllViewed(getFibViewingParticipants(state), viewedSeats)) {
-    events.push({ type: 'fib.round.viewingCompleted' });
+    events.push({ type: 'fib.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -363,7 +363,7 @@ function decideUpdateFibPreparationStage(
 
   return commitFib([
     {
-      type: 'fib.round.preparationStageUpdated',
+      type: 'fib.round.preparation.stage.updated',
       stage: command.stage,
     },
   ]);

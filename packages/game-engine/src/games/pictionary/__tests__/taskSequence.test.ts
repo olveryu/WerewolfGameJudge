@@ -302,7 +302,7 @@ describe('Pictionary task sequence', () => {
           step === 3
             ? [
                 {
-                  type: 'pictionary.round.completed',
+                  type: 'pictionary.game.completed',
                   payload: {
                     roundId: state.roundId,
                     completedAt: context.nowMs,

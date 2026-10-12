@@ -78,7 +78,7 @@ function appendEntries(
           .map((entry) => entry.authorSeat),
       );
       effects.push({
-        type: 'storyrelay.round.completed',
+        type: 'storyrelay.game.completed',
         payload: {
           roundId: state.roundId,
           completedAt: nowMs,

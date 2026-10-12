@@ -130,7 +130,7 @@ describe('Pictionary engine', () => {
     send({ type: 'pictionary.gallery.finish' });
     expect(session.state.phase).toBe('ended');
     const completions = session.effects.filter(
-      (effect) => effect.type === 'pictionary.round.completed',
+      (effect) => effect.type === 'pictionary.game.completed',
     );
     expect(completions).toHaveLength(1);
     expect(completions[0]?.payload.participantUserIds).toEqual([

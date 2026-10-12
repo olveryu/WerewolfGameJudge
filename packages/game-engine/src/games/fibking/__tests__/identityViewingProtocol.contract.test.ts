@@ -217,7 +217,7 @@ describe('identity viewing protocol (fibking)', () => {
     if (markDecision.kind !== 'commit') throw new Error('Expected commit');
     expect(markDecision.events.map((event) => event.type)).toEqual([
       'fib.role.viewed',
-      'fib.round.viewingCompleted',
+      'fib.round.viewing.completed',
     ]);
     const ongoing = applyDecision(allHumans, markDecision);
     expect(ongoing.phase).toBe('ongoing');

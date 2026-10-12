@@ -504,7 +504,7 @@ function expireTransitionPhase(
         [galleryStartEvent(state, context.nowMs)],
         [
           {
-            type: 'pictionary.round.completed',
+            type: 'pictionary.game.completed',
             payload: {
               roundId: state.roundId,
               completedAt: context.nowMs,

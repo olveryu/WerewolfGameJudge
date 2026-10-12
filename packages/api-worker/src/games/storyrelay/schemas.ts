@@ -77,6 +77,6 @@ export const storyRelayPublicCommandSchema: z.ZodType<StoryRelayCommand> = z.dis
   commands,
 );
 export const storyRelayEffectSchema = z.strictObject({
-  type: z.literal('storyrelay.round.completed'),
+  type: z.literal('storyrelay.game.completed'),
   payload: gameCompletionPayloadSchema,
 });
