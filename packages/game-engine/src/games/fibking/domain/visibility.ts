@@ -16,7 +16,7 @@ export interface FibViewingRoundView {
   readonly honestSeat: null;
   /** The viewer (or the bot seat they control) has viewed this round's card. */
   readonly viewerHasViewed: boolean;
-  /** Human seats still blocking the round start (bots never block). */
+  /** Seats still blocking the round start; bot seats clear through the host scaffold action. */
   readonly unviewedSeats: readonly number[];
 }
 
@@ -77,9 +77,10 @@ export function getFibRoundView(state: FibState, viewerSeat: number | null): Fib
       guesserSeat: state.round.roles.guesserSeat,
       honestSeat: null,
       viewerHasViewed: viewerSeat !== null && state.round.viewedSeats.includes(viewerSeat),
-      unviewedSeats: listUnviewedSeats(getFibViewingParticipants(state), state.round.viewedSeats)
-        .filter((participant) => !participant.isBot)
-        .map((participant) => participant.seat),
+      unviewedSeats: listUnviewedSeats(
+        getFibViewingParticipants(state),
+        state.round.viewedSeats,
+      ).map((participant) => participant.seat),
     };
   }
 

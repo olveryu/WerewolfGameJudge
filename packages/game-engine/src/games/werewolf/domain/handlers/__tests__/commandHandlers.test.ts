@@ -277,18 +277,22 @@ describe('Werewolf command handlers', () => {
   });
 
   describe('handleMarkBotsGroupConfirmed', () => {
-    it.each([undefined, { botsEnabled: false }] as const)(
-      'rejects when debug bot mode is %p',
-      (debugMode) => {
-        const result = handleMarkBotsGroupConfirmed(createContext(createState({ debugMode })));
+    // AU-17: the only gate is whether the roster holds bot seats.
+    const rosterWithBot = {
+      0: { seat: 0, userId: HOST_USER_ID },
+      [PLAYER_SEAT]: { seat: PLAYER_SEAT, userId: PLAYER_USER_ID },
+      9: { seat: 9, kind: 'bot' as const },
+    };
 
-        expect(expectError(result).reason).toBe('debug_not_enabled');
-      },
-    );
+    it('rejects when the roster holds no bots', () => {
+      const result = handleMarkBotsGroupConfirmed(createContext(createState()));
+
+      expect(expectError(result).reason).toBe('debug_not_enabled');
+    });
 
     it('rejects before checking the current step when the game is not ongoing', () => {
       const result = handleMarkBotsGroupConfirmed(
-        createContext(createState({ debugMode: { botsEnabled: true }, status: GameStatus.Ended })),
+        createContext(createState({ roster: rosterWithBot, status: GameStatus.Ended })),
       );
 
       expect(expectError(result).reason).toBe('not_ongoing');
@@ -296,7 +300,7 @@ describe('Werewolf command handlers', () => {
 
     it('rejects when there is no current step', () => {
       const result = handleMarkBotsGroupConfirmed(
-        createContext(createState({ debugMode: { botsEnabled: true } })),
+        createContext(createState({ roster: rosterWithBot })),
       );
 
       expect(expectError(result).reason).toBe('no_current_step');
@@ -307,7 +311,7 @@ describe('Werewolf command handlers', () => {
         createContext(
           createState({
             currentStepId: 'seerCheck',
-            debugMode: { botsEnabled: true },
+            roster: rosterWithBot,
           }),
         ),
       );
@@ -322,7 +326,6 @@ describe('Werewolf command handlers', () => {
           createContext(
             createState({
               ...botState,
-              debugMode: { botsEnabled: true },
               players: {
                 2: {
                   seat: 2,
@@ -369,7 +372,6 @@ describe('Werewolf command handlers', () => {
         createContext(
           createState({
             currentStepId: 'piperHypnotizedReveal',
-            debugMode: { botsEnabled: true },
             piperRevealAcks: [2, 4],
             players: {
               2: {

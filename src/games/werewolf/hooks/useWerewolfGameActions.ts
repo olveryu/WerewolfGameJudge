@@ -8,7 +8,7 @@
  * - Reveal ack and wolfRobot hunter status gates
  * - Game state queries: getLastNightInfo, hasWolfVoted
  *
- * Executes game operations via client; uses debug/bgm sub-hook state.
+ * Executes game operations via client; uses bot-control/bgm sub-hook state.
  * Does not modify GameState directly and does not bypass the client.
  */
 
@@ -36,7 +36,7 @@ import { getWerewolfRoomCommandFailureMessage } from '@/games/werewolf/werewolfR
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { WerewolfBgmControlState } from './useWerewolfBgmControl';
-import type { WerewolfDebugModeState } from './useWerewolfDebugMode';
+import type { WerewolfBotControlState } from './useWerewolfBotControl';
 
 /**
  * Unified mutation-result handling — tiered user notification by error type
@@ -127,7 +127,7 @@ interface WerewolfGameActionsState {
 interface WerewolfGameActionsDeps {
   client: WerewolfGameClient;
   bgm: WerewolfBgmControlState;
-  debug: WerewolfDebugModeState;
+  botControl: WerewolfBotControlState;
   isHost: boolean;
   mySeat: number | null;
   gameState: LocalGameState;
@@ -144,7 +144,7 @@ interface WerewolfGameActionsDeps {
  */ export function useWerewolfGameActions(
   deps: WerewolfGameActionsDeps,
 ): WerewolfGameActionsState {
-  const { client, bgm, debug, isHost, mySeat, gameState, clearSeats } = deps;
+  const { client, bgm, botControl, isHost, mySeat, gameState, clearSeats } = deps;
 
   // =========================================================================
   // Game control (host-only)
@@ -182,12 +182,12 @@ interface WerewolfGameActionsDeps {
     // Stop BGM on restart
     bgm.stopBgm();
     // Clear controlled seat on restart
-    if (debug.controlledSeat !== null) {
-      debug.releaseBot();
+    if (botControl.controlledSeat !== null) {
+      botControl.releaseBot();
     }
     const result = await client.restartGame();
     handleCommandOutcome(result, '重新开始', toastError);
-  }, [client, bgm, debug, isHost]);
+  }, [client, bgm, botControl, isHost]);
 
   const selectMvp = useCallback(
     async (selection: WerewolfMvpSelection): Promise<WerewolfCommandDispatchOutcome> => {
@@ -227,59 +227,59 @@ interface WerewolfGameActionsDeps {
   // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
   // Normal mode: mark my own seat as viewed
   const viewedRole = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-    const seat = debug.controlledSeat ?? mySeat;
+    const seat = botControl.controlledSeat ?? mySeat;
     if (seat === null) {
       throw new Error('[FAIL-FAST] Viewing a Werewolf role requires an effective seat');
     }
-    const result = await client.markViewedRole(debug.controlledSeat);
+    const result = await client.markViewedRole(botControl.controlledSeat);
     handleCommandOutcome(result, '查看身份', toastError);
     return result;
-  }, [debug.controlledSeat, mySeat, client]);
+  }, [botControl.controlledSeat, mySeat, client]);
 
   // Submit action. effectiveSeat is a UI eligibility check; only controlledSeat crosses the wire.
   // Business rejection UX is handled by the state-driven actionRejected effect
   // in useActionOrchestrator. Network/server errors handled by handleMutationResult.
   const submitAction = useCallback(
     async (input: WerewolfActionInput): Promise<WerewolfCommandDispatchOutcome> => {
-      if (debug.effectiveSeat === null) {
+      if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Submitting a Werewolf action requires an effective seat');
       }
-      const result = await client.submitAction(input, debug.controlledSeat);
+      const result = await client.submitAction(input, botControl.controlledSeat);
       if (result.kind !== 'deliveryUnknown') handleCommandOutcome(result, '提交行动');
       return result;
     },
-    [debug.controlledSeat, debug.effectiveSeat, client],
+    [botControl.controlledSeat, botControl.effectiveSeat, client],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-    const result = await client.submitRevealAck(debug.controlledSeat);
+    const result = await client.submitRevealAck(botControl.controlledSeat);
     handleCommandOutcome(result, '确认揭示', toastError);
     return result;
-  }, [debug.controlledSeat, client]);
+  }, [botControl.controlledSeat, client]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
-  // Uses effectiveSeat internally to support debug bot control mode
+  // Uses effectiveSeat internally to support bot takeover mode
   const submitGroupConfirmAck = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-    const seat = debug.effectiveSeat;
+    const seat = botControl.effectiveSeat;
     if (seat === null) {
       throw new Error('[FAIL-FAST] Confirming a Werewolf reveal requires an effective seat');
     }
-    const result = await client.submitGroupConfirmAck(debug.controlledSeat);
+    const result = await client.submitGroupConfirmAck(botControl.controlledSeat);
     handleCommandOutcome(result, '确认催眠', toastError);
     return result;
-  }, [debug.controlledSeat, debug.effectiveSeat, client]);
+  }, [botControl.controlledSeat, botControl.effectiveSeat, client]);
 
   // WolfRobot hunter status viewed gate
   const sendWolfRobotHunterStatusViewed =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-      if (debug.effectiveSeat === null) {
+      if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Confirming Hunter status requires an effective seat');
       }
-      const result = await client.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
+      const result = await client.sendWolfRobotHunterStatusViewed(botControl.controlledSeat);
       handleCommandOutcome(result, '确认猎人状态', toastError);
       return result;
-    }, [debug.controlledSeat, debug.effectiveSeat, client]);
+    }, [botControl.controlledSeat, botControl.effectiveSeat, client]);
 
   // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {
@@ -323,44 +323,44 @@ interface WerewolfGameActionsDeps {
 
   const registerSheriffCandidate =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-      if (debug.effectiveSeat === null) {
+      if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Registering as sheriff candidate requires an effective seat');
       }
-      const result = await client.registerSheriffCandidate(debug.controlledSeat);
+      const result = await client.registerSheriffCandidate(botControl.controlledSeat);
       handleCommandOutcome(result, '报名上警', toastError);
       return result;
-    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+    }, [client, botControl.controlledSeat, botControl.effectiveSeat]);
 
   const cancelSheriffRegistration =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-      if (debug.effectiveSeat === null) {
+      if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Canceling sheriff registration requires an effective seat');
       }
-      const result = await client.cancelSheriffRegistration(debug.controlledSeat);
+      const result = await client.cancelSheriffRegistration(botControl.controlledSeat);
       handleCommandOutcome(result, '取消报名', toastError);
       return result;
-    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+    }, [client, botControl.controlledSeat, botControl.effectiveSeat]);
 
   const withdrawSheriffCandidate =
     useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
-      if (debug.effectiveSeat === null) {
+      if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Withdrawing from sheriff election requires an effective seat');
       }
-      const result = await client.withdrawSheriffCandidate(debug.controlledSeat);
+      const result = await client.withdrawSheriffCandidate(botControl.controlledSeat);
       handleCommandOutcome(result, '退水', toastError);
       return result;
-    }, [client, debug.controlledSeat, debug.effectiveSeat]);
+    }, [client, botControl.controlledSeat, botControl.effectiveSeat]);
 
   const castSheriffVote = useCallback(
     async (targetSeat: number | null): Promise<WerewolfCommandDispatchOutcome> => {
-      if (debug.effectiveSeat === null) {
+      if (botControl.effectiveSeat === null) {
         throw new Error('[FAIL-FAST] Casting a sheriff ballot requires an effective seat');
       }
-      const result = await client.castSheriffVote(targetSeat, debug.controlledSeat);
+      const result = await client.castSheriffVote(targetSeat, botControl.controlledSeat);
       handleCommandOutcome(result, '竞选投票', toastError);
       return result;
     },
-    [client, debug.controlledSeat, debug.effectiveSeat],
+    [client, botControl.controlledSeat, botControl.effectiveSeat],
   );
 
   const advanceSheriffElection = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {

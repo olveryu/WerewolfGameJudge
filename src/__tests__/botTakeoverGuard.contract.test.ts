@@ -29,7 +29,9 @@ describe('bot takeover guard contract', () => {
 
   it('every game room hook routes takeover release through the shared guard', () => {
     const consumers = [
-      'games/werewolf/hooks/useWerewolfRoom.ts',
+      // AU-14: werewolf's guard lives in its takeover-ownership hook,
+      // which useWerewolfRoom calls unconditionally.
+      'games/werewolf/hooks/useWerewolfBotControl.ts',
       'games/avalon/room/hooks/useAvalonRoomState.ts',
       'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
       'games/fibking/room/hooks/useFibRoomScreenState.ts',

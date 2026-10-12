@@ -323,7 +323,7 @@ export interface SetWolfRobotHunterStatusViewedAction {
 
 /**
  * Fill with bots action
- * Create bot players for all empty seats, set debugMode.botsEnabled = true
+ * Create bot players for all empty seats
  */
 export interface FillWithBotsAction {
   type: 'FILL_WITH_BOTS';

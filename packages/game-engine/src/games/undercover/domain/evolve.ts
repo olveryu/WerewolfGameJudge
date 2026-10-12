@@ -1,7 +1,8 @@
 /** Undercover event projection; resets discard phase-owned fields and preserve the roster. */
 
+import { haveAllViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
-import type { UndercoverState } from '../state/types';
+import { getUndercoverViewingParticipants, type UndercoverState } from '../state/types';
 import type { UndercoverEvent } from './events';
 
 /** Projects validated domain events without side effects. */
@@ -37,18 +38,20 @@ export function evolveUndercoverState(
     case 'undercover.round.started':
       return {
         ...base,
+        // Every round starts in reading: the checkpoint completes
+        // only when every seat (bots via the host scaffold action)
+        // has confirmed.
         phase: 'reading',
         round: event.round,
         usedWordPairIds: [...new Set([...state.usedWordPairIds, event.round.wordPair.id])],
       };
     case 'undercover.round.confirmed': {
       if (state.phase !== 'reading') throw new Error('Expected reading Undercover state');
-      const confirmedSeats = [...state.round.confirmedSeats, event.seat].sort(
-        (left, right) => left - right,
-      );
+      const confirmedSeats = markSeatViewed(state.round.confirmedSeats, event.seat);
+      const allViewed = haveAllViewed(getUndercoverViewingParticipants(state), confirmedSeats);
       return {
         ...base,
-        phase: confirmedSeats.length === state.config.numberOfPlayers ? 'ongoing' : 'reading',
+        phase: allViewed ? 'ongoing' : 'reading',
         round: { ...state.round, confirmedSeats },
       };
     }

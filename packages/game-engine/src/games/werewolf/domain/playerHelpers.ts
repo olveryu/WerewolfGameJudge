@@ -5,6 +5,7 @@
  * avoiding manual Number.parseInt(seatStr, 10) key conversion every time.
  * Pure functions only, no IO.
  */
+import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import { findRosterSeatByUserId, getBotSeats, isBotSeat } from '../../../platform/room/seating';
 import type { RoleId, SchemaId } from './models';
 import { getStepSpec } from './models/roles/spec';
@@ -130,6 +131,36 @@ export function isBottomCardWolfVoteExcluded(originalRole: RoleId): boolean {
 /** Returns the seats held by bots (unified roster), ascending. */
 export function getWerewolfBotSeats(state: GameState): readonly number[] {
   return getBotSeats(state.roster);
+}
+
+/**
+ * Identity Viewing Protocol participants (AU-19): every seated player
+ * with its bot flag. Werewolf keeps its per-player hasViewedRole
+ * record (no state-shape migration); the protocol inputs are derived
+ * from the players record plus the roster's bot axis. `players`
+ * defaults to the state's record; reducers pass the in-flight record
+ * they are about to commit.
+ */
+export function getWerewolfViewingParticipants(
+  state: GameState,
+  players: Players = state.players,
+): readonly IdentityViewingParticipant[] {
+  const participants: IdentityViewingParticipant[] = [];
+  for (const [seatStr, player] of Object.entries(players)) {
+    if (player === null) continue;
+    const seat = Number.parseInt(seatStr, 10);
+    participants.push({ seat, isBot: isBotSeat(state.roster, seat) });
+  }
+  return participants;
+}
+
+/** Seats whose hasViewedRole record is set, ascending (AU-19). */
+export function getWerewolfViewedSeats(players: Players): readonly number[] {
+  const seats: number[] = [];
+  for (const [seatStr, player] of Object.entries(players)) {
+    if (player?.hasViewedRole === true) seats.push(Number.parseInt(seatStr, 10));
+  }
+  return seats.sort((left, right) => left - right);
 }
 
 /** Returns whether a seat is held by a bot (unified roster). */

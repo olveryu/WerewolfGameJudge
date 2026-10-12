@@ -354,11 +354,11 @@ export function createUndercoverHostManagement(
     case 'reading':
       if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
         add(
-          'mark-all-bots-viewed',
-          '标记全部机器人已查看',
-          'checkmark-done-outline',
+          'mark-bots-viewed',
+          '标记机器人已查看',
+          'eye-outline',
           controls.markAllBotsViewed,
-          'primary',
+          'secondary',
         );
       add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
       break;

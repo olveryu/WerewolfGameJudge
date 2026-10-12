@@ -255,7 +255,6 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     myUserId: `p${mySeat}`,
 
     // Debug mode - effectiveSeat/effectiveRole are used in WerewolfRoomScreen
-    isDebugMode: false,
     controlledSeat: null,
     effectiveSeat: mySeat,
     effectiveRole: myRole,

@@ -1247,7 +1247,7 @@ describe('gameReducer', () => {
   });
 
   describe('FILL_WITH_BOTS', () => {
-    it('should merge bots into players and set debugMode', () => {
+    it('should merge bots into players', () => {
       const state = createMinimalState({
         players: {
           0: { seat: 0, hasViewedRole: false, role: null },
@@ -1294,7 +1294,6 @@ describe('gameReducer', () => {
       expect(newState.players[0]).toMatchObject({ seat: 0, role: null, hasViewedRole: false });
       expect(newState.roster[0]).toEqual({ seat: 0, userId: 'p0' });
       expect(newState.status).toBe(GameStatus.Seated);
-      expect(newState.debugMode).toEqual({ botsEnabled: true });
     });
 
     it('removes the bot profile entry when a bot seat leaves', () => {

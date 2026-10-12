@@ -221,21 +221,21 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel | null {
   const phase = state.phase;
   if (phase.kind === 'night') {
-    // 身份查看协议检查点：夜晚信息步已走完但还有真人没看角色时，
+    // 身份查看协议检查点：夜晚信息步已走完但还有座位没看角色时，
     // 状态条明示阻塞原因（座位级名单在房主管理区，状态条只报人数）。
     const stepParticipants = getAvalonNightParticipants(state.roles, phase.step);
-    const unviewedHumans = getAvalonViewingParticipants(state).filter(
-      (participant) => !participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    const unviewedCount = getAvalonViewingParticipants(state).filter(
+      (participant) => !state.roleViewedSeats.includes(participant.seat),
     ).length;
     if (
       phase.step === 'percivalReveal' &&
-      unviewedHumans > 0 &&
+      unviewedCount > 0 &&
       stepParticipants.every((seat) => phase.confirmedSeats.includes(seat))
     ) {
       return {
         kind: 'message',
         icon: 'guide',
-        text: `等待全员查看身份 · 还差 ${unviewedHumans} 人`,
+        text: `等待全员查看身份 · 还差 ${unviewedCount} 人`,
         supportingText: null,
       };
     }
@@ -582,6 +582,32 @@ export function createAvalonHostManagement(
                       void submit('结束任务', { type: 'avalon.quest.finish' }, null);
                     },
                   ),
+              }),
+        },
+      ],
+    });
+  // 身份查看脚手架（对齐狼人杀）：还有机器人座位未落查看记录时，
+  // 房主可一键标记；引擎不自动落标记，检查点对 bot 同样生效。
+  const hasUnviewedBot = getAvalonViewingParticipants(state).some(
+    (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+  );
+  if (hasUnviewedBot)
+    inGameSections.push({
+      key: 'bot-viewing',
+      title: '身份查看',
+      actions: [
+        {
+          key: 'mark-bots-viewed',
+          label: '标记机器人已查看',
+          icon: 'eye-outline',
+          variant: 'secondary',
+          isLoading: input.isSubmitting,
+          ...(input.isSubmitting
+            ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
+            : {
+                isEnabled: true as const,
+                onPress: () =>
+                  void submit('标记机器人已查看', { type: 'avalon.role.markAllBotsViewed' }),
               }),
         },
       ],

@@ -228,9 +228,10 @@ describe('FibKing generic GameRoom integration', () => {
     expect(viewing.round.roles.guesserSeat).not.toBe(viewing.round.roles.honestSeat);
     expect(viewing.usedWords).toEqual([viewing.round.word]);
     expect(Object.keys(viewing.roster)).toEqual(['0', '1', '2', '3', '4', '5', '6', '7']);
-    // Bots were auto-marked at deal time; the lone human's confirm starts play.
+    // The host confirms, then marks the bot seats; that starts play.
     requireCommitted(
       await dispatch(stub, stub, 'fib-confirm-role-view', { type: 'fib.round.confirmRoleView' }),
+      await dispatch(stub, stub, 'fib-mark-bots-viewed', { type: 'fib.round.markAllBotsViewed' }),
     );
     const startedSnapshot = await stub.getSnapshot(roomIdentity(stub));
     if (startedSnapshot === null) throw new Error('Expected Fib snapshot after viewing confirm');

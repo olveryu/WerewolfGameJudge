@@ -202,9 +202,6 @@ export function normalizeState(raw: GameState): GameState {
     // UI Hints (Host broadcast-driven, UI read-only display, must be passed through)
     ui: raw.ui,
 
-    // Debug mode (pass-through)
-    debugMode: raw.debugMode,
-
     // Dual Seer label mapping (pass-through)
     seerLabelMap: raw.seerLabelMap,
 

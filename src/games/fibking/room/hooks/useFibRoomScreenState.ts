@@ -412,6 +412,10 @@ export function useFibRoomScreenState({
     showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL);
   }, []);
 
+  const markAllBotsViewed = useCallback(() => {
+    void submitCommand('标记机器人已查看', { type: 'fib.round.markAllBotsViewed' });
+  }, [submitCommand]);
+
   const hostManagement = useMemo(
     () =>
       createFibHostManagement({
@@ -420,6 +424,7 @@ export function useFibRoomScreenState({
         isCommandSubmitting,
         capabilities,
         startRound,
+        markAllBotsViewed,
         cancelPreparing,
         revealRound,
         redrawRound,
@@ -434,6 +439,7 @@ export function useFibRoomScreenState({
       endGame,
       isCommandSubmitting,
       isHost,
+      markAllBotsViewed,
       redrawRound,
       revealRound,
       showStartRoundDisabled,

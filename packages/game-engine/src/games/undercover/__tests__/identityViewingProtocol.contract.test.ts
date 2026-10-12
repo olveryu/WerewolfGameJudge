@@ -3,7 +3,10 @@
  *
  * Every game that deals secret identities must (1) record per-seat
  * viewed state on the server, (2) mark it idempotently, and (3) hold
- * its checkpoint until every human has viewed. These scenarios run the
+ * its checkpoint until every seated player has viewed - bot seats
+ * count like everyone else and are filled by the host's scaffold
+ * action (mark all bots viewed), never by an engine auto-mark.
+ * These scenarios run the
  * same assertions against each compliant engine. The engine module
  * boundary forbids cross-game imports, so each game carries its own
  * scenario file under this same name in its __tests__: undercover
@@ -13,14 +16,15 @@
  */
 
 import type { CommandContext } from '../../../platform/engine';
-import {
-  haveAllHumansViewed,
-  type IdentityViewingParticipant,
-  markSeatViewed,
-} from '../../../platform/room/identityViewing';
+import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
+import { haveAllViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import type { UndercoverCommand } from '../commands/types';
 import { undercoverEngine } from '../engine';
-import type { UndercoverConfig, UndercoverState } from '../state/types';
+import {
+  getUndercoverViewingParticipants,
+  type UndercoverConfig,
+  type UndercoverState,
+} from '../state/types';
 
 const config: UndercoverConfig = {
   numberOfPlayers: 8,
@@ -96,11 +100,26 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
     if (state.round === null) throw new Error('Expected round');
     expect(state.round.confirmedSeats).toEqual([]);
 
-    for (let seat = 0; seat < config.numberOfPlayers - 1; seat += 1) {
+    for (let seat = 1; seat < config.numberOfPlayers; seat += 1) {
       state = confirmSeat(state, seat);
       expect(state.phase).toBe('reading');
     }
-    state = confirmSeat(state, config.numberOfPlayers - 1);
+    state = confirmSeat(state, 0);
+    expect(state.phase).toBe('ongoing');
+  });
+
+  it('fills bot records through the host scaffold action, then waits on the humans', () => {
+    let state = readingState();
+    if (state.round === null) throw new Error('Expected round');
+    state = dispatch(state, {
+      type: 'undercover.round.markAllBotsViewed',
+      roundId: state.round.roundId,
+    });
+    if (state.round === null) throw new Error('Expected round');
+    expect(state.round.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(state.phase).toBe('reading');
+
+    state = confirmSeat(state, 0);
     expect(state.phase).toBe('ongoing');
   });
 
@@ -109,14 +128,18 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
     state = confirmSeat(state, 3);
     state = confirmSeat(state, 1);
     if (state.round === null) throw new Error('Expected round');
-    const expected = markSeatViewed(markSeatViewed([], 3), 1);
-    expect(state.round.confirmedSeats).toEqual(expected);
+    expect(state.round.confirmedSeats).toEqual(markSeatViewed(markSeatViewed([], 3), 1));
+    expect(state.round.confirmedSeats).toEqual([1, 3]);
+
+    state = confirmSeat(state, 0);
+    if (state.round === null) throw new Error('Expected round');
+    expect(state.round.confirmedSeats).toEqual([0, 1, 3]);
 
     // A duplicate confirm never duplicates the record: the engine either
     // no-ops or rejects, and the recorded set stays exactly the same.
     const before = state.round.confirmedSeats;
     try {
-      state = confirmSeat(state, 1);
+      state = confirmSeat(state, 0);
     } catch {
       // rejection is an acceptable idempotency guard
     }
@@ -126,20 +149,49 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
 
   it('agrees with the shared checkpoint predicate over the recorded set', () => {
     let state = readingState();
-    // Undercover's gate is stricter than the protocol minimum: bot seats
-    // must also be confirmed (the host confirms them under takeover), so
-    // every seat counts as a blocker for the shared predicate here.
-    const blockers: readonly IdentityViewingParticipant[] = Array.from(
-      { length: config.numberOfPlayers },
-      (_, seat) => ({ seat, isBot: false }),
+    if (state.round === null) throw new Error('Expected round');
+    expect(haveAllViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats)).toBe(
+      state.phase === 'ongoing',
     );
-    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
-      if (state.round === null) throw new Error('Expected round');
-      expect(haveAllHumansViewed(blockers, state.round.confirmedSeats)).toBe(
-        state.phase === 'ongoing',
-      );
-      state = confirmSeat(state, seat);
-    }
+    state = dispatch(state, {
+      type: 'undercover.round.markAllBotsViewed',
+      roundId: state.round.roundId,
+    });
+    state = confirmSeat(state, 0);
+    if (state.round === null) throw new Error('Expected round');
+    expect(haveAllViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats)).toBe(
+      true,
+    );
     expect(state.phase).toBe('ongoing');
   });
+});
+
+describeIdentityViewingProtocol({
+  game: 'undercover',
+  makeSession: () => {
+    let state = readingState();
+    const attempt = (next: () => UndercoverState) => {
+      try {
+        state = next();
+      } catch {
+        // Redundant marks/views are rejected by the phase gate; the
+        // suite asserts the recorded state, not acceptance.
+      }
+    };
+    return {
+      viewedSeats: () => state.round?.confirmedSeats ?? [],
+      participants: () => getUndercoverViewingParticipants(state),
+      view: (seat) => attempt(() => confirmSeat(state, seat)),
+      markAllBotsViewed: () =>
+        attempt(() =>
+          state.round === null
+            ? state
+            : dispatch(state, {
+                type: 'undercover.round.markAllBotsViewed',
+                roundId: state.round.roundId,
+              }),
+        ),
+      isCheckpointOpen: () => state.phase === 'ongoing',
+    };
+  },
 });

@@ -2,7 +2,7 @@
  * Debug Bots Contract Tests
  *
  * Verifies core constraints of debug bots functionality:
- * 1. After fillWithBots: debugMode.botsEnabled === true, every newly added bot seat gets a botRoster profile keyed `bot-<seat>`
+ * 1. After fillWithBots: every newly added bot seat gets a botRoster profile keyed `bot-<seat>`
  * 2. markAllBotsViewed: only sets hasViewedRole = true on seats whose roster occupant is a bot
  * 3. Calling when debug is not enabled must reject
  */
@@ -191,7 +191,6 @@ describe('handleMarkAllBotsViewed', () => {
             2: { seat: 2, kind: 'bot' },
             3: { seat: 3, kind: 'bot' },
           },
-          debugMode: { botsEnabled: true },
         }),
       });
 
@@ -204,7 +203,7 @@ describe('handleMarkAllBotsViewed', () => {
   });
 
   describe('rejection cases', () => {
-    it('should reject when debug mode is not enabled', () => {
+    it('should reject when the roster holds no bot seats (AU-17)', () => {
       const players: Record<number, Player | null> = {};
       players[0] = createMinimalPlayer(0, { role: 'villager' });
 
@@ -213,9 +212,8 @@ describe('handleMarkAllBotsViewed', () => {
           status: GameStatus.Assigned,
           players,
           roster: {
-            0: { seat: 0, kind: 'bot' },
+            0: { seat: 0, userId: 'user-0' },
           },
-          // debugMode is undefined
         }),
       });
 
@@ -236,7 +234,6 @@ describe('handleMarkAllBotsViewed', () => {
           roster: {
             0: { seat: 0, kind: 'bot' },
           },
-          debugMode: { botsEnabled: true },
         }),
       });
 

@@ -11,12 +11,14 @@
  *   - handlePlayerViewedRole: @throws '[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat X'
  */
 
+import { haveAllViewed } from '../../../../platform/room/identityViewing';
 import {
   type BotSeatOccupant,
   getBotSeats,
   isBotOccupant,
 } from '../../../../platform/room/seating';
 import { GameStatus, getPlayerCount } from '../models';
+import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
 import type { GameState, WerewolfHumanSeat } from '../protocol/types';
 import type { Complete } from '../state/normalize';
 import type {
@@ -87,7 +89,6 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     hostUserId: state.hostUserId,
     templateRoles: state.templateRoles,
     rules: state.rules,
-    debugMode: state.debugMode,
     roster: state.roster,
     playerProfiles: state.playerProfiles,
 
@@ -321,8 +322,12 @@ export function handlePlayerViewedRole(
     [seat]: { ...player, hasViewedRole: true },
   };
 
-  // Check if all seated players have viewed roles
-  const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
+  // Identity Viewing Protocol checkpoint (AU-19): every seated
+  // player counts; bot seats join via the host's scaffold marks.
+  const allViewed = haveAllViewed(
+    getWerewolfViewingParticipants(state, newPlayers),
+    getWerewolfViewedSeats(newPlayers),
+  );
 
   // Only advance to GameStatus.Ready when status === GameStatus.Assigned and all viewed
   const newStatus =
@@ -357,7 +362,6 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
     roster: newRoster,
     playerProfiles: { ...state.playerProfiles, ...botRoster },
     status: allSeated ? GameStatus.Seated : state.status,
-    debugMode: { botsEnabled: true },
   };
 }
 
@@ -375,8 +379,11 @@ export function handleMarkAllBotsViewed(state: GameState): GameState {
     }
   }
 
-  // Check if all players have viewed roles (null seat treated as viewed, consistent with handlePlayerViewedRole)
-  const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
+  // Same protocol checkpoint as handlePlayerViewedRole (AU-19).
+  const allViewed = haveAllViewed(
+    getWerewolfViewingParticipants(state, newPlayers),
+    getWerewolfViewedSeats(newPlayers),
+  );
   const newStatus =
     state.status === GameStatus.Assigned && allViewed ? GameStatus.Ready : state.status;
 

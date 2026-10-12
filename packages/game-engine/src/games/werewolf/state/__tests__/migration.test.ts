@@ -139,3 +139,27 @@ describe('Werewolf v5 -> v6 roster migration', () => {
     expect(migratePersistedWerewolfState(legacy)).toEqual(state);
   });
 });
+
+describe('v6 -> v7 migration (debugMode deletion)', () => {
+  it('drops the debugMode field and parses the rest unchanged', () => {
+    const current = buildV6State();
+    const stored = JSON.parse(
+      JSON.stringify({ ...current, stateVersion: 6, debugMode: { botsEnabled: true } }),
+    ) as unknown;
+
+    const migrated = migratePersistedWerewolfState(stored);
+
+    expect(migrated.stateVersion).toBe(7);
+    expect('debugMode' in migrated).toBe(false);
+    expect(migrated).toEqual(parseWerewolfState(JSON.parse(JSON.stringify(current)) as unknown));
+  });
+
+  it('rejects a current-version payload that still carries debugMode', () => {
+    const current = buildV6State();
+    const stored = JSON.parse(
+      JSON.stringify({ ...current, debugMode: { botsEnabled: true } }),
+    ) as unknown;
+
+    expect(() => parseWerewolfState(stored)).toThrow('GameState contains unknown field: debugMode');
+  });
+});

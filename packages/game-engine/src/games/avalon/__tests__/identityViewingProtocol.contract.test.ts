@@ -1,16 +1,18 @@
 /**
  * Identity Viewing Protocol — avalon scenario (P-1 batch C).
  *
- * Avalon gains the protocol in this batch: the engine records
- * roleViewedSeats (avalon.role.viewed, idempotent), and the first
- * quest is gated — when the night steps finish, the night only
- * completes once every human has viewed their role; the last missing
- * view releases the checkpoint. Bot seats never block. Same-named
- * scenario files live in each compliant game's __tests__.
+ * Avalon follows the protocol: the engine records roleViewedSeats
+ * (avalon.role.viewed, idempotent), and the first quest is gated -
+ * when the night steps finish, the night only completes once every
+ * seated player has viewed their role. Bot seats count like
+ * everyone else; the host fills their records with the scaffold
+ * action (avalon.role.markAllBotsViewed). Same-named scenario
+ * files live in each compliant game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
-import { haveAllHumansViewed, listUnviewedSeats } from '../../../platform/room/identityViewing';
+import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
+import { haveAllViewed, listUnviewedSeats } from '../../../platform/room/identityViewing';
 import type { AvalonCommand } from '../commands/types';
 import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
 import { getAvalonNightParticipants } from '../domain/rules';
@@ -90,6 +92,9 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         if (!isAvalonBotSeat(state, seat)) api.view(seat);
       }
     },
+    markAllBotsViewed() {
+      send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
+    },
     /** Confirms every night step's participants, in order. */
     walkNight() {
       for (const step of AVALON_NIGHT_STEPS) {
@@ -155,10 +160,7 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
       if (seat !== servant) session.view(seat);
     }
     expect(
-      haveAllHumansViewed(
-        getAvalonViewingParticipants(session.state),
-        session.state.roleViewedSeats,
-      ),
+      haveAllViewed(getAvalonViewingParticipants(session.state), session.state.roleViewedSeats),
     ).toBe(false);
 
     session.walkNight();
@@ -171,30 +173,42 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
       'night_end',
     );
     expect(
-      haveAllHumansViewed(
-        getAvalonViewingParticipants(session.state),
-        session.state.roleViewedSeats,
-      ),
+      haveAllViewed(getAvalonViewingParticipants(session.state), session.state.roleViewedSeats),
     ).toBe(true);
   });
 
-  it('never blocks on bot seats: one human viewing is enough with bots filling the room', () => {
+  it('blocks on unmarked bot seats until the host marks them', () => {
     const session = game({ numberOfPlayers: 5 }, 1);
     session.startGame();
     session.viewAllHumans();
-    // The unviewed list is about checkpoint blockers: bots never appear.
-    expect(getAvalonViewModel(session.state, 0).unviewedRoleSeats).toEqual([]);
+    // Every human has viewed; the bot seats are the remaining blockers.
+    expect(getAvalonViewModel(session.state, 0).unviewedRoleSeats).toEqual([1, 2, 3, 4]);
     session.walkNight();
+    expect(session.state.phase.kind).toBe('night');
+    session.markAllBotsViewed();
     expect(session.state.phase.kind).toBe('nominate');
   });
 
-  it('records every bot seat as viewed at deal time, and no human seat', () => {
+  it('records nothing at deal time; the host scaffold action records the bot seats', () => {
     const session = game({ numberOfPlayers: 5 }, 3);
     session.startGame();
+    expect(session.state.roleViewedSeats).toEqual([]);
+    session.markAllBotsViewed();
     expect(session.state.roleViewedSeats).toEqual([3, 4]);
     // A human viewing afterwards joins the same record.
     session.view(1);
     expect(session.state.roleViewedSeats).toEqual([1, 3, 4]);
+  });
+
+  it('rejects the scaffold action from a non-host', () => {
+    const session = game({ numberOfPlayers: 5 }, 3);
+    session.startGame();
+    const decision = session.decideAs(
+      { type: 'avalon.role.markAllBotsViewed' },
+      session.seatUser(1),
+    );
+    expect(decision.kind).toBe('reject');
+    if (decision.kind === 'reject') expect(decision.reason).toBe(AVALON_REASONS.notHostMarkBots);
   });
 
   it('records nothing at deal time in an all-human room', () => {
@@ -203,13 +217,16 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     expect(session.state.roleViewedSeats).toEqual([]);
   });
 
-  it('keeps the checkpoint semantics with seeded bot records: humans still gate the night', () => {
+  it('holds the night until humans viewed AND bots are marked, in either order', () => {
     const session = game({ numberOfPlayers: 5 }, 3);
     session.startGame();
     session.walkNight();
-    // Night steps are done but two humans have not viewed: still held.
+    // Night steps are done but nobody has viewed: still held.
     expect(session.state.phase.kind).toBe('night');
     session.viewAllHumans();
+    // Humans alone no longer release the checkpoint.
+    expect(session.state.phase.kind).toBe('night');
+    session.markAllBotsViewed();
     expect(session.state.phase.kind).toBe('nominate');
   });
 
@@ -233,4 +250,35 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     // The strict current-version parser still rejects the legacy shape.
     expect(() => parseAvalonState(persisted)).toThrow();
   });
+});
+
+describeIdentityViewingProtocol({
+  game: 'avalon',
+  makeSession: () => {
+    const session = game({ numberOfPlayers: 5 }, 3);
+    session.startGame();
+    let walked = false;
+    return {
+      viewedSeats: () => session.state.roleViewedSeats,
+      participants: () => getAvalonViewingParticipants(session.state),
+      view: (seat) => {
+        // Bot seats have no user to view with; the driver marks them
+        // through the host scaffold action (all bots at once).
+        if (isAvalonBotSeat(session.state, seat)) session.markAllBotsViewed();
+        else session.view(seat);
+      },
+      markAllBotsViewed: () => session.markAllBotsViewed(),
+      isCheckpointOpen: () => {
+        // The checkpoint releases the night itself; walking the
+        // night steps once is how the session finds out. Later
+        // views/marks complete the night through their own
+        // handlers, so the walk must not repeat.
+        if (!walked && session.state.phase.kind === 'night') {
+          walked = true;
+          session.walkNight();
+        }
+        return session.state.phase.kind !== 'night';
+      },
+    };
+  },
 });

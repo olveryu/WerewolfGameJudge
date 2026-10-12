@@ -169,7 +169,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    * Host: mark all bots as having viewed roles (Debug-only)
    *
    * Sets hasViewedRole = true only for isBot === true players.
-   * Only available when debugMode.botsEnabled === true && status === Assigned.
+   * Only available when the roster holds bot seats && status === Assigned.
    */
   async markAllBotsViewed(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.markAllBotsViewed(this.#getActionsContext());
@@ -179,7 +179,7 @@ export class WerewolfGameClientRuntime implements WerewolfGameClient {
    * Host: mark all bots as having confirmed groupConfirm step (Debug-only)
    *
    * Batch-submits groupConfirm ack for all isBot players.
-   * Only available when debugMode.botsEnabled === true && status === Ongoing && current step is groupConfirm.
+   * Only available when the roster holds bot seats && status === Ongoing && current step is groupConfirm.
    */
   async markAllBotsGroupConfirmed(): Promise<WerewolfCommandDispatchOutcome> {
     return gameActions.markAllBotsGroupConfirmed(this.#getActionsContext());

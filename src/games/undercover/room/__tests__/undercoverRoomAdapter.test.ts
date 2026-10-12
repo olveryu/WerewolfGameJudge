@@ -165,7 +165,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
   expect(
     createUndercoverHostManagement({ state, isHost: true, capabilities, controls: result.current })
       ?.sections[0]?.actions,
-  ).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-all-bots-viewed' })]));
+  ).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
   const confirmed = dispatch(state, {
     type: 'undercover.round.markAllBotsViewed',
     roundId: state.round!.roundId,
@@ -177,7 +177,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
       capabilities,
       controls: result.current,
     })?.sections[0]?.actions,
-  ).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-all-bots-viewed' })]));
+  ).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
 });
 
 it('selects directly for confirmation, cancels without submission and invalidates eliminated targets', () => {

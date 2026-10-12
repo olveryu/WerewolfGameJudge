@@ -103,10 +103,17 @@ function session() {
     fill() {
       send({ type: 'room.seat.fillBots' });
     },
+    /** Starts without marking the bots, leaving their viewed records open. */
+    startWithUnmarkedBots() {
+      send({ type: 'avalon.game.start' });
+      send({ type: 'avalon.role.viewed' });
+      ackAudio();
+    },
     startToNominate() {
       send({ type: 'avalon.game.start' });
-      // Bot seats are auto-marked viewed at deal time; only the host is human.
+      // Only the host is human: the host views, then marks the bots.
       send({ type: 'avalon.role.viewed' });
+      send({ type: 'avalon.role.markAllBotsViewed' });
       ackAudio();
       while (state.phase.kind === 'night') {
         const participants = getAvalonNightParticipants(state.roles, state.phase.step);
@@ -204,6 +211,22 @@ describe('createAvalonHostManagement', () => {
     const model = build(game.state, true, false);
     expect(model?.preview).toBe('房主管理');
     expect(model?.sections.map((section) => section.key)).toEqual(['room']);
+  });
+
+  it('offers the bot-viewing scaffold while bot seats are unmarked, then drops it', () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    game.startWithUnmarkedBots();
+    const model = build(game.state, true, false);
+    const section = model?.sections.find((entry) => entry.key === 'bot-viewing');
+    expect(section?.actions.map((action) => action.key)).toEqual(['mark-bots-viewed']);
+    expect(section?.actions[0]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
+
+    game.send({ type: 'avalon.role.markAllBotsViewed' });
+    expect(
+      build(game.state, true, false)?.sections.find((entry) => entry.key === 'bot-viewing'),
+    ).toBeUndefined();
   });
 
   it('pins the vote and quest panels with their manual settle actions', () => {

@@ -30,7 +30,9 @@ const ROOM_CODE = '1234';
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
 // v5 became a supported migration source with the roster split (v6), so an
 // unsupported version must be one no migration path exists for.
-const UNSUPPORTED_WEREWOLF_STATE_VERSION = WEREWOLF_STATE_VERSION - 2;
+// Below the oldest migratable werewolf version (v5): no migration
+// path exists, so loading must reject as unsupported.
+const UNSUPPORTED_WEREWOLF_STATE_VERSION = 4;
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();

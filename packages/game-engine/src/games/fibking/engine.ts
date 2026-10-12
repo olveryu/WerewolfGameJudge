@@ -19,7 +19,11 @@ import {
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
 } from '../../platform/protocol/reasons';
-import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
+import {
+  haveAllViewed,
+  listUnviewedBotSeats,
+  markSeatViewed,
+} from '../../platform/room/identityViewing';
 import {
   decideRosterClearSeats,
   decideRosterFillBots,
@@ -297,7 +301,33 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
   if (viewedSeats.includes(seat)) return commitFib([]);
   const nextViewedSeats = markSeatViewed(viewedSeats, seat);
   const events: FibEvent[] = [{ type: 'fib.role.viewed', seat }];
-  if (haveAllHumansViewed(getFibViewingParticipants(state), nextViewedSeats)) {
+  if (haveAllViewed(getFibViewingParticipants(state), nextViewedSeats)) {
+    events.push({ type: 'fib.round.viewingCompleted' });
+  }
+  return commitFib(events);
+}
+
+/**
+ * Identity Viewing Protocol scaffold action (host only): marks
+ * every unviewed bot seat as viewed; completes the viewing phase
+ * when that lands the final missing record.
+ */
+function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibDecision {
+  if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  const unviewedBots = listUnviewedBotSeats(
+    getFibViewingParticipants(state),
+    state.round.viewedSeats,
+  );
+  if (unviewedBots.length === 0) return commitFib([]);
+  const events: FibEvent[] = [];
+  let viewedSeats: readonly number[] = state.round.viewedSeats;
+  for (const participant of unviewedBots) {
+    events.push({ type: 'fib.role.viewed', seat: participant.seat });
+    viewedSeats = markSeatViewed(viewedSeats, participant.seat);
+  }
+  if (haveAllViewed(getFibViewingParticipants(state), viewedSeats)) {
     events.push({ type: 'fib.round.viewingCompleted' });
   }
   return commitFib(events);
@@ -392,9 +422,9 @@ function decideCompleteFibRound(
         definition: command.definition,
         source: command.source,
         roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
-        initialViewedSeats: getFibViewingParticipants(state)
-          .filter((participant) => participant.isBot)
-          .map((participant) => participant.seat),
+        // Identity Viewing Protocol: nobody is marked at round
+        // start; bot seats are marked by the host scaffold action.
+        initialViewedSeats: [],
       },
     ],
     [
@@ -478,6 +508,8 @@ export function decideFibCommand(
       return decideRevealFibRound(state, context);
     case 'fib.round.confirmRoleView':
       return decideConfirmFibRoleView(state, context);
+    case 'fib.round.markAllBotsViewed':
+      return decideMarkAllBotsViewed(state, context);
     case 'fib.round.updatePreparationStage':
       return decideUpdateFibPreparationStage(state, command, context);
     case 'fib.round.failPreparation':

@@ -15,16 +15,13 @@ import {
   randomIntInclusive,
   shuffleArray,
 } from '../../../platform/random';
-import {
-  findRosterSeatByUserId,
-  getBotSeats,
-  getHumanSeatMap,
-  isBotSeat,
-} from '../../../platform/room/seating';
+import { listUnviewedBotSeats } from '../../../platform/room/identityViewing';
+import { findRosterSeatByUserId, getHumanSeatMap, isBotSeat } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
 import {
   getUndercoverOccupiedSeatCount,
+  getUndercoverViewingParticipants,
   isUndercoverSeat,
   type UndercoverPendingRound,
   type UndercoverRound,
@@ -126,6 +123,8 @@ function decideInternal(
     undercoverWord: isSwapped ? command.wordPair.wordA : command.wordPair.wordB,
     roles: shuffleArray(roles, random),
     speakingStartSeat: randomIntInclusive(0, state.config.numberOfPlayers - 1, random),
+    // Identity Viewing Protocol: nobody is marked at deal time;
+    // bot seats are marked by the host scaffold action.
     confirmedSeats: [],
     revelations: [],
   };
@@ -226,11 +225,18 @@ export function decideUndercoverRound(
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
     case 'undercover.round.markAllBotsViewed':
+      // Host scaffold action: fill every unviewed bot seat's record
+      // through the protocol's seat computation; the per-seat
+      // confirmed events run the strict checkpoint in evolve.
       return state.phase === 'reading'
         ? commitUndercover(
-            getBotSeats(state.roster)
-              .filter((seat) => !state.round.confirmedSeats.includes(seat))
-              .map((seat) => ({ type: 'undercover.round.confirmed', seat })),
+            listUnviewedBotSeats(
+              getUndercoverViewingParticipants(state),
+              state.round.confirmedSeats,
+            ).map((participant) => ({
+              type: 'undercover.round.confirmed' as const,
+              seat: participant.seat,
+            })),
           )
         : reject(UNDERCOVER_REASONS.phase);
     case 'undercover.round.retry':

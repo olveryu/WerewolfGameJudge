@@ -3,6 +3,7 @@
 import { getBotSeats, isBotOccupant } from '../../../../platform/room/seating';
 import { GameStatus } from '../models/GameStatus';
 import { SCHEMAS } from '../models/roles/spec/schemas';
+import { getWerewolfBotSeats } from '../playerHelpers';
 import type { StateAction } from '../reducer/types';
 import { type HandlerContext, handlerError, type HandlerResult, handlerSuccess } from './types';
 
@@ -94,7 +95,8 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
 export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerResult {
   const state = context.state;
 
-  if (!state.debugMode?.botsEnabled) {
+  // AU-17: the gate is bot existence (debugMode is deleted).
+  if (getWerewolfBotSeats(state).length === 0) {
     return handlerError('debug_not_enabled');
   }
 

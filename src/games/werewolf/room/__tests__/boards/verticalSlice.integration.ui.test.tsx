@@ -159,7 +159,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       myUserId: `p${MY_SEAT}`,
 
       // Debug mode
-      isDebugMode: false,
       controlledSeat: null,
       effectiveSeat: MY_SEAT,
       effectiveRole: 'witch',
@@ -256,7 +255,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       myRole: 'seer',
       myUserId: `p${seerSeat}`,
 
-      isDebugMode: false,
       controlledSeat: null,
       effectiveSeat: seerSeat,
       effectiveRole: 'seer',

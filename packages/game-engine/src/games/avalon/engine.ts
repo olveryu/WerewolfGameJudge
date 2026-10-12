@@ -9,7 +9,11 @@ import {
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
-import { haveAllHumansViewed, markSeatViewed } from '../../platform/room/identityViewing';
+import {
+  haveAllViewed,
+  listUnviewedBotSeats,
+  markSeatViewed,
+} from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
 import {
@@ -159,10 +163,10 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
       ]);
     case 'percivalReveal': {
       // Identity Viewing Protocol checkpoint: the first quest cannot
-      // start until every human has viewed their role. Hold the night
-      // open (this seat's step confirmation still lands); the last
-      // missing view releases the checkpoint from markRoleViewed.
-      if (!haveAllHumansViewed(getAvalonViewingParticipants(state), state.roleViewedSeats))
+      // start until every seated player has viewed their role. Hold
+      // the night open (this seat's step confirmation still lands);
+      // the last missing view releases the checkpoint.
+      if (!haveAllViewed(getAvalonViewingParticipants(state), state.roleViewedSeats))
         return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.seat }]);
       return commitAvalon([
         { type: 'avalon.night.completed' },
@@ -185,21 +189,57 @@ function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDeci
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   if (state.roleViewedSeats.includes(resolved.seat)) return commitAvalon([]);
   const viewedSeats = markSeatViewed(state.roleViewedSeats, resolved.seat);
-  const events: AvalonEvent[] = [{ type: 'avalon.role.viewed', seat: resolved.seat }];
+  const events: AvalonEvent[] = [
+    { type: 'avalon.role.viewed', seat: resolved.seat },
+    ...nightCompletionEvents(state, viewedSeats),
+  ];
+  return commitAvalon(events);
+}
+
+/**
+ * The night-closing events, once the last night step is confirmed by
+ * all of its participants and the identity checkpoint is complete.
+ * Shared by the per-seat view and the host bot-mark action: whichever
+ * lands the final missing record closes the night.
+ */
+function nightCompletionEvents(state: AvalonState, viewedSeats: readonly number[]): AvalonEvent[] {
   const phase = state.phase;
+  if (phase.kind !== 'night' || phase.step !== 'percivalReveal') return [];
   if (
-    phase.kind === 'night' &&
-    phase.step === 'percivalReveal' &&
-    getAvalonNightParticipants(state.roles, 'percivalReveal').every((seat) =>
+    !getAvalonNightParticipants(state.roles, 'percivalReveal').every((seat) =>
       phase.confirmedSeats.includes(seat),
-    ) &&
-    haveAllHumansViewed(getAvalonViewingParticipants(state), viewedSeats)
-  ) {
-    events.push(
-      { type: 'avalon.night.completed' },
-      queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
-    );
+    )
+  )
+    return [];
+  if (!haveAllViewed(getAvalonViewingParticipants(state), viewedSeats)) return [];
+  return [
+    { type: 'avalon.night.completed' },
+    queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
+  ];
+}
+
+/**
+ * Identity Viewing Protocol scaffold action (host only): marks every
+ * unviewed bot seat as viewed. Humans always mark themselves; the
+ * engine never auto-marks at deal time.
+ */
+function markAllBotsViewed(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return reject(AVALON_REASONS.phase);
+  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostMarkBots);
+  if (hostRejection !== null) return hostRejection;
+  const unviewedBots = listUnviewedBotSeats(
+    getAvalonViewingParticipants(state),
+    state.roleViewedSeats,
+  );
+  if (unviewedBots.length === 0) return commitAvalon([]);
+  const events: AvalonEvent[] = [];
+  let viewedSeats: readonly number[] = state.roleViewedSeats;
+  for (const participant of unviewedBots) {
+    events.push({ type: 'avalon.role.viewed', seat: participant.seat });
+    viewedSeats = markSeatViewed(viewedSeats, participant.seat);
   }
+  events.push(...nightCompletionEvents(state, viewedSeats));
   return commitAvalon(events);
 }
 
@@ -599,6 +639,8 @@ function decidePublicCommand(
       return startGame(state, context);
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
+    case 'avalon.role.markAllBotsViewed':
+      return markAllBotsViewed(state, context);
     case 'avalon.night.confirm':
       return confirmNight(state, context);
     case 'avalon.team.propose':

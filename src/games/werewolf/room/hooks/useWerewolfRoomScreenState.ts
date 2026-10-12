@@ -201,8 +201,7 @@ export function useWerewolfRoomScreenState(
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
     kickPlayer,
-    // Debug mode
-    isDebugMode,
+    // Bot-test scaffold actions
     fillWithBots,
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
@@ -987,7 +986,6 @@ export function useWerewolfRoomScreenState(
         onAvatarPress: handleAvatarPress,
         roomStatus,
         isHost,
-        isDebugMode,
         isAudioPlaying,
         isActionSubmitting,
         isStartingGame,
@@ -1045,7 +1043,6 @@ export function useWerewolfRoomScreenState(
       dispatchInteraction,
       roomStatus,
       isHost,
-      isDebugMode,
       isAudioPlaying,
       isActionSubmitting,
       isStartingGame,

@@ -96,7 +96,6 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         myUserId: 'p0',
 
         // Debug mode fields
-        isDebugMode: false,
         controlledSeat: null,
         effectiveSeat: 0,
         effectiveRole: 'witch',

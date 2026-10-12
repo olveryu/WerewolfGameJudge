@@ -511,16 +511,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
     } | null;
   };
 
-  // --- Debug mode ---
-  /**
-   * Debug mode settings (optional, for development/testing only).
-   * When debugMode.botsEnabled is true, bot-related UI and features are enabled.
-   */
-  debugMode?: {
-    /** Whether bot placeholder mode is enabled */
-    botsEnabled: boolean;
-  };
-
   /**
    * Dual seer label mapping (generated when seer + mirrorSeer coexist in template)
    *

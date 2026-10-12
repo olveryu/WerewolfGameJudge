@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  haveAllHumansViewed,
+  haveAllViewed,
   type IdentityViewingParticipant,
+  listUnviewedBotSeats,
   listUnviewedSeats,
   markSeatViewed,
 } from '../identityViewing';
@@ -41,29 +42,21 @@ describe('listUnviewedSeats', () => {
   });
 });
 
-describe('haveAllHumansViewed', () => {
-  it('is true when every human viewed, even if a bot has not', () => {
-    expect(haveAllHumansViewed(participants, [0, 1, 3])).toBe(true);
-  });
-
-  it('is false while any human has not viewed', () => {
-    expect(haveAllHumansViewed(participants, [0, 1])).toBe(false);
-    expect(haveAllHumansViewed(participants, [])).toBe(false);
+describe('haveAllViewed', () => {
+  it('is true only when every participant, bots included, has viewed', () => {
+    expect(haveAllViewed(participants, [0, 1, 2, 3])).toBe(true);
+    expect(haveAllViewed(participants, [0, 1, 3])).toBe(false);
   });
 
   it('is true for an empty participant list', () => {
-    expect(haveAllHumansViewed([], [])).toBe(true);
+    expect(haveAllViewed([], [])).toBe(true);
   });
+});
 
-  it('is true when every participant is a bot', () => {
-    expect(
-      haveAllHumansViewed(
-        [
-          { seat: 0, isBot: true },
-          { seat: 1, isBot: true },
-        ],
-        [],
-      ),
-    ).toBe(true);
+describe('listUnviewedBotSeats', () => {
+  it('returns only unviewed bot participants, in order', () => {
+    expect(listUnviewedBotSeats(participants, []).map((p) => p.seat)).toEqual([2]);
+    expect(listUnviewedBotSeats(participants, [2])).toEqual([]);
+    expect(listUnviewedBotSeats(participants, [0, 1, 3]).map((p) => p.seat)).toEqual([2]);
   });
 });

@@ -7,7 +7,6 @@ import {
   type AvalonLastVoteResult,
   type AvalonQuestRound,
   type AvalonState,
-  getAvalonBotSeats,
   isAvalonQuestRound,
 } from '../state/types';
 import type { AvalonEvent } from './decision';
@@ -53,9 +52,9 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         ...resetAvalonGame(state),
         phaseRevision: state.phaseRevision + 1,
         phase: { kind: 'night', step: 'evilReveal', confirmedSeats: [] },
-        // 身份查看协议：bot 座位在发牌时即落已查看记录（对齐瞎掰王），
-        // 座位盘据此显示已确认徽标；检查点只对真人生效，行为不变。
-        roleViewedSeats: getAvalonBotSeats(state),
+        // 身份查看协议：发牌时无人落标记；bot 座位由房主用脚手架
+        // 动作标记，检查点对每个座位一视同仁。
+        roleViewedSeats: [],
         roles: { ...event.roles },
         nightInfo: {
           evilPeers: { ...event.nightInfo.evilPeers },
