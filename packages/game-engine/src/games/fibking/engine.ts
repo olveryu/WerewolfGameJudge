@@ -41,6 +41,7 @@ import type { FibEvent } from './domain/events';
 import { evolveFibState } from './domain/evolve';
 import {
   REASON_FIB_GAME_NOT_ENDED,
+  REASON_FIB_NO_BOT_SEATS,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -306,10 +307,12 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
   if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  const unviewedBots = listUnviewedBotSeats(
-    getFibViewingParticipants(state),
-    state.round.viewedSeats,
-  );
+  const participants = getFibViewingParticipants(state);
+  // Werewolf parity (Wave 8): with no bot seats at all the scaffold
+  // command rejects instead of committing an empty success.
+  if (!participants.some((participant) => participant.isBot))
+    return reject(REASON_FIB_NO_BOT_SEATS);
+  const unviewedBots = listUnviewedBotSeats(participants, state.round.viewedSeats);
   if (unviewedBots.length === 0) return commitFib([]);
   const events: FibEvent[] = [];
   let viewedSeats: readonly number[] = state.round.viewedSeats;

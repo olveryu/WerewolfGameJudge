@@ -38,6 +38,7 @@ export const AVALON_REASONS = {
   phase: 'avalon_phase_invalid',
   notHostStart: 'avalon_not_host_start',
   notHostMarkBots: 'avalon_not_host_mark_bots',
+  noBotSeats: 'avalon_no_bot_seats',
   full: 'avalon_room_not_full',
   notNightParticipant: 'avalon_not_night_participant',
   notLeader: 'avalon_not_leader',

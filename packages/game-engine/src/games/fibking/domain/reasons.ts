@@ -12,3 +12,4 @@ export const REASON_FIB_PLAYER_COUNT_INVALID = 'fib_player_count_invalid' as con
 export const REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE = 'fib_occupied_seat_out_of_range' as const;
 export const REASON_FIB_WORD_REUSED = 'fib_word_reused' as const;
 export const REASON_FIB_WORD_INVALID = 'fib_word_invalid' as const;
+export const REASON_FIB_NO_BOT_SEATS = 'fib_no_bot_seats' as const;

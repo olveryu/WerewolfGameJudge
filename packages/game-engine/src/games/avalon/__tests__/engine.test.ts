@@ -85,7 +85,12 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         if (!isAvalonBotSeat(session.state, seat))
           send({ type: 'avalon.role.viewed' }, seatUser(seat));
       }
-      send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
+      // 无机器人座位时标记命令会被拒（Wave 8 与狼人杀口径对齐），只在有 bot 时发；
+      // 隐式补位的 bot 在 seatCount 之外，按整局人数扫。
+      const hasBotSeat = Array.from({ length: numberOfPlayers }, (_, seat) => seat).some((seat) =>
+        isAvalonBotSeat(session.state, seat),
+      );
+      if (hasBotSeat) send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
       // 开局播报由房主 ack（测试模拟房主已播完）。
       if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
@@ -216,6 +221,12 @@ describe('Avalon engine', () => {
     const session = game({ numberOfPlayers: 6 }, 4);
     session.expectReject({ type: 'avalon.game.start' }, 'avalon_room_not_full');
     session.expectReject({ type: 'avalon.game.start' }, 'avalon_not_host_start', 'u1');
+  });
+
+  it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.send({ type: 'avalon.game.start' });
+    session.expectReject({ type: 'avalon.role.markAllBotsViewed' }, 'avalon_no_bot_seats');
   });
 
   it('fills implicit bot seats and lets the host take them over', () => {

@@ -15,6 +15,7 @@ import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
 import {
   REASON_FIB_GAME_NOT_ENDED,
+  REASON_FIB_NO_BOT_SEATS,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -113,6 +114,19 @@ function createFullLobby(): FibState {
 function startPreparing(state: FibState, commandId = 'round-command-1'): FibState {
   return dispatch(state, { type: 'fibking.round.start' }, userContext('host', { commandId }));
 }
+
+it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
+  let state = createLobby();
+  state = takeSeat(state, 0, 'host', '房主');
+  state = takeSeat(state, 1, 'alice');
+  state = takeSeat(state, 2, 'bob');
+  state = takeSeat(state, 3, 'carol');
+  const viewing = completeRound(startPreparing(state), '云朵', '悬浮在空中的水滴或冰晶集合');
+  expect(viewing.phase).toBe('viewing');
+  expect(
+    decideFibCommand(viewing, { type: 'fibking.round.markAllBotsViewed' }, userContext('host')),
+  ).toEqual({ kind: 'reject', reason: REASON_FIB_NO_BOT_SEATS });
+});
 
 function confirmAllRoleViews(state: FibState): FibState {
   if (state.phase !== 'viewing') throw new Error('Expected viewing state');

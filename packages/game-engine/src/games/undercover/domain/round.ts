@@ -223,21 +223,23 @@ export function decideUndercoverRound(
   }
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
-    case 'undercover.round.markAllBotsViewed':
+    case 'undercover.round.markAllBotsViewed': {
       // Host scaffold action: fill every unviewed bot seat's record
       // through the protocol's seat computation; the per-seat
       // confirmed events run the strict checkpoint in evolve.
-      return state.phase === 'reading'
-        ? commitUndercover(
-            listUnviewedBotSeats(
-              getUndercoverViewingParticipants(state),
-              state.round.confirmedSeats,
-            ).map((participant) => ({
-              type: 'undercover.round.confirmed' as const,
-              seat: participant.seat,
-            })),
-          )
-        : reject(UNDERCOVER_REASONS.phase);
+      if (state.phase !== 'reading') return reject(UNDERCOVER_REASONS.phase);
+      const participants = getUndercoverViewingParticipants(state);
+      // Werewolf parity (Wave 8): with no bot seats at all the scaffold
+      // command rejects instead of committing an empty success.
+      if (!participants.some((participant) => participant.isBot))
+        return reject(UNDERCOVER_REASONS.noBots);
+      return commitUndercover(
+        listUnviewedBotSeats(participants, state.round.confirmedSeats).map((participant) => ({
+          type: 'undercover.round.confirmed' as const,
+          seat: participant.seat,
+        })),
+      );
+    }
     case 'undercover.round.retry':
       return state.phase === 'preparationFailed'
         ? commitUndercover(
