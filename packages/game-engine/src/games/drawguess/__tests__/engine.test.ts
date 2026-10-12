@@ -127,7 +127,7 @@ describe('DrawGuess engine', () => {
     );
     expect(decision.kind).toBe('reject');
     if (decision.kind !== 'reject') throw new Error('expected rejection');
-    expect(decision.reason).toBe('请先坐满所有座位，或填充机器人。');
+    expect(decision.reason).toBe('drawguess_room_not_full');
   });
 
   it('starts the game with an ascending drawer queue and deals word choices', () => {

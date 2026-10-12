@@ -10,7 +10,7 @@ describe('getDrawGuessRoomCommandFailureMessage', () => {
   it('explains the full-room start requirement', () => {
     expect(
       getDrawGuessRoomCommandFailureMessage(
-        rejectedRoomCommand<DrawGuessState>('请先坐满所有座位，或填充机器人。', 'command-0'),
+        rejectedRoomCommand<DrawGuessState>('drawguess_room_not_full', 'command-0'),
       ),
     ).toBe('请先坐满所有座位，或填充机器人。');
   });
@@ -26,7 +26,7 @@ describe('getDrawGuessRoomCommandFailureMessage', () => {
   it('maps the internal words-dealt reason', () => {
     expect(
       getDrawGuessRoomCommandFailureMessage(
-        rejectedRoomCommand<DrawGuessState>('题目已下发', 'command-2'),
+        rejectedRoomCommand<DrawGuessState>('drawguess_words_dealt', 'command-2'),
       ),
     ).toBe('题目已下发');
   });
