@@ -32,22 +32,10 @@ import { useRoomShareController } from '@/features/room/controllers/useRoomShare
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import {
-  buildClearSeatsAction,
-  buildFillBotsAction,
-  buildNextRoundAction,
-  buildReturnLobbyAction,
-  buildRoomConfigAction,
-  buildStartGameAction,
-} from '@/features/room/model/hostManagementActions';
-import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-} from '@/features/room/model/RoomHostManagement';
 import {
   ROOM_SEAT_LOCKED_MESSAGE,
   ROOM_SEAT_TAP_BLOCKED_TITLE,
@@ -55,9 +43,13 @@ import {
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showErrorAlert } from '@/utils/alertPresets';
 
-import { createDrawGuessRoomShellModel, getDrawGuessSeatTapIntent } from '../drawGuessRoomAdapter';
+import {
+  createDrawGuessHostManagement,
+  createDrawGuessRoomShellModel,
+  getDrawGuessSeatTapIntent,
+} from '../drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
 import { useDrawGuessSeatCommands } from './useDrawGuessSeatCommands';
 
@@ -237,73 +229,15 @@ export function useDrawGuessRoomState(
         return seatController.requestMoveSeat(intent.seat);
     }
   };
-  const actions: RoomHostManagementAction[] = [];
-  if (capabilities.canConfigureGame.isAllowed)
-    actions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
-  if (capabilities.canFillBots.isAllowed)
-    actions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
-  if (capabilities.canClearSeats.isAllowed)
-    actions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
-  const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
-  const canStart = occupiedSeatCount === state.config.numberOfPlayers;
-  const startDisabledReason = canStart ? null : '座位尚未坐满';
-  const isTerminal = state.phase.kind === 'ended';
-  const terminalHostManagement: RoomHostManagementModel | null = !isTerminal
-    ? null
-    : {
-        preview: '本局已结束',
-        status: null,
-        sections: [
-          {
-            key: 'current-flow',
-            title: '当前流程',
-            actions: [
-              buildNextRoundAction({
-                onPress: () =>
-                  showConfirmAlert(
-                    '再来一局',
-                    '重新生成画手队列并清零比分，开始新的一局。',
-                    async () => {
-                      await submit('再来一局', { type: 'drawguess.round.start' });
-                    },
-                  ),
-              }),
-              buildReturnLobbyAction({
-                onPress: () =>
-                  showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
-                    await submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
-                  }),
-              }),
-            ],
-          },
-        ],
-      };
   const selection = profile.selection;
-  const hostManagement: RoomHostManagementModel | null = !isHost
-    ? null
-    : isLobby
-      ? {
-          preview: '开始游戏',
-          status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
-          sections: [
-            {
-              key: 'game',
-              title: '游戏',
-              actions: [
-                buildStartGameAction({
-                  onPress: () => void submit('开始游戏', { type: 'drawguess.round.start' }),
-                  isEnabled: !submission.isSubmitting && canStart,
-                  disabledReason: startDisabledReason,
-                  onDisabledPress: () =>
-                    showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-                  isLoading: submission.isSubmitting,
-                }),
-              ],
-            },
-            { key: 'room', title: '房间管理', actions },
-          ],
-        }
-      : terminalHostManagement;
+  const hostManagement = createDrawGuessHostManagement({
+    state,
+    isHost,
+    capabilities,
+    isSubmitting: submission.isSubmitting,
+    submit,
+  });
+
   const shellModel: RoomShellModel = createDrawGuessRoomShellModel({
     roomCode: room.roomCode,
     capabilities,
