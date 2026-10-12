@@ -5,7 +5,7 @@ import type { DrawGuessCommand, DrawGuessPublicCommand } from '../commands/types
 import { computeGuesserScore, isCorrectGuess, normalizeGuessText } from '../domain/rules';
 import { getDrawGuessViewModel } from '../domain/visibility';
 import { drawGuessEngine } from '../engine';
-import { parseDrawGuessState } from '../state/codec';
+import { parseDrawGuessState } from '../state/parseState';
 import {
   DEFAULT_DRAWGUESS_CONFIG,
   DRAWGUESS_WORD_CHOICE_COUNT,

@@ -8,7 +8,8 @@ import { UNDERCOVER_REASONS } from '../domain/decision';
 import type { UndercoverRole } from '../domain/rules';
 import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
-import { migratePersistedUndercoverState, UNDERCOVER_STATE_CODEC } from '../state/codec';
+import { UNDERCOVER_STATE_CODEC } from '../state/codec';
+import { migratePersistedUndercoverState } from '../state/parseState';
 import { getUndercoverBotSeats, type UndercoverConfig, type UndercoverState } from '../state/types';
 
 const config: UndercoverConfig = {

@@ -5,7 +5,7 @@ import type { AvalonCommand } from '../commands/types';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
-import { parseAvalonState } from '../state/codec';
+import { parseAvalonState } from '../state/parseState';
 import {
   AVALON_BOARDS,
   AVALON_QUEST_SIZES,

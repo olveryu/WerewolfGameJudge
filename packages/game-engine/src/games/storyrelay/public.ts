@@ -4,12 +4,12 @@ export { isBotOccupant } from '../../platform/room/seating';
 export type { StoryRelayCommand, StoryRelayTaskIdentity } from './commands/types';
 export { STORY_RELAY_REASONS, type StoryRelayEffect } from './domain/decision';
 export { decideStoryRelayCommand, getStoryRelayLifecycle, storyRelayEngine } from './engine';
+export { STORY_RELAY_STATE_CODEC } from './state/codec';
 export {
   migratePersistedStoryRelayState,
   parseStoryRelayConfig,
   parseStoryRelayState,
-  STORY_RELAY_STATE_CODEC,
-} from './state/codec';
+} from './state/parseState';
 export {
   DEFAULT_STORY_RELAY_CONFIG,
   getStoryRelayBotSeats,

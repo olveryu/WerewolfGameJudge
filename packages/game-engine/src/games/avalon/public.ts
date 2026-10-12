@@ -28,12 +28,12 @@ export {
   getAvalonViewModel,
 } from './domain/visibility';
 export { avalonEngine, decideAvalonCommand, getAvalonLifecycle } from './engine';
+export { AVALON_STATE_CODEC } from './state/codec';
 export {
-  AVALON_STATE_CODEC,
   migratePersistedAvalonState,
   parseAvalonConfig,
   parseAvalonState,
-} from './state/codec';
+} from './state/parseState';
 export {
   AVALON_BOARDS,
   AVALON_DEFAULT_VETO_LIMIT,

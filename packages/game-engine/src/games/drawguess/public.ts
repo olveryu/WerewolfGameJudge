@@ -10,12 +10,12 @@ export { DRAWGUESS_REASONS, type DrawGuessEffect } from './domain/decision';
 export { isValidGuessText } from './domain/rules';
 export { type DrawGuessViewModel, getDrawGuessViewModel } from './domain/visibility';
 export { decideDrawGuessCommand, drawGuessEngine, getDrawGuessLifecycle } from './engine';
+export { DRAWGUESS_STATE_CODEC } from './state/codec';
 export {
-  DRAWGUESS_STATE_CODEC,
   migratePersistedDrawGuessState,
   parseDrawGuessConfig,
   parseDrawGuessState,
-} from './state/codec';
+} from './state/parseState';
 export {
   DEFAULT_DRAWGUESS_CONFIG,
   DRAWGUESS_DRAWING_DURATION_SECONDS,

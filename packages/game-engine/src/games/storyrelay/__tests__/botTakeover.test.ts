@@ -10,7 +10,7 @@ import {
 } from '../../../platform/protocol/reasons';
 import type { StoryRelayCommand } from '../commands/types';
 import { storyRelayEngine } from '../engine';
-import { parseStoryRelayState } from '../state/codec';
+import { parseStoryRelayState } from '../state/parseState';
 import {
   DEFAULT_STORY_RELAY_CONFIG,
   getStoryRelayBotSeats,

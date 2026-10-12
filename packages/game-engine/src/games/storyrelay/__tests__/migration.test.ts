@@ -4,7 +4,7 @@ import type { CommandContext } from '../../../platform/engine';
 import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { StoryRelayCommand } from '../commands/types';
 import { storyRelayEngine } from '../engine';
-import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/codec';
+import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/parseState';
 import {
   DEFAULT_STORY_RELAY_CONFIG,
   getStoryRelayBotSeats,

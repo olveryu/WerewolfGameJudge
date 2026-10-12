@@ -18,7 +18,7 @@ import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
-import { migratePersistedAvalonState, parseAvalonState } from '../state/codec';
+import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
 import {
   AVALON_NIGHT_STEPS,
   type AvalonConfig,

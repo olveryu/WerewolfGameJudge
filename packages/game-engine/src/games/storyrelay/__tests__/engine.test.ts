@@ -3,7 +3,7 @@
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { StoryRelayCommand } from '../commands/types';
 import { storyRelayEngine } from '../engine';
-import { parseStoryRelayState } from '../state/codec';
+import { parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayTaskForSeat } from '../state/types';
 
 function game(numberOfPlayers = 4, galleryItemDurationSeconds: 10 | null = null) {

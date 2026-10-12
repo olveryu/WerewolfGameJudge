@@ -5,7 +5,7 @@ import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { DrawGuessCommand } from '../commands/types';
 import { DRAWGUESS_REASONS } from '../domain/decision';
 import { drawGuessEngine } from '../engine';
-import { migratePersistedDrawGuessState, parseDrawGuessState } from '../state/codec';
+import { migratePersistedDrawGuessState, parseDrawGuessState } from '../state/parseState';
 import {
   DEFAULT_DRAWGUESS_CONFIG,
   type DrawGuessState,
