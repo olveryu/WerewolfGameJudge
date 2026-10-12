@@ -287,7 +287,7 @@ describe('Werewolf command handlers', () => {
     it('rejects when the roster holds no bots', () => {
       const result = handleMarkBotsGroupConfirmed(createContext(createState()));
 
-      expect(expectError(result).reason).toBe('debug_not_enabled');
+      expect(expectError(result).reason).toBe('no_bot_seats');
     });
 
     it('rejects before checking the current step when the game is not ongoing', () => {

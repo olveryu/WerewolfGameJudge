@@ -410,7 +410,7 @@ export function handleMarkAllBotsViewed(
 
   // Gate: at least one bot seat must exist
   if (getWerewolfBotSeats(state).length === 0) {
-    return handlerError('debug_not_enabled');
+    return handlerError('no_bot_seats');
   }
 
   // Gate: status must be assigned
