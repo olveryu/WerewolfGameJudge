@@ -51,12 +51,10 @@ describe('Undercover schemas', () => {
     );
   });
 
-  it('rejects the retired bulk bot confirmation command', () => {
-    expect(
-      undercoverPublicCommandSchema.safeParse({
-        type: 'undercover.round.markAllBotsViewed',
-        roundId: 'round',
-      }).success,
-    ).toBe(false);
+  it('accepts bulk bot confirmation only with a round ID and no caller-supplied seats', () => {
+    const command = { type: 'undercover.round.markAllBotsViewed', roundId: 'round' };
+    expect(undercoverPublicCommandSchema.parse(command)).toEqual(command);
+    expect(undercoverPublicCommandSchema.safeParse({ type: command.type }).success).toBe(false);
+    expect(undercoverPublicCommandSchema.safeParse({ ...command, seats: [0] }).success).toBe(false);
   });
 });

@@ -83,8 +83,7 @@ it('conceals roles and words while everyone reads their cards', () => {
   expect(source.getSeat(1).highlight).toBe('controlled');
   expect(getUndercoverUserSeat(state, 'host')).toBe(0);
   expect(getUndercoverUserSeat(state, 'visitor')).toBeNull();
-  // AU-18: the five bot seats are marked at round start; only the host is outstanding.
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '确认词卡 · 5/6' });
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '确认词卡 · 0/6' });
 });
 
 it('conceals cards on control changes, backgrounding and remount', () => {
@@ -123,7 +122,7 @@ it('conceals cards on control changes, backgrounding and remount', () => {
   listener.mockRestore();
 });
 
-it('offers unseated host bot filling; bulk bot viewing no longer exists (AU-18)', () => {
+it('offers unseated host bot filling and bulk viewing only while bots remain unconfirmed', () => {
   const state = createReadingState();
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
@@ -163,17 +162,28 @@ it('offers unseated host bot filling; bulk bot viewing no longer exists (AU-18)'
     takeOverBot: jest.fn(),
   });
   expect(unseatedCapabilities.canFillBots.isAllowed).toBe(true);
-  // AU-18: bot seats are marked by the engine at round start, so the
-  // host panel carries no bulk-viewing action in the reading phase.
   expect(
     createUndercoverHostManagement({ state, isHost: true, capabilities, controls: result.current })
       ?.sections[0]?.actions,
-  ).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-all-bots-viewed' })]));
+  ).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
+  const confirmed = dispatch(state, {
+    type: 'undercover.round.markAllBotsViewed',
+    roundId: state.round!.roundId,
+  });
+  expect(
+    createUndercoverHostManagement({
+      state: confirmed,
+      isHost: true,
+      capabilities,
+      controls: result.current,
+    })?.sections[0]?.actions,
+  ).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
 });
 
 it('selects directly for confirmation, cancels without submission and invalidates eliminated targets', () => {
   let state = createReadingState();
   const roundId = state.round!.roundId;
+  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
   state = dispatch(state, { type: 'undercover.round.confirm', roundId });
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result, rerender } = renderHook(
@@ -224,6 +234,11 @@ it('shows the authoritative starting speaker only once all cards are confirmed',
   let state = createReadingState();
   if (state.round === null) throw new Error('Expected round');
   const { roundId, speakingStartSeat } = state.round;
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    kind: 'message',
+    supportingText: null,
+  });
+  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
   expect(createUndercoverStatusRibbon(state)).toMatchObject({
     kind: 'message',
     supportingText: null,
@@ -339,6 +354,7 @@ describe('createUndercoverRoomShellModel', () => {
     openCard: jest.fn(),
     closeCard: jest.fn(),
     confirmCard: jest.fn(),
+    markAllBotsViewed: jest.fn(),
     isSelecting: false,
     selectedSeat: null,
     reveal: jest.fn(),

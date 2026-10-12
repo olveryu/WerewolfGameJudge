@@ -66,12 +66,15 @@ describe('Undercover Worker effects', () => {
       },
     );
     if (reading.kind === 'reject') throw new Error(reading.reason);
-    // Bots are marked at round start; the host's confirm is the last
-    // human one, so the round is already ongoing (AU-18).
-    let decision = applyCommand(
+    const confirmed = applyCommand(
       reading.state,
       { type: 'undercover.round.confirm', roundId },
       'confirm',
+    );
+    let decision = applyCommand(
+      confirmed.state,
+      { type: 'undercover.round.markAllBotsViewed', roundId },
+      'bots',
     );
     for (let seat = 0; decision.state.phase === 'ongoing'; seat += 1) {
       decision = applyCommand(
