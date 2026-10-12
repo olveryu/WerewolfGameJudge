@@ -7,8 +7,8 @@ import {
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { z } from 'zod';
 
-import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
+import { handleStoryRelayEffect } from './effects';
 import {
   storyRelayCreateConfigSchema,
   storyRelayEffectSchema,
@@ -30,8 +30,7 @@ export const storyRelayWorkerModule = defineWorkerGameModule({
   parsePublicUserStats: (value) => publicStatsSchema.parse(value),
   getPublicUserStats: () => Promise.resolve({ gameType: 'storyrelay' as const }),
   getEffectBusinessKey: (effect) => effect.payload.roundId,
-  handleEffect: (effect, context) =>
-    publishGameRewards({ ...effect.payload, kind: 'completion', gameType: 'storyrelay' }, context),
+  handleEffect: handleStoryRelayEffect,
   getEffectFailureCommand: () => null,
   canReplayFailedEffect: () => true,
 });

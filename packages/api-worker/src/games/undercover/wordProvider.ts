@@ -1,7 +1,7 @@
 /** Bounded Gemini editorial requests; generation and review use separate prompts and outputs. */
 import type { UndercoverCategory } from '@game-judge/game-engine/games/undercover/public';
-import { z } from 'zod';
 
+import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import {
   parseUndercoverReviews,
   UNDERCOVER_WORD_BATCH_LIMIT,
@@ -11,19 +11,6 @@ import {
 } from './wordEditorial';
 
 export const UNDERCOVER_WORD_MODEL = 'gemini-3.5-flash-lite';
-const REQUEST_TIMEOUT_MS = 120_000;
-const responseSchema = z.object({
-  candidates: z
-    .array(
-      z.object({
-        finishReason: z.literal('STOP'),
-        content: z.object({
-          parts: z.array(z.object({ text: z.string(), thought: z.boolean().optional() })).min(1),
-        }),
-      }),
-    )
-    .length(1),
-});
 const CATEGORY_TOPICS: Record<UndercoverCategory, string> = {
   food: '美食饮品：食物、饮料、烹饪与用餐习惯',
   dailyLife: '日常生活：日用品、家居、购物与日常习惯',
@@ -52,64 +39,6 @@ const REVIEW_PROMPT = `你独立审核中文聚会游戏「谁是卧底」词对
 合格词对的commonTraits与differences数组都必须分别列出至少2个独立元素，最多4个；不要把两项依据合并在一个字符串中。只有1个元素就不能判为对应质量项通过，找不到第二个独立角度时应明确拒绝。
 不确定的任一质量项必须false，不能靠其他项弥补。所有词对都必须返回审核，包括不合格者。`;
 
-async function requestStructuredOutput<Output>(
-  apiKey: string,
-  schema: z.ZodType<Output>,
-  systemPrompt: string,
-  payload: unknown,
-  fetchImpl: typeof fetch,
-): Promise<Output> {
-  if (apiKey.length === 0) throw new Error('Undercover provider requires GEMINI_API_KEY');
-  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  let response: Response;
-  try {
-    response = await fetchImpl.call(
-      globalThis,
-      `https://generativelanguage.googleapis.com/v1beta/models/${UNDERCOVER_WORD_MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: JSON.stringify(payload) }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseJsonSchema: z.toJSONSchema(schema, {
-              target: 'openapi-3.0',
-              override: ({ jsonSchema }) => {
-                delete jsonSchema.minLength;
-                delete jsonSchema.maxLength;
-                delete jsonSchema.minItems;
-                delete jsonSchema.maxItems;
-              },
-            }),
-          },
-        }),
-      },
-    );
-  } catch {
-    throw new Error(
-      signal.aborted ? 'Undercover provider [timedOut]' : 'Undercover provider [requestFailed]',
-    );
-  }
-  if (!response.ok) throw new Error(`Undercover provider HTTP ${response.status}`);
-  try {
-    const value: unknown = await response.json();
-    const first = responseSchema.parse(value).candidates[0];
-    if (first === undefined) throw new Error('Missing provider candidate');
-    const content: unknown = JSON.parse(
-      first.content.parts
-        .filter((part) => part.thought !== true)
-        .map((part) => part.text)
-        .join(''),
-    );
-    return schema.parse(content);
-  } catch {
-    throw new Error('Undercover provider [invalidOutput]');
-  }
-}
-
 /** Provider output remains unapproved until a separate review request and publication transaction. */
 export function createUndercoverWordProvider(apiKey: string, fetchImpl: typeof fetch = fetch) {
   return {
@@ -117,29 +46,33 @@ export function createUndercoverWordProvider(apiKey: string, fetchImpl: typeof f
       category: UndercoverCategory,
       history: readonly { wordA: string; wordB: string }[],
     ) {
-      return requestStructuredOutput(
+      return requestStructuredOutput({
         apiKey,
-        undercoverCandidatesSchema,
-        GENERATION_PROMPT,
-        { category, topic: CATEGORY_TOPICS[category], history },
+        model: UNDERCOVER_WORD_MODEL,
+        providerLabel: 'Undercover',
+        schema: undercoverCandidatesSchema,
+        systemPrompt: GENERATION_PROMPT,
+        payload: { category, topic: CATEGORY_TOPICS[category], history },
         fetchImpl,
-      );
+      });
     },
     async reviewBatch(
       category: UndercoverCategory,
       candidates: readonly UndercoverWordCandidate[],
     ) {
-      const output = await requestStructuredOutput(
+      const output = await requestStructuredOutput({
         apiKey,
-        undercoverReviewsSchema,
-        REVIEW_PROMPT,
-        {
+        model: UNDERCOVER_WORD_MODEL,
+        providerLabel: 'Undercover',
+        schema: undercoverReviewsSchema,
+        systemPrompt: REVIEW_PROMPT,
+        payload: {
           category,
           topic: CATEGORY_TOPICS[category],
           candidates: candidates.map(({ wordA, wordB }) => ({ wordA, wordB })),
         },
         fetchImpl,
-      );
+      });
       return parseUndercoverReviews(output, candidates);
     },
   };
