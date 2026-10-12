@@ -1,8 +1,7 @@
 /** Exercises DrawGuess through authoritative commands, never injecting progressed state. */
 
-import type { CommandContext } from '../../../platform/engine';
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { DrawGuessCommand, DrawGuessPublicCommand } from '../commands/types';
-import type { DrawGuessEffect } from '../domain/decision';
 import { computeGuesserScore, isCorrectGuess, normalizeGuessText } from '../domain/rules';
 import { getDrawGuessViewModel } from '../domain/visibility';
 import { drawGuessEngine } from '../engine';
@@ -36,50 +35,21 @@ function testStroke(id: string, seat: number): DrawGuessStroke {
 }
 
 function game(numberOfPlayers = 4) {
-  let nowMs = 1000;
-  let commandNumber = 0;
-  let state = drawGuessEngine.createInitialState(
-    { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers },
-    { roomCode: '1234', hostUserId: 'host', nowMs, commandId: 'create' },
-  );
-  const effects: DrawGuessEffect[] = [];
-  const context = (userId: string, controlledSeat: number | null = null): CommandContext => ({
-    actor: { kind: 'user', userId },
-    controlledSeat,
-    nowMs,
-    commandId: `command:${commandNumber++}`,
-    randomSeed: `seed:${commandNumber}`,
+  const session = createEngineSession(drawGuessEngine, {
+    config: { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers },
+    parse: parseDrawGuessState,
   });
-  const systemContext = (): CommandContext => ({
-    actor: { kind: 'system', effectId: 'effect:1' },
-    controlledSeat: null,
-    nowMs,
-    commandId: `command:${commandNumber++}`,
-    randomSeed: `seed:${commandNumber}`,
-  });
-  const apply = (command: DrawGuessCommand, ctx: CommandContext) => {
-    const decision = drawGuessEngine.decide(state, command, ctx);
-    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
-    state = parseDrawGuessState(
-      JSON.parse(
-        JSON.stringify(
-          drawGuessEngine.normalize(decision.events.reduce(drawGuessEngine.evolve, state)),
-        ),
-      ),
-    );
-    effects.push(...decision.effects);
-    return state;
-  };
   const send = (
     command: DrawGuessPublicCommand,
     userId = 'host',
     controlledSeat: number | null = null,
-  ) => apply(command, context(userId, controlledSeat));
-  const sendInternal = (command: DrawGuessCommand) => apply(command, systemContext());
+  ) => session.send(command, userId, controlledSeat);
+  const sendInternal = (command: DrawGuessCommand) =>
+    session.sendAs(command, session.systemContext('effect:1'));
   const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
   const revision = () => ({
-    phaseRevision: state.phaseRevision,
-    turnIndex: state.turnIndex,
+    phaseRevision: session.state.phaseRevision,
+    turnIndex: session.state.turnIndex,
   });
   // Seat 4 real humans (host at seat 0).
   for (let seat = 0; seat < 4; seat += 1) {
@@ -87,18 +57,18 @@ function game(numberOfPlayers = 4) {
   }
   return {
     get state() {
-      return state;
+      return session.state;
     },
-    effects,
+    effects: session.effects,
     send,
     sendInternal,
     seatUser,
     revision,
     advanceTime(milliseconds: number) {
-      nowMs += milliseconds;
+      session.advance(milliseconds);
     },
     get nowMs() {
-      return nowMs;
+      return session.now();
     },
     startGame() {
       send({ type: 'drawguess.round.start' });
@@ -113,12 +83,12 @@ function game(numberOfPlayers = 4) {
       send({ type: 'drawguess.guess.submit', text, ...this.revision() }, this.seatUser(seat));
     },
     expire() {
-      const phase = state.phase;
+      const phase = session.state.phase;
       if (
         (phase.kind === 'wordSelect' || phase.kind === 'drawing' || phase.kind === 'roundEnd') &&
         phase.deadlineAt !== null
       ) {
-        nowMs = phase.deadlineAt;
+        session.setNow(phase.deadlineAt);
       }
       send({ type: 'drawguess.phase.expire', ...this.revision() });
     },
