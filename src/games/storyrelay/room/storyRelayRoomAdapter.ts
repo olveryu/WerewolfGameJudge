@@ -1,23 +1,39 @@
 /** Projects Story Relay state into shared seats and public room status without exposing drafts. */
 
 import {
+  getStoryRelayBotSeats,
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
   isBotOccupant,
   isStoryRelayBotSeat,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
+import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import {
+  buildRoomHeaderModel,
+  type RoomHeaderGachaStatus,
+} from '@/features/room/model/buildRoomHeaderModel';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 /** Returns a public occupant identity for shared profile controls. */
-export function getStoryRelayProfileTarget(
+function getStoryRelayProfileTarget(
   state: StoryRelayState,
   seat: number,
 ): RoomProfileTarget | null {
@@ -40,12 +56,32 @@ export function getStoryRelayProfileTarget(
 }
 
 /** Creates the shared seat-board source including public readiness and receipt status. */
-export function createStoryRelaySeatDataSource(
-  state: StoryRelayState,
-  revision: number,
-  userId: string,
-  controlledSeat: number | null,
-): RoomSeatDataSource {
+export interface StoryRelaySeatSourceInput {
+  readonly state: StoryRelayState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+}
+
+interface StoryRelaySeatTapInput {
+  readonly state: StoryRelayState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/** Project StoryRelay seating into the shared room seat-tap contract. */
+export function getStoryRelaySeatTapIntent(input: StoryRelaySeatTapInput) {
+  return getRoomSeatTapIntent({
+    seat: input.seat,
+    currentSeat: input.currentSeat,
+    target: getStoryRelayProfileTarget(input.state, input.seat),
+    disabledReason: input.disabledReason,
+  });
+}
+
+function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomSeatDataSource {
+  const { state, revision, userId, controlledSeat } = input;
   return {
     count: state.config.numberOfPlayers,
     revision: `${revision}:${controlledSeat ?? 'self'}`,
@@ -57,13 +93,7 @@ export function createStoryRelaySeatDataSource(
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const player =
         human !== undefined
-          ? {
-              kind: 'human' as const,
-              userId: human.userId,
-              ...human.profile,
-              seatPetId: human.profile.revealEffect,
-              isAnonymous: human.profile.avatarUrl === undefined,
-            }
+          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
             : {
@@ -104,7 +134,7 @@ export function createStoryRelaySeatDataSource(
 }
 
 /** Public status never includes story content or writer identity. */
-export function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonModel | null {
+function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonModel | null {
   if (state.phase === 'answering' || state.phase === 'transition')
     return {
       kind: 'progress',
@@ -128,4 +158,89 @@ export function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatus
             ? '未完成的故事'
             : '本局故事已完成';
   return { kind: 'message', icon: 'guide', text, supportingText: null };
+}
+
+export interface StoryRelayRoomShellModelInput {
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  readonly onUserActionPress: () => void;
+  readonly connection: RoomConnectionViewModel;
+  readonly state: StoryRelayState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+  readonly seatsVisuallyDisabled: boolean;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
+  readonly seatController: RoomSeatController;
+  readonly profileSelection: RoomProfileSelection | null;
+  readonly onProfileClose: () => void;
+  readonly onProfileLeaveSeat: () => void;
+  readonly share: RoomShareModel;
+  readonly isLobby: boolean;
+  readonly isHost: boolean;
+  readonly mySeat: number | null;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly canControlBots: boolean;
+  readonly releaseBot: () => void;
+}
+
+/** Assembles the StoryRelay RoomShellModel from the hook's projections. */
+export function createStoryRelayRoomShellModel(
+  input: StoryRelayRoomShellModelInput,
+): RoomShellModel {
+  const { state } = input;
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: buildRoomHeaderModel({
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      user: input.user,
+      gachaStatus: input.gachaStatus,
+      onUserActionPress: input.onUserActionPress,
+    }),
+    connection: input.connection,
+    statusRibbon: createStoryRelayStatusRibbon(state),
+    seats: {
+      source: createStoryRelaySeatDataSource({
+        state,
+        revision: input.revision,
+        userId: input.userId,
+        controlledSeat: input.controlledSeat,
+      }),
+      visuallyDisabled: input.seatsVisuallyDisabled,
+      onSeatPress: input.onSeatPress,
+      onBotSeatLongPress: input.onBotSeatLongPress,
+    },
+    seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
+    profile: createRoomProfileCardModel({
+      selection: input.profileSelection,
+      capabilities: input.capabilities,
+      onClose: input.onProfileClose,
+      onLeaveSeat: input.onProfileLeaveSeat,
+    }),
+    share: input.share,
+    bottomActions: {
+      kind: 'info',
+      message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null,
+      actions: [],
+    },
+    hostManagement: input.hostManagement,
+    controlledSeat: createControlledSeatModel({
+      canControlBots: input.canControlBots,
+      hasBots: getStoryRelayBotSeats(state).length > 0,
+      controlledSeat: input.controlledSeat,
+      controlledBotName:
+        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+      release: input.releaseBot,
+      gameName: 'StoryRelay',
+    }),
+  };
 }

@@ -38,6 +38,7 @@ import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed } from '@/theme';
 
+import { createWerewolfBoardInfoSections } from '../werewolfRoomAdapter';
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { createMvpSelectionStyles, MvpSelectionModal } from './components/MvpSelectionModal';
@@ -261,22 +262,13 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           >
             <BoardInfoCard
               playerCount={gameState.template.numberOfPlayers}
-              sections={[
-                { title: '狼人', items: wolfRoleItems, color: colors.wolf },
-                { title: '神职', items: godRoleItems, color: colors.god },
-                { title: '特殊', items: specialRoleItems, color: colors.third },
-                {
-                  title: '村民',
-                  items:
-                    villagerCount > 0
-                      ? [
-                          { roleId: 'villager', displayName: '村民', count: villagerCount },
-                          ...villagerRoleItems,
-                        ]
-                      : villagerRoleItems,
-                  color: colors.villager,
-                },
-              ]}
+              sections={createWerewolfBoardInfoSections({
+                wolfRoleItems,
+                godRoleItems,
+                specialRoleItems,
+                villagerRoleItems,
+                villagerCount,
+              })}
               collapsed={
                 roomStatus === GameStatus.Ongoing ||
                 roomStatus === GameStatus.Day ||

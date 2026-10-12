@@ -1,15 +1,23 @@
 /** Undercover projections for the shared room shell; no I/O or client-side game decisions. */
 
 import {
+  getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
   isBotOccupant,
   isUndercoverBotSeat,
   type UndercoverCategory,
   type UndercoverRole,
+  type UndercoverRoleCounts,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
+import {
+  buildRoomHeaderModel,
+  type RoomHeaderGachaStatus,
+} from '@/features/room/model/buildRoomHeaderModel';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -17,8 +25,20 @@ import {
   type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
+import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
+import { colors } from '@/theme';
+
+import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
+import {
+  createUndercoverBottomActions,
+  createUndercoverHostManagement,
+} from './undercoverActionModels';
 
 const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
@@ -90,14 +110,19 @@ export function createUndercoverRoomCapabilities(
 }
 
 /** Public seats reveal only eliminated roles until the authoritative winning state arrives. */
+export interface UndercoverSeatSourceInput {
+  readonly state: UndercoverState;
+  readonly revision: number;
+  readonly myUserId: string;
+  readonly controlledSeat: number | null;
+  readonly selectedSeat: number | null;
+  readonly isSelecting: boolean;
+}
+
 export function createUndercoverSeatDataSource(
-  state: UndercoverState,
-  revision: number,
-  myUserId: string,
-  controlledSeat: number | null,
-  selectedSeat: number | null,
-  isSelecting: boolean,
+  input: UndercoverSeatSourceInput,
 ): RoomSeatDataSource {
+  const { state, revision, myUserId, controlledSeat, selectedSeat, isSelecting } = input;
   return {
     count: state.config.numberOfPlayers,
     revision: `${revision}:${controlledSeat}:${selectedSeat}:${isSelecting}`,
@@ -112,19 +137,12 @@ export function createUndercoverSeatDataSource(
         player:
           target === null
             ? null
-            : {
+            : toRoomSeatPlayer({
                 kind: target.occupantKind,
                 userId: target.userId,
+                ...human?.profile,
                 displayName: target.rosterName,
-                avatarUrl: human?.profile.avatarUrl,
-                avatarFrame: human?.profile.avatarFrame,
-                seatFlair: human?.profile.seatFlair,
-                seatAnimation: human?.profile.seatAnimation,
-                nameStyle: human?.profile.nameStyle,
-                seatPetId: human?.profile.revealEffect,
-                level: human?.profile.level,
-                isAnonymous: human?.profile.avatarUrl === undefined,
-              },
+              }),
         isSelf: human?.userId === myUserId,
         highlight:
           selectedSeat === seat ? 'selected' : controlledSeat === seat ? 'controlled' : 'none',
@@ -187,5 +205,117 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
       state.phase === 'ongoing'
         ? `首轮从 ${state.round.speakingStartSeat + 1} 号开始发言（随机）`
         : null,
+  };
+}
+
+export interface UndercoverBoardInfoSectionsInput {
+  readonly roleCounts: UndercoverRoleCounts;
+  readonly hasBlank: boolean;
+}
+
+/** 卧底板子信息分组：卧底 / 平民，白板局时多一组白板。 */
+export function createUndercoverBoardInfoSections(
+  input: UndercoverBoardInfoSectionsInput,
+): readonly BoardInfoSection[] {
+  const { roleCounts } = input;
+  const sections: BoardInfoSection[] = [
+    {
+      title: '卧底',
+      items: [{ roleId: 'undercover', displayName: '卧底', count: roleCounts.undercover }],
+      color: colors.wolf,
+    },
+    {
+      title: '平民',
+      items: [{ roleId: 'civilian', displayName: '平民', count: roleCounts.civilian }],
+      color: colors.villager,
+    },
+  ];
+  if (input.hasBlank) {
+    sections.push({
+      title: '白板',
+      items: [{ roleId: 'blank', displayName: '白板', count: roleCounts.blank }],
+      color: colors.textMuted,
+    });
+  }
+  return sections;
+}
+
+export interface UndercoverRoomShellModelInput {
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  readonly onUserActionPress: () => void;
+  readonly connection: RoomConnectionViewModel;
+  readonly state: UndercoverState;
+  readonly revision: number;
+  readonly myUserId: string;
+  readonly controlledSeat: number | null;
+  readonly selectedSeat: number | null;
+  readonly isSelecting: boolean;
+  readonly seatsVisuallyDisabled: boolean;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  readonly isHost: boolean;
+  readonly controls: UndercoverRoundControls;
+  readonly release: () => void;
+}
+
+/** Assembles the Undercover RoomShellModel from the hook's projections. */
+export function createUndercoverRoomShellModel(
+  input: UndercoverRoomShellModelInput,
+): RoomShellModel {
+  const { state } = input;
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: buildRoomHeaderModel({
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      user: input.user,
+      gachaStatus: input.gachaStatus,
+      onUserActionPress: input.onUserActionPress,
+    }),
+    connection: input.connection,
+    statusRibbon: createUndercoverStatusRibbon(state),
+    seats: {
+      source: createUndercoverSeatDataSource({
+        state,
+        revision: input.revision,
+        myUserId: input.myUserId,
+        controlledSeat: input.controlledSeat,
+        selectedSeat: input.selectedSeat,
+        isSelecting: input.isSelecting,
+      }),
+      visuallyDisabled: input.seatsVisuallyDisabled,
+      onSeatPress: input.onSeatPress,
+      onBotSeatLongPress: input.onBotSeatLongPress,
+    },
+    seatConfirmation: input.seatConfirmation,
+    profile: input.profile,
+    share: input.share,
+    bottomActions: createUndercoverBottomActions(input.controls),
+    hostManagement: createUndercoverHostManagement(
+      state,
+      input.isHost,
+      input.capabilities,
+      input.controls,
+    ),
+    controlledSeat: createControlledSeatModel({
+      canControlBots: input.capabilities.canTakeOverBots.isAllowed,
+      hasBots: getUndercoverBotSeats(state).length > 0,
+      controlledSeat: input.controlledSeat,
+      controlledBotName:
+        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+      release: input.release,
+      gameName: 'Undercover',
+    }),
   };
 }

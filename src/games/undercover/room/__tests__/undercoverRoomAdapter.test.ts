@@ -12,13 +12,18 @@ import { AppState } from 'react-native';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
-import { useUndercoverRoundControls } from '../hooks/useUndercoverRoundControls';
+import {
+  type UndercoverRoundControls,
+  useUndercoverRoundControls,
+} from '../hooks/useUndercoverRoundControls';
 import {
   createUndercoverBottomActions,
   createUndercoverHostManagement,
 } from '../undercoverActionModels';
 import {
+  createUndercoverBoardInfoSections,
   createUndercoverRoomCapabilities,
+  createUndercoverRoomShellModel,
   createUndercoverSeatDataSource,
   createUndercoverStatusRibbon,
 } from '../undercoverRoomAdapter';
@@ -67,7 +72,14 @@ function createReadingState() {
 
 it('conceals roles and words while everyone reads their cards', () => {
   const state = createReadingState();
-  const source = createUndercoverSeatDataSource(state, 4, 'host', 1, null, false);
+  const source = createUndercoverSeatDataSource({
+    state,
+    revision: 4,
+    myUserId: 'host',
+    controlledSeat: 1,
+    selectedSeat: null,
+    isSelecting: false,
+  });
   for (let seat = 0; seat < source.count; seat += 1)
     expect(source.getSeat(seat).secondaryLabel).toBeNull();
   expect(source.getSeat(1).highlight).toBe('controlled');
@@ -179,9 +191,16 @@ it('selects directly for confirmation, cancels without submission and invalidate
   act(() => result.current.beginSelection());
   act(() => result.current.selectSeat(1));
   expect(result.current.selectedSeat).toBe(1);
-  expect(createUndercoverSeatDataSource(state, 1, 'host', 1, 1, true).getSeat(1).highlight).toBe(
-    'selected',
-  );
+  expect(
+    createUndercoverSeatDataSource({
+      state,
+      revision: 1,
+      myUserId: 'host',
+      controlledSeat: 1,
+      selectedSeat: 1,
+      isSelecting: true,
+    }).getSeat(1).highlight,
+  ).toBe('selected');
   expect(createUndercoverBottomActions(result.current)).toMatchObject({
     kind: 'info',
     actions: [{ key: 'cancel' }],
@@ -195,7 +214,14 @@ it('selects directly for confirmation, cancels without submission and invalidate
   rerender({ currentState: eliminated });
   expect(result.current.selectedSeat).toBeNull();
   expect(
-    createUndercoverSeatDataSource(eliminated, 2, 'host', 1, null, true).getSeat(1).disabledReason,
+    createUndercoverSeatDataSource({
+      state: eliminated,
+      revision: 2,
+      myUserId: 'host',
+      controlledSeat: 1,
+      selectedSeat: null,
+      isSelecting: true,
+    }).getSeat(1).disabledReason,
   ).toBe('该玩家已出局');
   act(() => result.current.selectSeat(1));
   expect(result.current.selectedSeat).toBeNull();
@@ -282,4 +308,136 @@ it('requires confirmation to restart an active round and exposes restart in host
   });
   expect(showConfirmAlert).not.toHaveBeenCalled();
   expect(session.dispatch).toHaveBeenCalledTimes(2);
+});
+
+describe('createUndercoverBoardInfoSections', () => {
+  it('builds undercover and civilian sections without a blank section', () => {
+    const sections = createUndercoverBoardInfoSections({
+      roleCounts: { undercover: 1, civilian: 5, blank: 0 },
+      hasBlank: false,
+    });
+    expect(sections.map((section) => section.title)).toEqual(['卧底', '平民']);
+    expect(sections[0]?.items[0]).toMatchObject({ roleId: 'undercover', count: 1 });
+    expect(sections[1]?.items[0]).toMatchObject({ roleId: 'civilian', count: 5 });
+  });
+
+  it('appends the blank section only for blank games', () => {
+    const sections = createUndercoverBoardInfoSections({
+      roleCounts: { undercover: 1, civilian: 4, blank: 1 },
+      hasBlank: true,
+    });
+    expect(sections.map((section) => section.title)).toEqual(['卧底', '平民', '白板']);
+    expect(sections[2]?.items[0]).toMatchObject({ roleId: 'blank', count: 1 });
+  });
+});
+
+describe('createUndercoverRoomShellModel', () => {
+  function createLobbyState() {
+    let state = undercoverEngine.createInitialState(
+      { numberOfPlayers: 6, hasBlank: true, category: 'all' },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1, commandId: 'create' },
+    );
+    state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+    state = dispatch(state, { type: 'room.seat.fillBots' });
+    return state;
+  }
+
+  const controls: UndercoverRoundControls = {
+    isSubmitting: false,
+    controlledSeat: null,
+    card: null,
+    canViewCard: false,
+    shouldConfirm: false,
+    openCard: jest.fn(),
+    closeCard: jest.fn(),
+    confirmCard: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    isSelecting: false,
+    selectedSeat: null,
+    reveal: jest.fn(),
+    selectSeat: jest.fn(),
+    beginSelection: jest.fn(),
+    cancelRevelation: jest.fn(),
+    cancelSelection: jest.fn(),
+    start: jest.fn(),
+    retry: jest.fn(),
+    abort: jest.fn(),
+    restart: jest.fn(),
+    returnToLobby: jest.fn(),
+    allowRepeated: jest.fn(),
+  };
+
+  it('assembles the shell from the hook projections (AU-01 characterization)', () => {
+    const state = createLobbyState();
+    const capabilities = createUndercoverRoomCapabilities({
+      state,
+      isHost: true,
+      mySeat: 0,
+      requestTakeSeat: jest.fn(),
+      requestMoveSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      kickSeat: jest.fn(),
+      clearSeats: jest.fn(),
+      fillBots: jest.fn(),
+      configureGame: jest.fn(),
+      shareRoom: jest.fn(),
+      openProfile: jest.fn(),
+      takeOverBot: jest.fn(),
+    });
+    const share = {
+      isVisible: false,
+      roomCode: '1234',
+      roomUrl: 'https://example.test/1234',
+      open: jest.fn(),
+      close: jest.fn(),
+      copyLink: jest.fn(async () => undefined),
+      shareImage: jest.fn(async () => undefined),
+    };
+    const connection = {
+      status: 'live' as const,
+      pendingCommandCount: 0,
+      onManualReconnect: jest.fn(),
+    };
+    const onSeatPress = jest.fn();
+    const onBotSeatLongPress = jest.fn();
+    const model = createUndercoverRoomShellModel({
+      roomCode: '1234',
+      capabilities,
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: { normalDraws: 1, goldenDraws: 1 },
+      onUserActionPress: jest.fn(),
+      connection,
+      state,
+      revision: 3,
+      myUserId: 'host',
+      controlledSeat: null,
+      selectedSeat: null,
+      isSelecting: false,
+      seatsVisuallyDisabled: false,
+      onSeatPress,
+      onBotSeatLongPress,
+      seatConfirmation: null,
+      profile: null,
+      share,
+      isHost: true,
+      controls,
+      release: jest.fn(),
+    });
+    expect(model.roomCode).toBe('1234');
+    expect(model.capabilities).toBe(capabilities);
+    expect(model.header.userAction?.ticketCount).toBe(2);
+    expect(model.connection).toBe(connection);
+    expect(model.statusRibbon).toEqual(createUndercoverStatusRibbon(state));
+    expect(model.seats.source.count).toBe(6);
+    expect(model.seats.onSeatPress).toBe(onSeatPress);
+    expect(model.seats.onBotSeatLongPress).toBe(onBotSeatLongPress);
+    expect(model.bottomActions).toEqual(createUndercoverBottomActions(controls));
+    expect(model.hostManagement).not.toBeNull();
+    // Bots exist and the host may take over: the hint shows.
+    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    expect(model.share).toBe(share);
+  });
 });

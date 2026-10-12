@@ -12,6 +12,7 @@ import {
   getFibUserSeat,
   isFibBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -31,9 +32,8 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
@@ -48,8 +48,8 @@ import {
   createFibBottomActions,
   createFibHostManagement,
   createFibRoomCapabilities,
+  createFibRoomShellModel,
   createFibSeatDataSource,
-  createFibStatusRibbon,
   FIB_DISPLAY_NAME,
   getFibSeatTapIntent,
 } from '../fibRoomAdapter';
@@ -140,7 +140,6 @@ export function useFibRoomScreenState({
     fillBots: seatCommands.fillBots,
   });
   const { data: gachaStatus } = useGachaStatusQuery();
-  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
   const [isIdentityVisible, setIsIdentityVisible] = useState(false);
 
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -365,10 +364,6 @@ export function useFibRoomScreenState({
     gameName: 'FibKing',
   });
 
-  const handleProfileKick = useCallback(() => {
-    executeProfileKick(capabilities, profileSelection);
-  }, [capabilities, profileSelection]);
-
   const handleProfileLeave = useCallback(() => {
     const capability = capabilities.canLeaveSeat;
     if (!capability.isAllowed) {
@@ -377,26 +372,16 @@ export function useFibRoomScreenState({
     capability.execute();
   }, [capabilities.canLeaveSeat]);
 
-  const profile = useMemo((): RoomProfileCardModel | null => {
-    const selection = profileSelection;
-    if (selection === null) return null;
-    return {
-      target: selection.target,
-      isSelf: selection.isSelf,
-      onClose: closeProfile,
-      onKick: !selection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
-      onLeaveSeat:
-        selection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
-      gameDetails: null,
-    };
-  }, [
-    capabilities.canKickSeat.isAllowed,
-    capabilities.canLeaveSeat.isAllowed,
-    handleProfileKick,
-    handleProfileLeave,
-    closeProfile,
-    profileSelection,
-  ]);
+  const profile = useMemo(
+    (): RoomProfileCardModel | null =>
+      createRoomProfileCardModel({
+        selection: profileSelection,
+        capabilities,
+        onClose: closeProfile,
+        onLeaveSeat: handleProfileLeave,
+      }),
+    [capabilities, closeProfile, handleProfileLeave, profileSelection],
+  );
 
   const seatConfirmation = useMemo(
     () =>
@@ -469,39 +454,35 @@ export function useFibRoomScreenState({
   });
 
   const shellModel = useMemo(
-    (): RoomShellModel => ({
-      roomCode: room.roomCode,
-      capabilities,
-      header: {
+    (): RoomShellModel =>
+      createFibRoomShellModel({
+        roomCode: room.roomCode,
+        capabilities,
         onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
         onTitlePress: handleTitlePress,
         onTitleLongPress: handleTitleLongPress,
-        userAction: {
-          user,
-          ticketCount,
-          onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
-        },
-      },
-      connection: entryController.connection,
-      statusRibbon: createFibStatusRibbon(state),
-      seats: {
-        source: seatSource,
-        visuallyDisabled: isCommandSubmitting || seatController.isSubmitting,
+        user,
+        gachaStatus,
+        onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
+        connection: entryController.connection,
+        state,
+        seatSource,
+        seatsVisuallyDisabled: isCommandSubmitting || seatController.isSubmitting,
         onSeatPress,
         onBotSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPress : null,
-      },
-      seatConfirmation,
-      profile,
-      share,
-      bottomActions,
-      hostManagement,
-      controlledSeat: controlledSeatModel,
-    }),
+        seatConfirmation,
+        profile,
+        share,
+        bottomActions,
+        hostManagement,
+        controlledSeat: controlledSeatModel,
+      }),
     [
       bottomActions,
       capabilities,
       controlledSeatModel,
       entryController,
+      gachaStatus,
       handleTitlePress,
       handleTitleLongPress,
       navigation,
@@ -516,7 +497,6 @@ export function useFibRoomScreenState({
       seatSource,
       share,
       state,
-      ticketCount,
       user,
     ],
   );

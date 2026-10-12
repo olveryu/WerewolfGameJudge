@@ -13,6 +13,11 @@ import {
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
+import {
+  buildRoomHeaderModel,
+  type RoomHeaderGachaStatus,
+} from '@/features/room/model/buildRoomHeaderModel';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -22,6 +27,7 @@ import type {
   RoomBottomButton,
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
+import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -34,13 +40,23 @@ import type {
   RoomHostManagementModel,
   RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import type {
+  RoomConnectionViewModel,
+  RoomControlledSeatModel,
+  RoomShellModel,
+} from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
 
@@ -170,19 +186,7 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
       const isBot = isFibBotSeat(input.state, index);
       const player =
         human !== undefined
-          ? {
-              kind: 'human' as const,
-              userId: human.userId,
-              displayName: human.profile.displayName,
-              avatarUrl: human.profile.avatarUrl,
-              avatarFrame: human.profile.avatarFrame,
-              seatFlair: human.profile.seatFlair,
-              seatAnimation: human.profile.seatAnimation,
-              nameStyle: human.profile.nameStyle,
-              seatPetId: human.profile.revealEffect,
-              level: human.profile.level,
-              isAnonymous: human.profile.avatarUrl === undefined,
-            }
+          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
             ? {
                 kind: 'bot' as const,
@@ -628,4 +632,78 @@ function getPlayerMessage(state: FibState, viewerSeat: number | null): string | 
 
 export function getFibRoleName(role: FibRole): string {
   return FIB_ROLE_NAMES[role];
+}
+
+/** 瞎掰王板子信息分组：大聪明 1 + 老实人 1 + 瞎掰王 N−2。 */
+export function createFibBoardInfoSections(playerCount: number): readonly BoardInfoSection[] {
+  return [
+    {
+      title: getFibRoleName('guesser'),
+      items: [{ roleId: 'guesser', displayName: getFibRoleName('guesser'), count: 1 }],
+      color: colors.god,
+    },
+    {
+      title: getFibRoleName('honest'),
+      items: [{ roleId: 'honest', displayName: getFibRoleName('honest'), count: 1 }],
+      color: colors.villager,
+    },
+    {
+      title: getFibRoleName('fibber'),
+      items: [{ roleId: 'fibber', displayName: getFibRoleName('fibber'), count: playerCount - 2 }],
+      color: colors.wolf,
+    },
+  ];
+}
+
+export interface FibRoomShellModelInput {
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  readonly onUserActionPress: () => void;
+  readonly connection: RoomConnectionViewModel;
+  readonly state: FibState;
+  readonly seatSource: RoomSeatDataSource;
+  readonly seatsVisuallyDisabled: boolean;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  readonly bottomActions: RoomBottomActionModel;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly controlledSeat: RoomControlledSeatModel | null;
+}
+
+/** Assembles the FibKing RoomShellModel from the hook's projections. */
+export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShellModel {
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: buildRoomHeaderModel({
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      user: input.user,
+      gachaStatus: input.gachaStatus,
+      onUserActionPress: input.onUserActionPress,
+    }),
+    connection: input.connection,
+    statusRibbon: createFibStatusRibbon(input.state),
+    seats: {
+      source: input.seatSource,
+      visuallyDisabled: input.seatsVisuallyDisabled,
+      onSeatPress: input.onSeatPress,
+      onBotSeatLongPress: input.onBotSeatLongPress,
+    },
+    seatConfirmation: input.seatConfirmation,
+    profile: input.profile,
+    share: input.share,
+    bottomActions: input.bottomActions,
+    hostManagement: input.hostManagement,
+    controlledSeat: input.controlledSeat,
+  };
 }

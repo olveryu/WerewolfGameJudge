@@ -9,6 +9,7 @@ import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import {
+  createWerewolfBoardInfoSections,
   createWerewolfBottomActionLayout,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
@@ -579,5 +580,44 @@ describe('createWerewolfRoomShellModel', () => {
       createShellModelInput({ isHost: false, hasBots: true, controlledSeat: null }),
     );
     expect(guestWithBots.controlledSeat).toBeNull();
+  });
+});
+
+describe('createWerewolfBoardInfoSections', () => {
+  const godItems = [{ roleId: 'seer', displayName: '预言家', count: 1 }];
+  const villagerRoleItems = [{ roleId: 'hunter', displayName: '猎人', count: 0 }];
+
+  it('orders the four sections and passes item lists through', () => {
+    const sections = createWerewolfBoardInfoSections({
+      wolfRoleItems: [{ roleId: 'werewolf', displayName: '狼人', count: 4 }],
+      godRoleItems: godItems,
+      specialRoleItems: [],
+      villagerRoleItems: [],
+      villagerCount: 0,
+    });
+    expect(sections.map((section) => section.title)).toEqual(['狼人', '神职', '特殊', '村民']);
+    expect(sections[1]?.items).toBe(godItems);
+  });
+
+  it('prepends the plain villager item only when villagerCount is positive', () => {
+    const withVillagers = createWerewolfBoardInfoSections({
+      wolfRoleItems: [],
+      godRoleItems: [],
+      specialRoleItems: [],
+      villagerRoleItems,
+      villagerCount: 3,
+    });
+    expect(withVillagers[3]?.items).toEqual([
+      { roleId: 'villager', displayName: '村民', count: 3 },
+      ...villagerRoleItems,
+    ]);
+    const without = createWerewolfBoardInfoSections({
+      wolfRoleItems: [],
+      godRoleItems: [],
+      specialRoleItems: [],
+      villagerRoleItems,
+      villagerCount: 0,
+    });
+    expect(without[3]?.items).toBe(villagerRoleItems);
   });
 });

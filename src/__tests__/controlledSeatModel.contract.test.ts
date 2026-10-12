@@ -53,13 +53,16 @@ describe('controlled seat model contract', () => {
       /input\.controlledSeat !== null \|\| \(input\.canControlBots && input\.hasBots\)/,
     );
     // Every game passes both gate inputs; none hand-writes the visibility rule.
+    // Assembly sites: since AU-01 the shell factories in the adapters own
+    // the call for five games; fibking/pictionary still assemble in their
+    // screen-state hooks (their factories receive the model as an input).
     const consumers = [
-      'avalon/room/hooks/useAvalonRoomState.ts',
-      'drawguess/room/hooks/useDrawGuessRoomState.ts',
+      'avalon/room/avalonRoomAdapter.ts',
+      'drawguess/room/drawGuessRoomAdapter.ts',
       'fibking/room/hooks/useFibRoomScreenState.ts',
       'pictionary/room/hooks/usePictionaryRoomScreenState.ts',
-      'storyrelay/room/hooks/useStoryRelayRoomState.ts',
-      'undercover/room/hooks/useUndercoverRoomScreenState.ts',
+      'storyrelay/room/storyRelayRoomAdapter.ts',
+      'undercover/room/undercoverRoomAdapter.ts',
       'werewolf/werewolfRoomAdapter.ts',
     ];
     for (const consumer of consumers) {

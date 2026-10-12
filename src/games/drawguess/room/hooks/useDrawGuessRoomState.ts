@@ -6,7 +6,6 @@ import {
   type DrawGuessCommand,
   type DrawGuessState,
   type DrawGuessViewModel,
-  getDrawGuessBotSeats,
   getDrawGuessOccupiedSeatCount,
   getDrawGuessUserSeat,
   getDrawGuessViewModel,
@@ -32,10 +31,6 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
-import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
-import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
-import { getBotDisplayName } from '@/features/room/model/getBotDisplayName';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -55,11 +50,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
-import {
-  createDrawGuessSeatDataSource,
-  createDrawGuessStatusRibbon,
-  getDrawGuessProfileTarget,
-} from '../drawGuessRoomAdapter';
+import { createDrawGuessRoomShellModel, getDrawGuessSeatTapIntent } from '../drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from '../drawGuessRoomCommandFailureMessage';
 import { useDrawGuessSeatCommands } from './useDrawGuessSeatCommands';
 
@@ -220,13 +211,24 @@ export function useDrawGuessRoomState(
     isBotSeat,
     gameName: 'DrawGuess',
   });
-  const onSeatPress = (seat: number) => {
+  const onSeatPress = (seat: number, disabledReason?: string) => {
     if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
-    const target = getDrawGuessProfileTarget(state, seat);
-    if (target !== null) return profile.open(target);
-    return mySeat === null
-      ? seatController.requestTakeSeat(seat)
-      : seatController.requestMoveSeat(seat);
+    const intent = getDrawGuessSeatTapIntent({
+      state,
+      seat,
+      currentSeat: mySeat,
+      disabledReason,
+    });
+    switch (intent.kind) {
+      case 'blocked':
+        return showErrorAlert('不可选择', intent.reason);
+      case 'profile':
+        return profile.open(intent.target);
+      case 'take':
+        return seatController.requestTakeSeat(intent.seat);
+      case 'move':
+        return seatController.requestMoveSeat(intent.seat);
+    }
   };
   const actions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
@@ -282,98 +284,71 @@ export function useDrawGuessRoomState(
         ],
       };
   const selection = profile.selection;
-  const shellModel: RoomShellModel = {
+  const hostManagement: RoomHostManagementModel | null = !isHost
+    ? null
+    : isLobby
+      ? {
+          preview: '开始游戏',
+          status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
+          sections: [
+            {
+              key: 'game',
+              title: '游戏',
+              actions: [
+                {
+                  key: 'start',
+                  label: '开始游戏',
+                  icon: 'play-outline',
+                  variant: 'primary',
+                  isLoading: submission.isSubmitting,
+                  testID: 'drawguess-start',
+                  ...(submission.isSubmitting || !canStart
+                    ? {
+                        isEnabled: false as const,
+                        disabledReason: startDisabledReason,
+                        onDisabledPress: () =>
+                          showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
+                      }
+                    : {
+                        isEnabled: true as const,
+                        onPress: () => void submit('开始游戏', { type: 'drawguess.round.start' }),
+                      }),
+                },
+              ],
+            },
+            { key: 'room', title: '房间管理', actions },
+          ],
+        }
+      : terminalHostManagement;
+  const shellModel: RoomShellModel = createDrawGuessRoomShellModel({
     roomCode: room.roomCode,
     capabilities,
-    header: {
-      onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
-      onTitlePress: titleActions.handleTitlePress,
-      onTitleLongPress: titleActions.handleTitleLongPress,
-      userAction: {
-        user,
-        ticketCount: gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null,
-        onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
-      },
-    },
+    onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
+    onTitlePress: titleActions.handleTitlePress,
+    onTitleLongPress: titleActions.handleTitleLongPress,
+    user,
+    gachaStatus,
+    onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
-    statusRibbon: createDrawGuessStatusRibbon(state),
-    seats: {
-      source: createDrawGuessSeatDataSource(
-        state,
-        snapshot.snapshot.revision,
-        user.id,
-        controlledSeat,
-      ),
-      visuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
-      onSeatPress,
-      onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
-    },
-    seatConfirmation: createRoomSeatConfirmationModel(seatController),
-    profile:
-      selection === null
-        ? null
-        : {
-            target: selection.target,
-            isSelf: selection.isSelf,
-            onClose: profile.close,
-            gameDetails: null,
-            onKick:
-              !selection.isSelf && capabilities.canKickSeat.isAllowed
-                ? () => executeProfileKick(capabilities, selection)
-                : null,
-            onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
-          },
+    state,
+    revision: snapshot.snapshot.revision,
+    userId: user.id,
+    controlledSeat,
+    seatsVisuallyDisabled: submission.isSubmitting || seatController.isSubmitting,
+    onSeatPress,
+    onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
+    seatController,
+    profileSelection: selection,
+    onProfileClose: profile.close,
+    onProfileLeaveSeat: profile.leaveSelf,
     share,
-    bottomActions: {
-      kind: 'info',
-      message: isLobby && !isHost && mySeat !== null ? '等待房主开始游戏' : null,
-      actions: [],
-    },
-    hostManagement: !isHost
-      ? null
-      : isLobby
-        ? {
-            preview: '开始游戏',
-            status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
-            sections: [
-              {
-                key: 'game',
-                title: '游戏',
-                actions: [
-                  {
-                    key: 'start',
-                    label: '开始游戏',
-                    icon: 'play-outline',
-                    variant: 'primary',
-                    isLoading: submission.isSubmitting,
-                    testID: 'drawguess-start',
-                    ...(submission.isSubmitting || !canStart
-                      ? {
-                          isEnabled: false as const,
-                          disabledReason: startDisabledReason,
-                          onDisabledPress: () =>
-                            showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-                        }
-                      : {
-                          isEnabled: true as const,
-                          onPress: () => void submit('开始游戏', { type: 'drawguess.round.start' }),
-                        }),
-                  },
-                ],
-              },
-              { key: 'room', title: '房间管理', actions },
-            ],
-          }
-        : terminalHostManagement,
-    controlledSeat: createControlledSeatModel({
-      canControlBots,
-      hasBots: getDrawGuessBotSeats(state).length > 0,
-      controlledSeat,
-      controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
-      release: releaseBot,
-      gameName: 'DrawGuess',
-    }),
-  };
+    isLobby,
+    isHost,
+    mySeat,
+    hostManagement,
+    canControlBots,
+    releaseBot,
+  });
   const openShare = share.open;
   useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   return {

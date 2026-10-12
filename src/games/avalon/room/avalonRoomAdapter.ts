@@ -3,28 +3,57 @@
  */
 
 import {
+  AVALON_BOARDS,
   type AvalonNightStep,
+  type AvalonRoleId,
   type AvalonState,
   getAvalonBotDisplayName,
+  getAvalonBotSeats,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
   getAvalonViewingParticipants,
+  getAvalonViewModel,
   isAvalonBotSeat,
+  isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
+import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
+import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
+import {
+  buildRoomHeaderModel,
+  type RoomHeaderGachaStatus,
+} from '@/features/room/model/buildRoomHeaderModel';
+import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
+import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import type {
+  RoomBottomButton,
+  RoomBottomInfoModel,
+} from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
+import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
+import { colors } from '@/theme';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
+import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
+import { resolveNightInstruction } from './policy/avalonInteractionPolicy';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
-export function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
+function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
   const occupant = state.roster[seat];
   if (occupant != null && !isBotOccupant(occupant))
     return {
@@ -64,13 +93,33 @@ function avalonSeatStatusLabel(
 const NO_PICKED_SEATS: ReadonlySet<number> = new Set();
 
 /** 创建共享座位表数据源：含队长 / 队员 / 湖仙状态徽标（不暴露角色）。 */
-export function createAvalonSeatDataSource(
-  state: AvalonState,
-  revision: number,
-  userId: string,
-  controlledSeat: number | null,
-  pickedSeats: ReadonlySet<number> = NO_PICKED_SEATS,
-): RoomSeatDataSource {
+export interface AvalonSeatSourceInput {
+  readonly state: AvalonState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+  readonly pickedSeats?: ReadonlySet<number>;
+}
+
+interface AvalonSeatTapInput {
+  readonly state: AvalonState;
+  readonly seat: number;
+  readonly currentSeat: number | null;
+  readonly disabledReason?: string;
+}
+
+/** Project Avalon seating into the shared room seat-tap contract. */
+export function getAvalonSeatTapIntent(input: AvalonSeatTapInput) {
+  return getRoomSeatTapIntent({
+    seat: input.seat,
+    currentSeat: input.currentSeat,
+    target: getAvalonProfileTarget(input.state, input.seat),
+    disabledReason: input.disabledReason,
+  });
+}
+
+export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSeatDataSource {
+  const { state, revision, userId, controlledSeat, pickedSeats = NO_PICKED_SEATS } = input;
   // 夜晚已确认徽标只给当前步参与者看（私密确认不计数、不外泄给非参与者）。
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
   const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;
@@ -89,13 +138,7 @@ export function createAvalonSeatDataSource(
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
       const player =
         human !== undefined
-          ? {
-              kind: 'human' as const,
-              userId: human.userId,
-              ...human.profile,
-              seatPetId: human.profile.revealEffect,
-              isAnonymous: human.profile.avatarUrl === undefined,
-            }
+          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
             : {
@@ -233,5 +276,203 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
     icon: 'guide',
     text: `等待入座 · ${getAvalonOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
     supportingText: null,
+  };
+}
+
+/**
+ * 把棋盘按阵营分组成板子信息分组（坏人 / 好人，忠臣归好人）；
+ * 人数不在棋盘表内时返回 null（卡片不渲染）。
+ */
+export function createAvalonBoardInfoSections(
+  playerCount: number,
+): readonly BoardInfoSection[] | null {
+  if (!isAvalonPlayerCount(playerCount)) return null;
+  const board = AVALON_BOARDS[playerCount];
+  const toItems = (roles: readonly AvalonRoleId[]): RoleDisplayItem[] => {
+    const counts = new Map<AvalonRoleId, number>();
+    for (const roleId of roles) counts.set(roleId, (counts.get(roleId) ?? 0) + 1);
+    return [...counts.entries()].map(([roleId, count]) => ({
+      roleId,
+      displayName: getAvalonRoleDisplayName(roleId),
+      count,
+    }));
+  };
+  return [
+    {
+      title: '坏人',
+      items: toItems(board.filter((roleId) => getAvalonRoleMeta(roleId).isEvil)),
+      color: colors.wolf,
+    },
+    {
+      title: '好人',
+      items: toItems(board.filter((roleId) => !getAvalonRoleMeta(roleId).isEvil)),
+      color: colors.god,
+    },
+  ];
+}
+
+const AVALON_ROLE_ID_SET: ReadonlySet<string> = new Set(Object.values(AVALON_BOARDS).flat());
+
+/** 共享板子卡以 string 回报 roleId；用棋盘全集把有效值压回 AvalonRoleId。 */
+export function isAvalonRoleId(roleId: string): roleId is AvalonRoleId {
+  return AVALON_ROLE_ID_SET.has(roleId);
+}
+
+export interface AvalonBottomActionsInput {
+  readonly state: AvalonState;
+  readonly isLobby: boolean;
+  readonly isHost: boolean;
+  readonly mySeat: number | null;
+  readonly effectiveSeat: number | null;
+  readonly onViewRolePress: () => void;
+  readonly onNightInfoPress: () => void;
+}
+
+/** 阿瓦隆底部动作：查看身份常驻局内；夜晚信息步两步确认（按钮 → 弹窗）。 */
+function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomInfoModel {
+  const { state } = input;
+  const actions: RoomBottomButton[] = [];
+  // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
+  if (!input.isLobby && input.effectiveSeat !== null) {
+    actions.push({
+      key: 'viewRole',
+      label: '查看身份',
+      variant: 'secondary',
+      size: 'md',
+      isEnabled: true,
+      onPress: input.onViewRolePress,
+      testID: 'avalon-view-role',
+    });
+  }
+  // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
+  if (!input.isLobby && state.phase.kind === 'night' && input.effectiveSeat !== null) {
+    const vm = getAvalonViewModel(state, input.effectiveSeat);
+    const instruction = resolveNightInstruction(vm);
+    if (
+      instruction.kind === 'evilPeers' ||
+      instruction.kind === 'merlin' ||
+      instruction.kind === 'percival'
+    ) {
+      actions.push(
+        state.isAudioPlaying
+          ? {
+              key: 'nightInfo',
+              label: '语音播报中…',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: false,
+              disabledReason: '语音播报尚未结束，请稍候',
+              onDisabledPress: null,
+              testID: 'avalon-night-info',
+            }
+          : {
+              key: 'nightInfo',
+              label: '确认信息',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: true,
+              onPress: input.onNightInfoPress,
+              testID: 'avalon-night-info',
+            },
+      );
+    }
+  }
+  return {
+    kind: 'info',
+    message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null,
+    actions,
+  };
+}
+
+export interface AvalonRoomShellModelInput {
+  readonly roomCode: string;
+  readonly capabilities: RoomCapabilities;
+  readonly onBack: () => void;
+  readonly onTitlePress: () => void;
+  readonly onTitleLongPress: () => void;
+  readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
+  readonly gachaStatus: RoomHeaderGachaStatus | null | undefined;
+  readonly onUserActionPress: () => void;
+  readonly connection: RoomConnectionViewModel;
+  readonly state: AvalonState;
+  readonly revision: number;
+  readonly userId: string;
+  readonly controlledSeat: number | null;
+  readonly pickedSeats: ReadonlySet<number>;
+  readonly seatsVisuallyDisabled: boolean;
+  readonly onSeatPress: (seat: number, disabledReason?: string) => void;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
+  readonly seatController: RoomSeatController;
+  readonly profileSelection: RoomProfileSelection | null;
+  readonly onProfileClose: () => void;
+  readonly onProfileLeaveSeat: () => void;
+  readonly share: RoomShareModel;
+  readonly isLobby: boolean;
+  readonly isHost: boolean;
+  readonly mySeat: number | null;
+  readonly effectiveSeat: number | null;
+  readonly onViewRolePress: () => void;
+  readonly onNightInfoPress: () => void;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly canControlBots: boolean;
+  readonly releaseBot: () => void;
+}
+
+/** Assembles the Avalon RoomShellModel from the hook's projections. */
+export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): RoomShellModel {
+  const { state } = input;
+  return {
+    roomCode: input.roomCode,
+    capabilities: input.capabilities,
+    header: buildRoomHeaderModel({
+      onBack: input.onBack,
+      onTitlePress: input.onTitlePress,
+      onTitleLongPress: input.onTitleLongPress,
+      user: input.user,
+      gachaStatus: input.gachaStatus,
+      onUserActionPress: input.onUserActionPress,
+    }),
+    connection: input.connection,
+    statusRibbon: createAvalonStatusRibbon(state),
+    seats: {
+      source: createAvalonSeatDataSource({
+        state,
+        revision: input.revision,
+        userId: input.userId,
+        controlledSeat: input.controlledSeat,
+        pickedSeats: input.pickedSeats,
+      }),
+      visuallyDisabled: input.seatsVisuallyDisabled,
+      onSeatPress: input.onSeatPress,
+      // 对齐其他有座位游戏：长按机器人座位接管/释放。
+      onBotSeatLongPress: input.onBotSeatLongPress,
+    },
+    seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
+    profile: createRoomProfileCardModel({
+      selection: input.profileSelection,
+      capabilities: input.capabilities,
+      onClose: input.onProfileClose,
+      onLeaveSeat: input.onProfileLeaveSeat,
+    }),
+    share: input.share,
+    bottomActions: createAvalonBottomActions({
+      state,
+      isLobby: input.isLobby,
+      isHost: input.isHost,
+      mySeat: input.mySeat,
+      effectiveSeat: input.effectiveSeat,
+      onViewRolePress: input.onViewRolePress,
+      onNightInfoPress: input.onNightInfoPress,
+    }),
+    hostManagement: input.hostManagement,
+    controlledSeat: createControlledSeatModel({
+      canControlBots: input.canControlBots,
+      hasBots: getAvalonBotSeats(state).length > 0,
+      controlledSeat: input.controlledSeat,
+      controlledBotName:
+        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+      release: input.releaseBot,
+      gameName: 'Avalon',
+    }),
   };
 }

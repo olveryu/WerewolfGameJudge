@@ -80,6 +80,10 @@
       "types": "./src/platform/room/formatSeat.ts",
       "default": "./dist/platform/room/formatSeat.js"
     },
+    "./platform/room/getBotDisplayName": {
+      "types": "./src/platform/room/getBotDisplayName.ts",
+      "default": "./dist/platform/room/getBotDisplayName.js"
+    },
     "./platform/identifiers": {
       "types": "./src/platform/identifiers/index.ts",
       "default": "./dist/platform/identifiers/index.js"

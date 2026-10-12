@@ -7,7 +7,6 @@ import {
   type AvalonRoleId,
   type AvalonState,
   type AvalonViewModel,
-  getAvalonBotSeats,
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
   getAvalonViewModel,
@@ -38,9 +37,6 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
-import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
-import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { executeProfileKick } from '@/features/room/model/executeProfileKick';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -65,13 +61,8 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
 import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
-import {
-  createAvalonSeatDataSource,
-  createAvalonStatusRibbon,
-  getAvalonProfileTarget,
-} from '../avalonRoomAdapter';
+import { createAvalonRoomShellModel, getAvalonSeatTapIntent } from '../avalonRoomAdapter';
 import { getAvalonRoomCommandFailureMessage } from '../avalonRoomCommandFailureMessage';
-import { resolveNightInstruction } from '../policy/avalonInteractionPolicy';
 import { useAvalonAudioOrchestration } from './useAvalonAudioOrchestration';
 import { useAvalonSeatCommands } from './useAvalonSeatCommands';
 
@@ -253,16 +244,27 @@ export function useAvalonRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
-  const onSeatPress = (seat: number) => {
+  const onSeatPress = (seat: number, disabledReason?: string) => {
     if (seatPickHandlerRef.current?.(seat) === true) return;
     if (!isLobby) {
       return showErrorAlert('不可选择', '游戏进行中不能调整座位');
     }
-    const target = getAvalonProfileTarget(state, seat);
-    if (target !== null) return profile.open(target);
-    return mySeat === null
-      ? seatController.requestTakeSeat(seat)
-      : seatController.requestMoveSeat(seat);
+    const intent = getAvalonSeatTapIntent({
+      state,
+      seat,
+      currentSeat: mySeat,
+      disabledReason,
+    });
+    switch (intent.kind) {
+      case 'blocked':
+        return showErrorAlert('不可选择', intent.reason);
+      case 'profile':
+        return profile.open(intent.target);
+      case 'take':
+        return seatController.requestTakeSeat(intent.seat);
+      case 'move':
+        return seatController.requestMoveSeat(intent.seat);
+    }
   };
   // 长按机器人座位接管/释放：用共享 hook（D12：不做任何接管提示）。
   const onBotSeatLongPress = useBotTakeoverLongPress({
@@ -437,142 +439,58 @@ export function useAvalonRoomState(
     ],
   };
   const selection = profile.selection;
-  const shellModel: RoomShellModel = {
+  const hostManagement: RoomHostManagementModel | null = !isHost
+    ? null
+    : isLobby
+      ? lobbyHostManagement
+      : isTerminal
+        ? terminalHostManagement
+        : inGameHostManagement;
+  const shellModel: RoomShellModel = createAvalonRoomShellModel({
     roomCode: room.roomCode,
     capabilities,
-    header: {
-      onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
-      onTitlePress: titleActions.handleTitlePress,
-      onTitleLongPress: titleActions.handleTitleLongPress,
-      userAction: {
-        user,
-        ticketCount: gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null,
-        onPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
-      },
-    },
+    onBack: () => entryController.requestExit(capabilities.shouldConfirmExit),
+    onTitlePress: titleActions.handleTitlePress,
+    onTitleLongPress: titleActions.handleTitleLongPress,
+    user,
+    gachaStatus,
+    onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
-    statusRibbon: createAvalonStatusRibbon(state),
-    seats: {
-      source: createAvalonSeatDataSource(
-        state,
-        snapshot.snapshot.revision,
-        user.id,
-        controlledSeat,
-        pickedSeats,
-      ),
-      visuallyDisabled:
-        state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
-      onSeatPress,
-      // 对齐其他有座位游戏：长按机器人座位接管/释放。
-      onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
-    },
-    seatConfirmation: createRoomSeatConfirmationModel(seatController),
-    profile:
-      selection === null
-        ? null
-        : {
-            target: selection.target,
-            isSelf: selection.isSelf,
-            onClose: profile.close,
-            gameDetails: null,
-            onKick:
-              !selection.isSelf && capabilities.canKickSeat.isAllowed
-                ? () => executeProfileKick(capabilities, selection)
-                : null,
-            onLeaveSeat: isLobby && selection.isSelf ? profile.leaveSelf : null,
-          },
+    state,
+    revision: snapshot.snapshot.revision,
+    userId: user.id,
+    controlledSeat,
+    pickedSeats,
+    seatsVisuallyDisabled:
+      state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
+    onSeatPress,
+    onBotSeatLongPress: canControlBots ? onBotSeatLongPress : null,
+    seatController,
+    profileSelection: selection,
+    onProfileClose: profile.close,
+    onProfileLeaveSeat: profile.leaveSelf,
     share,
-    bottomActions: (() => {
-      const actions: Array<
-        {
-          readonly key: string;
-          readonly label: string;
-          readonly variant: 'primary' | 'secondary' | 'ghost';
-          readonly size: 'lg' | 'md';
-          readonly testID: string;
-        } & (
-          | { readonly isEnabled: true; readonly onPress: () => void }
-          | {
-              readonly isEnabled: false;
-              readonly disabledReason: string | null;
-              readonly onDisabledPress: (() => void) | null;
-            }
-        )
-      > = [];
-      // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
-      if (!isLobby && effectiveSeat !== null) {
-        actions.push({
-          key: 'viewRole',
-          label: '查看身份',
-          variant: 'secondary',
-          size: 'md',
-          isEnabled: true,
-          onPress: () => {
-            setRoleCardVisible(true);
-            // 身份查看协议：打开角色卡即为当前座位落查看记录
-            //（接管时是被接管座位；引擎幂等，终局后不发）。
-            if (state.phase.kind !== 'ended' && !state.roleViewedSeats.includes(effectiveSeat)) {
-              void submit('查看身份', { type: 'avalon.role.viewed' });
-            }
-          },
-          testID: 'avalon-view-role',
-        });
+    isLobby,
+    isHost,
+    mySeat,
+    effectiveSeat,
+    onViewRolePress: () => {
+      setRoleCardVisible(true);
+      // 身份查看协议：打开角色卡即为当前座位落查看记录
+      //（接管时是被接管座位；引擎幂等，终局后不发）。
+      if (
+        effectiveSeat !== null &&
+        state.phase.kind !== 'ended' &&
+        !state.roleViewedSeats.includes(effectiveSeat)
+      ) {
+        void submit('查看身份', { type: 'avalon.role.viewed' });
       }
-      // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
-      if (!isLobby && state.phase.kind === 'night' && effectiveSeat !== null) {
-        const vm = getAvalonViewModel(state, effectiveSeat);
-        const instruction = resolveNightInstruction(vm);
-        if (
-          instruction.kind === 'evilPeers' ||
-          instruction.kind === 'merlin' ||
-          instruction.kind === 'percival'
-        ) {
-          actions.push(
-            state.isAudioPlaying
-              ? {
-                  key: 'nightInfo',
-                  label: '语音播报中…',
-                  variant: 'primary',
-                  size: 'md',
-                  isEnabled: false as const,
-                  disabledReason: '语音播报尚未结束，请稍候',
-                  onDisabledPress: null,
-                  testID: 'avalon-night-info',
-                }
-              : {
-                  key: 'nightInfo',
-                  label: '确认信息',
-                  variant: 'primary',
-                  size: 'md',
-                  isEnabled: true as const,
-                  onPress: () => setNightModalVisible(true),
-                  testID: 'avalon-night-info',
-                },
-          );
-        }
-      }
-      return {
-        kind: 'info' as const,
-        message: isLobby && !isHost && mySeat !== null ? '等待房主开始游戏' : null,
-        actions,
-      };
-    })(),
-    hostManagement: !isHost
-      ? null
-      : isLobby
-        ? lobbyHostManagement
-        : isTerminal
-          ? terminalHostManagement
-          : inGameHostManagement,
-    controlledSeat: createControlledSeatModel({
-      canControlBots,
-      hasBots: getAvalonBotSeats(state).length > 0,
-      controlledSeat,
-      controlledBotName: controlledSeat !== null ? `座位 ${controlledSeat + 1}` : null,
-      release: releaseBot,
-      gameName: 'Avalon',
-    }),
-  };
+    },
+    onNightInfoPress: () => setNightModalVisible(true),
+    hostManagement,
+    canControlBots,
+    releaseBot,
+  });
   const openShare = share.open;
   useAutoShowRoomShareQr({ isHost, entryReason: props.entryReason, openShare });
   const viewModel = isLobby ? null : getAvalonViewModel(state, effectiveSeat);

@@ -2,6 +2,7 @@
 
 import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
@@ -190,7 +191,7 @@ export function getFibBotUserId(roomCode: string, seat: number): string {
 }
 
 export function getFibBotDisplayName(seat: number): string {
-  return `机器人${seat + 1}号`;
+  return getBotDisplayName(seat);
 }
 
 /** Returns the seats held by bots, ascending. */

@@ -1,8 +1,8 @@
 /**
  * Takeover hint banner gate wiring: the gate itself lives in the shared
- * factory (createControlledSeatModel); this test pins that the Avalon hook
- * passes the two gate inputs — its own canControlBots and a roster-derived
- * hasBots — and runs the outcomes through the factory on real engine
+ * factory (createControlledSeatModel); this test pins that the Avalon shell
+ * factory passes the two gate inputs — the hook's canControlBots and a
+ * roster-derived hasBots — and runs the outcomes through the factory on real engine
  * states. Before the gate existed, an Avalon host in an all-human room
  * saw the long-press hint permanently.
  */
@@ -57,18 +57,20 @@ function bannerModel(
     canControlBots: input.isHost,
     hasBots: getAvalonBotSeats(state).length > 0,
     controlledSeat: input.controlledSeat,
-    controlledBotName: input.controlledSeat !== null ? `座位 ${input.controlledSeat + 1}` : null,
+    controlledBotName: input.controlledSeat !== null ? `机器人${input.controlledSeat + 1}号` : null,
     release: () => undefined,
     gameName: 'Avalon',
   });
 }
 
 describe('avalon takeover banner gate', () => {
-  it('pins the gate-input wiring in the room hook', () => {
-    const hook = readFileSync(join(__dirname, '../hooks/useAvalonRoomState.ts'), 'utf8');
-    expect(hook).toContain('getAvalonBotSeats,');
-    expect(hook).toMatch(
-      /createControlledSeatModel\(\{\s*canControlBots,\s*hasBots: getAvalonBotSeats\(state\)\.length > 0,/,
+  it('pins the gate-input wiring in the shell factory', () => {
+    // AU-01 moved the assembly into createAvalonRoomShellModel; the gate
+    // inputs are pinned where they are now produced.
+    const adapter = readFileSync(join(__dirname, '../avalonRoomAdapter.ts'), 'utf8');
+    expect(adapter).toContain('getAvalonBotSeats,');
+    expect(adapter).toMatch(
+      /createControlledSeatModel\(\{\s*canControlBots: input\.canControlBots,\s*hasBots: getAvalonBotSeats\(state\)\.length > 0,/,
     );
   });
 
