@@ -6,6 +6,7 @@ import {
   finishObject,
   parseArray,
   parseBoolean,
+  parseChoice,
   parseInteger,
   parseNonEmptyString,
   parseNullable,
@@ -30,15 +31,6 @@ import {
 } from './types';
 import { STORY_RELAY_STATE_IDENTITY, STORY_RELAY_STATE_VERSION } from './version';
 
-function choice<T extends string | number | null>(
-  value: unknown,
-  path: string,
-  values: readonly T[],
-): T {
-  const match = values.find((candidate) => candidate === value);
-  return match === undefined ? failDecode(path, 'a supported value') : match;
-}
-
 /** Parses only the supported ordinary writing settings. */
 export function parseStoryRelayConfig(value: unknown, path = 'StoryRelayConfig'): StoryRelayConfig {
   const raw = parseObject(value, path);
@@ -46,17 +38,17 @@ export function parseStoryRelayConfig(value: unknown, path = 'StoryRelayConfig')
     raw,
     {
       numberOfPlayers: parseInteger(raw.numberOfPlayers, `${path}.numberOfPlayers`),
-      writingDurationSeconds: choice(
+      writingDurationSeconds: parseChoice(
         raw.writingDurationSeconds,
         `${path}.writingDurationSeconds`,
         STORY_RELAY_WRITING_DURATIONS,
       ),
-      transitionDurationSeconds: choice(
+      transitionDurationSeconds: parseChoice(
         raw.transitionDurationSeconds,
         `${path}.transitionDurationSeconds`,
         STORY_RELAY_TRANSITION_DURATIONS,
       ),
-      galleryItemDurationSeconds: choice(
+      galleryItemDurationSeconds: parseChoice(
         raw.galleryItemDurationSeconds,
         `${path}.galleryItemDurationSeconds`,
         STORY_RELAY_GALLERY_DURATIONS,
@@ -205,11 +197,13 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
     finishObject(
       raw,
       {
-        gameType: choice(raw.gameType, `${path}.gameType`, [STORY_RELAY_GAME_TYPE]),
-        stateVersion: choice(raw.stateVersion, `${path}.stateVersion`, [STORY_RELAY_STATE_VERSION]),
+        gameType: parseChoice(raw.gameType, `${path}.gameType`, [STORY_RELAY_GAME_TYPE]),
+        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
+          STORY_RELAY_STATE_VERSION,
+        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
-        phase: choice(raw.phase, `${path}.phase`, STORY_RELAY_PHASES),
+        phase: parseChoice(raw.phase, `${path}.phase`, STORY_RELAY_PHASES),
         phaseRevision: parseInteger(raw.phaseRevision, `${path}.phaseRevision`),
         config: parseStoryRelayConfig(raw.config, `${path}.config`),
         roster: roster(raw.roster, `${path}.roster`),

@@ -6,6 +6,16 @@ export function failDecode(path: string, expectation: string): never {
   throw new Error(`${path} must be ${expectation}`);
 }
 
+/** Decodes a value that must be one of a fixed set of supported values. */
+export function parseChoice<T extends string | number | null>(
+  value: unknown,
+  path: string,
+  values: readonly T[],
+): T {
+  const match = values.find((candidate) => candidate === value);
+  return match === undefined ? failDecode(path, 'a supported value') : match;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -6,6 +6,7 @@ import {
   finishObject,
   parseArray,
   parseBoolean,
+  parseChoice,
   parseInteger,
   parseNonEmptyString,
   parseNullable,
@@ -46,11 +47,6 @@ import {
 } from './types';
 import { AVALON_STATE_IDENTITY, AVALON_STATE_VERSION } from './version';
 
-function choice<T extends string | number>(value: unknown, path: string, values: readonly T[]): T {
-  const match = values.find((candidate) => candidate === value);
-  return match === undefined ? failDecode(path, 'a supported value') : match;
-}
-
 /** Parses only the supported lobby settings. */
 export function parseAvalonConfig(value: unknown, path = 'AvalonConfig'): AvalonConfig {
   const raw = parseObject(value, path);
@@ -63,7 +59,7 @@ export function parseAvalonConfig(value: unknown, path = 'AvalonConfig'): Avalon
     raw,
     {
       numberOfPlayers,
-      voteMode: choice(raw.voteMode, `${path}.voteMode`, AVALON_VOTE_MODES),
+      voteMode: parseChoice(raw.voteMode, `${path}.voteMode`, AVALON_VOTE_MODES),
       vetoLimit,
     },
     path,
@@ -146,7 +142,7 @@ function seatRecord<T>(value: unknown, path: string, decode: (value: unknown, pa
 }
 
 function roles(value: unknown, path: string): Readonly<Record<number, AvalonRoleId>> {
-  return seatRecord(value, path, (item, itemPath) => choice(item, itemPath, AVALON_ROLES));
+  return seatRecord(value, path, (item, itemPath) => parseChoice(item, itemPath, AVALON_ROLES));
 }
 
 function nightInfo(value: unknown, path: string): AvalonNightInfo {
@@ -165,15 +161,15 @@ function nightInfo(value: unknown, path: string): AvalonNightInfo {
 }
 
 function questRound(value: unknown, path: string): AvalonQuestRound {
-  return choice(value, path, AVALON_QUEST_ROUNDS);
+  return parseChoice(value, path, AVALON_QUEST_ROUNDS);
 }
 
 function ballotRecord(value: unknown, path: string): Readonly<Record<number, AvalonBallot>> {
-  return seatRecord(value, path, (item, itemPath) => choice(item, itemPath, AVALON_BALLOTS));
+  return seatRecord(value, path, (item, itemPath) => parseChoice(item, itemPath, AVALON_BALLOTS));
 }
 
 function playRecord(value: unknown, path: string): Readonly<Record<number, AvalonPlay>> {
-  return seatRecord(value, path, (item, itemPath) => choice(item, itemPath, AVALON_PLAYS));
+  return seatRecord(value, path, (item, itemPath) => parseChoice(item, itemPath, AVALON_PLAYS));
 }
 
 function historyEntry(value: unknown, path: string): AvalonQuestHistoryEntry {
@@ -188,7 +184,7 @@ function historyEntry(value: unknown, path: string): AvalonQuestHistoryEntry {
       approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
-      result: choice(raw.result, `${path}.result`, ['success', 'fail'] as const),
+      result: parseChoice(raw.result, `${path}.result`, ['success', 'fail'] as const),
       successCount: parseInteger(raw.successCount, `${path}.successCount`),
       failCount: parseInteger(raw.failCount, `${path}.failCount`),
     },
@@ -203,7 +199,7 @@ function ladyCheck(value: unknown, path: string): AvalonLadyCheckResult {
     {
       holderSeat: parseSeat(raw.holderSeat, `${path}.holderSeat`),
       targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-      faction: choice(raw.faction, `${path}.faction`, ['good', 'evil'] as const),
+      faction: parseChoice(raw.faction, `${path}.faction`, ['good', 'evil'] as const),
     },
     path,
   );
@@ -242,7 +238,7 @@ function lastVoteResult(value: unknown, path: string): AvalonLastVoteResult {
 
 function phase(value: unknown, path: string): AvalonPhase {
   const raw = parseObject(value, path);
-  const kind = choice(raw.kind, `${path}.kind`, AVALON_PHASES);
+  const kind = parseChoice(raw.kind, `${path}.kind`, AVALON_PHASES);
   switch (kind) {
     case 'lobby':
       return finishObject(raw, { kind: 'lobby' as const }, path);
@@ -251,7 +247,7 @@ function phase(value: unknown, path: string): AvalonPhase {
         raw,
         {
           kind: 'night' as const,
-          step: choice(raw.step, `${path}.step`, AVALON_NIGHT_STEPS),
+          step: parseChoice(raw.step, `${path}.step`, AVALON_NIGHT_STEPS),
           confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
         },
         path,
@@ -305,7 +301,7 @@ function phase(value: unknown, path: string): AvalonPhase {
         raw,
         {
           kind: 'lady' as const,
-          afterRound: choice(raw.afterRound, `${path}.afterRound`, AVALON_LADY_ROUNDS),
+          afterRound: parseChoice(raw.afterRound, `${path}.afterRound`, AVALON_LADY_ROUNDS),
           holderSeat: parseSeat(raw.holderSeat, `${path}.holderSeat`),
           examinedSeats: parseArray(raw.examinedSeats, `${path}.examinedSeats`, parseSeat),
           targetSeat: parseNullable(raw.targetSeat, `${path}.targetSeat`, parseSeat),
@@ -326,8 +322,8 @@ function phase(value: unknown, path: string): AvalonPhase {
         raw,
         {
           kind: 'ended' as const,
-          winner: choice(raw.winner, `${path}.winner`, ['good', 'evil'] as const),
-          reason: choice(raw.reason, `${path}.reason`, AVALON_END_REASONS),
+          winner: parseChoice(raw.winner, `${path}.winner`, ['good', 'evil'] as const),
+          reason: parseChoice(raw.reason, `${path}.reason`, AVALON_END_REASONS),
           accusedSeat: parseNullable(raw.accusedSeat, `${path}.accusedSeat`, parseSeat),
         },
         path,
@@ -345,8 +341,8 @@ export function parseAvalonState(value: unknown): AvalonState {
     finishObject(
       raw,
       {
-        gameType: choice(raw.gameType, `${path}.gameType`, [AVALON_GAME_TYPE]),
-        stateVersion: choice(raw.stateVersion, `${path}.stateVersion`, [AVALON_STATE_VERSION]),
+        gameType: parseChoice(raw.gameType, `${path}.gameType`, [AVALON_GAME_TYPE]),
+        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [AVALON_STATE_VERSION]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
@@ -358,7 +354,7 @@ export function parseAvalonState(value: unknown): AvalonState {
         leaderSeat: parseInteger(raw.leaderSeat, `${path}.leaderSeat`),
         rejectStreak: parseInteger(raw.rejectStreak, `${path}.rejectStreak`),
         questResults: parseArray(raw.questResults, `${path}.questResults`, (item, itemPath) =>
-          choice(item, itemPath, ['success', 'fail'] as const),
+          parseChoice(item, itemPath, ['success', 'fail'] as const),
         ),
         questHistory: parseArray(raw.questHistory, `${path}.questHistory`, historyEntry),
         ladyHolderSeat: parseNullable(raw.ladyHolderSeat, `${path}.ladyHolderSeat`, parseSeat),

@@ -6,6 +6,7 @@ import {
   finishObject,
   parseArray,
   parseBoolean,
+  parseChoice,
   parseInteger,
   parseNonEmptyString,
   parseNullable,
@@ -37,11 +38,6 @@ import {
 } from './types';
 import { DRAWGUESS_STATE_IDENTITY, DRAWGUESS_STATE_VERSION } from './version';
 
-function choice<T extends string | number>(value: unknown, path: string, values: readonly T[]): T {
-  const match = values.find((candidate) => candidate === value);
-  return match === undefined ? failDecode(path, 'a supported value') : match;
-}
-
 /** Parses only the supported lobby settings. */
 export function parseDrawGuessConfig(value: unknown, path = 'DrawGuessConfig'): DrawGuessConfig {
   const raw = parseObject(value, path);
@@ -49,19 +45,21 @@ export function parseDrawGuessConfig(value: unknown, path = 'DrawGuessConfig'): 
     raw,
     {
       numberOfPlayers: parseInteger(raw.numberOfPlayers, `${path}.numberOfPlayers`),
-      drawingDurationSeconds: choice(raw.drawingDurationSeconds, `${path}.drawingDurationSeconds`, [
-        DRAWGUESS_DRAWING_DURATION_SECONDS,
-      ] as const),
-      roundsPerDrawer: choice(raw.roundsPerDrawer, `${path}.roundsPerDrawer`, [
+      drawingDurationSeconds: parseChoice(
+        raw.drawingDurationSeconds,
+        `${path}.drawingDurationSeconds`,
+        [DRAWGUESS_DRAWING_DURATION_SECONDS] as const,
+      ),
+      roundsPerDrawer: parseChoice(raw.roundsPerDrawer, `${path}.roundsPerDrawer`, [
         DRAWGUESS_ROUNDS_PER_DRAWER,
       ] as const),
-      wordSelectSeconds: choice(raw.wordSelectSeconds, `${path}.wordSelectSeconds`, [
+      wordSelectSeconds: parseChoice(raw.wordSelectSeconds, `${path}.wordSelectSeconds`, [
         DRAWGUESS_WORD_SELECT_SECONDS,
       ] as const),
-      roundEndSeconds: choice(raw.roundEndSeconds, `${path}.roundEndSeconds`, [
+      roundEndSeconds: parseChoice(raw.roundEndSeconds, `${path}.roundEndSeconds`, [
         DRAWGUESS_ROUND_END_SECONDS,
       ] as const),
-      hintRevealIntervalSeconds: choice(
+      hintRevealIntervalSeconds: parseChoice(
         raw.hintRevealIntervalSeconds,
         `${path}.hintRevealIntervalSeconds`,
         [DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS] as const,
@@ -234,9 +232,9 @@ function pngEntry(value: unknown, path: string): DrawGuessMedia {
     raw,
     {
       objectKey: parseNonEmptyString(raw.objectKey, `${path}.objectKey`),
-      contentType: choice(raw.contentType, `${path}.contentType`, ['image/png'] as const),
-      width: choice(raw.width, `${path}.width`, [1024] as const),
-      height: choice(raw.height, `${path}.height`, [768] as const),
+      contentType: parseChoice(raw.contentType, `${path}.contentType`, ['image/png'] as const),
+      width: parseChoice(raw.width, `${path}.width`, [1024] as const),
+      height: parseChoice(raw.height, `${path}.height`, [768] as const),
       byteLength: parseInteger(raw.byteLength, `${path}.byteLength`),
       sha256: parseNonEmptyString(raw.sha256, `${path}.sha256`),
     },
@@ -271,7 +269,7 @@ function scores(value: unknown, path: string): Readonly<Record<number, number>> 
 
 function phase(value: unknown, path: string): DrawGuessPhase {
   const raw = parseObject(value, path);
-  const kind = choice(raw.kind, `${path}.kind`, DRAWGUESS_PHASES);
+  const kind = parseChoice(raw.kind, `${path}.kind`, DRAWGUESS_PHASES);
   switch (kind) {
     case 'lobby':
       return finishObject(raw, { kind: 'lobby' as const }, path);
@@ -341,8 +339,10 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
     finishObject(
       raw,
       {
-        gameType: choice(raw.gameType, `${path}.gameType`, [DRAWGUESS_GAME_TYPE]),
-        stateVersion: choice(raw.stateVersion, `${path}.stateVersion`, [DRAWGUESS_STATE_VERSION]),
+        gameType: parseChoice(raw.gameType, `${path}.gameType`, [DRAWGUESS_GAME_TYPE]),
+        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
+          DRAWGUESS_STATE_VERSION,
+        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
