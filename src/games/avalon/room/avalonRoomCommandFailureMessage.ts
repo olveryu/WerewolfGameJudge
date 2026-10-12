@@ -1,7 +1,7 @@
 /**
- * 阿瓦隆命令失败原因的中文文案（逐字照搬设计稿 §6.1）。
+ * 阿瓦隆命令失败文案的唯一来源（逐字照搬设计稿 §6.1）。
  *
- * 匹配走引擎导出的 `AVALON_REASONS` 常量，不手抄中文原文。
+ * 引擎只发稳定英文码（`AVALON_REASONS`），匹配走常量引用、不手抄码原文。
  */
 
 import { AVALON_REASONS, type AvalonState } from '@game-judge/game-engine/games/avalon/public';
@@ -48,6 +48,11 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.audioPlaying]: '播报尚未结束，请稍候',
     [AVALON_REASONS.notHostAckAudio]: '只有房主可以确认播报',
   },
-  // 带人数参数的队员人数原因是引擎拼好的用户文案，原样透出。
-  (reason) => (reason.startsWith('队员人数必须为') ? reason : undefined),
+  // 队员人数原因带人数参数（avalon_team_size_invalid:<n>），在此拼回 §6.1 文案。
+  (reason) => {
+    const prefix = 'avalon_team_size_invalid:';
+    return reason.startsWith(prefix)
+      ? `队员人数必须为 ${reason.slice(prefix.length)} 人`
+      : undefined;
+  },
 );
