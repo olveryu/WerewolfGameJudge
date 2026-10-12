@@ -1,29 +1,16 @@
 /** Bounded Gemini editorial requests; generation and review use separate prompts and outputs. */
 import type { DrawGuessWordCategory } from '@game-judge/game-engine/games/drawguess/public';
-import { z } from 'zod';
 
+import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import {
   DRAWGUESS_WORD_BATCH_LIMIT,
   drawGuessCandidatesSchema,
   drawGuessReviewsSchema,
-  parseDrawGuessReviews,
   type DrawGuessWordCandidate,
+  parseDrawGuessReviews,
 } from './wordEditorial';
 
 export const DRAWGUESS_WORD_MODEL = 'gemini-3.5-flash-lite';
-const REQUEST_TIMEOUT_MS = 120_000;
-const responseSchema = z.object({
-  candidates: z
-    .array(
-      z.object({
-        finishReason: z.literal('STOP'),
-        content: z.object({
-          parts: z.array(z.object({ text: z.string(), thought: z.boolean().optional() })).min(1),
-        }),
-      }),
-    )
-    .length(1),
-});
 const CATEGORY_TOPICS: Record<DrawGuessWordCategory, string> = {
   animals: '动物：常见动物、昆虫、水生动物，家养野生都可以',
   food: '食物：常见食物、菜品、水果、零食，一看就知道长什么样的',
@@ -46,91 +33,37 @@ const REVIEW_PROMPT = `你独立审核中文聚会游戏「你画我猜」的题
 先找拒绝证据，再逐项判断，不要因为词常见就全填true。纯抽象词、专有名词，isConcreteAndDrawable 必须 false。字数含标点或非汉字时 isLengthValid 必须 false。
 不确定的任一质量项必须 false，不能靠其他项弥补。所有词都必须返回审核，包括不合格者。自己填写具体 reason（2至180字），说明通过或拒绝的依据。`;
 
-async function requestStructuredOutput<Output>(
-  apiKey: string,
-  schema: z.ZodType<Output>,
-  systemPrompt: string,
-  payload: unknown,
-  fetchImpl: typeof fetch,
-): Promise<Output> {
-  if (apiKey.length === 0) throw new Error('DrawGuess provider requires GEMINI_API_KEY');
-  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  let response: Response;
-  try {
-    response = await fetchImpl.call(
-      globalThis,
-      `https://generativelanguage.googleapis.com/v1beta/models/${DRAWGUESS_WORD_MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: JSON.stringify(payload) }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseJsonSchema: z.toJSONSchema(schema, {
-              target: 'openapi-3.0',
-              override: ({ jsonSchema }) => {
-                delete jsonSchema.minLength;
-                delete jsonSchema.maxLength;
-                delete jsonSchema.minItems;
-                delete jsonSchema.maxItems;
-              },
-            }),
-          },
-        }),
-      },
-    );
-  } catch {
-    throw new Error(
-      signal.aborted ? 'DrawGuess provider [timedOut]' : 'DrawGuess provider [requestFailed]',
-    );
-  }
-  if (!response.ok) throw new Error(`DrawGuess provider HTTP ${response.status}`);
-  try {
-    const value: unknown = await response.json();
-    const first = responseSchema.parse(value).candidates[0];
-    if (first === undefined) throw new Error('Missing provider candidate');
-    const content: unknown = JSON.parse(
-      first.content.parts
-        .filter((part) => part.thought !== true)
-        .map((part) => part.text)
-        .join(''),
-    );
-    return schema.parse(content);
-  } catch {
-    throw new Error('DrawGuess provider [invalidOutput]');
-  }
-}
-
 /** Provider output remains unapproved until a separate review request and publication transaction. */
 export function createDrawGuessWordProvider(apiKey: string, fetchImpl: typeof fetch = fetch) {
   return {
     generateBatch(category: DrawGuessWordCategory, history: readonly string[]) {
-      return requestStructuredOutput(
+      return requestStructuredOutput({
         apiKey,
-        drawGuessCandidatesSchema,
-        GENERATION_PROMPT,
-        { category, topic: CATEGORY_TOPICS[category], history },
+        model: DRAWGUESS_WORD_MODEL,
+        providerLabel: 'DrawGuess',
+        schema: drawGuessCandidatesSchema,
+        systemPrompt: GENERATION_PROMPT,
+        payload: { category, topic: CATEGORY_TOPICS[category], history },
         fetchImpl,
-      );
+      });
     },
     async reviewBatch(
       category: DrawGuessWordCategory,
       candidates: readonly DrawGuessWordCandidate[],
     ) {
-      const output = await requestStructuredOutput(
+      const output = await requestStructuredOutput({
         apiKey,
-        drawGuessReviewsSchema,
-        REVIEW_PROMPT,
-        {
+        model: DRAWGUESS_WORD_MODEL,
+        providerLabel: 'DrawGuess',
+        schema: drawGuessReviewsSchema,
+        systemPrompt: REVIEW_PROMPT,
+        payload: {
           category,
           topic: CATEGORY_TOPICS[category],
           candidates: candidates.map(({ word }) => ({ word })),
         },
         fetchImpl,
-      );
+      });
       return parseDrawGuessReviews(output, candidates);
     },
   };
