@@ -81,6 +81,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
     onExpire,
     label: '推进接龙阶段',
     refreshIntervalMs: 250,
+    silentExpire: true,
   });
   // pictionary 原 hook 返回 { remainingSeconds, isExpired }，此处保持调用方兼容
   const deadline = { remainingSeconds, isExpired: remainingSeconds === 0 };

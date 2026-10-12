@@ -206,6 +206,7 @@ export function useAvalonRoomState(
     shouldExpire: shouldExpirePhase,
     onExpire: expirePhase,
     label: '阶段超时结算',
+    silentExpire: true,
   });
   // 机器人接管：房主随时可接管（无阶段条件）；失去房主身份或座位不再是机器人时自动释放。
   const canControlBots = isHost;

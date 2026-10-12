@@ -160,6 +160,7 @@ function StoryRelayStageContent({
     shouldExpire,
     onExpire,
     label: '推进故事阶段',
+    silentExpire: true,
   });
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);

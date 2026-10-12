@@ -160,6 +160,7 @@ export function useDrawGuessRoomState(
     shouldExpire,
     onExpire,
     label: '推进作画阶段',
+    silentExpire: true,
   });
   const nowMs = useDrawGuessNowMs(!isLobby);
   const viewModel = getDrawGuessViewModel(state, effectiveSeat, nowMs);
