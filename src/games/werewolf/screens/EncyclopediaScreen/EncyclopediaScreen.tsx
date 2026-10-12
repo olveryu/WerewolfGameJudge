@@ -21,7 +21,7 @@ import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werew
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, withAlpha } from '@/theme';
+import { colors, componentSizes, spacing, withAlpha } from '@/theme';
 
 import { BoardsGuideContent } from './BoardsGuideContent';
 import { SegmentedControl } from './components/SegmentedControl';
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.small,
   },
   headerIconButtonActive: {
     backgroundColor: withAlpha(colors.primary, 0.15),

@@ -16,38 +16,24 @@ import {
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from '@game-judge/game-engine/games/pictionary/public';
 
-import { getRoomCommandFailureReason } from '@/features/room/session/roomCommandResult';
-import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
-import { translateReasonCode } from '@/utils/errorUtils';
+import {
+  createRoomCommandFailureMessage,
+  ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE_WITH_MOVE,
+  ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
+} from '@/features/room/session/createRoomCommandFailureMessage';
 
-export function getPictionaryRoomCommandFailureMessage(
-  result: RoomCommandDispatchOutcome<PictionaryState>,
-): string {
-  const reason = getRoomCommandFailureReason(result);
-  switch (reason) {
-    case REASON_PICTIONARY_CONFIG_INVALID:
-      return '房间设置不符合玩法范围';
-    case REASON_PICTIONARY_GALLERY_MANUAL:
-      return '当前为手动翻页，无需继续揭晓';
-    case REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE:
-      return '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位';
-    case REASON_PICTIONARY_PHASE_INVALID:
-      return '当前阶段不能执行这个操作';
-    case REASON_PICTIONARY_PHASE_NOT_EXPIRED:
-      return '当前阶段尚未到推进时间';
-    case REASON_PICTIONARY_ROOM_NOT_FULL:
-      return '请先坐满所有座位，或填充机器人。';
-    case REASON_PICTIONARY_TASK_ALREADY_SUBMITTED:
-      return '这一棒已经提交';
-    case REASON_PICTIONARY_TASK_INVALID:
-      return '当前任务已变化，请按最新页面继续';
-    case REASON_PICTIONARY_TEXT_INVALID:
-      return `内容不能为空，且最多输入 ${PICTIONARY_TEXT_MAX_LENGTH} 个字符`;
-    case REASON_PICTIONARY_UPLOAD_EXPIRED:
-      return '画作上传时间已结束';
-    case REASON_PICTIONARY_UPLOAD_INVALID:
-      return '画作预留无法确认，请重试';
-    default:
-      return translateReasonCode(reason);
-  }
-}
+export const getPictionaryRoomCommandFailureMessage =
+  createRoomCommandFailureMessage<PictionaryState>({
+    [REASON_PICTIONARY_CONFIG_INVALID]: '房间设置不符合玩法范围',
+    [REASON_PICTIONARY_GALLERY_MANUAL]: '当前为手动翻页，无需继续揭晓',
+    [REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE]:
+      ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE_WITH_MOVE,
+    [REASON_PICTIONARY_PHASE_INVALID]: '当前阶段不能执行这个操作',
+    [REASON_PICTIONARY_PHASE_NOT_EXPIRED]: '当前阶段尚未到推进时间',
+    [REASON_PICTIONARY_ROOM_NOT_FULL]: ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
+    [REASON_PICTIONARY_TASK_ALREADY_SUBMITTED]: '这一棒已经提交',
+    [REASON_PICTIONARY_TASK_INVALID]: '当前任务已变化，请按最新页面继续',
+    [REASON_PICTIONARY_TEXT_INVALID]: `内容不能为空，且最多输入 ${PICTIONARY_TEXT_MAX_LENGTH} 个字符`,
+    [REASON_PICTIONARY_UPLOAD_EXPIRED]: '画作上传时间已结束',
+    [REASON_PICTIONARY_UPLOAD_INVALID]: '画作预留无法确认，请重试',
+  });

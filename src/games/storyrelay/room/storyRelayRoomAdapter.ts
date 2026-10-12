@@ -6,6 +6,7 @@ import {
   getStoryRelayTaskForSeat,
   isBotOccupant,
   isStoryRelayBotSeat,
+  type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -19,8 +20,17 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildNextRoundAction,
+  buildReturnLobbyAction,
+  buildRoomConfigAction,
+  buildStartGameAction,
+} from '@/features/room/model/hostManagementActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
@@ -31,6 +41,8 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
+import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 /** Returns a public occupant identity for shared profile controls. */
 function getStoryRelayProfileTarget(
@@ -190,11 +202,167 @@ export interface StoryRelayRoomShellModelInput {
   readonly releaseBot: () => void;
 }
 
+export interface StoryRelayHostManagementInput {
+  readonly state: StoryRelayState;
+  readonly isHost: boolean;
+  readonly capabilities: Pick<
+    RoomCapabilities,
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+  >;
+  readonly isSubmitting: boolean;
+  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
+}
+
+/** Assembles the Story Relay host panel for the current phase. */
+export function createStoryRelayHostManagement(
+  input: StoryRelayHostManagementInput,
+): RoomHostManagementModel | null {
+  if (!input.isHost) return null;
+  const { state, capabilities } = input;
+  const submit = input.submit;
+  const roomActions: RoomHostManagementAction[] = [];
+  if (capabilities.canConfigureGame.isAllowed)
+    roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    roomActions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
+  if (state.phase === 'lobby') {
+    return {
+      preview: '开始游戏',
+      status: `等待入座 · ${getStoryRelayOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
+      sections: [
+        {
+          key: 'game',
+          title: '游戏',
+          actions: [
+            buildStartGameAction({
+              onPress: () => void submit('开始游戏', { type: 'storyrelay.round.start' }),
+              isEnabled:
+                !input.isSubmitting &&
+                getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
+              disabledReason: input.isSubmitting ? null : '座位尚未坐满',
+              onDisabledPress: input.isSubmitting
+                ? null
+                : () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
+              isLoading: input.isSubmitting,
+            }),
+          ],
+        },
+        { key: 'room', title: '房间管理', actions: roomActions },
+      ],
+    };
+  }
+  const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
+  if (isTerminal) {
+    return {
+      preview: state.phase === 'ended' ? '故事已揭晓' : '未完成的故事',
+      status: null,
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            ...(state.phase === 'ended'
+              ? [
+                  buildNextRoundAction({
+                    onPress: () =>
+                      showConfirmAlert(
+                        '再来一局',
+                        '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
+                        async () => {
+                          await submit('再来一局', { type: 'storyrelay.round.next' });
+                        },
+                      ),
+                  }),
+                ]
+              : []),
+            buildReturnLobbyAction({
+              onPress: () =>
+                showConfirmAlert(
+                  '返回大厅',
+                  '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。',
+                  async () => {
+                    await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
+                  },
+                ),
+            }),
+          ],
+        },
+      ],
+    };
+  }
+  const canAbort =
+    ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
+  if (!canAbort) return null;
+  return {
+    preview: '管理本局',
+    status: null,
+    sections: [
+      ...(state.phase === 'answering'
+        ? [
+            {
+              key: 'current-flow',
+              title: '当前流程',
+              actions: [
+                {
+                  key: 'finish-phase',
+                  label: '结束本棒',
+                  icon: 'stop-circle-outline' as const,
+                  variant: 'secondary' as const,
+                  isEnabled: true as const,
+                  testID: 'storyrelay-finish-step',
+                  onPress: () =>
+                    showConfirmAlert(
+                      '结束本棒',
+                      '将自动收取当前文字，没有内容时自动交空白。',
+                      async () => {
+                        await submit('结束本棒', {
+                          type: 'storyrelay.phase.finish',
+                          phaseRevision: state.phaseRevision,
+                        });
+                      },
+                    ),
+                },
+              ],
+            },
+          ]
+        : []),
+      {
+        key: 'danger',
+        title: '危险操作',
+        actions: [
+          {
+            key: 'abort-round',
+            label: '中止本局',
+            icon: 'close-circle-outline',
+            variant: 'danger',
+            isEnabled: true,
+            onPress: () =>
+              showConfirmAlert('中止本局', '将公开已收录的故事片段，本局不结算奖励。', async () => {
+                await submit('中止本局', {
+                  type: 'storyrelay.round.abort',
+                  phaseRevision: state.phaseRevision,
+                });
+              }),
+          },
+        ],
+      },
+    ],
+  };
+}
+
 /** Assembles the StoryRelay RoomShellModel from the hook's projections. */
 export function createStoryRelayRoomShellModel(
   input: StoryRelayRoomShellModelInput,
 ): RoomShellModel {
   const { state } = input;
+  const seatSource = createStoryRelaySeatDataSource({
+    state,
+    revision: input.revision,
+    userId: input.userId,
+    controlledSeat: input.controlledSeat,
+  });
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
@@ -209,12 +377,7 @@ export function createStoryRelayRoomShellModel(
     connection: input.connection,
     statusRibbon: createStoryRelayStatusRibbon(state),
     seats: {
-      source: createStoryRelaySeatDataSource({
-        state,
-        revision: input.revision,
-        userId: input.userId,
-        controlledSeat: input.controlledSeat,
-      }),
+      source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
       onSeatPress: input.onSeatPress,
       onBotSeatLongPress: input.onBotSeatLongPress,
@@ -238,7 +401,9 @@ export function createStoryRelayRoomShellModel(
       hasBots: getStoryRelayBotSeats(state).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
-        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
       release: input.releaseBot,
       gameName: 'StoryRelay',
     }),

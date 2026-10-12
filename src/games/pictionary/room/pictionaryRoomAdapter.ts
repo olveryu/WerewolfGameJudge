@@ -20,6 +20,7 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildRoomConfigAction,
+  buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
 import {
@@ -49,7 +50,6 @@ import type {
   RoomShellModel,
 } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
-import { TESTIDS } from '@/testids';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
 
@@ -347,33 +347,13 @@ export function createPictionaryHostManagement(
     });
     return { preview: '管理本局', status: null, sections };
   }
-  const startAction: RoomHostManagementAction = input.isCommandSubmitting
-    ? {
-        key: 'start-round',
-        label: '开始游戏',
-        icon: 'play-outline',
-        variant: 'primary',
-        isLoading: true,
-        isEnabled: false,
-        testID: TESTIDS.pictionaryStartRoundButton,
-        disabledReason: null,
-        onDisabledPress: null,
-      }
-    : isPictionaryRoomFull(input.state)
-      ? {
-          ...hostAction('start-round', '开始游戏', 'play-outline', 'primary', input.startRound),
-          testID: TESTIDS.pictionaryStartRoundButton,
-        }
-      : {
-          key: 'start-round',
-          label: '开始游戏',
-          icon: 'play-outline',
-          variant: 'primary',
-          isEnabled: false,
-          testID: TESTIDS.pictionaryStartRoundButton,
-          disabledReason: '座位尚未坐满',
-          onDisabledPress: input.onStartDisabled,
-        };
+  const startAction: RoomHostManagementAction = buildStartGameAction({
+    onPress: input.startRound,
+    isEnabled: !input.isCommandSubmitting && isPictionaryRoomFull(input.state),
+    isLoading: input.isCommandSubmitting || undefined,
+    disabledReason: input.isCommandSubmitting ? null : '座位尚未坐满',
+    onDisabledPress: input.isCommandSubmitting ? null : input.onStartDisabled,
+  });
   const roomActions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     roomActions.push(

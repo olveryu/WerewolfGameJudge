@@ -9,7 +9,6 @@ import {
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo } from 'react';
 
@@ -35,8 +34,10 @@ import { createRoomProfileCardModel } from '@/features/room/model/createRoomProf
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -227,7 +228,8 @@ export function usePictionaryRoomScreenState({
         currentSeat: mySeat,
         disabledReason,
       });
-      if (intent.kind === 'blocked') return showErrorAlert('不可选择', intent.reason);
+      if (intent.kind === 'blocked')
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
       if (intent.kind === 'profile')
         return capabilities.canViewProfiles.isAllowed
           ? capabilities.canViewProfiles.execute(intent.target)
@@ -309,7 +311,7 @@ export function usePictionaryRoomScreenState({
               createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
             );
           }),
-        onStartDisabled: () => showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。'),
+        onStartDisabled: () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
       }),
     [
       capabilities,
@@ -326,7 +328,10 @@ export function usePictionaryRoomScreenState({
     canControlBots: capabilities.canTakeOverBots.isAllowed,
     hasBots: getPictionaryBotSeats(state).length > 0,
     controlledSeat,
-    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    controlledBotName:
+      controlledSeat !== null
+        ? (seatSource.getSeat(controlledSeat).player?.displayName ?? null)
+        : null,
     release: releaseBot,
     gameName: 'Pictionary',
   });

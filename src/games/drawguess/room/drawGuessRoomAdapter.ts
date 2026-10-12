@@ -3,6 +3,7 @@
  */
 
 import {
+  type DrawGuessCommand,
   type DrawGuessState,
   getDrawGuessBotDisplayName,
   getDrawGuessBotSeats,
@@ -10,7 +11,6 @@ import {
   isBotOccupant,
   isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -21,8 +21,17 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildNextRoundAction,
+  buildReturnLobbyAction,
+  buildRoomConfigAction,
+  buildStartGameAction,
+} from '@/features/room/model/hostManagementActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
@@ -33,6 +42,7 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getDrawGuessProfileTarget(state: DrawGuessState, seat: number): RoomProfileTarget | null {
@@ -180,9 +190,103 @@ export interface DrawGuessRoomShellModelInput {
   readonly releaseBot: () => void;
 }
 
+export interface DrawGuessHostManagementInput {
+  readonly state: DrawGuessState;
+  readonly isHost: boolean;
+  readonly capabilities: Pick<
+    RoomCapabilities,
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+  >;
+  readonly isSubmitting: boolean;
+  readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
+}
+
+/** Assembles the DrawGuess host panel for the current phase. */
+export function createDrawGuessHostManagement(
+  input: DrawGuessHostManagementInput,
+): RoomHostManagementModel | null {
+  if (!input.isHost) return null;
+  const { state, capabilities } = input;
+  const roomActions: RoomHostManagementAction[] = [];
+  if (capabilities.canConfigureGame.isAllowed)
+    roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    roomActions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
+  const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
+  if (state.phase.kind === 'lobby') {
+    const canStart = occupiedSeatCount === state.config.numberOfPlayers;
+    const startDisabledReason = canStart ? null : '座位尚未坐满';
+    return {
+      preview: '开始游戏',
+      status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
+      sections: [
+        {
+          key: 'game',
+          title: '游戏',
+          actions: [
+            buildStartGameAction({
+              onPress: () => void input.submit('开始游戏', { type: 'drawguess.round.start' }),
+              isEnabled: !input.isSubmitting && canStart,
+              disabledReason: startDisabledReason,
+              onDisabledPress: () =>
+                showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
+              isLoading: input.isSubmitting,
+            }),
+          ],
+        },
+        { key: 'room', title: '房间管理', actions: roomActions },
+      ],
+    };
+  }
+  if (state.phase.kind === 'ended') {
+    return {
+      preview: '本局已结束',
+      status: null,
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            buildNextRoundAction({
+              onPress: () =>
+                showConfirmAlert(
+                  '再来一局',
+                  '重新生成画手队列并清零比分，开始新的一局。',
+                  async () => {
+                    await input.submit('再来一局', { type: 'drawguess.round.start' });
+                  },
+                ),
+            }),
+            buildReturnLobbyAction({
+              onPress: () =>
+                showConfirmAlert('返回大厅', '保留座位和设置，清除当前对局。', async () => {
+                  await input.submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
+                }),
+            }),
+          ],
+        },
+      ],
+    };
+  }
+  // 局中房主面板常驻（裁决⑧，对齐狼人杀/阿瓦隆）：房间管理区始终在。
+  return {
+    preview: '房主管理',
+    status: null,
+    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
+  };
+}
+
 /** Assembles the DrawGuess RoomShellModel from the hook's projections. */
 export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInput): RoomShellModel {
   const { state } = input;
+  const seatSource = createDrawGuessSeatDataSource({
+    state,
+    revision: input.revision,
+    userId: input.userId,
+    controlledSeat: input.controlledSeat,
+  });
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
@@ -197,12 +301,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     connection: input.connection,
     statusRibbon: createDrawGuessStatusRibbon(state),
     seats: {
-      source: createDrawGuessSeatDataSource({
-        state,
-        revision: input.revision,
-        userId: input.userId,
-        controlledSeat: input.controlledSeat,
-      }),
+      source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
       onSeatPress: input.onSeatPress,
       onBotSeatLongPress: input.onBotSeatLongPress,
@@ -226,7 +325,9 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       hasBots: getDrawGuessBotSeats(state).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
-        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
       release: input.releaseBot,
       gameName: 'DrawGuess',
     }),

@@ -12,7 +12,6 @@ import {
   getFibUserSeat,
   isFibBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -37,8 +36,10 @@ import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoo
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -324,7 +325,7 @@ export function useFibRoomScreenState({
       });
       switch (roomIntent.kind) {
         case 'blocked':
-          showErrorAlert('不可选择', roomIntent.reason);
+          showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, roomIntent.reason);
           return;
         case 'take':
         case 'move': {
@@ -400,7 +401,7 @@ export function useFibRoomScreenState({
   );
 
   const showStartRoundDisabled = useCallback(() => {
-    showErrorAlert('暂时不能开始', '请先坐满所有座位，或填充机器人。');
+    showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL);
   }, []);
 
   const hostManagement = useMemo(
@@ -448,7 +449,10 @@ export function useFibRoomScreenState({
     canControlBots: capabilities.canTakeOverBots.isAllowed,
     hasBots: getFibBotSeats(state).length > 0,
     controlledSeat,
-    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    controlledBotName:
+      controlledSeat !== null
+        ? (seatSource.getSeat(controlledSeat).player?.displayName ?? null)
+        : null,
     release: releaseBot,
     gameName: 'FibKing',
   });

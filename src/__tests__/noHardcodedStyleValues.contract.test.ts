@@ -8,6 +8,7 @@
  * Checked patterns:
  *   - fontSize: <number>          → use typography.*
  *   - padding/margin: <number≥2>  → use spacing.*
+ *   - gap: <number≥2>           → use spacing.*
  *   - borderRadius: <number≥2>    → use borderRadius.*
  *   - fontWeight: '<digits>'      → use typography.weights.*
  *   - '#hex' color literals       → use colors.*
@@ -109,6 +110,10 @@ const PATTERNS: ViolationPattern[] = [
     regex: new RegExp(`\\b(${SPACING_PROPS})\\s*:\\s*([2-9]|\\d{2,})`),
   },
 
+  // gap with literal ≥ 2 → should use spacing.*
+  // 0 = none, 1 = hairline — allowed
+  { name: 'gap', regex: /\bgap\s*:\s*([2-9]|\d{2,})/ },
+
   // borderRadius* with literal ≥ 2 → should use borderRadius.*
   // 0 = none, 1 = sub-pixel for progress bars — allowed
   { name: 'borderRadius', regex: /\bborderRadius\w*\s*:\s*([2-9]|\d{2,})/ },
@@ -169,6 +174,11 @@ function findViolations(content: string): Violation[] {
 // As violations are fixed, decrease the count. Adding new violations fails CI.
 
 const KNOWN_VIOLATIONS: Record<string, number> = {
+  // gap: 3 — no spacing step at 3px (scale is 2/4/8/16…); registered, do not add more
+  'src/features/room/components/PlayerProfileCard.tsx': 1,
+
+  // gap: 6 — no spacing step at 6px; registered, do not add more
+  'src/screens/GachaScreen/components/RateDisclosureModal.tsx': 1,
   // Emoji fontSize: 28 for 🐺 logo + 🎰 gacha entry
   'src/screens/HomeScreen/components/styles.ts': 2,
 

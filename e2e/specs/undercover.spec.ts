@@ -75,7 +75,7 @@ for (const viewport of [
       });
 
       await hostRoom.openHostManagement();
-      await hostPage.getByTestId('undercover-start').click();
+      await hostPage.getByTestId('start-game-button').click();
       await expect(hostPage.getByTestId('undercover-view-word')).toBeVisible();
       const speakingHint = hostPage.getByText(/^首轮从 [1-6] 号开始发言（随机）$/);
       await expect(speakingHint).toHaveCount(0);

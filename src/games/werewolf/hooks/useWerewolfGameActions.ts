@@ -32,8 +32,8 @@ import type {
   WerewolfGameClient,
 } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+import { getWerewolfRoomCommandFailureMessage } from '@/games/werewolf/werewolfRoomCommandFailureMessage';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { translateReasonCode } from '@/utils/errorUtils';
 
 import type { WerewolfBgmControlState } from './useWerewolfBgmControl';
 import type { WerewolfDebugModeState } from './useWerewolfDebugMode';
@@ -72,12 +72,15 @@ function handleCommandOutcome(
 
   // Pre-commit rejection has no state-driven rejection event, so it must be presented here.
   if (result.decision.kind === 'rejected') {
-    (onBusinessError ?? toastError)(`${actionLabel}失败`, translateReasonCode(reason));
+    (onBusinessError ?? toastError)(
+      `${actionLabel}失败`,
+      getWerewolfRoomCommandFailureMessage(result),
+    );
     return;
   }
 
   // Committed domain rejection may be presented by the authoritative state consumer.
-  onBusinessError?.(`${actionLabel}失败`, translateReasonCode(reason));
+  onBusinessError?.(`${actionLabel}失败`, getWerewolfRoomCommandFailureMessage(result));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

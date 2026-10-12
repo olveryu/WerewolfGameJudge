@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   ownedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: spacing.micro,
   },
   ownedText: {
     fontSize: typography.captionSmall,

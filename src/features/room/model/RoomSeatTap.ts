@@ -1,5 +1,11 @@
 /** Game-neutral seat-tap intent shared by every room adapter. */
 
+/** Title of every seat-tap rejection alert, in all seven games. */
+export const ROOM_SEAT_TAP_BLOCKED_TITLE = '不可选择';
+
+/** Why seats are locked once a game is running, in all seven games. */
+export const ROOM_SEAT_LOCKED_MESSAGE = '游戏进行中不能调整座位';
+
 export type RoomSeatTapIntent<TTarget> =
   | { readonly kind: 'blocked'; readonly reason: string }
   | { readonly kind: 'take'; readonly seat: number }
