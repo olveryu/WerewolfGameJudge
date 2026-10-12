@@ -1,25 +1,24 @@
 /** Story Relay semantic invariants; invalid persisted or evolved states fail explicitly. */
 
+import {
+  assertStateIdentity,
+  createStateInvariant,
+  type StateInvariant,
+} from '../../../platform/protocol/stateInvariant';
 import { countOccupiedSeats, isBotOccupant, isBotSeat } from '../../../platform/room/seating';
 import {
   isValidStoryRelayConfig,
-  STORY_RELAY_GAME_TYPE,
   STORY_RELAY_TEXT_MAX_LENGTH,
   type StoryRelayHumanSeat,
   type StoryRelayState,
 } from './types';
-import { STORY_RELAY_STATE_VERSION } from './version';
+import { STORY_RELAY_STATE_IDENTITY } from './version';
 
-function invariant(condition: boolean, message: string): asserts condition {
-  if (!condition) throw new Error(`Invalid Story Relay state: ${message}`);
-}
+const invariant: StateInvariant = createStateInvariant('Story Relay');
 
 /** Validates authoritative state without repairing or dropping submitted stories. */
 export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayState {
-  invariant(
-    state.gameType === STORY_RELAY_GAME_TYPE && state.stateVersion === STORY_RELAY_STATE_VERSION,
-    'identity',
-  );
+  assertStateIdentity(state, STORY_RELAY_STATE_IDENTITY, 'Story Relay');
   invariant(isValidStoryRelayConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;
