@@ -3,7 +3,8 @@
  *
  * The same scenario names run in every dealing game's contract file so
  * the protocol semantics cannot drift: record + idempotent mark +
- * human-only checkpoint + per-viewer projection.
+ * strict checkpoint (every seat counts; bot records come from the
+ * host's scaffold action) + per-viewer projection.
  */
 
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
@@ -142,11 +143,11 @@ describe('identity viewing protocol (fibking)', () => {
   it('records each human confirming their own seat, idempotently', () => {
     const viewing = dealRound(createRoom());
     if (viewing.phase !== 'viewing') throw new Error('Expected viewing state');
-    expect(viewing.round.viewedSeats).toEqual([3]);
+    expect(viewing.round.viewedSeats).toEqual([]);
 
     const once = confirm(viewing, 'alice');
     if (once.phase !== 'viewing') throw new Error('Expected viewing state');
-    expect(once.round.viewedSeats).toEqual([1, 3]);
+    expect(once.round.viewedSeats).toEqual([1]);
     const view = getFibRoundView(once, 1);
     expect(view).toMatchObject({ phase: 'viewing', viewerHasViewed: true });
     expect(getFibRoundView(once, 0)).toMatchObject({ viewerHasViewed: false });
@@ -174,10 +175,11 @@ describe('identity viewing protocol (fibking)', () => {
       userContext('host', { controlledSeat: 3 }),
     );
     expect(hostForBot.kind).toBe('commit');
-    if (hostForBot.kind === 'commit') expect(hostForBot.events).toEqual([]);
+    if (hostForBot.kind === 'commit')
+      expect(hostForBot.events).toEqual([{ type: 'fib.role.viewed', seat: 3 }]);
   });
 
-  it('blocks the round until every human has viewed, then starts', () => {
+  it('blocks the round until every seat has viewed, then starts', () => {
     const viewing = dealRound(createRoom());
     expect(decideFibCommand(viewing, { type: 'fib.round.reveal' }, userContext('host'))).toEqual({
       kind: 'reject',
@@ -185,20 +187,37 @@ describe('identity viewing protocol (fibking)', () => {
     });
 
     const two = confirm(confirm(viewing, 'host'), 'alice');
-    if (two.phase !== 'viewing') throw new Error('Round started before every human viewed');
-    expect(getFibRoundView(two, 0)).toMatchObject({ unviewedSeats: [2] });
+    if (two.phase !== 'viewing') throw new Error('Round started before every seat viewed');
+    expect(getFibRoundView(two, 0)).toMatchObject({ unviewedSeats: [2, 3] });
 
-    const lastDecision = decideFibCommand(
+    // The last human viewing no longer completes the phase: the bot
+    // seat's record is still open.
+    const bobDecision = decideFibCommand(
       two,
       { type: 'fib.round.confirmRoleView' },
       userContext('bob'),
     );
-    if (lastDecision.kind !== 'commit') throw new Error('Expected commit');
-    expect(lastDecision.events.map((event) => event.type)).toEqual([
+    if (bobDecision.kind !== 'commit') throw new Error('Expected commit');
+    expect(bobDecision.events.map((event) => event.type)).toEqual(['fib.role.viewed']);
+    const allHumans = applyDecision(two, bobDecision);
+    expect(allHumans.phase).toBe('viewing');
+
+    // Non-hosts cannot run the scaffold action.
+    expect(
+      decideFibCommand(allHumans, { type: 'fib.round.markAllBotsViewed' }, userContext('alice')),
+    ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+
+    const markDecision = decideFibCommand(
+      allHumans,
+      { type: 'fib.round.markAllBotsViewed' },
+      userContext('host'),
+    );
+    if (markDecision.kind !== 'commit') throw new Error('Expected commit');
+    expect(markDecision.events.map((event) => event.type)).toEqual([
       'fib.role.viewed',
       'fib.round.viewingCompleted',
     ]);
-    const ongoing = applyDecision(two, lastDecision);
+    const ongoing = applyDecision(allHumans, markDecision);
     expect(ongoing.phase).toBe('ongoing');
     expect(
       decideFibCommand(ongoing, { type: 'fib.round.confirmRoleView' }, userContext('bob')),
@@ -208,13 +227,14 @@ describe('identity viewing protocol (fibking)', () => {
   it('resets the viewing record on every new round', () => {
     let state = dealRound(createRoom());
     state = confirm(confirm(confirm(state, 'host'), 'alice'), 'bob');
+    state = dispatch(state, { type: 'fib.round.markAllBotsViewed' }, userContext('host'));
     state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
     const nextRound = dealRound(state, 'round-2', '灯塔');
     if (nextRound.phase !== 'viewing') throw new Error('Expected viewing state');
-    expect(nextRound.round.viewedSeats).toEqual([3]);
+    expect(nextRound.round.viewedSeats).toEqual([]);
     expect(getFibRoundView(nextRound, 0)).toMatchObject({
       viewerHasViewed: false,
-      unviewedSeats: [0, 1, 2],
+      unviewedSeats: [0, 1, 2, 3],
     });
   });
 
@@ -245,6 +265,7 @@ describe('identity viewing protocol (fibking)', () => {
 
     let ended = dealRound(createRoom());
     ended = confirm(confirm(confirm(ended, 'host'), 'alice'), 'bob');
+    ended = dispatch(ended, { type: 'fib.round.markAllBotsViewed' }, userContext('host'));
     ended = dispatch(ended, { type: 'fib.round.reveal' }, userContext('host'));
     const endedSerialized = downgradeRoster(ended);
     delete (endedSerialized.round as Record<string, unknown>).viewedSeats;

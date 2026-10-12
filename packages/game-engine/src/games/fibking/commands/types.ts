@@ -22,6 +22,7 @@ export type FibPublicCommand =
   | { readonly type: 'fib.round.start' }
   | { readonly type: 'fib.round.cancelPreparing' }
   | { readonly type: 'fib.round.confirmRoleView' }
+  | { readonly type: 'fib.round.markAllBotsViewed' }
   | { readonly type: 'fib.round.reveal' };
 
 export interface FibCompleteRoundCommand {

@@ -79,8 +79,44 @@ function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
   };
 }
 
+function createViewing(viewedSeats: readonly number[]): Extract<FibState, { phase: 'viewing' }> {
+  const ongoing = createOngoing();
+  return { ...ongoing, phase: 'viewing', round: { ...ongoing.round, viewedSeats } };
+}
+
 describe('FibKing room adapter', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('offers the bot-viewing scaffold only while bot seats are unmarked', () => {
+    const markAllBotsViewed = jest.fn();
+    const build = (state: FibState) =>
+      createFibHostManagement({
+        state,
+        isHost: true,
+        isCommandSubmitting: false,
+        capabilities: createFibRoomCapabilities({
+          state,
+          isHost: true,
+          mySeat: 0,
+          ...callbacks,
+        }),
+        startRound: jest.fn(),
+        markAllBotsViewed,
+        cancelPreparing: jest.fn(),
+        revealRound: jest.fn(),
+        redrawRound: jest.fn(),
+        abandonGame: jest.fn(),
+        endGame: jest.fn(),
+        onStartDisabled: jest.fn(),
+      });
+    const flowActions = (state: FibState) =>
+      build(state)?.sections.find((section) => section.key === 'current-flow')?.actions ?? [];
+
+    expect(flowActions(createViewing([0]))).toEqual([
+      expect.objectContaining({ key: 'mark-bots-viewed', label: '标记机器人已查看' }),
+    ]);
+    expect(flowActions(createViewing([0, 1, 2, 3]))).toEqual([]);
+  });
 
   it('derives shared lobby operations without a Fib-specific header implementation', () => {
     const state = createLobby();
@@ -280,6 +316,7 @@ describe('FibKing room adapter', () => {
       isCommandSubmitting: false,
       capabilities: lobbyCapabilities,
       startRound,
+      markAllBotsViewed: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound,
       redrawRound,
@@ -315,6 +352,7 @@ describe('FibKing room adapter', () => {
       isCommandSubmitting: false,
       capabilities: ongoingCapabilities,
       startRound,
+      markAllBotsViewed: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound,
       redrawRound,
@@ -363,6 +401,7 @@ describe('FibKing room adapter', () => {
       isCommandSubmitting: false,
       capabilities: endedCapabilities,
       startRound,
+      markAllBotsViewed: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound,
       redrawRound,
@@ -440,6 +479,7 @@ describe('FibKing room adapter', () => {
       isCommandSubmitting: false,
       capabilities,
       startRound,
+      markAllBotsViewed: jest.fn(),
       cancelPreparing,
       endGame: jest.fn(),
       revealRound: jest.fn(),

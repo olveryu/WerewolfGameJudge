@@ -240,7 +240,7 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | 
       };
     case 'viewing': {
       const unviewedCount = getFibViewingParticipants(state).filter(
-        (participant) => !participant.isBot && !state.round.viewedSeats.includes(participant.seat),
+        (participant) => !state.round.viewedSeats.includes(participant.seat),
       ).length;
       return {
         kind: 'message',
@@ -275,6 +275,7 @@ interface FibHostManagementInput {
     'canConfigureGame' | 'canClearSeats' | 'canFillBots'
   >;
   readonly startRound: () => void;
+  readonly markAllBotsViewed: () => void;
   readonly cancelPreparing: () => void;
   readonly revealRound: () => void;
   readonly redrawRound: () => void;
@@ -316,8 +317,29 @@ function commandHostAction(
 
 function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
   switch (input.state.phase) {
-    case 'viewing':
-      return [];
+    case 'viewing': {
+      // Identity scaffold (aligned with werewolf): while bot seats
+      // are unmarked, the host can fill their viewed records.
+      const round = input.state.round;
+      if (round === null) return [];
+      const hasUnviewedBot = getFibViewingParticipants(input.state).some(
+        (participant) => participant.isBot && !round.viewedSeats.includes(participant.seat),
+      );
+      return hasUnviewedBot
+        ? [
+            commandHostAction(
+              input,
+              {
+                key: 'mark-bots-viewed',
+                label: '标记机器人已查看',
+                icon: 'eye-outline',
+                variant: 'secondary',
+              },
+              input.markAllBotsViewed,
+            ),
+          ]
+        : [];
+    }
     case 'lobby': {
       return [
         buildStartGameAction({

@@ -119,7 +119,10 @@ function startPreparing(state: FibState, commandId = 'round-command-1'): FibStat
 
 function confirmAllRoleViews(state: FibState): FibState {
   if (state.phase !== 'viewing') throw new Error('Expected viewing state');
-  return dispatch(state, { type: 'fib.round.confirmRoleView' }, userContext('host'));
+  // The host confirms their own view, then marks the bot seats
+  // through the scaffold action (the engine never auto-marks).
+  const confirmed = dispatch(state, { type: 'fib.round.confirmRoleView' }, userContext('host'));
+  return dispatch(confirmed, { type: 'fib.round.markAllBotsViewed' }, userContext('host'));
 }
 
 it('emits a completion reward roster only on the first host reveal', () => {
