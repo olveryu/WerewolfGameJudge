@@ -53,7 +53,16 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
     throw new Error('[FAIL-FAST] Pictionary lobby must use the shared seat workspace');
   }
   const canExpire = isHost || effectiveSeat !== null;
-  const shouldExpire = useCallback(() => canExpire, [canExpire]);
+  const shouldExpire = useCallback(() => {
+    if (!canExpire) return false;
+    const current = session.getSnapshot();
+    return (
+      current.phase === 'ready' &&
+      current.connection === 'live' &&
+      current.pendingCommandCount === 0 &&
+      current.snapshot.state.phaseRevision === state.phaseRevision
+    );
+  }, [canExpire, session, state.phaseRevision]);
   const onExpire = useCallback(async () => {
     const result = await session.dispatch(
       { type: 'pictionary.phase.expire', phaseRevision: state.phaseRevision },
@@ -72,6 +81,7 @@ const PictionaryStageContent: React.FC<PictionaryStageProps> = ({
     onExpire,
     label: '推进接龙阶段',
     refreshIntervalMs: 250,
+    silentExpire: true,
   });
   // pictionary 原 hook 返回 { remainingSeconds, isExpired }，此处保持调用方兼容
   const deadline = { remainingSeconds, isExpired: remainingSeconds === 0 };

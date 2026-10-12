@@ -453,6 +453,7 @@ function AvalonRoomContent(
             }
             shouldPlay={screen.rolePreviewId === null && screen.roleCardShouldPlay}
             allRoles={screen.roleCardAllRoles}
+            remainingCards={screen.roleCardRemainingCards}
             onClose={() => {
               screen.setRoleCardVisible(false);
               screen.setRolePreviewId(null);

@@ -104,6 +104,7 @@ export function toRevealRoleData(roleId: RoleId, opts?: ToRevealRoleDataOptions)
 
   return {
     id: roleId,
+    displayId,
     name,
     alignment: getAlignment(displayId),
     image: getRoleAvatar(displayId),

@@ -25,6 +25,7 @@ import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/Roo
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { useAutoShowRoomShareQr } from '@/features/room/controllers/useAutoShowRoomShareQr';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
@@ -379,8 +380,16 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
               allRoleIds={gameState?.template.roles ?? []}
               remainingCards={
                 gameState
-                  ? Array.from(gameState.players.values()).filter((p) => p && !p.hasViewedRole)
-                      .length + (shouldPlayRevealAnimation ? 1 : 0)
+                  ? // Werewolf's viewed mark lands before the card shows
+                    // (the open waits for the POST), so the shared formula
+                    // already counts this card as viewed; +1 restores the
+                    // table semantics the other games get naturally
+                    // (their marks land on confirm).
+                    deriveRemainingRevealCards(
+                      Array.from(gameState.players.values()).filter((p) => p).length,
+                      Array.from(gameState.players.values()).filter((p) => p && p.hasViewedRole)
+                        .length,
+                    ) + (shouldPlayRevealAnimation ? 1 : 0)
                   : 0
               }
               onClose={handleRoleCardClose}

@@ -9,6 +9,14 @@
  * - null/undefined → null (no animation)
  * - specific effect ID → validated against canonical `ROLE_REVEAL_EFFECT_IDS`,
  *   invalid → null
+ *
+ * Delivery paths (AU-24, registered divergence): avalon/fibking/
+ * undercover resolve at view time in their room hooks. Werewolf
+ * resolves once at seat time (createSeatProfile) into the roster
+ * profile the server distributes, and its client only revalidates.
+ * Both paths run this same deterministic function over the same
+ * inputs, so results are identical within a room; do not converge
+ * them - the werewolf shape is what its roster protocol carries.
  */
 
 import {

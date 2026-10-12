@@ -23,6 +23,7 @@ const baseProps = {
   shouldConfirm: false,
   shouldPlay: false,
   allRoles: [],
+  remainingCards: 4,
   isSubmitting: false,
   onClose: jest.fn(),
   onConfirm: jest.fn(),

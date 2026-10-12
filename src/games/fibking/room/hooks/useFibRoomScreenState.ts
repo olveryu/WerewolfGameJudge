@@ -34,7 +34,10 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
-import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
+import {
+  deriveRemainingRevealCards,
+  type RevealRoleData,
+} from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -75,6 +78,7 @@ export interface FibRoomScreenState {
   readonly identityConfirmText: string;
   /** 是否播放揭示动画（服务端查看记录锚点：本轮未记录已查看才播）。 */
   readonly identityShouldPlay: boolean;
+  readonly identityRemainingCards: number;
   /** Animator 角色池（只有种类与计数，零泄密）。 */
   readonly identityAllRoles: readonly RevealRoleData[];
   /** 是否正接管机器人座位（接管时不播查看者本人的揭示动画，D-1）。 */
@@ -263,6 +267,10 @@ export function useFibRoomScreenState({
     effectiveSeat !== null &&
     state.round.viewedSeats.includes(effectiveSeat);
   const identityShouldPlay = roundView !== null && effectiveSeat !== null && !identityHasViewed;
+  const identityRemainingCards =
+    state.round === null
+      ? 0
+      : deriveRemainingRevealCards(getFibOccupiedSeatCount(state), state.round.viewedSeats.length);
   const identityAllRoles = useMemo(
     () => (state.round === null ? [] : getFibRevealRolePool(state.numberOfPlayers)),
     [state.numberOfPlayers, state.round],
@@ -514,6 +522,7 @@ export function useFibRoomScreenState({
     confirmIdentity,
     identityConfirmText,
     identityShouldPlay,
+    identityRemainingCards,
     identityAllRoles,
     isBotTakeoverActive: controlledSeat !== null,
     openRules,

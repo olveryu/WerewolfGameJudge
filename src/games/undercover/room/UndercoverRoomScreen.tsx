@@ -1,5 +1,8 @@
 /** Undercover room mounts exclusively through shared authentication, session and shell boundaries. */
-import type { UndercoverRole } from '@game-judge/game-engine/games/undercover/public';
+import {
+  getUndercoverOccupiedSeatCount,
+  type UndercoverRole,
+} from '@game-judge/game-engine/games/undercover/public';
 import { useCallback, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -10,6 +13,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -76,18 +80,17 @@ function UndercoverRoomContent(
               subtitle={`${state.config.hasBlank ? '有白板' : '无白板'} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
               testID="undercover-room"
               headerRight={<RoomGuideButton onPress={openRules} label="查看谁是卧底玩法说明" />}
-            >
-              {state.phase === 'ended' && (
-                <View style={styles.section} testID="undercover-results">
-                  <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
-                  <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
-                  <Text style={styles.muted}>
-                    出局顺序：
-                    {state.round.revelations.map((entry) => formatRoomSeat(entry.seat)).join(' → ')}
-                  </Text>
-                </View>
-              )}
-            </RoomGameSummary>
+            />
+            {state.phase === 'ended' && (
+              <View style={styles.section} testID="undercover-results">
+                <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
+                <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
+                <Text style={styles.muted}>
+                  出局顺序：
+                  {state.round.revelations.map((entry) => formatRoomSeat(entry.seat)).join(' → ')}
+                </Text>
+              </View>
+            )}
             <BoardInfoCard
               playerCount={state.config.numberOfPlayers}
               sections={createUndercoverBoardInfoSections({
@@ -112,6 +115,10 @@ function UndercoverRoomContent(
                 state.round !== null && !state.round.confirmedSeats.includes(controls.card.seat)
               }
               allRoles={revealPool}
+              remainingCards={deriveRemainingRevealCards(
+                getUndercoverOccupiedSeatCount(state),
+                state.round?.confirmedSeats.length ?? 0,
+              )}
               isControlled={isControlled}
               shouldConfirm={controls.shouldConfirm}
               isSubmitting={controls.isSubmitting}

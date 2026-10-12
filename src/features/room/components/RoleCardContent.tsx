@@ -130,8 +130,9 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const factionColor = getRevealFactionColor(role.alignment, colors);
   const factionName = role.factionName ?? '';
   const isWolf = role.alignment === 'wolf';
-  // 英文副标题：role.id 转大写（如 "SEER"）
-  const roleSub = role.id.toUpperCase();
+  // 英文副标题：展示用身份转大写（如 "SEER"）。用 displayId 而非
+  // 匹配用 id：伪装角色（mirrorSeer）的 id 是真实身份，印出来即泄漏。
+  const roleSub = (role.displayId ?? role.id).toUpperCase();
   // 揭示模式：半透明边框
   const borderColor = revealMode
     ? `${factionColor}${Math.round(revealBorderOpacity * 255)

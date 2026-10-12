@@ -72,6 +72,7 @@ function renderModal(element: ReactElement): ReturnType<typeof render> {
 const baseProps = {
   shouldPlay: false,
   allRoles: [],
+  remainingCards: 4,
   confirmText: '知道了',
   onConfirm: jest.fn(),
 } as const;

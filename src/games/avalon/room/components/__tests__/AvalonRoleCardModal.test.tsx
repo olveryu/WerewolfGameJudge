@@ -18,6 +18,7 @@ const baseProps = {
   visible: true,
   roleId: 'merlin' as const,
   allRoles: [],
+  remainingCards: 5,
   onClose: jest.fn(),
 };
 

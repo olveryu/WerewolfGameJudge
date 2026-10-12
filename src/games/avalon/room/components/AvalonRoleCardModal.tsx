@@ -19,6 +19,7 @@ export function AvalonRoleCardModal({
   effectType,
   shouldPlay,
   allRoles,
+  remainingCards,
   onClose,
 }: {
   readonly visible: boolean;
@@ -29,6 +30,8 @@ export function AvalonRoleCardModal({
   readonly shouldPlay: boolean;
   /** 动画候选池：本局完整角色分布（state.roles 公开广播，D6-Q1）。 */
   readonly allRoles: readonly RevealRoleData[];
+  /** 桌上未看牌数（已占座位数 − 已查看数）。 */
+  readonly remainingCards: number;
   readonly onClose: () => void;
 }) {
   const role = roleId != null ? toRevealRoleData(roleId) : null;
@@ -44,6 +47,7 @@ export function AvalonRoleCardModal({
       shouldPlay={shouldPlay}
       role={role}
       allRoles={allRoles}
+      remainingCards={remainingCards}
     >
       <RoleCardSimple visible={visible} role={role} onClose={onClose} confirmText="知道了" />
     </RevealAnimationGate>

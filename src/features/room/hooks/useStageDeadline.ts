@@ -7,6 +7,13 @@
  *
  * Game-specific concerns (session snapshot guards, dispatch payload) stay with
  * the caller via `shouldExpire` and `onExpire`.
+ *
+ * Scope (AU-27, registered divergence): this hook is the any-foreground-
+ * client expiry notifier for avalon/drawguess/pictionary/storyrelay.
+ * It deliberately does NOT cover werewolf's step progression:
+ * useStepDeadlineCountdown is a host-only progression driver with
+ * retry-until-success and engine audio-ack coupling - a different
+ * duty, kept separate on purpose.
  */
 
 import { useEffect, useState } from 'react';
@@ -31,6 +38,13 @@ export interface UseStageDeadlineParams {
   readonly label: string;
   /** Tick interval in ms; defaults to 1000. */
   readonly refreshIntervalMs?: number;
+  /**
+   * Expiry dispatch is best-effort and revision-guarded: a rejection is
+   * an expected outcome (another client may have settled first), never
+   * a user-facing error. When true, a thrown dispatch is logged and
+   * retried on the next tick instead of surfacing an alert.
+   */
+  readonly silentExpire?: boolean;
 }
 
 /**
@@ -43,6 +57,7 @@ export function useStageDeadline({
   onExpire,
   label,
   refreshIntervalMs = DEFAULT_REFRESH_MS,
+  silentExpire = false,
 }: UseStageDeadlineParams): number | null {
   const isVisible = useAppVisibility();
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -60,7 +75,12 @@ export function useStageDeadline({
       try {
         await onExpire();
       } catch (error: unknown) {
-        if (isMounted) {
+        if (isMounted && silentExpire) {
+          roomScreenLog.warn('stage expiry dispatch failed; retrying on next tick', {
+            label,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        } else if (isMounted) {
           handleError(error, {
             label,
             logger: roomScreenLog,
@@ -79,7 +99,7 @@ export function useStageDeadline({
       isMounted = false;
       clearInterval(interval);
     };
-  }, [deadlineAt, isVisible, shouldExpire, onExpire, label, refreshIntervalMs]);
+  }, [deadlineAt, isVisible, shouldExpire, onExpire, label, refreshIntervalMs, silentExpire]);
 
   return remainingSeconds;
 }
