@@ -8,6 +8,7 @@ import {
 } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import { REASON_PICTIONARY_PHASE_INVALID } from '../domain/reasons';
+import { getPictionaryTaskForSeat } from '../domain/visibility';
 import type { PictionaryEffect } from '../effects/types';
 import {
   decidePictionaryCommand as decideBoundPictionaryCommand,
@@ -18,7 +19,6 @@ import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
-  getPictionaryTaskForSeat,
   PICTIONARY_MAX_PLAYERS,
   PICTIONARY_MIN_PLAYERS,
   type PictionaryState,

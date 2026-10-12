@@ -4,6 +4,7 @@ import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
+import { getPictionaryTaskForSeat } from '../domain/visibility';
 import type {
   PictionaryConfig,
   PictionaryMedia,
@@ -11,7 +12,6 @@ import type {
   PictionarySeatProfile,
   PictionaryState,
 } from '../state/types';
-import { getPictionaryTaskForSeat } from '../state/types';
 
 type PictionaryRoomCommand =
   | RoomSeatCommand<PictionarySeatProfile>

@@ -2,9 +2,10 @@
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { StoryRelayCommand } from '../commands/types';
+import { getStoryRelayTaskForSeat } from '../domain/visibility';
 import { storyRelayEngine } from '../engine';
 import { parseStoryRelayState } from '../state/parseState';
-import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayTaskForSeat } from '../state/types';
+import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 function game(numberOfPlayers = 4, galleryItemDurationSeconds: 10 | null = null) {
   const session = createEngineSession(storyRelayEngine, {

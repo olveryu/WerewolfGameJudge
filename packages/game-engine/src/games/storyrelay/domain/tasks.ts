@@ -9,7 +9,6 @@ import {
 import { findRosterSeatByUserId, isBotSeat } from '../../../platform/room/seating';
 import type { StoryRelayCommand, StoryRelayTaskIdentity } from '../commands/types';
 import {
-  getStoryRelayTaskForSeat,
   STORY_RELAY_TEXT_MAX_LENGTH,
   type StoryRelayEntry,
   type StoryRelayState,
@@ -21,6 +20,7 @@ import {
   type StoryRelayEffect,
   type StoryRelayEvent,
 } from './decision';
+import { getStoryRelayTaskForSeat } from './visibility';
 
 /** Builds a phase event; absolute deadlines are decided only by the server. */
 export function storyRelayPhase(

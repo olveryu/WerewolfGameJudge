@@ -49,13 +49,13 @@ import {
   REASON_PICTIONARY_TEXT_INVALID,
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from './domain/reasons';
+import { getPictionaryTaskForSeat } from './domain/visibility';
 import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
 import {
   getPictionaryBotDisplayName,
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
-  getPictionaryTaskForSeat,
   isPictionaryBotSeat,
   isPictionaryRoomFull,
   isValidPictionaryConfig,

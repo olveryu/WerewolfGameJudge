@@ -16,12 +16,12 @@ import { describe, expect, it } from 'vitest';
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import type { PictionaryCommandInput, PictionaryInternalCommand } from '../commands/types';
 import { REASON_PICTIONARY_ROOM_NOT_FULL } from '../domain/reasons';
+import { getPictionaryTaskForSeat } from '../domain/visibility';
 import { pictionaryEngine } from '../engine';
 import { parsePictionaryState } from '../state/parseState';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
-  getPictionaryTaskForSeat,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_WIDTH,
   type PictionaryState,
