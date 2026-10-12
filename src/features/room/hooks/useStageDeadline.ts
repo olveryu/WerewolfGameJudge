@@ -7,6 +7,13 @@
  *
  * Game-specific concerns (session snapshot guards, dispatch payload) stay with
  * the caller via `shouldExpire` and `onExpire`.
+ *
+ * Scope (AU-27, registered divergence): this hook is the any-foreground-
+ * client expiry notifier for avalon/drawguess/pictionary/storyrelay.
+ * It deliberately does NOT cover werewolf's step progression:
+ * useStepDeadlineCountdown is a host-only progression driver with
+ * retry-until-success and engine audio-ack coupling - a different
+ * duty, kept separate on purpose.
  */
 
 import { useEffect, useState } from 'react';

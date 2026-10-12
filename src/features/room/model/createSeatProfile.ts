@@ -31,6 +31,9 @@ export function createSeatProfile(
   roomCode: string,
 ): RoomSeatProfile {
   const cachedStats = queryClient.getQueryData(userStatsOptions(user.id).queryKey);
+  // AU-24: werewolf resolves the reveal effect here, at seat time,
+  // into the roster profile; the other games resolve at view time.
+  // Same resolver, same inputs - registered equivalent divergence.
   const revealEffect = resolveEquippedRevealEffect(user.equippedEffect, roomCode, user.id);
   return {
     displayName: user.displayName ?? '匿名玩家',
