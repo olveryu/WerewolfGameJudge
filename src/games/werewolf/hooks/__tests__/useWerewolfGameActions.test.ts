@@ -9,7 +9,7 @@ import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { WerewolfBgmControlState } from '@/games/werewolf/hooks/useWerewolfBgmControl';
-import type { WerewolfDebugModeState } from '@/games/werewolf/hooks/useWerewolfDebugMode';
+import type { WerewolfBotControlState } from '@/games/werewolf/hooks/useWerewolfBotControl';
 import { useWerewolfGameActions } from '@/games/werewolf/hooks/useWerewolfGameActions';
 import type {
   WerewolfCommandDispatchOutcome,
@@ -111,17 +111,17 @@ function createMockBgm(): Pick<WerewolfBgmControlState, 'startBgmIfEnabled' | 's
   return { startBgmIfEnabled: jest.fn(), stopBgm: jest.fn() };
 }
 
-interface MockDebugOverrides {
+interface MockBotControlOverrides {
   controlledSeat?: number | null;
   effectiveSeat?: number | null;
   effectiveRole?: string | null;
   releaseBot?: jest.Mock;
 }
 
-function createMockDebug(
-  overrides: MockDebugOverrides = {},
+function createMockBotControl(
+  overrides: MockBotControlOverrides = {},
 ): Pick<
-  WerewolfDebugModeState,
+  WerewolfBotControlState,
   'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'
 > {
   return {
@@ -131,7 +131,7 @@ function createMockDebug(
     releaseBot: jest.fn(),
     ...overrides,
   } as Pick<
-    WerewolfDebugModeState,
+    WerewolfBotControlState,
     'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'
   >;
 }
@@ -141,8 +141,8 @@ type WerewolfGameActionsDeps = Parameters<typeof useWerewolfGameActions>[0];
 interface MockDepsOverrides {
   client?: MockClient;
   bgm?: Pick<WerewolfBgmControlState, 'startBgmIfEnabled' | 'stopBgm'>;
-  debug?: Pick<
-    WerewolfDebugModeState,
+  botControl?: Pick<
+    WerewolfBotControlState,
     'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'
   >;
   isHost?: boolean;
@@ -156,7 +156,7 @@ function createDeps(overrides: MockDepsOverrides = {}): WerewolfGameActionsDeps 
   return {
     client: createMockClient(),
     bgm: createMockBgm(),
-    debug: createMockDebug(),
+    botControl: createMockBotControl(),
     isHost: true,
     mySeat: 1,
     gameState: {
@@ -234,14 +234,14 @@ describe('useWerewolfGameActions - game control', () => {
     expect(deps.bgm.startBgmIfEnabled).not.toHaveBeenCalled();
   });
 
-  it('restartGame should stop BGM, clear debug seat, and call client', async () => {
-    const deps = createDeps({ debug: createMockDebug({ controlledSeat: 2 }) });
+  it('restartGame should stop BGM, clear the controlled seat, and call client', async () => {
+    const deps = createDeps({ botControl: createMockBotControl({ controlledSeat: 2 }) });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await act(() => result.current.restartGame());
 
     expect(deps.bgm.stopBgm).toHaveBeenCalled();
-    expect(deps.debug.releaseBot).toHaveBeenCalledTimes(1);
+    expect(deps.botControl.releaseBot).toHaveBeenCalledTimes(1);
     expect(deps.client.restartGame).toHaveBeenCalled();
   });
 
@@ -319,8 +319,8 @@ describe('useWerewolfGameActions - player night actions', () => {
     expect(deps.client.markViewedRole).toHaveBeenCalledWith(null);
   });
 
-  it('viewedRole should use debug.controlledSeat when set', async () => {
-    const deps = createDeps({ debug: createMockDebug({ controlledSeat: 5 }) });
+  it('viewedRole should use botControl.controlledSeat when set', async () => {
+    const deps = createDeps({ botControl: createMockBotControl({ controlledSeat: 5 }) });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await act(() => result.current.viewedRole());
@@ -331,7 +331,7 @@ describe('useWerewolfGameActions - player night actions', () => {
   it('viewedRole fails fast when both seats are null', async () => {
     const deps = createDeps({
       mySeat: null,
-      debug: createMockDebug({ controlledSeat: null }),
+      botControl: createMockBotControl({ controlledSeat: null }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -344,7 +344,7 @@ describe('useWerewolfGameActions - player night actions', () => {
 
   it('submitAction should send typed input and null controlledSeat for self', async () => {
     const deps = createDeps({
-      debug: createMockDebug({ effectiveSeat: 2, effectiveRole: 'seer' }),
+      botControl: createMockBotControl({ effectiveSeat: 2, effectiveRole: 'seer' }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -354,7 +354,7 @@ describe('useWerewolfGameActions - player night actions', () => {
   });
 
   it('submitAction fails fast when effectiveSeat is null', async () => {
-    const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
+    const deps = createDeps({ botControl: createMockBotControl({ effectiveSeat: null }) });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await expect(result.current.submitAction({ kind: 'target', target: 4 })).rejects.toThrow(
@@ -375,7 +375,7 @@ describe('useWerewolfGameActions - player night actions', () => {
 
   it('reveal and group-confirm acks pass the controlled bot seat', async () => {
     const deps = createDeps({
-      debug: createMockDebug({ controlledSeat: 6, effectiveSeat: 6 }),
+      botControl: createMockBotControl({ controlledSeat: 6, effectiveSeat: 6 }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -386,8 +386,10 @@ describe('useWerewolfGameActions - player night actions', () => {
     expect(deps.client.submitGroupConfirmAck).toHaveBeenCalledWith(6);
   });
 
-  it('sendWolfRobotHunterStatusViewed should pass controlledSeat from debug state', async () => {
-    const deps = createDeps({ debug: createMockDebug({ controlledSeat: 7, effectiveSeat: 7 }) });
+  it('sendWolfRobotHunterStatusViewed should pass controlledSeat from bot control state', async () => {
+    const deps = createDeps({
+      botControl: createMockBotControl({ controlledSeat: 7, effectiveSeat: 7 }),
+    });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await act(() => result.current.sendWolfRobotHunterStatusViewed());
@@ -401,7 +403,7 @@ describe('useWerewolfGameActions - sheriff election', () => {
 
   it('passes the controlled bot seat through all player election commands', async () => {
     const deps = createDeps({
-      debug: createMockDebug({ controlledSeat: 6, effectiveSeat: 6 }),
+      botControl: createMockBotControl({ controlledSeat: 6, effectiveSeat: 6 }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -419,7 +421,7 @@ describe('useWerewolfGameActions - sheriff election', () => {
   });
 
   it('fails before player election dispatch when there is no effective seat', async () => {
-    const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
+    const deps = createDeps({ botControl: createMockBotControl({ effectiveSeat: null }) });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await expect(result.current.registerSheriffCandidate()).rejects.toThrow(
@@ -555,7 +557,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     });
     const deps = createDeps({
       client,
-      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+      botControl: createMockBotControl({ effectiveSeat: 1, effectiveRole: 'wolf' }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -570,7 +572,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     });
     const deps = createDeps({
       client,
-      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+      botControl: createMockBotControl({ effectiveSeat: 1, effectiveRole: 'wolf' }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -585,7 +587,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     });
     const deps = createDeps({
       client,
-      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+      botControl: createMockBotControl({ effectiveSeat: 1, effectiveRole: 'wolf' }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
@@ -600,7 +602,7 @@ describe('useWerewolfGameActions - handleCommandOutcome', () => {
     });
     const deps = createDeps({
       client,
-      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+      botControl: createMockBotControl({ effectiveSeat: 1, effectiveRole: 'wolf' }),
     });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 

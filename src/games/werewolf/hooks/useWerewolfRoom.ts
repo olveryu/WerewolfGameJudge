@@ -5,7 +5,7 @@
  * - shared RoomSession snapshot + canonical seat commands
  * - useWerewolfGameActions: game control + night actions
  * - useWerewolfBgmControl: BGM state management
- * - useWerewolfDebugMode: debug bot control
+ * - useWerewolfBotControl: takeover ownership (AU-14); useWerewolfDebugMode: bot-test scaffold
  * - useWerewolfNightDerived: pure night-phase derivations
  *
  * Server is the Single Source of Truth for all game state.
@@ -24,7 +24,6 @@ import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useBotTakeoverGuard } from '@/features/room/controllers/useBotTakeoverGuard';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type {
@@ -40,6 +39,7 @@ import { translateReasonCode } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
 import { useWerewolfBgmControl } from './useWerewolfBgmControl';
+import { useWerewolfBotControl } from './useWerewolfBotControl';
 import { useWerewolfDebugMode } from './useWerewolfDebugMode';
 import { useWerewolfGameActions } from './useWerewolfGameActions';
 import { useWerewolfLastActionToast } from './useWerewolfLastActionToast';
@@ -60,12 +60,13 @@ interface UseWerewolfRoomResult {
   mySeat: number | null;
   myRole: RoleId | null;
 
-  // Debug mode (from useWerewolfDebugMode)
+  // Takeover (from useWerewolfBotControl)
   controlledSeat: number | null;
   effectiveSeat: number | null;
   effectiveRole: RoleId | null;
   takeOverBot: (seat: number) => void;
   releaseBot: () => void;
+  // Debug scaffold (from useWerewolfDebugMode)
   isDebugMode: boolean;
   fillWithBots: () => Promise<WerewolfCommandDispatchOutcome>;
   markAllBotsViewed: () => Promise<WerewolfCommandDispatchOutcome>;
@@ -199,18 +200,13 @@ interface UseWerewolfRoomResult {
 
   const seatCommands = useWerewolfSeatCommands({ session, user });
 
-  // Debug mode: bot control
-  const debug = useWerewolfDebugMode(client, mySeat, gameState, seatCommands.fillBots);
+  // Takeover ownership (AU-14): bot control + lifecycle guard +
+  // effective identity live in one hook; the debug hook below only
+  // carries the bot-test scaffold actions.
+  const botControl = useWerewolfBotControl(mySeat, gameState, isHost);
 
-  // Takeover lifecycle guard (shared by all seven games): auto-release when
-  // the host loses host status or the controlled seat stops being a bot.
-  useBotTakeoverGuard({
-    controlledSeat: debug.controlledSeat,
-    canControlBots: isHost,
-    seatStillBot:
-      debug.controlledSeat === null || gameState.players.get(debug.controlledSeat)?.isBot === true,
-    release: debug.releaseBot,
-  });
+  // Debug mode: bot-test scaffold (flag + bulk bot actions)
+  const debug = useWerewolfDebugMode(client, gameState, seatCommands.fillBots);
 
   // Night-phase derived values (pure computation)
   const nightDerived = useWerewolfNightDerived(gameState);
@@ -219,7 +215,7 @@ interface UseWerewolfRoomResult {
   const actions = useWerewolfGameActions({
     client,
     bgm,
-    debug,
+    botControl,
     isHost,
     mySeat,
     gameState,
@@ -263,11 +259,11 @@ interface UseWerewolfRoomResult {
     mySeat,
     myRole,
     // Debug mode
-    controlledSeat: debug.controlledSeat,
-    effectiveSeat: debug.effectiveSeat,
-    effectiveRole: debug.effectiveRole,
-    takeOverBot: debug.takeOverBot,
-    releaseBot: debug.releaseBot,
+    controlledSeat: botControl.controlledSeat,
+    effectiveSeat: botControl.effectiveSeat,
+    effectiveRole: botControl.effectiveRole,
+    takeOverBot: botControl.takeOverBot,
+    releaseBot: botControl.releaseBot,
     isDebugMode: debug.isDebugMode,
     fillWithBots: debug.fillWithBots,
     markAllBotsViewed: debug.markAllBotsViewed,

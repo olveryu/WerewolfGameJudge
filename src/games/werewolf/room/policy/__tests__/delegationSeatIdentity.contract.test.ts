@@ -221,7 +221,7 @@ describe('Delegation Seat Identity Contract', () => {
         'submitAction',
       );
 
-      expect(declaration).toMatch(/client\.submitAction\(input,\s*debug\.controlledSeat\)/);
+      expect(declaration).toMatch(/client\.submitAction\(input,\s*botControl\.controlledSeat\)/);
       expect(declaration).not.toMatch(/client\.submitAction\([^)]*effectiveRole/);
       expect(declaration).not.toMatch(/client\.submitAction\([^)]*effectiveSeat/);
     });
@@ -230,7 +230,7 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: sendWolfRobotHunterStatusViewed takes seat param directly
      * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
      */
-    it('sendWolfRobotHunterStatusViewed derives controlledSeat from debug state', () => {
+    it('sendWolfRobotHunterStatusViewed derives controlledSeat from bot control state', () => {
       const declaration = getVariableDeclarationSource(
         'src/games/werewolf/hooks/useWerewolfGameActions.ts',
         'sendWolfRobotHunterStatusViewed',
@@ -238,7 +238,7 @@ describe('Delegation Seat Identity Contract', () => {
 
       expect(declaration).toMatch(/async\s*\(\s*\)/);
       expect(declaration).toMatch(
-        /client\.sendWolfRobotHunterStatusViewed\(debug\.controlledSeat\)/,
+        /client\.sendWolfRobotHunterStatusViewed\(botControl\.controlledSeat\)/,
       );
     });
   });
@@ -524,7 +524,7 @@ describe('Delegation Seat Identity Contract', () => {
     });
   });
 
-  describe('wolfRobot hunter gate with controlledSeat (debug takeover)', () => {
+  describe('wolfRobot hunter gate with controlledSeat (bot takeover)', () => {
     /** The executor triggers an ack; useWerewolfGameActions owns controlledSeat routing. */
     it('wolfRobot executor does not pass an actor seat through the mutation', () => {
       const content = readFileContent(WOLF_ROBOT_EXECUTOR_PATH);
