@@ -135,3 +135,30 @@ describe('room hook interfaces — undercover (P-2b batch 5)', () => {
     expect(screen).not.toMatch(/numberOfPlayers - 1/);
   });
 });
+
+describe('stage deadline snapshot guard (AU-25/AU-47)', () => {
+  // Every useStageDeadline consumer must gate expiry on the session
+  // snapshot: phase ready, connection live, no command in flight, and
+  // the snapshot revision still matching the rendered state. Without
+  // the guard, a fast display tick re-dispatches expire until the next
+  // snapshot lands (the Pictionary 250ms amplification).
+  const consumers: ReadonlyArray<{ game: string; path: string }> = [
+    { game: 'avalon', path: 'games/avalon/room/hooks/useAvalonRoomState.ts' },
+    { game: 'drawguess', path: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts' },
+    { game: 'pictionary', path: 'games/pictionary/room/components/PictionaryStage.tsx' },
+    { game: 'storyrelay', path: 'games/storyrelay/room/components/StoryRelayStage.tsx' },
+  ];
+
+  it.each(consumers)('$game expires through useStageDeadline', ({ path }) => {
+    expect(readSource(path)).toMatch(/useStageDeadline\(\{/);
+  });
+
+  it.each(consumers)('$game shouldExpire carries the four snapshot conditions', ({ path }) => {
+    const source = readSource(path);
+    expect(source).toMatch(/getSnapshot\(\)/);
+    expect(source).toMatch(/phase === 'ready'/);
+    expect(source).toMatch(/connection === 'live'/);
+    expect(source).toMatch(/pendingCommandCount === 0/);
+    expect(source).toMatch(/snapshot\.state\.phaseRevision === state\.phaseRevision/);
+  });
+});
