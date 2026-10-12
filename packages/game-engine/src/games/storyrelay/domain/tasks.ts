@@ -1,6 +1,11 @@
 /** Story Relay task ownership, readiness and final submission decisions; no persistence or IO. */
 
-import { type CommandContext, reject, resolveUserActorId } from '../../../platform/engine';
+import {
+  buildGameCompletionPayload,
+  type CommandContext,
+  reject,
+  resolveUserActorId,
+} from '../../../platform/engine';
 import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_NOT_HOST,
@@ -79,15 +84,16 @@ function appendEntries(
       );
       effects.push({
         type: 'storyrelay.game.completed',
-        payload: {
+        payload: buildGameCompletionPayload({
           roundId: state.roundId,
           completedAt: nowMs,
-          participantUserIds: state.participants.flatMap((participant) =>
-            participant.userId !== null && authors.has(participant.seat)
-              ? [participant.userId]
+          humans: state.participants.flatMap((participant) =>
+            participant.userId !== null
+              ? [{ seat: participant.seat, userId: participant.userId }]
               : [],
           ),
-        },
+          includeSeat: (seat) => authors.has(seat.seat),
+        }),
       });
     }
   }

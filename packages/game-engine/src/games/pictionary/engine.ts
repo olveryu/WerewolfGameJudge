@@ -13,6 +13,7 @@ import {
   resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../platform/engine';
+import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
 import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
@@ -505,24 +506,20 @@ function expireTransitionPhase(
         [
           {
             type: 'pictionary.game.completed',
-            payload: {
+            payload: buildGameCompletionPayload({
               roundId: state.roundId,
               completedAt: context.nowMs,
-              participantUserIds: Object.values(
-                getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-              )
-                .filter((player) =>
-                  state.chains.some((chain) =>
-                    chain.entries.some(
-                      (entry) =>
-                        entry.authorSeat === player.seat &&
-                        (entry.kind === 'drawing' ||
-                          (entry.kind === 'text' && entry.text.trim().length > 0)),
-                    ),
+              humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+              includeSeat: (player) =>
+                state.chains.some((chain) =>
+                  chain.entries.some(
+                    (entry) =>
+                      entry.authorSeat === player.seat &&
+                      (entry.kind === 'drawing' ||
+                        (entry.kind === 'text' && entry.text.trim().length > 0)),
                   ),
-                )
-                .map((player) => player.userId),
-            },
+                ),
+            }),
           },
         ],
       )

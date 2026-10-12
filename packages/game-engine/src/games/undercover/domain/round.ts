@@ -3,6 +3,7 @@
  */
 
 import {
+  buildGameCompletionPayload,
   type CommandContext,
   reject,
   resolveSystemActorEffectId,
@@ -175,13 +176,11 @@ function decideRevelation(
       : [
           {
             type: 'undercover.game.completed',
-            payload: {
+            payload: buildGameCompletionPayload({
               roundId: state.round.roundId,
               completedAt: context.nowMs,
-              participantUserIds: Object.values(
-                getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-              ).map((seat) => seat.userId),
-            },
+              humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+            }),
           },
         ],
   );

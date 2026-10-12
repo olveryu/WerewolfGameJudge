@@ -13,6 +13,7 @@ import {
   resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../platform/engine';
+import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol/gameTypes';
 import {
   REASON_GAME_IN_PROGRESS,
@@ -271,11 +272,11 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
         [
           {
             type: 'fib.game.completed',
-            payload: {
+            payload: buildGameCompletionPayload({
               roundId: state.round.roundId,
               completedAt: context.nowMs,
-              participantUserIds: getFibParticipantUserIds(state),
-            },
+              humans: Object.values(getHumanSeatMap(state.roster, state.numberOfPlayers)),
+            }),
           },
         ],
       )

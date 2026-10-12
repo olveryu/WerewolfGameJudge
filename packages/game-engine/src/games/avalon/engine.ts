@@ -1,6 +1,7 @@
 /** Authoritative Avalon engine; delegates persistence and delivery to the platform. */
 
 import {
+  buildGameCompletionPayload,
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -91,13 +92,11 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
 function completionEffect(state: AvalonState, context: CommandContext): AvalonEffect {
   return {
     type: 'avalon.game.completed',
-    payload: {
+    payload: buildGameCompletionPayload({
       roundId: `avalon:game:${state.gameSequence}`,
       completedAt: context.nowMs,
-      participantUserIds: Object.values(
-        getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-      ).map((seat) => seat.userId),
-    },
+      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    }),
   };
 }
 

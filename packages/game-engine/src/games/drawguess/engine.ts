@@ -1,6 +1,7 @@
 /** Authoritative DrawGuess engine; delegates persistence and delivery to the platform. */
 
 import {
+  buildGameCompletionPayload,
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -78,13 +79,11 @@ function dealEffect(turnIndex: number): DrawGuessEffect {
 function completionEffect(state: DrawGuessState, context: CommandContext): DrawGuessEffect {
   return {
     type: 'drawguess.game.completed',
-    payload: {
+    payload: buildGameCompletionPayload({
       roundId: `drawguess:game:${state.gameSequence}`,
       completedAt: context.nowMs,
-      participantUserIds: Object.values(
-        getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-      ).map((seat) => seat.userId),
-    },
+      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    }),
   };
 }
 
