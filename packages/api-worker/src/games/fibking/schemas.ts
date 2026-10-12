@@ -35,15 +35,15 @@ function defineFibPublicCommandOptions<const TOptions extends readonly z.ZodType
 const publicCommandOptions = defineFibPublicCommandOptions([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({
-    type: z.literal('fib.config.update'),
+    type: z.literal('fibking.config.update'),
     numberOfPlayers: z.int().min(FIB_MIN_PLAYERS).max(FIB_MAX_PLAYERS),
   }),
-  z.strictObject({ type: z.literal('fib.game.returnToLobby') }),
-  z.strictObject({ type: z.literal('fib.round.start') }),
-  z.strictObject({ type: z.literal('fib.round.cancelPreparing') }),
-  z.strictObject({ type: z.literal('fib.round.confirmRoleView') }),
-  z.strictObject({ type: z.literal('fib.round.markAllBotsViewed') }),
-  z.strictObject({ type: z.literal('fib.round.reveal') }),
+  z.strictObject({ type: z.literal('fibking.game.returnToLobby') }),
+  z.strictObject({ type: z.literal('fibking.round.start') }),
+  z.strictObject({ type: z.literal('fibking.round.cancelPreparing') }),
+  z.strictObject({ type: z.literal('fibking.round.confirmRoleView') }),
+  z.strictObject({ type: z.literal('fibking.round.markAllBotsViewed') }),
+  z.strictObject({ type: z.literal('fibking.round.reveal') }),
 ]);
 
 export const fibPublicCommandSchema: z.ZodType<FibPublicCommand> = z.discriminatedUnion(
@@ -55,7 +55,7 @@ export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.discrim
   'type',
   [
     z.strictObject({
-      type: z.literal('fib.round.updatePreparationStage'),
+      type: z.literal('fibking.round.updatePreparationStage'),
       roundId: z.string().min(1),
       stage: z.union([
         z.literal(FIB_PREPARATION_STAGES.queued),
@@ -64,12 +64,12 @@ export const fibInternalCommandSchema: z.ZodType<FibInternalCommand> = z.discrim
       ]),
     }),
     z.strictObject({
-      type: z.literal('fib.round.failPreparation'),
+      type: z.literal('fibking.round.failPreparation'),
       roundId: z.string().min(1),
       failureCode: z.enum(FIB_PREPARATION_FAILURE_CODES),
     }),
     z.strictObject({
-      type: z.literal('fib.round.complete'),
+      type: z.literal('fibking.round.complete'),
       roundId: z.string().min(1),
       word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
       definition: z.strictObject({

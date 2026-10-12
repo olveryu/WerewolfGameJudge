@@ -24,7 +24,7 @@ import { FibWordInventoryExhaustedError, getOrCreateFibWordSelection } from './w
 import { recordFibWordUsage } from './wordUsage';
 
 const selectWordEffectSchema = z.strictObject({
-  type: z.literal('fib.word.select'),
+  type: z.literal('fibking.word.select'),
   payload: z.strictObject({
     roundId: z.string().min(1),
     avoidWords: z.array(z.string().min(1)).max(FIB_USED_WORD_LIMIT).readonly(),
@@ -33,7 +33,7 @@ const selectWordEffectSchema = z.strictObject({
 }) satisfies z.ZodType<FibSelectWordEffect>;
 
 const recordWordUsageEffectSchema = z.strictObject({
-  type: z.literal('fib.word.recordUsage'),
+  type: z.literal('fibking.word.recordUsage'),
   payload: z.strictObject({
     roundId: z.string().min(1),
     word: z.string().min(1),
@@ -46,7 +46,10 @@ const recordWordUsageEffectSchema = z.strictObject({
 export const fibEffectSchema: z.ZodType<FibEffect> = z.discriminatedUnion('type', [
   selectWordEffectSchema,
   recordWordUsageEffectSchema,
-  z.strictObject({ type: z.literal('fib.game.completed'), payload: gameCompletionPayloadSchema }),
+  z.strictObject({
+    type: z.literal('fibking.game.completed'),
+    payload: gameCompletionPayloadSchema,
+  }),
 ]);
 
 function isSupersededRoundRejection(reason: string): boolean {
@@ -60,7 +63,7 @@ async function dispatchPreparationStage(
 ): Promise<boolean> {
   const commandId = await createEffectCommandId(`fib:preparation-stage-${stage}`, context.effectId);
   const result = await context.dispatchInternal(commandId, {
-    type: 'fib.round.updatePreparationStage',
+    type: 'fibking.round.updatePreparationStage',
     roundId,
     stage,
   });
@@ -85,13 +88,13 @@ export function getFibEffectFailureCommand(
   state: FibState,
 ): FibInternalCommand | null {
   if (
-    effect.type !== 'fib.word.select' ||
+    effect.type !== 'fibking.word.select' ||
     state.phase !== 'preparing' ||
     state.pendingRound.roundId !== effect.payload.roundId
   )
     return null;
   return {
-    type: 'fib.round.failPreparation',
+    type: 'fibking.round.failPreparation',
     roundId: effect.payload.roundId,
     failureCode: 'selectionFailed',
   };
@@ -104,7 +107,7 @@ async function dispatchRoundCompletion(
 ): Promise<void> {
   const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
   const result = await context.dispatchInternal(commandId, {
-    type: 'fib.round.complete',
+    type: 'fibking.round.complete',
     roundId: effect.payload.roundId,
     word: selected.word,
     definition: selected.definition,
@@ -156,7 +159,7 @@ async function handleFibSelectWordEffect(
     if (!(error instanceof FibWordInventoryExhaustedError)) throw error;
     const commandId = await createEffectCommandId('fib:inventory-exhausted', context.effectId);
     const result = await context.dispatchInternal(commandId, {
-      type: 'fib.round.failPreparation',
+      type: 'fibking.round.failPreparation',
       roundId: effect.payload.roundId,
       failureCode: 'inventoryExhausted',
     });
@@ -198,13 +201,13 @@ export async function handleFibEffect(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
 ): Promise<void> {
   switch (effect.type) {
-    case 'fib.word.select':
+    case 'fibking.word.select':
       await handleFibSelectWordEffect(effect, context);
       return;
-    case 'fib.word.recordUsage':
+    case 'fibking.word.recordUsage':
       await handleFibRecordWordUsageEffect(effect, context);
       return;
-    case 'fib.game.completed':
+    case 'fibking.game.completed':
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'fibking' },
         context,

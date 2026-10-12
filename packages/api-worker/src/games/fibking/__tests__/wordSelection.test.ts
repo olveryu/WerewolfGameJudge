@@ -16,7 +16,7 @@ const EFFECT_ID = 'selection-effect';
 
 function createEffect(roundId = ROUND_ID): FibSelectWordEffect {
   return {
-    type: 'fib.word.select',
+    type: 'fibking.word.select',
     payload: { roundId, avoidWords: [], participantUserIds: [USER_ID] },
   };
 }
@@ -111,7 +111,7 @@ describe('getOrCreateFibWordSelection', () => {
     await insertPoolWord('new-word', '打尖', 'literary', 3);
     expect((await getOrCreateFibWordSelection(createInput())).word).toBe('打尖');
     const effect: FibSelectWordEffect = {
-      type: 'fib.word.select',
+      type: 'fibking.word.select',
       payload: { roundId: 'new-player-round', avoidWords: [], participantUserIds: ['new-player'] },
     };
     expect((await getOrCreateFibWordSelection(createInput(effect, 'new-player-effect'))).word).toBe(
@@ -126,14 +126,14 @@ describe('getOrCreateFibWordSelection', () => {
     await insertPoolWord('third', '打尖', 'literary', 3);
     await getOrCreateFibWordSelection(createInput());
     const together: FibSelectWordEffect = {
-      type: 'fib.word.select',
+      type: 'fibking.word.select',
       payload: { roundId: 'together', avoidWords: [], participantUserIds: [USER_ID, 'new-player'] },
     };
     expect((await getOrCreateFibWordSelection(createInput(together, 'together'))).word).toBe(
       '却扇',
     );
     const alone: FibSelectWordEffect = {
-      type: 'fib.word.select',
+      type: 'fibking.word.select',
       payload: { roundId: 'alone', avoidWords: [], participantUserIds: ['new-player'] },
     };
     expect((await getOrCreateFibWordSelection(createInput(alone, 'alone'))).word).toBe('打尖');

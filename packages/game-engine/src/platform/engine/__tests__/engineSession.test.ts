@@ -12,17 +12,17 @@ describe('createEngineSession', () => {
 
     session.send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
     session.send({ type: 'room.seat.fillBots' });
-    const started = session.send({ type: 'fib.round.start' });
+    const started = session.send({ type: 'fibking.round.start' });
     expect(started.phase).toBe('preparing');
     expect(session.effects.length).toBeGreaterThan(0);
   });
 
   it('throws on reject and asserts exact reasons via expectReject', () => {
     const session = createEngineSession(fibEngine, { config: { numberOfPlayers: 4 } });
-    expect(() => session.send({ type: 'fib.round.start' })).toThrow(
+    expect(() => session.send({ type: 'fibking.round.start' })).toThrow(
       `rejected: ${REASON_FIB_ROUND_NOT_FULL}`,
     );
-    session.expectReject({ type: 'fib.round.start' }, REASON_FIB_ROUND_NOT_FULL);
+    session.expectReject({ type: 'fibking.round.start' }, REASON_FIB_ROUND_NOT_FULL);
     // A failed send leaves the state untouched.
     expect(session.state.phase).toBe('lobby');
   });

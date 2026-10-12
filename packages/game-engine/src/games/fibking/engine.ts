@@ -81,7 +81,7 @@ function rejectSeatOperation(
 }
 
 function seatChangesEvent(changes: readonly RosterChange<FibHumanSeat>[]): FibEvent {
-  return { type: 'fib.seats.changed', changes };
+  return { type: 'fibking.seats.changed', changes };
 }
 
 function requireLobby(state: FibState): FibDecision | null {
@@ -170,7 +170,7 @@ function decideUpdateFibProfile(
   const seat = findRosterSeatByUserId(state.roster, state.numberOfPlayers, actor.value);
   return seat === null
     ? reject(REASON_NOT_SEATED)
-    : commitFib([{ type: 'fib.profile.updated', seat, profile: { ...profile } }]);
+    : commitFib([{ type: 'fibking.profile.updated', seat, profile: { ...profile } }]);
 }
 
 function decideUpdateFibConfig(
@@ -190,7 +190,7 @@ function decideUpdateFibConfig(
     return reject(REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE);
   return numberOfPlayers === state.numberOfPlayers
     ? commitFib([])
-    : commitFib([{ type: 'fib.config.updated', numberOfPlayers }]);
+    : commitFib([{ type: 'fibking.config.updated', numberOfPlayers }]);
 }
 
 function createRoundId(commandId: string): string {
@@ -223,7 +223,7 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
   return commitFib(
     [
       {
-        type: 'fib.round.preparing',
+        type: 'fibking.round.preparing',
         pendingRound: {
           roundId,
           requestedAt: context.nowMs,
@@ -233,7 +233,7 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
     ],
     [
       {
-        type: 'fib.word.select',
+        type: 'fibking.word.select',
         payload: {
           roundId,
           avoidWords: [...state.usedWords],
@@ -248,7 +248,7 @@ function decideCancelFibPreparation(state: FibState, context: CommandContext): F
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
   return state.phase === 'preparing' || state.phase === 'preparationFailed'
-    ? commitFib([{ type: 'fib.round.preparationCancelled' }])
+    ? commitFib([{ type: 'fibking.round.preparationCancelled' }])
     : reject(REASON_FIB_ROUND_NOT_PREPARING);
 }
 
@@ -257,10 +257,10 @@ function decideRevealFibRound(state: FibState, context: CommandContext): FibDeci
   if (actor.kind === 'rejected') return reject(actor.reason);
   return state.phase === 'ongoing'
     ? commitFib(
-        [{ type: 'fib.round.ended' }],
+        [{ type: 'fibking.round.ended' }],
         [
           {
-            type: 'fib.game.completed',
+            type: 'fibking.game.completed',
             payload: buildGameCompletionPayload({
               roundId: state.round.roundId,
               completedAt: context.nowMs,
@@ -290,9 +290,9 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
   const { viewedSeats } = state.round;
   if (viewedSeats.includes(seat)) return commitFib([]);
   const nextViewedSeats = markSeatViewed(viewedSeats, seat);
-  const events: FibEvent[] = [{ type: 'fib.role.viewed', seat }];
+  const events: FibEvent[] = [{ type: 'fibking.role.viewed', seat }];
   if (haveAllViewed(getFibViewingParticipants(state), nextViewedSeats)) {
-    events.push({ type: 'fib.round.viewing.completed' });
+    events.push({ type: 'fibking.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -314,11 +314,11 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
   const events: FibEvent[] = [];
   let viewedSeats: readonly number[] = state.round.viewedSeats;
   for (const participant of unviewedBots) {
-    events.push({ type: 'fib.role.viewed', seat: participant.seat });
+    events.push({ type: 'fibking.role.viewed', seat: participant.seat });
     viewedSeats = markSeatViewed(viewedSeats, participant.seat);
   }
   if (haveAllViewed(getFibViewingParticipants(state), viewedSeats)) {
-    events.push({ type: 'fib.round.viewing.completed' });
+    events.push({ type: 'fibking.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -327,13 +327,13 @@ function decideReturnFibGameToLobby(state: FibState, context: CommandContext): F
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
   return state.phase === 'viewing' || state.phase === 'ongoing' || state.phase === 'ended'
-    ? commitFib([{ type: 'fib.game.returnedToLobby' }])
+    ? commitFib([{ type: 'fibking.game.returnedToLobby' }])
     : reject(REASON_FIB_GAME_NOT_ENDED);
 }
 
 function decideUpdateFibPreparationStage(
   state: FibState,
-  command: Extract<FibCommand, { readonly type: 'fib.round.updatePreparationStage' }>,
+  command: Extract<FibCommand, { readonly type: 'fibking.round.updatePreparationStage' }>,
   context: CommandContext,
 ): FibDecision {
   const actor = resolveSystemActorEffectId(context);
@@ -353,7 +353,7 @@ function decideUpdateFibPreparationStage(
 
   return commitFib([
     {
-      type: 'fib.round.preparation.stage.updated',
+      type: 'fibking.round.preparation.stage.updated',
       stage: command.stage,
     },
   ]);
@@ -361,7 +361,7 @@ function decideUpdateFibPreparationStage(
 
 function decideFailFibPreparation(
   state: FibState,
-  command: Extract<FibCommand, { readonly type: 'fib.round.failPreparation' }>,
+  command: Extract<FibCommand, { readonly type: 'fibking.round.failPreparation' }>,
   context: CommandContext,
 ): FibDecision {
   const actor = resolveSystemActorEffectId(context);
@@ -375,7 +375,7 @@ function decideFailFibPreparation(
   if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
   return commitFib([
     {
-      type: 'fib.round.preparationFailed',
+      type: 'fibking.round.preparationFailed',
       failedAt: context.nowMs,
       failureCode: command.failureCode,
     },
@@ -384,7 +384,7 @@ function decideFailFibPreparation(
 
 function decideCompleteFibRound(
   state: FibState,
-  command: Extract<FibCommand, { readonly type: 'fib.round.complete' }>,
+  command: Extract<FibCommand, { readonly type: 'fibking.round.complete' }>,
   context: CommandContext,
 ): FibDecision {
   const actor = resolveSystemActorEffectId(context);
@@ -406,7 +406,7 @@ function decideCompleteFibRound(
   return commitFib(
     [
       {
-        type: 'fib.round.started',
+        type: 'fibking.round.started',
         roundId: command.roundId,
         word: command.word,
         definition: command.definition,
@@ -419,7 +419,7 @@ function decideCompleteFibRound(
     ],
     [
       {
-        type: 'fib.word.recordUsage',
+        type: 'fibking.word.recordUsage',
         payload: {
           roundId: command.roundId,
           word: command.word,
@@ -486,25 +486,25 @@ export function decideFibCommand(
       return decideFillFibBots(state, context);
     case 'room.profile.update':
       return decideUpdateFibProfile(state, command.profile, context);
-    case 'fib.config.update':
+    case 'fibking.config.update':
       return decideUpdateFibConfig(state, command.numberOfPlayers, context);
-    case 'fib.game.returnToLobby':
+    case 'fibking.game.returnToLobby':
       return decideReturnFibGameToLobby(state, context);
-    case 'fib.round.start':
+    case 'fibking.round.start':
       return decideStartFibRound(state, context);
-    case 'fib.round.cancelPreparing':
+    case 'fibking.round.cancelPreparing':
       return decideCancelFibPreparation(state, context);
-    case 'fib.round.reveal':
+    case 'fibking.round.reveal':
       return decideRevealFibRound(state, context);
-    case 'fib.round.confirmRoleView':
+    case 'fibking.round.confirmRoleView':
       return decideConfirmFibRoleView(state, context);
-    case 'fib.round.markAllBotsViewed':
+    case 'fibking.round.markAllBotsViewed':
       return decideMarkAllBotsViewed(state, context);
-    case 'fib.round.updatePreparationStage':
+    case 'fibking.round.updatePreparationStage':
       return decideUpdateFibPreparationStage(state, command, context);
-    case 'fib.round.failPreparation':
+    case 'fibking.round.failPreparation':
       return decideFailFibPreparation(state, command, context);
-    case 'fib.round.complete':
+    case 'fibking.round.complete':
       return decideCompleteFibRound(state, command, context);
   }
   const exhaustive: never = command;

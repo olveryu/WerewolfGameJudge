@@ -1074,15 +1074,15 @@ interface PendingFibRound {
 
 ### 18.2 Command 与 effect
 
-1. Host 发送 `fib.round.start`。
+1. Host 发送 `fibking.round.start`。
 2. Engine 验证 phase 和满座条件。
-3. Engine 转为 `preparing`，保存 `roundId`，发出 `fib.word.select` effect。
+3. Engine 转为 `preparing`，保存 `roundId`，发出 `fibking.word.select` effect。
 4. Outbox worker 从 D1 全局题库按玩家曝光历史和稳定 seed 选词；空库时使用确定性本地兜底。
-5. 它使用同一个 `roundId` 发送 internal `fib.round.complete`，附带 word、definition、source。
+5. 它使用同一个 `roundId` 发送 internal `fibking.round.complete`，附带 word、definition、source。
 6. Engine 拒绝过期或重复 `roundId`。
 7. Complete 成功后分配身份并转为 `ongoing`。
 8. D1 选题失败通过 outbox retry，第七次失败进入显式 `selectionFailed` 终态。
-9. 产品需要恢复操作时，host 可以发送 `fib.round.cancelPreparing`。
+9. 产品需要恢复操作时，host 可以发送 `fibking.round.cancelPreparing`。
 
 不再使用“先 `BEGIN_DRAW`，等待外部调用，再希望第二个 action 成功”的流程。
 
@@ -1119,8 +1119,8 @@ Provider-facing schema 使用 Gemini structured output 支持的 JSON Schema 子
 ### 18.4 玩家词语历史
 
 当前房间 `usedWords` 仍是 authoritative 50 词硬去重窗口。除此之外，D1 为每名真人保留最近 200 个实际进入
-authoritative round 的词；新一轮选题优先使用所有当前真人均未见过的词。词史由 `fib.word.recordUsage` effect 在
-`fib.round.complete` committed success 后写入；选中但未完成的 round 不计入曝光。
+authoritative round 的词；新一轮选题优先使用所有当前真人均未见过的词。词史由 `fibking.word.recordUsage` effect 在
+`fibking.round.complete` committed success 后写入；选中但未完成的 round 不计入曝光。
 
 `fib_word_exposures` 以 `(user_id, word)` 为主键，重复看到同一词只更新时间。写入与按用户 `ROW_NUMBER()` 裁剪在一个
 D1 batch 中执行，因此表大小按用户有界；已删除账号先与 `users` 相交，不会让一个 stale participant 阻断其他玩家
