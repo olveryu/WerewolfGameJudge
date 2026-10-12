@@ -33,6 +33,7 @@ export const AVALON_REASONS = {
   config: '阿瓦隆配置无效',
   phase: '当前阶段不能执行此操作',
   notHostStart: '只有房主可以开始游戏',
+  notHostMarkBots: '只有房主可以标记机器人已查看',
   full: '请先坐满所有座位，或填充机器人。',
   notNightParticipant: '你不在当前确认步骤内',
   notLeader: '只有当前队长可以组队',

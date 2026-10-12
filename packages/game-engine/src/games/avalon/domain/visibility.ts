@@ -251,9 +251,12 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     percivalSees,
     nightConfirmed,
     hasViewedRole: viewerSeat !== null && state.roleViewedSeats.includes(viewerSeat),
-    unviewedRoleSeats: listUnviewedSeats(getAvalonViewingParticipants(state), state.roleViewedSeats)
-      .filter((participant) => !participant.isBot)
-      .map((participant) => participant.seat),
+    // Every seat whose record is missing, bots included: the host
+    // clears bot entries with the scaffold action.
+    unviewedRoleSeats: listUnviewedSeats(
+      getAvalonViewingParticipants(state),
+      state.roleViewedSeats,
+    ).map((participant) => participant.seat),
     requiredSize,
     proposedSeats,
     teamSeats,

@@ -99,10 +99,12 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     },
     startGame() {
       send({ type: 'avalon.game.start' });
-      // 身份查看协议：全员先查看角色，否则第一个任务前的检查点不放行。
+      // 身份查看协议：真人各自查看角色，机器人由房主标记已查看，
+      // 否则第一个任务前的检查点不放行。
       for (let seat = 0; seat < seatCount; seat += 1) {
-        send({ type: 'avalon.role.viewed' }, seatUser(seat));
+        if (!isAvalonBotSeat(state, seat)) send({ type: 'avalon.role.viewed' }, seatUser(seat));
       }
+      send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
       // 开局播报由房主 ack（测试模拟房主已播完）。
       if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
