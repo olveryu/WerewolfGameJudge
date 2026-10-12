@@ -266,7 +266,7 @@ export function useAvalonRoomState(
         return seatController.requestMoveSeat(intent.seat);
     }
   };
-  // 长按机器人座位接管/释放：用共享 hook（D12：不做任何接管提示）。
+  // 长按机器人座位接管/释放：用共享 hook。
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver,

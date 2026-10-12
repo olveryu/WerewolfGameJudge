@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.small,
     paddingHorizontal: spacing.tight,
     alignItems: 'center',
-    gap: 2,
+    gap: spacing.micro,
     ...shadows.sm,
   },
   cellPreview: {

@@ -229,7 +229,7 @@ function createStyles() {
     labelRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: spacing.tight,
     },
     headerCell: {
       flex: 1,
