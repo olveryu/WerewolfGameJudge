@@ -80,17 +80,11 @@ function complete(state: UndercoverState): UndercoverState {
 }
 
 function ongoing(): UndercoverState {
-  let state = complete(prepare());
+  const state = complete(prepare());
   if (state.round === null) throw new Error('Expected round');
-  const roundId = state.round.roundId;
-  for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
-    state = dispatch(
-      state,
-      { type: 'undercover.round.confirm', roundId },
-      user('host', seat === 0 ? null : seat),
-    );
-  }
-  return state;
+  // AU-18: bot seats are marked at round start, so the host (the only
+  // human in this fixture) opens the round with a single confirm.
+  return dispatch(state, { type: 'undercover.round.confirm', roundId: state.round.roundId });
 }
 
 function reveal(state: UndercoverState, role: UndercoverRole, context = user()): UndercoverState {
@@ -192,7 +186,10 @@ describe('Undercover authoritative engine', () => {
         system(),
       );
       expect(next.phase).toBe('reading');
-      expect(next.round).toMatchObject({ confirmedSeats: [], revelations: [] });
+      expect(next.round).toMatchObject({
+        confirmedSeats: [1, 2, 3, 4, 5, 6, 7],
+        revelations: [],
+      });
       expect(next.usedWordPairIds).toContain('pair-2');
     }
     expect(
@@ -215,7 +212,11 @@ describe('Undercover authoritative engine', () => {
       type: 'undercover.round.confirm',
       roundId: reading.round.roundId,
     });
-    expect(confirmed.round).toEqual({ ...reading.round, confirmedSeats: [0] });
+    expect(confirmed.round).toEqual({
+      ...reading.round,
+      confirmedSeats: [0, 1, 2, 3, 4, 5, 6, 7],
+    });
+    expect(confirmed.phase).toBe('ongoing');
     expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(confirmed)))).toEqual(confirmed);
   });
 
@@ -408,66 +409,52 @@ describe('Undercover authoritative engine', () => {
       reason: UNDERCOVER_REASONS.bot,
     });
     expect(undercoverEngine.decide(state, command, user('guest', 2)).kind).toBe('reject');
-    expect(dispatch(state, command, user('guest')).round?.confirmedSeats).toEqual([1]);
+    expect(dispatch(state, command, user('guest')).round?.confirmedSeats).toEqual([
+      1, 2, 3, 4, 5, 6, 7,
+    ]);
   });
 
-  it('atomically confirms only unconfirmed bots and leaves human confirmation to the player', () => {
+  it('marks bot seats at round start and only waits on humans (AU-18)', () => {
     let state = complete(prepare());
     if (state.round === null) throw new Error('Expected round');
-    const command = {
-      type: 'undercover.round.markAllBotsViewed',
-      roundId: state.round.roundId,
-    } as const;
-    expect(undercoverEngine.decide(state, command, user('guest')).kind).toBe('reject');
-    expect(undercoverEngine.decide(state, { ...command, roundId: 'stale' }, user()).kind).toBe(
-      'reject',
-    );
-    state = dispatch(
-      state,
-      { type: 'undercover.round.confirm', roundId: command.roundId },
-      user('host', 1),
-    );
-    state = dispatch(state, command);
+    const roundId = state.round.roundId;
+    // Bot seats are born marked; the checkpoint waits only on the host.
+    expect(state.round.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(state.phase).toBe('reading');
-    expect(state.round?.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    expect(dispatch(state, command)).toEqual(state);
-    state = dispatch(state, { type: 'undercover.round.confirm', roundId: command.roundId });
+    // A takeover confirm of an already-marked bot seat is a no-op.
+    expect(dispatch(state, { type: 'undercover.round.confirm', roundId }, user('host', 1))).toEqual(
+      state,
+    );
+    state = dispatch(state, { type: 'undercover.round.confirm', roundId });
     expect(state.phase).toBe('ongoing');
-    expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
+    expect(state.round?.confirmedSeats).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
-  it('starts an all-bot game when an unseated host confirms the bots', () => {
+  it('starts an all-bot game straight into ongoing (AU-18)', () => {
     let state = dispatch(createLobby(), { type: 'room.seat.leave' });
     state = dispatch(state, { type: 'room.seat.fillBots' });
     state = complete(
       dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
     );
-    if (state.round === null) throw new Error('Expected round');
-    state = dispatch(state, {
-      type: 'undercover.round.markAllBotsViewed',
-      roundId: state.round.roundId,
-    });
+    // No humans to wait on: every seat was marked at round start.
     expect(state.phase).toBe('ongoing');
     expect(state.round?.confirmedSeats).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
-  it('keeps repeated confirmations idempotent and requires everyone to confirm', () => {
+  it('keeps repeated confirmations idempotent and gates on humans only (AU-18)', () => {
     let state = complete(prepare());
     if (state.round === null) throw new Error('Expected round');
     const command: UndercoverCommand = {
       type: 'undercover.round.confirm',
       roundId: state.round.roundId,
     };
-    state = dispatch(state, command);
-    expect(dispatch(state, command)).toEqual(state);
+    // Bot seats were marked at round start; re-confirming one under
+    // takeover is a no-op and the gate still waits on the host.
+    expect(dispatch(state, command, user('host', 1))).toEqual(state);
     expect(state.phase).toBe('reading');
-    expect(
-      undercoverEngine.decide(
-        state,
-        { type: 'undercover.round.reveal', roundId: state.round!.roundId, seat: 1 },
-        user(),
-      ).kind,
-    ).toBe('reject');
+    state = dispatch(state, command);
+    expect(state.phase).toBe('ongoing');
+    expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
   });
 
   it('rejects non-host reveal, repeated reveal, and all post-victory reveals', () => {

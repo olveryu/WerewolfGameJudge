@@ -13,14 +13,14 @@
  */
 
 import type { CommandContext } from '../../../platform/engine';
-import {
-  haveAllHumansViewed,
-  type IdentityViewingParticipant,
-  markSeatViewed,
-} from '../../../platform/room/identityViewing';
+import { haveAllHumansViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import type { UndercoverCommand } from '../commands/types';
 import { undercoverEngine } from '../engine';
-import type { UndercoverConfig, UndercoverState } from '../state/types';
+import {
+  getUndercoverViewingParticipants,
+  type UndercoverConfig,
+  type UndercoverState,
+} from '../state/types';
 
 const config: UndercoverConfig = {
   numberOfPlayers: 8,
@@ -90,33 +90,43 @@ function confirmSeat(state: UndercoverState, seat: number): UndercoverState {
 }
 
 describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
-  it('holds the checkpoint until every seat has viewed, then advances', () => {
+  it('holds the checkpoint until every human has viewed, then advances', () => {
     let state = readingState();
     expect(state.phase).toBe('reading');
     if (state.round === null) throw new Error('Expected round');
-    expect(state.round.confirmedSeats).toEqual([]);
+    // AU-18: bot seats are marked at round start (engine auto-mark);
+    // the fixture's only human is the host on seat 0.
+    expect(state.round.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
 
-    for (let seat = 0; seat < config.numberOfPlayers - 1; seat += 1) {
+    // Confirming bot seats under takeover never advances the gate.
+    for (let seat = 1; seat < config.numberOfPlayers; seat += 1) {
       state = confirmSeat(state, seat);
       expect(state.phase).toBe('reading');
     }
-    state = confirmSeat(state, config.numberOfPlayers - 1);
+    state = confirmSeat(state, 0);
     expect(state.phase).toBe('ongoing');
   });
 
   it('records views with the shared helper semantics (sorted, idempotent)', () => {
     let state = readingState();
+    if (state.round === null) throw new Error('Expected round');
+    const born = state.round.confirmedSeats;
     state = confirmSeat(state, 3);
     state = confirmSeat(state, 1);
     if (state.round === null) throw new Error('Expected round');
-    const expected = markSeatViewed(markSeatViewed([], 3), 1);
+    // Bot confirms are no-ops over the auto-marked set.
+    expect(state.round.confirmedSeats).toEqual(born);
+
+    state = confirmSeat(state, 0);
+    if (state.round === null) throw new Error('Expected round');
+    const expected = markSeatViewed(born, 0);
     expect(state.round.confirmedSeats).toEqual(expected);
 
     // A duplicate confirm never duplicates the record: the engine either
     // no-ops or rejects, and the recorded set stays exactly the same.
     const before = state.round.confirmedSeats;
     try {
-      state = confirmSeat(state, 1);
+      state = confirmSeat(state, 0);
     } catch {
       // rejection is an acceptable idempotency guard
     }
@@ -126,20 +136,17 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
 
   it('agrees with the shared checkpoint predicate over the recorded set', () => {
     let state = readingState();
-    // Undercover's gate is stricter than the protocol minimum: bot seats
-    // must also be confirmed (the host confirms them under takeover), so
-    // every seat counts as a blocker for the shared predicate here.
-    const blockers: readonly IdentityViewingParticipant[] = Array.from(
-      { length: config.numberOfPlayers },
-      (_, seat) => ({ seat, isBot: false }),
-    );
-    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
-      if (state.round === null) throw new Error('Expected round');
-      expect(haveAllHumansViewed(blockers, state.round.confirmedSeats)).toBe(
-        state.phase === 'ongoing',
-      );
-      state = confirmSeat(state, seat);
-    }
+    // AU-18: the engine's participants come from its own constructor
+    // and its checkpoint IS the shared predicate - no stricter gate.
+    if (state.round === null) throw new Error('Expected round');
+    expect(
+      haveAllHumansViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats),
+    ).toBe(state.phase === 'ongoing');
+    state = confirmSeat(state, 0);
+    if (state.round === null) throw new Error('Expected round');
+    expect(
+      haveAllHumansViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats),
+    ).toBe(true);
     expect(state.phase).toBe('ongoing');
   });
 });

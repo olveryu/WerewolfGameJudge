@@ -53,7 +53,6 @@ export interface UndercoverRoundControls {
   readonly openCard: () => void;
   readonly closeCard: () => void;
   readonly confirmCard: () => void;
-  readonly markAllBotsViewed: () => void;
   readonly isSelecting: boolean;
   readonly selectedSeat: number | null;
   readonly reveal: () => void;
@@ -167,13 +166,6 @@ export function useUndercoverRoundControls(
     },
     closeCard,
     confirmCard,
-    markAllBotsViewed: () => {
-      if (state.phase !== 'reading') throw new Error('Bot confirmation requires reading phase');
-      void submit('标记机器人已查看', {
-        type: 'undercover.round.markAllBotsViewed',
-        roundId: state.round.roundId,
-      });
-    },
     isSelecting,
     selectedSeat,
     reveal,

@@ -126,7 +126,9 @@ function decideInternal(
     undercoverWord: isSwapped ? command.wordPair.wordA : command.wordPair.wordB,
     roles: shuffleArray(roles, random),
     speakingStartSeat: randomIntInclusive(0, state.config.numberOfPlayers - 1, random),
-    confirmedSeats: [],
+    // Identity Viewing Protocol: bot seats are marked at deal time
+    // (engine auto-mark); the checkpoint only ever waits on humans.
+    confirmedSeats: [...getBotSeats(state.roster)],
     revelations: [],
   };
   return commitUndercover([{ type: 'undercover.round.started', round }]);
@@ -225,14 +227,6 @@ export function decideUndercoverRound(
   }
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
-    case 'undercover.round.markAllBotsViewed':
-      return state.phase === 'reading'
-        ? commitUndercover(
-            getBotSeats(state.roster)
-              .filter((seat) => !state.round.confirmedSeats.includes(seat))
-              .map((seat) => ({ type: 'undercover.round.confirmed', seat })),
-          )
-        : reject(UNDERCOVER_REASONS.phase);
     case 'undercover.round.retry':
       return state.phase === 'preparationFailed'
         ? commitUndercover(

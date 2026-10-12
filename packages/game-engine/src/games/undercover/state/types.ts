@@ -1,6 +1,7 @@
 /** Undercover state contracts; authoritative data only, no UI or IO. */
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
@@ -115,6 +116,18 @@ export function getUndercoverBotSeats(state: UndercoverState): readonly number[]
 /** Returns whether a seat is held by a bot. */
 export function isUndercoverBotSeat(state: UndercoverState, seat: number): boolean {
   return isBotSeat(state.roster, seat);
+}
+
+/** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
+export function getUndercoverViewingParticipants(
+  state: UndercoverState,
+): readonly IdentityViewingParticipant[] {
+  const participants: IdentityViewingParticipant[] = [];
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (state.roster[seat] == null) continue;
+    participants.push({ seat, isBot: isBotSeat(state.roster, seat) });
+  }
+  return participants;
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

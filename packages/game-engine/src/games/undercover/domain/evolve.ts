@@ -1,7 +1,12 @@
 /** Undercover event projection; resets discard phase-owned fields and preserve the roster. */
 
+import { haveAllHumansViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
-import type { UndercoverState } from '../state/types';
+import {
+  getUndercoverBotSeats,
+  getUndercoverViewingParticipants,
+  type UndercoverState,
+} from '../state/types';
 import type { UndercoverEvent } from './events';
 
 /** Projects validated domain events without side effects. */
@@ -37,18 +42,35 @@ export function evolveUndercoverState(
     case 'undercover.round.started':
       return {
         ...base,
-        phase: 'reading',
+        // Bot seats arrive pre-marked; with no humans to wait on
+        // (an all-bot round) the checkpoint is already satisfied.
+        phase: haveAllHumansViewed(
+          getUndercoverViewingParticipants(state),
+          event.round.confirmedSeats,
+        )
+          ? 'ongoing'
+          : 'reading',
         round: event.round,
         usedWordPairIds: [...new Set([...state.usedWordPairIds, event.round.wordPair.id])],
       };
     case 'undercover.round.confirmed': {
       if (state.phase !== 'reading') throw new Error('Expected reading Undercover state');
-      const confirmedSeats = [...state.round.confirmedSeats, event.seat].sort(
-        (left, right) => left - right,
+      const markedSeats = markSeatViewed(state.round.confirmedSeats, event.seat);
+      const allHumansViewed = haveAllHumansViewed(
+        getUndercoverViewingParticipants(state),
+        markedSeats,
       );
+      // On the flip, fold in any bot seats a pre-protocol round had
+      // not marked, so an ongoing round always carries the full set
+      // the persistence invariants require.
+      const confirmedSeats = allHumansViewed
+        ? [...new Set([...markedSeats, ...getUndercoverBotSeats(state)])].sort(
+            (left, right) => left - right,
+          )
+        : markedSeats;
       return {
         ...base,
-        phase: confirmedSeats.length === state.config.numberOfPlayers ? 'ongoing' : 'reading',
+        phase: allHumansViewed ? 'ongoing' : 'reading',
         round: { ...state.round, confirmedSeats },
       };
     }
