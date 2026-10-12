@@ -797,6 +797,7 @@ describe('Worker ownership: source tree is exact', () => {
       'routes.ts',
       'schemas.ts',
       'settleGameRewards.ts',
+      'settlementLedger.ts',
     ]);
     expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'auth'))).toEqual([
       'dbSchema.ts',
@@ -839,6 +840,7 @@ describe('Worker ownership: source tree is exact', () => {
       'telemetry',
       'time',
       'userEvents',
+      'wordSupply',
     ]);
     expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'time'))).toEqual([
       'canonicalIsoTimestamp.ts',
@@ -895,10 +897,9 @@ describe('Worker request boundary: client objects are strict', () => {
       'packages/api-worker/src/features/auth/wechat/WeChatAuthProxy.ts',
       'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
       'packages/api-worker/src/features/feedback/providers/github.ts',
-      'packages/api-worker/src/games/drawguess/wordProvider.ts',
       'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
       'packages/api-worker/src/games/fibking/wordProviders/tavily.ts',
-      'packages/api-worker/src/games/undercover/wordProvider.ts',
+      'packages/api-worker/src/platform/ai/structuredOutput.ts',
     ]);
   });
 
