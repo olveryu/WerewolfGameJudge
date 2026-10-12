@@ -16,12 +16,10 @@ import {
   type UndercoverRoundControls,
   useUndercoverRoundControls,
 } from '../hooks/useUndercoverRoundControls';
-import {
-  createUndercoverBottomActions,
-  createUndercoverHostManagement,
-} from '../undercoverActionModels';
+import { createUndercoverBottomActions } from '../undercoverActionModels';
 import {
   createUndercoverBoardInfoSections,
+  createUndercoverHostManagement,
   createUndercoverRoomCapabilities,
   createUndercoverRoomShellModel,
   createUndercoverSeatDataSource,
@@ -165,15 +163,20 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
   });
   expect(unseatedCapabilities.canFillBots.isAllowed).toBe(true);
   expect(
-    createUndercoverHostManagement(state, true, capabilities, result.current)?.sections[0]?.actions,
+    createUndercoverHostManagement({ state, isHost: true, capabilities, controls: result.current })
+      ?.sections[0]?.actions,
   ).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-all-bots-viewed' })]));
   const confirmed = dispatch(state, {
     type: 'undercover.round.markAllBotsViewed',
     roundId: state.round!.roundId,
   });
   expect(
-    createUndercoverHostManagement(confirmed, true, capabilities, result.current)?.sections[0]
-      ?.actions,
+    createUndercoverHostManagement({
+      state: confirmed,
+      isHost: true,
+      capabilities,
+      controls: result.current,
+    })?.sections[0]?.actions,
   ).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-all-bots-viewed' })]));
 });
 
@@ -294,12 +297,12 @@ it('requires confirmation to restart an active round and exposes restart in host
     openProfile: jest.fn(),
     takeOverBot: jest.fn(),
   });
-  const hostManagement = createUndercoverHostManagement(
-    aborted,
-    true,
+  const hostManagement = createUndercoverHostManagement({
+    state: aborted,
+    isHost: true,
     capabilities,
-    result.current,
-  );
+    controls: result.current,
+  });
   const restart = hostManagement?.sections[0]?.actions.find((action) => action.key === 'restart');
   if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
   jest.mocked(showConfirmAlert).mockClear();

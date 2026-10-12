@@ -1,26 +1,8 @@
 /** Undercover button availability projected from authoritative phase and explicit local selection. */
-import {
-  getUndercoverBotSeats,
-  getUndercoverOccupiedSeatCount,
-  type UndercoverState,
-} from '@game-judge/game-engine/games/undercover/public';
-
-import {
-  buildClearSeatsAction,
-  buildFillBotsAction,
-  buildRoomConfigAction,
-  buildStartGameAction,
-} from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomActionModel,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-} from '@/features/room/model/RoomHostManagement';
-import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 
@@ -55,121 +37,5 @@ export function createUndercoverBottomActions(controls: Controls): RoomBottomAct
     kind: 'info',
     message: controls.isSelecting ? '选择本次出局玩家' : null,
     actions,
-  };
-}
-
-export function createUndercoverHostManagement(
-  state: UndercoverState,
-  isHost: boolean,
-  capabilities: RoomCapabilities,
-  controls: Controls,
-): RoomHostManagementModel | null {
-  if (!isHost) return null;
-  const actions: RoomHostManagementAction[] = [];
-  const add = (
-    key: string,
-    label: string,
-    icon: RoomHostManagementAction['icon'],
-    onPress: () => void,
-    variant: RoomHostManagementAction['variant'] = 'secondary',
-    isAllowed = true,
-  ) => {
-    actions.push({
-      key,
-      label,
-      icon,
-      variant,
-      testID: `undercover-${key}`,
-      ...(controls.isSubmitting || !isAllowed
-        ? ({
-            isEnabled: false,
-            disabledReason: isAllowed ? null : '请先坐满所有座位，或填充机器人。',
-            onDisabledPress: null,
-          } as const)
-        : ({ isEnabled: true, onPress } as const)),
-    });
-  };
-  if (state.phase !== 'lobby' && state.phase !== 'ended' && state.phase !== 'aborted')
-    add('restart', '重新开始', 'refresh-outline', controls.restart);
-  switch (state.phase) {
-    case 'lobby':
-      actions.push(
-        buildStartGameAction({
-          label: '开始本局',
-          onPress: controls.start,
-          isEnabled:
-            !controls.isSubmitting &&
-            getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers,
-          disabledReason:
-            getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers
-              ? null
-              : ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
-        }),
-      );
-      if (capabilities.canConfigureGame.isAllowed)
-        actions.push(
-          buildRoomConfigAction({
-            onPress: capabilities.canConfigureGame.execute,
-          }),
-        );
-      if (capabilities.canFillBots.isAllowed)
-        actions.push(
-          buildFillBotsAction({
-            onPress: capabilities.canFillBots.execute,
-          }),
-        );
-      if (capabilities.canClearSeats.isAllowed)
-        actions.push(
-          buildClearSeatsAction({
-            onPress: capabilities.canClearSeats.execute,
-          }),
-        );
-      break;
-    case 'preparing':
-      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
-      break;
-    case 'reading':
-      if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
-        add(
-          'mark-all-bots-viewed',
-          '标记全部机器人已查看',
-          'checkmark-done-outline',
-          controls.markAllBotsViewed,
-          'primary',
-        );
-      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
-      break;
-    case 'preparationFailed':
-      add('retry', '重新准备', 'refresh-outline', controls.retry, 'primary');
-      if (state.failureCode === 'inventoryExhausted')
-        add('allow-repeated', '本次允许重复词对', 'repeat-outline', controls.allowRepeated);
-      add('return-lobby', '返回大厅', 'return-down-back-outline', controls.returnToLobby);
-      break;
-    case 'ongoing':
-      add(
-        'select-player',
-        '选择出局玩家',
-        'person-remove-outline',
-        controls.beginSelection,
-        'primary',
-      );
-      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
-      break;
-    case 'ended':
-    case 'aborted':
-      add('restart', '重新开始', 'refresh-outline', controls.restart, 'primary');
-      add(
-        'return-lobby',
-        '返回大厅',
-        'return-down-back-outline',
-        controls.returnToLobby,
-        'secondary',
-      );
-      break;
-  }
-  return {
-    preview: state.phase === 'ongoing' ? '选择出局玩家' : '对局管理',
-    status: null,
-    sections: [{ key: 'game', title: '房主操作', actions }],
   };
 }
