@@ -37,6 +37,7 @@ import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoo
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
@@ -324,7 +325,7 @@ export function useFibRoomScreenState({
       });
       switch (roomIntent.kind) {
         case 'blocked':
-          showErrorAlert('不可选择', roomIntent.reason);
+          showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, roomIntent.reason);
           return;
         case 'take':
         case 'move': {

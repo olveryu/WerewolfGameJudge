@@ -45,6 +45,10 @@ import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
+import {
+  ROOM_SEAT_LOCKED_MESSAGE,
+  ROOM_SEAT_TAP_BLOCKED_TITLE,
+} from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
@@ -212,7 +216,7 @@ export function useDrawGuessRoomState(
     gameName: 'DrawGuess',
   });
   const onSeatPress = (seat: number, disabledReason?: string) => {
-    if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
+    if (!isLobby) return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, ROOM_SEAT_LOCKED_MESSAGE);
     const intent = getDrawGuessSeatTapIntent({
       state,
       seat,
@@ -221,7 +225,7 @@ export function useDrawGuessRoomState(
     });
     switch (intent.kind) {
       case 'blocked':
-        return showErrorAlert('不可选择', intent.reason);
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
       case 'profile':
         return profile.open(intent.target);
       case 'take':

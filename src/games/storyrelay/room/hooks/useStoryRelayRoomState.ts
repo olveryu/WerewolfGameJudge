@@ -40,6 +40,10 @@ import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
+import {
+  ROOM_SEAT_LOCKED_MESSAGE,
+  ROOM_SEAT_TAP_BLOCKED_TITLE,
+} from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
@@ -148,7 +152,7 @@ export function useStoryRelayRoomState(
     gameName: 'StoryRelay',
   });
   const onSeatPress = (seat: number, disabledReason?: string) => {
-    if (!isLobby) return showErrorAlert('不可选择', '游戏进行中不能调整座位');
+    if (!isLobby) return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, ROOM_SEAT_LOCKED_MESSAGE);
     const intent = getStoryRelaySeatTapIntent({
       state,
       seat,
@@ -157,7 +161,7 @@ export function useStoryRelayRoomState(
     });
     switch (intent.kind) {
       case 'blocked':
-        return showErrorAlert('不可选择', intent.reason);
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
       case 'profile':
         return profile.open(intent.target);
       case 'take':

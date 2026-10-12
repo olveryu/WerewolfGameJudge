@@ -15,7 +15,10 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import {
+  getRoomSeatTapIntent,
+  ROOM_SEAT_TAP_BLOCKED_TITLE,
+} from '@/features/room/model/RoomSeatTap';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -85,7 +88,7 @@ export function useUndercoverRoster(
       disabledReason,
     });
     if (intent.kind === 'blocked') {
-      showErrorAlert('不可选择', intent.reason);
+      showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
       return;
     }
     if (intent.kind === 'profile') {

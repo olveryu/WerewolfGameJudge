@@ -35,6 +35,7 @@ import { createRoomProfileCardModel } from '@/features/room/model/createRoomProf
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
@@ -227,7 +228,8 @@ export function usePictionaryRoomScreenState({
         currentSeat: mySeat,
         disabledReason,
       });
-      if (intent.kind === 'blocked') return showErrorAlert('不可选择', intent.reason);
+      if (intent.kind === 'blocked')
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, intent.reason);
       if (intent.kind === 'profile')
         return capabilities.canViewProfiles.isAllowed
           ? capabilities.canViewProfiles.execute(intent.target)

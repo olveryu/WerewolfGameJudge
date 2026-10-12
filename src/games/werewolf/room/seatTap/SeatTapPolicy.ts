@@ -16,7 +16,10 @@
 // (Both point to the same enum from services/types/GameStateTypes)
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import {
+  getRoomSeatTapIntent,
+  ROOM_SEAT_TAP_BLOCKED_TITLE,
+} from '@/features/room/model/RoomSeatTap';
 
 // =============================================================================
 // Types
@@ -141,7 +144,7 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
       });
       switch (roomIntent.kind) {
         case 'blocked':
-          return { kind: 'ALERT', title: '不可选择', message: roomIntent.reason };
+          return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: roomIntent.reason };
         case 'take':
         case 'move':
           return { kind: 'SEATING_FLOW', seat: roomIntent.seat };
@@ -154,7 +157,7 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
       }
     }
     if (disabledReason) {
-      return { kind: 'ALERT', title: '不可选择', message: disabledReason };
+      return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: disabledReason };
     }
     return { kind: 'NOOP', reason: 'other_status' };
   }
@@ -163,7 +166,7 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   // Priority 2: Ongoing action routing
   // ─────────────────────────────────────────────────────────────────────────
   if (disabledReason) {
-    return { kind: 'ALERT', title: '不可选择', message: disabledReason };
+    return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: disabledReason };
   }
   if (imActioner) {
     return { kind: 'ACTION_FLOW', seat };
