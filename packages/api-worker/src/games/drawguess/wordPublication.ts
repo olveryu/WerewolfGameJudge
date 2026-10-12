@@ -3,16 +3,22 @@ import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawgue
 import { z } from 'zod';
 
 import {
+  createCompleteWordPackStatement,
+  createWordPackId,
+  failWordPack,
+  insertReservedWordPack,
+} from '../../platform/wordSupply/wordPackLedger';
+import {
   DRAWGUESS_WORD_BATCH_LIMIT,
   DRAWGUESS_WORD_PROMPT_VERSION,
   DRAWGUESS_WORD_REVIEW_VERSION,
+  type DrawGuessWordCandidate,
+  type DrawGuessWordReview,
   getDrawGuessWordId,
   isDrawGuessReviewAccepted,
   parseDrawGuessCandidates,
   parseDrawGuessReviews,
   toPinyinInitials,
-  type DrawGuessWordCandidate,
-  type DrawGuessWordReview,
 } from './wordEditorial';
 import { DRAWGUESS_WORD_MODEL } from './wordProvider';
 
@@ -47,26 +53,14 @@ export async function reserveDrawGuessWordPack(
     .pick({ category: true })
     .extend({ active_count: z.int() })
     .parse(categoryRows);
-  const row = await db
-    .prepare(
-      `INSERT INTO drawguess_word_packs (id, category, request_token, status, created_at, model, prompt_version, review_version)
-    SELECT ?, ?, ?, 'reserved', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
-    ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
-    )
-    .bind(
-      // Manual runs (normal or force) carry a unique runId so repeated triggers on the
-      // same day never collide with each other or with the scheduled daily batches.
-      opts.runId
-        ? `${day}-${opts.force ? 'force' : 'manual'}-${opts.runId}-${batchIndex}`
-        : `${day}-${batchIndex}`,
-      category,
-      crypto.randomUUID(),
-      new Date().toISOString(),
-      DRAWGUESS_WORD_MODEL,
-      DRAWGUESS_WORD_PROMPT_VERSION,
-      DRAWGUESS_WORD_REVIEW_VERSION,
-    )
-    .first();
+  const row = await insertReservedWordPack(db, {
+    packsTable: 'drawguess_word_packs',
+    packId: createWordPackId(day, batchIndex, opts),
+    category,
+    model: DRAWGUESS_WORD_MODEL,
+    promptVersion: DRAWGUESS_WORD_PROMPT_VERSION,
+    reviewVersion: DRAWGUESS_WORD_REVIEW_VERSION,
+  });
   return row === null ? null : packSchema.parse(row);
 }
 
@@ -212,18 +206,14 @@ export async function publishDrawGuessWordPack(
     }
   }
   statements.push(
-    db
-      .prepare(
-        `UPDATE drawguess_word_packs SET status = 'published', candidates_json = ?, reviews_json = ?, completed_at = ?
-    WHERE id = ? AND request_token = ? AND status = 'reserved'`,
-      )
-      .bind(
-        JSON.stringify(parsedCandidates),
-        JSON.stringify(parsedReviews),
-        now,
-        pack.id,
-        pack.request_token,
-      ),
+    createCompleteWordPackStatement(
+      db,
+      'drawguess_word_packs',
+      pack,
+      JSON.stringify(parsedCandidates),
+      JSON.stringify(parsedReviews),
+      now,
+    ),
   );
   await db.batch(statements);
 }
@@ -234,11 +224,5 @@ export async function failDrawGuessWordPack(
   pack: DrawGuessWordPack,
   reason: string,
 ): Promise<void> {
-  await db
-    .prepare(
-      `UPDATE drawguess_word_packs SET status = 'failed', failure_reason = ?, completed_at = ?
-    WHERE id = ? AND request_token = ? AND status = 'reserved'`,
-    )
-    .bind(reason, new Date().toISOString(), pack.id, pack.request_token)
-    .run();
+  await failWordPack(db, 'drawguess_word_packs', pack, reason);
 }

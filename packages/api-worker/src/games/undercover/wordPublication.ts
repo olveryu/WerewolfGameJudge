@@ -3,6 +3,12 @@ import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/
 import { z } from 'zod';
 
 import {
+  createCompleteWordPackStatement,
+  createWordPackId,
+  failWordPack,
+  insertReservedWordPack,
+} from '../../platform/wordSupply/wordPackLedger';
+import {
   getUndercoverPairId,
   isUndercoverReviewAccepted,
   parseUndercoverCandidates,
@@ -56,26 +62,14 @@ export async function reserveUndercoverWordPack(
     .pick({ category: true })
     .extend({ pending_count: z.int(), active_count: z.int() })
     .parse(categoryRows);
-  const row = await db
-    .prepare(
-      `INSERT INTO undercover_word_packs (id, category, request_token, status, created_at, model, prompt_version, review_version)
-    SELECT ?, ?, ?, 'reserved', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
-    ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
-    )
-    .bind(
-      // Manual runs (normal or force) carry a unique runId so repeated triggers on the
-      // same day never collide with each other or with the scheduled daily batches.
-      opts.runId
-        ? `${day}-${opts.force ? 'force' : 'manual'}-${opts.runId}-${batchIndex}`
-        : `${day}-${batchIndex}`,
-      category,
-      crypto.randomUUID(),
-      new Date().toISOString(),
-      UNDERCOVER_WORD_MODEL,
-      UNDERCOVER_WORD_PROMPT_VERSION,
-      UNDERCOVER_WORD_REVIEW_VERSION,
-    )
-    .first();
+  const row = await insertReservedWordPack(db, {
+    packsTable: 'undercover_word_packs',
+    packId: createWordPackId(day, batchIndex, opts),
+    category,
+    model: UNDERCOVER_WORD_MODEL,
+    promptVersion: UNDERCOVER_WORD_PROMPT_VERSION,
+    reviewVersion: UNDERCOVER_WORD_REVIEW_VERSION,
+  });
   return row === null ? null : packSchema.parse(row);
 }
 
@@ -224,18 +218,14 @@ export async function publishUndercoverWordPack(
     }
   }
   statements.push(
-    db
-      .prepare(
-        `UPDATE undercover_word_packs SET status = 'published', candidates_json = ?, reviews_json = ?, completed_at = ?
-    WHERE id = ? AND request_token = ? AND status = 'reserved'`,
-      )
-      .bind(
-        JSON.stringify(parsedCandidates),
-        JSON.stringify(parsedReviews),
-        now,
-        pack.id,
-        pack.request_token,
-      ),
+    createCompleteWordPackStatement(
+      db,
+      'undercover_word_packs',
+      pack,
+      JSON.stringify(parsedCandidates),
+      JSON.stringify(parsedReviews),
+      now,
+    ),
   );
   await db.batch(statements);
 }
@@ -246,11 +236,5 @@ export async function failUndercoverWordPack(
   pack: UndercoverWordPack,
   reason: string,
 ): Promise<void> {
-  await db
-    .prepare(
-      `UPDATE undercover_word_packs SET status = 'failed', failure_reason = ?, completed_at = ?
-    WHERE id = ? AND request_token = ? AND status = 'reserved'`,
-    )
-    .bind(reason, new Date().toISOString(), pack.id, pack.request_token)
-    .run();
+  await failWordPack(db, 'undercover_word_packs', pack, reason);
 }
