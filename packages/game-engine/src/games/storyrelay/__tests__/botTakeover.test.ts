@@ -214,6 +214,6 @@ describe('Story Relay unified roster rules', () => {
     });
     expect(decision.kind).toBe('reject');
     if (decision.kind !== 'reject') throw new Error('Expected rejection');
-    expect(decision.reason).toBe('目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位');
+    expect(decision.reason).toBe('storyrelay_occupied_seat_out_of_range');
   });
 });
