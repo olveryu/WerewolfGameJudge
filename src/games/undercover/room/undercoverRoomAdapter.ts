@@ -272,6 +272,14 @@ export function createUndercoverRoomShellModel(
   input: UndercoverRoomShellModelInput,
 ): RoomShellModel {
   const { state } = input;
+  const seatSource = createUndercoverSeatDataSource({
+    state,
+    revision: input.revision,
+    myUserId: input.myUserId,
+    controlledSeat: input.controlledSeat,
+    selectedSeat: input.selectedSeat,
+    isSelecting: input.isSelecting,
+  });
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
@@ -286,14 +294,7 @@ export function createUndercoverRoomShellModel(
     connection: input.connection,
     statusRibbon: createUndercoverStatusRibbon(state),
     seats: {
-      source: createUndercoverSeatDataSource({
-        state,
-        revision: input.revision,
-        myUserId: input.myUserId,
-        controlledSeat: input.controlledSeat,
-        selectedSeat: input.selectedSeat,
-        isSelecting: input.isSelecting,
-      }),
+      source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
       onSeatPress: input.onSeatPress,
       onBotSeatLongPress: input.onBotSeatLongPress,
@@ -313,7 +314,9 @@ export function createUndercoverRoomShellModel(
       hasBots: getUndercoverBotSeats(state).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
-        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
       release: input.release,
       gameName: 'Undercover',
     }),

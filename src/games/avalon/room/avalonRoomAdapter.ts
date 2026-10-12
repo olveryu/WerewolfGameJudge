@@ -18,7 +18,6 @@ import {
   isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -421,6 +420,13 @@ export interface AvalonRoomShellModelInput {
 /** Assembles the Avalon RoomShellModel from the hook's projections. */
 export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): RoomShellModel {
   const { state } = input;
+  const seatSource = createAvalonSeatDataSource({
+    state,
+    revision: input.revision,
+    userId: input.userId,
+    controlledSeat: input.controlledSeat,
+    pickedSeats: input.pickedSeats,
+  });
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
@@ -435,13 +441,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     connection: input.connection,
     statusRibbon: createAvalonStatusRibbon(state),
     seats: {
-      source: createAvalonSeatDataSource({
-        state,
-        revision: input.revision,
-        userId: input.userId,
-        controlledSeat: input.controlledSeat,
-        pickedSeats: input.pickedSeats,
-      }),
+      source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
       onSeatPress: input.onSeatPress,
       // 对齐其他有座位游戏：长按机器人座位接管/释放。
@@ -470,7 +470,9 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       hasBots: getAvalonBotSeats(state).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
-        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
       release: input.releaseBot,
       gameName: 'Avalon',
     }),

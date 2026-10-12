@@ -195,6 +195,12 @@ export function createStoryRelayRoomShellModel(
   input: StoryRelayRoomShellModelInput,
 ): RoomShellModel {
   const { state } = input;
+  const seatSource = createStoryRelaySeatDataSource({
+    state,
+    revision: input.revision,
+    userId: input.userId,
+    controlledSeat: input.controlledSeat,
+  });
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
@@ -209,12 +215,7 @@ export function createStoryRelayRoomShellModel(
     connection: input.connection,
     statusRibbon: createStoryRelayStatusRibbon(state),
     seats: {
-      source: createStoryRelaySeatDataSource({
-        state,
-        revision: input.revision,
-        userId: input.userId,
-        controlledSeat: input.controlledSeat,
-      }),
+      source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
       onSeatPress: input.onSeatPress,
       onBotSeatLongPress: input.onBotSeatLongPress,
@@ -238,7 +239,9 @@ export function createStoryRelayRoomShellModel(
       hasBots: getStoryRelayBotSeats(state).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
-        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
       release: input.releaseBot,
       gameName: 'StoryRelay',
     }),

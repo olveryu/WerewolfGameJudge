@@ -12,7 +12,6 @@ import {
   getFibUserSeat,
   isFibBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -449,7 +448,10 @@ export function useFibRoomScreenState({
     canControlBots: capabilities.canTakeOverBots.isAllowed,
     hasBots: getFibBotSeats(state).length > 0,
     controlledSeat,
-    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    controlledBotName:
+      controlledSeat !== null
+        ? (seatSource.getSeat(controlledSeat).player?.displayName ?? null)
+        : null,
     release: releaseBot,
     gameName: 'FibKing',
   });

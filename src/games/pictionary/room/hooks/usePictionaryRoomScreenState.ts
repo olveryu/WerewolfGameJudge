@@ -9,7 +9,6 @@ import {
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useMemo } from 'react';
 
@@ -328,7 +327,10 @@ export function usePictionaryRoomScreenState({
     canControlBots: capabilities.canTakeOverBots.isAllowed,
     hasBots: getPictionaryBotSeats(state).length > 0,
     controlledSeat,
-    controlledBotName: controlledSeat !== null ? getBotDisplayName(controlledSeat) : null,
+    controlledBotName:
+      controlledSeat !== null
+        ? (seatSource.getSeat(controlledSeat).player?.displayName ?? null)
+        : null,
     release: releaseBot,
     gameName: 'Pictionary',
   });

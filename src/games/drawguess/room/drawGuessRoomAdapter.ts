@@ -10,7 +10,6 @@ import {
   isBotOccupant,
   isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -183,6 +182,12 @@ export interface DrawGuessRoomShellModelInput {
 /** Assembles the DrawGuess RoomShellModel from the hook's projections. */
 export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInput): RoomShellModel {
   const { state } = input;
+  const seatSource = createDrawGuessSeatDataSource({
+    state,
+    revision: input.revision,
+    userId: input.userId,
+    controlledSeat: input.controlledSeat,
+  });
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
@@ -197,12 +202,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     connection: input.connection,
     statusRibbon: createDrawGuessStatusRibbon(state),
     seats: {
-      source: createDrawGuessSeatDataSource({
-        state,
-        revision: input.revision,
-        userId: input.userId,
-        controlledSeat: input.controlledSeat,
-      }),
+      source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
       onSeatPress: input.onSeatPress,
       onBotSeatLongPress: input.onBotSeatLongPress,
@@ -226,7 +226,9 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       hasBots: getDrawGuessBotSeats(state).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
-        input.controlledSeat !== null ? getBotDisplayName(input.controlledSeat) : null,
+        input.controlledSeat !== null
+          ? (seatSource.getSeat(input.controlledSeat).player?.displayName ?? null)
+          : null,
       release: input.releaseBot,
       gameName: 'DrawGuess',
     }),
