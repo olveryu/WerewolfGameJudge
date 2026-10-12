@@ -4,6 +4,7 @@
 
 import {
   AVALON_BOARDS,
+  type AvalonCommand,
   type AvalonNightStep,
   type AvalonRoleId,
   type AvalonState,
@@ -29,12 +30,24 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import {
+  buildClearSeatsAction,
+  buildFillBotsAction,
+  buildNextRoundAction,
+  buildReturnLobbyAction,
+  buildRoomConfigAction,
+  buildStartGameAction,
+} from '@/features/room/model/hostManagementActions';
 import type {
   RoomBottomButton,
   RoomBottomInfoModel,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type {
+  RoomHostManagementAction,
+  RoomHostManagementSection,
+} from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
@@ -46,6 +59,7 @@ import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { colors } from '@/theme';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
@@ -415,6 +429,175 @@ export interface AvalonRoomShellModelInput {
   readonly hostManagement: RoomHostManagementModel | null;
   readonly canControlBots: boolean;
   readonly releaseBot: () => void;
+}
+
+export interface AvalonHostManagementInput {
+  readonly state: AvalonState;
+  readonly isHost: boolean;
+  readonly capabilities: Pick<
+    RoomCapabilities,
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+  >;
+  readonly isSubmitting: boolean;
+  readonly controlledSeat: number | null;
+  readonly releaseBot: () => void;
+  readonly submit: (
+    label: string,
+    command: AvalonCommand,
+    controlledSeatOverride?: number | null,
+  ) => Promise<boolean>;
+}
+
+/** Assembles the Avalon host panel for the current phase. */
+export function createAvalonHostManagement(
+  input: AvalonHostManagementInput,
+): RoomHostManagementModel | null {
+  if (!input.isHost) return null;
+  const { state, capabilities } = input;
+  const submit = input.submit;
+  const roomActions: RoomHostManagementAction[] = [];
+  if (capabilities.canConfigureGame.isAllowed)
+    roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
+  if (capabilities.canFillBots.isAllowed)
+    roomActions.push(buildFillBotsAction({ onPress: capabilities.canFillBots.execute }));
+  if (capabilities.canClearSeats.isAllowed)
+    roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
+  if (state.phase.kind === 'lobby') {
+    const occupiedSeatCount = getAvalonOccupiedSeatCount(state);
+    const canStart = occupiedSeatCount === state.config.numberOfPlayers;
+    const startDisabledReason = canStart
+      ? null
+      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
+    return {
+      preview: '开始游戏',
+      status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
+      sections: [
+        {
+          key: 'game',
+          title: '游戏',
+          actions: [
+            buildStartGameAction({
+              onPress: () => void submit('开始游戏', { type: 'avalon.game.start' }),
+              isEnabled: !input.isSubmitting && canStart,
+              disabledReason: startDisabledReason,
+              onDisabledPress: () =>
+                showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
+              isLoading: input.isSubmitting,
+            }),
+          ],
+        },
+        { key: 'room', title: '房间管理', actions: roomActions },
+      ],
+    };
+  }
+  if (state.phase.kind === 'ended') {
+    return {
+      preview: '本局已结束',
+      status: null,
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            buildNextRoundAction({
+              onPress: () =>
+                showConfirmAlert(
+                  '再来一局',
+                  '重新发牌并清零比分，开始新的一局。',
+                  () => void submit('再来一局', { type: 'avalon.game.start' }),
+                ),
+            }),
+            buildReturnLobbyAction({
+              onPress: () =>
+                showConfirmAlert(
+                  '返回大厅',
+                  '保留座位和设置，清除当前对局。',
+                  () => void submit('返回大厅', { type: 'avalon.game.returnToLobby' }),
+                ),
+            }),
+          ],
+        },
+      ],
+    };
+  }
+  // 房主手动结算（D15/D16）：投票阶段可结束投票，任务阶段可结束任务。
+  const inGameSections: RoomHostManagementSection[] = [];
+  if (state.phase.kind === 'vote')
+    inGameSections.push({
+      key: 'vote',
+      title: '投票管理',
+      actions: [
+        {
+          key: 'finish-vote',
+          label: '结束投票',
+          icon: 'checkmark-done-outline',
+          variant: 'primary',
+          isLoading: input.isSubmitting,
+          testID: 'avalon-finish-vote',
+          ...(input.isSubmitting
+            ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
+            : {
+                isEnabled: true as const,
+                onPress: () =>
+                  showConfirmAlert(
+                    '结束投票',
+                    input.controlledSeat !== null
+                      ? '未投票的座位将视为弃权，确定结束投票并结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                      : '未投票的座位将视为弃权，确定结束投票并结算吗？',
+                    () => {
+                      // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
+                      // 显式传 null，避免闭包捕获旧的 controlledSeat。
+                      if (input.controlledSeat !== null) input.releaseBot();
+                      void submit('结束投票', { type: 'avalon.vote.finish' }, null);
+                    },
+                  ),
+              }),
+        },
+      ],
+    });
+  if (state.phase.kind === 'quest')
+    inGameSections.push({
+      key: 'quest',
+      title: '任务管理',
+      actions: [
+        {
+          key: 'finish-quest',
+          label: '结束任务',
+          icon: 'checkmark-done-outline',
+          variant: 'primary',
+          isLoading: input.isSubmitting,
+          testID: 'avalon-finish-quest',
+          ...(input.isSubmitting
+            ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
+            : {
+                isEnabled: true as const,
+                onPress: () =>
+                  showConfirmAlert(
+                    '结束任务',
+                    input.controlledSeat !== null
+                      ? '未出牌的队员将视为成功，确定提前结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                      : '未出牌的队员将视为成功，确定提前结算吗？',
+                    () => {
+                      if (input.controlledSeat !== null) input.releaseBot();
+                      void submit('结束任务', { type: 'avalon.quest.finish' }, null);
+                    },
+                  ),
+              }),
+        },
+      ],
+    });
+  // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
+  // 投票/任务阶段额外出现"结束投票"/"结束任务"。
+  return {
+    preview:
+      state.phase.kind === 'vote'
+        ? '结束投票'
+        : state.phase.kind === 'quest'
+          ? '结束任务'
+          : '房主管理',
+    status: null,
+    sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
+  };
 }
 
 /** Assembles the Avalon RoomShellModel from the hook's projections. */
