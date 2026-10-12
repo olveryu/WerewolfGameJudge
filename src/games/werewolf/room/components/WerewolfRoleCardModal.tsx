@@ -10,21 +10,16 @@
  * - First view → RoleRevealAnimator (with reveal animation)
  *
  * The play-once gating itself is the shared RevealAnimationGate
- * (Identity Viewing Protocol): this component only converts RoleId to
- * RevealRoleData and supplies the anchor and animation data.
- * Renders RoleCardSimple or RoleRevealAnimator, converting RoleId to RoleData
- * (alignmentMap + createRoleData), optimized with React.memo. No
+ * (Identity Viewing Protocol): this component supplies the anchor and
+ * animation data, converting RoleId through the single adapter
+ * (WerewolfRoleCardAdapter.toRevealRoleData) so the animation path and
+ * the static card can never drift apart. Optimized with React.memo. No
  * service / showAlert / navigation imports; no business gate in onPress,
  * no StyleSheet.create (styles passed from parent or via shared components).
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import {
-  Faction,
-  getRoleDisplayAs,
-  getRoleDisplayName,
-  getRoleSpec,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleDisplayAs } from '@game-judge/game-engine/games/werewolf/public';
 import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import { Asset } from 'expo-asset';
 import React, { useEffect, useMemo } from 'react';
@@ -35,17 +30,10 @@ import { RevealAnimationGate } from '@/features/room/components/RevealAnimationG
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
+import { toRevealRoleData } from '@/games/werewolf/components/WerewolfRoleCardAdapter';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { log } from '@/utils/logger';
-
-// ─── Alignment map (Faction → reveal alignment) ────────────────────────────
-const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
-  [Faction.Wolf]: 'wolf',
-  [Faction.God]: 'god',
-  [Faction.Villager]: 'villager',
-  [Faction.Special]: 'third',
-};
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -94,15 +82,7 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
   }, [visible, roleId]);
 
   const allRolesData: RevealRoleData[] = useMemo(
-    () =>
-      allRoleIds.map((id) => {
-        const spec = getRoleSpec(id);
-        return {
-          id,
-          name: getRoleDisplayName(id),
-          alignment: ALIGNMENT_MAP[spec.faction] ?? 'villager',
-        };
-      }),
+    () => allRoleIds.map((id) => toRevealRoleData(id)),
     [allRoleIds],
   );
 
@@ -115,20 +95,12 @@ const WerewolfRoleCardModalInner: React.FC<WerewolfRoleCardModalProps> = ({
     );
   }
 
-  // Dual seer label: look up label from roleId when seerLabelMap is present
+  // Dual seer label: look up label from roleId when seerLabelMap is present.
+  // The adapter is the single constructor: it resolves the displayAs
+  // disguise, the seer label copy, the avatar and the structured
+  // description - the same data the static card shows (AU-23).
   const seerLabel = seerLabelMap?.[roleId];
-
-  // Roles with displayAs (e.g., mirrorSeer): animation uses the disguised identity
-  const roleSpec = getRoleSpec(roleId);
-  const displayRoleId = getRoleDisplayAs(roleId) ?? roleId;
-  const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : roleSpec;
-  const baseName = getRoleDisplayName(displayRoleId);
-  const displayName = seerLabel != null ? `${seerLabel}号${baseName}` : baseName;
-  const effectiveRoleData: RevealRoleData = {
-    id: displayRoleId,
-    name: displayName,
-    alignment: ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
-  };
+  const effectiveRoleData: RevealRoleData = toRevealRoleData(roleId, { seerLabel });
 
   // The shared gate owns the play-once mechanics: it renders the
   // animator on the first view (resolvedAnimation already has 'random'
