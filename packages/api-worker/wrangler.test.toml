@@ -67,3 +67,8 @@ class_name = "FibWordSupplyWorkflow"
 name = "undercover-word-supply"
 binding = "UNDERCOVER_WORD_SUPPLY"
 class_name = "UndercoverWordSupplyWorkflow"
+
+[[workflows]]
+name = "drawguess-word-supply"
+binding = "DRAWGUESS_WORD_SUPPLY"
+class_name = "DrawGuessWordSupplyWorkflow"
