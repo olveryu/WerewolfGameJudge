@@ -255,6 +255,25 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     expect(botsFirst.decideAs({ type: 'avalon.game.begin' }).kind).toBe('commit');
   });
 
+  it('rejects a second begin after the night has opened, queuing no extra audio', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.viewAllHumans();
+    session.send({ type: 'avalon.game.begin' });
+    expect(session.state.phase.kind).toBe('night');
+    expect(session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
+    const again = session.decideAs({ type: 'avalon.game.begin' });
+    expect(again.kind).toBe('reject');
+    if (again.kind === 'reject') expect(again.reason).toBe(AVALON_REASONS.phase);
+    expect(session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
+  });
+
   it('rejects begin from a non-host and outside the viewing stage', () => {
     const session = game({ numberOfPlayers: 5 });
     const inLobby = session.decideAs({ type: 'avalon.game.begin' });

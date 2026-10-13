@@ -154,7 +154,7 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.controlledSeat).toEqual({ kind: 'hint' });
   });
 
-  it('shows 等待房主开始游戏 to a seated non-host in the lobby', () => {
+  it('shows 等待房主分配角色 to a seated non-host in the lobby', () => {
     const { state } = session(5);
     const model = createAvalonRoomShellModel({
       ...baseInput(state),
@@ -164,7 +164,7 @@ describe('createAvalonRoomShellModel', () => {
     });
     expect(model.bottomActions).toEqual({
       kind: 'info',
-      message: '等待房主开始游戏',
+      message: '等待房主分配角色',
       actions: [],
     });
     expect(model.controlledSeat).toBeNull();

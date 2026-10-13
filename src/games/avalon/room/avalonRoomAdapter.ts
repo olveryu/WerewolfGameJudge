@@ -365,7 +365,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
   }
   return {
     kind: 'info',
-    message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null,
+    message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主分配角色' : null,
     actions,
   };
 }
