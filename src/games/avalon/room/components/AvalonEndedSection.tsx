@@ -1,5 +1,7 @@
 /**
- * 阿瓦隆终局：胜负横幅 + 获胜原因 + 全员身份揭晓。
+ * 阿瓦隆终局结算区：胜负横幅 + 获胜原因 + 全员身份揭晓。
+ * 常驻在座位表上方（终局是全员停留的终态，结算必须常驻可见，
+ * 不做成可关闭浮层）。
  */
 
 import { type AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
@@ -12,10 +14,12 @@ import {
   getAvalonRoleDisplayName,
 } from '../../model/avalonRoleDisplay';
 import { AVALON_END_REASON_COPY, resolveEndedInstruction } from '../policy/avalonInteractionPolicy';
-import { AvalonInfoCard, AvalonStageFrame } from './AvalonStageFrame';
 
-/** 终局视图：只渲染权威结算数据。 */
-export function AvalonEndedView({ viewModel }: { readonly viewModel: AvalonViewModel }) {
+/** 结算区最大宽度（与原阶段层一致），水平居中。 */
+const ENDED_SECTION_MAX_WIDTH = 430;
+
+/** 终局结算区：只渲染权威结算数据。 */
+export function AvalonEndedSection({ viewModel }: { readonly viewModel: AvalonViewModel }) {
   const instruction = resolveEndedInstruction(viewModel);
   const copy = AVALON_END_REASON_COPY[instruction.reason];
   const isGoodWin = instruction.winner === 'good';
@@ -25,7 +29,7 @@ export function AvalonEndedView({ viewModel }: { readonly viewModel: AvalonViewM
       : (viewModel.seats.find((seatView) => seatView.seat === instruction.accusedSeat)
           ?.displayName ?? `座位${instruction.accusedSeat + 1}`);
   return (
-    <AvalonStageFrame title="本局结束" testID="avalon-ended">
+    <View style={styles.section} testID="avalon-ended">
       <View style={[styles.banner, isGoodWin ? styles.bannerGood : styles.bannerEvil]}>
         <Text style={styles.bannerTitle}>{copy.title}</Text>
         <Text style={styles.bannerDescription}>{copy.description}</Text>
@@ -33,7 +37,8 @@ export function AvalonEndedView({ viewModel }: { readonly viewModel: AvalonViewM
           <Text style={styles.bannerDescription}>刺客指认了【{accusedName}】</Text>
         ) : null}
       </View>
-      <AvalonInfoCard title="身份揭晓">
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>身份揭晓</Text>
         {viewModel.seats.map((seatView) => (
           <Text
             key={seatView.seat}
@@ -46,13 +51,32 @@ export function AvalonEndedView({ viewModel }: { readonly viewModel: AvalonViewM
               : `${getAvalonRoleDisplayName(seatView.role)}（${getAvalonFactionDisplayName(seatView.role)}）`}
           </Text>
         ))}
-      </AvalonInfoCard>
+      </View>
       <Text style={styles.hint}>等待房主操作（再来一局 / 返回大厅）。</Text>
-    </AvalonStageFrame>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  section: {
+    width: '100%',
+    maxWidth: ENDED_SECTION_MAX_WIDTH,
+    alignSelf: 'center',
+    gap: spacing.small,
+    paddingHorizontal: spacing.screenH,
+    paddingVertical: spacing.small,
+  },
+  card: {
+    width: '100%',
+    gap: spacing.small,
+    padding: spacing.medium,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+  },
+  cardTitle: {
+    ...textStyles.subtitleSemibold,
+    color: colors.text,
+  },
   banner: {
     width: '100%',
     alignItems: 'center',

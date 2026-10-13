@@ -6,7 +6,6 @@ import {
   AVALON_END_REASON_COPY,
   eligibleStrikeTargets,
   resolveAssassinInstruction,
-  resolveAvalonStageKind,
   resolveEndedInstruction,
   resolveLadyInstruction,
   resolveNightInstruction,
@@ -58,37 +57,6 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     ...overrides,
   };
 }
-
-describe('resolveAvalonStageKind', () => {
-  it.each([
-    ['nominate', 'nominate'],
-    ['vote', 'vote'],
-    ['quest', 'quest'],
-    ['lady', 'lady'],
-    ['assassin', 'assassin'],
-    ['ended', 'ended'],
-  ] as const)('maps the %s phase to the %s view', (phaseKind, expected) => {
-    expect(resolveAvalonStageKind({ kind: phaseKind } as never)).toBe(expected);
-  });
-
-  it('throws for the night phase (seat board + modal, not workspace)', () => {
-    expect(() => resolveAvalonStageKind({ kind: 'night' } as never)).toThrow(
-      '[FAIL-FAST] Avalon workspace received the night phase',
-    );
-  });
-
-  it('throws for the viewing phase (seat board + ribbon, not workspace)', () => {
-    expect(() => resolveAvalonStageKind({ kind: 'viewing' } as never)).toThrow(
-      '[FAIL-FAST] Avalon workspace received the viewing phase',
-    );
-  });
-
-  it('throws for the lobby phase', () => {
-    expect(() => resolveAvalonStageKind({ kind: 'lobby' })).toThrow(
-      '[FAIL-FAST] Avalon workspace received the lobby phase',
-    );
-  });
-});
 
 describe('resolveNightInstruction', () => {
   it('shows evil peers to a bad player', () => {
