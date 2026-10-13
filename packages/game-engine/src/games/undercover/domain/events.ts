@@ -21,6 +21,7 @@ export type UndercoverEvent =
   | { readonly type: 'undercover.round.failed'; readonly failureCode: UndercoverPreparationFailure }
   | { readonly type: 'undercover.round.started'; readonly round: UndercoverRound }
   | { readonly type: 'undercover.round.confirmed'; readonly seat: number }
+  | { readonly type: 'undercover.round.begun' }
   | {
       readonly type: 'undercover.round.revealed';
       readonly revelation: UndercoverRevelation;

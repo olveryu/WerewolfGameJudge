@@ -2,7 +2,7 @@
 
 import { UNDERCOVER_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const UNDERCOVER_STATE_VERSION = 4;
+export const UNDERCOVER_STATE_VERSION = 5;
 
 export const UNDERCOVER_STATE_IDENTITY = {
   gameType: UNDERCOVER_GAME_TYPE,

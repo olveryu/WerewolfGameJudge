@@ -213,7 +213,7 @@ export function parseUndercoverState(value: unknown): UndercoverState {
       }
       break;
     }
-    case 'reading':
+    case 'viewing':
     case 'ongoing':
       state = { ...base, phase: raw.phase, round: parseRound(raw.round, `${path}.round`) };
       break;
@@ -243,6 +243,15 @@ export function parseUndercoverState(value: unknown): UndercoverState {
  */
 export function migratePersistedUndercoverState(value: unknown): UndercoverState {
   const raw = parseObject(value, 'UndercoverState');
+  if (raw.stateVersion === 4) {
+    // v4 -> v5: the reading phase was renamed viewing; every other
+    // field (roster, words, confirmations, revelations) is unchanged.
+    return parseUndercoverState({
+      ...raw,
+      stateVersion: UNDERCOVER_STATE_VERSION,
+      phase: raw.phase === 'reading' ? 'viewing' : raw.phase,
+    });
+  }
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
     return parseUndercoverState(raw);
   const config = parseObject(raw.config, 'UndercoverState.config');

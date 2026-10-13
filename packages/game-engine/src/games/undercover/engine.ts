@@ -59,7 +59,7 @@ function getLifecycle(state: UndercoverState): CommonGameLifecycle {
       return 'ended';
     case 'preparing':
     case 'preparationFailed':
-    case 'reading':
+    case 'viewing':
     case 'ongoing':
       return 'ongoing';
   }

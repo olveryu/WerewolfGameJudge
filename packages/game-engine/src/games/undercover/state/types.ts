@@ -1,6 +1,7 @@
 /** Undercover state contracts; authoritative data only, no UI or IO. */
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import type { HostRevelation } from '../../../platform/room/hostReveal';
 import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
@@ -50,11 +51,8 @@ export interface UndercoverPendingRound {
   readonly shouldAllowRepeated: boolean;
 }
 
-export interface UndercoverRevelation {
-  readonly seat: number;
-  readonly role: UndercoverRole;
-  readonly revealedAt: number;
-}
+/** A host revelation record; the platform hostReveal shape, role-typed. */
+export type UndercoverRevelation = HostRevelation<UndercoverRole>;
 
 export interface UndercoverRound {
   readonly roundId: string;
@@ -92,7 +90,7 @@ export type UndercoverState = UndercoverStateBase &
         readonly pendingRound: UndercoverPendingRound;
         readonly failureCode: UndercoverPreparationFailure;
       }
-    | { readonly phase: 'reading' | 'ongoing'; readonly round: UndercoverRound }
+    | { readonly phase: 'viewing' | 'ongoing'; readonly round: UndercoverRound }
     | { readonly phase: 'ended'; readonly round: UndercoverRound; readonly winner: UndercoverRole }
     | { readonly phase: 'aborted'; readonly round: UndercoverRound | null }
   );

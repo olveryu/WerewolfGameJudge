@@ -48,7 +48,7 @@ function dispatch(state: UndercoverState, command: UndercoverCommand, isSystem =
   return undercoverEngine.normalize(decision.events.reduce(undercoverEngine.evolve, state));
 }
 
-function createReadingState() {
+function createViewingState() {
   let state = undercoverEngine.createInitialState(
     { numberOfPlayers: 6, hasBlank: true, category: 'all' },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1, commandId: 'create' },
@@ -68,8 +68,8 @@ function createReadingState() {
   return state;
 }
 
-it('conceals roles and words while everyone reads their cards', () => {
-  const state = createReadingState();
+it('conceals roles and words while everyone views their cards', () => {
+  const state = createViewingState();
   const source = createUndercoverSeatDataSource({
     state,
     revision: 4,
@@ -83,11 +83,11 @@ it('conceals roles and words while everyone reads their cards', () => {
   expect(source.getSeat(1).highlight).toBe('controlled');
   expect(getUndercoverUserSeat(state, 'host')).toBe(0);
   expect(getUndercoverUserSeat(state, 'visitor')).toBeNull();
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '确认词卡 · 0/6' });
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '等待全员查看词卡 · 0/6' });
 });
 
 it('conceals cards on control changes, backgrounding and remount', () => {
-  const state = createReadingState();
+  const state = createViewingState();
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const listener = jest.spyOn(AppState, 'addEventListener');
   const { result, rerender, unmount } = renderHook(
@@ -123,7 +123,7 @@ it('conceals cards on control changes, backgrounding and remount', () => {
 });
 
 it('offers unseated host bot filling and bulk viewing only while bots remain unconfirmed', () => {
-  const state = createReadingState();
+  const state = createViewingState();
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
   const capabilities = createUndercoverRoomCapabilities({
@@ -181,10 +181,11 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
 });
 
 it('selects directly for confirmation, cancels without submission and invalidates eliminated targets', () => {
-  let state = createReadingState();
+  let state = createViewingState();
   const roundId = state.round!.roundId;
   state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
   state = dispatch(state, { type: 'undercover.round.confirm', roundId });
+  state = dispatch(state, { type: 'undercover.round.begin', roundId });
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
   const { result, rerender } = renderHook(
     ({ currentState }: { currentState: UndercoverState }) =>
@@ -230,8 +231,8 @@ it('selects directly for confirmation, cancels without submission and invalidate
   expect(result.current.selectedSeat).toBeNull();
 });
 
-it('shows the authoritative starting speaker only once all cards are confirmed', () => {
-  let state = createReadingState();
+it('shows the authoritative starting speaker only once the host begins', () => {
+  let state = createViewingState();
   if (state.round === null) throw new Error('Expected round');
   const { roundId, speakingStartSeat } = state.round;
   expect(createUndercoverStatusRibbon(state)).toMatchObject({
@@ -246,13 +247,18 @@ it('shows the authoritative starting speaker only once all cards are confirmed',
   state = dispatch(state, { type: 'undercover.round.confirm', roundId });
   expect(createUndercoverStatusRibbon(state)).toMatchObject({
     kind: 'message',
+    supportingText: null,
+  });
+  state = dispatch(state, { type: 'undercover.round.begin', roundId });
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    kind: 'message',
     icon: 'speaking',
     supportingText: `首轮从 ${speakingStartSeat + 1} 号开始发言（随机）`,
   });
 });
 
 it('requires confirmation to restart an active round and exposes restart in host management after abort', async () => {
-  const state = createReadingState();
+  const state = createViewingState();
   if (state.round === null) throw new Error('Expected round');
   const session = {
     dispatch: jest.fn().mockResolvedValue({
@@ -355,6 +361,7 @@ describe('createUndercoverRoomShellModel', () => {
     closeCard: jest.fn(),
     confirmCard: jest.fn(),
     markAllBotsViewed: jest.fn(),
+    begin: jest.fn(),
     isSelecting: false,
     selectedSeat: null,
     reveal: jest.fn(),
@@ -443,4 +450,30 @@ describe('createUndercoverRoomShellModel', () => {
     expect(model.controlledSeat).toEqual({ kind: 'hint' });
     expect(model.share).toBe(share);
   });
+});
+
+// 本用例注册 AppState 监听（经 hook），必须排在其余用例之后：更早的
+// 'conceals cards…' 用例按注册顺序取第一个 change 监听器，顺序不可动。
+it('reports ready on the ribbon once every seat has viewed, and hints the unviewed viewer below', () => {
+  const viewing = createViewingState();
+  const roundId = viewing.round!.roundId;
+  const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
+  const { result, rerender, unmount } = renderHook(
+    ({ currentState }: { currentState: UndercoverState }) =>
+      useUndercoverRoundControls(currentState, session, 'host', null),
+    { initialProps: { currentState: viewing } },
+  );
+  // 本人未确认：底部只出一处提示，指向查看按钮（展示契约 self-hint 态）。
+  expect(createUndercoverBottomActions(result.current)).toMatchObject({
+    message: '请点击下方「查看我的词」，查看词语',
+  });
+  let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
+  expect(state.round!.confirmedSeats).toHaveLength(6);
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    text: '全员已查看词卡，等待房主开始游戏',
+  });
+  rerender({ currentState: state });
+  expect(createUndercoverBottomActions(result.current)).toMatchObject({ message: null });
+  unmount();
 });

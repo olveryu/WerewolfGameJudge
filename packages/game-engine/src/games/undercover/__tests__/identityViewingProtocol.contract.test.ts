@@ -10,15 +10,17 @@
  * same assertions against each compliant engine. The engine module
  * boundary forbids cross-game imports, so each game carries its own
  * scenario file under this same name in its __tests__: undercover
- * (reading checkpoint) lands first; werewolf's record flip joins in
- * batch A, avalon's pre-mission checkpoint in batch C, and fibking's
+ * (viewing-stage begin gate) lands first; werewolf's record flip joins
+ * in batch A, avalon's pre-mission checkpoint in batch C, and fibking's
  * per-round viewing phase in batch D.
  */
 
 import type { CommandContext } from '../../../platform/engine';
+import { REASON_NOT_HOST } from '../../../platform/protocol/reasons';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { haveAllViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import type { UndercoverCommand } from '../commands/types';
+import { UNDERCOVER_REASONS } from '../domain/decision';
 import { undercoverEngine } from '../engine';
 import {
   getUndercoverViewingParticipants,
@@ -62,7 +64,7 @@ function dispatch(
   return undercoverEngine.normalize(decision.events.reduce(undercoverEngine.evolve, state));
 }
 
-function readingState(): UndercoverState {
+function viewingState(): UndercoverState {
   let state = undercoverEngine.createInitialState(config, {
     roomCode: '1234',
     hostUserId: 'host',
@@ -93,23 +95,41 @@ function confirmSeat(state: UndercoverState, seat: number): UndercoverState {
   );
 }
 
-describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
-  it('holds the checkpoint until every seat has viewed, then advances', () => {
-    let state = readingState();
-    expect(state.phase).toBe('reading');
+function beginRound(state: UndercoverState): UndercoverState {
+  if (state.round === null) throw new Error('Expected round');
+  return dispatch(state, { type: 'undercover.round.begin', roundId: state.round.roundId });
+}
+
+describe('Identity Viewing Protocol — undercover viewing-stage begin gate', () => {
+  it('holds the round in viewing until every seat viewed and the host begins', () => {
+    let state = viewingState();
+    expect(state.phase).toBe('viewing');
     if (state.round === null) throw new Error('Expected round');
     expect(state.round.confirmedSeats).toEqual([]);
 
     for (let seat = 1; seat < config.numberOfPlayers; seat += 1) {
       state = confirmSeat(state, seat);
-      expect(state.phase).toBe('reading');
+      expect(state.phase).toBe('viewing');
     }
+    // The begin gate is still closed: the host has not viewed yet.
+    if (state.round === null) throw new Error('Expected round');
+    const blocked = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.begin', roundId: state.round.roundId },
+      user(),
+    );
+    expect(blocked.kind).toBe('reject');
+    if (blocked.kind === 'reject') expect(blocked.reason).toBe(UNDERCOVER_REASONS.notAllViewed);
+
     state = confirmSeat(state, 0);
+    // Every seat has viewed, but play opens only on the host's begin.
+    expect(state.phase).toBe('viewing');
+    state = beginRound(state);
     expect(state.phase).toBe('ongoing');
   });
 
   it('fills bot records through the host scaffold action, then waits on the humans', () => {
-    let state = readingState();
+    let state = viewingState();
     if (state.round === null) throw new Error('Expected round');
     state = dispatch(state, {
       type: 'undercover.round.markAllBotsViewed',
@@ -117,14 +137,38 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
     });
     if (state.round === null) throw new Error('Expected round');
     expect(state.round.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    expect(state.phase).toBe('reading');
+    expect(state.phase).toBe('viewing');
 
     state = confirmSeat(state, 0);
+    expect(state.phase).toBe('viewing');
+    state = beginRound(state);
     expect(state.phase).toBe('ongoing');
   });
 
+  it('rejects begin from a non-host and in the wrong phase', () => {
+    let state = viewingState();
+    if (state.round === null) throw new Error('Expected round');
+    const roundId = state.round.roundId;
+    for (let seat = 0; seat < config.numberOfPlayers; seat += 1) state = confirmSeat(state, seat);
+    const nonHost = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.begin', roundId },
+      user('guest'),
+    );
+    expect(nonHost.kind).toBe('reject');
+    if (nonHost.kind === 'reject') expect(nonHost.reason).toBe(REASON_NOT_HOST);
+    state = beginRound(state);
+    const again = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.begin', roundId },
+      user(),
+    );
+    expect(again.kind).toBe('reject');
+    if (again.kind === 'reject') expect(again.reason).toBe(UNDERCOVER_REASONS.phase);
+  });
+
   it('records views with the shared helper semantics (sorted, idempotent)', () => {
-    let state = readingState();
+    let state = viewingState();
     state = confirmSeat(state, 3);
     state = confirmSeat(state, 1);
     if (state.round === null) throw new Error('Expected round');
@@ -148,10 +192,10 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
   });
 
   it('agrees with the shared checkpoint predicate over the recorded set', () => {
-    let state = readingState();
+    let state = viewingState();
     if (state.round === null) throw new Error('Expected round');
     expect(haveAllViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats)).toBe(
-      state.phase === 'ongoing',
+      false,
     );
     state = dispatch(state, {
       type: 'undercover.round.markAllBotsViewed',
@@ -159,9 +203,12 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
     });
     state = confirmSeat(state, 0);
     if (state.round === null) throw new Error('Expected round');
+    // The predicate is satisfied while the phase still waits for begin.
     expect(haveAllViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats)).toBe(
       true,
     );
+    expect(state.phase).toBe('viewing');
+    state = beginRound(state);
     expect(state.phase).toBe('ongoing');
   });
 });
@@ -169,7 +216,7 @@ describe('Identity Viewing Protocol — undercover reading checkpoint', () => {
 describeIdentityViewingProtocol({
   game: 'undercover',
   makeSession: () => {
-    let state = readingState();
+    let state = viewingState();
     const attempt = (next: () => UndercoverState) => {
       try {
         state = next();
@@ -191,7 +238,14 @@ describeIdentityViewingProtocol({
                 roundId: state.round.roundId,
               }),
         ),
-      isCheckpointOpen: () => state.phase === 'ongoing',
+      // Non-mutating probe: the begin gate would commit right now.
+      isCheckpointOpen: () =>
+        state.round !== null &&
+        undercoverEngine.decide(
+          state,
+          { type: 'undercover.round.begin', roundId: state.round.roundId },
+          user(),
+        ).kind === 'commit',
     };
   },
 });

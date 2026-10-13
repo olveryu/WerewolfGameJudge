@@ -71,11 +71,12 @@ describe('Undercover Worker effects', () => {
       { type: 'undercover.round.confirm', roundId },
       'confirm',
     );
-    let decision = applyCommand(
+    const marked = applyCommand(
       confirmed.state,
       { type: 'undercover.round.markAllBotsViewed', roundId },
       'bots',
     );
+    let decision = applyCommand(marked.state, { type: 'undercover.round.begin', roundId }, 'begin');
     for (let seat = 0; decision.state.phase === 'ongoing'; seat += 1) {
       decision = applyCommand(
         decision.state,
@@ -189,12 +190,12 @@ describe('Undercover Worker effects', () => {
     ).run();
     await undercoverWorkerModule.handleEffect(effect, context('retry-attempt'));
     expect(state).toMatchObject({
-      phase: 'reading',
+      phase: 'viewing',
       round: { roundId: effect.payload.roundId, wordPair: { id: 'effect-pair' } },
     });
     expect(undercoverWorkerModule.parseState(JSON.parse(JSON.stringify(state)))).toEqual(state);
     expect(undercoverWorkerModule.getEffectFailureCommand(effect, state)).toBeNull();
     await undercoverWorkerModule.handleEffect(effect, context('stale-attempt'));
-    expect(state.phase).toBe('reading');
+    expect(state.phase).toBe('viewing');
   });
 });
