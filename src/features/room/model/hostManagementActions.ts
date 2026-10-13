@@ -103,6 +103,23 @@ export function buildFillBotsAction(input: ActionInput): RoomHostManagementActio
   );
 }
 
+/**
+ * "标记机器人已查看" — the host scaffold action of the Identity
+ * Viewing Protocol: fills every unviewed bot seat's view record so
+ * the begin checkpoint can pass. Every identity game shows it with
+ * this exact descriptor; engines never mark bot seats themselves.
+ */
+export function buildMarkBotsViewedAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'mark-bots-viewed',
+    '标记机器人已查看',
+    'eye-outline',
+    'secondary',
+    undefined,
+    input,
+  );
+}
+
 /** "清空座位" — danger action for clearing all seats. */
 export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(

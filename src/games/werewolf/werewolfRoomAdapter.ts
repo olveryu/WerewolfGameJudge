@@ -9,6 +9,7 @@ import { getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { resolveStepProgress } from '@/features/room/model/nightProgress';
 import type {
   RoomBottomActionLayout,
   RoomBottomActionModel,
@@ -203,10 +204,32 @@ interface WerewolfNightProgress {
   readonly roleName?: string;
 }
 
+/** Werewolf's own per-step label: displayAs override + seer label prefix. */
+function resolveWerewolfStepRoleName(
+  step: ReturnType<typeof buildNightPlan>['steps'][number],
+  seerLabelMap: LocalGameState['seerLabelMap'],
+): string {
+  let roleName = step.displayName;
+  const displayAs = getRoleDisplayAs(step.roleId);
+  if (displayAs) {
+    const displaySpec = getRoleSpec(displayAs);
+    roleName = displaySpec?.displayName ?? roleName;
+  }
+  if (seerLabelMap) {
+    const label = seerLabelMap[step.roleId];
+    if (label != null && roleName) {
+      roleName = `${label}号${roleName}`;
+    }
+  }
+  return roleName;
+}
+
 /**
  * Pure night-progress derivation over the local state (the former
  * useNightProgress hook body, moved into the factory so the ribbon
- * takes raw room facts like the other six games' factories).
+ * takes raw room facts like the other six games' factories). The
+ * step math is the shared resolveStepProgress; only the step list
+ * (night plan) and the label resolution stay werewolf's own.
  */
 function deriveWerewolfNightProgress(
   currentStepId: SchemaId | null,
@@ -216,29 +239,17 @@ function deriveWerewolfNightProgress(
     return null;
   }
   const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
-  const stepIndex = nightPlan.steps.findIndex((step) => step.stepId === currentStepId);
-  if (stepIndex === -1) return null;
-  const currentStep = nightPlan.steps[stepIndex];
-  let roleName = currentStep?.displayName;
-  if (currentStep) {
-    const displayAs = getRoleDisplayAs(currentStep.roleId);
-    if (displayAs) {
-      const displaySpec = getRoleSpec(displayAs);
-      roleName = displaySpec?.displayName ?? roleName;
-    }
-    const labelMap = gameState.seerLabelMap;
-    if (labelMap) {
-      const label = labelMap[currentStep.roleId];
-      if (label != null && roleName) {
-        roleName = `${label}号${roleName}`;
-      }
-    }
+  const labels: Partial<Record<SchemaId, string>> = {};
+  for (const step of nightPlan.steps) {
+    labels[step.stepId] = resolveWerewolfStepRoleName(step, gameState.seerLabelMap);
   }
-  return {
-    current: stepIndex + 1,
-    total: nightPlan.length,
-    roleName,
-  };
+  const progress = resolveStepProgress(
+    nightPlan.steps.map((step) => step.stepId),
+    currentStepId,
+    labels,
+  );
+  if (progress === null) return null;
+  return { current: progress.current, total: progress.total, roleName: progress.label };
 }
 
 export function createWerewolfStatusRibbon(
