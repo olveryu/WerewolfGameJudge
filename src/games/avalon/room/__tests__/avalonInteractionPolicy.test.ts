@@ -77,6 +77,12 @@ describe('resolveAvalonStageKind', () => {
     );
   });
 
+  it('throws for the viewing phase (seat board + ribbon, not workspace)', () => {
+    expect(() => resolveAvalonStageKind({ kind: 'viewing' } as never)).toThrow(
+      '[FAIL-FAST] Avalon workspace received the viewing phase',
+    );
+  });
+
   it('throws for the lobby phase', () => {
     expect(() => resolveAvalonStageKind({ kind: 'lobby' })).toThrow(
       '[FAIL-FAST] Avalon workspace received the lobby phase',

@@ -170,6 +170,27 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.controlledSeat).toBeNull();
   });
 
+  it('hints an unviewed seated player to view their role during the viewing stage', () => {
+    const running = session(5);
+    running.send({ type: 'avalon.game.start' });
+    const input = {
+      ...baseInput(running.state),
+      isLobby: false,
+      isHost: false,
+      mySeat: 2,
+      effectiveSeat: 2,
+    };
+    const before = createAvalonRoomShellModel(input);
+    expect(before.bottomActions.kind).toBe('info');
+    if (before.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
+    expect(before.bottomActions.message).toBe('请点击下方「查看身份」，查看你的角色');
+
+    running.send({ type: 'avalon.role.viewed' }, 'u2');
+    const after = createAvalonRoomShellModel({ ...input, state: running.state });
+    if (after.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
+    expect(after.bottomActions.message).toBeNull();
+  });
+
   it('adds the always-on view-role action once the game is running', () => {
     const running = session(5);
     running.send({ type: 'avalon.game.start' });

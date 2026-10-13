@@ -87,6 +87,20 @@ describe('createAvalonStatusRibbon — viewing stage', () => {
     });
   });
 
+  it('reports ready once every seat has viewed, still in the viewing stage', () => {
+    const session = startFivePlayerGame();
+    for (let seat = 0; seat < 5; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
+    expect(session.state.phase.kind).toBe('viewing');
+    expect(createAvalonStatusRibbon(session.state)).toEqual({
+      kind: 'message',
+      icon: 'guide',
+      text: '全员已查看身份，等待房主开始游戏',
+      supportingText: null,
+    });
+  });
+
   it('renders the night as shared progress (step x of y + label) once begun', () => {
     const session = startFivePlayerGame();
     beginGame(session);

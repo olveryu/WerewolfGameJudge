@@ -37,7 +37,6 @@ import {
   type AvalonStrikeConfirmation,
   AvalonStrikeConfirmModal,
 } from './components/AvalonStrikeConfirmModal';
-import { AvalonViewingView } from './components/AvalonViewingView';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { type AvalonRoomScreenState, useAvalonRoomState } from './hooks/useAvalonRoomState';
@@ -489,6 +488,8 @@ function AvalonStage({
   const { submit, isSubmitting } = screen;
   // 晚上走弹窗模式（Cupid 两步），不在 afterSeatBoard 渲染阶段 UI。
   if (screen.state.phase.kind === 'night') return null;
+  // 查看阶段无盘下阶段 UI：进度归状态条、逐座状态归座位盘（展示契约 §3.3）。
+  if (screen.state.phase.kind === 'viewing') return null;
   const kind = resolveAvalonStageKind(screen.state.phase);
   return (
     <>
@@ -505,13 +506,7 @@ function AvalonStage({
           <Text style={styles.strikeHint}>晚上已过，可随时提前刺杀</Text>
         </View>
       ) : null}
-      {kind === 'viewing' ? (
-        <AvalonViewingView
-          viewModel={viewModel}
-          totalSeats={screen.state.config.numberOfPlayers}
-          isHost={screen.isHost}
-        />
-      ) : kind === 'nominate' ? (
+      {kind === 'nominate' ? (
         <AvalonNominateView
           viewModel={viewModel}
           selectedSeats={nominateSelection}

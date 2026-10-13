@@ -127,7 +127,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     };
   }
 
-  it('shows the viewed-role badge per seat during the viewing stage, all lit at night', () => {
+  it('shows the viewed-role badge per seat during the viewing stage only', () => {
     // Viewing stage: only the seats that viewed light up.
     let commandNumber = 0;
     let state: AvalonState = avalonEngine.createInitialState(
@@ -162,7 +162,8 @@ describe('createAvalonSeatDataSource — night badges', () => {
     expect(viewingSource.getSeat(2).showReadyBadge).toBe(true);
     expect(viewingSource.getSeat(1).showReadyBadge).toBe(false);
 
-    // Night: the begin gate guarantees every seat viewed, so all badges lit.
+    // Night: the game has begun, so the viewing-stage badges are all cleared
+    // even though every seat has a viewing record.
     const night = nightSession();
     const nightSource = createAvalonSeatDataSource({
       state: night.state,
@@ -171,7 +172,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
       controlledSeat: null,
     });
     for (let seat = 0; seat < 5; seat += 1) {
-      expect(nightSource.getSeat(seat).showReadyBadge).toBe(true);
+      expect(nightSource.getSeat(seat).showReadyBadge).toBe(false);
     }
   });
 
