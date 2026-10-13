@@ -105,11 +105,10 @@ function assertRound(state: UndercoverState): void {
     }
     revealed.add(revelation.seat);
   }
-  if (
-    state.phase === 'reading' &&
-    (revealed.size !== 0 || round.confirmedSeats.length === state.config.numberOfPlayers)
-  )
-    throw new Error('Invalid Undercover reading phase');
+  // The viewing stage may hold any confirmation count (a full set is
+  // the normal pre-begin state); revelations require begun play.
+  if (state.phase === 'viewing' && revealed.size !== 0)
+    throw new Error('Invalid Undercover viewing phase');
   if (state.phase === 'ongoing' || state.phase === 'ended') {
     if (round.confirmedSeats.length !== state.config.numberOfPlayers)
       throw new Error('Missing Undercover confirmations');

@@ -16,7 +16,8 @@ import {
   randomIntInclusive,
   shuffleArray,
 } from '../../../platform/random';
-import { listUnviewedBotSeats } from '../../../platform/room/identityViewing';
+import { hasBeenRevealed } from '../../../platform/room/hostReveal';
+import { haveAllViewed, listUnviewedBotSeats } from '../../../platform/room/identityViewing';
 import { findRosterSeatByUserId, getHumanSeatMap, isBotSeat } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
@@ -139,7 +140,7 @@ function decideConfirmation(
 ): UndercoverDecision {
   const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase !== 'reading') return reject(UNDERCOVER_REASONS.phase);
+  if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
   if (state.round.roundId !== roundId) return reject(UNDERCOVER_REASONS.round);
   let seat: number | null;
   if (context.controlledSeat !== null) {
@@ -162,7 +163,7 @@ function decideRevelation(
 ): UndercoverDecision {
   if (state.phase !== 'ongoing') return reject(UNDERCOVER_REASONS.phase);
   if (!isUndercoverSeat(state, seat)) return reject(UNDERCOVER_REASONS.config);
-  if (state.round.revelations.some((revelation) => revelation.seat === seat))
+  if (hasBeenRevealed(state.round.revelations, seat))
     return reject(UNDERCOVER_REASONS.alreadyRevealed);
   const revelation = { seat, role: state.round.roles[seat]!, revealedAt: context.nowMs };
   const eliminated = new Set([...state.round.revelations.map((previous) => previous.seat), seat]);
@@ -223,11 +224,19 @@ export function decideUndercoverRound(
   }
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
+    case 'undercover.round.begin': {
+      // The begin gate is the identity checkpoint: play opens only once
+      // every seat (bots via the host scaffold action) has viewed.
+      if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
+      if (!haveAllViewed(getUndercoverViewingParticipants(state), state.round.confirmedSeats))
+        return reject(UNDERCOVER_REASONS.notAllViewed);
+      return commitUndercover([{ type: 'undercover.round.begun' }]);
+    }
     case 'undercover.round.markAllBotsViewed': {
       // Host scaffold action: fill every unviewed bot seat's record
-      // through the protocol's seat computation; the per-seat
-      // confirmed events run the strict checkpoint in evolve.
-      if (state.phase !== 'reading') return reject(UNDERCOVER_REASONS.phase);
+      // through the protocol's seat computation; the begin gate runs
+      // the strict checkpoint when the host begins the round.
+      if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
       const participants = getUndercoverViewingParticipants(state);
       // Werewolf parity (Wave 8): with no bot seats at all the scaffold
       // command rejects instead of committing an empty success.
@@ -250,7 +259,7 @@ export function decideUndercoverRound(
     case 'undercover.round.abort':
       return state.phase === 'preparing' ||
         state.phase === 'preparationFailed' ||
-        state.phase === 'reading' ||
+        state.phase === 'viewing' ||
         state.phase === 'ongoing'
         ? commitUndercover([{ type: 'undercover.round.aborted' }])
         : reject(UNDERCOVER_REASONS.phase);

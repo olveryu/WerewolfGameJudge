@@ -13,7 +13,7 @@ export function getUndercoverWordCard(
   userId: string,
   controlledSeat: number | null,
 ): UndercoverWordCard | null {
-  if (state.phase !== 'reading' && state.phase !== 'ongoing') return null;
+  if (state.phase !== 'viewing' && state.phase !== 'ongoing') return null;
   let seat: number | null;
   if (controlledSeat !== null) {
     if (userId !== state.hostUserId || !isBotSeat(state.roster, controlledSeat)) return null;

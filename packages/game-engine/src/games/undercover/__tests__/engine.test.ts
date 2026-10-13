@@ -90,7 +90,7 @@ function ongoing(): UndercoverState {
       user('host', seat === 0 ? null : seat),
     );
   }
-  return state;
+  return dispatch(state, { type: 'undercover.round.begin', roundId });
 }
 
 function reveal(state: UndercoverState, role: UndercoverRole, context = user()): UndercoverState {
@@ -191,7 +191,7 @@ describe('Undercover authoritative engine', () => {
         },
         system(),
       );
-      expect(next.phase).toBe('reading');
+      expect(next.phase).toBe('viewing');
       expect(next.round).toMatchObject({ confirmedSeats: [], revelations: [] });
       expect(next.usedWordPairIds).toContain('pair-2');
     }
@@ -272,6 +272,29 @@ describe('Undercover authoritative engine', () => {
       }
       expect(migratePersistedUndercoverState(state)).toEqual(state);
     }
+  });
+
+  it('migrates v4 states by renaming the reading phase to viewing, field-equal', () => {
+    let viewing = complete(prepare());
+    if (viewing.round === null) throw new Error('Expected round');
+    viewing = dispatch(
+      viewing,
+      { type: 'undercover.round.confirm', roundId: viewing.round.roundId },
+      user('host', 1),
+    );
+    const v4Viewing: Record<string, unknown> = {
+      ...(JSON.parse(JSON.stringify(viewing)) as Record<string, unknown>),
+      stateVersion: 4,
+      phase: 'reading',
+    };
+    expect(migratePersistedUndercoverState(v4Viewing)).toEqual(viewing);
+
+    const active = ongoing();
+    const v4Ongoing: Record<string, unknown> = {
+      ...(JSON.parse(JSON.stringify(active)) as Record<string, unknown>),
+      stateVersion: 4,
+    };
+    expect(migratePersistedUndercoverState(v4Ongoing)).toEqual(active);
   });
 
   it('limits cards to the real player or host-controlled robot and hides affiliation', () => {
@@ -428,10 +451,12 @@ describe('Undercover authoritative engine', () => {
       user('host', 1),
     );
     state = dispatch(state, command);
-    expect(state.phase).toBe('reading');
+    expect(state.phase).toBe('viewing');
     expect(state.round?.confirmedSeats).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(dispatch(state, command)).toEqual(state);
     state = dispatch(state, { type: 'undercover.round.confirm', roundId: command.roundId });
+    expect(state.phase).toBe('viewing');
+    state = dispatch(state, { type: 'undercover.round.begin', roundId: command.roundId });
     expect(state.phase).toBe('ongoing');
     expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
   });
@@ -469,8 +494,11 @@ describe('Undercover authoritative engine', () => {
       type: 'undercover.round.markAllBotsViewed',
       roundId: state.round.roundId,
     });
-    expect(state.phase).toBe('ongoing');
+    expect(state.phase).toBe('viewing');
     expect(state.round?.confirmedSeats).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    if (state.round === null) throw new Error('Expected round');
+    state = dispatch(state, { type: 'undercover.round.begin', roundId: state.round.roundId });
+    expect(state.phase).toBe('ongoing');
   });
 
   it('keeps repeated confirmations idempotent and requires everyone to confirm', () => {
@@ -482,7 +510,7 @@ describe('Undercover authoritative engine', () => {
     };
     state = dispatch(state, command);
     expect(dispatch(state, command)).toEqual(state);
-    expect(state.phase).toBe('reading');
+    expect(state.phase).toBe('viewing');
     expect(
       undercoverEngine.decide(
         state,

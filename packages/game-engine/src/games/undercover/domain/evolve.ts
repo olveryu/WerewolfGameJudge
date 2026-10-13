@@ -1,8 +1,9 @@
 /** Undercover event projection; resets discard phase-owned fields and preserve the roster. */
 
-import { haveAllViewed, markSeatViewed } from '../../../platform/room/identityViewing';
+import { appendRevelation } from '../../../platform/room/hostReveal';
+import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
-import { getUndercoverViewingParticipants, type UndercoverState } from '../state/types';
+import type { UndercoverState } from '../state/types';
 import type { UndercoverEvent } from './events';
 
 /** Projects validated domain events without side effects. */
@@ -38,26 +39,33 @@ export function evolveUndercoverState(
     case 'undercover.round.started':
       return {
         ...base,
-        // Every round starts in reading: the checkpoint completes
-        // only when every seat (bots via the host scaffold action)
-        // has confirmed.
-        phase: 'reading',
+        // Every round starts in the viewing stage: play opens only
+        // when the host begins after every seat (bots via the host
+        // scaffold action) has confirmed.
+        phase: 'viewing',
         round: event.round,
         usedWordPairIds: [...new Set([...state.usedWordPairIds, event.round.wordPair.id])],
       };
     case 'undercover.round.confirmed': {
-      if (state.phase !== 'reading') throw new Error('Expected reading Undercover state');
+      if (state.phase !== 'viewing') throw new Error('Expected viewing Undercover state');
       const confirmedSeats = markSeatViewed(state.round.confirmedSeats, event.seat);
-      const allViewed = haveAllViewed(getUndercoverViewingParticipants(state), confirmedSeats);
-      return {
-        ...base,
-        phase: allViewed ? 'ongoing' : 'reading',
-        round: { ...state.round, confirmedSeats },
-      };
+      return { ...base, phase: 'viewing', round: { ...state.round, confirmedSeats } };
+    }
+    case 'undercover.round.begun': {
+      if (state.phase !== 'viewing') throw new Error('Expected viewing Undercover state');
+      return { ...base, phase: 'ongoing', round: state.round };
     }
     case 'undercover.round.revealed': {
       if (state.phase !== 'ongoing') throw new Error('Expected ongoing Undercover state');
-      const round = { ...state.round, revelations: [...state.round.revelations, event.revelation] };
+      const round = {
+        ...state.round,
+        revelations: appendRevelation(
+          state.round.revelations,
+          event.revelation.seat,
+          event.revelation.role,
+          event.revelation.revealedAt,
+        ),
+      };
       return event.winner === null
         ? { ...base, phase: 'ongoing', round }
         : { ...base, phase: 'ended', round, winner: event.winner };

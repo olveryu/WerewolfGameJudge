@@ -22,6 +22,7 @@ export const UNDERCOVER_REASONS = {
   reused: 'undercover_word_reused',
   bot: 'undercover_bot_required',
   noBots: 'undercover_no_bot_seats',
+  notAllViewed: 'undercover_not_all_viewed',
   failure: 'undercover_preparation_failure_invalid',
 } as const;
 
