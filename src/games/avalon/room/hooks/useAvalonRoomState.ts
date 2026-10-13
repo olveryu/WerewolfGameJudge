@@ -47,10 +47,7 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  ROOM_SEAT_LOCKED_MESSAGE,
-  ROOM_SEAT_TAP_BLOCKED_TITLE,
-} from '@/features/room/model/RoomSeatTap';
+import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
@@ -87,7 +84,7 @@ export interface AvalonRoomScreenState {
   readonly submit: (
     label: string,
     command: AvalonCommand,
-    controlledSeatOverride?: number | null,
+    control?: number | null,
   ) => Promise<boolean>;
   readonly isSubmitting: boolean;
   readonly session: AvalonRoomSession;
@@ -191,16 +188,11 @@ export function useAvalonRoomState(
   const titleActions = useRoomTitleActions();
   const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getAvalonRoomCommandFailureMessage);
-  // 结构性修复：submit 接受 controlledSeat 显式参数，避免闭包捕获旧值。
-  // 调用方在需要时传入最新值（如释放接管后传 null），不传则用当前 render 的值。
-  const submit = (label: string, command: AvalonCommand, controlledSeatOverride?: number | null) =>
-    submission.submit(label, () =>
-      session.dispatch(command, {
-        controlledSeat:
-          controlledSeatOverride !== undefined ? controlledSeatOverride : controlledSeat,
-        label,
-      }),
-    );
+  // 派发纪律（对齐卧底 submit 形态）：默认不带接管座位。房主命令的平台门
+  // 只认未接管身份（resolveHostActorId），挂着接管座位发房主命令必然被拒；
+  // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
+  const submit = (label: string, command: AvalonCommand, control: number | null = null) =>
+    submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
   // 投票/任务倒计时：到点由任一未接管客户端提交超时结算（引擎校验截止时间，先到者生效）。
   const phaseDeadlineAt =
     state.phase.kind === 'vote' || state.phase.kind === 'quest' ? state.phase.deadlineAt : null;
@@ -273,9 +265,9 @@ export function useAvalonRoomState(
   };
   const onSeatPress = (seat: number, disabledReason?: string) => {
     if (seatPickHandlerRef.current?.(seat) === true) return;
-    if (!isLobby) {
-      return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, ROOM_SEAT_LOCKED_MESSAGE);
-    }
+    // 局内点座对齐狼人杀 SeatTapPolicy：未被选座处理器消费的点击一律静默
+    // NOOP（白天 other_status、局内 not_actioner 都是 NOOP），不弹锁定提示。
+    if (!isLobby) return;
     const intent = getAvalonSeatTapIntent({
       state,
       seat,
@@ -350,7 +342,7 @@ export function useAvalonRoomState(
         state.phase.kind !== 'ended' &&
         !state.roleViewedSeats.includes(effectiveSeat)
       ) {
-        void submit('查看身份', { type: 'avalon.role.viewed' });
+        void submit('查看身份', { type: 'avalon.role.viewed' }, controlledSeat);
       }
     },
     onNightInfoPress: () => setNightModalVisible(true),
@@ -359,7 +351,11 @@ export function useAvalonRoomState(
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
     onProposeTeamPress: () => {
-      void submit('提交队伍', { type: 'avalon.team.propose', seats: [...pickedSeats] });
+      void submit(
+        '提交队伍',
+        { type: 'avalon.team.propose', seats: [...pickedSeats] },
+        controlledSeat,
+      );
     },
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),

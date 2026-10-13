@@ -84,8 +84,14 @@ function AvalonRoomContent(
     if (strikeConfirm === null) return;
     const { seat, mode } = strikeConfirm;
     setStrikeConfirm(null);
-    if (mode === 'accuse') void screen.submit('指认', { type: 'avalon.assassin.accuse', seat });
-    else void screen.submit('提前刺杀', { type: 'avalon.assassin.earlyStrike', seat });
+    if (mode === 'accuse')
+      void screen.submit('指认', { type: 'avalon.assassin.accuse', seat }, screen.controlledSeat);
+    else
+      void screen.submit(
+        '提前刺杀',
+        { type: 'avalon.assassin.earlyStrike', seat },
+        screen.controlledSeat,
+      );
     setStrikePickMode(false);
   };
   const strikeName =
@@ -371,7 +377,13 @@ function AvalonRoomContent(
                   viewModel={viewModel}
                   remainingSeconds={screen.phaseRemainingSeconds}
                   isSubmitting={screen.isSubmitting}
-                  onVote={(vote) => void screen.submit('投票', { type: 'avalon.team.vote', vote })}
+                  onVote={(vote) =>
+                    void screen.submit(
+                      '投票',
+                      { type: 'avalon.team.vote', vote },
+                      screen.controlledSeat,
+                    )
+                  }
                   onClose={() => setVoteModalOpen(false)}
                 />
               ) : null}
@@ -380,7 +392,13 @@ function AvalonRoomContent(
                   viewModel={viewModel}
                   remainingSeconds={screen.phaseRemainingSeconds}
                   isSubmitting={screen.isSubmitting}
-                  onPlay={(play) => void screen.submit('出牌', { type: 'avalon.quest.play', play })}
+                  onPlay={(play) =>
+                    void screen.submit(
+                      '出牌',
+                      { type: 'avalon.quest.play', play },
+                      screen.controlledSeat,
+                    )
+                  }
                   onClose={() => setQuestModalOpen(false)}
                 />
               ) : null}
@@ -390,7 +408,11 @@ function AvalonRoomContent(
                   isSubmitting={screen.isSubmitting}
                   onConfirm={() => {
                     screen.setNightModalVisible(false);
-                    void screen.submit('确认信息', { type: 'avalon.night.confirm' });
+                    void screen.submit(
+                      '确认信息',
+                      { type: 'avalon.night.confirm' },
+                      screen.controlledSeat,
+                    );
                   }}
                   onClose={() => screen.setNightModalVisible(false)}
                 />
@@ -401,7 +423,11 @@ function AvalonRoomContent(
                   if (ladyCheckTarget === null) return;
                   const seat = ladyCheckTarget;
                   setLadyCheckTarget(null);
-                  void screen.submit('查验', { type: 'avalon.lady.check', seat });
+                  void screen.submit(
+                    '查验',
+                    { type: 'avalon.lady.check', seat },
+                    screen.controlledSeat,
+                  );
                 }}
                 onClose={() => setLadyCheckTarget(null)}
               />
@@ -411,7 +437,11 @@ function AvalonRoomContent(
                   isSubmitting={screen.isSubmitting}
                   onAcknowledge={() => {
                     setLadyAckOpen(false);
-                    void screen.submit('确认展示', { type: 'avalon.lady.acknowledge' });
+                    void screen.submit(
+                      '确认展示',
+                      { type: 'avalon.lady.acknowledge' },
+                      screen.controlledSeat,
+                    );
                   }}
                   onClose={() => setLadyAckOpen(false)}
                 />
