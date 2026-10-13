@@ -108,7 +108,9 @@ describe('FibKing generic GameRoom integration', () => {
       requireCommitted(
         await dispatch(instance, stub, 'empty-fill', { type: 'room.seat.fillBots' }),
       );
-      requireCommitted(await dispatch(instance, stub, 'empty-start', { type: 'fib.round.start' }));
+      requireCommitted(
+        await dispatch(instance, stub, 'empty-start', { type: 'fibking.round.start' }),
+      );
       await state.storage.deleteAlarm();
       await instance.alarm();
       expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
@@ -177,7 +179,7 @@ describe('FibKing generic GameRoom integration', () => {
         await dispatch(instance, stub, 'fib-fill-bots', { type: 'room.seat.fillBots' }),
       );
       const preparing = requireCommitted(
-        await dispatch(instance, stub, 'fib-start-round', { type: 'fib.round.start' }),
+        await dispatch(instance, stub, 'fib-start-round', { type: 'fibking.round.start' }),
       );
       expect(preparing.snapshot.state.phase).toBe('preparing');
       expect(Object.keys(preparing.snapshot.state.roster)).toEqual([
@@ -194,11 +196,11 @@ describe('FibKing generic GameRoom integration', () => {
       const wordEffect = state.storage.sql
         .exec<{ id: string; effect_type: string; business_key: string; status: string }>(
           `SELECT id, effect_type, business_key, status
-          FROM effect_outbox WHERE effect_type = 'fib.word.select'`,
+          FROM effect_outbox WHERE effect_type = 'fibking.word.select'`,
         )
         .one();
       expect(wordEffect).toMatchObject({
-        effect_type: 'fib.word.select',
+        effect_type: 'fibking.word.select',
         business_key: 'fib-round:fib-start-round',
         status: 'pending',
       });
@@ -230,8 +232,12 @@ describe('FibKing generic GameRoom integration', () => {
     expect(Object.keys(viewing.roster)).toEqual(['0', '1', '2', '3', '4', '5', '6', '7']);
     // The host confirms, then marks the bot seats; that starts play.
     requireCommitted(
-      await dispatch(stub, stub, 'fib-confirm-role-view', { type: 'fib.round.confirmRoleView' }),
-      await dispatch(stub, stub, 'fib-mark-bots-viewed', { type: 'fib.round.markAllBotsViewed' }),
+      await dispatch(stub, stub, 'fib-confirm-role-view', {
+        type: 'fibking.round.confirmRoleView',
+      }),
+      await dispatch(stub, stub, 'fib-mark-bots-viewed', {
+        type: 'fibking.round.markAllBotsViewed',
+      }),
     );
     const startedSnapshot = await stub.getSnapshot(roomIdentity(stub));
     if (startedSnapshot === null) throw new Error('Expected Fib snapshot after viewing confirm');

@@ -436,6 +436,28 @@ describe('Undercover authoritative engine', () => {
     expect(undercoverEngine.decide(state, command, user()).kind).toBe('reject');
   });
 
+  it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
+    let state = createLobby();
+    for (let seat = 1; seat < 8; seat += 1) {
+      state = dispatch(
+        state,
+        { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+        user(`p${seat}`),
+      );
+    }
+    state = complete(
+      dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
+    );
+    if (state.round === null) throw new Error('Expected round');
+    expect(
+      undercoverEngine.decide(
+        state,
+        { type: 'undercover.round.markAllBotsViewed', roundId: state.round.roundId },
+        user(),
+      ),
+    ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.noBots });
+  });
+
   it('starts an all-bot game when an unseated host confirms the bots', () => {
     let state = dispatch(createLobby(), { type: 'room.seat.leave' });
     state = dispatch(state, { type: 'room.seat.fillBots' });

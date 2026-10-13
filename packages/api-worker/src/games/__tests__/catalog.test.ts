@@ -99,28 +99,28 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
     type: 'room.profile.update',
     profile: { displayName: '新名字' },
   },
-  'fib.config.update': { type: 'fib.config.update', numberOfPlayers: 8 },
-  'fib.game.returnToLobby': { type: 'fib.game.returnToLobby' },
-  'fib.round.start': { type: 'fib.round.start' },
-  'fib.round.cancelPreparing': { type: 'fib.round.cancelPreparing' },
-  'fib.round.reveal': { type: 'fib.round.reveal' },
+  'fibking.config.update': { type: 'fibking.config.update', numberOfPlayers: 8 },
+  'fibking.game.returnToLobby': { type: 'fibking.game.returnToLobby' },
+  'fibking.round.start': { type: 'fibking.round.start' },
+  'fibking.round.cancelPreparing': { type: 'fibking.round.cancelPreparing' },
+  'fibking.round.reveal': { type: 'fibking.round.reveal' },
 } as const satisfies {
   readonly [Type in FibPublicCommand['type']]: Extract<FibPublicCommand, { readonly type: Type }>;
 };
 
 const VALID_FIB_INTERNAL_COMMAND_BY_TYPE = {
-  'fib.round.updatePreparationStage': {
-    type: 'fib.round.updatePreparationStage',
+  'fibking.round.updatePreparationStage': {
+    type: 'fibking.round.updatePreparationStage',
     roundId: 'round-1',
     stage: 'selecting',
   },
-  'fib.round.failPreparation': {
-    type: 'fib.round.failPreparation',
+  'fibking.round.failPreparation': {
+    type: 'fibking.round.failPreparation',
     roundId: 'round-1',
     failureCode: 'selectionFailed',
   },
-  'fib.round.complete': {
-    type: 'fib.round.complete',
+  'fibking.round.complete': {
+    type: 'fibking.round.complete',
     roundId: 'round-1',
     word: '氤氲',
     definition: {
@@ -332,7 +332,7 @@ describe('Worker game catalog', () => {
     ).toThrow();
     expect(() =>
       fibPublicCommandSchema.parse({
-        type: 'fib.config.update',
+        type: 'fibking.config.update',
         numberOfPlayers: FIB_MAX_PLAYERS + 1,
       }),
     ).toThrow();

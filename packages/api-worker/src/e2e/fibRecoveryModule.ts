@@ -36,7 +36,7 @@ async function handleRecoverableFibEffect(
   effect: FibEffect,
   context: WorkerEffectContext<FibState, FibInternalCommand>,
 ): Promise<void> {
-  if (effect.type !== 'fib.word.select') {
+  if (effect.type !== 'fibking.word.select') {
     await handleFibEffect(effect, context);
     return;
   }

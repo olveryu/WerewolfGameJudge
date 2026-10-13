@@ -7,7 +7,7 @@ import type { FibEvent } from './events';
 
 function applySeatChanges(
   state: FibState,
-  event: Extract<FibEvent, { readonly type: 'fib.seats.changed' }>,
+  event: Extract<FibEvent, { readonly type: 'fibking.seats.changed' }>,
 ): FibState {
   return { ...state, roster: applyRosterChanges(state.roster, event.changes) };
 }
@@ -19,9 +19,9 @@ function appendUsedWord(words: readonly string[], word: string): readonly string
 
 export function evolveFibState(state: FibState, event: FibEvent): FibState {
   switch (event.type) {
-    case 'fib.seats.changed':
+    case 'fibking.seats.changed':
       return applySeatChanges(state, event);
-    case 'fib.profile.updated': {
+    case 'fibking.profile.updated': {
       const occupant = state.roster[event.seat];
       if (occupant == null || isBotOccupant(occupant)) {
         throw new Error(`Fib profile event references empty real seat ${event.seat}`);
@@ -37,9 +37,9 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
       };
     }
-    case 'fib.config.updated':
+    case 'fibking.config.updated':
       return { ...state, numberOfPlayers: event.numberOfPlayers };
-    case 'fib.round.preparing':
+    case 'fibking.round.preparing':
       return {
         ...state,
         phase: 'preparing',
@@ -47,7 +47,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         preparationFailure: null,
         round: null,
       };
-    case 'fib.round.preparation.stage.updated':
+    case 'fibking.round.preparation.stage.updated':
       if (state.phase !== 'preparing') {
         throw new Error('Fib preparation-stage event requires a preparing state');
       }
@@ -58,7 +58,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
           stage: event.stage,
         },
       };
-    case 'fib.round.preparationCancelled':
+    case 'fibking.round.preparationCancelled':
       return {
         ...state,
         phase: 'lobby',
@@ -66,7 +66,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         preparationFailure: null,
         round: null,
       };
-    case 'fib.round.preparationFailed':
+    case 'fibking.round.preparationFailed':
       if (state.phase !== 'preparing') {
         throw new Error('Fib preparation-failed event requires a preparing state');
       }
@@ -82,7 +82,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
         round: null,
       };
-    case 'fib.round.started':
+    case 'fibking.round.started':
       return {
         ...state,
         phase: 'viewing',
@@ -98,7 +98,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
         usedWords: appendUsedWord(state.usedWords, event.word),
       };
-    case 'fib.role.viewed': {
+    case 'fibking.role.viewed': {
       if (state.phase !== 'viewing' || state.round === null) {
         throw new Error('Fib role-viewed event requires a viewing state');
       }
@@ -111,13 +111,13 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
       };
     }
-    case 'fib.round.viewing.completed': {
+    case 'fibking.round.viewing.completed': {
       if (state.phase !== 'viewing') {
         throw new Error('Fib viewing-completed event requires a viewing state');
       }
       return { ...state, phase: 'ongoing' };
     }
-    case 'fib.round.ended':
+    case 'fibking.round.ended':
       if (state.round === null) {
         throw new Error('Fib round-ended event requires an active round');
       }
@@ -128,7 +128,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         preparationFailure: null,
         round: state.round,
       };
-    case 'fib.game.returnedToLobby':
+    case 'fibking.game.returnedToLobby':
       return {
         ...state,
         phase: 'lobby',

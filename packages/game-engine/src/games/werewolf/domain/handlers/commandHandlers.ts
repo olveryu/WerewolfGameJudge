@@ -97,7 +97,7 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
 
   // AU-17: the gate is bot existence (debugMode is deleted).
   if (getWerewolfBotSeats(state).length === 0) {
-    return handlerError('debug_not_enabled');
+    return handlerError('no_bot_seats');
   }
 
   if (state.status !== GameStatus.Ongoing) {

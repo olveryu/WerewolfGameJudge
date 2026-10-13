@@ -220,7 +220,7 @@ describe('handleMarkAllBotsViewed', () => {
       const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
 
       const err = expectError(result);
-      expect(err.reason).toBe('debug_not_enabled');
+      expect(err.reason).toBe('no_bot_seats');
     });
 
     it('should reject when status is not assigned', () => {

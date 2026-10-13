@@ -17,16 +17,16 @@ type FibRoomCommand = RoomSeatCommand<FibSeatProfile> | RoomProfileUpdateCommand
 
 export type FibPublicCommand =
   | FibRoomCommand
-  | { readonly type: 'fib.config.update'; readonly numberOfPlayers: number }
-  | { readonly type: 'fib.game.returnToLobby' }
-  | { readonly type: 'fib.round.start' }
-  | { readonly type: 'fib.round.cancelPreparing' }
-  | { readonly type: 'fib.round.confirmRoleView' }
-  | { readonly type: 'fib.round.markAllBotsViewed' }
-  | { readonly type: 'fib.round.reveal' };
+  | { readonly type: 'fibking.config.update'; readonly numberOfPlayers: number }
+  | { readonly type: 'fibking.game.returnToLobby' }
+  | { readonly type: 'fibking.round.start' }
+  | { readonly type: 'fibking.round.cancelPreparing' }
+  | { readonly type: 'fibking.round.confirmRoleView' }
+  | { readonly type: 'fibking.round.markAllBotsViewed' }
+  | { readonly type: 'fibking.round.reveal' };
 
 export interface FibCompleteRoundCommand {
-  readonly type: 'fib.round.complete';
+  readonly type: 'fibking.round.complete';
   readonly roundId: string;
   readonly word: string;
   readonly definition: FibWordDefinition;
@@ -34,13 +34,13 @@ export interface FibCompleteRoundCommand {
 }
 
 export interface FibUpdatePreparationStageCommand {
-  readonly type: 'fib.round.updatePreparationStage';
+  readonly type: 'fibking.round.updatePreparationStage';
   readonly roundId: string;
   readonly stage: FibPreparationStage;
 }
 
 export interface FibFailPreparationCommand {
-  readonly type: 'fib.round.failPreparation';
+  readonly type: 'fibking.round.failPreparation';
   readonly roundId: string;
   readonly failureCode: FibPreparationFailureCode;
 }

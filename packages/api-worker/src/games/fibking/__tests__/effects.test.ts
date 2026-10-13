@@ -16,7 +16,7 @@ import { OUTBOX_MAX_ATTEMPTS } from '../../../platform/room/effectOutbox';
 import { getFibEffectFailureCommand, handleFibEffect } from '../effects';
 
 const EFFECT: FibSelectWordEffect = {
-  type: 'fib.word.select',
+  type: 'fibking.word.select',
   payload: { roundId: 'fib-round:start-command', avoidWords: [], participantUserIds: ['host'] },
 };
 
@@ -45,7 +45,7 @@ function createPreparingState(): FibState {
     { roomCode: '4321', hostUserId: 'host', nowMs: 1, commandId: 'create' },
   );
   const full = applyPublicCommand(lobby, { type: 'room.seat.fillBots' }, 'fill-bots', 2);
-  return applyPublicCommand(full, { type: 'fib.round.start' }, 'start-command', 3);
+  return applyPublicCommand(full, { type: 'fibking.round.start' }, 'start-command', 3);
 }
 
 function createContext(
@@ -89,7 +89,7 @@ describe('handleFibEffect selection retries', () => {
     );
     expect(commands).toEqual([
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId: EFFECT.payload.roundId,
         stage: 'selecting',
       },
@@ -104,13 +104,13 @@ describe('handleFibEffect selection retries', () => {
     ).rejects.toThrow('Fib allocation requires a live room and participants');
     expect(commands).toEqual([
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId: EFFECT.payload.roundId,
         stage: 'selecting',
       },
     ]);
     expect(getFibEffectFailureCommand(EFFECT, createPreparingState())).toEqual({
-      type: 'fib.round.failPreparation',
+      type: 'fibking.round.failPreparation',
       roundId: EFFECT.payload.roundId,
       failureCode: 'selectionFailed',
     });

@@ -328,9 +328,7 @@ export function handleUpdateTemplate(
   const canUpdateTemplateBeforeView =
     state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canUpdateTemplateBeforeView) {
-    return handlerError(
-      '只能在"分配角色"前修改设置（未入座/已入座阶段）。如果已经不是该阶段，请先点击"重新开始"回到准备阶段再修改。',
-    );
+    return handlerError('invalid_status');
   }
 
   const action: UpdateTemplateAction = {
@@ -410,7 +408,7 @@ export function handleMarkAllBotsViewed(
 
   // Gate: at least one bot seat must exist
   if (getWerewolfBotSeats(state).length === 0) {
-    return handlerError('debug_not_enabled');
+    return handlerError('no_bot_seats');
   }
 
   // Gate: status must be assigned
@@ -471,7 +469,7 @@ export function handleBoardNominate(
   }
 
   if (intent.payload.roles.length === 0) {
-    return handlerError('角色列表不能为空');
+    return handlerError('empty_role_list');
   }
 
   // ── Dedup: compare roles of existing nominations after sorting ──
@@ -533,7 +531,7 @@ export function handleBoardUpvote(
   const { targetUserId, voterUid } = intent.payload;
 
   if (!state.boardNominations?.[targetUserId]) {
-    return handlerError('目标建议不存在');
+    return handlerError('nomination_not_found');
   }
 
   const action: UpvoteBoardNominationAction = {
@@ -562,7 +560,7 @@ export function handleBoardWithdraw(
   }
 
   if (!state.boardNominations?.[intent.payload.userId]) {
-    return handlerError('建议不存在或已被撤回');
+    return handlerError('nomination_not_found');
   }
 
   const action: WithdrawBoardNominationAction = {

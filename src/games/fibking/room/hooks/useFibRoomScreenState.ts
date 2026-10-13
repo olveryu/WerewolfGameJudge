@@ -195,7 +195,7 @@ export function useFibRoomScreenState({
           ? '重新准备'
           : '开始本轮';
     void submitCommand(label, {
-      type: 'fib.round.start',
+      type: 'fibking.round.start',
     });
   }, [state.phase, submitCommand]);
 
@@ -208,7 +208,7 @@ export function useFibRoomScreenState({
         : '本次词语准备会终止，座位和历史词语会保留。',
       async () => {
         await submitCommand(isReturningToLobby ? '返回大厅' : '取消准备', {
-          type: 'fib.round.cancelPreparing',
+          type: 'fibking.round.cancelPreparing',
         });
       },
     );
@@ -216,7 +216,7 @@ export function useFibRoomScreenState({
 
   const revealRound = useCallback(() => {
     showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
-      await submitCommand('公布答案', { type: 'fib.round.reveal' });
+      await submitCommand('公布答案', { type: 'fibking.round.reveal' });
     });
   }, [submitCommand]);
 
@@ -225,20 +225,20 @@ export function useFibRoomScreenState({
       '重新抽词？',
       '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
       async () => {
-        await submitCommand('重新抽词', { type: 'fib.round.start' });
+        await submitCommand('重新抽词', { type: 'fibking.round.start' });
       },
     );
   }, [submitCommand]);
 
   const abandonGame = useCallback(() => {
     showConfirmAlert('放弃游戏？', '放弃后将返回大厅；座位和已用词记录会保留。', async () => {
-      await submitCommand('放弃游戏', { type: 'fib.game.returnToLobby' });
+      await submitCommand('放弃游戏', { type: 'fibking.game.returnToLobby' });
     });
   }, [submitCommand]);
 
   const endGame = useCallback(() => {
     showConfirmAlert('结束游戏？', '结束后返回大厅，座位和已用词记录会保留。', async () => {
-      await submitCommand('结束游戏', { type: 'fib.game.returnToLobby' });
+      await submitCommand('结束游戏', { type: 'fibking.game.returnToLobby' });
     });
   }, [submitCommand]);
 
@@ -257,7 +257,7 @@ export function useFibRoomScreenState({
       throw new Error('[FAIL-FAST] FibKing identity modal is not open');
     }
     if (roundView?.phase === 'viewing' && !roundView.viewerHasViewed) {
-      void submitCommand('确认查看身份', { type: 'fib.round.confirmRoleView' });
+      void submitCommand('确认查看身份', { type: 'fibking.round.confirmRoleView' });
     }
     setIsIdentityVisible(false);
   }, [isIdentityVisible, roundView, submitCommand]);
@@ -413,7 +413,7 @@ export function useFibRoomScreenState({
   }, []);
 
   const markAllBotsViewed = useCallback(() => {
-    void submitCommand('标记机器人已查看', { type: 'fib.round.markAllBotsViewed' });
+    void submitCommand('标记机器人已查看', { type: 'fibking.round.markAllBotsViewed' });
   }, [submitCommand]);
 
   const hostManagement = useMemo(

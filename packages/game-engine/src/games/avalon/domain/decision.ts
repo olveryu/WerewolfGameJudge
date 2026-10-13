@@ -28,45 +28,50 @@ import type {
 } from '../state/types';
 import { type AvalonState, isAvalonBotSeat } from '../state/types';
 
-/** 失败文案逐字照搬设计稿 §6.1（中文，走 AlertModal）。 */
+/**
+ * Stable English rejection codes (AU-48). The user-facing copy for each
+ * code lives in the client presenter (design doc §6.1); engines never
+ * emit display text as a reason.
+ */
 export const AVALON_REASONS = {
-  config: '阿瓦隆配置无效',
-  phase: '当前阶段不能执行此操作',
-  notHostStart: '只有房主可以开始游戏',
-  notHostMarkBots: '只有房主可以标记机器人已查看',
-  full: '请先坐满所有座位，或填充机器人。',
-  notNightParticipant: '你不在当前确认步骤内',
-  notLeader: '只有当前队长可以组队',
-  notVotePhase: '当前不在投票阶段',
-  notHostFinishVote: '只有房主可以结束投票',
-  deadline: '尚未到截止时间',
-  notTeamMember: '你不在本轮任务队伍中',
-  goodMustSucceed: '好人只能出成功牌',
-  notHostFinishQuest: '只有房主可以结束任务',
-  notLadyHolder: '只有湖仙持有人可以查验',
-  ladyAlreadyExamined: '该玩家已担任过湖仙，不能查验',
-  ladyCannotCheckSelf: '不能查验自己',
-  notLadyTarget: '只有被查验者可以确认',
-  notAssassinAccuse: '只有刺客可以指认',
-  cannotAccuseSelf: '不能指认自己',
-  notAssassinStrike: '只有刺客可以刺杀',
-  noStrikeAtNight: '晚上阶段不能刺杀',
-  cannotStrikeSelf: '不能刺杀自己',
-  notHostReturnToLobby: '只有房主可以返回大厅',
-  occupied: '目标人数之外的座位仍有玩家入座，请先让这些玩家离座',
-  invalidSeats: '队员必须是已入座的玩家',
-  duplicateSeats: '队员不能重复',
-  invalidVote: '投票选项无效',
-  invalidPlay: '出牌选项无效',
-  invalidTarget: '目标座位无效',
-  audioPlaying: '播报尚未结束，请稍候',
-  notHostAckAudio: '只有房主可以确认播报',
-  controlledSeatNotBot: '只能接管机器人席位',
+  config: 'avalon_config_invalid',
+  phase: 'avalon_phase_invalid',
+  notHostStart: 'avalon_not_host_start',
+  notHostMarkBots: 'avalon_not_host_mark_bots',
+  noBotSeats: 'avalon_no_bot_seats',
+  full: 'avalon_room_not_full',
+  notNightParticipant: 'avalon_not_night_participant',
+  notLeader: 'avalon_not_leader',
+  notVotePhase: 'avalon_not_vote_phase',
+  notHostFinishVote: 'avalon_not_host_finish_vote',
+  deadline: 'avalon_deadline_not_reached',
+  notTeamMember: 'avalon_not_team_member',
+  goodMustSucceed: 'avalon_good_must_succeed',
+  notHostFinishQuest: 'avalon_not_host_finish_quest',
+  notLadyHolder: 'avalon_not_lady_holder',
+  ladyAlreadyExamined: 'avalon_lady_already_examined',
+  ladyCannotCheckSelf: 'avalon_lady_cannot_check_self',
+  notLadyTarget: 'avalon_not_lady_target',
+  notAssassinAccuse: 'avalon_not_assassin_accuse',
+  cannotAccuseSelf: 'avalon_cannot_accuse_self',
+  notAssassinStrike: 'avalon_not_assassin_strike',
+  noStrikeAtNight: 'avalon_no_strike_at_night',
+  cannotStrikeSelf: 'avalon_cannot_strike_self',
+  notHostReturnToLobby: 'avalon_not_host_return_to_lobby',
+  occupied: 'avalon_occupied_seat_out_of_range',
+  invalidSeats: 'avalon_invalid_seats',
+  duplicateSeats: 'avalon_duplicate_seats',
+  invalidVote: 'avalon_invalid_vote',
+  invalidPlay: 'avalon_invalid_play',
+  invalidTarget: 'avalon_invalid_target',
+  audioPlaying: 'avalon_audio_playing',
+  notHostAckAudio: 'avalon_not_host_ack_audio',
+  controlledSeatNotBot: 'avalon_controlled_seat_not_bot',
 } as const;
 
-/** 队员人数文案带数量占位（§6.1："队员人数必须为 X 人"）。 */
+/** Team-size rejection: stable code plus the required size as a parameter. */
 export function teamSizeReason(requiredSize: number): string {
-  return `队员人数必须为 ${requiredSize} 人`;
+  return `avalon_team_size_invalid:${requiredSize}`;
 }
 
 export type AvalonEvent =

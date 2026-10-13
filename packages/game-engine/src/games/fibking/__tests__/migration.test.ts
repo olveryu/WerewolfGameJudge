@@ -82,7 +82,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
 
   it('migrates a preparing state (round in flight) whole', () => {
     let state = filledLobby();
-    state = dispatch(state, { type: 'fib.round.start' });
+    state = dispatch(state, { type: 'fibking.round.start' });
     expect(state.phase).toBe('preparing');
     expect(migratePersistedFibState(downgradeToV6(state))).toEqual(state);
   });
@@ -100,7 +100,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
     state = dispatch(state, { type: 'room.seat.fillBots' });
     const decision = decideFibCommand(
       state,
-      { type: 'fib.config.update', numberOfPlayers: 4 },
+      { type: 'fibking.config.update', numberOfPlayers: 4 },
       userContext('host'),
     );
     expect(decision).toEqual({ kind: 'reject', reason: REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE });

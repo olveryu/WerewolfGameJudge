@@ -85,7 +85,12 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         if (!isAvalonBotSeat(session.state, seat))
           send({ type: 'avalon.role.viewed' }, seatUser(seat));
       }
-      send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
+      // 无机器人座位时标记命令会被拒（Wave 8 与狼人杀口径对齐），只在有 bot 时发；
+      // 隐式补位的 bot 在 seatCount 之外，按整局人数扫。
+      const hasBotSeat = Array.from({ length: numberOfPlayers }, (_, seat) => seat).some((seat) =>
+        isAvalonBotSeat(session.state, seat),
+      );
+      if (hasBotSeat) send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
       // 开局播报由房主 ack（测试模拟房主已播完）。
       if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
@@ -214,8 +219,14 @@ describe('Avalon engine', () => {
 
   it('rejects starting when seats are not full or the actor is not the host', () => {
     const session = game({ numberOfPlayers: 6 }, 4);
-    session.expectReject({ type: 'avalon.game.start' }, '请先坐满所有座位，或填充机器人。');
-    session.expectReject({ type: 'avalon.game.start' }, '只有房主可以开始游戏', 'u1');
+    session.expectReject({ type: 'avalon.game.start' }, 'avalon_room_not_full');
+    session.expectReject({ type: 'avalon.game.start' }, 'avalon_not_host_start', 'u1');
+  });
+
+  it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.send({ type: 'avalon.game.start' });
+    session.expectReject({ type: 'avalon.role.markAllBotsViewed' }, 'avalon_no_bot_seats');
   });
 
   it('fills implicit bot seats and lets the host take them over', () => {
@@ -251,13 +262,13 @@ describe('Avalon engine', () => {
     expect(view.merlinSees).toBeNull();
     session.expectReject(
       { type: 'avalon.night.confirm' },
-      '你不在当前确认步骤内',
+      'avalon_not_night_participant',
       session.seatUser(loyal),
     );
     // 奥伯伦全程闭眼，不参与互认也不确认。
     session.expectReject(
       { type: 'avalon.night.confirm' },
-      '你不在当前确认步骤内',
+      'avalon_not_night_participant',
       session.seatUser(oberon),
     );
 
@@ -318,12 +329,12 @@ describe('Avalon engine', () => {
     const nonLeader = (leader + 1) % 6;
     session.expectReject(
       { type: 'avalon.team.propose', seats: [0, 1] },
-      '只有当前队长可以组队',
+      'avalon_not_leader',
       session.seatUser(nonLeader),
     );
     session.expectReject(
       { type: 'avalon.team.propose', seats: [0, 1, 2] },
-      '队员人数必须为 2 人',
+      'avalon_team_size_invalid:2',
       session.seatUser(leader),
     );
     // 队长可以把自己选进队伍；组队后直接进入投票。
@@ -394,7 +405,11 @@ describe('Avalon engine', () => {
     if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
     // Ballots open: no countdown is running and the timeout rejects.
     expect(session.state.phase.deadlineAt).toBeNull();
-    session.expectReject({ type: 'avalon.vote.timeout' }, '尚未到截止时间', session.seatUser(2));
+    session.expectReject(
+      { type: 'avalon.vote.timeout' },
+      'avalon_deadline_not_reached',
+      session.seatUser(2),
+    );
     for (const seat of [0, 1, 2, 3]) {
       session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
     }
@@ -403,7 +418,11 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(4));
     if (session.state.phase.kind !== 'vote') throw new Error('expected vote phase');
     expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
-    session.expectReject({ type: 'avalon.vote.timeout' }, '尚未到截止时间', session.seatUser(2));
+    session.expectReject(
+      { type: 'avalon.vote.timeout' },
+      'avalon_deadline_not_reached',
+      session.seatUser(2),
+    );
     session.setNow(1000 + 5000);
     session.send({ type: 'avalon.vote.timeout' }, session.seatUser(3));
     expect(session.state.phase.kind).toBe('quest');
@@ -477,7 +496,11 @@ describe('Avalon engine', () => {
     session.passNight();
     session.proposeTeam([0, 1]);
     // Not armed yet (ballots still open): any timeout rejects.
-    session.expectReject({ type: 'avalon.vote.timeout' }, '尚未到截止时间', session.seatUser(2));
+    session.expectReject(
+      { type: 'avalon.vote.timeout' },
+      'avalon_deadline_not_reached',
+      session.seatUser(2),
+    );
     session.voteAll('approve');
     session.setNow(1000 + 5000);
     // A host acting through a taken-over bot seat may not submit the timeout.
@@ -486,7 +509,7 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.vote.timeout' }, session.seatUser(3));
     expect(session.state.phase.kind).toBe('quest');
     // Once settled, a late timeout hits the phase guard instead of double-settling.
-    session.expectReject({ type: 'avalon.vote.timeout' }, '当前阶段不能执行此操作', 'host');
+    session.expectReject({ type: 'avalon.vote.timeout' }, 'avalon_phase_invalid', 'host');
   });
 
   it('arms the quest reveal countdown when the last play lands, then settles on timeout', () => {
@@ -498,7 +521,11 @@ describe('Avalon engine', () => {
     session.finishVote();
     if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
     expect(session.state.phase.deadlineAt).toBeNull();
-    session.expectReject({ type: 'avalon.quest.timeout' }, '尚未到截止时间', session.seatUser(0));
+    session.expectReject(
+      { type: 'avalon.quest.timeout' },
+      'avalon_deadline_not_reached',
+      session.seatUser(0),
+    );
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(0));
     if (session.state.phase.kind !== 'quest') throw new Error('expected quest phase');
     expect(session.state.phase.deadlineAt).toBeNull();
@@ -538,7 +565,7 @@ describe('Avalon engine', () => {
     session.startGame();
     session.passNight();
     session.proposeTeam([0, 1]);
-    session.expectReject({ type: 'avalon.vote.finish' }, '只有房主可以结束投票', 'u1');
+    session.expectReject({ type: 'avalon.vote.finish' }, 'avalon_not_host_finish_vote', 'u1');
   });
 
   it.each([3, 5])('ends evil on vetoLimitReached at the %d boundary (D8)', (vetoLimit) => {
@@ -601,13 +628,13 @@ describe('Avalon engine', () => {
     session.finishVote();
     session.expectReject(
       { type: 'avalon.quest.play', play: 'fail' },
-      '好人只能出成功牌',
+      'avalon_good_must_succeed',
       session.seatUser(good),
     );
     const outsider = [0, 1, 2, 3, 4, 5].find((seat) => seat !== good && seat !== evil)!;
     session.expectReject(
       { type: 'avalon.quest.play', play: 'success' },
-      '你不在本轮任务队伍中',
+      'avalon_not_team_member',
       session.seatUser(outsider),
     );
     // 改牌：重出以后次为准。
@@ -632,7 +659,7 @@ describe('Avalon engine', () => {
     session.proposeTeam(team);
     session.voteAll('approve');
     session.finishVote();
-    session.expectReject({ type: 'avalon.quest.finish' }, '只有房主可以结束任务', 'u1');
+    session.expectReject({ type: 'avalon.quest.finish' }, 'avalon_not_host_finish_quest', 'u1');
     session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(team[0]!));
     session.finishQuest();
     expect(session.state.questResults).toEqual(['success']);
@@ -766,12 +793,12 @@ describe('Avalon engine', () => {
     const nonHolder = good.find((seat) => seat !== holder)!;
     session.expectReject(
       { type: 'avalon.lady.check', seat: nonHolder },
-      '只有湖仙持有人可以查验',
+      'avalon_not_lady_holder',
       session.seatUser(nonHolder),
     );
     session.expectReject(
       { type: 'avalon.lady.check', seat: holder },
-      '不能查验自己',
+      'avalon_lady_cannot_check_self',
       session.seatUser(holder),
     );
     // 持有人查验一名好人；非被查验者确认被拒绝。
@@ -779,7 +806,7 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.lady.check', seat: target }, session.seatUser(holder));
     session.expectReject(
       { type: 'avalon.lady.acknowledge' },
-      '只有被查验者可以确认',
+      'avalon_not_lady_target',
       session.seatUser(holder),
     );
     session.send({ type: 'avalon.lady.acknowledge' }, session.seatUser(target));
@@ -812,7 +839,7 @@ describe('Avalon engine', () => {
     expect(session.state.phase.holderSeat).toBe(target);
     session.expectReject(
       { type: 'avalon.lady.check', seat: holder },
-      '该玩家已担任过湖仙，不能查验',
+      'avalon_lady_already_examined',
       session.seatUser(target),
     );
   });
@@ -870,12 +897,12 @@ describe('Avalon engine', () => {
     // 非刺客指认被拒绝；不能指认自己。
     session.expectReject(
       { type: 'avalon.assassin.accuse', seat: merlin },
-      '只有刺客可以指认',
+      'avalon_not_assassin_accuse',
       session.seatUser(good[0]!),
     );
     session.expectReject(
       { type: 'avalon.assassin.accuse', seat: session.seatOfRole('assassin') },
-      '不能指认自己',
+      'avalon_cannot_accuse_self',
       session.seatUser(session.seatOfRole('assassin')),
     );
     // 指认奥伯伦（坏人）也算刺错 → 好人胜（D14）。
@@ -919,14 +946,14 @@ describe('Avalon engine', () => {
     // night 阶段拒绝提前刺杀。
     session.expectReject(
       { type: 'avalon.assassin.earlyStrike', seat: merlin },
-      '晚上阶段不能刺杀',
+      'avalon_no_strike_at_night',
       session.seatUser(session.seatOfRole('assassin')),
     );
     // 非刺客拒绝。
     session.passNight();
     session.expectReject(
       { type: 'avalon.assassin.earlyStrike', seat: merlin },
-      '只有刺客可以刺杀',
+      'avalon_not_assassin_strike',
       session.seatUser(merlin),
     );
     // nominate 阶段命中梅林 → 坏人直接胜。
@@ -942,7 +969,7 @@ describe('Avalon engine', () => {
     // 终局后不可再发起。
     session.expectReject(
       { type: 'avalon.assassin.earlyStrike', seat: 0 },
-      '当前阶段不能执行此操作',
+      'avalon_phase_invalid',
       session.seatUser(session.seatOfRole('assassin')),
     );
   });
@@ -1028,7 +1055,11 @@ describe('Avalon engine', () => {
     session.passNight();
     session.earlyStrike(session.seatOfRole('merlin'));
     expect(session.state.phase.kind).toBe('ended');
-    session.expectReject({ type: 'avalon.game.returnToLobby' }, '只有房主可以返回大厅', 'u1');
+    session.expectReject(
+      { type: 'avalon.game.returnToLobby' },
+      'avalon_not_host_return_to_lobby',
+      'u1',
+    );
     session.send({ type: 'avalon.game.returnToLobby' });
     expect(session.state.phase.kind).toBe('lobby');
     expect(session.state.leaderSeat).toBe(-1);
@@ -1130,7 +1161,7 @@ describe('Avalon engine', () => {
         type: 'avalon.config.update',
         config: { numberOfPlayers: 6, voteMode: 'public', vetoLimit: 2 as 3 },
       },
-      '阿瓦隆配置无效',
+      'avalon_config_invalid',
     );
     session.send({
       type: 'avalon.config.update',
@@ -1260,14 +1291,14 @@ describe('Avalon engine', () => {
     const morgana = raw.seatOfRole('morgana');
     raw.expectReject(
       { type: 'avalon.night.confirm' },
-      '播报尚未结束，请稍候',
+      'avalon_audio_playing',
       raw.seatUser(morgana),
     );
     // 非房主 ack 被拒绝（确保用非 0 号座位，莫甘娜可能随机分到房主座位）。
     const nonHostSeat = morgana === 0 ? 1 : morgana;
     raw.expectReject(
       { type: 'avalon.audio.ack' },
-      '只有房主可以确认播报',
+      'avalon_not_host_ack_audio',
       raw.seatUser(nonHostSeat),
     );
     // 房主 ack 后放行。
@@ -1345,7 +1376,7 @@ describe('Avalon engine', () => {
     );
     expect(session.state.phase.kind).toBe('ended');
     // ended 但音频未播完，returnToLobby 被门控阻塞。
-    session.expectReject({ type: 'avalon.game.returnToLobby' }, '播报尚未结束，请稍候');
+    session.expectReject({ type: 'avalon.game.returnToLobby' }, 'avalon_audio_playing');
     // ack 后放行。
     session.send({ type: 'avalon.audio.ack' }, 'host');
     session.send({ type: 'avalon.game.returnToLobby' });

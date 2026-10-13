@@ -15,34 +15,34 @@ import type {
 
 export type FibEvent =
   | (GameEvent & {
-      readonly type: 'fib.seats.changed';
+      readonly type: 'fibking.seats.changed';
       readonly changes: readonly RosterChange<FibHumanSeat>[];
     })
   | (GameEvent & {
-      readonly type: 'fib.profile.updated';
+      readonly type: 'fibking.profile.updated';
       readonly seat: number;
       readonly profile: FibProfileUpdate;
     })
   | (GameEvent & {
-      readonly type: 'fib.config.updated';
+      readonly type: 'fibking.config.updated';
       readonly numberOfPlayers: number;
     })
   | (GameEvent & {
-      readonly type: 'fib.round.preparing';
+      readonly type: 'fibking.round.preparing';
       readonly pendingRound: PendingFibRound;
     })
   | (GameEvent & {
-      readonly type: 'fib.round.preparation.stage.updated';
+      readonly type: 'fibking.round.preparation.stage.updated';
       readonly stage: FibPreparationStage;
     })
-  | (GameEvent & { readonly type: 'fib.round.preparationCancelled' })
+  | (GameEvent & { readonly type: 'fibking.round.preparationCancelled' })
   | (GameEvent & {
-      readonly type: 'fib.round.preparationFailed';
+      readonly type: 'fibking.round.preparationFailed';
       readonly failedAt: number;
       readonly failureCode: FibPreparationFailureCode;
     })
   | (GameEvent & {
-      readonly type: 'fib.round.started';
+      readonly type: 'fibking.round.started';
       readonly roundId: string;
       readonly word: string;
       readonly definition: FibWordDefinition;
@@ -51,7 +51,7 @@ export type FibEvent =
       /** Bot seats are marked viewed at deal time (Identity Viewing Protocol). */
       readonly initialViewedSeats: readonly number[];
     })
-  | (GameEvent & { readonly type: 'fib.role.viewed'; readonly seat: number })
-  | (GameEvent & { readonly type: 'fib.round.viewing.completed' })
-  | (GameEvent & { readonly type: 'fib.round.ended' })
-  | (GameEvent & { readonly type: 'fib.game.returnedToLobby' });
+  | (GameEvent & { readonly type: 'fibking.role.viewed'; readonly seat: number })
+  | (GameEvent & { readonly type: 'fibking.round.viewing.completed' })
+  | (GameEvent & { readonly type: 'fibking.round.ended' })
+  | (GameEvent & { readonly type: 'fibking.game.returnedToLobby' });

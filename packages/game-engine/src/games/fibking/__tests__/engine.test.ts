@@ -15,6 +15,7 @@ import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
 import {
   REASON_FIB_GAME_NOT_ENDED,
+  REASON_FIB_NO_BOT_SEATS,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -111,27 +112,40 @@ function createFullLobby(): FibState {
 }
 
 function startPreparing(state: FibState, commandId = 'round-command-1'): FibState {
-  return dispatch(state, { type: 'fib.round.start' }, userContext('host', { commandId }));
+  return dispatch(state, { type: 'fibking.round.start' }, userContext('host', { commandId }));
 }
+
+it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
+  let state = createLobby();
+  state = takeSeat(state, 0, 'host', '房主');
+  state = takeSeat(state, 1, 'alice');
+  state = takeSeat(state, 2, 'bob');
+  state = takeSeat(state, 3, 'carol');
+  const viewing = completeRound(startPreparing(state), '云朵', '悬浮在空中的水滴或冰晶集合');
+  expect(viewing.phase).toBe('viewing');
+  expect(
+    decideFibCommand(viewing, { type: 'fibking.round.markAllBotsViewed' }, userContext('host')),
+  ).toEqual({ kind: 'reject', reason: REASON_FIB_NO_BOT_SEATS });
+});
 
 function confirmAllRoleViews(state: FibState): FibState {
   if (state.phase !== 'viewing') throw new Error('Expected viewing state');
   // The host confirms their own view, then marks the bot seats
   // through the scaffold action (the engine never auto-marks).
-  const confirmed = dispatch(state, { type: 'fib.round.confirmRoleView' }, userContext('host'));
-  return dispatch(confirmed, { type: 'fib.round.markAllBotsViewed' }, userContext('host'));
+  const confirmed = dispatch(state, { type: 'fibking.round.confirmRoleView' }, userContext('host'));
+  return dispatch(confirmed, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
 }
 
 it('emits a completion reward roster only on the first host reveal', () => {
   const state = confirmAllRoleViews(
     completeRound(startPreparing(createFullLobby()), '云朵', '悬浮在空中的水滴或冰晶集合'),
   );
-  const decision = decideFibCommand(state, { type: 'fib.round.reveal' }, userContext('host'));
+  const decision = decideFibCommand(state, { type: 'fibking.round.reveal' }, userContext('host'));
   expect(decision.kind).toBe('commit');
   if (decision.kind !== 'commit') throw new Error(decision.reason);
   expect(decision.effects).toEqual([
     {
-      type: 'fib.game.completed',
+      type: 'fibking.game.completed',
       payload: {
         roundId: state.round!.roundId,
         completedAt: 2000,
@@ -140,7 +154,7 @@ it('emits a completion reward roster only on the first host reveal', () => {
     },
   ]);
   const ended = applyDecision(state, decision);
-  expect(decideFibCommand(ended, { type: 'fib.round.reveal' }, userContext('host')).kind).toBe(
+  expect(decideFibCommand(ended, { type: 'fibking.round.reveal' }, userContext('host')).kind).toBe(
     'reject',
   );
 });
@@ -159,7 +173,7 @@ function completeRound(
   let readyState = dispatch(
     state,
     {
-      type: 'fib.round.updatePreparationStage',
+      type: 'fibking.round.updatePreparationStage',
       roundId: state.pendingRound.roundId,
       stage: FIB_PREPARATION_STAGES.selecting,
     },
@@ -169,7 +183,7 @@ function completeRound(
   readyState = dispatch(
     readyState,
     {
-      type: 'fib.round.updatePreparationStage',
+      type: 'fibking.round.updatePreparationStage',
       roundId: readyState.pendingRound.roundId,
       stage: FIB_PREPARATION_STAGES.finalizing,
     },
@@ -179,7 +193,7 @@ function completeRound(
   return dispatch(
     readyState,
     {
-      type: 'fib.round.complete',
+      type: 'fibking.round.complete',
       roundId: readyState.pendingRound.roundId,
       word,
       definition: structuredDefinition,
@@ -270,7 +284,7 @@ describe('FibKing engine configuration and seating', () => {
     expect(getFibOccupiedSeatCount(state)).toBe(3);
     expect(isFibBotSeat(state, 2)).toBe(false);
     expect(isFibBotSeat(state, 3)).toBe(true);
-    expect(decideFibCommand(state, { type: 'fib.round.start' }, userContext('host'))).toEqual({
+    expect(decideFibCommand(state, { type: 'fibking.round.start' }, userContext('host'))).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_NOT_FULL,
     });
@@ -330,7 +344,7 @@ describe('FibKing engine configuration and seating', () => {
     expect(
       decideFibCommand(
         state,
-        { type: 'fib.config.update', numberOfPlayers: 7 },
+        { type: 'fibking.config.update', numberOfPlayers: 7 },
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE });
@@ -338,21 +352,21 @@ describe('FibKing engine configuration and seating', () => {
     state = dispatch(state, { type: 'room.seat.clear' }, userContext('host'));
     state = dispatch(
       state,
-      { type: 'fib.config.update', numberOfPlayers: FIB_MAX_PLAYERS },
+      { type: 'fibking.config.update', numberOfPlayers: FIB_MAX_PLAYERS },
       userContext('host'),
     );
     expect(state.numberOfPlayers).toBe(FIB_MAX_PLAYERS);
     expect(
       decideFibCommand(
         state,
-        { type: 'fib.config.update', numberOfPlayers: 3 },
+        { type: 'fibking.config.update', numberOfPlayers: 3 },
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_PLAYER_COUNT_INVALID });
     expect(
       decideFibCommand(
         state,
-        { type: 'fib.config.update', numberOfPlayers: FIB_MAX_PLAYERS + 1 },
+        { type: 'fibking.config.update', numberOfPlayers: FIB_MAX_PLAYERS + 1 },
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_PLAYER_COUNT_INVALID });
@@ -364,12 +378,16 @@ describe('FibKing engine configuration and seating', () => {
     expect(
       decideFibCommand(
         state,
-        { type: 'fib.config.update', numberOfPlayers: 7 },
+        { type: 'fibking.config.update', numberOfPlayers: 7 },
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE });
     state = dispatch(state, { type: 'room.seat.clear' }, userContext('host'));
-    state = dispatch(state, { type: 'fib.config.update', numberOfPlayers: 7 }, userContext('host'));
+    state = dispatch(
+      state,
+      { type: 'fibking.config.update', numberOfPlayers: 7 },
+      userContext('host'),
+    );
     expect(state.numberOfPlayers).toBe(7);
     expect(getFibBotSeats(state)).toEqual([]);
   });
@@ -412,20 +430,20 @@ describe('FibKing engine configuration and seating', () => {
 describe('FibKing recoverable round workflow', () => {
   it('requires a full room and emits one durable word-generation effect', () => {
     expect(
-      decideFibCommand(createLobby(), { type: 'fib.round.start' }, userContext('host')),
+      decideFibCommand(createLobby(), { type: 'fibking.round.start' }, userContext('host')),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_FULL });
 
     const state = createFullLobby();
     const decision = decideFibCommand(
       state,
-      { type: 'fib.round.start' },
+      { type: 'fibking.round.start' },
       userContext('host', { commandId: 'round-a', randomSeed: 'unrelated-seed' }),
     );
     expect(decision).toEqual({
       kind: 'commit',
       events: [
         {
-          type: 'fib.round.preparing',
+          type: 'fibking.round.preparing',
           pendingRound: {
             roundId: 'fib-round:round-a',
             requestedAt: 2_000,
@@ -435,7 +453,7 @@ describe('FibKing recoverable round workflow', () => {
       ],
       effects: [
         {
-          type: 'fib.word.select',
+          type: 'fibking.word.select',
           payload: { roundId: 'fib-round:round-a', avoidWords: [], participantUserIds: ['host'] },
         },
       ],
@@ -448,7 +466,7 @@ describe('FibKing recoverable round workflow', () => {
     let preparing = startPreparing(createFullLobby());
     const roundId = preparing.phase === 'preparing' ? preparing.pendingRound.roundId : '';
     const command = {
-      type: 'fib.round.complete',
+      type: 'fibking.round.complete',
       roundId,
       word: '海浪',
       definition: {
@@ -473,7 +491,7 @@ describe('FibKing recoverable round workflow', () => {
     preparing = dispatch(
       preparing,
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId,
         stage: FIB_PREPARATION_STAGES.selecting,
       },
@@ -482,7 +500,7 @@ describe('FibKing recoverable round workflow', () => {
     preparing = dispatch(
       preparing,
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId,
         stage: FIB_PREPARATION_STAGES.finalizing,
       },
@@ -493,7 +511,7 @@ describe('FibKing recoverable round workflow', () => {
       kind: 'commit',
       effects: [
         {
-          type: 'fib.word.recordUsage',
+          type: 'fibking.word.recordUsage',
           payload: {
             roundId,
             word: '海浪',
@@ -519,7 +537,7 @@ describe('FibKing recoverable round workflow', () => {
     if (preparing.phase !== 'preparing') throw new Error('Expected preparing state');
     const roundId = preparing.pendingRound.roundId;
     const selectingCommand = {
-      type: 'fib.round.updatePreparationStage',
+      type: 'fibking.round.updatePreparationStage',
       roundId,
       stage: FIB_PREPARATION_STAGES.selecting,
     } as const;
@@ -550,7 +568,7 @@ describe('FibKing recoverable round workflow', () => {
     preparing = dispatch(
       preparing,
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId,
         stage: FIB_PREPARATION_STAGES.finalizing,
       },
@@ -566,7 +584,7 @@ describe('FibKing recoverable round workflow', () => {
     const failed = dispatch(
       preparing,
       {
-        type: 'fib.round.failPreparation',
+        type: 'fibking.round.failPreparation',
         roundId: preparing.pendingRound.roundId,
         failureCode: 'selectionFailed',
       },
@@ -587,12 +605,12 @@ describe('FibKing recoverable round workflow', () => {
     expect(
       decideFibCommand(
         failed,
-        { type: 'fib.round.start' },
+        { type: 'fibking.round.start' },
         userContext('host', { commandId: 'retry-round' }),
       ),
     ).toMatchObject({ kind: 'commit' });
 
-    const lobby = dispatch(failed, { type: 'fib.round.cancelPreparing' }, userContext('host'));
+    const lobby = dispatch(failed, { type: 'fibking.round.cancelPreparing' }, userContext('host'));
     expect(lobby.phase).toBe('lobby');
     expect(lobby.preparationFailure).toBeNull();
   });
@@ -603,10 +621,14 @@ describe('FibKing recoverable round workflow', () => {
       '灯塔',
       '建在岸边用于指引船只航行方向的高塔。',
     );
-    state = dispatch(confirmAllRoleViews(state), { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(
+      confirmAllRoleViews(state),
+      { type: 'fibking.round.reveal' },
+      userContext('host'),
+    );
     state = startPreparing(state, 'round-b');
     const roster = state.roster;
-    state = dispatch(state, { type: 'fib.round.cancelPreparing' }, userContext('host'));
+    state = dispatch(state, { type: 'fibking.round.cancelPreparing' }, userContext('host'));
 
     expect(state.phase).toBe('lobby');
     expect(state.roster).toBe(roster);
@@ -620,20 +642,24 @@ describe('FibKing recoverable round workflow', () => {
       '灯塔',
       '建在岸边用于指引船只航行方向的高塔。',
     );
-    state = dispatch(confirmAllRoleViews(state), { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(
+      confirmAllRoleViews(state),
+      { type: 'fibking.round.reveal' },
+      userContext('host'),
+    );
     expect(state.phase).toBe('ended');
     const roster = state.roster;
 
     const nextDecision = decideFibCommand(
       state,
-      { type: 'fib.round.start' },
+      { type: 'fibking.round.start' },
       userContext('host', { commandId: 'round-next' }),
     );
     expect(nextDecision.kind).toBe('commit');
     if (nextDecision.kind !== 'commit') throw new Error('Expected next-round commit');
     expect(nextDecision.effects).toEqual([
       {
-        type: 'fib.word.select',
+        type: 'fibking.word.select',
         payload: {
           roundId: 'fib-round:round-next',
           avoidWords: ['灯塔'],
@@ -650,7 +676,7 @@ describe('FibKing recoverable round workflow', () => {
     state = dispatch(
       state,
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId: state.pendingRound.roundId,
         stage: FIB_PREPARATION_STAGES.selecting,
       },
@@ -660,7 +686,7 @@ describe('FibKing recoverable round workflow', () => {
     state = dispatch(
       state,
       {
-        type: 'fib.round.updatePreparationStage',
+        type: 'fibking.round.updatePreparationStage',
         roundId: state.pendingRound.roundId,
         stage: FIB_PREPARATION_STAGES.finalizing,
       },
@@ -671,7 +697,7 @@ describe('FibKing recoverable round workflow', () => {
       decideFibCommand(
         state,
         {
-          type: 'fib.round.complete',
+          type: 'fibking.round.complete',
           roundId: state.pendingRound.roundId,
           word: '灯塔',
           definition: {
@@ -691,15 +717,19 @@ describe('FibKing recoverable round workflow', () => {
       '灯塔',
       '建在岸边用于指引船只航行方向的高塔。',
     );
-    state = dispatch(confirmAllRoleViews(state), { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(
+      confirmAllRoleViews(state),
+      { type: 'fibking.round.reveal' },
+      userContext('host'),
+    );
     const roster = state.roster;
     const usedWords = state.usedWords;
 
     expect(
-      decideFibCommand(state, { type: 'fib.game.returnToLobby' }, userContext('alice')),
+      decideFibCommand(state, { type: 'fibking.game.returnToLobby' }, userContext('alice')),
     ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
 
-    state = dispatch(state, { type: 'fib.game.returnToLobby' }, userContext('host'));
+    state = dispatch(state, { type: 'fibking.game.returnToLobby' }, userContext('host'));
 
     expect(state).toMatchObject({
       phase: 'lobby',
@@ -712,7 +742,7 @@ describe('FibKing recoverable round workflow', () => {
     expect(state.usedWords).toBe(usedWords);
     expect(getFibLifecycle(state)).toBe('setup');
     expect(
-      decideFibCommand(state, { type: 'fib.game.returnToLobby' }, userContext('host')),
+      decideFibCommand(state, { type: 'fibking.game.returnToLobby' }, userContext('host')),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_GAME_NOT_ENDED });
   });
 
@@ -725,7 +755,7 @@ describe('FibKing recoverable round workflow', () => {
     const roster = ongoing.roster;
     const usedWords = ongoing.usedWords;
 
-    const lobby = dispatch(ongoing, { type: 'fib.game.returnToLobby' }, userContext('host'));
+    const lobby = dispatch(ongoing, { type: 'fibking.game.returnToLobby' }, userContext('host'));
 
     expect(lobby).toMatchObject({
       phase: 'lobby',
@@ -748,14 +778,14 @@ describe('FibKing recoverable round workflow', () => {
 
     const redrawDecision = decideFibCommand(
       ongoing,
-      { type: 'fib.round.start' },
+      { type: 'fibking.round.start' },
       userContext('host', { commandId: 'redraw-round' }),
     );
     expect(redrawDecision).toMatchObject({
       kind: 'commit',
       effects: [
         {
-          type: 'fib.word.select',
+          type: 'fibking.word.select',
           payload: { roundId: 'fib-round:redraw-round', avoidWords: ['山谷'] },
         },
       ],
@@ -774,7 +804,9 @@ describe('FibKing recoverable round workflow', () => {
 
   it('rejects another start while preparing', () => {
     const preparing = startPreparing(createFullLobby());
-    expect(decideFibCommand(preparing, { type: 'fib.round.start' }, userContext('host'))).toEqual({
+    expect(
+      decideFibCommand(preparing, { type: 'fibking.round.start' }, userContext('host')),
+    ).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_ALREADY_ONGOING,
     });
@@ -785,7 +817,7 @@ describe('FibKing recoverable round workflow', () => {
     const preparing = startPreparing(lobby);
     const viewing = completeRound(preparing, '山谷', '两座山之间低洼而狭长的地带或空间。');
     const ongoing = confirmAllRoleViews(viewing);
-    const ended = dispatch(ongoing, { type: 'fib.round.reveal' }, userContext('host'));
+    const ended = dispatch(ongoing, { type: 'fibking.round.reveal' }, userContext('host'));
 
     expect(getFibLifecycle(lobby)).toBe('setup');
     expect(getFibLifecycle(preparing)).toBe('ongoing');
@@ -848,7 +880,7 @@ describe('FibKing recoverable round workflow', () => {
       honestSeat: null,
     });
 
-    const ended = dispatch(ongoing, { type: 'fib.round.reveal' }, userContext('host'));
+    const ended = dispatch(ongoing, { type: 'fibking.round.reveal' }, userContext('host'));
     expect(getFibRoundView(ended, null)).toMatchObject({
       phase: 'ended',
       viewerRole: null,

@@ -3,7 +3,7 @@
 import type { GameEffect } from '../../../platform/engine';
 
 export interface FibSelectWordEffect extends GameEffect {
-  readonly type: 'fib.word.select';
+  readonly type: 'fibking.word.select';
   readonly payload: {
     readonly roundId: string;
     readonly avoidWords: readonly string[];
@@ -12,7 +12,7 @@ export interface FibSelectWordEffect extends GameEffect {
 }
 
 export interface FibRecordWordUsageEffect extends GameEffect {
-  readonly type: 'fib.word.recordUsage';
+  readonly type: 'fibking.word.recordUsage';
   readonly payload: {
     readonly roundId: string;
     readonly word: string;
@@ -23,7 +23,7 @@ export interface FibRecordWordUsageEffect extends GameEffect {
 }
 
 export interface FibCompletedEffect extends GameEffect {
-  readonly type: 'fib.game.completed';
+  readonly type: 'fibking.game.completed';
   readonly payload: {
     readonly roundId: string;
     readonly completedAt: number;

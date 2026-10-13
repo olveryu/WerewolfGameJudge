@@ -106,25 +106,37 @@ function createRoom(): FibState {
 }
 
 function dealRound(state: FibState, commandId = 'round-1', word = '云朵'): FibState {
-  let next = dispatch(state, { type: 'fib.round.start' }, { ...userContext('host'), commandId });
+  let next = dispatch(
+    state,
+    { type: 'fibking.round.start' },
+    { ...userContext('host'), commandId },
+  );
   if (next.phase !== 'preparing') throw new Error('Expected preparing state');
   const { roundId } = next.pendingRound;
   next = dispatch(
     next,
-    { type: 'fib.round.updatePreparationStage', roundId, stage: FIB_PREPARATION_STAGES.selecting },
+    {
+      type: 'fibking.round.updatePreparationStage',
+      roundId,
+      stage: FIB_PREPARATION_STAGES.selecting,
+    },
     systemContext(),
   );
   if (next.phase !== 'preparing') throw new Error('Expected preparing state');
   next = dispatch(
     next,
-    { type: 'fib.round.updatePreparationStage', roundId, stage: FIB_PREPARATION_STAGES.finalizing },
+    {
+      type: 'fibking.round.updatePreparationStage',
+      roundId,
+      stage: FIB_PREPARATION_STAGES.finalizing,
+    },
     systemContext(),
   );
   if (next.phase !== 'preparing') throw new Error('Expected preparing state');
   return dispatch(
     next,
     {
-      type: 'fib.round.complete',
+      type: 'fibking.round.complete',
       roundId,
       word,
       definition: {
@@ -138,7 +150,7 @@ function dealRound(state: FibState, commandId = 'round-1', word = '云朵'): Fib
 }
 
 function confirm(state: FibState, userId: string): FibState {
-  return dispatch(state, { type: 'fib.round.confirmRoleView' }, userContext(userId));
+  return dispatch(state, { type: 'fibking.round.confirmRoleView' }, userContext(userId));
 }
 
 describe('identity viewing protocol (fibking)', () => {
@@ -156,7 +168,7 @@ describe('identity viewing protocol (fibking)', () => {
 
     const twice = decideFibCommand(
       once,
-      { type: 'fib.round.confirmRoleView' },
+      { type: 'fibking.round.confirmRoleView' },
       userContext('alice'),
     );
     expect(twice.kind).toBe('commit');
@@ -167,23 +179,25 @@ describe('identity viewing protocol (fibking)', () => {
 
     const takeover = decideFibCommand(
       once,
-      { type: 'fib.round.confirmRoleView' },
+      { type: 'fibking.round.confirmRoleView' },
       userContext('alice', { controlledSeat: 3 }),
     );
     expect(takeover).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
     const hostForBot = decideFibCommand(
       once,
-      { type: 'fib.round.confirmRoleView' },
+      { type: 'fibking.round.confirmRoleView' },
       userContext('host', { controlledSeat: 3 }),
     );
     expect(hostForBot.kind).toBe('commit');
     if (hostForBot.kind === 'commit')
-      expect(hostForBot.events).toEqual([{ type: 'fib.role.viewed', seat: 3 }]);
+      expect(hostForBot.events).toEqual([{ type: 'fibking.role.viewed', seat: 3 }]);
   });
 
   it('blocks the round until every seat has viewed, then starts', () => {
     const viewing = dealRound(createRoom());
-    expect(decideFibCommand(viewing, { type: 'fib.round.reveal' }, userContext('host'))).toEqual({
+    expect(
+      decideFibCommand(viewing, { type: 'fibking.round.reveal' }, userContext('host')),
+    ).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_NOT_ONGOING,
     });
@@ -196,41 +210,45 @@ describe('identity viewing protocol (fibking)', () => {
     // seat's record is still open.
     const bobDecision = decideFibCommand(
       two,
-      { type: 'fib.round.confirmRoleView' },
+      { type: 'fibking.round.confirmRoleView' },
       userContext('bob'),
     );
     if (bobDecision.kind !== 'commit') throw new Error('Expected commit');
-    expect(bobDecision.events.map((event) => event.type)).toEqual(['fib.role.viewed']);
+    expect(bobDecision.events.map((event) => event.type)).toEqual(['fibking.role.viewed']);
     const allHumans = applyDecision(two, bobDecision);
     expect(allHumans.phase).toBe('viewing');
 
     // Non-hosts cannot run the scaffold action.
     expect(
-      decideFibCommand(allHumans, { type: 'fib.round.markAllBotsViewed' }, userContext('alice')),
+      decideFibCommand(
+        allHumans,
+        { type: 'fibking.round.markAllBotsViewed' },
+        userContext('alice'),
+      ),
     ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
 
     const markDecision = decideFibCommand(
       allHumans,
-      { type: 'fib.round.markAllBotsViewed' },
+      { type: 'fibking.round.markAllBotsViewed' },
       userContext('host'),
     );
     if (markDecision.kind !== 'commit') throw new Error('Expected commit');
     expect(markDecision.events.map((event) => event.type)).toEqual([
-      'fib.role.viewed',
-      'fib.round.viewing.completed',
+      'fibking.role.viewed',
+      'fibking.round.viewing.completed',
     ]);
     const ongoing = applyDecision(allHumans, markDecision);
     expect(ongoing.phase).toBe('ongoing');
     expect(
-      decideFibCommand(ongoing, { type: 'fib.round.confirmRoleView' }, userContext('bob')),
+      decideFibCommand(ongoing, { type: 'fibking.round.confirmRoleView' }, userContext('bob')),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING });
   });
 
   it('resets the viewing record on every new round', () => {
     let state = dealRound(createRoom());
     state = confirm(confirm(confirm(state, 'host'), 'alice'), 'bob');
-    state = dispatch(state, { type: 'fib.round.markAllBotsViewed' }, userContext('host'));
-    state = dispatch(state, { type: 'fib.round.reveal' }, userContext('host'));
+    state = dispatch(state, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+    state = dispatch(state, { type: 'fibking.round.reveal' }, userContext('host'));
     const nextRound = dealRound(state, 'round-2', '灯塔');
     if (nextRound.phase !== 'viewing') throw new Error('Expected viewing state');
     expect(nextRound.round.viewedSeats).toEqual([]);
@@ -242,7 +260,11 @@ describe('identity viewing protocol (fibking)', () => {
 
   it('rejects viewing confirmation outside the viewing phase', () => {
     expect(
-      decideFibCommand(createRoom(), { type: 'fib.round.confirmRoleView' }, userContext('host')),
+      decideFibCommand(
+        createRoom(),
+        { type: 'fibking.round.confirmRoleView' },
+        userContext('host'),
+      ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING });
   });
 
@@ -267,8 +289,8 @@ describe('identity viewing protocol (fibking)', () => {
 
     let ended = dealRound(createRoom());
     ended = confirm(confirm(confirm(ended, 'host'), 'alice'), 'bob');
-    ended = dispatch(ended, { type: 'fib.round.markAllBotsViewed' }, userContext('host'));
-    ended = dispatch(ended, { type: 'fib.round.reveal' }, userContext('host'));
+    ended = dispatch(ended, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+    ended = dispatch(ended, { type: 'fibking.round.reveal' }, userContext('host'));
     const endedSerialized = downgradeRoster(ended);
     delete (endedSerialized.round as Record<string, unknown>).viewedSeats;
     endedSerialized.stateVersion = 5;
@@ -292,17 +314,17 @@ describeIdentityViewingProtocol({
       participants: () => getFibViewingParticipants(state),
       view: (seat) => {
         if (users[seat] !== undefined) {
-          attempt({ type: 'fib.round.confirmRoleView' }, userContext(users[seat]));
+          attempt({ type: 'fibking.round.confirmRoleView' }, userContext(users[seat]));
         } else {
           // Bot seats view through the host's takeover confirmation.
           attempt(
-            { type: 'fib.round.confirmRoleView' },
+            { type: 'fibking.round.confirmRoleView' },
             userContext('host', { controlledSeat: seat }),
           );
         }
       },
       markAllBotsViewed: () =>
-        attempt({ type: 'fib.round.markAllBotsViewed' }, userContext('host')),
+        attempt({ type: 'fibking.round.markAllBotsViewed' }, userContext('host')),
       isCheckpointOpen: () => state.phase === 'ongoing',
     };
   },

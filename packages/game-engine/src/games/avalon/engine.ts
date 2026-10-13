@@ -227,10 +227,12 @@ function markAllBotsViewed(state: AvalonState, context: CommandContext): AvalonD
     return reject(AVALON_REASONS.phase);
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostMarkBots);
   if (hostRejection !== null) return hostRejection;
-  const unviewedBots = listUnviewedBotSeats(
-    getAvalonViewingParticipants(state),
-    state.roleViewedSeats,
-  );
+  const participants = getAvalonViewingParticipants(state);
+  // Werewolf parity (Wave 8): with no bot seats at all the scaffold
+  // command rejects instead of committing an empty success.
+  if (!participants.some((participant) => participant.isBot))
+    return reject(AVALON_REASONS.noBotSeats);
+  const unviewedBots = listUnviewedBotSeats(participants, state.roleViewedSeats);
   if (unviewedBots.length === 0) return commitAvalon([]);
   const events: AvalonEvent[] = [];
   let viewedSeats: readonly number[] = state.roleViewedSeats;

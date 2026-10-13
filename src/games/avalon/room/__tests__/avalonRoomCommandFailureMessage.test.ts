@@ -10,7 +10,7 @@ describe('getAvalonRoomCommandFailureMessage', () => {
   it('explains the full-room start requirement', () => {
     expect(
       getAvalonRoomCommandFailureMessage(
-        rejectedRoomCommand<AvalonState>('请先坐满所有座位，或填充机器人。', 'command-0'),
+        rejectedRoomCommand<AvalonState>('avalon_room_not_full', 'command-0'),
       ),
     ).toBe('请先坐满所有座位，或填充机器人。');
   });
@@ -18,7 +18,7 @@ describe('getAvalonRoomCommandFailureMessage', () => {
   it('passes through the team-size reason with the required count', () => {
     expect(
       getAvalonRoomCommandFailureMessage(
-        rejectedRoomCommand<AvalonState>('队员人数必须为 3 人', 'command-1'),
+        rejectedRoomCommand<AvalonState>('avalon_team_size_invalid:3', 'command-1'),
       ),
     ).toBe('队员人数必须为 3 人');
   });
@@ -26,7 +26,7 @@ describe('getAvalonRoomCommandFailureMessage', () => {
   it('maps the night-strike rejection', () => {
     expect(
       getAvalonRoomCommandFailureMessage(
-        rejectedRoomCommand<AvalonState>('晚上阶段不能刺杀', 'command-2'),
+        rejectedRoomCommand<AvalonState>('avalon_no_strike_at_night', 'command-2'),
       ),
     ).toBe('晚上阶段不能刺杀');
   });
@@ -34,7 +34,7 @@ describe('getAvalonRoomCommandFailureMessage', () => {
   it('maps the good-must-succeed rejection', () => {
     expect(
       getAvalonRoomCommandFailureMessage(
-        rejectedRoomCommand<AvalonState>('好人只能出成功牌', 'command-3'),
+        rejectedRoomCommand<AvalonState>('avalon_good_must_succeed', 'command-3'),
       ),
     ).toBe('好人只能出成功牌');
   });

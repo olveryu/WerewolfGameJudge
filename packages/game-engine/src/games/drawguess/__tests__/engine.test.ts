@@ -127,7 +127,7 @@ describe('DrawGuess engine', () => {
     );
     expect(decision.kind).toBe('reject');
     if (decision.kind !== 'reject') throw new Error('expected rejection');
-    expect(decision.reason).toBe('请先坐满所有座位，或填充机器人。');
+    expect(decision.reason).toBe('drawguess_room_not_full');
   });
 
   it('starts the game with an ascending drawer queue and deals word choices', () => {
@@ -302,7 +302,7 @@ describe('DrawGuess engine', () => {
     );
     expect(decision.kind).toBe('reject');
     if (decision.kind === 'reject') {
-      expect(decision.reason).toBe('请求太频繁，请稍后再试');
+      expect(decision.reason).toBe('drawguess_rate_limited');
     }
     // After the window slides past, guesses are accepted again.
     session.advanceTime(6000);

@@ -16,15 +16,15 @@ import type {
 } from '../state/types';
 
 export const STORY_RELAY_REASONS = {
-  config: '故事接龙配置无效',
-  phase: '当前阶段不能执行此操作',
-  task: '故事任务已变化，请刷新后重试',
-  submitted: '本棒已收稿',
-  text: '请填写 1 至 512 字符的正文',
-  full: '请先坐满所有座位，或填充机器人。',
-  occupied: '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位',
-  deadline: '当前阶段尚未到推进时间',
-  manual: '当前为手动翻页',
+  config: 'storyrelay_config_invalid',
+  phase: 'storyrelay_phase_invalid',
+  task: 'storyrelay_task_changed',
+  submitted: 'storyrelay_already_submitted',
+  text: 'storyrelay_text_invalid',
+  full: 'storyrelay_room_not_full',
+  occupied: 'storyrelay_occupied_seat_out_of_range',
+  deadline: 'storyrelay_deadline_not_reached',
+  manual: 'storyrelay_manual_paging',
 } as const;
 
 export type StoryRelayEvent =

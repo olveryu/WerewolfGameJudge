@@ -14,8 +14,8 @@ it('leases exhausted work without prematurely marking it failed', async () => {
       `INSERT INTO effect_outbox (
       id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
       status, attempt_count, available_at, created_revision, created_at
-    ) VALUES ('effect', 'command', 'game', 'fibking', 'fib.word.select', 'round',
-      '{"type":"fib.word.select","payload":{"roundId":"round","avoidWords":[]}}',
+    ) VALUES ('effect', 'command', 'game', 'fibking', 'fibking.word.select', 'round',
+      '{"type":"fibking.word.select","payload":{"roundId":"round","avoidWords":[]}}',
       'pending', ?, 0, 1, 0)`,
       OUTBOX_MAX_ATTEMPTS,
     );
@@ -54,7 +54,7 @@ it.each([OUTBOX_MAX_ATTEMPTS - 1, OUTBOX_MAX_ATTEMPTS])(
     const stub = await createPreparingRoom();
     await runInDurableObject(stub, async (instance, state) => {
       state.storage.sql.exec(
-        "UPDATE effect_outbox SET attempt_count = ?, available_at = 0 WHERE effect_type = 'fib.word.select'",
+        "UPDATE effect_outbox SET attempt_count = ?, available_at = 0 WHERE effect_type = 'fibking.word.select'",
         attemptCount,
       );
       await instance.alarm();
@@ -67,14 +67,14 @@ it.each([OUTBOX_MAX_ATTEMPTS - 1, OUTBOX_MAX_ATTEMPTS])(
       expect(
         state.storage.sql
           .exec(
-            "SELECT status, attempt_count FROM effect_outbox WHERE effect_type = 'fib.word.select'",
+            "SELECT status, attempt_count FROM effect_outbox WHERE effect_type = 'fibking.word.select'",
           )
           .one(),
       ).toEqual({ status: 'failed', attempt_count: OUTBOX_MAX_ATTEMPTS });
       expect(
         state.storage.sql
           .exec(
-            "SELECT COUNT(*) AS count FROM command_receipts WHERE command_type = 'fib.round.failPreparation'",
+            "SELECT COUNT(*) AS count FROM command_receipts WHERE command_type = 'fibking.round.failPreparation'",
           )
           .one(),
       ).toEqual({ count: 1 });
@@ -87,7 +87,7 @@ it('rolls back the terminal command and receipt when marking the outbox failed c
   const stub = await createPreparingRoom();
   await runInDurableObject(stub, async (instance, state) => {
     state.storage.sql.exec(
-      "UPDATE effect_outbox SET attempt_count = ?, available_at = 0 WHERE effect_type = 'fib.word.select'",
+      "UPDATE effect_outbox SET attempt_count = ?, available_at = 0 WHERE effect_type = 'fibking.word.select'",
       OUTBOX_MAX_ATTEMPTS,
     );
     state.storage.sql.exec(
@@ -102,25 +102,25 @@ it('rolls back the terminal command and receipt when marking the outbox failed c
     expect(FIB_STATE_CODEC.parse(snapshot?.state).phase).toBe('preparing');
     expect(
       state.storage.sql
-        .exec("SELECT status FROM effect_outbox WHERE effect_type = 'fib.word.select'")
+        .exec("SELECT status FROM effect_outbox WHERE effect_type = 'fibking.word.select'")
         .one(),
     ).toEqual({ status: 'pending' });
     expect(
       state.storage.sql
         .exec(
-          "SELECT COUNT(*) AS count FROM command_receipts WHERE command_type = 'fib.round.failPreparation'",
+          "SELECT COUNT(*) AS count FROM command_receipts WHERE command_type = 'fibking.round.failPreparation'",
         )
         .one(),
     ).toEqual({ count: 0 });
     expect(await state.storage.getAlarm()).not.toBeNull();
     state.storage.sql.exec('DROP TRIGGER reject_terminal');
     state.storage.sql.exec(
-      "UPDATE effect_outbox SET available_at = 0 WHERE effect_type = 'fib.word.select'",
+      "UPDATE effect_outbox SET available_at = 0 WHERE effect_type = 'fibking.word.select'",
     );
     await instance.alarm();
     expect(
       state.storage.sql
-        .exec("SELECT status FROM effect_outbox WHERE effect_type = 'fib.word.select'")
+        .exec("SELECT status FROM effect_outbox WHERE effect_type = 'fibking.word.select'")
         .one(),
     ).toEqual({ status: 'failed' });
     await state.storage.deleteAlarm();
@@ -136,7 +136,7 @@ async function createPreparingRoom() {
     hostUserId: 'host',
     config: { numberOfPlayers: 4 },
   });
-  for (const command of [{ type: 'room.seat.fillBots' }, { type: 'fib.round.start' }]) {
+  for (const command of [{ type: 'room.seat.fillBots' }, { type: 'fibking.round.start' }]) {
     const result = await stub.dispatchUserCommand({
       ...identity,
       actorUserId: 'host',
