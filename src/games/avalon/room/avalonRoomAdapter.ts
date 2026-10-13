@@ -194,11 +194,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
         isSelf: human?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
-        // 逐座位已查看身份徽标（公开信息，对齐狼人杀 hasViewedRole ✅）：
-        // 查看阶段逐个点亮进度，夜晚保持全亮。
-        showReadyBadge:
-          (state.phase.kind === 'viewing' || nightPhase !== null) &&
-          state.roleViewedSeats.includes(seat),
+        // 逐座位已查看身份徽标（公开信息）：勾只属于查看阶段——对局开始
+        // （begin 进夜晚）即清（展示契约 §3.3 徽标命题，与狼人杀口径一致）。
+        showReadyBadge: state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
         statusBadge:
           combinedLabel === null
             ? null
@@ -233,11 +231,14 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel | null {
   const phase = state.phase;
   if (phase.kind === 'viewing') {
-    // 查看阶段（对局未开始）：只报查看进度，名单看座位盘打勾。
+    // 查看阶段（对局未开始）两态：未齐报进度、齐了报等待房主开始；
+    // 逐座名单看座位盘打勾（展示契约 §3.3：汇总只此一处出口）。
     const participants = getAvalonViewingParticipants(state);
     const viewedCount = participants.filter((participant) =>
       state.roleViewedSeats.includes(participant.seat),
     ).length;
+    if (participants.length > 0 && viewedCount === participants.length)
+      return messageRibbon('全员已查看身份，等待房主开始游戏');
     return messageRibbon(`等待全员查看身份 · ${viewedCount}/${participants.length}`);
   }
   if (phase.kind === 'night') {
@@ -363,11 +364,17 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       );
     }
   }
-  return {
-    kind: 'info',
-    message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主分配角色' : null,
-    actions,
-  };
+  // 底部 message 的个人提示：大厅客人等分配；查看阶段本人未看时提示去看
+  // （展示契约 §3.3 self-hint 态，本人提示只走这一处出口）。
+  const message =
+    input.isLobby && !input.isHost && input.mySeat !== null
+      ? '等待房主分配角色'
+      : state.phase.kind === 'viewing' &&
+          input.effectiveSeat !== null &&
+          !state.roleViewedSeats.includes(input.effectiveSeat)
+        ? '请点击下方「查看身份」，查看你的角色'
+        : null;
+  return { kind: 'info', message, actions };
 }
 
 export interface AvalonRoomShellModelInput {
