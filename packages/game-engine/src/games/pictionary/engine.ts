@@ -812,6 +812,7 @@ export function decidePictionaryCommand(
 export const pictionaryEngine = {
   gameType: PICTIONARY_GAME_TYPE,
   stateVersion: PICTIONARY_STATE_VERSION,
+  capabilities: { nightPhase: false },
   createInitialState: createInitialPictionaryState,
   decide: decidePictionaryCommand,
   evolve: evolvePictionaryState,

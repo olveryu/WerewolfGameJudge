@@ -511,6 +511,7 @@ export function getDrawGuessLifecycle(state: DrawGuessState): CommonGameLifecycl
 export const drawGuessEngine = {
   gameType: DRAWGUESS_GAME_TYPE,
   stateVersion: DRAWGUESS_STATE_VERSION,
+  capabilities: { nightPhase: false },
   createInitialState,
   decide: decideDrawGuessCommand,
   evolve: evolveDrawGuessState,

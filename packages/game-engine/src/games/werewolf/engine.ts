@@ -608,6 +608,7 @@ export function decideWerewolfCommand(
 export const werewolfEngine = {
   gameType: WEREWOLF_GAME_TYPE,
   stateVersion: WEREWOLF_STATE_VERSION,
+  capabilities: { nightPhase: true },
   createInitialState,
   decide: decideWerewolfCommand,
   evolve: gameReducer,

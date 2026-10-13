@@ -68,6 +68,7 @@ function getLifecycle(state: UndercoverState): CommonGameLifecycle {
 export const undercoverEngine = {
   gameType: UNDERCOVER_GAME_TYPE,
   stateVersion: UNDERCOVER_STATE_VERSION,
+  capabilities: { nightPhase: false },
   createInitialState,
   decide,
   evolve: evolveUndercoverState,
