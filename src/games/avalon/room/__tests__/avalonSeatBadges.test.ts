@@ -42,6 +42,7 @@ function questPhaseSession() {
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.role.viewed' }, seatUser(seat));
   }
+  send({ type: 'avalon.game.begin' });
   if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
@@ -111,6 +112,10 @@ describe('createAvalonSeatDataSource — night badges', () => {
       send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
     }
     send({ type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      send({ type: 'avalon.role.viewed' }, seatUser(seat));
+    }
+    send({ type: 'avalon.game.begin' });
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     if (state.phase.kind !== 'night') throw new Error('expected night phase');
     return {
@@ -122,17 +127,52 @@ describe('createAvalonSeatDataSource — night badges', () => {
     };
   }
 
-  it('shows the viewed-role badge per seat during the night only', () => {
-    const session = nightSession();
-    session.send({ type: 'avalon.role.viewed' }, session.seatUser(2));
-    const source = createAvalonSeatDataSource({
-      state: session.state,
+  it('shows the viewed-role badge per seat during the viewing stage, all lit at night', () => {
+    // Viewing stage: only the seats that viewed light up.
+    let commandNumber = 0;
+    let state: AvalonState = avalonEngine.createInitialState(
+      { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+    );
+    const send = (command: AvalonCommand, userId = 'host') => {
+      const context: CommandContext = {
+        actor: { kind: 'user', userId },
+        controlledSeat: null,
+        nowMs: 1000,
+        commandId: `command:${commandNumber++}`,
+        randomSeed: `seed:${commandNumber}`,
+      };
+      const decision = avalonEngine.decide(state, command, context);
+      if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+      state = decision.events.reduce(avalonEngine.evolve, state);
+      return state;
+    };
+    const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
+    for (let seat = 0; seat < 5; seat += 1) {
+      send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
+    }
+    send({ type: 'avalon.game.start' });
+    send({ type: 'avalon.role.viewed' }, seatUser(2));
+    const viewingSource = createAvalonSeatDataSource({
+      state,
       revision: 1,
       userId: 'host',
       controlledSeat: null,
     });
-    expect(source.getSeat(2).showReadyBadge).toBe(true);
-    expect(source.getSeat(1).showReadyBadge).toBe(false);
+    expect(viewingSource.getSeat(2).showReadyBadge).toBe(true);
+    expect(viewingSource.getSeat(1).showReadyBadge).toBe(false);
+
+    // Night: the begin gate guarantees every seat viewed, so all badges lit.
+    const night = nightSession();
+    const nightSource = createAvalonSeatDataSource({
+      state: night.state,
+      revision: 1,
+      userId: 'host',
+      controlledSeat: null,
+    });
+    for (let seat = 0; seat < 5; seat += 1) {
+      expect(nightSource.getSeat(seat).showReadyBadge).toBe(true);
+    }
   });
 
   it('shows 已确认 only to fellow participants of the current night step', () => {
@@ -210,6 +250,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       send({ type: 'avalon.role.viewed' }, seatUser(seat));
     }
+    send({ type: 'avalon.game.begin' });
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
       if (state.phase.kind !== 'night') break;

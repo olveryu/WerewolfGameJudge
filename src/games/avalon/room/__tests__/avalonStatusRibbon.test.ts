@@ -1,9 +1,10 @@
 /**
- * createAvalonStatusRibbon at the Identity Viewing checkpoint: while
- * the night is held for missing role views, the ribbon names the
- * blocker; at every other moment it names the current night step
- * as text (private confirmation counts are never shown).
- * States are produced by the real engine, never hand-assembled.
+ * createAvalonStatusRibbon across the flow stages: the viewing stage
+ * reports view progress; the night renders the shared progress shape
+ * (step x of y + step label, aligned with werewolf — private
+ * confirmation counts are never shown); later phases name their
+ * public counts. States are produced by the real engine, never
+ * hand-assembled.
  */
 import {
   type AvalonCommand,
@@ -41,7 +42,6 @@ function startFivePlayerGame() {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
   send({ type: 'avalon.game.start' });
-  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
   return {
     get state() {
       return state;
@@ -49,6 +49,15 @@ function startFivePlayerGame() {
     send,
     seatUser,
   };
+}
+
+/** Views every seat and begins the game; acks the opening narration. */
+function beginGame(session: ReturnType<typeof startFivePlayerGame>) {
+  for (let seat = 0; seat < 5; seat += 1) {
+    session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+  }
+  session.send({ type: 'avalon.game.begin' });
+  if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
 }
 
 function walkNightSteps(session: ReturnType<typeof startFivePlayerGame>) {
@@ -63,32 +72,30 @@ function walkNightSteps(session: ReturnType<typeof startFivePlayerGame>) {
   }
 }
 
-describe('createAvalonStatusRibbon — viewing checkpoint', () => {
-  it('names the current night step as text while steps are still running (no private counts)', () => {
+describe('createAvalonStatusRibbon — viewing stage', () => {
+  it('reports view progress while the game waits in the viewing stage', () => {
     const session = startFivePlayerGame();
+    expect(session.state.phase.kind).toBe('viewing');
+    for (let seat = 0; seat < 4; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    }
     expect(createAvalonStatusRibbon(session.state)).toEqual({
       kind: 'message',
       icon: 'guide',
-      text: '天黑 · 坏人互认',
+      text: '等待全员查看身份 · 4/5',
       supportingText: null,
     });
   });
 
-  it('names the missing role views once the night is held at the checkpoint', () => {
+  it('renders the night as shared progress (step x of y + label) once begun', () => {
     const session = startFivePlayerGame();
-    // Everyone but seat 4 views their role; then the night steps finish.
-    for (let seat = 0; seat < 4; seat += 1) {
-      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
-    }
-    walkNightSteps(session);
+    beginGame(session);
     expect(session.state.phase.kind).toBe('night');
-
-    const ribbon = createAvalonStatusRibbon(session.state);
-    expect(ribbon).toEqual({
-      kind: 'message',
-      icon: 'guide',
-      text: '等待全员查看身份 · 还差 1 人',
-      supportingText: null,
+    expect(createAvalonStatusRibbon(session.state)).toEqual({
+      kind: 'progress',
+      current: 1,
+      total: 3,
+      label: '坏人互认',
     });
   });
 });
@@ -96,14 +103,8 @@ describe('createAvalonStatusRibbon — viewing checkpoint', () => {
 describe('createAvalonStatusRibbon — public action counts', () => {
   it('counts cast ballots during the vote and plays during the quest', () => {
     const session = startFivePlayerGame();
+    beginGame(session);
     walkNightSteps(session);
-    // The night may still be held at the viewing gate; complete the views if so.
-    if (session.state.phase.kind === 'night') {
-      for (let seat = 0; seat < 5; seat += 1) {
-        session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
-      }
-      walkNightSteps(session);
-    }
     expect(session.state.phase.kind).toBe('nominate');
     const leader = session.state.leaderSeat;
     session.send(
