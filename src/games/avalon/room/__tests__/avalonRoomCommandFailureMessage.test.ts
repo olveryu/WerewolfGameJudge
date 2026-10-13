@@ -31,6 +31,19 @@ describe('getAvalonRoomCommandFailureMessage', () => {
     ).toBe('晚上阶段不能刺杀');
   });
 
+  it('maps the mark-bots host gate and the deadline rejection', () => {
+    expect(
+      getAvalonRoomCommandFailureMessage(
+        rejectedRoomCommand<AvalonState>('avalon_not_host_mark_bots', 'command-4'),
+      ),
+    ).toBe('只有房主可以标记机器人已查看');
+    expect(
+      getAvalonRoomCommandFailureMessage(
+        rejectedRoomCommand<AvalonState>('avalon_deadline_not_reached', 'command-5'),
+      ),
+    ).toBe('尚未到截止时间');
+  });
+
   it('maps the good-must-succeed rejection', () => {
     expect(
       getAvalonRoomCommandFailureMessage(

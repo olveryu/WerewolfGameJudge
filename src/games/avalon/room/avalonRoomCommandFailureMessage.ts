@@ -47,6 +47,8 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.controlledSeatNotBot]: ROOM_COMMAND_FAILURE_BOT_SEAT_ONLY,
     [AVALON_REASONS.audioPlaying]: '播报尚未结束，请稍候',
     [AVALON_REASONS.notHostAckAudio]: '只有房主可以确认播报',
+    [AVALON_REASONS.notHostMarkBots]: '只有房主可以标记机器人已查看',
+    [AVALON_REASONS.deadline]: '尚未到截止时间',
   },
   // 队员人数原因带人数参数（avalon_team_size_invalid:<n>），在此拼回 §6.1 文案。
   (reason) => {

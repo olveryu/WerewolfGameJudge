@@ -527,6 +527,66 @@ describe('createWerewolfRoomShellModel', () => {
     expect(host.hostManagement).not.toBeNull();
   });
 
+  it('shows the mark-bots action only while a bot seat is unviewed', () => {
+    const actionKeys = (model: ReturnType<typeof createWerewolfRoomShellModel>) =>
+      model.hostManagement?.sections.flatMap((section) => section.actions).map((a) => a.key) ?? [];
+    const botState = (botViewed: boolean) =>
+      createLocalGameState({
+        status: GameStatus.Assigned,
+        players: {
+          0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
+          1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
+          2: { seat: 2, hasViewedRole: botViewed, role: 'seer' as RoleId },
+        },
+        roster: {
+          0: { seat: 0, userId: 'HOST' },
+          1: { seat: 1, userId: 'P2' },
+          2: { seat: 2, kind: 'bot' },
+        },
+      });
+    const unviewed = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        hasBots: true,
+        roomStatus: GameStatus.Assigned,
+        gameState: botState(false),
+      }),
+    );
+    expect(actionKeys(unviewed)).toContain('mark-bots-viewed');
+    const allViewed = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        hasBots: true,
+        roomStatus: GameStatus.Assigned,
+        gameState: botState(true),
+      }),
+    );
+    expect(actionKeys(allViewed)).not.toContain('mark-bots-viewed');
+    // An unviewed human does not bring the action back: it exists only
+    // for unviewed bot seats.
+    const humanUnviewedBotViewed = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        hasBots: true,
+        roomStatus: GameStatus.Assigned,
+        gameState: createLocalGameState({
+          status: GameStatus.Assigned,
+          players: {
+            0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
+            1: { seat: 1, hasViewedRole: false, role: 'witch' as RoleId },
+            2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
+          },
+          roster: {
+            0: { seat: 0, userId: 'HOST' },
+            1: { seat: 1, userId: 'P2' },
+            2: { seat: 2, kind: 'bot' },
+          },
+        }),
+      }),
+    );
+    expect(actionKeys(humanUnviewedBotViewed)).not.toContain('mark-bots-viewed');
+  });
+
   it('surfaces the controlled-seat banner through the shared gate', () => {
     // While a takeover is active the banner always shows: the release entry
     // must never vanish, whatever the other inputs say.

@@ -204,7 +204,7 @@ interface UseWerewolfRoomResult {
   const botControl = useWerewolfBotControl(mySeat, gameState, isHost);
 
   // Debug mode: bot-test scaffold (flag + bulk bot actions)
-  const debug = useWerewolfDebugMode(client, gameState, seatCommands.fillBots);
+  const debug = useWerewolfDebugMode(client, seatCommands.fillBots);
 
   // Night-phase derived values (pure computation)
   const nightDerived = useWerewolfNightDerived(gameState);

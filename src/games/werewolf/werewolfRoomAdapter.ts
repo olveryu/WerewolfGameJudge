@@ -405,8 +405,15 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     isHostActionSubmitting: input.isHostActionSubmitting,
     mvpSeat: input.mvpSeat,
     onSelectMvp: input.onSelectMvp,
-    // AU-17: scaffold actions key off bot existence.
-    canMarkAllBotsViewed: input.hasBots && input.roomStatus === GameStatus.Assigned,
+    // AU-17: scaffold actions key off bot existence. The mark action
+    // additionally requires an unviewed bot seat, matching the other
+    // games: once every bot is marked there is nothing left to mark.
+    canMarkAllBotsViewed:
+      input.hasBots &&
+      input.roomStatus === GameStatus.Assigned &&
+      Array.from(input.gameState.players.values()).some(
+        (player) => player?.isBot === true && !player.hasViewedRole,
+      ),
     canMarkAllBotsGroupConfirmed:
       input.hasBots &&
       !input.isAudioPlaying &&

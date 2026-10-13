@@ -5,7 +5,6 @@ import type {
   WerewolfCommandDispatchOutcome,
   WerewolfGameClient,
 } from '@/games/werewolf/runtime/WerewolfGameClient';
-import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 
@@ -34,40 +33,13 @@ function createSeatCommands(overrides?: {
   };
 }
 
-function makeGameState(overrides: Partial<Pick<LocalGameState, 'players'>> = {}): LocalGameState {
-  const players = new Map<number, LocalPlayer | null>();
-  players.set(1, {
-    userId: 'u1',
-    seat: 1,
-    role: 'wolf',
-    hasViewedRole: false,
-  });
-  players.set(2, {
-    userId: 'u2',
-    seat: 2,
-    role: 'seer',
-    hasViewedRole: false,
-  });
-  return {
-    players,
-    ...overrides,
-  } as unknown as LocalGameState;
-}
-
 function renderDebugMode(options?: {
   readonly client?: WerewolfGameClient;
-  readonly gameState?: LocalGameState;
   readonly seatCommands?: ReturnType<typeof createSeatCommands>;
 }) {
   const client = options?.client ?? createMockClient();
   const seatCommands = options?.seatCommands ?? createSeatCommands();
-  const hook = renderHook(() =>
-    useWerewolfDebugMode(
-      client,
-      options?.gameState === undefined ? makeGameState() : options.gameState,
-      seatCommands.fillBots,
-    ),
-  );
+  const hook = renderHook(() => useWerewolfDebugMode(client, seatCommands.fillBots));
   return { ...hook, client, seatCommands };
 }
 
