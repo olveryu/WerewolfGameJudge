@@ -1422,3 +1422,37 @@ describe('Client account events: game type validation uses the platform single s
     }
   });
 });
+
+// ─── Room layout: no stage UI below the seat board (flow-stage plan §7) ───
+
+describe('Room layout: afterSeatBoard is always null in every game room screen', () => {
+  const gamesDir = path.join(srcDir, 'games');
+  const roomScreenPaths = fs
+    .readdirSync(gamesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => {
+      const roomDir = path.join(gamesDir, entry.name, 'room');
+      if (!fs.existsSync(roomDir)) return [];
+      return fs
+        .readdirSync(roomDir)
+        .filter((file) => file.endsWith('RoomScreen.tsx'))
+        .map((file) => path.join(roomDir, file));
+    });
+
+  it('finds a room screen for every registered game', () => {
+    expect(roomScreenPaths).toHaveLength(GAME_TYPES.length);
+  });
+
+  it.each(GAME_TYPES)('%s room screen passes only null to afterSeatBoard', (gameType) => {
+    const screenPath = roomScreenPaths.find((filePath) =>
+      filePath.includes(path.join('games', gameType, 'room')),
+    );
+    if (screenPath === undefined) throw new Error(`No room screen found for ${gameType}`);
+    const source = fs.readFileSync(screenPath, 'utf-8');
+    const values = [...source.matchAll(/afterSeatBoard\s*:\s*([^\s,}]+)/g)].map(
+      (match) => match[1],
+    );
+    expect(values.length).toBeGreaterThan(0);
+    for (const value of values) expect(value).toBe('null');
+  });
+});

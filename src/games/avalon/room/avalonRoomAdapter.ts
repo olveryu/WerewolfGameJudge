@@ -72,7 +72,20 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
-import { resolveNightInstruction } from './policy/avalonInteractionPolicy';
+import {
+  resolveAssassinInstruction,
+  resolveLadyInstruction,
+  resolveNightInstruction,
+  resolveNominateInstruction,
+  resolveQuestInstruction,
+  resolveVoteInstruction,
+} from './policy/avalonInteractionPolicy';
+
+/** 「N 号 · 名字」座位称呼（与阶段组件原口径一致），名字读名册记录。 */
+function avalonSeatLabel(state: AvalonState, seat: number): string {
+  const name = getAvalonProfileTarget(state, seat)?.rosterName ?? `座位${seat + 1}`;
+  return `${seat + 1} 号 · ${name}`;
+}
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
@@ -248,7 +261,15 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
     if (progress !== null) return progressRibbon(progress);
     return messageRibbon(`天黑 · ${AVALON_NIGHT_STEP_LABELS[phase.step]}`);
   }
-  if (phase.kind === 'nominate') return messageRibbon(`第 ${phase.round} 轮 · 队长组队中`);
+  if (phase.kind === 'nominate') {
+    // 副行承载对局上下文（任务成败 tally），不是进度——逐轮进度看座位盘徽标。
+    const successCount = state.questResults.filter((result) => result === 'success').length;
+    const failCount = state.questResults.filter((result) => result === 'fail').length;
+    return messageRibbon(
+      `第 ${phase.round} 轮 · 队长组队中`,
+      `任务成功 ${successCount} · 失败 ${failCount}`,
+    );
+  }
   if (phase.kind === 'vote') {
     // 已投计数是公开信息（座位徽标同口径）；武装后进入揭晓倒计时。
     const castCount = Object.keys(phase.ballots).length;
@@ -267,8 +288,16 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
         : `已出牌 ${playedCount}/${phase.teamSeats.length}`,
     );
   }
-  if (phase.kind === 'lady') return messageRibbon('湖中仙女查验');
-  if (phase.kind === 'assassin') return messageRibbon('刺杀阶段');
+  if (phase.kind === 'lady') {
+    // 查验的发起与对象是公开事件，归状态条副行；结果是私人信息、只住弹窗。
+    return messageRibbon(
+      '湖中仙女查验',
+      phase.targetSeat !== null
+        ? `${avalonSeatLabel(state, phase.holderSeat)} 正在查验 ${avalonSeatLabel(state, phase.targetSeat)}`
+        : `${avalonSeatLabel(state, phase.holderSeat)} 正在选择查验目标`,
+    );
+  }
+  if (phase.kind === 'assassin') return messageRibbon('刺杀阶段', '等待刺客指认');
   if (phase.kind === 'ended') return messageRibbon('本局已结束');
   return messageRibbon(
     buildLobbyWaitingText(getAvalonOccupiedSeatCount(state), state.config.numberOfPlayers),
@@ -320,16 +349,38 @@ export interface AvalonBottomActionsInput {
   readonly isHost: boolean;
   readonly mySeat: number | null;
   readonly effectiveSeat: number | null;
+  readonly pickedSeats: ReadonlySet<number>;
+  readonly isSubmitting: boolean;
+  readonly canControlBots: boolean;
+  /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
+  readonly settleCountdownSeconds: number | null;
   readonly onViewRolePress: () => void;
   readonly onNightInfoPress: () => void;
+  readonly onOpenVotePress: () => void;
+  readonly onOpenQuestPress: () => void;
+  readonly onProposeTeamPress: () => void;
+  readonly onLadyAcknowledgePress: () => void;
+  readonly onLadyResultPress: () => void;
+  readonly onEarlyStrikePress: () => void;
 }
 
-/** 阿瓦隆底部动作：查看身份常驻局内；夜晚信息步两步确认（按钮 → 弹窗）。 */
+/**
+ * 阿瓦隆底部动作区：全游戏个人动作与个人指令的唯一落点（落点总规则）——
+ * 查看身份局内常驻；夜晚信息步两步确认（按钮 → 弹窗）；白天各阶段的主按钮
+ * （提交队伍 / 去投票 / 去出牌 / 查看查验请求）与个人状态走 message；
+ * 公开阶段状态归状态条、逐座状态归座位盘、一次性信息归弹窗。
+ */
 function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomInfoModel {
   const { state } = input;
   const actions: RoomBottomButton[] = [];
+  let message: string | null = null;
+  if (input.isLobby) {
+    // 大厅客人等分配（个人提示）；房主走房主面板。
+    if (!input.isHost && input.mySeat !== null) message = '等待房主分配角色';
+    return { kind: 'info', message, actions };
+  }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
-  if (!input.isLobby && input.effectiveSeat !== null) {
+  if (input.effectiveSeat !== null) {
     actions.push({
       key: 'viewRole',
       label: '查看身份',
@@ -340,40 +391,205 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       testID: 'avalon-view-role',
     });
   }
-  // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
-  if (!input.isLobby && state.phase.kind === 'night' && input.effectiveSeat !== null) {
-    const vm = getAvalonViewModel(state, input.effectiveSeat);
-    const instruction = resolveNightInstruction(vm);
-    if (
-      instruction.kind === 'evilPeers' ||
-      instruction.kind === 'merlin' ||
-      instruction.kind === 'percival'
-    ) {
-      actions.push(
-        state.isAudioPlaying
-          ? buildAudioWaitingButton({ key: 'nightInfo', testID: 'avalon-night-info' })
-          : {
-              key: 'nightInfo',
-              label: '确认信息',
-              variant: 'primary',
-              size: 'md',
-              isEnabled: true,
-              onPress: input.onNightInfoPress,
-              testID: 'avalon-night-info',
-            },
-      );
+  const phase = state.phase;
+  if (phase.kind === 'viewing') {
+    // 查看阶段本人未看时提示去看（展示契约 self-hint 态，只走这一处出口）。
+    if (input.effectiveSeat !== null && !state.roleViewedSeats.includes(input.effectiveSeat)) {
+      message = '请点击下方「查看身份」，查看你的角色';
     }
+    return { kind: 'info', message, actions };
   }
-  // 底部 message 的个人提示：大厅客人等分配；查看阶段本人未看时提示去看
-  // （展示契约 §3.3 self-hint 态，本人提示只走这一处出口）。
-  const message =
-    input.isLobby && !input.isHost && input.mySeat !== null
-      ? '等待房主分配角色'
-      : state.phase.kind === 'viewing' &&
-          input.effectiveSeat !== null &&
-          !state.roleViewedSeats.includes(input.effectiveSeat)
-        ? '请点击下方「查看身份」，查看你的角色'
-        : null;
+  if (phase.kind === 'night') {
+    // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
+    if (input.effectiveSeat !== null) {
+      const vm = getAvalonViewModel(state, input.effectiveSeat);
+      const instruction = resolveNightInstruction(vm);
+      if (
+        instruction.kind === 'evilPeers' ||
+        instruction.kind === 'merlin' ||
+        instruction.kind === 'percival'
+      ) {
+        actions.push(
+          state.isAudioPlaying
+            ? buildAudioWaitingButton({ key: 'nightInfo', testID: 'avalon-night-info' })
+            : {
+                key: 'nightInfo',
+                label: '确认信息',
+                variant: 'primary',
+                size: 'md',
+                isEnabled: true,
+                onPress: input.onNightInfoPress,
+                testID: 'avalon-night-info',
+              },
+        );
+      }
+    }
+    return { kind: 'info', message, actions };
+  }
+  const vm = getAvalonViewModel(state, input.effectiveSeat);
+  // 提前刺杀：刺客个人常驻动作（不属于房主管理），白天阶段与阶段主按钮并存。
+  if (vm.canEarlyStrike) {
+    actions.push({
+      key: 'earlyStrike',
+      label: '刺杀',
+      variant: 'primary',
+      size: 'md',
+      buttonColor: colors.error,
+      isEnabled: true,
+      onPress: input.onEarlyStrikePress,
+      testID: 'avalon-early-strike',
+    });
+  }
+  // 湖仙查验结果重开入口：结果本体只住弹窗（一次性私密信息），此处只放入口；
+  // VM 只向持有人暴露 lastLadyCheck 结果，非持有人恒无此按钮。
+  if (vm.ladyCheckResult !== null && phase.kind !== 'ended') {
+    actions.push({
+      key: 'ladyResult',
+      label: '查验结果',
+      variant: 'secondary',
+      size: 'md',
+      isEnabled: true,
+      onPress: input.onLadyResultPress,
+      testID: 'avalon-lady-result-open',
+    });
+  }
+  switch (phase.kind) {
+    case 'nominate': {
+      const instruction = resolveNominateInstruction(vm, vm.mySeat);
+      if (instruction.isLeader) {
+        message = `点座位盘点选 ${instruction.requiredSize} 名队员（可含自己），选中的座位会亮起「队员」徽标，再点一次取消。`;
+        const isFull = input.pickedSeats.size === instruction.requiredSize;
+        if (isFull && !input.isSubmitting) {
+          actions.push({
+            key: 'proposeTeam',
+            label: '提交队伍',
+            variant: 'primary',
+            size: 'md',
+            isEnabled: true,
+            onPress: input.onProposeTeamPress,
+            testID: 'avalon-nominate-submit',
+          });
+        } else if (isFull) {
+          actions.push({
+            key: 'proposeTeam',
+            label: '提交队伍',
+            variant: 'primary',
+            size: 'md',
+            isEnabled: false,
+            disabledReason: null,
+            onDisabledPress: null,
+            isLoading: true,
+            testID: 'avalon-nominate-submit',
+          });
+        } else {
+          const reason = `队员人数必须为 ${instruction.requiredSize} 人`;
+          actions.push({
+            key: 'proposeTeam',
+            label: '提交队伍',
+            variant: 'primary',
+            size: 'md',
+            isEnabled: false,
+            disabledReason: reason,
+            onDisabledPress: () => showErrorAlert('暂时不能提交队伍', reason),
+            testID: 'avalon-nominate-submit',
+          });
+        }
+      } else {
+        message = `等待队长组队（${instruction.leaderSeat + 1} 号座位），本轮需要 ${instruction.requiredSize} 名队员。`;
+      }
+      break;
+    }
+    case 'vote': {
+      const instruction = resolveVoteInstruction(vm);
+      if (instruction.canVote) {
+        actions.push({
+          key: 'openVote',
+          label: instruction.myBallot === null ? '去投票' : '修改投票',
+          variant: 'primary',
+          size: 'md',
+          isEnabled: true,
+          onPress: input.onOpenVotePress,
+          testID: 'avalon-vote-open',
+        });
+        message =
+          phase.deadlineAt !== null && input.settleCountdownSeconds !== null
+            ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
+            : instruction.myBallot !== null
+              ? `你已投：${instruction.myBallot === 'approve' ? '赞成' : '反对'}（揭晓前可改票）`
+              : null;
+      } else {
+        message = input.canControlBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
+      }
+      break;
+    }
+    case 'quest': {
+      const instruction = resolveQuestInstruction(vm);
+      if (instruction.isTeamMember) {
+        actions.push({
+          key: 'openQuest',
+          label: instruction.myPlay === null ? '去出牌' : '修改出牌',
+          variant: 'primary',
+          size: 'md',
+          isEnabled: true,
+          onPress: input.onOpenQuestPress,
+          testID: 'avalon-quest-open',
+        });
+        message =
+          phase.deadlineAt !== null && input.settleCountdownSeconds !== null
+            ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
+            : instruction.myPlay !== null
+              ? '你已出牌，等待揭晓'
+              : null;
+      } else {
+        message = '等待队员出牌…';
+      }
+      break;
+    }
+    case 'lady': {
+      const instruction = resolveLadyInstruction(vm);
+      switch (instruction.kind) {
+        case 'holderPick':
+          message =
+            '点座位盘点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏），点选后会再次确认。';
+          break;
+        case 'holderWait':
+          message = `已选择查验${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认展示。`;
+          break;
+        case 'targetConfirm':
+          message = `${avalonSeatLabel(state, instruction.holderSeat)} 要查验你的阵营，确认展示后对方将看到你是好人还是坏人。`;
+          actions.push({
+            key: 'ladyAcknowledge',
+            label: '查看查验请求',
+            variant: 'primary',
+            size: 'md',
+            isEnabled: true,
+            onPress: input.onLadyAcknowledgePress,
+            testID: 'avalon-lady-acknowledge-open',
+          });
+          break;
+        case 'watching':
+        case 'result':
+          // 公开进程归状态条副行；结果本体归弹窗（上方重开入口）。
+          break;
+      }
+      break;
+    }
+    case 'assassin': {
+      const instruction = resolveAssassinInstruction(vm);
+      message =
+        instruction.kind === 'assassinPick'
+          ? '点座位盘点选一名玩家指认其为梅林（除自己外任意座位），点选后会再次确认。指认正确坏人获胜，指认错误好人直接获胜。'
+          : instruction.kind === 'evilWait'
+            ? '坏人商量时间（线下口头），等待刺客指认。'
+            : '坏人正在商量刺杀目标…';
+      break;
+    }
+    case 'ended':
+      // 结算常驻于座位表上方区，此处只留查看身份。
+      break;
+    default:
+      break;
+  }
   return { kind: 'info', message, actions };
 }
 
@@ -406,6 +622,14 @@ export interface AvalonRoomShellModelInput {
   readonly effectiveSeat: number | null;
   readonly onViewRolePress: () => void;
   readonly onNightInfoPress: () => void;
+  readonly isSubmitting: boolean;
+  readonly settleCountdownSeconds: number | null;
+  readonly onOpenVotePress: () => void;
+  readonly onOpenQuestPress: () => void;
+  readonly onProposeTeamPress: () => void;
+  readonly onLadyAcknowledgePress: () => void;
+  readonly onLadyResultPress: () => void;
+  readonly onEarlyStrikePress: () => void;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly canControlBots: boolean;
   readonly releaseBot: () => void;
@@ -690,8 +914,18 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       isHost: input.isHost,
       mySeat: input.mySeat,
       effectiveSeat: input.effectiveSeat,
+      pickedSeats: input.pickedSeats,
+      isSubmitting: input.isSubmitting,
+      canControlBots: input.canControlBots,
+      settleCountdownSeconds: input.settleCountdownSeconds,
       onViewRolePress: input.onViewRolePress,
       onNightInfoPress: input.onNightInfoPress,
+      onOpenVotePress: input.onOpenVotePress,
+      onOpenQuestPress: input.onOpenQuestPress,
+      onProposeTeamPress: input.onProposeTeamPress,
+      onLadyAcknowledgePress: input.onLadyAcknowledgePress,
+      onLadyResultPress: input.onLadyResultPress,
+      onEarlyStrikePress: input.onEarlyStrikePress,
     }),
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
