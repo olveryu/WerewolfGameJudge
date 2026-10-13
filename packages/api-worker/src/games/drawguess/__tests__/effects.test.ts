@@ -112,7 +112,12 @@ describe('DrawGuess effects', () => {
     expect(await readStats()).toEqual({ xp: 15, normal_draws: 3, games_played: 1 });
     await drawGuessWorkerModule.handleEffect(effect, { ...context, deliveryAttemptCount: 2 });
     expect(await readStats()).toEqual({ xp: 15, normal_draws: 3, games_played: 1 });
-    expect(context.publishUserEvent).toHaveBeenCalledTimes(1);
+    // The event is republished on redelivery with the same deterministic
+    // eventId; the user-event inbox dedupes on (user_id, event_id), so the
+    // user still receives it exactly once.
+    const eventIds = context.publishUserEvent.mock.calls.map((call) => call[1]);
+    expect(eventIds).toHaveLength(2);
+    expect(eventIds[0]).toBe(eventIds[1]);
     expect(context.dispatchInternal).not.toHaveBeenCalled();
   });
 });
