@@ -1080,7 +1080,7 @@ describe('Avalon engine', () => {
     session.send({ type: 'room.seat.take', seat: 5, profile: { displayName: 'Newcomer' } }, 'u9');
     const userOf = (seat: number): string => {
       const occupant = session.state.roster[seat];
-      if (occupant === undefined || !('userId' in occupant))
+      if (occupant === undefined || occupant === null || !('userId' in occupant))
         throw new Error(`seat ${seat} is not human-held`);
       return occupant.userId;
     };
