@@ -1066,6 +1066,46 @@ describe('Avalon engine', () => {
     expect(Object.keys(session.state.roles)).toHaveLength(0);
   });
 
+  it('restarts on a changed roster after returning to the lobby', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.startGame();
+    session.passNight();
+    session.earlyStrike(session.seatOfRole('merlin'));
+    expect(session.state.phase.kind).toBe('ended');
+    session.send({ type: 'avalon.game.returnToLobby' });
+    expect(session.state.phase.kind).toBe('lobby');
+    // Roster change in the lobby: seat 5's player leaves, a new player
+    // takes the seat under a new account and name.
+    session.send({ type: 'room.seat.leave' }, 'u5');
+    session.send({ type: 'room.seat.take', seat: 5, profile: { displayName: 'Newcomer' } }, 'u9');
+    const userOf = (seat: number): string => {
+      const occupant = session.state.roster[seat];
+      if (occupant === undefined || !('userId' in occupant))
+        throw new Error(`seat ${seat} is not human-held`);
+      return occupant.userId;
+    };
+    expect(userOf(5)).toBe('u9');
+    // The new roster starts cleanly: deal, viewing checkpoint and the
+    // night steps all key off the new seat owner.
+    session.send({ type: 'avalon.game.start' });
+    expect(Object.keys(session.state.roles)).toHaveLength(6);
+    for (let seat = 0; seat < 6; seat += 1) {
+      session.send({ type: 'avalon.role.viewed' }, userOf(seat));
+    }
+    if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+    while (session.state.phase.kind === 'night') {
+      const participants = getAvalonNightParticipants(
+        session.state.roles,
+        session.state.phase.step,
+      );
+      for (const seat of participants) {
+        session.send({ type: 'avalon.night.confirm' }, userOf(seat));
+      }
+      if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
+    }
+    expect(session.state.phase.kind).toBe('nominate');
+  });
+
   it('records quest history per round (captain/team/votes/result)', () => {
     const session = game({ numberOfPlayers: 6 });
     session.startGame();
