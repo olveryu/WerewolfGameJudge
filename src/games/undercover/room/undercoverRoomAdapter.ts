@@ -369,7 +369,13 @@ export function createUndercoverHostManagement(
         }),
       );
       if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
-        actions.push(buildMarkBotsViewedAction({ onPress: controls.markAllBotsViewed }));
+        actions.push(
+          buildMarkBotsViewedAction({
+            onPress: controls.markAllBotsViewed,
+            isEnabled: !controls.isSubmitting,
+            isLoading: controls.isSubmitting,
+          }),
+        );
       add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
       break;
     }

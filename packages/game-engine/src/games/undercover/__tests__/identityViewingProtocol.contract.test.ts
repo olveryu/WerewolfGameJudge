@@ -16,6 +16,7 @@
  */
 
 import type { CommandContext } from '../../../platform/engine';
+import { REASON_NOT_HOST } from '../../../platform/protocol/reasons';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { haveAllViewed, markSeatViewed } from '../../../platform/room/identityViewing';
 import type { UndercoverCommand } from '../commands/types';
@@ -155,6 +156,7 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
       user('guest'),
     );
     expect(nonHost.kind).toBe('reject');
+    if (nonHost.kind === 'reject') expect(nonHost.reason).toBe(REASON_NOT_HOST);
     state = beginRound(state);
     const again = undercoverEngine.decide(
       state,
