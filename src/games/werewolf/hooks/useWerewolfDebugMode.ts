@@ -13,7 +13,6 @@ import type {
   WerewolfCommandDispatchOutcome,
   WerewolfGameClient,
 } from '@/games/werewolf/runtime/WerewolfGameClient';
-import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export interface WerewolfDebugModeState {
   /** Fill all empty seats with bots */
@@ -26,7 +25,6 @@ export interface WerewolfDebugModeState {
 
 export function useWerewolfDebugMode(
   client: WerewolfGameClient,
-  gameState: LocalGameState,
   fillBots: () => Promise<WerewolfCommandDispatchOutcome>,
 ): WerewolfDebugModeState {
   // Fill all empty seats with bots
