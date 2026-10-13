@@ -21,6 +21,7 @@ import { createControlledSeatModel } from '@/features/room/model/createControlle
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildMarkBotsViewedAction,
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
@@ -44,6 +45,7 @@ import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { colors } from '@/theme';
+import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from './undercoverActionModels';
@@ -164,7 +166,7 @@ export function createUndercoverSeatDataSource(
             : target === null && state.phase !== 'lobby'
               ? '本局座位已锁定'
               : undefined,
-        showReadyBadge: state.phase === 'reading' && state.round.confirmedSeats.includes(seat),
+        showReadyBadge: state.phase === 'viewing' && state.round.confirmedSeats.includes(seat),
         statusBadge: null,
         isStatusEmphasized: revelation !== undefined,
         showLevel: state.phase === 'lobby',
@@ -192,8 +194,8 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
             ? '该类别的新词已用完'
             : '词语准备失败';
       break;
-    case 'reading':
-      text = `确认词卡 · ${state.round.confirmedSeats.length}/${state.config.numberOfPlayers}`;
+    case 'viewing':
+      text = `等待全员查看词卡 · ${state.round.confirmedSeats.length}/${state.config.numberOfPlayers}`;
       break;
     case 'ongoing':
       text = `游戏进行中 · 存活 ${state.config.numberOfPlayers - state.round.revelations.length} 人`;
@@ -351,17 +353,26 @@ export function createUndercoverHostManagement(
     case 'preparing':
       add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
       break;
-    case 'reading':
+    case 'viewing': {
+      // The begin gate mirrors the engine checkpoint: play opens only
+      // once every seat has viewed; the panel shows why it is disabled.
+      const allViewed = state.round.confirmedSeats.length === state.config.numberOfPlayers;
+      const beginDisabledReason = allViewed ? null : '还有玩家未查看词卡';
+      actions.push(
+        buildStartGameAction({
+          label: '开始游戏',
+          onPress: controls.begin,
+          isEnabled: !controls.isSubmitting && allViewed,
+          disabledReason: beginDisabledReason,
+          onDisabledPress: () =>
+            showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
+        }),
+      );
       if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
-        add(
-          'mark-bots-viewed',
-          '标记机器人已查看',
-          'eye-outline',
-          controls.markAllBotsViewed,
-          'secondary',
-        );
+        actions.push(buildMarkBotsViewedAction({ onPress: controls.markAllBotsViewed }));
       add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
       break;
+    }
     case 'preparationFailed':
       add('retry', '重新准备', 'refresh-outline', controls.retry, 'primary');
       if (state.failureCode === 'inventoryExhausted')

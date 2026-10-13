@@ -48,12 +48,13 @@ export interface UndercoverRoundControls {
   /** 当前可见词卡；不可见或无权查看时为 null。 */
   readonly card: UndercoverWordCard | null;
   readonly canViewCard: boolean;
-  /** 身份查看协议：reading 阶段且本座位未在服务端确认时，词卡需要确认动作。 */
+  /** 身份查看协议：viewing 阶段且本座位未在服务端确认时，词卡需要确认动作。 */
   readonly shouldConfirm: boolean;
   readonly openCard: () => void;
   readonly closeCard: () => void;
   readonly confirmCard: () => void;
   readonly markAllBotsViewed: () => void;
+  readonly begin: () => void;
   readonly isSelecting: boolean;
   readonly selectedSeat: number | null;
   readonly reveal: () => void;
@@ -125,8 +126,8 @@ export function useUndercoverRoundControls(
     });
   };
   const confirmCard = () => {
-    if (state.phase !== 'reading' || card === null)
-      throw new Error('Card confirmation requires a reading participant');
+    if (state.phase !== 'viewing' || card === null)
+      throw new Error('Card confirmation requires a viewing participant');
     closeCard();
     void submit(
       '确认词卡',
@@ -160,7 +161,7 @@ export function useUndercoverRoundControls(
     card: visibleCardKey !== null && visibleCardKey === cardKey ? card : null,
     canViewCard: card !== null,
     shouldConfirm:
-      card !== null && state.phase === 'reading' && !state.round.confirmedSeats.includes(card.seat),
+      card !== null && state.phase === 'viewing' && !state.round.confirmedSeats.includes(card.seat),
     openCard: () => {
       if (cardKey === null) throw new Error('No permitted Undercover word card');
       setVisibleCardKey(cardKey);
@@ -168,11 +169,15 @@ export function useUndercoverRoundControls(
     closeCard,
     confirmCard,
     markAllBotsViewed: () => {
-      if (state.phase !== 'reading') throw new Error('Bot confirmation requires reading phase');
+      if (state.phase !== 'viewing') throw new Error('Bot confirmation requires viewing phase');
       void submit('标记机器人已查看', {
         type: 'undercover.round.markAllBotsViewed',
         roundId: state.round.roundId,
       });
+    },
+    begin: () => {
+      if (state.phase !== 'viewing') throw new Error('Begin requires the viewing phase');
+      void submit('开始游戏', { type: 'undercover.round.begin', roundId: state.round.roundId });
     },
     isSelecting,
     selectedSeat,

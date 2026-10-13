@@ -23,4 +23,5 @@ export const getUndercoverRoomCommandFailureMessage =
     [UNDERCOVER_REASONS.reused]: '该词对已使用，请重新准备',
     [UNDERCOVER_REASONS.bot]: '该操作只能接管机器人座位',
     [UNDERCOVER_REASONS.failure]: '准备结果无效，请重新准备',
+    [UNDERCOVER_REASONS.notAllViewed]: '还有玩家未查看词卡',
   });
