@@ -288,7 +288,7 @@ function submitGuess(
     (entry) => entry.seat === resolved.seat && entry.at > context.nowMs - 10000,
   ).length;
   if (recentAttempts >= 5) {
-    return reject('请求太频繁，请稍后再试');
+    return reject(DRAWGUESS_REASONS.rateLimited);
   }
   const correct = isCorrectGuess(text, state.phase.word);
   const remainingMs = Math.max(0, state.phase.deadlineAt - context.nowMs);

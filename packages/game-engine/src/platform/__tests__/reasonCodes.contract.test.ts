@@ -7,6 +7,10 @@
  * table (its handler literals are already English codes).
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { AVALON_REASONS, teamSizeReason } from '../../games/avalon/domain/decision';
 import { DRAWGUESS_REASONS } from '../../games/drawguess/domain/decision';
 import * as fibReasons from '../../games/fibking/domain/reasons';
@@ -48,4 +52,34 @@ describe('reason codes are stable English codes, never display text', () => {
     expect(teamSizeReason(3)).toBe('avalon_team_size_invalid:3');
     expect(teamSizeReason(3)).toMatch(/^avalon_[a-z_]+:\d+$/);
   });
+});
+
+/**
+ * The tables above cannot see ad-hoc literals: a `reject('中文文案')` call
+ * bypasses every REASONS table. Scan all seven games' production sources
+ * for CJK text passed straight to reject/handlerError.
+ */
+describe('no CJK display text is passed to reject/handlerError anywhere', () => {
+  const gamesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'games');
+  const CJK_REJECT = /(?:reject|handlerError)\(\s*['"`][^'"`]*[\u4e00-\u9fff]/;
+
+  function productionFiles(dir: string): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        return entry.name === '__tests__' ? [] : productionFiles(full);
+      }
+      return entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts') ? [full] : [];
+    });
+  }
+
+  it.each(['avalon', 'drawguess', 'fibking', 'pictionary', 'storyrelay', 'undercover', 'werewolf'])(
+    '%s production sources contain no CJK rejection literals',
+    (game) => {
+      const offenders = productionFiles(path.join(gamesDir, game)).filter((file) =>
+        CJK_REJECT.test(fs.readFileSync(file, 'utf-8')),
+      );
+      expect(offenders).toEqual([]);
+    },
+  );
 });

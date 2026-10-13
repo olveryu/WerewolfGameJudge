@@ -479,7 +479,7 @@ describe('handleUpdateTemplate', () => {
   });
 
   it.each([GameStatus.Assigned, GameStatus.Ready, GameStatus.Ongoing, GameStatus.Ended] as const)(
-    'should fail when status is %s (before_view_only message)',
+    'should fail when status is %s (invalid_status)',
     (status) => {
       const state = createMinimalState({ status });
       const context = createContext(state);
@@ -487,7 +487,7 @@ describe('handleUpdateTemplate', () => {
       const result = handleUpdateTemplate(updateIntent, context);
 
       const err = expectError(result);
-      expect(err.reason).toContain('只能在"分配角色"前修改设置');
+      expect(err.reason).toBe('invalid_status');
     },
   );
 });

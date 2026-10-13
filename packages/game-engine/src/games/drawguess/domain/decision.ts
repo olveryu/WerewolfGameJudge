@@ -36,6 +36,7 @@ export const DRAWGUESS_REASONS = {
   occupied: 'drawguess_occupied_seat_out_of_range',
   deadline: 'drawguess_deadline_not_reached',
   controlledSeatNotBot: 'drawguess_controlled_seat_not_bot',
+  rateLimited: 'drawguess_rate_limited',
 } as const;
 
 export type DrawGuessEvent =

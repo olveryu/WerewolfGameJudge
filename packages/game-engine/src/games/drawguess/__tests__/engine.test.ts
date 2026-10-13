@@ -302,7 +302,7 @@ describe('DrawGuess engine', () => {
     );
     expect(decision.kind).toBe('reject');
     if (decision.kind === 'reject') {
-      expect(decision.reason).toBe('请求太频繁，请稍后再试');
+      expect(decision.reason).toBe('drawguess_rate_limited');
     }
     // After the window slides past, guesses are accepted again.
     session.advanceTime(6000);

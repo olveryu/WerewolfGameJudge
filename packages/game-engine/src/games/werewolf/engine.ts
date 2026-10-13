@@ -288,14 +288,14 @@ function decideWerewolfCommandRules(
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       const { selection } = command;
-      if (state.mvpUserId !== undefined) return reject('本局已确认 MVP，不可重复评选');
+      if (state.mvpUserId !== undefined) return reject('mvp_already_selected');
       if (
         state.status !== GameStatus.Ended ||
         state.startingParticipants === undefined ||
         selection.roleRevealRandomNonce !== (state.roleRevealRandomNonce ?? null) ||
         !state.startingParticipants.some((player) => player.userId === selection.mvpUserId)
       )
-        return reject('无法评选：本局尚未结束、局次已变化或玩家不在本局真人名单中');
+        return reject('mvp_selection_invalid');
       return commit<StateAction, WerewolfEffect>({
         events: [{ type: 'SELECT_MVP', mvpUserId: selection.mvpUserId }],
         broadcast: 'state',
