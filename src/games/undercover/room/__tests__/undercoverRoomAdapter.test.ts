@@ -451,3 +451,29 @@ describe('createUndercoverRoomShellModel', () => {
     expect(model.share).toBe(share);
   });
 });
+
+// 本用例注册 AppState 监听（经 hook），必须排在其余用例之后：更早的
+// 'conceals cards…' 用例按注册顺序取第一个 change 监听器，顺序不可动。
+it('reports ready on the ribbon once every seat has viewed, and hints the unviewed viewer below', () => {
+  const viewing = createViewingState();
+  const roundId = viewing.round!.roundId;
+  const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
+  const { result, rerender, unmount } = renderHook(
+    ({ currentState }: { currentState: UndercoverState }) =>
+      useUndercoverRoundControls(currentState, session, 'host', null),
+    { initialProps: { currentState: viewing } },
+  );
+  // 本人未确认：底部只出一处提示，指向查看按钮（展示契约 self-hint 态）。
+  expect(createUndercoverBottomActions(result.current)).toMatchObject({
+    message: '请点击下方「查看我的词」，查看词语',
+  });
+  let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
+  expect(state.round!.confirmedSeats).toHaveLength(6);
+  expect(createUndercoverStatusRibbon(state)).toMatchObject({
+    text: '全员已查看词卡，等待房主开始游戏',
+  });
+  rerender({ currentState: state });
+  expect(createUndercoverBottomActions(result.current)).toMatchObject({ message: null });
+  unmount();
+});

@@ -97,7 +97,9 @@ for (const viewport of [
       await expect(hostPage.getByText('等待全员查看词卡 · 5/6', { exact: true })).toBeVisible();
       await hostPage.getByTestId('undercover-view-word').click();
       await hostPage.getByTestId('undercover-confirm').click();
-      await expect(hostPage.getByText('等待全员查看词卡 · 6/6', { exact: true })).toBeVisible();
+      await expect(
+        hostPage.getByText('全员已查看词卡，等待房主开始游戏', { exact: true }),
+      ).toBeVisible();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
       await expect(hostPage.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();

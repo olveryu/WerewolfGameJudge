@@ -10,13 +10,12 @@ type Controls = UndercoverRoundControls;
 
 export function createUndercoverBottomActions(controls: Controls): RoomBottomActionModel {
   const actions: RoomBottomButton[] = [];
+  const cardLabel =
+    controls.controlledSeat !== null ? `查看 ${controls.controlledSeat + 1} 号词卡` : '查看我的词';
   if (controls.canViewCard && !controls.isSelecting)
     actions.push({
       key: 'card',
-      label:
-        controls.controlledSeat !== null
-          ? `查看 ${controls.controlledSeat + 1} 号词卡`
-          : '查看我的词',
+      label: cardLabel,
       variant: 'primary',
       size: 'lg',
       isEnabled: true,
@@ -35,7 +34,13 @@ export function createUndercoverBottomActions(controls: Controls): RoomBottomAct
   }
   return {
     kind: 'info',
-    message: controls.isSelecting ? '选择本次出局玩家' : null,
+    // 查看阶段本人（或被接管座位）未确认时提示去看词卡（展示契约
+    // self-hint 态，本人提示只走底部这一处出口）。
+    message: controls.isSelecting
+      ? '选择本次出局玩家'
+      : controls.shouldConfirm
+        ? `请点击下方「${cardLabel}」，查看词语`
+        : null,
     actions,
   };
 }

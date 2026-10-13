@@ -195,7 +195,11 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
             : '词语准备失败';
       break;
     case 'viewing':
-      text = `等待全员查看词卡 · ${state.round.confirmedSeats.length}/${state.config.numberOfPlayers}`;
+      // 查看阶段展示契约：未齐报进度，齐了报等待房主开始（两态只出状态条）。
+      text =
+        state.round.confirmedSeats.length >= state.config.numberOfPlayers
+          ? '全员已查看词卡，等待房主开始游戏'
+          : `等待全员查看词卡 · ${state.round.confirmedSeats.length}/${state.config.numberOfPlayers}`;
       break;
     case 'ongoing':
       text = `游戏进行中 · 存活 ${state.config.numberOfPlayers - state.round.revelations.length} 人`;
