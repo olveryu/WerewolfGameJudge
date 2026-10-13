@@ -22,6 +22,7 @@ export type {
   EventOf,
   GameCommand,
   GameEffect,
+  GameEngineCapabilities,
   GameEngineDefinition,
   GameEvent,
   StateOf,

@@ -242,6 +242,8 @@ function phase(value: unknown, path: string): AvalonPhase {
   switch (kind) {
     case 'lobby':
       return finishObject(raw, { kind: 'lobby' as const }, path);
+    case 'viewing':
+      return finishObject(raw, { kind: 'viewing' as const }, path);
     case 'night':
       return finishObject(
         raw,
@@ -389,7 +391,10 @@ export function parseAvalonState(value: unknown): AvalonState {
  */
 export function migratePersistedAvalonState(value: unknown): AvalonState {
   const raw = parseObject(value, 'AvalonState');
-  if (raw.stateVersion === 3)
+  // v3/v4 predate the viewing stage; their phases all exist unchanged
+  // in v5 (a v4 game is either undealt or already past the deal), so
+  // migration is a pure version bump with field-for-field equivalence.
+  if (raw.stateVersion === 3 || raw.stateVersion === 4)
     return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
   if (raw.stateVersion === 1 && 'roleViewedSeats' in raw)

@@ -204,6 +204,7 @@ export function getStoryRelayLifecycle(state: StoryRelayState): CommonGameLifecy
 export const storyRelayEngine = {
   gameType: STORY_RELAY_GAME_TYPE,
   stateVersion: STORY_RELAY_STATE_VERSION,
+  capabilities: { nightPhase: false },
   createInitialState,
   decide: decideStoryRelayCommand,
   evolve: evolveStoryRelayState,

@@ -517,6 +517,7 @@ export function decideFibCommand(
 export const fibEngine = {
   gameType: FIBKING_GAME_TYPE,
   stateVersion: FIB_STATE_VERSION,
+  capabilities: { nightPhase: false },
   createInitialState: createInitialFibState,
   decide: decideFibCommand,
   evolve: evolveFibState,

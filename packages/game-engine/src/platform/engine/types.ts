@@ -59,6 +59,17 @@ export type Decision<TEvent extends GameEvent, TEffect extends GameEffect> =
       readonly reason: string;
     };
 
+/**
+ * Chassis capabilities a game declares at registration. Switches only
+ * say whether the game hooks into a platform capability; they never
+ * assemble gameplay (template red line). `nightPhase`: the game runs a
+ * night segment (step progression + narration audio) after the host
+ * begins play — werewolf and avalon today.
+ */
+export interface GameEngineCapabilities {
+  readonly nightPhase: boolean;
+}
+
 export interface GameEngineDefinition<
   TGameType extends string,
   TState extends BaseGameState<TGameType>,
@@ -69,6 +80,7 @@ export interface GameEngineDefinition<
 > {
   readonly gameType: TGameType;
   readonly stateVersion: number;
+  readonly capabilities: GameEngineCapabilities;
   createInitialState(config: TConfig, context: CreateGameContext): TState;
   decide(state: TState, command: TCommand, context: CommandContext): Decision<TEvent, TEffect>;
   evolve(state: TState, event: TEvent): TState;

@@ -154,7 +154,7 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.controlledSeat).toEqual({ kind: 'hint' });
   });
 
-  it('shows 等待房主开始游戏 to a seated non-host in the lobby', () => {
+  it('shows 等待房主分配角色 to a seated non-host in the lobby', () => {
     const { state } = session(5);
     const model = createAvalonRoomShellModel({
       ...baseInput(state),
@@ -164,7 +164,7 @@ describe('createAvalonRoomShellModel', () => {
     });
     expect(model.bottomActions).toEqual({
       kind: 'info',
-      message: '等待房主开始游戏',
+      message: '等待房主分配角色',
       actions: [],
     });
     expect(model.controlledSeat).toBeNull();
@@ -194,6 +194,10 @@ describe('createAvalonRoomShellModel', () => {
   it('pins the night info action: disabled while audio plays, confirm opens the modal after', () => {
     const running = session(5);
     running.send({ type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
+    }
+    running.send({ type: 'avalon.game.begin' });
     const evilSeat = Number(
       Object.entries(running.state.roles).find(([, roleId]) =>
         ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),

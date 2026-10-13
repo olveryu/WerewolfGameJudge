@@ -37,6 +37,7 @@ import {
   type AvalonStrikeConfirmation,
   AvalonStrikeConfirmModal,
 } from './components/AvalonStrikeConfirmModal';
+import { AvalonViewingView } from './components/AvalonViewingView';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { type AvalonRoomScreenState, useAvalonRoomState } from './hooks/useAvalonRoomState';
@@ -504,7 +505,13 @@ function AvalonStage({
           <Text style={styles.strikeHint}>晚上已过，可随时提前刺杀</Text>
         </View>
       ) : null}
-      {kind === 'nominate' ? (
+      {kind === 'viewing' ? (
+        <AvalonViewingView
+          viewModel={viewModel}
+          totalSeats={screen.state.config.numberOfPlayers}
+          isHost={screen.isHost}
+        />
+      ) : kind === 'nominate' ? (
         <AvalonNominateView
           viewModel={viewModel}
           selectedSeats={nominateSelection}

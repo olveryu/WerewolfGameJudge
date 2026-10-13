@@ -10,6 +10,7 @@
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
+import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';
 
@@ -76,7 +77,7 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
     label: '等待房主开始',
   },
   audioWaiting: {
-    label: '语音播报中…',
+    label: AUDIO_WAITING_LABEL,
     testID: TESTIDS.audioWaitingButton,
   },
   nightReview: {

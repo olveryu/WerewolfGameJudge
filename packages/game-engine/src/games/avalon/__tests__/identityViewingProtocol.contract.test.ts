@@ -1,13 +1,14 @@
 /**
  * Identity Viewing Protocol — avalon scenario (P-1 batch C).
  *
- * Avalon follows the protocol: the engine records roleViewedSeats
- * (avalon.role.viewed, idempotent), and the first quest is gated -
- * when the night steps finish, the night only completes once every
- * seated player has viewed their role. Bot seats count like
- * everyone else; the host fills their records with the scaffold
- * action (avalon.role.markAllBotsViewed). Same-named scenario
- * files live in each compliant game's __tests__.
+ * Avalon follows the protocol: dealing (avalon.game.start) lands in
+ * the viewing stage with an empty record (avalon.role.viewed,
+ * idempotent), and play is gated at the host's begin command
+ * (avalon.game.begin) — the night only opens once every seated
+ * player has viewed their role. Bot seats count like everyone else;
+ * the host fills their records with the scaffold action
+ * (avalon.role.markAllBotsViewed). Same-named scenario files live in
+ * each compliant game's __tests__.
  */
 
 import type { CommandContext } from '../../../platform/engine';
@@ -82,6 +83,10 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     seatUser,
     startGame() {
       send({ type: 'avalon.game.start' });
+    },
+    /** Begins play from the viewing stage; acks the opening narration. */
+    begin() {
+      send({ type: 'avalon.game.begin' });
       if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
     view(seat: number) {
@@ -151,9 +156,13 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     ).toEqual([1, 3, 4]);
   });
 
-  it('holds the night open until the last human views, then releases the checkpoint', () => {
+  it('holds the game in the viewing stage until the last human views, then begin opens the night', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();
+    expect(session.state.phase.kind).toBe('viewing');
+    // Dealing queues no audio and opens no night (the reported bug).
+    expect(session.state.isAudioPlaying).toBe(false);
+    expect(session.state.pendingAudioEffects).toEqual([]);
     // A loyal servant has no night step; leave exactly that seat unviewed.
     const servant = session.seatOfRole('loyalServant');
     for (let seat = 0; seat < 5; seat += 1) {
@@ -163,29 +172,40 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
       haveAllViewed(getAvalonViewingParticipants(session.state), session.state.roleViewedSeats),
     ).toBe(false);
 
-    session.walkNight();
-    // Night steps are done, but the checkpoint holds: still night.
-    expect(session.state.phase.kind).toBe('night');
+    const blocked = session.decideAs({ type: 'avalon.game.begin' });
+    expect(blocked.kind).toBe('reject');
+    if (blocked.kind === 'reject') expect(blocked.reason).toBe(AVALON_REASONS.notAllViewed);
+    expect(session.state.phase.kind).toBe('viewing');
 
     session.view(servant);
+    session.send({ type: 'avalon.game.begin' });
+    expect(session.state.phase.kind).toBe('night');
+    // The opening narration is queued by begin, and only by begin.
+    expect(session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
+    session.send({ type: 'avalon.audio.ack' }, 'host');
+    session.walkNight();
     expect(session.state.phase.kind).toBe('nominate');
-    expect(session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toContain(
-      'night_end',
-    );
     expect(
       haveAllViewed(getAvalonViewingParticipants(session.state), session.state.roleViewedSeats),
     ).toBe(true);
   });
 
-  it('blocks on unmarked bot seats until the host marks them', () => {
+  it('blocks begin on unmarked bot seats until the host marks them', () => {
     const session = game({ numberOfPlayers: 5 }, 1);
     session.startGame();
     session.viewAllHumans();
     // Every human has viewed; the bot seats are the remaining blockers.
     expect(getAvalonViewModel(session.state, 0).unviewedRoleSeats).toEqual([1, 2, 3, 4]);
-    session.walkNight();
-    expect(session.state.phase.kind).toBe('night');
+    const blocked = session.decideAs({ type: 'avalon.game.begin' });
+    expect(blocked.kind).toBe('reject');
+    if (blocked.kind === 'reject') expect(blocked.reason).toBe(AVALON_REASONS.notAllViewed);
     session.markAllBotsViewed();
+    session.begin();
+    expect(session.state.phase.kind).toBe('night');
+    session.walkNight();
     expect(session.state.phase.kind).toBe('nominate');
   });
 
@@ -217,17 +237,53 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     expect(session.state.roleViewedSeats).toEqual([]);
   });
 
-  it('holds the night until humans viewed AND bots are marked, in either order', () => {
-    const session = game({ numberOfPlayers: 5 }, 3);
+  it('holds begin until humans viewed AND bots are marked, in either order', () => {
+    const humansFirst = game({ numberOfPlayers: 5 }, 3);
+    humansFirst.startGame();
+    humansFirst.viewAllHumans();
+    // Humans alone do not release the checkpoint.
+    expect(humansFirst.decideAs({ type: 'avalon.game.begin' }).kind).toBe('reject');
+    humansFirst.markAllBotsViewed();
+    expect(humansFirst.decideAs({ type: 'avalon.game.begin' }).kind).toBe('commit');
+
+    const botsFirst = game({ numberOfPlayers: 5 }, 3);
+    botsFirst.startGame();
+    botsFirst.markAllBotsViewed();
+    // Bots alone do not release the checkpoint either.
+    expect(botsFirst.decideAs({ type: 'avalon.game.begin' }).kind).toBe('reject');
+    botsFirst.viewAllHumans();
+    expect(botsFirst.decideAs({ type: 'avalon.game.begin' }).kind).toBe('commit');
+  });
+
+  it('rejects a second begin after the night has opened, queuing no extra audio', () => {
+    const session = game({ numberOfPlayers: 5 });
     session.startGame();
-    session.walkNight();
-    // Night steps are done but nobody has viewed: still held.
-    expect(session.state.phase.kind).toBe('night');
     session.viewAllHumans();
-    // Humans alone no longer release the checkpoint.
+    session.send({ type: 'avalon.game.begin' });
     expect(session.state.phase.kind).toBe('night');
-    session.markAllBotsViewed();
-    expect(session.state.phase.kind).toBe('nominate');
+    expect(session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
+    const again = session.decideAs({ type: 'avalon.game.begin' });
+    expect(again.kind).toBe('reject');
+    if (again.kind === 'reject') expect(again.reason).toBe(AVALON_REASONS.phase);
+    expect(session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
+  });
+
+  it('rejects begin from a non-host and outside the viewing stage', () => {
+    const session = game({ numberOfPlayers: 5 });
+    const inLobby = session.decideAs({ type: 'avalon.game.begin' });
+    expect(inLobby.kind).toBe('reject');
+    if (inLobby.kind === 'reject') expect(inLobby.reason).toBe(AVALON_REASONS.phase);
+    session.startGame();
+    session.viewAllHumans();
+    const nonHost = session.decideAs({ type: 'avalon.game.begin' }, session.seatUser(1));
+    expect(nonHost.kind).toBe('reject');
+    if (nonHost.kind === 'reject') expect(nonHost.reason).toBe(AVALON_REASONS.notHostBegin);
   });
 
   it('loads a persisted v1 state (no roleViewedSeats) through the migration', () => {
@@ -257,7 +313,6 @@ describeIdentityViewingProtocol({
   makeSession: () => {
     const session = game({ numberOfPlayers: 5 }, 3);
     session.startGame();
-    let walked = false;
     return {
       viewedSeats: () => session.state.roleViewedSeats,
       participants: () => getAvalonViewingParticipants(session.state),
@@ -269,15 +324,10 @@ describeIdentityViewingProtocol({
       },
       markAllBotsViewed: () => session.markAllBotsViewed(),
       isCheckpointOpen: () => {
-        // The checkpoint releases the night itself; walking the
-        // night steps once is how the session finds out. Later
-        // views/marks complete the night through their own
-        // handlers, so the walk must not repeat.
-        if (!walked && session.state.phase.kind === 'night') {
-          walked = true;
-          session.walkNight();
-        }
-        return session.state.phase.kind !== 'night';
+        // The checkpoint is the host's begin gate: probe it with a
+        // non-mutating decide so the shared scenarios can ask at any
+        // point without consuming the transition.
+        return session.decideAs({ type: 'avalon.game.begin' }, 'host').kind === 'commit';
       },
     };
   },

@@ -4,6 +4,7 @@ import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
 import { storyRelayEngine } from '../../../games/storyrelay/engine';
 import { undercoverEngine } from '../../../games/undercover/engine';
+import { werewolfEngine } from '../../../games/werewolf/engine';
 import { WEREWOLF_GAME_TYPE } from '../../protocol/gameTypes';
 import type { BaseGameState } from '../../protocol/roomSnapshot';
 import { defineGameEngineCatalog } from '../catalog';
@@ -43,6 +44,7 @@ interface AuditEffect {
 const counterEngine = {
   gameType: WEREWOLF_GAME_TYPE,
   stateVersion: 1,
+  capabilities: { nightPhase: false },
   createInitialState(config, context) {
     return {
       gameType: WEREWOLF_GAME_TYPE,
@@ -113,6 +115,29 @@ describe('typed game engine contract', () => {
       outcome: { kind: 'domainRejected', reason: 'blocked' },
     });
     expect(reject('not_host')).toEqual({ kind: 'reject', reason: 'not_host' });
+  });
+
+  it('declares the nightPhase capability exactly for werewolf and avalon', () => {
+    // The one chassis switch the template registry reads: exactly the
+    // games with a night segment declare it, so a game cannot silently
+    // grow or lose a night flow without this flipping.
+    const engines = {
+      werewolf: werewolfEngine,
+      fibking: fibEngine,
+      pictionary: pictionaryEngine,
+      undercover: undercoverEngine,
+      storyrelay: storyRelayEngine,
+      drawguess: drawGuessEngine,
+      avalon: avalonEngine,
+    };
+    const withNight = Object.values(engines)
+      .filter((engine) => engine.capabilities.nightPhase)
+      .map((engine) => engine.gameType)
+      .sort();
+    expect(withNight).toEqual(['avalon', 'werewolf']);
+    for (const engine of Object.values(engines)) {
+      expect(typeof engine.capabilities.nightPhase).toBe('boolean');
+    }
   });
 
   it('retains concrete engines in an exhaustive catalog', () => {

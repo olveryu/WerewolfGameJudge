@@ -171,6 +171,17 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
   switch (state.phase.kind) {
     case 'lobby':
       return state;
+    case 'viewing': {
+      // Roles are dealt but play has not begun: every seat's role must
+      // exist and no quest progress may be present yet.
+      invariant(
+        Object.keys(state.roles).length === count &&
+          state.questResults.length === 0 &&
+          state.questHistory.length === 0,
+        'viewing deal',
+      );
+      return state;
+    }
     case 'night': {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
       invariant(

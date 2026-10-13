@@ -111,9 +111,11 @@ function session() {
     },
     startToNominate() {
       send({ type: 'avalon.game.start' });
-      // Only the host is human: the host views, then marks the bots.
+      // Only the host is human: the host views, then marks the bots,
+      // then begins the game into the night.
       send({ type: 'avalon.role.viewed' });
       send({ type: 'avalon.role.markAllBotsViewed' });
+      send({ type: 'avalon.game.begin' });
       ackAudio();
       while (state.phase.kind === 'night') {
         const participants = getAvalonNightParticipants(state.roles, state.phase.step);
@@ -183,10 +185,11 @@ describe('createAvalonHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true, true);
-    expect(model?.preview).toBe('开始游戏');
+    expect(model?.preview).toBe('分配角色');
     expect(model?.status).toBe('等待入座 · 1/6');
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'start-game',
+      label: '分配角色',
       testID: 'start-game-button',
       isEnabled: false,
       disabledReason: '座位尚未坐满（还差 5 人）',
@@ -218,15 +221,27 @@ describe('createAvalonHostManagement', () => {
     game.seatHost();
     game.fill();
     game.startWithUnmarkedBots();
+    expect(game.state.phase.kind).toBe('viewing');
     const model = build(game.state, true, false);
+    // Viewing panel: begin waits for the checkpoint (only the host has
+    // viewed), the scaffold action fills the bot records.
+    expect(model?.preview).toBe('开始游戏');
+    expect(model?.status).toBe('等待全员查看身份 · 1/6');
+    expect(model?.sections.map((entry) => entry.key)).toEqual(['game', 'bot-viewing', 'room']);
+    expect(model?.sections[0]?.actions[0]).toMatchObject({
+      key: 'start-game',
+      label: '开始游戏',
+      isEnabled: false,
+      disabledReason: '还有玩家未查看身份',
+    });
     const section = model?.sections.find((entry) => entry.key === 'bot-viewing');
     expect(section?.actions.map((action) => action.key)).toEqual(['mark-bots-viewed']);
     expect(section?.actions[0]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
 
     game.send({ type: 'avalon.role.markAllBotsViewed' });
-    expect(
-      build(game.state, true, false)?.sections.find((entry) => entry.key === 'bot-viewing'),
-    ).toBeUndefined();
+    const after = build(game.state, true, false);
+    expect(after?.sections.find((entry) => entry.key === 'bot-viewing')).toBeUndefined();
+    expect(after?.sections[0]?.actions[0]).toMatchObject({ key: 'start-game', isEnabled: true });
   });
 
   it('pins the vote and quest panels with their manual settle actions', () => {

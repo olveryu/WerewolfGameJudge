@@ -39,7 +39,7 @@ function commitState(
   return decision.state;
 }
 
-/** Lobby with host seated at 0 and implicit bot seats 1-4, game started into night. */
+/** Lobby with host seated at 0 and implicit bot seats 1-4, game begun into night. */
 function nightState(): AvalonState {
   const created = avalonWorkerModule.createInitialState(
     { numberOfPlayers: 5, voteMode: 'public', vetoLimit: 5 },
@@ -54,7 +54,16 @@ function nightState(): AvalonState {
     'seat-host',
   );
   const seated = commitState(seatedFirst, { type: 'room.seat.fillBots' }, HOST, null, 'fill-bots');
-  const started = commitState(seated, { type: 'avalon.game.start' }, HOST, null, 'start');
+  const dealt = commitState(seated, { type: 'avalon.game.start' }, HOST, null, 'start');
+  const hostViewed = commitState(dealt, { type: 'avalon.role.viewed' }, HOST, null, 'view-host');
+  const botsMarked = commitState(
+    hostViewed,
+    { type: 'avalon.role.markAllBotsViewed' },
+    HOST,
+    null,
+    'mark-bots',
+  );
+  const started = commitState(botsMarked, { type: 'avalon.game.begin' }, HOST, null, 'begin');
   if (started.phase.kind !== 'night') throw new Error('Expected night phase');
   // 音频门控：先 ack 掉开局播报，否则 night.confirm 会被"播报尚未结束"拦截，
   // 盖掉 controlledSeat 门控的测试目标。

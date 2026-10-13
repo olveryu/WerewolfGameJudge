@@ -17,7 +17,14 @@ import {
 
 /** Workspace content the RoomShell should render for an in-game phase. */
 /** 晚上走 kind: 'seats' + 确认弹窗（对齐狼人杀丘比特），不进 workspace。 */
-export type AvalonStageContentKind = 'nominate' | 'vote' | 'quest' | 'lady' | 'assassin' | 'ended';
+export type AvalonStageContentKind =
+  | 'viewing'
+  | 'nominate'
+  | 'vote'
+  | 'quest'
+  | 'lady'
+  | 'assassin'
+  | 'ended';
 
 /**
  * Maps an authoritative phase to the workspace content kind.
@@ -31,6 +38,8 @@ export function resolveAvalonStageKind(phase: AvalonPhase): AvalonStageContentKi
       throw new Error('[FAIL-FAST] Avalon workspace received the lobby phase');
     case 'night':
       throw new Error('[FAIL-FAST] Avalon workspace received the night phase');
+    case 'viewing':
+      return 'viewing';
     case 'nominate':
       return 'nominate';
     case 'vote':

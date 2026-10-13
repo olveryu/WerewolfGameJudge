@@ -20,6 +20,8 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.config]: '配置无效，请检查人数（5 至 10 人）、投票模式与否决上限设置',
     [AVALON_REASONS.phase]: ROOM_COMMAND_FAILURE_WRONG_PHASE,
     [AVALON_REASONS.notHostStart]: '只有房主可以开始游戏',
+    [AVALON_REASONS.notHostBegin]: '只有房主可以开始游戏',
+    [AVALON_REASONS.notAllViewed]: '还有玩家未查看身份',
     [AVALON_REASONS.full]: ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
     [AVALON_REASONS.notNightParticipant]: '你不在当前确认步骤内',
     [AVALON_REASONS.notLeader]: '只有当前队长可以组队',

@@ -4,6 +4,7 @@
 
 import {
   AVALON_BOARDS,
+  AVALON_NIGHT_STEPS,
   type AvalonCommand,
   type AvalonNightStep,
   type AvalonRoleId,
@@ -33,14 +34,17 @@ import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoo
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildMarkBotsViewedAction,
   buildNextRoundAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
-import type {
-  RoomBottomButton,
-  RoomBottomInfoModel,
+import { resolveStepProgress } from '@/features/room/model/nightProgress';
+import {
+  buildAudioWaitingButton,
+  type RoomBottomButton,
+  type RoomBottomInfoModel,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
@@ -57,6 +61,11 @@ import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildLobbyWaitingText,
+  messageRibbon,
+  progressRibbon,
+} from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { colors } from '@/theme';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -185,8 +194,11 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
         isSelf: human?.userId === userId,
         highlight: controlledSeat === seat ? 'controlled' : 'none',
         secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
-        // 夜晚逐座位已查看身份徽标（公开信息，对齐狼人杀 hasViewedRole ✅）。
-        showReadyBadge: nightPhase !== null && state.roleViewedSeats.includes(seat),
+        // 逐座位已查看身份徽标（公开信息，对齐狼人杀 hasViewedRole ✅）：
+        // 查看阶段逐个点亮进度，夜晚保持全亮。
+        showReadyBadge:
+          (state.phase.kind === 'viewing' || nightPhase !== null) &&
+          state.roleViewedSeats.includes(seat),
         statusBadge:
           combinedLabel === null
             ? null
@@ -220,76 +232,46 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
 /** 公共状态条：不含私密信息。 */
 export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel | null {
   const phase = state.phase;
-  if (phase.kind === 'night') {
-    // 身份查看协议检查点：夜晚信息步已走完但还有座位没看角色时，
-    // 状态条明示阻塞原因（座位级名单在房主管理区，状态条只报人数）。
-    const stepParticipants = getAvalonNightParticipants(state.roles, phase.step);
-    const unviewedCount = getAvalonViewingParticipants(state).filter(
-      (participant) => !state.roleViewedSeats.includes(participant.seat),
+  if (phase.kind === 'viewing') {
+    // 查看阶段（对局未开始）：只报查看进度，名单看座位盘打勾。
+    const participants = getAvalonViewingParticipants(state);
+    const viewedCount = participants.filter((participant) =>
+      state.roleViewedSeats.includes(participant.seat),
     ).length;
-    if (
-      phase.step === 'percivalReveal' &&
-      unviewedCount > 0 &&
-      stepParticipants.every((seat) => phase.confirmedSeats.includes(seat))
-    ) {
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: `等待全员查看身份 · 还差 ${unviewedCount} 人`,
-        supportingText: null,
-      };
-    }
-    // 夜晚只报当前步名：私密确认进度改由逐座位徽标呈现（仅参与者可见），不计数。
-    return {
-      kind: 'message',
-      icon: 'guide',
-      text: `天黑 · ${AVALON_NIGHT_STEP_LABELS[phase.step]}`,
-      supportingText: null,
-    };
+    return messageRibbon(`等待全员查看身份 · ${viewedCount}/${participants.length}`);
   }
-  if (phase.kind === 'nominate')
-    return {
-      kind: 'message',
-      icon: 'guide',
-      text: `第 ${phase.round} 轮 · 队长组队中`,
-      supportingText: null,
-    };
+  if (phase.kind === 'night') {
+    // 夜晚横幅与狼人杀同形：共享进度派生（第x步/共y步 + 步名 + 进度条）。
+    // 私密确认进度由逐座位徽标呈现（仅参与者可见），横幅不计数。
+    const progress = resolveStepProgress(AVALON_NIGHT_STEPS, phase.step, AVALON_NIGHT_STEP_LABELS);
+    if (progress !== null) return progressRibbon(progress);
+    return messageRibbon(`天黑 · ${AVALON_NIGHT_STEP_LABELS[phase.step]}`);
+  }
+  if (phase.kind === 'nominate') return messageRibbon(`第 ${phase.round} 轮 · 队长组队中`);
   if (phase.kind === 'vote') {
     // 已投计数是公开信息（座位徽标同口径）；武装后进入揭晓倒计时。
     const castCount = Object.keys(phase.ballots).length;
     const totalCount = Object.keys(state.roster).length;
-    return {
-      kind: 'message',
-      icon: 'guide',
-      text: `第 ${phase.round} 轮 · 组队投票中`,
-      supportingText:
-        phase.deadlineAt !== null ? '已全部投票 · 即将揭晓' : `已投 ${castCount}/${totalCount}`,
-    };
+    return messageRibbon(
+      `第 ${phase.round} 轮 · 组队投票中`,
+      phase.deadlineAt !== null ? '已全部投票 · 即将揭晓' : `已投 ${castCount}/${totalCount}`,
+    );
   }
   if (phase.kind === 'quest') {
     const playedCount = phase.teamSeats.filter((seat) => phase.plays[seat] !== undefined).length;
-    return {
-      kind: 'message',
-      icon: 'guide',
-      text: `第 ${phase.round} 轮 · 任务执行中`,
-      supportingText:
-        phase.deadlineAt !== null
-          ? '已全部出牌 · 即将揭晓'
-          : `已出牌 ${playedCount}/${phase.teamSeats.length}`,
-    };
+    return messageRibbon(
+      `第 ${phase.round} 轮 · 任务执行中`,
+      phase.deadlineAt !== null
+        ? '已全部出牌 · 即将揭晓'
+        : `已出牌 ${playedCount}/${phase.teamSeats.length}`,
+    );
   }
-  if (phase.kind === 'lady')
-    return { kind: 'message', icon: 'guide', text: '湖中仙女查验', supportingText: null };
-  if (phase.kind === 'assassin')
-    return { kind: 'message', icon: 'guide', text: '刺杀阶段', supportingText: null };
-  if (phase.kind === 'ended')
-    return { kind: 'message', icon: 'guide', text: '本局已结束', supportingText: null };
-  return {
-    kind: 'message',
-    icon: 'guide',
-    text: `等待入座 · ${getAvalonOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
-    supportingText: null,
-  };
+  if (phase.kind === 'lady') return messageRibbon('湖中仙女查验');
+  if (phase.kind === 'assassin') return messageRibbon('刺杀阶段');
+  if (phase.kind === 'ended') return messageRibbon('本局已结束');
+  return messageRibbon(
+    buildLobbyWaitingText(getAvalonOccupiedSeatCount(state), state.config.numberOfPlayers),
+  );
 }
 
 /**
@@ -368,16 +350,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     ) {
       actions.push(
         state.isAudioPlaying
-          ? {
-              key: 'nightInfo',
-              label: '语音播报中…',
-              variant: 'primary',
-              size: 'md',
-              isEnabled: false,
-              disabledReason: '语音播报尚未结束，请稍候',
-              onDisabledPress: null,
-              testID: 'avalon-night-info',
-            }
+          ? buildAudioWaitingButton({ key: 'nightInfo', testID: 'avalon-night-info' })
           : {
               key: 'nightInfo',
               label: '确认信息',
@@ -392,7 +365,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
   }
   return {
     kind: 'info',
-    message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null,
+    message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主分配角色' : null,
     actions,
   };
 }
@@ -469,15 +442,16 @@ export function createAvalonHostManagement(
       ? null
       : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
     return {
-      preview: '开始游戏',
-      status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
+      preview: '分配角色',
+      status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
           title: '游戏',
           actions: [
             buildStartGameAction({
-              onPress: () => void submit('开始游戏', { type: 'avalon.game.start' }),
+              label: '分配角色',
+              onPress: () => void submit('分配角色', { type: 'avalon.game.start' }),
               isEnabled: !input.isSubmitting && canStart,
               disabledReason: startDisabledReason,
               onDisabledPress: () =>
@@ -488,6 +462,54 @@ export function createAvalonHostManagement(
         },
         { key: 'room', title: '房间管理', actions: roomActions },
       ],
+    };
+  }
+  if (state.phase.kind === 'viewing') {
+    // 三段式中段：牌已发、对局未开始。全员查看齐后房主点「开始游戏」
+    // 才进夜晚（引擎 begin 门同口径，这里先给禁用态与原因）。
+    const participants = getAvalonViewingParticipants(state);
+    const viewedCount = participants.filter((participant) =>
+      state.roleViewedSeats.includes(participant.seat),
+    ).length;
+    const allViewed = viewedCount === participants.length;
+    const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
+    const sections: RoomHostManagementSection[] = [
+      {
+        key: 'game',
+        title: '游戏',
+        actions: [
+          buildStartGameAction({
+            onPress: () => void submit('开始游戏', { type: 'avalon.game.begin' }),
+            isEnabled: !input.isSubmitting && allViewed,
+            disabledReason: beginDisabledReason,
+            onDisabledPress: () =>
+              showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
+            isLoading: input.isSubmitting,
+          }),
+        ],
+      },
+    ];
+    const hasUnviewedBot = participants.some(
+      (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+    );
+    if (hasUnviewedBot)
+      sections.push({
+        key: 'bot-viewing',
+        title: '身份查看',
+        actions: [
+          buildMarkBotsViewedAction({
+            onPress: () =>
+              void submit('标记机器人已查看', { type: 'avalon.role.markAllBotsViewed' }),
+            isEnabled: !input.isSubmitting,
+            isLoading: input.isSubmitting,
+          }),
+        ],
+      });
+    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
+    return {
+      preview: '开始游戏',
+      status: `等待全员查看身份 · ${viewedCount}/${participants.length}`,
+      sections,
     };
   }
   if (state.phase.kind === 'ended') {
@@ -596,20 +618,11 @@ export function createAvalonHostManagement(
       key: 'bot-viewing',
       title: '身份查看',
       actions: [
-        {
-          key: 'mark-bots-viewed',
-          label: '标记机器人已查看',
-          icon: 'eye-outline',
-          variant: 'secondary',
+        buildMarkBotsViewedAction({
+          onPress: () => void submit('标记机器人已查看', { type: 'avalon.role.markAllBotsViewed' }),
+          isEnabled: !input.isSubmitting,
           isLoading: input.isSubmitting,
-          ...(input.isSubmitting
-            ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
-            : {
-                isEnabled: true as const,
-                onPress: () =>
-                  void submit('标记机器人已查看', { type: 'avalon.role.markAllBotsViewed' }),
-              }),
-        },
+        }),
       ],
     });
   // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
