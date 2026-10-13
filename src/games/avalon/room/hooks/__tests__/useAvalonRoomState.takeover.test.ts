@@ -183,4 +183,13 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     expect(showErrorAlert).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
   });
+
+  it('alerts the seat reason for disabled in-game seats, matching werewolf policy', () => {
+    const { result, dispatch } = renderRoomState(viewingStateWithBots());
+    act(() => {
+      result.current.shellModel.seats.onSeatPress(1, '游戏进行中不能入座');
+    });
+    expect(showErrorAlert).toHaveBeenCalledWith('不可选择', '游戏进行中不能入座');
+    expect(dispatch).not.toHaveBeenCalled();
+  });
 });

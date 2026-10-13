@@ -141,8 +141,13 @@ export function useStoryRelayRoomState(
     gameName: 'StoryRelay',
   });
   const onSeatPress = (seat: number, disabledReason?: string) => {
-    // 局内点座对齐狼人杀 SeatTapPolicy：静默 NOOP，不弹锁定提示。
-    if (!isLobby) return;
+    // 局内点座对齐狼人杀 SeatTapPolicy：带 disabledReason 的座位（局内空座）
+    // 仍弹「不可选择」提示，其余点击静默 NOOP。
+    if (!isLobby) {
+      if (disabledReason !== undefined)
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, disabledReason);
+      return;
+    }
     const intent = getStoryRelaySeatTapIntent({
       state,
       seat,

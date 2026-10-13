@@ -265,9 +265,14 @@ export function useAvalonRoomState(
   };
   const onSeatPress = (seat: number, disabledReason?: string) => {
     if (seatPickHandlerRef.current?.(seat) === true) return;
-    // 局内点座对齐狼人杀 SeatTapPolicy：未被选座处理器消费的点击一律静默
-    // NOOP（白天 other_status、局内 not_actioner 都是 NOOP），不弹锁定提示。
-    if (!isLobby) return;
+    // 局内点座对齐狼人杀 SeatTapPolicy：带 disabledReason 的座位（局内空座）
+    // 仍弹「不可选择」提示，其余未被选座处理器消费的点击一律静默 NOOP
+    //（白天 other_status、局内 not_actioner 都是 NOOP）。
+    if (!isLobby) {
+      if (disabledReason !== undefined)
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, disabledReason);
+      return;
+    }
     const intent = getAvalonSeatTapIntent({
       state,
       seat,
