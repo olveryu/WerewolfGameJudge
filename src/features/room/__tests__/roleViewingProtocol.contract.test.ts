@@ -64,8 +64,11 @@ describe('role viewing protocol — avalon (batch C)', () => {
     expect(modal).toMatch(/<RevealAnimationGate/);
     expect(modal).not.toMatch(/animationDone/);
     const hook = readSource('games/avalon/room/hooks/useAvalonRoomState.ts');
-    // Opening the card records the view for the effective seat.
-    expect(hook).toMatch(/void submit\('查看身份', \{ type: 'avalon\.role\.viewed' \}\)/);
+    // Opening the card records the view for the effective seat (the
+    // controlled seat is passed explicitly; the submit default is null).
+    expect(hook).toMatch(
+      /void submit\('查看身份', \{ type: 'avalon\.role\.viewed' \}, controlledSeat\)/,
+    );
     expect(hook).toMatch(/!state\.roleViewedSeats\.includes\(effectiveSeat\)/);
     const screen = readSource('games/avalon/room/AvalonRoomScreen.tsx');
     // D-1: a controlled bot's card never plays the controller's effect.

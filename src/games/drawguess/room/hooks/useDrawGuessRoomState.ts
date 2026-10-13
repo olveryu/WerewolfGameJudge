@@ -36,10 +36,7 @@ import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  ROOM_SEAT_LOCKED_MESSAGE,
-  ROOM_SEAT_TAP_BLOCKED_TITLE,
-} from '@/features/room/model/RoomSeatTap';
+import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { type DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
@@ -212,7 +209,13 @@ export function useDrawGuessRoomState(
     gameName: 'DrawGuess',
   });
   const onSeatPress = (seat: number, disabledReason?: string) => {
-    if (!isLobby) return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, ROOM_SEAT_LOCKED_MESSAGE);
+    // 局内点座对齐狼人杀 SeatTapPolicy：带 disabledReason 的座位（局内空座）
+    // 仍弹「不可选择」提示，其余点击静默 NOOP。
+    if (!isLobby) {
+      if (disabledReason !== undefined)
+        return showErrorAlert(ROOM_SEAT_TAP_BLOCKED_TITLE, disabledReason);
+      return;
+    }
     const intent = getDrawGuessSeatTapIntent({
       state,
       seat,

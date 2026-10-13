@@ -648,7 +648,7 @@ export interface AvalonHostManagementInput {
   readonly submit: (
     label: string,
     command: AvalonCommand,
-    controlledSeatOverride?: number | null,
+    control?: number | null,
   ) => Promise<boolean>;
 }
 
