@@ -8,9 +8,12 @@ import {
 } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
 
+import {
+  gameCompletionPayloadSchema,
+  publishGameRewards,
+} from '../../features/account/settleGameRewards';
 import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
-import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { dealDrawGuessWords } from './wordDeal';
 
 const dealWordsEffectSchema = z.strictObject({
@@ -22,11 +25,7 @@ const dealWordsEffectSchema = z.strictObject({
 
 const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('drawguess.game.completed'),
-  payload: z.strictObject({
-    roundId: z.string().min(1),
-    completedAt: z.number().int().nonnegative(),
-    participantUserIds: z.array(z.string().min(1)),
-  }),
+  payload: gameCompletionPayloadSchema,
 });
 
 export const drawGuessEffectSchema: z.ZodType<DrawGuessEffect> = z.union([
