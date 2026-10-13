@@ -562,6 +562,29 @@ describe('createWerewolfRoomShellModel', () => {
       }),
     );
     expect(actionKeys(allViewed)).not.toContain('mark-bots-viewed');
+    // An unviewed human does not bring the action back: it exists only
+    // for unviewed bot seats.
+    const humanUnviewedBotViewed = createWerewolfRoomShellModel(
+      createShellModelInput({
+        isHost: true,
+        hasBots: true,
+        roomStatus: GameStatus.Assigned,
+        gameState: createLocalGameState({
+          status: GameStatus.Assigned,
+          players: {
+            0: { seat: 0, hasViewedRole: true, role: 'wolf' as RoleId },
+            1: { seat: 1, hasViewedRole: false, role: 'witch' as RoleId },
+            2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
+          },
+          roster: {
+            0: { seat: 0, userId: 'HOST' },
+            1: { seat: 1, userId: 'P2' },
+            2: { seat: 2, kind: 'bot' },
+          },
+        }),
+      }),
+    );
+    expect(actionKeys(humanUnviewedBotViewed)).not.toContain('mark-bots-viewed');
   });
 
   it('surfaces the controlled-seat banner through the shared gate', () => {

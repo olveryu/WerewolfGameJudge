@@ -112,6 +112,7 @@ describe('DrawGuess effects', () => {
     expect(await readStats()).toEqual({ xp: 15, normal_draws: 3, games_played: 1 });
     await drawGuessWorkerModule.handleEffect(effect, { ...context, deliveryAttemptCount: 2 });
     expect(await readStats()).toEqual({ xp: 15, normal_draws: 3, games_played: 1 });
+    expect(context.publishUserEvent).toHaveBeenCalledTimes(1);
     expect(context.dispatchInternal).not.toHaveBeenCalled();
   });
 });
