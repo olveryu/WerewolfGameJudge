@@ -37,6 +37,8 @@ export const AVALON_REASONS = {
   config: 'avalon_config_invalid',
   phase: 'avalon_phase_invalid',
   notHostStart: 'avalon_not_host_start',
+  notHostBegin: 'avalon_not_host_begin',
+  notAllViewed: 'avalon_not_all_viewed',
   notHostMarkBots: 'avalon_not_host_mark_bots',
   noBotSeats: 'avalon_no_bot_seats',
   full: 'avalon_room_not_full',
@@ -88,6 +90,7 @@ export type AvalonEvent =
       readonly ladyHolderSeat: number | null;
       readonly gameSequence: number;
     }
+  | { readonly type: 'avalon.game.begun' }
   | { readonly type: 'avalon.night.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.role.viewed'; readonly seat: number }
   | { readonly type: 'avalon.night.stepped'; readonly step: AvalonNightStep }

@@ -88,7 +88,7 @@ describe('Avalon v2 -> v3 roster migration', () => {
     let state = lobby(1);
     state = dispatch(state, { type: 'room.seat.fillBots' });
     state = dispatch(state, { type: 'avalon.game.start' });
-    expect(state.phase.kind).toBe('night');
+    expect(state.phase.kind).toBe('viewing');
     expect(Object.keys(state.roles)).toHaveLength(5);
     expect(migratePersistedAvalonState(downgradeToV2(state))).toEqual(state);
   });
@@ -168,6 +168,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     for (let seat = 0; seat < 5; seat += 1) {
       state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
     }
+    state = dispatch(state, { type: 'avalon.game.begin' });
     if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
     while (state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(state.roles, state.phase.step);
@@ -203,12 +204,12 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const state = votePhaseState();
     if (state.phase.kind !== 'vote') throw new Error('expected vote phase');
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
-    expect(migrated.stateVersion).toBe(4);
+    expect(migrated.stateVersion).toBe(5);
     if (migrated.phase.kind !== 'vote') throw new Error('expected vote phase');
     expect(migrated.phase.deadlineAt).toBeNull();
     expect(migrated.phase.ballots).toEqual(state.phase.kind === 'vote' ? state.phase.ballots : {});
     expect({ ...migrated, phase: state.phase }).toEqual(state);
-    // The migrated v4 document (null deadline) must round-trip through the strict parser.
+    // The migrated document (null deadline) must round-trip through the strict parser.
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 
@@ -228,6 +229,37 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     if (migrated.phase.kind !== 'quest') throw new Error('expected quest phase');
     expect(migrated.phase.deadlineAt).toBeNull();
     expect({ ...migrated, phase: state.phase }).toEqual(state);
+    expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
+  });
+});
+
+describe('Avalon v4 -> v5 viewing-stage migration', () => {
+  /** Rebuilds the exact document a v4 store would have persisted. */
+  function downgradeToV4(state: AvalonState): Record<string, unknown> {
+    // v4 phases are a subset of v5 phases; only the version differs.
+    return { ...(JSON.parse(JSON.stringify(state)) as Record<string, unknown>), stateVersion: 4 };
+  }
+
+  it('migrates a lobby state field-for-field', () => {
+    const state = lobby(3);
+    const migrated = migratePersistedAvalonState(downgradeToV4(state));
+    expect(migrated.stateVersion).toBe(5);
+    expect(migrated).toEqual(state);
+  });
+
+  it('migrates an in-progress night state field-for-field', () => {
+    // A v4 room mid-night (the deal already opened the night under the
+    // old flow) must resume exactly where it was; v5 adds no field.
+    let state = lobby(5);
+    state = dispatch(state, { type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
+    }
+    state = dispatch(state, { type: 'avalon.game.begin' });
+    if (state.phase.kind !== 'night') throw new Error('expected night phase');
+    const migrated = migratePersistedAvalonState(downgradeToV4(state));
+    expect(migrated.stateVersion).toBe(5);
+    expect(migrated).toEqual(state);
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
   });
 });

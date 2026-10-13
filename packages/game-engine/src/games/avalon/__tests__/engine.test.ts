@@ -80,17 +80,21 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     startGame() {
       send({ type: 'avalon.game.start' });
       // 身份查看协议：真人各自查看角色，机器人由房主标记已查看，
-      // 否则第一个任务前的检查点不放行。
-      for (let seat = 0; seat < seatCount; seat += 1) {
+      // 否则房主的开始命令不放行。按当前状态的人数扫全部座位
+      // （config 中途改人数后新入座的真人也要查看）。
+      for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
         if (!isAvalonBotSeat(session.state, seat))
           send({ type: 'avalon.role.viewed' }, seatUser(seat));
       }
       // 无机器人座位时标记命令会被拒（Wave 8 与狼人杀口径对齐），只在有 bot 时发；
       // 隐式补位的 bot 在 seatCount 之外，按整局人数扫。
-      const hasBotSeat = Array.from({ length: numberOfPlayers }, (_, seat) => seat).some((seat) =>
-        isAvalonBotSeat(session.state, seat),
-      );
+      const hasBotSeat = Array.from(
+        { length: session.state.config.numberOfPlayers },
+        (_, seat) => seat,
+      ).some((seat) => isAvalonBotSeat(session.state, seat));
       if (hasBotSeat) send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
+      // 三段式：全员查看齐后房主开始游戏，才进夜晚并排开局播报。
+      send({ type: 'avalon.game.begin' });
       // 开局播报由房主 ack（测试模拟房主已播完）。
       if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
     },
@@ -1039,7 +1043,7 @@ describe('Avalon engine', () => {
     session.accuse(session.seatOfRole('merlin'));
     expect(session.state.phase.kind).toBe('ended');
     session.send({ type: 'avalon.game.start' });
-    expect(session.state.phase.kind).toBe('night');
+    expect(session.state.phase.kind).toBe('viewing');
     expect(session.state.gameSequence).toBe(2);
     expect(session.state.questResults).toEqual([]);
     expect(session.state.questHistory).toEqual([]);
@@ -1092,6 +1096,7 @@ describe('Avalon engine', () => {
     for (let seat = 0; seat < 6; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, userOf(seat));
     }
+    session.send({ type: 'avalon.game.begin' });
     if (session.state.isAudioPlaying) session.send({ type: 'avalon.audio.ack' }, 'host');
     while (session.state.phase.kind === 'night') {
       const participants = getAvalonNightParticipants(
@@ -1321,10 +1326,18 @@ describe('Avalon engine', () => {
     expect(view.lastVoteResult?.abstainCount).toBe(0);
   });
 
-  it('queues night narration on game start and blocks confirm until host ack', () => {
+  it('queues night narration on game begin (never at deal) and blocks confirm until host ack', () => {
     // startGame helper 已 ack；这里手动走一遍验证队列内容。
     const raw = game({ numberOfPlayers: 7 });
     raw.send({ type: 'avalon.game.start' });
+    // 发牌不排任何播报、不进夜晚：查看阶段无声无夜。
+    expect(raw.state.phase.kind).toBe('viewing');
+    expect(raw.state.isAudioPlaying).toBe(false);
+    expect(raw.state.pendingAudioEffects).toEqual([]);
+    for (let seat = 0; seat < 7; seat += 1) {
+      raw.send({ type: 'avalon.role.viewed' }, raw.seatUser(seat));
+    }
+    raw.send({ type: 'avalon.game.begin' });
     expect(raw.state.isAudioPlaying).toBe(true);
     expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual(['night', 'evil_reveal']);
     // 播报未播完时确认被阻塞。
@@ -1350,10 +1363,11 @@ describe('Avalon engine', () => {
   it('queues step transition narration with end+begin pairs', () => {
     const session = game({ numberOfPlayers: 7 });
     session.send({ type: 'avalon.game.start' });
-    // 身份查看协议：全员先查看角色，夜晚完成不被检查点拦住。
+    // 身份查看协议：全员先查看角色，房主开始游戏后才进夜晚。
     for (let seat = 0; seat < 7; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
+    session.send({ type: 'avalon.game.begin' });
     // 开局队列：night + evil_reveal begin。
     expect(session.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual([
       'night',
@@ -1390,10 +1404,11 @@ describe('Avalon engine', () => {
   it('blocks returnToLobby while audio is playing', () => {
     const session = game({ numberOfPlayers: 6 });
     session.send({ type: 'avalon.game.start' });
-    // 身份查看协议：全员先查看角色，夜晚完成不被检查点拦住。
+    // 身份查看协议：全员先查看角色，房主开始游戏后才进夜晚。
     for (let seat = 0; seat < 6; seat += 1) {
       session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
     }
+    session.send({ type: 'avalon.game.begin' });
     // 不 ack 开局播报，手动走完 night（每步 ack 转场播报，但保留最后的 night_end 未 ack）。
     session.send({ type: 'avalon.audio.ack' }, 'host');
     const evilSeats = [session.seatOfRole('morgana'), session.seatOfRole('assassin')];

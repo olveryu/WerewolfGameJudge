@@ -10,11 +10,7 @@ import {
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
-import {
-  haveAllViewed,
-  listUnviewedBotSeats,
-  markSeatViewed,
-} from '../../platform/room/identityViewing';
+import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
 import {
@@ -100,7 +96,12 @@ function completionEffect(state: AvalonState, context: CommandContext): AvalonEf
   };
 }
 
-/** Host starts the game (or restarts from ended): deal roles, pick the first leader, enter night. */
+/**
+ * Host deals the game (or redeals from ended): assign roles, pick the
+ * first leader, and enter the viewing stage. Dealing never starts
+ * play — no night, no audio — until the host begins the game once
+ * every seat has viewed its role (the werewolf two-step flow).
+ */
 function startGame(state: AvalonState, context: CommandContext): AvalonDecision {
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostStart);
   if (hostRejection !== null) return hostRejection;
@@ -122,7 +123,23 @@ function startGame(state: AvalonState, context: CommandContext): AvalonDecision 
       ladyHolderSeat,
       gameSequence: state.gameSequence + 1,
     },
-    // 开局与 evilReveal 是同一事件，一次排入 night 开场 + 坏人互认（对齐狼人杀）。
+  ]);
+}
+
+/**
+ * Host begins play from the viewing stage: the identity checkpoint
+ * must be complete (every seat, bots included, has a view record),
+ * then the first night opens and its narration is queued — the first
+ * audio of the game, exactly like werewolf's START_NIGHT.
+ */
+function beginGame(state: AvalonState, context: CommandContext): AvalonDecision {
+  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostBegin);
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'viewing') return reject(AVALON_REASONS.phase);
+  if (!haveAllViewed(getAvalonViewingParticipants(state), state.roleViewedSeats))
+    return reject(AVALON_REASONS.notAllViewed);
+  return commitAvalon([
+    { type: 'avalon.game.begun' },
     queueAudio([{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]),
   ]);
 }
@@ -160,26 +177,21 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
           { audioKey: 'percival_reveal' },
         ]),
       ]);
-    case 'percivalReveal': {
-      // Identity Viewing Protocol checkpoint: the first quest cannot
-      // start until every seated player has viewed their role. Hold
-      // the night open (this seat's step confirmation still lands);
-      // the last missing view releases the checkpoint.
-      if (!haveAllViewed(getAvalonViewingParticipants(state), state.roleViewedSeats))
-        return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.seat }]);
+    case 'percivalReveal':
+      // The identity checkpoint already gated the night at begin time;
+      // the last step confirmation closes the night directly.
       return commitAvalon([
         { type: 'avalon.night.completed' },
         queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
       ]);
-    }
   }
 }
 
 /**
  * Identity Viewing Protocol: records that the actor's seat viewed its
- * role card. Idempotent. When the night steps are done but the
- * checkpoint was held for missing views, the last missing view also
- * completes the night (with its usual closing narration).
+ * role card. Idempotent, and accepted in any in-game phase (re-opening
+ * the card mid-game keeps recording harmlessly); the record only gates
+ * the host's begin command in the viewing stage.
  */
 function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
@@ -187,34 +199,7 @@ function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDeci
   const resolved = resolveAvalonSeat(state, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   if (state.roleViewedSeats.includes(resolved.seat)) return commitAvalon([]);
-  const viewedSeats = markSeatViewed(state.roleViewedSeats, resolved.seat);
-  const events: AvalonEvent[] = [
-    { type: 'avalon.role.viewed', seat: resolved.seat },
-    ...nightCompletionEvents(state, viewedSeats),
-  ];
-  return commitAvalon(events);
-}
-
-/**
- * The night-closing events, once the last night step is confirmed by
- * all of its participants and the identity checkpoint is complete.
- * Shared by the per-seat view and the host bot-mark action: whichever
- * lands the final missing record closes the night.
- */
-function nightCompletionEvents(state: AvalonState, viewedSeats: readonly number[]): AvalonEvent[] {
-  const phase = state.phase;
-  if (phase.kind !== 'night' || phase.step !== 'percivalReveal') return [];
-  if (
-    !getAvalonNightParticipants(state.roles, 'percivalReveal').every((seat) =>
-      phase.confirmedSeats.includes(seat),
-    )
-  )
-    return [];
-  if (!haveAllViewed(getAvalonViewingParticipants(state), viewedSeats)) return [];
-  return [
-    { type: 'avalon.night.completed' },
-    queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
-  ];
+  return commitAvalon([{ type: 'avalon.role.viewed', seat: resolved.seat }]);
 }
 
 /**
@@ -234,14 +219,12 @@ function markAllBotsViewed(state: AvalonState, context: CommandContext): AvalonD
     return reject(AVALON_REASONS.noBotSeats);
   const unviewedBots = listUnviewedBotSeats(participants, state.roleViewedSeats);
   if (unviewedBots.length === 0) return commitAvalon([]);
-  const events: AvalonEvent[] = [];
-  let viewedSeats: readonly number[] = state.roleViewedSeats;
-  for (const participant of unviewedBots) {
-    events.push({ type: 'avalon.role.viewed', seat: participant.seat });
-    viewedSeats = markSeatViewed(viewedSeats, participant.seat);
-  }
-  events.push(...nightCompletionEvents(state, viewedSeats));
-  return commitAvalon(events);
+  return commitAvalon(
+    unviewedBots.map((participant) => ({
+      type: 'avalon.role.viewed' as const,
+      seat: participant.seat,
+    })),
+  );
 }
 
 /** Leader proposes exactly requiredSize team members (may include the leader). */
@@ -638,6 +621,8 @@ function decidePublicCommand(
       return decideAvalonRoom(state, command, context);
     case 'avalon.game.start':
       return startGame(state, context);
+    case 'avalon.game.begin':
+      return beginGame(state, context);
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
     case 'avalon.role.markAllBotsViewed':
@@ -696,6 +681,7 @@ export function getAvalonLifecycle(state: AvalonState): CommonGameLifecycle {
 export const avalonEngine = {
   gameType: AVALON_GAME_TYPE,
   stateVersion: AVALON_STATE_VERSION,
+  capabilities: { nightPhase: true },
   createInitialState,
   decide: decideAvalonCommand,
   evolve: evolveAvalonState,

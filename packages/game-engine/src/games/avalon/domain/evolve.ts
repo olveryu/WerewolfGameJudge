@@ -51,7 +51,9 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       return {
         ...resetAvalonGame(state),
         phaseRevision: state.phaseRevision + 1,
-        phase: { kind: 'night', step: 'evilReveal', confirmedSeats: [] },
+        // Dealing lands in the viewing stage; the night only opens
+        // when the host begins the game after the checkpoint.
+        phase: { kind: 'viewing' },
         // 身份查看协议：发牌时无人落标记；bot 座位由房主用脚手架
         // 动作标记，检查点对每个座位一视同仁。
         roleViewedSeats: [],
@@ -66,6 +68,13 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         ladyExaminedSeats: event.ladyHolderSeat === null ? [] : [event.ladyHolderSeat],
         gameSequence: event.gameSequence,
       };
+    case 'avalon.game.begun': {
+      if (state.phase.kind !== 'viewing') return state;
+      return {
+        ...bumped,
+        phase: { kind: 'night', step: 'evilReveal', confirmedSeats: [] },
+      };
+    }
     case 'avalon.night.confirmed': {
       if (state.phase.kind !== 'night') return state;
       if (state.phase.confirmedSeats.includes(event.seat)) return state;

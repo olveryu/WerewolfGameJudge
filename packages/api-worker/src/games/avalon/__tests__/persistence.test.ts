@@ -67,6 +67,9 @@ describe('Avalon restart recovery', () => {
     );
     state = applyCommand(state, { type: 'room.seat.fillBots' }, 'fill');
     state = applyCommand(state, { type: 'avalon.game.start' }, 'start');
+    state = applyCommand(state, { type: 'avalon.role.viewed' }, 'view-host');
+    state = applyCommand(state, { type: 'avalon.role.markAllBotsViewed' }, 'mark-bots');
+    state = applyCommand(state, { type: 'avalon.game.begin' }, 'begin');
     if (state.phase.kind !== 'night') throw new Error('Expected night phase');
     const recovered = restartRecover(state);
     expect(recovered).toEqual(state);

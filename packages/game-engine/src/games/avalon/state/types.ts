@@ -209,6 +209,7 @@ export const AVALON_END_REASONS = [
 
 export type AvalonPhase =
   | { readonly kind: 'lobby' }
+  | { readonly kind: 'viewing' }
   | {
       readonly kind: 'night';
       readonly step: AvalonNightStep;
@@ -267,6 +268,7 @@ export type AvalonPhase =
 
 export const AVALON_PHASES = [
   'lobby',
+  'viewing',
   'night',
   'nominate',
   'vote',
