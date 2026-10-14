@@ -1,10 +1,6 @@
 /** Public Undercover module contract; domain implementation remains package-private. */
 
-export {
-  buildPreparationFailureCommand,
-  PREPARATION_FAILURE_CODES,
-  type PreparationFailureCode,
-} from '../../platform/room/preparation';
+export { buildPreparationFailureCommand } from '../../platform/room/preparation';
 export { isBotOccupant } from '../../platform/room/seating';
 export type {
   UndercoverCommand,
