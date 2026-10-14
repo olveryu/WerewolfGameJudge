@@ -47,7 +47,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     type: 'werewolf.mvp.select',
     selection: { roleRevealRandomNonce: 'round-1', mvpUserId: 'user-1' },
   },
-  'werewolf.bots.markRolesViewed': { type: 'werewolf.bots.markRolesViewed' },
+  'werewolf.bots.markAllBotsViewed': { type: 'werewolf.bots.markAllBotsViewed' },
   'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
   'werewolf.role.view': { type: 'werewolf.role.view' },
   'werewolf.config.update': {

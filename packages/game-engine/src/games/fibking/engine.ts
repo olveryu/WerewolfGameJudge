@@ -560,7 +560,7 @@ export function decideFibCommand(
       return decideRevealFibRound(state, context);
     case 'fibking.round.confirmRoleView':
       return decideConfirmFibRoleView(state, context);
-    case 'fibking.round.markAllBotsViewed':
+    case 'fibking.bots.markAllBotsViewed':
       return decideMarkAllBotsViewed(state, context);
     case 'fibking.round.begin':
       return decideBeginFibRound(state, context);

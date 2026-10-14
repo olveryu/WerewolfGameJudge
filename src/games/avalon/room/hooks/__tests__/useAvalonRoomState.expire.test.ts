@@ -80,7 +80,7 @@ function drivenGame(withBots: boolean): DrivenGame {
   if (withBots) send({ type: 'room.seat.fillBots' });
   send({ type: 'avalon.game.start' });
   for (const seat of humanSeats) send({ type: 'avalon.role.viewed' }, seatUser(seat));
-  if (withBots) send({ type: 'avalon.role.markAllBotsViewed' });
+  if (withBots) send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });

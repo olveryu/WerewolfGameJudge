@@ -460,7 +460,7 @@ export function useFibRoomScreenState({
   }, []);
 
   const markAllBotsViewed = useCallback(() => {
-    void submitCommand('标记机器人已查看', { type: 'fibking.round.markAllBotsViewed' });
+    void submitCommand('标记机器人已查看', { type: 'fibking.bots.markAllBotsViewed' });
   }, [submitCommand]);
 
   const hostManagement = useMemo(

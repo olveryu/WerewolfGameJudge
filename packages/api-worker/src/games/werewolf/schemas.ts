@@ -69,7 +69,7 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
       mvpUserId: z.string().min(1),
     }),
   }),
-  z.strictObject({ type: z.literal('werewolf.bots.markRolesViewed') }),
+  z.strictObject({ type: z.literal('werewolf.bots.markAllBotsViewed') }),
   z.strictObject({
     type: z.literal('werewolf.action.submit'),
     input: z.discriminatedUnion('kind', [

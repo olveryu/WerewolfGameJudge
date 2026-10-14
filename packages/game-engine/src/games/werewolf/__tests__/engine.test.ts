@@ -446,7 +446,7 @@ describe('Werewolf engine definition and catalog', () => {
       type: 'werewolf.mvp.select',
       selection: { roleRevealRandomNonce: null, mvpUserId: 'user-1' },
     },
-    'werewolf.bots.markRolesViewed': { type: 'werewolf.bots.markRolesViewed' },
+    'werewolf.bots.markAllBotsViewed': { type: 'werewolf.bots.markAllBotsViewed' },
     'werewolf.action.submit': {
       type: 'werewolf.action.submit',
       input: { kind: 'skip' },
@@ -551,7 +551,7 @@ describe('Werewolf engine definition and catalog', () => {
     'room.seat.fillBots',
     'werewolf.roles.assign',
     'werewolf.game.restart',
-    'werewolf.bots.markRolesViewed',
+    'werewolf.bots.markAllBotsViewed',
     'werewolf.config.update',
     'werewolf.review.share',
     'werewolf.night.start',

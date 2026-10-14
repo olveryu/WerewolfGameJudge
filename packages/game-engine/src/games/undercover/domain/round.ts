@@ -267,7 +267,7 @@ export function decideUndercoverRound(
         return reject(UNDERCOVER_REASONS.notAllViewed);
       return commitUndercover([{ type: 'undercover.round.begun' }]);
     }
-    case 'undercover.round.markAllBotsViewed': {
+    case 'undercover.bots.markAllBotsViewed': {
       // Host scaffold action: fill every unviewed bot seat's record
       // through the protocol's seat computation; the begin gate runs
       // the strict checkpoint when the host begins the round. The

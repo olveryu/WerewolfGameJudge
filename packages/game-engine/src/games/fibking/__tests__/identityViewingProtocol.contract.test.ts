@@ -231,16 +231,12 @@ describe('identity viewing protocol (fibking)', () => {
 
     // Non-hosts cannot run the scaffold action.
     expect(
-      decideFibCommand(
-        allHumans,
-        { type: 'fibking.round.markAllBotsViewed' },
-        userContext('alice'),
-      ),
+      decideFibCommand(allHumans, { type: 'fibking.bots.markAllBotsViewed' }, userContext('alice')),
     ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
 
     const markDecision = decideFibCommand(
       allHumans,
-      { type: 'fibking.round.markAllBotsViewed' },
+      { type: 'fibking.bots.markAllBotsViewed' },
       userContext('host'),
     );
     if (markDecision.kind !== 'commit') throw new Error('Expected commit');
@@ -272,7 +268,7 @@ describe('identity viewing protocol (fibking)', () => {
   it('resets the viewing record on every new round', () => {
     let state = dealRound(createRoom());
     state = confirm(confirm(confirm(state, 'host'), 'alice'), 'bob');
-    state = dispatch(state, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+    state = dispatch(state, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.round.begin' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.round.reveal' }, userContext('host'));
     const nextRound = dealRound(state, 'round-2', '灯塔');
@@ -316,7 +312,7 @@ describe('identity viewing protocol (fibking)', () => {
 
     let ended = dealRound(createRoom());
     ended = confirm(confirm(confirm(ended, 'host'), 'alice'), 'bob');
-    ended = dispatch(ended, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+    ended = dispatch(ended, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host'));
     ended = dispatch(ended, { type: 'fibking.round.begin' }, userContext('host'));
     ended = dispatch(ended, { type: 'fibking.round.reveal' }, userContext('host'));
     const endedSerialized = downgradeRoster(ended);
@@ -352,7 +348,7 @@ describeIdentityViewingProtocol({
         }
       },
       markAllBotsViewed: () =>
-        attempt({ type: 'fibking.round.markAllBotsViewed' }, userContext('host')),
+        attempt({ type: 'fibking.bots.markAllBotsViewed' }, userContext('host')),
       // Non-mutating probe: the begin gate would commit right now.
       isCheckpointOpen: () =>
         decideFibCommand(state, { type: 'fibking.round.begin' }, userContext('host')).kind ===

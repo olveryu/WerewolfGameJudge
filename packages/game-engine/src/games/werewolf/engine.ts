@@ -105,7 +105,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.roles.assign':
     case 'werewolf.game.restart':
     case 'werewolf.mvp.select':
-    case 'werewolf.bots.markRolesViewed':
+    case 'werewolf.bots.markAllBotsViewed':
     case 'werewolf.config.update':
     case 'werewolf.review.share':
     case 'werewolf.board.nominate':
@@ -315,7 +315,7 @@ function decideWerewolfCommandRules(
               ],
       });
     }
-    case 'werewolf.bots.markRolesViewed': {
+    case 'werewolf.bots.markAllBotsViewed': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(

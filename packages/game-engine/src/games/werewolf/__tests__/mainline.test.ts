@@ -45,7 +45,7 @@ describe('Werewolf engine mainline', () => {
     expect(session.state.status).toBe(GameStatus.Assigned);
 
     // The host scaffold action fills the bot records; that releases it.
-    session.send({ type: 'werewolf.bots.markRolesViewed' }, 'host');
+    session.send({ type: 'werewolf.bots.markAllBotsViewed' }, 'host');
     expect(session.state.status).toBe(GameStatus.Ready);
 
     session.send({ type: 'werewolf.night.start' }, 'host');

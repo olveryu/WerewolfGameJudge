@@ -22,7 +22,7 @@ export type FibPublicCommand =
   | { readonly type: 'fibking.round.start' }
   | { readonly type: 'fibking.round.cancelPreparing' }
   | { readonly type: 'fibking.round.confirmRoleView' }
-  | { readonly type: 'fibking.round.markAllBotsViewed' }
+  | { readonly type: 'fibking.bots.markAllBotsViewed' }
   | { readonly type: 'fibking.round.begin' }
   | { readonly type: 'fibking.round.guess'; readonly seat: number }
   | { readonly type: 'fibking.round.reveal' };

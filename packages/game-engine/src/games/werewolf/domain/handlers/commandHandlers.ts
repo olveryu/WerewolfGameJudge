@@ -92,6 +92,21 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
   return handlerSuccess(actions);
 }
 
+/**
+ * Handle mark bots as group-confirmed (host bot-test scaffold).
+ *
+ * @remarks
+ * This is werewolf's third host bot scaffold, next to the shared
+ * fill (decideRosterFillBots) and mark-viewed (planMarkBotsViewed)
+ * pieces. It deliberately stays werewolf-owned (bot-extraction plan
+ * §3, content layer): the acks it writes are entries of werewolf's
+ * own night-step schema set — only steps whose schema kind is
+ * groupConfirm carry them, and the ack list each reveal kind reads
+ * (piper / conversion / seed-wolf infection / cupid lovers) is
+ * werewolf night content no other game has. Only the gates are
+ * shared-shaped: bot existence from the unified roster, then
+ * werewolf's own status/step gates.
+ */
 export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerResult {
   const state = context.state;
 

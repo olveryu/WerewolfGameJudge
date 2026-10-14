@@ -127,7 +127,7 @@ it('rejects marking bots when the room has no bot seats (werewolf parity)', () =
   const viewing = completeRound(startPreparing(state), '云朵', '悬浮在空中的水滴或冰晶集合');
   expect(viewing.phase).toBe('viewing');
   expect(
-    decideFibCommand(viewing, { type: 'fibking.round.markAllBotsViewed' }, userContext('host')),
+    decideFibCommand(viewing, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host')),
   ).toEqual({ kind: 'reject', reason: REASON_FIB_NO_BOT_SEATS });
 });
 
@@ -139,7 +139,7 @@ function confirmAllRoleViews(state: FibState): FibState {
   const confirmed = dispatch(state, { type: 'fibking.round.confirmRoleView' }, userContext('host'));
   const marked = dispatch(
     confirmed,
-    { type: 'fibking.round.markAllBotsViewed' },
+    { type: 'fibking.bots.markAllBotsViewed' },
     userContext('host'),
   );
   return dispatch(marked, { type: 'fibking.round.begin' }, userContext('host'));

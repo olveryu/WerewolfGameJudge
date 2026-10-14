@@ -50,7 +50,7 @@ export const undercoverPublicCommandSchema: z.ZodType<UndercoverPublicCommand> =
     z.strictObject({ type: z.literal('undercover.round.confirm'), roundId: z.string().min(1) }),
     z.strictObject({ type: z.literal('undercover.round.begin'), roundId: z.string().min(1) }),
     z.strictObject({
-      type: z.literal('undercover.round.markAllBotsViewed'),
+      type: z.literal('undercover.bots.markAllBotsViewed'),
       roundId: z.string().min(1),
     }),
     z.strictObject({
