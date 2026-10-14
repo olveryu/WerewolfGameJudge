@@ -8,7 +8,6 @@ import { AVALON_REASONS, type AvalonState } from '@game-judge/game-engine/games/
 
 import {
   createRoomCommandFailureMessage,
-  ROOM_COMMAND_FAILURE_BOT_SEAT_ONLY,
   ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE,
   ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
   ROOM_COMMAND_FAILURE_WRONG_PHASE,
@@ -46,7 +45,6 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.invalidVote]: '投票选项无效，请重试',
     [AVALON_REASONS.invalidPlay]: '出牌选项无效，请重试',
     [AVALON_REASONS.invalidTarget]: '目标座位无效，请重试',
-    [AVALON_REASONS.controlledSeatNotBot]: ROOM_COMMAND_FAILURE_BOT_SEAT_ONLY,
     [AVALON_REASONS.audioPlaying]: '播报尚未结束，请稍候',
     [AVALON_REASONS.notHostAckAudio]: '只有房主可以确认播报',
     [AVALON_REASONS.notHostMarkBots]: '只有房主可以标记机器人已查看',

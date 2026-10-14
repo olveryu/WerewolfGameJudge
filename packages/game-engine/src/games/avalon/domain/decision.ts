@@ -68,7 +68,6 @@ export const AVALON_REASONS = {
   invalidTarget: 'avalon_invalid_target',
   audioPlaying: 'avalon_audio_playing',
   notHostAckAudio: 'avalon_not_host_ack_audio',
-  controlledSeatNotBot: 'avalon_controlled_seat_not_bot',
 } as const;
 
 /** Team-size rejection: stable code plus the required size as a parameter. */

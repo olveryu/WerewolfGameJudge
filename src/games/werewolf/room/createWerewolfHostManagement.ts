@@ -6,6 +6,7 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildMarkBotsViewedAction,
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
@@ -229,17 +230,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
     );
   }
   if (input.canMarkAllBotsViewed) {
-    actions.push(
-      enabledAction(
-        {
-          key: 'mark-bots-viewed',
-          label: '标记机器人已查看',
-          icon: 'eye-outline',
-          variant: 'secondary',
-        },
-        input.onMarkAllBotsViewed,
-      ),
-    );
+    actions.push(buildMarkBotsViewedAction({ onPress: input.onMarkAllBotsViewed }));
   }
   if (input.canMarkAllBotsGroupConfirmed) {
     actions.push(
