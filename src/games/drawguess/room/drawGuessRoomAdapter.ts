@@ -103,12 +103,11 @@ function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSea
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
-            : {
-                kind: 'bot' as const,
+            : toRoomSeatPlayer({
+                kind: 'bot',
                 userId: target.userId,
                 displayName: target.rosterName,
-                isAnonymous: true,
-              };
+              });
       const statusLabel = drawerStatusLabel(state, seat);
       return {
         seat,

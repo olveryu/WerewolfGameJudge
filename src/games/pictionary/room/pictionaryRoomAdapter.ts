@@ -149,12 +149,11 @@ export function createPictionarySeatDataSource(
         human !== undefined
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
-            ? {
-                kind: 'bot' as const,
+            ? toRoomSeatPlayer({
+                kind: 'bot',
                 userId: getPictionaryBotUserId(input.state.roomCode, index),
                 displayName: getPictionaryBotDisplayName(index),
-                isAnonymous: true,
-              }
+              })
             : null;
       return {
         seat: index,

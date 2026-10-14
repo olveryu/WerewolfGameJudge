@@ -189,12 +189,11 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
         human !== undefined
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
-            ? {
-                kind: 'bot' as const,
+            ? toRoomSeatPlayer({
+                kind: 'bot',
                 userId: getFibBotUserId(input.state.roomCode, index),
                 displayName: getFibBotDisplayName(index),
-                isAnonymous: true,
-              }
+              })
             : null;
 
       return {

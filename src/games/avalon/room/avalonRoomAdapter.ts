@@ -167,12 +167,11 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
-            : {
-                kind: 'bot' as const,
+            : toRoomSeatPlayer({
+                kind: 'bot',
                 userId: target.userId,
                 displayName: target.rosterName,
-                isAnonymous: true,
-              };
+              });
       const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
       const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;

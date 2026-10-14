@@ -98,12 +98,11 @@ function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomS
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
-            : {
-                kind: 'bot' as const,
+            : toRoomSeatPlayer({
+                kind: 'bot',
                 userId: target.userId,
                 displayName: target.rosterName,
-                isAnonymous: true,
-              };
+              });
       const task = getStoryRelayTaskForSeat(state, seat);
       const statusBadge: RoomSeatViewModel['statusBadge'] =
         state.phase === 'answering'
