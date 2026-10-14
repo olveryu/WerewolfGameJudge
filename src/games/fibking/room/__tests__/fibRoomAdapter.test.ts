@@ -75,6 +75,7 @@ function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
       source: 'local',
       roles: { guesserSeat: 1, honestSeat: 2 },
       viewedSeats: [0, 1, 2, 3],
+      guesses: [],
     },
   };
 }
@@ -87,7 +88,7 @@ function createViewing(viewedSeats: readonly number[]): Extract<FibState, { phas
 describe('FibKing room adapter', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('offers the bot-viewing scaffold only while bot seats are unmarked', () => {
+  it('gates begin on the viewing checkpoint and offers the scaffold while bots are unmarked', () => {
     const markAllBotsViewed = jest.fn();
     const build = (state: FibState) =>
       createFibHostManagement({
@@ -102,6 +103,10 @@ describe('FibKing room adapter', () => {
         }),
         startRound: jest.fn(),
         markAllBotsViewed,
+        beginRound: jest.fn(),
+        onBeginDisabled: jest.fn(),
+        isGuessing: false,
+        toggleGuessMode: jest.fn(),
         cancelPreparing: jest.fn(),
         revealRound: jest.fn(),
         redrawRound: jest.fn(),
@@ -112,10 +117,20 @@ describe('FibKing room adapter', () => {
     const flowActions = (state: FibState) =>
       build(state)?.sections.find((section) => section.key === 'current-flow')?.actions ?? [];
 
-    expect(flowActions(createViewing([0]))).toEqual([
-      expect.objectContaining({ key: 'mark-bots-viewed', label: '标记机器人已查看' }),
-    ]);
-    expect(flowActions(createViewing([0, 1, 2, 3]))).toEqual([]);
+    const pending = flowActions(createViewing([0]));
+    expect(pending.map((action) => action.key)).toEqual(['start-game', 'mark-bots-viewed']);
+    expect(pending[0]).toEqual(
+      expect.objectContaining({
+        label: '开始游戏',
+        isEnabled: false,
+        disabledReason: '还有玩家未查看身份',
+      }),
+    );
+    expect(pending[1]).toEqual(expect.objectContaining({ label: '标记机器人已查看' }));
+
+    const ready = flowActions(createViewing([0, 1, 2, 3]));
+    expect(ready.map((action) => action.key)).toEqual(['start-game']);
+    expect(ready[0]).toEqual(expect.objectContaining({ label: '开始游戏', isEnabled: true }));
   });
 
   it('derives shared lobby operations without a Fib-specific header implementation', () => {
@@ -317,6 +332,10 @@ describe('FibKing room adapter', () => {
       capabilities: lobbyCapabilities,
       startRound,
       markAllBotsViewed: jest.fn(),
+      beginRound: jest.fn(),
+      onBeginDisabled: jest.fn(),
+      isGuessing: false,
+      toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound,
       redrawRound,
@@ -353,6 +372,10 @@ describe('FibKing room adapter', () => {
       capabilities: ongoingCapabilities,
       startRound,
       markAllBotsViewed: jest.fn(),
+      beginRound: jest.fn(),
+      onBeginDisabled: jest.fn(),
+      isGuessing: false,
+      toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound,
       redrawRound,
@@ -367,13 +390,14 @@ describe('FibKing room adapter', () => {
     ]);
     const ongoingActions = ongoingManagement?.sections.flatMap((section) => section.actions);
     expect(ongoingActions).toMatchObject([
+      { label: '大聪明选人', isEnabled: true },
       { label: '公布答案', isEnabled: true },
       { label: '重新抽词', isEnabled: true },
       { label: '放弃游戏', isEnabled: true },
     ]);
-    const revealAction = ongoingActions?.[0];
-    const redrawAction = ongoingActions?.[1];
-    const abandonAction = ongoingActions?.[2];
+    const revealAction = ongoingActions?.[1];
+    const redrawAction = ongoingActions?.[2];
+    const abandonAction = ongoingActions?.[3];
     if (
       revealAction?.isEnabled !== true ||
       redrawAction?.isEnabled !== true ||
@@ -402,6 +426,10 @@ describe('FibKing room adapter', () => {
       capabilities: endedCapabilities,
       startRound,
       markAllBotsViewed: jest.fn(),
+      beginRound: jest.fn(),
+      onBeginDisabled: jest.fn(),
+      isGuessing: false,
+      toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
       revealRound,
       redrawRound,
@@ -480,6 +508,10 @@ describe('FibKing room adapter', () => {
       capabilities,
       startRound,
       markAllBotsViewed: jest.fn(),
+      beginRound: jest.fn(),
+      onBeginDisabled: jest.fn(),
+      isGuessing: false,
+      toggleGuessMode: jest.fn(),
       cancelPreparing,
       endGame: jest.fn(),
       revealRound: jest.fn(),

@@ -21,6 +21,7 @@ import {
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildMarkBotsViewedAction,
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
@@ -160,7 +161,16 @@ function getSeatRoleLabel(state: FibState, seat: number): string | null {
     return null;
   }
   const role = getFibRole(state.round.roles, seat);
-  if ((state.phase === 'ongoing' || state.phase === 'viewing') && role !== 'guesser') {
+  if (state.phase === 'viewing' && role !== 'guesser') {
+    return null;
+  }
+  // Ongoing keeps roles hidden except the guesser's, until the host's
+  // guess publicly reveals a seat's real role.
+  if (
+    state.phase === 'ongoing' &&
+    role !== 'guesser' &&
+    !state.round.guesses.some((guess) => guess.seat === seat)
+  ) {
     return null;
   }
   return FIB_ROLE_NAMES[role];
@@ -242,12 +252,19 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | 
       const unviewedCount = getFibViewingParticipants(state).filter(
         (participant) => !state.round.viewedSeats.includes(participant.seat),
       ).length;
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: '等待全员查看身份',
-        supportingText: `还差 ${unviewedCount} 人`,
-      };
+      return unviewedCount > 0
+        ? {
+            kind: 'message',
+            icon: 'guide',
+            text: '等待全员查看身份',
+            supportingText: `还差 ${unviewedCount} 人`,
+          }
+        : {
+            kind: 'message',
+            icon: 'guide',
+            text: '全员已查看身份',
+            supportingText: '等待房主开始游戏',
+          };
     }
     case 'ongoing':
       return {
@@ -276,6 +293,10 @@ interface FibHostManagementInput {
   >;
   readonly startRound: () => void;
   readonly markAllBotsViewed: () => void;
+  readonly beginRound: () => void;
+  readonly onBeginDisabled: () => void;
+  readonly isGuessing: boolean;
+  readonly toggleGuessMode: () => void;
   readonly cancelPreparing: () => void;
   readonly revealRound: () => void;
   readonly redrawRound: () => void;
@@ -319,26 +340,36 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
   switch (input.state.phase) {
     case 'viewing': {
       // Identity scaffold (aligned with werewolf): while bot seats
-      // are unmarked, the host can fill their viewed records.
+      // are unmarked, the host can fill their viewed records. The
+      // begin gate mirrors the engine checkpoint: play opens only
+      // once every seat has viewed, and the panel shows why not.
       const round = input.state.round;
       if (round === null) return [];
-      const hasUnviewedBot = getFibViewingParticipants(input.state).some(
+      const participants = getFibViewingParticipants(input.state);
+      const allViewed = hasEverySeatViewed(input.state);
+      const actions: RoomHostManagementAction[] = [
+        buildStartGameAction({
+          label: '开始游戏',
+          onPress: input.beginRound,
+          isEnabled: !input.isCommandSubmitting && allViewed,
+          isLoading: input.isCommandSubmitting || undefined,
+          disabledReason: allViewed ? null : '还有玩家未查看身份',
+          onDisabledPress: allViewed ? null : input.onBeginDisabled,
+        }),
+      ];
+      const hasUnviewedBot = participants.some(
         (participant) => participant.isBot && !round.viewedSeats.includes(participant.seat),
       );
-      return hasUnviewedBot
-        ? [
-            commandHostAction(
-              input,
-              {
-                key: 'mark-bots-viewed',
-                label: '标记机器人已查看',
-                icon: 'eye-outline',
-                variant: 'secondary',
-              },
-              input.markAllBotsViewed,
-            ),
-          ]
-        : [];
+      if (hasUnviewedBot) {
+        actions.push(
+          buildMarkBotsViewedAction({
+            onPress: input.markAllBotsViewed,
+            isEnabled: !input.isCommandSubmitting,
+            isLoading: input.isCommandSubmitting,
+          }),
+        );
+      }
+      return actions;
     }
     case 'lobby': {
       return [
@@ -393,6 +424,17 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       ];
     case 'ongoing':
       return [
+        commandHostAction(
+          input,
+          {
+            key: 'guess-seat',
+            label: input.isGuessing ? '取消选人' : '大聪明选人',
+            icon: 'person-outline',
+            variant: input.isGuessing ? 'secondary' : 'primary',
+            testID: TESTIDS.fibGuessSeatButton,
+          },
+          input.toggleGuessMode,
+        ),
         commandHostAction(
           input,
           {
@@ -505,6 +547,13 @@ function createFibHostSection(
   return actions.length === 0 ? null : { key, title, actions };
 }
 
+function hasEverySeatViewed(state: FibState): boolean {
+  if (state.round === null) return false;
+  return getFibViewingParticipants(state).every((participant) =>
+    state.round.viewedSeats.includes(participant.seat),
+  );
+}
+
 function getFibHostPreview(state: FibState): string {
   switch (state.phase) {
     case 'lobby':
@@ -514,7 +563,7 @@ function getFibHostPreview(state: FibState): string {
     case 'preparationFailed':
       return '待处理：重新准备';
     case 'viewing':
-      return '等待全员查看身份';
+      return hasEverySeatViewed(state) ? '下一步：开始游戏' : '等待全员查看身份';
     case 'ongoing':
       return '可公布答案、重新抽词';
     case 'ended':
@@ -531,7 +580,7 @@ function getFibHostStatus(state: FibState): string {
     case 'preparationFailed':
       return '词语准备失败';
     case 'viewing':
-      return '等待全员查看身份';
+      return hasEverySeatViewed(state) ? '全员已查看身份' : '等待全员查看身份';
     case 'ongoing':
       return '描述进行中';
     case 'ended':
@@ -636,7 +685,8 @@ function getPlayerMessage(state: FibState, viewerSeat: number | null): string | 
     case 'preparationFailed':
       return '词语准备失败，等待房主重新准备';
     case 'viewing':
-      return viewerSeat === null ? '等待玩家查看身份' : '请先查看你的身份';
+      if (viewerSeat === null) return '等待玩家查看身份';
+      return state.round.viewedSeats.includes(viewerSeat) ? null : '请先查看你的身份';
     case 'ongoing':
     case 'ended':
       return null;

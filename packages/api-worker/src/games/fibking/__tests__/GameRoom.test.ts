@@ -230,13 +230,16 @@ describe('FibKing generic GameRoom integration', () => {
     expect(viewing.round.roles.guesserSeat).not.toBe(viewing.round.roles.honestSeat);
     expect(viewing.usedWords).toEqual([viewing.round.word]);
     expect(Object.keys(viewing.roster)).toEqual(['0', '1', '2', '3', '4', '5', '6', '7']);
-    // The host confirms, then marks the bot seats; that starts play.
+    // The host confirms, marks the bot seats, then begins play.
     requireCommitted(
       await dispatch(stub, stub, 'fib-confirm-role-view', {
         type: 'fibking.round.confirmRoleView',
       }),
       await dispatch(stub, stub, 'fib-mark-bots-viewed', {
         type: 'fibking.round.markAllBotsViewed',
+      }),
+      await dispatch(stub, stub, 'fib-begin-round', {
+        type: 'fibking.round.begin',
       }),
     );
     const startedSnapshot = await stub.getSnapshot(roomIdentity(stub));

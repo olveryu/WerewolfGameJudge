@@ -47,6 +47,7 @@ function createOngoingView(
         : null,
     guesserSeat: 0,
     honestSeat: null,
+    guesses: [],
   };
 }
 
@@ -124,6 +125,7 @@ describe('FibIdentityModal', () => {
       },
       guesserSeat: 0,
       honestSeat: null,
+      guesses: [],
     };
     const view = renderModal(<FibIdentityModal view={spectatorView} {...baseProps} />);
 
