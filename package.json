@@ -27,6 +27,7 @@
     "e2e:ui": "playwright test --ui",
     "dev": "concurrently -n worker,web -c blue,green \"pnpm --filter @game-judge/api-worker run dev\" \"EXPO_PUBLIC_BACKEND=cloudflare EXPO_PUBLIC_CF_API_URL=http://localhost:8787 expo start --web\"",
     "release": "bash scripts/release.sh",
+    "new-game": "node scripts/new-game.mjs",
     "sync:agents": "node scripts/sync-agent-config.mjs",
     "sync:agents:check": "node scripts/sync-agent-config.mjs --check",
     "badges:generate": "node scripts/generate-badges.mjs",
