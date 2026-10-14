@@ -1,5 +1,6 @@
 /** DrawGuess per-seat view model: the answer never leaves the server for guessers. */
 
+import { getSeatDisplayName } from '../../../platform/room/seatIdentity';
 import { isBotOccupant } from '../../../platform/room/seating';
 import {
   type DrawGuessPhaseKind,
@@ -46,12 +47,6 @@ export interface DrawGuessViewModel {
   readonly scores: Readonly<Record<number, number>>;
 }
 
-function seatDisplayName(state: DrawGuessState, seat: number): string {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
-  return getDrawGuessBotDisplayName(seat);
-}
-
 function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawGuessSeatView[] {
   const views: DrawGuessSeatView[] = [];
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
@@ -61,7 +56,7 @@ function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawG
     const guessed = state.phase.kind === 'drawing' && state.phase.guessedSeats.includes(seat);
     views.push({
       seat,
-      displayName: seatDisplayName(state, seat),
+      displayName: getSeatDisplayName(state.roster, seat, getDrawGuessBotDisplayName),
       isBot,
       isDrawer: drawerSeat === seat,
       isLocked: guessed,
@@ -79,7 +74,7 @@ function guessMessages(
   if (state.phase.kind !== 'drawing') return [];
   return state.phase.guessLog.map((entry) => ({
     seat: entry.seat,
-    displayName: seatDisplayName(state, entry.seat),
+    displayName: getSeatDisplayName(state.roster, entry.seat, getDrawGuessBotDisplayName),
     text: entry.correct && !isDrawer && entry.seat !== viewerSeat ? null : entry.text,
     correct: entry.correct,
     at: entry.at,
