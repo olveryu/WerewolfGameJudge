@@ -10,6 +10,7 @@ import {
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { createSeededRng, randomPick } from '../../platform/random';
+import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type {
   DrawGuessCommand,
@@ -24,7 +25,6 @@ import {
   type DrawGuessEvent,
   requireDrawGuessHost,
   resolveDrawGuessGuesser,
-  resolveDrawGuessSeat,
 } from './domain/decision';
 import { evolveDrawGuessState } from './domain/evolve';
 import {
@@ -178,9 +178,9 @@ function chooseWord(
   if (state.phase.deadlineAt !== null && context.nowMs >= state.phase.deadlineAt)
     return reject(DRAWGUESS_REASONS.stale);
   if (state.phase.choices.length === 0) return reject(DRAWGUESS_REASONS.emptyChoices);
-  const resolved = resolveDrawGuessSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.seat !== state.phase.drawerSeat) return reject(DRAWGUESS_REASONS.notDrawer);
+  if (resolved.value !== state.phase.drawerSeat) return reject(DRAWGUESS_REASONS.notDrawer);
   const choice = state.phase.choices.find((candidate) => candidate.word === word);
   if (choice === undefined) return reject(DRAWGUESS_REASONS.invalidWord);
   return beginDrawing(state, choice, context);
@@ -205,11 +205,11 @@ function resolveDrawerCommand(
   if (stale !== null) return stale;
   const deadline = checkDrawingDeadline(state, context);
   if (deadline !== null) return deadline;
-  const resolved = resolveDrawGuessSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (state.phase.kind !== 'drawing' || resolved.seat !== state.phase.drawerSeat)
+  if (state.phase.kind !== 'drawing' || resolved.value !== state.phase.drawerSeat)
     return reject(DRAWGUESS_REASONS.notDrawer);
-  return { seat: resolved.seat };
+  return { seat: resolved.value };
 }
 
 function addStroke(
@@ -279,13 +279,13 @@ function submitGuess(
   if (state.phase.kind !== 'drawing') return reject(DRAWGUESS_REASONS.phase);
   const resolved = resolveDrawGuessGuesser(state, context, state.phase.drawerSeat);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (state.phase.guessedSeats.includes(resolved.seat)) return reject(DRAWGUESS_REASONS.locked);
+  if (state.phase.guessedSeats.includes(resolved.value)) return reject(DRAWGUESS_REASONS.locked);
   if (!isValidGuessText(text)) return reject(DRAWGUESS_REASONS.invalidGuess);
   // Sliding-window spam guard: at most 5 accepted guesses per seat per 10 seconds.
   // Uses the turn-scoped guessLog timestamps so no extra state or codec fields are
   // needed; rejected guesses are never logged.
   const recentAttempts = state.phase.guessLog.filter(
-    (entry) => entry.seat === resolved.seat && entry.at > context.nowMs - 10000,
+    (entry) => entry.seat === resolved.value && entry.at > context.nowMs - 10000,
   ).length;
   if (recentAttempts >= 5) {
     return reject(DRAWGUESS_REASONS.rateLimited);
@@ -296,7 +296,7 @@ function submitGuess(
     {
       type: 'drawguess.guess.submitted',
       turnIndex,
-      seat: resolved.seat,
+      seat: resolved.value,
       text,
       correct,
       at: context.nowMs,
@@ -311,9 +311,9 @@ function submitGuess(
 
 function reserveDrawing(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
   if (state.phase.kind !== 'roundEnd') return reject(DRAWGUESS_REASONS.phase);
-  const resolved = resolveDrawGuessSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.seat !== state.phase.drawerSeat) return reject(DRAWGUESS_REASONS.notDrawer);
+  if (resolved.value !== state.phase.drawerSeat) return reject(DRAWGUESS_REASONS.notDrawer);
   if (state.phase.reservation !== null) return reject(DRAWGUESS_REASONS.reservation);
   return commitDrawGuess([
     {
@@ -321,7 +321,7 @@ function reserveDrawing(state: DrawGuessState, context: CommandContext): DrawGue
       turnIndex: state.turnIndex,
       submissionId: `drawguess-submission:${context.commandId}`,
       entryId: `drawguess-entry:${context.commandId}`,
-      authorSeat: resolved.seat,
+      authorSeat: resolved.value,
       reservedAt: context.nowMs,
     },
   ]);
@@ -359,11 +359,11 @@ function commitDrawing(
 /** Drawer or host gives up the current drawing round. */
 function finishRound(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
   if (state.phase.kind !== 'drawing') return reject(DRAWGUESS_REASONS.phase);
-  const resolved = resolveDrawGuessSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   const actor = resolveUncontrolledUserActorId(context);
   const isHost = actor.kind === 'resolved' && actor.value === state.hostUserId;
-  if (resolved.seat !== state.phase.drawerSeat && !isHost)
+  if (resolved.value !== state.phase.drawerSeat && !isHost)
     return reject(DRAWGUESS_REASONS.notDrawer);
   return endRound(state, context);
 }

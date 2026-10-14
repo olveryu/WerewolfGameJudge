@@ -1,21 +1,17 @@
 /** DrawGuess decision outcomes and permission gates; no IO. */
 
 import {
+  type ActorResolution,
   type CommandContext,
   commit,
   type Decision,
   reject,
   resolveHostActorId,
-  resolveUserActorId,
 } from '../../../platform/engine';
-import {
-  REASON_CONTROLLED_SEAT_NOT_BOT,
-  REASON_NOT_HOST,
-  REASON_NOT_SEATED,
-} from '../../../platform/protocol/reasons';
-import { findRosterSeatByUserId, type RosterChange } from '../../../platform/room/seating';
+import { resolveActingSeat } from '../../../platform/room/actingSeat';
+import { type RosterChange } from '../../../platform/room/seating';
 import type { DrawGuessMedia, DrawGuessStroke, DrawGuessWordChoice } from '../state/types';
-import { type DrawGuessHumanSeat, type DrawGuessState, isDrawGuessBotSeat } from '../state/types';
+import { type DrawGuessHumanSeat, type DrawGuessState } from '../state/types';
 
 export const DRAWGUESS_REASONS = {
   config: 'drawguess_config_invalid',
@@ -142,43 +138,17 @@ export function requireDrawGuessHost(
   return actor.kind === 'rejected' ? reject(actor.reason) : null;
 }
 
-export type ResolvedDrawGuessSeat =
-  | { readonly kind: 'resolved'; readonly seat: number }
-  | { readonly kind: 'rejected'; readonly reason: string };
-
-function rejectedSeat(reason: string): ResolvedDrawGuessSeat {
-  return { kind: 'rejected', reason };
-}
-
-/**
- * Resolves the acting seat: the user's own seat, or a host-takeover bot seat.
- * Takeover is host-only (pictionary pattern); the target must be an implicit bot seat.
- */
-export function resolveDrawGuessSeat(
-  state: DrawGuessState,
-  context: CommandContext,
-): ResolvedDrawGuessSeat {
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return rejectedSeat(actor.reason);
-  if (context.controlledSeat === null) {
-    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-    return seat === null ? rejectedSeat(REASON_NOT_SEATED) : { kind: 'resolved', seat };
-  }
-  if (actor.value !== state.hostUserId) return rejectedSeat(REASON_NOT_HOST);
-  if (!isDrawGuessBotSeat(state, context.controlledSeat))
-    return rejectedSeat(REASON_CONTROLLED_SEAT_NOT_BOT);
-  return { kind: 'resolved', seat: context.controlledSeat };
-}
-
 /** Resolves the acting seat for guess submission (never the drawer). */
 export function resolveDrawGuessGuesser(
   state: DrawGuessState,
   context: CommandContext,
   drawerSeat: number,
-): ResolvedDrawGuessSeat {
-  const resolved = resolveDrawGuessSeat(state, context);
+): ActorResolution<number> {
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return resolved;
-  return resolved.seat === drawerSeat ? rejectedSeat(DRAWGUESS_REASONS.notGuesser) : resolved;
+  return resolved.value === drawerSeat
+    ? { kind: 'rejected', reason: DRAWGUESS_REASONS.notGuesser }
+    : resolved;
 }
 
 /** Guards lobby-only commands. */
