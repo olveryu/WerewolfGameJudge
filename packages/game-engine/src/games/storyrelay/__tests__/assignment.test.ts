@@ -1,6 +1,6 @@
 /** Story Relay assignment invariants for supported player counts; no IO or state mutation. */
 
-import { createStoryRelayAssignment } from '../domain/assignment';
+import { createStoryRelayAssignment } from '../domain/relay';
 
 describe('Story Relay assignment', () => {
   it.each([4, 5, 6, 20])(

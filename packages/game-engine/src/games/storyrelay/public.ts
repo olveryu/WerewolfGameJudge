@@ -3,7 +3,7 @@
 export { isBotOccupant } from '../../platform/room/seating';
 export type { StoryRelayCommand, StoryRelayTaskIdentity } from './commands/types';
 export { STORY_RELAY_REASONS, type StoryRelayEffect } from './domain/decision';
-export { getStoryRelayTaskForSeat } from './domain/visibility';
+export { getStoryRelayTaskForSeat } from './domain/relay';
 export { decideStoryRelayCommand, getStoryRelayLifecycle, storyRelayEngine } from './engine';
 export { STORY_RELAY_STATE_CODEC } from './state/codec';
 export {

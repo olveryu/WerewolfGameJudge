@@ -49,7 +49,8 @@ export type StoryRelayEvent =
   | { readonly type: 'storyrelay.task.ready'; readonly seat: number; readonly isReady: boolean }
   | {
       readonly type: 'storyrelay.entries.appended';
-      readonly entries: readonly { readonly chainId: string; readonly entry: StoryRelayEntry }[];
+      readonly chainId: string;
+      readonly entry: StoryRelayEntry;
     }
   | {
       readonly type: 'storyrelay.phase.changed';

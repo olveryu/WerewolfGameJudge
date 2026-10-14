@@ -1,29 +1,22 @@
-/** Applies Story Relay domain events; reset paths clear all round-owned state. */
+/**
+ * Applies Story Relay domain events; reset paths clear all round-owned state.
+ *
+ * Round-slice landing shapes come from the shared relay machine
+ * (platform/room/relay/evolve); this module lands Story Relay's own
+ * fields (startedAt / completedAt / abortedAt, roster, config) and
+ * clears them wherever the shared reset clears the round.
+ */
 
+import {
+  applyRelayEntryAppended,
+  applyRelayPhaseChanged,
+  applyRelayRoundStarted,
+  applyRelayTaskReady,
+  clearRelayRound,
+} from '../../../platform/room/relay/evolve';
 import { applyRosterChanges } from '../../../platform/room/seating';
-import type { StoryRelayState } from '../state/types';
+import type { StoryRelayEntry, StoryRelayState } from '../state/types';
 import type { StoryRelayEvent } from './decision';
-
-/** Resets mutable round data while preserving room configuration and seats. */
-function resetStoryRelayRound(state: StoryRelayState): StoryRelayState {
-  return {
-    ...state,
-    phase: 'lobby',
-    phaseRevision: state.phaseRevision + 1,
-    roundId: null,
-    startedAt: null,
-    participants: [],
-    seatOrder: [],
-    stepOffsets: [],
-    stepIndex: -1,
-    deadlineAt: null,
-    readySeats: [],
-    chains: [],
-    gallery: null,
-    completedAt: null,
-    abortedAt: null,
-  };
-}
 
 /** Evolves a committed domain event without persistence or broadcasts. */
 export function evolveStoryRelayState(
@@ -37,40 +30,17 @@ export function evolveStoryRelayState(
       return { ...state, config: event.config };
     case 'storyrelay.round.started':
       return {
-        ...resetStoryRelayRound(state),
-        ...event.round,
-        phase: 'answering',
-        stepIndex: 0,
-        roundNumber: state.roundNumber + 1,
+        ...state,
+        ...applyRelayRoundStarted(state, event.round),
+        completedAt: null,
+        abortedAt: null,
       };
     case 'storyrelay.task.ready':
-      return {
-        ...state,
-        readySeats: event.isReady
-          ? [...state.readySeats, event.seat]
-          : state.readySeats.filter((seat) => seat !== event.seat),
-      };
+      return { ...state, ...applyRelayTaskReady(state.readySeats, event.seat, event.isReady) };
     case 'storyrelay.entries.appended':
-      return {
-        ...state,
-        chains: state.chains.map((chain) => ({
-          ...chain,
-          entries: [
-            ...chain.entries,
-            ...event.entries.filter((item) => item.chainId === chain.id).map((item) => item.entry),
-          ],
-        })),
-      };
+      return { ...state, ...applyRelayEntryAppended(state.chains, event.chainId, event.entry) };
     case 'storyrelay.phase.changed':
-      return {
-        ...state,
-        phase: event.phase,
-        stepIndex: event.stepIndex,
-        deadlineAt: event.deadlineAt,
-        gallery: event.gallery,
-        phaseRevision: state.phaseRevision + 1,
-        readySeats: [],
-      };
+      return { ...state, ...applyRelayPhaseChanged(state, event) };
     case 'storyrelay.round.completed':
       return { ...state, completedAt: event.completedAt };
     case 'storyrelay.round.aborted':
@@ -83,6 +53,12 @@ export function evolveStoryRelayState(
         readySeats: [],
       };
     case 'storyrelay.game.returnedToLobby':
-      return resetStoryRelayRound(state);
+      return {
+        ...state,
+        ...clearRelayRound<StoryRelayEntry>(state),
+        startedAt: null,
+        completedAt: null,
+        abortedAt: null,
+      };
   }
 }

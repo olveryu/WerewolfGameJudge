@@ -8,10 +8,9 @@ import {
   reject,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
-import { getBotDisplayName } from '../../platform/room/getBotDisplayName';
-import { isBotOccupant } from '../../platform/room/seating';
+import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
+import { expireRelayPhase, relayDeadline } from '../../platform/room/relay/clock';
 import type { StoryRelayCommand } from './commands/types';
-import { createStoryRelayAssignment } from './domain/assignment';
 import {
   commitStoryRelay,
   requireStoryRelayHost,
@@ -21,15 +20,22 @@ import {
   type StoryRelayEvent,
 } from './domain/decision';
 import { evolveStoryRelayState } from './domain/evolve';
-import { controlStoryRelayGallery, moveStoryRelayGallery } from './domain/gallery';
+import {
+  controlStoryRelayGallery,
+  createStoryRelayAssignment,
+  createStoryRelayRelayKit,
+  decideStoryRelayTask,
+  STORY_RELAY_EXPIRE_HOOKS,
+  storyRelayPhase,
+} from './domain/relay';
 import { decideStoryRelayRoom } from './domain/seating';
-import { decideStoryRelayTask, storyRelayDeadline, storyRelayPhase } from './domain/tasks';
 import { normalizeStoryRelayState } from './state/normalize';
 import {
   getStoryRelayOccupiedSeatCount,
   isValidStoryRelayConfig,
   STORY_RELAY_GAME_TYPE,
   type StoryRelayConfig,
+  type StoryRelayEntry,
   type StoryRelayState,
 } from './state/types';
 import { STORY_RELAY_STATE_VERSION } from './state/version';
@@ -68,15 +74,11 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
     return reject(STORY_RELAY_REASONS.full);
   const roundId = `storyrelay-round:${context.commandId}`;
   const assignment = createStoryRelayAssignment(state.config.numberOfPlayers, context.randomSeed);
-  const participants = assignment.seatOrder.map((seat) => {
-    const occupant = state.roster[seat];
-    const human = occupant != null && !isBotOccupant(occupant) ? occupant : null;
-    return {
-      seat,
-      userId: human === null ? null : human.userId,
-      displayName: human === null ? getBotDisplayName(seat) : human.profile.displayName,
-    };
-  });
+  const participants = buildRelayParticipants(
+    assignment.seatOrder,
+    state.roster,
+    (occupant) => occupant.profile.displayName,
+  );
   return commitStoryRelay([
     {
       type: 'storyrelay.round.started',
@@ -85,12 +87,8 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
         startedAt: context.nowMs,
         ...assignment,
         participants,
-        deadlineAt: storyRelayDeadline(context.nowMs, state.config.writingDurationSeconds),
-        chains: assignment.seatOrder.map((originSeat) => ({
-          id: `${roundId}:chain:${originSeat}`,
-          originSeat,
-          entries: [],
-        })),
+        deadlineAt: relayDeadline(context.nowMs, state.config.writingDurationSeconds),
+        chains: buildRelayChains<StoryRelayEntry>(roundId, assignment.seatOrder),
       },
     },
   ]);
@@ -101,36 +99,12 @@ function expirePhase(state: StoryRelayState, context: CommandContext): StoryRela
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.deadlineAt === null || context.nowMs < state.deadlineAt)
     return reject(STORY_RELAY_REASONS.deadline);
-  switch (state.phase) {
-    case 'answering':
-      return commitStoryRelay([storyRelayPhase(state, 'settling', null)]);
-    case 'transition': {
-      if (state.completedAt !== null) {
-        const isPlaying = state.config.galleryItemDurationSeconds !== null;
-        return commitStoryRelay([
-          storyRelayPhase(
-            state,
-            'gallery',
-            storyRelayDeadline(context.nowMs, state.config.galleryItemDurationSeconds),
-            state.stepIndex,
-            { position: 0, revealedPosition: 0, isPlaying, remainingMs: null },
-          ),
-        ]);
-      }
-      return commitStoryRelay([
-        storyRelayPhase(
-          state,
-          'answering',
-          storyRelayDeadline(context.nowMs, state.config.writingDurationSeconds),
-          state.stepIndex + 1,
-        ),
-      ]);
-    }
-    case 'gallery':
-      return moveStoryRelayGallery(state, 1, context.nowMs);
-    default:
-      return reject(STORY_RELAY_REASONS.phase);
-  }
+  return expireRelayPhase(
+    createStoryRelayRelayKit(state),
+    state,
+    context.nowMs,
+    STORY_RELAY_EXPIRE_HOOKS,
+  );
 }
 
 /** Decides public commands against the current authoritative round and phase revision. */

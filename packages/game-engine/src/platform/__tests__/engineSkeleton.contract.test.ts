@@ -22,6 +22,10 @@
  * visibility module (its viewer projections are a separately tracked
  * aggregation item). Its engine definition still satisfies
  * GameEngineDefinition with evolve bound to the reducer.
+ * storyrelay runs on the shared relay chain machine (E1,
+ * platform/room/relay): its viewer projection is assembled in
+ * domain/relay.ts, the binding module over the machine whose tasks
+ * module owns the privacy boundary.
  */
 
 import fs from 'node:fs';
@@ -53,6 +57,9 @@ const REGISTERED_EXCEPTIONS: Readonly<Record<string, Readonly<Record<string, str
     'domain/visibility.ts': 'domain/playerHelpers.ts',
     'state/normalize.ts': 'domain/state/normalize.ts',
     'state/types.ts': 'domain/protocol/types.ts',
+  },
+  storyrelay: {
+    'domain/visibility.ts': 'domain/relay.ts',
   },
 };
 
