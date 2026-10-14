@@ -123,6 +123,7 @@ export interface WorkerModuleRuntime<
   ): WorkerModuleDecision<TState, TEffect>;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
+  getEffectDeliveryAt?(effect: unknown, context: WorkerEffectBusinessContext): number | null;
   getEffectFailureCommand(effect: unknown, state: unknown): GameCommand | null;
   canReplayFailedEffect(effect: unknown): boolean;
   handleEffect(effect: unknown, context: WorkerModuleRuntimeEffectContext<TState>): Promise<void>;
@@ -158,6 +159,12 @@ export interface WorkerGameModuleDefinition<
   parsePublicUserStats(value: unknown): TPublicUserStats;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: TEffect, context: WorkerEffectBusinessContext): string;
+  /**
+   * Optional outbox delivery time (epoch ms) for one effect. Return null
+   * for immediate delivery; a future time parks the effect until the
+   * room alarm reaches it (the platform's one timed-wake mechanism).
+   */
+  getEffectDeliveryAt?(effect: TEffect, context: WorkerEffectBusinessContext): number | null;
   getEffectFailureCommand(effect: TEffect, state: TState): TInternalCommand | null;
   canReplayFailedEffect(effect: TEffect): boolean;
   handleEffect(
@@ -198,6 +205,7 @@ export type WorkerGameModule<
   | 'getPublicUserStats'
   | 'migratePersistedState'
   | 'getEffectBusinessKey'
+  | 'getEffectDeliveryAt'
   | 'getEffectFailureCommand'
   | 'canReplayFailedEffect'
   | 'handleEffect'
@@ -389,6 +397,11 @@ export function defineWorkerGameModule<
       }
       return businessKey;
     },
+    getEffectDeliveryAt:
+      definition.getEffectDeliveryAt === undefined
+        ? undefined
+        : (rawEffect, context) =>
+            definition.getEffectDeliveryAt!(definition.effectSchema.parse(rawEffect), context),
     getEffectFailureCommand: (rawEffect, rawState) => {
       const command = definition.getEffectFailureCommand(
         definition.effectSchema.parse(rawEffect),
@@ -456,6 +469,10 @@ export function registerWorkerGameModule<
     decideInternal: (state, command, context) => module.decideInternal(state, command, context),
     getPublicUserStats: (userId, bindings) => module.getPublicUserStats(userId, bindings),
     getEffectBusinessKey: (effect, context) => module.getEffectBusinessKey(effect, context),
+    getEffectDeliveryAt:
+      module.getEffectDeliveryAt === undefined
+        ? undefined
+        : (effect, context) => module.getEffectDeliveryAt!(effect, context),
     getEffectFailureCommand: (effect, state) => module.getEffectFailureCommand(effect, state),
     canReplayFailedEffect: (effect) => module.canReplayFailedEffect(effect),
     handleEffect: (effect, context) =>

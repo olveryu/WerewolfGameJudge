@@ -1,7 +1,7 @@
 /** Public pure Avalon API for transport, persistence and the client game module. */
 
 export { isBotOccupant } from '../../platform/room/seating';
-export type { AvalonCommand, AvalonPublicCommand } from './commands/types';
+export type { AvalonCommand, AvalonInternalCommand, AvalonPublicCommand } from './commands/types';
 export {
   AVALON_REASONS,
   type AvalonDecision,

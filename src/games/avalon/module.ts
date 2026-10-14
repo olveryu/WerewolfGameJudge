@@ -4,7 +4,7 @@
 
 import {
   AVALON_STATE_CODEC,
-  type AvalonCommand,
+  type AvalonPublicCommand,
   type AvalonState,
   getAvalonUserSeat,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -35,7 +35,7 @@ export function createAvalonUiModule({
   readonly sessionFactory: GameSessionFactory;
   readonly audioService: AudioService;
 }) {
-  const session = sessionFactory.create<AvalonState, AvalonCommand>({
+  const session = sessionFactory.create<AvalonState, AvalonPublicCommand>({
     stateCodec: AVALON_STATE_CODEC,
   });
   const audio = new AvalonAudioPlayer(audioService);

@@ -4,8 +4,8 @@
  * bots (takeover hint live) and a started night (view-role action live).
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
@@ -32,7 +32,7 @@ function session(humanCount: number) {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host') => {
+  const send = (command: AvalonPublicCommand, userId = 'host') => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,
@@ -311,7 +311,7 @@ function ninePlayerDaytimeSession(): RunningSession {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 9 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host') => {
+  const send = (command: AvalonPublicCommand, userId = 'host') => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,

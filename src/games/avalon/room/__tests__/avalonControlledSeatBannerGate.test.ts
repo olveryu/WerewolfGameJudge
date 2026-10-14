@@ -7,8 +7,8 @@
  * saw the long-press hint permanently.
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonBotSeats,
@@ -26,7 +26,7 @@ function roomState(humanCount: number): AvalonState {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host') => {
+  const send = (command: AvalonPublicCommand, userId = 'host') => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,

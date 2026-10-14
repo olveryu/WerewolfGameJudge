@@ -3,7 +3,7 @@
  */
 
 import {
-  type AvalonCommand,
+  type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
   type AvalonViewModel,
@@ -86,7 +86,7 @@ export interface AvalonRoomScreenState {
   readonly equippedRevealEffect: RevealEffectType | null;
   readonly submit: (
     label: string,
-    command: AvalonCommand,
+    command: AvalonPublicCommand,
     control?: number | null,
   ) => Promise<boolean>;
   readonly isSubmitting: boolean;
@@ -194,9 +194,11 @@ export function useAvalonRoomState(
   // 派发纪律（对齐卧底 submit 形态）：默认不带接管座位。房主命令的平台门
   // 只认未接管身份（resolveHostActorId），挂着接管座位发房主命令必然被拒；
   // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
-  const submit = (label: string, command: AvalonCommand, control: number | null = null) =>
+  const submit = (label: string, command: AvalonPublicCommand, control: number | null = null) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
-  // 投票/任务倒计时：到点由任一未接管客户端提交超时结算（引擎校验截止时间，先到者生效）。
+  // 投票/任务倒计时：结算的正确性由服务端定时投递保证（引擎武装倒计时的
+  // 同时排下 avalon.settle.due，Worker 到点以系统身份内部结算）。客户端
+  // 这条 expire 派发只是加速路径：抢先提交同一个超时结算，先到者生效。
   const phaseDeadlineAt =
     state.phase.kind === 'vote' || state.phase.kind === 'quest' ? state.phase.deadlineAt : null;
   // 超时结算走静默派发（对齐 drawguess 的 expire）：全场客户端会同时提交，

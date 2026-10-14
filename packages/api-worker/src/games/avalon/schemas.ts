@@ -2,6 +2,7 @@
 
 import type {
   AvalonConfig,
+  AvalonInternalCommand,
   AvalonPublicCommand,
 } from '@game-judge/game-engine/games/avalon/public';
 import {
@@ -78,4 +79,16 @@ const avalonPublicCommandOptions = defineAvalonPublicCommandOptions([
 export const avalonPublicCommandSchema: z.ZodType<AvalonPublicCommand> = z.discriminatedUnion(
   'type',
   avalonPublicCommandOptions,
+);
+
+/**
+ * Worker-originated commands: dispatched only by the settle effect
+ * handler as the system actor when a scheduled countdown effect is due.
+ */
+export const avalonInternalCommandSchema: z.ZodType<AvalonInternalCommand> = z.discriminatedUnion(
+  'type',
+  [
+    z.strictObject({ type: z.literal('avalon.vote.settleExpired') }),
+    z.strictObject({ type: z.literal('avalon.quest.settleExpired') }),
+  ],
 );

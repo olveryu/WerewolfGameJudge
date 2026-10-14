@@ -7,8 +7,8 @@
  * hand-assembled.
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
@@ -24,7 +24,11 @@ function startFivePlayerGame(playerCount: 5 | 9 = 5) {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: playerCount },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host', controlledSeat: number | null = null) => {
+  const send = (
+    command: AvalonPublicCommand,
+    userId = 'host',
+    controlledSeat: number | null = null,
+  ) => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat,
