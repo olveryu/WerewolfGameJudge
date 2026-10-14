@@ -22,7 +22,7 @@ import { avalonHomeContribution } from './home';
 import { avalonGameNavigation } from './navigation/avalonGameNavigation';
 import { AvalonRoomScreen } from './room/AvalonRoomScreen';
 import { AvalonConfigScreen } from './screens/AvalonConfigScreen';
-import { AvalonRulesScreen } from './screens/AvalonRulesScreen';
+import { AvalonGuideScreen } from './screens/AvalonGuideScreen';
 
 const EmptyAvalonAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
 
@@ -55,7 +55,7 @@ export function createAvalonUiModule({
     home: avalonHomeContribution,
     navigation: bindGameNavigation(avalonGameNavigation, {
       config: BoundAvalonConfigScreen,
-      guide: AvalonRulesScreen,
+      guide: AvalonGuideScreen,
     }),
     roomScreen: BoundAvalonRoomScreen,
     roomAccount,
