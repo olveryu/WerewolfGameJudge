@@ -1,0 +1,182 @@
+/**
+ * create__GAME_PASCAL__RoomShellModel / HostManagement characterization:
+ * the assembled models are pinned from real engine states (lobby and
+ * the identity-viewing stage).
+ */
+import {
+  DEFAULT___GAME_UPPER___CONFIG,
+  type __GAME_PASCAL__Command,
+  __GAME_CAMEL__Engine,
+  type __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import {
+  createBotTakeoverCapability,
+  createRoomSetupCapabilities,
+  type RoomCapabilities,
+} from '@/features/room/model/RoomCapabilities';
+
+import {
+  create__GAME_PASCAL__HostManagement,
+  create__GAME_PASCAL__RoomShellModel,
+} from '../__GAME_CAMEL__RoomAdapter';
+
+type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
+
+function drive(state: __GAME_PASCAL__State, command: __GAME_PASCAL__Command, userId = 'host') {
+  const context: CommandContext = {
+    actor: { kind: 'user', userId },
+    controlledSeat: null,
+    nowMs: 1000,
+    commandId: command.type,
+    randomSeed: 'seed',
+  };
+  const decision = __GAME_CAMEL__Engine.decide(state, command, context);
+  if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+  return decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
+}
+
+function lobbyState(withBots: boolean): __GAME_PASCAL__State {
+  let state = __GAME_CAMEL__Engine.createInitialState(
+    { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers: 4 },
+    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+  );
+  state = drive(state, { type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
+  if (withBots) state = drive(state, { type: 'room.seat.fillBots' });
+  return state;
+}
+
+function viewingState(): __GAME_PASCAL__State {
+  let state = lobbyState(true);
+  state = drive(state, { type: '__GAME_ID__.game.start' });
+  return state;
+}
+
+function capabilities(): RoomCapabilities {
+  return {
+    ...createRoomSetupCapabilities({
+      isSetup: true,
+      isHost: true,
+      mySeat: 0,
+      supportsBots: true,
+      hasOccupiedSeats: true,
+      isRoomFull: false,
+      requestTakeSeat: jest.fn(),
+      requestMoveSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      kickSeat: jest.fn(),
+      clearSeats: jest.fn(),
+      fillBots: jest.fn(),
+      configureGame: jest.fn(),
+      shareRoom: jest.fn(),
+    }),
+    canViewProfiles: { isAllowed: true, execute: jest.fn() },
+    canTakeOverBots: createBotTakeoverCapability(true, jest.fn()),
+  };
+}
+
+const seatController: RoomSeatController = {
+  pendingAction: null,
+  isSubmitting: false,
+  requestTakeSeat: jest.fn(),
+  requestMoveSeat: jest.fn(),
+  confirm: jest.fn(async () => undefined),
+  cancel: jest.fn(),
+};
+
+const share = {
+  isVisible: false,
+  roomCode: '1234',
+  roomUrl: 'https://example.test/1234',
+  open: jest.fn(),
+  close: jest.fn(),
+  copyLink: jest.fn(async () => undefined),
+  shareImage: jest.fn(async () => undefined),
+};
+
+describe('create__GAME_PASCAL__RoomShellModel', () => {
+  it('assembles the lobby shell from the hook projections', () => {
+    const state = lobbyState(true);
+    const caps = capabilities();
+    const hostManagement = { preview: '分配身份', status: null, sections: [] };
+    const onSeatPress = jest.fn();
+    const model = create__GAME_PASCAL__RoomShellModel({
+      roomCode: '1234',
+      capabilities: caps,
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state,
+      revision: 5,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress,
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: true,
+      isHost: true,
+      mySeat: 0,
+      hostManagement,
+      canControlBots: true,
+      releaseBot: jest.fn(),
+    });
+    expect(model.roomCode).toBe('1234');
+    expect(model.seats.source.count).toBe(4);
+    expect(model.seats.onSeatPress).toBe(onSeatPress);
+    expect(model.seatConfirmation).toBeNull();
+    expect(model.profile).toBeNull();
+    expect(model.share).toBe(share);
+    expect(model.hostManagement).toBe(hostManagement);
+    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    expect(model.statusRibbon).toEqual({
+      kind: 'message',
+      icon: 'guide',
+      text: '等待入座 · 4/4',
+      supportingText: null,
+    });
+  });
+});
+
+describe('create__GAME_PASCAL__HostManagement', () => {
+  it('gates the viewing-stage begin on the full view record and offers the bot scaffold', () => {
+    const state = viewingState();
+    const model = create__GAME_PASCAL__HostManagement({
+      state,
+      isHost: true,
+      capabilities: capabilities(),
+      isSubmitting: false,
+      submit: jest.fn(async () => true),
+    });
+    expect(model?.preview).toBe('开始游戏');
+    expect(model?.status).toBe('等待全员查看身份 · 0/4');
+    expect(model?.sections.map((section) => section.key)).toEqual(['game', 'bot-viewing', 'room']);
+    const begin = model?.sections[0]?.actions[0];
+    expect(begin).toMatchObject({ isEnabled: false, disabledReason: '还有玩家未查看身份' });
+  });
+
+  it('enables begin once every seat has viewed', () => {
+    let state = viewingState();
+    state = drive(state, { type: '__GAME_ID__.role.viewed' });
+    state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+    const model = create__GAME_PASCAL__HostManagement({
+      state,
+      isHost: true,
+      capabilities: capabilities(),
+      isSubmitting: false,
+      submit: jest.fn(async () => true),
+    });
+    expect(model?.status).toBe('等待全员查看身份 · 4/4');
+    expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
+    expect(model?.sections[0]?.actions[0]).toMatchObject({ isEnabled: true });
+  });
+});

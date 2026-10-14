@@ -1,0 +1,20 @@
+/** Canonical minimal __GAME_PASCAL__ state for client tests (AU-46). */
+
+import type { __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { __GAME_CAMEL__Engine } from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+function withOverrides<S>(base: S, overrides: Partial<S>): S {
+  return { ...base, ...overrides };
+}
+
+export function build__GAME_PASCAL__TestState(
+  overrides: Partial<__GAME_PASCAL__State> = {},
+): __GAME_PASCAL__State {
+  return withOverrides(
+    __GAME_CAMEL__Engine.createInitialState(
+      { numberOfPlayers: 6 },
+      { roomCode: 'ABCD', hostUserId: 'host-1', nowMs: 0, commandId: 'create' },
+    ),
+    overrides,
+  );
+}

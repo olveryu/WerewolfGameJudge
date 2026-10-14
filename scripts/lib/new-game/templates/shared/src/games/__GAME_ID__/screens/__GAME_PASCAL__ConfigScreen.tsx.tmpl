@@ -1,0 +1,140 @@
+/**
+ * __GAME_DISPLAY_NAME__房间设置：人数（机器人填充在大厅由房主一键操作）。
+ */
+
+import {
+  __GAME_UPPER___MAX_PLAYERS,
+  __GAME_UPPER___MIN_PLAYERS,
+  type __GAME_PASCAL__Config,
+  DEFAULT___GAME_UPPER___CONFIG,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Button } from '@/components/Button';
+import { GameScreen, GameScreenContent, GameScreenFooter } from '@/components/GameScreen';
+import { GameSettingsStepper } from '@/components/GameSettings';
+import { gameSettingsStyles as styles } from '@/components/GameSettings.styles';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
+import {
+  replaceWithCreatedRoom,
+  returnToActiveRoom,
+} from '@/features/room/navigation/roomFlowNavigation';
+import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+import { parse__GAME_PASCAL__ConfigRouteParams } from '@/games/__GAME_ID__/navigation/__GAME_CAMEL__GameNavigation';
+import { get__GAME_PASCAL__RoomCommandFailureMessage } from '@/games/__GAME_ID__/room/__GAME_CAMEL__RoomCommandFailureMessage';
+import type { RootStackParamList } from '@/navigation/types';
+import { showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { configLog } from '@/utils/logger';
+
+// TODO(gameplay): 玩法配置项（时长、模式等）按设计文档加进本页与引擎 Config。
+
+/** 创建/编辑设置；保存走共享建房与命令控制器。 */
+export function __GAME_PASCAL__ConfigScreen({
+  session,
+}: {
+  readonly session: __GAME_PASCAL__RoomSession;
+}) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameConfig'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'GameConfig'>>();
+  const params = parse__GAME_PASCAL__ConfigRouteParams(route.params);
+  const { user } = useAuthContext();
+  const insets = useSafeAreaInsets();
+  const creation = useRoomCreationController();
+  const submission = useRoomCommandSubmission(get__GAME_PASCAL__RoomCommandFailureMessage);
+  const [config, setConfig] = useState<__GAME_PASCAL__Config>(() => {
+    if (params.mode === 'create') return DEFAULT___GAME_UPPER___CONFIG;
+    const snapshot = session.getSnapshot();
+    if (
+      snapshot.phase !== 'ready' ||
+      snapshot.identity.room.roomCode !== params.roomCode ||
+      snapshot.snapshot.state.phase.kind !== 'lobby'
+    )
+      throw new Error('__GAME_PASCAL__ settings require the active lobby');
+    return snapshot.snapshot.state.config;
+  });
+  const changePlayers = (difference: number) => {
+    const count = config.numberOfPlayers + difference;
+    if (count < __GAME_UPPER___MIN_PLAYERS || count > __GAME_UPPER___MAX_PLAYERS)
+      return showErrorAlert(
+        '人数设置有误',
+        `支持 ${__GAME_UPPER___MIN_PLAYERS} 至 ${__GAME_UPPER___MAX_PLAYERS} 人`,
+      );
+    setConfig((current) => ({ ...current, numberOfPlayers: count }));
+  };
+  const submit = () => {
+    if (params.mode === 'edit') {
+      void submission
+        .submit('保存__GAME_DISPLAY_NAME__设置', () =>
+          session.dispatch(
+            { type: '__GAME_ID__.config.update', config },
+            { controlledSeat: null, label: '保存设置' },
+          ),
+        )
+        .then((success) => {
+          if (success) returnToActiveRoom(navigation, params.roomCode);
+        });
+      return;
+    }
+    if (user === null) throw new Error('__GAME_PASCAL__ creation requires authentication');
+    void creation
+      .createRoom({ expectedHostUserId: user.id, gameType: '__GAME_ID__', config: { ...config } })
+      .then((record) => replaceWithCreatedRoom(navigation, record.roomCode))
+      .catch((error: unknown) =>
+        handleError(error, {
+          label: '创建__GAME_DISPLAY_NAME__房间',
+          logger: configLog,
+          alertMessage: '创建失败，请重试',
+        }),
+      );
+  };
+  return (
+    <GameScreen
+      testID="__GAME_ID__-config"
+      header={
+        <ScreenHeader
+          title="__GAME_DISPLAY_NAME__设置"
+          topInset={insets.top}
+          onBack={() =>
+            navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')
+          }
+        />
+      }
+    >
+      <GameScreenContent contentContainerStyle={styles.content}>
+        <View style={styles.section}>
+          <GameSettingsStepper
+            label="玩家人数"
+            value={String(config.numberOfPlayers)}
+            onDecrement={() => changePlayers(-1)}
+            onIncrement={() => changePlayers(1)}
+            isDecrementDisabled={config.numberOfPlayers === __GAME_UPPER___MIN_PLAYERS}
+            testID="__GAME_ID__-player-count"
+          />
+          <Text style={styles.hint}>
+            支持 {__GAME_UPPER___MIN_PLAYERS} 至 {__GAME_UPPER___MAX_PLAYERS}
+            人；开局要求坐满全部座位（可填充机器人）。
+          </Text>
+        </View>
+      </GameScreenContent>
+      <GameScreenFooter>
+        <Button
+          variant="primary"
+          size="lg"
+          onPress={submit}
+          loading={creation.isCreating || submission.isSubmitting}
+          testID="__GAME_ID__-config-submit"
+        >
+          {params.mode === 'edit' ? '保存设置' : '创建房间'}
+        </Button>
+      </GameScreenFooter>
+    </GameScreen>
+  );
+}

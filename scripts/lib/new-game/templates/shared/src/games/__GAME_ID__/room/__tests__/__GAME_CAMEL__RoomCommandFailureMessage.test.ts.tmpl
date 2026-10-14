@@ -1,0 +1,44 @@
+/** __GAME_DISPLAY_NAME__命令失败文案：覆盖开局门槛、阶段门与平台级 reason 兜底。 */
+
+import type { __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import { rejectedRoomCommand } from '@/test-utils/roomCommand';
+
+import { get__GAME_PASCAL__RoomCommandFailureMessage } from '../__GAME_CAMEL__RoomCommandFailureMessage';
+
+describe('get__GAME_PASCAL__RoomCommandFailureMessage', () => {
+  it('explains the full-room start requirement', () => {
+    expect(
+      get__GAME_PASCAL__RoomCommandFailureMessage(
+        rejectedRoomCommand<__GAME_PASCAL__State>('__GAME_ID___room_not_full', 'command-0'),
+      ),
+    ).toBe('请先坐满所有座位，或填充机器人。');
+  });
+
+  it('delegates platform-level reason codes to the shared translator', () => {
+    expect(
+      get__GAME_PASCAL__RoomCommandFailureMessage(
+        rejectedRoomCommand<__GAME_PASCAL__State>('room_initialization_conflict', 'command-1'),
+      ),
+    ).toBe('房间初始化冲突，请重新创建');
+  });
+
+//#identity
+  it('explains the identity checkpoint', () => {
+    expect(
+      get__GAME_PASCAL__RoomCommandFailureMessage(
+        rejectedRoomCommand<__GAME_PASCAL__State>('__GAME_ID___not_all_viewed', 'command-2'),
+      ),
+    ).toBe('还有玩家未查看身份');
+  });
+//#end
+//#stage
+  it('explains an unexpired stage deadline', () => {
+    expect(
+      get__GAME_PASCAL__RoomCommandFailureMessage(
+        rejectedRoomCommand<__GAME_PASCAL__State>('__GAME_ID___deadline_not_reached', 'command-2'),
+      ),
+    ).toBe('当前阶段尚未结束');
+  });
+//#end
+});

@@ -1,0 +1,49 @@
+/**
+ * __GAME_DISPLAY_NAME__路由解析；导航宿主收到校验过的游戏参数。
+ */
+
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
+
+import { defineGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import {
+  assertExactRouteParamKeys,
+  parseRouteParams,
+} from '@/features/navigation/model/routeParams';
+
+export type __GAME_PASCAL__ConfigRouteParams =
+  | { readonly gameType: '__GAME_ID__'; readonly mode: 'create' }
+  | { readonly gameType: '__GAME_ID__'; readonly mode: 'edit'; readonly roomCode: string };
+
+/** 只解析创建或活跃房间的设置编辑路由。 */
+export function parse__GAME_PASCAL__ConfigRouteParams(
+  value: unknown,
+): __GAME_PASCAL__ConfigRouteParams {
+  const params = parseRouteParams(value, '__GAME_PASCAL__ config');
+  assertExactRouteParamKeys(params, ['gameType', 'mode', 'roomCode'], '__GAME_PASCAL__ config');
+  if (params.gameType !== '__GAME_ID__') throw new Error('__GAME_PASCAL__ config game mismatch');
+  if (params.mode === 'create' && params.roomCode === undefined)
+    return { gameType: '__GAME_ID__', mode: 'create' };
+  if (params.mode === 'edit')
+    return { gameType: '__GAME_ID__', mode: 'edit', roomCode: parseRoomCode(params.roomCode) };
+  throw new Error('Invalid __GAME_PASCAL__ config route');
+}
+
+function parseGuide(value: unknown): {
+  readonly gameType: '__GAME_ID__';
+  readonly roomCode?: string;
+} {
+  const params = parseRouteParams(value, '__GAME_PASCAL__ guide');
+  assertExactRouteParamKeys(params, ['gameType', 'roomCode'], '__GAME_PASCAL__ guide');
+  if (params.gameType !== '__GAME_ID__') throw new Error('__GAME_PASCAL__ guide game mismatch');
+  return {
+    gameType: '__GAME_ID__' as const,
+    roomCode: params.roomCode === undefined ? undefined : parseRoomCode(params.roomCode),
+  };
+}
+
+export const __GAME_CAMEL__GameNavigation = defineGameNavigation({
+  gameType: '__GAME_ID__',
+  config: { kind: 'screen', parseParams: parse__GAME_PASCAL__ConfigRouteParams },
+  guide: { kind: 'screen', parseParams: parseGuide },
+  notepad: { kind: 'unsupported' },
+});

@@ -1,0 +1,62 @@
+/**
+ * 注册完整的__GAME_DISPLAY_NAME__客户端：使用共享房间基础设施。
+ */
+
+import {
+  __GAME_UPPER___STATE_CODEC,
+  type __GAME_PASCAL__Command,
+  type __GAME_PASCAL__State,
+  get__GAME_PASCAL__UserSeat,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { createElement } from 'react';
+
+import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
+import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
+import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
+import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
+import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
+
+import { __GAME_CAMEL__HomeContribution } from './home';
+import { __GAME_CAMEL__GameNavigation } from './navigation/__GAME_CAMEL__GameNavigation';
+import { __GAME_PASCAL__RoomScreen } from './room/__GAME_PASCAL__RoomScreen';
+import { __GAME_PASCAL__ConfigScreen } from './screens/__GAME_PASCAL__ConfigScreen';
+import { __GAME_PASCAL__RulesScreen } from './screens/__GAME_PASCAL__RulesScreen';
+
+const Empty__GAME_PASCAL__AccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
+
+/** 创建一个 session，把配置、房间 UI 与账号归属绑定到它上面。 */
+export function create__GAME_PASCAL__UiModule({
+  sessionFactory,
+}: {
+  readonly sessionFactory: GameSessionFactory;
+}) {
+  const session = sessionFactory.create<__GAME_PASCAL__State, __GAME_PASCAL__Command>({
+    stateCodec: __GAME_UPPER___STATE_CODEC,
+  });
+  const roomAccount = createSessionRoomAccountCapability<'__GAME_ID__', __GAME_PASCAL__State>({
+    gameType: '__GAME_ID__',
+    session,
+    isUserSeated: (state, userId) => get__GAME_PASCAL__UserSeat(state, userId) !== null,
+    canSwitchAccount: (state) => state.phase.kind === 'lobby',
+  });
+  function Bound__GAME_PASCAL__RoomScreen(props: GameRoomScreenProps<'__GAME_ID__'>) {
+    return createElement(__GAME_PASCAL__RoomScreen, { ...props, session });
+  }
+  function Bound__GAME_PASCAL__ConfigScreen() {
+    return createElement(__GAME_PASCAL__ConfigScreen, { session });
+  }
+  return {
+    gameType: '__GAME_ID__',
+    home: __GAME_CAMEL__HomeContribution,
+    navigation: bindGameNavigation(__GAME_CAMEL__GameNavigation, {
+      config: Bound__GAME_PASCAL__ConfigScreen,
+      guide: __GAME_PASCAL__RulesScreen,
+    }),
+    roomScreen: Bound__GAME_PASCAL__RoomScreen,
+    roomAccount,
+    productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },
+    audioPreview: null,
+    accountStatsSection: Empty__GAME_PASCAL__AccountStatsSection,
+    appOverlay: null,
+  } satisfies ClientGameModule<'__GAME_ID__'>;
+}

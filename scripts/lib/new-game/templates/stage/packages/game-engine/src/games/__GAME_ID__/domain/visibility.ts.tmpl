@@ -1,0 +1,46 @@
+/** __GAME_PASCAL__ per-seat view model: the stage projection every client renders from. */
+
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
+import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
+import {
+  type __GAME_PASCAL__PhaseKind,
+  type __GAME_PASCAL__State,
+  is__GAME_PASCAL__OccupiedSeat,
+} from '../state/types';
+
+export interface __GAME_PASCAL__SeatView {
+  readonly seat: number;
+  readonly displayName: string;
+  readonly isBot: boolean;
+}
+
+export interface __GAME_PASCAL__ViewModel {
+  readonly phase: __GAME_PASCAL__PhaseKind;
+  readonly mySeat: number | null;
+  readonly seats: readonly __GAME_PASCAL__SeatView[];
+  /** 当前舞台阶段的截止时刻（epoch ms）；无阶段或无截止时为 null。 */
+  readonly stageDeadlineAt: number | null;
+  // TODO(gameplay): 玩法投影（当前回合、公开产物、本人私有信息）加在这里：
+  // 私有字段只许按 viewerSeat 裁剪产出，不许把完整状态透传给客户端拼装。
+}
+
+/**
+ * Builds the view model for one viewer.
+ * @param viewerSeat Seat of the viewer; null for spectators without a seat.
+ */
+export function get__GAME_PASCAL__ViewModel(
+  state: __GAME_PASCAL__State,
+  viewerSeat: number | null,
+): __GAME_PASCAL__ViewModel {
+  const seats: __GAME_PASCAL__SeatView[] = [];
+  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
+    if (!is__GAME_PASCAL__OccupiedSeat(state, seat)) continue;
+    seats.push({ ...buildSeatIdentityView(state.roster, seat, getBotDisplayName) });
+  }
+  return {
+    phase: state.phase.kind,
+    mySeat: viewerSeat,
+    seats,
+    stageDeadlineAt: state.phase.kind === 'stage' ? state.phase.deadlineAt : null,
+  };
+}

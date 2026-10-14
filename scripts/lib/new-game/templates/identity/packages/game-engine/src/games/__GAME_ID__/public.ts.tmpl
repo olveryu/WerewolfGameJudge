@@ -1,0 +1,51 @@
+/** Public pure __GAME_PASCAL__ API for transport, persistence and the client game module. */
+
+export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
+export type {
+  __GAME_PASCAL__Command,
+  __GAME_PASCAL__InternalCommand,
+  __GAME_PASCAL__PublicCommand,
+} from './commands/types';
+export {
+  __GAME_UPPER___REASONS,
+  type __GAME_PASCAL__Decision,
+  type __GAME_PASCAL__Effect,
+  type __GAME_PASCAL__Event,
+} from './domain/decision';
+export {
+  type __GAME_PASCAL__SeatView,
+  type __GAME_PASCAL__ViewModel,
+  get__GAME_PASCAL__ViewModel,
+} from './domain/visibility';
+export {
+  __GAME_CAMEL__Engine,
+  decide__GAME_PASCAL__Command,
+  end__GAME_PASCAL__Game,
+  get__GAME_PASCAL__Lifecycle,
+} from './engine';
+export { __GAME_UPPER___STATE_CODEC } from './state/codec';
+export {
+  migratePersisted__GAME_PASCAL__State,
+  parse__GAME_PASCAL__Config,
+  parse__GAME_PASCAL__State,
+} from './state/parseState';
+export {
+  __GAME_UPPER___DEFAULT_PLAYERS,
+  __GAME_UPPER___GAME_TYPE,
+  __GAME_UPPER___MAX_PLAYERS,
+  __GAME_UPPER___MIN_PLAYERS,
+  __GAME_UPPER___TODO_IDENTITY,
+  __GAME_PASCAL___PHASES,
+  type __GAME_PASCAL__Config,
+  type __GAME_PASCAL__HumanSeat,
+  type __GAME_PASCAL__Phase,
+  type __GAME_PASCAL__PhaseKind,
+  type __GAME_PASCAL__State,
+  DEFAULT___GAME_UPPER___CONFIG,
+  get__GAME_PASCAL__OccupiedSeatCount,
+  get__GAME_PASCAL__UserSeat,
+  get__GAME_PASCAL__ViewingParticipants,
+  is__GAME_PASCAL__OccupiedSeat,
+  isValid__GAME_PASCAL__Config,
+} from './state/types';
+export { __GAME_UPPER___STATE_IDENTITY, __GAME_UPPER___STATE_VERSION } from './state/version';

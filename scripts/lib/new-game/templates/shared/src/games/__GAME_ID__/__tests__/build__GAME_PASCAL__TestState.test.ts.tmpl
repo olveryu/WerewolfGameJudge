@@ -1,0 +1,27 @@
+/**
+ * Self-check for the canonical client test-state factory: every state it
+ * hands out must survive the engine's own parser (the same codec the
+ * worker persists with), so client tests never build impossible states.
+ */
+
+import {
+  __GAME_UPPER___GAME_TYPE,
+  parse__GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import { build__GAME_PASCAL__TestState } from './build__GAME_PASCAL__TestState';
+
+describe('build__GAME_PASCAL__TestState', () => {
+  it('builds a parseable lobby state for this game', () => {
+    const state = build__GAME_PASCAL__TestState();
+    expect(state.gameType).toBe(__GAME_UPPER___GAME_TYPE);
+    expect(state.phase.kind).toBe('lobby');
+    expect(parse__GAME_PASCAL__State(state)).toEqual(state);
+  });
+
+  it('applies overrides on top of the canonical state', () => {
+    const state = build__GAME_PASCAL__TestState({ hostUserId: 'host-2' });
+    expect(state.hostUserId).toBe('host-2');
+    expect(parse__GAME_PASCAL__State(state)).toEqual(state);
+  });
+});

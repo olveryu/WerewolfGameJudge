@@ -1,0 +1,71 @@
+/** __GAME_PASCAL__ semantic invariants; invalid persisted or evolved states fail explicitly. */
+
+import {
+  assertStateIdentity,
+  createStateInvariant,
+  type StateInvariant,
+} from '../../../platform/protocol/stateInvariant';
+import { isBotOccupant } from '../../../platform/room/seating';
+import {
+  type __GAME_PASCAL__HumanSeat,
+  type __GAME_PASCAL__State,
+  is__GAME_PASCAL__OccupiedSeat,
+  isValid__GAME_PASCAL__Config,
+} from './types';
+import { __GAME_UPPER___STATE_IDENTITY } from './version';
+
+const invariant: StateInvariant = createStateInvariant('__GAME_PASCAL__');
+
+/** Validates authoritative state without repairing or dropping submitted content. */
+export function normalize__GAME_PASCAL__State(
+  state: __GAME_PASCAL__State,
+): __GAME_PASCAL__State {
+  assertStateIdentity(state, __GAME_UPPER___STATE_IDENTITY, '__GAME_PASCAL__');
+  invariant(isValid__GAME_PASCAL__Config(state.config), 'configuration');
+  const count = state.config.numberOfPlayers;
+  const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;
+  invariant(
+    Number.isSafeInteger(state.phaseRevision) && state.phaseRevision >= 0,
+    'phase revision',
+  );
+  invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
+  invariant(typeof state.xpSettled === 'boolean', 'xp settled flag');
+  const entries = Object.entries(state.roster);
+  invariant(
+    entries.every(
+      ([seat, occupant]) =>
+        occupant != null &&
+        isSeat(Number(seat)) &&
+        occupant.seat === Number(seat) &&
+        (isBotOccupant(occupant) || occupant.profile.displayName.trim().length > 0),
+    ),
+    'roster seats',
+  );
+  const users = entries.filter(
+    (entry): entry is [string, __GAME_PASCAL__HumanSeat] =>
+      entry[1] != null && !isBotOccupant(entry[1]),
+  );
+  invariant(
+    new Set(users.map(([, occupant]) => occupant.userId)).size === users.length,
+    'duplicate user',
+  );
+  invariant(
+    state.roleViewedSeats.every((seat) => isSeat(seat) && is__GAME_PASCAL__OccupiedSeat(state, seat)) &&
+      new Set(state.roleViewedSeats).size === state.roleViewedSeats.length,
+    'role viewed seats',
+  );
+  // 发牌后身份表必须恰好覆盖全部已占座位；大厅里必须为空。
+  const identitySeats = Object.keys(state.identities).map(Number);
+  if (state.phase.kind === 'lobby') {
+    invariant(identitySeats.length === 0, 'lobby identities');
+    invariant(state.roleViewedSeats.length === 0, 'lobby viewed seats');
+  } else {
+    invariant(
+      identitySeats.every((seat) => isSeat(seat) && is__GAME_PASCAL__OccupiedSeat(state, seat)) &&
+        identitySeats.length === entries.length,
+      'dealt identities',
+    );
+  }
+  if (state.phase.kind === 'ended') invariant(state.xpSettled, 'ended settles exactly once');
+  return state;
+}

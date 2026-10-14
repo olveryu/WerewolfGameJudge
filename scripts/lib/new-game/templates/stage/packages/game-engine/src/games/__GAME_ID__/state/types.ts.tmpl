@@ -1,0 +1,79 @@
+/** Authoritative __GAME_DISPLAY_NAME__ state; stage/turn play with a stage deadline. */
+
+import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import type { RoomSeatProfile } from '../../../platform/room/roster';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
+
+export const __GAME_UPPER___GAME_TYPE = '__GAME_ID__' as const;
+
+// TODO(gameplay): 人数上下限与默认值是骨架占位，按 docs/__GAME_ID__-game-design.md 定稿后改。
+export const __GAME_UPPER___MIN_PLAYERS = 4;
+export const __GAME_UPPER___MAX_PLAYERS = 12;
+export const __GAME_UPPER___DEFAULT_PLAYERS = 6;
+
+export interface __GAME_PASCAL__Config {
+  readonly numberOfPlayers: number;
+}
+
+export const DEFAULT___GAME_UPPER___CONFIG: __GAME_PASCAL__Config = {
+  numberOfPlayers: __GAME_UPPER___DEFAULT_PLAYERS,
+};
+
+/** Checks supported lobby settings without replacing invalid values. */
+export function isValid__GAME_PASCAL__Config(config: __GAME_PASCAL__Config): boolean {
+  return (
+    Number.isSafeInteger(config.numberOfPlayers) &&
+    config.numberOfPlayers >= __GAME_UPPER___MIN_PLAYERS &&
+    config.numberOfPlayers <= __GAME_UPPER___MAX_PLAYERS
+  );
+}
+
+export type __GAME_PASCAL__Phase =
+  | { readonly kind: 'lobby' }
+  // TODO(gameplay): 舞台阶段的玩法字段（当前回合、行动座位、阶段产物）加在这里，
+  // 并同步 parseState / normalize / visibility 三处。deadlineAt 是阶段截止的
+  // 底盘字段：null 表示本阶段无截止，非 null 时到期由 phase.expire /
+  // phase.settleExpired 结算（服务端定时 effect 是正确性路径）。
+  | { readonly kind: 'stage'; readonly deadlineAt: number | null }
+  | { readonly kind: 'ended' };
+
+export const __GAME_PASCAL___PHASES = ['lobby', 'stage', 'ended'] as const;
+export type __GAME_PASCAL__PhaseKind = (typeof __GAME_PASCAL___PHASES)[number];
+
+export interface __GAME_PASCAL__HumanSeat extends SeatOccupant {
+  readonly profile: RoomSeatProfile;
+}
+
+export interface __GAME_PASCAL__State extends BaseGameState<typeof __GAME_UPPER___GAME_TYPE> {
+  readonly phase: __GAME_PASCAL__Phase;
+  readonly phaseRevision: number;
+  readonly config: __GAME_PASCAL__Config;
+  readonly roster: RosterMap<__GAME_PASCAL__HumanSeat>;
+  /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
+  readonly gameSequence: number;
+  /** 终局结算 effect 恰好发出一次的标记。 */
+  readonly xpSettled: boolean;
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function get__GAME_PASCAL__UserSeat(
+  state: __GAME_PASCAL__State,
+  userId: string,
+): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
+}
+
+/** Counts occupied seats (real humans plus bots). */
+export function get__GAME_PASCAL__OccupiedSeatCount(state: __GAME_PASCAL__State): number {
+  return countOccupiedSeats(state.roster);
+}
+
+/** Seat is playable: occupied by a real human or a bot. */
+export function is__GAME_PASCAL__OccupiedSeat(state: __GAME_PASCAL__State, seat: number): boolean {
+  return state.roster[seat] != null;
+}

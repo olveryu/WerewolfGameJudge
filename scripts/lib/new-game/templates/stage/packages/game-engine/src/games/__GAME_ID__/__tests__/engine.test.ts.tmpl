@@ -1,0 +1,162 @@
+/** Exercises __GAME_PASCAL__ through authoritative commands, never injecting progressed state. */
+
+import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import type { __GAME_PASCAL__Command } from '../commands/types';
+import { __GAME_UPPER___REASONS } from '../domain/decision';
+import { __GAME_UPPER___STAGE_DURATION_MS } from '../domain/rules';
+import { get__GAME_PASCAL__ViewModel } from '../domain/visibility';
+import { __GAME_CAMEL__Engine, end__GAME_PASCAL__Game } from '../engine';
+import { parse__GAME_PASCAL__State } from '../state/parseState';
+import {
+  type __GAME_PASCAL__Config,
+  type __GAME_PASCAL__State,
+  DEFAULT___GAME_UPPER___CONFIG,
+} from '../state/types';
+
+function game(
+  configOverrides: Partial<__GAME_PASCAL__Config> = {},
+  humanCount?: number,
+  fillRemainingWithBots = true,
+) {
+  const numberOfPlayers =
+    configOverrides.numberOfPlayers ?? DEFAULT___GAME_UPPER___CONFIG.numberOfPlayers;
+  const session = createEngineSession(__GAME_CAMEL__Engine, {
+    config: { ...DEFAULT___GAME_UPPER___CONFIG, ...configOverrides },
+    parse: parse__GAME_PASCAL__State,
+  });
+  const send = (
+    command: __GAME_PASCAL__Command,
+    userId = 'host',
+    controlledSeat: number | null = null,
+  ) => session.send(command, userId, controlledSeat);
+  const decideAs = (
+    command: __GAME_PASCAL__Command,
+    userId = 'host',
+    controlledSeat: number | null = null,
+  ) => session.decide(command, userId, controlledSeat);
+  const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
+  const seatCount = humanCount ?? numberOfPlayers;
+  for (let seat = 0; seat < seatCount; seat += 1) {
+    send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
+  }
+  if (humanCount !== undefined && humanCount < numberOfPlayers && fillRemainingWithBots) {
+    send({ type: 'room.seat.fillBots' });
+  }
+  return {
+    get state(): __GAME_PASCAL__State {
+      return session.state;
+    },
+    effects: session.effects,
+    session,
+    send,
+    decideAs,
+    seatUser,
+  };
+}
+
+describe('__GAME_PASCAL__ lobby and seating', () => {
+  it('creates an empty lobby and rejects an invalid config', () => {
+    const session = game({ numberOfPlayers: 4 });
+    expect(session.state.phase).toEqual({ kind: 'lobby' });
+    expect(() =>
+      __GAME_CAMEL__Engine.createInitialState(
+        { numberOfPlayers: 3 },
+        { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
+      ),
+    ).toThrow(__GAME_UPPER___REASONS.config);
+  });
+
+  it('rejects starting before every seat is filled', () => {
+    const session = game({ numberOfPlayers: 4 }, 3, false);
+    const decision = session.decideAs({ type: '__GAME_ID__.game.start' });
+    expect(decision.kind).toBe('reject');
+    if (decision.kind === 'reject') expect(decision.reason).toBe(__GAME_UPPER___REASONS.full);
+  });
+});
+
+describe('__GAME_PASCAL__ stage deadline settlement', () => {
+  it('opens the stage with an armed deadline and a settle.due effect', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    const startedAt = session.session.now();
+    session.send({ type: '__GAME_ID__.game.start' });
+    expect(session.state.phase).toEqual({
+      kind: 'stage',
+      deadlineAt: startedAt + __GAME_UPPER___STAGE_DURATION_MS,
+    });
+    expect(session.effects).toEqual([
+      {
+        type: '__GAME_ID__.settle.due',
+        payload: { gameSequence: 1, deadlineAt: startedAt + __GAME_UPPER___STAGE_DURATION_MS },
+      },
+    ]);
+    expect(get__GAME_PASCAL__ViewModel(session.state, 0).stageDeadlineAt).toBe(
+      startedAt + __GAME_UPPER___STAGE_DURATION_MS,
+    );
+  });
+
+  it('rejects expiry before the deadline, then settles exactly once at the deadline', () => {
+    const session = game({ numberOfPlayers: 4 }, 3);
+    session.send({ type: '__GAME_ID__.game.start' });
+    const early = session.decideAs({ type: '__GAME_ID__.phase.expire' }, 'u1');
+    expect(early.kind).toBe('reject');
+    if (early.kind === 'reject') expect(early.reason).toBe(__GAME_UPPER___REASONS.deadline);
+    session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
+    session.send({ type: '__GAME_ID__.phase.expire' }, 'u1');
+    expect(session.state.phase.kind).toBe('ended');
+    expect(session.state.xpSettled).toBe(true);
+    const completions = session.effects.filter(
+      (effect) => effect.type === '__GAME_ID__.game.completed',
+    );
+    expect(completions).toHaveLength(1);
+    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+  });
+
+  it('settles through the internal system channel with the same decision', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    session.send({ type: '__GAME_ID__.game.start' });
+    session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
+    const state = session.session.sendAs(
+      { type: '__GAME_ID__.phase.settleExpired' },
+      session.session.systemContext('settle-effect'),
+    );
+    expect(state.phase.kind).toBe('ended');
+  });
+
+  it('rejects the public expire channel for a system actor and vice versa', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    session.send({ type: '__GAME_ID__.game.start' });
+    session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
+    const publicAsSystem = __GAME_CAMEL__Engine.decide(
+      session.state,
+      { type: '__GAME_ID__.phase.expire' },
+      session.session.systemContext('settle-effect'),
+    );
+    expect(publicAsSystem.kind).toBe('reject');
+    const internalAsUser = session.decideAs({ type: '__GAME_ID__.phase.settleExpired' }, 'u1');
+    expect(internalAsUser.kind).toBe('reject');
+  });
+});
+
+describe('__GAME_PASCAL__ gameplay seam', () => {
+  it('rejects the example gameplay command as not implemented (no fake green)', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    session.send({ type: '__GAME_ID__.game.start' });
+    const decision = session.decideAs({ type: '__GAME_ID__.gameplay.example' });
+    expect(decision.kind).toBe('reject');
+    if (decision.kind === 'reject')
+      expect(decision.reason).toBe(__GAME_UPPER___REASONS.notImplemented);
+  });
+
+  it('ends through the terminal seam with exactly one completion effect', () => {
+    const session = game({ numberOfPlayers: 4 }, 3);
+    session.send({ type: '__GAME_ID__.game.start' });
+    const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
+    expect(decision.kind).toBe('commit');
+    if (decision.kind !== 'commit') return;
+    expect(decision.effects).toHaveLength(1);
+    expect(decision.effects[0]?.type).toBe('__GAME_ID__.game.completed');
+    const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
+    expect(ended.phase.kind).toBe('ended');
+    expect(ended.xpSettled).toBe(true);
+  });
+});

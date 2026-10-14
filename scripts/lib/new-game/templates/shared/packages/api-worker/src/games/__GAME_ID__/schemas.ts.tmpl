@@ -1,0 +1,65 @@
+/** Strict external schemas for the __GAME_PASCAL__ Worker module boundary. */
+
+import {
+  __GAME_UPPER___MAX_PLAYERS,
+  __GAME_UPPER___MIN_PLAYERS,
+  type __GAME_PASCAL__Config,
+  type __GAME_PASCAL__InternalCommand,
+  type __GAME_PASCAL__PublicCommand,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { z } from 'zod';
+
+import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
+
+const __GAME_CAMEL__ConfigSchema = z.strictObject({
+  numberOfPlayers: z.int().min(__GAME_UPPER___MIN_PLAYERS).max(__GAME_UPPER___MAX_PLAYERS),
+}) satisfies z.ZodType<__GAME_PASCAL__Config>;
+
+export const __GAME_CAMEL__CreateConfigSchema: z.ZodType<__GAME_PASCAL__Config> =
+  __GAME_CAMEL__ConfigSchema;
+
+function define__GAME_PASCAL__PublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
+  options: TOptions &
+    ([__GAME_PASCAL__PublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
+    ([z.output<TOptions[number]>] extends [__GAME_PASCAL__PublicCommand] ? unknown : never),
+): TOptions {
+  return options;
+}
+
+const __GAME_CAMEL__PublicCommandOptions = define__GAME_PASCAL__PublicCommandOptions([
+  ...ROOM_PUBLIC_COMMAND_SCHEMAS,
+  z.strictObject({
+    type: z.literal('__GAME_ID__.config.update'),
+    config: __GAME_CAMEL__ConfigSchema,
+  }),
+  z.strictObject({ type: z.literal('__GAME_ID__.game.start') }),
+//#identity
+  z.strictObject({ type: z.literal('__GAME_ID__.game.begin') }),
+  z.strictObject({ type: z.literal('__GAME_ID__.role.viewed') }),
+  z.strictObject({ type: z.literal('__GAME_ID__.bots.markAllBotsViewed') }),
+//#end
+//#stage
+  z.strictObject({ type: z.literal('__GAME_ID__.phase.expire') }),
+//#end
+  z.strictObject({ type: z.literal('__GAME_ID__.game.returnToLobby') }),
+  z.strictObject({ type: z.literal('__GAME_ID__.gameplay.example') }),
+]);
+
+export const __GAME_CAMEL__PublicCommandSchema: z.ZodType<__GAME_PASCAL__PublicCommand> =
+  z.discriminatedUnion('type', __GAME_CAMEL__PublicCommandOptions);
+
+//#identity
+/** The skeleton has no worker-originated commands yet (see the engine commands/types.ts). */
+export const __GAME_CAMEL__InternalCommandSchema: z.ZodType<__GAME_PASCAL__InternalCommand> =
+  z.never();
+//#end
+//#stage
+/**
+ * Worker-originated commands: dispatched only by the settle effect
+ * handler as the system actor when a scheduled deadline effect is due.
+ */
+export const __GAME_CAMEL__InternalCommandSchema: z.ZodType<__GAME_PASCAL__InternalCommand> =
+  z.discriminatedUnion('type', [
+    z.strictObject({ type: z.literal('__GAME_ID__.phase.settleExpired') }),
+  ]);
+//#end

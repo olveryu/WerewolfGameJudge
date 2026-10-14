@@ -1,0 +1,52 @@
+/** Worker runtime module for __GAME_PASCAL__ (__GAME_DISPLAY_NAME__). */
+
+import {
+  __GAME_UPPER___STATE_CODEC,
+  __GAME_CAMEL__Engine,
+  migratePersisted__GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { z } from 'zod';
+
+import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
+import { __GAME_CAMEL__EffectSchema, handle__GAME_PASCAL__Effect } from './effects';
+import {
+  __GAME_CAMEL__CreateConfigSchema,
+  __GAME_CAMEL__InternalCommandSchema,
+  __GAME_CAMEL__PublicCommandSchema,
+} from './schemas';
+
+const __GAME_CAMEL__PublicStatsSchema = z.strictObject({
+  gameType: z.literal('__GAME_ID__'),
+});
+
+export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
+  gameType: '__GAME_ID__',
+  engine: __GAME_CAMEL__Engine,
+  stateCodec: __GAME_UPPER___STATE_CODEC,
+  migratePersistedState: migratePersisted__GAME_PASCAL__State,
+  createConfigSchema: __GAME_CAMEL__CreateConfigSchema,
+  publicCommandSchema: __GAME_CAMEL__PublicCommandSchema,
+  internalCommandSchema: __GAME_CAMEL__InternalCommandSchema,
+  effectSchema: __GAME_CAMEL__EffectSchema,
+  httpRoutes: [],
+  parsePublicUserStats: (value) => __GAME_CAMEL__PublicStatsSchema.parse(value),
+  getPublicUserStats: () => Promise.resolve({ gameType: '__GAME_ID__' as const }),
+  getEffectBusinessKey: (effect, context) =>
+//#stage
+    effect.type === '__GAME_ID__.settle.due'
+      ? `__GAME_ID__:settle:${effect.payload.gameSequence}:${effect.payload.deadlineAt}`
+      : `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+//#end
+//#identity
+    `__GAME_ID__:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+//#end
+//#stage
+  // The settle effect is the room's wake-up for the armed stage
+  // deadline: park it in the outbox until its deadline.
+  getEffectDeliveryAt: (effect) =>
+    effect.type === '__GAME_ID__.settle.due' ? effect.payload.deadlineAt : null,
+//#end
+  getEffectFailureCommand: () => null,
+  canReplayFailedEffect: () => true,
+  handleEffect: handle__GAME_PASCAL__Effect,
+});

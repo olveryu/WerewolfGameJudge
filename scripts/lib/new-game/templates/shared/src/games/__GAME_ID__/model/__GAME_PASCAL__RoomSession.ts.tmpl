@@ -1,0 +1,15 @@
+/**
+ * __GAME_DISPLAY_NAME__对共享房间 session 的特化；传输与命令恢复仍归平台所有。
+ */
+
+import type {
+  __GAME_PASCAL__Command,
+  __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import type { RoomSessionClient } from '@/features/room/session/types';
+
+export type __GAME_PASCAL__RoomSession = RoomSessionClient<
+  __GAME_PASCAL__State,
+  __GAME_PASCAL__Command
+>;
