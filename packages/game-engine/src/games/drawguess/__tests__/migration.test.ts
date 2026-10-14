@@ -1,16 +1,12 @@
 /** v1 -> v2 roster migration: implicit bot seats materialize seat-by-seat. */
 
 import type { CommandContext } from '../../../platform/engine';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import type { DrawGuessCommand } from '../commands/types';
 import { DRAWGUESS_REASONS } from '../domain/decision';
 import { drawGuessEngine } from '../engine';
 import { migratePersistedDrawGuessState, parseDrawGuessState } from '../state/parseState';
-import {
-  DEFAULT_DRAWGUESS_CONFIG,
-  type DrawGuessState,
-  getDrawGuessBotSeats,
-} from '../state/types';
+import { DEFAULT_DRAWGUESS_CONFIG, type DrawGuessState } from '../state/types';
 
 const CREATE_CONTEXT = { roomCode: '1234', hostUserId: 'host', nowMs: 1_000, commandId: 'create' };
 
@@ -57,7 +53,7 @@ function filledLobby(): DrawGuessState {
 function downgradeToV1(state: DrawGuessState): Record<string, unknown> {
   const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
   const humans = getHumanSeatMap(state.roster, state.config.numberOfPlayers);
-  const bots = getDrawGuessBotSeats(state);
+  const bots = getBotSeats(state.roster);
   delete raw.roster;
   const config = raw.config as Record<string, unknown>;
   return {
@@ -77,7 +73,7 @@ function downgradeToV1(state: DrawGuessState): Record<string, unknown> {
 describe('DrawGuess v1 -> v2 roster migration', () => {
   it('materializes a filled lobby exactly and retires the config flag', () => {
     const state = filledLobby();
-    expect(getDrawGuessBotSeats(state)).toEqual([2, 3, 4, 5]);
+    expect(getBotSeats(state.roster)).toEqual([2, 3, 4, 5]);
     const legacy = downgradeToV1(state);
     expect(() => parseDrawGuessState(legacy)).toThrow();
     const migrated = migratePersistedDrawGuessState(legacy);
@@ -102,7 +98,7 @@ describe('DrawGuess v1 -> v2 roster migration', () => {
     (legacy.config as Record<string, unknown>).fillEmptySeatsWithBots = false;
     legacy.excludedBotSeats = [];
     const migrated = migratePersistedDrawGuessState(legacy);
-    expect(getDrawGuessBotSeats(migrated)).toEqual([]);
+    expect(getBotSeats(migrated.roster)).toEqual([]);
     expect(migrated).toEqual(state);
   });
 

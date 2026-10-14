@@ -13,7 +13,7 @@ import {
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
-  isAvalonBotSeat,
+  isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import { act, renderHook } from '@testing-library/react-native';
 
@@ -70,7 +70,7 @@ function drivenGame(withBots: boolean): DrivenGame {
   const send = (command: AvalonPublicCommand, userId = 'host') => apply(command, userId, null);
   /** Acts for one seat: bot seats are driven through the host takeover channel. */
   const actAs = (seat: number, command: AvalonPublicCommand) => {
-    if (isAvalonBotSeat(state, seat)) apply(command, 'host', seat);
+    if (isBotSeat(state.roster, seat)) apply(command, 'host', seat);
     else apply(command, seatUser(seat), null);
   };
   const humanSeats = withBots ? [0, 1, 2] : [0, 1, 2, 3, 4];

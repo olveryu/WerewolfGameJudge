@@ -1,13 +1,12 @@
 /** v1 -> v2 roster migration: legacy states must come back seat-by-seat identical. */
 
 import type { CommandContext } from '../../../platform/engine';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import type { StoryRelayCommand } from '../commands/types';
 import { storyRelayEngine } from '../engine';
 import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/parseState';
 import {
   DEFAULT_STORY_RELAY_CONFIG,
-  getStoryRelayBotSeats,
   getStoryRelayOccupiedSeatCount,
   type StoryRelayState,
 } from '../state/types';
@@ -49,14 +48,14 @@ function downgradeToV1(state: StoryRelayState): Record<string, unknown> {
     ...rest,
     stateVersion: 1,
     realSeats: getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-    botSeats: getStoryRelayBotSeats(state),
+    botSeats: getBotSeats(state.roster),
   };
 }
 
 describe('Story Relay v1 -> v2 roster migration', () => {
   it('migrates a filled lobby seat-by-seat', () => {
     const state = filledLobby();
-    expect(getStoryRelayBotSeats(state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
     const legacy = downgradeToV1(state);
     expect(() => parseStoryRelayState(legacy)).toThrow();
     expect(migratePersistedStoryRelayState(legacy)).toEqual(state);

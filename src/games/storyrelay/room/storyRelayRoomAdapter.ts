@@ -1,7 +1,7 @@
 /** Projects Story Relay state into shared seats and public room status without exposing drafts. */
 
 import {
-  getStoryRelayBotSeats,
+  getBotSeats,
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
   isBotOccupant,
@@ -387,7 +387,7 @@ export function createStoryRelayRoomShellModel(
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
       canControlBots: input.canControlBots,
-      hasBots: getStoryRelayBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

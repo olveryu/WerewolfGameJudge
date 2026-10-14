@@ -6,7 +6,7 @@ import {
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   isBotOccupant,
-  isPictionaryBotSeat,
+  isBotSeat,
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -144,7 +144,7 @@ export function createPictionarySeatDataSource(
       }
       const occupant = input.state.roster[index];
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const isBot = isPictionaryBotSeat(input.state, index);
+      const isBot = isBotSeat(input.state.roster, index);
       const player =
         human !== undefined
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })

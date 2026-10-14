@@ -11,7 +11,7 @@ import {
   type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
-  getAvalonBotSeats,
+  getBotSeats,
 } from '@game-judge/game-engine/games/avalon/public';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -55,7 +55,7 @@ function bannerModel(
 ) {
   return createControlledSeatModel({
     canControlBots: input.isHost,
-    hasBots: getAvalonBotSeats(state).length > 0,
+    hasBots: getBotSeats(state.roster).length > 0,
     controlledSeat: input.controlledSeat,
     controlledBotName: input.controlledSeat !== null ? `机器人${input.controlledSeat + 1}号` : null,
     release: () => undefined,
@@ -68,9 +68,9 @@ describe('avalon takeover banner gate', () => {
     // AU-01 moved the assembly into createAvalonRoomShellModel; the gate
     // inputs are pinned where they are now produced.
     const adapter = readFileSync(join(__dirname, '../avalonRoomAdapter.ts'), 'utf8');
-    expect(adapter).toContain('getAvalonBotSeats,');
+    expect(adapter).toContain('getBotSeats,');
     expect(adapter).toMatch(
-      /createControlledSeatModel\(\{\s*canControlBots: input\.canControlBots,\s*hasBots: getAvalonBotSeats\(state\)\.length > 0,/,
+      /createControlledSeatModel\(\{\s*canControlBots: input\.canControlBots,\s*hasBots: getBotSeats\(state\.roster\)\.length > 0,/,
     );
   });
 

@@ -2,8 +2,8 @@
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView, getSeatDisplayName } from '../../../platform/room/seatIdentity';
-import { isBotOccupant } from '../../../platform/room/seating';
-import { type DrawGuessPhaseKind, type DrawGuessState, isDrawGuessBotSeat } from '../state/types';
+import { isBotOccupant, isBotSeat } from '../../../platform/room/seating';
+import type { DrawGuessPhaseKind, DrawGuessState } from '../state/types';
 import { buildHintText, computeRevealedCount } from './rules';
 
 export interface DrawGuessSeatView {
@@ -47,7 +47,7 @@ function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawG
   const views: DrawGuessSeatView[] = [];
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
     const isReal = state.roster[seat] != null && !isBotOccupant(state.roster[seat]);
-    const isBot = isDrawGuessBotSeat(state, seat);
+    const isBot = isBotSeat(state.roster, seat);
     if (!isReal && !isBot) continue;
     const guessed = state.phase.kind === 'drawing' && state.phase.guessedSeats.includes(seat);
     views.push({

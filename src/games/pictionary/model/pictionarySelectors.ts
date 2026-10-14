@@ -2,7 +2,7 @@
 
 import {
   isBotOccupant,
-  isPictionaryBotSeat,
+  isBotSeat,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -24,6 +24,6 @@ export function getPictionarySeatDisplayName(state: PictionaryState, seat: numbe
   }
   const occupant = state.roster[seat];
   if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
-  if (isPictionaryBotSeat(state, seat)) return getBotDisplayName(seat);
+  if (isBotSeat(state.roster, seat)) return getBotDisplayName(seat);
   throw new Error(`[FAIL-FAST] Pictionary state references empty seat ${seat}`);
 }

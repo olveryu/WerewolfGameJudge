@@ -1,6 +1,6 @@
 /** Public pure API for the Pictionary game module. */
 
-export { isBotOccupant } from '../../platform/room/seating';
+export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
   PictionaryCommand,
   PictionaryCommandInput,
@@ -34,7 +34,6 @@ export { PICTIONARY_STATE_CODEC } from './state/codec';
 export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
 export {
   DEFAULT_PICTIONARY_CONFIG,
-  getPictionaryBotSeats,
   getPictionaryBotUserId,
   getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,
@@ -42,7 +41,6 @@ export {
   getPictionaryTextGraphemeCount,
   getPictionaryUserSeat,
   hasPictionaryForbiddenControlCharacter,
-  isPictionaryBotSeat,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   isValidPictionaryPlayerCount,

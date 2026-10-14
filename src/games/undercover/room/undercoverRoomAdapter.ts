@@ -1,7 +1,7 @@
 /** Undercover projections for the shared room shell; no I/O or client-side game decisions. */
 
 import {
-  getUndercoverBotSeats,
+  getBotSeats,
   getUndercoverOccupiedSeatCount,
   isBotOccupant,
   type UndercoverCategory,
@@ -362,7 +362,7 @@ export function createUndercoverHostManagement(
             showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
         }),
       );
-      if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
+      if (getBotSeats(state.roster).some((seat) => !state.round.confirmedSeats.includes(seat)))
         actions.push(
           buildMarkBotsViewedAction({
             onPress: controls.markAllBotsViewed,
@@ -452,7 +452,7 @@ export function createUndercoverRoomShellModel(
     }),
     controlledSeat: createControlledSeatModel({
       canControlBots: input.capabilities.canTakeOverBots.isAllowed,
-      hasBots: getUndercoverBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

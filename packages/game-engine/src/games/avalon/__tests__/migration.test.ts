@@ -1,12 +1,12 @@
 /** v2 -> v3 roster migration: implicit bot seats materialize seat-by-seat. */
 
 import type { CommandContext } from '../../../platform/engine';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import type { AvalonCommand } from '../commands/types';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { avalonEngine } from '../engine';
 import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
-import { type AvalonState, DEFAULT_AVALON_CONFIG, getAvalonBotSeats } from '../state/types';
+import { type AvalonState, DEFAULT_AVALON_CONFIG } from '../state/types';
 
 function context(actorUserId: string, commandId: string): CommandContext {
   return {
@@ -43,7 +43,7 @@ function lobby(humans: number): AvalonState {
 function downgradeToV2(state: AvalonState): Record<string, unknown> {
   const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
   const humans = getHumanSeatMap(state.roster, state.config.numberOfPlayers);
-  const bots = getAvalonBotSeats(state);
+  const bots = getBotSeats(state.roster);
   delete raw.roster;
   return {
     ...raw,
@@ -64,7 +64,7 @@ describe('Avalon v2 -> v3 roster migration', () => {
   it('materializes a filled lobby exactly (host + 4 bots)', () => {
     let state = lobby(1);
     state = dispatch(state, { type: 'room.seat.fillBots' });
-    expect(getAvalonBotSeats(state)).toEqual([1, 2, 3, 4]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3, 4]);
     const legacy = downgradeToV2(state);
     expect(() => parseAvalonState(legacy)).toThrow();
     expect(migratePersistedAvalonState(legacy)).toEqual(state);
@@ -80,7 +80,7 @@ describe('Avalon v2 -> v3 roster migration', () => {
 
   it('migrates an unfilled lobby with no bots at all', () => {
     const state = lobby(3);
-    expect(getAvalonBotSeats(state)).toEqual([]);
+    expect(getBotSeats(state.roster)).toEqual([]);
     expect(migratePersistedAvalonState(downgradeToV2(state))).toEqual(state);
   });
 
@@ -100,7 +100,7 @@ describe('Avalon v2 -> v3 roster migration', () => {
     legacy.fillEmptySeatsWithBots = false;
     legacy.excludedBotSeats = [];
     const migrated = migratePersistedAvalonState(legacy);
-    expect(getAvalonBotSeats(migrated)).toEqual([]);
+    expect(getBotSeats(migrated.roster)).toEqual([]);
     expect(migrated).toEqual(state);
   });
 
@@ -140,7 +140,7 @@ describe('Avalon unified roster rules', () => {
     let state = lobby(2);
     state = dispatch(state, { type: 'room.seat.fillBots' });
     state = dispatch(state, { type: 'room.seat.leave' }, 'user-1');
-    expect(getAvalonBotSeats(state)).toEqual([2, 3, 4]);
+    expect(getBotSeats(state.roster)).toEqual([2, 3, 4]);
     expect(state.roster[1]).toBeUndefined();
   });
 

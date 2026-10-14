@@ -10,8 +10,6 @@ import {
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
-  getBotSeats,
-  isBotSeat,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -193,16 +191,6 @@ export function getFibRole(roles: FibRoleAssignment, seat: number): FibRole {
 
 export function getFibBotUserId(roomCode: string, seat: number): string {
   return `fib-bot:${roomCode}:${seat}`;
-}
-
-/** Returns the seats held by bots, ascending. */
-export function getFibBotSeats(state: FibState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
-/** Returns whether a seat is held by a bot. */
-export function isFibBotSeat(state: FibState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
 }
 
 export function getFibOccupiedSeatCount(state: FibState): number {

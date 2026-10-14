@@ -1,6 +1,7 @@
 /** Exercises Avalon through authoritative commands, never injecting progressed state. */
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import { isBotSeat } from '../../../platform/room/seating';
 import type { AvalonCommand } from '../commands/types';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
@@ -14,7 +15,6 @@ import {
   type AvalonPlay,
   type AvalonRoleId,
   DEFAULT_AVALON_CONFIG,
-  isAvalonBotSeat,
   isAvalonEvilRole,
   isAvalonGoodRole,
 } from '../state/types';
@@ -83,7 +83,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       // 否则房主的开始命令不放行。按当前状态的人数扫全部座位
       // （config 中途改人数后新入座的真人也要查看）。
       for (let seat = 0; seat < session.state.config.numberOfPlayers; seat += 1) {
-        if (!isAvalonBotSeat(session.state, seat))
+        if (!isBotSeat(session.state.roster, seat))
           send({ type: 'avalon.role.viewed' }, seatUser(seat));
       }
       // 无机器人座位时标记命令会被拒（Wave 8 与狼人杀口径对齐），只在有 bot 时发；
@@ -91,7 +91,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       const hasBotSeat = Array.from(
         { length: session.state.config.numberOfPlayers },
         (_, seat) => seat,
-      ).some((seat) => isAvalonBotSeat(session.state, seat));
+      ).some((seat) => isBotSeat(session.state.roster, seat));
       if (hasBotSeat) send({ type: 'avalon.bots.markAllBotsViewed' }, 'host');
       // 三段式：全员查看齐后房主开始游戏，才进夜晚并排开局播报。
       send({ type: 'avalon.game.begin' });
@@ -112,7 +112,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
           session.state.phase.step,
         );
         for (const seat of participants) {
-          if (isAvalonBotSeat(session.state, seat)) {
+          if (isBotSeat(session.state.roster, seat)) {
             send({ type: 'avalon.night.confirm' }, 'host', seat);
           } else {
             send({ type: 'avalon.night.confirm' }, seatUser(seat));

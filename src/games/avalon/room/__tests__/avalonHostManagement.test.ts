@@ -9,8 +9,8 @@ import {
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
-  isAvalonBotSeat,
   isAvalonEvilRole,
+  isBotSeat,
   parseAvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
 
@@ -169,7 +169,7 @@ function session() {
       }
     },
     isBotSeat(seat: number) {
-      return isAvalonBotSeat(state, seat);
+      return isBotSeat(state.roster, seat);
     },
   };
 }

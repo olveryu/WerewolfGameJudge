@@ -8,11 +8,12 @@ import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_NOT_HOST,
 } from '../../../platform/protocol/reasons';
+import { getBotSeats } from '../../../platform/room/seating';
 import type { StoryRelayCommand } from '../commands/types';
 import { getStoryRelayTaskForSeat } from '../domain/relay';
 import { storyRelayEngine } from '../engine';
 import { parseStoryRelayState } from '../state/parseState';
-import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayBotSeats } from '../state/types';
+import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 /** Mirrors the e2e setup: the host never takes a seat, all seats are filled with bots. */
 function botGame(seatHost: boolean) {
@@ -77,7 +78,7 @@ function botGame(seatHost: boolean) {
 describe('Story Relay bot takeover', () => {
   it('lets an unseated host submit independent texts for every bot seat', () => {
     const session = botGame(false);
-    expect(getStoryRelayBotSeats(session.state)).toEqual([0, 1, 2, 3]);
+    expect(getBotSeats(session.state.roster)).toEqual([0, 1, 2, 3]);
 
     for (let seat = 0; seat < 4; seat += 1) {
       session.send(
@@ -121,7 +122,7 @@ describe('Story Relay bot takeover', () => {
 
   it('rejects controlled-seat submissions targeting a real seat', () => {
     const session = botGame(true);
-    expect(getStoryRelayBotSeats(session.state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(session.state.roster)).toEqual([1, 2, 3]);
     const decision = session.decide(
       {
         type: 'storyrelay.text.submit',
@@ -197,7 +198,7 @@ describe('Story Relay unified roster rules', () => {
 
   it('rejects a human taking a bot seat (bots occupy seats like any player)', () => {
     const session = lobbyWithBots();
-    expect(getStoryRelayBotSeats(session.state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(session.state.roster)).toEqual([1, 2, 3]);
     const decision = session.decide(
       { type: 'room.seat.take', seat: 2, profile: { displayName: 'Guest' } },
       'guest',
@@ -207,7 +208,7 @@ describe('Story Relay unified roster rules', () => {
 
   it('rejects a config shrink that would strand a bot seat', () => {
     const session = lobbyWithBots(5);
-    expect(getStoryRelayBotSeats(session.state)).toEqual([1, 2, 3, 4]);
+    expect(getBotSeats(session.state.roster)).toEqual([1, 2, 3, 4]);
     const decision = session.decide({
       type: 'storyrelay.config.update',
       config: { ...session.state.config, numberOfPlayers: 4 },

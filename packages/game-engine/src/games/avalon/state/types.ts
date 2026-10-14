@@ -9,9 +9,7 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
-  getBotSeats,
   getHumanSeatMap,
-  isBotSeat,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -415,16 +413,6 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly pendingAudioEffects: readonly AvalonAudioEffect[];
   /** true 时阻塞 night 确认与回大厅，直到房主 ack（对齐狼人杀 progression gate）。 */
   readonly isAudioPlaying: boolean;
-}
-
-/** Returns the seats held by bots, ascending. */
-export function getAvalonBotSeats(state: AvalonState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
-/** Returns whether a seat is held by a bot. */
-export function isAvalonBotSeat(state: AvalonState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

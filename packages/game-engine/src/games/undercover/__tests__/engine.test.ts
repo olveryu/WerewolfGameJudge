@@ -3,7 +3,7 @@
 import type { CommandContext } from '../../../platform/engine';
 import { dispatchCommand } from '../../../platform/engine/__tests__/engineSession';
 import { REASON_CONTROLLED_SEAT_NOT_BOT } from '../../../platform/protocol/reasons';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { UNDERCOVER_REASONS } from '../domain/decision';
 import type { UndercoverRole } from '../domain/rules';
@@ -11,7 +11,7 @@ import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
 import { UNDERCOVER_STATE_CODEC } from '../state/codec';
 import { migratePersistedUndercoverState } from '../state/parseState';
-import { getUndercoverBotSeats, type UndercoverConfig, type UndercoverState } from '../state/types';
+import type { UndercoverConfig, UndercoverState } from '../state/types';
 
 const config: UndercoverConfig = {
   numberOfPlayers: 8,
@@ -253,11 +253,11 @@ describe('Undercover authoritative engine', () => {
           ...state,
           stateVersion,
           realSeats: getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-          botSeats: getUndercoverBotSeats(state),
+          botSeats: getBotSeats(state.roster),
           round: legacyRound,
           config:
             stateVersion === 1
-              ? { ...state.config, isTestMode: getUndercoverBotSeats(state).length > 0 }
+              ? { ...state.config, isTestMode: getBotSeats(state.roster).length > 0 }
               : state.config,
         };
         const migrated = migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)));
@@ -303,7 +303,7 @@ describe('Undercover authoritative engine', () => {
     expect(getUndercoverWordCard(state, 'visitor', null)).toBeNull();
     expect(getUndercoverWordCard(state, 'visitor', 1)).toBeNull();
     expect(getUndercoverWordCard(state, 'host', 0)).toBeNull();
-    for (const seat of getUndercoverBotSeats(state)) {
+    for (const seat of getBotSeats(state.roster)) {
       const card = getUndercoverWordCard(state, 'host', seat);
       expect(card).not.toBeNull();
       expect(card).not.toHaveProperty('role');
@@ -320,7 +320,7 @@ describe('Undercover authoritative engine', () => {
     const state = ongoing();
     expect(state.phase).toBe('ongoing');
     expect(state.round?.confirmedSeats).toHaveLength(8);
-    expect(getUndercoverBotSeats(state)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(state.usedWordPairIds).toEqual(['pair-1']);
     expect(reveal(state, 'civilian', user('host', 2)).round?.revelations).toHaveLength(1);
   });
@@ -399,11 +399,11 @@ describe('Undercover authoritative engine', () => {
 
   it('allows seated and unseated hosts to fill bots but rejects other users', () => {
     const state = createLobby();
-    expect(getUndercoverBotSeats(dispatch(state, { type: 'room.seat.fillBots' }))).toEqual([
+    expect(getBotSeats(dispatch(state, { type: 'room.seat.fillBots' }).roster)).toEqual([
       1, 2, 3, 4, 5, 6, 7,
     ]);
     const unseated = dispatch(state, { type: 'room.seat.leave' });
-    expect(getUndercoverBotSeats(dispatch(unseated, { type: 'room.seat.fillBots' }))).toEqual([
+    expect(getBotSeats(dispatch(unseated, { type: 'room.seat.fillBots' }).roster)).toEqual([
       0, 1, 2, 3, 4, 5, 6, 7,
     ]);
     expect(undercoverEngine.decide(state, { type: 'room.seat.fillBots' }, user('guest')).kind).toBe(
@@ -418,7 +418,7 @@ describe('Undercover authoritative engine', () => {
       user('guest'),
     );
     state = dispatch(state, { type: 'room.seat.fillBots' });
-    expect(getUndercoverBotSeats(state)).not.toContain(1);
+    expect(getBotSeats(state.roster)).not.toContain(1);
     state = complete(
       dispatch(state, { type: 'undercover.round.start', shouldAllowRepeated: false }),
     );

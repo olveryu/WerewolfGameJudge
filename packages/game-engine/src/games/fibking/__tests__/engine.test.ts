@@ -10,7 +10,7 @@ import {
   REASON_NOT_SEATED,
   REASON_SYSTEM_ACTOR_REQUIRED,
 } from '../../../platform/protocol/reasons';
-import { isBotOccupant } from '../../../platform/room/seating';
+import { getBotSeats, isBotOccupant, isBotSeat } from '../../../platform/room/seating';
 import { GAME_ENGINE_CATALOG } from '../../catalog';
 import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
@@ -36,10 +36,8 @@ import {
   type FibHumanSeat,
   type FibState,
   type FibWordDefinition,
-  getFibBotSeats,
   getFibOccupiedSeatCount,
   getFibRole,
-  isFibBotSeat,
 } from '../state/types';
 
 const CREATE_CONTEXT: CreateGameContext = {
@@ -371,7 +369,7 @@ describe('FibKing engine configuration and seating', () => {
 
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
     expect(getFibOccupiedSeatCount(state)).toBe(4);
-    expect(isFibBotSeat(state, 1)).toBe(true);
+    expect(isBotSeat(state.roster, 1)).toBe(true);
     // A bot seat is occupied like any player's: taking it rejects, and only
     // kicking the bot frees it (unified rule, was: take displaced the bot).
     expect(
@@ -386,8 +384,8 @@ describe('FibKing engine configuration and seating', () => {
     });
     state = dispatch(state, { type: 'room.seat.kick', seat: 1 }, userContext('host'));
     state = takeSeat(state, 1, 'alice', 'Alice');
-    expect(isFibBotSeat(state, 1)).toBe(false);
-    expect(getFibBotSeats(state)).toEqual([2, 3]);
+    expect(isBotSeat(state.roster, 1)).toBe(false);
+    expect(getBotSeats(state.roster)).toEqual([2, 3]);
     expect(Object.keys(state.roster)).toHaveLength(4);
 
     state = dispatch(state, { type: 'room.seat.clear' }, userContext('host'));
@@ -399,10 +397,10 @@ describe('FibKing engine configuration and seating', () => {
     let state = createFullLobby();
     state = dispatch(state, { type: 'room.seat.kick', seat: 2 }, userContext('host'));
 
-    expect(getFibBotSeats(state)).toEqual([1, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 3]);
     expect(getFibOccupiedSeatCount(state)).toBe(3);
-    expect(isFibBotSeat(state, 2)).toBe(false);
-    expect(isFibBotSeat(state, 3)).toBe(true);
+    expect(isBotSeat(state.roster, 2)).toBe(false);
+    expect(isBotSeat(state.roster, 3)).toBe(true);
     expect(decideFibCommand(state, { type: 'fibking.round.start' }, userContext('host'))).toEqual({
       kind: 'reject',
       reason: REASON_FIB_ROUND_NOT_FULL,
@@ -412,12 +410,12 @@ describe('FibKing engine configuration and seating', () => {
     expect(getFibOccupiedSeatCount(state)).toBe(4);
     state = dispatch(state, { type: 'room.seat.leave' }, userContext('alice'));
     expect(getFibOccupiedSeatCount(state)).toBe(3);
-    expect(isFibBotSeat(state, 2)).toBe(false);
+    expect(isBotSeat(state.roster, 2)).toBe(false);
 
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
-    expect(getFibBotSeats(state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
     expect(getFibOccupiedSeatCount(state)).toBe(4);
-    expect(isFibBotSeat(state, 2)).toBe(true);
+    expect(isBotSeat(state.roster, 2)).toBe(true);
   });
 
   it('keeps a kicked real seat empty while bots fill the rest', () => {
@@ -427,15 +425,15 @@ describe('FibKing engine configuration and seating', () => {
     state = dispatch(state, { type: 'room.seat.kick', seat: 1 }, userContext('host'));
 
     expect(state.roster[1]).toBeUndefined();
-    expect(isFibBotSeat(state, 1)).toBe(false);
-    expect(isFibBotSeat(state, 2)).toBe(true);
+    expect(isBotSeat(state.roster, 1)).toBe(false);
+    expect(isBotSeat(state.roster, 2)).toBe(true);
   });
 
   it('keeps bot fill and idempotent no-op commands compact', () => {
     let state = createLobby(FIB_MAX_PLAYERS);
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
     expect(getFibOccupiedSeatCount(state)).toBe(FIB_MAX_PLAYERS);
-    expect(getFibBotSeats(state)).toHaveLength(FIB_MAX_PLAYERS);
+    expect(getBotSeats(state.roster)).toHaveLength(FIB_MAX_PLAYERS);
     // The unified roster stores one small marker per bot seat; at the
     // 20-seat product maximum the lobby document stays under ~0.8 KB.
     expect(JSON.stringify(state).length).toBeLessThan(850);
@@ -444,11 +442,11 @@ describe('FibKing engine configuration and seating', () => {
     state = dispatch(state, { type: 'room.seat.kick', seat: excludedSeat }, userContext('host'));
     expect(state.roster[excludedSeat]).toBeUndefined();
     expect(getFibOccupiedSeatCount(state)).toBe(FIB_MAX_PLAYERS - 1);
-    expect(isFibBotSeat(state, excludedSeat - 1)).toBe(true);
+    expect(isBotSeat(state.roster, excludedSeat - 1)).toBe(true);
     expect(JSON.stringify(state).length).toBeLessThan(820);
 
     state = dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
-    expect(getFibBotSeats(state)).toHaveLength(FIB_MAX_PLAYERS);
+    expect(getBotSeats(state.roster)).toHaveLength(FIB_MAX_PLAYERS);
     expect(decideFibCommand(state, { type: 'room.seat.fillBots' }, userContext('host'))).toEqual({
       kind: 'commit',
       events: [],
@@ -508,7 +506,7 @@ describe('FibKing engine configuration and seating', () => {
       userContext('host'),
     );
     expect(state.numberOfPlayers).toBe(7);
-    expect(getFibBotSeats(state)).toEqual([]);
+    expect(getBotSeats(state.roster)).toEqual([]);
   });
 
   it('updates only the authenticated real player profile in every phase', () => {
@@ -752,7 +750,7 @@ describe('FibKing recoverable round workflow', () => {
     expect(state.phase).toBe('lobby');
     expect(state.roster).toBe(roster);
     expect(state.usedWords).toEqual(['灯塔']);
-    expect(getFibBotSeats(state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
   });
 
   it('uses next round as the ended-phase action and preserves seats and used words', () => {
@@ -856,7 +854,7 @@ describe('FibKing recoverable round workflow', () => {
       preparationFailure: null,
       round: null,
     });
-    expect(getFibBotSeats(state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
     expect(state.roster).toBe(roster);
     expect(state.usedWords).toBe(usedWords);
     expect(getFibLifecycle(state)).toBe('setup');

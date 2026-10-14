@@ -5,9 +5,7 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
-  getBotSeats,
   getHumanSeatMap,
-  isBotSeat,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -218,16 +216,6 @@ export function isValidDrawGuessConfig(config: DrawGuessConfig): boolean {
     config.roundEndSeconds === DRAWGUESS_ROUND_END_SECONDS &&
     config.hintRevealIntervalSeconds === DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS
   );
-}
-
-/** Returns the seats held by bots, ascending. */
-export function getDrawGuessBotSeats(state: DrawGuessState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
-/** Returns whether a seat is held by a bot. */
-export function isDrawGuessBotSeat(state: DrawGuessState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

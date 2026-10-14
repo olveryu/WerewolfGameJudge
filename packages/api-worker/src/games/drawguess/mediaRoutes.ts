@@ -13,7 +13,7 @@ import {
   DRAWGUESS_STATE_CODEC,
   type DrawGuessState,
   getDrawGuessUserSeat,
-  isDrawGuessBotSeat,
+  isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -34,7 +34,7 @@ const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
 const mediaRoomAccess = createMediaRoomAccess({
   codec: DRAWGUESS_STATE_CODEC,
   getUserSeat: getDrawGuessUserSeat,
-  isBotSeat: isDrawGuessBotSeat,
+  isBotSeat: (state, seat) => isBotSeat(state.roster, seat),
   reasons: {
     roomNotFound: '房间不存在',
     roomGameTypeMismatch: '房间游戏类型不匹配',

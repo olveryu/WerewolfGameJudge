@@ -8,7 +8,7 @@ import {
   getFibRole,
   getFibViewingParticipants,
   isBotOccupant,
-  isFibBotSeat,
+  isBotSeat,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -184,7 +184,7 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
 
       const occupant = input.state.roster[index];
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const isBot = isFibBotSeat(input.state, index);
+      const isBot = isBotSeat(input.state.roster, index);
       const player =
         human !== undefined
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })

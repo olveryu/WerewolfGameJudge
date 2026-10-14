@@ -14,6 +14,7 @@
 import type { CommandContext } from '../../../platform/engine';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { haveAllViewed, listUnviewedSeats } from '../../../platform/room/identityViewing';
+import { isBotSeat } from '../../../platform/room/seating';
 import type { AvalonCommand } from '../commands/types';
 import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
 import { getAvalonNightParticipants } from '../domain/rules';
@@ -26,7 +27,6 @@ import {
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonViewingParticipants,
-  isAvalonBotSeat,
 } from '../state/types';
 import { AVALON_STATE_VERSION } from '../state/version';
 
@@ -94,7 +94,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     },
     viewAllHumans() {
       for (let seat = 0; seat < numberOfPlayers; seat += 1) {
-        if (!isAvalonBotSeat(state, seat)) api.view(seat);
+        if (!isBotSeat(state.roster, seat)) api.view(seat);
       }
     },
     markAllBotsViewed() {
@@ -107,7 +107,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
         const participants = getAvalonNightParticipants(state.roles, step);
         for (const seat of participants) {
-          if (isAvalonBotSeat(state, seat)) {
+          if (isBotSeat(state.roster, seat)) {
             send({ type: 'avalon.night.confirm' }, 'host', seat);
           } else {
             send({ type: 'avalon.night.confirm' }, seatUser(seat));
@@ -319,7 +319,7 @@ describeIdentityViewingProtocol({
       view: (seat) => {
         // Bot seats have no user to view with; the driver marks them
         // through the host scaffold action (all bots at once).
-        if (isAvalonBotSeat(session.state, seat)) session.markAllBotsViewed();
+        if (isBotSeat(session.state.roster, seat)) session.markAllBotsViewed();
         else session.view(seat);
       },
       markAllBotsViewed: () => session.markAllBotsViewed(),

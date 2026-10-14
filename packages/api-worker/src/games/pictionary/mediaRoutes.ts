@@ -9,7 +9,7 @@
 import {
   getPictionaryTaskForSeat,
   getPictionaryUserSeat,
-  isPictionaryBotSeat,
+  isBotSeat,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
@@ -34,7 +34,7 @@ const PNG_IHDR_CHUNK_TYPE = [73, 72, 68, 82] as const;
 const mediaRoomAccess = createMediaRoomAccess({
   codec: PICTIONARY_STATE_CODEC,
   getUserSeat: getPictionaryUserSeat,
-  isBotSeat: isPictionaryBotSeat,
+  isBotSeat: (state, seat) => isBotSeat(state.roster, seat),
   reasons: {
     roomNotFound: 'ROOM_NOT_FOUND',
     roomGameTypeMismatch: 'ROOM_GAME_TYPE_MISMATCH',

@@ -3,7 +3,7 @@
 import {
   getStoryRelayOccupiedSeatCount,
   getStoryRelayUserSeat,
-  isStoryRelayBotSeat,
+  isBotSeat,
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -101,7 +101,7 @@ export function useStoryRelayRoomState(
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots,
-    seatStillBot: controlledSeat === null || isStoryRelayBotSeat(state, controlledSeat),
+    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
@@ -131,7 +131,7 @@ export function useStoryRelayRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: createBotTakeoverCapability(canControlBots, botControl.takeOver),
   };
-  const isBotSeat = useCallback((seat: number) => isStoryRelayBotSeat(state, seat), [state]);
+  const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver: botControl.takeOver,
@@ -140,7 +140,7 @@ export function useStoryRelayRoomState(
     deniedReason: capabilities.canTakeOverBots.isAllowed
       ? undefined
       : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat,
+    isBotSeat: isSeatBot,
     gameName: 'StoryRelay',
   });
   const onSeatPress = (seat: number, disabledReason?: string) => {

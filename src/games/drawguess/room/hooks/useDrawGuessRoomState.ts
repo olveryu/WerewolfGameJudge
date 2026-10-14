@@ -9,7 +9,7 @@ import {
   getDrawGuessOccupiedSeatCount,
   getDrawGuessUserSeat,
   getDrawGuessViewModel,
-  isDrawGuessBotSeat,
+  isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -177,7 +177,7 @@ export function useDrawGuessRoomState(
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots,
-    seatStillBot: controlledSeat === null || isDrawGuessBotSeat(state, controlledSeat),
+    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
@@ -207,7 +207,7 @@ export function useDrawGuessRoomState(
       : { isAllowed: false, reason: '游戏进行中不能查看玩家资料' },
     canTakeOverBots: createBotTakeoverCapability(canControlBots, takeOver),
   };
-  const isBotSeat = useCallback((seat: number) => isDrawGuessBotSeat(state, seat), [state]);
+  const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
   const onBotSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver,
@@ -216,7 +216,7 @@ export function useDrawGuessRoomState(
     deniedReason: capabilities.canTakeOverBots.isAllowed
       ? undefined
       : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat,
+    isBotSeat: isSeatBot,
     gameName: 'DrawGuess',
   });
   const onSeatPress = (seat: number, disabledReason?: string) => {

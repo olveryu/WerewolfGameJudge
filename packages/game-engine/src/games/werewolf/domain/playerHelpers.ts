@@ -9,7 +9,7 @@ import {
   buildIdentityViewingParticipants,
   type IdentityViewingParticipant,
 } from '../../../platform/room/identityViewing';
-import { findRosterSeatByUserId, getBotSeats, isBotSeat } from '../../../platform/room/seating';
+import { findRosterSeatByUserId } from '../../../platform/room/seating';
 import type { RoleId, SchemaId } from './models';
 import { getStepSpec } from './models/roles/spec';
 import type { GameState } from './protocol/types';
@@ -131,11 +131,6 @@ export function isBottomCardWolfVoteExcluded(originalRole: RoleId): boolean {
   return originalRole === 'treasureMaster';
 }
 
-/** Returns the seats held by bots (unified roster), ascending. */
-export function getWerewolfBotSeats(state: GameState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
 /**
  * Identity Viewing Protocol participants (AU-19): every seated player
  * with its bot flag. Werewolf keeps its per-player hasViewedRole
@@ -166,11 +161,6 @@ export function getWerewolfViewedSeats(players: Players): readonly number[] {
     if (player?.hasViewedRole === true) seats.push(Number.parseInt(seatStr, 10));
   }
   return seats.sort((left, right) => left - right);
-}
-
-/** Returns whether a seat is held by a bot (unified roster). */
-export function isWerewolfBotSeat(state: GameState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

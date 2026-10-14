@@ -5,7 +5,7 @@
 import {
   type DrawGuessCommand,
   type DrawGuessState,
-  getDrawGuessBotSeats,
+  getBotSeats,
   getDrawGuessOccupiedSeatCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/drawguess/public';
@@ -311,7 +311,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
       canControlBots: input.canControlBots,
-      hasBots: getDrawGuessBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

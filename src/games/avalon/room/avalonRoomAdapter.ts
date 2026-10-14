@@ -9,12 +9,12 @@ import {
   type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
-  getAvalonBotSeats,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   getAvalonViewModel,
+  getBotSeats,
   isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -986,7 +986,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
       canControlBots: input.canControlBots,
-      hasBots: getAvalonBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

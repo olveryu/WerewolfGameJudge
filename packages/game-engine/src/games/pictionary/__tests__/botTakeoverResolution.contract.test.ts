@@ -17,6 +17,7 @@ import {
   type ActingSeatProbeActor,
   describeBotTakeoverResolution,
 } from '../../../platform/room/__tests__/actingSeatScenarios';
+import { isBotSeat } from '../../../platform/room/seating';
 import type { PictionaryCommandInput, PictionaryInternalCommand } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import { REASON_PICTIONARY_TASK_INVALID } from '../domain/reasons';
@@ -25,7 +26,6 @@ import { pictionaryEngine } from '../engine';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
-  isPictionaryBotSeat,
   type PictionaryState,
 } from '../state/types';
 import { decidePictionaryInput } from './commandBinding';
@@ -49,7 +49,7 @@ function user(userId: string, controlledSeat: number | null = null, nowMs = 2_00
 
 /** The context a seat's own commands arrive with: humans act as themselves, bots via the host. */
 function seatContext(state: PictionaryState, seat: number): CommandContext {
-  if (!isPictionaryBotSeat(state, seat)) {
+  if (!isBotSeat(state.roster, seat)) {
     return user(seat === 0 ? 'host' : 'guest');
   }
   return user('host', seat);

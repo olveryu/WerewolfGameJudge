@@ -6,8 +6,6 @@ import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
-  getBotSeats,
-  isBotSeat,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -206,16 +204,6 @@ export function getPictionaryExpectedKind(stepIndex: number): PictionaryExpected
 
 export function getPictionaryRelayStepCount(numberOfPlayers: number): number {
   return numberOfPlayers;
-}
-
-/** Returns the seats held by bots, ascending. */
-export function getPictionaryBotSeats(state: PictionaryState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
-/** Returns whether a seat is held by a bot. */
-export function isPictionaryBotSeat(state: PictionaryState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

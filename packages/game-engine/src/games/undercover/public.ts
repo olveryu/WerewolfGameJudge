@@ -1,7 +1,7 @@
 /** Public Undercover module contract; domain implementation remains package-private. */
 
 export { buildPreparationFailureCommand } from '../../platform/room/preparation';
-export { isBotOccupant } from '../../platform/room/seating';
+export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
   UndercoverCommand,
   UndercoverInternalCommand,
@@ -25,10 +25,8 @@ export { UNDERCOVER_STATE_CODEC } from './state/codec';
 export { isValidUndercoverConfig, isValidUndercoverWordPair } from './state/normalize';
 export { migratePersistedUndercoverState } from './state/parseState';
 export {
-  getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
   getUndercoverUserSeat,
-  isUndercoverBotSeat,
   isUndercoverSeat,
   UNDERCOVER_CATEGORIES,
   type UndercoverCategory,

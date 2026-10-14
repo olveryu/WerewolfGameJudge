@@ -10,7 +10,7 @@ import {
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
   getAvalonViewModel,
-  isAvalonBotSeat,
+  isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import {
   type Dispatch,
@@ -238,7 +238,7 @@ export function useAvalonRoomState(
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots,
-    seatStillBot: controlledSeat === null || isAvalonBotSeat(state, controlledSeat),
+    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
     release: releaseBot,
   });
   const capabilities: RoomCapabilities = {
@@ -300,7 +300,7 @@ export function useAvalonRoomState(
     takeOver,
     release: releaseBot,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => isAvalonBotSeat(state, seat),
+    isBotSeat: (seat) => isBotSeat(state.roster, seat),
     gameName: 'Avalon',
   });
   const hostManagement = createAvalonHostManagement({
