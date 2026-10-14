@@ -1,10 +1,9 @@
 /** Undercover projections for the shared room shell; no I/O or client-side game decisions. */
 
 import {
-  getUndercoverBotSeats,
+  getBotSeats,
   getUndercoverOccupiedSeatCount,
   isBotOccupant,
-  isUndercoverBotSeat,
   type UndercoverCategory,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -18,6 +17,7 @@ import {
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -74,22 +74,12 @@ export function getUndercoverProfileTarget(
   state: UndercoverState,
   seat: number,
 ): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return isUndercoverBotSeat(state, seat)
-    ? {
-        seat,
-        userId: `undercover-bot:${state.roomCode}:${seat}`,
-        occupantKind: 'bot',
-        rosterName: getBotDisplayName(seat),
-      }
-    : null;
+  return getRoomProfileTarget(
+    state.roster,
+    seat,
+    (botSeat) => `undercover-bot:${state.roomCode}:${botSeat}`,
+    getBotDisplayName,
+  );
 }
 
 interface UndercoverCapabilitiesInput extends Omit<
@@ -372,7 +362,7 @@ export function createUndercoverHostManagement(
             showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
         }),
       );
-      if (getUndercoverBotSeats(state).some((seat) => !state.round.confirmedSeats.includes(seat)))
+      if (getBotSeats(state.roster).some((seat) => !state.round.confirmedSeats.includes(seat)))
         actions.push(
           buildMarkBotsViewedAction({
             onPress: controls.markAllBotsViewed,
@@ -462,7 +452,7 @@ export function createUndercoverRoomShellModel(
     }),
     controlledSeat: createControlledSeatModel({
       canControlBots: input.capabilities.canTakeOverBots.isAllowed,
-      hasBots: getUndercoverBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

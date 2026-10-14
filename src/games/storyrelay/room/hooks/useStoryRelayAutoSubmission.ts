@@ -1,7 +1,7 @@
 /** Automatically submit current-page text through the platform's recoverable command queue. */
 
 import {
-  getStoryRelayBotSeats,
+  getBotSeats,
   getStoryRelayTaskForSeat,
   getStoryRelayUserSeat,
   STORY_RELAY_TEXT_MAX_LENGTH,
@@ -28,7 +28,7 @@ function getStoryRelayOwnedTasks(state: StoryRelayState, userId: string) {
   const mySeat = getStoryRelayUserSeat(state, userId);
   const seats = [
     ...(mySeat === null ? [] : [mySeat]),
-    ...(state.hostUserId === userId ? getStoryRelayBotSeats(state) : []),
+    ...(state.hostUserId === userId ? getBotSeats(state.roster) : []),
   ];
   return seats.map((seat) => {
     const task = getStoryRelayTaskForSeat(state, seat);

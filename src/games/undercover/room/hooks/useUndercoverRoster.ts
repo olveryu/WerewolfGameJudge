@@ -1,7 +1,7 @@
 /** Shared seating, profiles and explicit test-bot control bound to Undercover room facts. */
 import {
   getUndercoverUserSeat,
-  isUndercoverBotSeat,
+  isBotSeat,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
@@ -55,7 +55,7 @@ export function useUndercoverRoster(
   useBotTakeoverGuard({
     controlledSeat: bot.controlledSeat,
     canControlBots: canControl,
-    seatStillBot: bot.controlledSeat === null || isUndercoverBotSeat(state, bot.controlledSeat),
+    seatStillBot: bot.controlledSeat === null || isBotSeat(state.roster, bot.controlledSeat),
     release,
   });
   const capabilities = createUndercoverRoomCapabilities({
@@ -107,7 +107,7 @@ export function useUndercoverRoster(
     takeOver: bot.takeOver,
     release,
     canTakeOver: capabilities.canTakeOverBots.isAllowed,
-    isBotSeat: (seat) => isUndercoverBotSeat(state, seat),
+    isBotSeat: (seat) => isBotSeat(state.roster, seat),
     gameName: 'Undercover',
   });
   return {

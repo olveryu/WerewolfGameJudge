@@ -9,17 +9,16 @@ import {
   type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
-  getAvalonBotDisplayName,
-  getAvalonBotSeats,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   getAvalonViewModel,
-  isAvalonBotSeat,
+  getBotSeats,
   isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -31,6 +30,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -90,22 +90,12 @@ function avalonSeatLabel(state: AvalonState, seat: number): string {
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return isAvalonBotSeat(state, seat)
-    ? {
-        seat,
-        userId: `avalon-bot:${state.roomCode}:${seat}`,
-        occupantKind: 'bot',
-        rosterName: getAvalonBotDisplayName(seat),
-      }
-    : null;
+  return getRoomProfileTarget(
+    state.roster,
+    seat,
+    (botSeat) => `avalon-bot:${state.roomCode}:${botSeat}`,
+    getBotDisplayName,
+  );
 }
 
 function avalonSeatStatusLabel(
@@ -177,12 +167,11 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
-            : {
-                kind: 'bot' as const,
+            : toRoomSeatPlayer({
+                kind: 'bot',
                 userId: target.userId,
                 displayName: target.rosterName,
-                isAnonymous: true,
-              };
+              });
       const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
       const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
@@ -997,7 +986,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
       canControlBots: input.canControlBots,
-      hasBots: getAvalonBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

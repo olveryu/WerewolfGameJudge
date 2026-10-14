@@ -2,10 +2,10 @@
 
 import {
   createPictionaryCommand,
-  getPictionaryBotSeats,
+  getBotSeats,
   getPictionaryOccupiedSeatCount,
   getPictionaryUserSeat,
-  isPictionaryBotSeat,
+  isBotSeat,
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -146,7 +146,7 @@ export function usePictionaryRoomScreenState({
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots: isHost,
-    seatStillBot: controlledSeat === null || isPictionaryBotSeat(state, controlledSeat),
+    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
     release: releaseBot,
   });
 
@@ -253,7 +253,7 @@ export function usePictionaryRoomScreenState({
     deniedReason: capabilities.canTakeOverBots.isAllowed
       ? undefined
       : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat: useCallback((seat: number) => isPictionaryBotSeat(state, seat), [state]),
+    isBotSeat: useCallback((seat: number) => isBotSeat(state.roster, seat), [state]),
     gameName: 'Pictionary',
   });
   const profile = usePictionaryProfileModel(capabilities, profileController);
@@ -326,7 +326,7 @@ export function usePictionaryRoomScreenState({
   );
   const controlledSeatModel = createControlledSeatModel({
     canControlBots: capabilities.canTakeOverBots.isAllowed,
-    hasBots: getPictionaryBotSeats(state).length > 0,
+    hasBots: getBotSeats(state.roster).length > 0,
     controlledSeat,
     controlledBotName:
       controlledSeat !== null

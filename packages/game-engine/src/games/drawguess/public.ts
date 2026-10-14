@@ -1,6 +1,6 @@
 /** Public pure DrawGuess API for transport, persistence and the client game module. */
 
-export { isBotOccupant } from '../../platform/room/seating';
+export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
   DrawGuessCommand,
   DrawGuessInternalCommand,
@@ -34,11 +34,8 @@ export {
   type DrawGuessStroke,
   type DrawGuessWordCategory,
   type DrawGuessWordChoice,
-  getDrawGuessBotDisplayName,
-  getDrawGuessBotSeats,
   getDrawGuessOccupiedSeatCount,
   getDrawGuessRealHumanCount,
   getDrawGuessUserSeat,
-  isDrawGuessBotSeat,
 } from './state/types';
 export { DRAWGUESS_STATE_IDENTITY, DRAWGUESS_STATE_VERSION } from './state/version';

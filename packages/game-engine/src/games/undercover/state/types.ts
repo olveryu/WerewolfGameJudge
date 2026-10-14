@@ -10,8 +10,6 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
-  getBotSeats,
-  isBotSeat,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -106,16 +104,6 @@ export function isUndercoverSeat(state: UndercoverState, seat: number): boolean 
 /** Returns the number of occupied seats (humans and bots). */
 export function getUndercoverOccupiedSeatCount(state: UndercoverState): number {
   return countOccupiedSeats(state.roster);
-}
-
-/** Returns the seats held by bots, ascending. */
-export function getUndercoverBotSeats(state: UndercoverState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
-/** Returns whether a seat is held by a bot. */
-export function isUndercoverBotSeat(state: UndercoverState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
 }
 
 /** Identity Viewing Protocol participants: every occupied seat with its bot flag. */

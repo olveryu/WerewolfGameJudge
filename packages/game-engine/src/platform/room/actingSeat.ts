@@ -9,7 +9,9 @@
  * user actor, host gate, bot gate, own-seat lookup. Games supply
  * only the roster slice and their seat count; the resolution itself
  * lives here alone (bot extraction wave PR-2, lifted from the relay
- * task machine's inline original).
+ * task machine's inline original). resolveActingSeatForUser exposes
+ * the same gate sequence to display projections that already hold a
+ * user id instead of a command context.
  */
 
 import { type ActorResolution, type CommandContext, resolveUserActorId } from '../engine';
@@ -41,11 +43,26 @@ export function resolveActingSeat(
 ): ActorResolution<number> {
   const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return actor;
-  let seat = context.controlledSeat;
+  return resolveActingSeatForUser(slice, numberOfPlayers, actor.value, context.controlledSeat);
+}
+
+/**
+ * The acting-seat gates for a caller that already holds a user id:
+ * a controlled seat requires the host and a bot target, otherwise
+ * the seat is the user's own roster seat. Rejections carry the
+ * platform reasons; projection callers collapse them to no view.
+ */
+export function resolveActingSeatForUser(
+  slice: ActingSeatSlice,
+  numberOfPlayers: number,
+  userId: string,
+  controlledSeat: number | null,
+): ActorResolution<number> {
+  let seat = controlledSeat;
   if (seat !== null) {
-    if (actor.value !== slice.hostUserId) return rejected(REASON_NOT_HOST);
+    if (userId !== slice.hostUserId) return rejected(REASON_NOT_HOST);
     if (!isBotSeat(slice.roster, seat)) return rejected(REASON_CONTROLLED_SEAT_NOT_BOT);
-  } else seat = findRosterSeatByUserId(slice.roster, numberOfPlayers, actor.value);
+  } else seat = findRosterSeatByUserId(slice.roster, numberOfPlayers, userId);
   if (seat === null) return rejected(REASON_NOT_SEATED);
   return { kind: 'resolved', value: seat };
 }

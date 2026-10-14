@@ -2,7 +2,7 @@ import {
   FIB_STATE_CODEC,
   FIB_STATE_VERSION,
   type FibPublicCommand,
-  isFibBotSeat,
+  isBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
@@ -147,20 +147,20 @@ describe('FibKing generic GameRoom integration', () => {
     const filled = requireCommitted(
       await dispatch(stub, stub, 'fib-fill-bots-for-kick', { type: 'room.seat.fillBots' }),
     );
-    expect(isFibBotSeat(filled.snapshot.state, 4)).toBe(true);
-    expect(isFibBotSeat(filled.snapshot.state, 5)).toBe(true);
+    expect(isBotSeat(filled.snapshot.state.roster, 4)).toBe(true);
+    expect(isBotSeat(filled.snapshot.state.roster, 5)).toBe(true);
 
     const kicked = requireCommitted(
       await dispatch(stub, stub, 'fib-kick-bot-4', { type: 'room.seat.kick', seat: 4 }),
     );
     expect(kicked.snapshot.state.roster[4]).toBeUndefined();
-    expect(isFibBotSeat(kicked.snapshot.state, 4)).toBe(false);
-    expect(isFibBotSeat(kicked.snapshot.state, 5)).toBe(true);
+    expect(isBotSeat(kicked.snapshot.state.roster, 4)).toBe(false);
+    expect(isBotSeat(kicked.snapshot.state.roster, 5)).toBe(true);
 
     const refilled = requireCommitted(
       await dispatch(stub, stub, 'fib-refill-bot-4', { type: 'room.seat.fillBots' }),
     );
-    expect(isFibBotSeat(refilled.snapshot.state, 4)).toBe(true);
+    expect(isBotSeat(refilled.snapshot.state.roster, 4)).toBe(true);
   });
 
   it('recovers an interrupted word effect and completes the round through generic alarm dispatch', async () => {

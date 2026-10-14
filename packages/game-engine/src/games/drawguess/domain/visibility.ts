@@ -1,12 +1,9 @@
 /** DrawGuess per-seat view model: the answer never leaves the server for guessers. */
 
-import { isBotOccupant } from '../../../platform/room/seating';
-import {
-  type DrawGuessPhaseKind,
-  type DrawGuessState,
-  getDrawGuessBotDisplayName,
-  isDrawGuessBotSeat,
-} from '../state/types';
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
+import { buildSeatIdentityView, getSeatDisplayName } from '../../../platform/room/seatIdentity';
+import { isBotOccupant, isBotSeat } from '../../../platform/room/seating';
+import type { DrawGuessPhaseKind, DrawGuessState } from '../state/types';
 import { buildHintText, computeRevealedCount } from './rules';
 
 export interface DrawGuessSeatView {
@@ -46,23 +43,15 @@ export interface DrawGuessViewModel {
   readonly scores: Readonly<Record<number, number>>;
 }
 
-function seatDisplayName(state: DrawGuessState, seat: number): string {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
-  return getDrawGuessBotDisplayName(seat);
-}
-
 function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawGuessSeatView[] {
   const views: DrawGuessSeatView[] = [];
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
     const isReal = state.roster[seat] != null && !isBotOccupant(state.roster[seat]);
-    const isBot = isDrawGuessBotSeat(state, seat);
+    const isBot = isBotSeat(state.roster, seat);
     if (!isReal && !isBot) continue;
     const guessed = state.phase.kind === 'drawing' && state.phase.guessedSeats.includes(seat);
     views.push({
-      seat,
-      displayName: seatDisplayName(state, seat),
-      isBot,
+      ...buildSeatIdentityView(state.roster, seat, getBotDisplayName),
       isDrawer: drawerSeat === seat,
       isLocked: guessed,
       score: state.scores[seat] ?? 0,
@@ -79,7 +68,7 @@ function guessMessages(
   if (state.phase.kind !== 'drawing') return [];
   return state.phase.guessLog.map((entry) => ({
     seat: entry.seat,
-    displayName: seatDisplayName(state, entry.seat),
+    displayName: getSeatDisplayName(state.roster, entry.seat, getBotDisplayName),
     text: entry.correct && !isDrawer && entry.seat !== viewerSeat ? null : entry.text,
     correct: entry.correct,
     at: entry.at,

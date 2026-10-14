@@ -6,11 +6,11 @@ import {
   type FibPreparationStage,
   type FibPublicCommand,
   type FibRoundView,
-  getFibBotSeats,
+  getBotSeats,
   getFibOccupiedSeatCount,
   getFibRoundView,
   getFibUserSeat,
-  isFibBotSeat,
+  isBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -161,7 +161,7 @@ export function useFibRoomScreenState({
   useBotTakeoverGuard({
     controlledSeat,
     canControlBots: isHost,
-    seatStillBot: controlledSeat === null || isFibBotSeat(state, controlledSeat),
+    seatStillBot: controlledSeat === null || isBotSeat(state.roster, controlledSeat),
     release: releaseBot,
   });
 
@@ -407,7 +407,7 @@ export function useFibRoomScreenState({
     [capabilities, guessSeat, isGuessing, mySeat, state],
   );
 
-  const isBotSeat = useCallback((seat: number) => isFibBotSeat(state, seat), [state]);
+  const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);
   const onSeatLongPress = useBotTakeoverLongPress({
     controlledSeat,
     takeOver: takeOverBot,
@@ -416,7 +416,7 @@ export function useFibRoomScreenState({
     deniedReason: capabilities.canTakeOverBots.isAllowed
       ? undefined
       : (capabilities.canTakeOverBots.reason ?? undefined),
-    isBotSeat,
+    isBotSeat: isSeatBot,
     gameName: 'FibKing',
   });
 
@@ -516,7 +516,7 @@ export function useFibRoomScreenState({
 
   const controlledSeatModel = createControlledSeatModel({
     canControlBots: capabilities.canTakeOverBots.isAllowed,
-    hasBots: getFibBotSeats(state).length > 0,
+    hasBots: getBotSeats(state.roster).length > 0,
     controlledSeat,
     controlledBotName:
       controlledSeat !== null

@@ -5,12 +5,11 @@
 import {
   type DrawGuessCommand,
   type DrawGuessState,
-  getDrawGuessBotDisplayName,
-  getDrawGuessBotSeats,
+  getBotSeats,
   getDrawGuessOccupiedSeatCount,
   isBotOccupant,
-  isDrawGuessBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -21,6 +20,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -46,22 +46,12 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getDrawGuessProfileTarget(state: DrawGuessState, seat: number): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return isDrawGuessBotSeat(state, seat)
-    ? {
-        seat,
-        userId: `drawguess-bot:${state.roomCode}:${seat}`,
-        occupantKind: 'bot',
-        rosterName: getDrawGuessBotDisplayName(seat),
-      }
-    : null;
+  return getRoomProfileTarget(
+    state.roster,
+    seat,
+    (botSeat) => `drawguess-bot:${state.roomCode}:${botSeat}`,
+    getBotDisplayName,
+  );
 }
 
 function drawerStatusLabel(state: DrawGuessState, seat: number): string | null {
@@ -113,12 +103,11 @@ function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSea
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : target === null
             ? null
-            : {
-                kind: 'bot' as const,
+            : toRoomSeatPlayer({
+                kind: 'bot',
                 userId: target.userId,
                 displayName: target.rosterName,
-                isAnonymous: true,
-              };
+              });
       const statusLabel = drawerStatusLabel(state, seat);
       return {
         seat,
@@ -322,7 +311,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
       canControlBots: input.canControlBots,
-      hasBots: getDrawGuessBotSeats(state).length > 0,
+      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

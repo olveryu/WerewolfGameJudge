@@ -3,21 +3,22 @@
 import {
   type FibRole,
   type FibState,
-  getFibBotDisplayName,
   getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
   isBotOccupant,
-  isFibBotSeat,
+  isBotSeat,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import {
   buildRoomHeaderModel,
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -116,23 +117,12 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
 }
 
 export function getFibProfileTarget(state: FibState, seat: number): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-  if (human !== undefined) {
-    return {
-      seat,
-      userId: human.userId,
-      occupantKind: 'human',
-      rosterName: human.profile.displayName,
-    };
-  }
-  if (!isFibBotSeat(state, seat)) return null;
-  return {
+  return getRoomProfileTarget(
+    state.roster,
     seat,
-    userId: getFibBotUserId(state.roomCode, seat),
-    occupantKind: 'bot',
-    rosterName: getFibBotDisplayName(seat),
-  };
+    (botSeat) => getFibBotUserId(state.roomCode, botSeat),
+    getBotDisplayName,
+  );
 }
 
 interface FibSeatTapInput {
@@ -194,17 +184,16 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
 
       const occupant = input.state.roster[index];
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const isBot = isFibBotSeat(input.state, index);
+      const isBot = isBotSeat(input.state.roster, index);
       const player =
         human !== undefined
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
-            ? {
-                kind: 'bot' as const,
+            ? toRoomSeatPlayer({
+                kind: 'bot',
                 userId: getFibBotUserId(input.state.roomCode, index),
-                displayName: getFibBotDisplayName(index),
-                isAnonymous: true,
-              }
+                displayName: getBotDisplayName(index),
+              })
             : null;
 
       return {

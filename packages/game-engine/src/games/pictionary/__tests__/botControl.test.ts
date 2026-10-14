@@ -6,6 +6,7 @@ import {
   REASON_NOT_HOST,
   REASON_SEAT_TAKEN,
 } from '../../../platform/protocol/reasons';
+import { isBotSeat } from '../../../platform/room/seating';
 import { type PictionaryCommandInput, type PictionaryInternalCommand } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import type { PictionaryEffect } from '../effects/types';
@@ -15,7 +16,6 @@ import {
   getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,
   getPictionaryUserSeat,
-  isPictionaryBotSeat,
   type PictionaryState,
 } from '../state/types';
 import { decidePictionaryInput } from './commandBinding';
@@ -131,8 +131,8 @@ describe('Pictionary bot control', () => {
     const state = createBotRound();
 
     expect(getPictionaryOccupiedSeatCount(state)).toBe(4);
-    expect(isPictionaryBotSeat(state, 1)).toBe(true);
-    expect(isPictionaryBotSeat(state, 0)).toBe(false);
+    expect(isBotSeat(state.roster, 1)).toBe(true);
+    expect(isBotSeat(state.roster, 0)).toBe(false);
   });
 
   it('rejects taking a seat held by a bot', () => {

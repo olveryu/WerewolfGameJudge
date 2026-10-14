@@ -1,7 +1,7 @@
 /** Public pure API for the FibKing game module. */
 
 export { buildPreparationFailureCommand } from '../../platform/room/preparation';
-export { isBotOccupant } from '../../platform/room/seating';
+export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
   FibCommand,
   FibCompleteRoundCommand,
@@ -71,13 +71,10 @@ export {
   type FibState,
   type FibWordDefinition,
   type FibWordSource,
-  getFibBotDisplayName,
-  getFibBotSeats,
   getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
-  isFibBotSeat,
   isFibPreparationFailureCode,
   isFibPreparationStage,
   isFibRoomFull,

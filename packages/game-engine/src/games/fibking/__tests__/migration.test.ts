@@ -1,12 +1,12 @@
 /** Persisted-state migrations: v6/v5 -> v7 roster materialization, v7 -> v8 guess record. */
 
 import type { CommandContext } from '../../../platform/engine';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import type { FibCommand } from '../commands/types';
 import { REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE } from '../domain/reasons';
 import { decideFibCommand, fibEngine } from '../engine';
 import { migratePersistedFibState, parseFibState } from '../state/parseState';
-import { FIB_PREPARATION_STAGES, type FibState, getFibBotSeats } from '../state/types';
+import { FIB_PREPARATION_STAGES, type FibState } from '../state/types';
 
 const CREATE_CONTEXT = { roomCode: '4321', hostUserId: 'host', nowMs: 1, commandId: 'create' };
 
@@ -37,7 +37,7 @@ function filledLobby(): FibState {
 function downgradeToV6(state: FibState): Record<string, unknown> {
   const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
   const humans = getHumanSeatMap(state.roster, state.numberOfPlayers);
-  const bots = getFibBotSeats(state);
+  const bots = getBotSeats(state.roster);
   delete raw.roster;
   return {
     ...raw,
@@ -56,7 +56,7 @@ function downgradeToV6(state: FibState): Record<string, unknown> {
 describe('FibKing v6 -> v7 roster migration', () => {
   it('materializes a filled lobby exactly (host + 3 bots)', () => {
     const state = filledLobby();
-    expect(getFibBotSeats(state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
     const legacy = downgradeToV6(state);
     expect(() => parseFibState(legacy)).toThrow();
     expect(migratePersistedFibState(legacy)).toEqual(state);
@@ -76,7 +76,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
     legacy.fillEmptySeatsWithBots = false;
     legacy.excludedBotSeats = [];
     const migrated = migratePersistedFibState(legacy);
-    expect(getFibBotSeats(migrated)).toEqual([]);
+    expect(getBotSeats(migrated.roster)).toEqual([]);
     expect(migrated).toEqual(state);
   });
 
@@ -187,7 +187,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
     realSeats['2'] = { seat: 2, userId: 'alice', profile: { displayName: 'Alice' } };
     legacy.excludedBotSeats = [2, 2, 99];
     const migrated = migratePersistedFibState(legacy);
-    expect(getFibBotSeats(migrated)).toEqual([1, 3]);
+    expect(getBotSeats(migrated.roster)).toEqual([1, 3]);
     const occupant = migrated.roster[2];
     if (occupant == null || !('userId' in occupant)) throw new Error('Expected human at seat 2');
     expect(occupant.userId).toBe('alice');

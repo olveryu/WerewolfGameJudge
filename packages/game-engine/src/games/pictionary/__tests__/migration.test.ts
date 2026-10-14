@@ -1,18 +1,14 @@
 /** v8 -> v9 roster migration: implicit bot seats materialize seat-by-seat. */
 
 import type { CommandContext, CreateGameContext, Decision } from '../../../platform/engine';
-import { getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import { type PictionaryCommandInput, type PictionaryInternalCommand } from '../commands/types';
 import type { PictionaryEvent } from '../domain/events';
 import { REASON_PICTIONARY_OCCUPIED_SEAT_OUT_OF_RANGE } from '../domain/reasons';
 import type { PictionaryEffect } from '../effects/types';
 import { pictionaryEngine } from '../engine';
 import { migratePersistedPictionaryState, parsePictionaryState } from '../state/parseState';
-import {
-  DEFAULT_PICTIONARY_CONFIG,
-  getPictionaryBotSeats,
-  type PictionaryState,
-} from '../state/types';
+import { DEFAULT_PICTIONARY_CONFIG, type PictionaryState } from '../state/types';
 import { decidePictionaryInput } from './commandBinding';
 
 const CREATE_CONTEXT: CreateGameContext = {
@@ -68,7 +64,7 @@ function filledLobby(): PictionaryState {
 function downgradeToV8(state: PictionaryState): Record<string, unknown> {
   const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
   const humans = getHumanSeatMap(state.roster, state.config.numberOfPlayers);
-  const bots = getPictionaryBotSeats(state);
+  const bots = getBotSeats(state.roster);
   delete raw.roster;
   return {
     ...raw,
@@ -87,7 +83,7 @@ function downgradeToV8(state: PictionaryState): Record<string, unknown> {
 describe('Pictionary v8 -> v9 roster migration', () => {
   it('materializes a filled lobby exactly (host + 3 bots)', () => {
     const state = filledLobby();
-    expect(getPictionaryBotSeats(state)).toEqual([1, 2, 3]);
+    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
     const legacy = downgradeToV8(state);
     expect(() => parsePictionaryState(legacy)).toThrow();
     expect(migratePersistedPictionaryState(legacy)).toEqual(state);
@@ -110,7 +106,7 @@ describe('Pictionary v8 -> v9 roster migration', () => {
     legacy.fillEmptySeatsWithBots = false;
     legacy.excludedBotSeats = [];
     const migrated = migratePersistedPictionaryState(legacy);
-    expect(getPictionaryBotSeats(migrated)).toEqual([]);
+    expect(getBotSeats(migrated.roster)).toEqual([]);
     expect(migrated).toEqual(state);
   });
 

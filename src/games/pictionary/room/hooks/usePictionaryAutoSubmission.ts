@@ -4,7 +4,7 @@ import {
   createPictionaryCommand,
   getPictionaryTaskForSeat,
   getPictionaryUserSeat,
-  isPictionaryBotSeat,
+  isBotSeat,
   isValidPictionaryText,
   type PictionaryDrawingReservation,
   type PictionaryState,
@@ -66,7 +66,7 @@ function getLocallyOwnedTasks(state: PictionaryState, userId: string): readonly 
   const isHost = state.hostUserId === userId;
   return Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).flatMap((seat) => {
     const isOwnSeat = seat === userSeat;
-    const isControlledBot = isHost && isPictionaryBotSeat(state, seat);
+    const isControlledBot = isHost && isBotSeat(state.roster, seat);
     if (!isOwnSeat && !isControlledBot) return [];
     const task = getPictionaryTaskForSeat(state, seat);
     if (task === null) {

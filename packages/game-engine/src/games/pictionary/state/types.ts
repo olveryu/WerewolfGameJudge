@@ -2,13 +2,10 @@
 
 import type { PictionaryGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
-import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
   findRosterSeatByUserId,
-  getBotSeats,
-  isBotSeat,
   type RosterMap,
   type SeatOccupant,
 } from '../../../platform/room/seating';
@@ -209,16 +206,6 @@ export function getPictionaryRelayStepCount(numberOfPlayers: number): number {
   return numberOfPlayers;
 }
 
-/** Returns the seats held by bots, ascending. */
-export function getPictionaryBotSeats(state: PictionaryState): readonly number[] {
-  return getBotSeats(state.roster);
-}
-
-/** Returns whether a seat is held by a bot. */
-export function isPictionaryBotSeat(state: PictionaryState, seat: number): boolean {
-  return isBotSeat(state.roster, seat);
-}
-
 /** Returns the seat held by a user, or null when they hold no seat. */
 export function getPictionaryUserSeat(state: PictionaryState, userId: string): number | null {
   return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
@@ -234,8 +221,4 @@ export function isPictionaryRoomFull(state: PictionaryState): boolean {
 
 export function getPictionaryBotUserId(roomCode: string, seat: number): string {
   return `pictionary-bot:${roomCode}:${seat}`;
-}
-
-export function getPictionaryBotDisplayName(seat: number): string {
-  return getBotDisplayName(seat);
 }

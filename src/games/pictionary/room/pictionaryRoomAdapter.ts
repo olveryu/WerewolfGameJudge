@@ -1,21 +1,22 @@
 /** Pictionary-owned derivation of game-neutral RoomShell models. */
 
 import {
-  getPictionaryBotDisplayName,
   getPictionaryBotUserId,
   getPictionaryOccupiedSeatCount,
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
   isBotOccupant,
-  isPictionaryBotSeat,
+  isBotSeat,
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import {
   buildRoomHeaderModel,
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -143,17 +144,16 @@ export function createPictionarySeatDataSource(
       }
       const occupant = input.state.roster[index];
       const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const isBot = isPictionaryBotSeat(input.state, index);
+      const isBot = isBotSeat(input.state.roster, index);
       const player =
         human !== undefined
           ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
           : isBot
-            ? {
-                kind: 'bot' as const,
+            ? toRoomSeatPlayer({
+                kind: 'bot',
                 userId: getPictionaryBotUserId(input.state.roomCode, index),
-                displayName: getPictionaryBotDisplayName(index),
-                isAnonymous: true,
-              }
+                displayName: getBotDisplayName(index),
+              })
             : null;
       return {
         seat: index,
@@ -179,28 +179,15 @@ export function getPictionarySeatTapIntent(input: {
   readonly currentSeat: number | null;
   readonly disabledReason?: string;
 }) {
-  const occupant = input.state.roster[input.seat];
-  const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-  const target: RoomProfileTarget | null =
-    human !== undefined
-      ? {
-          seat: input.seat,
-          userId: human.userId,
-          occupantKind: 'human',
-          rosterName: human.profile.displayName,
-        }
-      : isPictionaryBotSeat(input.state, input.seat)
-        ? {
-            seat: input.seat,
-            userId: getPictionaryBotUserId(input.state.roomCode, input.seat),
-            occupantKind: 'bot',
-            rosterName: getPictionaryBotDisplayName(input.seat),
-          }
-        : null;
   return getRoomSeatTapIntent({
     seat: input.seat,
     currentSeat: input.currentSeat,
-    target,
+    target: getRoomProfileTarget(
+      input.state.roster,
+      input.seat,
+      (botSeat) => getPictionaryBotUserId(input.state.roomCode, botSeat),
+      getBotDisplayName,
+    ),
     disabledReason: input.disabledReason,
   });
 }
