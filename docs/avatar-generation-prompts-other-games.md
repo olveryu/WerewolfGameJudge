@@ -7,7 +7,7 @@
 > - **风格锁（全 14 个角色共用，逐字一致）**：见下方代码块。核心是狼人杀成品的画法本体：粗黑轮廓线＋密集铅笔排线/交叉排线阴影＋低饱和水彩晕染＋做旧颗粒＋凌厉夸张的面部造型；背景绝对纯白（抠图管线要求）；半身像占画面 80%；画面无任何文字。
 > - **人设段逐角色写**：服饰、道具、表情、专属色调。
 > - **生成经验（已实测）**：①画面禁文字必须在正向 prompt 里明说，且道具（书本封面、衣服布贴）要逐个声明无字，否则生成器会自作主张写字、加标题横幅；②带武器的角色写「收入鞘中/静立」口径，出鞘武器＋攻击姿态会被生图管线拒绝（刺客实测）；③描述身体异常的表述（斗鸡眼、手指痉挛类）会被管线拒绝，疯癫感靠表情与眼神传达（奥伯伦实测）；④白板的无五官面具脸是人设本体，其 prompt 里不带「面部造型」句。
-> - 生成后走与狼人杀相同的管线：纯白底生成 → rmbg 抠图 → 透明 PNG 以角色 id 命名存入 `assets/avatars/raw/`（已核：下列 14 个 id 与狼人杀现有 52 个文件名无一重名）→ `scripts/process_avatars.py` 产出徽章与 WebP 头像。
+> - 生成后走与狼人杀相同的管线：纯白底生成 → 抠图：https://rmbg.fun/ → 透明 PNG 以角色 id 命名存入 `assets/avatars/raw/`（已核：下列 14 个 id 与狼人杀现有 51 个文件名无一重名）→ `scripts/process_avatars.py` 产出徽章与 WebP 头像。
 
 ---
 
@@ -126,7 +126,7 @@
 ## 入库清单（生成后逐项打勾）
 
 - [ ] 14 张原图（纯白底、1:1）逐张过目批准
-- [ ] rmbg 抠图 → `assets/avatars/raw/{merlin,percival,assassin,morgana,oberon,mordred,loyal,minion,fibber,honest,guesser,civilian,undercover,blank}.png`
+- [ ] 抠图：https://rmbg.fun/ → `assets/avatars/raw/{merlin,percival,assassin,morgana,oberon,mordred,loyal,minion,fibber,honest,guesser,civilian,undercover,blank}.png`
 - [ ] 跑 `scripts/process_avatars.py` 产出徽章与 WebP
 - [ ] 客户端接图：阿瓦隆 `AvalonRoleCardAdapter` 的 `image: undefined` 换成正式资源；瞎掰王/卧底身份卡同点核查
 - [ ] 本文档定稿后并入仓库 `docs/`（与狼人杀 prompt 文档并列）
