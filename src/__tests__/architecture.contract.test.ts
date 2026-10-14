@@ -1456,3 +1456,20 @@ describe('Room layout: afterSeatBoard is always null in every game room screen',
     for (const value of values) expect(value).toBe('null');
   });
 });
+
+describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSeatTap', () => {
+  const consumerPaths = [
+    'games/werewolf/room/seatTap/SeatTapPolicy.ts',
+    'games/avalon/room/hooks/useAvalonRoomState.ts',
+    'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
+    'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
+  ];
+
+  it.each(consumerPaths)(
+    '%s routes in-game taps through the shared adjudicator',
+    (relativePath) => {
+      const source = fs.readFileSync(path.join(srcDir, relativePath), 'utf-8');
+      expect(source).toContain('resolveRoomInGameSeatTap(');
+    },
+  );
+});

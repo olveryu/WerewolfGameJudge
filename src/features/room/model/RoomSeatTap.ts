@@ -16,6 +16,27 @@ export interface RoomSeatTapInput<TTarget> {
   readonly disabledReason?: string;
 }
 
+/** Outcome of an in-game seat tap that no game-specific flow consumed. */
+export type RoomInGameSeatTapOutcome =
+  | { readonly kind: 'alert'; readonly reason: string }
+  | { readonly kind: 'noop' };
+
+/**
+ * In-game seat-tap adjudication, the single implementation for every
+ * room: a seat carrying a disabled reason (the one in-game case is an
+ * empty seat) surfaces that reason; every other in-game tap is a
+ * silent no-op. Werewolf's SeatTapPolicy consumes this inside its
+ * status routing; the other rooms consume it for their non-lobby
+ * branch. Lobby/setup flows stay with getRoomSeatTapIntent.
+ */
+export function resolveRoomInGameSeatTap(disabledReason?: string): RoomInGameSeatTapOutcome {
+  if (disabledReason === undefined) return { kind: 'noop' };
+  if (disabledReason.length === 0) {
+    throw new Error('Room seat disabled reason must be non-empty');
+  }
+  return { kind: 'alert', reason: disabledReason };
+}
+
 /** Resolve shared lobby/profile semantics without executing a room capability. */
 export function getRoomSeatTapIntent<TTarget>(
   input: RoomSeatTapInput<TTarget>,

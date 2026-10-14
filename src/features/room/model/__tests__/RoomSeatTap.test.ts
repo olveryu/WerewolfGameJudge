@@ -1,4 +1,4 @@
-import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
+import { getRoomSeatTapIntent, resolveRoomInGameSeatTap } from '@/features/room/model/RoomSeatTap';
 
 describe('getRoomSeatTapIntent', () => {
   it('gives a disabled reason priority over every seat target', () => {
@@ -38,6 +38,25 @@ describe('getRoomSeatTapIntent', () => {
   it('rejects invalid seat indexes instead of producing an executable intent', () => {
     expect(() => getRoomSeatTapIntent({ seat: -1, currentSeat: null, target: null })).toThrow(
       'Room seat tap must use a non-negative safe integer',
+    );
+  });
+});
+
+describe('resolveRoomInGameSeatTap', () => {
+  it('silently ignores an in-game tap on a seat without a disabled reason', () => {
+    expect(resolveRoomInGameSeatTap(undefined)).toEqual({ kind: 'noop' });
+  });
+
+  it('surfaces the disabled reason of an in-game seat (the empty-seat case)', () => {
+    expect(resolveRoomInGameSeatTap('游戏进行中不能入座')).toEqual({
+      kind: 'alert',
+      reason: '游戏进行中不能入座',
+    });
+  });
+
+  it('rejects an empty disabled reason instead of adjudicating it', () => {
+    expect(() => resolveRoomInGameSeatTap('')).toThrow(
+      'Room seat disabled reason must be non-empty',
     );
   });
 });
