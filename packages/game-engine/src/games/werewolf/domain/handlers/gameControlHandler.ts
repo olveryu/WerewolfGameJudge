@@ -14,6 +14,7 @@ import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../..
 import { getBotDisplayName } from '../../../../platform/room/getBotDisplayName';
 import { planMarkBotsViewed } from '../../../../platform/room/identityViewing';
 import type { RosterEntry } from '../../../../platform/room/roster';
+import { decideRosterFillBots } from '../../../../platform/room/seating';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
 import type {
@@ -351,6 +352,15 @@ export function handleUpdateTemplate(
  *
  * Result:
  * - Create bot players for all empty seats (bot occupants in the roster)
+ *
+ * @remarks
+ * The seat decision is the platform's single fill implementation
+ * (decideRosterFillBots, the same one every other game decides with):
+ * it picks the empty seats and validates the roster invariants. What
+ * stays werewolf-owned is the payload its state model needs per bot
+ * seat — a players-record entry plus a playerProfiles entry keyed by
+ * the synthetic `bot-<seat>` userId; the reducer (evolve side) books
+ * that double write into players/roster/playerProfiles.
  */
 export function handleFillWithBots(
   _intent: FillWithBotsIntent,
@@ -363,24 +373,23 @@ export function handleFillWithBots(
     return handlerError('invalid_status');
   }
 
-  // Calculate empty seats and generate bot players
   const seatCount = getPlayerCount(state.templateRoles);
-  // Only seats with an occupant count as occupied
-  const occupiedSeats = new Set(Object.keys(state.roster).map((seat) => Number(seat)));
+  const fill = decideRosterFillBots(state.roster, seatCount);
+  if (fill.kind === 'rejected') {
+    return handlerError(fill.reason);
+  }
+
   const bots: Record<number, Player> = {};
   const botRoster: Record<string, RosterEntry> = {};
-
-  for (let seat = 0; seat < seatCount; seat++) {
-    if (!occupiedSeats.has(seat)) {
-      const userId = `bot-${seat}`;
-      bots[seat] = {
-        seat: seat,
-        hasViewedRole: false,
-      };
-      botRoster[userId] = {
-        displayName: getBotDisplayName(seat),
-      };
-    }
+  for (const change of fill.changes) {
+    const seat = change.seat;
+    bots[seat] = {
+      seat: seat,
+      hasViewedRole: false,
+    };
+    botRoster[`bot-${seat}`] = {
+      displayName: getBotDisplayName(seat),
+    };
   }
 
   const action: FillWithBotsAction = {
