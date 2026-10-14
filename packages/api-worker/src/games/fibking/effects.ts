@@ -1,6 +1,7 @@
 /** Worker-side validation and execution for Fibking selection and usage effects. */
 
 import {
+  buildPreparationFailureCommand,
   FIB_PREPARATION_STAGES,
   FIB_USED_WORD_LIMIT,
   FIB_WORD_SOURCES,
@@ -18,7 +19,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchPreparationCommand } from '../../platform/gameModules/preparationDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { FibWordInventoryExhaustedError, getOrCreateFibWordSelection } from './wordSelection';
 import { recordFibWordUsage } from './wordUsage';
@@ -52,34 +53,26 @@ export const fibEffectSchema: z.ZodType<FibEffect> = z.discriminatedUnion('type'
   }),
 ]);
 
-function isSupersededRoundRejection(reason: string): boolean {
-  return reason === REASON_FIB_ROUND_NOT_PREPARING || reason === REASON_FIB_ROUND_MISMATCH;
-}
+/** Rejections that mean the round moved on while the selection was in flight. */
+const SUPERSEDED_ROUND_REASONS: readonly string[] = [
+  REASON_FIB_ROUND_NOT_PREPARING,
+  REASON_FIB_ROUND_MISMATCH,
+];
 
 async function dispatchPreparationStage(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
   roundId: string,
   stage: (typeof FIB_PREPARATION_STAGES)['selecting' | 'finalizing'],
 ): Promise<boolean> {
-  const commandId = await createEffectCommandId(`fib:preparation-stage-${stage}`, context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type: 'fibking.round.updatePreparationStage',
-    roundId,
-    stage,
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Fib preparation-stage receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededRoundRejection(result.reason)) return false;
-    throw new Error(`Fib preparation-stage command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`Fib preparation-stage command ${commandId} failed: ${result.outcome.reason}`);
-  }
-  return true;
+  return dispatchPreparationCommand(
+    context,
+    { type: 'fibking.round.updatePreparationStage', roundId, stage },
+    {
+      namespace: `fib:preparation-stage-${stage}`,
+      supersededReasons: SUPERSEDED_ROUND_REASONS,
+      label: 'Fib preparation-stage',
+    },
+  );
 }
 
 /** Decide the domain terminal transition without I/O; the runtime commits it with the outbox. */
@@ -87,17 +80,19 @@ export function getFibEffectFailureCommand(
   effect: FibEffect,
   state: FibState,
 ): FibInternalCommand | null {
-  if (
-    effect.type !== 'fibking.word.select' ||
-    state.phase !== 'preparing' ||
-    state.pendingRound.roundId !== effect.payload.roundId
-  )
-    return null;
-  return {
-    type: 'fibking.round.failPreparation',
-    roundId: effect.payload.roundId,
-    failureCode: 'selectionFailed',
-  };
+  return buildPreparationFailureCommand({
+    isSelectionEffect: effect.type === 'fibking.word.select',
+    effectRoundId: effect.payload.roundId,
+    state: {
+      phase: state.phase,
+      pendingRound: state.phase === 'preparing' ? state.pendingRound : null,
+    },
+    buildFailCommand: (roundId, failureCode): FibInternalCommand => ({
+      type: 'fibking.round.failPreparation',
+      roundId,
+      failureCode,
+    }),
+  });
 }
 
 async function dispatchRoundCompletion(
@@ -105,26 +100,21 @@ async function dispatchRoundCompletion(
   effect: FibSelectWordEffect,
   selected: Awaited<ReturnType<typeof getOrCreateFibWordSelection>>,
 ): Promise<void> {
-  const commandId = await createEffectCommandId('fib:round-complete', context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type: 'fibking.round.complete',
-    roundId: effect.payload.roundId,
-    word: selected.word,
-    definition: selected.definition,
-    source: selected.source,
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Fib round-complete receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededRoundRejection(result.reason)) return;
-    throw new Error(`Fib round-complete command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`Fib round-complete command ${commandId} failed: ${result.outcome.reason}`);
-  }
+  await dispatchPreparationCommand(
+    context,
+    {
+      type: 'fibking.round.complete',
+      roundId: effect.payload.roundId,
+      word: selected.word,
+      definition: selected.definition,
+      source: selected.source,
+    },
+    {
+      namespace: 'fib:round-complete',
+      supersededReasons: SUPERSEDED_ROUND_REASONS,
+      label: 'Fib round-complete',
+    },
+  );
 }
 
 async function handleFibSelectWordEffect(
@@ -157,19 +147,19 @@ async function handleFibSelectWordEffect(
     });
   } catch (error) {
     if (!(error instanceof FibWordInventoryExhaustedError)) throw error;
-    const commandId = await createEffectCommandId('fib:inventory-exhausted', context.effectId);
-    const result = await context.dispatchInternal(commandId, {
-      type: 'fibking.round.failPreparation',
-      roundId: effect.payload.roundId,
-      failureCode: 'inventoryExhausted',
-    });
-    if (result.commandId !== commandId) throw new Error('Fib exhaustion receipt identity mismatch');
-    if (result.kind === 'rejected') {
-      if (isSupersededRoundRejection(result.reason)) return;
-      throw new Error(`Fib exhaustion command rejected: ${result.reason}`);
-    }
-    if (result.outcome.kind !== 'success')
-      throw new Error(`Fib exhaustion command failed: ${result.outcome.reason}`);
+    await dispatchPreparationCommand(
+      context,
+      {
+        type: 'fibking.round.failPreparation',
+        roundId: effect.payload.roundId,
+        failureCode: 'inventoryExhausted',
+      },
+      {
+        namespace: 'fib:inventory-exhausted',
+        supersededReasons: SUPERSEDED_ROUND_REASONS,
+        label: 'Fib exhaustion',
+      },
+    );
     return;
   }
   if (

@@ -1,6 +1,7 @@
 /** Deliver Undercover word snapshots and rewards; the shared outbox owns retries and persistence. */
 
 import {
+  buildPreparationFailureCommand,
   UNDERCOVER_REASONS,
   type UndercoverEffect,
   type UndercoverInternalCommand,
@@ -8,7 +9,7 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 
 import { publishGameRewards } from '../../features/account/settleGameRewards';
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchPreparationCommand } from '../../platform/gameModules/preparationDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import {
   getOrCreateUndercoverWordSelection,
@@ -20,14 +21,22 @@ export function getUndercoverEffectFailureCommand(
   effect: UndercoverEffect,
   state: UndercoverState,
 ): UndercoverInternalCommand | null {
-  if (effect.type === 'undercover.game.completed') return null;
-  if (state.phase !== 'preparing' || state.pendingRound.roundId !== effect.payload.roundId)
-    return null;
-  return {
-    type: 'undercover.round.failPreparation',
-    roundId: effect.payload.roundId,
-    failureCode: 'selectionFailed',
-  };
+  return buildPreparationFailureCommand({
+    isSelectionEffect: effect.type === 'undercover.word.select',
+    effectRoundId: effect.payload.roundId,
+    state: {
+      phase: state.phase,
+      pendingRound:
+        state.phase === 'preparing' || state.phase === 'preparationFailed'
+          ? state.pendingRound
+          : null,
+    },
+    buildFailCommand: (roundId, failureCode): UndercoverInternalCommand => ({
+      type: 'undercover.round.failPreparation',
+      roundId,
+      failureCode,
+    }),
+  });
 }
 
 /** Persist selected pairs before dispatch; settle rewards from the immutable completion payload. */
@@ -63,15 +72,9 @@ export async function handleUndercoverEffect(
       failureCode: error.failureCode,
     };
   }
-  const commandId = await createEffectCommandId(command.type, context.effectId);
-  const result = await context.dispatchInternal(commandId, command);
-  if (result.commandId !== commandId)
-    throw new Error('[FAIL-FAST] Undercover effect receipt identity mismatch');
-  if (result.kind === 'rejected') {
-    if (result.reason === UNDERCOVER_REASONS.phase || result.reason === UNDERCOVER_REASONS.round)
-      return;
-    throw new Error(`Undercover preparation command rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success')
-    throw new Error(`Undercover preparation command failed: ${result.outcome.reason}`);
+  await dispatchPreparationCommand(context, command, {
+    namespace: command.type,
+    supersededReasons: [UNDERCOVER_REASONS.phase, UNDERCOVER_REASONS.round],
+    label: 'Undercover preparation',
+  });
 }
