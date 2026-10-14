@@ -19,12 +19,15 @@
  *   workflow export exactly for the games that declare it.
  * - `nightPhase`: the declared set is pinned by the value table
  *   below and by the dedicated test in `contracts.test.ts`.
- * - `revealAnimation`: declaration-only for now. Its wiring is the
- *   client role-card and product presentation layer, which has no
- *   uniform engine-layer signal (the engine-side `revealEffect`
- *   seat-profile field also exists in games without role cards), so
- *   the value table below is its only pin until a client-layer
- *   contract exists.
+ * - `revealAnimation`: its wiring is the client role-card layer,
+ *   which has no uniform engine-layer signal (the engine-side
+ *   `revealEffect` seat-profile field also exists in games without
+ *   role cards), so the wiring weld lives in the client-layer
+ *   contract: `Game capabilities: client wiring matches the engine
+ *   declaration` in the root `src/__tests__/architecture.contract.test.ts`
+ *   pins each declaration against `RevealAnimationGate` consumption
+ *   in that game's client source. The value table below still pins
+ *   the declared values themselves.
  *
  * The value table is deliberate: flipping a declaration means
  * updating the expected row here in the same change.
