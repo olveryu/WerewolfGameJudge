@@ -44,7 +44,18 @@ interface AuditEffect {
 const counterEngine = {
   gameType: WEREWOLF_GAME_TYPE,
   stateVersion: 1,
-  capabilities: { nightPhase: false },
+  capabilities: {
+    nightPhase: false,
+    botsAndTakeover: false,
+    identityViewing: false,
+    revealAnimation: false,
+    stageDeadline: false,
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: false,
+    botTestScaffold: false,
+  },
   createInitialState(config, context) {
     return {
       gameType: WEREWOLF_GAME_TYPE,

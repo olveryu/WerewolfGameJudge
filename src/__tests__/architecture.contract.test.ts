@@ -14,6 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { GAME_ENGINE_CATALOG } from '@game-judge/game-engine/games/catalog';
 import {
   GAME_REGISTRY,
   type GameWorkerWorkflowRegistration,
@@ -615,6 +616,24 @@ describe('Game registry: declared cross-package facts resolve', () => {
         `export\\s+(?:async\\s+)?(?:function|const|class)\\s+${rewards.settlementExportName}\\b`,
       );
       expect(settlementModuleSource).toMatch(exportPattern);
+    }
+  });
+});
+
+// ─── Game capabilities: client wiring matches the engine declaration ──────
+
+describe('Game capabilities: client wiring matches the engine declaration', () => {
+  it('welds revealAnimation to RevealAnimationGate consumption in every game client', () => {
+    for (const gameType of GAME_TYPES) {
+      const declared = GAME_ENGINE_CATALOG[gameType].capabilities.revealAnimation;
+      const clientSource = getAllProductionFiles(path.join(gamesDir, gameType))
+        .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
+        .join('\n');
+      // The marker is the consumption side: the shared gate every
+      // role-card reveal routes through. The declaration key itself
+      // never appears in client source, so this cannot self-prove.
+      const wired = clientSource.includes('RevealAnimationGate');
+      expect(declared).toBe(wired);
     }
   });
 });

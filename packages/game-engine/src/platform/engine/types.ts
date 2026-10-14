@@ -60,14 +60,44 @@ export type Decision<TEvent extends GameEvent, TEffect extends GameEffect> =
     };
 
 /**
- * Chassis capabilities a game declares at registration. Switches only
- * say whether the game hooks into a platform capability; they never
- * assemble gameplay (template red line). `nightPhase`: the game runs a
- * night segment (step progression + narration audio) after the host
- * begins play — werewolf and avalon today.
+ * Chassis capabilities a game declares in its engine definition. This
+ * interface is the single declaration source for every capability
+ * switch: worker and client code that needs a switch derives it from
+ * the engine definition (the client through the server projection),
+ * never from a second declaration. Switches only say whether the game
+ * hooks into a platform capability; they never assemble gameplay
+ * (template red line). `capabilities.contract.test.ts` welds each
+ * declaration to the wiring it claims.
+ *
+ * - `nightPhase`: the game runs a night segment (step progression +
+ *   narration audio) after the host begins play.
+ * - `botsAndTakeover`: roster bots — fill/clear seats, host long-press
+ *   takeover, and the controlled-seat banner.
+ * - `identityViewing`: dealing plus the identity-viewing checkpoint
+ *   (every seat's view record, bots included, gates the start).
+ * - `revealAnimation`: role-card reveal animation and equipped reveal
+ *   effects; depends on `identityViewing`.
+ * - `stageDeadline`: stage deadline countdown with silent expiry
+ *   dispatch.
+ * - `audioOrchestration`: BGM/sound queue orchestration with host ack.
+ * - `wordLibrary`: the word-supply pipeline (generation, review, and
+ *   publication workflow).
+ * - `gallery`: work gallery / replay surfaces for created content.
+ * - `hostConfig`: the in-room host configuration panel.
+ * - `botTestScaffold`: the host-only manual bot test scaffold (bulk
+ *   bot-advance actions such as mark-all-bots-viewed).
  */
 export interface GameEngineCapabilities {
   readonly nightPhase: boolean;
+  readonly botsAndTakeover: boolean;
+  readonly identityViewing: boolean;
+  readonly revealAnimation: boolean;
+  readonly stageDeadline: boolean;
+  readonly audioOrchestration: boolean;
+  readonly wordLibrary: boolean;
+  readonly gallery: boolean;
+  readonly hostConfig: boolean;
+  readonly botTestScaffold: boolean;
 }
 
 export interface GameEngineDefinition<

@@ -73,7 +73,18 @@ export const pictionaryStateCodec = {
 export const pictionaryEngine = {
   gameType: UNREGISTERED_GAME_TYPE,
   stateVersion: 1,
-  capabilities: { nightPhase: false },
+  capabilities: {
+    nightPhase: false,
+    botsAndTakeover: false,
+    identityViewing: false,
+    revealAnimation: false,
+    stageDeadline: false,
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: false,
+    botTestScaffold: false,
+  },
   createInitialState(_config, context) {
     return {
       gameType: UNREGISTERED_GAME_TYPE,
