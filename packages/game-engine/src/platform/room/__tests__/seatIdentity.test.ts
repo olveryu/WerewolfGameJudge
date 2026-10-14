@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getSeatDisplayName, type SeatIdentityOccupant } from '../seatIdentity';
+import {
+  buildSeatIdentityView,
+  getSeatDisplayName,
+  type SeatIdentityOccupant,
+} from '../seatIdentity';
 import type { RosterMap } from '../seating';
 
 const botName = (seat: number): string => `bot-name-${seat}`;
@@ -22,5 +26,23 @@ describe('getSeatDisplayName', () => {
 
   it('falls back to the game bot name for an empty seat', () => {
     expect(getSeatDisplayName(ROSTER, 2, botName)).toBe('bot-name-2');
+  });
+});
+
+describe('buildSeatIdentityView', () => {
+  it('projects a human seat with its profile name and isBot false', () => {
+    expect(buildSeatIdentityView(ROSTER, 0, botName)).toEqual({
+      seat: 0,
+      displayName: '房主',
+      isBot: false,
+    });
+  });
+
+  it('projects a bot seat with the game bot name and isBot true', () => {
+    expect(buildSeatIdentityView(ROSTER, 1, botName)).toEqual({
+      seat: 1,
+      displayName: 'bot-name-1',
+      isBot: true,
+    });
   });
 });

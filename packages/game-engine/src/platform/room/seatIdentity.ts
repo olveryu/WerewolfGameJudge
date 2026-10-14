@@ -9,7 +9,7 @@
  */
 
 import type { RoomSeatProfile } from './roster';
-import { isBotOccupant, type RosterMap, type SeatOccupant } from './seating';
+import { isBotOccupant, isBotSeat, type RosterMap, type SeatOccupant } from './seating';
 
 /** A roster human seat as the identity projection reads it: identity plus profile. */
 export interface SeatIdentityOccupant extends SeatOccupant {
@@ -29,4 +29,24 @@ export function getSeatDisplayName<TSeat extends SeatIdentityOccupant>(
   const occupant = roster[seat];
   if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
   return botDisplayName(seat);
+}
+
+/** The public identity facts of one seat, before a game adds its own view fields. */
+export interface SeatIdentityView {
+  readonly seat: number;
+  readonly displayName: string;
+  readonly isBot: boolean;
+}
+
+/** Builds the identity core of a seat view; game views spread it and add their fields. */
+export function buildSeatIdentityView<TSeat extends SeatIdentityOccupant>(
+  roster: RosterMap<TSeat>,
+  seat: number,
+  botDisplayName: (seat: number) => string,
+): SeatIdentityView {
+  return {
+    seat,
+    displayName: getSeatDisplayName(roster, seat, botDisplayName),
+    isBot: isBotSeat(roster, seat),
+  };
 }

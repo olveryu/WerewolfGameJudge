@@ -1,6 +1,6 @@
 /** DrawGuess per-seat view model: the answer never leaves the server for guessers. */
 
-import { getSeatDisplayName } from '../../../platform/room/seatIdentity';
+import { buildSeatIdentityView, getSeatDisplayName } from '../../../platform/room/seatIdentity';
 import { isBotOccupant } from '../../../platform/room/seating';
 import {
   type DrawGuessPhaseKind,
@@ -55,9 +55,7 @@ function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawG
     if (!isReal && !isBot) continue;
     const guessed = state.phase.kind === 'drawing' && state.phase.guessedSeats.includes(seat);
     views.push({
-      seat,
-      displayName: getSeatDisplayName(state.roster, seat, getDrawGuessBotDisplayName),
-      isBot,
+      ...buildSeatIdentityView(state.roster, seat, getDrawGuessBotDisplayName),
       isDrawer: drawerSeat === seat,
       isLocked: guessed,
       score: state.scores[seat] ?? 0,
