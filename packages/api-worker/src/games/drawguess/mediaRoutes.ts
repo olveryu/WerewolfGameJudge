@@ -17,13 +17,12 @@ import {
 } from '@game-judge/game-engine/games/drawguess/public';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { z } from 'zod';
 
-import type { AppEnv, Env } from '../../env';
+import type { AppEnv } from '../../env';
 import { requireAuth } from '../../features/auth/tokenAuth';
 import { callDurableObject } from '../../platform/http/callDurableObject';
-import { type ActiveRoomDirectoryEntry, findActiveRoom } from '../../platform/room/roomDirectory';
-import { type GameRoomStub, getGameRoomStub } from '../../platform/room/roomStub';
+import { createMediaRoomAccess } from '../../platform/room/mediaRoomAccess';
+import type { ActiveRoomDirectoryEntry } from '../../platform/room/roomDirectory';
 import {
   DRAWGUESS_PNG_CONTENT_TYPE,
   type DrawGuessDrawingUpload,
@@ -32,65 +31,22 @@ import {
 
 const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
 
-const controlledSeatQuerySchema = z
-  .string()
-  .regex(/^(0|[1-9]\d*)$/)
-  .transform(Number)
-  .pipe(z.number().int().min(0))
-  .optional();
-
-interface DrawGuessRoomContext {
-  readonly room: ActiveRoomDirectoryEntry;
-  readonly state: DrawGuessState;
-  readonly stub: GameRoomStub;
-}
+const mediaRoomAccess = createMediaRoomAccess({
+  codec: DRAWGUESS_STATE_CODEC,
+  getUserSeat: getDrawGuessUserSeat,
+  isBotSeat: isDrawGuessBotSeat,
+  reasons: {
+    roomNotFound: '房间不存在',
+    roomGameTypeMismatch: '房间游戏类型不匹配',
+    roomStateNotFound: '房间状态不存在',
+    controlledSeatInvalid: '代传席位参数无效',
+    notHost: '只有房主可以代传画作',
+    controlledSeatNotBot: '只能代传机器人席位的画作',
+  },
+});
 
 function fail(status: 400 | 403 | 404 | 409 | 413 | 415 | 500, reason: string): never {
   throw new HTTPException(status, { message: reason });
-}
-
-async function readDrawGuessRoom(
-  env: Env,
-  request: Request,
-  roomCode: string,
-): Promise<DrawGuessRoomContext> {
-  const room = await findActiveRoom(env, roomCode);
-  if (room === null) return fail(404, '房间不存在');
-  if (room.gameType !== 'drawguess') return fail(409, '房间游戏类型不匹配');
-  const stub = getGameRoomStub(env, room.roomId, request);
-  const snapshot = await callDurableObject(() =>
-    stub.getSnapshot({
-      roomCode: room.roomCode,
-      roomId: room.roomId,
-      creationId: room.creationId,
-    }),
-  );
-  if (snapshot === null) return fail(404, '房间状态不存在');
-  return { room, state: DRAWGUESS_STATE_CODEC.parse(snapshot.state), stub };
-}
-
-function findUserSeat(state: DrawGuessState, userId: string): number | null {
-  return getDrawGuessUserSeat(state, userId);
-}
-
-function parseControlledSeat(value: string | undefined): number | null {
-  const parsed = controlledSeatQuerySchema.safeParse(value);
-  if (!parsed.success) return fail(400, '代传席位参数无效');
-  return parsed.data ?? null;
-}
-
-/** 画手本人上传；机器人画手席位仅房主可接管代传。 */
-function resolveMediaSeat(
-  state: DrawGuessState,
-  userId: string,
-  controlledSeat: number | null,
-): number | null {
-  if (controlledSeat === null) return findUserSeat(state, userId);
-  if (userId !== state.hostUserId) return fail(403, '只有房主可以代传画作');
-  if (!isDrawGuessBotSeat(state, controlledSeat)) {
-    return fail(403, '只能代传机器人席位的画作');
-  }
-  return controlledSeat;
 }
 
 function buildObjectKey(
@@ -129,9 +85,9 @@ async function putImmutableDrawing(
 export const drawGuessMediaRoutes = new Hono<AppEnv>();
 
 drawGuessMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, async (c) => {
-  const roomContext = await readDrawGuessRoom(c.env, c.req.raw, c.req.param('roomCode'));
-  const controlledSeat = parseControlledSeat(c.req.query('controlledSeat'));
-  const seat = resolveMediaSeat(roomContext.state, c.var.userId, controlledSeat);
+  const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
+  const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
+  const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
   if (seat === null) return fail(403, '请先入座');
   if (roomContext.state.phase.kind !== 'roundEnd') return fail(409, '当前不是结算阶段');
   const submissionId = c.req.param('submissionId');
@@ -184,9 +140,9 @@ drawGuessMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, as
 });
 
 drawGuessMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) => {
-  const roomContext = await readDrawGuessRoom(c.env, c.req.raw, c.req.param('roomCode'));
-  const controlledSeat = parseControlledSeat(c.req.query('controlledSeat'));
-  const seat = resolveMediaSeat(roomContext.state, c.var.userId, controlledSeat);
+  const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
+  const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
+  const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
   if (seat === null) return fail(403, '请先入座');
   if (roomContext.state.phase.kind !== 'roundEnd') return fail(404, '画作不存在');
   const entryId = c.req.param('entryId');
