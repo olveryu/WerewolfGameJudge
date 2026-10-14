@@ -2,7 +2,10 @@
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import type { HostRevelation } from '../../../platform/room/hostReveal';
-import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
+import {
+  buildRosterViewingParticipants,
+  type IdentityViewingParticipant,
+} from '../../../platform/room/identityViewing';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
@@ -119,12 +122,7 @@ export function isUndercoverBotSeat(state: UndercoverState, seat: number): boole
 export function getUndercoverViewingParticipants(
   state: UndercoverState,
 ): readonly IdentityViewingParticipant[] {
-  const participants: IdentityViewingParticipant[] = [];
-  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-    if (state.roster[seat] == null) continue;
-    participants.push({ seat, isBot: isBotSeat(state.roster, seat) });
-  }
-  return participants;
+  return buildRosterViewingParticipants(state.roster, state.config.numberOfPlayers);
 }
 
 /** Returns the seat held by a user, or null when they hold no seat. */

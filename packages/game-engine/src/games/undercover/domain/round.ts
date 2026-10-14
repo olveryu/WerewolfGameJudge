@@ -16,7 +16,7 @@ import {
 } from '../../../platform/random';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../../platform/room/hostReveal';
-import { haveAllViewed, listUnviewedBotSeats } from '../../../platform/room/identityViewing';
+import { decideMarkBotsViewed, haveAllViewed } from '../../../platform/room/identityViewing';
 import {
   commitPreparationEntry,
   decidePreparationComplete,
@@ -270,19 +270,19 @@ export function decideUndercoverRound(
     case 'undercover.round.markAllBotsViewed': {
       // Host scaffold action: fill every unviewed bot seat's record
       // through the protocol's seat computation; the begin gate runs
-      // the strict checkpoint when the host begins the round.
+      // the strict checkpoint when the host begins the round. The
+      // host gate is this dispatcher's hoisted requireUndercoverHost
+      // and the phase gate stays here (it also narrows the round);
+      // the shared skeleton owns the rest.
       if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
-      const participants = getUndercoverViewingParticipants(state);
-      // Werewolf parity (Wave 8): with no bot seats at all the scaffold
-      // command rejects instead of committing an empty success.
-      if (!participants.some((participant) => participant.isBot))
-        return reject(UNDERCOVER_REASONS.noBots);
-      return commitUndercover(
-        listUnviewedBotSeats(participants, state.round.confirmedSeats).map((participant) => ({
-          type: 'undercover.round.confirmed' as const,
-          seat: participant.seat,
-        })),
-      );
+      return decideMarkBotsViewed({
+        gateRejection: null,
+        participants: getUndercoverViewingParticipants(state),
+        viewedSeats: state.round.confirmedSeats,
+        noBotSeatsReason: UNDERCOVER_REASONS.noBots,
+        buildViewedEvent: (seat) => ({ type: 'undercover.round.confirmed', seat }),
+        commit: commitUndercover,
+      });
     }
     case 'undercover.round.retry':
       // D-1: retry reuses the failed pending round unchanged — the

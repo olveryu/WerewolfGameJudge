@@ -14,7 +14,7 @@ import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol
 import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../platform/room/hostReveal';
-import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
+import { decideMarkBotsViewed, haveAllViewed } from '../../platform/room/identityViewing';
 import {
   commitPreparationEntry,
   decidePreparationComplete,
@@ -372,21 +372,18 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
  * with fibking.round.begin.
  */
 function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibDecision {
+  // FibKing's viewing phase gate stays here (it also narrows the
+  // round); the shared skeleton owns everything past the host gate.
   if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
   const actor = resolveHostActorId(context, state.hostUserId);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const participants = getFibViewingParticipants(state);
-  // Werewolf parity (Wave 8): with no bot seats at all the scaffold
-  // command rejects instead of committing an empty success.
-  if (!participants.some((participant) => participant.isBot))
-    return reject(REASON_FIB_NO_BOT_SEATS);
-  const unviewedBots = listUnviewedBotSeats(participants, state.round.viewedSeats);
-  if (unviewedBots.length === 0) return commitFib([]);
-  const events: FibEvent[] = [];
-  for (const participant of unviewedBots) {
-    events.push({ type: 'fibking.role.viewed', seat: participant.seat });
-  }
-  return commitFib(events);
+  return decideMarkBotsViewed({
+    gateRejection: actor.kind === 'rejected' ? reject(actor.reason) : null,
+    participants: getFibViewingParticipants(state),
+    viewedSeats: state.round.viewedSeats,
+    noBotSeatsReason: REASON_FIB_NO_BOT_SEATS,
+    buildViewedEvent: (seat) => ({ type: 'fibking.role.viewed', seat }),
+    commit: commitFib,
+  });
 }
 
 function decideReturnFibGameToLobby(state: FibState, context: CommandContext): FibDecision {

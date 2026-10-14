@@ -11,7 +11,7 @@ import {
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
+import { decideMarkBotsViewed, haveAllViewed } from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
 import {
@@ -208,23 +208,19 @@ function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDeci
  * engine never auto-marks at deal time.
  */
 function markAllBotsViewed(state: AvalonState, context: CommandContext): AvalonDecision {
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(AVALON_REASONS.phase);
-  const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostMarkBots);
-  if (hostRejection !== null) return hostRejection;
-  const participants = getAvalonViewingParticipants(state);
-  // Werewolf parity (Wave 8): with no bot seats at all the scaffold
-  // command rejects instead of committing an empty success.
-  if (!participants.some((participant) => participant.isBot))
-    return reject(AVALON_REASONS.noBotSeats);
-  const unviewedBots = listUnviewedBotSeats(participants, state.roleViewedSeats);
-  if (unviewedBots.length === 0) return commitAvalon([]);
-  return commitAvalon(
-    unviewedBots.map((participant) => ({
-      type: 'avalon.role.viewed' as const,
-      seat: participant.seat,
-    })),
-  );
+  return decideMarkBotsViewed({
+    // Avalon's gates, in Avalon's order: any in-game phase may record
+    // views, then the host gate with its per-command reason.
+    gateRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(AVALON_REASONS.phase)
+        : requireAvalonHost(state, context, AVALON_REASONS.notHostMarkBots),
+    participants: getAvalonViewingParticipants(state),
+    viewedSeats: state.roleViewedSeats,
+    noBotSeatsReason: AVALON_REASONS.noBotSeats,
+    buildViewedEvent: (seat) => ({ type: 'avalon.role.viewed', seat }),
+    commit: commitAvalon,
+  });
 }
 
 /** Leader proposes exactly requiredSize team members (may include the leader). */
