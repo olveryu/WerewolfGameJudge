@@ -1,6 +1,6 @@
 /** Undercover display projections for authenticated humans and authorized robot control. */
 
-import { findRosterSeatByUserId, isBotSeat } from '../../../platform/room/seating';
+import { resolveActingSeatForUser } from '../../../platform/room/actingSeat';
 import type { UndercoverState } from '../state/types';
 
 export type UndercoverWordCard =
@@ -14,12 +14,17 @@ export function getUndercoverWordCard(
   controlledSeat: number | null,
 ): UndercoverWordCard | null {
   if (state.phase !== 'viewing' && state.phase !== 'ongoing') return null;
-  let seat: number | null;
-  if (controlledSeat !== null) {
-    if (userId !== state.hostUserId || !isBotSeat(state.roster, controlledSeat)) return null;
-    seat = controlledSeat;
-  } else seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
-  if (seat === null) return null;
+  // Seat resolution is the platform acting-seat gates (PR-2); every
+  // rejection (not host, controlled seat not a bot, not seated)
+  // collapses to no card, exactly as the inline gates did.
+  const acting = resolveActingSeatForUser(
+    state,
+    state.config.numberOfPlayers,
+    userId,
+    controlledSeat,
+  );
+  if (acting.kind === 'rejected') return null;
+  const seat = acting.value;
   const role = state.round.roles[seat];
   switch (role) {
     case 'civilian':
