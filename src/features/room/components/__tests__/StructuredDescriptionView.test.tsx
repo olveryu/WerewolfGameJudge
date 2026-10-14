@@ -1,10 +1,15 @@
 /**
- * RoleDescriptionView.test.tsx - Tests for structured role description rendering
+ * StructuredDescriptionView.test.tsx - Tests for structured description rendering
+ *
+ * Ported case-by-case from the werewolf RoleDescriptionView suite: the shared
+ * renderer takes caller-built DescriptionField[] instead of a RoleDescription,
+ * so each case below builds the fields the werewolf adapter would produce for
+ * the same RoleDescription input (labels/icons/tones per the adapter mapping).
  */
-import type { RoleDescription } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
-import { RoleDescriptionView } from '@/games/werewolf/components/RoleDescriptionView';
+import { StructuredDescriptionView } from '@/features/room/components/StructuredDescriptionView';
+import type { DescriptionField } from '@/features/room/model/RevealRoleData';
 
 // Mock theme
 jest.mock('@/theme', () => ({
@@ -46,13 +51,19 @@ jest.mock('expo-linear-gradient', () => ({
 
 const factionColor = '#A78BFA';
 
-describe('RoleDescriptionView', () => {
+describe('StructuredDescriptionView', () => {
   describe('Mode A (single field)', () => {
     it('renders "技能介绍" title and centered text for single skill field', () => {
-      const desc: RoleDescription = { skill: '每晚与狼队友共同选择一名玩家进行袭击' };
+      const fields: readonly DescriptionField[] = [
+        {
+          label: '主动技能',
+          icon: 'flash-outline',
+          content: '每晚与狼队友共同选择一名玩家进行袭击',
+        },
+      ];
       const { getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={desc}
+        <StructuredDescriptionView
+          fields={fields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
@@ -61,10 +72,10 @@ describe('RoleDescriptionView', () => {
       expect(getByText('每晚与狼队友共同选择一名玩家进行袭击')).toBeTruthy();
     });
 
-    it('falls back to descriptionFallback when structuredDescription is undefined', () => {
+    it('falls back to descriptionFallback when fields is undefined', () => {
       const { getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={undefined}
+        <StructuredDescriptionView
+          fields={undefined}
           descriptionFallback="没有特殊技能"
           factionColor={factionColor}
         />,
@@ -73,11 +84,13 @@ describe('RoleDescriptionView', () => {
       expect(getByText('没有特殊技能')).toBeTruthy();
     });
 
-    it('uses single field text even if key is passive (not skill)', () => {
-      const desc: RoleDescription = { passive: '永久免疫夜间伤害' };
+    it('uses single field text even if the field is passive (not skill)', () => {
+      const fields: readonly DescriptionField[] = [
+        { label: '被动特性', icon: 'shield-outline', content: '永久免疫夜间伤害' },
+      ];
       const { getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={desc}
+        <StructuredDescriptionView
+          fields={fields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
@@ -87,16 +100,25 @@ describe('RoleDescriptionView', () => {
   });
 
   describe('Mode B (multiple fields)', () => {
-    const witchDesc: RoleDescription = {
-      skill: '每晚可救活被狼人袭击的玩家或毒杀一名玩家',
-      passive: '拥有一瓶解药和一瓶毒药',
-      restriction: '每瓶药限用一次；不能自救',
-    };
+    const witchFields: readonly DescriptionField[] = [
+      {
+        label: '主动技能',
+        icon: 'flash-outline',
+        content: '每晚可救活被狼人袭击的玩家或毒杀一名玩家',
+      },
+      { label: '被动特性', icon: 'shield-outline', content: '拥有一瓶解药和一瓶毒药' },
+      {
+        label: '限制条件',
+        icon: 'close-circle-outline',
+        tone: 'warning',
+        content: '每瓶药限用一次；不能自救',
+      },
+    ];
 
     it('renders section labels with icons', () => {
       const { getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={witchDesc}
+        <StructuredDescriptionView
+          fields={witchFields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
@@ -108,8 +130,8 @@ describe('RoleDescriptionView', () => {
 
     it('renders section body text', () => {
       const { getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={witchDesc}
+        <StructuredDescriptionView
+          fields={witchFields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
@@ -120,8 +142,8 @@ describe('RoleDescriptionView', () => {
 
     it('does not show "技能介绍" title in Mode B', () => {
       const { queryByText } = render(
-        <RoleDescriptionView
-          structuredDescription={witchDesc}
+        <StructuredDescriptionView
+          fields={witchFields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
@@ -131,8 +153,8 @@ describe('RoleDescriptionView', () => {
 
     it('splits semicolon-separated text into bullet items', () => {
       const { getAllByText, getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={witchDesc}
+        <StructuredDescriptionView
+          fields={witchFields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
@@ -147,39 +169,55 @@ describe('RoleDescriptionView', () => {
   });
 
   describe('field ordering', () => {
-    it('renders fields in the correct order: skill → passive → trigger → restriction → special → winCondition', () => {
-      const desc: RoleDescription = {
-        winCondition: '屠城胜利',
-        skill: '首夜获知自身阵营',
-        passive: '预言家查验为好人',
-        trigger: '出局可刺杀一名玩家',
-        special: '绑定机制',
-      };
-      const { getByText } = render(
-        <RoleDescriptionView
-          structuredDescription={desc}
+    it('renders fields in the order given: skill → passive → trigger → restriction → special → winCondition', () => {
+      const fields: readonly DescriptionField[] = [
+        { label: '主动技能', icon: 'flash-outline', content: '首夜获知自身阵营' },
+        { label: '被动特性', icon: 'shield-outline', content: '预言家查验为好人' },
+        { label: '触发效果', icon: 'locate-outline', content: '出局可刺杀一名玩家' },
+        { label: '特殊规则', icon: 'star-outline', content: '绑定机制' },
+        {
+          label: '胜利条件',
+          icon: 'trophy-outline',
+          tone: 'success',
+          content: '屠城胜利',
+        },
+      ];
+      const { getAllByText, getByText } = render(
+        <StructuredDescriptionView
+          fields={fields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,
       );
-      // All labels must be present (ordering is visual, hard to assert order in unit test)
+      // All labels must be present
       expect(getByText('主动技能')).toBeTruthy();
       expect(getByText('被动特性')).toBeTruthy();
       expect(getByText('触发效果')).toBeTruthy();
       expect(getByText('特殊规则')).toBeTruthy();
       expect(getByText('胜利条件')).toBeTruthy();
+      // The fields API renders sections in array order; assert the rendered
+      // label sequence matches the order the caller supplied.
+      const renderedLabels = getAllByText(/^(主动技能|被动特性|触发效果|特殊规则|胜利条件)$/).map(
+        (node) => String(node.props.children),
+      );
+      expect(renderedLabels).toEqual(['主动技能', '被动特性', '触发效果', '特殊规则', '胜利条件']);
     });
   });
 
   describe('no bullet single clause', () => {
     it('does not show bullet for single-clause restriction', () => {
-      const desc: RoleDescription = {
-        skill: '白天可自爆并带走一名玩家',
-        restriction: '非自爆出局时不能发动技能',
-      };
+      const fields: readonly DescriptionField[] = [
+        { label: '主动技能', icon: 'flash-outline', content: '白天可自爆并带走一名玩家' },
+        {
+          label: '限制条件',
+          icon: 'close-circle-outline',
+          tone: 'warning',
+          content: '非自爆出局时不能发动技能',
+        },
+      ];
       const { queryAllByText } = render(
-        <RoleDescriptionView
-          structuredDescription={desc}
+        <StructuredDescriptionView
+          fields={fields}
           descriptionFallback="fallback"
           factionColor={factionColor}
         />,

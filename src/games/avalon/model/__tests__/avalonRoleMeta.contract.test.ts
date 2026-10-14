@@ -5,11 +5,12 @@
  * 都只许消费它。本测试钉两件事：
  * 1. 每个引擎角色都有完整介绍（至少一个非空字段、胜利条件必填、
  *    展示名/阵营名非空），未知 roleId fail-fast；
- * 2. 图鉴屏源码里不许出现介绍文案字面量（出现 = 第二份文案源），
- *    且旧手写说明屏 AvalonRulesScreen 不许回来。
+ * 2. 阿瓦隆全部生产源码（meta 本体与测试文件除外）不许出现介绍文案
+ *    字面量（出现 = 第二份文案源），且旧手写说明屏 AvalonRulesScreen
+ *    不许回来。
  */
 import { AVALON_ROLES, type AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import { type AvalonRoleDescription, getAvalonRoleMeta } from '../avalonRoleMeta';
@@ -18,6 +19,26 @@ const SRC_ROOT = join(__dirname, '..', '..', '..', '..');
 
 function readSource(relativePath: string): string {
   return readFileSync(join(SRC_ROOT, relativePath), 'utf8');
+}
+
+/** 递归列出阿瓦隆生产源码（.ts/.tsx，排除 __tests__ 目录与 *.test.* 文件）。 */
+function listAvalonProductionSources(): string[] {
+  const base = join(SRC_ROOT, 'games', 'avalon');
+  const results: string[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (entry.name !== '__tests__') walk(join(dir, entry.name));
+      } else if (
+        (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) &&
+        !entry.name.includes('.test.')
+      ) {
+        results.push(join(dir, entry.name));
+      }
+    }
+  };
+  walk(base);
+  return results.sort();
 }
 
 const DESCRIPTION_KEYS: readonly (keyof AvalonRoleDescription)[] = [
@@ -54,12 +75,6 @@ describe('avalon role meta completeness', () => {
 });
 
 describe('avalon role introduction single source (source pins)', () => {
-  const guideScreenPaths = [
-    'games/avalon/screens/AvalonGuideScreen.tsx',
-    'games/avalon/screens/AvalonGameplayContent.tsx',
-    'games/avalon/screens/avalonEncyclopediaSource.ts',
-  ] as const;
-
   it('the hand-written rules screen is gone', () => {
     expect(existsSync(join(SRC_ROOT, 'games/avalon/screens/AvalonRulesScreen.tsx'))).toBe(false);
   });
@@ -75,7 +90,7 @@ describe('avalon role introduction single source (source pins)', () => {
     expect(sheetSource).toMatch(/StructuredDescriptionView/);
   });
 
-  it('guide screens contain no role introduction copy literals', () => {
+  it('no avalon production source outside the meta contains role introduction literals', () => {
     const literals: string[] = [];
     for (const roleId of AVALON_ROLES) {
       const { description } = getAvalonRoleMeta(roleId);
@@ -86,11 +101,17 @@ describe('avalon role introduction single source (source pins)', () => {
     }
     // 旧说明屏手写版的特有措辞（与 meta 不一致的那份）。
     literals.push('被刺客指认出来，好人就输了，所以要藏好身份');
-    for (const path of guideScreenPaths) {
-      const source = readSource(path);
+    const metaPath = join(SRC_ROOT, 'games', 'avalon', 'model', 'avalonRoleMeta.ts');
+    const violations: string[] = [];
+    for (const filePath of listAvalonProductionSources()) {
+      if (filePath === metaPath) continue;
+      const source = readFileSync(filePath, 'utf8');
       for (const literal of literals) {
-        expect(source).not.toContain(literal);
+        if (source.includes(literal)) {
+          violations.push(`${filePath.slice(SRC_ROOT.length + 1)}: ${literal}`);
+        }
       }
     }
+    expect(violations).toEqual([]);
   });
 });
