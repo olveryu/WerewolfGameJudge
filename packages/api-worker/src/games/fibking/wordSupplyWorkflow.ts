@@ -6,11 +6,7 @@ import type { Env } from '../../env';
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
-import {
-  getFibWordReviewCandidates,
-  storeFibWordCandidates,
-  updateFibWordCandidateEvidence,
-} from './wordCandidatePool';
+import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import {
   extractFibWordEvidence,
@@ -28,8 +24,10 @@ import {
   FIB_WORD_DAILY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   type FibWordPack,
+  getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
+  storeFibWordCandidates,
 } from './wordPublication';
 import { createFibWordSearchQuery } from './wordSearchPlan';
 
@@ -82,7 +80,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
       );
       if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
       const pack = await step.do(`reserve-${batchIndex}`, () =>
-        reserveFibWordPack(this.env.DB, day, batchIndex, batchLimit, { force, runId }),
+        reserveFibWordPack(this.env.DB, day, batchIndex, { batchLimit, force, runId }),
       );
       if (pack === null) continue;
       await this.processPack(step, pack, batchIndex, force);
@@ -202,9 +200,13 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
             });
       failureStage = 'publication';
       await step.do(`publish-${batchIndex}`, () =>
-        publishFibWordPack(this.env.DB, pack, verifiedCandidates, reviews, [
-          ...new Set(verifiedCandidates.flatMap(({ evidence }) => evidence.map(({ url }) => url))),
-        ]),
+        publishFibWordPack(this.env.DB, pack, verifiedCandidates, reviews, {
+          sourceUrls: [
+            ...new Set(
+              verifiedCandidates.flatMap(({ evidence }) => evidence.map(({ url }) => url)),
+            ),
+          ],
+        }),
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

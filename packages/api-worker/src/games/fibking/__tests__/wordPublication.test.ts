@@ -3,17 +3,15 @@ import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { cleanupFibWordAudit } from '../maintenance';
-import {
-  getFibWordReviewCandidates,
-  storeFibWordCandidates,
-  updateFibWordCandidateEvidence,
-} from '../wordCandidatePool';
+import { updateFibWordCandidateEvidence } from '../wordCandidatePool';
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
 import {
   claimFibWordProviderRequest,
   failFibWordPack,
+  getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
+  storeFibWordCandidates,
 } from '../wordPublication';
 
 beforeEach(async () => {
@@ -36,7 +34,9 @@ describe('Fib word publication', () => {
     expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).toMatchObject({ searchIndex: 0 });
     expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).toBeNull();
     expect(await reserveFibWordPack(env.DB, '2026-09-02', 0)).toMatchObject({ searchIndex: 1 });
-    expect(await reserveFibWordPack(env.DB, '2026-09-02', 4, 60)).toMatchObject({ searchIndex: 2 });
+    expect(await reserveFibWordPack(env.DB, '2026-09-02', 4, { batchLimit: 60 })).toMatchObject({
+      searchIndex: 2,
+    });
   });
   it('does not resend an uncertain external request after a restart', async () => {
     const pack = await reserveFibWordPack(env.DB, '2026-12-01', 0);
@@ -114,8 +114,12 @@ describe('Fib word publication', () => {
         hasRevealValue: true,
       },
     }));
-    await publishFibWordPack(env.DB, pack, candidates, reviews, ['https://example.com/words']);
-    await publishFibWordPack(env.DB, pack, candidates, reviews, ['https://example.com/words']);
+    await publishFibWordPack(env.DB, pack, candidates, reviews, {
+      sourceUrls: ['https://example.com/words'],
+    });
+    await publishFibWordPack(env.DB, pack, candidates, reviews, {
+      sourceUrls: ['https://example.com/words'],
+    });
     expect(await getFibWordReviewCandidates(env.DB, pack)).toEqual([]);
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
       { count: 6 },
@@ -139,7 +143,7 @@ describe('Fib word publication', () => {
         decision: 'rejected',
         qualityChecks: { ...review.qualityChecks, isDefinitionAccurate: false },
       })),
-      ['https://example.com/words'],
+      { sourceUrls: ['https://example.com/words'] },
     );
     expect(
       await env.DB.prepare(
@@ -157,7 +161,7 @@ describe('Fib word publication', () => {
         definition: { ...candidate.definition, coreMeaning: '重新核实后修正的核心含义。' },
       })),
       reviews,
-      ['https://example.com/corrected'],
+      { sourceUrls: ['https://example.com/corrected'] },
     );
     expect(
       await env.DB.prepare(
@@ -234,7 +238,7 @@ describe('Fib word publication', () => {
   it('records an empty result without publishing or advancing the word sequence', async () => {
     const pack = await reserveFibWordPack(env.DB, '2026-07-01', 0);
     if (pack === null) throw new Error('Expected empty pack');
-    await publishFibWordPack(env.DB, pack, [], [], []);
+    await publishFibWordPack(env.DB, pack, [], [], { sourceUrls: [] });
     expect(await env.DB.prepare('SELECT status, outcome FROM fib_word_packs').first()).toEqual({
       status: 'published',
       outcome: 'noCandidates',
@@ -284,7 +288,9 @@ describe('Fib word publication', () => {
     }));
     await storeFibWordCandidates(env.DB, pack, candidates);
     await getFibWordReviewCandidates(env.DB, pack);
-    await publishFibWordPack(env.DB, pack, candidates, reviews, ['https://example.com/words']);
+    await publishFibWordPack(env.DB, pack, candidates, reviews, {
+      sourceUrls: ['https://example.com/words'],
+    });
     expect(
       await env.DB.prepare('SELECT published_count FROM fib_word_supply_months').first(),
     ).toEqual({ published_count: 100 });
@@ -365,14 +371,15 @@ describe('Fib word force reservation', () => {
     for (let d = 1; d <= 19; d += 1) {
       const day = `2026-09-${String(d).padStart(2, '0')}`;
       for (let b = 0; b < 4; b += 1) {
-        expect(await reserveFibWordPack(env.DB, day, b, 4)).not.toBeNull();
+        expect(await reserveFibWordPack(env.DB, day, b, { batchLimit: 4 })).not.toBeNull();
       }
     }
-    expect(await reserveFibWordPack(env.DB, '2026-09-20', 0, 4)).not.toBeNull();
-    expect(await reserveFibWordPack(env.DB, '2026-09-20', 1, 4)).not.toBeNull();
-    expect(await reserveFibWordPack(env.DB, '2026-09-20', 2, 4)).toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-20', 0, { batchLimit: 4 })).not.toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-20', 1, { batchLimit: 4 })).not.toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-20', 2, { batchLimit: 4 })).toBeNull();
 
-    const pack = await reserveFibWordPack(env.DB, '2026-09-20', 2, 4, {
+    const pack = await reserveFibWordPack(env.DB, '2026-09-20', 2, {
+      batchLimit: 4,
       force: true,
       runId: 'run-1',
     });
@@ -387,8 +394,9 @@ describe('Fib word force reservation', () => {
   });
 
   it('never collides with scheduled pack ids on the same day', async () => {
-    const scheduled = await reserveFibWordPack(env.DB, '2026-10-01', 0, 4);
-    const forced = await reserveFibWordPack(env.DB, '2026-10-01', 0, 4, {
+    const scheduled = await reserveFibWordPack(env.DB, '2026-10-01', 0, { batchLimit: 4 });
+    const forced = await reserveFibWordPack(env.DB, '2026-10-01', 0, {
+      batchLimit: 4,
       force: true,
       runId: 'run-1',
     });
@@ -398,15 +406,20 @@ describe('Fib word force reservation', () => {
   });
 
   it('gives repeated manual runs on the same day distinct pack ids', async () => {
-    const first = await reserveFibWordPack(env.DB, '2026-10-02', 0, 4, {
+    const first = await reserveFibWordPack(env.DB, '2026-10-02', 0, {
+      batchLimit: 4,
       force: true,
       runId: 'aaa',
     });
-    const second = await reserveFibWordPack(env.DB, '2026-10-02', 0, 4, {
+    const second = await reserveFibWordPack(env.DB, '2026-10-02', 0, {
+      batchLimit: 4,
       force: true,
       runId: 'bbb',
     });
-    const normal = await reserveFibWordPack(env.DB, '2026-10-02', 0, 4, { runId: 'ccc' });
+    const normal = await reserveFibWordPack(env.DB, '2026-10-02', 0, {
+      batchLimit: 4,
+      runId: 'ccc',
+    });
     expect(first?.id).toBe('2026-10-02-force-aaa-0');
     expect(second?.id).toBe('2026-10-02-force-bbb-0');
     expect(normal?.id).toBe('2026-10-02-manual-ccc-0');
