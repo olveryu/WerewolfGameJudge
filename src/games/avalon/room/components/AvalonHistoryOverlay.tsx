@@ -26,8 +26,9 @@ function ballotLabel(ballot: AvalonBallot): string {
   return ballot === 'approve' ? '赞成' : '反对';
 }
 
-function teamLine(teamSeats: readonly number[]): string {
-  return `队伍：${teamSeats.map((seat) => `${seat + 1}号`).join(' ')}`;
+function teamLine(teamSeats: readonly number[], leaderSeat?: number): string {
+  const seats = teamSeats.map((seat) => `${seat + 1}号`).join(' ');
+  return leaderSeat === undefined ? `队伍：${seats}` : `队伍：${leaderSeat + 1}号（队长） ${seats}`;
 }
 
 /** 一条已结算提案：子标题 + 队伍 + 汇总行 + 逐人明细（暗投只给数量）。 */
@@ -82,7 +83,9 @@ function AvalonHistoryRound({ record }: { readonly record: AvalonRoundRecordView
             {record.quest.successCount} · 失败票 {record.quest.failCount}）
           </Text>
           {approvedProposal !== undefined ? (
-            <Text style={styles.row}>{teamLine(approvedProposal.teamSeats)}</Text>
+            <Text style={styles.row}>
+              {teamLine(approvedProposal.teamSeats, approvedProposal.leaderSeat)}
+            </Text>
           ) : null}
         </>
       ) : record.vetoEnded ? (
@@ -96,7 +99,9 @@ function AvalonHistoryRound({ record }: { readonly record: AvalonRoundRecordView
             {record.questProgress.teamSize}）
           </Text>
           {approvedProposal !== undefined ? (
-            <Text style={styles.row}>{teamLine(approvedProposal.teamSeats)}</Text>
+            <Text style={styles.row}>
+              {teamLine(approvedProposal.teamSeats, approvedProposal.leaderSeat)}
+            </Text>
           ) : null}
         </>
       ) : (

@@ -121,8 +121,9 @@ describe('AvalonHistoryOverlay', () => {
   it('renders the settled quest first, then proposals with seat-number detail', () => {
     const { getAllByText, getByText, queryByText } = renderOverlay([settledRound]);
     expect(getByText('任务一 · 成功（成功票 2 · 失败票 0）')).toBeTruthy();
-    // 队伍行出现两次：任务区（出任务的队伍）+ 第 2 次提案块（同一支队伍）。
-    expect(getAllByText('队伍：2号 3号')).toHaveLength(2);
+    // 任务区队伍行带队长标记（队长 = 通过提案的 2 号）；提案块队伍行是同一支队伍。
+    expect(getByText('队伍：2号（队长） 2号 3号')).toBeTruthy();
+    expect(getAllByText('队伍：2号 3号')).toHaveLength(1);
     expect(getByText('队伍：1号 2号')).toBeTruthy();
     expect(getByText('第1次提案 · 队长 1号')).toBeTruthy();
     expect(getByText('赞成 2 · 反对 3 → 否决')).toBeTruthy();
@@ -168,8 +169,9 @@ describe('AvalonHistoryOverlay', () => {
     };
     const { getAllByText, getByText } = renderOverlay([questRound]);
     expect(getByText('任务一 · 任务执行中（已出牌 1/2）')).toBeTruthy();
-    // 任务区队伍行 + 促成任务的提案块队伍行。
-    expect(getAllByText('队伍：2号 3号')).toHaveLength(2);
+    // 任务区队伍行带队长标记；促成任务的提案块队伍行是同一支队伍。
+    expect(getByText('队伍：2号（队长） 2号 3号')).toBeTruthy();
+    expect(getAllByText('队伍：2号 3号')).toHaveLength(1);
   });
 
   it('renders the veto-ended closing line without a quest', () => {
