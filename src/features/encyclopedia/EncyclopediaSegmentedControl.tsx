@@ -1,7 +1,6 @@
 /**
- * SegmentedControl — generic two-segment switch component.
+ * EncyclopediaSegmentedControl — 图鉴顶部分段切换（自狼人杀图鉴整段搬入）。
  *
- * Used for the top tab switch on EncyclopediaScreen ("Roles | Boards").
  * Pure presentational component — no business logic, no service dependencies.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -13,18 +12,18 @@ interface Segment<T extends string> {
   label: string;
 }
 
-interface SegmentedControlProps<T extends string> {
+interface EncyclopediaSegmentedControlProps<T extends string> {
   segments: readonly Segment<T>[];
   activeKey: T;
   onChangeKey: (key: T) => void;
 }
 
 /** Generic segmented control. */
-export function SegmentedControl<T extends string>({
+export function EncyclopediaSegmentedControl<T extends string>({
   segments,
   activeKey,
   onChangeKey,
-}: SegmentedControlProps<T>) {
+}: EncyclopediaSegmentedControlProps<T>) {
   return (
     <View style={styles.container}>
       {segments.map((segment) => {

@@ -1,7 +1,9 @@
 /**
- * EncyclopediaScreen - gameplay guide and encyclopedia (roles + boards)
+ * EncyclopediaScreen — 狼人杀图鉴绑定层。
  *
- * Composes gameplay, role and board tabs; reads the matching active room for public configuration.
+ * 分段壳、角色段机器与详情 sheet 都是共享件（@/features/encyclopedia），
+ * 本文件只注入狼人杀专属部分：引擎 spec 数据源、玩法段（读本局公开配置）、
+ * 板子段（含其 header 搜索/筛选动作）与 AI 攻略 pill。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getAllRoleIds, PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
@@ -10,13 +12,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { GameScreen, gameScreenStyles } from '@/components/GameScreen';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { EncyclopediaRolesHeaderActions } from '@/features/encyclopedia/EncyclopediaRolesHeaderActions';
+import {
+  type EncyclopediaSegment,
+  EncyclopediaShell,
+} from '@/features/encyclopedia/EncyclopediaShell';
+import { useEncyclopediaRolesState } from '@/features/encyclopedia/useEncyclopediaRolesState';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import type { WerewolfGuideTab } from '@/games/werewolf/navigation/types';
 import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
@@ -24,14 +28,13 @@ import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing, withAlpha } from '@/theme';
 
 import { BoardsGuideContent } from './BoardsGuideContent';
-import { SegmentedControl } from './components/SegmentedControl';
 import { RolesGuideContent } from './RolesGuideContent';
-import { useEncyclopediaScreenState } from './useEncyclopediaScreenState';
+import { WEREWOLF_ENCYCLOPEDIA_SOURCE } from './werewolfEncyclopediaSource';
 import { WerewolfGameplayContent } from './WerewolfGameplayContent';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-const GUIDE_SEGMENTS: readonly { key: WerewolfGuideTab; label: string }[] = [
+const GUIDE_SEGMENTS: readonly EncyclopediaSegment[] = [
   { key: 'gameplay', label: '玩法' },
   { key: 'roles', label: `角色 · ${getAllRoleIds().length}` },
   { key: 'boards', label: `板子 · ${PRESET_TEMPLATES.length}` },
@@ -43,7 +46,6 @@ const GUIDE_SEGMENTS: readonly { key: WerewolfGuideTab; label: string }[] = [
 export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient }> = ({
   client,
 }) => {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameGuide'>>();
   const routeParams = parseWerewolfGuideRouteParams(route.params);
@@ -55,9 +57,8 @@ export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient 
   const isHost =
     room.phase === 'ready' && gameState !== null && gameState.hostUserId === room.identity.userId;
   const initialTab = routeParams.initialTab ?? (routeParams.roleId ? 'roles' : 'gameplay');
-  const [activeTab, setActiveTab] = useState<WerewolfGuideTab>(initialTab);
 
-  const rolesState = useEncyclopediaScreenState(routeParams.roleId);
+  const rolesState = useEncyclopediaRolesState(WEREWOLF_ENCYCLOPEDIA_SOURCE, routeParams.roleId);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -67,7 +68,7 @@ export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient 
     }
   }, [navigation]);
 
-  // Boards search state (lifted here so headerRight can render the button)
+  // Boards search state (lifted here so the segment header actions can render the buttons)
   const [boardsSearchVisible, setBoardsSearchVisible] = useState(false);
   const [boardsSearchQuery, setBoardsSearchQuery] = useState('');
   const [boardsTagFilterVisible, setBoardsTagFilterVisible] = useState(false);
@@ -80,101 +81,90 @@ export const EncyclopediaScreen: React.FC<{ readonly client: WerewolfGameClient 
     });
   }, []);
 
-  const headerRight =
-    activeTab === 'roles' ? (
-      <View style={styles.headerRight}>
-        <Button
-          variant="icon"
-          onPress={() => rolesState.setTagDropdownVisible(true)}
-          style={rolesState.activeTag ? styles.headerIconButtonActive : undefined}
-          accessibilityLabel="能力筛选"
-        >
-          <Ionicons
-            name="filter"
-            size={componentSizes.icon.md}
-            color={rolesState.activeTag ? colors.primary : colors.text}
+  const boardsHeaderActions = (
+    <View style={styles.headerRight}>
+      <Button
+        variant="icon"
+        onPress={() => setBoardsTagFilterVisible(true)}
+        style={boardsTagFilter ? styles.headerIconButtonActive : undefined}
+        accessibilityLabel="标签筛选"
+      >
+        <Ionicons
+          name="filter"
+          size={componentSizes.icon.md}
+          color={boardsTagFilter ? colors.primary : colors.text}
+        />
+      </Button>
+      <Button variant="icon" onPress={toggleBoardsSearch} accessibilityLabel="搜索板子">
+        <Ionicons
+          name={boardsSearchVisible ? 'close' : 'search'}
+          size={componentSizes.icon.md}
+          color={colors.text}
+        />
+      </Button>
+    </View>
+  );
+
+  const renderSegment = useCallback(
+    (segmentKey: string) => {
+      if (segmentKey === 'roles') {
+        return <RolesGuideContent state={rolesState} />;
+      }
+      if (segmentKey === 'boards') {
+        return (
+          <BoardsGuideContent
+            searchVisible={boardsSearchVisible}
+            searchQuery={boardsSearchQuery}
+            setSearchQuery={setBoardsSearchQuery}
+            tagFilter={boardsTagFilter}
+            setTagFilter={setBoardsTagFilter}
+            tagFilterDropdownVisible={boardsTagFilterVisible}
+            setTagFilterDropdownVisible={setBoardsTagFilterVisible}
           />
-        </Button>
-        <Button variant="icon" onPress={rolesState.toggleSearch} accessibilityLabel="搜索">
-          <Ionicons
-            name={rolesState.searchVisible ? 'close' : 'search'}
-            size={componentSizes.icon.md}
-            color={colors.text}
-          />
-        </Button>
-      </View>
-    ) : activeTab === 'boards' ? (
-      <View style={styles.headerRight}>
-        <Button
-          variant="icon"
-          onPress={() => setBoardsTagFilterVisible(true)}
-          style={boardsTagFilter ? styles.headerIconButtonActive : undefined}
-          accessibilityLabel="标签筛选"
-        >
-          <Ionicons
-            name="filter"
-            size={componentSizes.icon.md}
-            color={boardsTagFilter ? colors.primary : colors.text}
-          />
-        </Button>
-        <Button variant="icon" onPress={toggleBoardsSearch} accessibilityLabel="搜索板子">
-          <Ionicons
-            name={boardsSearchVisible ? 'close' : 'search'}
-            size={componentSizes.icon.md}
-            color={colors.text}
-          />
-        </Button>
-      </View>
-    ) : undefined;
+        );
+      }
+      return (
+        <WerewolfGameplayContent
+          gameState={gameState}
+          isHost={isHost}
+          hasRoomContext={routeParams.roomCode !== undefined}
+        />
+      );
+    },
+    [
+      boardsSearchVisible,
+      boardsSearchQuery,
+      boardsTagFilter,
+      boardsTagFilterVisible,
+      gameState,
+      isHost,
+      rolesState,
+      routeParams.roomCode,
+    ],
+  );
 
   return (
-    <GameScreen
+    <EncyclopediaShell
+      title="狼人杀玩法"
       testID={TESTIDS.encyclopediaScreenRoot}
-      header={
-        <ScreenHeader
-          title="狼人杀玩法"
-          onBack={handleGoBack}
-          topInset={insets.top}
-          headerRight={headerRight}
-        />
-      }
-    >
-      <View style={gameScreenStyles.catalog}>
-        <SegmentedControl
-          segments={GUIDE_SEGMENTS}
-          activeKey={activeTab}
-          onChangeKey={setActiveTab}
-        />
-        <View style={styles.content}>
-          {activeTab === 'gameplay' && (
-            <WerewolfGameplayContent
-              gameState={gameState}
-              isHost={isHost}
-              hasRoomContext={routeParams.roomCode !== undefined}
-            />
-          )}
-          {activeTab === 'roles' && <RolesGuideContent state={rolesState} />}
-          {activeTab === 'boards' && (
-            <BoardsGuideContent
-              searchVisible={boardsSearchVisible}
-              searchQuery={boardsSearchQuery}
-              setSearchQuery={setBoardsSearchQuery}
-              tagFilter={boardsTagFilter}
-              setTagFilter={setBoardsTagFilter}
-              tagFilterDropdownVisible={boardsTagFilterVisible}
-              setTagFilterDropdownVisible={setBoardsTagFilterVisible}
-            />
-          )}
-        </View>
-      </View>
-    </GameScreen>
+      onBack={handleGoBack}
+      segments={GUIDE_SEGMENTS}
+      initialTab={initialTab}
+      renderSegment={renderSegment}
+      segmentHeaderActions={{
+        roles: (
+          <EncyclopediaRolesHeaderActions
+            source={WEREWOLF_ENCYCLOPEDIA_SOURCE}
+            state={rolesState}
+          />
+        ),
+        boards: boardsHeaderActions,
+      }}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,32 +1,19 @@
 /**
- * RoleDetailSheet — role detail bottom sheet
+ * EncyclopediaRoleDetailSheet — 图鉴角色详情底部 sheet（自狼人杀 RoleDetailSheet 搬入）。
  *
- * Bottom slide-in Modal panel that displays full role info: badge image + role name + faction +
- * structuredDescription (reuses RoleDescriptionView) + ability tag chips.
+ * 展示 hero（详情图 + 角色名 + 副标题 + 阵营 chip）、能力标签 chips 与
+ * 结构化介绍。介绍渲染统一走共享 StructuredDescriptionView（与角色卡同源）；
+ * 游戏专属的 hero 附加动作（如狼人杀 AI 攻略 pill）经 headerExtra 插槽注入。
  * Pure presentation component, does not import service, no business logic.
  */
-import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  getRoleSpec,
-  getRoleStructuredDescription,
-  isWolfRole,
-  type RoleAbilityTag,
-  type RoleId,
-} from '@game-judge/game-engine/games/werewolf/public';
-import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
-import { UI_ICONS } from '@/config/iconTokens';
-import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
-import { buildRolePlayGuidePrompt } from '@/games/werewolf/components/AIChatBubble/rolePlayGuide';
-import { RoleDescriptionView } from '@/games/werewolf/components/RoleDescriptionView';
-import { requestAIChatMessage } from '@/games/werewolf/services/aiChatBridge';
-import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
+import { StructuredDescriptionView } from '@/features/room/components/StructuredDescriptionView';
 import {
   borderRadius,
   colors,
@@ -39,34 +26,17 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
-
-// ── Helpers ──────────────────────────────────────────────────
-
-function getFactionColor(roleId: RoleId, colors: ThemeColors): string {
-  if (isWolfRole(roleId)) return colors.wolf;
-  const spec = getRoleSpec(roleId);
-  if (spec?.faction === Faction.God) return colors.god;
-  if (spec?.faction === Faction.Special) return colors.third;
-  return colors.villager;
-}
-
-function getFactionLabel(roleId: RoleId): string {
-  if (isWolfRole(roleId)) return '狼人阵营';
-  const spec = getRoleSpec(roleId);
-  if (spec?.faction === Faction.God) return '神职阵营';
-  if (spec?.faction === Faction.Special) return '第三方阵营';
-  return '好人阵营';
-}
+import type { EncyclopediaRoleEntry } from './encyclopediaSource';
 
 // ── Types ────────────────────────────────────────────────────
 
-interface RoleDetailSheetProps {
-  visible: boolean;
-  roleId: RoleId | null;
+interface EncyclopediaRoleDetailSheetProps {
+  /** 要展示的角色条目；null 时不渲染。 */
+  entry: EncyclopediaRoleEntry | null;
   onClose: () => void;
+  /** hero 区右上附加动作插槽（游戏专属，如 AI 攻略入口）；缺省不显。 */
+  headerExtra?: (entry: EncyclopediaRoleEntry, onClose: () => void) => React.ReactNode;
 }
 
 // ── Component ────────────────────────────────────────────────
@@ -74,38 +44,18 @@ interface RoleDetailSheetProps {
 const HERO_BADGE_SIZE = componentSizes.avatar.xl;
 
 /** Role detail bottom sheet. */
-export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleId, onClose }) => {
+export const EncyclopediaRoleDetailSheet: React.FC<EncyclopediaRoleDetailSheetProps> = ({
+  entry,
+  onClose,
+  headerExtra,
+}) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, insets.bottom), [insets.bottom]);
 
-  const showAIButton = isAIChatReady();
+  if (!entry) return null;
 
-  const handleAskAI = useCallback(() => {
-    if (!roleId) return;
-    const prompt = buildRolePlayGuidePrompt(roleId);
-    if (!prompt) return;
-    const spec = getRoleSpec(roleId);
-    const roleName = spec?.displayName ?? roleId;
-    showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
-      onClose();
-      requestAIChatMessage({
-        fullText: prompt,
-        displayText: `${roleName} 攻略`,
-        maxTokens: 1024,
-      });
-    });
-  }, [roleId, onClose]);
-
-  if (!visible || !roleId) return null;
-
-  const spec = getRoleSpec(roleId);
-  if (!spec) return null;
-
-  const factionColor = getFactionColor(roleId, colors);
-  const factionLabel = getFactionLabel(roleId);
-  const structuredDesc = getRoleStructuredDescription(roleId);
-  const tags = spec.tags ?? [];
-  const englishName = spec.englishName;
+  const factionColor = colors[entry.factionColorKey];
+  const tags = entry.tags ?? [];
 
   return (
     <Modal visible={true} transparent animationType="slide" onRequestClose={onClose}>
@@ -121,14 +71,16 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
           <ScrollView showsVerticalScrollIndicator contentContainerStyle={styles.scrollContent}>
             {/* Hero section */}
             <View style={[styles.heroSection, { backgroundColor: withAlpha(factionColor, 0.06) }]}>
-              <Image source={getRoleAvatar(roleId)} style={styles.heroBadge} />
+              {entry.detailImage !== undefined && (
+                <Image source={entry.detailImage} style={styles.heroBadge} />
+              )}
               <View style={styles.heroInfo}>
-                <Text style={[styles.heroName, { color: colors.text }]}>{spec.displayName}</Text>
-                {englishName && (
+                <Text style={[styles.heroName, { color: colors.text }]}>{entry.displayName}</Text>
+                {entry.subtitle ? (
                   <Text style={[styles.heroEnglishName, { color: colors.textSecondary }]}>
-                    {englishName}
+                    {entry.subtitle}
                   </Text>
-                )}
+                ) : null}
                 <View
                   style={[
                     styles.heroFactionChip,
@@ -136,40 +88,25 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
                   ]}
                 >
                   <Text style={[styles.heroFactionText, { color: factionColor }]}>
-                    {factionLabel}
+                    {entry.factionLabel}
                   </Text>
                 </View>
               </View>
-              {/* AI pill */}
-              {showAIButton && (
-                <Pressable
-                  style={[styles.aiPill, { backgroundColor: withAlpha(factionColor, 0.15) }]}
-                  onPress={handleAskAI}
-                  accessibilityLabel="AI 攻略"
-                >
-                  <Ionicons
-                    name={UI_ICONS.AI_ASSISTANT}
-                    size={typography.caption}
-                    color={factionColor}
-                  />
-                  <Text style={[styles.aiPillText, { color: factionColor }]}>AI 攻略</Text>
-                </Pressable>
-              )}
+              {/* 游戏专属附加动作（如 AI 攻略 pill） */}
+              {headerExtra?.(entry, onClose)}
             </View>
 
             {/* Ability Tags */}
             {tags.length > 0 && (
               <View style={styles.tagsSection}>
-                {tags.map((tag: RoleAbilityTag) => {
-                  const tagColor = colors[TAG_COLOR_KEY[tag]];
+                {tags.map((tag) => {
+                  const tagColor = colors[tag.colorKey];
                   return (
                     <View
-                      key={tag}
+                      key={tag.key}
                       style={[styles.detailTagChip, { backgroundColor: withAlpha(tagColor, 0.12) }]}
                     >
-                      <Text style={[styles.detailTagText, { color: tagColor }]}>
-                        {TAG_LABELS[tag]}
-                      </Text>
+                      <Text style={[styles.detailTagText, { color: tagColor }]}>{tag.label}</Text>
                     </View>
                   );
                 })}
@@ -178,9 +115,9 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
 
             {/* Description */}
             <View style={styles.descriptionSection}>
-              <RoleDescriptionView
-                structuredDescription={structuredDesc}
-                descriptionFallback={spec.description}
+              <StructuredDescriptionView
+                fields={entry.structuredFields}
+                descriptionFallback={entry.description ?? ''}
                 factionColor={factionColor}
                 scrollEnabled={false}
               />
@@ -223,22 +160,6 @@ function createStyles(colors: ThemeColors, bottomInset: number) {
     },
     scrollContent: {
       paddingBottom: Math.max(spacing.medium, bottomInset + spacing.small),
-    },
-    // AI pill in hero section
-    aiPill: {
-      position: 'absolute',
-      right: spacing.small,
-      top: spacing.small,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.tight,
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
-      borderRadius: borderRadius.full,
-    },
-    aiPillText: {
-      fontSize: typography.caption,
-      fontWeight: typography.weights.semibold,
     },
     // Hero
     heroSection: {
@@ -296,18 +217,6 @@ function createStyles(colors: ThemeColors, bottomInset: number) {
     // Description
     descriptionSection: {
       marginBottom: spacing.medium,
-    },
-    // Close
-    closeButton: {
-      paddingHorizontal: spacing.xlarge,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.full,
-      alignSelf: 'center',
-      marginTop: spacing.medium,
-    },
-    closeButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
     },
   });
 }

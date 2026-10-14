@@ -1,5 +1,5 @@
 /**
- * EncyclopediaScreen styles — createStyles factory
+ * 共享图鉴样式工厂（自分段壳与角色段共用；自狼人杀 EncyclopediaScreen 整段搬入）。
  */
 import { StyleSheet } from 'react-native';
 

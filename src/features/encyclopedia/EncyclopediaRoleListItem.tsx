@@ -1,19 +1,13 @@
 /**
- * RoleListItem — Role encyclopedia card
+ * EncyclopediaRoleListItem — 图鉴角色卡片（自狼人杀 RoleListItem 整段搬入、改吃条目）。
  *
- * Vertical layout: top badge + role name + faction chip + ability tag chips.
+ * Vertical layout: top accent bar + image + role name + ability tag chips.
  * flex: 1 with parent gridRow yields a 2-column equal-width layout.
  * Pure presentational component; no service imports, no business logic.
  */
-import {
-  ROLE_SPECS,
-  type RoleAbilityTag,
-  type RoleId,
-} from '@game-judge/game-engine/games/werewolf/public';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -21,71 +15,66 @@ import {
   componentSizes,
   shadows,
   spacing,
-  type ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';
 
-import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
+import type { EncyclopediaRoleEntry } from './encyclopediaSource';
 
 // ── Types ────────────────────────────────────────────────────
 
-interface RoleListItemProps {
-  roleId: RoleId;
+interface EncyclopediaRoleListItemProps {
+  entry: EncyclopediaRoleEntry;
   factionColor: string;
-  onPress: (roleId: RoleId) => void;
-  colors: ThemeColors;
+  onPress: (roleId: string) => void;
 }
 
 // ── Component ────────────────────────────────────────────────
 
 const BADGE_SIZE = componentSizes.avatar.md;
 
-/** Role list row. */
-export const RoleListItem = React.memo<RoleListItemProps>(function RoleListItem({
-  roleId,
-  factionColor,
-  onPress,
-}) {
-  const spec = ROLE_SPECS[roleId];
-  const tags = spec.tags ?? [];
+/** Role list card. */
+export const EncyclopediaRoleListItem = React.memo<EncyclopediaRoleListItemProps>(
+  function EncyclopediaRoleListItem({ entry, factionColor, onPress }) {
+    const tags = entry.tags ?? [];
 
-  return (
-    <Pressable
-      testID={TESTIDS.encyclopediaRoleItem(roleId)}
-      style={[styles.card, { backgroundColor: colors.surface }]}
-      onPress={() => onPress(roleId)}
-    >
-      {/* Top accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: factionColor }]} />
+    return (
+      <Pressable
+        testID={TESTIDS.encyclopediaRoleItem(entry.id)}
+        style={[styles.card, { backgroundColor: colors.surface }]}
+        onPress={() => onPress(entry.id)}
+      >
+        {/* Top accent bar */}
+        <View style={[styles.accentBar, { backgroundColor: factionColor }]} />
 
-      {/* Badge */}
-      <Image source={getRoleBadge(roleId)} style={styles.badge} />
+        {/* Badge */}
+        {entry.listImage !== undefined && <Image source={entry.listImage} style={styles.badge} />}
 
-      {/* Name */}
-      <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-        {spec.displayName}
-      </Text>
+        {/* Name */}
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+          {entry.displayName}
+        </Text>
 
-      {/* Tag chips */}
-      {tags.length > 0 && (
-        <View style={styles.tagRow}>
-          {tags.map((tag: RoleAbilityTag) => {
-            const tagColor = colors[TAG_COLOR_KEY[tag]];
-            return (
-              <View
-                key={tag}
-                style={[styles.tagChip, { backgroundColor: withAlpha(tagColor, 0.12) }]}
-              >
-                <Text style={[styles.tagChipText, { color: tagColor }]}>{TAG_LABELS[tag]}</Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-    </Pressable>
-  );
-});
+        {/* Tag chips */}
+        {tags.length > 0 && (
+          <View style={styles.tagRow}>
+            {tags.map((tag) => {
+              const tagColor = colors[tag.colorKey];
+              return (
+                <View
+                  key={tag.key}
+                  style={[styles.tagChip, { backgroundColor: withAlpha(tagColor, 0.12) }]}
+                >
+                  <Text style={[styles.tagChipText, { color: tagColor }]}>{tag.label}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </Pressable>
+    );
+  },
+);
 
 // ── Styles ───────────────────────────────────────────────────
 
