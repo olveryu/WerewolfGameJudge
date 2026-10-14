@@ -658,7 +658,7 @@ function decideCommand(
       return beginGame(state, context);
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
-    case 'avalon.role.markAllBotsViewed':
+    case 'avalon.bots.markAllBotsViewed':
       return markAllBotsViewed(state, context);
     case 'avalon.night.confirm':
       return confirmNight(state, context);

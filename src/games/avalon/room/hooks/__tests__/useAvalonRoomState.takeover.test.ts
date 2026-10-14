@@ -155,7 +155,7 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
       markAction.onPress();
     });
     expect(dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.role.markAllBotsViewed' },
+      { type: 'avalon.bots.markAllBotsViewed' },
       expect.objectContaining({ controlledSeat: null }),
     );
 

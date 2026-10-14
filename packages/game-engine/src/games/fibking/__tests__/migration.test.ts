@@ -169,7 +169,7 @@ describe('FibKing v6 -> v7 roster migration', () => {
       return legacy;
     };
     let ongoing = dispatch(state, { type: 'fibking.round.confirmRoleView' });
-    ongoing = dispatch(ongoing, { type: 'fibking.round.markAllBotsViewed' });
+    ongoing = dispatch(ongoing, { type: 'fibking.bots.markAllBotsViewed' });
     ongoing = dispatch(ongoing, { type: 'fibking.round.begin' });
     expect(ongoing.phase).toBe('ongoing');
     expect(migratePersistedFibState(toV7Document(ongoing))).toEqual(ongoing);

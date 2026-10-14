@@ -247,7 +247,7 @@ export function markAllBotsViewed(
 ): Promise<WerewolfCommandDispatchOutcome> {
   return dispatchWerewolfCommand(
     ctx,
-    { type: 'werewolf.bots.markRolesViewed' },
+    { type: 'werewolf.bots.markAllBotsViewed' },
     null,
     'markAllBotsViewed',
   );

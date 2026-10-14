@@ -58,7 +58,7 @@ function nightState(): AvalonState {
   const hostViewed = commitState(dealt, { type: 'avalon.role.viewed' }, HOST, null, 'view-host');
   const botsMarked = commitState(
     hostViewed,
-    { type: 'avalon.role.markAllBotsViewed' },
+    { type: 'avalon.bots.markAllBotsViewed' },
     HOST,
     null,
     'mark-bots',

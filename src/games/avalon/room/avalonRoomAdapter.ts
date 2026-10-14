@@ -797,7 +797,7 @@ export function createAvalonHostManagement(
         actions: [
           buildMarkBotsViewedAction({
             onPress: () =>
-              void submit('标记机器人已查看', { type: 'avalon.role.markAllBotsViewed' }),
+              void submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
             isEnabled: !input.isSubmitting,
             isLoading: input.isSubmitting,
           }),
@@ -917,7 +917,7 @@ export function createAvalonHostManagement(
       title: '身份查看',
       actions: [
         buildMarkBotsViewedAction({
-          onPress: () => void submit('标记机器人已查看', { type: 'avalon.role.markAllBotsViewed' }),
+          onPress: () => void submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
           isEnabled: !input.isSubmitting,
           isLoading: input.isSubmitting,
         }),

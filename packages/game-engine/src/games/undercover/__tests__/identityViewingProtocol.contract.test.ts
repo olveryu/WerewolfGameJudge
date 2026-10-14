@@ -132,7 +132,7 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
     let state = viewingState();
     if (state.round === null) throw new Error('Expected round');
     state = dispatch(state, {
-      type: 'undercover.round.markAllBotsViewed',
+      type: 'undercover.bots.markAllBotsViewed',
       roundId: state.round.roundId,
     });
     if (state.round === null) throw new Error('Expected round');
@@ -198,7 +198,7 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
       false,
     );
     state = dispatch(state, {
-      type: 'undercover.round.markAllBotsViewed',
+      type: 'undercover.bots.markAllBotsViewed',
       roundId: state.round.roundId,
     });
     state = confirmSeat(state, 0);
@@ -234,7 +234,7 @@ describeIdentityViewingProtocol({
           state.round === null
             ? state
             : dispatch(state, {
-                type: 'undercover.round.markAllBotsViewed',
+                type: 'undercover.bots.markAllBotsViewed',
                 roundId: state.round.roundId,
               }),
         ),

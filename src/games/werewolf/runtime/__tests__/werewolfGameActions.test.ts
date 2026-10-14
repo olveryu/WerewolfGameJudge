@@ -155,7 +155,7 @@ describe('canonical Werewolf command builders', () => {
     await postProgression(ctx);
     expectCommand({ type: 'werewolf.progress.request' }, null);
     await markAllBotsViewed(ctx);
-    expectCommand({ type: 'werewolf.bots.markRolesViewed' }, null);
+    expectCommand({ type: 'werewolf.bots.markAllBotsViewed' }, null);
     await markAllBotsGroupConfirmed(ctx);
     expectCommand({ type: 'werewolf.groupConfirm.ackBots' }, null);
     await boardNominate(ctx, 'Board', ['wolf', 'seer']);

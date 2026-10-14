@@ -73,7 +73,7 @@ describe('Undercover Worker effects', () => {
     );
     const marked = applyCommand(
       confirmed.state,
-      { type: 'undercover.round.markAllBotsViewed', roundId },
+      { type: 'undercover.bots.markAllBotsViewed', roundId },
       'bots',
     );
     let decision = applyCommand(marked.state, { type: 'undercover.round.begin', roundId }, 'begin');

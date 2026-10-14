@@ -171,7 +171,7 @@ export function useUndercoverRoundControls(
     markAllBotsViewed: () => {
       if (state.phase !== 'viewing') throw new Error('Bot confirmation requires viewing phase');
       void submit('标记机器人已查看', {
-        type: 'undercover.round.markAllBotsViewed',
+        type: 'undercover.bots.markAllBotsViewed',
         roundId: state.round.roundId,
       });
     },

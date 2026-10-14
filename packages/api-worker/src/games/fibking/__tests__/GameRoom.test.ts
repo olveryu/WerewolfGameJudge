@@ -236,7 +236,7 @@ describe('FibKing generic GameRoom integration', () => {
         type: 'fibking.round.confirmRoleView',
       }),
       await dispatch(stub, stub, 'fib-mark-bots-viewed', {
-        type: 'fibking.round.markAllBotsViewed',
+        type: 'fibking.bots.markAllBotsViewed',
       }),
       await dispatch(stub, stub, 'fib-begin-round', {
         type: 'fibking.round.begin',

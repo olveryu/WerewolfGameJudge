@@ -439,7 +439,7 @@ describe('Undercover authoritative engine', () => {
     let state = complete(prepare());
     if (state.round === null) throw new Error('Expected round');
     const command = {
-      type: 'undercover.round.markAllBotsViewed',
+      type: 'undercover.bots.markAllBotsViewed',
       roundId: state.round.roundId,
     } as const;
     expect(undercoverEngine.decide(state, command, user('guest')).kind).toBe('reject');
@@ -478,7 +478,7 @@ describe('Undercover authoritative engine', () => {
     expect(
       undercoverEngine.decide(
         state,
-        { type: 'undercover.round.markAllBotsViewed', roundId: state.round.roundId },
+        { type: 'undercover.bots.markAllBotsViewed', roundId: state.round.roundId },
         user(),
       ),
     ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.noBots });
@@ -492,7 +492,7 @@ describe('Undercover authoritative engine', () => {
     );
     if (state.round === null) throw new Error('Expected round');
     state = dispatch(state, {
-      type: 'undercover.round.markAllBotsViewed',
+      type: 'undercover.bots.markAllBotsViewed',
       roundId: state.round.roundId,
     });
     expect(state.phase).toBe('viewing');

@@ -92,7 +92,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         { length: session.state.config.numberOfPlayers },
         (_, seat) => seat,
       ).some((seat) => isAvalonBotSeat(session.state, seat));
-      if (hasBotSeat) send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
+      if (hasBotSeat) send({ type: 'avalon.bots.markAllBotsViewed' }, 'host');
       // 三段式：全员查看齐后房主开始游戏，才进夜晚并排开局播报。
       send({ type: 'avalon.game.begin' });
       // 开局播报由房主 ack（测试模拟房主已播完）。
@@ -238,7 +238,7 @@ describe('Avalon engine', () => {
   it('rejects marking bots when the room has no bot seats (werewolf parity)', () => {
     const session = game({ numberOfPlayers: 5 });
     session.send({ type: 'avalon.game.start' });
-    session.expectReject({ type: 'avalon.role.markAllBotsViewed' }, 'avalon_no_bot_seats');
+    session.expectReject({ type: 'avalon.bots.markAllBotsViewed' }, 'avalon_no_bot_seats');
   });
 
   it('fills implicit bot seats and lets the host take them over', () => {

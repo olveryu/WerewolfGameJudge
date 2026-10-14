@@ -42,7 +42,7 @@ const publicCommandOptions = defineFibPublicCommandOptions([
   z.strictObject({ type: z.literal('fibking.round.start') }),
   z.strictObject({ type: z.literal('fibking.round.cancelPreparing') }),
   z.strictObject({ type: z.literal('fibking.round.confirmRoleView') }),
-  z.strictObject({ type: z.literal('fibking.round.markAllBotsViewed') }),
+  z.strictObject({ type: z.literal('fibking.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('fibking.round.begin') }),
   z.strictObject({
     type: z.literal('fibking.round.guess'),

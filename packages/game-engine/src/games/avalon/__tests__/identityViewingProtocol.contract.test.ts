@@ -7,7 +7,7 @@
  * (avalon.game.begin) — the night only opens once every seated
  * player has viewed their role. Bot seats count like everyone else;
  * the host fills their records with the scaffold action
- * (avalon.role.markAllBotsViewed). Same-named scenario files live in
+ * (avalon.bots.markAllBotsViewed). Same-named scenario files live in
  * each compliant game's __tests__.
  */
 
@@ -98,7 +98,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       }
     },
     markAllBotsViewed() {
-      send({ type: 'avalon.role.markAllBotsViewed' }, 'host');
+      send({ type: 'avalon.bots.markAllBotsViewed' }, 'host');
     },
     /** Confirms every night step's participants, in order. */
     walkNight() {
@@ -224,7 +224,7 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     const session = game({ numberOfPlayers: 5 }, 3);
     session.startGame();
     const decision = session.decideAs(
-      { type: 'avalon.role.markAllBotsViewed' },
+      { type: 'avalon.bots.markAllBotsViewed' },
       session.seatUser(1),
     );
     expect(decision.kind).toBe('reject');

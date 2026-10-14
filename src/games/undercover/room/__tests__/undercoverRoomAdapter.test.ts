@@ -167,7 +167,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
       ?.sections[0]?.actions,
   ).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
   const confirmed = dispatch(state, {
-    type: 'undercover.round.markAllBotsViewed',
+    type: 'undercover.bots.markAllBotsViewed',
     roundId: state.round!.roundId,
   });
   expect(
@@ -183,7 +183,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
 it('selects directly for confirmation, cancels without submission and invalidates eliminated targets', () => {
   let state = createViewingState();
   const roundId = state.round!.roundId;
-  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
+  state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   state = dispatch(state, { type: 'undercover.round.confirm', roundId });
   state = dispatch(state, { type: 'undercover.round.begin', roundId });
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
@@ -239,7 +239,7 @@ it('shows the authoritative starting speaker only once the host begins', () => {
     kind: 'message',
     supportingText: null,
   });
-  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
+  state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(createUndercoverStatusRibbon(state)).toMatchObject({
     kind: 'message',
     supportingText: null,
@@ -468,7 +468,7 @@ it('reports ready on the ribbon once every seat has viewed, and hints the unview
     message: '请点击下方「查看我的词」，查看词语',
   });
   let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
-  state = dispatch(state, { type: 'undercover.round.markAllBotsViewed', roundId });
+  state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(state.round!.confirmedSeats).toHaveLength(6);
   expect(createUndercoverStatusRibbon(state)).toMatchObject({
     text: '全员已查看词卡，等待房主开始游戏',

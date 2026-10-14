@@ -114,7 +114,7 @@ function session() {
       // Only the host is human: the host views, then marks the bots,
       // then begins the game into the night.
       send({ type: 'avalon.role.viewed' });
-      send({ type: 'avalon.role.markAllBotsViewed' });
+      send({ type: 'avalon.bots.markAllBotsViewed' });
       send({ type: 'avalon.game.begin' });
       ackAudio();
       while (state.phase.kind === 'night') {
@@ -238,7 +238,7 @@ describe('createAvalonHostManagement', () => {
     expect(section?.actions.map((action) => action.key)).toEqual(['mark-bots-viewed']);
     expect(section?.actions[0]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
 
-    game.send({ type: 'avalon.role.markAllBotsViewed' });
+    game.send({ type: 'avalon.bots.markAllBotsViewed' });
     const after = build(game.state, true, false);
     expect(after?.sections.find((entry) => entry.key === 'bot-viewing')).toBeUndefined();
     expect(after?.sections[0]?.actions[0]).toMatchObject({ key: 'start-game', isEnabled: true });

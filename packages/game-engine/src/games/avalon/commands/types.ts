@@ -15,7 +15,7 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.game.begin' }
   | { readonly type: 'avalon.game.returnToLobby' }
   | { readonly type: 'avalon.role.viewed' }
-  | { readonly type: 'avalon.role.markAllBotsViewed' }
+  | { readonly type: 'avalon.bots.markAllBotsViewed' }
   | { readonly type: 'avalon.night.confirm' }
   | { readonly type: 'avalon.audio.ack' }
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }

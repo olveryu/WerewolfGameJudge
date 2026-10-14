@@ -43,7 +43,7 @@ const avalonPublicCommandOptions = defineAvalonPublicCommandOptions([
   z.strictObject({ type: z.literal('avalon.game.returnToLobby') }),
   z.strictObject({ type: z.literal('avalon.night.confirm') }),
   z.strictObject({ type: z.literal('avalon.role.viewed') }),
-  z.strictObject({ type: z.literal('avalon.role.markAllBotsViewed') }),
+  z.strictObject({ type: z.literal('avalon.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('avalon.audio.ack') }),
   z.strictObject({
     type: z.literal('avalon.team.propose'),

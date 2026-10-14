@@ -44,7 +44,7 @@ type WerewolfGameCommand =
   | { readonly type: 'werewolf.roles.assign' }
   | { readonly type: 'werewolf.game.restart' }
   | { readonly type: 'werewolf.mvp.select'; readonly selection: WerewolfMvpSelection }
-  | { readonly type: 'werewolf.bots.markRolesViewed' }
+  | { readonly type: 'werewolf.bots.markAllBotsViewed' }
   | {
       readonly type: 'werewolf.action.submit';
       readonly input: WerewolfActionInput;

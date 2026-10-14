@@ -20,7 +20,7 @@ export type UndercoverPublicCommand =
   | { readonly type: 'undercover.round.retry'; readonly roundId: string }
   | { readonly type: 'undercover.round.confirm'; readonly roundId: string }
   | { readonly type: 'undercover.round.begin'; readonly roundId: string }
-  | { readonly type: 'undercover.round.markAllBotsViewed'; readonly roundId: string }
+  | { readonly type: 'undercover.bots.markAllBotsViewed'; readonly roundId: string }
   | { readonly type: 'undercover.round.reveal'; readonly roundId: string; readonly seat: number }
   | { readonly type: 'undercover.round.abort'; readonly roundId: string }
   | { readonly type: 'undercover.game.returnToLobby' };
