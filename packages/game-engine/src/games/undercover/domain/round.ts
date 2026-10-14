@@ -6,7 +6,6 @@ import {
   buildGameCompletionPayload,
   type CommandContext,
   reject,
-  resolveSystemActorEffectId,
   resolveUserActorId,
 } from '../../../platform/engine';
 import { REASON_NOT_HOST, REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
@@ -18,6 +17,15 @@ import {
 } from '../../../platform/random';
 import { hasBeenRevealed } from '../../../platform/room/hostReveal';
 import { haveAllViewed, listUnviewedBotSeats } from '../../../platform/room/identityViewing';
+import {
+  commitPreparationEntry,
+  decidePreparationComplete,
+  decidePreparationFail,
+  PREPARATION_FAILURE_CODES,
+  PREPARATION_RETRY_STRATEGIES,
+  type PreparationStateSlice,
+  resolvePreparationRetryPending,
+} from '../../../platform/room/preparation';
 import { findRosterSeatByUserId, getHumanSeatMap, isBotSeat } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
@@ -58,6 +66,23 @@ function selectionEffect(
   };
 }
 
+/** The preparation slice of the state, in the protocol's shape (state union unchanged). */
+function preparationSlice(state: UndercoverState): PreparationStateSlice<UndercoverPendingRound> {
+  return {
+    phase: state.phase,
+    pendingRound:
+      state.phase === 'preparing' || state.phase === 'preparationFailed'
+        ? state.pendingRound
+        : null,
+  };
+}
+
+const PREPARATION_REASONS = {
+  notPreparing: UNDERCOVER_REASONS.phase,
+  roundMismatch: UNDERCOVER_REASONS.round,
+  failureInvalid: UNDERCOVER_REASONS.failure,
+} as const;
+
 function decideStart(
   state: UndercoverState,
   shouldAllowRepeated: boolean,
@@ -65,16 +90,29 @@ function decideStart(
 ): UndercoverDecision {
   if (getUndercoverOccupiedSeatCount(state) !== state.config.numberOfPlayers)
     return reject(UNDERCOVER_REASONS.notFull);
-  if (context.commandId.length === 0) throw new Error('Undercover start requires a command ID');
-  const pendingRound = {
-    roundId: `undercover-round:${context.commandId}`,
-    requestedAt: context.nowMs,
-    shouldAllowRepeated,
-  };
-  return commitUndercover(
-    [{ type: 'undercover.round.preparing', pendingRound }],
-    [selectionEffect(state, pendingRound)],
+  // D-1: a start always freezes a fresh pending round; only the
+  // dedicated retry command reuses the failed one.
+  const pendingRound = resolvePreparationRetryPending<UndercoverPendingRound>(
+    PREPARATION_RETRY_STRATEGIES.fresh,
+    null,
+    () => {
+      if (context.commandId.length === 0) throw new Error('Undercover start requires a command ID');
+      return {
+        roundId: `undercover-round:${context.commandId}`,
+        requestedAt: context.nowMs,
+        shouldAllowRepeated,
+      };
+    },
   );
+  return commitPreparationEntry({
+    pendingRound,
+    buildPreparingEvent: (pending) => ({
+      type: 'undercover.round.preparing',
+      pendingRound: pending,
+    }),
+    buildSelectionEffect: (pending) => selectionEffect(state, pending),
+    commit: commitUndercover,
+  });
 }
 
 function decideInternal(
@@ -85,52 +123,55 @@ function decideInternal(
   >,
   context: CommandContext,
 ): UndercoverDecision {
-  const actor = resolveSystemActorEffectId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase !== 'preparing') return reject(UNDERCOVER_REASONS.phase);
-  if (state.pendingRound.roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   if (command.type === 'undercover.round.failPreparation') {
-    if (
-      command.failureCode !== 'selectionFailed' &&
-      command.failureCode !== 'inventoryEmpty' &&
-      command.failureCode !== 'inventoryExhausted'
-    )
-      return reject(UNDERCOVER_REASONS.failure);
-    return commitUndercover([
-      { type: 'undercover.round.failed', failureCode: command.failureCode },
-    ]);
+    // D-2: Undercover declares the full superset as its emittable subset.
+    return decidePreparationFail({
+      state: preparationSlice(state),
+      roundId: command.roundId,
+      failureCode: command.failureCode,
+      failureCodes: PREPARATION_FAILURE_CODES,
+      reasons: PREPARATION_REASONS,
+      context,
+      buildFailedEvent: (failureCode) => ({ type: 'undercover.round.failed', failureCode }),
+      commit: commitUndercover,
+    });
   }
-  if (
-    !isValidUndercoverWordPair(command.wordPair) ||
-    (state.config.category !== 'all' && state.config.category !== command.wordPair.category)
-  )
-    return reject(UNDERCOVER_REASONS.word);
-  if (
-    !state.pendingRound.shouldAllowRepeated &&
-    state.usedWordPairIds.includes(command.wordPair.id)
-  )
-    return reject(UNDERCOVER_REASONS.reused);
-  const counts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
-  const roles: UndercoverRole[] = [
-    ...Array.from({ length: counts.civilian }, (): UndercoverRole => 'civilian'),
-    ...Array.from({ length: counts.undercover }, (): UndercoverRole => 'undercover'),
-    ...Array.from({ length: counts.blank }, (): UndercoverRole => 'blank'),
-  ];
-  const random = createSeededRng(context.randomSeed);
-  const isSwapped = randomBool(random);
-  const round: UndercoverRound = {
+  return decidePreparationComplete({
+    state: preparationSlice(state),
     roundId: command.roundId,
-    wordPair: { ...command.wordPair },
-    civilianWord: isSwapped ? command.wordPair.wordB : command.wordPair.wordA,
-    undercoverWord: isSwapped ? command.wordPair.wordA : command.wordPair.wordB,
-    roles: shuffleArray(roles, random),
-    speakingStartSeat: randomIntInclusive(0, state.config.numberOfPlayers - 1, random),
-    // Identity Viewing Protocol: nobody is marked at deal time;
-    // bot seats are marked by the host scaffold action.
-    confirmedSeats: [],
-    revelations: [],
-  };
-  return commitUndercover([{ type: 'undercover.round.started', round }]);
+    reasons: PREPARATION_REASONS,
+    context,
+    complete: (pendingRound) => {
+      if (
+        !isValidUndercoverWordPair(command.wordPair) ||
+        (state.config.category !== 'all' && state.config.category !== command.wordPair.category)
+      )
+        return reject(UNDERCOVER_REASONS.word);
+      if (!pendingRound.shouldAllowRepeated && state.usedWordPairIds.includes(command.wordPair.id))
+        return reject(UNDERCOVER_REASONS.reused);
+      const counts = getUndercoverRoleCounts(state.config.numberOfPlayers, state.config.hasBlank);
+      const roles: UndercoverRole[] = [
+        ...Array.from({ length: counts.civilian }, (): UndercoverRole => 'civilian'),
+        ...Array.from({ length: counts.undercover }, (): UndercoverRole => 'undercover'),
+        ...Array.from({ length: counts.blank }, (): UndercoverRole => 'blank'),
+      ];
+      const random = createSeededRng(context.randomSeed);
+      const isSwapped = randomBool(random);
+      const round: UndercoverRound = {
+        roundId: command.roundId,
+        wordPair: { ...command.wordPair },
+        civilianWord: isSwapped ? command.wordPair.wordB : command.wordPair.wordA,
+        undercoverWord: isSwapped ? command.wordPair.wordA : command.wordPair.wordB,
+        roles: shuffleArray(roles, random),
+        speakingStartSeat: randomIntInclusive(0, state.config.numberOfPlayers - 1, random),
+        // Identity Viewing Protocol: nobody is marked at deal time;
+        // bot seats are marked by the host scaffold action.
+        confirmedSeats: [],
+        revelations: [],
+      };
+      return commitUndercover([{ type: 'undercover.round.started', round }]);
+    },
+  });
 }
 
 function decideConfirmation(
@@ -250,11 +291,22 @@ export function decideUndercoverRound(
       );
     }
     case 'undercover.round.retry':
+      // D-1: retry reuses the failed pending round unchanged — the
+      // same roundId, requestedAt and selection policy are replayed.
       return state.phase === 'preparationFailed'
-        ? commitUndercover(
-            [{ type: 'undercover.round.preparing', pendingRound: state.pendingRound }],
-            [selectionEffect(state, state.pendingRound)],
-          )
+        ? commitPreparationEntry({
+            pendingRound: resolvePreparationRetryPending(
+              PREPARATION_RETRY_STRATEGIES.reuse,
+              state.pendingRound,
+              () => state.pendingRound,
+            ),
+            buildPreparingEvent: (pending) => ({
+              type: 'undercover.round.preparing',
+              pendingRound: pending,
+            }),
+            buildSelectionEffect: (pending) => selectionEffect(state, pending),
+            commit: commitUndercover,
+          })
         : reject(UNDERCOVER_REASONS.phase);
     case 'undercover.round.abort':
       return state.phase === 'preparing' ||
