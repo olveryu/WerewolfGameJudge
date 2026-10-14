@@ -5,7 +5,10 @@
  * avoiding manual Number.parseInt(seatStr, 10) key conversion every time.
  * Pure functions only, no IO.
  */
-import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
+import {
+  buildIdentityViewingParticipants,
+  type IdentityViewingParticipant,
+} from '../../../platform/room/identityViewing';
 import { findRosterSeatByUserId, getBotSeats, isBotSeat } from '../../../platform/room/seating';
 import type { RoleId, SchemaId } from './models';
 import { getStepSpec } from './models/roles/spec';
@@ -145,13 +148,15 @@ export function getWerewolfViewingParticipants(
   state: GameState,
   players: Players = state.players,
 ): readonly IdentityViewingParticipant[] {
-  const participants: IdentityViewingParticipant[] = [];
+  // Werewolf's occupied seats live in the players record, not the
+  // roster range; the {seat, isBot} construction itself is the
+  // shared platform one.
+  const seats: number[] = [];
   for (const [seatStr, player] of Object.entries(players)) {
     if (player === null) continue;
-    const seat = Number.parseInt(seatStr, 10);
-    participants.push({ seat, isBot: isBotSeat(state.roster, seat) });
+    seats.push(Number.parseInt(seatStr, 10));
   }
-  return participants;
+  return buildIdentityViewingParticipants(state.roster, seats);
 }
 
 /** Seats whose hasViewedRole record is set, ascending (AU-19). */

@@ -12,6 +12,7 @@
 
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
 import { getBotDisplayName } from '../../../../platform/room/getBotDisplayName';
+import { planMarkBotsViewed } from '../../../../platform/room/identityViewing';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
@@ -39,7 +40,7 @@ import {
 } from '../models';
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import { getWerewolfBotSeats } from '../playerHelpers';
+import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
 import type { AudioEffect, Player } from '../protocol/types';
 import type {
   AssignRolesAction,
@@ -406,8 +407,17 @@ export function handleMarkAllBotsViewed(
 ): HandlerResult {
   const { state } = context;
 
+  // The shared scaffold plan (platform identityViewing) decides the
+  // bot-existence gate over the same participants the checkpoint
+  // uses. Its mark and noop outcomes both take the action below:
+  // the reducer marks every bot seat and re-runs the checkpoint.
+  const plan = planMarkBotsViewed(
+    getWerewolfViewingParticipants(state),
+    getWerewolfViewedSeats(state.players),
+  );
+
   // Gate: at least one bot seat must exist
-  if (getWerewolfBotSeats(state).length === 0) {
+  if (plan.kind === 'noBotSeats') {
     return handlerError('no_bot_seats');
   }
 
