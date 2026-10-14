@@ -8,13 +8,13 @@ import {
   reject,
   resolveUserActorId,
 } from '../../../platform/engine';
-import { REASON_NOT_HOST, REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import {
   createSeededRng,
   randomBool,
   randomIntInclusive,
   shuffleArray,
 } from '../../../platform/random';
+import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../../platform/room/hostReveal';
 import { haveAllViewed, listUnviewedBotSeats } from '../../../platform/room/identityViewing';
 import {
@@ -26,7 +26,7 @@ import {
   type PreparationStateSlice,
   resolvePreparationRetryPending,
 } from '../../../platform/room/preparation';
-import { findRosterSeatByUserId, getHumanSeatMap, isBotSeat } from '../../../platform/room/seating';
+import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
 import {
@@ -183,15 +183,9 @@ function decideConfirmation(
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);
   if (state.round.roundId !== roundId) return reject(UNDERCOVER_REASONS.round);
-  let seat: number | null;
-  if (context.controlledSeat !== null) {
-    if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!isBotSeat(state.roster, context.controlledSeat)) return reject(UNDERCOVER_REASONS.bot);
-    seat = context.controlledSeat;
-  } else {
-    seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-  }
-  if (seat === null) return reject(REASON_NOT_SEATED);
+  const acting = resolveActingSeat(state, state.config.numberOfPlayers, context);
+  if (acting.kind === 'rejected') return reject(acting.reason);
+  const seat = acting.value;
   return state.round.confirmedSeats.includes(seat)
     ? commitUndercover([])
     : commitUndercover([{ type: 'undercover.round.confirmed', seat }]);

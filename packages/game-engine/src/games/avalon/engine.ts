@@ -10,6 +10,7 @@ import {
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
+import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
@@ -21,7 +22,6 @@ import {
   commitAvalon,
   requireAvalonHost,
   resolveAvalonAssassin,
-  resolveAvalonSeat,
   teamSizeReason,
 } from './domain/decision';
 import { evolveAvalonState } from './domain/evolve';
@@ -155,14 +155,14 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
   if (state.phase.kind !== 'night') return reject(AVALON_REASONS.phase);
   // 播报未播完时阻塞确认（对齐狼人杀 progression gate）。
   if (state.isAudioPlaying) return reject(AVALON_REASONS.audioPlaying);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   const participants = getAvalonNightParticipants(state.roles, state.phase.step);
-  if (!participants.includes(resolved.seat)) return reject(AVALON_REASONS.notNightParticipant);
-  if (state.phase.confirmedSeats.includes(resolved.seat)) return commitAvalon([]);
-  const confirmed = [...state.phase.confirmedSeats, resolved.seat];
+  if (!participants.includes(resolved.value)) return reject(AVALON_REASONS.notNightParticipant);
+  if (state.phase.confirmedSeats.includes(resolved.value)) return commitAvalon([]);
+  const confirmed = [...state.phase.confirmedSeats, resolved.value];
   if (!participants.every((seat) => confirmed.includes(seat)))
-    return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.seat }]);
+    return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.value }]);
   switch (state.phase.step) {
     case 'evilReveal':
       return commitAvalon([
@@ -196,10 +196,10 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
 function markRoleViewed(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
     return reject(AVALON_REASONS.phase);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (state.roleViewedSeats.includes(resolved.seat)) return commitAvalon([]);
-  return commitAvalon([{ type: 'avalon.role.viewed', seat: resolved.seat }]);
+  if (state.roleViewedSeats.includes(resolved.value)) return commitAvalon([]);
+  return commitAvalon([{ type: 'avalon.role.viewed', seat: resolved.value }]);
 }
 
 /**
@@ -234,9 +234,9 @@ function proposeTeam(
   context: CommandContext,
 ): AvalonDecision {
   if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.seat !== state.leaderSeat) return reject(AVALON_REASONS.notLeader);
+  if (resolved.value !== state.leaderSeat) return reject(AVALON_REASONS.notLeader);
   if (seats.length !== state.phase.requiredSize)
     return reject(teamSizeReason(state.phase.requiredSize));
   if (new Set(seats).size !== seats.length) return reject(AVALON_REASONS.duplicateSeats);
@@ -298,12 +298,12 @@ function buildVoteSettlement(
 function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.notVotePhase);
   if (vote !== 'approve' && vote !== 'reject') return reject(AVALON_REASONS.invalidVote);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  const castEvent: AvalonEvent = { type: 'avalon.team.vote.cast', seat: resolved.seat, vote };
+  const castEvent: AvalonEvent = { type: 'avalon.team.vote.cast', seat: resolved.value, vote };
   const prospective: Record<number, AvalonBallot> = {
     ...state.phase.ballots,
-    [resolved.seat]: vote,
+    [resolved.value]: vote,
   };
   let allCast = true;
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
@@ -404,14 +404,14 @@ function commitQuestSettled(
 function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
   if (play !== 'success' && play !== 'fail') return reject(AVALON_REASONS.invalidPlay);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (!state.phase.teamSeats.includes(resolved.seat)) return reject(AVALON_REASONS.notTeamMember);
-  const role = state.roles[resolved.seat];
+  if (!state.phase.teamSeats.includes(resolved.value)) return reject(AVALON_REASONS.notTeamMember);
+  const role = state.roles[resolved.value];
   if (role === undefined) return reject(AVALON_REASONS.phase);
   if (play === 'fail' && isAvalonGoodRole(role)) return reject(AVALON_REASONS.goodMustSucceed);
-  const plays = { ...state.phase.plays, [resolved.seat]: play };
-  const playedEvent: AvalonEvent = { type: 'avalon.quest.played', seat: resolved.seat, play };
+  const plays = { ...state.phase.plays, [resolved.value]: play };
+  const playedEvent: AvalonEvent = { type: 'avalon.quest.played', seat: resolved.value, play };
   // 收齐后武装揭晓倒计时（D16 洗混结算口径不变，结算推迟到倒计时到期或房主手动结束）。
   const allPlayed = state.phase.teamSeats.every((seat) => plays[seat] !== undefined);
   if (!allPlayed || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
@@ -459,10 +459,10 @@ function timeoutQuest(state: AvalonState, context: CommandContext): AvalonDecisi
 /** Lady holder picks a player who has never held the token (not the holder). */
 function checkLady(state: AvalonState, target: number, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'lady') return reject(AVALON_REASONS.phase);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.seat !== state.phase.holderSeat) return reject(AVALON_REASONS.notLadyHolder);
-  if (target === resolved.seat) return reject(AVALON_REASONS.ladyCannotCheckSelf);
+  if (resolved.value !== state.phase.holderSeat) return reject(AVALON_REASONS.notLadyHolder);
+  if (target === resolved.value) return reject(AVALON_REASONS.ladyCannotCheckSelf);
   const count = state.config.numberOfPlayers;
   if (
     !Number.isSafeInteger(target) ||
@@ -480,9 +480,9 @@ function acknowledgeLady(state: AvalonState, context: CommandContext): AvalonDec
   if (state.phase.kind !== 'lady') return reject(AVALON_REASONS.phase);
   const targetSeat = state.phase.targetSeat;
   if (targetSeat === null) return reject(AVALON_REASONS.phase);
-  const resolved = resolveAvalonSeat(state, context);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.seat !== targetSeat) return reject(AVALON_REASONS.notLadyTarget);
+  if (resolved.value !== targetSeat) return reject(AVALON_REASONS.notLadyTarget);
   const role = state.roles[targetSeat];
   if (role === undefined) return reject(AVALON_REASONS.phase);
   const count = state.config.numberOfPlayers;
@@ -535,7 +535,7 @@ function accuseAssassin(
   const targetRejection = checkAssassinationTarget(
     state,
     target,
-    resolved.seat,
+    resolved.value,
     AVALON_REASONS.cannotAccuseSelf,
   );
   if (targetRejection !== null) return targetRejection;
@@ -571,7 +571,7 @@ function earlyStrike(state: AvalonState, target: number, context: CommandContext
   const targetRejection = checkAssassinationTarget(
     state,
     target,
-    resolved.seat,
+    resolved.value,
     AVALON_REASONS.cannotStrikeSelf,
   );
   if (targetRejection !== null) return targetRejection;

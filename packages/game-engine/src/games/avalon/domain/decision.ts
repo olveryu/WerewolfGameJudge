@@ -1,19 +1,15 @@
 /** Avalon decision outcomes and permission gates; no IO. */
 
 import {
+  type ActorResolution,
   type CommandContext,
   commit,
   type Decision,
   reject,
   resolveHostActorId,
-  resolveUserActorId,
 } from '../../../platform/engine';
-import {
-  REASON_CONTROLLED_SEAT_NOT_BOT,
-  REASON_NOT_HOST,
-  REASON_NOT_SEATED,
-} from '../../../platform/protocol/reasons';
-import { findRosterSeatByUserId, type RosterChange } from '../../../platform/room/seating';
+import { resolveActingSeat } from '../../../platform/room/actingSeat';
+import { type RosterChange } from '../../../platform/room/seating';
 import type {
   AvalonAudioEffect,
   AvalonBallot,
@@ -26,7 +22,7 @@ import type {
   AvalonQuestRound,
   AvalonRoleId,
 } from '../state/types';
-import { type AvalonState, isAvalonBotSeat } from '../state/types';
+import { type AvalonState } from '../state/types';
 
 /**
  * Stable English rejection codes (AU-48). The user-facing copy for each
@@ -169,38 +165,15 @@ export function requireAvalonHost(
   return actor.kind === 'rejected' ? reject(reason) : null;
 }
 
-export type ResolvedAvalonSeat =
-  | { readonly kind: 'resolved'; readonly seat: number }
-  | { readonly kind: 'rejected'; readonly reason: string };
-
-function rejectedSeat(reason: string): ResolvedAvalonSeat {
-  return { kind: 'rejected', reason };
-}
-
-/**
- * Resolves the acting seat: the user's own seat, or a host-takeover bot seat.
- * Takeover is host-only (pictionary pattern); the target must be an implicit bot seat.
- */
-export function resolveAvalonSeat(state: AvalonState, context: CommandContext): ResolvedAvalonSeat {
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return rejectedSeat(actor.reason);
-  if (context.controlledSeat === null) {
-    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-    return seat === null ? rejectedSeat(REASON_NOT_SEATED) : { kind: 'resolved', seat };
-  }
-  if (actor.value !== state.hostUserId) return rejectedSeat(REASON_NOT_HOST);
-  if (!isAvalonBotSeat(state, context.controlledSeat))
-    return rejectedSeat(REASON_CONTROLLED_SEAT_NOT_BOT);
-  return { kind: 'resolved', seat: context.controlledSeat };
-}
-
 /** Resolves the acting seat and requires it to hold the assassin role. */
 export function resolveAvalonAssassin(
   state: AvalonState,
   context: CommandContext,
   notAssassinReason: string,
-): ResolvedAvalonSeat {
-  const resolved = resolveAvalonSeat(state, context);
+): ActorResolution<number> {
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return resolved;
-  return state.roles[resolved.seat] === 'assassin' ? resolved : rejectedSeat(notAssassinReason);
+  return state.roles[resolved.value] === 'assassin'
+    ? resolved
+    : { kind: 'rejected', reason: notAssassinReason };
 }

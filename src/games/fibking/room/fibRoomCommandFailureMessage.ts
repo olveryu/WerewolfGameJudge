@@ -16,6 +16,7 @@ import {
   REASON_FIB_WORD_INVALID,
   REASON_FIB_WORD_REUSED,
 } from '@game-judge/game-engine/games/fibking/public';
+import { REASON_CONTROLLED_SEAT_NOT_BOT } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import {
   createRoomCommandFailureMessage,
@@ -23,6 +24,7 @@ import {
 } from '@/features/room/session/createRoomCommandFailureMessage';
 
 export const getFibRoomCommandFailureMessage = createRoomCommandFailureMessage<FibState>({
+  [REASON_CONTROLLED_SEAT_NOT_BOT]: '你还没有入座',
   [REASON_FIB_GAME_NOT_ENDED]: '当前游戏尚未结束',
   [REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE]:
     '目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位',

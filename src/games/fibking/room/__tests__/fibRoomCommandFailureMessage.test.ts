@@ -3,6 +3,7 @@ import {
   REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
 } from '@game-judge/game-engine/games/fibking/public';
+import { REASON_CONTROLLED_SEAT_NOT_BOT } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 
@@ -23,6 +24,17 @@ describe('getFibRoomCommandFailureMessage', () => {
         rejectedRoomCommand<FibState>(REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE, 'command-1'),
       ),
     ).toBe('目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位');
+  });
+
+  it('keeps the pre-normalization copy for a non-bot controlled seat', () => {
+    // The confirm-view rejection used to arrive as not_seated, whose
+    // shared translation is this sentence; the game map pins it under
+    // the normalized platform code so the visible copy does not move.
+    expect(
+      getFibRoomCommandFailureMessage(
+        rejectedRoomCommand<FibState>(REASON_CONTROLLED_SEAT_NOT_BOT, 'command-3'),
+      ),
+    ).toBe('你还没有入座');
   });
 
   it('delegates shared room rejection reasons to the shared translator', () => {

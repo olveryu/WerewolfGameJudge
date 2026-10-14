@@ -2,6 +2,7 @@
 
 import type { CommandContext } from '../../../platform/engine';
 import { dispatchCommand } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_CONTROLLED_SEAT_NOT_BOT } from '../../../platform/protocol/reasons';
 import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { UNDERCOVER_REASONS } from '../domain/decision';
@@ -428,7 +429,7 @@ describe('Undercover authoritative engine', () => {
     };
     expect(undercoverEngine.decide(state, command, user('host', 1))).toEqual({
       kind: 'reject',
-      reason: UNDERCOVER_REASONS.bot,
+      reason: REASON_CONTROLLED_SEAT_NOT_BOT,
     });
     expect(undercoverEngine.decide(state, command, user('guest', 2)).kind).toBe('reject');
     expect(dispatch(state, command, user('guest')).round?.confirmedSeats).toEqual([1]);

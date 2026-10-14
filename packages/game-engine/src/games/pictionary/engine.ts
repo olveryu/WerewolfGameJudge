@@ -9,15 +9,10 @@ import {
   resolveHostActorId,
   resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
-  resolveUserActorId,
 } from '../../platform/engine';
 import { PICTIONARY_GAME_TYPE, type PictionaryGameType } from '../../platform/protocol/gameTypes';
-import {
-  REASON_CONTROLLED_SEAT_NOT_BOT,
-  REASON_GAME_IN_PROGRESS,
-  REASON_NOT_HOST,
-  REASON_NOT_SEATED,
-} from '../../platform/protocol/reasons';
+import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
+import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
 import {
@@ -56,7 +51,6 @@ import { getPictionaryTaskForSeat } from './domain/visibility';
 import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
 import {
-  isPictionaryBotSeat,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   PICTIONARY_DRAWING_HEIGHT,
@@ -246,19 +240,9 @@ function resolveSeatTask(
   if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt) {
     return reject(REASON_PICTIONARY_PHASE_NOT_EXPIRED);
   }
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  let seat: number | null;
-  if (context.controlledSeat === null) {
-    seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-  } else {
-    if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!isPictionaryBotSeat(state, context.controlledSeat)) {
-      return reject(REASON_CONTROLLED_SEAT_NOT_BOT);
-    }
-    seat = context.controlledSeat;
-  }
-  if (seat === null) return reject(REASON_NOT_SEATED);
+  const acting = resolveActingSeat(state, state.config.numberOfPlayers, context);
+  if (acting.kind === 'rejected') return reject(acting.reason);
+  const seat = acting.value;
   const task = getPictionaryTaskForSeat(state, seat);
   if (task === null) return reject(REASON_PICTIONARY_TASK_INVALID);
   if (task.chain.entries.length > state.stepIndex) {

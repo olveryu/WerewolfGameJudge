@@ -3,6 +3,7 @@ import {
   UNDERCOVER_REASONS,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
+import { REASON_CONTROLLED_SEAT_NOT_BOT } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import {
   createRoomCommandFailureMessage,
@@ -21,7 +22,7 @@ export const getUndercoverRoomCommandFailureMessage =
     [UNDERCOVER_REASONS.alreadyRevealed]: '该玩家已经出局',
     [UNDERCOVER_REASONS.word]: '词对不符合当前设置，请重新准备',
     [UNDERCOVER_REASONS.reused]: '该词对已使用，请重新准备',
-    [UNDERCOVER_REASONS.bot]: '该操作只能接管机器人座位',
+    [REASON_CONTROLLED_SEAT_NOT_BOT]: '该操作只能接管机器人座位',
     [UNDERCOVER_REASONS.failure]: '准备结果无效，请重新准备',
     [UNDERCOVER_REASONS.notAllViewed]: '还有玩家未查看词卡',
   });
