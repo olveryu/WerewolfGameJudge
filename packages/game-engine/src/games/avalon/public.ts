@@ -80,7 +80,6 @@ export {
   type AvalonState,
   type AvalonVoteMode,
   DEFAULT_AVALON_CONFIG,
-  getAvalonBotDisplayName,
   getAvalonBotSeats,
   getAvalonOccupiedSeatCount,
   getAvalonRealHumanCount,

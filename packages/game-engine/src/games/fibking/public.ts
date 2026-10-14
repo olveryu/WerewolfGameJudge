@@ -71,7 +71,6 @@ export {
   type FibState,
   type FibWordDefinition,
   type FibWordSource,
-  getFibBotDisplayName,
   getFibBotSeats,
   getFibBotUserId,
   getFibOccupiedSeatCount,

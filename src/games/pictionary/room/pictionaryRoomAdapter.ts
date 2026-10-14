@@ -1,7 +1,6 @@
 /** Pictionary-owned derivation of game-neutral RoomShell models. */
 
 import {
-  getPictionaryBotDisplayName,
   getPictionaryBotUserId,
   getPictionaryOccupiedSeatCount,
   getPictionaryRelayStepCount,
@@ -11,6 +10,7 @@ import {
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import {
   buildRoomHeaderModel,
@@ -152,7 +152,7 @@ export function createPictionarySeatDataSource(
             ? toRoomSeatPlayer({
                 kind: 'bot',
                 userId: getPictionaryBotUserId(input.state.roomCode, index),
-                displayName: getPictionaryBotDisplayName(index),
+                displayName: getBotDisplayName(index),
               })
             : null;
       return {
@@ -186,7 +186,7 @@ export function getPictionarySeatTapIntent(input: {
       input.state.roster,
       input.seat,
       (botSeat) => getPictionaryBotUserId(input.state.roomCode, botSeat),
-      getPictionaryBotDisplayName,
+      getBotDisplayName,
     ),
     disabledReason: input.disabledReason,
   });

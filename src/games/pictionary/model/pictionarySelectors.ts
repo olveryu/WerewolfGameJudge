@@ -1,11 +1,11 @@
 /** Client-only projections over authoritative Pictionary room state. */
 
 import {
-  getPictionaryBotDisplayName,
   isBotOccupant,
   isPictionaryBotSeat,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 export function getPictionaryCompletedCount(state: PictionaryState): number {
   if (state.stepIndex < 0) return 0;
@@ -24,6 +24,6 @@ export function getPictionarySeatDisplayName(state: PictionaryState, seat: numbe
   }
   const occupant = state.roster[seat];
   if (occupant != null && !isBotOccupant(occupant)) return occupant.profile.displayName;
-  if (isPictionaryBotSeat(state, seat)) return getPictionaryBotDisplayName(seat);
+  if (isPictionaryBotSeat(state, seat)) return getBotDisplayName(seat);
   throw new Error(`[FAIL-FAST] Pictionary state references empty seat ${seat}`);
 }

@@ -2,7 +2,6 @@
 
 import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
-import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import type { HostRevelation } from '../../../platform/room/hostReveal';
 import {
   buildRosterViewingParticipants,
@@ -194,10 +193,6 @@ export function getFibRole(roles: FibRoleAssignment, seat: number): FibRole {
 
 export function getFibBotUserId(roomCode: string, seat: number): string {
   return `fib-bot:${roomCode}:${seat}`;
-}
-
-export function getFibBotDisplayName(seat: number): string {
-  return getBotDisplayName(seat);
 }
 
 /** Returns the seats held by bots, ascending. */

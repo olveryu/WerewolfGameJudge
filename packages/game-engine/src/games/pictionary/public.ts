@@ -34,7 +34,6 @@ export { PICTIONARY_STATE_CODEC } from './state/codec';
 export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
 export {
   DEFAULT_PICTIONARY_CONFIG,
-  getPictionaryBotDisplayName,
   getPictionaryBotSeats,
   getPictionaryBotUserId,
   getPictionaryExpectedKind,

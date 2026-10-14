@@ -34,7 +34,6 @@ export {
   type DrawGuessStroke,
   type DrawGuessWordCategory,
   type DrawGuessWordChoice,
-  getDrawGuessBotDisplayName,
   getDrawGuessBotSeats,
   getDrawGuessOccupiedSeatCount,
   getDrawGuessRealHumanCount,

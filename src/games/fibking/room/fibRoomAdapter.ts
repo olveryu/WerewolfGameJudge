@@ -3,7 +3,6 @@
 import {
   type FibRole,
   type FibState,
-  getFibBotDisplayName,
   getFibBotUserId,
   getFibOccupiedSeatCount,
   getFibRole,
@@ -12,6 +11,7 @@ import {
   isFibBotSeat,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import {
@@ -121,7 +121,7 @@ export function getFibProfileTarget(state: FibState, seat: number): RoomProfileT
     state.roster,
     seat,
     (botSeat) => getFibBotUserId(state.roomCode, botSeat),
-    getFibBotDisplayName,
+    getBotDisplayName,
   );
 }
 
@@ -192,7 +192,7 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
             ? toRoomSeatPlayer({
                 kind: 'bot',
                 userId: getFibBotUserId(input.state.roomCode, index),
-                displayName: getFibBotDisplayName(index),
+                displayName: getBotDisplayName(index),
               })
             : null;
 

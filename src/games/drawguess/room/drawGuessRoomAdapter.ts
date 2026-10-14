@@ -5,11 +5,11 @@
 import {
   type DrawGuessCommand,
   type DrawGuessState,
-  getDrawGuessBotDisplayName,
   getDrawGuessBotSeats,
   getDrawGuessOccupiedSeatCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/drawguess/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -50,7 +50,7 @@ function getDrawGuessProfileTarget(state: DrawGuessState, seat: number): RoomPro
     state.roster,
     seat,
     (botSeat) => `drawguess-bot:${state.roomCode}:${botSeat}`,
-    getDrawGuessBotDisplayName,
+    getBotDisplayName,
   );
 }
 

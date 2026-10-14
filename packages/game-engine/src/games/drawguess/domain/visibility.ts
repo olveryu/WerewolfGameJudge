@@ -1,13 +1,9 @@
 /** DrawGuess per-seat view model: the answer never leaves the server for guessers. */
 
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView, getSeatDisplayName } from '../../../platform/room/seatIdentity';
 import { isBotOccupant } from '../../../platform/room/seating';
-import {
-  type DrawGuessPhaseKind,
-  type DrawGuessState,
-  getDrawGuessBotDisplayName,
-  isDrawGuessBotSeat,
-} from '../state/types';
+import { type DrawGuessPhaseKind, type DrawGuessState, isDrawGuessBotSeat } from '../state/types';
 import { buildHintText, computeRevealedCount } from './rules';
 
 export interface DrawGuessSeatView {
@@ -55,7 +51,7 @@ function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawG
     if (!isReal && !isBot) continue;
     const guessed = state.phase.kind === 'drawing' && state.phase.guessedSeats.includes(seat);
     views.push({
-      ...buildSeatIdentityView(state.roster, seat, getDrawGuessBotDisplayName),
+      ...buildSeatIdentityView(state.roster, seat, getBotDisplayName),
       isDrawer: drawerSeat === seat,
       isLocked: guessed,
       score: state.scores[seat] ?? 0,
@@ -72,7 +68,7 @@ function guessMessages(
   if (state.phase.kind !== 'drawing') return [];
   return state.phase.guessLog.map((entry) => ({
     seat: entry.seat,
-    displayName: getSeatDisplayName(state.roster, entry.seat, getDrawGuessBotDisplayName),
+    displayName: getSeatDisplayName(state.roster, entry.seat, getBotDisplayName),
     text: entry.correct && !isDrawer && entry.seat !== viewerSeat ? null : entry.text,
     correct: entry.correct,
     at: entry.at,

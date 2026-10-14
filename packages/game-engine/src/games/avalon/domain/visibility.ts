@@ -1,5 +1,6 @@
 /** Avalon per-seat view model: private night info is cropped by the viewer's role (UI-level privacy, D6-Q1). */
 
+import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
 import {
@@ -14,7 +15,6 @@ import {
   type AvalonRoleId,
   type AvalonState,
   type AvalonVoteMode,
-  getAvalonBotDisplayName,
   getAvalonOccupiedSeatCount,
   getAvalonViewingParticipants,
   isAvalonEvilRole,
@@ -162,7 +162,7 @@ function buildSeatViews(state: AvalonState): AvalonSeatView[] {
   for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
     if (!isAvalonOccupiedSeat(state, seat)) continue;
     views.push({
-      ...buildSeatIdentityView(state.roster, seat, getAvalonBotDisplayName),
+      ...buildSeatIdentityView(state.roster, seat, getBotDisplayName),
       isLeader: state.leaderSeat === seat,
       role: revealed ? (state.roles[seat] ?? null) : null,
     });

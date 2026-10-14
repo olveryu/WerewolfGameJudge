@@ -9,7 +9,6 @@ import {
   type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
-  getAvalonBotDisplayName,
   getAvalonBotSeats,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
@@ -19,6 +18,7 @@ import {
   isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
+import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
@@ -94,7 +94,7 @@ function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTa
     state.roster,
     seat,
     (botSeat) => `avalon-bot:${state.roomCode}:${botSeat}`,
-    getAvalonBotDisplayName,
+    getBotDisplayName,
   );
 }
 

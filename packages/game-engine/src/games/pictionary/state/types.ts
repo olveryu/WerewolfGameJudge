@@ -2,7 +2,6 @@
 
 import type { PictionaryGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
-import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
@@ -234,8 +233,4 @@ export function isPictionaryRoomFull(state: PictionaryState): boolean {
 
 export function getPictionaryBotUserId(roomCode: string, seat: number): string {
   return `pictionary-bot:${roomCode}:${seat}`;
-}
-
-export function getPictionaryBotDisplayName(seat: number): string {
-  return getBotDisplayName(seat);
 }
