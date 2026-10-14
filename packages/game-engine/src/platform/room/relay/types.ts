@@ -96,7 +96,6 @@ export interface RelayReasons {
   readonly task: string;
   readonly submitted: string;
   readonly text: string;
-  readonly deadline: string;
   readonly manual: string;
 }
 
