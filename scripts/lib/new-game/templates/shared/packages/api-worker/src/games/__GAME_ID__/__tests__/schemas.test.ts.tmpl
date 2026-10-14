@@ -1,0 +1,95 @@
+/** __GAME_PASCAL__ Worker boundary tests: strict create-config and public-command schemas. */
+
+import { describe, expect, it } from 'vitest';
+
+import { __GAME_CAMEL__WorkerModule } from '../module';
+import {
+  __GAME_CAMEL__CreateConfigSchema,
+  __GAME_CAMEL__InternalCommandSchema,
+  __GAME_CAMEL__PublicCommandSchema,
+} from '../schemas';
+
+describe('__GAME_PASCAL__ create config schema', () => {
+  it('accepts player counts inside the supported range', () => {
+    for (const numberOfPlayers of [4, 6, 12]) {
+      expect(__GAME_CAMEL__CreateConfigSchema.parse({ numberOfPlayers })).toEqual({
+        numberOfPlayers,
+      });
+    }
+  });
+
+  it('rejects out-of-range counts, missing fields and extra fields', () => {
+    expect(__GAME_CAMEL__CreateConfigSchema.safeParse({ numberOfPlayers: 3 }).success).toBe(false);
+    expect(__GAME_CAMEL__CreateConfigSchema.safeParse({ numberOfPlayers: 13 }).success).toBe(false);
+    expect(__GAME_CAMEL__CreateConfigSchema.safeParse({ numberOfPlayers: 7.5 }).success).toBe(false);
+    expect(__GAME_CAMEL__CreateConfigSchema.safeParse({}).success).toBe(false);
+    expect(
+      __GAME_CAMEL__CreateConfigSchema.safeParse({ numberOfPlayers: 6, extra: true }).success,
+    ).toBe(false);
+  });
+
+  it('creates the initial lobby state through the module', () => {
+    const created = __GAME_CAMEL__WorkerModule.createInitialState(
+      { numberOfPlayers: 6 },
+      { roomCode: '1234', hostUserId: 'host-1', nowMs: 1, commandId: 'create' },
+    );
+    if (created.kind !== 'created') throw new Error(created.reason);
+    expect(created.state.phase).toEqual({ kind: 'lobby' });
+    expect(created.state.config).toEqual({ numberOfPlayers: 6 });
+  });
+});
+
+describe('__GAME_PASCAL__ public command schema', () => {
+  it('accepts the room commands and the game commands with exact payloads', () => {
+    const accepted: unknown[] = [
+      {
+        type: 'room.seat.take',
+        seat: 0,
+        profile: { displayName: 'P0' },
+      },
+      { type: 'room.seat.leave' },
+      { type: 'room.seat.fillBots' },
+      { type: '__GAME_ID__.config.update', config: { numberOfPlayers: 6 } },
+      { type: '__GAME_ID__.game.start' },
+//#identity
+      { type: '__GAME_ID__.game.begin' },
+      { type: '__GAME_ID__.role.viewed' },
+      { type: '__GAME_ID__.bots.markAllBotsViewed' },
+//#end
+//#stage
+      { type: '__GAME_ID__.phase.expire' },
+//#end
+      { type: '__GAME_ID__.game.returnToLobby' },
+      { type: '__GAME_ID__.gameplay.example' },
+    ];
+    for (const command of accepted) {
+      expect(__GAME_CAMEL__PublicCommandSchema.safeParse(command).success).toBe(true);
+    }
+  });
+
+  it('rejects unknown commands, extra fields and worker-internal commands', () => {
+    expect(__GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.nope' }).success).toBe(
+      false,
+    );
+    expect(
+      __GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.game.start', extra: 1 })
+        .success,
+    ).toBe(false);
+//#stage
+    expect(
+      __GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.phase.settleExpired' })
+        .success,
+    ).toBe(false);
+    expect(
+      __GAME_CAMEL__InternalCommandSchema.safeParse({ type: '__GAME_ID__.phase.settleExpired' })
+        .success,
+    ).toBe(true);
+    expect(
+      __GAME_CAMEL__InternalCommandSchema.safeParse({ type: '__GAME_ID__.phase.expire' }).success,
+    ).toBe(false);
+//#end
+//#identity
+    expect(__GAME_CAMEL__InternalCommandSchema.safeParse({ type: 'anything' }).success).toBe(false);
+//#end
+  });
+});

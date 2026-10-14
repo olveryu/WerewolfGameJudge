@@ -1,0 +1,100 @@
+/** Authoritative __GAME_DISPLAY_NAME__ state; secret identities with the identity-viewing checkpoint. */
+
+import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
+import {
+  buildRosterViewingParticipants,
+  type IdentityViewingParticipant,
+} from '../../../platform/room/identityViewing';
+import type { RoomSeatProfile } from '../../../platform/room/roster';
+import {
+  countOccupiedSeats,
+  findRosterSeatByUserId,
+  type RosterMap,
+  type SeatOccupant,
+} from '../../../platform/room/seating';
+
+export const __GAME_UPPER___GAME_TYPE = '__GAME_ID__' as const;
+
+// TODO(gameplay): 人数上下限与默认值是骨架占位，按 docs/__GAME_ID__-game-design.md 定稿后改。
+export const __GAME_UPPER___MIN_PLAYERS = 4;
+export const __GAME_UPPER___MAX_PLAYERS = 12;
+export const __GAME_UPPER___DEFAULT_PLAYERS = 6;
+
+export interface __GAME_PASCAL__Config {
+  readonly numberOfPlayers: number;
+}
+
+export const DEFAULT___GAME_UPPER___CONFIG: __GAME_PASCAL__Config = {
+  numberOfPlayers: __GAME_UPPER___DEFAULT_PLAYERS,
+};
+
+/** Checks supported lobby settings without replacing invalid values. */
+export function isValid__GAME_PASCAL__Config(config: __GAME_PASCAL__Config): boolean {
+  return (
+    Number.isSafeInteger(config.numberOfPlayers) &&
+    config.numberOfPlayers >= __GAME_UPPER___MIN_PLAYERS &&
+    config.numberOfPlayers <= __GAME_UPPER___MAX_PLAYERS
+  );
+}
+
+export type __GAME_PASCAL__Phase =
+  | { readonly kind: 'lobby' }
+  | { readonly kind: 'viewing' }
+  // TODO(gameplay): playing 阶段的玩法字段（轮次、当前行动座位等）加在这里，
+  // 并同步 parseState / normalize / visibility 三处。
+  | { readonly kind: 'playing' }
+  | { readonly kind: 'ended' };
+
+export const __GAME_PASCAL___PHASES = ['lobby', 'viewing', 'playing', 'ended'] as const;
+export type __GAME_PASCAL__PhaseKind = (typeof __GAME_PASCAL___PHASES)[number];
+
+export interface __GAME_PASCAL__HumanSeat extends SeatOccupant {
+  readonly profile: RoomSeatProfile;
+}
+
+/**
+ * TODO(gameplay): 发牌产出的占位身份。身份构成（角色表、阵营、人数对应表）是
+ * 内容层：把 deal__GAME_PASCAL__Identities（domain/rules.ts）换成真实构成后，
+ * 身份值的类型也应收紧为本游戏的身份枚举。
+ */
+export const __GAME_UPPER___TODO_IDENTITY = 'todo';
+
+export interface __GAME_PASCAL__State extends BaseGameState<typeof __GAME_UPPER___GAME_TYPE> {
+  readonly phase: __GAME_PASCAL__Phase;
+  readonly phaseRevision: number;
+  readonly config: __GAME_PASCAL__Config;
+  readonly roster: RosterMap<__GAME_PASCAL__HumanSeat>;
+  /** seat -> 身份；发牌后写入，visibility 按查看者裁剪，终局才全公开。 */
+  readonly identities: Readonly<Record<number, string>>;
+  /** 已查看自己身份的座位（Identity Viewing Protocol）；全员含机器人齐全才能开始。 */
+  readonly roleViewedSeats: readonly number[];
+  /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
+  readonly gameSequence: number;
+  /** 终局结算 effect 恰好发出一次的标记。 */
+  readonly xpSettled: boolean;
+}
+
+/** Returns the seat held by a user, or null when they hold no seat. */
+export function get__GAME_PASCAL__UserSeat(
+  state: __GAME_PASCAL__State,
+  userId: string,
+): number | null {
+  return findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, userId);
+}
+
+/** Counts occupied seats (real humans plus bots). */
+export function get__GAME_PASCAL__OccupiedSeatCount(state: __GAME_PASCAL__State): number {
+  return countOccupiedSeats(state.roster);
+}
+
+/** Seat is playable: occupied by a real human or a bot. */
+export function is__GAME_PASCAL__OccupiedSeat(state: __GAME_PASCAL__State, seat: number): boolean {
+  return state.roster[seat] != null;
+}
+
+/** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
+export function get__GAME_PASCAL__ViewingParticipants(
+  state: __GAME_PASCAL__State,
+): readonly IdentityViewingParticipant[] {
+  return buildRosterViewingParticipants(state.roster, state.config.numberOfPlayers);
+}

@@ -1,0 +1,108 @@
+/** Lobby-only __GAME_PASCAL__ seating using the shared roster decisions. */
+
+import {
+  type CommandContext,
+  reject,
+  resolveUncontrolledUserActorId,
+} from '../../../platform/engine';
+import { REASON_NOT_HOST, REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
+import {
+  decideRosterClearSeats,
+  decideRosterFillBots,
+  decideRosterKickSeat,
+  decideRosterLeaveSeat,
+  decideRosterTakeSeat,
+  findRosterSeatByUserId,
+  hasOccupantAtOrBeyond,
+  isBotOccupant,
+  type RosterChange,
+} from '../../../platform/room/seating';
+import type { __GAME_PASCAL__Command } from '../commands/types';
+import { type __GAME_PASCAL__HumanSeat, type __GAME_PASCAL__State, isValid__GAME_PASCAL__Config } from '../state/types';
+import {
+  __GAME_UPPER___REASONS,
+  type __GAME_PASCAL__Decision,
+  commit__GAME_PASCAL__,
+  require__GAME_PASCAL__Host,
+} from './decision';
+
+type RoomCommand = Extract<
+  __GAME_PASCAL__Command,
+  { readonly type: `room.${string}` | '__GAME_ID__.config.update' }
+>;
+
+function seats(changes: readonly RosterChange<__GAME_PASCAL__HumanSeat>[]): __GAME_PASCAL__Decision {
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.seats.changed', changes }]);
+}
+
+/** Decides lobby and profile changes with authenticated ownership. */
+export function decide__GAME_PASCAL__Room(
+  state: __GAME_PASCAL__State,
+  command: RoomCommand,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  if (command.type === 'room.profile.update') {
+    const actor = resolveUncontrolledUserActorId(context);
+    if (actor.kind === 'rejected') return reject(actor.reason);
+    const seat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
+    if (seat === null) return reject(REASON_NOT_SEATED);
+    const occupant = state.roster[seat];
+    if (occupant == null || isBotOccupant(occupant)) return reject(REASON_NOT_SEATED);
+    return seats([
+      {
+        seat,
+        previous: occupant,
+        next: { ...occupant, profile: { ...occupant.profile, ...command.profile } },
+      },
+    ]);
+  }
+  if (state.phase.kind !== 'lobby') return reject(__GAME_UPPER___REASONS.phase);
+  if (command.type === 'room.seat.take' || command.type === 'room.seat.leave') {
+    const actor = resolveUncontrolledUserActorId(context);
+    if (actor.kind === 'rejected') return reject(actor.reason);
+    if (command.type === 'room.seat.take' && command.profile.displayName.trim().length === 0)
+      return reject(__GAME_UPPER___REASONS.config);
+    const result =
+      command.type === 'room.seat.take'
+        ? decideRosterTakeSeat(
+            state.roster,
+            state.config.numberOfPlayers,
+            command.seat,
+            actor.value,
+            (seat): __GAME_PASCAL__HumanSeat => ({
+              seat,
+              userId: actor.value,
+              profile: { ...command.profile },
+            }),
+          )
+        : decideRosterLeaveSeat(state.roster, state.config.numberOfPlayers, actor.value);
+    if (result.kind === 'rejected') return reject(result.reason);
+    return seats(result.changes);
+  }
+  const hostRejection = require__GAME_PASCAL__Host(state, context, REASON_NOT_HOST);
+  if (hostRejection !== null) return hostRejection;
+  switch (command.type) {
+    case '__GAME_ID__.config.update': {
+      if (!isValid__GAME_PASCAL__Config(command.config)) return reject(__GAME_UPPER___REASONS.config);
+      if (hasOccupantAtOrBeyond(state.roster, command.config.numberOfPlayers))
+        return reject(__GAME_UPPER___REASONS.occupied);
+      return commit__GAME_PASCAL__([
+        { type: '__GAME_ID__.config.updated', config: { ...command.config } },
+      ]);
+    }
+    case 'room.seat.fillBots': {
+      const result = decideRosterFillBots(state.roster, state.config.numberOfPlayers);
+      return result.kind === 'rejected' ? reject(result.reason) : seats(result.changes);
+    }
+    case 'room.seat.kick': {
+      const result = decideRosterKickSeat(state.roster, state.config.numberOfPlayers, command.seat);
+      return result.kind === 'rejected' ? reject(result.reason) : seats(result.changes);
+    }
+    case 'room.seat.clear': {
+      const result = decideRosterClearSeats(state.roster, state.config.numberOfPlayers);
+      return result.kind === 'rejected' ? reject(result.reason) : seats(result.changes);
+    }
+    default:
+      return reject(__GAME_UPPER___REASONS.phase);
+  }
+}

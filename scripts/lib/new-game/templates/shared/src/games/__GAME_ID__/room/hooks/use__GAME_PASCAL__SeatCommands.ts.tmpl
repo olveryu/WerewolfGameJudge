@@ -1,0 +1,28 @@
+/**
+ * 把共享座位命令绑定到已认证的__GAME_DISPLAY_NAME__资料。
+ */
+
+import type { __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
+import type { RoomSeatProfile } from '@game-judge/game-engine/platform/room/roster';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+
+import type { User } from '@/contexts/AuthContext';
+import { useRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
+import { createSeatProfile } from '@/features/room/model/createSeatProfile';
+import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+
+/** 使用标准资料字段与共享命令客户端处理全部座位变更。 */
+export function use__GAME_PASCAL__SeatCommands(session: __GAME_PASCAL__RoomSession, user: User) {
+  const queryClient = useQueryClient();
+  const createProfile = useCallback(
+    (identity: { readonly room: { readonly roomCode: string } }): RoomSeatProfile =>
+      createSeatProfile(user, queryClient, identity.room.roomCode),
+    [queryClient, user],
+  );
+  return useRoomSeatCommands<__GAME_PASCAL__State, RoomSeatProfile>({
+    session,
+    userId: user.id,
+    createProfile,
+  });
+}
