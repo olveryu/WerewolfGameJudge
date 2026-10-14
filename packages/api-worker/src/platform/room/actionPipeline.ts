@@ -15,6 +15,7 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 import type {
   RuntimeCommittedDecision,
   RuntimeWorkerGameModule,
+  WorkerEffectBusinessContext,
   WorkerGameModuleResolver,
 } from '../gameModules/runtimeGameModule';
 import { derivePlatformRoomEffects, getPlatformRoomEffectBusinessKey } from './platformEffects';
@@ -85,26 +86,35 @@ function buildOutboxEffects(
     committedRevision: createdRevision,
     nowMs,
   });
+  const effectContext: WorkerEffectBusinessContext = {
+    originCommandId: request.commandId,
+    createdRevision,
+  };
   const scopedEffects: readonly {
     readonly scope: 'platform' | 'game';
     readonly effect: GameEffect;
     readonly businessKey: string;
+    readonly availableAt: number | null;
   }[] = [
     ...platformEffects.map((effect) => ({
       scope: 'platform' as const,
       effect,
       businessKey: getPlatformRoomEffectBusinessKey(effect),
+      availableAt: null,
     })),
     ...decision.effects.map((effect) => ({
       scope: 'game' as const,
       effect,
-      businessKey: module.getEffectBusinessKey(effect, {
-        originCommandId: request.commandId,
-        createdRevision,
-      }),
+      businessKey: module.getEffectBusinessKey(effect, effectContext),
+      availableAt: module.getEffectDeliveryAt?.(effect, effectContext) ?? null,
     })),
   ];
-  return scopedEffects.map(({ scope, effect, businessKey }, index) => {
+  return scopedEffects.map(({ scope, effect, businessKey, availableAt }, index) => {
+    if (availableAt !== null && (!Number.isSafeInteger(availableAt) || availableAt < 0)) {
+      throw new Error(
+        `Game module ${room.gameType} produced an invalid effect delivery time: ${availableAt}`,
+      );
+    }
     const id = `${room.roomCode}:${request.commandId}:${index}`;
     return {
       id,
@@ -112,6 +122,7 @@ function buildOutboxEffects(
       scope,
       gameType: room.gameType,
       effect,
+      availableAt,
     };
   });
 }

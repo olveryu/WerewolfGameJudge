@@ -79,6 +79,8 @@ export interface NewOutboxEffect {
   readonly scope: EffectScope;
   readonly gameType: GameType;
   readonly effect: GameEffect;
+  /** Delivery time (epoch ms); null/omitted delivers immediately. */
+  readonly availableAt?: number | null;
 }
 
 export interface PersistRoomCommand {
@@ -632,7 +634,7 @@ export class RoomRepository {
           outboxEffect.effect.type,
           outboxEffect.businessKey,
           JSON.stringify(outboxEffect.effect),
-          command.decidedAt,
+          outboxEffect.availableAt ?? command.decidedAt,
           nextRevision,
           command.decidedAt,
         );
@@ -640,7 +642,24 @@ export class RoomRepository {
 
       this.deleteExpiredReceipts(command.decidedAt);
       if (command.effects.length > 0) {
-        await this.#storage.setAlarm(command.decidedAt);
+        // Wake at the earliest delivery time among the new effects, but
+        // never push an already-armed earlier alarm later: a parked
+        // effect (e.g. a scheduled settlement) must keep its wake time
+        // when unrelated immediate effects are inserted after it.
+        let earliestDeliveryAt: number | null = null;
+        for (const outboxEffect of command.effects) {
+          const deliveryAt = outboxEffect.availableAt ?? command.decidedAt;
+          if (earliestDeliveryAt === null || deliveryAt < earliestDeliveryAt) {
+            earliestDeliveryAt = deliveryAt;
+          }
+        }
+        const armedAlarmAt = await this.#storage.getAlarm();
+        if (
+          earliestDeliveryAt !== null &&
+          (armedAlarmAt === null || earliestDeliveryAt < armedAlarmAt)
+        ) {
+          await this.#storage.setAlarm(earliestDeliveryAt);
+        }
       }
     });
   }

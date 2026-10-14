@@ -84,6 +84,12 @@ export interface RuntimeWorkerGameModule {
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   getPublicUserStats(userId: string, bindings: Env): Promise<unknown>;
   getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
+  /**
+   * Optional delivery time (epoch ms) for one effect. Null (or an absent
+   * hook) means the outbox delivers immediately; a future time parks the
+   * effect until the room alarm reaches it.
+   */
+  getEffectDeliveryAt?(effect: unknown, context: WorkerEffectBusinessContext): number | null;
   getEffectFailureCommand(effect: unknown, state: unknown): GameCommand | null;
   canReplayFailedEffect(effect: unknown): boolean;
   handleEffect(effect: unknown, context: RuntimeWorkerEffectContext): Promise<void>;
