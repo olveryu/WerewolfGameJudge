@@ -37,6 +37,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/drawguess/public',
   './games/fibking/public',
   './games/pictionary/public',
+  './games/registry',
   './games/storyrelay/public',
   './games/undercover/public',
   './games/werewolf/public',
@@ -383,7 +384,7 @@ describe('game-engine ownership layout', () => {
     const invalidGameExports = readPackageExports()
       .map(({ exportPath }) => exportPath)
       .filter((exportPath) => {
-        if (exportPath === './games/catalog') return false;
+        if (exportPath === './games/catalog' || exportPath === './games/registry') return false;
         const match = GAME_EXPORT_PATTERN.exec(exportPath);
         if (match === null) return false;
         if (match[1] === 'catalog') return true;

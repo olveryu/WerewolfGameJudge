@@ -8,6 +8,10 @@
       "types": "./src/games/catalog.ts",
       "default": "./dist/games/catalog.js"
     },
+    "./games/registry": {
+      "types": "./src/games/registry.ts",
+      "default": "./dist/games/registry.js"
+    },
     "./games/werewolf/public": {
       "types": "./src/games/werewolf/public.ts",
       "default": "./dist/games/werewolf/public.js"

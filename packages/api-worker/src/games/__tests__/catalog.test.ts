@@ -5,6 +5,7 @@ import {
   type FibInternalCommand,
   type FibPublicCommand,
 } from '@game-judge/game-engine/games/fibking/public';
+import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import {
   werewolfEngine,
   type WerewolfInternalCommand,
@@ -13,7 +14,11 @@ import {
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 
-import { WORKER_GAME_CATALOG, WORKER_GAME_HTTP_ROUTES } from '../catalog';
+import {
+  type RegisteredWorkerGameHttpRoute,
+  WORKER_GAME_CATALOG,
+  WORKER_GAME_HTTP_ROUTES,
+} from '../catalog';
 import { drawGuessMediaRoutes } from '../drawguess/mediaRoutes';
 import { fibEffectSchema } from '../fibking/effects';
 import {
@@ -142,30 +147,29 @@ describe('Worker game catalog', () => {
   });
 
   it('projects game-owned HTTP routes from the same catalog', () => {
-    expect(WORKER_GAME_HTTP_ROUTES).toEqual([
-      {
-        gameType: 'werewolf',
-        path: '/api/games/werewolf/ai-chat',
-        router: werewolfAiChatRoutes,
-      },
-      {
-        gameType: 'pictionary',
-        path: '/api/games/pictionary/rooms',
-        router: pictionaryMediaRoutes,
-      },
-      {
-        gameType: 'undercover',
-        path: '/api/games/undercover/inventory',
-        router: undercoverInventoryRoutes,
-      },
-      {
-        gameType: 'drawguess',
-        path: '/api/games/drawguess/rooms',
-        router: drawGuessMediaRoutes,
-      },
-    ]);
-    expect(WORKER_GAME_CATALOG.fibking.httpRoutes).toEqual([]);
-    expect(WORKER_GAME_CATALOG.avalon.httpRoutes).toEqual([]);
+    const routerByPath: Readonly<Record<string, RegisteredWorkerGameHttpRoute['router']>> = {
+      '/api/games/werewolf/ai-chat': werewolfAiChatRoutes,
+      '/api/games/pictionary/rooms': pictionaryMediaRoutes,
+      '/api/games/undercover/inventory': undercoverInventoryRoutes,
+      '/api/games/drawguess/rooms': drawGuessMediaRoutes,
+    };
+    const expectedRoutes = GAME_TYPES.flatMap((gameType) =>
+      GAME_REGISTRY[gameType].httpRoutes.map((routePath) => {
+        const router: RegisteredWorkerGameHttpRoute['router'] | undefined = routerByPath[routePath];
+        if (router === undefined) {
+          throw new Error(`No test router binding for registered HTTP route ${routePath}`);
+        }
+        return { gameType, path: routePath, router };
+      }),
+    );
+
+    expect(WORKER_GAME_HTTP_ROUTES).toEqual(expectedRoutes);
+
+    for (const gameType of GAME_TYPES) {
+      expect(WORKER_GAME_CATALOG[gameType].httpRoutes.map((route) => route.path)).toEqual([
+        ...GAME_REGISTRY[gameType].httpRoutes,
+      ]);
+    }
   });
 
   it('binds the concrete Werewolf engine, codec, and schemas', () => {
