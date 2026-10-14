@@ -24,14 +24,8 @@ import {
   type GameEffect,
   type GameEvent,
   reject,
-  resolveUserActorId,
 } from '../../engine';
-import {
-  REASON_CONTROLLED_SEAT_NOT_BOT,
-  REASON_NOT_HOST,
-  REASON_NOT_SEATED,
-} from '../../protocol/reasons';
-import { findRosterSeatByUserId, isBotSeat } from '../seating';
+import { resolveActingSeat } from '../actingSeat';
 import { relayDeadline } from './clock';
 import type {
   RelayActorSlice,
@@ -176,14 +170,9 @@ export function decideRelayTask<
   if (state.phase !== phase) return reject(kit.reasons.phase);
   if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt)
     return reject(kit.reasons.taskExpired ?? kit.reasons.task);
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  let seat = context.controlledSeat;
-  if (seat !== null) {
-    if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!isBotSeat(state.roster, seat)) return reject(REASON_CONTROLLED_SEAT_NOT_BOT);
-  } else seat = findRosterSeatByUserId(state.roster, kit.shape.numberOfPlayers, actor.value);
-  if (seat === null) return reject(REASON_NOT_SEATED);
+  const acting = resolveActingSeat(state, kit.shape.numberOfPlayers, context);
+  if (acting.kind === 'rejected') return reject(acting.reason);
+  const seat = acting.value;
   if (!matchesRelayTask(state, command, seat, kit.shape.numberOfPlayers, hooks.stripPreviousEntry))
     return reject(kit.reasons.task);
   const task = getRelayTaskForSeat(
