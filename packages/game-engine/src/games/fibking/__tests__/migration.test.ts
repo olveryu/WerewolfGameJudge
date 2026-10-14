@@ -159,6 +159,23 @@ describe('FibKing v6 -> v7 roster migration', () => {
     const legacyLobby = JSON.parse(JSON.stringify(lobby)) as Record<string, unknown>;
     legacyLobby.stateVersion = 7;
     expect(migratePersistedFibState(legacyLobby)).toEqual(lobby);
+
+    // Ongoing and ended v7 rounds (no guesses could exist under v7)
+    // migrate field for field as well.
+    const toV7Document = (current: FibState): Record<string, unknown> => {
+      const legacy = JSON.parse(JSON.stringify(current)) as Record<string, unknown>;
+      delete (legacy.round as Record<string, unknown>).guesses;
+      legacy.stateVersion = 7;
+      return legacy;
+    };
+    let ongoing = dispatch(state, { type: 'fibking.round.confirmRoleView' });
+    ongoing = dispatch(ongoing, { type: 'fibking.round.markAllBotsViewed' });
+    ongoing = dispatch(ongoing, { type: 'fibking.round.begin' });
+    expect(ongoing.phase).toBe('ongoing');
+    expect(migratePersistedFibState(toV7Document(ongoing))).toEqual(ongoing);
+    const ended = dispatch(ongoing, { type: 'fibking.round.reveal' });
+    expect(ended.phase).toBe('ended');
+    expect(migratePersistedFibState(toV7Document(ended))).toEqual(ended);
   });
 
   it('tolerates legacy exclusions naming human, duplicate, or out-of-range seats', () => {
