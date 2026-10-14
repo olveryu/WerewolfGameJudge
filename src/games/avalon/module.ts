@@ -18,7 +18,6 @@ import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 import type { AudioService } from '@/services/infra/AudioService';
 
 import { AvalonAudioPlayer } from './audio/AvalonAudioPlayer';
-import { AvalonLockGate } from './components/AvalonLockGate';
 import { avalonHomeContribution } from './home';
 import { avalonGameNavigation } from './navigation/avalonGameNavigation';
 import { AvalonRoomScreen } from './room/AvalonRoomScreen';
@@ -46,14 +45,10 @@ export function createAvalonUiModule({
     canSwitchAccount: (state) => state.phase.kind === 'lobby',
   });
   function BoundAvalonRoomScreen(props: GameRoomScreenProps<'avalon'>) {
-    return createElement(
-      AvalonLockGate,
-      null,
-      createElement(AvalonRoomScreen, { ...props, session, audio }),
-    );
+    return createElement(AvalonRoomScreen, { ...props, session, audio });
   }
   function BoundAvalonConfigScreen() {
-    return createElement(AvalonLockGate, null, createElement(AvalonConfigScreen, { session }));
+    return createElement(AvalonConfigScreen, { session });
   }
   return {
     gameType: 'avalon',
