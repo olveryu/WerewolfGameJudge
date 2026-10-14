@@ -94,9 +94,14 @@ export interface RelayRoundSlice<TEntry> {
 export interface RelayReasons {
   readonly phase: string;
   readonly task: string;
+  /**
+   * Reason for a task command that arrives after its phase
+   * deadline. Optional: a game whose late-arrival and stale-task
+   * points share one string omits it and falls back to `task`.
+   */
+  readonly taskExpired?: string;
   readonly submitted: string;
   readonly text: string;
-  readonly deadline: string;
   readonly manual: string;
 }
 

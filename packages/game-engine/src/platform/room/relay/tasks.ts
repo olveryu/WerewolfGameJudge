@@ -9,7 +9,8 @@
  *
  * Submission decisions run one gate order for every relay game:
  * phase, deadline, actor (host takeover of a bot seat, or the actor's
- * own seat), task identity, duplicate. When the last missing entry of
+ * own seat), task identity, duplicate, then any game-owned submission
+ * gate (expected entry kind, in-flight work). When the last missing entry of
  * a step lands, the step advances into a timed transition; what a
  * completed final step fires (the round-completed event and the
  * settlement effect) is injected per game — the games currently
@@ -96,11 +97,25 @@ export interface RelayTaskHooks<
   readonly stripPreviousEntry: (entry: TEntry) => TPrevious;
   /** The game's own text rule; shared code only decides where rejection lands. */
   readonly validateText: (text: string) => boolean;
+  /**
+   * The entry kind a step expects, when a game's steps are not all
+   * text: text submissions land only on steps expecting 'text'.
+   * Omitted by games whose steps all take text.
+   */
+  readonly expectedKind?: (stepIndex: number) => string;
+  /**
+   * Extra game-owned submission gate (for example in-flight work
+   * that already claims the seat's submission), checked after the
+   * duplicate gate and before content validation; returns the
+   * game's rejection reason or null to let the submission through.
+   */
+  readonly submissionRejection?: (seat: number) => string | null;
   /** Builds the game's entry for a text or empty submission. */
   readonly buildEntry: (
     submission: { readonly kind: 'text'; readonly text: string } | { readonly kind: 'empty' },
     seat: number,
     context: CommandContext,
+    task: RelayTask<TPrevious>,
   ) => TEntry;
   /**
    * Fires when the final step's last entry lands: the game's
@@ -160,7 +175,7 @@ export function decideRelayTask<
   const phase = command.kind === 'ready' ? 'answering' : 'settling';
   if (state.phase !== phase) return reject(kit.reasons.phase);
   if (state.deadlineAt !== null && context.nowMs >= state.deadlineAt)
-    return reject(kit.reasons.task);
+    return reject(kit.reasons.taskExpired ?? kit.reasons.task);
   const actor = resolveUserActorId(context);
   if (actor.kind === 'rejected') return reject(actor.reason);
   let seat = context.controlledSeat;
@@ -185,11 +200,22 @@ export function decideRelayTask<
       events.push(kit.phaseChanged('settling', null, state.stepIndex, null));
     return kit.commit(events);
   }
+  if (
+    command.kind === 'text' &&
+    hooks.expectedKind !== undefined &&
+    hooks.expectedKind(state.stepIndex) !== 'text'
+  )
+    return reject(kit.reasons.task);
+  if (hooks.submissionRejection !== undefined) {
+    const reason = hooks.submissionRejection(seat);
+    if (reason !== null) return reject(reason);
+  }
   if (command.kind === 'text' && !hooks.validateText(command.text)) return reject(kit.reasons.text);
   const entry = hooks.buildEntry(
     command.kind === 'text' ? { kind: 'text', text: command.text } : { kind: 'empty' },
     seat,
     context,
+    task,
   );
   return appendRelayEntry(kit, state, { chainId: task.chainId, entry }, context.nowMs, hooks);
 }
