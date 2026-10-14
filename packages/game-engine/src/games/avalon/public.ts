@@ -19,10 +19,13 @@ export {
   nextAvalonLeaderSeat,
 } from './domain/rules';
 export {
+  type AvalonCurrentProposalView,
   type AvalonLadyCheckResultView,
   type AvalonLadyView,
   type AvalonLastVoteResultView,
+  type AvalonProposalRecordView,
   type AvalonQuestHistoryView,
+  type AvalonRoundRecordView,
   type AvalonSeatView,
   type AvalonViewModel,
   getAvalonViewModel,
