@@ -4,8 +4,8 @@
  * action driven by the host through controlled seats, as in play).
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
@@ -68,7 +68,7 @@ function session() {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: PLAYER_COUNT },
     { roomCode: '1234', hostUserId: 'host', nowMs, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, controlledSeat: number | null = null) => {
+  const send = (command: AvalonPublicCommand, controlledSeat: number | null = null) => {
     const context: CommandContext = {
       actor: { kind: 'user', userId: 'host' },
       controlledSeat,
@@ -85,7 +85,7 @@ function session() {
     );
   };
   /** Acts for a seat the way the client does: plainly for the host seat, via takeover for bots. */
-  const sendAsSeat = (command: AvalonCommand, seat: number) =>
+  const sendAsSeat = (command: AvalonPublicCommand, seat: number) =>
     send(command, seat === 0 ? null : seat);
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });

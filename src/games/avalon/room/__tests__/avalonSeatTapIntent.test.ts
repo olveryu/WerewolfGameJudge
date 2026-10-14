@@ -4,8 +4,8 @@
  * profile, empty seats take or move. States come from the real engine.
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -20,7 +20,7 @@ function lobbyState(): AvalonState {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host') => {
+  const send = (command: AvalonPublicCommand, userId = 'host') => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,

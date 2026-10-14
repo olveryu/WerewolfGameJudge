@@ -4,8 +4,8 @@
  * mirroring the vote phase's 已投票 badge. States come from the real engine.
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
@@ -21,7 +21,11 @@ function questPhaseSession() {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host', controlledSeat: number | null = null) => {
+  const send = (
+    command: AvalonPublicCommand,
+    userId = 'host',
+    controlledSeat: number | null = null,
+  ) => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat,
@@ -94,7 +98,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
       { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
     );
-    const send = (command: AvalonCommand, userId = 'host') => {
+    const send = (command: AvalonPublicCommand, userId = 'host') => {
       const context: CommandContext = {
         actor: { kind: 'user', userId },
         controlledSeat: null,
@@ -134,7 +138,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
       { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
     );
-    const send = (command: AvalonCommand, userId = 'host') => {
+    const send = (command: AvalonPublicCommand, userId = 'host') => {
       const context: CommandContext = {
         actor: { kind: 'user', userId },
         controlledSeat: null,
@@ -230,7 +234,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
       { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
       { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
     );
-    const send = (command: AvalonCommand, userId = 'host') => {
+    const send = (command: AvalonPublicCommand, userId = 'host') => {
       const context: CommandContext = {
         actor: { kind: 'user', userId },
         controlledSeat: null,

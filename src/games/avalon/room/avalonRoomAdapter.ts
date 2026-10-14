@@ -5,8 +5,8 @@
 import {
   AVALON_BOARDS,
   AVALON_NIGHT_STEPS,
-  type AvalonCommand,
   type AvalonNightStep,
+  type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
   getAvalonBotDisplayName,
@@ -647,7 +647,7 @@ export interface AvalonHostManagementInput {
   readonly releaseBot: () => void;
   readonly submit: (
     label: string,
-    command: AvalonCommand,
+    command: AvalonPublicCommand,
     control?: number | null,
   ) => Promise<boolean>;
 }

@@ -13,7 +13,10 @@
  * 保留：重入 guard、单段失败跳过继续、空队列不 ack。
  */
 
-import type { AvalonAudioEffect, AvalonCommand } from '@game-judge/game-engine/games/avalon/public';
+import type {
+  AvalonAudioEffect,
+  AvalonPublicCommand,
+} from '@game-judge/game-engine/games/avalon/public';
 import { useCallback, useEffect, useRef } from 'react';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -44,7 +47,7 @@ export function useAvalonAudioOrchestration({
   const ackedRef = useRef<string | null>(null);
   const pendingAckRef = useRef<{
     queueKey: string;
-    prepared: PreparedRoomCommand<AvalonCommand>;
+    prepared: PreparedRoomCommand<AvalonPublicCommand>;
   } | null>(null);
   const queueKeyRef = useRef<string | null>(null);
 

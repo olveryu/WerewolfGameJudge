@@ -7,8 +7,8 @@
  * SeatTapPolicy NOOP), never the seat-locked alert.
  */
 import {
-  type AvalonCommand,
   avalonEngine,
+  type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -44,7 +44,7 @@ function viewingStateWithBots(): AvalonState {
     { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
-  const send = (command: AvalonCommand, userId = 'host') => {
+  const send = (command: AvalonPublicCommand, userId = 'host') => {
     const context: CommandContext = {
       actor: { kind: 'user', userId },
       controlledSeat: null,
