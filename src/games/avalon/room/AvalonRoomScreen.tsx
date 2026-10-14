@@ -35,6 +35,7 @@ import {
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
+import { useRevealWatermark } from './hooks/useRevealWatermark';
 import {
   eligibleStrikeTargets,
   resolveAssassinInstruction,
@@ -101,16 +102,20 @@ function AvalonRoomContent(
       : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
         `座位${strikeConfirm.seat + 1}`);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
-  // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）；
-  // 新一轮提案会把 lastVoteResult 清零，届时重置 dismissed。
+  // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）。
+  // 水位语义见 useRevealWatermark：进房前已结算的结果只作基线、不重弹。
+  // lastVoteResult 本身没有序号字段，它恒等于 roundHistory 最后一条已结算
+  // 提案，故以对局代次 + 全量已结算提案数给它定身份键。
   const voteResult = viewModel?.lastVoteResult ?? null;
-  const [voteResultDismissed, setVoteResultDismissed] = useState(false);
-  useEffect(() => {
-    if (voteResult === null) setVoteResultDismissed(false);
-  }, [voteResult]);
+  const settledProposalCount =
+    viewModel?.roundHistory.reduce((total, record) => total + record.proposals.length, 0) ?? 0;
+  const voteResultWatermark = useRevealWatermark(
+    voteResult === null ? null : `${screen.state.gameSequence}:vote:${settledProposalCount}`,
+    viewModel !== null,
+  );
   const showVoteResult =
     voteResult !== null &&
-    !voteResultDismissed &&
+    voteResultWatermark.shouldReveal &&
     viewModel !== null &&
     (viewModel.phase === 'nominate' || viewModel.phase === 'quest');
   // 投票/出牌弹窗：每轮自动弹一次（按轮次键去重），关后不重弹，底部按钮可重开。
@@ -148,11 +153,16 @@ function AvalonRoomContent(
     }
   }, [viewModel, questRoundKey, setQuestModalOpen]);
   // 任务结算面板：每轮任务结算后展示一次（终局由终局视图接管）。
+  // 身份键 = 对局代次 + 已结算任务数：questHistory 只增不减，条数即序号；
+  // 进房时第一份快照的条数只作基线（旧任务结果不重弹，见 useRevealWatermark）。
   const questHistoryCount = viewModel?.questHistory.length ?? 0;
-  const [questResultSeenCount, setQuestResultSeenCount] = useState(0);
+  const questResultWatermark = useRevealWatermark(
+    questHistoryCount === 0 ? null : `${screen.state.gameSequence}:quest:${questHistoryCount}`,
+    viewModel !== null,
+  );
   const questResultEntry =
     viewModel !== null &&
-    questHistoryCount > questResultSeenCount &&
+    questResultWatermark.shouldReveal &&
     (viewModel.phase === 'nominate' || viewModel.phase === 'lady' || viewModel.phase === 'assassin')
       ? viewModel.questHistory[questHistoryCount - 1]
       : undefined;
@@ -194,27 +204,25 @@ function AvalonRoomContent(
       setLadyAckOpen(true);
     }
   }, [viewModel, setLadyAckOpen]);
-  // 结果弹窗去重按结果本身的值（同一局内同一座位只会被查验一次，值即身份）；
-  // 结果消失（新局）时重置已看记录。不能把轮次编进键：轮次推进会误判旧结果为新结果。
+  // 结果弹窗的身份键按结果本身的值（同一局内同一座位只会被查验一次，值即
+  // 身份）；不能把轮次编进键：轮次推进会误判旧结果为新结果。前缀对局代次
+  // 只防跨局同值碰撞。水位语义见 useRevealWatermark：进房前已有的查验结果
+  // 只作基线、不重弹；底部「查验结果」按钮是设计内的主动重看（reveal）。
   const ladyResult = viewModel?.ladyCheckResult ?? null;
-  const [ladyResultSeen, setLadyResultSeen] = useState<{
-    readonly targetSeat: number;
-    readonly faction: 'good' | 'evil';
-  } | null>(null);
-  useEffect(() => {
-    if (ladyResult === null) setLadyResultSeen(null);
-  }, [ladyResult]);
-  // 底部动作区「查验结果」重开入口：经 hook 注册回本组件，清已阅即重弹结果弹窗。
+  const ladyResultWatermark = useRevealWatermark(
+    ladyResult === null
+      ? null
+      : `${screen.state.gameSequence}:lady:${ladyResult.targetSeat}:${ladyResult.faction}`,
+    viewModel !== null,
+  );
+  // 底部动作区「查验结果」重开入口：经 hook 注册回本组件，强制重弹结果弹窗。
   const { setLadyResultReopenHandler } = screen;
+  const ladyResultReveal = ladyResultWatermark.reveal;
   useEffect(() => {
-    setLadyResultReopenHandler(() => setLadyResultSeen(null));
+    setLadyResultReopenHandler(ladyResultReveal);
     return () => setLadyResultReopenHandler(null);
-  }, [setLadyResultReopenHandler]);
-  const showLadyResult =
-    ladyResult !== null &&
-    (ladyResultSeen === null ||
-      ladyResultSeen.targetSeat !== ladyResult.targetSeat ||
-      ladyResultSeen.faction !== ladyResult.faction);
+  }, [setLadyResultReopenHandler, ladyResultReveal]);
+  const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
   const { setSeatPickHandler, setPickedSeats } = screen;
@@ -353,13 +361,13 @@ function AvalonRoomContent(
                 <AvalonVoteResultPanel
                   result={voteResult}
                   seats={viewModel.seats}
-                  onClose={() => setVoteResultDismissed(true)}
+                  onClose={voteResultWatermark.dismiss}
                 />
               ) : null}
               {questResultEntry !== undefined ? (
                 <AvalonQuestResultPanel
                   entry={questResultEntry}
-                  onClose={() => setQuestResultSeenCount(questHistoryCount)}
+                  onClose={questResultWatermark.dismiss}
                 />
               ) : null}
               <AvalonStrikeConfirmModal
@@ -446,7 +454,7 @@ function AvalonRoomContent(
                 <AvalonLadyResultModal
                   targetName={seatDisplayName(ladyResult.targetSeat)}
                   faction={ladyResult.faction}
-                  onClose={() => setLadyResultSeen(ladyResult)}
+                  onClose={ladyResultWatermark.dismiss}
                 />
               ) : null}
               {screen.strikePickMode ? (
