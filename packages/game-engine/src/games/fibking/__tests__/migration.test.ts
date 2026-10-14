@@ -1,4 +1,4 @@
-/** v6/v5 -> v7 roster migration: implicit bot seats materialize seat-by-seat. */
+/** Persisted-state migrations: v6/v5 -> v7 roster materialization, v7 -> v8 guess record. */
 
 import type { CommandContext } from '../../../platform/engine';
 import { getHumanSeatMap } from '../../../platform/room/seating';
@@ -6,7 +6,7 @@ import type { FibCommand } from '../commands/types';
 import { REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE } from '../domain/reasons';
 import { decideFibCommand, fibEngine } from '../engine';
 import { migratePersistedFibState, parseFibState } from '../state/parseState';
-import { type FibState, getFibBotSeats } from '../state/types';
+import { FIB_PREPARATION_STAGES, type FibState, getFibBotSeats } from '../state/types';
 
 const CREATE_CONTEXT = { roomCode: '4321', hostUserId: 'host', nowMs: 1, commandId: 'create' };
 
@@ -104,6 +104,61 @@ describe('FibKing v6 -> v7 roster migration', () => {
       userContext('host'),
     );
     expect(decision).toEqual({ kind: 'reject', reason: REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE });
+  });
+
+  it('migrates v7 rounds with an empty guess record, field for field', () => {
+    const systemContext: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect-1' },
+      controlledSeat: null,
+      nowMs: 2,
+      commandId: 'effect-command-1',
+      randomSeed: 'role-seed-1',
+    };
+    const dispatchSystem = (state: FibState, command: FibCommand): FibState => {
+      const decision = decideFibCommand(state, command, systemContext);
+      if (decision.kind === 'reject')
+        throw new Error(`Rejected ${command.type}: ${decision.reason}`);
+      return fibEngine.normalize(decision.events.reduce(fibEngine.evolve, state));
+    };
+    let state = filledLobby();
+    state = dispatch(state, { type: 'fibking.round.start' });
+    if (state.phase !== 'preparing') throw new Error('Expected preparing state');
+    const { roundId } = state.pendingRound;
+    state = dispatchSystem(state, {
+      type: 'fibking.round.updatePreparationStage',
+      roundId,
+      stage: FIB_PREPARATION_STAGES.selecting,
+    });
+    state = dispatchSystem(state, {
+      type: 'fibking.round.updatePreparationStage',
+      roundId,
+      stage: FIB_PREPARATION_STAGES.finalizing,
+    });
+    state = dispatchSystem(state, {
+      type: 'fibking.round.complete',
+      roundId,
+      word: '云朵',
+      definition: {
+        coreMeaning: '悬浮在空中的水滴或冰晶集合。',
+        usageNote: '常用于说明该词所指事物的具体含义和适用语境。',
+      },
+      source: 'local',
+    });
+    if (state.phase !== 'viewing') throw new Error('Expected viewing state');
+    expect(state.round.guesses).toEqual([]);
+
+    // A v7 document is the same state minus the guess record.
+    const legacy = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    delete (legacy.round as Record<string, unknown>).guesses;
+    legacy.stateVersion = 7;
+    expect(() => parseFibState(legacy)).toThrow();
+    expect(migratePersistedFibState(legacy)).toEqual(state);
+
+    // Lobby documents carry no round and migrate untouched.
+    const lobby = filledLobby();
+    const legacyLobby = JSON.parse(JSON.stringify(lobby)) as Record<string, unknown>;
+    legacyLobby.stateVersion = 7;
+    expect(migratePersistedFibState(legacyLobby)).toEqual(lobby);
   });
 
   it('tolerates legacy exclusions naming human, duplicate, or out-of-range seats', () => {

@@ -18,11 +18,8 @@ import {
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
 } from '../../platform/protocol/reasons';
-import {
-  haveAllViewed,
-  listUnviewedBotSeats,
-  markSeatViewed,
-} from '../../platform/room/identityViewing';
+import { hasBeenRevealed } from '../../platform/room/hostReveal';
+import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
 import {
   decideRosterClearSeats,
   decideRosterFillBots,
@@ -42,6 +39,7 @@ import { evolveFibState } from './domain/evolve';
 import {
   REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_NO_BOT_SEATS,
+  REASON_FIB_NOT_ALL_VIEWED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -51,6 +49,7 @@ import {
   REASON_FIB_ROUND_NOT_ONGOING,
   REASON_FIB_ROUND_NOT_PREPARING,
   REASON_FIB_ROUND_NOT_VIEWING,
+  REASON_FIB_ROUND_SEAT_ALREADY_GUESSED,
   REASON_FIB_WORD_INVALID,
   REASON_FIB_WORD_REUSED,
 } from './domain/reasons';
@@ -66,6 +65,7 @@ import {
   type FibProfileUpdate,
   type FibSeatProfile,
   type FibState,
+  getFibRole,
   getFibViewingParticipants,
   isFibBotSeat,
   isFibRoomFull,
@@ -253,24 +253,74 @@ function decideCancelFibPreparation(state: FibState, context: CommandContext): F
     : reject(REASON_FIB_ROUND_NOT_PREPARING);
 }
 
+/**
+ * The single round-ending path: revealing the answer and guessing
+ * the honest seat both land here, so the ended event and the game
+ * completion payload can never diverge between the two exits.
+ */
+function commitFibRoundEnded(
+  state: FibState & { readonly round: NonNullable<FibState['round']> },
+  context: CommandContext,
+  leadingEvents: readonly FibEvent[],
+): FibDecision {
+  return commitFib(
+    [...leadingEvents, { type: 'fibking.round.ended' }],
+    [
+      {
+        type: 'fibking.game.completed',
+        payload: buildGameCompletionPayload({
+          roundId: state.round.roundId,
+          completedAt: context.nowMs,
+          humans: Object.values(getHumanSeatMap(state.roster, state.numberOfPlayers)),
+        }),
+      },
+    ],
+  );
+}
+
 function decideRevealFibRound(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
-  return state.phase === 'ongoing'
-    ? commitFib(
-        [{ type: 'fibking.round.ended' }],
-        [
-          {
-            type: 'fibking.game.completed',
-            payload: buildGameCompletionPayload({
-              roundId: state.round.roundId,
-              completedAt: context.nowMs,
-              humans: Object.values(getHumanSeatMap(state.roster, state.numberOfPlayers)),
-            }),
-          },
-        ],
-      )
-    : reject(REASON_FIB_ROUND_NOT_ONGOING);
+  if (state.phase !== 'ongoing') return reject(REASON_FIB_ROUND_NOT_ONGOING);
+  return commitFibRoundEnded(state, context, []);
+}
+
+/**
+ * Host begins play from the viewing stage: the identity checkpoint
+ * must be complete (every seat, bots included, has a view record);
+ * play never opens on the last view record alone.
+ */
+function decideBeginFibRound(state: FibState, context: CommandContext): FibDecision {
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
+  if (!haveAllViewed(getFibViewingParticipants(state), state.round.viewedSeats)) {
+    return reject(REASON_FIB_NOT_ALL_VIEWED);
+  }
+  return commitFib([{ type: 'fibking.round.begun' }]);
+}
+
+/**
+ * Host-operated guess: the host names the seat they believe is the
+ * honest player. Every guess publicly records that seat's real role
+ * (hostReveal); naming the honest seat ends the round through the
+ * same path as revealing the answer, a miss changes nothing else.
+ */
+function decideGuessFibSeat(state: FibState, seat: number, context: CommandContext): FibDecision {
+  const actor = resolveHostActorId(context, state.hostUserId);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (state.phase !== 'ongoing') return reject(REASON_FIB_ROUND_NOT_ONGOING);
+  if (state.roster[seat] == null) return reject(REASON_NOT_SEATED);
+  if (hasBeenRevealed(state.round.guesses, seat)) {
+    return reject(REASON_FIB_ROUND_SEAT_ALREADY_GUESSED);
+  }
+  const guessedEvent: FibEvent = {
+    type: 'fibking.round.guessed',
+    revelation: { seat, role: getFibRole(state.round.roles, seat), revealedAt: context.nowMs },
+  };
+  return seat === state.round.roles.honestSeat
+    ? commitFibRoundEnded(state, context, [guessedEvent])
+    : commitFib([guessedEvent]);
 }
 
 function decideConfirmFibRoleView(state: FibState, context: CommandContext): FibDecision {
@@ -290,18 +340,14 @@ function decideConfirmFibRoleView(state: FibState, context: CommandContext): Fib
   if (seat === null) return reject(REASON_NOT_SEATED);
   const { viewedSeats } = state.round;
   if (viewedSeats.includes(seat)) return commitFib([]);
-  const nextViewedSeats = markSeatViewed(viewedSeats, seat);
-  const events: FibEvent[] = [{ type: 'fibking.role.viewed', seat }];
-  if (haveAllViewed(getFibViewingParticipants(state), nextViewedSeats)) {
-    events.push({ type: 'fibking.round.viewing.completed' });
-  }
-  return commitFib(events);
+  return commitFib([{ type: 'fibking.role.viewed', seat }]);
 }
 
 /**
  * Identity Viewing Protocol scaffold action (host only): marks
- * every unviewed bot seat as viewed; completes the viewing phase
- * when that lands the final missing record.
+ * every unviewed bot seat as viewed. Filling the last missing
+ * record only opens the begin gate; the host still begins play
+ * with fibking.round.begin.
  */
 function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibDecision {
   if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
@@ -315,13 +361,8 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
   const unviewedBots = listUnviewedBotSeats(participants, state.round.viewedSeats);
   if (unviewedBots.length === 0) return commitFib([]);
   const events: FibEvent[] = [];
-  let viewedSeats: readonly number[] = state.round.viewedSeats;
   for (const participant of unviewedBots) {
     events.push({ type: 'fibking.role.viewed', seat: participant.seat });
-    viewedSeats = markSeatViewed(viewedSeats, participant.seat);
-  }
-  if (haveAllViewed(getFibViewingParticipants(state), viewedSeats)) {
-    events.push({ type: 'fibking.round.viewing.completed' });
   }
   return commitFib(events);
 }
@@ -503,6 +544,10 @@ export function decideFibCommand(
       return decideConfirmFibRoleView(state, context);
     case 'fibking.round.markAllBotsViewed':
       return decideMarkAllBotsViewed(state, context);
+    case 'fibking.round.begin':
+      return decideBeginFibRound(state, context);
+    case 'fibking.round.guess':
+      return decideGuessFibSeat(state, command.seat, context);
     case 'fibking.round.updatePreparationStage':
       return decideUpdateFibPreparationStage(state, command, context);
     case 'fibking.round.failPreparation':

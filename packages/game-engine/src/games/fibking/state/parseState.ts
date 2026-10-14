@@ -20,6 +20,7 @@ import { normalizeFibState } from './normalize';
 import type {
   FibHumanSeat,
   FibPreparationFailure,
+  FibRole,
   FibRoleAssignment,
   FibRound,
   FibState,
@@ -183,6 +184,13 @@ function parseDefinition(value: unknown, path: string): FibWordDefinition {
   );
 }
 
+function parseFibRole(value: unknown, path: string): FibRole {
+  if (value !== 'guesser' && value !== 'honest' && value !== 'fibber') {
+    return failDecode(path, 'a valid Fib role');
+  }
+  return value;
+}
+
 function parseRound(value: unknown, path: string): FibRound {
   const raw = parseObject(value, path);
   return finishObject(
@@ -194,6 +202,18 @@ function parseRound(value: unknown, path: string): FibRound {
       source: parseWordSource(raw.source, `${path}.source`),
       roles: parseRoles(raw.roles, `${path}.roles`),
       viewedSeats: parseArray(raw.viewedSeats, `${path}.viewedSeats`, parseSeat),
+      guesses: parseArray(raw.guesses, `${path}.guesses`, (entry, entryPath) => {
+        const rawGuess = parseObject(entry, entryPath);
+        return finishObject(
+          rawGuess,
+          {
+            seat: parseSeat(rawGuess.seat, `${entryPath}.seat`),
+            role: parseFibRole(rawGuess.role, `${entryPath}.role`),
+            revealedAt: parseInteger(rawGuess.revealedAt, `${entryPath}.revealedAt`),
+          },
+          entryPath,
+        );
+      }),
     },
     path,
   );
@@ -307,16 +327,19 @@ function withMaterializedRoster(raw: Record<string, unknown>): Record<string, un
 }
 
 /**
- * Upgrades stored v5/v6 rooms. v5 predates role viewing: a round already
+ * Upgrades stored v5/v6/v7 rooms. v5 predates role viewing: a round already
  * in flight keeps playing uninterrupted — every seat counts as having
  * viewed (the viewing gate only applies to rounds dealt under v6). v6
  * stored the implicit-bot derivation inputs; v7 materializes them into
- * the unified roster.
+ * the unified roster. v7 predates the guess record: rounds gain an
+ * empty guesses list (no seat could have been guessed under v7 rules).
  * @throws When the stored state is malformed or invalid after migration.
  */
 export function migratePersistedFibState(value: unknown): FibState {
   const raw = parseObject(value, 'FibState');
-  if (raw.stateVersion !== 5 && raw.stateVersion !== 6) return parseFibState(raw);
+  if (raw.stateVersion !== 5 && raw.stateVersion !== 6 && raw.stateVersion !== 7) {
+    return parseFibState(raw);
+  }
   let upgraded: Record<string, unknown> = { ...raw, stateVersion: FIB_STATE_VERSION };
   if (raw.stateVersion === 5 && raw.round !== null && raw.round !== undefined) {
     const round = parseObject(raw.round, 'FibState.round');
@@ -330,5 +353,12 @@ export function migratePersistedFibState(value: unknown): FibState {
     const viewedSeats = Array.from({ length: playerCount }, (_, seat) => seat);
     upgraded = { ...upgraded, round: { ...round, viewedSeats } };
   }
+  if (upgraded.round !== null && upgraded.round !== undefined) {
+    const round = parseObject(upgraded.round, 'FibState.round');
+    if (!('guesses' in round)) {
+      upgraded = { ...upgraded, round: { ...round, guesses: [] } };
+    }
+  }
+  if (raw.stateVersion === 7) return parseFibState(upgraded);
   return parseFibState(withMaterializedRoster(upgraded));
 }
