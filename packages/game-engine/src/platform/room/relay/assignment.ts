@@ -71,8 +71,8 @@ export function buildRelayParticipants<TSeat extends SeatOccupant>(
     const human = occupant != null && !isBotOccupant(occupant) ? occupant : null;
     return {
       seat,
-      userId: human === null ? null : human.userId,
       displayName: human === null ? getBotDisplayName(seat) : getHumanDisplayName(human),
+      userId: human === null ? null : human.userId,
     };
   });
 }
