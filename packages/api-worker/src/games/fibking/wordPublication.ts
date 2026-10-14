@@ -3,6 +3,7 @@
 import { z } from 'zod';
 
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
+import { createFailWordPackStatement } from '../../platform/wordSupply/wordPackLedger';
 import {
   assertFibWordReviewEvidence,
   deriveFibWordReviewDecision,
@@ -341,11 +342,7 @@ export async function failFibWordPack(
   errorCode: string,
 ): Promise<void> {
   await db.batch([
-    db
-      .prepare(
-        "UPDATE fib_word_packs SET status = 'failed' WHERE id = ? AND request_token = ? AND status = 'reserved'",
-      )
-      .bind(pack.id, pack.request_token),
+    createFailWordPackStatement(db, 'fib_word_packs', pack, errorCode),
     db
       .prepare(
         "UPDATE fib_word_generation_cycles SET status = 'failed', completed_at = ?, error_code = ? WHERE id = ? AND status = 'running'",
