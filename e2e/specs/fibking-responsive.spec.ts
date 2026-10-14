@@ -122,6 +122,14 @@ test('FibKing config, room, rules, and identity fit the small-mobile viewport', 
       }
       await allRooms[i]!.confirmIdentityView();
     }
+    // With every seat viewed, the host begins play from the panel.
+    await hostRoom.beginGame();
+    await expectNoHorizontalOverflow(hostPage);
+    await expectInsideViewport(hostPage, TESTIDS.bottomActionPanel);
+    await testInfo.attach('fibking-mobile-ongoing.png', {
+      body: await hostPage.screenshot(),
+      contentType: 'image/png',
+    });
   } finally {
     await closeAll(fixture);
   }
