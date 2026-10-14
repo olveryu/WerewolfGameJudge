@@ -18,6 +18,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import {
   getRoomSeatTapIntent,
+  resolveRoomInGameSeatTap,
   ROOM_SEAT_TAP_BLOCKED_TITLE,
 } from '@/features/room/model/RoomSeatTap';
 
@@ -156,8 +157,9 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
           };
       }
     }
-    if (disabledReason) {
-      return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: disabledReason };
+    const setupTap = resolveRoomInGameSeatTap(disabledReason);
+    if (setupTap.kind === 'alert') {
+      return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: setupTap.reason };
     }
     return { kind: 'NOOP', reason: 'other_status' };
   }
@@ -165,8 +167,9 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   // ─────────────────────────────────────────────────────────────────────────
   // Priority 2: Ongoing action routing
   // ─────────────────────────────────────────────────────────────────────────
-  if (disabledReason) {
-    return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: disabledReason };
+  const ongoingTap = resolveRoomInGameSeatTap(disabledReason);
+  if (ongoingTap.kind === 'alert') {
+    return { kind: 'ALERT', title: ROOM_SEAT_TAP_BLOCKED_TITLE, message: ongoingTap.reason };
   }
   if (imActioner) {
     return { kind: 'ACTION_FLOW', seat };
