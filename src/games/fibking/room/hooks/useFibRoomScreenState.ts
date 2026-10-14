@@ -146,6 +146,13 @@ export function useFibRoomScreenState({
   });
   const { data: gachaStatus } = useGachaStatusQuery();
   const [isIdentityVisible, setIsIdentityVisible] = useState(false);
+  // 大聪明选人模式（房主本地状态，按 roundId 锚定，镜像卧底揭晓选择）。
+  const [guessRoundId, setGuessRoundId] = useState<string | null>(null);
+  const isGuessing =
+    isHost &&
+    state.phase === 'ongoing' &&
+    state.round !== null &&
+    guessRoundId === state.round.roundId;
 
   const effectiveSeat = controlledSeat ?? mySeat;
   const roundView = useMemo(() => getFibRoundView(state, effectiveSeat), [effectiveSeat, state]);
@@ -213,6 +220,36 @@ export function useFibRoomScreenState({
       },
     );
   }, [state.phase, submitCommand]);
+
+  const beginRound = useCallback(() => {
+    void submitCommand('开始游戏', { type: 'fibking.round.begin' });
+  }, [submitCommand]);
+
+  const showBeginDisabled = useCallback(() => {
+    showErrorAlert('暂时不能开始', '还有玩家未查看身份');
+  }, []);
+
+  const toggleGuessMode = useCallback(() => {
+    if (state.phase !== 'ongoing' || state.round === null) return;
+    setGuessRoundId((current) => (current === state.round.roundId ? null : state.round.roundId));
+  }, [state.phase, state.round]);
+
+  const guessSeat = useCallback(
+    (seat: number) => {
+      showConfirmAlert(
+        `确定选择 ${seat + 1} 号座位是老实人？`,
+        '选择后将公开该座位的身份；选中老实人将直接结束本轮。',
+        async () => {
+          const succeeded = await submitCommand('大聪明选人', {
+            type: 'fibking.round.guess',
+            seat,
+          });
+          if (succeeded) setGuessRoundId(null);
+        },
+      );
+    },
+    [submitCommand],
+  );
 
   const revealRound = useCallback(() => {
     showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
@@ -325,6 +362,16 @@ export function useFibRoomScreenState({
 
   const onSeatPress = useCallback(
     (seat: number, disabledReason?: string) => {
+      // 选人模式下点座即选人：已公开或空座位静默忽略（镜像卧底揭晓选择）。
+      if (isGuessing && state.phase === 'ongoing' && state.round !== null) {
+        if (
+          state.roster[seat] != null &&
+          !state.round.guesses.some((guess) => guess.seat === seat)
+        ) {
+          guessSeat(seat);
+        }
+        return;
+      }
       const roomIntent = getFibSeatTapIntent({
         state,
         seat,
@@ -357,7 +404,7 @@ export function useFibRoomScreenState({
         }
       }
     },
-    [capabilities, mySeat, state],
+    [capabilities, guessSeat, isGuessing, mySeat, state],
   );
 
   const isBotSeat = useCallback((seat: number) => isFibBotSeat(state, seat), [state]);
@@ -425,6 +472,10 @@ export function useFibRoomScreenState({
         capabilities,
         startRound,
         markAllBotsViewed,
+        beginRound,
+        onBeginDisabled: showBeginDisabled,
+        isGuessing,
+        toggleGuessMode,
         cancelPreparing,
         revealRound,
         redrawRound,
@@ -434,17 +485,21 @@ export function useFibRoomScreenState({
       }),
     [
       abandonGame,
+      beginRound,
       cancelPreparing,
       capabilities,
       endGame,
       isCommandSubmitting,
+      isGuessing,
       isHost,
       markAllBotsViewed,
       redrawRound,
       revealRound,
+      showBeginDisabled,
       showStartRoundDisabled,
       startRound,
       state,
+      toggleGuessMode,
     ],
   );
 

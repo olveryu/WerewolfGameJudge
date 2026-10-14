@@ -9,6 +9,7 @@ import {
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   type FibState,
+  getFibRole,
   isFibPreparationFailureCode,
   isFibPreparationStage,
   isFibRoomFull,
@@ -97,6 +98,23 @@ function assertRound(
   }
   if (new Set(round.viewedSeats).size !== round.viewedSeats.length) {
     throw new Error('Fib viewed seats must be unique');
+  }
+  const guessedSeats = new Set<number>();
+  for (const guess of round.guesses) {
+    assertSeatInRange(guess.seat, state.numberOfPlayers, 'Fib guessed seat');
+    if (getFibRole(round.roles, guess.seat) !== guess.role) {
+      throw new Error('Fib guessed role must match the seat role');
+    }
+    if (!Number.isSafeInteger(guess.revealedAt) || guess.revealedAt < 0) {
+      throw new Error('Fib guessed revealedAt must be a non-negative safe integer');
+    }
+    if (guessedSeats.has(guess.seat)) {
+      throw new Error('Fib guessed seats must be unique');
+    }
+    guessedSeats.add(guess.seat);
+  }
+  if (state.phase === 'viewing' && round.guesses.length !== 0) {
+    throw new Error('Fib viewing round cannot carry guesses');
   }
   if (!state.usedWords.includes(round.word)) {
     throw new Error('Fib active word must be present in usedWords');

@@ -3,6 +3,7 @@
 import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
+import type { HostRevelation } from '../../../platform/room/hostReveal';
 import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
@@ -116,8 +117,10 @@ export interface FibRound {
   readonly definition: FibWordDefinition;
   readonly source: FibWordSource;
   readonly roles: FibRoleAssignment;
-  /** 已查看本轮身份的座位（身份查看协议）；机器人发牌时由引擎自动标记。 */
+  /** 已查看本轮身份的座位（身份查看协议）；机器人由房主脚手架动作标记。 */
   readonly viewedSeats: readonly number[];
+  /** 大聪明已点选并公开身份的座位（房主揭示记录，平台 hostReveal）。 */
+  readonly guesses: readonly HostRevelation<FibRole>[];
 }
 
 interface FibStateBase extends BaseGameState<FibKingGameType> {

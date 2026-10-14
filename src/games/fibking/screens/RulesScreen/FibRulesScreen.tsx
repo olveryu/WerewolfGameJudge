@@ -38,12 +38,17 @@ export function FibRulesScreen() {
         <RuleItem
           icon="eye-outline"
           title="查看身份"
-          description="每位玩家确认自己的身份和可见信息。"
+          description="每位玩家确认自己的身份和可见信息；全员确认后由房主开始游戏。"
         />
         <RuleItem
           icon="chatbubbles-outline"
           title="依次描述"
           description="玩家围绕词语给出解释，大聪明公开身份并听取所有描述。"
+        />
+        <RuleItem
+          icon="locate-outline"
+          title="大聪明选人"
+          description="房主代大聪明点选座位，被选中的座位身份立即公开；可以一直选，选中老实人直接公布答案并结束本轮。"
         />
         <RuleItem
           icon="refresh-outline"
@@ -71,7 +76,7 @@ export function FibRulesScreen() {
           description="答案公布前也可返回大厅；当前座位和已出现的词语记录都会保留。"
         />
       </GameGuideSection>
-      <GameNotice text="大聪明在本轮开始后公开；老实人身份直到公布答案才公开。" />
+      <GameNotice text="大聪明在本轮开始后公开；被选中的座位身份立即公开，其余身份直到公布答案才公开。" />
     </GameGuide>
   );
 }

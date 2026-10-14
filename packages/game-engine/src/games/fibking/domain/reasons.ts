@@ -13,3 +13,5 @@ export const REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE = 'fib_occupied_seat_out_of_r
 export const REASON_FIB_WORD_REUSED = 'fib_word_reused' as const;
 export const REASON_FIB_WORD_INVALID = 'fib_word_invalid' as const;
 export const REASON_FIB_NO_BOT_SEATS = 'fib_no_bot_seats' as const;
+export const REASON_FIB_NOT_ALL_VIEWED = 'fib_not_all_viewed' as const;
+export const REASON_FIB_ROUND_SEAT_ALREADY_GUESSED = 'fib_round_seat_already_guessed' as const;

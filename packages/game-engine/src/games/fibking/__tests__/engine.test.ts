@@ -7,6 +7,7 @@ import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_GAME_IN_PROGRESS,
   REASON_NOT_HOST,
+  REASON_NOT_SEATED,
   REASON_SYSTEM_ACTOR_REQUIRED,
 } from '../../../platform/protocol/reasons';
 import { isBotOccupant } from '../../../platform/room/seating';
@@ -22,6 +23,8 @@ import {
   REASON_FIB_ROUND_ALREADY_ONGOING,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_FULL,
+  REASON_FIB_ROUND_NOT_ONGOING,
+  REASON_FIB_ROUND_SEAT_ALREADY_GUESSED,
   REASON_FIB_WORD_REUSED,
 } from '../domain/reasons';
 import { getFibRoundView, getFibUserSeat } from '../domain/visibility';
@@ -131,9 +134,15 @@ it('rejects marking bots when the room has no bot seats (werewolf parity)', () =
 function confirmAllRoleViews(state: FibState): FibState {
   if (state.phase !== 'viewing') throw new Error('Expected viewing state');
   // The host confirms their own view, then marks the bot seats
-  // through the scaffold action (the engine never auto-marks).
+  // through the scaffold action (the engine never auto-marks);
+  // play itself opens only on the host's begin command.
   const confirmed = dispatch(state, { type: 'fibking.round.confirmRoleView' }, userContext('host'));
-  return dispatch(confirmed, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+  const marked = dispatch(
+    confirmed,
+    { type: 'fibking.round.markAllBotsViewed' },
+    userContext('host'),
+  );
+  return dispatch(marked, { type: 'fibking.round.begin' }, userContext('host'));
 }
 
 it('emits a completion reward roster only on the first host reveal', () => {
@@ -157,6 +166,116 @@ it('emits a completion reward roster only on the first host reveal', () => {
   expect(decideFibCommand(ended, { type: 'fibking.round.reveal' }, userContext('host')).kind).toBe(
     'reject',
   );
+});
+
+describe('FibKing host guess flow', () => {
+  function dealtOngoing(): FibState {
+    return confirmAllRoleViews(
+      completeRound(startPreparing(createFullLobby()), '云朵', '悬浮在空中的水滴或冰晶集合'),
+    );
+  }
+
+  function fibberSeat(state: FibState): number {
+    if (state.round === null) throw new Error('Expected an active round');
+    const { guesserSeat, honestSeat } = state.round.roles;
+    for (let seat = 0; seat < state.numberOfPlayers; seat += 1) {
+      if (seat !== guesserSeat && seat !== honestSeat) return seat;
+    }
+    throw new Error('Expected a fibber seat');
+  }
+
+  it('rejects guesses from non-hosts, outside ongoing, and on empty seats', () => {
+    const ongoing = dealtOngoing();
+    if (ongoing.round === null) throw new Error('Expected an active round');
+    const seat = fibberSeat(ongoing);
+    expect(
+      decideFibCommand(ongoing, { type: 'fibking.round.guess', seat }, userContext('alice')),
+    ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+    expect(
+      decideFibCommand(ongoing, { type: 'fibking.round.guess', seat: 99 }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
+
+    const viewing = completeRound(
+      startPreparing(createFullLobby()),
+      '云朵',
+      '悬浮在空中的水滴或冰晶集合',
+    );
+    expect(
+      decideFibCommand(viewing, { type: 'fibking.round.guess', seat }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_ONGOING });
+  });
+
+  it('records a missed guess publicly and leaves the round running', () => {
+    const ongoing = dealtOngoing();
+    const seat = fibberSeat(ongoing);
+    const decision = decideFibCommand(
+      ongoing,
+      { type: 'fibking.round.guess', seat },
+      userContext('host'),
+    );
+    if (decision.kind !== 'commit') throw new Error('Expected commit');
+    expect(decision.events).toEqual([
+      {
+        type: 'fibking.round.guessed',
+        revelation: { seat, role: 'fibber', revealedAt: 2000 },
+      },
+    ]);
+    // A miss produces no game completion.
+    expect(decision.effects).toEqual([]);
+    const next = applyDecision(ongoing, decision);
+    if (next.phase !== 'ongoing' || next.round === null) {
+      throw new Error('Expected the round to keep running');
+    }
+    expect(next.round.guesses).toEqual([{ seat, role: 'fibber', revealedAt: 2000 }]);
+    expect(getFibRoundView(next, 0)).toMatchObject({
+      phase: 'ongoing',
+      guesses: [{ seat, role: 'fibber', revealedAt: 2000 }],
+    });
+
+    expect(
+      decideFibCommand(next, { type: 'fibking.round.guess', seat }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_SEAT_ALREADY_GUESSED });
+  });
+
+  it('ends the round on the honest seat through the same path as reveal', () => {
+    const ongoing = dealtOngoing();
+    if (ongoing.round === null) throw new Error('Expected an active round');
+    const { honestSeat } = ongoing.round.roles;
+    const guessDecision = decideFibCommand(
+      ongoing,
+      { type: 'fibking.round.guess', seat: honestSeat },
+      userContext('host'),
+    );
+    const revealDecision = decideFibCommand(
+      ongoing,
+      { type: 'fibking.round.reveal' },
+      userContext('host'),
+    );
+    if (guessDecision.kind !== 'commit' || revealDecision.kind !== 'commit') {
+      throw new Error('Expected both ending paths to commit');
+    }
+    expect(guessDecision.events.map((event) => event.type)).toEqual([
+      'fibking.round.guessed',
+      'fibking.round.ended',
+    ]);
+    // Exactly one completion effect, identical to the reveal path's.
+    expect(guessDecision.effects).toEqual(revealDecision.effects);
+    expect(
+      guessDecision.effects.filter((effect) => effect.type === 'fibking.game.completed'),
+    ).toHaveLength(1);
+    const ended = applyDecision(ongoing, guessDecision);
+    if (ended.phase !== 'ended' || ended.round === null) {
+      throw new Error('Expected an ended round');
+    }
+    expect(ended.round.guesses).toEqual([{ seat: honestSeat, role: 'honest', revealedAt: 2000 }]);
+    expect(
+      decideFibCommand(
+        ended,
+        { type: 'fibking.round.guess', seat: honestSeat },
+        userContext('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_ONGOING });
+  });
 });
 
 function completeRound(
@@ -211,7 +330,7 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
-      stateVersion: 7,
+      stateVersion: 8,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',

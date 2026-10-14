@@ -1,5 +1,6 @@
 /** Authoritative FibKing round visibility for human and controlled-bot perspectives. */
 
+import type { HostRevelation } from '../../../platform/room/hostReveal';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
 import { findRosterSeatByUserId } from '../../../platform/room/seating';
 import type { FibRole, FibState, FibWordDefinition } from '../state/types';
@@ -29,6 +30,8 @@ export interface FibOngoingRoundView {
   readonly definition: FibWordDefinition | null;
   readonly guesserSeat: number;
   readonly honestSeat: null;
+  /** Seats the guesser has publicly named so far, with their real roles. */
+  readonly guesses: readonly HostRevelation<FibRole>[];
 }
 
 export interface FibEndedRoundView {
@@ -107,6 +110,7 @@ export function getFibRoundView(state: FibState, viewerSeat: number | null): Fib
       definition: state.round.definition,
       guesserSeat: state.round.roles.guesserSeat,
       honestSeat: null,
+      guesses: state.round.guesses,
     };
   }
   const viewerRole = getFibRole(state.round.roles, viewerSeat);
@@ -119,5 +123,6 @@ export function getFibRoundView(state: FibState, viewerSeat: number | null): Fib
     definition: viewerRole === 'honest' ? state.round.definition : null,
     guesserSeat: state.round.roles.guesserSeat,
     honestSeat: null,
+    guesses: state.round.guesses,
   };
 }

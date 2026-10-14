@@ -1,5 +1,6 @@
 /** Pure FibKing event reducer. */
 
+import { appendRevelation } from '../../../platform/room/hostReveal';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges, isBotOccupant } from '../../../platform/room/seating';
 import { FIB_USED_WORD_LIMIT, type FibState } from '../state/types';
@@ -95,6 +96,7 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
           source: event.source,
           roles: event.roles,
           viewedSeats: [...event.initialViewedSeats],
+          guesses: [],
         },
         usedWords: appendUsedWord(state.usedWords, event.word),
       };
@@ -111,11 +113,28 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
         },
       };
     }
-    case 'fibking.round.viewing.completed': {
+    case 'fibking.round.begun': {
       if (state.phase !== 'viewing') {
-        throw new Error('Fib viewing-completed event requires a viewing state');
+        throw new Error('Fib round-begun event requires a viewing state');
       }
       return { ...state, phase: 'ongoing' };
+    }
+    case 'fibking.round.guessed': {
+      if (state.phase !== 'ongoing' || state.round === null) {
+        throw new Error('Fib round-guessed event requires an ongoing state');
+      }
+      return {
+        ...state,
+        round: {
+          ...state.round,
+          guesses: appendRevelation(
+            state.round.guesses,
+            event.revelation.seat,
+            event.revelation.role,
+            event.revelation.revealedAt,
+          ),
+        },
+      };
     }
     case 'fibking.round.ended':
       if (state.round === null) {

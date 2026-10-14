@@ -12,7 +12,11 @@ import { REASON_NOT_HOST } from '../../../platform/protocol/reasons';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
-import { REASON_FIB_ROUND_NOT_ONGOING, REASON_FIB_ROUND_NOT_VIEWING } from '../domain/reasons';
+import {
+  REASON_FIB_NOT_ALL_VIEWED,
+  REASON_FIB_ROUND_NOT_ONGOING,
+  REASON_FIB_ROUND_NOT_VIEWING,
+} from '../domain/reasons';
 import { getFibRoundView } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine } from '../engine';
@@ -193,7 +197,7 @@ describe('identity viewing protocol (fibking)', () => {
       expect(hostForBot.events).toEqual([{ type: 'fibking.role.viewed', seat: 3 }]);
   });
 
-  it('blocks the round until every seat has viewed, then starts', () => {
+  it('holds viewing until every seat has viewed and the host begins', () => {
     const viewing = dealRound(createRoom());
     expect(
       decideFibCommand(viewing, { type: 'fibking.round.reveal' }, userContext('host')),
@@ -201,13 +205,17 @@ describe('identity viewing protocol (fibking)', () => {
       kind: 'reject',
       reason: REASON_FIB_ROUND_NOT_ONGOING,
     });
+    // The begin gate is closed while any seat is unviewed.
+    expect(decideFibCommand(viewing, { type: 'fibking.round.begin' }, userContext('host'))).toEqual(
+      { kind: 'reject', reason: REASON_FIB_NOT_ALL_VIEWED },
+    );
 
     const two = confirm(confirm(viewing, 'host'), 'alice');
     if (two.phase !== 'viewing') throw new Error('Round started before every seat viewed');
     expect(getFibRoundView(two, 0)).toMatchObject({ unviewedSeats: [2, 3] });
 
-    // The last human viewing no longer completes the phase: the bot
-    // seat's record is still open.
+    // The last human viewing does not complete the phase: the bot
+    // seat's record is still open and no completion event exists.
     const bobDecision = decideFibCommand(
       two,
       { type: 'fibking.round.confirmRoleView' },
@@ -217,6 +225,9 @@ describe('identity viewing protocol (fibking)', () => {
     expect(bobDecision.events.map((event) => event.type)).toEqual(['fibking.role.viewed']);
     const allHumans = applyDecision(two, bobDecision);
     expect(allHumans.phase).toBe('viewing');
+    expect(
+      decideFibCommand(allHumans, { type: 'fibking.round.begin' }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_NOT_ALL_VIEWED });
 
     // Non-hosts cannot run the scaffold action.
     expect(
@@ -233,21 +244,36 @@ describe('identity viewing protocol (fibking)', () => {
       userContext('host'),
     );
     if (markDecision.kind !== 'commit') throw new Error('Expected commit');
-    expect(markDecision.events.map((event) => event.type)).toEqual([
-      'fibking.role.viewed',
-      'fibking.round.viewing.completed',
-    ]);
-    const ongoing = applyDecision(allHumans, markDecision);
+    expect(markDecision.events.map((event) => event.type)).toEqual(['fibking.role.viewed']);
+    const allViewed = applyDecision(allHumans, markDecision);
+    // Every seat has viewed, but play opens only on the host's begin.
+    expect(allViewed.phase).toBe('viewing');
+
+    expect(
+      decideFibCommand(allViewed, { type: 'fibking.round.begin' }, userContext('alice')),
+    ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+    const beginDecision = decideFibCommand(
+      allViewed,
+      { type: 'fibking.round.begin' },
+      userContext('host'),
+    );
+    if (beginDecision.kind !== 'commit') throw new Error('Expected commit');
+    expect(beginDecision.events.map((event) => event.type)).toEqual(['fibking.round.begun']);
+    const ongoing = applyDecision(allViewed, beginDecision);
     expect(ongoing.phase).toBe('ongoing');
     expect(
       decideFibCommand(ongoing, { type: 'fibking.round.confirmRoleView' }, userContext('bob')),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING });
+    expect(decideFibCommand(ongoing, { type: 'fibking.round.begin' }, userContext('host'))).toEqual(
+      { kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING },
+    );
   });
 
   it('resets the viewing record on every new round', () => {
     let state = dealRound(createRoom());
     state = confirm(confirm(confirm(state, 'host'), 'alice'), 'bob');
     state = dispatch(state, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+    state = dispatch(state, { type: 'fibking.round.begin' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.round.reveal' }, userContext('host'));
     const nextRound = dealRound(state, 'round-2', '灯塔');
     if (nextRound.phase !== 'viewing') throw new Error('Expected viewing state');
@@ -279,6 +305,7 @@ describe('identity viewing protocol (fibking)', () => {
     const migrated = migratePersistedFibState(serialized);
     if (migrated.phase !== 'ongoing') throw new Error('Expected ongoing state');
     expect(migrated.round.viewedSeats).toEqual([0, 1, 2, 3]);
+    expect(migrated.round.guesses).toEqual([]);
     expect(parseFibState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
 
     const lobby = downgradeRoster(
@@ -290,6 +317,7 @@ describe('identity viewing protocol (fibking)', () => {
     let ended = dealRound(createRoom());
     ended = confirm(confirm(confirm(ended, 'host'), 'alice'), 'bob');
     ended = dispatch(ended, { type: 'fibking.round.markAllBotsViewed' }, userContext('host'));
+    ended = dispatch(ended, { type: 'fibking.round.begin' }, userContext('host'));
     ended = dispatch(ended, { type: 'fibking.round.reveal' }, userContext('host'));
     const endedSerialized = downgradeRoster(ended);
     delete (endedSerialized.round as Record<string, unknown>).viewedSeats;
@@ -325,7 +353,10 @@ describeIdentityViewingProtocol({
       },
       markAllBotsViewed: () =>
         attempt({ type: 'fibking.round.markAllBotsViewed' }, userContext('host')),
-      isCheckpointOpen: () => state.phase === 'ongoing',
+      // Non-mutating probe: the begin gate would commit right now.
+      isCheckpointOpen: () =>
+        decideFibCommand(state, { type: 'fibking.round.begin' }, userContext('host')).kind ===
+        'commit',
     };
   },
 });

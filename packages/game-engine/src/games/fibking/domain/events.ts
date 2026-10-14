@@ -1,12 +1,14 @@
 /** Internal FibKing state-transition events. */
 
 import type { GameEvent } from '../../../platform/engine';
+import type { HostRevelation } from '../../../platform/room/hostReveal';
 import type { RosterChange } from '../../../platform/room/seating';
 import type {
   FibHumanSeat,
   FibPreparationFailureCode,
   FibPreparationStage,
   FibProfileUpdate,
+  FibRole,
   FibRoleAssignment,
   FibWordDefinition,
   FibWordSource,
@@ -48,10 +50,14 @@ export type FibEvent =
       readonly definition: FibWordDefinition;
       readonly source: FibWordSource;
       readonly roles: FibRoleAssignment;
-      /** Bot seats are marked viewed at deal time (Identity Viewing Protocol). */
+      /** Nobody is marked at deal time; bot seats are marked by the host scaffold action. */
       readonly initialViewedSeats: readonly number[];
     })
   | (GameEvent & { readonly type: 'fibking.role.viewed'; readonly seat: number })
-  | (GameEvent & { readonly type: 'fibking.round.viewing.completed' })
+  | (GameEvent & { readonly type: 'fibking.round.begun' })
+  | (GameEvent & {
+      readonly type: 'fibking.round.guessed';
+      readonly revelation: HostRevelation<FibRole>;
+    })
   | (GameEvent & { readonly type: 'fibking.round.ended' })
   | (GameEvent & { readonly type: 'fibking.game.returnedToLobby' });
