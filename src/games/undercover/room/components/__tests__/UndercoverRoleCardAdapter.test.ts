@@ -3,6 +3,7 @@
  * 文案来源是规则页（UndercoverRulesScreen），本测试把 adapter 的三份文案钉成
  * 字面值防漂移；与规则页原文的一致性由 QA/评审在改文案时双向核对。
  */
+import { getRoleAvatar } from '../../../assets/roleAvatars';
 import { isUndercoverRole, toUndercoverRolePreviewData } from '../UndercoverRoleCardAdapter';
 
 describe('toUndercoverRolePreviewData', () => {
@@ -11,6 +12,7 @@ describe('toUndercoverRolePreviewData', () => {
       id: 'undercover-civilian',
       name: '平民',
       alignment: 'villager',
+      image: getRoleAvatar('civilian'),
       description: [
         {
           label: '角色说明',
@@ -31,6 +33,7 @@ describe('toUndercoverRolePreviewData', () => {
       id: 'undercover-undercover',
       name: '卧底',
       alignment: 'wolf',
+      image: getRoleAvatar('undercover'),
       description: [
         {
           label: '角色说明',
@@ -52,6 +55,7 @@ describe('toUndercoverRolePreviewData', () => {
       id: 'undercover-blank',
       name: '白板',
       alignment: 'neutral',
+      image: getRoleAvatar('blank'),
       description: [
         {
           label: '角色说明',

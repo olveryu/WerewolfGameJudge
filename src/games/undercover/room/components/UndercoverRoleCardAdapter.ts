@@ -10,6 +10,8 @@ import type { UndercoverRole } from '@game-judge/game-engine/games/undercover/pu
 
 import type { RevealAlignment, RevealRoleData } from '@/features/room/model/RevealRoleData';
 
+import { getRoleAvatar } from '../../assets/roleAvatars';
+
 const ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
   undercover: '卧底',
@@ -55,6 +57,7 @@ export function toUndercoverRolePreviewData(role: UndercoverRole): RevealRoleDat
     id: `undercover-${role}`,
     name: ROLE_NAMES[role],
     alignment: ROLE_ALIGNMENTS[role],
+    image: getRoleAvatar(role),
     description: [
       {
         label: '角色说明',

@@ -17,6 +17,7 @@ import type {
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
 
+import { getRoleAvatar } from '../../assets/roleAvatars';
 import { getFibRoleName } from '../fibRoomAdapter';
 import { formatFibWordPinyin } from '../formatFibWordPinyin';
 
@@ -72,6 +73,7 @@ export function toFibRolePreviewData(role: FibRole): RevealRoleData {
     id: `fibking-${role}`,
     name: getFibRoleName(role),
     alignment: getFibRoleAlignment(role),
+    image: getRoleAvatar(role),
     description: [
       {
         label: '角色说明',
@@ -136,6 +138,7 @@ export function toFibRevealRoleData(view: FibRoundView): RevealRoleData {
     id: 'fibking-identity',
     name: roleName,
     alignment: getAlignment(view),
+    image: view.viewerRole === null ? undefined : getRoleAvatar(view.viewerRole),
     factionName: eyebrow,
     description: fields,
   };
@@ -147,11 +150,26 @@ export function toFibRevealRoleData(view: FibRoundView): RevealRoleData {
  */
 export function getFibRevealRolePool(playerCount: number): readonly RevealRoleData[] {
   const pool: RevealRoleData[] = [
-    { id: 'fibking-guesser', name: getFibRoleName('guesser'), alignment: 'god' },
-    { id: 'fibking-honest', name: getFibRoleName('honest'), alignment: 'villager' },
+    {
+      id: 'fibking-guesser',
+      name: getFibRoleName('guesser'),
+      alignment: 'god',
+      image: getRoleAvatar('guesser'),
+    },
+    {
+      id: 'fibking-honest',
+      name: getFibRoleName('honest'),
+      alignment: 'villager',
+      image: getRoleAvatar('honest'),
+    },
   ];
   for (let index = 0; index < playerCount - 2; index += 1) {
-    pool.push({ id: 'fibking-fibber', name: getFibRoleName('fibber'), alignment: 'wolf' });
+    pool.push({
+      id: 'fibking-fibber',
+      name: getFibRoleName('fibber'),
+      alignment: 'wolf',
+      image: getRoleAvatar('fibber'),
+    });
   }
   return pool;
 }

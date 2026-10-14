@@ -5,6 +5,7 @@
  */
 import type { DescriptionField } from '@/features/room/model/RevealRoleData';
 
+import { getRoleAvatar } from '../../../assets/roleAvatars';
 import { getFibRoleInstruction, isFibRole, toFibRolePreviewData } from '../FibRoleCardAdapter';
 
 function previewFields(role: 'guesser' | 'honest' | 'fibber'): readonly DescriptionField[] {
@@ -20,6 +21,7 @@ describe('toFibRolePreviewData', () => {
       id: 'fibking-guesser',
       name: '大聪明',
       alignment: 'god',
+      image: getRoleAvatar('guesser'),
       description: [
         {
           label: '角色说明',
@@ -32,6 +34,7 @@ describe('toFibRolePreviewData', () => {
       id: 'fibking-honest',
       name: '老实人',
       alignment: 'villager',
+      image: getRoleAvatar('honest'),
       description: [
         {
           label: '角色说明',
@@ -44,6 +47,7 @@ describe('toFibRolePreviewData', () => {
       id: 'fibking-fibber',
       name: '瞎掰王',
       alignment: 'wolf',
+      image: getRoleAvatar('fibber'),
       description: [
         {
           label: '角色说明',

@@ -10,6 +10,7 @@ import type React from 'react';
 
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
 
+import { getRoleAvatar } from '../assets/roleAvatars';
 import { type AvalonRoleDescription, getAvalonRoleMeta } from '../model/avalonRoleMeta';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -74,7 +75,7 @@ export function toRevealRoleData(roleId: AvalonRoleId): RevealRoleData {
     name: meta.displayName,
     // 坏人 → wolf（红），好人 → god（蓝）
     alignment: meta.isEvil ? 'wolf' : 'god',
-    image: undefined, // 暂无立绘，显示阵营色占位
+    image: getRoleAvatar(roleId),
     description: toDescriptionFields(meta.description),
     factionName: meta.factionName,
   };
