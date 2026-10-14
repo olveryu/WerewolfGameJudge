@@ -1,71 +1,16 @@
 /**
  * 阿瓦隆 → 通用 RevealRoleData 适配器。
  *
- * 将结构化 AvalonRoleDescription 转换为 DescriptionField[]，
- * 字段顺序与狼人杀一致：skill → passive → trigger → restriction → special → winCondition。
+ * 结构化介绍到 DescriptionField[] 的转换只有一份，住在
+ * model/avalonRoleDescriptionFields.ts，卡链与图鉴/说明页共用。
  */
-import type Ionicons from '@expo/vector-icons/Ionicons';
 import type { AvalonRoleId } from '@game-judge/game-engine/games/avalon/public';
-import type React from 'react';
 
-import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
+import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 
 import { getRoleAvatar } from '../assets/roleAvatars';
-import { type AvalonRoleDescription, getAvalonRoleMeta } from '../model/avalonRoleMeta';
-
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
-
-const FIELD_LABELS: Readonly<Record<keyof AvalonRoleDescription, string>> = {
-  skill: '主动技能',
-  passive: '被动特性',
-  trigger: '触发效果',
-  restriction: '限制条件',
-  special: '特殊规则',
-  winCondition: '胜利条件',
-} as const;
-
-const FIELD_ICONS: Readonly<Record<keyof AvalonRoleDescription, IconName>> = {
-  skill: 'flash-outline',
-  passive: 'shield-outline',
-  trigger: 'locate-outline',
-  restriction: 'close-circle-outline',
-  special: 'star-outline',
-  winCondition: 'trophy-outline',
-} as const;
-
-const FIELD_TONES: Readonly<Record<keyof AvalonRoleDescription, DescriptionField['tone']>> = {
-  skill: 'default',
-  passive: 'default',
-  trigger: 'default',
-  restriction: 'warning',
-  special: 'default',
-  winCondition: 'success',
-} as const;
-
-const FIELD_ORDER: ReadonlyArray<keyof AvalonRoleDescription> = [
-  'skill',
-  'passive',
-  'trigger',
-  'restriction',
-  'special',
-  'winCondition',
-] as const;
-
-function toDescriptionFields(desc: AvalonRoleDescription): readonly DescriptionField[] {
-  const fields: DescriptionField[] = [];
-  for (const key of FIELD_ORDER) {
-    const content = desc[key];
-    if (content !== undefined && content.length > 0) {
-      fields.push({
-        label: FIELD_LABELS[key],
-        content,
-        icon: FIELD_ICONS[key],
-        tone: FIELD_TONES[key],
-      });
-    }
-  }
-  return fields;
-}
+import { toAvalonRoleDescriptionFields } from '../model/avalonRoleDescriptionFields';
+import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
 
 /** 将阿瓦隆角色转换为通用揭示数据。 */
 export function toRevealRoleData(roleId: AvalonRoleId): RevealRoleData {
@@ -76,7 +21,7 @@ export function toRevealRoleData(roleId: AvalonRoleId): RevealRoleData {
     // 坏人 → wolf（红），好人 → god（蓝）
     alignment: meta.isEvil ? 'wolf' : 'god',
     image: getRoleAvatar(roleId),
-    description: toDescriptionFields(meta.description),
+    description: toAvalonRoleDescriptionFields(meta.description),
     factionName: meta.factionName,
   };
 }
