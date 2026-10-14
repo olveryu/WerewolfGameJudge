@@ -136,14 +136,32 @@ export type AvalonEvent =
   | { readonly type: 'avalon.game.returnedToLobby' };
 
 /** 终局 growth settlement effect：Worker 据此发 XP 奖励，xpSettled 保证恰好一次。 */
-export type AvalonEffect = {
-  readonly type: 'avalon.game.completed';
-  readonly payload: {
-    readonly roundId: string;
-    readonly completedAt: number;
-    readonly participantUserIds: readonly string[];
-  };
-};
+export type AvalonEffect =
+  | {
+      readonly type: 'avalon.game.completed';
+      readonly payload: {
+        readonly roundId: string;
+        readonly completedAt: number;
+        readonly participantUserIds: readonly string[];
+      };
+    }
+  | {
+      /**
+       * Armed reveal countdown: emitted exactly once when a vote/quest
+       * deadline is armed. The Worker outbox delivers it at `deadlineAt`
+       * (alarm-scheduled), and the handler settles through the internal
+       * settle command unless the phase has already moved on. The
+       * payload pins the exact arming (game, phase, round, deadline) so
+       * a late or replayed delivery can never settle a newer phase.
+       */
+      readonly type: 'avalon.settle.due';
+      readonly payload: {
+        readonly gameSequence: number;
+        readonly phase: 'vote' | 'quest';
+        readonly round: AvalonQuestRound;
+        readonly deadlineAt: number;
+      };
+    };
 
 export type AvalonDecision = Decision<AvalonEvent, AvalonEffect>;
 

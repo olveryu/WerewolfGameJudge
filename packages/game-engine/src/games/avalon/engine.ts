@@ -7,13 +7,14 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
+  resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { randomIntInclusive } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
-import type { AvalonCommand, AvalonPublicCommand } from './commands/types';
+import type { AvalonCommand } from './commands/types';
 import {
   AVALON_REASONS,
   type AvalonDecision,
@@ -82,6 +83,24 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     pendingAudioEffects: [],
     isAudioPlaying: false,
   });
+}
+
+/**
+ * The scheduled settle effect for one armed reveal countdown. The payload
+ * pins the exact arming so the Worker handler can no-op a delivery that
+ * arrives after the phase already settled or a new game began.
+ */
+function settleDueEffect(
+  state: AvalonState,
+  phase: 'vote' | 'quest',
+  round: number,
+  deadlineAt: number,
+): AvalonEffect {
+  if (!isAvalonQuestRound(round)) throw new Error(`Invalid avalon quest round: ${round}`);
+  return {
+    type: 'avalon.settle.due',
+    payload: { gameSequence: state.gameSequence, phase, round, deadlineAt },
+  };
 }
 
 /** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
@@ -313,13 +332,11 @@ function castVote(state: AvalonState, vote: AvalonBallot, context: CommandContex
     }
   }
   if (!allCast || state.phase.deadlineAt !== null) return commitAvalon([castEvent]);
-  return commitAvalon([
-    castEvent,
-    {
-      type: 'avalon.vote.allCast',
-      deadlineAt: context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000,
-    },
-  ]);
+  const deadlineAt = context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000;
+  return commitAvalon(
+    [castEvent, { type: 'avalon.vote.allCast', deadlineAt }],
+    [settleDueEffect(state, 'vote', state.phase.round, deadlineAt)],
+  );
 }
 
 /**
@@ -336,13 +353,29 @@ function finishVote(state: AvalonState, context: CommandContext): AvalonDecision
 }
 
 /**
+ * Settle-channel gate for countdown expiry: the public timeout command
+ * requires an uncontrolled user (any foreground client may accelerate the
+ * settlement), while the internal settle command requires the system
+ * actor (the scheduled `avalon.settle.due` effect handler). Both channels
+ * then run the identical settlement below.
+ */
+function resolveSettleActor(context: CommandContext, internal: boolean) {
+  return internal ? resolveSystemActorEffectId(context) : resolveUncontrolledUserActorId(context);
+}
+
+/**
  * Settles the vote when the reveal countdown expires. The countdown is armed
  * only once every seat has voted, so this settles the final ballot set.
- * Submitted by clients via the stage-deadline hook; only valid at/after it.
+ * The server-scheduled settle effect is the correctness path; a client
+ * timeout submission only accelerates the same settlement.
  */
-function timeoutVote(state: AvalonState, context: CommandContext): AvalonDecision {
+function timeoutVote(
+  state: AvalonState,
+  context: CommandContext,
+  internal: boolean,
+): AvalonDecision {
   if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
-  const actor = resolveUncontrolledUserActorId(context);
+  const actor = resolveSettleActor(context, internal);
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
   if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
@@ -415,13 +448,11 @@ function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext
   // 收齐后武装揭晓倒计时（D16 洗混结算口径不变，结算推迟到倒计时到期或房主手动结束）。
   const allPlayed = state.phase.teamSeats.every((seat) => plays[seat] !== undefined);
   if (!allPlayed || state.phase.deadlineAt !== null) return commitAvalon([playedEvent]);
-  return commitAvalon([
-    playedEvent,
-    {
-      type: 'avalon.quest.allPlayed',
-      deadlineAt: context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000,
-    },
-  ]);
+  const deadlineAt = context.nowMs + AVALON_SETTLE_COUNTDOWN_SECONDS * 1000;
+  return commitAvalon(
+    [playedEvent, { type: 'avalon.quest.allPlayed', deadlineAt }],
+    [settleDueEffect(state, 'quest', state.phase.round, deadlineAt)],
+  );
 }
 
 /** Settles the quest with unplayed team seats counting as success (D16). */
@@ -445,11 +476,16 @@ function finishQuest(state: AvalonState, context: CommandContext): AvalonDecisio
 /**
  * Settles the quest when the reveal countdown expires. The countdown is
  * armed only once every team seat has played, so this settles the final
- * play set. Submitted by clients via the stage-deadline hook.
+ * play set. Server-scheduled settle is the correctness path (see
+ * timeoutVote); client submissions only accelerate it.
  */
-function timeoutQuest(state: AvalonState, context: CommandContext): AvalonDecision {
+function timeoutQuest(
+  state: AvalonState,
+  context: CommandContext,
+  internal: boolean,
+): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-  const actor = resolveUncontrolledUserActorId(context);
+  const actor = resolveSettleActor(context, internal);
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
   if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
@@ -605,9 +641,9 @@ function ackAudio(state: AvalonState, context: CommandContext): AvalonDecision {
   return commitAvalon([{ type: 'avalon.audio.cleared' }]);
 }
 
-function decidePublicCommand(
+function decideCommand(
   state: AvalonState,
-  command: AvalonPublicCommand,
+  command: AvalonCommand,
   context: CommandContext,
 ): AvalonDecision {
   switch (command.type) {
@@ -638,11 +674,15 @@ function decidePublicCommand(
     case 'avalon.vote.finish':
       return finishVote(state, context);
     case 'avalon.vote.timeout':
-      return timeoutVote(state, context);
+      return timeoutVote(state, context, false);
+    case 'avalon.vote.settleExpired':
+      return timeoutVote(state, context, true);
     case 'avalon.quest.finish':
       return finishQuest(state, context);
     case 'avalon.quest.timeout':
-      return timeoutQuest(state, context);
+      return timeoutQuest(state, context, false);
+    case 'avalon.quest.settleExpired':
+      return timeoutQuest(state, context, true);
     case 'avalon.lady.check':
       return checkLady(state, command.seat, context);
     case 'avalon.lady.acknowledge':
@@ -660,13 +700,13 @@ function decidePublicCommand(
   }
 }
 
-/** Decides public commands against the current authoritative state. */
+/** Decides public and worker-internal commands against the authoritative state. */
 export function decideAvalonCommand(
   state: AvalonState,
   command: AvalonCommand,
   context: CommandContext,
 ): AvalonDecision {
-  return decidePublicCommand(state, command, context);
+  return decideCommand(state, command, context);
 }
 
 /** Projects domain phases into the shared room lifecycle. */

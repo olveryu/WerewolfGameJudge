@@ -30,5 +30,15 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.assassin.accuse'; readonly seat: number }
   | { readonly type: 'avalon.assassin.earlyStrike'; readonly seat: number };
 
-/** Avalon has no worker-originated internal commands; the vote countdown timeout is a public command submitted by clients at the deadline. */
-export type AvalonCommand = AvalonPublicCommand;
+/**
+ * Worker-originated settle commands: the room runtime fires the armed
+ * reveal countdown through a scheduled `avalon.settle.due` effect, and
+ * the effect handler dispatches these as the system actor. They run the
+ * same settlement decide as the public timeout commands; the public
+ * timeouts stay as a client acceleration path only.
+ */
+export type AvalonInternalCommand =
+  | { readonly type: 'avalon.vote.settleExpired' }
+  | { readonly type: 'avalon.quest.settleExpired' };
+
+export type AvalonCommand = AvalonPublicCommand | AvalonInternalCommand;

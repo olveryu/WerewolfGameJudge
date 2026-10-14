@@ -125,6 +125,14 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     setNow(ms: number) {
       session.setNow(ms);
     },
+    /** Sends a command through the system (effect-driven) channel. */
+    sendSystem(command: AvalonCommand, effectId = 'settle-effect') {
+      session.sendAs(command, session.systemContext(effectId));
+    },
+    /** Raw decision through the system channel, without applying it. */
+    decideSystem(command: AvalonCommand, effectId = 'settle-effect') {
+      return session.decideAs(command, session.systemContext(effectId));
+    },
     leaderUser() {
       return seatUser(session.state.leaderSeat);
     },
@@ -562,6 +570,148 @@ describe('Avalon engine', () => {
     session.setNow(1000 + 5000);
     session.send({ type: 'avalon.quest.timeout' }, session.seatUser(good));
     expect(session.state.questResults[0]).toBe('fail');
+  });
+
+  it('emits exactly one scheduled settle effect when the vote countdown arms', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    for (const seat of [0, 1, 2, 3]) {
+      session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
+    }
+    expect(session.effects.filter((effect) => effect.type === 'avalon.settle.due')).toEqual([]);
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(4));
+    const settleEffects = session.effects.filter((effect) => effect.type === 'avalon.settle.due');
+    expect(settleEffects).toEqual([
+      {
+        type: 'avalon.settle.due',
+        payload: {
+          gameSequence: session.state.gameSequence,
+          phase: 'vote',
+          round: 1,
+          deadlineAt: 1000 + 5000,
+        },
+      },
+    ]);
+    // Changing a ballot inside the countdown never re-arms, so no second effect.
+    session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(0));
+    expect(session.effects.filter((effect) => effect.type === 'avalon.settle.due')).toEqual(
+      settleEffects,
+    );
+  });
+
+  it('settles the vote through the internal system command at the deadline', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.voteAll('approve');
+    session.setNow(1000 + 5000);
+    session.sendSystem({ type: 'avalon.vote.settleExpired' });
+    expect(session.state.phase.kind).toBe('quest');
+    expect(session.state.lastVoteResult?.approveCount).toBe(5);
+  });
+
+  it('settles the quest through the internal system command at the deadline', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.voteAll('approve');
+    session.finishVote();
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(0));
+    expect(
+      session.effects.filter(
+        (effect) => effect.type === 'avalon.settle.due' && effect.payload.phase === 'quest',
+      ),
+    ).toEqual([]);
+    session.send({ type: 'avalon.quest.play', play: 'success' }, session.seatUser(1));
+    expect(
+      session.effects.filter(
+        (effect) => effect.type === 'avalon.settle.due' && effect.payload.phase === 'quest',
+      ),
+    ).toEqual([
+      {
+        type: 'avalon.settle.due',
+        payload: {
+          gameSequence: session.state.gameSequence,
+          phase: 'quest',
+          round: 1,
+          deadlineAt: 1000 + 5000,
+        },
+      },
+    ]);
+    session.setNow(1000 + 5000);
+    session.sendSystem({ type: 'avalon.quest.settleExpired' });
+    expect(session.state.phase.kind).toBe('nominate');
+    expect(session.state.questResults[0]).toBe('success');
+  });
+
+  it('keeps the settle channels actor-separated', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.voteAll('approve');
+    session.setNow(1000 + 5000);
+    // The internal settle command refuses user actors, controlled or not.
+    session.expectReject(
+      { type: 'avalon.vote.settleExpired' },
+      'system_actor_required',
+      session.seatUser(2),
+    );
+    const controlled = session.decideAs({ type: 'avalon.vote.settleExpired' }, 'host', 2);
+    expect(controlled.kind).toBe('reject');
+    if (controlled.kind === 'reject') expect(controlled.reason).toBe('system_actor_required');
+    // The public timeout refuses the system actor.
+    const systemPublic = session.decideSystem({ type: 'avalon.vote.timeout' });
+    expect(systemPublic.kind).toBe('reject');
+    if (systemPublic.kind === 'reject') expect(systemPublic.reason).toBe('user_actor_required');
+    // Neither rejection settled anything.
+    expect(session.state.phase.kind).toBe('vote');
+  });
+
+  it('rejects the internal settle before the deadline', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.voteAll('approve');
+    const early = session.decideSystem({ type: 'avalon.vote.settleExpired' });
+    expect(early.kind).toBe('reject');
+    if (early.kind === 'reject') expect(early.reason).toBe('avalon_deadline_not_reached');
+    expect(session.state.phase.kind).toBe('vote');
+  });
+
+  it('settles exactly once when the client timeout and the system settle race', () => {
+    // Client first: the late system settle hits the phase guard.
+    const clientFirst = game({ numberOfPlayers: 5 });
+    clientFirst.startGame();
+    clientFirst.passNight();
+    clientFirst.proposeTeam([0, 1]);
+    clientFirst.voteAll('approve');
+    clientFirst.setNow(1000 + 5000);
+    clientFirst.send({ type: 'avalon.vote.timeout' }, clientFirst.seatUser(3));
+    expect(clientFirst.state.phase.kind).toBe('quest');
+    const lateSystem = clientFirst.decideSystem({ type: 'avalon.vote.settleExpired' });
+    expect(lateSystem.kind).toBe('reject');
+    if (lateSystem.kind === 'reject') expect(lateSystem.reason).toBe('avalon_phase_invalid');
+
+    // System first: the late client timeout hits the phase guard.
+    const systemFirst = game({ numberOfPlayers: 5 });
+    systemFirst.startGame();
+    systemFirst.passNight();
+    systemFirst.proposeTeam([0, 1]);
+    systemFirst.voteAll('approve');
+    systemFirst.setNow(1000 + 5000);
+    systemFirst.sendSystem({ type: 'avalon.vote.settleExpired' });
+    expect(systemFirst.state.phase.kind).toBe('quest');
+    systemFirst.expectReject(
+      { type: 'avalon.vote.timeout' },
+      'avalon_phase_invalid',
+      systemFirst.seatUser(0),
+    );
   });
 
   it('rejects vote.finish from non-hosts', () => {
