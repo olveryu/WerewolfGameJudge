@@ -89,7 +89,11 @@ export interface DrawGuessRoomScreenState {
   readonly canControlBots: boolean;
   readonly takeOver: RoomBotControl['takeOver'];
   readonly releaseBot: RoomBotControl['release'];
-  readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: DrawGuessCommand,
+    control?: number | null,
+  ) => Promise<boolean>;
   readonly session: DrawGuessRoomSession;
   readonly openRules: () => void;
 }
@@ -125,8 +129,12 @@ export function useDrawGuessRoomState(
   const titleActions = useRoomTitleActions();
   const { data: gachaStatus } = useGachaStatusQuery();
   const submission = useRoomCommandSubmission(getDrawGuessRoomCommandFailureMessage);
-  const submit = (label: string, command: DrawGuessCommand) =>
-    submission.submit(label, () => session.dispatch(command, { controlledSeat, label }));
+  // 派发纪律（#149 定版，与阿瓦隆/卧底 submit 同形态）：默认不带接管座位。
+  // 房主命令的平台门只认未接管身份（resolveHostActorId），挂着接管座位发
+  // 开始游戏/再来一局/返回大厅必然被拒；座位动作（以被接管机器人画手
+  // 身份发出的选词、放弃本轮）由调用方显式传 controlledSeat。
+  const submit = (label: string, command: DrawGuessCommand, control: number | null = null) =>
+    submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
   // 阶段截止：剩余秒数与到期推进（原在 Screen 的 DrawGuessStage 内组装，P-2b 下沉）。
   const deadlineAt =
     state.phase.kind === 'wordSelect' ||

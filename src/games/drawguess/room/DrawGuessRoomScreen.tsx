@@ -287,17 +287,22 @@ function DrawGuessWordSelectView({
   readonly viewModel: DrawGuessViewModel;
   readonly remainingSeconds: number | null;
 }) {
-  const { state, effectiveSeat, submit } = screen;
+  const { state, effectiveSeat, controlledSeat, submit } = screen;
   const isDrawer = viewModel.drawerSeat !== null && effectiveSeat === viewModel.drawerSeat;
   const drawerName =
     viewModel.seats.find((seat) => seat.seat === viewModel.drawerSeat)?.displayName ?? '画手';
   const choose = (word: string) => {
-    void submit('选择题目', {
-      type: 'drawguess.word.choose',
-      word,
-      phaseRevision: state.phaseRevision,
-      turnIndex: state.turnIndex,
-    });
+    // 选词是画手的座位动作：接管机器人画手时显式带接管座位发出。
+    void submit(
+      '选择题目',
+      {
+        type: 'drawguess.word.choose',
+        word,
+        phaseRevision: state.phaseRevision,
+        turnIndex: state.turnIndex,
+      },
+      controlledSeat,
+    );
   };
   return (
     <DrawGuessStageFrame
@@ -414,7 +419,8 @@ function DrawGuessDrawingView({
 
   const giveUp = () => {
     showConfirmAlert('放弃本轮', '将直接进入结算并公布答案，确定放弃本轮作画吗？', () => {
-      void submit('放弃本轮', { type: 'drawguess.round.finish' });
+      // 放弃本轮按当前有效座位裁决（画手本人或被接管的机器人画手）。
+      void submit('放弃本轮', { type: 'drawguess.round.finish' }, controlledSeat);
     });
   };
 
