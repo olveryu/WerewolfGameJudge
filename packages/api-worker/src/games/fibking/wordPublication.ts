@@ -88,9 +88,9 @@ export async function reserveFibWordPack(
   db: D1Database,
   day: string,
   batchIndex: number,
-  batchLimit = FIB_WORD_DAILY_BATCH_LIMIT,
-  opts: { force?: boolean; runId?: string } = {},
+  opts: { force?: boolean; runId?: string; batchLimit?: number } = {},
 ): Promise<FibWordPack | null> {
+  const batchLimit = opts.batchLimit ?? FIB_WORD_DAILY_BATCH_LIMIT;
   const parsedDay = z.iso.date().parse(day);
   z.int().min(FIB_WORD_DAILY_BATCH_LIMIT).max(FIB_WORD_MONTHLY_BATCH_LIMIT).parse(batchLimit);
   z.int()
@@ -211,11 +211,11 @@ export async function publishFibWordPack(
   pack: FibWordPack,
   candidates: readonly FibWordEditorialCandidate[],
   reviews: readonly FibWordReview[],
-  sourceUrls: readonly string[],
+  opts: { readonly sourceUrls: readonly string[] } = { sourceUrls: [] },
 ): Promise<void> {
   if (candidates.length > FIB_WORD_REVIEW_BATCH_LIMIT || reviews.length !== candidates.length)
     throw new Error('Fib publication batch size mismatch');
-  z.array(z.url()).max(14).parse(sourceUrls);
+  const sourceUrls = z.array(z.url()).max(14).parse(opts.sourceUrls);
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [];
   for (const [index, candidate] of candidates.entries()) {
