@@ -34,6 +34,7 @@ function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     myPlay: null,
     questResults: [],
     questHistory: [],
+    roundHistory: [],
     lady: null,
     ladyCheckResult: null,
     isAssassin: false,

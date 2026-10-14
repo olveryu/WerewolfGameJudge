@@ -213,3 +213,16 @@ export const AVALON_END_REASON_COPY: Readonly<
 export function formatAvalonRoundLabel(round: number): string {
   return `第 ${round} 轮`;
 }
+
+const AVALON_QUEST_LABELS: Readonly<Record<number, string>> = {
+  1: '一',
+  2: '二',
+  3: '三',
+  4: '四',
+  5: '五',
+};
+
+/** 任务N文案（对局记录与摘要条口径，如「任务二」）。 */
+export function formatAvalonQuestLabel(round: number): string {
+  return `任务${AVALON_QUEST_LABELS[round] ?? round}`;
+}
