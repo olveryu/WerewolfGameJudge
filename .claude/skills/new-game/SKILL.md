@@ -26,7 +26,7 @@ prevent exactly that.
 3. `docs/multigame-platform-design.md` 第 25 节 —— 新增游戏接入清单（模块注册）。
 4. `docs/roomscreen-state-machine.md` —— RoomScreen 状态机。
 5. 仓库 `AGENTS.md` —— 质量门禁、协作规则、核心原则。
-6. 至少通读一个现有小游戏的 `docs/<game>-game-design.md`（如 `docs/fibking-game-design.md`），
+6. 至少通读一个现有小游戏的 `docs/<game>-game-design.md`（如 `docs/undercover-game-design.md`），
    理解 design doc 的颗粒度。
 
 ## Phase 1 — 设计（先给方案，用户批准后才能动手）
@@ -68,7 +68,9 @@ XP/结算、测试计划。
       人数之外的配置项说明为什么不能复用现有模式。
 - [ ] 规则说明：复用 `GameGuide`；玩法介绍写清目标、流程、房主职责、工具边界。
 - [ ] 机器人：开局门槛计数方式（真人+机器人如何计）、接管权限（仅房主？）、
-      受控席位提示、未接管时的默认行为，与现有小游戏一致。
+      受控席位提示、未接管时的默认行为，与现有小游戏一致。身份型游戏另有
+      身份查看检查点：每座位（含 bot）查看齐全才能开始、bot 记录只许房主
+      用手动脚手架填（见 3c-3），设计阶段就定死，不许留到实现期自创。
 - [ ] 房间外壳：`RoomShell` 的 `content` 用 `seats` 还是 `workspace`，
       参照 contract 中各游戏的选择并说明理由。
 - [ ] 结算：XP/完成效应、再来一局、返回大厅、终局排名、匿名玩家显示。
@@ -95,6 +97,13 @@ XP/结算、测试计划。
 | 10  | `src/__tests__/architecture.contract.test.ts`                               | 多处白名单（workflow 导出、permissive zod 等） |
 | 11  | migration                                                                   | 所有 `game_type CHECK` 加新 ID + 新表          |
 | 12  | `pnpm-lock.yaml`                                                            | 加了新依赖必须同步 lockfile                    |
+| 13  | `packages/game-engine/src/product/rewards/earnings.ts`                      | `GAME_COMPLETION_REWARDS` 加本游戏条目（见下） |
+
+第 13 处漏填不会报错、只会静默无完成奖励，必须当必填项核：新游戏要在
+`GAME_COMPLETION_REWARDS` 里声明奖励 policy——`flat` 就在表内加一条
+`{ xpEarned, normalDrawsEarned, dailyCompletionTarget }` 三数；`levelRoll`
+（按等级浮动，如狼人杀）按现状以**不在表内**表示、走独立结算管线并在
+design doc 里登记。Wave 9 注册表落地时会把 policy 显性化，本条先防漏填。
 
 ## Phase 3 — 实现
 
@@ -177,7 +186,8 @@ XP/结算、测试计划。
 - **座位变更全走 platform roster 决策函数**（decideRosterTakeSeat /
   LeaveSeat / KickSeat / ClearSeats / FillBots + applyRosterChanges）；
   "谁是 bot"只用 platform 选择器（getBotSeats / isBotSeat）。
-  （存量例外：狼人杀的填充机器人在 handler 内手写等价逻辑，新游戏不许效仿。）
+  七家（含狼人杀）已全部直调 platform 决策函数、无一例外——不存在
+  "某家在 handler 内手写等价逻辑"的存量例外，新游戏更不许自写。
   微语义（七家一致）：真人坐 bot 位一律拒绝（seat_taken）、离座不复活、
   踢 bot 变空位。改人数分两种：config 人数（卧底/阿瓦隆/瞎掰王/你画我猜/
   故事接龙/drawguess）是任一越界占用（真人或 bot）即拒绝；狼人杀改板子
@@ -186,10 +196,13 @@ XP/结算、测试计划。
   写真 migratePersisted 并在 api-worker 模块注册（未注册 migrate 时版本
   bump 会砖化存量房间）、配逐座位迁移等价测试。
 - **接管入口唯一**：有座位表的游戏 = 房主长按机器人座位，走共享
-  `useBotTakeoverLongPress`；无座位表的游戏 = 开局后走共享 `BotTakeover`
+  `useBotTakeoverLongPress`；无座位表的游戏 = 走共享 `BotTakeover`
   菜单/浮钮。接管 capability 只有房主条件、文案统一
-  `'只有房主可以接管机器人'`——**不许给接管加任何阶段/模式/音频条件**
-  （狼人杀的 debugMode 只是人工测试脚手架，不是接管条件）。
+  `'只有房主可以接管机器人'`——**接管全程无阶段条件**：只要有 bot
+  座位，房主随时可接管（含大厅、任意阶段），**不许给接管加任何
+  阶段/模式/音频条件**。也不许引入 debugMode 或任何同类产品门充当
+  条件——debugMode 已整个删除（含状态字段），只许存在于迁移测试的
+  历史样本里。
 - **自动释放只走共享守卫** `useBotTakeoverGuard`（必填 canControlBots +
   seatStillBot）：失去房主身份、或被接管座位不再是机器人时释放；
   不许手写等价 effect。
@@ -198,6 +211,23 @@ XP/结算、测试计划。
   `rosterUnification.contract.test.ts`、客户端同名 contract +
   `botTakeoverGuard.contract.test.ts`）：新游戏的 state types 与房间 hook
   必须补进这些 contract 的消费者/类型清单，contract 不绿不许合并。
+
+### 3c-3. 身份查看检查点与 bot 测试脚手架（身份型游戏标准件，必含）
+
+有发牌/身份的游戏，发牌后必须有独立的身份查看阶段，且开局门按狼人杀
+口径定死（平台单一实现 `packages/game-engine/src/platform/room/identityViewing.ts`）：
+
+- **检查点**：每个座位（**含 bot**）的查看记录齐全才能开始——开局谓词
+  只许用平台 `haveAllViewed`（参与者构造用 `buildIdentityViewingParticipants` /
+  `buildRosterViewingParticipants`）。不许自创"真人看完即可"的谓词
+  （`haveAllHumansViewed` 已废止）、不许自创门控。
+- **bot 记录只许手动填**：bot 没有客户端，其查看记录只许房主用手动
+  脚手架「标记机器人已查看」补齐（平台 `planMarkBotsViewed` /
+  `decideMarkBotsViewed` 骨架，命令名 `<game>.bots.markAllBotsViewed`）。
+  **引擎永不自动落 bot 标记**——发牌、开局、超时、任何路径都不许。
+- **脚手架是标准件**：填充机器人、标记机器人已查看等批量推进动作随
+  模板原样包含，仅房主可用、按名册有无 bot 显示，接进共享房主管理
+  面板；不许给脚手架另设产品门（见 3c-2 的 debugMode 禁令）。
 
 ### 3d. 词库（如需要）
 
@@ -208,19 +238,24 @@ XP/结算、测试计划。
 ## Phase 4 — 测试与验收
 
 1. **本地**（push 前必须过）：改动文件 prettier + `tsc --noEmit` +
-   architecture/noHardcodedStyleValues contract tests + 相关单测。
+   改动文件 eslint（零警告）+ knip（直接跑、查 exit code，不许用管道
+   吞码）+ architecture/noHardcodedStyleValues contract tests + 相关单测。
    全量 `pnpm run quality` 的 test 部分交给 PR 的 CI（本地跑不下）。
 2. **room-shell-contract 验收矩阵**：逐行记录证据（config/lobby/active/overlays/recovery/layout），
    不适用的行写理由，不许静默跳过。
-3. **E2E**：新游戏的 create/join/config/guide/core-flow 覆盖加入现有 E2E 惯例；
-   断言可见行为，不只断言 import 了共享组件。
+3. **E2E**：新游戏**默认不新建 spec**——e2e 只更新已存在的 spec；
+   认为新游戏需要 e2e 覆盖时，先报告请示用户，获批后才建。已有 spec
+   的改动一次只改一个、一个 commit + push 逐个验证；除狼人杀外一律
+   多 browser context 真人模拟凑人数，**禁用 bot 凑数**（fill bots /
+   接管 bot 只给人工测试用，机器人机制由单测覆盖）；断言可见行为，
+   不只断言 import 了共享组件。
 4. **Design doc** 已进仓库且与代码一致（抽查 3 处文案/语义）。
 5. PR 合并后检查 main 的 CI 全绿才能收尾。
 
 ## Phase 5 — 收尾
 
 - 工作稿 design doc 已复制进 `docs/` 并提交。
-- PR 描述列出：注册清单 12 项核对结果、对齐评审结论、验收矩阵证据链接。
+- PR 描述列出：注册清单 13 项核对结果、对齐评审结论、验收矩阵证据链接。
 - 分支清理；`docs/<game>-game-design.md` 与实现一致。
 
 ---
