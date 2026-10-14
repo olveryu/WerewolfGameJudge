@@ -7,7 +7,6 @@ import {
   type GameEngineDefinition,
   reject,
   resolveHostActorId,
-  resolveSystemActorEffectId,
   resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../platform/engine';
@@ -20,6 +19,17 @@ import {
 } from '../../platform/protocol/reasons';
 import { hasBeenRevealed } from '../../platform/room/hostReveal';
 import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
+import {
+  commitPreparationEntry,
+  decidePreparationComplete,
+  decidePreparationFail,
+  decidePreparationStageUpdate,
+  isFinalPreparationStage,
+  PREPARATION_RETRY_STRATEGIES,
+  type PreparationStageVocabulary,
+  type PreparationStateSlice,
+  resolvePreparationRetryPending,
+} from '../../platform/room/preparation';
 import {
   decideRosterClearSeats,
   decideRosterFillBots,
@@ -59,9 +69,11 @@ import { normalizeFibState } from './state/normalize';
 import {
   FIB_MAX_PLAYERS,
   FIB_MIN_PLAYERS,
+  FIB_PREPARATION_FAILURE_CODES,
   FIB_PREPARATION_STAGES,
   type FibConfig,
   type FibHumanSeat,
+  type FibPreparationStage,
   type FibProfileUpdate,
   type FibSeatProfile,
   type FibState,
@@ -72,6 +84,7 @@ import {
   isValidFibDefinitionField,
   isValidFibPlayerCount,
   isValidFibWord,
+  type PendingFibRound,
 } from './state/types';
 import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
 
@@ -212,6 +225,27 @@ function getFibParticipantUserIds(state: FibState): readonly string[] {
   ].sort();
 }
 
+/** The preparation slice of the state, in the protocol's shape (state union unchanged). */
+function preparationSlice(state: FibState): PreparationStateSlice<PendingFibRound> {
+  return {
+    phase: state.phase,
+    pendingRound: state.phase === 'preparing' ? state.pendingRound : null,
+  };
+}
+
+/** D-5: FibKing injects its three progress stages into the preparation protocol. */
+const FIB_PREPARATION_STAGE_LIST: PreparationStageVocabulary<FibPreparationStage> = [
+  FIB_PREPARATION_STAGES.queued,
+  FIB_PREPARATION_STAGES.selecting,
+  FIB_PREPARATION_STAGES.finalizing,
+];
+
+const FIB_PREPARATION_REASONS = {
+  notPreparing: REASON_FIB_ROUND_NOT_PREPARING,
+  roundMismatch: REASON_FIB_ROUND_MISMATCH,
+  stageInvalid: REASON_FIB_PREPARATION_STAGE_INVALID,
+} as const;
+
 function decideStartFibRound(state: FibState, context: CommandContext): FibDecision {
   const actor = resolveHostActorId(context, state.hostUserId);
   if (actor.kind === 'rejected') return reject(actor.reason);
@@ -220,29 +254,32 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
   }
   if (!isFibRoomFull(state)) return reject(REASON_FIB_ROUND_NOT_FULL);
 
-  const roundId = createRoundId(context.commandId);
-  return commitFib(
-    [
-      {
-        type: 'fibking.round.preparing',
-        pendingRound: {
-          roundId,
-          requestedAt: context.nowMs,
-          stage: FIB_PREPARATION_STAGES.queued,
-        },
-      },
-    ],
-    [
-      {
-        type: 'fibking.word.select',
-        payload: {
-          roundId,
-          avoidWords: [...state.usedWords],
-          participantUserIds: getFibParticipantUserIds(state),
-        },
-      },
-    ],
+  // D-1: every FibKing start — the first round, the next round, and
+  // the preparationFailed "重新准备" alike — freezes a fresh pending
+  // round (fresh strategy); a retry therefore consumes word-sequence
+  // progress again, exactly as before the extraction.
+  const pendingRound = resolvePreparationRetryPending<PendingFibRound>(
+    PREPARATION_RETRY_STRATEGIES.fresh,
+    null,
+    () => ({
+      roundId: createRoundId(context.commandId),
+      requestedAt: context.nowMs,
+      stage: FIB_PREPARATION_STAGES.queued,
+    }),
   );
+  return commitPreparationEntry({
+    pendingRound,
+    buildPreparingEvent: (pending) => ({ type: 'fibking.round.preparing', pendingRound: pending }),
+    buildSelectionEffect: (pending) => ({
+      type: 'fibking.word.select',
+      payload: {
+        roundId: pending.roundId,
+        avoidWords: [...state.usedWords],
+        participantUserIds: getFibParticipantUserIds(state),
+      },
+    }),
+    commit: commitFib,
+  });
 }
 
 function decideCancelFibPreparation(state: FibState, context: CommandContext): FibDecision {
@@ -380,27 +417,16 @@ function decideUpdateFibPreparationStage(
   command: Extract<FibCommand, { readonly type: 'fibking.round.updatePreparationStage' }>,
   context: CommandContext,
 ): FibDecision {
-  const actor = resolveSystemActorEffectId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase !== 'preparing') return reject(REASON_FIB_ROUND_NOT_PREPARING);
-  if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
-
-  const expectedStage =
-    state.pendingRound.stage === FIB_PREPARATION_STAGES.queued
-      ? FIB_PREPARATION_STAGES.selecting
-      : state.pendingRound.stage === FIB_PREPARATION_STAGES.selecting
-        ? FIB_PREPARATION_STAGES.finalizing
-        : null;
-  if (command.stage !== expectedStage) {
-    return reject(REASON_FIB_PREPARATION_STAGE_INVALID);
-  }
-
-  return commitFib([
-    {
-      type: 'fibking.round.preparation.stage.updated',
-      stage: command.stage,
-    },
-  ]);
+  return decidePreparationStageUpdate({
+    state: preparationSlice(state),
+    roundId: command.roundId,
+    stage: command.stage,
+    stages: FIB_PREPARATION_STAGE_LIST,
+    reasons: FIB_PREPARATION_REASONS,
+    context,
+    buildStageEvent: (stage) => ({ type: 'fibking.round.preparation.stage.updated', stage }),
+    commit: commitFib,
+  });
 }
 
 function decideFailFibPreparation(
@@ -408,22 +434,26 @@ function decideFailFibPreparation(
   command: Extract<FibCommand, { readonly type: 'fibking.round.failPreparation' }>,
   context: CommandContext,
 ): FibDecision {
-  const actor = resolveSystemActorEffectId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase === 'preparationFailed') {
-    return command.roundId === state.preparationFailure.roundId
-      ? commitFib([])
-      : reject(REASON_FIB_ROUND_MISMATCH);
-  }
-  if (state.phase !== 'preparing') return reject(REASON_FIB_ROUND_NOT_PREPARING);
-  if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
-  return commitFib([
-    {
+  // D-2: FibKing declares its two-code subset; the codes themselves
+  // are validated by the worker command schema, so the decide layer
+  // carries no failureInvalid reason. A replayed fail for the round
+  // already recorded as failed stays an idempotent no-op.
+  return decidePreparationFail({
+    state: preparationSlice(state),
+    roundId: command.roundId,
+    failureCode: command.failureCode,
+    failureCodes: FIB_PREPARATION_FAILURE_CODES,
+    reasons: FIB_PREPARATION_REASONS,
+    context,
+    alreadyFailedRoundId:
+      state.phase === 'preparationFailed' ? state.preparationFailure.roundId : null,
+    buildFailedEvent: (failureCode) => ({
       type: 'fibking.round.preparationFailed',
       failedAt: context.nowMs,
-      failureCode: command.failureCode,
-    },
-  ]);
+      failureCode,
+    }),
+    commit: commitFib,
+  });
 }
 
 function decideCompleteFibRound(
@@ -431,49 +461,55 @@ function decideCompleteFibRound(
   command: Extract<FibCommand, { readonly type: 'fibking.round.complete' }>,
   context: CommandContext,
 ): FibDecision {
-  const actor = resolveSystemActorEffectId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase !== 'preparing') return reject(REASON_FIB_ROUND_NOT_PREPARING);
-  if (command.roundId !== state.pendingRound.roundId) return reject(REASON_FIB_ROUND_MISMATCH);
-  if (state.pendingRound.stage !== FIB_PREPARATION_STAGES.finalizing) {
-    return reject(REASON_FIB_PREPARATION_STAGE_INVALID);
-  }
-  if (
-    !isValidFibWord(command.word) ||
-    !isValidFibDefinitionField(command.definition.coreMeaning) ||
-    !isValidFibDefinitionField(command.definition.usageNote)
-  ) {
-    return reject(REASON_FIB_WORD_INVALID);
-  }
-  if (state.usedWords.includes(command.word)) return reject(REASON_FIB_WORD_REUSED);
+  return decidePreparationComplete({
+    state: preparationSlice(state),
+    roundId: command.roundId,
+    reasons: FIB_PREPARATION_REASONS,
+    context,
+    // D-5: completion may land only from the vocabulary's final stage.
+    completionGate: (pendingRound) =>
+      isFinalPreparationStage(FIB_PREPARATION_STAGE_LIST, pendingRound.stage)
+        ? null
+        : REASON_FIB_PREPARATION_STAGE_INVALID,
+    complete: () => {
+      if (
+        !isValidFibWord(command.word) ||
+        !isValidFibDefinitionField(command.definition.coreMeaning) ||
+        !isValidFibDefinitionField(command.definition.usageNote)
+      ) {
+        return reject(REASON_FIB_WORD_INVALID);
+      }
+      if (state.usedWords.includes(command.word)) return reject(REASON_FIB_WORD_REUSED);
 
-  return commitFib(
-    [
-      {
-        type: 'fibking.round.started',
-        roundId: command.roundId,
-        word: command.word,
-        definition: command.definition,
-        source: command.source,
-        roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
-        // Identity Viewing Protocol: nobody is marked at round
-        // start; bot seats are marked by the host scaffold action.
-        initialViewedSeats: [],
-      },
-    ],
-    [
-      {
-        type: 'fibking.word.recordUsage',
-        payload: {
-          roundId: command.roundId,
-          word: command.word,
-          source: command.source,
-          usedAt: context.nowMs,
-          participantUserIds: getFibParticipantUserIds(state),
-        },
-      },
-    ],
-  );
+      return commitFib(
+        [
+          {
+            type: 'fibking.round.started',
+            roundId: command.roundId,
+            word: command.word,
+            definition: command.definition,
+            source: command.source,
+            roles: assignFibRoles(state.numberOfPlayers, context.randomSeed),
+            // Identity Viewing Protocol: nobody is marked at round
+            // start; bot seats are marked by the host scaffold action.
+            initialViewedSeats: [],
+          },
+        ],
+        [
+          {
+            type: 'fibking.word.recordUsage',
+            payload: {
+              roundId: command.roundId,
+              word: command.word,
+              source: command.source,
+              usedAt: context.nowMs,
+              participantUserIds: getFibParticipantUserIds(state),
+            },
+          },
+        ],
+      );
+    },
+  });
 }
 
 function createInitialFibState(config: FibConfig, context: CreateGameContext): FibState {
