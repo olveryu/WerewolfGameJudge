@@ -175,6 +175,7 @@ test.describe('FibKing', () => {
       expect(identities.filter((identity) => identity.role === '瞎掰王')).toHaveLength(2);
 
       const firstWord = identities[0]!.word;
+      await hostRoom.beginGame();
       await hostRoom.redrawRound();
       const redrawnIdentity = await hostRoom.viewIdentity();
       expectIdentityVisibility(redrawnIdentity);
@@ -192,13 +193,28 @@ test.describe('FibKing', () => {
       expectIdentityVisibility(restartedIdentity);
       expect([firstWord, redrawnIdentity.word]).not.toContain(restartedIdentity.word);
       await hostRoom.confirmIdentityView();
+      const roundTwoIdentities: FibIdentity[] = [restartedIdentity];
       for (const room of [...firstBatchRooms, coldRoomPage]) {
-        await room.viewIdentity();
+        const identity = await room.viewIdentity();
+        expectIdentityVisibility(identity);
+        roundTwoIdentities.push(identity);
         await room.confirmIdentityView();
       }
+      // Identity order matches seats: host 0, joiners 1 and 2, cold 3.
+      const honestSeat = roundTwoIdentities.findIndex((identity) => identity.role === '老实人');
+      const fibberSeat = roundTwoIdentities.findIndex((identity) => identity.role === '瞎掰王');
+      if (honestSeat < 0 || fibberSeat < 0) {
+        throw new Error('Round two identities did not include an honest and a fibber seat');
+      }
+      await hostRoom.beginGame();
 
       await hostRoom.screenshot(testInfo, 'fibking-ongoing.png');
-      await hostRoom.revealRound();
+      // A wrong guess only reveals that seat's role; the round keeps running.
+      await hostRoom.guessSeat(fibberSeat);
+      await hostRoom.expectSeatRoleLabel(fibberSeat, '瞎掰王');
+      await hostRoom.expectOngoing();
+      // Guessing the honest seat ends the round like revealing the answer.
+      await hostRoom.guessSeat(honestSeat);
       const result = await hostRoom.viewResult();
       expectWordDetails(result, true);
       await hostRoom.closeIdentity();
@@ -208,6 +224,7 @@ test.describe('FibKing', () => {
         await room.viewIdentity();
         await room.confirmIdentityView();
       }
+      await hostRoom.beginGame();
       for (let seat = 0; seat < 4; seat += 1) {
         expect((await hostRoom.collectSeatState(seat + 1)).isEmpty).toBe(false);
       }

@@ -109,6 +109,32 @@ export class FibRoomPage extends RoomPage {
     });
   }
 
+  /** Viewing phase: the host begins play once every seat has viewed. */
+  async beginGame(): Promise<void> {
+    await this.openHostManagement();
+    await this.page.getByTestId(TESTIDS.startGameButton).click();
+    await this.expectHostManagementClosed();
+    await this.expectOngoing();
+  }
+
+  /** Ongoing phase: the host guesses a seat through the guess mode. */
+  async guessSeat(seat: number): Promise<void> {
+    await this.openHostManagement();
+    await this.page.getByTestId(TESTIDS.fibGuessSeatButton).click();
+    await this.expectHostManagementClosed();
+    await this.getSeatTile(seat).click();
+    const confirmTitle = this.page.getByText(`确定选择 ${seat + 1} 号座位是老实人？`, {
+      exact: true,
+    });
+    await expect(confirmTitle).toBeVisible();
+    await this.page.getByText('确定', { exact: true }).click();
+    await expect(confirmTitle).not.toBeVisible();
+  }
+
+  async expectSeatRoleLabel(seat: number, label: string): Promise<void> {
+    await expect(this.getSeatTile(seat)).toContainText(label);
+  }
+
   async viewIdentity(): Promise<FibIdentity> {
     await this.page.getByTestId(TESTIDS.fibViewIdentityButton).click();
     return this.readOpenIdentity();
