@@ -1,0 +1,89 @@
+/** __GAME_PASCAL__ decision outcomes and permission gates; no IO. */
+
+import {
+  type CommandContext,
+  commit,
+  type Decision,
+  reject,
+  resolveHostActorId,
+} from '../../../platform/engine';
+import { type RosterChange } from '../../../platform/room/seating';
+import type { __GAME_PASCAL__HumanSeat, __GAME_PASCAL__State } from '../state/types';
+
+/**
+ * Stable English rejection codes (AU-48). The user-facing copy for each
+ * code lives in the client presenter; engines never emit display text
+ * as a reason.
+ */
+export const __GAME_UPPER___REASONS = {
+  config: '__GAME_ID___config_invalid',
+  phase: '__GAME_ID___phase_invalid',
+  notHostStart: '__GAME_ID___not_host_start',
+  full: '__GAME_ID___room_not_full',
+  notHostReturnToLobby: '__GAME_ID___not_host_return_to_lobby',
+  occupied: '__GAME_ID___occupied_seat_out_of_range',
+  deadline: '__GAME_ID___deadline_not_reached',
+  notImplemented: '__GAME_ID___not_implemented',
+} as const;
+
+export type __GAME_PASCAL__Event =
+  | {
+      readonly type: '__GAME_ID__.seats.changed';
+      readonly changes: readonly RosterChange<__GAME_PASCAL__HumanSeat>[];
+    }
+  | { readonly type: '__GAME_ID__.config.updated'; readonly config: __GAME_PASCAL__State['config'] }
+  | {
+      readonly type: '__GAME_ID__.game.started';
+      readonly deadlineAt: number | null;
+      readonly gameSequence: number;
+    }
+  | { readonly type: '__GAME_ID__.phase.expired' }
+  // TODO(gameplay): 玩法事件随玩法状态机加在这里，evolve.ts 逐个落状态。
+  | { readonly type: '__GAME_ID__.game.ended' }
+  | { readonly type: '__GAME_ID__.game.returnedToLobby' };
+
+export type __GAME_PASCAL__Effect =
+  | {
+      /** 终局 growth settlement effect：Worker 据此发 XP 奖励，xpSettled 保证恰好一次。 */
+      readonly type: '__GAME_ID__.game.completed';
+      readonly payload: {
+        readonly roundId: string;
+        readonly completedAt: number;
+        readonly participantUserIds: readonly string[];
+      };
+    }
+  | {
+      /**
+       * Armed stage deadline: emitted exactly once when a stage with a
+       * deadline opens. The Worker outbox delivers it at `deadlineAt`
+       * (alarm-scheduled), and the handler settles through the internal
+       * settle command unless the phase has already moved on. The
+       * payload pins the exact arming (game, deadline) so a late or
+       * replayed delivery can never settle a newer stage.
+       */
+      readonly type: '__GAME_ID__.settle.due';
+      readonly payload: {
+        readonly gameSequence: number;
+        readonly deadlineAt: number;
+      };
+    };
+
+export type __GAME_PASCAL__Decision = Decision<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>;
+
+/** Commits domain events and completion effects through the shared runtime. */
+export function commit__GAME_PASCAL__(
+  events: readonly __GAME_PASCAL__Event[],
+  effects: readonly __GAME_PASCAL__Effect[] = [],
+): __GAME_PASCAL__Decision {
+  return commit({ events, effects, broadcast: events.length === 0 ? 'none' : 'state' });
+}
+
+/** Requires the current host acting outside bot takeover; rejects with the given reason. */
+export function require__GAME_PASCAL__Host(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+  reason: string,
+): __GAME_PASCAL__Decision | null {
+  const actor = resolveHostActorId(context, state.hostUserId);
+  return actor.kind === 'rejected' ? reject(reason) : null;
+}

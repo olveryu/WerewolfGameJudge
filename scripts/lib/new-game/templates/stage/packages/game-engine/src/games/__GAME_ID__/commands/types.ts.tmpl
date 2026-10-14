@@ -1,0 +1,31 @@
+/** __GAME_PASCAL__ commands; actors come from platform authentication. */
+
+import type {
+  RoomProfileUpdateCommand,
+  RoomSeatCommand,
+} from '../../../platform/protocol/commands';
+import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
+import type { __GAME_PASCAL__Config } from '../state/types';
+
+export type __GAME_PASCAL__PublicCommand =
+  | RoomSeatCommand<RoomSeatProfile>
+  | RoomProfileUpdateCommand<RoomProfileUpdate>
+  | { readonly type: '__GAME_ID__.config.update'; readonly config: __GAME_PASCAL__Config }
+  | { readonly type: '__GAME_ID__.game.start' }
+  | { readonly type: '__GAME_ID__.game.returnToLobby' }
+  | { readonly type: '__GAME_ID__.phase.expire' }
+  // TODO(gameplay): 玩法命令（行动、提交、投票……）逐条加在这里，并在
+  // engine.ts 的 decide 分发与 Worker schemas.ts 的公开命令表同步登记；
+  // 未实现的玩法命令必须显式 reject __GAME_UPPER___REASONS.notImplemented，不许假绿。
+  | { readonly type: '__GAME_ID__.gameplay.example' };
+
+/**
+ * Worker-originated settle command: the room runtime fires the armed
+ * stage deadline through a scheduled `__GAME_ID__.settle.due` effect,
+ * and the effect handler dispatches this as the system actor. It runs
+ * the same settlement decide as the public expire command; the public
+ * one stays as a client acceleration path only.
+ */
+export type __GAME_PASCAL__InternalCommand = { readonly type: '__GAME_ID__.phase.settleExpired' };
+
+export type __GAME_PASCAL__Command = __GAME_PASCAL__PublicCommand | __GAME_PASCAL__InternalCommand;

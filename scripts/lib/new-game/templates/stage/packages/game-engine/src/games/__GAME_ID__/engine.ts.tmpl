@@ -1,0 +1,224 @@
+/** Authoritative __GAME_PASCAL__ engine; delegates persistence and delivery to the platform. */
+
+import {
+  buildGameCompletionPayload,
+  type CommandContext,
+  type CommonGameLifecycle,
+  type CreateGameContext,
+  type GameEngineDefinition,
+  reject,
+  resolveSystemActorEffectId,
+  resolveUncontrolledUserActorId,
+} from '../../platform/engine';
+import { getHumanSeatMap } from '../../platform/room/seating';
+import type { __GAME_PASCAL__Command } from './commands/types';
+import {
+  __GAME_UPPER___REASONS,
+  type __GAME_PASCAL__Decision,
+  type __GAME_PASCAL__Effect,
+  type __GAME_PASCAL__Event,
+  commit__GAME_PASCAL__,
+  require__GAME_PASCAL__Host,
+} from './domain/decision';
+import { evolve__GAME_PASCAL__State } from './domain/evolve';
+import { __GAME_UPPER___STAGE_DURATION_MS } from './domain/rules';
+import { decide__GAME_PASCAL__Room } from './domain/seating';
+import { normalize__GAME_PASCAL__State } from './state/normalize';
+import {
+  __GAME_UPPER___GAME_TYPE,
+  type __GAME_PASCAL__Config,
+  type __GAME_PASCAL__State,
+  get__GAME_PASCAL__OccupiedSeatCount,
+  isValid__GAME_PASCAL__Config,
+} from './state/types';
+import { __GAME_UPPER___STATE_VERSION } from './state/version';
+
+function createInitialState(
+  config: __GAME_PASCAL__Config,
+  context: CreateGameContext,
+): __GAME_PASCAL__State {
+  if (!isValid__GAME_PASCAL__Config(config)) throw new Error(__GAME_UPPER___REASONS.config);
+  return normalize__GAME_PASCAL__State({
+    gameType: __GAME_UPPER___GAME_TYPE,
+    stateVersion: __GAME_UPPER___STATE_VERSION,
+    roomCode: context.roomCode,
+    hostUserId: context.hostUserId,
+    phase: { kind: 'lobby' },
+    phaseRevision: 0,
+    config: { ...config },
+    roster: {},
+    gameSequence: 0,
+    xpSettled: false,
+  });
+}
+
+/** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
+function completionEffect(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Effect {
+  return {
+    type: '__GAME_ID__.game.completed',
+    payload: buildGameCompletionPayload({
+      roundId: `__GAME_ID__:game:${state.gameSequence}`,
+      completedAt: context.nowMs,
+      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    }),
+  };
+}
+
+/**
+ * The scheduled settle effect for one armed stage deadline. The payload
+ * pins the exact arming so the Worker handler can no-op a delivery that
+ * arrives after the stage already settled or a new game began.
+ */
+function settleDueEffect(gameSequence: number, deadlineAt: number): __GAME_PASCAL__Effect {
+  return { type: '__GAME_ID__.settle.due', payload: { gameSequence, deadlineAt } };
+}
+
+/**
+ * Host starts the game (or restarts from ended): the first stage opens
+ * with its deadline armed; the settle.due effect is the correctness
+ * path for expiry, client expire submissions only accelerate it.
+ */
+function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = require__GAME_PASCAL__Host(state, context, __GAME_UPPER___REASONS.notHostStart);
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
+    return reject(__GAME_UPPER___REASONS.phase);
+  if (get__GAME_PASCAL__OccupiedSeatCount(state) !== state.config.numberOfPlayers)
+    return reject(__GAME_UPPER___REASONS.full);
+  const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
+  const gameSequence = state.gameSequence + 1;
+  return commit__GAME_PASCAL__(
+    [{ type: '__GAME_ID__.game.started', deadlineAt, gameSequence }],
+    [settleDueEffect(gameSequence, deadlineAt)],
+  );
+}
+
+/**
+ * Settle-channel gate for deadline expiry: the public expire command
+ * requires an uncontrolled user (any foreground client may accelerate
+ * the settlement), while the internal settle command requires the
+ * system actor (the scheduled `__GAME_ID__.settle.due` effect handler).
+ * Both channels then run the identical settlement below.
+ */
+function expireStage(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+  internal: boolean,
+): __GAME_PASCAL__Decision {
+  if (state.phase.kind !== 'stage') return reject(__GAME_UPPER___REASONS.phase);
+  const actor = internal
+    ? resolveSystemActorEffectId(context)
+    : resolveUncontrolledUserActorId(context);
+  if (actor.kind === 'rejected') return reject(actor.reason);
+  if (state.phase.deadlineAt === null) return reject(__GAME_UPPER___REASONS.deadline);
+  if (context.nowMs < state.phase.deadlineAt) return reject(__GAME_UPPER___REASONS.deadline);
+  return commit__GAME_PASCAL__(
+    [{ type: '__GAME_ID__.phase.expired' }],
+    state.xpSettled ? [] : [completionEffect(state, context)],
+  );
+}
+
+function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+  const hostRejection = require__GAME_PASCAL__Host(
+    state,
+    context,
+    __GAME_UPPER___REASONS.notHostReturnToLobby,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind !== 'ended') return reject(__GAME_UPPER___REASONS.phase);
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.returnedToLobby' }]);
+}
+
+/**
+ * TODO(gameplay): 终局接缝。玩法状态机判定出胜负时从这里收口：
+ * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。
+ * 骨架阶段由阶段到期结算直接终局——玩法填空时把触发点挂到本函数上
+ * （engine.test.ts 已钉住本接缝的结算形状，填空后不许改形状）。
+ */
+export function end__GAME_PASCAL__Game(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  if (state.phase.kind !== 'stage') return reject(__GAME_UPPER___REASONS.phase);
+  return commit__GAME_PASCAL__(
+    [{ type: '__GAME_ID__.game.ended' }],
+    state.xpSettled ? [] : [completionEffect(state, context)],
+  );
+}
+
+function decideCommand(
+  state: __GAME_PASCAL__State,
+  command: __GAME_PASCAL__Command,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  switch (command.type) {
+    case 'room.seat.take':
+    case 'room.seat.leave':
+    case 'room.seat.kick':
+    case 'room.seat.clear':
+    case 'room.seat.fillBots':
+    case 'room.profile.update':
+    case '__GAME_ID__.config.update':
+      return decide__GAME_PASCAL__Room(state, command, context);
+    case '__GAME_ID__.game.start':
+      return startGame(state, context);
+    case '__GAME_ID__.phase.expire':
+      return expireStage(state, context, false);
+    case '__GAME_ID__.phase.settleExpired':
+      return expireStage(state, context, true);
+    case '__GAME_ID__.game.returnToLobby':
+      return returnToLobby(state, context);
+    case '__GAME_ID__.gameplay.example':
+      // TODO(gameplay): 示例玩法命令——接上真实玩法后删除或替换。
+      return reject(__GAME_UPPER___REASONS.notImplemented);
+    default:
+      return reject(__GAME_UPPER___REASONS.phase);
+  }
+}
+
+/** Decides public and worker-internal commands against the authoritative state. */
+export function decide__GAME_PASCAL__Command(
+  state: __GAME_PASCAL__State,
+  command: __GAME_PASCAL__Command,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  return decideCommand(state, command, context);
+}
+
+/** Projects domain phases into the shared room lifecycle. */
+export function get__GAME_PASCAL__Lifecycle(state: __GAME_PASCAL__State): CommonGameLifecycle {
+  return state.phase.kind === 'lobby'
+    ? 'setup'
+    : state.phase.kind === 'ended'
+      ? 'ended'
+      : 'ongoing';
+}
+
+export const __GAME_CAMEL__Engine = {
+  gameType: __GAME_UPPER___GAME_TYPE,
+  stateVersion: __GAME_UPPER___STATE_VERSION,
+  capabilities: {
+    nightPhase: false,
+    botsAndTakeover: true,
+    identityViewing: false,
+    revealAnimation: false,
+    stageDeadline: true,
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: true,
+    botTestScaffold: false,
+  },
+  createInitialState,
+  decide: decide__GAME_PASCAL__Command,
+  evolve: evolve__GAME_PASCAL__State,
+  normalize: normalize__GAME_PASCAL__State,
+  getLifecycle: get__GAME_PASCAL__Lifecycle,
+} satisfies GameEngineDefinition<
+  typeof __GAME_UPPER___GAME_TYPE,
+  __GAME_PASCAL__State,
+  __GAME_PASCAL__Config,
+  __GAME_PASCAL__Command,
+  __GAME_PASCAL__Event,
+  __GAME_PASCAL__Effect
+>;
