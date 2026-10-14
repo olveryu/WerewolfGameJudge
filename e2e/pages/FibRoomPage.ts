@@ -132,7 +132,8 @@ export class FibRoomPage extends RoomPage {
   }
 
   async expectSeatRoleLabel(seat: number, label: string): Promise<void> {
-    await expect(this.getSeatTile(seat)).toContainText(label);
+    // The role label renders in the tile wrapper, outside the pressable.
+    await expect(this.page.getByTestId(TESTIDS.seatTile(seat))).toContainText(label);
   }
 
   async viewIdentity(): Promise<FibIdentity> {
