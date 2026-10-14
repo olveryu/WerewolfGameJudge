@@ -18,6 +18,7 @@ import {
   buildRoomHeaderModel,
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -116,23 +117,12 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
 }
 
 export function getFibProfileTarget(state: FibState, seat: number): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-  if (human !== undefined) {
-    return {
-      seat,
-      userId: human.userId,
-      occupantKind: 'human',
-      rosterName: human.profile.displayName,
-    };
-  }
-  if (!isFibBotSeat(state, seat)) return null;
-  return {
+  return getRoomProfileTarget(
+    state.roster,
     seat,
-    userId: getFibBotUserId(state.roomCode, seat),
-    occupantKind: 'bot',
-    rosterName: getFibBotDisplayName(seat),
-  };
+    (botSeat) => getFibBotUserId(state.roomCode, botSeat),
+    getFibBotDisplayName,
+  );
 }
 
 interface FibSeatTapInput {

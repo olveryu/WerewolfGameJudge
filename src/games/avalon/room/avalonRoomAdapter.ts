@@ -16,7 +16,6 @@ import {
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   getAvalonViewModel,
-  isAvalonBotSeat,
   isAvalonPlayerCount,
   isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -31,6 +30,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -90,22 +90,12 @@ function avalonSeatLabel(state: AvalonState, seat: number): string {
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return isAvalonBotSeat(state, seat)
-    ? {
-        seat,
-        userId: `avalon-bot:${state.roomCode}:${seat}`,
-        occupantKind: 'bot',
-        rosterName: getAvalonBotDisplayName(seat),
-      }
-    : null;
+  return getRoomProfileTarget(
+    state.roster,
+    seat,
+    (botSeat) => `avalon-bot:${state.roomCode}:${botSeat}`,
+    getAvalonBotDisplayName,
+  );
 }
 
 function avalonSeatStatusLabel(

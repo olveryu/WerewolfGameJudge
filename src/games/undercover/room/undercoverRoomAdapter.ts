@@ -4,7 +4,6 @@ import {
   getUndercoverBotSeats,
   getUndercoverOccupiedSeatCount,
   isBotOccupant,
-  isUndercoverBotSeat,
   type UndercoverCategory,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -18,6 +17,7 @@ import {
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -74,22 +74,12 @@ export function getUndercoverProfileTarget(
   state: UndercoverState,
   seat: number,
 ): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return isUndercoverBotSeat(state, seat)
-    ? {
-        seat,
-        userId: `undercover-bot:${state.roomCode}:${seat}`,
-        occupantKind: 'bot',
-        rosterName: getBotDisplayName(seat),
-      }
-    : null;
+  return getRoomProfileTarget(
+    state.roster,
+    seat,
+    (botSeat) => `undercover-bot:${state.roomCode}:${botSeat}`,
+    getBotDisplayName,
+  );
 }
 
 interface UndercoverCapabilitiesInput extends Omit<

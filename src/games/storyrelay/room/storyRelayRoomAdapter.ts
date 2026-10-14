@@ -5,7 +5,6 @@ import {
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
   isBotOccupant,
-  isStoryRelayBotSeat,
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -20,6 +19,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
   buildFillBotsAction,
@@ -49,22 +49,12 @@ function getStoryRelayProfileTarget(
   state: StoryRelayState,
   seat: number,
 ): RoomProfileTarget | null {
-  const occupant = state.roster[seat];
-  if (occupant != null && !isBotOccupant(occupant))
-    return {
-      seat,
-      userId: occupant.userId,
-      occupantKind: 'human',
-      rosterName: occupant.profile.displayName,
-    };
-  return isStoryRelayBotSeat(state, seat)
-    ? {
-        seat,
-        userId: `storyrelay-bot:${state.roomCode}:${seat}`,
-        occupantKind: 'bot',
-        rosterName: getBotDisplayName(seat),
-      }
-    : null;
+  return getRoomProfileTarget(
+    state.roster,
+    seat,
+    (botSeat) => `storyrelay-bot:${state.roomCode}:${botSeat}`,
+    getBotDisplayName,
+  );
 }
 
 /** Creates the shared seat-board source including public readiness and receipt status. */
