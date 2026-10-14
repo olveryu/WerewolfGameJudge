@@ -5,7 +5,10 @@ import { applyRosterChanges } from '../../../platform/room/seating';
 import {
   AVALON_LADY_MIN_PLAYERS,
   type AvalonLastVoteResult,
+  type AvalonProposalRecord,
+  type AvalonQuestRecord,
   type AvalonQuestRound,
+  type AvalonRoundRecord,
   type AvalonState,
   isAvalonQuestRound,
 } from '../state/types';
@@ -25,6 +28,7 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     rejectStreak: 0,
     questResults: [],
     questHistory: [],
+    roundHistory: [],
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
     lastLadyCheck: null,
@@ -37,6 +41,38 @@ function resetAvalonGame(state: AvalonState): AvalonState {
 
 function isLadyRound(round: AvalonQuestRound): round is 2 | 3 | 4 {
   return round === 2 || round === 3 || round === 4;
+}
+
+/**
+ * Appends a settled proposal to its round's record, creating the round
+ * entry on first use. Records are immutable: prior rounds keep their
+ * identity, the touched round is a fresh object.
+ */
+function appendAvalonProposalRecord(
+  roundHistory: readonly AvalonRoundRecord[],
+  round: AvalonQuestRound,
+  proposal: AvalonProposalRecord,
+): readonly AvalonRoundRecord[] {
+  const existing = roundHistory.find((record) => record.round === round);
+  if (existing === undefined) {
+    return [...roundHistory, { round, proposals: [proposal], quest: null }];
+  }
+  return roundHistory.map((record) =>
+    record.round === round ? { ...record, proposals: [...record.proposals, proposal] } : record,
+  );
+}
+
+/**
+ * Fills the quest outcome into the round whose approved proposal opened
+ * the quest. The round entry always exists by then (the approval was
+ * recorded when its vote settled); normalize enforces the mirror.
+ */
+function completeAvalonRoundQuest(
+  roundHistory: readonly AvalonRoundRecord[],
+  round: AvalonQuestRound,
+  quest: AvalonQuestRecord,
+): readonly AvalonRoundRecord[] {
+  return roundHistory.map((record) => (record.round === round ? { ...record, quest } : record));
 }
 
 /** Evolves a committed domain event without persistence or broadcasts. */
@@ -151,6 +187,17 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         rejectCount: event.rejectCount,
         abstainCount: event.abstainCount,
       };
+      // 对局记录：每次组队投票结算（通过/否决/触发否决终局）都把本提案
+      // 追加进本轮记录，否决提案不再被丢弃。
+      const roundHistory = appendAvalonProposalRecord(state.roundHistory, state.phase.round, {
+        leaderSeat: state.leaderSeat,
+        teamSeats: [...state.phase.proposedSeats],
+        ballots: { ...event.ballots },
+        approveCount: event.approveCount,
+        rejectCount: event.rejectCount,
+        abstainCount: event.abstainCount,
+        approved: event.approved,
+      });
       if (event.vetoLimitReached) {
         return {
           ...bumped,
@@ -161,6 +208,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             accusedSeat: null,
           },
           lastVoteResult,
+          roundHistory,
           xpSettled: true,
         };
       }
@@ -179,6 +227,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             abstainCount: event.abstainCount,
           },
           lastVoteResult,
+          roundHistory,
           rejectStreak: 0,
         };
       }
@@ -190,6 +239,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, state.phase.round),
         },
         lastVoteResult,
+        roundHistory,
         leaderSeat: event.nextLeaderSeat,
         rejectStreak: state.rejectStreak + 1,
       };
@@ -215,6 +265,12 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         ...bumped,
         questResults,
         questHistory,
+        // 任务结论补进同轮记录（任务区与投票区自此同属一轮）。
+        roundHistory: completeAvalonRoundQuest(state.roundHistory, event.round, {
+          result: event.result,
+          successCount: event.successCount,
+          failCount: event.failCount,
+        }),
       };
       if (successes >= 3) {
         return { ...settled, phase: { kind: 'assassin', accusedSeat: null } };

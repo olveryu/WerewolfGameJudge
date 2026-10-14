@@ -197,6 +197,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     const phase = raw.phase as Record<string, unknown>;
     delete phase.deadlineAt;
+    delete raw.roundHistory;
     return { ...raw, stateVersion: 3 };
   }
 
@@ -204,7 +205,7 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const state = votePhaseState();
     if (state.phase.kind !== 'vote') throw new Error('expected vote phase');
     const migrated = migratePersistedAvalonState(downgradeToV3(state));
-    expect(migrated.stateVersion).toBe(5);
+    expect(migrated.stateVersion).toBe(6);
     if (migrated.phase.kind !== 'vote') throw new Error('expected vote phase');
     expect(migrated.phase.deadlineAt).toBeNull();
     expect(migrated.phase.ballots).toEqual(state.phase.kind === 'vote' ? state.phase.ballots : {});
@@ -236,14 +237,16 @@ describe('Avalon v3 -> v4 countdown migration', () => {
 describe('Avalon v4 -> v5 viewing-stage migration', () => {
   /** Rebuilds the exact document a v4 store would have persisted. */
   function downgradeToV4(state: AvalonState): Record<string, unknown> {
-    // v4 phases are a subset of v5 phases; only the version differs.
-    return { ...(JSON.parse(JSON.stringify(state)) as Record<string, unknown>), stateVersion: 4 };
+    // v4 phases are a subset of v5 phases; v4 predates roundHistory.
+    const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    delete raw.roundHistory;
+    return { ...raw, stateVersion: 4 };
   }
 
   it('migrates a lobby state field-for-field', () => {
     const state = lobby(3);
     const migrated = migratePersistedAvalonState(downgradeToV4(state));
-    expect(migrated.stateVersion).toBe(5);
+    expect(migrated.stateVersion).toBe(6);
     expect(migrated).toEqual(state);
   });
 
@@ -258,8 +261,104 @@ describe('Avalon v4 -> v5 viewing-stage migration', () => {
     state = dispatch(state, { type: 'avalon.game.begin' });
     if (state.phase.kind !== 'night') throw new Error('expected night phase');
     const migrated = migratePersistedAvalonState(downgradeToV4(state));
-    expect(migrated.stateVersion).toBe(5);
+    expect(migrated.stateVersion).toBe(6);
     expect(migrated).toEqual(state);
     expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
+  });
+});
+
+describe('Avalon v5 -> v6 round-history migration', () => {
+  /** Rebuilds the exact document a v5 store would have persisted. */
+  function downgradeToV5(state: AvalonState): Record<string, unknown> {
+    const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    delete raw.roundHistory;
+    return { ...raw, stateVersion: 5 };
+  }
+
+  function actorOf(seat: number): string {
+    return seat === 0 ? 'host' : `user-${seat}`;
+  }
+
+  /** Drives a 5-human game to the round 1 nomination phase. */
+  function nominateState(): AvalonState {
+    let state = lobby(5);
+    state = dispatch(state, { type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(state, { type: 'avalon.role.viewed' }, actorOf(seat));
+    }
+    state = dispatch(state, { type: 'avalon.game.begin' });
+    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    while (state.phase.kind === 'night') {
+      const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+      for (const seat of participants) {
+        state = dispatch(state, { type: 'avalon.night.confirm' }, actorOf(seat));
+      }
+      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    }
+    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    return state;
+  }
+
+  /** Proposes the leader's team (leader + successors) and settles the vote. */
+  function settleVote(
+    state: AvalonState,
+    ballotOf: (seat: number) => 'approve' | 'reject',
+  ): AvalonState {
+    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    const leader = state.leaderSeat;
+    const seats = Array.from(
+      { length: state.phase.requiredSize },
+      (_, index) => (leader + index) % 5,
+    );
+    let next = dispatch(state, { type: 'avalon.team.propose', seats }, actorOf(leader));
+    for (let seat = 0; seat < 5; seat += 1) {
+      next = dispatch(next, { type: 'avalon.team.vote', vote: ballotOf(seat) }, actorOf(seat));
+    }
+    return dispatch(next, { type: 'avalon.vote.finish' });
+  }
+
+  /** Settles the in-flight quest with every team member playing success. */
+  function settleQuest(state: AvalonState): AvalonState {
+    if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    let next = state;
+    for (const seat of state.phase.teamSeats) {
+      next = dispatch(next, { type: 'avalon.quest.play', play: 'success' }, actorOf(seat));
+    }
+    return dispatch(next, { type: 'avalon.quest.finish' });
+  }
+
+  it('rebuilds the settled quest round field-for-field', () => {
+    let state = nominateState();
+    state = settleVote(state, () => 'approve');
+    state = settleQuest(state);
+    expect(state.roundHistory).toHaveLength(1);
+    const migrated = migratePersistedAvalonState(downgradeToV5(state));
+    expect(migrated.stateVersion).toBe(6);
+    expect(migrated).toEqual(state);
+    expect(parseAvalonState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
+  });
+
+  it('rebuilds an in-flight quest from the quest phase itself', () => {
+    let state = nominateState();
+    state = settleVote(state, () => 'approve');
+    if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
+    expect(state.roundHistory[0]?.quest).toBeNull();
+    const migrated = migratePersistedAvalonState(downgradeToV5(state));
+    expect(migrated).toEqual(state);
+  });
+
+  it('keeps the settled quest but cannot resurrect pre-v6 rejections', () => {
+    // v5 never persisted rejected proposals: after migration the round
+    // shows only the approved proposal that questHistory preserved.
+    let state = nominateState();
+    state = settleVote(state, () => 'reject');
+    state = settleVote(state, () => 'approve');
+    state = settleQuest(state);
+    expect(state.roundHistory[0]?.proposals).toHaveLength(2);
+    const migrated = migratePersistedAvalonState(downgradeToV5(state));
+    expect(migrated.roundHistory).toHaveLength(1);
+    expect(migrated.roundHistory[0]?.proposals).toHaveLength(1);
+    expect(migrated.roundHistory[0]?.proposals[0]).toEqual(state.roundHistory[0]?.proposals[1]);
+    expect(migrated.roundHistory[0]?.quest).toEqual(state.roundHistory[0]?.quest);
   });
 });

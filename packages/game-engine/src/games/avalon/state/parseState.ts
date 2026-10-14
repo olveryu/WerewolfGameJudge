@@ -38,9 +38,12 @@ import {
   type AvalonNightInfo,
   type AvalonPhase,
   type AvalonPlay,
+  type AvalonProposalRecord,
   type AvalonQuestHistoryEntry,
+  type AvalonQuestRecord,
   type AvalonQuestRound,
   type AvalonRoleId,
+  type AvalonRoundRecord,
   type AvalonState,
   isAvalonPlayerCount,
   isAvalonVetoLimit,
@@ -170,6 +173,49 @@ function ballotRecord(value: unknown, path: string): Readonly<Record<number, Ava
 
 function playRecord(value: unknown, path: string): Readonly<Record<number, AvalonPlay>> {
   return seatRecord(value, path, (item, itemPath) => parseChoice(item, itemPath, AVALON_PLAYS));
+}
+
+function proposalRecord(value: unknown, path: string): AvalonProposalRecord {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      leaderSeat: parseSeat(raw.leaderSeat, `${path}.leaderSeat`),
+      teamSeats: parseArray(raw.teamSeats, `${path}.teamSeats`, parseSeat),
+      ballots: ballotRecord(raw.ballots, `${path}.ballots`),
+      approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
+      rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
+      abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+      approved: parseBoolean(raw.approved, `${path}.approved`),
+    },
+    path,
+  );
+}
+
+function questRecord(value: unknown, path: string): AvalonQuestRecord {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      result: parseChoice(raw.result, `${path}.result`, ['success', 'fail'] as const),
+      successCount: parseInteger(raw.successCount, `${path}.successCount`),
+      failCount: parseInteger(raw.failCount, `${path}.failCount`),
+    },
+    path,
+  );
+}
+
+function roundRecord(value: unknown, path: string): AvalonRoundRecord {
+  const raw = parseObject(value, path);
+  return finishObject(
+    raw,
+    {
+      round: questRound(raw.round, `${path}.round`),
+      proposals: parseArray(raw.proposals, `${path}.proposals`, proposalRecord),
+      quest: parseNullable(raw.quest, `${path}.quest`, questRecord),
+    },
+    path,
+  );
 }
 
 function historyEntry(value: unknown, path: string): AvalonQuestHistoryEntry {
@@ -359,6 +405,7 @@ export function parseAvalonState(value: unknown): AvalonState {
           parseChoice(item, itemPath, ['success', 'fail'] as const),
         ),
         questHistory: parseArray(raw.questHistory, `${path}.questHistory`, historyEntry),
+        roundHistory: parseArray(raw.roundHistory, `${path}.roundHistory`, roundRecord),
         ladyHolderSeat: parseNullable(raw.ladyHolderSeat, `${path}.ladyHolderSeat`, parseSeat),
         ladyExaminedSeats: parseArray(
           raw.ladyExaminedSeats,
@@ -383,6 +430,60 @@ export function parseAvalonState(value: unknown): AvalonState {
 }
 
 /**
+ * Derives the v6 round record from what pre-v6 payloads actually stored:
+ * every settled quest (questHistory keeps its approved proposal and its
+ * outcome) plus an in-flight quest (the quest phase itself still carries
+ * the approved proposal). Rejected proposals of older rounds were never
+ * persisted anywhere, so they stay absent — v6 settlements record all.
+ * Runs on the raw payload so the strict parser (and its mirror
+ * invariants) only ever sees the completed state.
+ */
+function deriveLegacyRoundHistory(
+  raw: Readonly<Record<string, unknown>>,
+): readonly AvalonRoundRecord[] {
+  const questHistory =
+    raw.questHistory === undefined
+      ? []
+      : parseArray(raw.questHistory, 'AvalonState.questHistory', historyEntry);
+  const rounds: AvalonRoundRecord[] = questHistory.map((entry) => {
+    const proposal: AvalonProposalRecord = {
+      leaderSeat: entry.leaderSeat,
+      teamSeats: entry.teamSeats,
+      ballots: entry.ballots,
+      approveCount: entry.approveCount,
+      rejectCount: entry.rejectCount,
+      abstainCount: entry.abstainCount,
+      approved: true,
+    };
+    const quest: AvalonQuestRecord = {
+      result: entry.result,
+      successCount: entry.successCount,
+      failCount: entry.failCount,
+    };
+    return { round: entry.round, proposals: [proposal], quest };
+  });
+  const rawPhase = phase(raw.phase, 'AvalonState.phase');
+  if (rawPhase.kind === 'quest' && !rounds.some((record) => record.round === rawPhase.round)) {
+    rounds.push({
+      round: rawPhase.round,
+      proposals: [
+        {
+          leaderSeat: parseInteger(raw.leaderSeat, 'AvalonState.leaderSeat'),
+          teamSeats: rawPhase.teamSeats,
+          ballots: rawPhase.ballots,
+          approveCount: rawPhase.approveCount,
+          rejectCount: rawPhase.rejectCount,
+          abstainCount: rawPhase.abstainCount,
+          approved: true,
+        },
+      ],
+      quest: null,
+    });
+  }
+  return rounds;
+}
+
+/**
  * Upgrades stored v1/v2 rooms. v1 predates role viewing, so its record
  * starts empty. v2 stored the roster as realSeats plus the implicit-bot
  * derivation inputs; the v3 roster materializes exactly the seats the
@@ -394,8 +495,15 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v3/v4 predate the viewing stage; their phases all exist unchanged
   // in v5 (a v4 game is either undealt or already past the deal), so
   // migration is a pure version bump with field-for-field equivalence.
-  if (raw.stateVersion === 3 || raw.stateVersion === 4)
-    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
+  // v5 -> v6 adds roundHistory, derived from what the old state stored
+  // (see deriveLegacyRoundHistory); v3/v4 take the same derivation.
+  if (raw.stateVersion === 3 || raw.stateVersion === 4 || raw.stateVersion === 5) {
+    return parseAvalonState({
+      ...raw,
+      stateVersion: AVALON_STATE_VERSION,
+      roundHistory: deriveLegacyRoundHistory(raw),
+    });
+  }
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
   if (raw.stateVersion === 1 && 'roleViewedSeats' in raw)
     return failDecode('AvalonState.roleViewedSeats', 'absent from version 1 states');
@@ -420,5 +528,6 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
     stateVersion: AVALON_STATE_VERSION,
     roleViewedSeats: raw.stateVersion === 1 ? [] : raw.roleViewedSeats,
     roster,
+    roundHistory: deriveLegacyRoundHistory(rest),
   });
 }

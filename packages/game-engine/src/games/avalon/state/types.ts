@@ -19,6 +19,8 @@ export const AVALON_GAME_TYPE = 'avalon' as const;
  * v2 added roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate
  * with an empty viewing record. */
 /** v4 adds deadlineAt to the vote and quest phases (settle countdown); v3 rooms migrate with null deadlines. */
+/** v5 splits dealing from starting play (independent viewing stage); v6 adds roundHistory,
+ * the immutable per-round record of settled proposals and quest outcomes. */
 
 export const AVALON_MIN_PLAYERS = 5;
 export const AVALON_MAX_PLAYERS = 10;
@@ -301,6 +303,41 @@ export interface AvalonAudioEffect {
 }
 
 /** 每轮历史记录：队长 / 队员 / 投票结果 / 任务结果。 */
+/**
+ * One settled team proposal inside a quest round, appended by evolve when
+ * its vote settles — approved or rejected alike (rejected proposals used
+ * to be discarded). Ballots are stored in full; the visibility layer
+ * withholds the per-seat map under secret vote mode, mirroring the
+ * questHistory rule (D7).
+ */
+export interface AvalonProposalRecord {
+  readonly leaderSeat: number;
+  readonly teamSeats: readonly number[];
+  readonly ballots: Readonly<Record<number, AvalonBallot>>;
+  readonly approveCount: number;
+  readonly rejectCount: number;
+  readonly abstainCount: number;
+  readonly approved: boolean;
+}
+
+/** The settled quest outcome of a round; failCount never names its casters. */
+export interface AvalonQuestRecord {
+  readonly result: 'success' | 'fail';
+  readonly successCount: number;
+  readonly failCount: number;
+}
+
+/**
+ * The immutable record of one quest round: every settled proposal in
+ * order, plus the quest outcome once the quest settles. A round that ends
+ * on the veto limit keeps quest null forever.
+ */
+export interface AvalonRoundRecord {
+  readonly round: AvalonQuestRound;
+  readonly proposals: readonly AvalonProposalRecord[];
+  readonly quest: AvalonQuestRecord | null;
+}
+
 export interface AvalonQuestHistoryEntry {
   readonly round: AvalonQuestRound;
   readonly leaderSeat: number;
@@ -356,6 +393,12 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly rejectStreak: number;
   readonly questResults: ReadonlyArray<'success' | 'fail'>;
   readonly questHistory: readonly AvalonQuestHistoryEntry[];
+  /**
+   * Immutable per-round record (settled proposals + quest outcome) — the
+   * source of the 对局记录 overlay. questHistory above stays the
+   * settled-quest index the ended screen and quest result panel read.
+   */
+  readonly roundHistory: readonly AvalonRoundRecord[];
   /** 9/10 人局的湖仙 token 持有人；其余为 null。 */
   readonly ladyHolderSeat: number | null;
   readonly ladyExaminedSeats: readonly number[];
