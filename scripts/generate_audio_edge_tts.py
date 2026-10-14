@@ -16,8 +16,12 @@ Notes:
 - macOS + Homebrew Python 常遇到 SSL 证书验证失败（Netskope 等企业代理或系统证书链问题），
   加 --insecure 跳过验证即可。
 
+Requires edge-tts >= 7.2 (older releases compute a retired Sec-MS-GEC
+token scheme and Microsoft rejects every synthesis handshake with 403).
+
 Example:
-  python3 scripts/generate_audio_edge_tts.py --voice zh-CN-YunxiNeural
+  python3 scripts/generate_audio_edge_tts.py
+  python3 scripts/generate_audio_edge_tts.py --game avalon
   python3 scripts/generate_audio_edge_tts.py --only night_end
   python3 scripts/generate_audio_edge_tts.py --dry-run
   python3 scripts/generate_audio_edge_tts.py --insecure --only treasure_master
@@ -32,6 +36,32 @@ import tempfile
 from pathlib import Path
 
 import edge_tts
+import edge_tts.communicate as _edge_communicate
+from edge_tts.constants import TRUSTED_CLIENT_TOKEN
+
+# --- Edge TTS endpoint migration (stopgap; delete when obsolete) ---
+# Microsoft retired the legacy read-aloud host (speech.platform.bing.com):
+# the voices list still answers there, but the synthesis handshake rejects
+# every client. edge-tts 7.3.1 (latest release at time of writing) still
+# targets the retired host; the upstream migration (rany2/edge-tts#490)
+# moves synthesis to api.msedgeservices.com with Chromium 155 client
+# constants. Until a fixed edge-tts release ships, rebind the constants
+# that edge_tts.communicate captured at import time. Delete this block once
+# the installed edge-tts targets api.msedgeservices.com by itself.
+_EDGE_CHROMIUM_FULL_VERSION = "155.0.4283.45"
+_edge_communicate.WSS_URL = (
+    "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
+    f"?Ocp-Apim-Subscription-Key={TRUSTED_CLIENT_TOKEN}"
+)
+_edge_communicate.SEC_MS_GEC_VERSION = f"2-{_EDGE_CHROMIUM_FULL_VERSION}"
+_edge_communicate.WSS_HEADERS = {
+    **_edge_communicate.WSS_HEADERS,
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        f"(KHTML, like Gecko) Chrome/{_EDGE_CHROMIUM_FULL_VERSION} "
+        f"Safari/537.36 Edg/{_EDGE_CHROMIUM_FULL_VERSION}"
+    ),
+}
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 OUT_BEGIN_DIR = ROOT_DIR / "assets" / "audio"
@@ -39,6 +69,14 @@ OUT_END_DIR = ROOT_DIR / "assets" / "audio_end"
 OUT_BEGIN_DIR_AVALON = ROOT_DIR / "assets" / "audio_avalon"
 OUT_END_DIR_AVALON = ROOT_DIR / "assets" / "audio_avalon_end"
 
+# Canonical voice parameter set — the single source of truth for ALL game
+# narration in this repo. Every batch (werewolf, avalon, future games) is
+# generated with exactly these values so the narrator is the same person in
+# every game. Never generate a batch with different voice/pitch/rate: the
+# avalon assets shipped in Oct 2026 were synthesized with a different set
+# and sounded like a different narrator; they were re-recorded under this
+# set on 2026-10-14 (verified acoustically against the werewolf batch:
+# median F0 112 Hz vs 114 Hz on "天黑请闭眼。").
 DEFAULT_VOICE = "zh-CN-YunjianNeural"
 DEFAULT_PITCH = "-20Hz"  # Lower pitch for deeper voice
 DEFAULT_RATE = "-20%"    # Slower rate for more gravitas
@@ -251,13 +289,16 @@ async def main() -> None:
 
     if args.insecure:
         import ssl as _ssl
-        _original_create = _ssl.create_default_context
         def _insecure_context(**kwargs):  # noqa: ANN003
             ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
             ctx.check_hostname = False
             ctx.verify_mode = _ssl.CERT_NONE
             return ctx
         _ssl.create_default_context = _insecure_context
+        # edge-tts >= 7.3 prebuilds its SSL context from certifi at import
+        # time, so patching create_default_context alone no longer takes
+        # effect — rebind the prebuilt context as well.
+        _edge_communicate._SSL_CTX = _insecure_context()
         print("WARNING: SSL certificate verification disabled (--insecure)")
 
     if args.list_voices:
