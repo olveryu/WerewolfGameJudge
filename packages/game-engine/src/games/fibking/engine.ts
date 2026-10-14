@@ -8,15 +8,11 @@ import {
   reject,
   resolveHostActorId,
   resolveUncontrolledUserActorId,
-  resolveUserActorId,
 } from '../../platform/engine';
 import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol/gameTypes';
-import {
-  REASON_GAME_IN_PROGRESS,
-  REASON_NOT_HOST,
-  REASON_NOT_SEATED,
-} from '../../platform/protocol/reasons';
+import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
+import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../platform/room/hostReveal';
 import { haveAllViewed, listUnviewedBotSeats } from '../../platform/room/identityViewing';
 import {
@@ -79,7 +75,6 @@ import {
   type FibState,
   getFibRole,
   getFibViewingParticipants,
-  isFibBotSeat,
   isFibRoomFull,
   isValidFibDefinitionField,
   isValidFibPlayerCount,
@@ -362,19 +357,9 @@ function decideGuessFibSeat(state: FibState, seat: number, context: CommandConte
 
 function decideConfirmFibRoleView(state: FibState, context: CommandContext): FibDecision {
   if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
-  const actor = resolveUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  let seat: number | null;
-  if (context.controlledSeat !== null) {
-    if (actor.value !== state.hostUserId) return reject(REASON_NOT_HOST);
-    if (!isFibBotSeat(state, context.controlledSeat)) {
-      return reject(REASON_NOT_SEATED);
-    }
-    seat = context.controlledSeat;
-  } else {
-    seat = findRosterSeatByUserId(state.roster, state.numberOfPlayers, actor.value);
-  }
-  if (seat === null) return reject(REASON_NOT_SEATED);
+  const acting = resolveActingSeat(state, state.numberOfPlayers, context);
+  if (acting.kind === 'rejected') return reject(acting.reason);
+  const seat = acting.value;
   const { viewedSeats } = state.round;
   if (viewedSeats.includes(seat)) return commitFib([]);
   return commitFib([{ type: 'fibking.role.viewed', seat }]);
