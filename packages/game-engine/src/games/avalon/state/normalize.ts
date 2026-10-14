@@ -14,6 +14,7 @@ import {
 } from '../domain/rules';
 import {
   AVALON_LADY_MIN_PLAYERS,
+  AVALON_QUEST_COUNT,
   type AvalonBallot,
   type AvalonHumanSeat,
   type AvalonPlay,
@@ -75,6 +76,7 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     invariant(state.leaderSeat === -1, 'lobby leader');
     invariant(state.questResults.length === 0, 'lobby quest results');
     invariant(state.questHistory.length === 0, 'lobby quest history');
+    invariant(state.roundHistory.length === 0, 'lobby round history');
     invariant(state.ladyHolderSeat === null, 'lobby lady holder');
     invariant(state.ladyExaminedSeats.length === 0, 'lobby lady examined');
     invariant(state.lastLadyCheck === null, 'lobby lady check');
@@ -124,6 +126,91 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
             entry.rejectCount,
       ),
     'quest history',
+  );
+
+  // 对局记录：轮次严格递增；每轮 1..vetoLimit 条提案；至多一条通过且必为
+  // 最后一条（通过即出任务）；每条提案的计数与逐人票自洽、结论与计数一致。
+  invariant(
+    state.roundHistory.every((record, index) => {
+      if (!isAvalonQuestRound(record.round)) return false;
+      if (index > 0 && record.round <= state.roundHistory[index - 1]!.round) return false;
+      if (record.proposals.length === 0 || record.proposals.length > state.config.vetoLimit)
+        return false;
+      const approvedCount = record.proposals.filter((proposal) => proposal.approved).length;
+      if (approvedCount > 1) return false;
+      if (approvedCount === 1 && !record.proposals[record.proposals.length - 1]!.approved)
+        return false;
+      return record.proposals.every(
+        (proposal) =>
+          isSeat(proposal.leaderSeat) &&
+          proposal.teamSeats.length === getAvalonQuestSize(count, record.round) &&
+          proposal.teamSeats.every(isSeat) &&
+          new Set(proposal.teamSeats).size === proposal.teamSeats.length &&
+          isValidBallots(proposal.ballots, state, isSeat) &&
+          proposal.approveCount + proposal.rejectCount + proposal.abstainCount ===
+            occupiedCount(state, count) &&
+          Object.keys(proposal.ballots).length === proposal.approveCount + proposal.rejectCount &&
+          Object.entries(proposal.ballots).filter(([, vote]) => vote === 'approve').length ===
+            proposal.approveCount &&
+          Object.entries(proposal.ballots).filter(([, vote]) => vote === 'reject').length ===
+            proposal.rejectCount &&
+          proposal.approved === proposal.approveCount > proposal.rejectCount,
+      );
+    }),
+    'round history proposals',
+  );
+  // 任务结论与 questHistory 逐项镜像：已结算任务必有同轮记录且结论一致，
+  // 促成任务的通过提案与 historyEntry 完全对应；反之亦然。
+  invariant(
+    state.questHistory.every((entry) => {
+      const record = state.roundHistory.find((candidate) => candidate.round === entry.round);
+      if (record === undefined || record.quest === null) return false;
+      if (
+        record.quest.result !== entry.result ||
+        record.quest.successCount !== entry.successCount ||
+        record.quest.failCount !== entry.failCount
+      )
+        return false;
+      const approved = record.proposals[record.proposals.length - 1]!;
+      return (
+        approved.approved &&
+        approved.leaderSeat === entry.leaderSeat &&
+        approved.approveCount === entry.approveCount &&
+        approved.rejectCount === entry.rejectCount &&
+        approved.abstainCount === entry.abstainCount &&
+        approved.teamSeats.length === entry.teamSeats.length &&
+        approved.teamSeats.every((seat, seatIndex) => seat === entry.teamSeats[seatIndex])
+      );
+    }) &&
+      state.roundHistory.every(
+        (record) =>
+          record.quest === null || state.questHistory.some((entry) => entry.round === record.round),
+      ),
+    'round history quest mirror',
+  );
+  // 记录不得超前于对局进度：当前轮之前的轮次才可能有任务结论。
+  const roundCap =
+    state.phase.kind === 'nominate' || state.phase.kind === 'vote' || state.phase.kind === 'quest'
+      ? state.phase.round
+      : state.phase.kind === 'lady'
+        ? state.phase.afterRound
+        : state.phase.kind === 'assassin' || state.phase.kind === 'ended'
+          ? AVALON_QUEST_COUNT
+          : 0;
+  invariant(
+    state.roundHistory.every((record) => record.round <= roundCap),
+    'round history progress',
+  );
+  const inProgressRound =
+    state.phase.kind === 'nominate' || state.phase.kind === 'vote' || state.phase.kind === 'quest'
+      ? state.phase.round
+      : null;
+  invariant(
+    inProgressRound === null ||
+      state.roundHistory.every(
+        (record) => record.round !== inProgressRound || record.quest === null,
+      ),
+    'round history in-progress quest',
   );
 
   if (count >= AVALON_LADY_MIN_PLAYERS) {

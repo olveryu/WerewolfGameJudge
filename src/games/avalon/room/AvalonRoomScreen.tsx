@@ -2,9 +2,7 @@
  * 阿瓦隆房间：按权威阶段渲染大厅（座位表）、晚上、组队、投票、出牌、湖仙、刺杀与终局。
  */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
 
 import { createBoardInfoStyles } from '@/features/room/components/boardInfo.styles';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
@@ -15,12 +13,14 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
-import { borderRadius, colors, componentSizes, fixed } from '@/theme';
+import { colors } from '@/theme';
 
+import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
 import { AvalonEarlyStrikeModal } from './components/AvalonEarlyStrikeModal';
 import { AvalonEndedSection } from './components/AvalonEndedSection';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
+import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyAcknowledgeModal } from './components/AvalonLadyAcknowledgeModal';
 import { AvalonLadyCheckConfirmModal } from './components/AvalonLadyCheckConfirmModal';
 import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
@@ -72,6 +72,7 @@ function AvalonRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
+  const historySummary = isLobby ? null : createAvalonHistorySummary(screen.state);
   // 刺杀二次确认住在 overlays 层：阶段切换不能把它吞掉。
   // 选人模式（strikePickMode）住在 hook：底部动作区的「刺杀」入口与此处共用。
   const [strikeConfirm, setStrikeConfirm] = useState<AvalonStrikeConfirmation | null>(null);
@@ -308,7 +309,15 @@ function AvalonRoomContent(
             }
           : {
               kind: 'seats',
-              contextHeader: null,
+              // 对局摘要条常驻座位表上方（狼人杀入口形态）：最新结论 +
+              // 「对局记录 ›」唯一入口；大厅分支不渲染（摘要恒为 null）。
+              contextHeader:
+                historySummary === null ? null : (
+                  <AvalonHistorySummary
+                    summary={historySummary}
+                    onOpenHistory={() => setHistoryVisible(true)}
+                  />
+                ),
               sideInspector: null,
               beforeSeatBoard: (
                 <>
@@ -330,20 +339,7 @@ function AvalonRoomContent(
             }
       }
       leadingExtraActions={null}
-      trailingExtraActions={
-        isLobby || viewModel === null ? null : (
-          <TouchableOpacity
-            style={styles.historyButton}
-            activeOpacity={fixed.activeOpacity}
-            accessibilityRole="button"
-            accessibilityLabel="对局记录"
-            testID="avalon-history-button"
-            onPress={() => setHistoryVisible(true)}
-          >
-            <Ionicons name="list-outline" size={componentSizes.icon.md} color={colors.text} />
-          </TouchableOpacity>
-        )
-      }
+      trailingExtraActions={null}
       gameOverlays={
         <>
           {viewModel === null ? null : (
@@ -486,13 +482,3 @@ function AvalonRoomContent(
     />
   );
 }
-
-const styles = StyleSheet.create({
-  historyButton: {
-    minWidth: fixed.minTouchTarget,
-    minHeight: fixed.minTouchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: borderRadius.small,
-  },
-});

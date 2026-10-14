@@ -74,6 +74,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     rejectStreak: 0,
     questResults: [],
     questHistory: [],
+    roundHistory: [],
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
     lastLadyCheck: null,

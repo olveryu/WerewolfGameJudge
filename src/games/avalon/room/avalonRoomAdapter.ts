@@ -73,6 +73,7 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
 import {
+  formatAvalonQuestLabel,
   resolveAssassinInstruction,
   resolveLadyInstruction,
   resolveNightInstruction,
@@ -302,6 +303,72 @@ export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonMo
   return messageRibbon(
     buildLobbyWaitingText(getAvalonOccupiedSeatCount(state), state.config.numberOfPlayers),
   );
+}
+
+/** 最新一次任务结算的结论句；尚无任务结算时为 null。 */
+function avalonLatestQuestConclusion(state: AvalonState): string | null {
+  for (let index = state.roundHistory.length - 1; index >= 0; index -= 1) {
+    const record = state.roundHistory[index]!;
+    if (record.quest === null) continue;
+    const quest = record.quest;
+    return quest.result === 'success'
+      ? `${formatAvalonQuestLabel(record.round)} · 成功（成功票 ${quest.successCount}）`
+      : `${formatAvalonQuestLabel(record.round)} · 失败（失败票 ${quest.failCount}）`;
+  }
+  return null;
+}
+
+/**
+ * 对局摘要条文案（座位表上方常驻，入口按狼人杀口径）：最新结算结论
+ * 优先，其次当前轮次状态句；大厅不出现（返回 null）。只读公开信息
+ * （落盘记录与阶段），不含未结算票面与任何身份。
+ */
+export function createAvalonHistorySummary(state: AvalonState): string | null {
+  const phase = state.phase;
+  switch (phase.kind) {
+    case 'lobby':
+      return null;
+    case 'viewing':
+      return '身份查看阶段';
+    case 'night':
+      return '第一晚';
+    case 'ended':
+      return phase.winner === 'good' ? '本局结束 · 好人获胜' : '本局结束 · 坏人获胜';
+    case 'assassin':
+      return avalonLatestQuestConclusion(state) ?? '刺杀阶段';
+    case 'lady':
+      return (
+        avalonLatestQuestConclusion(state) ??
+        `${formatAvalonQuestLabel(phase.afterRound)} · 湖中仙女查验`
+      );
+    case 'nominate':
+    case 'vote':
+    case 'quest': {
+      const round = phase.round;
+      const questLabel = formatAvalonQuestLabel(round);
+      const record = state.roundHistory.find((candidate) => candidate.round === round);
+      // 本轮已有提案结算（否决后回到组队、或通过后任务进行中）：
+      // 最新结算就是这次投票结论。
+      if (state.lastVoteResult !== null && record !== undefined && record.proposals.length > 0) {
+        const vote = state.lastVoteResult;
+        return `${questLabel} · ${vote.approved ? '队伍通过' : '提案被否决'}（赞成 ${vote.approveCount} · 反对 ${vote.rejectCount}）`;
+      }
+      // 本轮尚无提案结算时，最新结算是上一轮的任务结论。
+      if (record === undefined) {
+        const conclusion = avalonLatestQuestConclusion(state);
+        if (conclusion !== null) return conclusion;
+      }
+      if (phase.kind === 'nominate') {
+        const attempt = (record?.proposals.length ?? 0) + 1;
+        return `${questLabel} · 第${attempt}次提案 · 队长组队中`;
+      }
+      if (phase.kind === 'vote') {
+        const attempt = (record?.proposals.length ?? 0) + 1;
+        return `${questLabel} · 第${attempt}次提案投票中`;
+      }
+      return `${questLabel} · 任务执行中`;
+    }
+  }
 }
 
 /**

@@ -1282,6 +1282,149 @@ describe('Avalon engine', () => {
     expect(entry.successCount).toBe(2);
   });
 
+  it('records rejected proposals in roundHistory and merges the quest outcome into the round', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.startGame();
+    session.passNight();
+    const firstLeader = session.state.leaderSeat;
+    const firstTeam = [firstLeader, (firstLeader + 1) % 6];
+    session.proposeTeam(firstTeam);
+    session.voteAll('reject');
+    session.finishVote();
+    // The rejected proposal is recorded, not discarded; no quest exists yet.
+    expect(session.state.questHistory).toEqual([]);
+    expect(session.state.roundHistory).toHaveLength(1);
+    const rejected = session.state.roundHistory[0]!;
+    expect(rejected.round).toBe(1);
+    expect(rejected.quest).toBeNull();
+    expect(rejected.proposals).toHaveLength(1);
+    expect(rejected.proposals[0]).toMatchObject({
+      leaderSeat: firstLeader,
+      teamSeats: firstTeam,
+      approveCount: 0,
+      rejectCount: 6,
+      abstainCount: 0,
+      approved: false,
+    });
+    expect(rejected.proposals[0]?.ballots[0]).toBe('reject');
+
+    const secondLeader = session.state.leaderSeat;
+    const secondTeam = [secondLeader, (secondLeader + 1) % 6];
+    session.proposeTeam(secondTeam);
+    session.voteAll('approve');
+    session.finishVote();
+    session.playAll({ [secondTeam[0]!]: 'success', [secondTeam[1]!]: 'success' });
+    session.finishQuest();
+    const settled = session.state.roundHistory[0]!;
+    expect(settled.proposals).toHaveLength(2);
+    expect(settled.proposals[1]).toMatchObject({ leaderSeat: secondLeader, approved: true });
+    expect(settled.quest).toEqual({ result: 'success', successCount: 2, failCount: 0 });
+  });
+
+  it('records the veto-ending rejection and flags the round vetoEnded in the view', () => {
+    const session = game({ numberOfPlayers: 6, vetoLimit: 3 });
+    session.startGame();
+    session.passNight();
+    for (let i = 0; i < 3; i += 1) {
+      const leader = session.state.leaderSeat;
+      session.proposeTeam([leader, (leader + 1) % 6]);
+      session.voteAll('reject');
+      session.finishVote();
+    }
+    expect(session.state.phase.kind).toBe('ended');
+    expect(session.state.roundHistory).toHaveLength(1);
+    expect(session.state.roundHistory[0]?.proposals).toHaveLength(3);
+    expect(session.state.roundHistory[0]?.quest).toBeNull();
+    const view = getAvalonViewModel(session.state, 0);
+    expect(view.roundHistory).toHaveLength(1);
+    expect(view.roundHistory[0]?.vetoEnded).toBe(true);
+  });
+
+  it('round history view hides per-seat ballots in secret mode and shows them in public mode', () => {
+    const secret = game({ numberOfPlayers: 6, voteMode: 'secret' });
+    secret.startGame();
+    secret.passNight();
+    const secretLeader = secret.state.leaderSeat;
+    secret.proposeTeam([secretLeader, (secretLeader + 1) % 6]);
+    secret.voteAll('reject');
+    secret.finishVote();
+    const secretView = getAvalonViewModel(secret.state, 2);
+    expect(secretView.roundHistory[0]?.proposals[0]?.ballots).toBeNull();
+    expect(secretView.roundHistory[0]?.proposals[0]?.rejectCount).toBe(6);
+
+    const open = game({ numberOfPlayers: 6, voteMode: 'public' });
+    open.startGame();
+    open.passNight();
+    const openLeader = open.state.leaderSeat;
+    open.proposeTeam([openLeader, (openLeader + 1) % 6]);
+    open.voteAll('reject');
+    open.finishVote();
+    const openView = getAvalonViewModel(open.state, 2);
+    expect(openView.roundHistory[0]?.proposals[0]?.ballots?.[3]).toBe('reject');
+  });
+
+  it('round history view exposes only progress and the viewer ballot for an open proposal', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.startGame();
+    session.passNight();
+    // The started round appears before any proposal settles.
+    const nominateView = getAvalonViewModel(session.state, 0);
+    expect(nominateView.roundHistory).toHaveLength(1);
+    expect(nominateView.roundHistory[0]).toMatchObject({
+      round: 1,
+      proposals: [],
+      quest: null,
+      currentProposal: null,
+    });
+    const leader = session.state.leaderSeat;
+    session.proposeTeam([leader, (leader + 1) % 6]);
+    session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(1));
+    session.send({ type: 'avalon.team.vote', vote: 'reject' }, session.seatUser(2));
+    const voterView = getAvalonViewModel(session.state, 1);
+    // Exact shape: no per-seat ballot map leaks for the unsettled proposal.
+    expect(voterView.roundHistory[0]?.currentProposal).toEqual({
+      leaderSeat: leader,
+      teamSeats: [leader, (leader + 1) % 6],
+      castCount: 2,
+      totalCount: 6,
+      myBallot: 'approve',
+    });
+    expect(voterView.roundHistory[0]?.proposals).toEqual([]);
+    const waitingView = getAvalonViewModel(session.state, 3);
+    expect(waitingView.roundHistory[0]?.currentProposal?.myBallot).toBeNull();
+  });
+
+  it('round history view exposes only play progress while the quest is open', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.startGame();
+    session.passNight();
+    const leader = session.state.leaderSeat;
+    const team = [leader, (leader + 1) % 6];
+    session.proposeTeam(team);
+    session.voteAll('approve');
+    session.finishVote();
+    session.playAll({ [team[0]!]: 'success' });
+    const view = getAvalonViewModel(session.state, team[1]!);
+    expect(view.roundHistory[0]?.quest).toBeNull();
+    expect(view.roundHistory[0]?.questProgress).toEqual({ playedCount: 1, teamSize: 2 });
+    expect(view.roundHistory[0]?.proposals[0]?.approved).toBe(true);
+  });
+
+  it('clears roundHistory when a new game is dealt', () => {
+    const session = game({ numberOfPlayers: 6, vetoLimit: 3 });
+    session.startGame();
+    session.passNight();
+    for (let i = 0; i < 3; i += 1) {
+      const leader = session.state.leaderSeat;
+      session.proposeTeam([leader, (leader + 1) % 6]);
+      session.voteAll('reject');
+      session.finishVote();
+    }
+    expect(session.state.roundHistory).toHaveLength(1);
+    session.startGame();
+    expect(session.state.roundHistory).toEqual([]);
+  });
+
   it('fail-fasts on corrupted state via normalize', () => {
     const session = game({ numberOfPlayers: 6 });
     session.startGame();

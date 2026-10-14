@@ -34,6 +34,7 @@ function strikeViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMo
     myPlay: null,
     questResults: [],
     questHistory: [],
+    roundHistory: [],
     lady: null,
     ladyCheckResult: null,
     isAssassin: true,

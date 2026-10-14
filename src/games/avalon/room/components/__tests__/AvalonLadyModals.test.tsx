@@ -36,6 +36,7 @@ function ladyViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     myPlay: null,
     questResults: ['success', 'success'],
     questHistory: [],
+    roundHistory: [],
     lady: {
       holderSeat: 1,
       examinedSeats: [1],

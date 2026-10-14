@@ -9,10 +9,13 @@ import {
   type AvalonPhaseKind,
   type AvalonPlay,
   type AvalonQuestHistoryEntry,
+  type AvalonQuestRecord,
+  type AvalonQuestRound,
   type AvalonRoleId,
   type AvalonState,
   type AvalonVoteMode,
   getAvalonBotDisplayName,
+  getAvalonOccupiedSeatCount,
   getAvalonViewingParticipants,
   isAvalonBotSeat,
   isAvalonEvilRole,
@@ -41,6 +44,43 @@ export interface AvalonQuestHistoryView {
   readonly result: 'success' | 'fail';
   readonly successCount: number;
   readonly failCount: number;
+}
+
+/** 对局记录中一条已结算提案的 view：暗投模式 ballots 为 null 只给数量（D7，与 questHistory 同口径）。 */
+export interface AvalonProposalRecordView {
+  readonly leaderSeat: number;
+  readonly teamSeats: readonly number[];
+  readonly ballots: Readonly<Record<number, AvalonBallot>> | null;
+  readonly approveCount: number;
+  readonly rejectCount: number;
+  readonly abstainCount: number;
+  readonly approved: boolean;
+}
+
+/** 正在投票的提案（未结算）：只给进度与本人的一票，任何人的票都不外泄。 */
+export interface AvalonCurrentProposalView {
+  readonly leaderSeat: number;
+  readonly teamSeats: readonly number[];
+  readonly castCount: number;
+  readonly totalCount: number;
+  readonly myBallot: AvalonBallot | null;
+}
+
+/** 对局记录一轮的 view：已结算提案 + 任务结论 + 进行中信息，浮层按轮分 tab 渲染。 */
+export interface AvalonRoundRecordView {
+  readonly round: AvalonQuestRound;
+  readonly proposals: readonly AvalonProposalRecordView[];
+  /** 任务结论；尚未出任务（组队中 / 被否决收尾）为 null。暗投只给票数，出牌人不揭晓。 */
+  readonly quest: AvalonQuestRecord | null;
+  /** 本轮因连续否决达上限终局（仅终局轮为 true）。 */
+  readonly vetoEnded: boolean;
+  /** 任务进行中进度（已出牌数 / 队伍人数）；非本轮任务阶段为 null。 */
+  readonly questProgress: {
+    readonly playedCount: number;
+    readonly teamSize: number;
+  } | null;
+  /** 正在投票的提案；非本轮投票阶段为 null。 */
+  readonly currentProposal: AvalonCurrentProposalView | null;
 }
 
 export interface AvalonLadyView {
@@ -99,6 +139,8 @@ export interface AvalonViewModel {
   readonly myPlay: AvalonPlay | null;
   readonly questResults: ReadonlyArray<'success' | 'fail'>;
   readonly questHistory: readonly AvalonQuestHistoryView[];
+  /** 对局记录（按轮）：含已开始的当前轮；大厅 / 查看 / 夜晚阶段为空。 */
+  readonly roundHistory: readonly AvalonRoundRecordView[];
   readonly lady: AvalonLadyView | null;
   /** 最近一次湖仙查验结果（目标座位 + 阵营），仅查验时的持有人可见。 */
   readonly ladyCheckResult: AvalonLadyCheckResultView | null;
@@ -135,6 +177,83 @@ function buildSeatViews(state: AvalonState): AvalonSeatView[] {
     });
   }
   return views;
+}
+
+/**
+ * 对局记录投影：已落盘轮次 + 已开始的当前轮（组队 / 投票 / 任务 / 湖仙
+ * 阶段）。已结算提案结算即全公开（暗投仍只给数量，D7）；进行中的提案
+ * 只露进度与查看者本人的一票；任务结论只带票数，永不带出牌人。
+ */
+function roundRecordViews(
+  state: AvalonState,
+  viewerSeat: number | null,
+): readonly AvalonRoundRecordView[] {
+  const showBallots = state.config.voteMode === 'public';
+  const phase = state.phase;
+  const currentRound: AvalonQuestRound | null =
+    phase.kind === 'nominate' || phase.kind === 'vote' || phase.kind === 'quest'
+      ? phase.round
+      : phase.kind === 'lady'
+        ? phase.afterRound
+        : null;
+  const questProgress =
+    phase.kind === 'quest'
+      ? {
+          round: phase.round,
+          playedCount: Object.keys(phase.plays).length,
+          teamSize: phase.teamSeats.length,
+        }
+      : null;
+  const currentProposal: (AvalonCurrentProposalView & { readonly round: AvalonQuestRound }) | null =
+    phase.kind === 'vote'
+      ? {
+          round: phase.round,
+          leaderSeat: state.leaderSeat,
+          teamSeats: phase.proposedSeats,
+          castCount: Object.keys(phase.ballots).length,
+          totalCount: getAvalonOccupiedSeatCount(state),
+          myBallot: viewerSeat === null ? null : (phase.ballots[viewerSeat] ?? null),
+        }
+      : null;
+  const vetoRound =
+    phase.kind === 'ended' && phase.reason === 'vetoLimitReached'
+      ? (state.roundHistory[state.roundHistory.length - 1]?.round ?? null)
+      : null;
+  const rounds = new Set<AvalonQuestRound>(state.roundHistory.map((record) => record.round));
+  if (currentRound !== null) rounds.add(currentRound);
+  return [...rounds]
+    .sort((a, b) => a - b)
+    .map((round) => {
+      const record = state.roundHistory.find((candidate) => candidate.round === round);
+      return {
+        round,
+        proposals: (record?.proposals ?? []).map((proposal) => ({
+          leaderSeat: proposal.leaderSeat,
+          teamSeats: proposal.teamSeats,
+          ballots: showBallots ? proposal.ballots : null,
+          approveCount: proposal.approveCount,
+          rejectCount: proposal.rejectCount,
+          abstainCount: proposal.abstainCount,
+          approved: proposal.approved,
+        })),
+        quest: record?.quest ?? null,
+        vetoEnded: vetoRound === round,
+        questProgress:
+          questProgress !== null && questProgress.round === round
+            ? { playedCount: questProgress.playedCount, teamSize: questProgress.teamSize }
+            : null,
+        currentProposal:
+          currentProposal !== null && currentProposal.round === round
+            ? {
+                leaderSeat: currentProposal.leaderSeat,
+                teamSeats: currentProposal.teamSeats,
+                castCount: currentProposal.castCount,
+                totalCount: currentProposal.totalCount,
+                myBallot: currentProposal.myBallot,
+              }
+            : null,
+      };
+    });
 }
 
 function historyViews(state: AvalonState): readonly AvalonQuestHistoryView[] {
@@ -266,6 +385,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     myPlay,
     questResults: state.questResults,
     questHistory: historyViews(state),
+    roundHistory: roundRecordViews(state, viewerSeat),
     lady,
     ladyCheckResult,
     isAssassin,

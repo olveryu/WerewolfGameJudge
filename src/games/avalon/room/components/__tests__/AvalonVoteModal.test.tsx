@@ -34,6 +34,7 @@ function voteViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     myPlay: null,
     questResults: [],
     questHistory: [],
+    roundHistory: [],
     lady: null,
     ladyCheckResult: null,
     isAssassin: false,
