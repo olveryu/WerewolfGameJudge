@@ -14,6 +14,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import {
+  GAME_REGISTRY,
+  type GameWorkerWorkflowRegistration,
+} from '@game-judge/game-engine/games/registry';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import ts from 'typescript';
 
@@ -574,16 +578,44 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       fs.readFileSync(filePath, 'utf-8').includes('/gemini-proxy'),
     );
 
-    expect(entryImports).toContain('./games/catalog');
-    expect(concreteGameImports).toEqual([
-      './games/fibking/wordSupplyWorkflow',
-      './games/undercover/wordSupplyWorkflow',
-      './games/drawguess/wordSupplyWorkflow',
-    ]);
-    expect(workerEntry).toContain(
-      "export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';",
+    const declaredWorkflows = GAME_TYPES.flatMap(
+      (gameType): readonly GameWorkerWorkflowRegistration[] =>
+        GAME_REGISTRY[gameType].workerWorkflows,
     );
+
+    expect(entryImports).toContain('./games/catalog');
+    expect(concreteGameImports).toEqual(declaredWorkflows.map((workflow) => workflow.modulePath));
+    for (const workflow of declaredWorkflows) {
+      expect(workerEntry).toContain(
+        `export { ${workflow.exportName} } from '${workflow.modulePath}';`,
+      );
+    }
     expect(providerNamedRouteOwners).toEqual([]);
+  });
+});
+
+describe('Game registry: declared cross-package facts resolve', () => {
+  it('points every registered game at an existing client entry module', () => {
+    for (const gameType of GAME_TYPES) {
+      const clientModulePath = GAME_REGISTRY[gameType].clientModulePath;
+      expect(fs.existsSync(path.join(process.cwd(), clientModulePath))).toBe(true);
+    }
+  });
+
+  it('points every levelRoll game at an existing Worker settlement entry point', () => {
+    for (const gameType of GAME_TYPES) {
+      const rewards = GAME_REGISTRY[gameType].rewards;
+      if (rewards.policy !== 'levelRoll') continue;
+
+      const settlementModuleFile = path.join(workerSrcDir, `${rewards.settlementModulePath}.ts`);
+      expect(fs.existsSync(settlementModuleFile)).toBe(true);
+
+      const settlementModuleSource = fs.readFileSync(settlementModuleFile, 'utf-8');
+      const exportPattern = new RegExp(
+        `export\\s+(?:async\\s+)?(?:function|const|class)\\s+${rewards.settlementExportName}\\b`,
+      );
+      expect(settlementModuleSource).toMatch(exportPattern);
+    }
   });
 });
 
