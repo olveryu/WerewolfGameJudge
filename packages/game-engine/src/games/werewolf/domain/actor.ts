@@ -8,14 +8,9 @@ import {
   resolveUncontrolledUserActorId,
   resolveUserActorId,
 } from '../../../platform/engine';
-import {
-  REASON_CONTROLLED_SEAT_NOT_BOT,
-  REASON_INVALID_SEAT,
-  REASON_NOT_HOST,
-  REASON_NOT_SEATED,
-  REASON_SEAT_EMPTY,
-} from '../../../platform/protocol/reasons';
-import { findRosterSeatByUserId, isBotOccupant } from '../../../platform/room/seating';
+import { REASON_INVALID_SEAT, REASON_SEAT_EMPTY } from '../../../platform/protocol/reasons';
+import { resolveActingSeat } from '../../../platform/room/actingSeat';
+import { findRosterSeatByUserId } from '../../../platform/room/seating';
 import type { HandlerContext } from './handlers/types';
 import type { GameState } from './protocol/types';
 
@@ -79,37 +74,27 @@ export function resolveEffectiveSeatActor(
   const actor = resolveUserActor(state, context);
   if (actor.kind === 'rejected') return actor;
 
-  if (context.controlledSeat === null) {
-    const seat = actor.value.handlerContext.mySeat;
-    if (seat === null) return rejected(REASON_NOT_SEATED);
-    return resolved({ ...actor.value, seat });
-  }
-
-  if (actor.value.userId !== state.hostUserId) {
-    return rejected(REASON_NOT_HOST);
-  }
-
   const controlledSeat = context.controlledSeat;
-  if (!Number.isSafeInteger(controlledSeat) || !Object.hasOwn(state.players, controlledSeat)) {
-    return rejected(REASON_INVALID_SEAT);
+  if (controlledSeat !== null && actor.value.userId === state.hostUserId) {
+    // Werewolf-only state-model gates: with the players/profiles dual
+    // structure, a controlled seat outside the game is invalid and a
+    // seat with no roster occupant is empty. Both precede the shared
+    // bot gate, which cannot distinguish them.
+    if (!Number.isSafeInteger(controlledSeat) || !Object.hasOwn(state.players, controlledSeat)) {
+      return rejected(REASON_INVALID_SEAT);
+    }
+    if (state.roster[controlledSeat] == null) {
+      return rejected(REASON_SEAT_EMPTY);
+    }
   }
 
-  const controlledOccupant = state.roster[controlledSeat];
-  if (controlledOccupant == null) {
-    return rejected(REASON_SEAT_EMPTY);
-  }
-  if (!isBotOccupant(controlledOccupant)) {
-    return rejected(REASON_CONTROLLED_SEAT_NOT_BOT);
-  }
-
+  const acting = resolveActingSeat(state, seatCount(state), context);
+  if (acting.kind === 'rejected') return acting;
+  const seat = acting.value;
   return resolved({
     userId: actor.value.userId,
-    seat: controlledSeat,
-    handlerContext: {
-      state,
-      myUserId: actor.value.userId,
-      mySeat: controlledSeat,
-    },
+    seat,
+    handlerContext: { state, myUserId: actor.value.userId, mySeat: seat },
   });
 }
 
