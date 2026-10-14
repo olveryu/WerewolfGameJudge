@@ -9,7 +9,7 @@ import {
   REASON_NOT_HOST,
 } from '../../../platform/protocol/reasons';
 import type { StoryRelayCommand } from '../commands/types';
-import { getStoryRelayTaskForSeat } from '../domain/visibility';
+import { getStoryRelayTaskForSeat } from '../domain/relay';
 import { storyRelayEngine } from '../engine';
 import { parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG, getStoryRelayBotSeats } from '../state/types';
