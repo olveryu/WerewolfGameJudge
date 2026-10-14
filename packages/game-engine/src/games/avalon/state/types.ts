@@ -2,7 +2,10 @@
 
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
-import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
+import {
+  buildRosterViewingParticipants,
+  type IdentityViewingParticipant,
+} from '../../../platform/room/identityViewing';
 import type { RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
@@ -410,10 +413,5 @@ export function isAvalonOccupiedSeat(state: AvalonState, seat: number): boolean 
 export function getAvalonViewingParticipants(
   state: AvalonState,
 ): readonly IdentityViewingParticipant[] {
-  const participants: IdentityViewingParticipant[] = [];
-  for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-    if (!isAvalonOccupiedSeat(state, seat)) continue;
-    participants.push({ seat, isBot: isAvalonBotSeat(state, seat) });
-  }
-  return participants;
+  return buildRosterViewingParticipants(state.roster, state.config.numberOfPlayers);
 }

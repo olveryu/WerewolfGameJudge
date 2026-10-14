@@ -4,7 +4,10 @@ import type { FibKingGameType } from '../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../platform/protocol/roomSnapshot';
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import type { HostRevelation } from '../../../platform/room/hostReveal';
-import type { IdentityViewingParticipant } from '../../../platform/room/identityViewing';
+import {
+  buildRosterViewingParticipants,
+  type IdentityViewingParticipant,
+} from '../../../platform/room/identityViewing';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import {
   countOccupiedSeats,
@@ -217,10 +220,5 @@ export function isFibRoomFull(state: FibState): boolean {
 
 /** Identity Viewing Protocol participants: every occupied seat with its bot flag. */
 export function getFibViewingParticipants(state: FibState): readonly IdentityViewingParticipant[] {
-  const participants: IdentityViewingParticipant[] = [];
-  for (let seat = 0; seat < state.numberOfPlayers; seat += 1) {
-    if (state.roster[seat] == null) continue;
-    participants.push({ seat, isBot: isFibBotSeat(state, seat) });
-  }
-  return participants;
+  return buildRosterViewingParticipants(state.roster, state.numberOfPlayers);
 }
