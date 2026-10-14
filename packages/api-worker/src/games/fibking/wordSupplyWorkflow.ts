@@ -6,11 +6,7 @@ import type { Env } from '../../env';
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
-import {
-  getFibWordReviewCandidates,
-  storeFibWordCandidates,
-  updateFibWordCandidateEvidence,
-} from './wordCandidatePool';
+import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import {
   extractFibWordEvidence,
@@ -28,8 +24,10 @@ import {
   FIB_WORD_DAILY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   type FibWordPack,
+  getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
+  storeFibWordCandidates,
 } from './wordPublication';
 import { createFibWordSearchQuery } from './wordSearchPlan';
 

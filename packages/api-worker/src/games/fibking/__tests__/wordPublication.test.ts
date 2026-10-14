@@ -3,17 +3,15 @@ import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { cleanupFibWordAudit } from '../maintenance';
-import {
-  getFibWordReviewCandidates,
-  storeFibWordCandidates,
-  updateFibWordCandidateEvidence,
-} from '../wordCandidatePool';
+import { updateFibWordCandidateEvidence } from '../wordCandidatePool';
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
 import {
   claimFibWordProviderRequest,
   failFibWordPack,
+  getFibWordReviewCandidates,
   publishFibWordPack,
   reserveFibWordPack,
+  storeFibWordCandidates,
 } from '../wordPublication';
 
 beforeEach(async () => {
