@@ -179,6 +179,46 @@ describe('createSheriffElectionViewModel', () => {
     expect(JSON.stringify(viewModel)).not.toMatch(/Alice|Bob|Chen|Dana/);
   });
 
+  it('presents a closed round tally in seat order without reordering the state record', () => {
+    const gameState = createLocalState({
+      status: GameStatus.Ended,
+      sheriffElection: {
+        phase: 'completed',
+        registeredSeats: [3, 1],
+        withdrawnSeats: [],
+        completedRounds: [
+          {
+            round: 'first',
+            candidateSeats: [3, 1],
+            eligibleVoterSeats: [0, 2],
+            ballots: { 0: 3, 2: 1 },
+            voteCounts: { 3: 1, 1: 1 },
+            abstainingSeats: [],
+          },
+        ],
+      },
+      sheriffElectionResult: { kind: 'noSheriff', reason: 'runoffTie' },
+    });
+
+    const viewModel = createSheriffElectionViewModel({
+      gameState,
+      effectiveSeat: 0,
+      isHost: false,
+    });
+
+    expect(viewModel?.completedRounds).toEqual([
+      {
+        key: 'first',
+        title: '首轮投票结果',
+        candidateSeats: [1, 3],
+        eligibleVoterSeats: [0, 2],
+        voteCounts: { 3: 1, 1: 1 },
+        ballots: { 0: 3, 2: 1 },
+      },
+    ]);
+    expect(gameState.sheriffElection?.completedRounds[0]?.candidateSeats).toEqual([3, 1]);
+  });
+
   it('allows only tied candidates to withdraw during runoff speech', () => {
     const gameState = createLocalState({
       sheriffElection: {

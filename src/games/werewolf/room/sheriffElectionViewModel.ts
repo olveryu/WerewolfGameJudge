@@ -14,8 +14,8 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export interface SheriffCandidateOptionViewModel {
   readonly seat: number;
@@ -202,7 +202,9 @@ function createCompletedRoundViewModel(
   return {
     key: round.round,
     title: round.round === 'first' ? '首轮投票结果' : '平票投票结果',
-    candidateSeats: round.candidateSeats,
+    // The state record keeps registration order; the published tally is
+    // presented in seat order, so the projection sorts a copy.
+    candidateSeats: [...round.candidateSeats].sort((a, b) => a - b),
     eligibleVoterSeats: round.eligibleVoterSeats,
     voteCounts: round.voteCounts,
     ballots: round.ballots,
