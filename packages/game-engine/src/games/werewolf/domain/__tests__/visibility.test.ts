@@ -514,6 +514,20 @@ describe('getWerewolfViewModel — day fields and lifecycle', () => {
     });
   });
 
+  it('seat displayName falls back to 玩家 for an empty or missing profile name', () => {
+    const state = createState({ roles: ['wolf', 'villager', 'seer'] });
+    const mutated: GameState = {
+      ...state,
+      playerProfiles: {
+        ...state.playerProfiles,
+        p1: { displayName: '' },
+      },
+    };
+    delete mutated.playerProfiles['p2'];
+    const vm = getWerewolfViewModel(mutated, null);
+    expect(vm.seats.map((seat) => seat.displayName)).toEqual(['P0', '玩家', '玩家']);
+  });
+
   it('throws fail-fast when a seated player has no roster occupant', () => {
     const state = createState({ roles: ['wolf', 'villager'] });
     const broken: GameState = { ...state, roster: {} };
