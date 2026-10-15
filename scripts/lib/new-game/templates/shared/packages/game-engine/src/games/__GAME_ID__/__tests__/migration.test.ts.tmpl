@@ -1,8 +1,8 @@
 /** v1 is the current version: persisted states round-trip unchanged through the migration entry. */
 
+import { __GAME_CAMEL__Engine } from '../engine';
 import { migratePersisted__GAME_PASCAL__State, parse__GAME_PASCAL__State } from '../state/parseState';
 import { DEFAULT___GAME_UPPER___CONFIG } from '../state/types';
-import { __GAME_CAMEL__Engine } from '../engine';
 
 describe('__GAME_PASCAL__ persisted state migration', () => {
   it('accepts a current-version lobby state unchanged', () => {

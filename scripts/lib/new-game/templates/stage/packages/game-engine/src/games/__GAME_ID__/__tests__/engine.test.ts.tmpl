@@ -5,12 +5,12 @@ import type { __GAME_PASCAL__Command } from '../commands/types';
 import { __GAME_UPPER___REASONS } from '../domain/decision';
 import { __GAME_UPPER___STAGE_DURATION_MS } from '../domain/rules';
 import { get__GAME_PASCAL__ViewModel } from '../domain/visibility';
-import { __GAME_CAMEL__Engine, end__GAME_PASCAL__Game } from '../engine';
+import { end__GAME_PASCAL__Game, __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
 import {
+  DEFAULT___GAME_UPPER___CONFIG,
   type __GAME_PASCAL__Config,
   type __GAME_PASCAL__State,
-  DEFAULT___GAME_UPPER___CONFIG,
 } from '../state/types';
 
 function game(

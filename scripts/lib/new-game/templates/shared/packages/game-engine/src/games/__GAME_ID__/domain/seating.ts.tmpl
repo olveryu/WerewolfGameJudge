@@ -18,12 +18,12 @@ import {
   type RosterChange,
 } from '../../../platform/room/seating';
 import type { __GAME_PASCAL__Command } from '../commands/types';
-import { type __GAME_PASCAL__HumanSeat, type __GAME_PASCAL__State, isValid__GAME_PASCAL__Config } from '../state/types';
+import { isValid__GAME_PASCAL__Config, type __GAME_PASCAL__HumanSeat, type __GAME_PASCAL__State } from '../state/types';
 import {
-  __GAME_UPPER___REASONS,
-  type __GAME_PASCAL__Decision,
   commit__GAME_PASCAL__,
   require__GAME_PASCAL__Host,
+  __GAME_UPPER___REASONS,
+  type __GAME_PASCAL__Decision,
 } from './decision';
 
 type RoomCommand = Extract<

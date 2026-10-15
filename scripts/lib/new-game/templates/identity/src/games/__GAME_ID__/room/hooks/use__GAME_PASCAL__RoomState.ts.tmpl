@@ -3,13 +3,13 @@
  */
 
 import {
-  type __GAME_PASCAL__Command,
-  type __GAME_PASCAL__State,
-  type __GAME_PASCAL__ViewModel,
   get__GAME_PASCAL__OccupiedSeatCount,
   get__GAME_PASCAL__UserSeat,
   get__GAME_PASCAL__ViewModel,
   isBotSeat,
+  type __GAME_PASCAL__Command,
+  type __GAME_PASCAL__State,
+  type __GAME_PASCAL__ViewModel,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { useCallback, useState } from 'react';
 
@@ -31,14 +31,14 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
 import {
+  deriveRemainingRevealCards,
+  type RevealRoleData,
+} from '@/features/room/model/RevealRoleData';
+import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
-import {
-  deriveRemainingRevealCards,
-  type RevealRoleData,
-} from '@/features/room/model/RevealRoleData';
 import {
   resolveRoomInGameSeatTap,
   ROOM_SEAT_TAP_BLOCKED_TITLE,

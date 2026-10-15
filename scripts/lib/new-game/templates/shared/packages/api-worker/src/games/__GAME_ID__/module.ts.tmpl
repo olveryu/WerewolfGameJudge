@@ -1,14 +1,14 @@
 /** Worker runtime module for __GAME_PASCAL__ (__GAME_DISPLAY_NAME__). */
 
 import {
+  migratePersisted__GAME_PASCAL__State,
   __GAME_UPPER___STATE_CODEC,
   __GAME_CAMEL__Engine,
-  migratePersisted__GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { z } from 'zod';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
-import { __GAME_CAMEL__EffectSchema, handle__GAME_PASCAL__Effect } from './effects';
+import { handle__GAME_PASCAL__Effect, __GAME_CAMEL__EffectSchema } from './effects';
 import {
   __GAME_CAMEL__CreateConfigSchema,
   __GAME_CAMEL__InternalCommandSchema,

@@ -9,7 +9,9 @@
  */
 
 function fail(file, detail) {
-  throw new Error(`new-game edit failed for ${file}: ${detail}`);
+  // No "new-game" brand here: the CLI catch adds the single
+  // `new-game: ` prefix to every failure it reports.
+  throw new Error(`edit failed for ${file}: ${detail}`);
 }
 
 /**

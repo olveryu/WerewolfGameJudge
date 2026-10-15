@@ -17,13 +17,13 @@ import type { RoomSeatProfile } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalize__GAME_PASCAL__State } from './normalize';
 import {
-  __GAME_PASCAL___PHASES,
+  isValid__GAME_PASCAL__Config,
   __GAME_UPPER___GAME_TYPE,
+  __GAME_UPPER___PHASES,
   type __GAME_PASCAL__Config,
   type __GAME_PASCAL__HumanSeat,
   type __GAME_PASCAL__Phase,
   type __GAME_PASCAL__State,
-  isValid__GAME_PASCAL__Config,
 } from './types';
 import { __GAME_UPPER___STATE_VERSION } from './version';
 
@@ -104,7 +104,7 @@ function identities(value: unknown, path: string): Readonly<Record<number, strin
 
 function phase(value: unknown, path: string): __GAME_PASCAL__Phase {
   const raw = parseObject(value, path);
-  const kind = parseChoice(raw.kind, `${path}.kind`, __GAME_PASCAL___PHASES);
+  const kind = parseChoice(raw.kind, `${path}.kind`, __GAME_UPPER___PHASES);
   switch (kind) {
     case 'lobby':
       return finishObject(raw, { kind: 'lobby' as const }, path);

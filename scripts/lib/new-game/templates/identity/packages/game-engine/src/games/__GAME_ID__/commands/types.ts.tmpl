@@ -24,9 +24,18 @@ export type __GAME_PASCAL__PublicCommand =
 /**
  * Worker-originated commands: the skeleton has no worker-originated
  * flow yet, so the partition is empty. The first asynchronous flow
- * (word supply, media, timers) adds its command here and replaces the
- * `z.never()` internal schema in the Worker module.
+ * (word supply, media, timers) adds its command here, unions it into
+ * `__GAME_PASCAL__Command` below, and replaces the `z.never()`
+ * internal schema in the Worker module.
  */
 export type __GAME_PASCAL__InternalCommand = never;
 
-export type __GAME_PASCAL__Command = __GAME_PASCAL__PublicCommand | __GAME_PASCAL__InternalCommand;
+/**
+ * The full command surface the engine decides. While the internal
+ * partition is empty this is the public surface alone — unioning
+ * `never` in would be a redundant constituent; the first internal
+ * command joins by extending this type to
+ * `__GAME_PASCAL__PublicCommand | __GAME_PASCAL__InternalCommand`,
+ * and the Worker dispatch typing fails until it does.
+ */
+export type __GAME_PASCAL__Command = __GAME_PASCAL__PublicCommand;
