@@ -298,7 +298,7 @@ export function editClientCatalog(content, { gameId, camel, pascal }) {
     withImports,
     /(\} satisfies ClientGamePluginCatalogShape;)/,
     (match) =>
-      `  ${gameId}: {\n    gameType: '${gameId}',\n    navigation: ${camel}GameNavigation,\n    createModule: ({ sessionFactory }) => create${pascal}UiModule({ sessionFactory }),\n  },\n${match}`,
+      `  ${gameId}: {\n    gameType: '${gameId}',\n    navigation: ${camel}GameNavigation,\n    createModule: create${pascal}UiModule,\n  },\n${match}`,
   );
   return replaceOnce(
     file,

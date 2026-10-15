@@ -39,38 +39,37 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
   fibking: {
     gameType: 'fibking',
     navigation: fibGameNavigation,
-    createModule: ({ sessionFactory }) => createFibUiModule({ sessionFactory }),
+    createModule: createFibUiModule,
   },
   pictionary: {
     gameType: 'pictionary',
     navigation: pictionaryGameNavigation,
-    createModule: ({ sessionFactory }) => createPictionaryUiModule({ sessionFactory }),
+    createModule: createPictionaryUiModule,
   },
   undercover: {
     gameType: 'undercover',
     navigation: undercoverGameNavigation,
-    createModule: ({ sessionFactory }) => createUndercoverUiModule({ sessionFactory }),
+    createModule: createUndercoverUiModule,
   },
   drawguess: {
     gameType: 'drawguess',
     navigation: drawGuessGameNavigation,
-    createModule: ({ sessionFactory }) => createDrawGuessUiModule({ sessionFactory }),
+    createModule: createDrawGuessUiModule,
   },
   storyrelay: {
     gameType: 'storyrelay',
     navigation: storyRelayGameNavigation,
-    createModule: ({ sessionFactory }) => createStoryRelayUiModule({ sessionFactory }),
+    createModule: createStoryRelayUiModule,
   },
   avalon: {
     gameType: 'avalon',
     navigation: avalonGameNavigation,
-    createModule: ({ sessionFactory, audioService }) =>
-      createAvalonUiModule({ sessionFactory, audioService }),
+    createModule: createAvalonUiModule,
   },
   demo: {
     gameType: 'demo',
     navigation: demoGameNavigation,
-    createModule: ({ sessionFactory }) => createDemoUiModule({ sessionFactory }),
+    createModule: createDemoUiModule,
   },
 } satisfies ClientGamePluginCatalogShape;
 
