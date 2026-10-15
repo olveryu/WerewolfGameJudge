@@ -21,15 +21,33 @@ import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
 import { requireAuth } from '../../features/auth/tokenAuth';
 import { callDurableObject } from '../../platform/http/callDurableObject';
+import {
+  DRAWING_PNG_CONTENT_TYPE,
+  type DrawingUpload,
+  type DrawingUploadOptions,
+  readDrawingUpload,
+} from '../../platform/room/mediaDrawing';
 import { createMediaRoomAccess } from '../../platform/room/mediaRoomAccess';
 import type { ActiveRoomDirectoryEntry } from '../../platform/room/roomDirectory';
-import {
-  DRAWGUESS_PNG_CONTENT_TYPE,
-  type DrawGuessDrawingUpload,
-  readDrawGuessDrawingUpload,
-} from './mediaValidation';
 
 const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
+
+/** V1 画作规格固定：1024×768 PNG，单文件最大 2 MiB。 */
+const DRAWGUESS_DRAWING_UPLOAD_OPTIONS: DrawingUploadOptions = {
+  width: 1024,
+  height: 768,
+  maxBytes: 2 * 1024 * 1024,
+  reasons: {
+    invalidContentLength: '请求长度头无效',
+    drawingTooLarge: '画作超过 2 MiB 上限',
+    bodyRequired: '缺少画作数据',
+    invalidBody: '画作数据读取失败',
+    lengthMismatch: '请求长度与实际数据不一致',
+    invalidPng: 'PNG 文件签名无效',
+    invalidDimensions: '画作尺寸必须为 1024×768',
+    contentTypeInvalid: '只接受 image/png',
+  },
+};
 
 const mediaRoomAccess = createMediaRoomAccess({
   codec: DRAWGUESS_STATE_CODEC,
@@ -58,7 +76,7 @@ function buildObjectKey(
   return `drawguess/${room.creationId}/${state.phaseRevision}/turn-${state.turnIndex}/${submissionId}.png`;
 }
 
-function assertMatchingObject(object: R2Object, upload: DrawGuessDrawingUpload): void {
+function assertMatchingObject(object: R2Object, upload: DrawingUpload): void {
   if (object.size !== upload.bytes.byteLength || object.customMetadata?.sha256 !== upload.sha256) {
     fail(409, '已上传的画作内容不一致');
   }
@@ -68,11 +86,11 @@ async function putImmutableDrawing(
   bucket: R2Bucket,
   objectKey: string,
   entryId: string,
-  upload: DrawGuessDrawingUpload,
+  upload: DrawingUpload,
 ): Promise<void> {
   const stored = await bucket.put(objectKey, upload.bytes, {
     onlyIf: { etagDoesNotMatch: '*' },
-    httpMetadata: { contentType: DRAWGUESS_PNG_CONTENT_TYPE },
+    httpMetadata: { contentType: DRAWING_PNG_CONTENT_TYPE },
     customMetadata: { entryId, sha256: upload.sha256 },
     sha256: upload.sha256Digest,
   });
@@ -105,7 +123,7 @@ drawGuessMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, as
   if (committed !== null && committed.objectKey === objectKey) {
     return fail(409, '本轮画作已提交');
   }
-  const upload = await readDrawGuessDrawingUpload(c.req.raw);
+  const upload = await readDrawingUpload(c.req.raw, DRAWGUESS_DRAWING_UPLOAD_OPTIONS);
   if ('status' in upload) {
     return fail(upload.status, upload.reason);
   }
@@ -155,7 +173,7 @@ drawGuessMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) => 
   if (object === null) return fail(500, '画作数据缺失');
   const headers = new Headers();
   object.writeHttpMetadata(headers);
-  headers.set('Content-Type', DRAWGUESS_PNG_CONTENT_TYPE);
+  headers.set('Content-Type', DRAWING_PNG_CONTENT_TYPE);
   headers.set('Content-Length', String(object.size));
   headers.set('Cache-Control', PRIVATE_MEDIA_CACHE_CONTROL);
   headers.set('ETag', object.httpEtag);

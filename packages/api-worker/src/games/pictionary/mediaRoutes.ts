@@ -23,13 +23,32 @@ import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
 import { requireAuth } from '../../features/auth/tokenAuth';
 import { callDurableObject } from '../../platform/http/callDurableObject';
+import {
+  DRAWING_PNG_CONTENT_TYPE,
+  type DrawingUpload,
+  type DrawingUploadOptions,
+  readDrawingUpload,
+} from '../../platform/room/mediaDrawing';
 import { createMediaRoomAccess } from '../../platform/room/mediaRoomAccess';
 import type { ActiveRoomDirectoryEntry } from '../../platform/room/roomDirectory';
 
-const PNG_CONTENT_TYPE = 'image/png';
 const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
-const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
-const PNG_IHDR_CHUNK_TYPE = [73, 72, 68, 82] as const;
+
+const PICTIONARY_DRAWING_UPLOAD_OPTIONS: DrawingUploadOptions = {
+  width: PICTIONARY_DRAWING_WIDTH,
+  height: PICTIONARY_DRAWING_HEIGHT,
+  maxBytes: PICTIONARY_DRAWING_MAX_BYTES,
+  reasons: {
+    invalidContentLength: 'INVALID_CONTENT_LENGTH',
+    drawingTooLarge: 'DRAWING_TOO_LARGE',
+    bodyRequired: 'DRAWING_BODY_REQUIRED',
+    invalidBody: 'INVALID_DRAWING_BODY',
+    lengthMismatch: 'INVALID_CONTENT_LENGTH',
+    invalidPng: 'INVALID_PNG',
+    invalidDimensions: 'INVALID_DRAWING_DIMENSIONS',
+    contentTypeInvalid: 'DRAWING_CONTENT_TYPE_INVALID',
+  },
+};
 
 const mediaRoomAccess = createMediaRoomAccess({
   codec: PICTIONARY_STATE_CODEC,
@@ -45,89 +64,8 @@ const mediaRoomAccess = createMediaRoomAccess({
   },
 });
 
-interface DrawingUpload {
-  readonly bytes: Uint8Array<ArrayBuffer>;
-  readonly sha256: string;
-  readonly sha256Digest: ArrayBuffer;
-}
-
 function fail(status: 400 | 403 | 404 | 409 | 413 | 415 | 500, reason: string): never {
   throw new HTTPException(status, { message: reason });
-}
-
-function parseContentLength(request: Request): number | null {
-  const value = request.headers.get('content-length');
-  if (value === null) return null;
-  if (!/^(0|[1-9]\d*)$/.test(value)) return fail(400, 'INVALID_CONTENT_LENGTH');
-  const length = Number(value);
-  if (!Number.isSafeInteger(length)) return fail(400, 'INVALID_CONTENT_LENGTH');
-  if (length > PICTIONARY_DRAWING_MAX_BYTES) return fail(413, 'DRAWING_TOO_LARGE');
-  return length;
-}
-
-async function readBoundedBody(request: Request): Promise<Uint8Array<ArrayBuffer>> {
-  const declaredLength = parseContentLength(request);
-  if (request.body === null) return fail(400, 'DRAWING_BODY_REQUIRED');
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let byteLength = 0;
-  while (true) {
-    const result = await reader.read();
-    if (result.done) break;
-    const chunk: unknown = result.value;
-    if (!(chunk instanceof Uint8Array)) return fail(400, 'INVALID_DRAWING_BODY');
-    byteLength += chunk.byteLength;
-    if (byteLength > PICTIONARY_DRAWING_MAX_BYTES) {
-      await reader.cancel('DRAWING_TOO_LARGE');
-      return fail(413, 'DRAWING_TOO_LARGE');
-    }
-    chunks.push(chunk);
-  }
-  if (byteLength === 0 || (declaredLength !== null && declaredLength !== byteLength)) {
-    return fail(400, 'INVALID_CONTENT_LENGTH');
-  }
-  const bytes = new Uint8Array(byteLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes;
-}
-
-function matchesBytes(bytes: Uint8Array, offset: number, expected: readonly number[]): boolean {
-  return expected.every((value, index) => bytes[offset + index] === value);
-}
-
-function validatePng(bytes: Uint8Array): void {
-  if (
-    bytes.byteLength < 24 ||
-    !matchesBytes(bytes, 0, PNG_SIGNATURE) ||
-    !matchesBytes(bytes, 12, PNG_IHDR_CHUNK_TYPE)
-  ) {
-    fail(400, 'INVALID_PNG');
-  }
-  const dimensions = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (
-    dimensions.getUint32(16) !== PICTIONARY_DRAWING_WIDTH ||
-    dimensions.getUint32(20) !== PICTIONARY_DRAWING_HEIGHT
-  ) {
-    fail(400, 'INVALID_DRAWING_DIMENSIONS');
-  }
-}
-
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-async function readDrawingUpload(request: Request): Promise<DrawingUpload> {
-  if (request.headers.get('content-type') !== PNG_CONTENT_TYPE) {
-    return fail(415, 'DRAWING_CONTENT_TYPE_INVALID');
-  }
-  const bytes = await readBoundedBody(request);
-  validatePng(bytes);
-  const sha256Digest = await crypto.subtle.digest('SHA-256', bytes);
-  return { bytes, sha256: toHex(new Uint8Array(sha256Digest)), sha256Digest };
 }
 
 function buildObjectKey(
@@ -153,7 +91,7 @@ async function putImmutableDrawing(
 ): Promise<void> {
   const stored = await bucket.put(objectKey, upload.bytes, {
     onlyIf: { etagDoesNotMatch: '*' },
-    httpMetadata: { contentType: PNG_CONTENT_TYPE },
+    httpMetadata: { contentType: DRAWING_PNG_CONTENT_TYPE },
     customMetadata: { entryId, sha256: upload.sha256 },
     sha256: upload.sha256Digest,
   });
@@ -207,7 +145,9 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
     );
   const entryId = reservation?.entryId ?? entry?.id;
   if (entryId === undefined) return fail(409, 'PICTIONARY_UPLOAD_INVALID');
-  const upload = await readDrawingUpload(c.req.raw);
+  const uploadResult = await readDrawingUpload(c.req.raw, PICTIONARY_DRAWING_UPLOAD_OPTIONS);
+  if ('status' in uploadResult) return fail(uploadResult.status, uploadResult.reason);
+  const upload = uploadResult;
   if (
     entry !== undefined &&
     (entry.media.sha256 !== upload.sha256 || entry.media.byteLength !== upload.bytes.byteLength)
@@ -228,7 +168,7 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
         submissionId,
         media: {
           objectKey,
-          contentType: PNG_CONTENT_TYPE,
+          contentType: DRAWING_PNG_CONTENT_TYPE,
           width: PICTIONARY_DRAWING_WIDTH,
           height: PICTIONARY_DRAWING_HEIGHT,
           byteLength: upload.bytes.byteLength,
@@ -262,7 +202,7 @@ pictionaryMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) =>
   if (object === null) return fail(500, 'PICTIONARY_MEDIA_MISSING');
   const headers = new Headers();
   object.writeHttpMetadata(headers);
-  headers.set('Content-Type', PNG_CONTENT_TYPE);
+  headers.set('Content-Type', DRAWING_PNG_CONTENT_TYPE);
   headers.set('Content-Length', String(object.size));
   headers.set('Cache-Control', PRIVATE_MEDIA_CACHE_CONTROL);
   headers.set('ETag', object.httpEtag);
