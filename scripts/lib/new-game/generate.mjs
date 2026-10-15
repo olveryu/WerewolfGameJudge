@@ -157,7 +157,7 @@ function formatGeneratedFiles(repoRoot, files) {
   } catch (error) {
     const stderr = error.stderr ? String(error.stderr) : String(error);
     throw new Error(
-      `new-game: prettier failed on the generated files. The game itself is fully generated and registered; fix the formatting (pnpm format:write) instead of re-running new-game, which would now refuse the duplicate id:\n${stderr}`,
+      `prettier failed on the generated files. The game itself is fully generated and registered; fix the formatting (pnpm format:write) instead of re-running new-game, which would now refuse the duplicate id:\n${stderr}`,
     );
   }
   return true;
@@ -208,7 +208,7 @@ function autofixGeneratedImports(repoRoot, createdFiles) {
       .map((chunk) => String(chunk))
       .join('\n');
     throw new Error(
-      `new-game: eslint --fix left problems in the generated files. The game itself is fully generated and registered; fix the lint output (pnpm lint) instead of re-running new-game, which would now refuse the duplicate id:\n${output}`,
+      `eslint --fix left problems in the generated files. The game itself is fully generated and registered; fix the lint output (pnpm lint) instead of re-running new-game, which would now refuse the duplicate id:\n${output}`,
     );
   }
 }
@@ -357,6 +357,14 @@ export function generateNewGame(options) {
   fs.writeFileSync(path.join(rootDir, reportPath), report);
   const formatted = formatGeneratedFiles(rootDir, [...createdFiles, ...editedFiles, reportPath]);
   autofixGeneratedImports(rootDir, createdFiles);
+  // eslint --fix reorders import/export members in place, and a swap
+  // can leave text prettier would never emit (`import { a,handleB }`)
+  // in files whose member order depends on the game id. Close the
+  // pipeline with a second format pass over the created files so the
+  // output ends both lint-clean and formatted; the two tools converge
+  // (prettier never reorders members, eslint does not re-break the
+  // formatting of members it just sorted).
+  formatGeneratedFiles(rootDir, createdFiles);
 
   return { createdFiles, editedFiles, migrationName, reportPath, formatted };
 }

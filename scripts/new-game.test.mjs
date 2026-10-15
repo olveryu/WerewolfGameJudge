@@ -1,12 +1,17 @@
 /**
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, for both presets.
- * Run with `node --test scripts/new-game.test.mjs` (also wrapped by
+ * One case generates in a copy of the real tree instead, so the
+ * prettier/eslint shaping passes actually run (they skip silently in
+ * the dependency-free fixture). Run with
+ * `node --test scripts/new-game.test.mjs` (also wrapped by
  * src/__tests__/newGameGenerator.contract.test.ts in the jest suite).
  */
 
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -48,6 +53,38 @@ function makeFixtureRepo() {
     if (name.endsWith('.sql')) {
       fs.copyFileSync(path.join(migrationsSource, name), path.join(migrationsTarget, name));
     }
+  }
+  return root;
+}
+
+/**
+ * A private copy of the real repository tree with the heavy read-only
+ * trees (dependencies, media assets) symlinked back in instead of
+ * copied. Generation inside the copy sees the real prettier/eslint
+ * environment without ever mutating the shared tree, so this is safe
+ * to run under the parallel jest suite.
+ */
+function makeRealRepoCopy() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-real-repo-'));
+  fs.cpSync(REPO_ROOT, root, {
+    recursive: true,
+    filter: (source) => {
+      const relative = path.relative(REPO_ROOT, source);
+      if (relative === '') return true;
+      const segments = relative.split(path.sep);
+      return (
+        segments[0] !== '.git' && segments[0] !== 'assets' && !segments.includes('node_modules')
+      );
+    },
+  });
+  for (const linked of [
+    'assets',
+    'node_modules',
+    'packages/game-engine/node_modules',
+    'packages/api-worker/node_modules',
+  ]) {
+    const real = path.join(REPO_ROOT, linked);
+    if (fs.existsSync(real)) fs.symlinkSync(real, path.join(root, linked), 'dir');
   }
   return root;
 }
@@ -268,6 +305,57 @@ for (const preset of ['identity', 'stage']) {
     }
   });
 }
+
+test('generated output passes the format and lint gates with tooling present', (t) => {
+  // The fixture-repo cases above structurally cannot catch shaping
+  // defects: without node_modules both shaping passes skip silently.
+  // This case generates in a copy of the real tree (dependencies
+  // symlinked in; see makeRealRepoCopy) so prettier and eslint --fix
+  // really run. The probe id's PascalCase name sorts ahead of fixed
+  // identifier prefixes (Aaprobe before e.g. handle/commit), so
+  // simple-import-sort must reorder import/export members — the exact
+  // input that used to leave unformatted text behind when the lint
+  // pass ran after the format pass with nothing re-formatting after.
+  if (!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier'))) {
+    t.skip('requires installed dependencies (node_modules)');
+    return;
+  }
+  const root = makeRealRepoCopy();
+  try {
+    const summary = generateNewGame({ rootDir: root, gameId: 'aaprobe', preset: 'identity' });
+    assert.equal(summary.formatted, true, 'prettier pass must run, not skip');
+    const require = createRequire(path.join(root, 'package.json'));
+    const prettierBin = require.resolve('prettier/bin/prettier.cjs');
+    // Same scope the generator's format pass claims: formattable
+    // extensions, templates excluded (their rendered outputs are the
+    // other entries in the list).
+    const formatTargets = summary.createdFiles.filter(
+      (file) => /\.(?:ts|tsx|js|mjs|json|md)$/.test(file) && !file.endsWith('.tmpl'),
+    );
+    execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
+      cwd: root,
+      stdio: 'pipe',
+    });
+    const eslintBin = path.join(
+      path.dirname(require.resolve('eslint/package.json')),
+      'bin',
+      'eslint.js',
+    );
+    const lintTargets = summary.createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
+    execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
+      cwd: root,
+      stdio: 'pipe',
+      env: {
+        ...process.env,
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
+          .filter(Boolean)
+          .join(' '),
+      },
+    });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test('refuses to generate the same game id twice', () => {
   const root = makeFixtureRepo();
