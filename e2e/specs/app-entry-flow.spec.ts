@@ -31,7 +31,7 @@ test.setTimeout(60_000);
 // 1. First-time open (fresh context, no session)
 // ---------------------------------------------------------------------------
 
-test.describe('First-time open (no session)', () => {
+test.describe('App — Entry Flow: First-time open (no session)', () => {
   test('shows login button, no user name', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
@@ -80,7 +80,7 @@ test.describe('First-time open (no session)', () => {
 // 2. Return with existing session
 // ---------------------------------------------------------------------------
 
-test.describe('Return with existing session', () => {
+test.describe('App — Entry Flow: Return with existing session', () => {
   test('reload preserves session, home ready without re-login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
@@ -117,7 +117,7 @@ test.describe('Return with existing session', () => {
 // 3. Enter room from home via join flow
 // ---------------------------------------------------------------------------
 
-test.describe('Enter room via join flow', () => {
+test.describe('App — Entry Flow: Enter room via join flow', () => {
   let fixture: MultiPlayerFixture;
   let roomCode: string;
 
@@ -166,7 +166,7 @@ test.describe('Enter room via join flow', () => {
 // 4. Direct room URL (with session)
 // ---------------------------------------------------------------------------
 
-test.describe('Direct room URL', () => {
+test.describe('App — Entry Flow: Direct room URL', () => {
   let fixture: MultiPlayerFixture;
 
   test.afterEach(async () => {
