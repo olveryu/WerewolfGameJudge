@@ -12,6 +12,12 @@ from design discussion to merged PR. The single biggest failure mode is inventin
 infrastructure for the new game instead of reusing the existing one — this skill exists to
 prevent exactly that.
 
+本 skill 的形态是「模板操作规程」：新游戏的骨架不靠人手搭，而是由生成器 CLI
+（`pnpm new-game`，见 Phase 2）从 identity / stage 两套模板生成，注册由生成器
+代办；`demo` 是这套模板的在册参照实现（全注册、不投产），任何拿不准的接法
+先看 demo 怎么接。执行者的工作是填玩法（模板里的 `TODO(gameplay)`）、核对
+生成器 report、补生成器不管的手工项——不是照清单人肉同步十几处注册点。
+
 ## Non-Goals
 
 - 不做狼人杀新角色/新板子（用 `new-role` / `new-board` skill）。
@@ -28,6 +34,10 @@ prevent exactly that.
 5. 仓库 `AGENTS.md` —— 质量门禁、协作规则、核心原则。
 6. 至少通读一个现有小游戏的 `docs/<game>-game-design.md`（如 `docs/undercover-game-design.md`），
    理解 design doc 的颗粒度。
+7. `demo` 的三层骨架各扫一遍（`packages/game-engine/src/games/demo/`、
+   `packages/api-worker/src/games/demo/`、`src/games/demo/`）与它在
+   `packages/game-engine/src/games/registry.ts` 的注册条目——它是模板的
+   参照实现，Phase 2/3 的接法以它为准。
 
 ## Phase 1 — 设计（先给方案，用户批准后才能动手）
 
@@ -78,34 +88,64 @@ XP/结算、测试计划。
 
 **输出完整方案（含改动点、影响范围、备选），等待用户明确批准后才能进入 Phase 2。**
 
-## Phase 2 — 注册清单（缺一不可）
+## Phase 2 — 注册：生成器代办，注册表是单一事实源
 
-加新游戏时以下白名单/硬编码列表必须同步。通用找法：grep 现有游戏名
-（如 `pictionary`）在**测试文件**里的所有出现，逐个确认要不要加新项。
+注册不再是人肉同步的白名单。注册事实收敛在一处：**注册元数据层**
+`packages/game-engine/src/games/registry.ts` 的 `GAME_REGISTRY`（以
+`GameType` 为键的穷尽映射），每条含 `enginePublicExport`、
+`clientModulePath`、`isProduction`（是否投产）、`rewards`（policy 显性化，
+见下）、`workerWorkflows`、`httpRoutes`；其余注册点要么与它同为穷尽
+映射、要么由它派生、要么被 contract 焊死对账。落地动作只有一件：跑生成器。
 
-| #   | 位置                                                                        | 内容                                           |
-| --- | --------------------------------------------------------------------------- | ---------------------------------------------- |
-| 1   | `packages/game-engine/src/platform/protocol/gameTypes.ts`                   | `GAME_TYPES` 加 ID                             |
-| 2   | `packages/game-engine/src/games/catalog.ts`                                 | engine catalog 注册                            |
-| 3   | `packages/game-engine/package.json`                                         | `exports` 加 `./games/<game>/public`           |
-| 4   | `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts` | `EXPECTED_PACKAGE_EXPORTS`                     |
-| 5   | `packages/api-worker/src/games/catalog.ts`                                  | worker module 注册                             |
-| 6   | `packages/api-worker/src/index.ts`                                          | workflow export（如有供词等 workflow）         |
-| 7   | `packages/api-worker/src/games/__tests__/catalog.test.ts`                   | httpRoutes 期望列表                            |
-| 8   | `src/games/catalog.ts`                                                      | client catalog 注册                            |
-| 9   | `src/test-utils/clientGameCatalog.tsx`                                      | 测试用 catalog                                 |
-| 10  | `src/__tests__/architecture.contract.test.ts`                               | 多处白名单（workflow 导出、permissive zod 等） |
-| 11  | migration                                                                   | 所有 `game_type CHECK` 加新 ID + 新表          |
-| 12  | `pnpm-lock.yaml`                                                            | 加了新依赖必须同步 lockfile                    |
-| 13  | `packages/game-engine/src/product/rewards/earnings.ts`                      | `GAME_COMPLETION_REWARDS` 加本游戏条目（见下） |
+```bash
+pnpm new-game <game-id> --preset identity|stage \
+  --name <中文名> --subtitle <一句话玩法> --icon <ionicon> --tier main|mini \
+  --xp <n> --draws <n> --daily-target <n>
+```
 
-第 13 处漏填不会报错、只会静默无完成奖励，必须当必填项核：新游戏要在
-`GAME_COMPLETION_REWARDS` 里声明奖励 policy——`flat` 就在表内加一条
-`{ xpEarned, normalDrawsEarned, dailyCompletionTarget }` 三数；`levelRoll`
-（按等级浮动，如狼人杀）按现状以**不在表内**表示、走独立结算管线并在
-design doc 里登记。Wave 9 注册表落地时会把 policy 显性化，本条先防漏填。
+生成器一次办妥：两套骨架文件（引擎 / Worker / 客户端 / design doc /
+e2e spec 模板）、注册表条目、`GAME_TYPES`、三家 catalog、奖励参数表、
+package exports 与各 contract 期望清单（architecture / engineSkeleton /
+capabilities / engine contracts / botDispatchDiscipline）、注册 migration
+（两处 `game_type CHECK` 同步加新 ID），收尾跑 prettier 与
+`eslint --fix` 并验证产出零警告。产出 `new-game-<id>-report.md` 列明
+已办事项与还差的人工步骤——**report 是本阶段的核对清单，逐项核完才
+进 Phase 3**。
+
+注册点按性质分四类，核对时按类用力：
+
+| 类                          | 注册点                                                                                                                                                                                                                                                                                             | 口径                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 穷尽映射（tsc 兜底）        | `GAME_REGISTRY`；engine catalog（`defineGameEngineCatalog`）；worker catalog（`defineWorkerGameCatalog(GAME_ENGINE_CATALOG, …)`）；client catalog（mapped type `satisfies`）                                                                                                                       | 以 `GameType` 为键穷尽，漏接 = tsc 红，不需要人肉数               |
+| 派生（改源头一处自动对账）  | worker `catalog.test.ts` 的 httpRoutes 期望 ← 注册表 `httpRoutes` 派生；api-worker `index.ts` 的 workflow 导出 ← 注册表 `workerWorkflows`，由根 architecture contract 焊死；`GAME_COMPLETION_REWARDS` 三数 ← 注册表 `rewards`（flat）由 contract 焊死；测试用 client catalog 在生产 catalog 上派生 | 只改注册表源头；对账失败 CI 会点名游戏                            |
+| 生成器代办（人工核 report） | `GAME_TYPES`、注册表条目、奖励表行、engine `package.json` exports + `EXPECTED_PACKAGE_EXPORTS`、engineSkeleton / capabilities / engine contracts / botDispatchDiscipline 的期望清单、三家 catalog、测试 catalog 条目、注册 migration                                                               | 生成器已办 ≠ 已核对：migration 必须人工审（见 report 的人工步骤） |
+| 仍手工（生成器不管）        | ①词供给 workflow：workflow 类 + wrangler `[[workflows]]` binding + 注册表 `workerWorkflows` 声明（声明后 index 导出被 contract 焊死，见 3d）②新依赖 → `pnpm-lock.yaml` 同步 ③e2e spec 启用（Phase 4 的请示口径，生成器只产模板不启用）④上线时把注册表 `isProduction` 翻 `true`                     | 漏办不报错的都在这一类，逐项对着 report 与本表核                  |
+
+奖励（原「第 13 处」）已进注册表且 policy 显性化：生成器按
+`--xp/--draws/--daily-target` 写 `rewards: { policy: 'flat', …三数 }`
+并在 `GAME_COMPLETION_REWARDS` 同步一行（contract 焊两处一致），条目带
+`TODO(new-game)` 注释——**金额未与用户确认前不许删 TODO**，漏填/错填
+仍然只会静默无完成奖励。`levelRoll`（按等级浮动，如狼人杀）是注册表里
+的显性 policy 值，登记结算模块路径（`settlementModulePath`），不走
+flat 表；新游戏默认 flat，不要自创第三种。
+
+生成器默认 `isProduction: true` 写注册表条目；压后上线的游戏先改
+`false`——大厅/开房面按此过滤、不投产游戏不许露面，contract 钉死
+（demo 即 `false` 的在册样例）。
+
+通用兜底找法仍然成立：grep 现有游戏名（如 `pictionary`）在**测试文件**
+里的所有出现，逐个确认生成器是否已覆盖——覆盖不到的就是新的手工项，
+先报告再补，不许静默手改本应由生成器/注册表管的清单。
 
 ## Phase 3 — 实现
+
+### 3a-0. 从生成骨架起步
+
+实现从 Phase 2 的生成骨架长出来：玩法逻辑填进模板的 `TODO(gameplay)`
+标记处；骨架的接线（注册、名册、身份查看、接管、结算 effect）是模板
+标准件，不许重写或绕开。拿不准某个接法时对照 demo 的同一文件——demo
+与模板同形，是「填完 TODO 的骨架」长什么样。骨架装不下的需求先报告，
+不许在骨架外另起平行结构。
 
 ### 3a. 分层
 
@@ -120,31 +160,35 @@ design doc 里登记。Wave 9 注册表落地时会把 policy 显性化，本条
 ### 3a-2. 引擎骨架清单（game-engine 侧，AU-34 定版，contract 钉死）
 
 `packages/game-engine/src/games/<game>/` 必须包含以下模块（新游戏照单全建，
-`platform/__tests__/engineSkeleton.contract.test.ts` 会逐项校验）：
+`platform/__tests__/engineSkeleton.contract.test.ts` 会逐项校验；其中
+contract 的 `REQUIRED_MODULES` 11 项是硬必含，表中标「按需」的按需建）：
 
-| 模块                                     | 职责                                                                                                                                 |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `engine.ts`                              | `GameEngineDefinition`（createInitialState/decide/evolve/normalize/getLifecycle）                                                    |
-| `public.ts`                              | 包的公开面（codec、parse、migrate、投影、常量从这里出）                                                                              |
-| `commands/types.ts`                      | 命令词汇（公开命令与内部命令分开）                                                                                                   |
-| `domain/decision.ts`                     | `XDecision` 类型别名 + `commitX` 拼装点                                                                                              |
-| `domain/evolve.ts`                       | 事件应用（definition 的 evolve 本体）                                                                                                |
-| `domain/visibility.ts`                   | 按 viewer 的投影（隐私边界之家；按座投影函数只许住这里，不许放 state/types）                                                         |
-| `domain/events.ts` / `domain/reasons.ts` | 事件词汇 / 拒绝码（按需）                                                                                                            |
-| `effects/types.ts`                       | effect 词汇（结算 effect 一律 `<game>.game.completed`，不许与事件同串）                                                              |
-| `state/version.ts`                       | `X_STATE_VERSION` + `X_STATE_IDENTITY`（codec 一律 `{...IDENTITY, parse}`）                                                          |
-| `state/codec.ts`                         | 薄轨 codec 壳（约 11 行）                                                                                                            |
-| `state/parseState.ts`                    | 严格 parser + 持久化迁移（legacy 名册物化用平台 `materializeLegacyRoster`）                                                          |
-| `state/normalize.ts`                     | 语义不变量（用平台 `createStateInvariant`/`assertStateIdentity` 开头）                                                               |
-| `state/types.ts`                         | 状态形状、config、状态派生助手                                                                                                       |
-| `__tests__/engine.test.ts`               | 引擎主干测试：一律走平台 harness `platform/engine/__tests__/engineSession.ts` 的 `createEngineSession`，只许命令流、不许注入进度状态 |
+| 模块                                     | 职责                                                                                                                                                                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engine.ts`                              | `GameEngineDefinition`（createInitialState/decide/evolve/normalize/getLifecycle）                                                                                                                                                   |
+| `public.ts`                              | 包的公开面（codec、parse、migrate、投影、常量从这里出）                                                                                                                                                                             |
+| `commands/types.ts`                      | 命令词汇（公开命令与内部命令分开）                                                                                                                                                                                                  |
+| `domain/decision.ts`                     | `XDecision` 类型别名 + `commitX` 拼装点                                                                                                                                                                                             |
+| `domain/evolve.ts`                       | 事件应用（definition 的 evolve 本体）                                                                                                                                                                                               |
+| `domain/visibility.ts`                   | 按 viewer 的投影（隐私边界之家；按座投影函数只许住这里，不许放 state/types）                                                                                                                                                        |
+| `domain/events.ts` / `domain/reasons.ts` | 事件词汇 / 拒绝码（按需）                                                                                                                                                                                                           |
+| `effects/types.ts`                       | effect 词汇（**按需**：`REQUIRED_MODULES` 不含此项，effect 类型默认住 `domain/decision.ts`；只有 effect 词汇成规模才独立成文件，现仅 fibking/pictionary/werewolf 三家有。结算 effect 一律 `<game>.game.completed`，不许与事件同串） |
+| `state/version.ts`                       | `X_STATE_VERSION` + `X_STATE_IDENTITY`（codec 一律 `{...IDENTITY, parse}`）                                                                                                                                                         |
+| `state/codec.ts`                         | 薄轨 codec 壳（约 11 行）                                                                                                                                                                                                           |
+| `state/parseState.ts`                    | 严格 parser + 持久化迁移（legacy 名册物化用平台 `materializeLegacyRoster`）                                                                                                                                                         |
+| `state/normalize.ts`                     | 语义不变量（用平台 `createStateInvariant`/`assertStateIdentity` 开头）                                                                                                                                                              |
+| `state/types.ts`                         | 状态形状、config、状态派生助手                                                                                                                                                                                                      |
+| `__tests__/engine.test.ts`               | 引擎主干测试：一律走平台 harness `platform/engine/__tests__/engineSession.ts` 的 `createEngineSession`，只许命令流、不许注入进度状态                                                                                                |
 
 平台共享件（先查再造，不许各游戏重写）：`buildGameCompletionPayload`
 （结算 payload 拼装）、`parseChoice`（runtimeDecoder）、身份查看协议
-（`platform/room` 的 identityViewing）。登记例外只有狼人杀一家（reducer
-架构：evolve 在 `domain/reducer/`、normalize 与状态构造在 `domain/state/`、
-状态类型在 `domain/models`+`domain/protocol/`、无单一 visibility 模块），
-新游戏不得援引为例外。
+（`platform/room` 的 identityViewing）。登记例外有两家（以
+`engineSkeleton.contract.test.ts` 的 `REGISTERED_EXCEPTIONS` 为准）：
+狼人杀四项（reducer 架构：evolve→`domain/reducer/gameReducer.ts`、
+visibility→`domain/playerHelpers.ts`、normalize→`domain/state/normalize.ts`、
+状态类型→`domain/protocol/types.ts`）；故事接龙一项（visibility→
+`domain/relay.ts`，因其跑在 E1 共享接龙链机 `platform/room/relay` 上、
+投影在绑定模块装配）。新游戏不得援引为例外。
 
 ### 3b. 铁律（违反即返工）
 
@@ -227,13 +271,40 @@ design doc 里登记。Wave 9 注册表落地时会把 policy 显性化，本条
   **引擎永不自动落 bot 标记**——发牌、开局、超时、任何路径都不许。
 - **脚手架是标准件**：填充机器人、标记机器人已查看等批量推进动作随
   模板原样包含，仅房主可用、按名册有无 bot 显示，接进共享房主管理
-  面板；不许给脚手架另设产品门（见 3c-2 的 debugMode 禁令）。
+  面板；不许给脚手架另设产品门（见 3c-2 的 debugMode 禁令）。identity
+  模板骨架已原样下发整套接线（`botTestScaffold` capability、
+  `<game>.bots.markAllBotsViewed` 命令、`haveAllViewed` 检查点，demo
+  同形），生成后逐项核其在，不许重写或删改接线。
 
-### 3d. 词库（如需要）
+### 3d. 词库（如需要）：先判形态，两套共享机制二选一或叠加
 
-- 新表 + migration；Admin 触发接口走现有 `gameWords` 模式。
+词供给已经协议化，不许从零搭平行供词链。先判断新游戏属哪种词形态
+（一款游戏可以两种都要，如瞎掰王/卧底：局内每轮选词 + 词库批量供给）：
+
+- **局内准备型**（每轮要选一个词/题）：接引擎侧 **Word Preparation
+  Protocol**（`packages/game-engine/src/platform/room/preparation.ts`）。
+  流程骨架（房主开局冻结 pending → 进 `preparing` 发恰好一个选词
+  effect → Worker 带外选词 → 系统内部命令按 roundId 回填
+  complete/fail）由协议的 decide 骨架提供，各家只注入三样：失败码
+  子集（协议超集 `PREPARATION_FAILURE_CODES` 的子集，D-2）、阶段词汇
+  （D-5，可为空）、重试策略（D-1，故意不统一）。状态形状与 reason
+  仍各家自有。不许各写一份 prepare 流程。
+- **库供给型**（词库要持续补货）：接 Worker 侧 **wordSupply 共享
+  运行时**（`packages/api-worker/src/platform/wordSupply/`：
+  `wordSupplyWorkflow.ts` 是 durable 编排运行时——enable 门/容量/
+  预留/生成/审核/发布，`wordPackLedger.ts` 管词包台账）。各家只供
+  config（env 开关、批量上限、模型、history 形态、provider、候选
+  解析）与本家 publication 函数，文件形态照现有三家的五件套
+  （本家 `wordSupplyWorkflow.ts` 类、`wordPublication.ts`、
+  provider/editorial/selection），接口由
+  `wordSupply/__tests__/wordPublication.contract.test.ts` 焊死。
+  workflow 类与 wrangler `[[workflows]]` binding、注册表
+  `workerWorkflows` 声明属 Phase 2 的「仍手工」类，逐项办齐。
+
+两类共同的交付要求：
+
+- 词表 + migration；Admin 触发接口走现有 `gameWords` 模式。
 - 首批种子词数量在设计阶段定死（如 200），上线前灌满 —— 空表上线是未完成交付。
-- 供词 workflow 注册到 api-worker `index.ts` exports（见注册清单 #6）。
 
 ## Phase 4 — 测试与验收
 
@@ -255,13 +326,14 @@ design doc 里登记。Wave 9 注册表落地时会把 policy 显性化，本条
 ## Phase 5 — 收尾
 
 - 工作稿 design doc 已复制进 `docs/` 并提交。
-- PR 描述列出：注册清单 13 项核对结果、对齐评审结论、验收矩阵证据链接。
+- PR 描述列出：生成器 report 核对结果（注册四类逐项）、对齐评审结论、验收矩阵证据链接。
 - 分支清理；`docs/<game>-game-design.md` 与实现一致。
 
 ---
 
 ## Key Constraints（速查）
 
+- 新游戏必须从 `pnpm new-game` 生成的骨架起步；不许手抄现有游戏目录充当骨架，demo 是模板的参照实现。
 - 新游戏不许自建第二套大厅/配置/房间外壳；先查 `src/features/room/` 和共享组件。
 - 新游戏不许复制角色卡或动画组件；角色展示用共享 `RoleCardSimple`/`RoleCardContent`（`src/features/room/components/`），动画用共享 `RoleRevealAnimator` + 自写 `RevealConfig` + `toRevealRoleData` adapter（见 `src/features/room/components/RoleRevealEffects/`）。
 - `docs/room-shell-contract.md` 是 UI 集成的唯一权威，细节不复制到本 skill。
