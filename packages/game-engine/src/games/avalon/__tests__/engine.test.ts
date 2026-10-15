@@ -520,7 +520,7 @@ describe('Avalon engine', () => {
     expect(controlled.kind).toBe('reject');
     session.send({ type: 'avalon.phase.expire' }, session.seatUser(3));
     expect(session.state.phase.kind).toBe('quest');
-    // Once settled, a late timeout hits the phase guard instead of double-settling.
+    // Once settled, a late timeout hits the deadline guard instead of double-settling.
     session.expectReject({ type: 'avalon.phase.expire' }, 'avalon_deadline_not_reached', 'host');
   });
 
@@ -685,7 +685,7 @@ describe('Avalon engine', () => {
   });
 
   it('settles exactly once when the client timeout and the system settle race', () => {
-    // Client first: the late system settle hits the phase guard.
+    // Client first: the late system settle hits the deadline guard.
     const clientFirst = game({ numberOfPlayers: 5 });
     clientFirst.startGame();
     clientFirst.passNight();
@@ -698,7 +698,7 @@ describe('Avalon engine', () => {
     expect(lateSystem.kind).toBe('reject');
     if (lateSystem.kind === 'reject') expect(lateSystem.reason).toBe('avalon_deadline_not_reached');
 
-    // System first: the late client timeout hits the phase guard.
+    // System first: the late client timeout hits the deadline guard.
     const systemFirst = game({ numberOfPlayers: 5 });
     systemFirst.startGame();
     systemFirst.passNight();
