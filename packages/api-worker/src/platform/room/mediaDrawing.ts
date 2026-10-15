@@ -1,13 +1,26 @@
 /**
- * 画作媒体脚手架：PNG 上传校验（platform 唯一实现）。
+ * 画作媒体脚手架：PNG 上传校验、R2 不可变写入与读取响应（platform 唯一实现）。
  *
- * 由 drawguess/mediaValidation.ts 的因子化实现原地搬运泛化，drawguess 与
- * pictionary 共用。各游戏仅通过 options 提供画布规格（宽/高/字节上限）与
- * 自家拒绝文案（drawguess 为中文原因、pictionary 为英文代码），校验状态码
- * 与判定顺序逐项不变。
+ * 校验部分由 drawguess/mediaValidation.ts 的因子化实现原地搬运泛化；写入与
+ * 读取部分由 drawguess/pictionary 两份 mediaRoutes 中逐字重复的实现搬运合并。
+ * drawguess 与 pictionary 共用。各游戏仅通过 options 提供画布规格（宽/高/字节
+ * 上限）与自家文案（drawguess 为中文原因、pictionary 为英文代码），状态码、
+ * 判定顺序与存储行为逐项不变。
  */
 
+import { HTTPException } from 'hono/http-exception';
+
 export const DRAWING_PNG_CONTENT_TYPE = 'image/png';
+
+const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
+
+/** 以 HTTPException 抛出媒体路由错误（两家 mediaRoutes 原各有一份逐字相同的本地 fail）。 */
+export function failMediaRequest(
+  status: 400 | 403 | 404 | 409 | 413 | 415 | 500,
+  reason: string,
+): never {
+  throw new HTTPException(status, { message: reason });
+}
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 const PNG_IHDR_CHUNK_TYPE = [73, 72, 68, 82] as const;
@@ -141,4 +154,62 @@ export async function readDrawingUpload(
   if (!validated.ok) return { status: 400, reason: validated.reason };
   const sha256Digest = await crypto.subtle.digest('SHA-256', body);
   return { bytes: body, sha256: toHex(new Uint8Array(sha256Digest)), sha256Digest };
+}
+
+export interface PutImmutableDrawingOptions {
+  /** 已存在对象与本次上传内容不一致时的 409 文案（各家既有文案逐字保留）。 */
+  readonly conflictReason: string;
+  /** 条件写入失败且无已存在对象时抛出的 Error 文案（各家既有文案逐字保留）。 */
+  readonly writeFailedMessage: string;
+}
+
+function assertMatchingObject(
+  object: R2Object,
+  upload: DrawingUpload,
+  conflictReason: string,
+): void {
+  if (object.size !== upload.bytes.byteLength || object.customMetadata?.sha256 !== upload.sha256) {
+    failMediaRequest(409, conflictReason);
+  }
+}
+
+/**
+ * 以「不存在才写」语义把画作写入 R2 并钉住内容哈希；已存在同键对象时校验
+ * 内容一致，不一致按 conflictReason 拒绝（409）。
+ */
+export async function putImmutableDrawing(
+  bucket: R2Bucket,
+  objectKey: string,
+  entryId: string,
+  upload: DrawingUpload,
+  options: PutImmutableDrawingOptions,
+): Promise<void> {
+  const stored = await bucket.put(objectKey, upload.bytes, {
+    onlyIf: { etagDoesNotMatch: '*' },
+    httpMetadata: { contentType: DRAWING_PNG_CONTENT_TYPE },
+    customMetadata: { entryId, sha256: upload.sha256 },
+    sha256: upload.sha256Digest,
+  });
+  if (stored !== null) return;
+  const existing = await bucket.head(objectKey);
+  if (existing === null) throw new Error(options.writeFailedMessage);
+  assertMatchingObject(existing, upload, options.conflictReason);
+}
+
+/** 组装画作读取响应：私有缓存头、ETag 与 If-None-Match 304（两家原实现逐字相同）。 */
+export function buildDrawingGetResponse(
+  object: R2ObjectBody,
+  ifNoneMatch: string | undefined,
+): Response {
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('Content-Type', DRAWING_PNG_CONTENT_TYPE);
+  headers.set('Content-Length', String(object.size));
+  headers.set('Cache-Control', PRIVATE_MEDIA_CACHE_CONTROL);
+  headers.set('ETag', object.httpEtag);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  if (ifNoneMatch === object.httpEtag) {
+    return new Response(null, { status: 304, headers });
+  }
+  return new Response(object.body, { status: 200, headers });
 }

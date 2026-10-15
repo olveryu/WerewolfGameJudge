@@ -18,21 +18,20 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 
 import type { AppEnv } from '../../env';
 import { requireAuth } from '../../features/auth/tokenAuth';
 import { callDurableObject } from '../../platform/http/callDurableObject';
 import {
+  buildDrawingGetResponse,
   DRAWING_PNG_CONTENT_TYPE,
-  type DrawingUpload,
   type DrawingUploadOptions,
+  failMediaRequest,
+  putImmutableDrawing,
   readDrawingUpload,
 } from '../../platform/room/mediaDrawing';
 import { createMediaRoomAccess } from '../../platform/room/mediaRoomAccess';
 import type { ActiveRoomDirectoryEntry } from '../../platform/room/roomDirectory';
-
-const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
 
 const PICTIONARY_DRAWING_UPLOAD_OPTIONS: DrawingUploadOptions = {
   width: PICTIONARY_DRAWING_WIDTH,
@@ -64,41 +63,13 @@ const mediaRoomAccess = createMediaRoomAccess({
   },
 });
 
-function fail(status: 400 | 403 | 404 | 409 | 413 | 415 | 500, reason: string): never {
-  throw new HTTPException(status, { message: reason });
-}
-
 function buildObjectKey(
   room: ActiveRoomDirectoryEntry,
   state: PictionaryState,
   submissionId: string,
 ): string {
-  if (state.roundId === null) return fail(409, 'PICTIONARY_ROUND_NOT_ACTIVE');
+  if (state.roundId === null) return failMediaRequest(409, 'PICTIONARY_ROUND_NOT_ACTIVE');
   return `pictionary/${room.creationId}/${state.roundId}/${submissionId}.png`;
-}
-
-function assertMatchingObject(object: R2Object, upload: DrawingUpload): void {
-  if (object.size !== upload.bytes.byteLength || object.customMetadata?.sha256 !== upload.sha256) {
-    fail(409, 'PICTIONARY_UPLOAD_CONFLICT');
-  }
-}
-
-async function putImmutableDrawing(
-  bucket: R2Bucket,
-  objectKey: string,
-  entryId: string,
-  upload: DrawingUpload,
-): Promise<void> {
-  const stored = await bucket.put(objectKey, upload.bytes, {
-    onlyIf: { etagDoesNotMatch: '*' },
-    httpMetadata: { contentType: DRAWING_PNG_CONTENT_TYPE },
-    customMetadata: { entryId, sha256: upload.sha256 },
-    sha256: upload.sha256Digest,
-  });
-  if (stored !== null) return;
-  const existing = await bucket.head(objectKey);
-  if (existing === null) throw new Error('Conditional R2 write failed without an existing object');
-  assertMatchingObject(existing, upload);
 }
 
 function findDrawingEntry(state: PictionaryState, entryId: string): PictionaryDrawingEntry | null {
@@ -129,7 +100,7 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
   const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
   const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
   const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
-  if (seat === null) return fail(403, 'NOT_SEATED');
+  if (seat === null) return failMediaRequest(403, 'NOT_SEATED');
   const submissionId = c.req.param('submissionId');
   const objectKey = buildObjectKey(roomContext.room, roomContext.state, submissionId);
   const reservation = roomContext.state.reservations.find(
@@ -144,17 +115,20 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
         candidate.media.objectKey === objectKey,
     );
   const entryId = reservation?.entryId ?? entry?.id;
-  if (entryId === undefined) return fail(409, 'PICTIONARY_UPLOAD_INVALID');
+  if (entryId === undefined) return failMediaRequest(409, 'PICTIONARY_UPLOAD_INVALID');
   const uploadResult = await readDrawingUpload(c.req.raw, PICTIONARY_DRAWING_UPLOAD_OPTIONS);
-  if ('status' in uploadResult) return fail(uploadResult.status, uploadResult.reason);
+  if ('status' in uploadResult) return failMediaRequest(uploadResult.status, uploadResult.reason);
   const upload = uploadResult;
   if (
     entry !== undefined &&
     (entry.media.sha256 !== upload.sha256 || entry.media.byteLength !== upload.bytes.byteLength)
   ) {
-    return fail(409, 'PICTIONARY_UPLOAD_CONFLICT');
+    return failMediaRequest(409, 'PICTIONARY_UPLOAD_CONFLICT');
   }
-  await putImmutableDrawing(c.env.GAME_MEDIA, objectKey, entryId, upload);
+  await putImmutableDrawing(c.env.GAME_MEDIA, objectKey, entryId, upload, {
+    conflictReason: 'PICTIONARY_UPLOAD_CONFLICT',
+    writeFailedMessage: 'Conditional R2 write failed without an existing object',
+  });
 
   const dispatched = await callDurableObject(() =>
     roomContext.stub.dispatchInternalCommand({
@@ -194,21 +168,11 @@ pictionaryMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) =>
   const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
   const entryId = c.req.param('entryId');
   const entry = findDrawingEntry(roomContext.state, entryId);
-  if (entry === null) return fail(404, 'PICTIONARY_MEDIA_NOT_FOUND');
+  if (entry === null) return failMediaRequest(404, 'PICTIONARY_MEDIA_NOT_FOUND');
   if (!canReadDrawing(roomContext.state, seat, entryId)) {
-    return fail(403, 'PICTIONARY_MEDIA_FORBIDDEN');
+    return failMediaRequest(403, 'PICTIONARY_MEDIA_FORBIDDEN');
   }
   const object = await c.env.GAME_MEDIA.get(entry.media.objectKey);
-  if (object === null) return fail(500, 'PICTIONARY_MEDIA_MISSING');
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('Content-Type', DRAWING_PNG_CONTENT_TYPE);
-  headers.set('Content-Length', String(object.size));
-  headers.set('Cache-Control', PRIVATE_MEDIA_CACHE_CONTROL);
-  headers.set('ETag', object.httpEtag);
-  headers.set('X-Content-Type-Options', 'nosniff');
-  if (c.req.header('if-none-match') === object.httpEtag) {
-    return new Response(null, { status: 304, headers });
-  }
-  return new Response(object.body, { status: 200, headers });
+  if (object === null) return failMediaRequest(500, 'PICTIONARY_MEDIA_MISSING');
+  return buildDrawingGetResponse(object, c.req.header('if-none-match'));
 });

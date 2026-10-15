@@ -16,21 +16,19 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 
 import type { AppEnv } from '../../env';
 import { requireAuth } from '../../features/auth/tokenAuth';
 import { callDurableObject } from '../../platform/http/callDurableObject';
 import {
-  DRAWING_PNG_CONTENT_TYPE,
-  type DrawingUpload,
+  buildDrawingGetResponse,
   type DrawingUploadOptions,
+  failMediaRequest,
+  putImmutableDrawing,
   readDrawingUpload,
 } from '../../platform/room/mediaDrawing';
 import { createMediaRoomAccess } from '../../platform/room/mediaRoomAccess';
 import type { ActiveRoomDirectoryEntry } from '../../platform/room/roomDirectory';
-
-const PRIVATE_MEDIA_CACHE_CONTROL = 'private, max-age=3600';
 
 /** V1 画作规格固定：1024×768 PNG，单文件最大 2 MiB。 */
 const DRAWGUESS_DRAWING_UPLOAD_OPTIONS: DrawingUploadOptions = {
@@ -63,41 +61,13 @@ const mediaRoomAccess = createMediaRoomAccess({
   },
 });
 
-function fail(status: 400 | 403 | 404 | 409 | 413 | 415 | 500, reason: string): never {
-  throw new HTTPException(status, { message: reason });
-}
-
 function buildObjectKey(
   room: ActiveRoomDirectoryEntry,
   state: DrawGuessState,
   submissionId: string,
 ): string {
-  if (state.phase.kind !== 'roundEnd') return fail(409, '当前不是结算阶段');
+  if (state.phase.kind !== 'roundEnd') return failMediaRequest(409, '当前不是结算阶段');
   return `drawguess/${room.creationId}/${state.phaseRevision}/turn-${state.turnIndex}/${submissionId}.png`;
-}
-
-function assertMatchingObject(object: R2Object, upload: DrawingUpload): void {
-  if (object.size !== upload.bytes.byteLength || object.customMetadata?.sha256 !== upload.sha256) {
-    fail(409, '已上传的画作内容不一致');
-  }
-}
-
-async function putImmutableDrawing(
-  bucket: R2Bucket,
-  objectKey: string,
-  entryId: string,
-  upload: DrawingUpload,
-): Promise<void> {
-  const stored = await bucket.put(objectKey, upload.bytes, {
-    onlyIf: { etagDoesNotMatch: '*' },
-    httpMetadata: { contentType: DRAWING_PNG_CONTENT_TYPE },
-    customMetadata: { entryId, sha256: upload.sha256 },
-    sha256: upload.sha256Digest,
-  });
-  if (stored !== null) return;
-  const existing = await bucket.head(objectKey);
-  if (existing === null) throw new Error('R2 条件写入失败且无已存在对象');
-  assertMatchingObject(existing, upload);
 }
 
 export const drawGuessMediaRoutes = new Hono<AppEnv>();
@@ -106,8 +76,8 @@ drawGuessMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, as
   const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
   const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
   const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
-  if (seat === null) return fail(403, '请先入座');
-  if (roomContext.state.phase.kind !== 'roundEnd') return fail(409, '当前不是结算阶段');
+  if (seat === null) return failMediaRequest(403, '请先入座');
+  if (roomContext.state.phase.kind !== 'roundEnd') return failMediaRequest(409, '当前不是结算阶段');
   const submissionId = c.req.param('submissionId');
   const reservation = roomContext.state.phase.reservation;
   if (
@@ -116,18 +86,21 @@ drawGuessMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, as
     reservation.authorSeat !== seat ||
     reservation.turnIndex !== roomContext.state.turnIndex
   ) {
-    return fail(409, '上传预留无效或已过期');
+    return failMediaRequest(409, '上传预留无效或已过期');
   }
   const objectKey = buildObjectKey(roomContext.room, roomContext.state, submissionId);
   const committed = roomContext.state.phase.pngEntry;
   if (committed !== null && committed.objectKey === objectKey) {
-    return fail(409, '本轮画作已提交');
+    return failMediaRequest(409, '本轮画作已提交');
   }
   const upload = await readDrawingUpload(c.req.raw, DRAWGUESS_DRAWING_UPLOAD_OPTIONS);
   if ('status' in upload) {
-    return fail(upload.status, upload.reason);
+    return failMediaRequest(upload.status, upload.reason);
   }
-  await putImmutableDrawing(c.env.GAME_MEDIA, objectKey, reservation.entryId, upload);
+  await putImmutableDrawing(c.env.GAME_MEDIA, objectKey, reservation.entryId, upload, {
+    conflictReason: '已上传的画作内容不一致',
+    writeFailedMessage: 'R2 条件写入失败且无已存在对象',
+  });
 
   const dispatched = await callDurableObject(() =>
     roomContext.stub.dispatchInternalCommand({
@@ -161,25 +134,15 @@ drawGuessMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) => 
   const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
   const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
   const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
-  if (seat === null) return fail(403, '请先入座');
-  if (roomContext.state.phase.kind !== 'roundEnd') return fail(404, '画作不存在');
+  if (seat === null) return failMediaRequest(403, '请先入座');
+  if (roomContext.state.phase.kind !== 'roundEnd') return failMediaRequest(404, '画作不存在');
   const entryId = c.req.param('entryId');
   const reservation = roomContext.state.phase.reservation;
   const pngEntry = roomContext.state.phase.pngEntry;
   if (pngEntry === null || reservation === null || reservation.entryId !== entryId) {
-    return fail(404, '画作不存在');
+    return failMediaRequest(404, '画作不存在');
   }
   const object = await c.env.GAME_MEDIA.get(pngEntry.objectKey);
-  if (object === null) return fail(500, '画作数据缺失');
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('Content-Type', DRAWING_PNG_CONTENT_TYPE);
-  headers.set('Content-Length', String(object.size));
-  headers.set('Cache-Control', PRIVATE_MEDIA_CACHE_CONTROL);
-  headers.set('ETag', object.httpEtag);
-  headers.set('X-Content-Type-Options', 'nosniff');
-  if (c.req.header('if-none-match') === object.httpEtag) {
-    return new Response(null, { status: 304, headers });
-  }
-  return new Response(object.body, { status: 200, headers });
+  if (object === null) return failMediaRequest(500, '画作数据缺失');
+  return buildDrawingGetResponse(object, c.req.header('if-none-match'));
 });
