@@ -77,7 +77,7 @@ function FeaturedGameCard({
       <View style={styles.featuredCard}>
         {option.art ? (
           <>
-            <Image source={option.art} style={styles.featuredFill} resizeMode="cover" />
+            <Image source={option.art} style={styles.featuredArt} resizeMode="cover" />
             <LinearGradient
               colors={[...FEATURED_ART_SHADE_COLORS]}
               locations={[...FEATURED_ART_SHADE_LOCATIONS]}
@@ -267,6 +267,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  // Explicit 100% size is load-bearing, not redundant with the absolute
+  // anchor: react-native-web injects the asset's intrinsic dimensions
+  // (e.g. 1920x1280 for the key art) into the Image root style ahead of the
+  // consumer style, so an inset-only fill keeps the intrinsic width/height
+  // and CSS drops right/bottom as over-constrained — the card then clips a
+  // natural-size top-left slice of the art instead of the cover crop.
+  // Matches the repo rule that Image always carries an explicit size
+  // (same shape as miniArt below).
+  featuredArt: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
   },
   featuredWatermark: {
     position: 'absolute',
