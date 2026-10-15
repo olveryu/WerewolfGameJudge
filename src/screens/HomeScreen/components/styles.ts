@@ -39,10 +39,15 @@ export interface HomeScreenStyles {
   // Hero Card (create room — primary gradient accent)
   heroCard: ViewStyle;
   heroCardGradient: ViewStyle;
+  heroCardMain: ViewStyle;
   heroCardContent: ViewStyle;
   heroCardTitle: TextStyle;
   heroCardSubtitle: TextStyle;
   heroCardArrow: ViewStyle;
+  heroIconDots: ViewStyle;
+  heroIconDot: ViewStyle;
+  heroIconDotImage: ImageStyle;
+  heroIconDotOverflow: TextStyle;
   // Action Row (dual compact cards)
   actionRow: ViewStyle;
   actionCard: ViewStyle;
@@ -201,9 +206,13 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       ...shadows.lg,
     },
     heroCardGradient: {
+      flexDirection: 'column',
+      padding: spacing.medium,
+      gap: spacing.small,
+    },
+    heroCardMain: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.medium,
     },
     heroCardContent: {
       flex: 1,
@@ -225,6 +234,29 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       backgroundColor: withAlpha(colors.textInverse, 0.2),
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    heroIconDots: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+    },
+    heroIconDot: {
+      width: componentSizes.avatar.sm,
+      height: componentSizes.avatar.sm,
+      borderRadius: borderRadius.medium,
+      backgroundColor: withAlpha(colors.textInverse, 0.2),
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    heroIconDotImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: borderRadius.medium,
+    },
+    heroIconDotOverflow: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.semibold,
+      color: colors.textInverse,
     },
     // ── Action Row ───────────────────────────────────────────
     actionRow: {

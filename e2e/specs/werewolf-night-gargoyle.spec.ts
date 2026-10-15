@@ -94,7 +94,7 @@ async function waitForConvertRevealStep(
 // Tests
 // ============================================================================
 
-test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
+test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
   // --------------------------------------------------------------------------
   // Gargoyle converts adjacent villager → all ack → night ends with death
   // --------------------------------------------------------------------------

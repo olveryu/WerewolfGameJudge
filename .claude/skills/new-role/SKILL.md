@@ -701,7 +701,7 @@ Write a 30-80 character role description and append it after the universal prefi
 | C3 Confirm Pipeline    | Confirm type                              | See "Confirm Step Full Pipeline" section                            | protocol types + schema.types + confirmContext + promptExecutor |
 | C4 New GameState Field | Need to store new info in GameState       | `protocol/types.ts` + `normalize.ts`                                | Compile guard                                                   |
 | C5 Preset Template     | Preset board containing new role          | `packages/game-engine/src/games/werewolf/domain/models/Template.ts` | Use new-board skill                                             |
-| C6 E2E                 | By behavior category                      | `e2e/specs/night-roles-*.spec.ts`                                   | Use new-e2e-spec skill                                          |
+| C6 E2E                 | By behavior category                      | `e2e/specs/werewolf-night-*.spec.ts`                                | Use new-e2e-spec skill                                          |
 | C7 multiChooseSeat     | Multi-target selection                    | abilities `target.count.max > 1` + resolver reads `input.targets`   |                                                                 |
 | C8 groupConfirm        | Group reveal                              | Second `nightStep` + `STEP_AUDIO` registration                      |                                                                 |
 | C9 Multi-step          | Same role has multiple nightSteps entries | Each step needs its own resolver + audio                            | Second step `audioKey` typically !== roleId                     |

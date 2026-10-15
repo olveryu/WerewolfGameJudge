@@ -7,7 +7,9 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 
 import { defineClientGameModule } from '@/games/model/defineClientGameModule';
+import { colors } from '@/theme';
 
+import undercoverArt from '../../../assets/game-art/undercover.jpg';
 import { undercoverGameNavigation } from './navigation/undercoverGameNavigation';
 import { UndercoverRoomScreen } from './room/UndercoverRoomScreen';
 import { UndercoverConfigScreen } from './screens/UndercoverConfigScreen';
@@ -25,6 +27,8 @@ export const createUndercoverUiModule = defineClientGameModule<
       subtitle: '线下指人投票，房主揭晓',
       iconName: 'finger-print-outline',
       tier: 'mini',
+      gradient: [colors.textSecondary, colors.text],
+      art: undercoverArt,
     },
     spotlight: null,
     announcementTabs: [],

@@ -16,6 +16,7 @@ import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   Text,
@@ -57,6 +58,9 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 type PickerPurpose = 'create' | 'guide';
 
+/** Max icon chips on the create-room hero card; past this the tail folds into a +N chip. */
+const HERO_ICON_DOT_LIMIT = 8;
+
 /** Main screen. */
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -81,6 +85,14 @@ export const HomeScreen: React.FC = () => {
     setUnreadFeedbackCount,
   } = useUnreadFeedback();
   const hasUnreadFeedback = unreadFeedbackCount !== undefined && unreadFeedbackCount > 0;
+
+  // Hero icon dots: every production game in catalog order; past the limit
+  // only the first LIMIT-1 render and the rest fold into a +N chip.
+  const heroDotOptions =
+    clientGameHome.modeOptions.length > HERO_ICON_DOT_LIMIT
+      ? clientGameHome.modeOptions.slice(0, HERO_ICON_DOT_LIMIT - 1)
+      : clientGameHome.modeOptions;
+  const heroDotOverflow = clientGameHome.modeOptions.length - heroDotOptions.length;
 
   // Show announcement after auth loading settles (avoid flashing modal over loading state)
   useEffect(() => {
@@ -427,25 +439,49 @@ export const HomeScreen: React.FC = () => {
                 end={{ x: 1, y: 1 }}
                 style={styles.heroCardGradient}
               >
-                <View style={styles.heroCardContent}>
-                  <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
-                  <Text style={styles.heroCardSubtitle}>
-                    {clientGameHome.modeOptions
-                      .map((modeOption) => modeOption.displayName)
-                      .join(' · ')}
-                  </Text>
-                </View>
-                {isCreating ? (
-                  <ActivityIndicator color={colors.textInverse} size="small" />
-                ) : (
-                  <View style={styles.heroCardArrow}>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={componentSizes.icon.lg}
-                      color={colors.textInverse}
-                    />
+                <View style={styles.heroCardMain}>
+                  <View style={styles.heroCardContent}>
+                    <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
+                    <Text style={styles.heroCardSubtitle}>
+                      {`${clientGameHome.modeOptions.length} 款游戏 · 点开挑一款`}
+                    </Text>
                   </View>
-                )}
+                  {isCreating ? (
+                    <ActivityIndicator color={colors.textInverse} size="small" />
+                  ) : (
+                    <View style={styles.heroCardArrow}>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={componentSizes.icon.lg}
+                        color={colors.textInverse}
+                      />
+                    </View>
+                  )}
+                </View>
+                <View style={styles.heroIconDots}>
+                  {heroDotOptions.map((modeOption) => (
+                    <View key={modeOption.gameType} style={styles.heroIconDot}>
+                      {modeOption.art ? (
+                        <Image
+                          source={modeOption.art}
+                          style={styles.heroIconDotImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Ionicons
+                          name={modeOption.iconName}
+                          size={componentSizes.icon.sm}
+                          color={colors.textInverse}
+                        />
+                      )}
+                    </View>
+                  ))}
+                  {heroDotOverflow > 0 && (
+                    <View style={styles.heroIconDot}>
+                      <Text style={styles.heroIconDotOverflow}>{`+${heroDotOverflow}`}</Text>
+                    </View>
+                  )}
+                </View>
               </LinearGradient>
             </PressableScale>
 

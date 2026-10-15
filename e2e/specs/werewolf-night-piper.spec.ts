@@ -150,7 +150,7 @@ async function waitForGroupConfirmStep(
 // Tests
 // ============================================================================
 
-test.describe('Night Roles — Piper (吹笛者)', () => {
+test.describe('Werewolf Night — Piper (吹笛者)', () => {
   // --------------------------------------------------------------------------
   // Piper hypnotizes 1 target → all ack → night ends with death
   // --------------------------------------------------------------------------

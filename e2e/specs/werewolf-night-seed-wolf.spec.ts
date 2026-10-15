@@ -59,7 +59,7 @@ async function acknowledgeInfectionResult(page: Page): Promise<string> {
   return message;
 }
 
-test.describe('Night Roles — Seed Wolf (种狼)', () => {
+test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
   test('successful infection reveals to all players and cancels wolf-kill death', async ({
     browser,
   }) => {

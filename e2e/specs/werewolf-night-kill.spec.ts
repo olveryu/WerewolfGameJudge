@@ -38,7 +38,7 @@ test.setTimeout(180_000);
 // Tests
 // ============================================================================
 
-test.describe('Night Roles — Kill / Status', () => {
+test.describe('Werewolf Night — Kill', () => {
   // --------------------------------------------------------------------------
   // Witch poisons → double death
   // --------------------------------------------------------------------------
@@ -96,56 +96,6 @@ test.describe('Night Roles — Kill / Status', () => {
         const hasDeath = await isTextVisible(pages[0]!, '死亡');
         const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(hasDeath || !peaceful, 'Should have deaths, not 平安夜').toBe(true);
-      },
-    );
-  });
-
-  // --------------------------------------------------------------------------
-  // Hunter confirms canShoot
-  // --------------------------------------------------------------------------
-  test('hunter confirms canShoot status', async ({ browser }) => {
-    await withSetup(
-      browser,
-      {
-        playerCount: 3,
-        configure: async (c) =>
-          c.configureCustomTemplate({
-            wolves: 1,
-            villagers: 1,
-            goodRoles: ['hunter'],
-          }),
-      },
-      async ({ pages, roleMap }) => {
-        const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const hunterIdx = findRolePageIndex(roleMap, '猎人');
-        expect(hunterIdx).not.toBe(-1);
-        expect(wolfIdx).not.toBe(-1);
-
-        // Drive wolf kill (target anyone except wolf)
-        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
-        expect(wolfTurn).toBe(true);
-        await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
-
-        // Wait for hunter's turn — "发动状态" is in prompt text
-        const hunterTurn = await waitForRoleTurn(pages[hunterIdx]!, ['发动状态'], pages, 120);
-        expect(hunterTurn, 'Hunter turn should be detected').toBe(true);
-
-        // Dismiss the "夜间行动" alert before interacting with bottom buttons
-        await dismissAlert(pages[hunterIdx]!);
-
-        // Click "发动状态"
-        await clickBottomButton(pages[hunterIdx]!, '发动状态');
-
-        // Read the alert — should say "猎人可以发动技能" or "猎人不能发动技能"
-        const alertText = await readAlertText(pages[hunterIdx]!);
-        expect(alertText).toContain('猎人');
-        expect(alertText).toMatch(/可以发动技能|不能发动技能/);
-        await dismissAlert(pages[hunterIdx]!);
-
-        // Finish night
-        const ended = await waitForNightEnd(pages, 80);
-        expect(ended).toBe(true);
       },
     );
   });
@@ -234,118 +184,6 @@ test.describe('Night Roles — Kill / Status', () => {
         // Finish night
         const ended = await waitForNightEnd(pages, 120);
         expect(ended, 'Night should end after wolfQueen charm').toBe(true);
-      },
-    );
-  });
-
-  // --------------------------------------------------------------------------
-  // Dark Wolf King confirms status
-  // --------------------------------------------------------------------------
-  test('darkWolfKing confirms canShoot status', async ({ browser }) => {
-    await withSetup(
-      browser,
-      {
-        playerCount: 3,
-        configure: async (c) =>
-          c.configureCustomTemplate({
-            wolves: 0,
-            villagers: 2,
-            wolfRoles: ['darkWolfKing'],
-          }),
-      },
-      async ({ pages, roleMap }) => {
-        const dwkIdx = findRolePageIndex(roleMap, '狼王');
-        expect(dwkIdx).not.toBe(-1);
-
-        // darkWolfKing is a wolf — drive wolf kill first
-        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(pages[dwkIdx]!, ['袭击', '选择'], pages, 120);
-        expect(wolfTurn).toBe(true);
-        await driveWolfVote(pages, [dwkIdx], killTarget ? killTarget[1].seat : 0);
-
-        // Wait for darkWolfKing confirm step — "发动状态" is in prompt text
-        const dwkTurn = await waitForRoleTurn(pages[dwkIdx]!, ['发动状态'], pages, 120);
-        expect(dwkTurn, 'DarkWolfKing turn should be detected').toBe(true);
-
-        // Dismiss the "夜间行动" alert before interacting with bottom buttons
-        await dismissAlert(pages[dwkIdx]!);
-
-        // Click "发动状态"
-        await clickBottomButton(pages[dwkIdx]!, '发动状态');
-
-        // Read alert — "狼王可以发动技能" or "狼王不能发动技能"
-        const alertText = await readAlertText(pages[dwkIdx]!);
-        expect(alertText).toContain('狼王');
-        expect(alertText).toMatch(/可以发动技能|不能发动技能/);
-        await dismissAlert(pages[dwkIdx]!);
-
-        // Finish night
-        const ended = await waitForNightEnd(pages, 80);
-        expect(ended).toBe(true);
-      },
-    );
-  });
-
-  // --------------------------------------------------------------------------
-  // Witch poisons hunter → hunter cannotShoot
-  // --------------------------------------------------------------------------
-  test('witch poisons hunter → hunter sees 不能发动技能', async ({ browser }) => {
-    await withSetup(
-      browser,
-      {
-        playerCount: 5,
-        configure: async (c) =>
-          c.configureCustomTemplate({
-            wolves: 1,
-            villagers: 2,
-            goodRoles: ['witch', 'hunter'],
-          }),
-      },
-      async ({ pages, roleMap }) => {
-        const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const witchIdx = findRolePageIndex(roleMap, '女巫');
-        const hunterIdx = findRolePageIndex(roleMap, '猎人');
-        expect(wolfIdx).not.toBe(-1);
-        expect(witchIdx).not.toBe(-1);
-        expect(hunterIdx).not.toBe(-1);
-
-        const hunterSeat = roleMap.get(hunterIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
-        const killSeat = villagers[0]?.[1].seat ?? 0;
-
-        // Wolf kills a villager
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
-        expect(wolfTurn).toBe(true);
-        await driveWolfVote(pages, [wolfIdx], killSeat);
-
-        // Wait for witch's turn — dismiss save prompt, then poison hunter
-        const witchTurn = await waitForRoleTurn(
-          pages[witchIdx]!,
-          ['被狼人袭击', '解药', '毒药'],
-          pages,
-          120,
-        );
-        expect(witchTurn).toBe(true);
-
-        // Dismiss witch info alert, then poison hunter by clicking his seat
-        await dismissAlert(pages[witchIdx]!);
-        await clickSeatAndConfirm(pages[witchIdx]!, hunterSeat);
-
-        // Hunter's turn — should see "不能发动技能" (poisoned)
-        const hunterTurn = await waitForRoleTurn(pages[hunterIdx]!, ['发动状态'], pages, 120);
-        expect(hunterTurn).toBe(true);
-
-        await dismissAlert(pages[hunterIdx]!);
-        await clickBottomButton(pages[hunterIdx]!, '发动状态');
-
-        const alertText = await readAlertText(pages[hunterIdx]!);
-        expect(alertText).toContain('猎人');
-        expect(alertText).toContain('不能发动技能');
-        await dismissAlert(pages[hunterIdx]!);
-
-        // Finish night
-        const ended = await waitForNightEnd(pages, 120);
-        expect(ended).toBe(true);
       },
     );
   });

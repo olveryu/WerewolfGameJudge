@@ -3,6 +3,8 @@ import { fireEvent, render } from '@testing-library/react-native';
 import type { ClientGameModeOption } from '@/games/home';
 import { GameModePickerModal } from '@/screens/HomeScreen/components/GameModePickerModal';
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
+import { lighten } from '@/theme/colorUtils';
 
 const mainOption: ClientGameModeOption = {
   gameType: 'werewolf',
@@ -10,6 +12,7 @@ const mainOption: ClientGameModeOption = {
   subtitle: '经典身份推理',
   iconName: 'moon-outline',
   tier: 'main',
+  gradient: [colors.primaryLight, colors.primary],
 };
 
 const miniOption: ClientGameModeOption = {
@@ -18,6 +21,7 @@ const miniOption: ClientGameModeOption = {
   subtitle: '看词描述，真假难辨',
   iconName: 'bulb-outline',
   tier: 'mini',
+  gradient: [lighten(colors.warning, 0.55), colors.warning],
 };
 
 function renderModal(options: readonly ClientGameModeOption[] = [mainOption, miniOption]) {

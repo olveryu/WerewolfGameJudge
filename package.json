@@ -23,7 +23,7 @@
     "knip": "knip",
     "fix": "pnpm run lint:fix && pnpm run format:write",
     "quality": "turbo run build typecheck lint knip format test && pnpm run sync:agents:check",
-    "e2e:night": "playwright test --reporter=list night-2p night-6p restart",
+    "e2e:night": "playwright test --reporter=list werewolf-night-flow restart",
     "e2e:ui": "playwright test --ui",
     "dev": "concurrently -n worker,web -c blue,green \"pnpm --filter @game-judge/api-worker run dev\" \"EXPO_PUBLIC_BACKEND=cloudflare EXPO_PUBLIC_CF_API_URL=http://localhost:8787 expo start --web\"",
     "release": "bash scripts/release.sh",

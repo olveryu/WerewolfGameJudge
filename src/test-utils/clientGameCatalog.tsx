@@ -8,6 +8,8 @@ import type { RevealEffectPreviewProps } from '@/features/product/model/GameProd
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { CLIENT_GAME_PLUGIN_CATALOG } from '@/games/catalog';
 import type { ClientGameCatalog } from '@/games/model/ClientGameCatalog';
+import { colors } from '@/theme';
+import { lighten } from '@/theme/colorUtils';
 
 const EmptyRoomScreen: React.FC<GameRoomScreenProps> = () => null;
 const EmptyAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
@@ -44,6 +46,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '一人写一段，一起揭晓故事',
           iconName: 'book-outline',
           tier: 'mini',
+          gradient: [lighten(colors.third, 0.3), colors.third],
         },
         spotlight: null,
         announcementTabs: [],
@@ -67,6 +70,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '线下指人投票，房主揭晓',
           iconName: 'finger-print-outline',
           tier: 'mini',
+          gradient: [colors.textSecondary, colors.text],
         },
         spotlight: null,
         announcementTabs: [],
@@ -90,6 +94,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '经典身份推理',
           iconName: 'moon-outline',
           tier: 'main',
+          gradient: [colors.primaryLight, colors.primary],
         },
         spotlight: null,
         announcementTabs: [],
@@ -126,6 +131,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '看词描述，真假难辨',
           iconName: 'bulb-outline',
           tier: 'mini',
+          gradient: [lighten(colors.warning, 0.55), colors.warning],
         },
         spotlight: null,
         announcementTabs: [],
@@ -152,6 +158,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '画与猜轮流传递',
           iconName: 'brush-outline',
           tier: 'mini',
+          gradient: [lighten(colors.god, 0.5), colors.god],
         },
         spotlight: null,
         announcementTabs: [],
@@ -178,6 +185,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '一人作画，其余人聊天框猜词',
           iconName: 'pencil-outline',
           tier: 'mini',
+          gradient: [lighten(colors.success, 0.5), colors.success],
         },
         spotlight: null,
         announcementTabs: [],
@@ -204,6 +212,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '身份推理 · 组队做任务 · 刺杀梅林',
           iconName: 'shield-outline',
           tier: 'main',
+          gradient: [lighten(colors.info, 0.55), colors.info],
         },
         spotlight: null,
         announcementTabs: [],
@@ -230,6 +239,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
           subtitle: '模板参照游戏',
           iconName: 'game-controller-outline',
           tier: 'mini',
+          gradient: [lighten(colors.primary, 0.45), colors.primary],
         },
         spotlight: null,
         announcementTabs: [],
