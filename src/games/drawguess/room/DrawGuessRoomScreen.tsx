@@ -11,7 +11,7 @@ import {
   type DrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AlertModal } from '@/components/AlertModal';
 import { BotTakeover, type BotTakeoverBot } from '@/components/BotTakeover/BotTakeover';
@@ -27,6 +27,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
+import { StageFrame } from '@/features/room/components/StageFrame';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -53,8 +54,6 @@ import {
 } from './hooks/useDrawGuessRoomState';
 import { drawGuessStrokeToElement, useDrawGuessStrokeSync } from './hooks/useDrawGuessStrokeSync';
 
-/** 游戏工作区最大宽度（与接龙版一致），水平居中。 */
-const DRAWGUESS_STAGE_MAX_WIDTH = 430;
 /** 宽屏断点：达到此宽度时作画区切换为左右分栏（画布左、工具+聊天右）。 */
 const DRAWGUESS_WIDE_LAYOUT_BREAKPOINT = 768;
 const PNG_UPLOAD_MAX_ATTEMPTS = 3;
@@ -178,21 +177,17 @@ function DrawGuessStageFrame({
   readonly children: ReactNode;
 }) {
   return (
-    <View style={styles.stageOuter}>
-      <View style={styles.stageInner}>
+    <StageFrame
+      showsVerticalScrollIndicator={false}
+      header={
         <View style={styles.stageHeader}>
           <Text style={styles.turnLabel}>{turnLabel}</Text>
           <DrawGuessCountdown remainingSeconds={remainingSeconds} label={countdownLabel} />
         </View>
-        <ScrollView
-          style={styles.stageScroll}
-          contentContainerStyle={styles.stageScrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      </View>
-    </View>
+      }
+    >
+      {children}
+    </StageFrame>
   );
 }
 
@@ -698,28 +693,6 @@ function DrawGuessEndedView({
 }
 
 const styles = StyleSheet.create({
-  stageOuter: {
-    flex: 1,
-    alignItems: 'center',
-    width: '100%',
-  },
-  stageInner: {
-    width: '100%',
-    maxWidth: DRAWGUESS_STAGE_MAX_WIDTH,
-    paddingHorizontal: spacing.screenH,
-    paddingVertical: spacing.small,
-    gap: spacing.small,
-    flex: 1,
-    minHeight: 0,
-  },
-  stageScroll: {
-    flex: 1,
-    minHeight: 0,
-  },
-  stageScrollContent: {
-    gap: spacing.small,
-    paddingBottom: spacing.medium,
-  },
   stageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
