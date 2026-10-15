@@ -15,6 +15,7 @@ import {
 import { z } from 'zod';
 
 import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 export const undercoverCreateConfigSchema: z.ZodType<UndercoverConfig> = z
@@ -34,50 +35,54 @@ export const undercoverWordPairSchema: z.ZodType<UndercoverWordPair> = z
   })
   .refine(isValidUndercoverWordPair);
 
+const undercoverPublicCommandOptions = definePublicCommandOptions<UndercoverPublicCommand>()([
+  ...ROOM_PUBLIC_COMMAND_SCHEMAS,
+  z.strictObject({
+    type: z.literal('undercover.config.update'),
+    config: undercoverCreateConfigSchema,
+  }),
+  z.strictObject({ type: z.literal('undercover.round.start'), shouldAllowRepeated: z.boolean() }),
+  z.strictObject({
+    type: z.literal('undercover.round.restart'),
+    roundId: z.string().min(1).nullable(),
+  }),
+  z.strictObject({ type: z.literal('undercover.round.retry'), roundId: z.string().min(1) }),
+  z.strictObject({ type: z.literal('undercover.round.confirm'), roundId: z.string().min(1) }),
+  z.strictObject({ type: z.literal('undercover.round.begin'), roundId: z.string().min(1) }),
+  z.strictObject({
+    type: z.literal('undercover.bots.markAllBotsViewed'),
+    roundId: z.string().min(1),
+  }),
+  z.strictObject({
+    type: z.literal('undercover.round.reveal'),
+    roundId: z.string().min(1),
+    seat: z
+      .int()
+      .min(0)
+      .max(UNDERCOVER_MAX_PLAYERS - 1),
+  }),
+  z.strictObject({ type: z.literal('undercover.round.abort'), roundId: z.string().min(1) }),
+  z.strictObject({ type: z.literal('undercover.game.returnToLobby') }),
+]);
+
 export const undercoverPublicCommandSchema: z.ZodType<UndercoverPublicCommand> =
-  z.discriminatedUnion('type', [
-    ...ROOM_PUBLIC_COMMAND_SCHEMAS,
-    z.strictObject({
-      type: z.literal('undercover.config.update'),
-      config: undercoverCreateConfigSchema,
-    }),
-    z.strictObject({ type: z.literal('undercover.round.start'), shouldAllowRepeated: z.boolean() }),
-    z.strictObject({
-      type: z.literal('undercover.round.restart'),
-      roundId: z.string().min(1).nullable(),
-    }),
-    z.strictObject({ type: z.literal('undercover.round.retry'), roundId: z.string().min(1) }),
-    z.strictObject({ type: z.literal('undercover.round.confirm'), roundId: z.string().min(1) }),
-    z.strictObject({ type: z.literal('undercover.round.begin'), roundId: z.string().min(1) }),
-    z.strictObject({
-      type: z.literal('undercover.bots.markAllBotsViewed'),
-      roundId: z.string().min(1),
-    }),
-    z.strictObject({
-      type: z.literal('undercover.round.reveal'),
-      roundId: z.string().min(1),
-      seat: z
-        .int()
-        .min(0)
-        .max(UNDERCOVER_MAX_PLAYERS - 1),
-    }),
-    z.strictObject({ type: z.literal('undercover.round.abort'), roundId: z.string().min(1) }),
-    z.strictObject({ type: z.literal('undercover.game.returnToLobby') }),
-  ]);
+  z.discriminatedUnion('type', undercoverPublicCommandOptions);
+
+const undercoverInternalCommandOptions = definePublicCommandOptions<UndercoverInternalCommand>()([
+  z.strictObject({
+    type: z.literal('undercover.round.complete'),
+    roundId: z.string().min(1),
+    wordPair: undercoverWordPairSchema,
+  }),
+  z.strictObject({
+    type: z.literal('undercover.round.failPreparation'),
+    roundId: z.string().min(1),
+    failureCode: z.enum(['selectionFailed', 'inventoryEmpty', 'inventoryExhausted']),
+  }),
+]);
 
 export const undercoverInternalCommandSchema: z.ZodType<UndercoverInternalCommand> =
-  z.discriminatedUnion('type', [
-    z.strictObject({
-      type: z.literal('undercover.round.complete'),
-      roundId: z.string().min(1),
-      wordPair: undercoverWordPairSchema,
-    }),
-    z.strictObject({
-      type: z.literal('undercover.round.failPreparation'),
-      roundId: z.string().min(1),
-      failureCode: z.enum(['selectionFailed', 'inventoryEmpty', 'inventoryExhausted']),
-    }),
-  ]);
+  z.discriminatedUnion('type', undercoverInternalCommandOptions);
 
 export const undercoverEffectSchema: z.ZodType<UndercoverEffect> = z.discriminatedUnion('type', [
   z.strictObject({

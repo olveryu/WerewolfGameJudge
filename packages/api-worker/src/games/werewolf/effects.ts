@@ -13,7 +13,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { settleGameResults } from './settlement/settleGameResults';
 
@@ -43,9 +43,12 @@ export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUn
   }),
 ]);
 
-async function createApplyRosterCommandId(effectId: string): Promise<string> {
-  return createEffectCommandId('werewolf:growth', effectId);
-}
+/**
+ * Applying roster levels is never superseded: the roster state it
+ * targets cannot move on underneath the delivery, so every rejection
+ * is a real failure.
+ */
+const SUPERSEDED_ROSTER_REASONS: readonly string[] = [];
 
 async function handleGameEnded(
   effect: WerewolfGameEndedEffect,
@@ -61,22 +64,18 @@ async function handleGameEnded(
   if (results.length === 0) return;
 
   const levels = Object.fromEntries(results.map((result) => [result.userId, result.newLevel]));
-  const commandId = await createApplyRosterCommandId(context.effectId);
-  const dispatchResult = await context.dispatchInternal(commandId, {
-    type: 'werewolf.growth.applyRosterLevels',
-    levels,
-  });
-  if (dispatchResult.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Roster-level command receipt ${dispatchResult.commandId} does not match ${commandId}`,
-    );
-  }
-  if (dispatchResult.kind !== 'committed') {
-    throw new Error(`Roster-level command ${commandId} was rejected: ${dispatchResult.reason}`);
-  }
-  if (dispatchResult.outcome.kind !== 'success') {
-    throw new Error(`Roster-level command ${commandId} failed: ${dispatchResult.outcome.reason}`);
-  }
+  await dispatchEffectCommand(
+    context,
+    {
+      type: 'werewolf.growth.applyRosterLevels',
+      levels,
+    },
+    {
+      namespace: 'werewolf:growth',
+      supersededReasons: SUPERSEDED_ROSTER_REASONS,
+      label: 'Roster-level',
+    },
+  );
 
   for (const result of results) {
     const eventId = `${context.effectId}:${result.userId}`;

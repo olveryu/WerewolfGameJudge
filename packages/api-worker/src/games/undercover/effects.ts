@@ -9,7 +9,7 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 
 import { publishGameRewards } from '../../features/account/settleGameRewards';
-import { dispatchPreparationCommand } from '../../platform/gameModules/preparationDispatch';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import {
   getOrCreateUndercoverWordSelection,
@@ -72,7 +72,7 @@ export async function handleUndercoverEffect(
       failureCode: error.failureCode,
     };
   }
-  await dispatchPreparationCommand(context, command, {
+  await dispatchEffectCommand(context, command, {
     namespace: command.type,
     supersededReasons: [UNDERCOVER_REASONS.phase, UNDERCOVER_REASONS.round],
     label: 'Undercover preparation',

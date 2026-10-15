@@ -11,6 +11,7 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 import { z } from 'zod';
 
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 /**
@@ -27,15 +28,7 @@ const avalonConfigSchema = z.strictObject({
 
 export const avalonCreateConfigSchema: z.ZodType<AvalonConfig> = avalonConfigSchema;
 
-function defineAvalonPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([AvalonPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [AvalonPublicCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
-const avalonPublicCommandOptions = defineAvalonPublicCommandOptions([
+const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('avalon.config.update'), config: avalonConfigSchema }),
   z.strictObject({ type: z.literal('avalon.game.start') }),

@@ -9,6 +9,7 @@ import {
 } from '@game-judge/game-engine/games/demo/public';
 import { z } from 'zod';
 
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 const demoConfigSchema = z.strictObject({
@@ -17,15 +18,7 @@ const demoConfigSchema = z.strictObject({
 
 export const demoCreateConfigSchema: z.ZodType<DemoConfig> = demoConfigSchema;
 
-function defineDemoPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([DemoPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [DemoPublicCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
-const demoPublicCommandOptions = defineDemoPublicCommandOptions([
+const demoPublicCommandOptions = definePublicCommandOptions<DemoPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({
     type: z.literal('demo.config.update'),

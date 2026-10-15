@@ -12,7 +12,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { dealDrawGuessWords } from './wordDeal';
 
@@ -33,9 +33,10 @@ export const drawGuessEffectSchema: z.ZodType<DrawGuessEffect> = z.union([
   gameCompletedEffectSchema,
 ]);
 
-function isSupersededDealRejection(reason: string): boolean {
-  return reason === DRAWGUESS_REASONS.stale || reason === DRAWGUESS_REASONS.wordsDealt;
-}
+const SUPERSEDED_DEAL_REASONS: readonly string[] = [
+  DRAWGUESS_REASONS.stale,
+  DRAWGUESS_REASONS.wordsDealt,
+];
 
 async function handleDrawGuessDealWordsEffect(
   effect: Extract<DrawGuessEffect, { type: 'drawguess.words.deal' }>,
@@ -53,24 +54,19 @@ async function handleDrawGuessDealWordsEffect(
     db: context.bindings.DB,
     usedWords: state.usedWords,
   });
-  const commandId = await createEffectCommandId('drawguess:words-deal', context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type: 'drawguess.words.dealt',
-    turnIndex: effect.payload.turnIndex,
-    choices,
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] DrawGuess words-deal receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededDealRejection(result.reason)) return;
-    throw new Error(`DrawGuess words-deal command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`DrawGuess words-deal command ${commandId} failed: ${result.outcome.reason}`);
-  }
+  await dispatchEffectCommand(
+    context,
+    {
+      type: 'drawguess.words.dealt',
+      turnIndex: effect.payload.turnIndex,
+      choices,
+    },
+    {
+      namespace: 'drawguess:words-deal',
+      supersededReasons: SUPERSEDED_DEAL_REASONS,
+      label: 'DrawGuess words-deal',
+    },
+  );
 }
 
 /** Deliver one validated DrawGuess effect through the Worker runtime. */

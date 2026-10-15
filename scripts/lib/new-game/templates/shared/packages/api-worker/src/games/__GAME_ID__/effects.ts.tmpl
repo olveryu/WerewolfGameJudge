@@ -15,7 +15,7 @@ import {
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
 //#stage
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 //#end
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 
@@ -53,9 +53,10 @@ type __GAME_PASCAL__SettleDueEffect = Extract<
  * settled first, or the phase moved on): the delivery is done, not
  * failed.
  */
-function isSupersededSettleRejection(reason: string): boolean {
-  return reason === __GAME_UPPER___REASONS.phase || reason === __GAME_UPPER___REASONS.deadline;
-}
+const SUPERSEDED_SETTLE_REASONS: readonly string[] = [
+  __GAME_UPPER___REASONS.phase,
+  __GAME_UPPER___REASONS.deadline,
+];
 
 async function handle__GAME_PASCAL__SettleDueEffect(
   effect: __GAME_PASCAL__SettleDueEffect,
@@ -73,22 +74,15 @@ async function handle__GAME_PASCAL__SettleDueEffect(
   ) {
     return;
   }
-  const commandId = await createEffectCommandId('__GAME_ID__:settle', context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type: '__GAME_ID__.phase.settleExpired',
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] __GAME_PASCAL__ settle receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededSettleRejection(result.reason)) return;
-    throw new Error(`__GAME_PASCAL__ settle command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`__GAME_PASCAL__ settle command ${commandId} failed: ${result.outcome.reason}`);
-  }
+  await dispatchEffectCommand(
+    context,
+    { type: '__GAME_ID__.phase.settleExpired' },
+    {
+      namespace: '__GAME_ID__:settle',
+      supersededReasons: SUPERSEDED_SETTLE_REASONS,
+      label: '__GAME_PASCAL__ settle',
+    },
+  );
 }
 
 //#end

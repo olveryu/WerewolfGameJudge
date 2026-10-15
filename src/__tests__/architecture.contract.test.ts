@@ -909,7 +909,7 @@ describe('Worker ownership: source tree is exact', () => {
   it('keeps generic Worker game-module infrastructure platform-owned', () => {
     expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'gameModules'))).toEqual([
       'effectCommandId.ts',
-      'preparationDispatch.ts',
+      'effectDispatch.ts',
       'runtimeGameModule.ts',
       'workerModule.ts',
     ]);
