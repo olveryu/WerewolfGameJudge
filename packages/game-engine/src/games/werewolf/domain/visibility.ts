@@ -210,7 +210,9 @@ function buildSeatViews(
       displayName = getBotDisplayName(seat);
     } else {
       isBot = false;
-      displayName = state.playerProfiles[occupant.userId]?.displayName ?? '玩家';
+      // Fallback matches the client seat board (`|| '玩家'`): an empty-string
+      // profile name falls back too, not just a missing profile.
+      displayName = state.playerProfiles[occupant.userId]?.displayName || '玩家';
     }
 
     return {

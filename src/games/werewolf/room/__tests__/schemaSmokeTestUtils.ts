@@ -1,5 +1,6 @@
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
@@ -7,6 +8,7 @@ import { getSchema, type SchemaId } from '@game-judge/game-engine/games/werewolf
 import type React from 'react';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
+import { buildMockWerewolfViewModel } from '@/games/werewolf/room/__tests__/harness/boardTestUtils';
 import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
@@ -94,8 +96,35 @@ export function createBaseWerewolfRoomMock({
     ...(gameStateOverrides ?? {}),
   };
 
+  const stateFacts = gameState as unknown as {
+    confirmStatus?: ConfirmStatus;
+    convertedSeat?: number;
+    loverSeats?: [number, number];
+    seedWolfInfectionResult?: { outcome: string; targetSeat: number };
+  };
+  const viewModel = buildMockWerewolfViewModel({
+    mySeat,
+    myRole,
+    currentActionRole,
+    currentSchema: getSchema(schemaId),
+    players: gameState.players,
+    wolfVotes: gameState.wolfVotes,
+    actions: gameState.actions,
+    currentNightResults: gameState.currentNightResults,
+    confirmStatus: stateFacts.confirmStatus ?? null,
+    hypnotizedSeats: gameState.hypnotizedSeats,
+    convertedSeat: stateFacts.convertedSeat ?? null,
+    loverSeats: stateFacts.loverSeats ?? null,
+    seedWolfInfectionResult: stateFacts.seedWolfInfectionResult ?? null,
+    piperRevealAcks: gameState.piperRevealAcks,
+    conversionRevealAcks: gameState.conversionRevealAcks,
+    cupidLoversRevealAcks: gameState.cupidLoversRevealAcks,
+    seedWolfInfectionRevealAcks: gameState.seedWolfInfectionRevealAcks,
+  });
+
   return {
     gameState,
+    viewModel,
 
     connectionStatus: 'live',
 

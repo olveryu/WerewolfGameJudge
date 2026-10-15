@@ -8,7 +8,7 @@
  * inferred flat bag or Screen-side derivation. One describe per batch.
  */
 
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 const SRC_ROOT = join(__dirname, '..');
@@ -160,5 +160,100 @@ describe('stage deadline snapshot guard (AU-25/AU-47)', () => {
     expect(source).toMatch(/connection === 'live'/);
     expect(source).toMatch(/pendingCommandCount === 0/);
     expect(source).toMatch(/snapshot\.state\.phaseRevision === state\.phaseRevision/);
+  });
+});
+
+describe('werewolf view-model projection — AU-39', () => {
+  it('the view model is assembled in useWerewolfRoom for the effective seat, not in the Screen', () => {
+    const hook = readSource('games/werewolf/hooks/useWerewolfRoom.ts');
+    expect(hook).toMatch(/getWerewolfViewModel\(snapshot, botControl\.effectiveSeat\)/);
+    const screen = readSource('games/werewolf/room/WerewolfRoomScreen.tsx');
+    expect(screen).not.toMatch(/getWerewolfViewModel/);
+  });
+
+  it('seat projections read wolf visibility from the view model, never local role rules', () => {
+    const helpers = readSource('games/werewolf/room/werewolfRoom.helpers.ts');
+    expect(helpers).toMatch(/viewModel\.night\.wolfVotesBySeat/);
+    expect(helpers).toMatch(/isWolfPackPeer/);
+    expect(helpers).not.toMatch(/canRoleSeeWolves/);
+    const derived = readSource('games/werewolf/room/hooks/useRoomDerived.ts');
+    expect(derived).toMatch(/buildSeatViewModels\(gameState, viewModel/);
+    expect(derived).not.toMatch(/showWolves/);
+  });
+
+  it('night gating facts are read from viewModel.night by the executors', () => {
+    const prompt = readSource('games/werewolf/room/executors/promptExecutor.ts');
+    expect(prompt).toMatch(/viewModel\.night\.confirmStatus/);
+    expect(prompt).not.toMatch(/gameState\.confirmStatus/);
+    const groupConfirm = readSource('games/werewolf/room/executors/groupConfirmExecutor.ts');
+    expect(groupConfirm).toMatch(/viewModel\.night\.reveals/);
+    const playerContext = readSource('games/werewolf/components/AIChatBubble/playerContext.ts');
+    expect(playerContext).toMatch(/viewModel\.myRole/);
+    expect(playerContext).not.toMatch(/state\.players\[/);
+  });
+
+  /**
+   * Regression scan: production sources under games/werewolf must not read
+   * the raw night facts the projection owns. The projection is the single
+   * place where confirm status, per-family ack arrays and reveal facts are
+   * cropped per viewer; a client-side re-read reintroduces both the leak
+   * surface and the duplicated schema→ack mappings AU-39 removed.
+   *
+   * Registered exceptions (review when adding one — new games/files may not
+   * cite these as precedent):
+   * - room/NightReview.helpers.ts reads the reveal FACTS
+   *   (hypnotizedSeats / convertedSeat / loverSeats /
+   *   seedWolfInfectionResult) to rebuild the post-game night recap from the
+   *   final state. The recap is a historical record shown after the game
+   *   ends, not a per-viewer live cropping decision.
+   */
+  const PROJECTION_FACT_EXCEPTIONS: Readonly<Record<string, readonly RegExp[]>> = {
+    'games/werewolf/room/NightReview.helpers.ts': [
+      /hypnotizedSeats|convertedSeat|loverSeats|seedWolfInfectionResult/,
+    ],
+  };
+
+  const BANNED_PROJECTION_READS: readonly { pattern: RegExp; label: string }[] = [
+    { pattern: /(gameState|state)\??\.confirmStatus/, label: 'raw confirmStatus read' },
+    {
+      pattern:
+        /conversionRevealAcks|seedWolfInfectionRevealAcks|cupidLoversRevealAcks|piperRevealAcks/,
+      label: 'per-family reveal ack array read',
+    },
+    {
+      pattern: /hypnotizedSeats|convertedSeat|loverSeats|seedWolfInfectionResult/,
+      label: 'raw reveal fact read',
+    },
+  ];
+
+  function walkProductionSources(dir: string): string[] {
+    const entries: string[] = [];
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) {
+        if (name !== '__tests__') entries.push(...walkProductionSources(full));
+      } else if (/\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name)) {
+        entries.push(full);
+      }
+    }
+    return entries;
+  }
+
+  it('no production source re-reads the raw facts the view model projects', () => {
+    const root = join(SRC_ROOT, 'games/werewolf');
+    const violations: string[] = [];
+    for (const fullPath of walkProductionSources(root)) {
+      const relativePath = fullPath
+        .slice(SRC_ROOT.length + 1)
+        .split('\\')
+        .join('/');
+      const source = readFileSync(fullPath, 'utf8');
+      const exceptions = PROJECTION_FACT_EXCEPTIONS[relativePath] ?? [];
+      for (const { pattern, label } of BANNED_PROJECTION_READS) {
+        if (exceptions.some((exception) => exception.source === pattern.source)) continue;
+        if (pattern.test(source)) violations.push(`${relativePath}: ${label}`);
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

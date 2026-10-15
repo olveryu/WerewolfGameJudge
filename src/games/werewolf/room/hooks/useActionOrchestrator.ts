@@ -20,6 +20,7 @@ import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -45,6 +46,8 @@ import { dispatchIntent } from '../executors';
 interface UseActionOrchestratorParams {
   // ── Game state ──
   gameState: LocalGameState;
+  /** AU-39 viewer-cropped projection, forwarded into the executor context. */
+  viewModel: WerewolfViewModel;
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null;
@@ -102,6 +105,7 @@ interface UseActionOrchestratorResult {
 
 export function useActionOrchestrator({
   gameState,
+  viewModel,
   roomStatus,
   currentActionRole,
   currentSchema,
@@ -244,6 +248,7 @@ export function useActionOrchestrator({
       const ctx: ExecutorContext = {
         gameState,
         gameStateRef,
+        viewModel,
         currentSchema,
         currentActionRole,
         effectiveSeat,
@@ -268,6 +273,7 @@ export function useActionOrchestrator({
     },
     [
       gameState,
+      viewModel,
       effectiveRole,
       effectiveSeat,
       firstSwapSeat,

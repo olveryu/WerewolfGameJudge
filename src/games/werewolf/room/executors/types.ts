@@ -13,6 +13,7 @@ import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { MutableRefObject } from 'react';
 
@@ -30,6 +31,8 @@ export interface ExecutorContext {
   // ── Game state (readonly snapshots) ──
   gameState: LocalGameState;
   gameStateRef: MutableRefObject<LocalGameState>;
+  /** AU-39 viewer-cropped projection; night gating facts are read from here. */
+  viewModel: WerewolfViewModel;
   currentSchema: ActionSchema | null;
   currentActionRole: RoleId | null;
 

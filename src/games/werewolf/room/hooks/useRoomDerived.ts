@@ -8,6 +8,7 @@
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
 
@@ -21,11 +22,11 @@ import { buildSeatViewModels, getRoleStats } from '../werewolfRoom.helpers';
 
 interface UseRoomDerivedInput {
   gameState: LocalGameState;
+  viewModel: WerewolfViewModel;
   currentSchema: ActionSchema | null;
   currentActionRole: RoleId | null;
   roomStatus: GameStatus;
   actorSeatForUi: number | null;
-  showWolves: boolean;
   imActioner: boolean;
   firstSwapSeat: number | null;
   secondSeat: number | null;
@@ -40,6 +41,22 @@ interface UseRoomDerivedInput {
 
 const WOLF_HINT_KINDS = new Set(['wolf_unanimity_required', 'wolf_tie_random']);
 
+/**
+ * Group-confirm acked seats for a step, from the view model's reveal
+ * projection (AU-39: the schema→ack mapping lives in the engine projection;
+ * the client no longer reads the per-family ack arrays).
+ */
+function resolveGroupConfirmAckedSeats(
+  viewModel: WerewolfViewModel,
+  stepId: string,
+): readonly number[] {
+  const reveal = viewModel.night.reveals.find((entry) => entry.stepId === stepId);
+  if (!reveal) {
+    throw new Error(`Unknown groupConfirm step: ${stepId}`);
+  }
+  return reveal.ackedSeats;
+}
+
 function getWolfHintLine(
   hint: NonNullable<LocalGameState['ui']>['currentActorHint'],
   effectiveRole: RoleId | null,
@@ -53,11 +70,11 @@ function getWolfHintLine(
 export function useRoomDerived(input: UseRoomDerivedInput) {
   const {
     gameState,
+    viewModel,
     currentSchema,
     currentActionRole,
     roomStatus,
     actorSeatForUi,
-    showWolves,
     imActioner,
     firstSwapSeat,
     secondSeat,
@@ -88,32 +105,20 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
     const skipConstraints =
       currentSchema?.id === 'wolfRobotLearn' && gameState.wolfRobotReveal != null;
 
-    return buildSeatViewModels(gameState, actorSeatForUi, showWolves, firstSwapSeat, {
+    return buildSeatViewModels(gameState, viewModel, actorSeatForUi, firstSwapSeat, {
       schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
       secondSelectedSeat: secondSeat,
       multiSelectedSeats,
       showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
       groupConfirmAcks:
         currentSchema?.kind === 'groupConfirm'
-          ? (() => {
-              const acksMap: Record<string, readonly number[]> = {
-                awakenedGargoyleConvertReveal: gameState.conversionRevealAcks,
-                seedWolfInfectReveal: gameState.seedWolfInfectionRevealAcks,
-                cupidLoversReveal: gameState.cupidLoversRevealAcks,
-                piperHypnotizedReveal: gameState.piperRevealAcks,
-              };
-              const id = currentSchema.id;
-              if (!(id in acksMap)) {
-                throw new Error(`Unknown groupConfirm step: ${id}`);
-              }
-              return acksMap[id];
-            })()
+          ? resolveGroupConfirmAckedSeats(viewModel, currentSchema.id)
           : undefined,
     });
   }, [
     gameState,
+    viewModel,
     actorSeatForUi,
-    showWolves,
     firstSwapSeat,
     secondSeat,
     multiSelectedSeats,

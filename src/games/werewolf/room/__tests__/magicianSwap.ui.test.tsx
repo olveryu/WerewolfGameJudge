@@ -74,8 +74,23 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         hostUserId: 'host',
         roomCode: '1234',
       };
+      const { buildMockWerewolfViewModel } =
+        require('@/games/werewolf/room/__tests__/harness/boardTestUtils') as typeof import('@/games/werewolf/room/__tests__/harness/boardTestUtils');
+      const { getSchema } =
+        require('@game-judge/game-engine/games/werewolf/public') as typeof import('@game-judge/game-engine/games/werewolf/public');
+      const viewModel = buildMockWerewolfViewModel({
+        mySeat: 0,
+        myRole: 'magician',
+        currentActionRole: 'magician',
+        currentSchema: getSchema('magicianSwap'),
+        players: gameState.players as Parameters<typeof buildMockWerewolfViewModel>[0]['players'],
+        wolfVotes: gameState.wolfVotes,
+        actions: gameState.actions,
+        currentNightResults: {},
+      });
       return {
         gameState,
+        viewModel,
 
         connectionStatus: 'live',
 

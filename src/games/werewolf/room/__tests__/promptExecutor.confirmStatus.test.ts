@@ -1,15 +1,19 @@
 /**
  * promptExecutor.confirmStatus.test.ts - AU-39 Slice 0 golden tests
  *
- * Pins how confirmTriggerExecutor reads GameState.confirmStatus per viewer
- * (role-match gating, per-role message selection) so the engine ViewModel's
- * night.confirmStatus gating can be cross-checked against identical values.
+ * Pins how confirmTriggerExecutor renders the confirm status per viewer
+ * (per-role message selection). Since Slice 3 the executor reads the view
+ * model's night.confirmStatus, which the engine gates to the viewer of the
+ * current confirm step; createContext below projects the raw status the
+ * way the view model would surface it for each scenario (a status that is
+ * not this viewer's own step status arrives as null).
  * Uses the real SCHEMAS registry: asserted strings are the production texts.
  */
 
 import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { getSchema, Team } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, getSchema, Team } from '@game-judge/game-engine/games/werewolf/public';
 
 import { confirmTriggerExecutor } from '@/games/werewolf/room/executors/promptExecutor';
 import type { ExecutorContext } from '@/games/werewolf/room/executors/types';
@@ -30,6 +34,20 @@ interface PromptCall {
   alternativeAction?: { label: string; onPress: () => void | Promise<void> };
 }
 
+function viewModelWith(confirmStatus: ConfirmStatus | null): WerewolfViewModel {
+  return {
+    status: GameStatus.Ongoing,
+    mySeat: null,
+    myRole: null,
+    myEffectiveRole: null,
+    seats: [],
+    wolfPackSeats: null,
+    viewedSeats: [],
+    night: { stepSchemaKind: 'confirm', confirmStatus, reveals: [], wolfVotesBySeat: null },
+    day: { sheriffSeat: null, mvpSeat: null },
+  };
+}
+
 function createContext(options: {
   schemaId: Parameters<typeof getSchema>[0];
   confirmStatus?: ConfirmStatus;
@@ -39,8 +57,16 @@ function createContext(options: {
   const promptCalls: PromptCall[] = [];
   const proceedWithAction = jest.fn(async () => ({}));
   const gameState = { confirmStatus: options.confirmStatus } as unknown as LocalGameState;
+  // The view model surfaces the confirm status only to the viewer whose own
+  // confirm step it belongs to; in these scenarios that is exactly the
+  // status role matching the viewer's effective role.
+  const gatedStatus =
+    options.confirmStatus && options.confirmStatus.role === options.effectiveRole
+      ? options.confirmStatus
+      : null;
   const ctx = {
     gameState,
+    viewModel: viewModelWith(gatedStatus),
     effectiveRole: options.effectiveRole,
     effectiveSeat: options.effectiveSeat,
     currentSchema: getSchema(options.schemaId),

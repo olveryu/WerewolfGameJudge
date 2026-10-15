@@ -1,8 +1,9 @@
 /**
  * groupConfirmExecutor — Handles 'groupConfirmAck' ActionIntent
  *
- * Computes personal hypnotize message from gameState, then shows
- * role action prompt with schema-driven confirm button.
+ * Computes the personal reveal message from the view model's reveal
+ * projection (AU-39), then shows the role action prompt with the
+ * schema-driven confirm button.
  */
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
@@ -18,51 +19,45 @@ import type { IntentExecutor } from './types';
 
 /** Group confirm ack executor. */
 export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
-  const { gameState, currentSchema, actorSeatForUi, groupConfirmAckMutation, actionDialogs } = ctx;
+  const { viewModel, currentSchema, actorSeatForUi, groupConfirmAckMutation, actionDialogs } = ctx;
 
   const mySeat = actorSeatForUi;
   const gcSchema = currentSchema?.kind === 'groupConfirm' ? currentSchema : null;
   const schemaId = gcSchema?.id;
+
+  // AU-39: personal reveal facts come from the view model's reveal for the
+  // current step — isSubject / partnerSeat / subjectSeats are already
+  // cropped to this viewer engine-side.
+  const reveal =
+    mySeat !== null
+      ? (viewModel.night.reveals.find((entry) => entry.stepId === schemaId) ?? null)
+      : null;
+  const isSubject = reveal?.isSubject ?? false;
 
   // Compute personal message based on schema type
   let personalMessage: string;
   let dialogTitle: string;
 
   if (schemaId === 'seedWolfInfectReveal') {
-    const infectionResult = gameState?.seedWolfInfectionResult;
-    const isConverted =
-      mySeat !== null &&
-      infectionResult?.outcome === 'converted' &&
-      infectionResult.targetSeat === mySeat;
-    personalMessage = isConverted
-      ? gcSchema!.ui!.hypnotizedText!
-      : gcSchema!.ui!.notHypnotizedText!;
+    personalMessage = isSubject ? gcSchema!.ui!.hypnotizedText! : gcSchema!.ui!.notHypnotizedText!;
     dialogTitle = '感染信息';
   } else if (schemaId === 'awakenedGargoyleConvertReveal') {
-    // Awakened Gargoyle: single convertedSeat
-    const isConverted = mySeat !== null && gameState?.convertedSeat === mySeat;
-    personalMessage = isConverted
-      ? gcSchema!.ui!.hypnotizedText!
-      : gcSchema!.ui!.notHypnotizedText!;
+    personalMessage = isSubject ? gcSchema!.ui!.hypnotizedText! : gcSchema!.ui!.notHypnotizedText!;
     dialogTitle = '转化信息';
   } else if (schemaId === 'cupidLoversReveal') {
-    // Cupid: loverSeats pair. Show partner seat to lovers, "not a lover" to others.
-    const loverSeats = gameState?.loverSeats;
-    const isLover = mySeat !== null && loverSeats?.includes(mySeat);
-    if (isLover && loverSeats) {
-      const partnerSeat = loverSeats[0] === mySeat ? loverSeats[1] : loverSeats[0];
+    // Cupid: show the partner seat to lovers, "not a lover" to others.
+    if (isSubject && reveal?.partnerSeat != null) {
       const template = gcSchema!.ui!.loverText!;
-      personalMessage = template.replace('{seat}', formatSeat(partnerSeat));
+      personalMessage = template.replace('{seat}', formatSeat(reveal.partnerSeat));
     } else {
       personalMessage = gcSchema!.ui!.notLoverText!;
     }
     dialogTitle = '情侣信息';
   } else {
-    // Piper: hypnotizedSeats array with {seats} placeholder
-    const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
-    const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
-    if (isHypnotized) {
-      const seatsText = hypnotizedSeats.map((s) => formatSeat(s)).join('、');
+    // Piper: hypnotized seats list with {seats} placeholder
+    const subjectSeats = reveal?.subjectSeats ?? null;
+    if (isSubject && subjectSeats !== null) {
+      const seatsText = subjectSeats.map((s) => formatSeat(s)).join('、');
       const template = gcSchema!.ui!.hypnotizedText!;
       personalMessage = template.replace('{seats}', seatsText);
     } else {

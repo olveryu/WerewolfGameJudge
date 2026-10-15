@@ -15,7 +15,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
-import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema, getWerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import { render, waitFor } from '@testing-library/react-native';
 
 import { cleanupGame, createGame } from '@/games/werewolf/__tests__/engine/boards/gameFactory';
@@ -146,6 +146,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const currentSchema = getSchema('witchAction');
     mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
+      viewModel: getWerewolfViewModel(realState, MY_SEAT),
       connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.Ongoing,
@@ -243,6 +244,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const currentSchema = getSchema('seerCheck');
     mockUseWerewolfRoomReturn = {
       gameState: toMockGameState(realState),
+      viewModel: getWerewolfViewModel(realState, seerSeat),
       connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.Ongoing,

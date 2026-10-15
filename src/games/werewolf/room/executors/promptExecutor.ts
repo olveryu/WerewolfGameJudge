@@ -74,14 +74,8 @@ export const actionPromptExecutor: IntentExecutor = (_intent, ctx) => {
 };
 
 export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
-  const {
-    gameState,
-    effectiveRole,
-    effectiveSeat,
-    currentSchema,
-    proceedWithAction,
-    actionDialogs,
-  } = ctx;
+  const { gameState, viewModel, effectiveSeat, currentSchema, proceedWithAction, actionDialogs } =
+    ctx;
 
   if (!gameState) return;
 
@@ -92,7 +86,10 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
     );
   }
 
-  const confirmStatus = gameState.confirmStatus;
+  // AU-39: the view model already gates the confirm status to this viewer
+  // (null unless the current confirm step belongs to them); no local
+  // role-matching is repeated here.
+  const confirmStatus = viewModel.night.confirmStatus;
   const dialogTitle = statusUi.statusDialogTitle;
   let statusMessage: string;
 
@@ -142,14 +139,11 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
           ? statusUi.wolfText
           : statusUi.goodText;
   } else {
-    // Hunter / DarkWolfKing: 2-way shoot status
+    // Hunter / DarkWolfKing: 2-way shoot status (view-model gated above)
     let canShoot = true;
     if (
       confirmStatus &&
-      confirmStatus.role !== 'avenger' &&
-      confirmStatus.role !== 'hiddenWolf' &&
-      confirmStatus.role !== 'seedWolf' &&
-      confirmStatus.role === effectiveRole
+      (confirmStatus.role === 'hunter' || confirmStatus.role === 'darkWolfKing')
     ) {
       canShoot = confirmStatus.canShoot;
     }

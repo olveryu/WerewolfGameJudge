@@ -5,6 +5,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
+import { buildMockWerewolfViewModel } from '@/games/werewolf/room/__tests__/harness/boardTestUtils';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { TESTIDS } from '@/testids';
@@ -96,8 +97,20 @@ function createBaseWerewolfRoomMock(overrides?: Record<string, unknown>) {
     roomCode: '1234',
   };
 
+  const viewModel = buildMockWerewolfViewModel({
+    mySeat: 0,
+    myRole: 'wolfQueen',
+    currentActionRole: 'wolf',
+    currentSchema: getSchema('wolfKill'),
+    players: gameState.players,
+    wolfVotes: gameState.wolfVotes,
+    actions: new Map(),
+    currentNightResults: {},
+  });
+
   return {
     gameState,
+    viewModel,
 
     // Connection
     connectionStatus: 'live',
