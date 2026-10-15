@@ -108,6 +108,13 @@ export type {
 } from './domain/protocol/types';
 export { RESOLVERS } from './domain/resolvers';
 export type { ActionInput, CurrentNightResults, ResolverContext } from './domain/resolvers/types';
+export {
+  getWerewolfViewModel,
+  type WerewolfNightView,
+  type WerewolfRevealView,
+  type WerewolfSeatView,
+  type WerewolfViewModel,
+} from './domain/visibility';
 export { createWerewolfGameEndedEffect } from './effects/gameEnded';
 export type {
   WerewolfEffect,
