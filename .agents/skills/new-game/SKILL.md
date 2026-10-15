@@ -208,10 +208,16 @@ pnpm new-game <gameId> --preset identity|stage --name <中文名> --subtitle <�
   一律按 `type` 窄化读 payload。
 - 登记例外**只有两家**（contract 的 `REGISTERED_EXCEPTIONS`，评审新游戏时照此核）：
   狼人杀（reducer 架构：evolve 在 `domain/reducer/`、normalize 与状态构造在
-  `domain/state/`、状态类型在 `domain/models`+`domain/protocol/`、无单一
-  visibility 模块）与故事接龙（visibility 住 `domain/relay.ts`，因其跑在
-  平台接龙链机上、投影由链机绑定模块产出）。新游戏不得援引为例外；
-  确需偏离必含清单，先改 contract 登记并走评审，再写代码。
+  `domain/state/`、状态类型在 `domain/models`+`domain/protocol/`；其 visibility
+  不例外——AU-39 后就是单一 `domain/visibility.ts` 全量 ViewModel）与故事接龙
+  （visibility 住 `domain/relay.ts`，因其跑在平台接龙链机上、投影由链机绑定
+  模块产出）。新游戏不得援引为例外；确需偏离必含清单，先改 contract 登记
+  并走评审，再写代码。
+- ViewModel 形态以**全量型**为准：`get<Game>ViewModel(state, viewerSeat)`
+  一次产出该 viewer 的完整投影（本人身份、逐座裁剪、阶段私有事实全在内，
+  客户端只读不拼装）。全量型先例四家：阿瓦隆、你画我猜、狼人杀（AU-39）
+  与生成器模板（demo 即模板标准产物）；新游戏按模板的全量型长，不许退回
+  「客户端读原始状态自己拼可见性」。
 - 平台共享件（先查再造，不许各游戏重写）：`buildGameCompletionPayload`
   （结算 payload 拼装）、`parseChoice`（runtimeDecoder）、身份查看协议
   （`platform/room` 的 identityViewing）。
