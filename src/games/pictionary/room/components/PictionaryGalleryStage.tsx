@@ -12,6 +12,7 @@ import { FlatList, type ListRenderItemInfo, StyleSheet, Text, View } from 'react
 import { GalleryPagerControls } from '@/features/room/components/GalleryPagerControls';
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { TESTIDS } from '@/testids';
@@ -21,7 +22,7 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 import { usePictionaryStageCommand } from '../hooks/usePictionaryStageCommand';
 import { PictionaryAlbumExport } from './PictionaryAlbumExport';
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
-import { PICTIONARY_STAGE_MAX_WIDTH, PictionaryStageHeading } from './PictionaryStageFrame';
+import { PictionaryStageHeading } from './PictionaryStageFrame';
 
 interface GalleryEntryViewProps {
   readonly state: PictionaryState;
@@ -292,7 +293,7 @@ export const PictionaryEndedStage: React.FC<PictionaryEndedStageProps> = ({ stat
 const styles = StyleSheet.create({
   albumStage: {
     width: '100%',
-    maxWidth: PICTIONARY_STAGE_MAX_WIDTH,
+    maxWidth: STAGE_FRAME_MAX_WIDTH,
     minHeight: 0,
     flex: 1,
     alignSelf: 'center',

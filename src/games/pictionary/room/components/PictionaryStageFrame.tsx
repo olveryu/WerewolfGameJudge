@@ -1,16 +1,15 @@
-/** Shared visual frame for one active Pictionary task or reveal state. */
+/** Pictionary waiting-stage frame: shared stage skeleton with this game's pinned heading. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
+import { StageFrame } from '@/features/room/components/StageFrame';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 import { colors, spacing, textStyles, withAlpha } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
-
-export const PICTIONARY_STAGE_MAX_WIDTH = 430;
 
 interface PictionaryStageFrameProps {
   readonly eyebrow: string;
@@ -75,33 +74,24 @@ export const PictionaryStageFrame: React.FC<PictionaryStageFrameProps> = ({
   children,
 }) => {
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
+    <StageFrame
+      testID={TESTIDS.pictionaryStageFrame}
       keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.content} testID={TESTIDS.pictionaryStageFrame}>
+      header={
         <PictionaryStageHeading
           eyebrow={eyebrow}
           title={title}
           description={description}
           remainingSeconds={remainingSeconds}
         />
-        {children}
-      </View>
-    </ScrollView>
+      }
+    >
+      {children}
+    </StageFrame>
   );
 };
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: spacing.medium },
-  content: {
-    width: '100%',
-    maxWidth: PICTIONARY_STAGE_MAX_WIDTH,
-    alignSelf: 'center',
-    gap: spacing.medium,
-  },
   headingRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

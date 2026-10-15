@@ -7,12 +7,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { roomSurfaceStyles } from '@/features/room/components/RoomSurface.styles';
 import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
+import { STAGE_FRAME_MAX_WIDTH } from '@/features/room/components/StageFrame';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 import { colors, fixed, spacing, textStyles } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
-
-import { PICTIONARY_STAGE_MAX_WIDTH } from './PictionaryStageFrame';
 
 interface PictionaryTaskFrameProps {
   readonly eyebrow: string;
@@ -101,7 +100,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: '100%',
-    maxWidth: PICTIONARY_STAGE_MAX_WIDTH,
+    maxWidth: STAGE_FRAME_MAX_WIDTH,
     alignSelf: 'center',
     padding: spacing.small,
     gap: spacing.small,
