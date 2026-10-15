@@ -222,5 +222,31 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
     },
+    demo: {
+      gameType: 'demo',
+      home: {
+        mode: {
+          displayName: 'Demo',
+          subtitle: '模板参照游戏',
+          iconName: 'game-controller-outline',
+          tier: 'mini',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.demo.navigation, {
+        config: EmptyScreen,
+        guide: EmptyScreen,
+      }),
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('demo'),
+      productUi: {
+        getAvatarDisplayName: () => null,
+        getRevealEffectPresentation: () => null,
+      },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
   };
 }

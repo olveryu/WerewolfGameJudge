@@ -1,0 +1,22 @@
+/**
+ * Demo e2e 骨架 —— 默认禁用，启用需用户批准。
+ *
+ * 启用步骤（缺一不可）：
+ * 1. 经用户批准后，把本文件改名为 `demo.spec.ts`；
+ * 2. 把文件名加进 `.github/workflows/ci.yml` 的 e2e 分片矩阵
+ *    （ciE2eCoverage contract 会验 specs 与矩阵全量一致）；
+ * 3. 按仓库 e2e 硬规矩写用例：除狼人杀外一律多 browser context
+ *    真人模拟凑人数，一个 bot 都不许用（fillBots / takeOverBot
+ *    只给人工测试凑人数）；一次只改一个 spec、一个 commit + push，
+ *    用 e2e-single-spec workflow 逐个验证。
+ *
+ * TODO(gameplay):用例清单随玩法定稿补齐（建房 → 入座坐满 → 开局 →
+ * 核心流程 → 终局 → 返回大厅），helper 优先复用 e2e/helpers 既有件。
+ */
+import { test } from '@playwright/test';
+
+test.describe('Demo（demo）', () => {
+  test.skip('TODO(gameplay): 主流程用例随玩法定稿启用', async () => {
+    // 启用时删除 test.skip 并按上方规矩实现。
+  });
+});

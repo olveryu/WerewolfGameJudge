@@ -41,6 +41,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './games/storyrelay/public',
   './games/undercover/public',
   './games/werewolf/public',
+  './games/demo/public',
   './platform/engine',
   './platform/identifiers',
   './platform/protocol/canonicalJson',

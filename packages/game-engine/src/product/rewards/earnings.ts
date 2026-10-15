@@ -10,6 +10,8 @@ export const GAME_COMPLETION_REWARDS = {
   drawguess: { xpEarned: 15, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
   // Main-tier session game (design D6-Q5: 2/3 of werewolf XP_BASE=50).
   avalon: { xpEarned: 33, normalDrawsEarned: 3, dailyCompletionTarget: 1 },
+  // TODO(new-game): confirm the completion reward amounts for demo.
+  demo: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
 } as const;
 
 export const DAILY_COMPLETION_GOLDEN_DRAWS = 2;

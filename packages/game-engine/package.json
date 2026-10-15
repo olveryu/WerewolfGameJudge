@@ -40,6 +40,10 @@
       "types": "./src/games/avalon/public.ts",
       "default": "./dist/games/avalon/public.js"
     },
+    "./games/demo/public": {
+      "types": "./src/games/demo/public.ts",
+      "default": "./dist/games/demo/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"

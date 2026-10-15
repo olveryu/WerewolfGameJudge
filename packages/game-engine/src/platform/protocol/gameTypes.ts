@@ -8,6 +8,7 @@ export const GAME_TYPES = [
   'storyrelay',
   'drawguess',
   'avalon',
+  'demo',
 ] as const;
 
 export type GameType = (typeof GAME_TYPES)[number];

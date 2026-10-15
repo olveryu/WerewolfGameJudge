@@ -4,6 +4,8 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 
 import { createAvalonUiModule } from '@/games/avalon/module';
 import { avalonGameNavigation } from '@/games/avalon/navigation/avalonGameNavigation';
+import { createDemoUiModule } from '@/games/demo/module';
+import { demoGameNavigation } from '@/games/demo/navigation/demoGameNavigation';
 import { createDrawGuessUiModule } from '@/games/drawguess/module';
 import { drawGuessGameNavigation } from '@/games/drawguess/navigation/drawGuessGameNavigation';
 import { createFibUiModule } from '@/games/fibking/module';
@@ -65,6 +67,11 @@ export const CLIENT_GAME_PLUGIN_CATALOG = {
     createModule: ({ sessionFactory, audioService }) =>
       createAvalonUiModule({ sessionFactory, audioService }),
   },
+  demo: {
+    gameType: 'demo',
+    navigation: demoGameNavigation,
+    createModule: ({ sessionFactory }) => createDemoUiModule({ sessionFactory }),
+  },
 } satisfies ClientGamePluginCatalogShape;
 
 export function createClientGameCatalog(
@@ -90,5 +97,6 @@ export function createClientGameCatalog(
       CLIENT_GAME_PLUGIN_CATALOG.storyrelay.createModule(dependencies),
     ),
     avalon: registerClientGameModule(CLIENT_GAME_PLUGIN_CATALOG.avalon.createModule(dependencies)),
+    demo: registerClientGameModule(CLIENT_GAME_PLUGIN_CATALOG.demo.createModule(dependencies)),
   };
 }

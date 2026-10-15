@@ -142,6 +142,18 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     hostConfig: true,
     botTestScaffold: true,
   },
+  demo: {
+    nightPhase: false,
+    botsAndTakeover: true,
+    identityViewing: true,
+    revealAnimation: true,
+    stageDeadline: true,
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: true,
+    botTestScaffold: true,
+  },
 };
 
 /** Concatenated non-test engine source of one game, with the

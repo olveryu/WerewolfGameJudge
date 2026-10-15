@@ -1,0 +1,44 @@
+# Demo设计
+
+> 状态：骨架（由 `pnpm new-game demo --preset identity` 生成，待设计定稿）
+> 游戏 ID：`demo`
+> 展示名：Demo
+> 原型预设：identity
+> 最后更新：TODO(gameplay)
+
+本文件是 new-game skill Phase 1 的需求定稿文档：下列 10 项全部填完并经
+用户批准后，才进入玩法实现（引擎 game-specific 逻辑只许按本文件写）。
+
+## 1. 需求定稿表（10 项，缺一不可）
+
+| #   | 项目                                       | 定稿           |
+| --- | ------------------------------------------ | -------------- |
+| 1   | 人数与身份/角色构成                        | TODO(gameplay) |
+| 2   | 阶段流转图                                 | TODO(gameplay) |
+| 3   | 每阶段的行动与胜负判定                     | TODO(gameplay) |
+| 4   | 阶段时长与超时处理                         | TODO(gameplay) |
+| 5   | 公开/私有信息边界（visibility 裁剪口径）   | TODO(gameplay) |
+| 6   | 机器人行为（接管口径，沿用平台接管规则）   | TODO(gameplay) |
+| 7   | 配置项（Config 字段与默认值）              | TODO(gameplay) |
+| 8   | 结算与奖励口径（注册表 rewards 三数）      | TODO(gameplay) |
+| 9   | 失败与边界（掉线、重连、空座位、中途退出） | TODO(gameplay) |
+| 10  | 文案清单（状态条/按钮/说明页的自有声音）   | TODO(gameplay) |
+
+## 2. 平台边界（骨架已接通，不许改口径）
+
+- 服务端是游戏规则和阶段推进的唯一权威；`GameState` 是唯一权威状态。
+- 复用共享房间、座位、连接、重连、用户资料与分享基础设施；游戏规则
+  进 `packages/game-engine`，Worker 负责认证、持久化与广播，客户端
+  负责输入与展示。
+- 骨架已落地的底盘接线（座位/资料/配置命令、结算 effect、注册表条目、
+  三层 catalog、migration 骨架）见仓库根目录的接入报告；玩法只许填
+  `TODO(gameplay)` 标记处。
+
+## 3. 核心玩法
+
+TODO(gameplay):按第 1 节定稿表展开：流程、阶段、行动、判定、信息边界。
+
+## 4. 待裁决
+
+TODO(gameplay):设计过程中出现分歧或拿不准的口径逐条登记，获用户裁决
+后写回第 1 节并在此销项。

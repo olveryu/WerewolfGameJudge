@@ -141,6 +141,19 @@ export const GAME_REGISTRY = {
     workerWorkflows: [],
     httpRoutes: [],
   },
+  demo: {
+    gameType: 'demo',
+    enginePublicExport: './games/demo/public',
+    clientModulePath: 'src/games/demo/module.ts',
+    // Reference game for template regression (plan §7.1 / D8): fully
+    // registered through the real path, never shipped to players — the
+    // client lobby/create surfaces filter on this flag.
+    isProduction: false,
+    // TODO(new-game): confirm the completion reward amounts for demo.
+    rewards: { policy: 'flat', xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
+    workerWorkflows: [],
+    httpRoutes: [],
+  },
 } as const satisfies { readonly [TGameType in GameType]: GameRegistration<TGameType> };
 
 export type GameRegistry = typeof GAME_REGISTRY;
