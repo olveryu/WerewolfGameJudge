@@ -50,6 +50,11 @@ import type {
   RoomControlledSeatModel,
   RoomShellModel,
 } from '@/features/room/model/RoomShellModel';
+import {
+  buildLobbyWaitingText,
+  messageRibbon,
+  progressRibbon,
+} from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
@@ -196,48 +201,37 @@ export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatus
   const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
   switch (state.phase) {
     case 'lobby':
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: `等待入座 · ${getPictionaryOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
-        supportingText: null,
-      };
+      return messageRibbon(
+        buildLobbyWaitingText(getPictionaryOccupiedSeatCount(state), state.config.numberOfPlayers),
+      );
     case 'answering':
-      return {
-        kind: 'progress',
+      return progressRibbon({
         current: state.stepIndex + 1,
         total: relayStepCount,
         label: state.stepIndex === 0 ? '全员出题中' : '接龙作答中',
-      };
+      });
     case 'settling':
-      return { kind: 'message', icon: 'guide', text: '正在收取最终内容', supportingText: null };
+      return messageRibbon('正在收取最终内容');
     case 'transition':
-      return {
-        kind: 'progress',
+      return progressRibbon({
         current: state.stepIndex + 1,
         total: relayStepCount,
         label: '准备下一棒',
-      };
+      });
     case 'gallery': {
       if (state.gallery === null) {
         throw new Error('[FAIL-FAST] Pictionary gallery phase requires gallery state');
       }
-      return {
-        kind: 'progress',
+      return progressRibbon({
         current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
         total: state.config.numberOfPlayers * (state.stepIndex + 1),
         label: '接龙揭晓中',
-      };
+      });
     }
     case 'ended':
-      return { kind: 'message', icon: 'guide', text: '本局接龙已揭晓', supportingText: null };
+      return messageRibbon('本局接龙已揭晓');
     case 'aborted':
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: '本局已中止，作品未完成',
-        supportingText: null,
-      };
+      return messageRibbon('本局已中止，作品未完成');
   }
 }
 
@@ -371,7 +365,10 @@ export function createPictionaryHostManagement(
   }
   return {
     preview: '下一步：开始游戏',
-    status: `等待入座 · ${getPictionaryOccupiedSeatCount(input.state)}/${input.state.config.numberOfPlayers}`,
+    status: buildLobbyWaitingText(
+      getPictionaryOccupiedSeatCount(input.state),
+      input.state.config.numberOfPlayers,
+    ),
     sections,
   };
 }

@@ -40,6 +40,11 @@ import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  buildLobbyWaitingText,
+  messageRibbon,
+  progressRibbon,
+} from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -137,8 +142,7 @@ function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomS
 /** Public status never includes story content or writer identity. */
 function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonModel | null {
   if (state.phase === 'answering' || state.phase === 'transition')
-    return {
-      kind: 'progress',
+    return progressRibbon({
       current: state.stepIndex + 1,
       total: state.config.numberOfPlayers,
       label:
@@ -147,10 +151,10 @@ function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonM
           : state.stepIndex === 0
             ? '写下故事开头'
             : '续写故事',
-    };
+    });
   const text =
     state.phase === 'lobby'
-      ? `等待入座 · ${getStoryRelayOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`
+      ? buildLobbyWaitingText(getStoryRelayOccupiedSeatCount(state), state.config.numberOfPlayers)
       : state.phase === 'settling'
         ? '正在收稿'
         : state.phase === 'gallery'
@@ -158,7 +162,7 @@ function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonM
           : state.phase === 'aborted'
             ? '未完成的故事'
             : '本局故事已完成';
-  return { kind: 'message', icon: 'guide', text, supportingText: null };
+  return messageRibbon(text);
 }
 
 export interface StoryRelayRoomShellModelInput {
@@ -219,7 +223,10 @@ export function createStoryRelayHostManagement(
   if (state.phase === 'lobby') {
     return {
       preview: '开始游戏',
-      status: `等待入座 · ${getStoryRelayOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
+      status: buildLobbyWaitingText(
+        getStoryRelayOccupiedSeatCount(state),
+        state.config.numberOfPlayers,
+      ),
       sections: [
         {
           key: 'game',

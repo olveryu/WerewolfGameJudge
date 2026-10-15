@@ -46,6 +46,7 @@ import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -132,30 +133,16 @@ function createDemoStatusRibbon(state: DemoState): RoomStatusRibbonModel | null 
       state.roleViewedSeats.includes(participant.seat),
     ).length;
     if (participants.length > 0 && viewedCount === participants.length)
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: '全员已查看身份，等待房主开始游戏',
-        supportingText: null,
-      };
-    return {
-      kind: 'message',
-      icon: 'guide',
-      text: `等待全员查看身份 · ${viewedCount}/${participants.length}`,
-      supportingText: null,
-    };
+      return messageRibbon('全员已查看身份，等待房主开始游戏');
+    return messageRibbon(`等待全员查看身份 · ${viewedCount}/${participants.length}`);
   }
   if (phase.kind === 'playing')
     // TODO(gameplay): 进行中状态条文案随玩法阶段补齐（本游戏自有声音）。
-    return { kind: 'message', icon: 'guide', text: '对局进行中', supportingText: null };
-  if (phase.kind === 'ended')
-    return { kind: 'message', icon: 'guide', text: '本局已结束', supportingText: null };
-  return {
-    kind: 'message',
-    icon: 'guide',
-    text: `等待入座 · ${getDemoOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
-    supportingText: null,
-  };
+    return messageRibbon('对局进行中');
+  if (phase.kind === 'ended') return messageRibbon('本局已结束');
+  return messageRibbon(
+    buildLobbyWaitingText(getDemoOccupiedSeatCount(state), state.config.numberOfPlayers),
+  );
 }
 
 export interface DemoRoomShellModelInput {
@@ -218,7 +205,7 @@ export function createDemoHostManagement(
     const startDisabledReason = canStart ? null : '座位尚未坐满';
     return {
       preview: '分配身份',
-      status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
+      status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
