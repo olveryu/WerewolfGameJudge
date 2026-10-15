@@ -66,6 +66,7 @@ const mockColors = {
   error: '#DC3545',
   warning: '#FFC107',
   success: '#28A745',
+  info: '#2563EB',
   border: '#E0E0E0',
   divider: '#EEEEEE',
   wolf: '#DC2626',

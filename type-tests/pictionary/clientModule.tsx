@@ -20,6 +20,7 @@ import {
   registerClientGameModule,
 } from '../../src/games/model/ClientGameCatalog';
 import type { ClientGamePluginDefinition } from '../../src/games/model/ClientGamePlugin';
+import { colors } from '../../src/theme';
 
 const PictionaryRoomScreen: React.FC<GameRoomScreenProps<typeof UNREGISTERED_GAME_TYPE>> = () =>
   null;
@@ -80,6 +81,7 @@ const pictionaryClientModule = {
       subtitle: '绘画猜词',
       iconName: 'bulb-outline',
       tier: 'mini',
+      gradient: [colors.god, colors.god],
     },
     spotlight: null,
     announcementTabs: [],

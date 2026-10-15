@@ -19,6 +19,7 @@ const mockClientGameHome = {
       subtitle: '经典身份推理',
       iconName: 'moon-outline' as const,
       tier: 'main' as const,
+      gradient: ['#818CF8', '#4F46E5'] as const,
     },
   ],
   guideOptions: [
@@ -28,6 +29,7 @@ const mockClientGameHome = {
       subtitle: '经典身份推理',
       iconName: 'moon-outline' as const,
       tier: 'main' as const,
+      gradient: ['#818CF8', '#4F46E5'] as const,
     },
   ],
   spotlights: [],
@@ -79,7 +81,7 @@ describe('HomeScreen', () => {
 
       expect(getByText('创建房间')).toBeTruthy();
       expect(getByText('进入房间')).toBeTruthy();
-      expect(getByText('狼人杀')).toBeTruthy();
+      expect(getByText('1 款游戏 · 点开挑一款')).toBeTruthy();
     });
 
     it('should render the app title', () => {

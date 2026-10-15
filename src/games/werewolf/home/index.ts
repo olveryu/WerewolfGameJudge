@@ -1,7 +1,9 @@
 /** Werewolf contribution to the product Home surface. */
 
 import type { GameHomeContribution } from '@/features/home/model/GameHomeContribution';
+import { colors } from '@/theme';
 
+import werewolfArt from '../../../../assets/game-art/werewolf.jpg';
 import { WerewolfBoardAnnouncementTab } from './WerewolfBoardAnnouncementTab';
 import { WerewolfHomeSpotlight } from './WerewolfHomeSpotlight';
 
@@ -11,6 +13,8 @@ export const werewolfHomeContribution = {
     subtitle: '经典身份推理',
     iconName: 'moon-outline',
     tier: 'main',
+    gradient: [colors.primaryLight, colors.primary],
+    art: werewolfArt,
   },
   spotlight: WerewolfHomeSpotlight,
   announcementTabs: [
