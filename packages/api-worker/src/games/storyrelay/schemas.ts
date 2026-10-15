@@ -13,6 +13,7 @@ import {
 import { z } from 'zod';
 
 import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 export const storyRelayCreateConfigSchema = z.strictObject({
@@ -26,15 +27,7 @@ const roundTask = { roundId: z.string().min(1), stepIndex: z.int().nonnegative()
 const task = { ...roundTask, chainId: z.string().min(1) };
 const revision = { phaseRevision: z.int().nonnegative() };
 
-function defineCommands<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([StoryRelayCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [StoryRelayCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
-const commands = defineCommands([
+const commands = definePublicCommandOptions<StoryRelayCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({
     type: z.literal('storyrelay.config.update'),

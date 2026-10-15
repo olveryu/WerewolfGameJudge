@@ -14,6 +14,7 @@ import {
 import { validateTemplateRoles } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 const roleIdSchema = z.custom<RoleId>(
@@ -50,15 +51,7 @@ export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z
     }
   });
 
-function defineWerewolfPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([WerewolfPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [WerewolfPublicCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
-const publicCommandOptions = defineWerewolfPublicCommandOptions([
+const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('werewolf.roles.assign') }),
   z.strictObject({ type: z.literal('werewolf.game.restart') }),

@@ -18,21 +18,14 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 export const fibCreateConfigSchema: z.ZodType<FibConfig> = z.strictObject({
   numberOfPlayers: z.int().min(FIB_MIN_PLAYERS).max(FIB_MAX_PLAYERS),
 });
 
-function defineFibPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([FibPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [FibPublicCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
-const publicCommandOptions = defineFibPublicCommandOptions([
+const publicCommandOptions = definePublicCommandOptions<FibPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({
     type: z.literal('fibking.config.update'),

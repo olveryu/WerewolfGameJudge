@@ -20,6 +20,7 @@ import {
 import { z } from 'zod';
 
 import { gameCompletionPayloadSchema } from '../../features/account/settleGameRewards';
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 const pictionaryConfigSchema = z.strictObject({
@@ -32,14 +33,6 @@ const pictionaryConfigSchema = z.strictObject({
 
 export const pictionaryCreateConfigSchema: z.ZodType<PictionaryConfig> = pictionaryConfigSchema;
 
-function definePictionaryPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([PictionaryPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [PictionaryPublicCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
 const taskIdentityShape = {
   roundId: z.string().min(1),
   stepIndex: z.int().nonnegative(),
@@ -50,7 +43,7 @@ const phaseIdentityShape = {
   phaseRevision: z.int().nonnegative(),
 };
 
-const publicCommandOptions = definePictionaryPublicCommandOptions([
+const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('pictionary.config.update'), config: pictionaryConfigSchema }),
   z.strictObject({ type: z.literal('pictionary.round.start') }),

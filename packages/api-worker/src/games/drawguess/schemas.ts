@@ -19,6 +19,7 @@ import {
 } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
 
+import { definePublicCommandOptions } from '../../platform/room/commandOptions';
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 const drawGuessConfigSchema = z.strictObject({
@@ -31,14 +32,6 @@ const drawGuessConfigSchema = z.strictObject({
 }) satisfies z.ZodType<DrawGuessConfig>;
 
 export const drawGuessCreateConfigSchema: z.ZodType<DrawGuessConfig> = drawGuessConfigSchema;
-
-function defineDrawGuessPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([DrawGuessPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [DrawGuessPublicCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
 
 const strokePointSchema = z.strictObject({
   x: z.number().min(0).max(1),
@@ -102,7 +95,7 @@ const phaseIdentityShape = {
   turnIndex: z.int().nonnegative(),
 };
 
-const publicCommandOptions = defineDrawGuessPublicCommandOptions([
+const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('drawguess.config.update'), config: drawGuessConfigSchema }),
   z.strictObject({ type: z.literal('drawguess.round.start') }),
@@ -141,15 +134,7 @@ const drawGuessWordChoiceSchema = z.strictObject({
   pinyinInitials: z.string().min(1),
 }) satisfies z.ZodType<DrawGuessWordChoice>;
 
-function defineDrawGuessInternalCommandOptions<const TOptions extends readonly z.ZodType[]>(
-  options: TOptions &
-    ([DrawGuessInternalCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [DrawGuessInternalCommand] ? unknown : never),
-): TOptions {
-  return options;
-}
-
-const internalCommandOptions = defineDrawGuessInternalCommandOptions([
+const internalCommandOptions = definePublicCommandOptions<DrawGuessInternalCommand>()([
   z.strictObject({
     type: z.literal('drawguess.words.dealt'),
     turnIndex: z.int().nonnegative(),
