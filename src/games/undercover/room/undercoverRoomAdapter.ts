@@ -3,7 +3,6 @@
 import {
   getBotSeats,
   getUndercoverOccupiedSeatCount,
-  isBotOccupant,
   type UndercoverCategory,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -17,6 +16,7 @@ import {
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -44,7 +44,6 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -125,47 +124,39 @@ export function createUndercoverSeatDataSource(
   input: UndercoverSeatSourceInput,
 ): RoomSeatDataSource {
   const { state, revision, myUserId, controlledSeat, selectedSeat, isSelecting } = input;
-  return {
-    count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat}:${selectedSeat}:${isSelecting}`,
-    getSeat(seat) {
-      const target = getUndercoverProfileTarget(state, seat);
-      const occupant = state.roster[seat];
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    // 选座是本家注入座位源的交互状态：修订键与高亮/禁用原因都随它变。
+    revisionKey: `${revision}:${controlledSeat}:${selectedSeat}:${isSelecting}`,
+    roster: state.roster,
+    viewerUserId: myUserId,
+    controlledSeat,
+    isLobby: state.phase === 'lobby',
+    botUserId: (seat) => `undercover-bot:${state.roomCode}:${seat}`,
+    outOfRangeError: (seat) => `Undercover seat source index is out of range: ${seat}`,
+    lockedSeatReason: '本局座位已锁定',
+    resolveHighlight: (seat) => (selectedSeat === seat ? 'selected' : undefined),
+    resolveSecondaryLabel: (seat) => {
       const revelation = state.round?.revelations.find((entry) => entry.seat === seat);
       const role = state.phase === 'ended' ? state.round.roles[seat] : revelation?.role;
-      return {
-        seat,
-        player:
-          target === null
-            ? null
-            : toRoomSeatPlayer({
-                kind: target.occupantKind,
-                userId: target.userId,
-                ...human?.profile,
-                displayName: target.rosterName,
-              }),
-        isSelf: human?.userId === myUserId,
-        highlight:
-          selectedSeat === seat ? 'selected' : controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel:
-          role === undefined
-            ? null
-            : `${revelation === undefined ? '' : '已出局 · '}${UNDERCOVER_ROLE_NAMES[role]}`,
-        disabledReason:
-          isSelecting && revelation !== undefined
-            ? '该玩家已出局'
-            : target === null && state.phase !== 'lobby'
-              ? '本局座位已锁定'
-              : undefined,
-        showReadyBadge: state.phase === 'viewing' && state.round.confirmedSeats.includes(seat),
-        statusBadge: null,
-        isStatusEmphasized: revelation !== undefined,
-        showLevel: state.phase === 'lobby',
-        decorationsEnabled: state.phase === 'lobby',
-      };
+      return role === undefined
+        ? null
+        : `${revelation === undefined ? '' : '已出局 · '}${UNDERCOVER_ROLE_NAMES[role]}`;
     },
-  };
+    resolveDisabledReason: (seat, player) => {
+      const revelation = state.round?.revelations.find((entry) => entry.seat === seat);
+      return isSelecting && revelation !== undefined
+        ? '该玩家已出局'
+        : player === null && state.phase !== 'lobby'
+          ? '本局座位已锁定'
+          : undefined;
+    },
+    resolveShowReadyBadge: (seat) =>
+      state.phase === 'viewing' && state.round.confirmedSeats.includes(seat),
+    resolveIsStatusEmphasized: (seat) =>
+      state.round?.revelations.some((entry) => entry.seat === seat) ?? false,
+  });
 }
 
 /** Status text contains no hidden identities or words. */

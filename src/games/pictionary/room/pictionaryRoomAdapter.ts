@@ -5,8 +5,6 @@ import {
   getPictionaryOccupiedSeatCount,
   getPictionaryRelayStepCount,
   getPictionaryTaskForSeat,
-  isBotOccupant,
-  isBotSeat,
   isPictionaryRoomFull,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -16,6 +14,7 @@ import {
   buildRoomHeaderModel,
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -56,7 +55,6 @@ import {
   messageRibbon,
   progressRibbon,
 } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
 
@@ -137,46 +135,20 @@ function getPictionarySeatStatus(
 export function createPictionarySeatDataSource(
   input: PictionarySeatSourceInput,
 ): RoomSeatDataSource {
-  return {
-    count: input.state.config.numberOfPlayers,
-    revision: `${input.revision}:${input.controlledSeat ?? 'self'}`,
-    getSeat(index): RoomSeatViewModel {
-      if (
-        !Number.isSafeInteger(index) ||
-        index < 0 ||
-        index >= input.state.config.numberOfPlayers
-      ) {
-        throw new Error(`Pictionary seat source index is out of range: ${index}`);
-      }
-      const occupant = input.state.roster[index];
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const isBot = isBotSeat(input.state.roster, index);
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : isBot
-            ? toRoomSeatPlayer({
-                kind: 'bot',
-                userId: getPictionaryBotUserId(input.state.roomCode, index),
-                displayName: getBotDisplayName(index),
-              })
-            : null;
-      return {
-        seat: index,
-        player,
-        isSelf: human?.userId === input.myUserId,
-        highlight: input.controlledSeat === index ? 'controlled' : 'none',
-        secondaryLabel: null,
-        disabledReason:
-          player === null && input.state.phase !== 'lobby' ? '游戏进行中不能入座' : undefined,
-        showReadyBadge: false,
-        statusBadge: player === null ? null : getPictionarySeatStatus(input.state, index),
-        isStatusEmphasized: false,
-        showLevel: input.state.phase === 'lobby',
-        decorationsEnabled: input.state.phase === 'lobby',
-      };
-    },
-  };
+  const { state } = input;
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision: input.revision,
+    roster: state.roster,
+    viewerUserId: input.myUserId,
+    controlledSeat: input.controlledSeat,
+    isLobby: state.phase === 'lobby',
+    botUserId: (seat) => getPictionaryBotUserId(state.roomCode, seat),
+    outOfRangeError: (seat) => `Pictionary seat source index is out of range: ${seat}`,
+    lockedSeatReason: '游戏进行中不能入座',
+    resolveStatusBadge: (seat, player) =>
+      player === null ? null : getPictionarySeatStatus(state, seat),
+  });
 }
 
 export function getPictionarySeatTapIntent(input: {
