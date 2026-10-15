@@ -35,6 +35,7 @@ function baseViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     hasViewedRole: false,
     unviewedRoleSeats: [],
     requiredSize: null,
+    draftSeats: null,
     proposedSeats: null,
     teamSeats: null,
     myBallot: null,
@@ -64,14 +65,7 @@ describe('resolveNightInstruction', () => {
     const instruction = resolveNightInstruction(
       baseViewModel({ phase: 'night', nightStep: 'evilReveal', evilPeers: [1, 2] }),
     );
-    expect(instruction).toEqual({ kind: 'evilPeers', peers: [1, 2], isAlone: false });
-  });
-
-  it('marks Oberon as alone when no peers are visible', () => {
-    const instruction = resolveNightInstruction(
-      baseViewModel({ phase: 'night', nightStep: 'evilReveal', evilPeers: [] }),
-    );
-    expect(instruction).toEqual({ kind: 'evilPeers', peers: [], isAlone: true });
+    expect(instruction).toEqual({ kind: 'evilPeers', peers: [1, 2] });
   });
 
   it('shows the seen evils to Merlin', () => {

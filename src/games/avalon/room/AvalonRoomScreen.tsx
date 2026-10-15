@@ -9,6 +9,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
@@ -17,7 +18,6 @@ import { colors } from '@/theme';
 
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
-import { AvalonEarlyStrikeModal } from './components/AvalonEarlyStrikeModal';
 import { AvalonEndedSection } from './components/AvalonEndedSection';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -44,8 +44,6 @@ import {
   resolveQuestInstruction,
   resolveVoteInstruction,
 } from './policy/avalonInteractionPolicy';
-
-const EMPTY_PICKED_SEATS: ReadonlySet<number> = new Set();
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
@@ -166,23 +164,8 @@ function AvalonRoomContent(
     (viewModel.phase === 'nominate' || viewModel.phase === 'lady' || viewModel.phase === 'assassin')
       ? viewModel.questHistory[questHistoryCount - 1]
       : undefined;
-  // 座位盘选人：提名（队长点选切换选中集）/ 湖仙（持有人点选→二次确认）/ 刺杀（刺客点选→二次确认）。
-  const [nominateSelection, setNominateSelection] = useState<ReadonlySet<number>>(new Set());
-  const nominateKey =
-    viewModel === null ? null : `${viewModel.questResults.length}:${viewModel.leaderSeat}`;
-  const nominateKeyRef = useRef<string | null>(null);
-  const phaseKind = viewModel?.phase;
-  useEffect(() => {
-    if (phaseKind !== 'nominate') {
-      nominateKeyRef.current = null;
-      setNominateSelection(new Set());
-      return;
-    }
-    if (nominateKeyRef.current !== nominateKey) {
-      nominateKeyRef.current = nominateKey;
-      setNominateSelection(new Set());
-    }
-  }, [phaseKind, nominateKey]);
+  // 座位盘选人：提名（队长点选切换服务端草稿）/ 湖仙（持有人点选→二次确认）/ 刺杀
+  // （刺客点选→二次确认）/ 提前刺杀（选人模式开启时点选→二次确认，优先于阶段点选）。
   const [ladyCheckTarget, setLadyCheckTarget] = useState<number | null>(null);
   useEffect(() => {
     if (viewModel?.phase !== 'lady') setLadyCheckTarget(null);
@@ -225,61 +208,88 @@ function AvalonRoomContent(
   const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
-  const { setSeatPickHandler, setPickedSeats } = screen;
+  const { setSeatPickHandler, strikePickMode, submit, controlledSeat } = screen;
+  // 座位盘点选全部经共享点选机制（useSeatPicking）：四个消费点各一份配置，
+  // 资格集仍由 avalonInteractionPolicy 产出，本组件只做装配。注册桥按现行
+  // 优先级合成单个 handler：提前刺杀选人模式开启时独占点按（遮蔽其余
+  // 点选，与原先的提前返回注册一致），其余按提名 → 湖仙 → 刺杀指认的
+  // 顺序逐个尝试消费；都不消费时落回默认座位语义。
+  const nominateInstruction =
+    viewModel !== null && viewModel.phase === 'nominate'
+      ? resolveNominateInstruction(viewModel, viewModel.mySeat)
+      : null;
+  const ladyInstruction =
+    viewModel !== null && viewModel.phase === 'lady' ? resolveLadyInstruction(viewModel) : null;
+  const assassinInstruction =
+    viewModel !== null && viewModel.phase === 'assassin'
+      ? resolveAssassinInstruction(viewModel)
+      : null;
+  const strikePicking = useSeatPicking({
+    active: strikePickMode && viewModel !== null && viewModel.canEarlyStrike,
+    mode: 'trigger',
+    eligibleSeats: viewModel === null ? [] : eligibleStrikeTargets(viewModel),
+    storage: { kind: 'local' },
+    onPick: (seat) => {
+      setStrikePickMode(false);
+      setStrikeConfirm({ seat, mode: 'earlyStrike' });
+    },
+  });
+  const nominatePicking = useSeatPicking({
+    // 提名草稿住服务端：selection 是 VM 投影，变化经 updateDraft 整集提交，
+    // 徽标以服务端回声为准（不做本地乐观更新）。点未入座座位落回默认语义。
+    active: nominateInstruction?.isLeader === true,
+    mode: 'toggle',
+    eligibleSeats: viewModel === null ? [] : viewModel.seats.map((entry) => entry.seat),
+    maxSize: nominateInstruction?.requiredSize,
+    ineligibleTap: 'fallthrough',
+    storage: {
+      kind: 'room',
+      selection: viewModel?.draftSeats ?? [],
+      onSelectionChange: (nextSelection) => {
+        void submit(
+          '更新草稿',
+          { type: 'avalon.team.updateDraft', seats: nextSelection },
+          controlledSeat,
+        );
+      },
+    },
+  });
+  const ladyPicking = useSeatPicking({
+    active: ladyInstruction?.kind === 'holderPick',
+    mode: 'trigger',
+    eligibleSeats: ladyInstruction?.kind === 'holderPick' ? ladyInstruction.eligibleSeats : [],
+    storage: { kind: 'local' },
+    onPick: setLadyCheckTarget,
+  });
+  const assassinPicking = useSeatPicking({
+    active: assassinInstruction?.kind === 'assassinPick',
+    mode: 'trigger',
+    eligibleSeats: viewModel === null ? [] : eligibleStrikeTargets(viewModel),
+    storage: { kind: 'local' },
+    onPick: (seat) => setStrikeConfirm({ seat, mode: 'accuse' }),
+  });
+  const strikePickActive = strikePickMode && viewModel !== null && viewModel.canEarlyStrike;
+  const strikeTap = strikePicking.handleSeatTap;
+  const nominateTap = nominatePicking.handleSeatTap;
+  const ladyTap = ladyPicking.handleSeatTap;
+  const assassinTap = assassinPicking.handleSeatTap;
   useEffect(() => {
     if (viewModel === null) {
       setSeatPickHandler(null);
       return;
     }
-    if (
-      viewModel.phase === 'nominate' &&
-      resolveNominateInstruction(viewModel, viewModel.mySeat).isLeader
-    ) {
-      setSeatPickHandler((seat) => {
-        setNominateSelection((current) => {
-          const next = new Set(current);
-          if (next.has(seat)) next.delete(seat);
-          else next.add(seat);
-          return next;
-        });
-        return true;
-      });
-      return;
-    }
-    if (viewModel.phase === 'lady') {
-      const instruction = resolveLadyInstruction(viewModel);
-      if (instruction.kind === 'holderPick') {
-        const eligible = instruction.eligibleSeats;
-        setSeatPickHandler((seat) => {
-          if (!eligible.includes(seat)) return false;
-          setLadyCheckTarget(seat);
-          return true;
-        });
-        return;
-      }
-    }
-    if (
-      viewModel.phase === 'assassin' &&
-      resolveAssassinInstruction(viewModel).kind === 'assassinPick'
-    ) {
-      const targets = eligibleStrikeTargets(viewModel);
-      setSeatPickHandler((seat) => {
-        if (!targets.includes(seat)) return false;
-        setStrikeConfirm({ seat, mode: 'accuse' });
-        return true;
-      });
-      return;
-    }
-    setSeatPickHandler(null);
-  }, [viewModel, setSeatPickHandler]);
-  // 提名选中集同步给座位数据源（选中座位的「队员」徽标）。
-  useEffect(() => {
-    const isLeaderPicking =
-      viewModel !== null &&
-      viewModel.phase === 'nominate' &&
-      resolveNominateInstruction(viewModel, viewModel.mySeat).isLeader;
-    setPickedSeats(isLeaderPicking ? nominateSelection : EMPTY_PICKED_SEATS);
-  }, [viewModel, nominateSelection, setPickedSeats]);
+    setSeatPickHandler((seat) =>
+      strikePickActive ? strikeTap(seat) : nominateTap(seat) || ladyTap(seat) || assassinTap(seat),
+    );
+  }, [
+    viewModel,
+    setSeatPickHandler,
+    strikePickActive,
+    strikeTap,
+    nominateTap,
+    ladyTap,
+    assassinTap,
+  ]);
   // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
   // 动作区 / 状态条），座位盘下方不放任何阶段 UI——与全平台各家一致。
@@ -455,16 +465,6 @@ function AvalonRoomContent(
                   targetName={seatDisplayName(ladyResult.targetSeat)}
                   faction={ladyResult.faction}
                   onClose={ladyResultWatermark.dismiss}
-                />
-              ) : null}
-              {screen.strikePickMode ? (
-                <AvalonEarlyStrikeModal
-                  viewModel={viewModel}
-                  onSelectSeat={(seat) => {
-                    setStrikePickMode(false);
-                    setStrikeConfirm({ seat, mode: 'earlyStrike' });
-                  }}
-                  onClose={() => setStrikePickMode(false)}
                 />
               ) : null}
             </>

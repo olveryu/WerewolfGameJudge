@@ -60,9 +60,7 @@ function toConfirmDialog(
     case 'evilPeers':
       return {
         title: '坏人互认',
-        message: instruction.isAlone
-          ? '无人可认：你看不见其他坏人，他们也看不见你。'
-          : `你看到的坏人同伴：${instruction.peers.map((seat) => formatSeat(viewModel, seat)).join('、')}`,
+        message: `你看到的坏人同伴：${instruction.peers.map((seat) => formatSeat(viewModel, seat)).join('、')}`,
       };
     case 'merlin':
       return {

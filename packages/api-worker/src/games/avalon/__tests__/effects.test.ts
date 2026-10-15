@@ -170,10 +170,11 @@ function armedVoteState(): AvalonState {
   const leader = state.leaderSeat;
   state = applyPublic(
     state,
-    { type: 'avalon.team.propose', seats: [0, 1] },
+    { type: 'avalon.team.updateDraft', seats: [0, 1] },
     seatUser(leader),
-    'propose',
+    'draft',
   );
+  state = applyPublic(state, { type: 'avalon.team.propose' }, seatUser(leader), 'propose');
   for (let seat = 0; seat < 5; seat += 1) {
     state = applyPublic(
       state,
@@ -285,7 +286,7 @@ describe('Avalon settle effect', () => {
     const state = armedVoteState();
     const { context, box } = settleContext(state);
     await handleAvalonEffect(settleEffectFor(state), context);
-    expect(box.commands).toEqual([{ type: 'avalon.vote.settleExpired' }]);
+    expect(box.commands).toEqual([{ type: 'avalon.phase.settleExpired' }]);
     expect(box.current.phase.kind).toBe('quest');
     expect(box.current.lastVoteResult?.approveCount).toBe(5);
   });
@@ -312,7 +313,7 @@ describe('Avalon settle effect', () => {
     }
     const { context, box } = settleContext(state);
     await handleAvalonEffect(settleEffectFor(state), context);
-    expect(box.commands).toEqual([{ type: 'avalon.quest.settleExpired' }]);
+    expect(box.commands).toEqual([{ type: 'avalon.phase.settleExpired' }]);
     expect(box.current.phase.kind).toBe('nominate');
     expect(box.current.questResults[0]).toBe('success');
   });

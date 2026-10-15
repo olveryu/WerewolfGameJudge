@@ -114,20 +114,16 @@ export interface AvalonRoomScreenState {
   /** 湖仙确认展示弹窗开关：自动弹一次由 Screen 驱动，底部按钮重开也走这里。 */
   readonly ladyAckOpen: boolean;
   readonly setLadyAckOpen: Dispatch<SetStateAction<boolean>>;
-  /** 提前刺杀选人模式：底部「刺杀」按钮开启，选人弹窗住在 Screen 的 overlays。 */
+  /** 提前刺杀选人模式：底部「刺杀」按钮开启，座位盘点选由 Screen 的 seatPickHandler 消费并打开刺杀二次确认。 */
   readonly strikePickMode: boolean;
   readonly setStrikePickMode: Dispatch<SetStateAction<boolean>>;
   /** 注册湖仙结果重开处理器（结果弹窗的已阅状态住在 Screen，adapter 底部入口经此触达）。 */
   readonly setLadyResultReopenHandler: (handler: (() => void) | null) => void;
-  /** 座位盘选人（提名）：Screen 同步本地选中集，adapter 据此给选中座位上「队员」徽标。 */
-  readonly setPickedSeats: Dispatch<SetStateAction<ReadonlySet<number>>>;
   /** 注册座位点选处理器：返回 true 表示本次点按已被选人消费，不走默认座位行为。 */
   readonly setSeatPickHandler: (handler: ((seat: number) => boolean) | null) => void;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
-const EMPTY_PICKED_SEATS: ReadonlySet<number> = new Set();
-
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
     readonly session: AvalonRoomSession;
@@ -156,8 +152,8 @@ export function useAvalonRoomState(
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
-  // 阶段弹窗开关（投票 / 出牌 / 湖仙确认 / 提前刺杀选人）：与夜晚确认同形态，
-  // 开关住在 hook，底部动作区的重开入口与 Screen 的自动弹一次共用同一状态。
+  // 阶段弹窗开关（投票 / 出牌 / 湖仙确认）与提前刺杀选人模式：与夜晚确认
+  // 同形态，开关住在 hook，底部动作区的入口与 Screen 共用同一状态。
   const [voteModalOpen, setVoteModalOpen] = useState(false);
   const [questModalOpen, setQuestModalOpen] = useState(false);
   const [ladyAckOpen, setLadyAckOpen] = useState(false);
@@ -166,7 +162,6 @@ export function useAvalonRoomState(
   const setLadyResultReopenHandler = useCallback((handler: (() => void) | null) => {
     ladyResultReopenRef.current = handler;
   }, []);
-  const [pickedSeats, setPickedSeats] = useState<ReadonlySet<number>>(EMPTY_PICKED_SEATS);
   const seatPickHandlerRef = useRef<((seat: number) => boolean) | null>(null);
   const setSeatPickHandler = useCallback((handler: ((seat: number) => boolean) | null) => {
     seatPickHandlerRef.current = handler;
@@ -206,12 +201,12 @@ export function useAvalonRoomState(
   const expirePhase = useCallback(async () => {
     if (state.phase.kind === 'vote') {
       await session.dispatch(
-        { type: 'avalon.vote.timeout' },
+        { type: 'avalon.phase.expire' },
         { controlledSeat: null, label: '投票超时结算', isRecoverable: true },
       );
     } else if (state.phase.kind === 'quest') {
       await session.dispatch(
-        { type: 'avalon.quest.timeout' },
+        { type: 'avalon.phase.expire' },
         { controlledSeat: null, label: '任务超时结算', isRecoverable: true },
       );
     }
@@ -328,7 +323,6 @@ export function useAvalonRoomState(
     revision: snapshot.snapshot.revision,
     userId: user.id,
     controlledSeat,
-    pickedSeats,
     seatsVisuallyDisabled:
       state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,
@@ -360,15 +354,14 @@ export function useAvalonRoomState(
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
     onProposeTeamPress: () => {
-      void submit(
-        '提交队伍',
-        { type: 'avalon.team.propose', seats: [...pickedSeats] },
-        controlledSeat,
-      );
+      // 提案以服务端草稿为准：草稿由队长的点选经 updateDraft 维护。
+      void submit('提交队伍', { type: 'avalon.team.propose' }, controlledSeat);
     },
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
     onEarlyStrikePress: () => setStrikePickMode(true),
+    strikePickMode,
+    onCancelEarlyStrikePress: () => setStrikePickMode(false),
     hostManagement,
     canControlBots,
     releaseBot,
@@ -420,7 +413,6 @@ export function useAvalonRoomState(
     strikePickMode,
     setStrikePickMode,
     setLadyResultReopenHandler,
-    setPickedSeats,
     setSeatPickHandler,
   };
 }

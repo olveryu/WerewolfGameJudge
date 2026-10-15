@@ -15,6 +15,7 @@ import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/proto
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { relayDeadline } from '../../platform/room/relay/clock';
+import { guardRelayPhaseExpiry } from '../../platform/room/relay/expireGuard';
 import {
   decideRosterClearSeats,
   decideRosterFillBots,
@@ -362,17 +363,30 @@ function decideExpirePictionaryPhase(
   phaseRevision: number,
   context: CommandContext,
 ): PictionaryDecision {
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  const actorSeat = findRosterSeatByUserId(state.roster, state.config.numberOfPlayers, actor.value);
-  if (actor.value !== state.hostUserId && actorSeat === null) {
-    return reject(REASON_NOT_SEATED);
-  }
-  if (phaseRevision !== state.phaseRevision) return commitPictionary([]);
-  if (state.deadlineAt === null || context.nowMs < state.deadlineAt) {
-    return reject(REASON_PICTIONARY_PHASE_NOT_EXPIRED);
-  }
-  return expirePictionaryPhase(state, context.nowMs);
+  // Shared guard sequence; Pictionary injects its host-or-seated actor
+  // gate and its stale mode (a stale revision silently commits empty —
+  // the decide entry above exempts this command from the revision
+  // rejection every other revisioned command gets).
+  return guardRelayPhaseExpiry(context, {
+    checkActor: (actorUserId) => {
+      const actorSeat = findRosterSeatByUserId(
+        state.roster,
+        state.config.numberOfPlayers,
+        actorUserId,
+      );
+      return actorUserId !== state.hostUserId && actorSeat === null
+        ? reject(REASON_NOT_SEATED)
+        : null;
+    },
+    revision: {
+      commandRevision: phaseRevision,
+      currentRevision: state.phaseRevision,
+      onStale: () => commitPictionary([]),
+    },
+    deadlineAt: state.deadlineAt,
+    notExpiredReason: REASON_PICTIONARY_PHASE_NOT_EXPIRED,
+    dispatch: (nowMs) => expirePictionaryPhase(state, nowMs),
+  });
 }
 
 function decideFinishPictionaryPhase(

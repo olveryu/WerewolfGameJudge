@@ -39,16 +39,16 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
   z.strictObject({ type: z.literal('avalon.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('avalon.audio.ack') }),
   z.strictObject({
-    type: z.literal('avalon.team.propose'),
+    type: z.literal('avalon.team.updateDraft'),
     seats: z.array(z.number().int().nonnegative()).readonly(),
   }),
+  z.strictObject({ type: z.literal('avalon.team.propose') }),
   z.strictObject({
     type: z.literal('avalon.team.vote'),
     vote: z.enum(['approve', 'reject']),
   }),
   z.strictObject({ type: z.literal('avalon.vote.finish') }),
-  z.strictObject({ type: z.literal('avalon.vote.timeout') }),
-  z.strictObject({ type: z.literal('avalon.quest.timeout') }),
+  z.strictObject({ type: z.literal('avalon.phase.expire') }),
   z.strictObject({
     type: z.literal('avalon.quest.play'),
     play: z.enum(['success', 'fail']),
@@ -80,8 +80,5 @@ export const avalonPublicCommandSchema: z.ZodType<AvalonPublicCommand> = z.discr
  */
 export const avalonInternalCommandSchema: z.ZodType<AvalonInternalCommand> = z.discriminatedUnion(
   'type',
-  [
-    z.strictObject({ type: z.literal('avalon.vote.settleExpired') }),
-    z.strictObject({ type: z.literal('avalon.quest.settleExpired') }),
-  ],
+  [z.strictObject({ type: z.literal('avalon.phase.settleExpired') })],
 );

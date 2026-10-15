@@ -6,10 +6,10 @@ import {
   type CreateGameContext,
   type GameEngineDefinition,
   reject,
-  resolveUncontrolledUserActorId,
 } from '../../platform/engine';
 import { buildRelayChains, buildRelayParticipants } from '../../platform/room/relay/assignment';
 import { expireRelayPhase, relayDeadline } from '../../platform/room/relay/clock';
+import { guardRelayPhaseExpiry } from '../../platform/room/relay/expireGuard';
 import type { StoryRelayCommand } from './commands/types';
 import {
   commitStoryRelay,
@@ -95,16 +95,15 @@ function startRound(state: StoryRelayState, context: CommandContext): StoryRelay
 }
 
 function expirePhase(state: StoryRelayState, context: CommandContext): StoryRelayDecision {
-  const actor = resolveUncontrolledUserActorId(context);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.deadlineAt === null || context.nowMs < state.deadlineAt)
-    return reject(STORY_RELAY_REASONS.deadline);
-  return expireRelayPhase(
-    createStoryRelayRelayKit(state),
-    state,
-    context.nowMs,
-    STORY_RELAY_EXPIRE_HOOKS,
-  );
+  // The revision gate for this command runs in decideStoryRelayCommand
+  // (stale revisions reject there); the shared guard sequence covers
+  // the actor and deadline gates and the dispatch.
+  return guardRelayPhaseExpiry(context, {
+    deadlineAt: state.deadlineAt,
+    notExpiredReason: STORY_RELAY_REASONS.deadline,
+    dispatch: (nowMs) =>
+      expireRelayPhase(createStoryRelayRelayKit(state), state, nowMs, STORY_RELAY_EXPIRE_HOOKS),
+  });
 }
 
 /** Decides public commands against the current authoritative round and phase revision. */

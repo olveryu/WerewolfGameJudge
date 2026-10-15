@@ -243,18 +243,19 @@ function markAllBotsViewed(state: AvalonState, context: CommandContext): AvalonD
   });
 }
 
-/** Leader proposes exactly requiredSize team members (may include the leader). */
-function proposeTeam(
-  state: AvalonState,
-  seats: readonly number[],
-  context: CommandContext,
-): AvalonDecision {
-  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
+/** Team-command leader gate: the acting seat must be the current leader. */
+function requireAvalonLeader(state: AvalonState, context: CommandContext): AvalonDecision | null {
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.value !== state.leaderSeat) return reject(AVALON_REASONS.notLeader);
-  if (seats.length !== state.phase.requiredSize)
-    return reject(teamSizeReason(state.phase.requiredSize));
+  return resolved.value === state.leaderSeat ? null : reject(AVALON_REASONS.notLeader);
+}
+
+/**
+ * Team-seat validation shared by the draft update and the proposal:
+ * duplicated seats and out-of-range / unoccupied seats reject with the
+ * same reasons for both commands (single copy, no drift).
+ */
+function validateTeamSeats(state: AvalonState, seats: readonly number[]): AvalonDecision | null {
   if (new Set(seats).size !== seats.length) return reject(AVALON_REASONS.duplicateSeats);
   const count = state.config.numberOfPlayers;
   if (
@@ -267,7 +268,41 @@ function proposeTeam(
     )
   )
     return reject(AVALON_REASONS.invalidSeats);
-  return commitAvalon([{ type: 'avalon.team.proposed', seats: [...seats] }]);
+  return null;
+}
+
+/**
+ * Leader replaces the nomination draft as a whole. The draft is public
+ * (the view model projects it to the whole room) so the team can discuss
+ * before the leader confirms; its size is capped at requiredSize — the
+ * final exact-size check belongs to the proposal.
+ */
+function updateTeamDraft(
+  state: AvalonState,
+  seats: readonly number[],
+  context: CommandContext,
+): AvalonDecision {
+  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
+  const leaderRejection = requireAvalonLeader(state, context);
+  if (leaderRejection !== null) return leaderRejection;
+  if (seats.length > state.phase.requiredSize)
+    return reject(teamSizeReason(state.phase.requiredSize));
+  const seatRejection = validateTeamSeats(state, seats);
+  if (seatRejection !== null) return seatRejection;
+  return commitAvalon([{ type: 'avalon.team.draftUpdated', seats: [...seats] }]);
+}
+
+/** Leader confirms the current draft as the proposal (may include the leader). */
+function proposeTeam(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'nominate') return reject(AVALON_REASONS.phase);
+  const leaderRejection = requireAvalonLeader(state, context);
+  if (leaderRejection !== null) return leaderRejection;
+  const draftSeats = state.phase.draftSeats;
+  if (draftSeats.length !== state.phase.requiredSize)
+    return reject(teamSizeReason(state.phase.requiredSize));
+  const seatRejection = validateTeamSeats(state, draftSeats);
+  if (seatRejection !== null) return seatRejection;
+  return commitAvalon([{ type: 'avalon.team.proposed', seats: [...draftSeats] }]);
 }
 
 /** Builds the settlement event + effect for a ballot set (shared by auto and manual settle). */
@@ -361,23 +396,29 @@ function resolveSettleActor(context: CommandContext, internal: boolean) {
 }
 
 /**
- * Settles the vote when the reveal countdown expires. The countdown is armed
- * only once every seat has voted, so this settles the final ballot set.
- * The server-scheduled settle effect is the correctness path; a client
- * timeout submission only accelerates the same settlement.
+ * Settles the current phase when the reveal countdown expires, via the
+ * public expire command (client acceleration) or the internal
+ * settleExpired command (the scheduled `avalon.settle.due` effect,
+ * which is the correctness path). The countdown is armed only once
+ * every seat has voted / every team seat has played, so this settles
+ * the final ballot or play set; dispatch is by the current phase.
  */
-function timeoutVote(
+function timeoutSettle(
   state: AvalonState,
   context: CommandContext,
   internal: boolean,
 ): AvalonDecision {
-  if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
+  if (state.phase.kind !== 'vote' && state.phase.kind !== 'quest')
+    return reject(AVALON_REASONS.phase);
   const actor = resolveSettleActor(context, internal);
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
   if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
-  const settlement = buildVoteSettlement(state, state.phase.ballots, context);
-  return commitAvalon(settlement.events, settlement.effects);
+  if (state.phase.kind === 'vote') {
+    const settlement = buildVoteSettlement(state, state.phase.ballots, context);
+    return commitAvalon(settlement.events, settlement.effects);
+  }
+  return settleQuestWithDefaults(state, context);
 }
 
 /**
@@ -467,25 +508,6 @@ function finishQuest(state: AvalonState, context: CommandContext): AvalonDecisio
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishQuest);
   if (hostRejection !== null) return hostRejection;
-  return settleQuestWithDefaults(state, context);
-}
-
-/**
- * Settles the quest when the reveal countdown expires. The countdown is
- * armed only once every team seat has played, so this settles the final
- * play set. Server-scheduled settle is the correctness path (see
- * timeoutVote); client submissions only accelerate it.
- */
-function timeoutQuest(
-  state: AvalonState,
-  context: CommandContext,
-  internal: boolean,
-): AvalonDecision {
-  if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-  const actor = resolveSettleActor(context, internal);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
-  if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
   return settleQuestWithDefaults(state, context);
 }
 
@@ -662,24 +684,22 @@ function decideCommand(
       return markAllBotsViewed(state, context);
     case 'avalon.night.confirm':
       return confirmNight(state, context);
+    case 'avalon.team.updateDraft':
+      return updateTeamDraft(state, command.seats, context);
     case 'avalon.team.propose':
-      return proposeTeam(state, command.seats, context);
+      return proposeTeam(state, context);
     case 'avalon.team.vote':
       return castVote(state, command.vote, context);
     case 'avalon.quest.play':
       return playQuest(state, command.play, context);
     case 'avalon.vote.finish':
       return finishVote(state, context);
-    case 'avalon.vote.timeout':
-      return timeoutVote(state, context, false);
-    case 'avalon.vote.settleExpired':
-      return timeoutVote(state, context, true);
     case 'avalon.quest.finish':
       return finishQuest(state, context);
-    case 'avalon.quest.timeout':
-      return timeoutQuest(state, context, false);
-    case 'avalon.quest.settleExpired':
-      return timeoutQuest(state, context, true);
+    case 'avalon.phase.expire':
+      return timeoutSettle(state, context, false);
+    case 'avalon.phase.settleExpired':
+      return timeoutSettle(state, context, true);
     case 'avalon.lady.check':
       return checkLady(state, command.seat, context);
     case 'avalon.lady.acknowledge':

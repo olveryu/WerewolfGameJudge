@@ -68,12 +68,7 @@ async function handleAvalonSettleDueEffect(
   }
   await dispatchEffectCommand(
     context,
-    {
-      type:
-        effect.payload.phase === 'vote'
-          ? 'avalon.vote.settleExpired'
-          : 'avalon.quest.settleExpired',
-    },
+    { type: 'avalon.phase.settleExpired' },
     {
       namespace: 'avalon:settle',
       supersededReasons: SUPERSEDED_SETTLE_REASONS,

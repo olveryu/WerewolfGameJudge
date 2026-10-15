@@ -148,7 +148,8 @@ function session() {
           (seat) => seat !== evilSeat,
         ),
       ].slice(0, phase.requiredSize);
-      sendAsSeat({ type: 'avalon.team.propose', seats: team }, state.leaderSeat);
+      sendAsSeat({ type: 'avalon.team.updateDraft', seats: team }, state.leaderSeat);
+      sendAsSeat({ type: 'avalon.team.propose' }, state.leaderSeat);
       for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
         sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
       send({ type: 'avalon.vote.finish' });
@@ -252,7 +253,8 @@ describe('createAvalonHostManagement', () => {
     const phase = game.state.phase;
     if (phase.kind !== 'nominate') throw new Error('expected nominate');
     const team = Array.from({ length: phase.requiredSize }, (_, seat) => seat);
-    game.sendAsSeat({ type: 'avalon.team.propose', seats: team }, game.state.leaderSeat);
+    game.sendAsSeat({ type: 'avalon.team.updateDraft', seats: team }, game.state.leaderSeat);
+    game.sendAsSeat({ type: 'avalon.team.propose' }, game.state.leaderSeat);
     expect(game.state.phase.kind).toBe('vote');
     const voteModel = build(game.state, true, false);
     expect(voteModel?.preview).toBe('结束投票');

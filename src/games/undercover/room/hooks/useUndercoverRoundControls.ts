@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { useRoomCommandSubmission } from '@/features/room/controllers/useRoomCommandSubmission';
+import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -78,17 +79,41 @@ export function useUndercoverRoundControls(
 ): UndercoverRoundControls {
   const submission = useRoomCommandSubmission(getUndercoverRoomCommandFailureMessage);
   const [visibleCardKey, setVisibleCardKey] = useState<string | null>(null);
-  const [selection, setSelection] = useState<{ roundId: string; seat: number | null } | null>(null);
+  // 选人模式本身（锚定的 roundId）是本家的模式状态；选中的座位经共享
+  // 点选机制持有（replace 模式，锚 = selectionRoundId，换锚自动清空）。
+  const [selectionRoundId, setSelectionRoundId] = useState<string | null>(null);
   const isHost = state.hostUserId === userId;
   const card = getUndercoverWordCard(state, userId, controlledSeat);
   const cardKey =
     card === null ? null : `${state.round!.roundId}:${userId}:${card.seat}:${state.hostUserId}`;
   const isSelecting =
-    isHost && state.phase === 'ongoing' && selection?.roundId === state.round.roundId;
+    isHost && state.phase === 'ongoing' && selectionRoundId === state.round.roundId;
+  // 资格 = 尚未揭晓的座位（与原 selectSeat 的静默守卫同集）：已揭晓座位
+  // 的点按被机制吞掉（swallow），不落回默认座位行为。
+  const picking = useSeatPicking({
+    active: isSelecting && !submission.isSubmitting,
+    mode: 'replace',
+    eligibleSeats:
+      state.phase === 'ongoing'
+        ? Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat).filter(
+            (seat) => !state.round.revelations.some((entry) => entry.seat === seat),
+          )
+        : [],
+    ineligibleTap: 'swallow',
+    anchorKey: selectionRoundId,
+    storage: { kind: 'local' },
+  });
+  const pickedSeat = picking.selection[0] ?? null;
   const selectedSeat =
-    isSelecting && !state.round.revelations.some((entry) => entry.seat === selection.seat)
-      ? selection.seat
+    isSelecting &&
+    pickedSeat !== null &&
+    !state.round.revelations.some((entry) => entry.seat === pickedSeat)
+      ? pickedSeat
       : null;
+  const exitSelection = () => {
+    setSelectionRoundId(null);
+    picking.reset();
+  };
   const closeCard = () => setVisibleCardKey(null);
   useEffect(() => {
     setVisibleCardKey(null);
@@ -143,7 +168,7 @@ export function useUndercoverRoundControls(
       roundId: state.round.roundId,
       seat: selectedSeat,
     }).then((success) => {
-      if (success) setSelection(null);
+      if (success) exitSelection();
     });
   };
   const allowRepeated = () =>
@@ -183,26 +208,20 @@ export function useUndercoverRoundControls(
     selectedSeat,
     reveal,
     selectSeat: (seat: number) => {
-      if (
-        submission.isSubmitting ||
-        !isSelecting ||
-        state.phase !== 'ongoing' ||
-        state.round.revelations.some((entry) => entry.seat === seat)
-      )
-        return;
-      setSelection({ roundId: state.round.roundId, seat });
+      // 守卫已编码进机制：active（选人中且未提交中）+ 资格集（未揭晓）。
+      picking.handleSeatTap(seat);
     },
     beginSelection: () => {
       if (state.phase !== 'ongoing' || !isHost)
         throw new Error('Only the host can select an elimination');
       closeCard();
-      setSelection({ roundId: state.round.roundId, seat: null });
+      setSelectionRoundId(state.round.roundId);
+      picking.reset();
     },
     cancelRevelation: () => {
-      if (!submission.isSubmitting && isSelecting)
-        setSelection({ roundId: state.round.roundId, seat: null });
+      if (!submission.isSubmitting && isSelecting) picking.reset();
     },
-    cancelSelection: () => setSelection(null),
+    cancelSelection: exitSelection,
     start: () => {
       void submit('开始本局', { type: 'undercover.round.start', shouldAllowRepeated: false });
     },
@@ -211,7 +230,7 @@ export function useUndercoverRoundControls(
       void submit('重新准备', { type: 'undercover.round.retry', roundId });
     },
     abort,
-    restart: () => requestUndercoverRestart(state, submit, closeCard, () => setSelection(null)),
+    restart: () => requestUndercoverRestart(state, submit, closeCard, exitSelection),
     returnToLobby,
     allowRepeated,
   };

@@ -117,7 +117,6 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     revision: 7,
     userId: 'host',
     controlledSeat: null,
-    pickedSeats: new Set<number>(),
     seatsVisuallyDisabled: false,
     onSeatPress: jest.fn(),
     onBotSeatLongPress: jest.fn(),
@@ -140,6 +139,8 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
     onEarlyStrikePress: jest.fn(),
+    strikePickMode: false,
+    onCancelEarlyStrikePress: jest.fn(),
     hostManagement: null,
     canControlBots: true,
     releaseBot: jest.fn(),
@@ -389,7 +390,8 @@ function playQuestRound(running: RunningSession, failSeats: ReadonlySet<number> 
   for (let seat = 0; team.length < required; seat += 1) {
     if (!team.includes(seat)) team.push(seat);
   }
-  running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
+  running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+  running.send({ type: 'avalon.team.propose' }, seatUser(leader));
   for (let seat = 0; seat < playerCount; seat += 1) {
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
   }
@@ -431,10 +433,12 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       disabledReason: '队员人数必须为 2 人',
       testID: 'avalon-nominate-submit',
     });
-    const full = shellFor(running, leader, {
-      onProposeTeamPress,
-      pickedSeats: new Set([leader, (leader + 1) % 5]),
-    });
+    // 草稿满员经服务端草稿驱动（队长 updateDraft 后 VM 投影 draftSeats）。
+    running.send(
+      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
+      seatUser(leader),
+    );
+    const full = shellFor(running, leader, { onProposeTeamPress });
     const ready = full.actions.find((action) => action.key === 'proposeTeam');
     expect(ready).toMatchObject({ label: '提交队伍', isEnabled: true });
     if (ready && ready.isEnabled) ready.onPress();
@@ -463,11 +467,32 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(merlinBottom.actions.find((action) => action.key === 'earlyStrike')).toBeUndefined();
   });
 
+  it('early strike pick mode: bottom area is the seat-board pick prompt with only a cancel action', () => {
+    const running = daytimeSession();
+    const assassin = roleSeat(running, 'assassin');
+    const onCancelEarlyStrikePress = jest.fn();
+    const bottom = shellFor(running, assassin, { strikePickMode: true, onCancelEarlyStrikePress });
+    expect(bottom.message).toBe(
+      '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
+    );
+    // 独占底部区：只剩局内常驻「查看身份」与取消入口，阶段主按钮（如提交队伍）不出现。
+    expect(bottom.actions.map((action) => action.key)).toEqual(['viewRole', 'earlyStrike']);
+    const cancel = bottom.actions.find((action) => action.key === 'earlyStrike');
+    expect(cancel).toMatchObject({
+      label: '取消刺杀',
+      isEnabled: true,
+      testID: 'avalon-early-strike',
+    });
+    if (cancel && cancel.isEnabled) cancel.onPress();
+    expect(onCancelEarlyStrikePress).toHaveBeenCalledTimes(1);
+  });
+
   it('vote: voters get the open button, their ballot in the message, then the armed countdown', () => {
     const running = daytimeSession();
     const leader = running.state.leaderSeat;
     const team = [leader, (leader + 1) % 5];
-    running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.propose' }, seatUser(leader));
     const voter = leader;
     const onOpenVotePress = jest.fn();
     const before = shellFor(running, voter, { onOpenVotePress });
@@ -498,7 +523,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const evil = evilSeats(running).find((seat) => seat !== leader);
     if (evil === undefined) throw new Error('expected an evil seat besides the leader');
     const team = [leader, evil];
-    running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.propose' }, seatUser(leader));
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
     }

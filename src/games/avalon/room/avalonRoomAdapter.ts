@@ -114,25 +114,17 @@ const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   ended: false,
 };
 
-function avalonSeatStatusLabel(
-  state: AvalonState,
-  seat: number,
-  pickedSeats: ReadonlySet<number>,
-): string | null {
+function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null {
   const phase = state.phase;
   if (state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind]) return '队长';
   if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
-  // 提名阶段队长在座位盘上的本地选中集（尚未提交）：选中即「队员」徽标。
-  if (phase.kind === 'nominate' && pickedSeats.has(seat)) return '队员';
-  if (phase.kind === 'nominate' || phase.kind === 'vote') {
-    const proposed = phase.kind === 'nominate' ? null : phase.proposedSeats.includes(seat);
-    if (proposed === true) return '队员';
-  }
+  // 提名草稿（服务端权威、全房可见）：草稿中的座位即「队员」徽标，
+  // 以服务端回声为准，不做本地乐观显示。
+  if (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) return '队员';
+  if (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) return '队员';
   if (phase.kind === 'quest' && phase.teamSeats.includes(seat)) return '队员';
   return null;
 }
-
-const NO_PICKED_SEATS: ReadonlySet<number> = new Set();
 
 /** 创建共享座位表数据源：含队长 / 队员 / 湖仙状态徽标（不暴露角色）。 */
 export interface AvalonSeatSourceInput {
@@ -140,7 +132,6 @@ export interface AvalonSeatSourceInput {
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
-  readonly pickedSeats?: ReadonlySet<number>;
 }
 
 interface AvalonSeatTapInput {
@@ -161,7 +152,7 @@ export function getAvalonSeatTapIntent(input: AvalonSeatTapInput) {
 }
 
 export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSeatDataSource {
-  const { state, revision, userId, controlledSeat, pickedSeats = NO_PICKED_SEATS } = input;
+  const { state, revision, userId, controlledSeat } = input;
   // 夜晚已确认徽标只给当前步参与者看（私密确认不计数、不外泄给非参与者）。
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
   const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;
@@ -189,7 +180,7 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
     resolveStatusBadge: (seat) => {
-      const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
+      const statusLabel = avalonSeatStatusLabel(state, seat);
       // 投票/任务阶段显示已投票/已出牌；夜晚给参与者显示同伴已确认（只暴露是否行动）。
       const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
       const hasPlayed = state.phase.kind === 'quest' && state.phase.plays[seat] !== undefined;
@@ -404,7 +395,6 @@ export interface AvalonBottomActionsInput {
   readonly isHost: boolean;
   readonly mySeat: number | null;
   readonly effectiveSeat: number | null;
-  readonly pickedSeats: ReadonlySet<number>;
   readonly isSubmitting: boolean;
   readonly canControlBots: boolean;
   /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
@@ -417,6 +407,9 @@ export interface AvalonBottomActionsInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
+  /** 提前刺杀选人模式（本地 UI 状态）：开启时底部区独占为座位盘点选提示 + 取消入口。 */
+  readonly strikePickMode: boolean;
+  readonly onCancelEarlyStrikePress: () => void;
 }
 
 /**
@@ -484,6 +477,23 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
   const vm = getAvalonViewModel(state, input.effectiveSeat);
   // 提前刺杀：刺客个人常驻动作（不属于房主管理），白天阶段与阶段主按钮并存。
   if (vm.canEarlyStrike) {
+    if (input.strikePickMode) {
+      // 选人模式独占底部区（对齐原选人弹窗对其他交互的阻断）：只留取消
+      // 入口与座位盘点选提示；点选由 Screen 的 seatPickHandler 消费，选中
+      // 后开刺杀二次确认。查看身份是局内常驻个人动作，已在上方入列。
+      actions.push({
+        key: 'earlyStrike',
+        label: '取消刺杀',
+        variant: 'secondary',
+        size: 'md',
+        isEnabled: true,
+        onPress: input.onCancelEarlyStrikePress,
+        testID: 'avalon-early-strike',
+      });
+      message =
+        '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
+      return { kind: 'info', message, actions };
+    }
     actions.push({
       key: 'earlyStrike',
       label: '刺杀',
@@ -513,7 +523,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       const instruction = resolveNominateInstruction(vm, vm.mySeat);
       if (instruction.isLeader) {
         message = `点座位盘点选 ${instruction.requiredSize} 名队员（可含自己），选中的座位会亮起「队员」徽标，再点一次取消。`;
-        const isFull = input.pickedSeats.size === instruction.requiredSize;
+        const isFull = vm.draftSeats !== null && vm.draftSeats.length === instruction.requiredSize;
         if (isFull && !input.isSubmitting) {
           actions.push({
             key: 'proposeTeam',
@@ -662,7 +672,6 @@ export interface AvalonRoomShellModelInput {
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
-  readonly pickedSeats: ReadonlySet<number>;
   readonly seatsVisuallyDisabled: boolean;
   readonly onSeatPress: (seat: number, disabledReason?: string) => void;
   readonly onBotSeatLongPress: ((seat: number) => void) | null;
@@ -685,6 +694,8 @@ export interface AvalonRoomShellModelInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
+  readonly strikePickMode: boolean;
+  readonly onCancelEarlyStrikePress: () => void;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly canControlBots: boolean;
   readonly releaseBot: () => void;
@@ -929,7 +940,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     revision: input.revision,
     userId: input.userId,
     controlledSeat: input.controlledSeat,
-    pickedSeats: input.pickedSeats,
   });
   return {
     roomCode: input.roomCode,
@@ -965,7 +975,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       isHost: input.isHost,
       mySeat: input.mySeat,
       effectiveSeat: input.effectiveSeat,
-      pickedSeats: input.pickedSeats,
       isSubmitting: input.isSubmitting,
       canControlBots: input.canControlBots,
       settleCountdownSeconds: input.settleCountdownSeconds,
@@ -977,6 +986,8 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onLadyAcknowledgePress: input.onLadyAcknowledgePress,
       onLadyResultPress: input.onLadyResultPress,
       onEarlyStrikePress: input.onEarlyStrikePress,
+      strikePickMode: input.strikePickMode,
+      onCancelEarlyStrikePress: input.onCancelEarlyStrikePress,
     }),
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
