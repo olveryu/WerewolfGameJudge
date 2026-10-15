@@ -705,3 +705,125 @@ describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {
     });
   });
 });
+
+// =============================================================================
+// AU-39 golden additions (Slice 0): faction basis, swap, bottom-card actors
+// =============================================================================
+
+describe('AU-39 golden: confirmContext edge characterizations', () => {
+  it('hiddenWolf 名单按阵营收集：含狼王/石像鬼/机械狼，不含选狼卡的盗贼与寻宝师', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'hiddenWolf',
+        'darkWolfKing',
+        'gargoyle',
+        'wolfRobot',
+        'thief',
+        'treasureMaster',
+        'villager',
+        'seer',
+      ],
+      players: {
+        0: { seat: 0, hasViewedRole: true, role: 'hiddenWolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'darkWolfKing' },
+        2: { seat: 2, hasViewedRole: true, role: 'gargoyle' },
+        3: { seat: 3, hasViewedRole: true, role: 'wolfRobot' },
+        4: { seat: 4, hasViewedRole: true, role: 'thief' },
+        5: { seat: 5, hasViewedRole: true, role: 'treasureMaster' },
+        6: { seat: 6, hasViewedRole: true, role: 'villager' },
+        7: { seat: 7, hasViewedRole: true, role: 'seer' },
+      },
+      currentStepId: 'hiddenWolfReveal',
+      currentNightResults: { thiefChosenCard: 'wolf', treasureMasterChosenCard: 'wolf' },
+    });
+
+    const action = maybeCreateConfirmStatusAction('hiddenWolfReveal', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'hiddenWolf', wolfTeammates: [1, 2, 3] },
+    });
+  });
+
+  it('seedWolf 目标按魔术师交换后的角色判定阵营', () => {
+    const base: Partial<GameState> = {
+      templateRoles: ['wolf', 'seedWolf', 'villager', 'wolf'],
+      players: {
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' as const },
+        1: { seat: 1, hasViewedRole: true, role: 'seedWolf' as const },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' as const },
+        3: { seat: 3, hasViewedRole: true, role: 'wolf' as const },
+      },
+      currentNightResults: { swappedSeats: [2, 3] as const },
+    };
+
+    // Seat 2 was a villager but holds the wolf's card after the swap.
+    expect(maybeCreateConfirmStatusAction('seedWolfInfect', createOngoingState(base), 2)).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'seedWolf', availability: 'unavailable', reason: 'wolfTarget' },
+    });
+    // Seat 3 was a wolf but holds the villager's card after the swap.
+    expect(maybeCreateConfirmStatusAction('seedWolfInfect', createOngoingState(base), 3)).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'seedWolf', availability: 'available', targetSeat: 3 },
+    });
+  });
+
+  it('猎人步由选猎人卡的盗贼承接时，canShoot 按盗贼座位计算', () => {
+    const base: Partial<GameState> = {
+      templateRoles: ['thief', 'wolf', 'villager', 'villager', 'seer', 'hunter'],
+      players: {
+        0: { seat: 0, hasViewedRole: true, role: 'thief' as const },
+        1: { seat: 1, hasViewedRole: true, role: 'wolf' as const },
+        2: { seat: 2, hasViewedRole: true, role: 'villager' as const },
+        3: { seat: 3, hasViewedRole: true, role: 'villager' as const },
+        4: { seat: 4, hasViewedRole: true, role: 'seer' as const },
+      },
+      thiefSeat: 0,
+      currentStepId: 'hunterConfirm' as const,
+    };
+
+    expect(
+      maybeCreateConfirmStatusAction(
+        'hunterConfirm',
+        createOngoingState({
+          ...base,
+          currentNightResults: { thiefChosenCard: 'hunter' },
+        }),
+      ),
+    ).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'hunter', canShoot: true },
+    });
+
+    expect(
+      maybeCreateConfirmStatusAction(
+        'hunterConfirm',
+        createOngoingState({
+          ...base,
+          currentNightResults: { thiefChosenCard: 'hunter', poisonedSeat: 0 },
+        }),
+      ),
+    ).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'hunter', canShoot: false },
+    });
+  });
+
+  it('猎人只在未被选择的底牌中时，confirm 步为空置步 → 返回 null', () => {
+    const state = createOngoingState({
+      templateRoles: ['wolf', 'villager', 'thief', 'seer', 'hunter'],
+      players: {
+        0: { seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { seat: 1, hasViewedRole: true, role: 'villager' },
+        2: { seat: 2, hasViewedRole: true, role: 'thief' },
+        3: { seat: 3, hasViewedRole: true, role: 'seer' },
+      },
+      bottomCards: ['hunter', 'villager'],
+      thiefSeat: 2,
+      currentStepId: 'hunterConfirm',
+      currentNightResults: {},
+    });
+
+    expect(maybeCreateConfirmStatusAction('hunterConfirm', state)).toBeNull();
+  });
+});

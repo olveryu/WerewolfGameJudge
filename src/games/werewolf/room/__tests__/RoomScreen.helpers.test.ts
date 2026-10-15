@@ -1075,3 +1075,260 @@ describe('toGameRoomLike — canonical local projection', () => {
     expect(result.wolfVotes.size).toBe(0);
   });
 });
+
+// =============================================================================
+// AU-39 golden: viewer-visibility matrix (Slice 0 characterization)
+//
+// Pins the exact showWolves / seat-highlight behavior that the engine
+// ViewModel (getWerewolfViewModel) must reproduce field-for-field.
+// Matrix: viewer kind × wolf-meeting step vs non-meeting step.
+// Cells already covered above (participating wolves / gargoyle / wolfRobot
+// at wolfKill, treasureMaster at a non-wolf step) are not repeated.
+// =============================================================================
+
+describe('AU-39 golden: determineActionerState visibility matrix', () => {
+  const wolfKillSchema = SCHEMAS.wolfKill;
+  const seerCheckSchema = SCHEMAS.seerCheck;
+
+  it('good player (seer) at the wolfKill step sees no wolves and does not act', () => {
+    const result = determineActionerState('seer', 'wolf', wolfKillSchema, 4, new Map(), new Map());
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+
+  it('good player (villager) at the wolfKill step sees no wolves and does not act', () => {
+    const result = determineActionerState(
+      'villager',
+      'wolf',
+      wolfKillSchema,
+      0,
+      new Map(),
+      new Map(),
+    );
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+
+  it('wolf at a non-meeting step (seerCheck) sees no wolves', () => {
+    const result = determineActionerState('wolf', 'seer', seerCheckSchema, 1, new Map(), new Map());
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+
+  it('darkWolfKing at its own confirm step acts but sees no wolves', () => {
+    const result = determineActionerState(
+      'darkWolfKing',
+      'darkWolfKing',
+      SCHEMAS.darkWolfKingConfirm,
+      2,
+      new Map(),
+      new Map(),
+    );
+    expect(result).toEqual({ imActioner: true, showWolves: false });
+  });
+
+  it('gargoyle at its own check step acts but sees no wolves', () => {
+    const result = determineActionerState(
+      'gargoyle',
+      'gargoyle',
+      SCHEMAS.gargoyleCheck,
+      3,
+      new Map(),
+      new Map(),
+    );
+    expect(result).toEqual({ imActioner: true, showWolves: false });
+  });
+
+  it('wolfRobot at its own learn step acts but sees no wolves', () => {
+    const result = determineActionerState(
+      'wolfRobot',
+      'wolfRobot',
+      SCHEMAS.wolfRobotLearn,
+      3,
+      new Map(),
+      new Map(),
+    );
+    expect(result).toEqual({ imActioner: true, showWolves: false });
+  });
+
+  it('thief who chose the wolf card joins the wolf meeting (acts + sees wolves)', () => {
+    const result = determineActionerState(
+      'thief',
+      'wolf',
+      wolfKillSchema,
+      1,
+      new Map(),
+      new Map(),
+      { thiefChosenCard: 'wolf' },
+    );
+    expect(result).toEqual({ imActioner: true, showWolves: true });
+  });
+
+  it('thief who chose the wolf card sees no wolves at a non-meeting step', () => {
+    const result = determineActionerState(
+      'thief',
+      'seer',
+      seerCheckSchema,
+      1,
+      new Map(),
+      new Map(),
+      { thiefChosenCard: 'wolf' },
+    );
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+
+  it('thief who has not chosen a card sees no wolves at the wolfKill step', () => {
+    const result = determineActionerState(
+      'thief',
+      'wolf',
+      wolfKillSchema,
+      1,
+      new Map(),
+      new Map(),
+      {},
+    );
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+
+  it('treasureMaster who chose the wolf card: matching-role branch yields showWolves=true', () => {
+    // Characterization of the current branch structure: when the chosen card
+    // equals the current action role, determineActionerState takes the
+    // matching-role branch, which does not apply the wolf-vote exclusion
+    // (the exclusion lives in the non-matching branch and in vote
+    // submission / progression). The ViewModel must reproduce this exactly.
+    const result = determineActionerState(
+      'treasureMaster',
+      'wolf',
+      wolfKillSchema,
+      2,
+      new Map(),
+      new Map(),
+      { treasureMasterChosenCard: 'wolf' },
+    );
+    expect(result).toEqual({ imActioner: true, showWolves: true });
+  });
+
+  it('treasureMaster who chose the wolf card sees no wolves at a non-meeting step', () => {
+    const result = determineActionerState(
+      'treasureMaster',
+      'seer',
+      seerCheckSchema,
+      2,
+      new Map(),
+      new Map(),
+      { treasureMasterChosenCard: 'wolf' },
+    );
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+
+  it('treasureMaster who has not chosen a card sees no wolves at the wolfKill step', () => {
+    const result = determineActionerState(
+      'treasureMaster',
+      'wolf',
+      wolfKillSchema,
+      2,
+      new Map(),
+      new Map(),
+      {},
+    );
+    expect(result).toEqual({ imActioner: false, showWolves: false });
+  });
+});
+
+describe('AU-39 golden: buildSeatViewModels bottom-card wolf visibility', () => {
+  const createBottomCardState = (): LocalGameState => ({
+    ...WEREWOLF_STATE_IDENTITY,
+    roomCode: 'TEST',
+    hostUserId: 'host1',
+    template: {
+      name: 'Test',
+      numberOfPlayers: 6,
+      roles: ['wolf', 'thief', 'treasureMaster', 'gargoyle', 'wolfRobot', 'seer'] as RoleId[],
+    },
+    players: new Map([
+      [0, { userId: 'p1', seat: 0, displayName: 'Wolf', role: 'wolf', hasViewedRole: true }],
+      [1, { userId: 'p2', seat: 1, displayName: 'Thief', role: 'thief', hasViewedRole: true }],
+      [
+        2,
+        {
+          userId: 'p3',
+          seat: 2,
+          displayName: 'TreasureMaster',
+          role: 'treasureMaster',
+          hasViewedRole: true,
+        },
+      ],
+      [
+        3,
+        {
+          userId: 'p4',
+          seat: 3,
+          displayName: 'Gargoyle',
+          role: 'gargoyle',
+          hasViewedRole: true,
+        },
+      ],
+      [
+        4,
+        {
+          userId: 'p5',
+          seat: 4,
+          displayName: 'WolfRobot',
+          role: 'wolfRobot',
+          hasViewedRole: true,
+        },
+      ],
+      [5, { userId: 'p6', seat: 5, displayName: 'Seer', role: 'seer', hasViewedRole: true }],
+    ]),
+    actions: new Map(),
+    wolfVotes: new Map(),
+    currentStepIndex: 0,
+    isAudioPlaying: false,
+    lastNightDeaths: [],
+    currentNightResults: {
+      thiefChosenCard: 'wolf',
+      treasureMasterChosenCard: 'wolf',
+      wolfVotesBySeat: { '0': 5, '1': -1 },
+    },
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
+    seedWolfInfectionRevealAcks: [],
+    status: GameStatus.Ongoing,
+  });
+
+  it('highlights by effective role, with the treasureMaster seat excluded', () => {
+    const seats = buildSeatViewModels(createBottomCardState(), null, true, null);
+
+    // wolf: highlighted; thief-as-wolf: highlighted via effective role
+    expect(seats[0]!.isWolf).toBe(true);
+    expect(seats[1]!.isWolf).toBe(true);
+    // treasureMaster-as-wolf: excluded by original role even with a wolf card
+    expect(seats[2]!.isWolf).toBe(false);
+    // gargoyle / wolfRobot: canSeeWolves=false
+    expect(seats[3]!.isWolf).toBe(false);
+    expect(seats[4]!.isWolf).toBe(false);
+    // seer: not a wolf
+    expect(seats[5]!.isWolf).toBe(false);
+  });
+
+  it('wolf vote badges follow the same effective-role visibility', () => {
+    const seats = buildSeatViewModels(createBottomCardState(), null, true, null);
+
+    expect(seats[0]!.wolfVoteBadge).toBe('袭击6号');
+    // The thief seat voted empty-knife as a wolf: schema empty-vote text
+    expect(seats[1]!.wolfVoteBadge).toBe('放弃袭击');
+    expect(seats[2]!.wolfVoteBadge).toBeUndefined();
+    expect(seats[3]!.wolfVoteBadge).toBeUndefined();
+    expect(seats[4]!.wolfVoteBadge).toBeUndefined();
+    expect(seats[5]!.wolfVoteBadge).toBeUndefined();
+  });
+
+  it('showWolves=false hides every highlight and badge', () => {
+    const seats = buildSeatViewModels(createBottomCardState(), null, false, null);
+
+    for (const seat of seats) {
+      expect(seat.isWolf).toBe(false);
+      expect(seat.wolfVoteBadge).toBeUndefined();
+    }
+  });
+});

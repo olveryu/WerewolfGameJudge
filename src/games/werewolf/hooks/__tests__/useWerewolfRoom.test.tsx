@@ -212,6 +212,16 @@ describe('useWerewolfRoom shared-session composition', () => {
     expect(result.current.mySeat).toBeNull();
   });
 
+  it('AU-39 golden: an unseated user derives myRole as null', () => {
+    const client = createClient({ userId: 'player-user' });
+    const { result } = renderHook(() => useWerewolfRoom(client), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.mySeat).toBeNull();
+    expect(result.current.myRole).toBeNull();
+  });
+
   it('shows the rejoin overlay only for an interrupted host session', async () => {
     const client = createClient({ wasAudioInterrupted: true });
     const { result } = renderHook(() => useWerewolfRoom(client), {

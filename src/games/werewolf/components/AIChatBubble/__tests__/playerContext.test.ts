@@ -121,6 +121,15 @@ describe('buildPlayerContext', () => {
     expect(ctx.myRole).toBe('guard');
   });
 
+  it('AU-39 golden: mySeat without a seated player yields no role', () => {
+    const state = makeState({ players: {} });
+    const ctx = buildPlayerContext(state, 5);
+
+    expect(ctx.mySeat).toBe(5);
+    expect(ctx.myRole).toBeUndefined();
+    expect(ctx.myRoleName).toBeUndefined();
+  });
+
   it('does not leak other players roles', () => {
     const state = makeState({
       players: {
