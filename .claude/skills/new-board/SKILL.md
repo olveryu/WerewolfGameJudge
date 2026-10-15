@@ -198,7 +198,7 @@ Run through the core principles checklist 🔍 for all changes made:
 
 If the board contains special role combinations or new roles, add a Playwright E2E spec covering the Night 1 flow.
 
-1. Add or append to an appropriate `night-roles-*.spec.ts` file under `e2e/specs/`
+1. Add or append to an appropriate `werewolf-night-*.spec.ts` file under `e2e/specs/`
 2. Use `withSetup` + `BoardPickerPage.selectPreset('板子名')` to select the new board
 3. Cover at least one core scenario (special role action + result assertion)
 4. Run locally to confirm pass: `pnpm run e2e:core`
