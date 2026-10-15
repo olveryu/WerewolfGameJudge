@@ -5,7 +5,6 @@
  * redundant StyleSheet.create calls per component.
  */
 export { AnnouncementModal } from './AnnouncementModal';
-export { GameModePickerModal } from './GameModePickerModal';
 export { InstallMenuItem } from './InstallMenuItem';
 export { JoinRoomModal } from './JoinRoomModal';
 export { RecentRoomsModal } from './RecentRoomsModal';

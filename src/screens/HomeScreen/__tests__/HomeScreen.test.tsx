@@ -98,7 +98,7 @@ describe('HomeScreen', () => {
   });
 
   describe('Navigation', () => {
-    it('should select a catalog game before navigating to its config host', async () => {
+    it('should open the game picker page in create purpose when creating a room', async () => {
       // Set up authenticated user
       jest.spyOn(require('@/contexts/AuthContext'), 'useAuthContext').mockReturnValue({
         user: { id: 'test-user', displayName: 'Test' },
@@ -108,17 +108,12 @@ describe('HomeScreen', () => {
         refreshUser: jest.fn().mockResolvedValue(undefined),
       });
 
-      const { getByText, getByTestId } = render(<HomeScreen />);
+      const { getByText } = render(<HomeScreen />);
 
       fireEvent.press(getByText('创建房间'));
-      expect(getByTestId('game-mode-picker-modal')).toBeTruthy();
-      fireEvent.press(getByTestId('game-mode-picker-option-werewolf'));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('GameConfig', {
-          gameType: 'werewolf',
-          mode: 'create',
-        });
+        expect(mockNavigate).toHaveBeenCalledWith('GamePicker', { purpose: 'create' });
       });
     });
 

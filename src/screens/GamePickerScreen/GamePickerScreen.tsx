@@ -1,29 +1,32 @@
 /**
- * GameModePickerModal — full-screen game library picker.
+ * GamePickerScreen — full-screen game library picker page.
  *
- * Backed by the exhaustive client game catalog. Main-tier games render as
- * full-width featured cards — the game's key art under a left-dark shade
- * when it ships art, its own theme gradient otherwise; mini-tier games
- * render as a two-column tile grid under the 小游戏 section (art header,
- * or a theme-gradient icon chip when the game ships no art).
+ * A real stack route (not a modal) so the back affordance matches the
+ * user's mental model: Home pushes this page with a `purpose` param,
+ * selecting a game pushes GameConfig (create) or GameGuide (guide) on
+ * top of it, and backing out of the config/guide lands here again to
+ * pick a different game. Closing the page itself pops back to Home.
  *
- * Presentation: AppModal (RN Modal) with a flex:1 page surface — the same
- * full-screen form as PictionaryDrawingImage's fullscreen preview. The page
- * owns its header (title + subtitle + close button) and a scrolling content
- * area padded by the safe-area insets; closing runs through the header
- * button and onRequestClose (Android back) only — there is no overlay.
+ * Content comes from the exhaustive client game catalog: main-tier games
+ * render as full-width featured cards — the game's key art under a
+ * left-dark shade when it ships art, its own theme gradient otherwise;
+ * mini-tier games render as a two-column tile grid under the 小游戏
+ * section (art header, or a theme-gradient icon chip when the game
+ * ships no art).
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { PressableScale } from '@/components/PressableScale';
+import { useClientGameHome } from '@/games/ClientGameCatalogContext';
 import type { ClientGameModeOption } from '@/games/home';
+import type { GamePickerPurpose, RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -35,14 +38,15 @@ import {
   withAlpha,
 } from '@/theme';
 
-interface GameModePickerModalProps {
-  readonly visible: boolean;
-  readonly title: string;
-  readonly subtitle: string;
-  readonly options: readonly ClientGameModeOption[];
-  readonly onClose: () => void;
-  readonly onSelect: (option: ClientGameModeOption) => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, 'GamePicker'>;
+
+const PICKER_COPY: Record<
+  GamePickerPurpose,
+  { readonly title: string; readonly subtitle: string }
+> = {
+  create: { title: '创建游戏', subtitle: '选择本局要创建的游戏' },
+  guide: { title: '选择游戏图鉴', subtitle: '选择要查看的游戏' },
+};
 
 /** Featured card height, matched to the approved library mock. */
 const FEATURED_CARD_HEIGHT = 158;
@@ -77,7 +81,7 @@ function FeaturedGameCard({
       <View style={styles.featuredCard}>
         {option.art ? (
           <>
-            <Image source={option.art} style={styles.featuredFill} resizeMode="cover" />
+            <Image source={option.art} style={styles.featuredArt} resizeMode="cover" />
             <LinearGradient
               colors={[...FEATURED_ART_SHADE_COLORS]}
               locations={[...FEATURED_ART_SHADE_LOCATIONS]}
@@ -155,60 +159,63 @@ function MiniGameTile({
   );
 }
 
-export const GameModePickerModal: React.FC<GameModePickerModalProps> = ({
-  visible,
-  title,
-  subtitle,
-  options,
-  onClose,
-  onSelect,
-}) => {
+export const GamePickerScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { purpose } = route.params;
+  const clientGameHome = useClientGameHome();
+  const options = purpose === 'create' ? clientGameHome.modeOptions : clientGameHome.guideOptions;
   if (options.length === 0) {
-    throw new Error('[FAIL-FAST] GameModePickerModal requires at least one option');
+    throw new Error('[FAIL-FAST] GamePickerScreen requires at least one option');
   }
   const mainOptions = options.filter((option) => option.tier === 'main');
   if (mainOptions.length === 0) {
-    throw new Error('[FAIL-FAST] GameModePickerModal requires at least one main-tier option');
+    throw new Error('[FAIL-FAST] GamePickerScreen requires at least one main-tier option');
   }
   const miniOptions = options.filter((option) => option.tier === 'mini');
+  const copy = PICKER_COPY[purpose];
+
+  const handleSelect = (option: ClientGameModeOption) => {
+    if (purpose === 'create') {
+      navigation.navigate('GameConfig', { gameType: option.gameType, mode: 'create' });
+      return;
+    }
+    navigation.navigate('GameGuide', { gameType: option.gameType });
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.page} testID={TESTIDS.gameModePickerModal}>
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
-          </View>
-          <CloseButton onPress={onClose} style={styles.closeButton} />
+    <SafeAreaView style={styles.page} testID={TESTIDS.gameModePickerModal}>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.subtitle}</Text>
+        </View>
+        <CloseButton onPress={() => navigation.goBack()} style={styles.closeButton} />
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.featuredSection}>
+          {mainOptions.map((option) => (
+            <FeaturedGameCard key={option.gameType} option={option} onSelect={handleSelect} />
+          ))}
         </View>
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.featuredSection}>
-            {mainOptions.map((option) => (
-              <FeaturedGameCard key={option.gameType} option={option} onSelect={onSelect} />
-            ))}
-          </View>
-
-          {miniOptions.length > 0 && (
-            <View style={styles.miniSection}>
-              <Text style={styles.miniSectionLabel} testID={TESTIDS.gameModePickerMiniSection}>
-                小游戏
-              </Text>
-              <View style={styles.miniGrid}>
-                {miniOptions.map((option) => (
-                  <MiniGameTile key={option.gameType} option={option} onSelect={onSelect} />
-                ))}
-              </View>
+        {miniOptions.length > 0 && (
+          <View style={styles.miniSection}>
+            <Text style={styles.miniSectionLabel} testID={TESTIDS.gameModePickerMiniSection}>
+              小游戏
+            </Text>
+            <View style={styles.miniGrid}>
+              {miniOptions.map((option) => (
+                <MiniGameTile key={option.gameType} option={option} onSelect={handleSelect} />
+              ))}
             </View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -267,6 +274,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  // Explicit 100% size is load-bearing, not redundant with the absolute
+  // anchor: react-native-web injects the asset's intrinsic dimensions
+  // (e.g. 1920x1280 for the key art) into the Image root style ahead of the
+  // consumer style, so an inset-only fill keeps the intrinsic width/height
+  // and CSS drops right/bottom as over-constrained — the card then clips a
+  // natural-size top-left slice of the art instead of the cover crop.
+  // Matches the repo rule that Image always carries an explicit size
+  // (same shape as miniArt below).
+  featuredArt: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
   },
   featuredWatermark: {
     position: 'absolute',
