@@ -200,7 +200,7 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
       jest.advanceTimersByTime(6000);
     });
     expect(dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.vote.timeout' },
+      { type: 'avalon.phase.expire' },
       expect.objectContaining({ controlledSeat: null, isRecoverable: true }),
     );
     unmount();
@@ -212,7 +212,7 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
       jest.advanceTimersByTime(6000);
     });
     expect(dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.quest.timeout' },
+      { type: 'avalon.phase.expire' },
       expect.objectContaining({ controlledSeat: null, isRecoverable: true }),
     );
     unmount();
@@ -223,7 +223,7 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
     await act(async () => {
       jest.advanceTimersByTime(10000);
     });
-    expect(dispatch).not.toHaveBeenCalledWith({ type: 'avalon.vote.timeout' }, expect.anything());
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'avalon.phase.expire' }, expect.anything());
     unmount();
   });
 
@@ -236,7 +236,7 @@ describe('useAvalonRoomState countdown expiry wiring', () => {
     await act(async () => {
       jest.advanceTimersByTime(10000);
     });
-    expect(dispatch).not.toHaveBeenCalledWith({ type: 'avalon.vote.timeout' }, expect.anything());
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'avalon.phase.expire' }, expect.anything());
     unmount();
   });
 });

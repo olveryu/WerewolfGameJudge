@@ -206,12 +206,12 @@ export function useAvalonRoomState(
   const expirePhase = useCallback(async () => {
     if (state.phase.kind === 'vote') {
       await session.dispatch(
-        { type: 'avalon.vote.timeout' },
+        { type: 'avalon.phase.expire' },
         { controlledSeat: null, label: '投票超时结算', isRecoverable: true },
       );
     } else if (state.phase.kind === 'quest') {
       await session.dispatch(
-        { type: 'avalon.quest.timeout' },
+        { type: 'avalon.phase.expire' },
         { controlledSeat: null, label: '任务超时结算', isRecoverable: true },
       );
     }

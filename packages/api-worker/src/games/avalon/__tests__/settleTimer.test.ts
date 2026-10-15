@@ -320,7 +320,7 @@ describe('Avalon scheduled settle (Durable Object)', () => {
         JSON.stringify(gameState),
       );
     });
-    requireCommitted(await dispatch(stub, seatUser(2), { type: 'avalon.vote.timeout' }));
+    requireCommitted(await dispatch(stub, seatUser(2), { type: 'avalon.phase.expire' }));
     const settled = await readState(stub);
     expect(settled.phase.kind).toBe('quest');
     const revisionAfterClient = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
