@@ -16,9 +16,14 @@ export class AvalonConfigPage {
     await expect(this.page.getByTestId('avalon-config-submit')).toHaveText('创建房间');
   }
 
-  /** Step the player count to the target (default config is 6 players). */
+  /**
+   * Step the player count to the target (default config is 6 players).
+   * The +/- accessibility labels are shared with the veto-limit stepper,
+   * so clicks are scoped to the controls group holding the count value.
+   */
   async setPlayerCount(target: number): Promise<void> {
     const value = this.page.getByTestId('avalon-player-count');
+    const controls = value.locator('..');
     const currentText = await value.textContent();
     const current = Number(currentText?.trim());
     if (!Number.isSafeInteger(current)) {
@@ -27,7 +32,7 @@ export class AvalonConfigPage {
     const diff = target - current;
     const buttonName = diff > 0 ? '增加人数' : '减少人数';
     for (let i = 0; i < Math.abs(diff); i += 1) {
-      await this.page.getByRole('button', { name: buttonName }).click();
+      await controls.getByRole('button', { name: buttonName }).click();
     }
     await expect(value).toHaveText(String(target));
     // Board preview follows the count (fixed board per player count).
