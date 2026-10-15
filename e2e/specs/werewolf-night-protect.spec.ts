@@ -34,7 +34,7 @@ test.setTimeout(180_000);
 // Tests
 // ============================================================================
 
-test.describe('Night Roles — Protection / Immunity', () => {
+test.describe('Werewolf Night — Protection / Immunity', () => {
   // --------------------------------------------------------------------------
   // Guard protects -> peaceful night
   // --------------------------------------------------------------------------
