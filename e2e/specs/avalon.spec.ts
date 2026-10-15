@@ -642,8 +642,10 @@ test.describe('Avalon full game', () => {
         await expect(pages[goodSeats[0]!]!.getByText(/坏人正在商量刺杀目标/)).toBeVisible();
         await new RoomPage(assassinPage).getSeatTile(merlinSeat).click();
         await expect(assassinPage.getByTestId(TESTIDS.alertTitle)).toHaveText('指认梅林');
-        await expect(assassinPage.getByTestId(TESTIDS.alertMessage)).toContainText(
-          `确定指认【${merlinSeat + 1} 号`,
+        // 确认文案只带被指认者名字（不含座号）；指认的座位对不对，由终局
+        // 「刺客指认出了梅林 + 坏人获胜」反证——只有真梅林才会命中翻盘。
+        await expect(assassinPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
+          /确定指认【.+】为梅林？/,
         );
         await assassinPage.getByTestId(TESTIDS.alertButton(1)).click();
       });
