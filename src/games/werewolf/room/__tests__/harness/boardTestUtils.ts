@@ -10,9 +10,22 @@ import type { RevealKind } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
 import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
+import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  WerewolfRevealView,
+  WerewolfSeatView,
+  WerewolfViewModel,
+} from '@game-judge/game-engine/games/werewolf/public';
+import {
+  canRoleSeeWolves,
+  GameStatus,
+  getBottomCardEffectiveRole,
+  isBottomCardWolfVoteExcluded,
+  isWolfRole,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { getSchema, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, waitFor } from '@testing-library/react-native';
@@ -21,6 +34,7 @@ import type { ReactTestInstance } from 'react-test-renderer';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import { determineActionerState } from '@/games/werewolf/room/werewolfRoom.helpers';
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
@@ -163,6 +177,144 @@ interface WerewolfRoomMockOptions {
   hookOverrides?: Record<string, unknown>;
 }
 
+/**
+ * AU-39: mocked useWerewolfRoom returns must carry the view model the real
+ * hook assembles. This builds the projection for the factories' synthetic
+ * states with the same rules the pre-AU-39 display chain applied locally:
+ * pack visibility follows determineActionerState (the interaction contract),
+ * per-seat peer flags use the engine role predicates over the mock roles,
+ * and night facts mirror the mock gameState's own fields — the confirm
+ * status is the viewer's only when it is their own step status, and
+ * groupConfirm reveals carry the mock ack arrays and subject facts.
+ */
+export function buildMockWerewolfViewModel(input: {
+  mySeat: number | null;
+  myRole: RoleId | null;
+  currentActionRole: RoleId | null;
+  currentSchema: ActionSchema;
+  players: ReadonlyMap<number, LocalPlayer>;
+  wolfVotes: ReadonlyMap<number, number>;
+  actions: ReadonlyMap<RoleId, RoleAction>;
+  currentNightResults: CurrentNightResults;
+  confirmStatus?: ConfirmStatus | null;
+  hypnotizedSeats?: readonly number[];
+  convertedSeat?: number | null;
+  loverSeats?: readonly [number, number] | null;
+  seedWolfInfectionResult?: { outcome: string; targetSeat: number } | null;
+  piperRevealAcks?: readonly number[];
+  conversionRevealAcks?: readonly number[];
+  cupidLoversRevealAcks?: readonly number[];
+  seedWolfInfectionRevealAcks?: readonly number[];
+}): WerewolfViewModel {
+  const { mySeat, myRole, currentSchema } = input;
+  const { showWolves } = determineActionerState(
+    myRole,
+    input.currentActionRole,
+    currentSchema,
+    mySeat,
+    new Map(input.wolfVotes),
+    new Map(input.actions),
+    input.currentNightResults,
+  );
+
+  const seats: WerewolfSeatView[] = [];
+  const wolfPackSeats: number[] = [];
+  input.players.forEach((player, seat) => {
+    if (!player) return;
+    const effectiveRole = player.role
+      ? getBottomCardEffectiveRole(player.role, input.currentNightResults)
+      : null;
+    const isWolfPackPeer =
+      showWolves &&
+      player.role !== null &&
+      effectiveRole !== null &&
+      isWolfRole(effectiveRole) &&
+      canRoleSeeWolves(effectiveRole) &&
+      !isBottomCardWolfVoteExcluded(player.role);
+    if (isWolfPackPeer) wolfPackSeats.push(seat);
+    seats.push({
+      seat,
+      displayName: player.displayName || '玩家',
+      isBot: player.isBot === true,
+      visibleRole: null,
+      isWolfPackPeer,
+      hasViewedRole: player.hasViewedRole,
+    });
+  });
+
+  const reveals: WerewolfRevealView[] = [];
+  if (currentSchema.kind === 'groupConfirm') {
+    let ackedSeats: readonly number[] = [];
+    let isSubject = false;
+    let subjectSeats: readonly number[] | null = null;
+    let partnerSeat: number | null = null;
+    switch (currentSchema.id) {
+      case 'piperHypnotizedReveal': {
+        const hypnotizedSeats = input.hypnotizedSeats ?? [];
+        ackedSeats = input.piperRevealAcks ?? [];
+        isSubject = mySeat !== null && hypnotizedSeats.includes(mySeat);
+        subjectSeats = isSubject ? hypnotizedSeats : null;
+        break;
+      }
+      case 'awakenedGargoyleConvertReveal':
+        ackedSeats = input.conversionRevealAcks ?? [];
+        isSubject = mySeat !== null && input.convertedSeat === mySeat;
+        break;
+      case 'cupidLoversReveal': {
+        const loverSeats = input.loverSeats ?? null;
+        ackedSeats = input.cupidLoversRevealAcks ?? [];
+        isSubject = mySeat !== null && (loverSeats?.includes(mySeat) ?? false);
+        partnerSeat =
+          isSubject && loverSeats
+            ? loverSeats[0] === mySeat
+              ? (loverSeats[1] ?? null)
+              : (loverSeats[0] ?? null)
+            : null;
+        break;
+      }
+      case 'seedWolfInfectReveal': {
+        const result = input.seedWolfInfectionResult ?? null;
+        ackedSeats = input.seedWolfInfectionRevealAcks ?? [];
+        isSubject =
+          mySeat !== null && result?.outcome === 'converted' && result.targetSeat === mySeat;
+        break;
+      }
+      default:
+        break;
+    }
+    reveals.push({
+      stepId: currentSchema.id,
+      ackedSeats,
+      hasAcked: mySeat !== null && ackedSeats.includes(mySeat),
+      isSubject,
+      partnerSeat,
+      subjectSeats,
+    });
+  }
+
+  return {
+    status: GameStatus.Ongoing,
+    mySeat,
+    myRole,
+    myEffectiveRole: myRole ? getBottomCardEffectiveRole(myRole, input.currentNightResults) : null,
+    seats,
+    wolfPackSeats: showWolves ? wolfPackSeats : null,
+    viewedSeats: seats.filter((seat) => seat.hasViewedRole).map((seat) => seat.seat),
+    night: {
+      stepSchemaKind: currentSchema.kind,
+      confirmStatus:
+        currentSchema.kind === 'confirm' &&
+        input.confirmStatus &&
+        input.confirmStatus.role === myRole
+          ? input.confirmStatus
+          : null,
+      reveals,
+      wolfVotesBySeat: showWolves ? (input.currentNightResults.wolfVotesBySeat ?? null) : null,
+    },
+    day: { sheriffSeat: null, mvpSeat: null },
+  };
+}
+
 export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
   const {
     schemaId,
@@ -238,8 +390,40 @@ export function createWerewolfRoomMock(options: WerewolfRoomMockOptions) {
     ...gameStateOverrides,
   };
 
+  const stateFacts = gameState as unknown as {
+    confirmStatus?: ConfirmStatus;
+    hypnotizedSeats?: number[];
+    convertedSeat?: number;
+    loverSeats?: [number, number];
+    seedWolfInfectionResult?: { outcome: string; targetSeat: number };
+    piperRevealAcks?: number[];
+    conversionRevealAcks?: number[];
+    cupidLoversRevealAcks?: number[];
+    seedWolfInfectionRevealAcks?: number[];
+  };
+  const viewModel = buildMockWerewolfViewModel({
+    mySeat,
+    myRole,
+    currentActionRole,
+    currentSchema,
+    players: gameState.players,
+    wolfVotes: gameState.wolfVotes,
+    actions: gameState.actions,
+    currentNightResults: gameState.currentNightResults,
+    confirmStatus: stateFacts.confirmStatus ?? null,
+    hypnotizedSeats: stateFacts.hypnotizedSeats,
+    convertedSeat: stateFacts.convertedSeat ?? null,
+    loverSeats: stateFacts.loverSeats ?? null,
+    seedWolfInfectionResult: stateFacts.seedWolfInfectionResult ?? null,
+    piperRevealAcks: stateFacts.piperRevealAcks,
+    conversionRevealAcks: stateFacts.conversionRevealAcks,
+    cupidLoversRevealAcks: stateFacts.cupidLoversRevealAcks,
+    seedWolfInfectionRevealAcks: stateFacts.seedWolfInfectionRevealAcks,
+  });
+
   return {
     gameState,
+    viewModel,
     stateRevision: 1,
 
     connectionStatus: 'live',
