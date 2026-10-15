@@ -5,6 +5,8 @@ import type { GameHomeContribution } from '@/features/home/model/GameHomeContrib
 import { colors } from '@/theme';
 import { lighten } from '@/theme/colorUtils';
 
+import avalonArt from '../../../../assets/game-art/avalon.jpg';
+
 export const avalonHomeContribution = {
   mode: {
     displayName: '阿瓦隆',
@@ -12,6 +14,7 @@ export const avalonHomeContribution = {
     iconName: 'shield-outline',
     tier: 'main',
     gradient: [lighten(colors.info, 0.55), colors.info],
+    art: avalonArt,
   },
   spotlight: null,
   announcementTabs: [],

@@ -2,8 +2,10 @@
  * GameModePickerModal — full-screen game library picker.
  *
  * Backed by the exhaustive client game catalog. Main-tier games render as
- * full-width featured cards on their own theme gradient; mini-tier games
- * render as a two-column tile grid under the 小游戏 section.
+ * full-width featured cards — the game's key art under a left-dark shade
+ * when it ships art, its own theme gradient otherwise; mini-tier games
+ * render as a two-column tile grid under the 小游戏 section (art header,
+ * or a theme-gradient icon chip when the game ships no art).
  *
  * Presentation: AppModal (RN Modal) with a flex:1 page surface — the same
  * full-screen form as PictionaryDrawingImage's fullscreen preview. The page
@@ -15,7 +17,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
@@ -42,6 +44,24 @@ interface GameModePickerModalProps {
   readonly onSelect: (option: ClientGameModeOption) => void;
 }
 
+/** Featured card height, matched to the approved library mock. */
+const FEATURED_CARD_HEIGHT = 158;
+
+/** Mini tile key-art header height, matched to the approved library mock. */
+const MINI_ART_HEIGHT = 74;
+
+/**
+ * Left-dark shade over featured key art (stops matched to the approved
+ * library mock): the art is composed with its subject on the right, so the
+ * shade keeps the left text zone readable and fades out over the subject.
+ */
+const FEATURED_ART_SHADE_COLORS = [
+  withAlpha(colors.text, 0.78),
+  withAlpha(colors.text, 0.25),
+  withAlpha(colors.text, 0),
+] as const;
+const FEATURED_ART_SHADE_LOCATIONS = [0.3, 0.62, 0.82] as const;
+
 function FeaturedGameCard({
   option,
   onSelect,
@@ -54,18 +74,34 @@ function FeaturedGameCard({
       onPress={() => onSelect(option)}
       testID={TESTIDS.gameModePickerOption(option.gameType)}
     >
-      <LinearGradient
-        colors={[...option.gradient]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.featuredCard}
-      >
-        <Ionicons
-          name={option.iconName}
-          size={componentSizes.avatar.xl}
-          color={withAlpha(colors.textInverse, 0.25)}
-          style={styles.featuredWatermark}
-        />
+      <View style={styles.featuredCard}>
+        {option.art ? (
+          <>
+            <Image source={option.art} style={styles.featuredFill} resizeMode="cover" />
+            <LinearGradient
+              colors={[...FEATURED_ART_SHADE_COLORS]}
+              locations={[...FEATURED_ART_SHADE_LOCATIONS]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.featuredFill}
+            />
+          </>
+        ) : (
+          <>
+            <LinearGradient
+              colors={[...option.gradient]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.featuredFill}
+            />
+            <Ionicons
+              name={option.iconName}
+              size={componentSizes.avatar.xl}
+              color={withAlpha(colors.textInverse, 0.25)}
+              style={styles.featuredWatermark}
+            />
+          </>
+        )}
         <View style={styles.featuredPill}>
           <Text style={styles.featuredPillText}>主游戏</Text>
         </View>
@@ -73,7 +109,7 @@ function FeaturedGameCard({
           <Text style={styles.featuredTitle}>{option.displayName}</Text>
           <Text style={styles.featuredSubtitle}>{option.subtitle}</Text>
         </View>
-      </LinearGradient>
+      </View>
     </PressableScale>
   );
 }
@@ -85,6 +121,23 @@ function MiniGameTile({
   readonly option: ClientGameModeOption;
   readonly onSelect: (option: ClientGameModeOption) => void;
 }) {
+  if (option.art) {
+    return (
+      <PressableScale
+        style={[styles.miniTile, styles.miniTileWithArt]}
+        onPress={() => onSelect(option)}
+        testID={TESTIDS.gameModePickerOption(option.gameType)}
+      >
+        <Image source={option.art} style={styles.miniArt} resizeMode="cover" />
+        <View style={styles.miniTileText}>
+          <Text style={styles.miniTitle}>{option.displayName}</Text>
+          <Text style={styles.miniSubtitle} numberOfLines={2}>
+            {option.subtitle}
+          </Text>
+        </View>
+      </PressableScale>
+    );
+  }
   return (
     <PressableScale
       style={styles.miniTile}
@@ -202,11 +255,18 @@ const styles = StyleSheet.create({
     gap: spacing.medium,
   },
   featuredCard: {
-    minHeight: 112,
+    height: FEATURED_CARD_HEIGHT,
     justifyContent: 'flex-end',
     borderRadius: borderRadius.large,
     padding: spacing.medium,
     overflow: 'hidden',
+  },
+  featuredFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   featuredWatermark: {
     position: 'absolute',
@@ -261,6 +321,19 @@ const styles = StyleSheet.create({
     padding: spacing.medium,
     gap: spacing.small,
     ...shadows.sm,
+  },
+  miniTileWithArt: {
+    padding: 0,
+    gap: 0,
+    overflow: 'hidden',
+  },
+  miniArt: {
+    width: '100%',
+    height: MINI_ART_HEIGHT,
+  },
+  miniTileText: {
+    padding: spacing.medium,
+    gap: spacing.small,
   },
   miniIconWrap: {
     width: componentSizes.avatar.md,

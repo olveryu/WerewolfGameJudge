@@ -14,6 +14,7 @@ import { createSessionRoomAccountCapability } from '@/features/room/session/Sess
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
 import { colors } from '@/theme';
 
+import undercoverArt from '../../../assets/game-art/undercover.jpg';
 import { undercoverGameNavigation } from './navigation/undercoverGameNavigation';
 import { UndercoverRoomScreen } from './room/UndercoverRoomScreen';
 import { UndercoverConfigScreen } from './screens/UndercoverConfigScreen';
@@ -38,6 +39,7 @@ export function createUndercoverUiModule({
         iconName: 'finger-print-outline',
         tier: 'mini',
         gradient: [colors.textSecondary, colors.text],
+        art: undercoverArt,
       },
       spotlight: null,
       announcementTabs: [],

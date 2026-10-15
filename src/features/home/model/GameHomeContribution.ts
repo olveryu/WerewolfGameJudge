@@ -21,8 +21,8 @@ export interface GameModePresentation {
   /** Theme gradient stops (light → dark) owned by the game; backs picker cards and icon chips. */
   readonly gradient: readonly [string, string];
   /**
-   * Optional key art for picker cards. Reserved: no game ships art yet —
-   * cards render from `gradient` until the art pipeline lands.
+   * Optional key art for picker cards and hero dots. Games that ship art
+   * render it as the card surface; the rest fall back to `gradient`.
    */
   readonly art?: ImageSourcePropType;
 }

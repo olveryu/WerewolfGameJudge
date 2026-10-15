@@ -16,6 +16,7 @@ import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   Text,
@@ -460,11 +461,19 @@ export const HomeScreen: React.FC = () => {
                 <View style={styles.heroIconDots}>
                   {heroDotOptions.map((modeOption) => (
                     <View key={modeOption.gameType} style={styles.heroIconDot}>
-                      <Ionicons
-                        name={modeOption.iconName}
-                        size={componentSizes.icon.sm}
-                        color={colors.textInverse}
-                      />
+                      {modeOption.art ? (
+                        <Image
+                          source={modeOption.art}
+                          style={styles.heroIconDotImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Ionicons
+                          name={modeOption.iconName}
+                          size={componentSizes.icon.sm}
+                          color={colors.textInverse}
+                        />
+                      )}
                     </View>
                   ))}
                   {heroDotOverflow > 0 && (

@@ -4,6 +4,8 @@ import type { GameHomeContribution } from '@/features/home/model/GameHomeContrib
 import { colors } from '@/theme';
 import { lighten } from '@/theme/colorUtils';
 
+import pictionaryArt from '../../../../assets/game-art/pictionary.jpg';
+
 export const pictionaryHomeContribution = {
   mode: {
     displayName: '你画我猜接龙',
@@ -11,6 +13,7 @@ export const pictionaryHomeContribution = {
     iconName: 'brush-outline',
     tier: 'mini',
     gradient: [lighten(colors.god, 0.5), colors.god],
+    art: pictionaryArt,
   },
   spotlight: null,
   announcementTabs: [],

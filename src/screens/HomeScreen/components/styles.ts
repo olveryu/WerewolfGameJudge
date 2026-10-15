@@ -46,6 +46,7 @@ export interface HomeScreenStyles {
   heroCardArrow: ViewStyle;
   heroIconDots: ViewStyle;
   heroIconDot: ViewStyle;
+  heroIconDotImage: ImageStyle;
   heroIconDotOverflow: TextStyle;
   // Action Row (dual compact cards)
   actionRow: ViewStyle;
@@ -246,6 +247,11 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       backgroundColor: withAlpha(colors.textInverse, 0.2),
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    heroIconDotImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: borderRadius.medium,
     },
     heroIconDotOverflow: {
       fontSize: typography.caption,

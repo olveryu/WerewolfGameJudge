@@ -5,6 +5,8 @@ import type { GameHomeContribution } from '@/features/home/model/GameHomeContrib
 import { colors } from '@/theme';
 import { lighten } from '@/theme/colorUtils';
 
+import drawguessArt from '../../../../assets/game-art/drawguess.jpg';
+
 export const drawGuessHomeContribution = {
   mode: {
     displayName: '你画我猜',
@@ -12,6 +14,7 @@ export const drawGuessHomeContribution = {
     iconName: 'pencil-outline',
     tier: 'mini',
     gradient: [lighten(colors.success, 0.5), colors.success],
+    art: drawguessArt,
   },
   spotlight: null,
   announcementTabs: [],
