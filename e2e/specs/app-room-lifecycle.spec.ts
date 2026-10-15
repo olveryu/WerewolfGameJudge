@@ -15,7 +15,7 @@ import { HomePage } from '../pages/HomePage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(60_000);
 
-test.describe('Room Lifecycle', () => {
+test.describe('App — Room Lifecycle', () => {
   // -------------------------------------------------------------------------
   // 1. Reject a malformed room code before canonical resolution
   // -------------------------------------------------------------------------

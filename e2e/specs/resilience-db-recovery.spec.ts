@@ -28,7 +28,7 @@ import { RoomPage } from '../pages/RoomPage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
 
-test.describe('WebSocket state recovery after network interruption', () => {
+test.describe('Resilience — WebSocket state recovery after network interruption', () => {
   test('player recovers state after temporary network loss', async ({ browser }, testInfo) => {
     // Step 1: Setup 2-player game and start night
     const { fixture, roomCode, hostPage, joinerPages } = await setupNPlayerGame(browser, {

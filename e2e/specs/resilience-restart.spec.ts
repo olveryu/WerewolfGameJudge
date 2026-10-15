@@ -15,7 +15,7 @@ import { RoomPage } from '../pages/RoomPage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
 
-test.describe('Restart & Settings', () => {
+test.describe('Resilience — Restart & Settings', () => {
   test('restart after first night completes successfully', async ({ browser }, testInfo) => {
     const { fixture, hostPage } = await setupNPlayerGame(browser, {
       playerCount: 2,

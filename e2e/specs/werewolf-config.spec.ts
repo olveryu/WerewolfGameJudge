@@ -12,7 +12,7 @@ import { HomePage } from '../pages/HomePage';
  * - Template selection works (via BoardPicker navigation)
  * - Config screen displays selected template
  */
-test.describe('Config Screen', () => {
+test.describe('Werewolf — Config Screen', () => {
   test('can access config screen via board picker', async ({ app }) => {
     const home = new HomePage(app.page);
     await home.clickCreateRoom('werewolf');

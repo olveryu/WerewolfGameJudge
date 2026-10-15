@@ -9,7 +9,7 @@ import { HomePage } from '../pages/HomePage';
  * - Settings screen accessible
  * - Join room dialog accessible
  */
-test.describe('Home Screen', () => {
+test.describe('App — Home Screen', () => {
   test('displays main navigation tiles', async ({ app }) => {
     const home = new HomePage(app.page);
     await home.expectNavigationTilesVisible();

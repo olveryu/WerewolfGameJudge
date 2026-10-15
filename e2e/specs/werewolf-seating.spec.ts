@@ -84,7 +84,7 @@ async function pollSeatEmpty(
 // Tests
 // ---------------------------------------------------------------------------
 
-test.describe('Seating', () => {
+test.describe('Werewolf — Seating', () => {
   test('single player manual seat shows green seat badge', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 1);
     const [page] = fixture.pages;

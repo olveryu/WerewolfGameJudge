@@ -15,7 +15,7 @@ import { RoomPage } from '../pages/RoomPage';
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(120_000);
 
-test.describe('offline recovery canary', () => {
+test.describe('Resilience — Offline recovery canary', () => {
   test('joiner recovers to live after temporary offline', async ({ browser }, testInfo) => {
     const { fixture, hostPage, joinerPages } = await setupNPlayerGame(browser, {
       playerCount: 2,

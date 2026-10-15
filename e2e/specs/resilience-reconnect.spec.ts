@@ -31,7 +31,7 @@ import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/wai
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(300_000);
 
-test.describe('Network reconnect during night', () => {
+test.describe('Resilience — Network reconnect during night', () => {
   test('non-host player reconnects after 5s disconnect and completes guard action', async ({
     browser,
   }, testInfo) => {

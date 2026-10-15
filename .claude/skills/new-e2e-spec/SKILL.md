@@ -208,7 +208,11 @@ Run through the core principles checklist 🔍 for all changes made:
 
 - Werewolf night spec filenames: `werewolf-night-<category>.spec.ts`
   - Categories: check / check-interactions / gun-status / kill / protect / block / completion / flow / piper / gargoyle / seed-wolf / special-roles / special-roles-2
-- Non-night specs: `<feature>.spec.ts` (e.g., `seating.spec.ts`, `reconnect.spec.ts`)
+- Non-night specs are prefixed by domain:
+  - Werewolf non-night: `werewolf-<surface>.spec.ts` (e.g., `werewolf-seating.spec.ts`, `werewolf-config.spec.ts`, `werewolf-sheriff-election.spec.ts`)
+  - Platform shell: `app-<surface>.spec.ts` (e.g., `app-home.spec.ts`, `app-entry-flow.spec.ts`, `app-room-lifecycle.spec.ts`)
+  - Resilience: `resilience-<surface>.spec.ts` (e.g., `resilience-reconnect.spec.ts`, `resilience-db-recovery.spec.ts`)
+  - Other games keep `<game>.spec.ts` (e.g., `avalon.spec.ts`, `undercover.spec.ts`)
 - Test describe/test names use English, describing specific scenario and expected result
 
 ## ⚠️ Common Pitfalls (Must Read)
