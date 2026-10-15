@@ -512,15 +512,15 @@ jobs:
           - shard: 5
             specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts'
           - shard: 6
-            specs: 'reconnect.spec.ts werewolf-night-flow.spec.ts db-recovery.spec.ts'
+            specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts'
           # avalon runs solo: a single 10-player full-game test (~7min,
           # 20min spec timeout) that cannot be split across shards.
           - shard: 7
             specs: 'avalon.spec.ts'
           - shard: 8
-            specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts restart.spec.ts offline-recovery-canary.spec.ts'
+            specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts resilience-restart.spec.ts resilience-offline-canary.spec.ts'
           - shard: 9
-            specs: 'undercover.spec.ts seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts entry-flow.spec.ts home.spec.ts config.spec.ts sheriff-election.spec.ts room-lifecycle.spec.ts rejoin.spec.ts'
+            specs: 'undercover.spec.ts werewolf-seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts app-entry-flow.spec.ts app-home.spec.ts werewolf-config.spec.ts werewolf-sheriff-election.spec.ts app-room-lifecycle.spec.ts resilience-rejoin.spec.ts'
     steps:
       - uses: actions/checkout@v6
 
