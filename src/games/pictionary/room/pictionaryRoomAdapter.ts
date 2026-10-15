@@ -24,6 +24,7 @@ import {
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
+import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -240,8 +241,11 @@ function createPictionaryBottomActions(
   isHost: boolean,
   mySeat: number | null,
 ): RoomBottomInfoModel {
-  const message =
-    state.phase !== 'lobby' || mySeat === null ? null : isHost ? null : '等待房主开始游戏';
+  const message = buildLobbyHostStartMessage({
+    isLobby: state.phase === 'lobby',
+    isHost,
+    mySeat,
+  });
   return { kind: 'info', message, actions: [] };
 }
 

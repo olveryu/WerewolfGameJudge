@@ -28,6 +28,7 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
+import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
@@ -388,7 +389,11 @@ export function createStoryRelayRoomShellModel(
     share: input.share,
     bottomActions: {
       kind: 'info',
-      message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null,
+      message: buildLobbyHostStartMessage({
+        isLobby: input.isLobby,
+        isHost: input.isHost,
+        mySeat: input.mySeat,
+      }),
       actions: [],
     },
     hostManagement: input.hostManagement,
