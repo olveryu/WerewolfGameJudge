@@ -181,6 +181,59 @@ describe('useActionerState', () => {
     });
   });
 
+  describe('AU-39 golden: 底牌角色（hook 透传 currentNightResults）', () => {
+    it('盗贼选狼卡在狼人回合应该看到狼人并可行动', () => {
+      const { result } = renderHook(() =>
+        useActionerState(
+          createParams({
+            actorRole: 'thief',
+            currentActionRole: 'wolf',
+            currentSchema: getSchema('wolfKill'),
+            actorSeat: 1,
+            currentNightResults: { thiefChosenCard: 'wolf' },
+          }),
+        ),
+      );
+
+      expect(result.current.imActioner).toBe(true);
+      expect(result.current.showWolves).toBe(true);
+    });
+
+    it('寻宝师选狼卡在狼人回合：matching-role 分支 showWolves 为 true（现状钉死）', () => {
+      const { result } = renderHook(() =>
+        useActionerState(
+          createParams({
+            actorRole: 'treasureMaster',
+            currentActionRole: 'wolf',
+            currentSchema: getSchema('wolfKill'),
+            actorSeat: 2,
+            currentNightResults: { treasureMasterChosenCard: 'wolf' },
+          }),
+        ),
+      );
+
+      expect(result.current.imActioner).toBe(true);
+      expect(result.current.showWolves).toBe(true);
+    });
+
+    it('寻宝师选狼卡在非狼会回合不应该看到狼人', () => {
+      const { result } = renderHook(() =>
+        useActionerState(
+          createParams({
+            actorRole: 'treasureMaster',
+            currentActionRole: 'seer',
+            currentSchema: getSchema('seerCheck'),
+            actorSeat: 2,
+            currentNightResults: { treasureMasterChosenCard: 'wolf' },
+          }),
+        ),
+      );
+
+      expect(result.current.imActioner).toBe(false);
+      expect(result.current.showWolves).toBe(false);
+    });
+  });
+
   describe('useMemo 稳定性', () => {
     it('相同输入应该返回相同引用', () => {
       const params = createParams({
