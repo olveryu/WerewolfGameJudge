@@ -43,13 +43,13 @@ e2e/
 1. Extract the test scenario from user input.
 2. Determine the following:
 
-| Field           | Description                       | Example                   |
-| --------------- | --------------------------------- | ------------------------- |
-| Test category   | night-role / flow / feature       | night-role                |
-| Involved roles  | Which roles participate           | seer, wolf, villager      |
-| Player count    | Minimum players to cover scenario | 3                         |
-| Expected result | What to assert                    | reveal shows "好人"       |
-| Spec filename   | Which file to add to or create    | night-roles-check.spec.ts |
+| Field           | Description                       | Example                      |
+| --------------- | --------------------------------- | ---------------------------- |
+| Test category   | night-role / flow / feature       | night-role                   |
+| Involved roles  | Which roles participate           | seer, wolf, villager         |
+| Player count    | Minimum players to cover scenario | 3                            |
+| Expected result | What to assert                    | reveal shows "好人"          |
+| Spec filename   | Which file to add to or create    | werewolf-night-check.spec.ts |
 
 3. Check existing specs for similar tests (avoid duplication).
 
@@ -138,7 +138,7 @@ const reveal = await readAlertText(page);
 await dismissAlert(page);
 ```
 
-Reference: `night-roles-check.spec.ts`
+Reference: `werewolf-night-check.spec.ts`
 
 **`chooseSeat` + skip (not using ability)**:
 
@@ -151,7 +151,7 @@ await clickBottomButton(page, '不用技能');
 await dismissAlert(page);
 ```
 
-Reference: `night-roles-block.spec.ts` seer/guard skip test
+Reference: `werewolf-night-completion.spec.ts` seer/guard skip test
 
 **`confirm` steps** (hiddenWolf viewing companions, avenger viewing faction, etc.):
 
@@ -166,7 +166,7 @@ const reveal = await readAlertText(page);
 await dismissAlert(page);
 ```
 
-Reference: `night-roles-hidden-wolf-crow.spec.ts`, `night-roles-kill.spec.ts` (avenger)
+Reference: `werewolf-night-special-roles-2.spec.ts`, `werewolf-night-kill.spec.ts` (avenger)
 
 **wolf kill** (dedicated helper):
 
@@ -206,8 +206,8 @@ Run through the core principles checklist 🔍 for all changes made:
 
 ## Naming Conventions
 
-- Night-role spec filenames: `night-roles-<category>.spec.ts`
-  - Categories: check / kill / protect / block / treasure / thief-cupid / piper / gargoyle / eclipse-wolf-queen / hidden-wolf-crow
+- Werewolf night spec filenames: `werewolf-night-<category>.spec.ts`
+  - Categories: check / check-interactions / gun-status / kill / protect / block / completion / flow / piper / gargoyle / seed-wolf / special-roles / special-roles-2
 - Non-night specs: `<feature>.spec.ts` (e.g., `seating.spec.ts`, `reconnect.spec.ts`)
 - Test describe/test names use English, describing specific scenario and expected result
 

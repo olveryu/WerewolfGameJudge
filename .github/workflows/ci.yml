@@ -500,23 +500,27 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # ── Balanced by measured runtime (target ~13min each) ──
+          # ── Balanced by measured runtime (target ~10min wall each) ──
           - shard: 1
-            specs: 'night-roles-check.spec.ts'
+            specs: 'werewolf-night-block.spec.ts werewolf-night-seed-wolf.spec.ts werewolf-night-special-roles.spec.ts'
           - shard: 2
-            specs: 'reconnect.spec.ts night-roles-block.spec.ts'
+            specs: 'werewolf-night-protect.spec.ts werewolf-night-gargoyle.spec.ts'
           - shard: 3
-            specs: 'night-roles-kill.spec.ts night-roles-protect.spec.ts night-roles-piper.spec.ts night-roles-gargoyle.spec.ts night-roles-seed-wolf.spec.ts night-roles-hidden-wolf-crow.spec.ts'
+            specs: 'werewolf-night-kill.spec.ts werewolf-night-special-roles-2.spec.ts'
           - shard: 4
-            specs: 'entry-flow.spec.ts db-recovery.spec.ts seating.spec.ts night-roles-eclipse-wolf-queen.spec.ts night-roles-thief-cupid.spec.ts night-roles-treasure.spec.ts night-verify.spec.ts night-2p.spec.ts night-6p.spec.ts offline-recovery-canary.spec.ts rejoin.spec.ts restart.spec.ts room-lifecycle.spec.ts home.spec.ts config.spec.ts sheriff-election.spec.ts'
+            specs: 'werewolf-night-gun-status.spec.ts werewolf-night-check-interactions.spec.ts'
           - shard: 5
-            specs: 'fibking.spec.ts fibking-responsive.spec.ts undercover.spec.ts storyrelay.spec.ts'
+            specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts'
           - shard: 6
-            specs: 'pictionary.spec.ts drawguess.spec.ts'
+            specs: 'reconnect.spec.ts werewolf-night-flow.spec.ts db-recovery.spec.ts'
           # avalon runs solo: a single 10-player full-game test (~7min,
           # 20min spec timeout) that cannot be split across shards.
           - shard: 7
             specs: 'avalon.spec.ts'
+          - shard: 8
+            specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts restart.spec.ts offline-recovery-canary.spec.ts'
+          - shard: 9
+            specs: 'undercover.spec.ts seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts entry-flow.spec.ts home.spec.ts config.spec.ts sheriff-election.spec.ts room-lifecycle.spec.ts rejoin.spec.ts'
     steps:
       - uses: actions/checkout@v6
 
@@ -565,7 +569,7 @@ jobs:
       - name: Setup D1 migrations
         run: node scripts/setup-d1-migrations.mjs
 
-      - name: Run E2E tests (shard ${{ matrix.shard }}/7)
+      - name: Run E2E tests (shard ${{ matrix.shard }}/9)
         run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list --reporter=blob
 
       - name: Upload blob report
