@@ -15,12 +15,7 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 
 export type AvalonNightInstruction =
-  | {
-      readonly kind: 'evilPeers';
-      readonly peers: readonly number[];
-      /** 奥伯伦：互认环节看不到任何人。 */
-      readonly isAlone: boolean;
-    }
+  | { readonly kind: 'evilPeers'; readonly peers: readonly number[] }
   | { readonly kind: 'merlin'; readonly sees: readonly number[] }
   | { readonly kind: 'percival'; readonly sees: readonly number[] }
   | { readonly kind: 'confirmed' }
@@ -33,12 +28,9 @@ export type AvalonNightInstruction =
 export function resolveNightInstruction(viewModel: AvalonViewModel): AvalonNightInstruction {
   if (viewModel.nightStep === null) return { kind: 'waiting' };
   if (viewModel.nightConfirmed) return { kind: 'confirmed' };
-  if (viewModel.evilPeers !== null)
-    return {
-      kind: 'evilPeers',
-      peers: viewModel.evilPeers,
-      isAlone: viewModel.evilPeers.length === 0,
-    };
+  // evilPeers 非空恒成立：互认参与者是非奥伯伦坏人（奥伯伦无夜晚入口），
+  // 固定板子下每名参与者至少看得见一名同伴（发牌构成见 AVALON_BOARDS）。
+  if (viewModel.evilPeers !== null) return { kind: 'evilPeers', peers: viewModel.evilPeers };
   if (viewModel.merlinSees !== null) return { kind: 'merlin', sees: viewModel.merlinSees };
   if (viewModel.percivalSees !== null) return { kind: 'percival', sees: viewModel.percivalSees };
   return { kind: 'waiting' };

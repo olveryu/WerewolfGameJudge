@@ -417,6 +417,9 @@ export interface AvalonBottomActionsInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
+  /** 提前刺杀选人模式（本地 UI 状态）：开启时底部区独占为座位盘点选提示 + 取消入口。 */
+  readonly strikePickMode: boolean;
+  readonly onCancelEarlyStrikePress: () => void;
 }
 
 /**
@@ -484,6 +487,23 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
   const vm = getAvalonViewModel(state, input.effectiveSeat);
   // 提前刺杀：刺客个人常驻动作（不属于房主管理），白天阶段与阶段主按钮并存。
   if (vm.canEarlyStrike) {
+    if (input.strikePickMode) {
+      // 选人模式独占底部区（对齐原选人弹窗对其他交互的阻断）：只留取消
+      // 入口与座位盘点选提示；点选由 Screen 的 seatPickHandler 消费，选中
+      // 后开刺杀二次确认。查看身份是局内常驻个人动作，已在上方入列。
+      actions.push({
+        key: 'earlyStrike',
+        label: '取消刺杀',
+        variant: 'secondary',
+        size: 'md',
+        isEnabled: true,
+        onPress: input.onCancelEarlyStrikePress,
+        testID: 'avalon-early-strike',
+      });
+      message =
+        '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
+      return { kind: 'info', message, actions };
+    }
     actions.push({
       key: 'earlyStrike',
       label: '刺杀',
@@ -685,6 +705,8 @@ export interface AvalonRoomShellModelInput {
   readonly onLadyAcknowledgePress: () => void;
   readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
+  readonly strikePickMode: boolean;
+  readonly onCancelEarlyStrikePress: () => void;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly canControlBots: boolean;
   readonly releaseBot: () => void;
@@ -977,6 +999,8 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onLadyAcknowledgePress: input.onLadyAcknowledgePress,
       onLadyResultPress: input.onLadyResultPress,
       onEarlyStrikePress: input.onEarlyStrikePress,
+      strikePickMode: input.strikePickMode,
+      onCancelEarlyStrikePress: input.onCancelEarlyStrikePress,
     }),
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({

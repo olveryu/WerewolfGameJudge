@@ -114,7 +114,7 @@ export interface AvalonRoomScreenState {
   /** 湖仙确认展示弹窗开关：自动弹一次由 Screen 驱动，底部按钮重开也走这里。 */
   readonly ladyAckOpen: boolean;
   readonly setLadyAckOpen: Dispatch<SetStateAction<boolean>>;
-  /** 提前刺杀选人模式：底部「刺杀」按钮开启，选人弹窗住在 Screen 的 overlays。 */
+  /** 提前刺杀选人模式：底部「刺杀」按钮开启，座位盘点选由 Screen 的 seatPickHandler 消费并打开刺杀二次确认。 */
   readonly strikePickMode: boolean;
   readonly setStrikePickMode: Dispatch<SetStateAction<boolean>>;
   /** 注册湖仙结果重开处理器（结果弹窗的已阅状态住在 Screen，adapter 底部入口经此触达）。 */
@@ -156,8 +156,8 @@ export function useAvalonRoomState(
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);
   // 晚上确认：两步流程（底部按钮 → 弹窗），对齐狼人杀丘比特。
   const [nightModalVisible, setNightModalVisible] = useState(false);
-  // 阶段弹窗开关（投票 / 出牌 / 湖仙确认 / 提前刺杀选人）：与夜晚确认同形态，
-  // 开关住在 hook，底部动作区的重开入口与 Screen 的自动弹一次共用同一状态。
+  // 阶段弹窗开关（投票 / 出牌 / 湖仙确认）与提前刺杀选人模式：与夜晚确认
+  // 同形态，开关住在 hook，底部动作区的入口与 Screen 共用同一状态。
   const [voteModalOpen, setVoteModalOpen] = useState(false);
   const [questModalOpen, setQuestModalOpen] = useState(false);
   const [ladyAckOpen, setLadyAckOpen] = useState(false);
@@ -369,6 +369,8 @@ export function useAvalonRoomState(
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
     onEarlyStrikePress: () => setStrikePickMode(true),
+    strikePickMode,
+    onCancelEarlyStrikePress: () => setStrikePickMode(false),
     hostManagement,
     canControlBots,
     releaseBot,
