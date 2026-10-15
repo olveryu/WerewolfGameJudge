@@ -42,8 +42,8 @@ export type __GAME_PASCAL__Phase =
   | { readonly kind: 'stage'; readonly deadlineAt: number | null }
   | { readonly kind: 'ended' };
 
-export const __GAME_PASCAL___PHASES = ['lobby', 'stage', 'ended'] as const;
-export type __GAME_PASCAL__PhaseKind = (typeof __GAME_PASCAL___PHASES)[number];
+export const __GAME_UPPER___PHASES = ['lobby', 'stage', 'ended'] as const;
+export type __GAME_PASCAL__PhaseKind = (typeof __GAME_UPPER___PHASES)[number];
 
 export interface __GAME_PASCAL__HumanSeat extends SeatOccupant {
   readonly profile: RoomSeatProfile;

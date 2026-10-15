@@ -106,6 +106,9 @@ function main() {
       summary.formatted
         ? 'Generated files were formatted with the repository prettier.'
         : 'Warning: prettier was not found; run pnpm format:write before committing.',
+      summary.linted
+        ? 'Generated files passed the repository eslint (autofix, then a zero-warning check).'
+        : 'Warning: eslint was not found; run pnpm lint before committing.',
       `Integration report: ${path.join(process.cwd(), summary.reportPath)}`,
       'Next: read the report, fill every TODO(gameplay), and run the quality gates before opening a PR.',
       '',

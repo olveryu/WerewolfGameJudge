@@ -137,6 +137,18 @@ for (const preset of ['identity', 'stage']) {
       assert.ok(!readFixture(root, file).includes('__GAME_'), `${file} still carries a token`);
     }
 
+    // Phase constants follow the shipped <UPPER>_PHASES convention,
+    // not the PascalCase game name (the naming-convention lint rule
+    // rejects `Demoproto_PHASES`).
+    const stateTypes = readFixture(root, 'packages/game-engine/src/games/demoproto/state/types.ts');
+    assert.ok(stateTypes.includes('DEMOPROTO_PHASES'));
+    for (const file of summary.createdFiles) {
+      assert.ok(
+        !readFixture(root, file).includes('Demoproto_PHASES'),
+        `${file} uses the PascalCase_PHASES name`,
+      );
+    }
+
     // Registry + canonical type list + reward parameter table.
     const gameTypes = readFixture(root, 'packages/game-engine/src/platform/protocol/gameTypes.ts');
     assert.ok(gameTypes.includes(`  'demoproto',\n] as const;`));
@@ -330,6 +342,58 @@ test('refuses to overwrite a pre-existing target file', () => {
     /Refusing to overwrite existing file/,
   );
   assert.equal(readFixture(root, 'docs/demoproto-game-design.md'), 'hand-written, do not clobber');
+});
+
+test('generated output passes the repository eslint with zero warnings', () => {
+  // Full-source fixture: unlike makeFixtureRepo (shared files only),
+  // this copies the whole source tree plus the lint/format configs
+  // and links node_modules, so the generator's prettier and eslint
+  // steps actually run — the bare fixture skips both silently. The
+  // point is the guarantee the CLI gives in a real repository:
+  // generated output is lint-clean as generated, no hand-fixing.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-lint-fixture-'));
+  const copyFile = (file) => {
+    const target = path.join(root, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(path.join(REPO_ROOT, file), target);
+  };
+  const copyDir = (dir) => {
+    fs.cpSync(path.join(REPO_ROOT, dir), path.join(root, dir), { recursive: true });
+  };
+  for (const file of [
+    'package.json',
+    'tsconfig.json',
+    'eslint.config.mjs',
+    '.prettierrc.json',
+    'packages/game-engine/package.json',
+    'packages/game-engine/tsconfig.json',
+    'packages/game-engine/tsconfig.test.json',
+    'packages/game-engine/tsconfig.build.json',
+    'packages/api-worker/package.json',
+    'packages/api-worker/tsconfig.json',
+    'packages/api-worker/tsconfig.test.json',
+    'packages/api-worker/worker-configuration.d.ts',
+  ])
+    copyFile(file);
+  copyDir('packages/game-engine/src');
+  copyDir('packages/api-worker/src');
+  copyDir('packages/api-worker/migrations');
+  copyDir('src');
+  fs.symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(root, 'node_modules'), 'junction');
+
+  const summary = generateNewGame({
+    rootDir: root,
+    gameId: 'demoproto',
+    preset: 'identity',
+    displayName: '演示原型',
+    subtitle: '生成器自证用临时游戏',
+  });
+  assert.equal(summary.formatted, true, 'prettier step must run in this fixture');
+  // linted === true is itself the zero-warning assertion: generation
+  // aborts (throwing the eslint report) when any problem survives
+  // autofix in the final, formatted bytes, so reaching this line
+  // with linted set proves the output passed eslint --max-warnings 0.
+  assert.equal(summary.linted, true, 'eslint step must run in this fixture');
 });
 
 test('rejects display strings that would break out of generated literals', () => {

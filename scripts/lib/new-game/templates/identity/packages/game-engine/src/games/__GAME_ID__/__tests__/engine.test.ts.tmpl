@@ -153,8 +153,14 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;
     expect(decision.effects).toHaveLength(1);
-    expect(decision.effects[0]?.type).toBe('__GAME_ID__.game.completed');
-    expect(decision.effects[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+    // Narrow by type before reading the payload: the effect type gains
+    // members as gameplay grows (timers, word supply), and a direct
+    // payload read off the union stops compiling the day it does.
+    const completions = decision.effects.filter(
+      (effect) => effect.type === '__GAME_ID__.game.completed',
+    );
+    expect(completions).toHaveLength(1);
+    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
     const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');
     expect(ended.xpSettled).toBe(true);
