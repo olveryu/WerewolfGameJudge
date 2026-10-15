@@ -7,8 +7,6 @@ import {
   getFibOccupiedSeatCount,
   getFibRole,
   getFibViewingParticipants,
-  isBotOccupant,
-  isBotSeat,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -18,6 +16,7 @@ import {
   buildRoomHeaderModel,
   type RoomHeaderGachaStatus,
 } from '@/features/room/model/buildRoomHeaderModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -46,10 +45,7 @@ import type {
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
-import type {
-  RoomSeatDataSource,
-  RoomSeatViewModel,
-} from '@/features/room/model/RoomSeatDataSource';
+import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
@@ -59,7 +55,6 @@ import type {
   RoomShellModel,
 } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
@@ -176,44 +171,20 @@ interface FibSeatSourceInput {
 }
 
 export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatDataSource {
-  return {
-    count: input.state.numberOfPlayers,
-    revision: `${input.revision}:${input.controlledSeat ?? 'self'}`,
-    getSeat(index): RoomSeatViewModel {
-      if (!Number.isSafeInteger(index) || index < 0 || index >= input.state.numberOfPlayers) {
-        throw new Error(`Fib seat source index is out of range: ${index}`);
-      }
-
-      const occupant = input.state.roster[index];
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const isBot = isBotSeat(input.state.roster, index);
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : isBot
-            ? toRoomSeatPlayer({
-                kind: 'bot',
-                userId: getFibBotUserId(input.state.roomCode, index),
-                displayName: getBotDisplayName(index),
-              })
-            : null;
-
-      return {
-        seat: index,
-        player,
-        isSelf: human?.userId === input.myUserId,
-        highlight: input.controlledSeat === index ? 'controlled' : 'none',
-        secondaryLabel: player === null ? null : getSeatRoleLabel(input.state, index),
-        disabledReason:
-          player === null && input.state.phase !== 'lobby' ? '当前阶段座位已锁定' : undefined,
-        showReadyBadge: false,
-        statusBadge: null,
-        isStatusEmphasized: false,
-        showLevel: input.state.phase === 'lobby',
-        decorationsEnabled: input.state.phase === 'lobby',
-      };
-    },
-  };
+  const { state } = input;
+  return createRoomSeatDataSource({
+    seatCount: state.numberOfPlayers,
+    revision: input.revision,
+    roster: state.roster,
+    viewerUserId: input.myUserId,
+    controlledSeat: input.controlledSeat,
+    isLobby: state.phase === 'lobby',
+    botUserId: (seat) => getFibBotUserId(state.roomCode, seat),
+    outOfRangeError: (seat) => `Fib seat source index is out of range: ${seat}`,
+    lockedSeatReason: '当前阶段座位已锁定',
+    resolveSecondaryLabel: (seat, player) =>
+      player === null ? null : getSeatRoleLabel(state, seat),
+  });
 }
 
 interface FibPhaseStatusCopy {

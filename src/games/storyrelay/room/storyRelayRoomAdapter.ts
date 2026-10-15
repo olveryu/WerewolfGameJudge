@@ -4,7 +4,6 @@ import {
   getBotSeats,
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
-  isBotOccupant,
   type StoryRelayCommand,
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -19,6 +18,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -35,7 +35,7 @@ import type { RoomHostManagementAction } from '@/features/room/model/RoomHostMan
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
-  RoomSeatViewModel,
+  RoomSeatStatusBadge,
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
@@ -46,7 +46,6 @@ import {
   messageRibbon,
   progressRibbon,
 } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -90,27 +89,19 @@ export function getStoryRelaySeatTapIntent(input: StoryRelaySeatTapInput) {
 
 function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
-  return {
-    count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat ?? 'self'}`,
-    getSeat(seat): RoomSeatViewModel {
-      if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
-        throw new Error('Story Relay seat out of range');
-      const occupant = state.roster[seat];
-      const target = getStoryRelayProfileTarget(state, seat);
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : target === null
-            ? null
-            : toRoomSeatPlayer({
-                kind: 'bot',
-                userId: target.userId,
-                displayName: target.rosterName,
-              });
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    roster: state.roster,
+    viewerUserId: userId,
+    controlledSeat,
+    isLobby: state.phase === 'lobby',
+    botUserId: (seat) => `storyrelay-bot:${state.roomCode}:${seat}`,
+    outOfRangeError: () => 'Story Relay seat out of range',
+    lockedSeatReason: '游戏进行中不能入座',
+    resolveStatusBadge: (seat, player) => {
       const task = getStoryRelayTaskForSeat(state, seat);
-      const statusBadge: RoomSeatViewModel['statusBadge'] =
+      const statusBadge: RoomSeatStatusBadge | null =
         state.phase === 'answering'
           ? {
               label: state.readySeats.includes(seat) ? '已准备' : '写作中',
@@ -122,22 +113,9 @@ function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomS
                 tone: task?.isSubmitted ? 'success' : 'warning',
               }
             : null;
-      return {
-        seat,
-        player,
-        isSelf: human?.userId === userId,
-        highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: null,
-        showReadyBadge: false,
-        statusBadge: player === null ? null : statusBadge,
-        isStatusEmphasized: false,
-        showLevel: state.phase === 'lobby',
-        decorationsEnabled: state.phase === 'lobby',
-        disabledReason:
-          player === null && state.phase !== 'lobby' ? '游戏进行中不能入座' : undefined,
-      };
+      return player === null ? null : statusBadge;
     },
-  };
+  });
 }
 
 /** Public status never includes story content or writer identity. */

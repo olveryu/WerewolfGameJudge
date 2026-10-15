@@ -7,7 +7,6 @@ import {
   type DrawGuessState,
   getBotSeats,
   getDrawGuessOccupiedSeatCount,
-  isBotOccupant,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
@@ -20,6 +19,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -34,16 +34,12 @@ import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import type {
-  RoomSeatDataSource,
-  RoomSeatViewModel,
-} from '@/features/room/model/RoomSeatDataSource';
+import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
@@ -91,45 +87,23 @@ export function getDrawGuessSeatTapIntent(input: DrawGuessSeatTapInput) {
 
 function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
-  return {
-    count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat ?? 'self'}`,
-    getSeat(seat): RoomSeatViewModel {
-      if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
-        throw new Error('DrawGuess seat out of range');
-      const occupant = state.roster[seat];
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const target = getDrawGuessProfileTarget(state, seat);
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : target === null
-            ? null
-            : toRoomSeatPlayer({
-                kind: 'bot',
-                userId: target.userId,
-                displayName: target.rosterName,
-              });
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    roster: state.roster,
+    viewerUserId: userId,
+    controlledSeat,
+    isLobby: state.phase.kind === 'lobby',
+    botUserId: (seat) => `drawguess-bot:${state.roomCode}:${seat}`,
+    outOfRangeError: () => 'DrawGuess seat out of range',
+    lockedSeatReason: '游戏进行中不能入座',
+    resolveStatusBadge: (seat) => {
       const statusLabel = drawerStatusLabel(state, seat);
-      return {
-        seat,
-        player,
-        isSelf: human?.userId === userId,
-        highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: null,
-        showReadyBadge: false,
-        statusBadge:
-          statusLabel === null
-            ? null
-            : { label: statusLabel, tone: statusLabel === '已猜中' ? 'success' : 'warning' },
-        isStatusEmphasized: false,
-        showLevel: state.phase.kind === 'lobby',
-        decorationsEnabled: state.phase.kind === 'lobby',
-        disabledReason:
-          player === null && state.phase.kind !== 'lobby' ? '游戏进行中不能入座' : undefined,
-      };
+      return statusLabel === null
+        ? null
+        : { label: statusLabel, tone: statusLabel === '已猜中' ? 'success' : 'warning' };
     },
-  };
+  });
 }
 
 /** 公共状态条：不含答案与题目内容。 */

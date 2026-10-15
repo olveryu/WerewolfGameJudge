@@ -17,7 +17,6 @@ import {
   getAvalonViewModel,
   getBotSeats,
   isAvalonPlayerCount,
-  isBotOccupant,
 } from '@game-judge/game-engine/games/avalon/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
@@ -31,6 +30,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -55,10 +55,7 @@ import type {
   RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import type {
-  RoomSeatDataSource,
-  RoomSeatViewModel,
-} from '@/features/room/model/RoomSeatDataSource';
+import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
@@ -68,7 +65,6 @@ import {
   messageRibbon,
   progressRibbon,
 } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { colors } from '@/theme';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -173,28 +169,27 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
   const stepParticipants =
     nightPhase === null ? [] : getAvalonNightParticipants(state.roles, nightPhase.step);
   const viewerIsStepParticipant = viewerSeat !== undefined && stepParticipants.includes(viewerSeat);
-  return {
-    count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat ?? 'self'}`,
-    getSeat(seat): RoomSeatViewModel {
-      if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
-        throw new Error('Avalon seat out of range');
-      const occupant = state.roster[seat];
-      const target = getAvalonProfileTarget(state, seat);
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : target === null
-            ? null
-            : toRoomSeatPlayer({
-                kind: 'bot',
-                userId: target.userId,
-                displayName: target.rosterName,
-              });
-      const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    roster: state.roster,
+    viewerUserId: userId,
+    controlledSeat,
+    isLobby: state.phase.kind === 'lobby',
+    botUserId: (seat) => `avalon-bot:${state.roomCode}:${seat}`,
+    outOfRangeError: () => 'Avalon seat out of range',
+    lockedSeatReason: '游戏进行中不能入座',
+    resolveSecondaryLabel: (seat, player) => {
       // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
       const botRole = player?.kind === 'bot' ? state.roles[seat] : undefined;
+      return botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null;
+    },
+    // 逐座位已查看身份徽标（公开信息）：勾只属于查看阶段——对局开始
+    // （begin 进夜晚）即清（展示契约 §3.3 徽标命题，与狼人杀口径一致）。
+    resolveShowReadyBadge: (seat) =>
+      state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
+    resolveStatusBadge: (seat) => {
+      const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
       // 投票/任务阶段显示已投票/已出牌；夜晚给参与者显示同伴已确认（只暴露是否行动）。
       const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
       const hasPlayed = state.phase.kind === 'quest' && state.phase.plays[seat] !== undefined;
@@ -211,37 +206,21 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
         statusLabel !== null && progressLabel !== null
           ? `${statusLabel} · ${progressLabel}`
           : (progressLabel ?? statusLabel);
-      return {
-        seat,
-        player,
-        isSelf: human?.userId === userId,
-        highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null,
-        // 逐座位已查看身份徽标（公开信息）：勾只属于查看阶段——对局开始
-        // （begin 进夜晚）即清（展示契约 §3.3 徽标命题，与狼人杀口径一致）。
-        showReadyBadge: state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
-        statusBadge:
-          combinedLabel === null
-            ? null
-            : {
-                label: combinedLabel,
-                tone:
-                  combinedLabel.includes('已投票') ||
-                  combinedLabel.includes('已出牌') ||
-                  combinedLabel.includes('已确认')
-                    ? 'success'
-                    : combinedLabel === '队员'
-                      ? 'success'
-                      : 'warning',
-              },
-        isStatusEmphasized: false,
-        showLevel: state.phase.kind === 'lobby',
-        decorationsEnabled: state.phase.kind === 'lobby',
-        disabledReason:
-          player === null && state.phase.kind !== 'lobby' ? '游戏进行中不能入座' : undefined,
-      };
+      return combinedLabel === null
+        ? null
+        : {
+            label: combinedLabel,
+            tone:
+              combinedLabel.includes('已投票') ||
+              combinedLabel.includes('已出牌') ||
+              combinedLabel.includes('已确认')
+                ? 'success'
+                : combinedLabel === '队员'
+                  ? 'success'
+                  : 'warning',
+          };
     },
-  };
+  });
 }
 
 const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {

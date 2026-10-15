@@ -8,7 +8,6 @@ import {
   getBotSeats,
   getDemoOccupiedSeatCount,
   getDemoViewingParticipants,
-  isBotOccupant,
 } from '@game-judge/game-engine/games/demo/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 
@@ -21,6 +20,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -39,16 +39,12 @@ import type {
   RoomHostManagementModel,
   RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
-import type {
-  RoomSeatDataSource,
-  RoomSeatViewModel,
-} from '@/features/room/model/RoomSeatDataSource';
+import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
@@ -87,42 +83,20 @@ export function getDemoSeatTapIntent(input: DemoSeatTapInput) {
 
 function createDemoSeatDataSource(input: DemoSeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
-  return {
-    count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat ?? 'self'}`,
-    getSeat(seat): RoomSeatViewModel {
-      if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
-        throw new Error('Demo seat out of range');
-      const occupant = state.roster[seat];
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const target = getDemoProfileTarget(state, seat);
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : target === null
-            ? null
-            : toRoomSeatPlayer({
-                kind: 'bot',
-                userId: target.userId,
-                displayName: target.rosterName,
-              });
-      return {
-        seat,
-        player,
-        isSelf: human?.userId === userId,
-        highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: null,
-        // 已查看勾只属于查看阶段（展示契约）：开始即消失。
-        showReadyBadge: state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
-        statusBadge: null,
-        isStatusEmphasized: false,
-        showLevel: state.phase.kind === 'lobby',
-        decorationsEnabled: state.phase.kind === 'lobby',
-        disabledReason:
-          player === null && state.phase.kind !== 'lobby' ? '游戏进行中不能入座' : undefined,
-      };
-    },
-  };
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    roster: state.roster,
+    viewerUserId: userId,
+    controlledSeat,
+    isLobby: state.phase.kind === 'lobby',
+    botUserId: (seat) => `demo-bot:${state.roomCode}:${seat}`,
+    outOfRangeError: () => 'Demo seat out of range',
+    lockedSeatReason: '游戏进行中不能入座',
+    // 已查看勾只属于查看阶段（展示契约）：开始即消失。
+    resolveShowReadyBadge: (seat) =>
+      state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
+  });
 }
 
 /** 公共状态条：查看阶段只报汇总进度（逐座状态看座位盘打勾）。 */
