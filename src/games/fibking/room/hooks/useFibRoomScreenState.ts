@@ -30,6 +30,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import { useRoomTitleActions } from '@/features/room/controllers/useRoomTitleActions';
+import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
@@ -251,6 +252,27 @@ export function useFibRoomScreenState({
     [submitCommand],
   );
 
+  // 猜词点选经共享点选机制（trigger）：资格 = 已入座且尚未被猜过的座位；
+  // 不合资格的点按在选人模式内静默吞掉（swallow），不落回默认座位行为。
+  // 模式状态（guessRoundId 锚）与确认弹窗/命令仍归本家。
+  const guessPicking = useSeatPicking({
+    active: isGuessing,
+    mode: 'trigger',
+    eligibleSeats:
+      state.phase === 'ongoing' && state.round !== null
+        ? Array.from({ length: state.numberOfPlayers }, (_, seat) => seat).filter(
+            (seat) =>
+              state.roster[seat] != null &&
+              !state.round.guesses.some((guess) => guess.seat === seat),
+          )
+        : [],
+    ineligibleTap: 'swallow',
+    anchorKey: guessRoundId,
+    storage: { kind: 'local' },
+    onPick: guessSeat,
+  });
+  const guessTap = guessPicking.handleSeatTap;
+
   const revealRound = useCallback(() => {
     showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
       await submitCommand('公布答案', { type: 'fibking.round.reveal' });
@@ -362,14 +384,9 @@ export function useFibRoomScreenState({
 
   const onSeatPress = useCallback(
     (seat: number, disabledReason?: string) => {
-      // 选人模式下点座即选人：已公开或空座位静默忽略（镜像卧底揭晓选择）。
+      // 选人模式下点座即选人：消费与静默忽略由点选机制裁决（见 guessPicking）。
       if (isGuessing && state.phase === 'ongoing' && state.round !== null) {
-        if (
-          state.roster[seat] != null &&
-          !state.round.guesses.some((guess) => guess.seat === seat)
-        ) {
-          guessSeat(seat);
-        }
+        guessTap(seat);
         return;
       }
       const roomIntent = getFibSeatTapIntent({
@@ -404,7 +421,7 @@ export function useFibRoomScreenState({
         }
       }
     },
-    [capabilities, guessSeat, isGuessing, mySeat, state],
+    [capabilities, guessTap, isGuessing, mySeat, state],
   );
 
   const isSeatBot = useCallback((seat: number) => isBotSeat(state.roster, seat), [state]);

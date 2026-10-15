@@ -114,25 +114,17 @@ const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   ended: false,
 };
 
-function avalonSeatStatusLabel(
-  state: AvalonState,
-  seat: number,
-  pickedSeats: ReadonlySet<number>,
-): string | null {
+function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null {
   const phase = state.phase;
   if (state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind]) return '队长';
   if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
-  // 提名阶段队长在座位盘上的本地选中集（尚未提交）：选中即「队员」徽标。
-  if (phase.kind === 'nominate' && pickedSeats.has(seat)) return '队员';
-  if (phase.kind === 'nominate' || phase.kind === 'vote') {
-    const proposed = phase.kind === 'nominate' ? null : phase.proposedSeats.includes(seat);
-    if (proposed === true) return '队员';
-  }
+  // 提名草稿（服务端权威、全房可见）：草稿中的座位即「队员」徽标，
+  // 以服务端回声为准，不做本地乐观显示。
+  if (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) return '队员';
+  if (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) return '队员';
   if (phase.kind === 'quest' && phase.teamSeats.includes(seat)) return '队员';
   return null;
 }
-
-const NO_PICKED_SEATS: ReadonlySet<number> = new Set();
 
 /** 创建共享座位表数据源：含队长 / 队员 / 湖仙状态徽标（不暴露角色）。 */
 export interface AvalonSeatSourceInput {
@@ -140,7 +132,6 @@ export interface AvalonSeatSourceInput {
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
-  readonly pickedSeats?: ReadonlySet<number>;
 }
 
 interface AvalonSeatTapInput {
@@ -161,7 +152,7 @@ export function getAvalonSeatTapIntent(input: AvalonSeatTapInput) {
 }
 
 export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSeatDataSource {
-  const { state, revision, userId, controlledSeat, pickedSeats = NO_PICKED_SEATS } = input;
+  const { state, revision, userId, controlledSeat } = input;
   // 夜晚已确认徽标只给当前步参与者看（私密确认不计数、不外泄给非参与者）。
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
   const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;
@@ -189,7 +180,7 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
     resolveStatusBadge: (seat) => {
-      const statusLabel = avalonSeatStatusLabel(state, seat, pickedSeats);
+      const statusLabel = avalonSeatStatusLabel(state, seat);
       // 投票/任务阶段显示已投票/已出牌；夜晚给参与者显示同伴已确认（只暴露是否行动）。
       const hasVoted = state.phase.kind === 'vote' && state.phase.ballots[seat] !== undefined;
       const hasPlayed = state.phase.kind === 'quest' && state.phase.plays[seat] !== undefined;
@@ -404,7 +395,6 @@ export interface AvalonBottomActionsInput {
   readonly isHost: boolean;
   readonly mySeat: number | null;
   readonly effectiveSeat: number | null;
-  readonly pickedSeats: ReadonlySet<number>;
   readonly isSubmitting: boolean;
   readonly canControlBots: boolean;
   /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
@@ -533,7 +523,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       const instruction = resolveNominateInstruction(vm, vm.mySeat);
       if (instruction.isLeader) {
         message = `点座位盘点选 ${instruction.requiredSize} 名队员（可含自己），选中的座位会亮起「队员」徽标，再点一次取消。`;
-        const isFull = input.pickedSeats.size === instruction.requiredSize;
+        const isFull = vm.draftSeats !== null && vm.draftSeats.length === instruction.requiredSize;
         if (isFull && !input.isSubmitting) {
           actions.push({
             key: 'proposeTeam',
@@ -682,7 +672,6 @@ export interface AvalonRoomShellModelInput {
   readonly revision: number;
   readonly userId: string;
   readonly controlledSeat: number | null;
-  readonly pickedSeats: ReadonlySet<number>;
   readonly seatsVisuallyDisabled: boolean;
   readonly onSeatPress: (seat: number, disabledReason?: string) => void;
   readonly onBotSeatLongPress: ((seat: number) => void) | null;
@@ -951,7 +940,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     revision: input.revision,
     userId: input.userId,
     controlledSeat: input.controlledSeat,
-    pickedSeats: input.pickedSeats,
   });
   return {
     roomCode: input.roomCode,
@@ -987,7 +975,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       isHost: input.isHost,
       mySeat: input.mySeat,
       effectiveSeat: input.effectiveSeat,
-      pickedSeats: input.pickedSeats,
       isSubmitting: input.isSubmitting,
       canControlBots: input.canControlBots,
       settleCountdownSeconds: input.settleCountdownSeconds,

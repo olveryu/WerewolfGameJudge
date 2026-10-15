@@ -39,9 +39,10 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
   z.strictObject({ type: z.literal('avalon.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('avalon.audio.ack') }),
   z.strictObject({
-    type: z.literal('avalon.team.propose'),
+    type: z.literal('avalon.team.updateDraft'),
     seats: z.array(z.number().int().nonnegative()).readonly(),
   }),
+  z.strictObject({ type: z.literal('avalon.team.propose') }),
   z.strictObject({
     type: z.literal('avalon.team.vote'),
     vote: z.enum(['approve', 'reject']),

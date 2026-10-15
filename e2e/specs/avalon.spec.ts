@@ -151,14 +151,36 @@ async function confirmNightInfo(
 // Nomination / vote / quest
 // ---------------------------------------------------------------------------
 
-async function pickTeam(leaderPage: Page, leaderSeat: number, team: readonly number[]) {
+async function pickTeam(pages: Page[], leaderSeat: number, team: readonly number[]) {
+  const leaderPage = pages[leaderSeat]!;
+  const leaderRoom = new RoomPage(leaderPage);
+  // 提名草稿是服务端状态、全房可见：第二名玩家（非队长）页面必须实时
+  // 看到同一份草稿徽标，队长改选后同步变化。
+  const observerSeat = (leaderSeat + 1) % PLAYER_COUNT;
+  const observerRoom = new RoomPage(pages[observerSeat]!);
+  // 改选探针：先选一个不在最终队伍里的座位，再撤销，验证徽标的新增与
+  // 消失都同步到第二名玩家；最终队伍不变，下游步骤不受影响。
+  const probeSeat = Array.from({ length: PLAYER_COUNT }, (_, seat) => seat).find(
+    (seat) => seat !== leaderSeat && !team.includes(seat),
+  );
+  if (probeSeat === undefined) throw new Error('pickTeam: no probe seat outside the team');
+  const leaderProbeTile = leaderRoom.getSeatTile(probeSeat);
+  const observerProbeTile = observerRoom.getSeatTile(probeSeat);
+  await leaderProbeTile.click();
+  await expect(leaderProbeTile).toContainText('队员', { timeout: 10_000 });
+  await expect(observerProbeTile).toContainText('队员', { timeout: 10_000 });
+  await leaderProbeTile.click();
+  await expect(leaderProbeTile).not.toContainText('队员', { timeout: 10_000 });
+  await expect(observerProbeTile).not.toContainText('队员', { timeout: 10_000 });
   for (const seat of team) {
-    const tile = new RoomPage(leaderPage).getSeatTile(seat);
+    const tile = leaderRoom.getSeatTile(seat);
     await tile.click();
     // 座位状态标签是单槽：队长本人座位恒显示「队长」，选中也不变「队员」；
     // 其点选是否生效由最后提交按钮「恰选满才 enabled」兜底验证。
     if (seat !== leaderSeat) {
       await expect(tile).toContainText('队员', { timeout: 10_000 });
+      // 同一座位的「队员」徽标同步出现在第二名玩家页面（草稿回声）。
+      await expect(observerRoom.getSeatTile(seat)).toContainText('队员', { timeout: 10_000 });
     }
   }
   const submit = leaderPage.getByTestId('avalon-nominate-submit');
@@ -269,7 +291,7 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
   const leaderSeat = await test.step(`任务${script.round}：定位队长并组队`, async () => {
     const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '队长组队提示');
     team = script.teamFor(seat);
-    await pickTeam(pages[seat]!, seat, team);
+    await pickTeam(pages, seat, team);
     return seat;
   });
 
@@ -279,6 +301,12 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     await expect(leaderModal).toBeVisible({ timeout: 20_000 });
     for (const seat of team) {
       await expect(leaderPage.getByTestId(`avalon-vote-team-${seat}`)).toBeVisible();
+    }
+    // 提交以草稿为准：第二名玩家页面的投票队伍名单与草稿逐一一致。
+    const observerPage = pages[(leaderSeat + 1) % PLAYER_COUNT]!;
+    await expect(observerPage.getByTestId('avalon-vote-modal')).toBeVisible({ timeout: 20_000 });
+    for (const seat of team) {
+      await expect(observerPage.getByTestId(`avalon-vote-team-${seat}`)).toBeVisible();
     }
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);

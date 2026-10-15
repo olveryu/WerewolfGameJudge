@@ -119,15 +119,11 @@ export interface AvalonRoomScreenState {
   readonly setStrikePickMode: Dispatch<SetStateAction<boolean>>;
   /** 注册湖仙结果重开处理器（结果弹窗的已阅状态住在 Screen，adapter 底部入口经此触达）。 */
   readonly setLadyResultReopenHandler: (handler: (() => void) | null) => void;
-  /** 座位盘选人（提名）：Screen 同步本地选中集，adapter 据此给选中座位上「队员」徽标。 */
-  readonly setPickedSeats: Dispatch<SetStateAction<ReadonlySet<number>>>;
   /** 注册座位点选处理器：返回 true 表示本次点按已被选人消费，不走默认座位行为。 */
   readonly setSeatPickHandler: (handler: ((seat: number) => boolean) | null) => void;
 }
 
 /** 把当前就绪 session 绑定到房间壳控制器与命令上。 */
-const EMPTY_PICKED_SEATS: ReadonlySet<number> = new Set();
-
 export function useAvalonRoomState(
   props: GameRoomScreenProps<'avalon'> & {
     readonly session: AvalonRoomSession;
@@ -166,7 +162,6 @@ export function useAvalonRoomState(
   const setLadyResultReopenHandler = useCallback((handler: (() => void) | null) => {
     ladyResultReopenRef.current = handler;
   }, []);
-  const [pickedSeats, setPickedSeats] = useState<ReadonlySet<number>>(EMPTY_PICKED_SEATS);
   const seatPickHandlerRef = useRef<((seat: number) => boolean) | null>(null);
   const setSeatPickHandler = useCallback((handler: ((seat: number) => boolean) | null) => {
     seatPickHandlerRef.current = handler;
@@ -328,7 +323,6 @@ export function useAvalonRoomState(
     revision: snapshot.snapshot.revision,
     userId: user.id,
     controlledSeat,
-    pickedSeats,
     seatsVisuallyDisabled:
       state.isAudioPlaying || submission.isSubmitting || seatController.isSubmitting,
     onSeatPress,
@@ -360,11 +354,8 @@ export function useAvalonRoomState(
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
     onProposeTeamPress: () => {
-      void submit(
-        '提交队伍',
-        { type: 'avalon.team.propose', seats: [...pickedSeats] },
-        controlledSeat,
-      );
+      // 提案以服务端草稿为准：草稿由队长的点选经 updateDraft 维护。
+      void submit('提交队伍', { type: 'avalon.team.propose' }, controlledSeat);
     },
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
@@ -422,7 +413,6 @@ export function useAvalonRoomState(
     strikePickMode,
     setStrikePickMode,
     setLadyResultReopenHandler,
-    setPickedSeats,
     setSeatPickHandler,
   };
 }

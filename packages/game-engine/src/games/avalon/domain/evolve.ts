@@ -135,6 +135,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'nominate',
           round: 1,
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, 1),
+          draftSeats: [],
         },
       };
     }
@@ -149,6 +150,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
     case 'avalon.audio.cleared': {
       if (!state.isAudioPlaying && state.pendingAudioEffects.length === 0) return state;
       return { ...bumped, pendingAudioEffects: [], isAudioPlaying: false };
+    }
+    case 'avalon.team.draftUpdated': {
+      if (state.phase.kind !== 'nominate') return state;
+      return { ...bumped, phase: { ...state.phase, draftSeats: [...event.seats] } };
     }
     case 'avalon.team.proposed': {
       if (state.phase.kind !== 'nominate') return state;
@@ -237,6 +242,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'nominate',
           round: state.phase.round,
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, state.phase.round),
+          draftSeats: [],
         },
         lastVoteResult,
         roundHistory,
@@ -308,6 +314,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'nominate',
           round: nextRound,
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, nextRound),
+          draftSeats: [],
         },
         leaderSeat: nextAvalonLeaderSeat(state.leaderSeat, state.config.numberOfPlayers),
       };
@@ -328,6 +335,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'nominate',
           round: event.nextRound,
           requiredSize: event.nextRequiredSize,
+          draftSeats: [],
         },
         leaderSeat: event.nextLeaderSeat,
         ladyHolderSeat: event.targetSeat,

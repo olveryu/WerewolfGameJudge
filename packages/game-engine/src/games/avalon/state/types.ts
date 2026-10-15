@@ -221,6 +221,13 @@ export type AvalonPhase =
       readonly kind: 'nominate';
       readonly round: AvalonQuestRound;
       readonly requiredSize: number;
+      /**
+       * 队长未确认的提名草稿（服务端权威，全房可见）：队长经
+       * avalon.team.updateDraft 整集替换，长度恒 ≤ requiredSize；
+       * propose 以草稿为准。进入 nominate 时恒为空集（否决轮转 /
+       * 任务结算 / 湖仙确认产生的新 nominate 不继承旧草稿）。
+       */
+      readonly draftSeats: readonly number[];
     }
   | {
       readonly kind: 'vote';

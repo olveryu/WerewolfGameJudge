@@ -58,7 +58,8 @@ function questPhaseSession() {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
   }
   const leader = state.leaderSeat;
-  send({ type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] }, seatUser(leader));
+  send({ type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] }, seatUser(leader));
+  send({ type: 'avalon.team.propose' }, seatUser(leader));
   for (let seat = 0; seat < 5; seat += 1) {
     send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
   }
@@ -270,12 +271,13 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     const leader = state.leaderSeat;
     const pickedSeat = (leader + 1) % 5;
     const unpickedSeat = (leader + 2) % 5;
+    // 场景来源：队长经 updateDraft 把两人写进服务端草稿（徽标读草稿）。
+    send({ type: 'avalon.team.updateDraft', seats: [pickedSeat, leader] }, seatUser(leader));
     const source = createAvalonSeatDataSource({
       state,
       revision: 1,
       userId: 'host',
       controlledSeat: null,
-      pickedSeats: new Set([pickedSeat, leader]),
     });
     expect(source.getSeat(pickedSeat).statusBadge).toEqual({ label: '队员', tone: 'success' });
     expect(source.getSeat(leader).statusBadge?.label).toBe('队长');
@@ -360,7 +362,11 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     for (let seat = 0; team.length < state.phase.requiredSize; seat += 1) {
       if (!team.includes(seat)) team.push(seat);
     }
-    session.send({ type: 'avalon.team.propose', seats: team }, session.seatUser(state.leaderSeat));
+    session.send(
+      { type: 'avalon.team.updateDraft', seats: team },
+      session.seatUser(state.leaderSeat),
+    );
+    session.send({ type: 'avalon.team.propose' }, session.seatUser(state.leaderSeat));
     return team;
   }
 
