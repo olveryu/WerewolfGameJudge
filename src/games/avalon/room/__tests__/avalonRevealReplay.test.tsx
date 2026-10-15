@@ -121,7 +121,8 @@ function proposeAndSettleVote(game: DrivenGame, ballot: 'approve' | 'reject'): v
   const phase = game.state.phase;
   if (phase.kind !== 'nominate') throw new Error(`expected nominate, got ${phase.kind}`);
   const seats = Array.from({ length: phase.requiredSize }, (_, index) => index);
-  game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose', seats });
+  game.actAs(game.state.leaderSeat, { type: 'avalon.team.updateDraft', seats });
+  game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose' });
   const count = game.state.config.numberOfPlayers;
   for (let seat = 0; seat < count; seat += 1) {
     game.actAs(seat, { type: 'avalon.team.vote', vote: ballot });

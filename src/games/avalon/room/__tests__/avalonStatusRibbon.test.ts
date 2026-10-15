@@ -126,9 +126,10 @@ describe('createAvalonStatusRibbon — public action counts', () => {
     expect(session.state.phase.kind).toBe('nominate');
     const leader = session.state.leaderSeat;
     session.send(
-      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] },
+      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
       session.seatUser(leader),
     );
+    session.send({ type: 'avalon.team.propose' }, session.seatUser(leader));
     session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(0));
     session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(1));
     expect(createAvalonStatusRibbon(session.state)).toEqual({
@@ -162,7 +163,8 @@ describe('createAvalonStatusRibbon — nominate tally, lady and assassin support
     for (let seat = 0; team.length < state.phase.requiredSize; seat += 1) {
       if (!team.includes(seat)) team.push(seat);
     }
-    session.send({ type: 'avalon.team.propose', seats: team }, session.seatUser(leader));
+    session.send({ type: 'avalon.team.updateDraft', seats: team }, session.seatUser(leader));
+    session.send({ type: 'avalon.team.propose' }, session.seatUser(leader));
     for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
       session.send({ type: 'avalon.team.vote', vote: 'approve' }, session.seatUser(seat));
     }

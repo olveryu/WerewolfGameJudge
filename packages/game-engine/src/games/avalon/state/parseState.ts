@@ -307,6 +307,13 @@ function phase(value: unknown, path: string): AvalonPhase {
           kind: 'nominate' as const,
           round: questRound(raw.round, `${path}.round`),
           requiredSize: parseInteger(raw.requiredSize, `${path}.requiredSize`),
+          // States persisted before the nomination draft existed carry
+          // no draftSeats; like vote.deadlineAt on v3 phases, a missing
+          // field parses as the empty value (no draft yet).
+          draftSeats:
+            raw.draftSeats === undefined
+              ? []
+              : parseArray(raw.draftSeats, `${path}.draftSeats`, parseSeat),
         },
         path,
       );

@@ -44,8 +44,6 @@ import {
   resolveVoteInstruction,
 } from './policy/avalonInteractionPolicy';
 
-const EMPTY_PICKED_SEATS: ReadonlySet<number> = new Set();
-
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
   readonly audio: AvalonAudioRuntime;
@@ -165,24 +163,8 @@ function AvalonRoomContent(
     (viewModel.phase === 'nominate' || viewModel.phase === 'lady' || viewModel.phase === 'assassin')
       ? viewModel.questHistory[questHistoryCount - 1]
       : undefined;
-  // 座位盘选人：提名（队长点选切换选中集）/ 湖仙（持有人点选→二次确认）/ 刺杀
+  // 座位盘选人：提名（队长点选切换服务端草稿）/ 湖仙（持有人点选→二次确认）/ 刺杀
   // （刺客点选→二次确认）/ 提前刺杀（选人模式开启时点选→二次确认，优先于阶段点选）。
-  const [nominateSelection, setNominateSelection] = useState<ReadonlySet<number>>(new Set());
-  const nominateKey =
-    viewModel === null ? null : `${viewModel.questResults.length}:${viewModel.leaderSeat}`;
-  const nominateKeyRef = useRef<string | null>(null);
-  const phaseKind = viewModel?.phase;
-  useEffect(() => {
-    if (phaseKind !== 'nominate') {
-      nominateKeyRef.current = null;
-      setNominateSelection(new Set());
-      return;
-    }
-    if (nominateKeyRef.current !== nominateKey) {
-      nominateKeyRef.current = nominateKey;
-      setNominateSelection(new Set());
-    }
-  }, [phaseKind, nominateKey]);
   const [ladyCheckTarget, setLadyCheckTarget] = useState<number | null>(null);
   useEffect(() => {
     if (viewModel?.phase !== 'lady') setLadyCheckTarget(null);
@@ -225,7 +207,7 @@ function AvalonRoomContent(
   const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
-  const { setSeatPickHandler, setPickedSeats, strikePickMode } = screen;
+  const { setSeatPickHandler, strikePickMode, submit, controlledSeat } = screen;
   useEffect(() => {
     if (viewModel === null) {
       setSeatPickHandler(null);
@@ -241,20 +223,28 @@ function AvalonRoomContent(
       });
       return;
     }
-    if (
-      viewModel.phase === 'nominate' &&
-      resolveNominateInstruction(viewModel, viewModel.mySeat).isLeader
-    ) {
-      setSeatPickHandler((seat) => {
-        setNominateSelection((current) => {
-          const next = new Set(current);
-          if (next.has(seat)) next.delete(seat);
-          else next.add(seat);
-          return next;
+    if (viewModel.phase === 'nominate') {
+      const instruction = resolveNominateInstruction(viewModel, viewModel.mySeat);
+      if (instruction.isLeader) {
+        // 队长点选直连服务端草稿：toggle 归约出下一集后整集提交，
+        // 徽标以服务端草稿回声为准（不做本地乐观更新）。资格 = 已入座
+        // 座位；满员点未选静默不发命令；点未入座落回默认座位语义。
+        const draftSeats = viewModel.draftSeats ?? [];
+        const occupiedSeats = viewModel.seats.map((entry) => entry.seat);
+        setSeatPickHandler((seat) => {
+          if (!occupiedSeats.includes(seat)) return false;
+          let next: readonly number[];
+          if (draftSeats.includes(seat)) {
+            next = draftSeats.filter((entry) => entry !== seat);
+          } else {
+            if (draftSeats.length >= instruction.requiredSize) return true;
+            next = [...draftSeats, seat];
+          }
+          void submit('更新草稿', { type: 'avalon.team.updateDraft', seats: next }, controlledSeat);
+          return true;
         });
-        return true;
-      });
-      return;
+        return;
+      }
     }
     if (viewModel.phase === 'lady') {
       const instruction = resolveLadyInstruction(viewModel);
@@ -281,15 +271,7 @@ function AvalonRoomContent(
       return;
     }
     setSeatPickHandler(null);
-  }, [viewModel, setSeatPickHandler, strikePickMode, setStrikePickMode]);
-  // 提名选中集同步给座位数据源（选中座位的「队员」徽标）。
-  useEffect(() => {
-    const isLeaderPicking =
-      viewModel !== null &&
-      viewModel.phase === 'nominate' &&
-      resolveNominateInstruction(viewModel, viewModel.mySeat).isLeader;
-    setPickedSeats(isLeaderPicking ? nominateSelection : EMPTY_PICKED_SEATS);
-  }, [viewModel, nominateSelection, setPickedSeats]);
+  }, [viewModel, setSeatPickHandler, strikePickMode, setStrikePickMode, submit, controlledSeat]);
   // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
   // 动作区 / 状态条），座位盘下方不放任何阶段 UI——与全平台各家一致。

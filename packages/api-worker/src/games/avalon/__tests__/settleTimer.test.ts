@@ -144,7 +144,8 @@ async function armedVoteRoom(stub: DurableObjectStub<GameRoom>): Promise<AvalonS
     await ackAudio(stub);
     state = await readState(stub);
   }
-  await send(stub, seatUser(state.leaderSeat), { type: 'avalon.team.propose', seats: [0, 1] });
+  await send(stub, seatUser(state.leaderSeat), { type: 'avalon.team.updateDraft', seats: [0, 1] });
+  await send(stub, seatUser(state.leaderSeat), { type: 'avalon.team.propose' });
   for (let seat = 0; seat < 5; seat += 1) {
     await send(stub, seatUser(seat), { type: 'avalon.team.vote', vote: 'approve' });
   }

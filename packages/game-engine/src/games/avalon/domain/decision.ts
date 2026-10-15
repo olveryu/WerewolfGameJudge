@@ -95,6 +95,7 @@ export type AvalonEvent =
       readonly effects: readonly AvalonAudioEffect[];
     }
   | { readonly type: 'avalon.audio.cleared' }
+  | { readonly type: 'avalon.team.draftUpdated'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote.cast'; readonly seat: number; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.vote.allCast'; readonly deadlineAt: number }

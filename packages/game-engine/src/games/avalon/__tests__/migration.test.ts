@@ -184,7 +184,12 @@ describe('Avalon v3 -> v4 countdown migration', () => {
     const leader = state.leaderSeat;
     state = dispatch(
       state,
-      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 5] },
+      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
+      leader === 0 ? 'host' : `user-${leader}`,
+    );
+    state = dispatch(
+      state,
+      { type: 'avalon.team.propose' },
       leader === 0 ? 'host' : `user-${leader}`,
     );
     state = dispatch(state, { type: 'avalon.team.vote', vote: 'approve' }, 'host');
@@ -310,7 +315,8 @@ describe('Avalon v5 -> v6 round-history migration', () => {
       { length: state.phase.requiredSize },
       (_, index) => (leader + index) % 5,
     );
-    let next = dispatch(state, { type: 'avalon.team.propose', seats }, actorOf(leader));
+    let next = dispatch(state, { type: 'avalon.team.updateDraft', seats }, actorOf(leader));
+    next = dispatch(next, { type: 'avalon.team.propose' }, actorOf(leader));
     for (let seat = 0; seat < 5; seat += 1) {
       next = dispatch(next, { type: 'avalon.team.vote', vote: ballotOf(seat) }, actorOf(seat));
     }
@@ -360,5 +366,48 @@ describe('Avalon v5 -> v6 round-history migration', () => {
     expect(migrated.roundHistory[0]?.proposals).toHaveLength(1);
     expect(migrated.roundHistory[0]?.proposals[0]).toEqual(state.roundHistory[0]?.proposals[1]);
     expect(migrated.roundHistory[0]?.quest).toEqual(state.roundHistory[0]?.quest);
+  });
+});
+
+describe('Avalon nomination draft field (pre-draft persisted states)', () => {
+  it('parses a nominate phase without draftSeats as an empty draft', () => {
+    // Drive a 5-human game into nominate and set a draft, then rebuild
+    // the document a pre-draft store would have persisted (same version,
+    // the field simply absent) — it must parse with an empty draft.
+    let state = lobby(5);
+    state = dispatch(state, { type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = dispatch(state, { type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `user-${seat}`);
+    }
+    state = dispatch(state, { type: 'avalon.game.begin' });
+    if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    while (state.phase.kind === 'night') {
+      const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+      for (const seat of participants) {
+        state = dispatch(
+          state,
+          { type: 'avalon.night.confirm' },
+          seat === 0 ? 'host' : `user-${seat}`,
+        );
+      }
+      if (state.isAudioPlaying) state = dispatch(state, { type: 'avalon.audio.ack' });
+    }
+    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    const leader = state.leaderSeat;
+    state = dispatch(
+      state,
+      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 5] },
+      leader === 0 ? 'host' : `user-${leader}`,
+    );
+    if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(state.phase.draftSeats).toEqual([leader, (leader + 1) % 5]);
+    const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    delete (raw.phase as Record<string, unknown>).draftSeats;
+    const parsed = parseAvalonState(raw);
+    if (parsed.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(parsed.phase.draftSeats).toEqual([]);
+    expect(migratePersistedAvalonState(raw)).toEqual(parsed);
+    // A document that does carry the field round-trips untouched.
+    expect(parseAvalonState(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
 });

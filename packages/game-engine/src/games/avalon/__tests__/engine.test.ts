@@ -137,7 +137,9 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       return seatUser(session.state.leaderSeat);
     },
     proposeTeam(team: readonly number[]) {
-      send({ type: 'avalon.team.propose', seats: [...team] }, api.leaderUser());
+      // 提案两步：先把整集写进服务端草稿，再以草稿为准确认。
+      send({ type: 'avalon.team.updateDraft', seats: [...team] }, api.leaderUser());
+      send({ type: 'avalon.team.propose' }, api.leaderUser());
     },
     voteAll(ballot: AvalonBallot) {
       for (let seat = 0; seat < numberOfPlayers; seat += 1) {
@@ -340,23 +342,94 @@ describe('Avalon engine', () => {
     const leader = session.state.leaderSeat;
     const nonLeader = (leader + 1) % 6;
     session.expectReject(
-      { type: 'avalon.team.propose', seats: [0, 1] },
+      { type: 'avalon.team.propose' },
+      'avalon_not_leader',
+      session.seatUser(nonLeader),
+    );
+    // 草稿未满（空草稿）时确认：人数不对（迁移自原 propose 恰等校验）。
+    session.expectReject(
+      { type: 'avalon.team.propose' },
+      'avalon_team_size_invalid:2',
+      session.seatUser(leader),
+    );
+    // 队长可以把自己选进队伍：先写草稿再确认，组队后直接进入投票。
+    session.send(
+      { type: 'avalon.team.updateDraft', seats: [leader, (leader + 1) % 6] },
+      session.seatUser(leader),
+    );
+    session.send({ type: 'avalon.team.propose' }, session.seatUser(leader));
+    const votePhase = session.phase();
+    if (votePhase.kind !== 'vote') throw new Error('expected vote phase');
+    expect(votePhase.proposedSeats).toContain(leader);
+  });
+
+  it('keeps the nomination draft server-side, capped, leader-only and cleared per nomination', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.startGame();
+    session.passNight();
+    const leader = session.state.leaderSeat;
+    const leaderUser = session.seatUser(leader);
+    const nonLeader = (leader + 1) % 6;
+    if (session.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(session.state.phase.draftSeats).toEqual([]);
+    // 非队长不能改草稿；草稿也不能超出本轮所需人数（上限钉死）。
+    session.expectReject(
+      { type: 'avalon.team.updateDraft', seats: [0, 1] },
       'avalon_not_leader',
       session.seatUser(nonLeader),
     );
     session.expectReject(
-      { type: 'avalon.team.propose', seats: [0, 1, 2] },
+      { type: 'avalon.team.updateDraft', seats: [0, 1, 2] },
       'avalon_team_size_invalid:2',
-      session.seatUser(leader),
+      leaderUser,
     );
-    // 队长可以把自己选进队伍；组队后直接进入投票。
+    // 去重与已入座校验与 propose 同源（同一校验函数）。
+    session.expectReject(
+      { type: 'avalon.team.updateDraft', seats: [1, 1] },
+      'avalon_duplicate_seats',
+      leaderUser,
+    );
+    session.expectReject(
+      { type: 'avalon.team.updateDraft', seats: [6] },
+      'avalon_invalid_seats',
+      leaderUser,
+    );
+    // 整集替换：后一次提交整体覆盖前一次，不做增量合并。
+    session.send({ type: 'avalon.team.updateDraft', seats: [leader] }, leaderUser);
     session.send(
-      { type: 'avalon.team.propose', seats: [leader, (leader + 1) % 6] },
-      session.seatUser(leader),
+      { type: 'avalon.team.updateDraft', seats: [nonLeader, (leader + 2) % 6] },
+      leaderUser,
     );
+    if (session.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(session.state.phase.draftSeats).toEqual([nonLeader, (leader + 2) % 6]);
+    // 草稿向全房投影（任意视角可见同一草稿）；非 nominate 阶段为 null。
+    expect(getAvalonViewModel(session.state, nonLeader).draftSeats).toEqual([
+      nonLeader,
+      (leader + 2) % 6,
+    ]);
+    expect(getAvalonViewModel(session.state, null).draftSeats).toEqual([
+      nonLeader,
+      (leader + 2) % 6,
+    ]);
+    // 确认以草稿为准：进入 vote 后提案与草稿逐一一致，草稿投影关闭。
+    session.send({ type: 'avalon.team.propose' }, leaderUser);
     const votePhase = session.phase();
     if (votePhase.kind !== 'vote') throw new Error('expected vote phase');
-    expect(votePhase.proposedSeats).toContain(leader);
+    expect(votePhase.proposedSeats).toEqual([nonLeader, (leader + 2) % 6]);
+    expect(getAvalonViewModel(session.state, nonLeader).draftSeats).toBeNull();
+    // nominate 之外改草稿：阶段不对直接拒绝。
+    session.expectReject(
+      { type: 'avalon.team.updateDraft', seats: [0] },
+      'avalon_phase_invalid',
+      leaderUser,
+    );
+    // 否决后轮转到新队长：新 nominate 的草稿清零，不继承上一任。
+    session.voteAll('reject');
+    session.finishVote();
+    const rotatedPhase = session.phase();
+    if (rotatedPhase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(session.state.leaderSeat).toBe(nonLeader);
+    expect(rotatedPhase.draftSeats).toEqual([]);
   });
 
   it('overwrites ballots on re-vote and settles on host finish (D15)', () => {

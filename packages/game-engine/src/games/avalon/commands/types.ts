@@ -18,7 +18,8 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.bots.markAllBotsViewed' }
   | { readonly type: 'avalon.night.confirm' }
   | { readonly type: 'avalon.audio.ack' }
-  | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }
+  | { readonly type: 'avalon.team.updateDraft'; readonly seats: readonly number[] }
+  | { readonly type: 'avalon.team.propose' }
   | { readonly type: 'avalon.team.vote'; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.vote.finish' }
   | { readonly type: 'avalon.phase.expire' }
