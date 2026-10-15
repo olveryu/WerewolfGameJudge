@@ -5,7 +5,6 @@ import {
   drawGuessEngine,
   migratePersistedDrawGuessState,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { z } from 'zod';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { drawGuessEffectSchema, handleDrawGuessEffect } from './effects';
@@ -15,10 +14,6 @@ import {
   drawGuessInternalCommandSchema,
   drawGuessPublicCommandSchema,
 } from './schemas';
-
-const drawGuessPublicStatsSchema = z.strictObject({
-  gameType: z.literal('drawguess'),
-});
 
 export const drawGuessWorkerModule = defineWorkerGameModule({
   gameType: 'drawguess',
@@ -35,13 +30,9 @@ export const drawGuessWorkerModule = defineWorkerGameModule({
       router: drawGuessMediaRoutes,
     },
   ],
-  parsePublicUserStats: (value) => drawGuessPublicStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: 'drawguess' as const }),
   getEffectBusinessKey: (effect, context) =>
     effect.type === 'drawguess.words.deal'
       ? `drawguess:words-deal:${context.createdRevision}:${effect.payload.turnIndex}`
       : `drawguess:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
-  getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => true,
   handleEffect: handleDrawGuessEffect,
 });

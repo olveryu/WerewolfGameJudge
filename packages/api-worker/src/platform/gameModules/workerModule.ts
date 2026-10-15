@@ -22,7 +22,7 @@ import type {
   GameStateCodec,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { Hono } from 'hono';
-import type { ZodType } from 'zod';
+import { z, type ZodType } from 'zod';
 
 import type { AppEnv, Env } from '../../env';
 import type {
@@ -173,6 +173,60 @@ export interface WorkerGameModuleDefinition<
   ): Promise<void>;
 }
 
+/** Public stats shape a game gets when it authors no public statistics of its own. */
+export interface PublicStatsStub<TGameType extends string> {
+  readonly gameType: TGameType;
+}
+
+type WorkerGameModuleDefaultedField =
+  | 'parsePublicUserStats'
+  | 'getPublicUserStats'
+  | 'getEffectBusinessKey'
+  | 'getEffectFailureCommand'
+  | 'canReplayFailedEffect';
+
+/**
+ * Authoring input for {@link defineWorkerGameModule}: the full definition
+ * minus the five fields the factory defaults (see the factory remarks).
+ */
+export type WorkerGameModuleDefinitionInput<
+  TGameType extends string,
+  TState extends BaseGameState<TGameType>,
+  TConfig,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  TPublicCommand extends GameCommand,
+  TInternalCommand extends GameCommand,
+  TEngine extends GameEngineDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TPublicCommand | TInternalCommand,
+    TEvent,
+    TEffect
+  >,
+  TPublicUserStats,
+> = Omit<
+  WorkerGameModuleDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TEvent,
+    TEffect,
+    TPublicCommand,
+    TInternalCommand,
+    TEngine,
+    TPublicUserStats
+  >,
+  WorkerGameModuleDefaultedField
+> & {
+  readonly parsePublicUserStats?: (value: unknown) => TPublicUserStats;
+  readonly getPublicUserStats?: (userId: string, bindings: Env) => Promise<TPublicUserStats>;
+  readonly getEffectBusinessKey?: (effect: TEffect, context: WorkerEffectBusinessContext) => string;
+  readonly getEffectFailureCommand?: (effect: TEffect, state: TState) => TInternalCommand | null;
+  readonly canReplayFailedEffect?: (effect: TEffect) => boolean;
+};
+
 export type WorkerGameModule<
   TGameType extends string,
   TState extends BaseGameState<TGameType>,
@@ -219,8 +273,206 @@ type ExactCommandPartition<TCommand, TPublicCommand, TInternalCommand> =
       : never
     : never;
 
-/** Build callable runtime operations while preserving the authored game identity. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function createPublicStatsStubSchema<TGameType extends string>(gameType: TGameType) {
+  return z.strictObject({ gameType: z.literal(gameType) });
+}
+
+/**
+ * Default effect business key: the round an effect belongs to. An effect
+ * without a string `payload.roundId` cannot use the default.
+ *
+ * @throws Error when the effect carries no `payload.roundId`.
+ */
+function defaultEffectBusinessKey<TEffect extends GameEffect>(
+  gameType: string,
+  effect: TEffect,
+): string {
+  const payload: unknown = isRecord(effect) ? effect.payload : undefined;
+  if (isRecord(payload) && typeof payload.roundId === 'string') return payload.roundId;
+  throw new Error(
+    `[FAIL-FAST] Game module ${gameType} effect ${effect.type} has no payload.roundId ` +
+      'for the default effect business key',
+  );
+}
+
+/**
+ * Build callable runtime operations while preserving the authored game identity.
+ *
+ * @remarks The factory owns three shared defaults, moved verbatim from the
+ * per-game declarations that used to copy them: the `{ gameType }` public
+ * stats stub pair, the `payload.roundId` effect business key, and the
+ * no-failure-command / always-replayable effect failure pair. A game only
+ * declares the groups it genuinely deviates from. Authoring a custom
+ * `parsePublicUserStats` without `getPublicUserStats` is supported: the
+ * default getter returns the identity stub for the authored parse to
+ * validate. Authoring `getPublicUserStats` without a parse is rejected —
+ * the stub parse could not validate authored stats.
+ */
 export function defineWorkerGameModule<
+  const TGameType extends string,
+  TState extends BaseGameState<TGameType>,
+  TConfig,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  const TPublicCommand extends GameCommand,
+  const TInternalCommand extends GameCommand,
+  const TEngine extends GameEngineDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TPublicCommand | TInternalCommand,
+    TEvent,
+    TEffect
+  >,
+  const TPublicUserStats extends PublicStatsStub<TGameType>,
+>(
+  definition: Omit<
+    WorkerGameModuleDefinitionInput<
+      TGameType,
+      TState,
+      TConfig,
+      TEvent,
+      TEffect,
+      TPublicCommand,
+      TInternalCommand,
+      TEngine,
+      TPublicUserStats
+    >,
+    'parsePublicUserStats'
+  > & {
+    readonly parsePublicUserStats: (value: unknown) => TPublicUserStats;
+  } & ExactCommandPartition<CommandOf<TEngine>, TPublicCommand, TInternalCommand>,
+): WorkerGameModule<
+  TGameType,
+  TState,
+  TConfig,
+  TEvent,
+  TEffect,
+  TPublicCommand,
+  TInternalCommand,
+  TEngine,
+  TPublicUserStats
+>;
+export function defineWorkerGameModule<
+  const TGameType extends string,
+  TState extends BaseGameState<TGameType>,
+  TConfig,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  const TPublicCommand extends GameCommand,
+  const TInternalCommand extends GameCommand,
+  const TEngine extends GameEngineDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TPublicCommand | TInternalCommand,
+    TEvent,
+    TEffect
+  >,
+>(
+  definition: Omit<
+    WorkerGameModuleDefinitionInput<
+      TGameType,
+      TState,
+      TConfig,
+      TEvent,
+      TEffect,
+      TPublicCommand,
+      TInternalCommand,
+      TEngine,
+      PublicStatsStub<TGameType>
+    >,
+    'parsePublicUserStats' | 'getPublicUserStats'
+  > &
+    ExactCommandPartition<CommandOf<TEngine>, TPublicCommand, TInternalCommand>,
+): WorkerGameModule<
+  TGameType,
+  TState,
+  TConfig,
+  TEvent,
+  TEffect,
+  TPublicCommand,
+  TInternalCommand,
+  TEngine,
+  PublicStatsStub<TGameType>
+>;
+export function defineWorkerGameModule<
+  const TGameType extends string,
+  TState extends BaseGameState<TGameType>,
+  TConfig,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  const TPublicCommand extends GameCommand,
+  const TInternalCommand extends GameCommand,
+  const TEngine extends GameEngineDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TPublicCommand | TInternalCommand,
+    TEvent,
+    TEffect
+  >,
+  const TPublicUserStats extends PublicStatsStub<TGameType> = PublicStatsStub<TGameType>,
+>(
+  definition: WorkerGameModuleDefinitionInput<
+    TGameType,
+    TState,
+    TConfig,
+    TEvent,
+    TEffect,
+    TPublicCommand,
+    TInternalCommand,
+    TEngine,
+    TPublicUserStats
+  > &
+    ExactCommandPartition<CommandOf<TEngine>, TPublicCommand, TInternalCommand>,
+): WorkerGameModule<
+  TGameType,
+  TState,
+  TConfig,
+  TEvent,
+  TEffect,
+  TPublicCommand,
+  TInternalCommand,
+  TEngine,
+  PublicStatsStub<TGameType>
+> {
+  const getEffectBusinessKey =
+    definition.getEffectBusinessKey ??
+    ((effect: TEffect) => defaultEffectBusinessKey(definition.gameType, effect));
+  const getEffectFailureCommand = definition.getEffectFailureCommand ?? (() => null);
+  const canReplayFailedEffect = definition.canReplayFailedEffect ?? (() => true);
+
+  if (definition.parsePublicUserStats !== undefined) {
+    const parsePublicUserStats = definition.parsePublicUserStats;
+    return buildWorkerGameModule({
+      ...definition,
+      parsePublicUserStats,
+      getPublicUserStats:
+        definition.getPublicUserStats ??
+        (() => Promise.resolve(parsePublicUserStats({ gameType: definition.gameType }))),
+      getEffectBusinessKey,
+      getEffectFailureCommand,
+      canReplayFailedEffect,
+    });
+  }
+  return buildWorkerGameModule({
+    ...definition,
+    parsePublicUserStats: (value: unknown) =>
+      createPublicStatsStubSchema(definition.gameType).parse(value),
+    getPublicUserStats: () => Promise.resolve({ gameType: definition.gameType }),
+    getEffectBusinessKey,
+    getEffectFailureCommand,
+    canReplayFailedEffect,
+  });
+}
+
+/** Assemble the runtime module from a fully resolved definition. */
+function buildWorkerGameModule<
   const TGameType extends string,
   TState extends BaseGameState<TGameType>,
   TConfig,
@@ -248,8 +500,7 @@ export function defineWorkerGameModule<
     TInternalCommand,
     TEngine,
     TPublicUserStats
-  > &
-    ExactCommandPartition<CommandOf<TEngine>, TPublicCommand, TInternalCommand>,
+  >,
 ): WorkerGameModule<
   TGameType,
   TState,

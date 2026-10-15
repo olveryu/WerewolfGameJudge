@@ -5,7 +5,6 @@ import {
   UNDERCOVER_STATE_CODEC,
   undercoverEngine,
 } from '@game-judge/game-engine/games/undercover/public';
-import { z } from 'zod';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { getUndercoverEffectFailureCommand, handleUndercoverEffect } from './effects';
@@ -17,8 +16,6 @@ import {
   undercoverPublicCommandSchema,
 } from './schemas';
 
-const publicStatsSchema = z.strictObject({ gameType: z.literal('undercover') });
-
 export const undercoverWorkerModule = defineWorkerGameModule({
   gameType: 'undercover',
   engine: undercoverEngine,
@@ -29,9 +26,6 @@ export const undercoverWorkerModule = defineWorkerGameModule({
   internalCommandSchema: undercoverInternalCommandSchema,
   effectSchema: undercoverEffectSchema,
   httpRoutes: [{ path: '/api/games/undercover/inventory', router: undercoverInventoryRoutes }],
-  parsePublicUserStats: (value) => publicStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: 'undercover' as const }),
-  getEffectBusinessKey: (effect) => effect.payload.roundId,
   handleEffect: handleUndercoverEffect,
   getEffectFailureCommand: getUndercoverEffectFailureCommand,
   canReplayFailedEffect: (effect) => effect.type === 'undercover.game.completed',

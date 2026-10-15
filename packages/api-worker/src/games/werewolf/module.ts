@@ -18,8 +18,6 @@ import {
 } from './schemas';
 
 export const werewolfWorkerModule = defineWorkerGameModule({
-  getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => true,
   gameType: 'werewolf',
   engine: werewolfEngine,
   stateCodec: WEREWOLF_STATE_CODEC,
