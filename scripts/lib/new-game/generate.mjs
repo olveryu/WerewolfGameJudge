@@ -229,7 +229,7 @@ function verifyGeneratedFilesLintClean(repoRoot, files) {
     const stdout = error.stdout ? String(error.stdout) : '';
     const stderr = error.stderr ? String(error.stderr) : String(error);
     throw new Error(
-      `new-game: eslint reports problems in the generated files that --fix cannot resolve. The game itself is fully generated and registered; fix the lint findings (or the templates under scripts/lib/new-game/templates) instead of re-running new-game, which would now refuse the duplicate id:\n${stdout}${stderr}`,
+      `new-game: eslint did not come back clean on the generated files (unfixable problems in them, or a broken eslint config/environment — see the output below). The game itself is fully generated and registered; fix the lint findings (or the templates under scripts/lib/new-game/templates) instead of re-running new-game, which would now refuse the duplicate id:\n${stdout}${stderr}`,
     );
   }
   return true;
