@@ -6,6 +6,7 @@ import {
   AVALON_BOARDS,
   AVALON_NIGHT_STEPS,
   type AvalonNightStep,
+  type AvalonPhaseKind,
   type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
@@ -98,13 +99,31 @@ function getAvalonProfileTarget(state: AvalonState, seat: number): RoomProfileTa
   );
 }
 
+/**
+ * 队长徽标的阶段门：队长只在白天组队流程中有职能（组队 / 投票 / 任务 /
+ * 湖仙 / 刺杀），只在这些阶段显示。身份查看与夜晚显示队长是阶段信息串扰
+ * （与查看勾只属于查看阶段同类命题）；大厅队长未定、终局队长无职能，
+ * 同样不显示。穷尽映射逐阶段表态，新增阶段必须在此显式决定。
+ */
+const AVALON_LEADER_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
+  lobby: false,
+  viewing: false,
+  night: false,
+  nominate: true,
+  vote: true,
+  quest: true,
+  lady: true,
+  assassin: true,
+  ended: false,
+};
+
 function avalonSeatStatusLabel(
   state: AvalonState,
   seat: number,
   pickedSeats: ReadonlySet<number>,
 ): string | null {
-  if (state.leaderSeat === seat && state.phase.kind !== 'lobby') return '队长';
   const phase = state.phase;
+  if (state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind]) return '队长';
   if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
   // 提名阶段队长在座位盘上的本地选中集（尚未提交）：选中即「队员」徽标。
   if (phase.kind === 'nominate' && pickedSeats.has(seat)) return '队员';
