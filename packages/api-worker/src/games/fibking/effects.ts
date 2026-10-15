@@ -19,7 +19,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { dispatchPreparationCommand } from '../../platform/gameModules/preparationDispatch';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { FibWordInventoryExhaustedError, getOrCreateFibWordSelection } from './wordSelection';
 import { recordFibWordUsage } from './wordUsage';
@@ -64,7 +64,7 @@ async function dispatchPreparationStage(
   roundId: string,
   stage: (typeof FIB_PREPARATION_STAGES)['selecting' | 'finalizing'],
 ): Promise<boolean> {
-  return dispatchPreparationCommand(
+  return dispatchEffectCommand(
     context,
     { type: 'fibking.round.updatePreparationStage', roundId, stage },
     {
@@ -100,7 +100,7 @@ async function dispatchRoundCompletion(
   effect: FibSelectWordEffect,
   selected: Awaited<ReturnType<typeof getOrCreateFibWordSelection>>,
 ): Promise<void> {
-  await dispatchPreparationCommand(
+  await dispatchEffectCommand(
     context,
     {
       type: 'fibking.round.complete',
@@ -147,7 +147,7 @@ async function handleFibSelectWordEffect(
     });
   } catch (error) {
     if (!(error instanceof FibWordInventoryExhaustedError)) throw error;
-    await dispatchPreparationCommand(
+    await dispatchEffectCommand(
       context,
       {
         type: 'fibking.round.failPreparation',

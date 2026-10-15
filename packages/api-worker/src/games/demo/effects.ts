@@ -12,7 +12,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 
 const gameCompletedEffectSchema = z.strictObject({
@@ -40,9 +40,7 @@ type DemoSettleDueEffect = Extract<DemoEffect, { type: 'demo.settle.due' }>;
  * arming it targeted is already gone (the phase moved on): the
  * delivery is done, not failed.
  */
-function isSupersededSettleRejection(reason: string): boolean {
-  return reason === DEMO_REASONS.phase || reason === DEMO_REASONS.deadline;
-}
+const SUPERSEDED_SETTLE_REASONS: readonly string[] = [DEMO_REASONS.phase, DEMO_REASONS.deadline];
 
 async function handleDemoSettleDueEffect(
   effect: DemoSettleDueEffect,
@@ -60,22 +58,15 @@ async function handleDemoSettleDueEffect(
   ) {
     return;
   }
-  const commandId = await createEffectCommandId('demo:settle', context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type: 'demo.phase.settleExpired',
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Demo settle receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededSettleRejection(result.reason)) return;
-    throw new Error(`Demo settle command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`Demo settle command ${commandId} failed: ${result.outcome.reason}`);
-  }
+  await dispatchEffectCommand(
+    context,
+    { type: 'demo.phase.settleExpired' },
+    {
+      namespace: 'demo:settle',
+      supersededReasons: SUPERSEDED_SETTLE_REASONS,
+      label: 'Demo settle',
+    },
+  );
 }
 
 /**

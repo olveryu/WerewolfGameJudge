@@ -12,7 +12,7 @@ import {
   gameCompletionPayloadSchema,
   publishGameRewards,
 } from '../../features/account/settleGameRewards';
-import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 
 const gameCompletedEffectSchema = z.strictObject({
@@ -43,9 +43,10 @@ type AvalonSettleDueEffect = Extract<AvalonEffect, { type: 'avalon.settle.due' }
  * settled first, or the phase moved on): the delivery is done, not
  * failed.
  */
-function isSupersededSettleRejection(reason: string): boolean {
-  return reason === AVALON_REASONS.phase || reason === AVALON_REASONS.deadline;
-}
+const SUPERSEDED_SETTLE_REASONS: readonly string[] = [
+  AVALON_REASONS.phase,
+  AVALON_REASONS.deadline,
+];
 
 async function handleAvalonSettleDueEffect(
   effect: AvalonSettleDueEffect,
@@ -65,23 +66,20 @@ async function handleAvalonSettleDueEffect(
   ) {
     return;
   }
-  const commandId = await createEffectCommandId('avalon:settle', context.effectId);
-  const result = await context.dispatchInternal(commandId, {
-    type:
-      effect.payload.phase === 'vote' ? 'avalon.vote.settleExpired' : 'avalon.quest.settleExpired',
-  });
-  if (result.commandId !== commandId) {
-    throw new Error(
-      `[FAIL-FAST] Avalon settle receipt ${result.commandId} does not match ${commandId}`,
-    );
-  }
-  if (result.kind === 'rejected') {
-    if (isSupersededSettleRejection(result.reason)) return;
-    throw new Error(`Avalon settle command ${commandId} was rejected: ${result.reason}`);
-  }
-  if (result.outcome.kind !== 'success') {
-    throw new Error(`Avalon settle command ${commandId} failed: ${result.outcome.reason}`);
-  }
+  await dispatchEffectCommand(
+    context,
+    {
+      type:
+        effect.payload.phase === 'vote'
+          ? 'avalon.vote.settleExpired'
+          : 'avalon.quest.settleExpired',
+    },
+    {
+      namespace: 'avalon:settle',
+      supersededReasons: SUPERSEDED_SETTLE_REASONS,
+      label: 'Avalon settle',
+    },
+  );
 }
 
 /**
