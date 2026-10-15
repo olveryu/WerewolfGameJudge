@@ -321,11 +321,15 @@ export function editDispatchDiscipline(content, { gameId, pascal }) {
     `  ${gameId}: [\n` +
     `    { file: 'games/${gameId}/room/hooks/use${pascal}RoomState.ts', form: 'parameterized-submit' },\n` +
     `  ],\n`;
+  // Anchor on the record close alone: the previous entry's closing shape is
+  // not stable across generations (the formatting pass collapses a short
+  // generated entry onto one line), so keying on it would make the second
+  // generation into the same repository fail to find its anchor.
   return replaceOnce(
     file,
     content,
-    /(  \],\n)(\};\n\nfunction expectParameterizedSubmit)/,
-    (match, tail, head) => `${tail}${entry}${head}`,
+    /(\n)(\};\n\nfunction expectParameterizedSubmit)/,
+    (match, newline, head) => `${newline}${entry}${head}`,
   );
 }
 
