@@ -289,15 +289,23 @@ visibility→`domain/playerHelpers.ts`、normalize→`domain/state/normalize.ts`
   子集（协议超集 `PREPARATION_FAILURE_CODES` 的子集，D-2）、阶段词汇
   （D-5，可为空）、重试策略（D-1，故意不统一）。状态形状与 reason
   仍各家自有。不许各写一份 prepare 流程。
-- **库供给型**（词库要持续补货）：接 Worker 侧 **wordSupply 共享
-  运行时**（`packages/api-worker/src/platform/wordSupply/`：
-  `wordSupplyWorkflow.ts` 是 durable 编排运行时——enable 门/容量/
-  预留/生成/审核/发布，`wordPackLedger.ts` 管词包台账）。各家只供
-  config（env 开关、批量上限、模型、history 形态、provider、候选
-  解析）与本家 publication 函数，文件形态照现有三家的五件套
-  （本家 `wordSupplyWorkflow.ts` 类、`wordPublication.ts`、
-  provider/editorial/selection），接口由
-  `wordSupply/__tests__/wordPublication.contract.test.ts` 焊死。
+- **库供给型**（词库要持续补货）：接 Worker 侧 **wordSupply 共享件**
+  （`packages/api-worker/src/platform/wordSupply/`）。三家共同的硬
+  接口只有一处：本家 `wordPublication.ts` 导出的 **publication
+  五函数**（reserve / getReviewCandidates / storeCandidates /
+  publish / fail），由 `wordSupply/__tests__/wordPublication.contract.test.ts`
+  按共享 `WordSupplyPublication` 接口焊死（三家都要满足；瞎掰王有
+  两处已登记的签名偏差，以 Exact pin 钉住）。编排分两种形态：
+  **双队列编辑型**（卧底/你画我猜）用共享运行时
+  `wordSupplyWorkflow.ts` 的 `runWordSupplyWorkflow`（enable 门/
+  容量/预留/生成/审核/发布的 durable 编排，`wordPackLedger.ts` 管
+  词包台账），各家只供 config（env 开关、批量上限、模型、history
+  形态、provider、候选解析）与 publication 五函数，本家
+  `wordSupplyWorkflow.ts` 只剩薄 WorkflowEntrypoint 类；
+  **搜索供给型**（瞎掰王）自建 workflow 类编排（自带 maintenance
+  与搜索证据链），只对齐 publication 接口、不走共享运行时。除
+  wordPublication 与 workflow 类外，各家词文件集不强求同形
+  （provider/editorial/selection/deal 按本家供给链取舍）。
   workflow 类与 wrangler `[[workflows]]` binding、注册表
   `workerWorkflows` 声明属 Phase 2 的「仍手工」类，逐项办齐。
 
