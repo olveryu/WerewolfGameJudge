@@ -2,7 +2,11 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
-import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from '../helpers/multi-player';
+import {
+  type GameSetupWithRolesResult,
+  setupNPlayerGame,
+  setupNPlayerGameWithRoles,
+} from '../helpers/multi-player';
 import {
   clickSeatAndConfirm,
   dismissAlert,
@@ -14,7 +18,22 @@ import {
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
+import { runNightFlowLoop } from '../pages/NightFlowPage';
+import { RoomPage } from '../pages/RoomPage';
 
+/**
+ * Werewolf Night E2E — Flow.
+ *
+ * Minimal-player night flows and settlement display verification:
+ * - 2-player and 6-player smoke flows run to completion
+ * - Verification: 2p death message shows the correct seat;
+ *   6p seer reveal shows the checked wolf
+ *
+ * Formerly night-2p.spec.ts, night-6p.spec.ts and night-verify.spec.ts.
+ */
+
+test.describe.configure({ mode: 'serial' });
+test.setTimeout(300_000);
 /**
  * Night Verification E2E
  *
@@ -27,14 +46,7 @@ import {
  * night actions with role awareness.
  */
 
-test.describe.configure({ mode: 'serial' });
-test.setTimeout(180_000);
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-test.describe('Night Verification', () => {
+test.describe('Werewolf Night — Flow Verification', () => {
   // -------------------------------------------------------------------------
   // 1. 2-player death verification
   // -------------------------------------------------------------------------
@@ -188,6 +200,102 @@ test.describe('Night Verification', () => {
         );
     } finally {
       if (setup) await closeAll(setup.fixture);
+    }
+  });
+});
+
+/**
+ * 2-Player Night Smoke E2E
+ *
+ * Verifies the simplest night flow (1 wolf + 1 villager) runs to completion.
+ * Does NOT assert exact death results — that's covered by Jest integration tests.
+ */
+
+test.describe('Werewolf Night — Flow 2-Player', () => {
+  test('first night runs to completion', async ({ browser }, testInfo) => {
+    const { fixture, roomCode, hostPage } = await setupNPlayerGame(browser, {
+      playerCount: 2,
+      configureTemplate: async (config) => config.configure2Player(),
+    });
+
+    try {
+      const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
+        maxIterations: 80,
+        screenshotInterval: 10,
+      });
+
+      // Verify night ended
+      const room = new RoomPage(hostPage);
+      const hasLastNightBtn = await room.isLastNightInfoVisible();
+
+      const nightEnded =
+        hasLastNightBtn ||
+        nightResult.resultText.includes('平安夜') ||
+        nightResult.resultText.includes('死亡');
+
+      expect(nightEnded, 'Night should complete').toBe(true);
+
+      await room.screenshot(testInfo, 'night-2p-ended.png');
+
+      // Attach diagnostic report
+      await testInfo.attach('night-2p.txt', {
+        body: [
+          `Room: ${roomCode}`,
+          `Result: ${nightResult.resultText}`,
+          `Turns: ${nightResult.turnLog.join(' → ')}`,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+    } finally {
+      await closeAll(fixture);
+    }
+  });
+});
+
+/**
+ * 6-Player Night Smoke E2E
+ *
+ * Template: 2 wolves + seer + witch + hunter + 1 villager = 6
+ * Validates multi-wolf voting and full role flow.
+ * Does NOT assert exact death results.
+ */
+
+test.describe('Werewolf Night — Flow 6-Player', () => {
+  test('6-player night flow with 2 wolves', async ({ browser }, testInfo) => {
+    const { fixture, roomCode, hostPage } = await setupNPlayerGame(browser, {
+      playerCount: 6,
+      configureTemplate: async (config) => config.configure6Player(),
+    });
+
+    try {
+      const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
+        maxIterations: 200,
+        screenshotInterval: 20,
+      });
+
+      const room = new RoomPage(hostPage);
+      const hasLastNightBtn = await room.isLastNightInfoVisible();
+
+      const nightEnded =
+        hasLastNightBtn ||
+        nightResult.resultText.includes('平安夜') ||
+        nightResult.resultText.includes('死亡');
+
+      expect(nightEnded, '6-player night should complete').toBe(true);
+
+      await room.screenshot(testInfo, 'night-6p-ended.png');
+
+      await testInfo.attach('night-6p.txt', {
+        body: [
+          `Room: ${roomCode}`,
+          `Template: 2狼 + 预言家 + 女巫 + 猎人 + 1村民`,
+          `Result: ${nightResult.resultText}`,
+          `Turns: ${nightResult.turnLog.join(' → ')}`,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+    } finally {
+      await closeAll(fixture);
     }
   });
 });
