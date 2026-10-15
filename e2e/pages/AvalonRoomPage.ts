@@ -243,10 +243,42 @@ export class AvalonRoomPage extends RoomPage {
     return true;
   }
 
-  async expectVoteResult(banner: string, counts: string): Promise<void> {
-    await expect(this.voteResultPanel()).toBeVisible({ timeout: 20_000 });
-    await expect(this.page.getByTestId('avalon-vote-result-banner')).toHaveText(banner);
-    await expect(this.page.getByTestId('avalon-vote-result-counts')).toHaveText(counts);
+  /**
+   * Assert this page's public vote result: banner, the summary line
+   * (「汇总：赞成 X · 反对 Y · 弃权 Z」, no testID in public mode), and one
+   * ballot row per seat (avalon-vote-result-row-{seat}) in ascending seat
+   * order naming each ballot. The counts-only testID
+   * avalon-vote-result-counts exists solely in secret mode. The panel
+   * auto-dismisses after 6s, so rows are read in a single snapshot.
+   */
+  async expectVoteResult(options: {
+    banner: string;
+    summary: string;
+    ballotBySeat: ReadonlyMap<number, 'approve' | 'reject'>;
+  }): Promise<void> {
+    const panel = this.voteResultPanel();
+    await expect(panel).toBeVisible({ timeout: 20_000 });
+    await expect(this.page.getByTestId('avalon-vote-result-banner')).toHaveText(options.banner);
+    const snapshot = await panel.evaluate((el) => ({
+      panelText: el.textContent ?? '',
+      rows: Array.from(el.querySelectorAll('[data-testid^="avalon-vote-result-row-"]')).map(
+        (node) => ({
+          testID: node.getAttribute('data-testid') ?? '',
+          text: node.textContent ?? '',
+        }),
+      ),
+    }));
+    expect(snapshot.panelText).toContain(options.summary);
+    const seatsAscending = [...options.ballotBySeat.keys()].sort((a, b) => a - b);
+    expect(snapshot.rows.map((row) => row.testID)).toEqual(
+      seatsAscending.map((seat) => `avalon-vote-result-row-${seat}`),
+    );
+    for (const row of snapshot.rows) {
+      const seat = Number(row.testID.replace('avalon-vote-result-row-', ''));
+      const expectedLabel = options.ballotBySeat.get(seat) === 'approve' ? '赞成' : '反对';
+      expect(row.text).toContain(`${seat + 1} 号`);
+      expect(row.text).toContain(expectedLabel);
+    }
   }
 
   async expectQuestResult(banner: string, counts: string): Promise<void> {

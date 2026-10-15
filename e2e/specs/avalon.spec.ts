@@ -190,7 +190,7 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
       team: readonly number[];
       ballotBySeat: ReadonlyMap<number, 'approve' | 'reject'>;
       banner: string;
-      counts: string;
+      summary: string;
     }): Promise<number> => {
       const leaderSeat = await findLeaderSeat();
       const leaderRoom = rooms[leaderSeat]!;
@@ -198,7 +198,11 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
       await leaderRoom.expectSeatBadge(options.team[0]!, '队员');
       await leaderRoom.submitTeam();
       await castAllBallots(options.ballotBySeat);
-      await hostRoom.expectVoteResult(options.banner, options.counts);
+      await hostRoom.expectVoteResult({
+        banner: options.banner,
+        summary: options.summary,
+        ballotBySeat: options.ballotBySeat,
+      });
       for (const room of rooms) await room.closeVoteResultPanel();
       return leaderSeat;
     };
@@ -264,7 +268,7 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
         team,
         ballotBySeat: rejectBallots,
         banner: '组队被否决·第 1 次',
-        counts: '赞成 4 · 反对 6 · 弃权 0',
+        summary: '汇总：赞成 4 · 反对 6 · 弃权 0',
       });
 
       const secondLeader = await findLeaderSeat();
@@ -279,7 +283,11 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
       for (const seat of team) await leaderRoom.tapSeat(seat);
       await leaderRoom.submitTeam();
       await castAllBallots(allApprove());
-      await hostRoom.expectVoteResult('组队通过', '赞成 10 · 反对 0 · 弃权 0');
+      await hostRoom.expectVoteResult({
+        banner: '组队通过',
+        summary: '汇总：赞成 10 · 反对 0 · 弃权 0',
+        ballotBySeat: allApprove(),
+      });
       for (const room of rooms) await room.closeVoteResultPanel();
 
       await runQuest({
@@ -301,7 +309,7 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
         team,
         ballotBySeat: allApprove(),
         banner: '组队通过',
-        counts: '赞成 10 · 反对 0 · 弃权 0',
+        summary: '汇总：赞成 10 · 反对 0 · 弃权 0',
       });
       await runQuest({
         team,
@@ -325,7 +333,7 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
         team,
         ballotBySeat: allApprove(),
         banner: '组队通过',
-        counts: '赞成 10 · 反对 0 · 弃权 0',
+        summary: '汇总：赞成 10 · 反对 0 · 弃权 0',
       });
       await runQuest({
         team,
@@ -355,7 +363,7 @@ test('Avalon 10-player full game: night, viewing, veto, lady x2, protected quest
         team,
         ballotBySeat: allApprove(),
         banner: '组队通过',
-        counts: '赞成 10 · 反对 0 · 弃权 0',
+        summary: '汇总：赞成 10 · 反对 0 · 弃权 0',
       });
       await runQuest({
         team,
