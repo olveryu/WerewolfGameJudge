@@ -1,7 +1,10 @@
 import {
+  buildEnabledHostAction,
   buildNextRoundAction,
+  buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildStartGameAction,
+  type RoomHostActionDescriptor,
 } from '../hostManagementActions';
 
 describe('host management action builders', () => {
@@ -70,5 +73,51 @@ describe('host management action builders', () => {
       testID: 'return-lobby-button',
       isEnabled: true,
     });
+  });
+});
+
+describe('host action pending marshal', () => {
+  const descriptor: RoomHostActionDescriptor = {
+    key: 'finish-vote',
+    label: '结束投票',
+    icon: 'checkmark-done-outline',
+    variant: 'primary',
+    testID: 'finish-vote-button',
+    isLoading: true,
+  };
+
+  it('binds the press handler when not pending', () => {
+    const onPress = jest.fn();
+    const action = buildPendingAwareHostAction(descriptor, false, onPress);
+    expect(action).toMatchObject({ ...descriptor, isEnabled: true });
+    if (action.isEnabled) action.onPress();
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops the press handler and nulls reason and feedback while pending', () => {
+    const action = buildPendingAwareHostAction(descriptor, true, () => undefined);
+    expect(action).toMatchObject({
+      ...descriptor,
+      isEnabled: false,
+      disabledReason: null,
+      onDisabledPress: null,
+    });
+    expect(action).not.toHaveProperty('onPress');
+  });
+
+  it('builds an enabled action from a descriptor without a loading declaration', () => {
+    const onPress = jest.fn();
+    const action = buildEnabledHostAction(
+      {
+        key: 'night-review',
+        label: '本局复盘',
+        icon: 'document-text-outline',
+        variant: 'secondary',
+      },
+      onPress,
+    );
+    expect(action).toMatchObject({ key: 'night-review', isEnabled: true });
+    if (action.isEnabled) action.onPress();
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

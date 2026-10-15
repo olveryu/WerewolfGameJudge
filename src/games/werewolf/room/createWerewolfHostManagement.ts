@@ -5,10 +5,13 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import {
   buildClearSeatsAction,
+  buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildPendingAwareHostAction,
   buildRoomConfigAction,
   buildStartGameAction,
+  type RoomHostActionDescriptor,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type {
@@ -44,38 +47,12 @@ interface WerewolfHostManagementInput {
   readonly onLastNightInfo: () => void;
 }
 
-interface ActionDescriptor {
-  readonly key: string;
-  readonly label: string;
-  readonly icon: RoomHostManagementAction['icon'];
-  readonly variant: RoomHostManagementAction['variant'];
-  readonly testID?: string;
-  readonly isLoading?: boolean;
-}
-
-function enabledAction(
-  descriptor: ActionDescriptor,
-  onPress: () => void,
-): RoomHostManagementAction {
-  return { ...descriptor, isEnabled: true, onPress };
-}
-
-function pendingAwareAction(
-  descriptor: ActionDescriptor,
-  isPending: boolean,
-  onPress: () => void,
-): RoomHostManagementAction {
-  return isPending
-    ? { ...descriptor, isEnabled: false, disabledReason: null, onDisabledPress: null }
-    : enabledAction(descriptor, onPress);
-}
-
 function createHostControlAction(
   input: WerewolfHostManagementInput,
   action: HostControlEvent['action'],
-  descriptor: ActionDescriptor,
+  descriptor: RoomHostActionDescriptor,
 ): RoomHostManagementAction {
-  return pendingAwareAction(descriptor, input.isHostActionSubmitting, () =>
+  return buildPendingAwareHostAction(descriptor, input.isHostActionSubmitting, () =>
     input.onHostControl(action),
   );
 }
@@ -84,7 +61,7 @@ function createSheriffAdvanceAction(
   election: SheriffElectionPanelModel,
 ): RoomHostManagementAction | null {
   if (!election.view.canAdvance || election.view.advanceLabel === null) return null;
-  const descriptor: ActionDescriptor = {
+  const descriptor: RoomHostActionDescriptor = {
     key: 'sheriff-advance',
     label: election.view.advanceLabel,
     icon: 'arrow-forward-outline',
@@ -92,7 +69,7 @@ function createSheriffAdvanceAction(
     testID: TESTIDS.sheriffAdvanceButton,
     isLoading: election.pendingAction?.kind === 'advance',
   };
-  return pendingAwareAction(
+  return buildPendingAwareHostAction(
     descriptor,
     election.pendingAction !== null,
     () => void election.advance(),
@@ -105,7 +82,7 @@ function createSheriffSelfDestructAction(
   const canEndBySelfDestruct =
     election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech';
   if (!canEndBySelfDestruct) return null;
-  const descriptor: ActionDescriptor = {
+  const descriptor: RoomHostActionDescriptor = {
     key: 'sheriff-self-destruct',
     label: '自爆结束竞选',
     icon: 'warning-outline',
@@ -113,7 +90,7 @@ function createSheriffSelfDestructAction(
     testID: TESTIDS.sheriffSelfDestructButton,
     isLoading: election.pendingAction?.kind === 'endBySelfDestruct',
   };
-  return pendingAwareAction(
+  return buildPendingAwareHostAction(
     descriptor,
     election.pendingAction !== null,
     election.requestEndBySelfDestruct,
@@ -154,7 +131,7 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
     }
     case GameStatus.Ended:
       return [
-        pendingAwareAction(
+        buildPendingAwareHostAction(
           {
             key: 'select-mvp',
             label: input.mvpSeat === null ? '评选 MVP' : `本局 MVP：${formatSeat(input.mvpSeat)}`,
@@ -217,7 +194,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
     input.roomStatus !== GameStatus.Day;
   if (canOpenMusicSettings) {
     actions.push(
-      enabledAction(
+      buildEnabledHostAction(
         {
           key: 'music-settings',
           label: '音乐设置',
@@ -234,7 +211,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
   }
   if (input.canMarkAllBotsGroupConfirmed) {
     actions.push(
-      enabledAction(
+      buildEnabledHostAction(
         {
           key: 'mark-bots-confirmed',
           label: '标记机器人已确认',
@@ -251,7 +228,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
 function createPostGameActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   if (input.roomStatus !== GameStatus.Day && input.roomStatus !== GameStatus.Ended) return [];
   return [
-    enabledAction(
+    buildEnabledHostAction(
       {
         key: 'night-review',
         label: '本局复盘',
@@ -261,7 +238,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
       },
       input.onNightReview,
     ),
-    enabledAction(
+    buildEnabledHostAction(
       {
         key: 'last-night-info',
         label: '昨夜信息',

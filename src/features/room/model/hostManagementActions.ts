@@ -55,6 +55,45 @@ function buildAction(
   };
 }
 
+/**
+ * Descriptor for a host action assembled outside the shared builders
+ * (game-specific flow actions). The descriptor carries the action's
+ * own `isLoading` declaration; the marshal below only flips
+ * availability around it.
+ */
+export interface RoomHostActionDescriptor {
+  readonly key: string;
+  readonly label: string;
+  readonly icon: RoomHostManagementAction['icon'];
+  readonly variant: RoomHostManagementAction['variant'];
+  readonly testID?: string;
+  readonly isLoading?: boolean;
+}
+
+/** Bind a descriptor to its press handler as an enabled action. */
+export function buildEnabledHostAction(
+  descriptor: RoomHostActionDescriptor,
+  onPress: () => void,
+): RoomHostManagementAction {
+  return { ...descriptor, isEnabled: true, onPress };
+}
+
+/**
+ * Marshal a command action around a pending flag: while pending, the
+ * action drops its press handler and renders disabled with no reason
+ * and no disabled feedback (the submission lock already prevents a
+ * second dispatch); otherwise it is the enabled action.
+ */
+export function buildPendingAwareHostAction(
+  descriptor: RoomHostActionDescriptor,
+  isPending: boolean,
+  onPress: () => void,
+): RoomHostManagementAction {
+  return isPending
+    ? { ...descriptor, isEnabled: false, disabledReason: null, onDisabledPress: null }
+    : buildEnabledHostAction(descriptor, onPress);
+}
+
 /** "开始游戏" — primary action, every game has it. */
 export function buildStartGameAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
