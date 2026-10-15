@@ -5,12 +5,12 @@ import { getBotSeats, isBotSeat } from '../../../platform/room/seating';
 import type { __GAME_PASCAL__Command } from '../commands/types';
 import { __GAME_UPPER___REASONS } from '../domain/decision';
 import { get__GAME_PASCAL__ViewModel } from '../domain/visibility';
-import { __GAME_CAMEL__Engine, end__GAME_PASCAL__Game } from '../engine';
+import { end__GAME_PASCAL__Game, __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
 import {
+  DEFAULT___GAME_UPPER___CONFIG,
   type __GAME_PASCAL__Config,
   type __GAME_PASCAL__State,
-  DEFAULT___GAME_UPPER___CONFIG,
 } from '../state/types';
 
 function game(
@@ -153,8 +153,11 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;
     expect(decision.effects).toHaveLength(1);
-    expect(decision.effects[0]?.type).toBe('__GAME_ID__.game.completed');
-    expect(decision.effects[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+    const completion = decision.effects[0];
+    expect(completion?.type).toBe('__GAME_ID__.game.completed');
+    if (completion?.type === '__GAME_ID__.game.completed') {
+      expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+    }
     const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');
     expect(ended.xpSettled).toBe(true);

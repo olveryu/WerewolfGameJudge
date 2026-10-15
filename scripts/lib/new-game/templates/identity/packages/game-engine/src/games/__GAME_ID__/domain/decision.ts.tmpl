@@ -46,8 +46,15 @@ export type __GAME_PASCAL__Event =
   | { readonly type: '__GAME_ID__.game.ended' }
   | { readonly type: '__GAME_ID__.game.returnedToLobby' };
 
-/** 终局 growth settlement effect：Worker 据此发 XP 奖励，xpSettled 保证恰好一次。 */
+/**
+ * Effect 词汇：终局结算只是第一个成员。给游戏加定时/异步流程时，
+ * 把本类型改成判别联合并追加成员（如舞台型的 `settle.due` 写
+ * `| { readonly type: '...'; readonly payload: {...} }`）。消费方
+ * （引擎测试、Worker schemas）一律按 `type` 窄化后读 payload，
+ * 不许直取某个成员的字段——加第二个成员时它们不需要改。
+ */
 export type __GAME_PASCAL__Effect = {
+  /** 终局 growth settlement effect：Worker 据此发 XP 奖励，xpSettled 保证恰好一次。 */
   readonly type: '__GAME_ID__.game.completed';
   readonly payload: {
     readonly roundId: string;

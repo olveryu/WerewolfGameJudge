@@ -163,6 +163,56 @@ function formatGeneratedFiles(repoRoot, files) {
   return true;
 }
 
+const LINTABLE_FILE = /\.(?:ts|tsx)$/;
+
+/**
+ * Run the repository's own eslint --fix over the created sources.
+ * simple-import-sort compares the rendered identifiers, so member
+ * order inside an import depends on the game id itself (an id whose
+ * PascalCase name sorts before a fixed prefix like `commit` flips the
+ * order) — no static template text can be pre-sorted for every id.
+ * This pass plays the same role for the lint gate as the prettier
+ * pass above plays for the format gate. Only created files are
+ * targeted: the shared files the generator edits already receive
+ * sort-correct inserts from edits.mjs. Fixture repositories without
+ * node_modules skip silently; a problem eslint cannot autofix (or
+ * any warning left over) aborts with its output attached.
+ */
+function autofixGeneratedImports(repoRoot, createdFiles) {
+  const targets = createdFiles.filter(
+    (file) => LINTABLE_FILE.test(file) && !file.endsWith('.tmpl'),
+  );
+  if (targets.length === 0) return;
+  let eslintBin;
+  try {
+    const require = createRequire(path.join(repoRoot, 'package.json'));
+    eslintBin = path.join(path.dirname(require.resolve('eslint/package.json')), 'bin', 'eslint.js');
+  } catch {
+    return;
+  }
+  try {
+    execFileSync(process.execPath, [eslintBin, '--fix', '--max-warnings', '0', ...targets], {
+      cwd: repoRoot,
+      stdio: 'pipe',
+      maxBuffer: 16 * 1024 * 1024,
+      env: {
+        ...process.env,
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
+          .filter(Boolean)
+          .join(' '),
+      },
+    });
+  } catch (error) {
+    const output = [error.stdout, error.stderr]
+      .filter((chunk) => chunk && String(chunk).length > 0)
+      .map((chunk) => String(chunk))
+      .join('\n');
+    throw new Error(
+      `new-game: eslint --fix left problems in the generated files. The game itself is fully generated and registered; fix the lint output (pnpm lint) instead of re-running new-game, which would now refuse the duplicate id:\n${output}`,
+    );
+  }
+}
+
 function collectTemplateFiles(layer) {
   const collected = new Map();
   const layerDir = path.join(TEMPLATES_DIR, layer);
@@ -306,6 +356,7 @@ export function generateNewGame(options) {
   }
   fs.writeFileSync(path.join(rootDir, reportPath), report);
   const formatted = formatGeneratedFiles(rootDir, [...createdFiles, ...editedFiles, reportPath]);
+  autofixGeneratedImports(rootDir, createdFiles);
 
   return { createdFiles, editedFiles, migrationName, reportPath, formatted };
 }
