@@ -82,6 +82,7 @@ const DISPATCH_SITES: Record<GameType, readonly DispatchSiteRegistration[]> = {
       form: 'hardcoded-null-submit',
     },
   ],
+  demo: [{ file: 'games/demo/room/hooks/useDemoRoomState.ts', form: 'parameterized-submit' }],
 };
 
 function expectParameterizedSubmit(source: string): void {

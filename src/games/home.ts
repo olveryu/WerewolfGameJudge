@@ -1,5 +1,6 @@
 /** Aggregate game-owned Home contributions at the client composition boundary. */
 
+import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
@@ -56,6 +57,15 @@ export function createClientGameHome(
       throw new Error(`[FAIL-FAST] Duplicate Home contribution for ${module.gameType}`);
     }
     gameTypes.add(module.gameType);
+
+    // The single production filter (registry `isProduction`, plan
+    // §7.1 / D8): a game that is registered but not in production
+    // contributes nothing to any player-facing Home list — no mode
+    // option (lobby / create-room picker), no guide option, no
+    // spotlight, no announcement tab. The module itself stays in the
+    // catalog, so rooms remain joinable by code and the game stays
+    // fully wired underneath.
+    if (!GAME_REGISTRY[module.gameType].isProduction) continue;
 
     const modeOption = { gameType: module.gameType, ...module.home.mode };
     modeOptions.push(modeOption);
