@@ -295,16 +295,12 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
       for (const seat of team) {
         const play: Play = seat === script.failerSeat ? 'fail' : 'success';
         await playQuestCard(pages[seat]!, play, roles[seat]!);
-        // The vote result panel sits under the quest modal on team pages.
-        await dismissPanelIfVisible(
-          pages[seat]!,
-          'avalon-vote-result-panel',
-          'avalon-vote-result-close',
-        );
       }
     });
-    await dismissVoteResultPanels(pages);
+    // 结算面板 6 秒自动关闭：最后一张牌落地后先直奔房主页断言任务结果，
+    // 其余页面的面板清理放断言之后（探不到即已自动关闭，不算失败）。
     await expectAndDismissQuestResult(pages[0]!, script.questResult);
+    await dismissVoteResultPanels(pages);
     await dismissQuestResultPanels(pages);
   } else {
     await dismissVoteResultPanels(pages);
@@ -536,10 +532,17 @@ test.describe('Avalon full game', () => {
           approved: true,
           approveCount: 8,
           rejectCount: 2,
+          // 赞成行选一名确定投了赞成的座位（两名指定反对者之外任意一人；
+          // 不能选新队长——他可能恰好就是指定反对者之一）。
           rows: new Map<number, '赞成' | '反对'>([
             [evilSeats[0]!, '反对'],
             [evilSeats[1]!, '反对'],
-            [(leader1 + 1) % PLAYER_COUNT, '赞成'],
+            [
+              Array.from({ length: PLAYER_COUNT }, (_, seat) => seat).find(
+                (seat) => seat !== evilSeats[0] && seat !== evilSeats[1],
+              )!,
+              '赞成',
+            ],
           ]),
         },
         questResult: { round: 1, success: true, successCount: 3, failCount: 0 },
