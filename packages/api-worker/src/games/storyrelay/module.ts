@@ -15,8 +15,6 @@ import {
   storyRelayPublicCommandSchema,
 } from './schemas';
 
-const publicStatsSchema = z.strictObject({ gameType: z.literal('storyrelay') });
-
 export const storyRelayWorkerModule = defineWorkerGameModule({
   gameType: 'storyrelay',
   engine: storyRelayEngine,
@@ -27,10 +25,5 @@ export const storyRelayWorkerModule = defineWorkerGameModule({
   internalCommandSchema: z.never(),
   effectSchema: storyRelayEffectSchema,
   httpRoutes: [],
-  parsePublicUserStats: (value) => publicStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: 'storyrelay' as const }),
-  getEffectBusinessKey: (effect) => effect.payload.roundId,
   handleEffect: handleStoryRelayEffect,
-  getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => true,
 });

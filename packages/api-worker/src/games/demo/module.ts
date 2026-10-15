@@ -5,7 +5,6 @@ import {
   demoEngine,
   migratePersistedDemoState,
 } from '@game-judge/game-engine/games/demo/public';
-import { z } from 'zod';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { demoEffectSchema, handleDemoEffect } from './effects';
@@ -14,10 +13,6 @@ import {
   demoInternalCommandSchema,
   demoPublicCommandSchema,
 } from './schemas';
-
-const demoPublicStatsSchema = z.strictObject({
-  gameType: z.literal('demo'),
-});
 
 export const demoWorkerModule = defineWorkerGameModule({
   gameType: 'demo',
@@ -29,8 +24,6 @@ export const demoWorkerModule = defineWorkerGameModule({
   internalCommandSchema: demoInternalCommandSchema,
   effectSchema: demoEffectSchema,
   httpRoutes: [],
-  parsePublicUserStats: (value) => demoPublicStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: 'demo' as const }),
   getEffectBusinessKey: (effect, context) =>
     effect.type === 'demo.settle.due'
       ? `demo:settle:${effect.payload.gameSequence}:${effect.payload.deadlineAt}`
@@ -39,7 +32,5 @@ export const demoWorkerModule = defineWorkerGameModule({
   // deadline: park it in the outbox until its deadline.
   getEffectDeliveryAt: (effect) =>
     effect.type === 'demo.settle.due' ? effect.payload.deadlineAt : null,
-  getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => true,
   handleEffect: handleDemoEffect,
 });

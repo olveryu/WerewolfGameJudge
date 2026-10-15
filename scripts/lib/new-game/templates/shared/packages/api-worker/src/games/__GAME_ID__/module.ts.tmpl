@@ -5,7 +5,6 @@ import {
   __GAME_UPPER___STATE_CODEC,
   __GAME_CAMEL__Engine,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
-import { z } from 'zod';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handle__GAME_PASCAL__Effect, __GAME_CAMEL__EffectSchema } from './effects';
@@ -14,10 +13,6 @@ import {
   __GAME_CAMEL__InternalCommandSchema,
   __GAME_CAMEL__PublicCommandSchema,
 } from './schemas';
-
-const __GAME_CAMEL__PublicStatsSchema = z.strictObject({
-  gameType: z.literal('__GAME_ID__'),
-});
 
 export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   gameType: '__GAME_ID__',
@@ -29,8 +24,6 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   internalCommandSchema: __GAME_CAMEL__InternalCommandSchema,
   effectSchema: __GAME_CAMEL__EffectSchema,
   httpRoutes: [],
-  parsePublicUserStats: (value) => __GAME_CAMEL__PublicStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: '__GAME_ID__' as const }),
   getEffectBusinessKey: (effect, context) =>
 //#stage
     effect.type === '__GAME_ID__.settle.due'
@@ -46,7 +39,5 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   getEffectDeliveryAt: (effect) =>
     effect.type === '__GAME_ID__.settle.due' ? effect.payload.deadlineAt : null,
 //#end
-  getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => true,
   handleEffect: handle__GAME_PASCAL__Effect,
 });

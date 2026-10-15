@@ -8,14 +8,8 @@ import {
   type AvalonState,
   getAvalonUserSeat,
 } from '@game-judge/game-engine/games/avalon/public';
-import { createElement } from 'react';
 
-import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
-import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
-import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
-import type { AudioService } from '@/services/infra/AudioService';
+import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 
 import { AvalonAudioPlayer } from './audio/AvalonAudioPlayer';
 import { avalonHomeContribution } from './home';
@@ -24,48 +18,27 @@ import { AvalonRoomScreen } from './room/AvalonRoomScreen';
 import { AvalonConfigScreen } from './screens/AvalonConfigScreen';
 import { AvalonGuideScreen } from './screens/AvalonGuideScreen';
 
-const EmptyAvalonAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
-
-/** 创建一个 session，把配置、房间 UI 与账号归属绑定到它上面。 */
-export function createAvalonUiModule({
-  sessionFactory,
-  audioService,
-}: {
-  readonly sessionFactory: GameSessionFactory;
-  readonly audioService: AudioService;
-}) {
-  const session = sessionFactory.create<AvalonState, AvalonPublicCommand>({
-    stateCodec: AVALON_STATE_CODEC,
-  });
-  const audio = new AvalonAudioPlayer(audioService);
-  const roomAccount = createSessionRoomAccountCapability<'avalon', AvalonState>({
-    gameType: 'avalon',
-    session,
-    isUserSeated: (state, userId) => getAvalonUserSeat(state, userId) !== null,
-    canSwitchAccount: (state) => state.phase.kind === 'lobby',
-  });
-  function BoundAvalonRoomScreen(props: GameRoomScreenProps<'avalon'>) {
-    return createElement(AvalonRoomScreen, { ...props, session, audio });
-  }
-  function BoundAvalonConfigScreen() {
-    return createElement(AvalonConfigScreen, { session });
-  }
-  return {
-    gameType: 'avalon',
-    home: avalonHomeContribution,
-    navigation: bindGameNavigation(avalonGameNavigation, {
-      config: BoundAvalonConfigScreen,
-      guide: AvalonGuideScreen,
-    }),
-    roomScreen: BoundAvalonRoomScreen,
-    roomAccount,
-    productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },
-    audioPreview: {
+export const createAvalonUiModule = defineClientGameModule<
+  'avalon',
+  AvalonState,
+  AvalonPublicCommand,
+  AvalonAudioPlayer
+>({
+  gameType: 'avalon',
+  stateCodec: AVALON_STATE_CODEC,
+  home: avalonHomeContribution,
+  navigation: avalonGameNavigation,
+  RoomScreen: AvalonRoomScreen,
+  ConfigScreen: AvalonConfigScreen,
+  GuideScreen: AvalonGuideScreen,
+  isUserSeated: (state, userId) => getAvalonUserSeat(state, userId) !== null,
+  canSwitchAccount: (state) => state.phase.kind === 'lobby',
+  audio: {
+    create: (audioService) => new AvalonAudioPlayer(audioService),
+    preview: (audio) => ({
       label: '试听效果',
       play: () => audio.playEffect('night'),
       stop: audio.stopNarration,
-    },
-    accountStatsSection: EmptyAvalonAccountStatsSection,
-    appOverlay: null,
-  } satisfies ClientGameModule<'avalon'>;
-}
+    }),
+  },
+});

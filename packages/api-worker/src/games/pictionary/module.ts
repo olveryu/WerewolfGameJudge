@@ -5,7 +5,6 @@ import {
   PICTIONARY_STATE_CODEC,
   pictionaryEngine,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { z } from 'zod';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handlePictionaryEffect } from './effects';
@@ -17,13 +16,7 @@ import {
   pictionaryPublicCommandSchema,
 } from './schemas';
 
-const pictionaryPublicStatsSchema = z.strictObject({
-  gameType: z.literal('pictionary'),
-});
-
 export const pictionaryWorkerModule = defineWorkerGameModule({
-  getEffectFailureCommand: () => null,
-  canReplayFailedEffect: () => true,
   gameType: 'pictionary',
   engine: pictionaryEngine,
   stateCodec: PICTIONARY_STATE_CODEC,
@@ -38,8 +31,5 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
       router: pictionaryMediaRoutes,
     },
   ],
-  parsePublicUserStats: (value) => pictionaryPublicStatsSchema.parse(value),
-  getPublicUserStats: () => Promise.resolve({ gameType: 'pictionary' as const }),
-  getEffectBusinessKey: (effect) => effect.payload.roundId,
   handleEffect: handlePictionaryEffect,
 });

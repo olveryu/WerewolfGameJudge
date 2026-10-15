@@ -5,13 +5,8 @@ import {
   type UndercoverPublicCommand,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
-import { createElement } from 'react';
 
-import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
-import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
-import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
-import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
+import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 import { colors } from '@/theme';
 
 import undercoverArt from '../../../assets/game-art/undercover.jpg';
@@ -20,45 +15,29 @@ import { UndercoverRoomScreen } from './room/UndercoverRoomScreen';
 import { UndercoverConfigScreen } from './screens/UndercoverConfigScreen';
 import { UndercoverRulesScreen } from './screens/UndercoverRulesScreen';
 
-const EmptyUndercoverStats = () => null;
-
-export function createUndercoverUiModule({
-  sessionFactory,
-}: {
-  readonly sessionFactory: GameSessionFactory;
-}) {
-  const session = sessionFactory.create<UndercoverState, UndercoverPublicCommand>({
-    stateCodec: UNDERCOVER_STATE_CODEC,
-  });
-  return {
-    gameType: 'undercover',
-    home: {
-      mode: {
-        displayName: '谁是卧底',
-        subtitle: '线下指人投票，房主揭晓',
-        iconName: 'finger-print-outline',
-        tier: 'mini',
-        gradient: [colors.textSecondary, colors.text],
-        art: undercoverArt,
-      },
-      spotlight: null,
-      announcementTabs: [],
+export const createUndercoverUiModule = defineClientGameModule<
+  'undercover',
+  UndercoverState,
+  UndercoverPublicCommand
+>({
+  gameType: 'undercover',
+  home: {
+    mode: {
+      displayName: '谁是卧底',
+      subtitle: '线下指人投票，房主揭晓',
+      iconName: 'finger-print-outline',
+      tier: 'mini',
+      gradient: [colors.textSecondary, colors.text],
+      art: undercoverArt,
     },
-    navigation: bindGameNavigation(undercoverGameNavigation, {
-      config: () => createElement(UndercoverConfigScreen, { session }),
-      guide: UndercoverRulesScreen,
-    }),
-    roomScreen: (props: GameRoomScreenProps<'undercover'>) =>
-      createElement(UndercoverRoomScreen, { ...props, session }),
-    roomAccount: createSessionRoomAccountCapability<'undercover', UndercoverState>({
-      gameType: 'undercover',
-      session,
-      isUserSeated: (state, userId) => getUndercoverUserSeat(state, userId) !== null,
-      canSwitchAccount: (state) => state.phase === 'lobby',
-    }),
-    productUi: { getAvatarDisplayName: () => null, getRevealEffectPresentation: () => null },
-    audioPreview: null,
-    accountStatsSection: EmptyUndercoverStats,
-    appOverlay: null,
-  } satisfies ClientGameModule<'undercover'>;
-}
+    spotlight: null,
+    announcementTabs: [],
+  },
+  stateCodec: UNDERCOVER_STATE_CODEC,
+  navigation: undercoverGameNavigation,
+  RoomScreen: UndercoverRoomScreen,
+  ConfigScreen: UndercoverConfigScreen,
+  GuideScreen: UndercoverRulesScreen,
+  isUserSeated: (state, userId) => getUndercoverUserSeat(state, userId) !== null,
+  canSwitchAccount: (state) => state.phase === 'lobby',
+});
