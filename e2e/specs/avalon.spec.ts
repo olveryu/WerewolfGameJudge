@@ -470,26 +470,12 @@ test.describe('Avalon full game', () => {
         await expect(hostPage.getByText('坏人互认', { exact: true }).first()).toBeVisible();
       });
 
-      await test.step('夜晚：奥伯伦独自互认（看不见任何同伴）', async () => {
-        const oberonPage = pages[oberonSeat]!;
-        const infoButton = oberonPage.getByTestId('avalon-night-info');
-        await expect(infoButton).toBeVisible({ timeout: 30_000 });
-        await infoButton.click();
-        await expect(oberonPage.getByTestId(TESTIDS.alertTitle)).toHaveText('坏人互认');
-        await expect(oberonPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
-          '无人可认：你看不见其他坏人，他们也看不见你。',
-        );
-        await oberonPage.getByTestId(TESTIDS.alertButton(0)).click();
-        // 已知产品 wart（已回报、另行立项）：规则上奥伯伦「不参与、不确认」，
-        // 但客户端仍给他确认按钮，引擎必然以 notNightParticipant 拒绝，
-        // 这里只把随之而来的失败弹窗关掉，不把错误文案断言为正确行为。
-        const errorModal = oberonPage.getByTestId(TESTIDS.alertModal);
-        await expect(errorModal).toBeVisible({ timeout: 10_000 });
-        await expect(oberonPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
-          '你不在当前确认步骤内',
-        );
-        await oberonPage.getByTestId(TESTIDS.alertButton(0)).click();
-        await expect(errorModal).toBeHidden({ timeout: 10_000 });
+      await test.step('夜晚：奥伯伦全程闭眼（无确认入口、看不见任何同伴）', async () => {
+        // 引擎参与者表（getAvalonNightParticipants）与可见性裁剪都把奥伯伦
+        // 排除在互认外：他夜里没有确认按钮、没有弹窗，只能等待——这正是
+        // 规则口径（不参与、不确认）。「别人也看不见他」由下一拍三人互认的
+        // 同伴集合断言（不含奥伯伦）覆盖。
+        await expect(pages[oberonSeat]!.getByTestId('avalon-night-info')).toHaveCount(0);
       });
 
       await test.step('夜晚：其余坏人互认同伴（不含奥伯伦）', async () => {
