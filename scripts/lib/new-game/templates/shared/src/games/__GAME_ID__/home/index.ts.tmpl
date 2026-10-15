@@ -1,8 +1,10 @@
 /**
  * __GAME_DISPLAY_NAME__在首页的入口卡片。
  */
-// TODO(gameplay): 展示名、副标题与图标是生成时的占位值，设计定稿后改。
+// TODO(gameplay): 展示名、副标题、图标与主题渐变是生成时的占位值，设计定稿后改。
 import type { GameHomeContribution } from '@/features/home/model/GameHomeContribution';
+import { colors } from '@/theme';
+import { lighten } from '@/theme/colorUtils';
 
 export const __GAME_CAMEL__HomeContribution = {
   mode: {
@@ -10,6 +12,7 @@ export const __GAME_CAMEL__HomeContribution = {
     subtitle: '__GAME_SUBTITLE__',
     iconName: '__GAME_ICON_NAME__',
     tier: '__GAME_TIER__',
+    gradient: [lighten(colors.primary, 0.45), colors.primary],
   },
   spotlight: null,
   announcementTabs: [],

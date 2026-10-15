@@ -3,6 +3,7 @@
 import { GAME_REGISTRY } from '@game-judge/game-engine/games/registry';
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
+import type { ImageSourcePropType } from 'react-native';
 
 import type {
   GameAnnouncementTabContentProps,
@@ -18,6 +19,8 @@ export interface ClientGameModeOption {
   readonly subtitle: string;
   readonly iconName: GameModeIconName;
   readonly tier: GameHomeTier;
+  readonly gradient: readonly [string, string];
+  readonly art?: ImageSourcePropType;
 }
 
 export interface ClientGameHomeSpotlight {

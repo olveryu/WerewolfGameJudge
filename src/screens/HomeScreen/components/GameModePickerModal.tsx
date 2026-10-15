@@ -1,15 +1,37 @@
-/** Centered game selector backed by the exhaustive client game catalog. */
+/**
+ * GameModePickerModal — full-screen game library picker.
+ *
+ * Backed by the exhaustive client game catalog. Main-tier games render as
+ * full-width featured cards on their own theme gradient; mini-tier games
+ * render as a two-column tile grid under the 小游戏 section.
+ *
+ * Presentation: AppModal (RN Modal) with a flex:1 page surface — the same
+ * full-screen form as PictionaryDrawingImage's fullscreen preview. The page
+ * owns its header (title + subtitle + close button) and a scrolling content
+ * area padded by the safe-area insets; closing runs through the header
+ * button and onRequestClose (Android back) only — there is no overlay.
+ */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BaseCenterModal } from '@/components/BaseCenterModal';
+import { Modal } from '@/components/AppModal';
+import { CloseButton } from '@/components/CloseButton';
 import { PressableScale } from '@/components/PressableScale';
 import type { ClientGameModeOption } from '@/games/home';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  shadows,
+  spacing,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 interface GameModePickerModalProps {
   readonly visible: boolean;
@@ -20,29 +42,62 @@ interface GameModePickerModalProps {
   readonly onSelect: (option: ClientGameModeOption) => void;
 }
 
-function MiniGameRow({
+function FeaturedGameCard({
   option,
-  isLast,
   onSelect,
 }: {
   readonly option: ClientGameModeOption;
-  readonly isLast: boolean;
   readonly onSelect: (option: ClientGameModeOption) => void;
 }) {
   return (
     <PressableScale
-      style={[styles.miniRow, !isLast && styles.miniRowDivider]}
       onPress={() => onSelect(option)}
       testID={TESTIDS.gameModePickerOption(option.gameType)}
     >
-      <View style={styles.miniIconWrap}>
-        <Ionicons name={option.iconName} size={componentSizes.icon.md} color={colors.primary} />
+      <LinearGradient
+        colors={[...option.gradient]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.featuredCard}
+      >
+        <Ionicons
+          name={option.iconName}
+          size={componentSizes.avatar.xl}
+          color={withAlpha(colors.textInverse, 0.25)}
+          style={styles.featuredWatermark}
+        />
+        <View style={styles.featuredPill}>
+          <Text style={styles.featuredPillText}>主游戏</Text>
+        </View>
+        <View style={styles.featuredText}>
+          <Text style={styles.featuredTitle}>{option.displayName}</Text>
+          <Text style={styles.featuredSubtitle}>{option.subtitle}</Text>
+        </View>
+      </LinearGradient>
+    </PressableScale>
+  );
+}
+
+function MiniGameTile({
+  option,
+  onSelect,
+}: {
+  readonly option: ClientGameModeOption;
+  readonly onSelect: (option: ClientGameModeOption) => void;
+}) {
+  return (
+    <PressableScale
+      style={styles.miniTile}
+      onPress={() => onSelect(option)}
+      testID={TESTIDS.gameModePickerOption(option.gameType)}
+    >
+      <View style={[styles.miniIconWrap, { backgroundColor: option.gradient[1] }]}>
+        <Ionicons name={option.iconName} size={componentSizes.icon.md} color={colors.textInverse} />
       </View>
-      <View style={styles.rowText}>
-        <Text style={styles.miniTitle}>{option.displayName}</Text>
-        <Text style={styles.rowSubtitle}>{option.subtitle}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textMuted} />
+      <Text style={styles.miniTitle}>{option.displayName}</Text>
+      <Text style={styles.miniSubtitle} numberOfLines={2}>
+        {option.subtitle}
+      </Text>
     </PressableScale>
   );
 }
@@ -65,106 +120,125 @@ export const GameModePickerModal: React.FC<GameModePickerModalProps> = ({
   const miniOptions = options.filter((option) => option.tier === 'mini');
 
   return (
-    <BaseCenterModal
-      visible={visible}
-      onClose={onClose}
-      dismissOnOverlayPress
-      contentStyle={styles.modal}
-      testID={TESTIDS.gameModePickerModal}
-    >
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={styles.page} testID={TESTIDS.gameModePickerModal}>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
+          </View>
+          <CloseButton onPress={onClose} style={styles.closeButton} />
+        </View>
 
-      <View style={styles.heroSection}>
-        {mainOptions.map((option) => (
-          <PressableScale
-            key={option.gameType}
-            onPress={() => onSelect(option)}
-            testID={TESTIDS.gameModePickerOption(option.gameType)}
-          >
-            <LinearGradient
-              colors={[colors.primaryLight, colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroGradient}
-            >
-              <Ionicons
-                name={option.iconName}
-                size={componentSizes.icon.xl}
-                color={colors.textInverse}
-              />
-              <View style={styles.rowText}>
-                <Text style={styles.heroTitle}>{option.displayName}</Text>
-                <Text style={styles.heroSubtitle}>{option.subtitle}</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={componentSizes.icon.md}
-                color={colors.textInverse}
-              />
-            </LinearGradient>
-          </PressableScale>
-        ))}
-      </View>
-
-      {miniOptions.length > 0 && (
-        <View style={styles.miniSection}>
-          <Text style={styles.miniSectionLabel} testID={TESTIDS.gameModePickerMiniSection}>
-            小游戏
-          </Text>
-          <View>
-            {miniOptions.map((option, index) => (
-              <MiniGameRow
-                key={option.gameType}
-                option={option}
-                isLast={index === miniOptions.length - 1}
-                onSelect={onSelect}
-              />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.featuredSection}>
+            {mainOptions.map((option) => (
+              <FeaturedGameCard key={option.gameType} option={option} onSelect={onSelect} />
             ))}
           </View>
-        </View>
-      )}
-    </BaseCenterModal>
+
+          {miniOptions.length > 0 && (
+            <View style={styles.miniSection}>
+              <Text style={styles.miniSectionLabel} testID={TESTIDS.gameModePickerMiniSection}>
+                小游戏
+              </Text>
+              <View style={styles.miniGrid}>
+                {miniOptions.map((option) => (
+                  <MiniGameTile key={option.gameType} option={option} onSelect={onSelect} />
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    width: '88%',
-    maxWidth: 420,
-    padding: spacing.large,
+  page: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.medium,
+    paddingHorizontal: spacing.screenH,
+    paddingTop: spacing.large,
+    paddingBottom: spacing.medium,
+  },
+  headerText: {
+    flex: 1,
+    gap: spacing.tight,
+  },
+  closeButton: {
+    position: 'relative',
+    top: 0,
+    right: 0,
   },
   title: {
-    fontSize: typography.subtitle,
-    fontWeight: typography.weights.semibold,
+    fontSize: typography.title,
+    fontWeight: typography.weights.bold,
     color: colors.text,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.secondary,
     color: colors.textMuted,
-    textAlign: 'center',
   },
-  heroSection: {
-    gap: spacing.small,
+  scroll: {
+    flex: 1,
   },
-  heroGradient: {
-    minHeight: 84,
-    flexDirection: 'row',
-    alignItems: 'center',
+  content: {
+    paddingHorizontal: spacing.screenH,
+    paddingBottom: spacing.xlarge,
+    gap: spacing.large,
+  },
+  featuredSection: {
     gap: spacing.medium,
+  },
+  featuredCard: {
+    minHeight: 112,
+    justifyContent: 'flex-end',
     borderRadius: borderRadius.large,
     padding: spacing.medium,
+    overflow: 'hidden',
   },
-  heroTitle: {
+  featuredWatermark: {
+    position: 'absolute',
+    right: -spacing.small,
+    bottom: -spacing.small,
+  },
+  featuredPill: {
+    position: 'absolute',
+    top: spacing.medium,
+    left: spacing.medium,
+    borderRadius: borderRadius.full,
+    backgroundColor: withAlpha(colors.textInverse, 0.25),
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+  },
+  featuredPillText: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.textInverse,
+  },
+  featuredText: {
+    gap: spacing.tight,
+    paddingRight: componentSizes.avatar.xl,
+  },
+  featuredTitle: {
     fontSize: typography.title,
     fontWeight: typography.weights.semibold,
     color: colors.textInverse,
   },
-  heroSubtitle: {
+  featuredSubtitle: {
     fontSize: typography.caption,
-    color: colors.textInverse,
+    color: withAlpha(colors.textInverse, 0.85),
   },
   miniSection: {
     gap: spacing.small,
@@ -174,22 +248,24 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.textMuted,
   },
-  miniRow: {
-    minHeight: 60,
+  miniGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: spacing.medium,
-    paddingVertical: spacing.small,
   },
-  miniRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+  miniTile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    padding: spacing.medium,
+    gap: spacing.small,
+    ...shadows.sm,
   },
   miniIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surfaceHover,
+    width: componentSizes.avatar.md,
+    height: componentSizes.avatar.md,
+    borderRadius: borderRadius.medium,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -198,11 +274,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.text,
   },
-  rowText: {
-    flex: 1,
-    gap: spacing.micro,
-  },
-  rowSubtitle: {
+  miniSubtitle: {
     fontSize: typography.caption,
     color: colors.textMuted,
   },

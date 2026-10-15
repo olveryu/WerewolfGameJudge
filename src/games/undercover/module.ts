@@ -12,6 +12,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
 import type { ClientGameModule } from '@/games/model/ClientGameCatalog';
+import { colors } from '@/theme';
 
 import { undercoverGameNavigation } from './navigation/undercoverGameNavigation';
 import { UndercoverRoomScreen } from './room/UndercoverRoomScreen';
@@ -36,6 +37,7 @@ export function createUndercoverUiModule({
         subtitle: '线下指人投票，房主揭晓',
         iconName: 'finger-print-outline',
         tier: 'mini',
+        gradient: [colors.textSecondary, colors.text],
       },
       spotlight: null,
       announcementTabs: [],

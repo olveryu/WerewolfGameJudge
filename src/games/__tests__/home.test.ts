@@ -3,6 +3,7 @@ import type React from 'react';
 import type { GameAnnouncementTabContentProps } from '@/features/home/model/GameHomeContribution';
 import { createClientGameHome } from '@/games/home';
 import { createTestClientGameCatalog } from '@/test-utils/clientGameCatalog';
+import { colors } from '@/theme';
 
 const EmptySpotlight: React.FC = () => null;
 const EmptyAnnouncement: React.FC<GameAnnouncementTabContentProps> = () => null;
@@ -36,6 +37,7 @@ describe('createClientGameHome', () => {
         subtitle: '经典身份推理',
         iconName: 'moon-outline',
         tier: 'main',
+        gradient: [colors.primaryLight, colors.primary],
       },
     ]);
     expect(home.guideOptions).toEqual(home.modeOptions);

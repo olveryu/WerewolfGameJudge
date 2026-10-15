@@ -1,6 +1,8 @@
 /** Pictionary contribution to the product Home surface. */
 
 import type { GameHomeContribution } from '@/features/home/model/GameHomeContribution';
+import { colors } from '@/theme';
+import { lighten } from '@/theme/colorUtils';
 
 export const pictionaryHomeContribution = {
   mode: {
@@ -8,6 +10,7 @@ export const pictionaryHomeContribution = {
     subtitle: '画与猜轮流传递，结局一起揭晓',
     iconName: 'brush-outline',
     tier: 'mini',
+    gradient: [lighten(colors.god, 0.5), colors.god],
   },
   spotlight: null,
   announcementTabs: [],
