@@ -361,23 +361,29 @@ function resolveSettleActor(context: CommandContext, internal: boolean) {
 }
 
 /**
- * Settles the vote when the reveal countdown expires. The countdown is armed
- * only once every seat has voted, so this settles the final ballot set.
- * The server-scheduled settle effect is the correctness path; a client
- * timeout submission only accelerates the same settlement.
+ * Settles the current phase when the reveal countdown expires, via the
+ * public expire command (client acceleration) or the internal
+ * settleExpired command (the scheduled `avalon.settle.due` effect,
+ * which is the correctness path). The countdown is armed only once
+ * every seat has voted / every team seat has played, so this settles
+ * the final ballot or play set; dispatch is by the current phase.
  */
-function timeoutVote(
+function timeoutSettle(
   state: AvalonState,
   context: CommandContext,
   internal: boolean,
 ): AvalonDecision {
-  if (state.phase.kind !== 'vote') return reject(AVALON_REASONS.phase);
+  if (state.phase.kind !== 'vote' && state.phase.kind !== 'quest')
+    return reject(AVALON_REASONS.phase);
   const actor = resolveSettleActor(context, internal);
   if (actor.kind === 'rejected') return reject(actor.reason);
   if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
   if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
-  const settlement = buildVoteSettlement(state, state.phase.ballots, context);
-  return commitAvalon(settlement.events, settlement.effects);
+  if (state.phase.kind === 'vote') {
+    const settlement = buildVoteSettlement(state, state.phase.ballots, context);
+    return commitAvalon(settlement.events, settlement.effects);
+  }
+  return settleQuestWithDefaults(state, context);
 }
 
 /**
@@ -467,25 +473,6 @@ function finishQuest(state: AvalonState, context: CommandContext): AvalonDecisio
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostFinishQuest);
   if (hostRejection !== null) return hostRejection;
-  return settleQuestWithDefaults(state, context);
-}
-
-/**
- * Settles the quest when the reveal countdown expires. The countdown is
- * armed only once every team seat has played, so this settles the final
- * play set. Server-scheduled settle is the correctness path (see
- * timeoutVote); client submissions only accelerate it.
- */
-function timeoutQuest(
-  state: AvalonState,
-  context: CommandContext,
-  internal: boolean,
-): AvalonDecision {
-  if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-  const actor = resolveSettleActor(context, internal);
-  if (actor.kind === 'rejected') return reject(actor.reason);
-  if (state.phase.deadlineAt === null) return reject(AVALON_REASONS.deadline);
-  if (context.nowMs < state.phase.deadlineAt) return reject(AVALON_REASONS.deadline);
   return settleQuestWithDefaults(state, context);
 }
 
@@ -670,16 +657,12 @@ function decideCommand(
       return playQuest(state, command.play, context);
     case 'avalon.vote.finish':
       return finishVote(state, context);
-    case 'avalon.vote.timeout':
-      return timeoutVote(state, context, false);
-    case 'avalon.vote.settleExpired':
-      return timeoutVote(state, context, true);
     case 'avalon.quest.finish':
       return finishQuest(state, context);
-    case 'avalon.quest.timeout':
-      return timeoutQuest(state, context, false);
-    case 'avalon.quest.settleExpired':
-      return timeoutQuest(state, context, true);
+    case 'avalon.phase.expire':
+      return timeoutSettle(state, context, false);
+    case 'avalon.phase.settleExpired':
+      return timeoutSettle(state, context, true);
     case 'avalon.lady.check':
       return checkLady(state, command.seat, context);
     case 'avalon.lady.acknowledge':

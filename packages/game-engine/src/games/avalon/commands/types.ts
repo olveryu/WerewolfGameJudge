@@ -21,24 +21,22 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote'; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.vote.finish' }
-  | { readonly type: 'avalon.vote.timeout' }
+  | { readonly type: 'avalon.phase.expire' }
   | { readonly type: 'avalon.quest.play'; readonly play: AvalonPlay }
   | { readonly type: 'avalon.quest.finish' }
-  | { readonly type: 'avalon.quest.timeout' }
   | { readonly type: 'avalon.lady.check'; readonly seat: number }
   | { readonly type: 'avalon.lady.acknowledge' }
   | { readonly type: 'avalon.assassin.accuse'; readonly seat: number }
   | { readonly type: 'avalon.assassin.earlyStrike'; readonly seat: number };
 
 /**
- * Worker-originated settle commands: the room runtime fires the armed
+ * Worker-originated settle command: the room runtime fires the armed
  * reveal countdown through a scheduled `avalon.settle.due` effect, and
- * the effect handler dispatches these as the system actor. They run the
- * same settlement decide as the public timeout commands; the public
- * timeouts stay as a client acceleration path only.
+ * the effect handler dispatches this as the system actor. It runs the
+ * same settlement decide as the public expire command, dispatching on
+ * the current phase; the public expire stays as a client acceleration
+ * path only.
  */
-export type AvalonInternalCommand =
-  | { readonly type: 'avalon.vote.settleExpired' }
-  | { readonly type: 'avalon.quest.settleExpired' };
+export type AvalonInternalCommand = { readonly type: 'avalon.phase.settleExpired' };
 
 export type AvalonCommand = AvalonPublicCommand | AvalonInternalCommand;
