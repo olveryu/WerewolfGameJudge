@@ -214,7 +214,7 @@ describe('werewolf view-model projection — AU-39', () => {
   };
 
   const BANNED_PROJECTION_READS: readonly { pattern: RegExp; label: string }[] = [
-    { pattern: /(gameState|state)\?\.confirmStatus/, label: 'raw confirmStatus read' },
+    { pattern: /(gameState|state)\??\.confirmStatus/, label: 'raw confirmStatus read' },
     {
       pattern:
         /conversionRevealAcks|seedWolfInfectionRevealAcks|cupidLoversRevealAcks|piperRevealAcks/,
