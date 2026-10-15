@@ -7,12 +7,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { StageFrame } from '@/features/room/components/StageFrame';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
-import { borderRadius, colors, fixed, spacing, textStyles } from '@/theme';
+import { colors, spacing, textStyles } from '@/theme';
 
 import {
   use__GAME_PASCAL__RoomState,
@@ -78,10 +79,12 @@ function __GAME_PASCAL__RoomContent(
 }
 
 /**
- * 舞台工作区（座位表之外的阶段层）。TODO(gameplay): 玩法阶段 UI 在这里
- * 按落点总规则组装——公共阶段状态归状态条、个人指令归底部消息、个人
- * 动作归底部按钮、逐座状态归座位徽标、一次性信息归弹窗；座位表下方
- * 不加阶段层（afterSeatBoard 恒为 null，CI 扫描钉死）。
+ * 舞台工作区（座位表之外的阶段层）：阶段内容一律走共享 StageFrame
+ * （限宽居中、标题头钉顶不滚、内容区滚动），标题与倒计时经 header
+ * 插槽注入、呈现各家自理。TODO(gameplay): 玩法阶段 UI 在这里按落点
+ * 总规则组装——公共阶段状态归状态条、个人指令归底部消息、个人动作
+ * 归底部按钮、逐座状态归座位徽标、一次性信息归弹窗；座位表下方不加
+ * 阶段层（afterSeatBoard 恒为 null，CI 扫描钉死）。
  */
 function __GAME_PASCAL__StageArea({
   screen,
@@ -90,28 +93,31 @@ function __GAME_PASCAL__StageArea({
 }) {
   const phase = screen.state.phase;
   return (
-    <View style={styles.stageArea}>
-      <Text style={styles.stageTitle}>{phase.kind === 'ended' ? '本局已结束' : '舞台进行中'}</Text>
-      {screen.remainingSeconds !== null ? (
-        <Text style={styles.stageCountdown} accessibilityLabel="本阶段剩余时间">
-          {formatCountdownSeconds(screen.remainingSeconds)}
-        </Text>
-      ) : null}
+    <StageFrame
+      header={
+        <View style={styles.stageHeader}>
+          <Text style={styles.stageTitle}>
+            {phase.kind === 'ended' ? '本局已结束' : '舞台进行中'}
+          </Text>
+          {screen.remainingSeconds !== null ? (
+            <Text style={styles.stageCountdown} accessibilityLabel="本阶段剩余时间">
+              {formatCountdownSeconds(screen.remainingSeconds)}
+            </Text>
+          ) : null}
+        </View>
+      }
+    >
       <Text style={styles.stageHint}>TODO(gameplay):玩法阶段界面随玩法状态机落地。</Text>
-    </View>
+    </StageFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  stageArea: {
-    width: '100%',
+  stageHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.small,
-    padding: spacing.medium,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
   },
   stageTitle: {
     ...textStyles.subtitleSemibold,
