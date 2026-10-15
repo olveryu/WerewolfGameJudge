@@ -4,9 +4,13 @@ import type {
   GameNotepadRouteParams,
 } from '@/games/navigation';
 
+/** Why the game picker page was opened: create a room, or browse guides. */
+export type GamePickerPurpose = 'create' | 'guide';
+
 export type RootStackParamList = {
   Home: undefined;
   Admin: undefined;
+  GamePicker: { purpose: GamePickerPurpose };
   GameConfig: GameConfigRouteParams;
   GameGuide: GameGuideRouteParams;
   GameNotepad: GameNotepadRouteParams;

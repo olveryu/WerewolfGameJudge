@@ -37,6 +37,7 @@ import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswor
 import { AuthLoginScreen } from '@/screens/AuthScreen/AuthLoginScreen';
 import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordScreen';
 import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
+import { GamePickerScreen } from '@/screens/GamePickerScreen/GamePickerScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
@@ -245,6 +246,11 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
           name="Home"
           component={HomeScreen}
           options={{ title: '狼人面杀电子裁判助手' }}
+        />
+        <Stack.Screen
+          name="GamePicker"
+          component={GamePickerScreen}
+          options={{ title: '选择游戏' }}
         />
         <Stack.Screen
           name="GameConfig"

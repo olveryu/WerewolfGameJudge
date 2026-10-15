@@ -14,15 +14,7 @@ import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -39,7 +31,6 @@ import {
 } from '@/features/home/services/announcementReceiptStore';
 import { getRecentRooms, type RecentRoomIdentity } from '@/features/room/services/recentRooms';
 import { useClientGameHome } from '@/games/ClientGameCatalogContext';
-import type { ClientGameModeOption } from '@/games/home';
 import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
@@ -49,14 +40,12 @@ import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 import {
   AnnouncementModal,
   createHomeScreenStyles,
-  GameModePickerModal,
   InstallMenuItem,
   JoinRoomModal,
   RecentRoomsModal,
 } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
-type PickerPurpose = 'create' | 'guide';
 
 /** Max icon chips on the create-room hero card; past this the tail folds into a +N chip. */
 const HERO_ICON_DOT_LIMIT = 8;
@@ -73,7 +62,6 @@ export const HomeScreen: React.FC = () => {
   const { user, loading: authLoading, error: authError } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showRecentRooms, setShowRecentRooms] = useState(false);
-  const [pickerPurpose, setPickerPurpose] = useState<PickerPurpose | null>(null);
   const [roomCode, setRoomCode] = useState('');
   const [recentRooms, setRecentRooms] = useState<RecentRoomIdentity[]>([]);
 
@@ -108,7 +96,6 @@ export const HomeScreen: React.FC = () => {
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
@@ -121,7 +108,6 @@ export const HomeScreen: React.FC = () => {
   // Also clear stale pending auth action if user didn't complete login before leaving.
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      setIsCreating(false);
       setIsJoining(false);
       if (!user) {
         pendingActionRef.current = null;
@@ -224,8 +210,8 @@ export const HomeScreen: React.FC = () => {
 
   const handleCreateRoom = useCallback(() => {
     homeLog.info('Create room');
-    setPickerPurpose('create');
-  }, []);
+    navigation.navigate('GamePicker', { purpose: 'create' });
+  }, [navigation]);
 
   const handleShowJoinModal = useCallback(() => {
     setShowJoinModal(true);
@@ -247,34 +233,12 @@ export const HomeScreen: React.FC = () => {
       navigation.navigate('GameGuide', { gameType: option.gameType });
       return;
     }
-    setPickerPurpose('guide');
+    navigation.navigate('GamePicker', { purpose: 'guide' });
   }, [clientGameHome.guideOptions, navigation]);
 
   const handleNavigateGacha = useCallback(() => {
     navigation.navigate('Gacha');
   }, [navigation]);
-
-  const handleClosePicker = useCallback(() => {
-    setPickerPurpose(null);
-    setIsCreating(false);
-  }, []);
-
-  const handleSelectGame = useCallback(
-    (option: ClientGameModeOption) => {
-      if (pickerPurpose === null) {
-        throw new Error('[FAIL-FAST] Game selected without an active Home picker');
-      }
-
-      setPickerPurpose(null);
-      if (pickerPurpose === 'create') {
-        setIsCreating(true);
-        navigation.navigate('GameConfig', { gameType: option.gameType, mode: 'create' });
-        return;
-      }
-      navigation.navigate('GameGuide', { gameType: option.gameType });
-    },
-    [navigation, pickerPurpose],
-  );
 
   // ============================================
   // Memoized menu item handlers (stable references)
@@ -441,22 +405,18 @@ export const HomeScreen: React.FC = () => {
               >
                 <View style={styles.heroCardMain}>
                   <View style={styles.heroCardContent}>
-                    <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
+                    <Text style={styles.heroCardTitle}>创建房间</Text>
                     <Text style={styles.heroCardSubtitle}>
                       {`${clientGameHome.modeOptions.length} 款游戏 · 点开挑一款`}
                     </Text>
                   </View>
-                  {isCreating ? (
-                    <ActivityIndicator color={colors.textInverse} size="small" />
-                  ) : (
-                    <View style={styles.heroCardArrow}>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={componentSizes.icon.lg}
-                        color={colors.textInverse}
-                      />
-                    </View>
-                  )}
+                  <View style={styles.heroCardArrow}>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={componentSizes.icon.lg}
+                      color={colors.textInverse}
+                    />
+                  </View>
                 </View>
                 <View style={styles.heroIconDots}>
                   {heroDotOptions.map((modeOption) => (
@@ -616,19 +576,6 @@ export const HomeScreen: React.FC = () => {
         hasUnreadFeedback={hasUnreadFeedback}
         onUnreadFeedbackChange={setUnreadFeedbackCount}
       />
-
-      {pickerPurpose !== null && (
-        <GameModePickerModal
-          visible
-          title={pickerPurpose === 'create' ? '创建游戏' : '选择游戏图鉴'}
-          subtitle={pickerPurpose === 'create' ? '选择本局要创建的游戏' : '选择要查看的游戏'}
-          options={
-            pickerPurpose === 'create' ? clientGameHome.modeOptions : clientGameHome.guideOptions
-          }
-          onClose={handleClosePicker}
-          onSelect={handleSelectGame}
-        />
-      )}
     </SafeAreaView>
   );
 };
