@@ -58,6 +58,20 @@ interface RoomBottomToolButtonBase {
 
 export type RoomBottomToolButton = RoomBottomToolButtonBase & RoomBottomActionAvailability;
 
+/**
+ * The lobby hint shown to a seated non-host player while the host has
+ * not started the game yet: 「等待房主开始游戏」. One source for the
+ * gating predicate and the copy so the bottom info line cannot drift
+ * per game.
+ */
+export function buildLobbyHostStartMessage(input: {
+  readonly isLobby: boolean;
+  readonly isHost: boolean;
+  readonly mySeat: number | null;
+}): string | null {
+  return input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null;
+}
+
 export interface RoomBottomActionLayout {
   readonly primary: readonly RoomBottomButton[];
   readonly secondary: readonly RoomBottomButton[];

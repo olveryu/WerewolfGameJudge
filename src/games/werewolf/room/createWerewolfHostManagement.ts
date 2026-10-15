@@ -18,12 +18,16 @@ import type {
 } from '@/features/room/model/RoomHostManagement';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { HostControlEvent } from '@/games/werewolf/room/policy/types';
+import { resolveWerewolfPhaseStatusCopy } from '@/games/werewolf/room/resolveWerewolfPhaseStatusCopy';
 import { TESTIDS } from '@/testids';
 
 interface WerewolfHostManagementInput {
   readonly isHost: boolean;
   readonly roomStatus: GameStatus;
   readonly isPlagueMode: boolean;
+  readonly seatedCount: number;
+  readonly totalSeats: number;
+  readonly viewedCount: number;
   readonly isAudioPlaying: boolean;
   readonly isStartingGame: boolean;
   readonly isHostActionSubmitting: boolean;
@@ -301,53 +305,6 @@ function createSection(
   return actions.length === 0 ? null : { key, title, actions };
 }
 
-function getStatus(input: WerewolfHostManagementInput): string {
-  if (input.sheriffElection !== null) {
-    return `警长竞选 · ${input.sheriffElection.view.phaseTitle}`;
-  }
-  switch (input.roomStatus) {
-    case GameStatus.Unseated:
-      return '等待玩家入座';
-    case GameStatus.Seated:
-      return '座位准备完成';
-    case GameStatus.Assigned:
-      return '角色已分配';
-    case GameStatus.Ready:
-      return input.isPlagueMode ? '真人法官主持中' : '角色确认完成';
-    case GameStatus.Ongoing:
-      return '夜间进行中';
-    case GameStatus.Day:
-      return '白天阶段';
-    case GameStatus.Ended:
-      return '游戏已结束';
-  }
-}
-
-function getPreview(input: WerewolfHostManagementInput): string {
-  if (input.roomStatus === GameStatus.Seated) return '下一步：分配角色';
-  if (input.roomStatus === GameStatus.Ready && !input.isPlagueMode) return '下一步：开始游戏';
-  if (
-    input.roomStatus === GameStatus.Day &&
-    input.sheriffElection?.view.canAdvance === true &&
-    input.sheriffElection.view.advanceLabel !== null
-  ) {
-    return `待处理：${input.sheriffElection.view.advanceLabel}`;
-  }
-  if (input.roomStatus === GameStatus.Ended) return '可重新开始';
-  switch (input.roomStatus) {
-    case GameStatus.Unseated:
-      return '房间配置与座位管理';
-    case GameStatus.Assigned:
-      return '角色确认与重开';
-    case GameStatus.Ready:
-      return '真人法官主持中';
-    case GameStatus.Ongoing:
-      return '夜间工具与重开';
-    case GameStatus.Day:
-      return input.sheriffElection === null ? '白天工具与重开' : '警长竞选进行中';
-  }
-}
-
 /** Build the complete Host-only command surface from current room facts. */
 export function createWerewolfHostManagement(
   input: WerewolfHostManagementInput,
@@ -365,10 +322,22 @@ export function createWerewolfHostManagement(
   if (sections.length === 0) {
     throw new Error('Werewolf Host management must expose at least one action');
   }
+  const copy = resolveWerewolfPhaseStatusCopy({
+    roomStatus: input.roomStatus,
+    isPlagueMode: input.isPlagueMode,
+    sheriffPhaseTitle: input.sheriffElection?.view.phaseTitle ?? null,
+    sheriffAdvanceLabel:
+      input.sheriffElection?.view.canAdvance === true
+        ? input.sheriffElection.view.advanceLabel
+        : null,
+    seatedCount: input.seatedCount,
+    totalSeats: input.totalSeats,
+    viewedCount: input.viewedCount,
+  });
   return {
-    preview: getPreview(input),
+    preview: copy.hostPreview,
     hasPendingAction: getHasPendingAction(input),
-    status: getStatus(input),
+    status: copy.hostStatus,
     sections,
   };
 }

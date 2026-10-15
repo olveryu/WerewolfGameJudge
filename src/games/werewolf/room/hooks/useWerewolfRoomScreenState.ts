@@ -35,6 +35,7 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
+import { resolveWerewolfPhaseStatusCopy } from '@/games/werewolf/room/resolveWerewolfPhaseStatusCopy';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
 import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
@@ -160,6 +161,22 @@ export interface WerewolfRoomScreenStateProps {
   readonly navigation: RoomScreenNavigation;
   readonly entryController: RoomEntryController;
   readonly client: WerewolfGameClient;
+}
+
+/** Seat/viewing counts the phase status copy resolver reads. */
+function deriveWerewolfSeatCounts(gameState: {
+  readonly players: ReadonlyMap<number, { readonly hasViewedRole: boolean } | null>;
+  readonly template: { readonly numberOfPlayers: number };
+}): { readonly seatedCount: number; readonly viewedCount: number; readonly totalSeats: number } {
+  let seatedCount = 0;
+  let viewedCount = 0;
+  for (const p of gameState.players.values()) {
+    if (p !== null) {
+      seatedCount++;
+      if (p.hasViewedRole) viewedCount++;
+    }
+  }
+  return { seatedCount, viewedCount, totalSeats: gameState.template.numberOfPlayers };
 }
 
 export function useWerewolfRoomScreenState(
@@ -704,37 +721,16 @@ export function useWerewolfRoomScreenState(
     const totalSeats = gameState.template.numberOfPlayers;
 
     if (isHost) {
-      switch (roomStatus) {
-        case GameStatus.Unseated:
-        case GameStatus.Seated: {
-          let seatedCount = 0;
-          for (const p of players.values()) {
-            if (p !== null) seatedCount++;
-          }
-          if (seatedCount === 0) return '等待玩家入座，或分享房间邀请好友';
-          if (seatedCount < totalSeats) return `还有 ${totalSeats - seatedCount} 个空位等待入座`;
-          return '全员已就位，等待房主分配角色';
-        }
-        case GameStatus.Assigned: {
-          let viewedCount = 0;
-          for (const p of players.values()) {
-            if (p && p.hasViewedRole) viewedCount++;
-          }
-          if (viewedCount < totalSeats) {
-            return `${viewedCount}/${totalSeats} 位玩家已查看角色，等待剩余玩家`;
-          }
-          return null;
-        }
-        case GameStatus.Ready:
-          return '全员就绪，等待房主开始游戏 🔊';
-        case GameStatus.Ongoing:
-        case GameStatus.Day:
-          return null;
-        case GameStatus.Ended:
-          return '天亮了 →「昨夜信息」查看结果，「本局复盘」查看/分享战报';
-        default:
-          return null;
-      }
+      return resolveWerewolfPhaseStatusCopy({
+        roomStatus,
+        isPlagueMode: gameState.rules?.isPlagueMode ?? false,
+        sheriffPhaseTitle: sheriffElectionPanel?.view.phaseTitle ?? null,
+        sheriffAdvanceLabel:
+          sheriffElectionPanel?.view.canAdvance === true
+            ? sheriffElectionPanel.view.advanceLabel
+            : null,
+        ...deriveWerewolfSeatCounts(gameState),
+      }).hostGuideMessage;
     }
 
     // Non-host phase hints
@@ -770,7 +766,7 @@ export function useWerewolfRoomScreenState(
       default:
         return null;
     }
-  }, [isHost, gameState, roomStatus]);
+  }, [isHost, gameState, roomStatus, sheriffElectionPanel]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card handler (treasureMaster / thief bottom card selection)
@@ -992,6 +988,7 @@ export function useWerewolfRoomScreenState(
         isHostActionSubmitting,
         imActioner,
         isPlagueMode: gameState.rules?.isPlagueMode ?? false,
+        ...deriveWerewolfSeatCounts(gameState),
         actionMessage: derived.actionMessage,
         guideMessage,
         currentStepId,

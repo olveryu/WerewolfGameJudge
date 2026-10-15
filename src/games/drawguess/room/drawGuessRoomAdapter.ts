@@ -29,6 +29,7 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
+import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
@@ -41,6 +42,7 @@ import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -133,20 +135,13 @@ function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSea
 /** 公共状态条：不含答案与题目内容。 */
 function createDrawGuessStatusRibbon(state: DrawGuessState): RoomStatusRibbonModel | null {
   const phase = state.phase;
-  if (phase.kind === 'wordSelect')
-    return { kind: 'message', icon: 'guide', text: '画手正在选词', supportingText: null };
-  if (phase.kind === 'drawing')
-    return { kind: 'message', icon: 'guide', text: '作画猜词中', supportingText: null };
-  if (phase.kind === 'roundEnd')
-    return { kind: 'message', icon: 'guide', text: '本轮结算', supportingText: null };
-  if (phase.kind === 'ended')
-    return { kind: 'message', icon: 'guide', text: '本局已结束', supportingText: null };
-  return {
-    kind: 'message',
-    icon: 'guide',
-    text: `等待入座 · ${getDrawGuessOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`,
-    supportingText: null,
-  };
+  if (phase.kind === 'wordSelect') return messageRibbon('画手正在选词');
+  if (phase.kind === 'drawing') return messageRibbon('作画猜词中');
+  if (phase.kind === 'roundEnd') return messageRibbon('本轮结算');
+  if (phase.kind === 'ended') return messageRibbon('本局已结束');
+  return messageRibbon(
+    buildLobbyWaitingText(getDrawGuessOccupiedSeatCount(state), state.config.numberOfPlayers),
+  );
 }
 
 export interface DrawGuessRoomShellModelInput {
@@ -209,7 +204,7 @@ export function createDrawGuessHostManagement(
     const startDisabledReason = canStart ? null : '座位尚未坐满';
     return {
       preview: '开始游戏',
-      status: `等待入座 · ${occupiedSeatCount}/${state.config.numberOfPlayers}`,
+      status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
@@ -305,7 +300,11 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     share: input.share,
     bottomActions: {
       kind: 'info',
-      message: input.isLobby && !input.isHost && input.mySeat !== null ? '等待房主开始游戏' : null,
+      message: buildLobbyHostStartMessage({
+        isLobby: input.isLobby,
+        isHost: input.isHost,
+        mySeat: input.mySeat,
+      }),
       actions: [],
     },
     hostManagement: input.hostManagement,

@@ -42,6 +42,7 @@ import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSourc
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
+import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { colors } from '@/theme';
@@ -171,7 +172,10 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
   let text: string;
   switch (state.phase) {
     case 'lobby':
-      text = `等待入座 · ${getUndercoverOccupiedSeatCount(state)}/${state.config.numberOfPlayers}`;
+      text = buildLobbyWaitingText(
+        getUndercoverOccupiedSeatCount(state),
+        state.config.numberOfPlayers,
+      );
       break;
     case 'preparing':
       text = '正在准备词语';
@@ -201,15 +205,13 @@ export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatus
       text = '本局已中止';
       break;
   }
-  return {
-    kind: 'message',
-    icon: state.phase === 'ongoing' ? 'speaking' : 'guide',
+  return messageRibbon(
     text,
-    supportingText:
-      state.phase === 'ongoing'
-        ? `首轮从 ${state.round.speakingStartSeat + 1} 号开始发言（随机）`
-        : null,
-  };
+    state.phase === 'ongoing'
+      ? `首轮从 ${state.round.speakingStartSeat + 1} 号开始发言（随机）`
+      : null,
+    state.phase === 'ongoing' ? 'speaking' : 'guide',
+  );
 }
 
 export interface UndercoverBoardInfoSectionsInput {

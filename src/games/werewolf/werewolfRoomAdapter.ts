@@ -366,6 +366,9 @@ export interface WerewolfRoomShellModelInput {
   readonly isHostActionSubmitting: boolean;
   readonly imActioner: boolean;
   readonly isPlagueMode: boolean;
+  readonly seatedCount: number;
+  readonly totalSeats: number;
+  readonly viewedCount: number;
   readonly actionMessage: string | null;
   readonly guideMessage: string | null;
   readonly currentStepId: SchemaId | null;
@@ -411,6 +414,9 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     isHost: input.isHost,
     roomStatus: input.roomStatus,
     isPlagueMode: input.isPlagueMode,
+    seatedCount: input.seatedCount,
+    totalSeats: input.totalSeats,
+    viewedCount: input.viewedCount,
     isAudioPlaying: input.isAudioPlaying,
     isStartingGame: input.isStartingGame,
     isHostActionSubmitting: input.isHostActionSubmitting,
