@@ -67,6 +67,9 @@ jobs:
   # test-api-worker sharding below). This was the last step of quality and
   # its long pole (~4min of quality's ~8min); as its own job it runs in
   # parallel with quality and lint.
+  # Shard flags go directly after `run test` with NO `--` separator: pnpm
+  # forwards a literal `--` to the script, which makes jest treat --shard
+  # as a path pattern (0 matches) and vitest ignore the flag entirely.
   test-root:
     runs-on: ubuntu-latest
     strategy:
@@ -89,10 +92,10 @@ jobs:
         run: pnpm --filter @game-judge/game-engine run build
 
       - name: Test game-engine (shard ${{ matrix.shard }}/2)
-        run: pnpm --filter @game-judge/game-engine run test -- --shard=${{ matrix.shard }}/2
+        run: pnpm --filter @game-judge/game-engine run test --shard=${{ matrix.shard }}/2
 
       - name: Test root (shard ${{ matrix.shard }}/2)
-        run: pnpm --filter werewolfgamejudge run test -- --shard=${{ matrix.shard }}/2
+        run: pnpm --filter werewolfgamejudge run test --shard=${{ matrix.shard }}/2
 
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
   test-api-worker:
@@ -120,7 +123,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Test api-worker (shard ${{ matrix.shard }}/3)
-        run: pnpm --filter @game-judge/api-worker run test -- --shard=${{ matrix.shard }}/3
+        run: pnpm --filter @game-judge/api-worker run test --shard=${{ matrix.shard }}/3
 
   deploy-api-worker:
     runs-on: ubuntu-latest
