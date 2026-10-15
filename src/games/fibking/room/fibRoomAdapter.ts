@@ -57,6 +57,7 @@ import type {
   RoomControlledSeatModel,
   RoomShellModel,
 } from '@/features/room/model/RoomShellModel';
+import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -214,28 +215,36 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
   };
 }
 
-export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | null {
+interface FibPhaseStatusCopy {
+  /** Status line shared by the ribbon and the host panel status. */
+  readonly text: string;
+  /** Ribbon-only supporting line. */
+  readonly supportingText: string | null;
+  /** Host panel preview line. */
+  readonly preview: string;
+}
+
+/**
+ * FibKing phase copy has exactly one computation site: the status
+ * ribbon, the host panel status and the host panel preview all read
+ * from this resolver, so the three faces of the same phase cannot
+ * drift apart.
+ */
+function resolveFibPhaseStatusCopy(state: FibState): FibPhaseStatusCopy {
   switch (state.phase) {
     case 'lobby':
       return {
-        kind: 'message',
-        icon: 'guide',
-        text: `等待入座 · ${getFibOccupiedSeatCount(state)}/${state.numberOfPlayers}`,
+        text: buildLobbyWaitingText(getFibOccupiedSeatCount(state), state.numberOfPlayers),
         supportingText: null,
+        preview: '下一步：开始本轮',
       };
     case 'preparing':
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: '正在准备本轮词语',
-        supportingText: null,
-      };
+      return { text: '正在准备本轮词语', supportingText: null, preview: '正在准备，可取消' };
     case 'preparationFailed':
       return {
-        kind: 'message',
-        icon: 'guide',
         text: '词语准备失败',
         supportingText: '暂无可用词语，请重新准备',
+        preview: '待处理：重新准备',
       };
     case 'viewing': {
       const unviewedCount = getFibViewingParticipants(state).filter(
@@ -243,33 +252,34 @@ export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | 
       ).length;
       return unviewedCount > 0
         ? {
-            kind: 'message',
-            icon: 'guide',
             text: '等待全员查看身份',
             supportingText: `还差 ${unviewedCount} 人`,
+            preview: '等待全员查看身份',
           }
         : {
-            kind: 'message',
-            icon: 'guide',
             text: '全员已查看身份',
             supportingText: '等待房主开始游戏',
+            preview: '下一步：开始游戏',
           };
     }
     case 'ongoing':
       return {
-        kind: 'message',
-        icon: 'speaking',
         text: '描述进行中',
         supportingText: '大聪明根据大家的描述猜词',
+        preview: '可公布答案、重新抽词',
       };
     case 'ended':
-      return {
-        kind: 'message',
-        icon: 'guide',
-        text: '本轮答案已公布',
-        supportingText: null,
-      };
+      return { text: '本轮答案已公布', supportingText: null, preview: '下一步：下一轮' };
   }
+}
+
+export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | null {
+  const copy = resolveFibPhaseStatusCopy(state);
+  return messageRibbon(
+    copy.text,
+    copy.supportingText,
+    state.phase === 'ongoing' ? 'speaking' : 'guide',
+  );
 }
 
 interface FibHostManagementInput {
@@ -543,40 +553,6 @@ function hasEverySeatViewed(state: FibState): boolean {
   );
 }
 
-function getFibHostPreview(state: FibState): string {
-  switch (state.phase) {
-    case 'lobby':
-      return '下一步：开始本轮';
-    case 'preparing':
-      return '正在准备，可取消';
-    case 'preparationFailed':
-      return '待处理：重新准备';
-    case 'viewing':
-      return hasEverySeatViewed(state) ? '下一步：开始游戏' : '等待全员查看身份';
-    case 'ongoing':
-      return '可公布答案、重新抽词';
-    case 'ended':
-      return '下一步：下一轮';
-  }
-}
-
-function getFibHostStatus(state: FibState): string {
-  switch (state.phase) {
-    case 'lobby':
-      return `等待入座 · ${getFibOccupiedSeatCount(state)}/${state.numberOfPlayers}`;
-    case 'preparing':
-      return '正在准备本轮词语';
-    case 'preparationFailed':
-      return '词语准备失败';
-    case 'viewing':
-      return hasEverySeatViewed(state) ? '全员已查看身份' : '等待全员查看身份';
-    case 'ongoing':
-      return '描述进行中';
-    case 'ended':
-      return '本轮答案已公布';
-  }
-}
-
 /** Build the complete FibKing Host-only command surface from current room facts. */
 export function createFibHostManagement(
   input: FibHostManagementInput,
@@ -591,9 +567,10 @@ export function createFibHostManagement(
   if (sections.length === 0) {
     throw new Error('FibKing Host management must expose at least one action');
   }
+  const copy = resolveFibPhaseStatusCopy(input.state);
   return {
-    preview: getFibHostPreview(input.state),
-    status: getFibHostStatus(input.state),
+    preview: copy.preview,
+    status: copy.text,
     sections,
   };
 }
