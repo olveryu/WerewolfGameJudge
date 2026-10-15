@@ -30,7 +30,7 @@ describe('CI Playwright shard coverage', () => {
       workflow.indexOf('\n  deploy-frontend:'),
       workflow.indexOf('\n  deploy-miniapp:'),
     );
-    expect(frontend).toContain('needs: [quality, deploy-api-worker]');
+    expect(frontend).toContain('needs: [quality, lint, test-root, deploy-api-worker]');
     expect(frontend.indexOf('node scripts/verify-cdn-artifacts.mjs')).toBeGreaterThan(0);
     expect(frontend.indexOf('node scripts/verify-cdn-artifacts.mjs')).toBeLessThan(
       frontend.indexOf('name: Deploy to Cloudflare Pages'),
