@@ -151,11 +151,15 @@ async function confirmNightInfo(
 // Nomination / vote / quest
 // ---------------------------------------------------------------------------
 
-async function pickTeam(leaderPage: Page, team: readonly number[]) {
+async function pickTeam(leaderPage: Page, leaderSeat: number, team: readonly number[]) {
   for (const seat of team) {
     const tile = new RoomPage(leaderPage).getSeatTile(seat);
     await tile.click();
-    await expect(tile).toContainText('队员', { timeout: 10_000 });
+    // 座位状态标签是单槽：队长本人座位恒显示「队长」，选中也不变「队员」；
+    // 其点选是否生效由最后提交按钮「恰选满才 enabled」兜底验证。
+    if (seat !== leaderSeat) {
+      await expect(tile).toContainText('队员', { timeout: 10_000 });
+    }
   }
   const submit = leaderPage.getByTestId('avalon-nominate-submit');
   await expect(submit).toBeEnabled({ timeout: 10_000 });
@@ -265,7 +269,7 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
   const leaderSeat = await test.step(`任务${script.round}：定位队长并组队`, async () => {
     const seat = await findSeatByProbe(pages, LEADER_PICK_PATTERN, '队长组队提示');
     team = script.teamFor(seat);
-    await pickTeam(pages[seat]!, team);
+    await pickTeam(pages[seat]!, seat, team);
     return seat;
   });
 
