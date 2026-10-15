@@ -74,7 +74,7 @@ async function advanceNightPartially(pages: Page[], testInfo: TestInfo): Promise
 // Tests
 // ---------------------------------------------------------------------------
 
-test.describe('Rejoin during ongoing game', () => {
+test.describe('Resilience — Rejoin during ongoing game', () => {
   test('host rejoin: reload mid-night → 最近房间 → complete night', async ({
     browser,
   }, testInfo) => {
