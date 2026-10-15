@@ -5,7 +5,6 @@
 import {
   getBotSeats,
   get__GAME_PASCAL__OccupiedSeatCount,
-  isBotOccupant,
   type __GAME_PASCAL__Command,
   type __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
@@ -20,6 +19,7 @@ import {
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
+import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   buildClearSeatsAction,
@@ -34,16 +34,12 @@ import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import type {
-  RoomSeatDataSource,
-  RoomSeatViewModel,
-} from '@/features/room/model/RoomSeatDataSource';
+import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
@@ -87,43 +83,20 @@ function create__GAME_PASCAL__SeatDataSource(
   input: __GAME_PASCAL__SeatSourceInput,
 ): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
-  return {
-    count: state.config.numberOfPlayers,
-    revision: `${revision}:${controlledSeat ?? 'self'}`,
-    getSeat(seat): RoomSeatViewModel {
-      if (!Number.isSafeInteger(seat) || seat < 0 || seat >= state.config.numberOfPlayers)
-        throw new Error('__GAME_PASCAL__ seat out of range');
-      const occupant = state.roster[seat];
-      const human = occupant != null && !isBotOccupant(occupant) ? occupant : undefined;
-      const target = get__GAME_PASCAL__ProfileTarget(state, seat);
-      const player =
-        human !== undefined
-          ? toRoomSeatPlayer({ kind: 'human', userId: human.userId, ...human.profile })
-          : target === null
-            ? null
-            : toRoomSeatPlayer({
-                kind: 'bot',
-                userId: target.userId,
-                displayName: target.rosterName,
-              });
-      return {
-        seat,
-        player,
-        isSelf: human?.userId === userId,
-        highlight: controlledSeat === seat ? 'controlled' : 'none',
-        secondaryLabel: null,
-        showReadyBadge: false,
-        // TODO(gameplay): 逐座阶段徽标（当前行动者、已提交等）在这里投影，
-        // 只许走 statusBadge / secondaryLabel 出口，不许在座位表下方加阶段层。
-        statusBadge: null,
-        isStatusEmphasized: false,
-        showLevel: state.phase.kind === 'lobby',
-        decorationsEnabled: state.phase.kind === 'lobby',
-        disabledReason:
-          player === null && state.phase.kind !== 'lobby' ? '游戏进行中不能入座' : undefined,
-      };
-    },
-  };
+  return createRoomSeatDataSource({
+    seatCount: state.config.numberOfPlayers,
+    revision,
+    roster: state.roster,
+    viewerUserId: userId,
+    controlledSeat,
+    isLobby: state.phase.kind === 'lobby',
+    botUserId: (seat) => `__GAME_ID__-bot:${state.roomCode}:${seat}`,
+    outOfRangeError: () => '__GAME_PASCAL__ seat out of range',
+    lockedSeatReason: '游戏进行中不能入座',
+    // TODO(gameplay): 逐座阶段徽标（当前行动者、已提交等）走 resolveStatusBadge /
+    // resolveSecondaryLabel 注入，只许走 statusBadge / secondaryLabel 出口，
+    // 不许在座位表下方加阶段层。
+  });
 }
 
 /** 公共状态条：舞台阶段的公开进度归这里（倒计时数字由工作区呈现）。 */
