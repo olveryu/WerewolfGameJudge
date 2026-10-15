@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   chooseFirstEnabledBottomCard,
+  clickBottomButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfVote,
@@ -17,25 +18,118 @@ import {
 import { withSetup } from '../helpers/night-setup';
 
 /**
- * Night Roles E2E — Thief & Cupid coverage.
+ * Werewolf Night E2E — Special roles: bottom cards & lovers.
  *
- * Single comprehensive test covering the full thief + cupid night flow:
- * - Thief picks a bottom card
- * - Cupid links two players as lovers → groupConfirm reveal
- * - Wolf kills one of the lovers → couple death (lover suicide)
- * - Seer checks the thief → reveal shows "好人"
+ * - TreasureMaster picks a bottom card (unchosen-card steps auto-skip)
+ * - Thief picks a bottom card; Cupid links two lovers (groupConfirm
+ *   reveal) and a wolf kill on a lover triggers the lover death chain
  *
- * Uses a 5-player custom template:
- *   wolf(2) + villager(2) + seer + thief + cupid = 7 roles
- *   → 5 players + 2 bottom cards (for thief)
- *
- * Bottom card constraints: thief/cupid never in bottom; ≤1 wolf in bottom.
- * With 2 wolves, at least 1 wolf is always seated.
- *
- * Step order: thiefChoose → cupidChooseLovers → cupidLoversReveal → wolfKill → seerCheck
+ * Formerly night-roles-treasure.spec.ts and
+ * night-roles-thief-cupid.spec.ts.
  */
 
 test.setTimeout(180_000);
+/**
+ * Night Roles E2E — TreasureMaster (Treasure Master)
+ *
+ * Verifies the treasureMaster bottom-card selection flow and subsequent
+ * unchosen-bottom-card step auto-skip. Uses a 4-player template:
+ *
+ *   wolf(2) + villager(2) + seer + poisoner + treasureMaster = 7 roles
+ *   → 4 players + 3 bottom cards
+ *
+ * Bottom card constraints guarantee TM and at least 1 wolf are always players.
+ * Night step order: treasureMasterChoose → wolfKill → poisonerPoison → seerCheck.
+ */
+
+test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
+  // --------------------------------------------------------------------------
+  // TreasureMaster picks a card → night completes
+  // --------------------------------------------------------------------------
+  test('treasureMaster picks bottom card → night completes', async ({ browser }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 4,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 2,
+            villagers: 2,
+            goodRoles: ['seer', 'poisoner'],
+            specialRoles: ['treasureMaster'],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const tmIdx = findRolePageIndex(roleMap, '盗宝大师');
+        const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
+        const seerIdx = findRolePageIndex(roleMap, '预言家');
+        const poisonerIdx = findRolePageIndex(roleMap, '毒师');
+
+        // TM and wolf are guaranteed to be players (bottom card constraints)
+        expect(tmIdx, 'treasureMaster must be a player').not.toBe(-1);
+        expect(wolfIndices.length, 'wolf must be a player').toBeGreaterThan(0);
+
+        // === Step 1: TreasureMaster's turn — pick a bottom card ===
+        const tmTurn = await waitForRoleTurn(pages[tmIdx]!, ['选择', '底牌'], pages, 120);
+        expect(tmTurn, 'TreasureMaster turn should be detected').toBe(true);
+
+        // Dismiss the "盗宝大师行动" info alert
+        await dismissAlert(pages[tmIdx]!);
+
+        // Click "选择底牌" button in bottom action panel
+        const chooseBtn = pages[tmIdx]!.locator('[data-testid="bottom-action-panel"]')
+          .getByText('选择底牌', { exact: true })
+          .first();
+        await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
+        await chooseBtn.click();
+
+        await chooseFirstEnabledBottomCard(pages[tmIdx]!);
+
+        // === Step 2: Wolf's turn — forced empty kill (poisoner in template) ===
+        // All wolf players must confirm the empty kill.
+        const wolfTurn = await waitForRoleTurn(
+          pages[wolfIndices[0]!]!,
+          ['袭击', '放弃'],
+          pages,
+          120,
+        );
+        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
+
+        for (const wIdx of wolfIndices) {
+          await dismissAlert(pages[wIdx]!);
+          const emptyKillBtn = pages[wIdx]!.locator('[data-testid="bottom-action-panel"]')
+            .getByText('放弃袭击', { exact: false })
+            .first();
+          await emptyKillBtn.waitFor({ state: 'visible', timeout: 5000 });
+          await emptyKillBtn.click();
+          await dismissAlert(pages[wIdx]!);
+        }
+
+        // === Step 3: Poisoner & Seer (if they are players, not bottom cards) ===
+        if (poisonerIdx !== -1) {
+          const turn = await waitForRoleTurn(pages[poisonerIdx]!, ['毒杀', '选择'], pages, 60);
+          if (turn) {
+            await dismissAlert(pages[poisonerIdx]!);
+            await clickBottomButton(pages[poisonerIdx]!, '不用技能');
+            await dismissAlert(pages[poisonerIdx]!);
+          }
+        }
+        if (seerIdx !== -1) {
+          const turn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 60);
+          if (turn) {
+            await dismissAlert(pages[seerIdx]!);
+            await clickBottomButton(pages[seerIdx]!, '不用技能');
+            await dismissAlert(pages[seerIdx]!);
+          }
+        }
+
+        // === Step 4: Night should end ===
+        const ended = await waitForNightEnd(pages, 120);
+        expect(ended, 'Night should complete with treasureMaster').toBe(true);
+      },
+    );
+  });
+});
 
 // ============================================================================
 // Helpers local to this file
@@ -141,11 +235,26 @@ async function waitForCupidGroupConfirmStep(
   return false;
 }
 
-// ============================================================================
-// Tests
-// ============================================================================
+/**
+ * Night Roles E2E — Thief & Cupid coverage.
+ *
+ * Single comprehensive test covering the full thief + cupid night flow:
+ * - Thief picks a bottom card
+ * - Cupid links two players as lovers → groupConfirm reveal
+ * - Wolf kills one of the lovers → couple death (lover suicide)
+ * - Seer checks the thief → reveal shows "好人"
+ *
+ * Uses a 5-player custom template:
+ *   wolf(2) + villager(2) + seer + thief + cupid = 7 roles
+ *   → 5 players + 2 bottom cards (for thief)
+ *
+ * Bottom card constraints: thief/cupid never in bottom; ≤1 wolf in bottom.
+ * With 2 wolves, at least 1 wolf is always seated.
+ *
+ * Step order: thiefChoose → cupidChooseLovers → cupidLoversReveal → wolfKill → seerCheck
+ */
 
-test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
+test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
   test('thief picks card → cupid links lovers → groupConfirm → wolf kills → seer checks → night ends', async ({
     browser,
   }) => {
