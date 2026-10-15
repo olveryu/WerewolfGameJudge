@@ -191,6 +191,7 @@ export function useWerewolfRoomScreenState(
 
   const {
     gameState,
+    viewModel,
     stateRevision,
     isHost,
     mySeat,
@@ -346,17 +347,15 @@ export function useWerewolfRoomScreenState(
   // Actioner state
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // AU-39: group-confirm acks come from the view model's reveal projection
+  // (the current step's reveal is the single entry); the client no longer
+  // maps schema ids to the per-family ack arrays.
   const groupConfirmAcks = useMemo((): readonly number[] => {
     if (currentSchema?.kind !== 'groupConfirm' || !gameState) return EMPTY_ACKS;
-    if (currentSchema.id === 'awakenedGargoyleConvertReveal') return gameState.conversionRevealAcks;
-    if (currentSchema.id === 'seedWolfInfectReveal') {
-      return gameState.seedWolfInfectionRevealAcks;
-    }
-    if (currentSchema.id === 'cupidLoversReveal') return gameState.cupidLoversRevealAcks;
-    return gameState.piperRevealAcks;
-  }, [currentSchema, gameState]);
+    return viewModel.night.reveals[0]?.ackedSeats ?? EMPTY_ACKS;
+  }, [currentSchema, gameState, viewModel]);
 
-  const { imActioner, showWolves } = useActionerState({
+  const { imActioner } = useActionerState({
     actorRole: actorRoleForUi,
     currentActionRole,
     currentSchema,
@@ -475,11 +474,11 @@ export function useWerewolfRoomScreenState(
 
   const derived = useRoomDerived({
     gameState,
+    viewModel,
     currentSchema,
     currentActionRole,
     roomStatus,
     actorSeatForUi,
-    showWolves,
     imActioner,
     firstSwapSeat,
     secondSeat,
@@ -521,6 +520,7 @@ export function useWerewolfRoomScreenState(
 
   const { handleActionIntent, isActionSubmitting } = useActionOrchestrator({
     gameState,
+    viewModel,
     roomStatus,
     currentActionRole,
     currentSchema,

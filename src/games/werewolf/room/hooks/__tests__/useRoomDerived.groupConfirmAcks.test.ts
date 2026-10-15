@@ -8,6 +8,7 @@
  */
 
 import type { ActionSchema, RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import {
   GameStatus,
   SCHEMAS,
@@ -60,15 +61,68 @@ function createState(): LocalGameState {
   };
 }
 
+/**
+ * AU-39: the ack mapping now lives in the engine projection — the hook
+ * reads the current step's reveal from the view model. The view model
+ * below carries exactly the ack families the fixture state encodes
+ * (conversion -> [0], seedWolf -> [1], cupid -> [2], piper -> [3]); an
+ * unknown step id has no reveal, which is what fails fast.
+ */
+const ACKED_SEATS_BY_STEP: Readonly<Record<string, readonly number[]>> = {
+  awakenedGargoyleConvertReveal: [0],
+  seedWolfInfectReveal: [1],
+  cupidLoversReveal: [2],
+  piperHypnotizedReveal: [3],
+};
+
+function viewModelForSchema(currentSchema: ActionSchema): WerewolfViewModel {
+  const ackedSeats = ACKED_SEATS_BY_STEP[currentSchema.id];
+  return {
+    status: GameStatus.Ongoing,
+    mySeat: 5,
+    myRole: null,
+    myEffectiveRole: null,
+    seats: [0, 1, 2, 3, 4, 5].map((seat) => ({
+      seat,
+      displayName: `P${seat}`,
+      isBot: false,
+      visibleRole: null,
+      isWolfPackPeer: false,
+      hasViewedRole: false,
+    })),
+    wolfPackSeats: null,
+    viewedSeats: [],
+    night: {
+      stepSchemaKind: 'groupConfirm',
+      confirmStatus: null,
+      reveals:
+        ackedSeats === undefined
+          ? []
+          : [
+              {
+                stepId: currentSchema.id,
+                isSubject: false,
+                subjectSeats: null,
+                partnerSeat: null,
+                hasAcked: false,
+                ackedSeats,
+              },
+            ],
+      wolfVotesBySeat: null,
+    },
+    day: { sheriffSeat: null, mvpSeat: null },
+  };
+}
+
 function deriveWithSchema(currentSchema: ActionSchema, currentActionRole: RoleId) {
   return renderHook(() =>
     useRoomDerived({
       gameState: createState(),
+      viewModel: viewModelForSchema(currentSchema),
       currentSchema,
       currentActionRole,
       roomStatus: GameStatus.Ongoing,
       actorSeatForUi: 5,
-      showWolves: false,
       imActioner: false,
       firstSwapSeat: null,
       secondSeat: null,

@@ -3,6 +3,10 @@
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  WerewolfSeatView,
+  WerewolfViewModel,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { TargetConstraint } from '@game-judge/game-engine/games/werewolf/public';
@@ -16,6 +20,46 @@ import {
   toGameRoomLike,
 } from '@/games/werewolf/room/werewolfRoom.helpers';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
+
+/**
+ * AU-39: buildSeatViewModels reads wolf visibility, wolf-vote badges and
+ * viewed flags from the view model. These fixtures predate the projection,
+ * so synthesize the view model the engine would produce for each fixture:
+ * seat views mirror the fixture players (viewed flags included); the pack
+ * and the vote map are the values the old showWolves argument plus the
+ * fixture's currentNightResults encoded (null = not visible to the viewer).
+ */
+function viewModelFor(
+  state: LocalGameState,
+  wolfPackSeats: readonly number[] | null,
+  wolfVotesBySeat: Readonly<Record<string, number>> | null = null,
+): WerewolfViewModel {
+  const seats: WerewolfSeatView[] = [];
+  state.players.forEach((player, seat) => {
+    if (!player) return;
+    seats.push({
+      seat,
+      displayName: player.displayName || '玩家',
+      isBot: player.isBot === true,
+      visibleRole: null,
+      isWolfPackPeer: wolfPackSeats?.includes(seat) ?? false,
+      hasViewedRole: player.hasViewedRole,
+    });
+  });
+  return {
+    status: state.status,
+    mySeat: null,
+    myRole: null,
+    myEffectiveRole: null,
+    seats,
+    wolfPackSeats,
+    viewedSeats: seats
+      .filter((seatView) => seatView.hasViewedRole)
+      .map((seatView) => seatView.seat),
+    night: { stepSchemaKind: null, confirmStatus: null, reveals: [], wolfVotesBySeat },
+    day: { sheriffSeat: null, mvpSeat: null },
+  };
+}
 
 // =============================================================================
 // determineActionerState
@@ -359,7 +403,7 @@ describe('buildSeatViewModels', () => {
       status: GameStatus.Ongoing,
     };
 
-    const seats = buildSeatViewModels(mockState, 0, true, 1);
+    const seats = buildSeatViewModels(mockState, viewModelFor(mockState, [1]), 0, 1);
 
     expect(seats).toHaveLength(3);
 
@@ -444,7 +488,7 @@ describe('buildSeatViewModels', () => {
       status: GameStatus.Ongoing,
     };
 
-    const seats = buildSeatViewModels(mockState, null, true, null);
+    const seats = buildSeatViewModels(mockState, viewModelFor(mockState, [0]), null, null);
 
     // Only wolf with canSeeWolves=true is highlighted
     expect(seats[0]!.isWolf).toBe(true);
@@ -503,7 +547,7 @@ describe('buildSeatViewModels', () => {
       status: GameStatus.Ongoing,
     };
 
-    const seats = buildSeatViewModels(mockState, null, true, null);
+    const seats = buildSeatViewModels(mockState, viewModelFor(mockState, [1]), null, null);
     expect(seats[0]!.isWolf).toBe(false);
     expect(seats[1]!.isWolf).toBe(true);
   });
@@ -567,7 +611,7 @@ describe('buildSeatViewModels', () => {
       };
 
       // I am seat 0, with notSelf constraint
-      const seats = buildSeatViewModels(mockState, 0, false, null, {
+      const seats = buildSeatViewModels(mockState, viewModelFor(mockState, null), 0, null, {
         schemaConstraints: [TargetConstraint.NotSelf],
       });
 
@@ -636,7 +680,7 @@ describe('buildSeatViewModels', () => {
       };
 
       // I am seat 0, with NO constraints
-      const seats = buildSeatViewModels(mockState, 0, false, null, {
+      const seats = buildSeatViewModels(mockState, viewModelFor(mockState, null), 0, null, {
         schemaConstraints: [],
       });
 
@@ -708,7 +752,7 @@ describe('buildSeatViewModels', () => {
 
     it('should populate wolfVoteBadge when showWolves=true and wolf has voted', () => {
       const state = createWolfVoteState({ '0': 2 }); // seat 0 voted for seat 2
-      const seats = buildSeatViewModels(state, 0, true, null);
+      const seats = buildSeatViewModels(state, viewModelFor(state, [0], { '0': 2 }), 0, null);
 
       // Wolf seat 0 should show formatted badge
       expect(seats[0]!.wolfVoteBadge).toBe('袭击3号');
@@ -719,7 +763,7 @@ describe('buildSeatViewModels', () => {
 
     it('should NOT populate wolfVoteBadge when showWolves=false', () => {
       const state = createWolfVoteState({ '0': 2 });
-      const seats = buildSeatViewModels(state, 0, false, null);
+      const seats = buildSeatViewModels(state, viewModelFor(state, null), 0, null);
 
       // Even though wolf voted, showWolves=false hides it
       expect(seats[0]!.wolfVoteBadge).toBeUndefined();
@@ -727,14 +771,14 @@ describe('buildSeatViewModels', () => {
 
     it('should show schema emptyVoteText for empty knife vote', () => {
       const state = createWolfVoteState({ '0': -1 }); // seat 0 voted empty knife
-      const seats = buildSeatViewModels(state, 0, true, null);
+      const seats = buildSeatViewModels(state, viewModelFor(state, [0], { '0': -1 }), 0, null);
 
       expect(seats[0]!.wolfVoteBadge).toBe('放弃袭击');
     });
 
     it('wolfVoteBadge and showReadyBadge should be mutually exclusive', () => {
       const state = createWolfVoteState({ '0': 2 });
-      const seats = buildSeatViewModels(state, 0, true, null);
+      const seats = buildSeatViewModels(state, viewModelFor(state, [0], { '0': 2 }), 0, null);
 
       // Wolf seat 0 has wolfVoteBadge → showReadyBadge must be false
       expect(seats[0]!.wolfVoteBadge).toBe('袭击3号');
@@ -800,7 +844,7 @@ describe('buildSeatViewModels', () => {
         status: GameStatus.Assigned,
       };
 
-      const seats = buildSeatViewModels(mockState, null, false, null, {
+      const seats = buildSeatViewModels(mockState, viewModelFor(mockState, null), null, null, {
         showReadyBadges: true,
       });
 
@@ -835,7 +879,7 @@ describe('buildSeatViewModels', () => {
         status: GameStatus.Assigned,
       };
 
-      const seats = buildSeatViewModels(mockState, null, false, null, {
+      const seats = buildSeatViewModels(mockState, viewModelFor(mockState, null), null, null, {
         showReadyBadges: true,
       });
 
@@ -879,7 +923,7 @@ describe('buildSeatViewModels', () => {
         status: GameStatus.Assigned,
       };
 
-      const seats = buildSeatViewModels(mockState, null, false, null);
+      const seats = buildSeatViewModels(mockState, viewModelFor(mockState, null), null, null);
       expect(seats[0]!.showReadyBadge).toBeFalsy();
     });
   });
@@ -911,7 +955,7 @@ describe('buildSeatViewModels', () => {
         status: GameStatus.Ongoing,
       };
 
-      const seats = buildSeatViewModels(mockState, null, false, 0, {
+      const seats = buildSeatViewModels(mockState, viewModelFor(mockState, null), null, 0, {
         secondSelectedSeat: 2,
       });
 
@@ -1297,7 +1341,13 @@ describe('AU-39 golden: buildSeatViewModels bottom-card wolf visibility', () => 
   });
 
   it('highlights by effective role, with the treasureMaster seat excluded', () => {
-    const seats = buildSeatViewModels(createBottomCardState(), null, true, null);
+    const bottomCardState = createBottomCardState();
+    const seats = buildSeatViewModels(
+      bottomCardState,
+      viewModelFor(bottomCardState, [0, 1], { '0': 5, '1': -1 }),
+      null,
+      null,
+    );
 
     // wolf: highlighted; thief-as-wolf: highlighted via effective role
     expect(seats[0]!.isWolf).toBe(true);
@@ -1312,7 +1362,13 @@ describe('AU-39 golden: buildSeatViewModels bottom-card wolf visibility', () => 
   });
 
   it('wolf vote badges follow the same effective-role visibility', () => {
-    const seats = buildSeatViewModels(createBottomCardState(), null, true, null);
+    const bottomCardState = createBottomCardState();
+    const seats = buildSeatViewModels(
+      bottomCardState,
+      viewModelFor(bottomCardState, [0, 1], { '0': 5, '1': -1 }),
+      null,
+      null,
+    );
 
     expect(seats[0]!.wolfVoteBadge).toBe('袭击6号');
     // The thief seat voted empty-knife as a wolf: schema empty-vote text
@@ -1324,7 +1380,13 @@ describe('AU-39 golden: buildSeatViewModels bottom-card wolf visibility', () => 
   });
 
   it('showWolves=false hides every highlight and badge', () => {
-    const seats = buildSeatViewModels(createBottomCardState(), null, false, null);
+    const bottomCardState = createBottomCardState();
+    const seats = buildSeatViewModels(
+      bottomCardState,
+      viewModelFor(bottomCardState, null),
+      null,
+      null,
+    );
 
     for (const seat of seats) {
       expect(seat.isWolf).toBe(false);

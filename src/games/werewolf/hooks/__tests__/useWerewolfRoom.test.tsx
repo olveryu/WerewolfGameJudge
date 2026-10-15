@@ -3,7 +3,7 @@ import {
   WEREWOLF_STATE_IDENTITY,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { buildNightPlan, GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
@@ -268,5 +268,48 @@ describe('useWerewolfRoom shared-session composition', () => {
     await act(async () => undefined);
 
     expect(mockShowErrorAlert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useWerewolfRoom view model (AU-39)', () => {
+  it('host controlling a wolf bot receives the bot view and sees the wolf pack', () => {
+    const roles = ['villager', 'wolf', 'wolf'] as const;
+    const wolfKillIndex = buildNightPlan([...roles]).steps.findIndex(
+      (step) => step.stepId === 'wolfKill',
+    );
+    const state = createGameState({
+      templateRoles: [...roles],
+      players: {
+        0: { seat: 0, role: 'villager', hasViewedRole: true },
+        1: { seat: 1, role: 'wolf', hasViewedRole: true },
+        2: { seat: 2, role: 'wolf', hasViewedRole: true },
+      },
+      roster: {
+        0: { seat: 0, userId: 'host-user' },
+        1: { seat: 1, kind: 'bot' },
+        2: { seat: 2, kind: 'bot' },
+      },
+      currentStepIndex: wolfKillIndex,
+    });
+    const client = createClient({ state });
+    const { result } = renderHook(() => useWerewolfRoom(client), { wrapper: createWrapper() });
+
+    // Own view: the host is a villager and cannot see the wolf pack.
+    expect(result.current.viewModel.mySeat).toBe(0);
+    expect(result.current.viewModel.wolfPackSeats).toBeNull();
+
+    act(() => result.current.takeOverBot(1));
+
+    // Controlled view: the projection is rebuilt for the bot seat — the
+    // host now sees through the wolf bot (pack visible), while myRole
+    // keeps its own-seat meaning (the host's real identity).
+    expect(result.current.effectiveSeat).toBe(1);
+    expect(result.current.viewModel.mySeat).toBe(1);
+    expect(result.current.viewModel.myRole).toBe('wolf');
+    expect(result.current.viewModel.wolfPackSeats).toEqual([1, 2]);
+    expect(result.current.myRole).toBe('villager');
+
+    act(() => result.current.releaseBot());
+    expect(result.current.viewModel.wolfPackSeats).toBeNull();
   });
 });

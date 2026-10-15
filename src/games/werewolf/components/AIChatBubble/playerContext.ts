@@ -7,14 +7,20 @@
  */
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from '@/games/werewolf/services/AIChatService';
 
 /**
- * Build the player-perspective context from game state (no cheating info)
+ * Build the player-perspective context from game state (no cheating info).
+ * Own seat/role come from the AU-39 view model (the viewer's own
+ * projection); room-level public facts still read the state directly.
  */
-export function buildPlayerContext(state: GameState | null, mySeat: number | null): GameContext {
+export function buildPlayerContext(
+  state: GameState | null,
+  viewModel: WerewolfViewModel | null,
+): GameContext {
   if (!state) {
     return { inRoom: false };
   }
@@ -37,14 +43,13 @@ export function buildPlayerContext(state: GameState | null, mySeat: number | nul
     });
   }
 
-  // My seat and role
-  if (mySeat !== null && mySeat !== undefined) {
-    context.mySeat = mySeat;
-    const player = state.players[mySeat];
-    if (player?.role) {
-      context.myRole = player.role;
-      const roleSpec = ROLE_SPECS[player.role];
-      context.myRoleName = roleSpec?.displayName || player.role;
+  // My seat and role (from the view model: the viewer's own identity only)
+  if (viewModel !== null && viewModel.mySeat !== null) {
+    context.mySeat = viewModel.mySeat;
+    if (viewModel.myRole) {
+      context.myRole = viewModel.myRole;
+      const roleSpec = ROLE_SPECS[viewModel.myRole];
+      context.myRoleName = roleSpec?.displayName || viewModel.myRole;
     }
   }
 

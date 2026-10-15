@@ -7,9 +7,34 @@
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, getWerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 
 import { buildPlayerContext } from '../playerContext';
+
+/**
+ * AU-39: buildPlayerContext now reads the viewer's seat/role from the view
+ * model. The partial fixture states predate the projection, so complete
+ * them with the roster/profiles the projection requires and project for
+ * real — the seat argument each test used to pass is now the viewer seat.
+ */
+function viewModelFor(state: GameState, viewerSeat: number | null) {
+  const roster: Record<number, { seat: number; userId: string }> = {};
+  const playerProfiles: Record<string, { displayName: string }> = {};
+  for (const [seatKey, player] of Object.entries(state.players)) {
+    if (!player) continue;
+    const seat = Number(seatKey);
+    const userId = `user-${seat}`;
+    roster[seat] = { seat, userId };
+    playerProfiles[userId] = { displayName: '玩家' };
+  }
+  const completed: GameState = {
+    ...state,
+    roster,
+    playerProfiles,
+    currentStepIndex: state.currentStepIndex ?? -1,
+  };
+  return getWerewolfViewModel(completed, viewerSeat);
+}
 
 function makeState(overrides: Partial<GameState> = {}): GameState {
   return {
@@ -89,7 +114,7 @@ describe('buildPlayerContext', () => {
         2: makePlayer({ seat: 2, role: 'witch' }),
       },
     });
-    const ctx = buildPlayerContext(state, 2);
+    const ctx = buildPlayerContext(state, viewModelFor(state, 2));
 
     expect(ctx.mySeat).toBe(2);
     expect(ctx.myRole).toBe('witch');
@@ -102,7 +127,7 @@ describe('buildPlayerContext', () => {
         1: makePlayer({ seat: 1, role: null }),
       },
     });
-    const ctx = buildPlayerContext(state, 1);
+    const ctx = buildPlayerContext(state, viewModelFor(state, 1));
 
     expect(ctx.mySeat).toBe(1);
     expect(ctx.myRole).toBeUndefined();
@@ -115,7 +140,7 @@ describe('buildPlayerContext', () => {
         0: makePlayer({ seat: 0, role: 'guard' }),
       },
     });
-    const ctx = buildPlayerContext(state, 0);
+    const ctx = buildPlayerContext(state, viewModelFor(state, 0));
 
     expect(ctx.mySeat).toBe(0);
     expect(ctx.myRole).toBe('guard');
@@ -123,7 +148,7 @@ describe('buildPlayerContext', () => {
 
   it('AU-39 golden: mySeat without a seated player yields no role', () => {
     const state = makeState({ players: {} });
-    const ctx = buildPlayerContext(state, 5);
+    const ctx = buildPlayerContext(state, viewModelFor(state, 5));
 
     expect(ctx.mySeat).toBe(5);
     expect(ctx.myRole).toBeUndefined();
@@ -138,7 +163,7 @@ describe('buildPlayerContext', () => {
       },
     });
     // Player at seat 0 — should only see own role
-    const ctx = buildPlayerContext(state, 0);
+    const ctx = buildPlayerContext(state, viewModelFor(state, 0));
     const serialized = JSON.stringify(ctx);
 
     expect(ctx.myRole).toBe('seer');

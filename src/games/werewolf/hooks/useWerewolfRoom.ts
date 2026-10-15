@@ -19,7 +19,11 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  getWerewolfViewModel,
+  type WerewolfViewModel,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { useIsFocused } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -52,6 +56,8 @@ import { useWerewolfSeatCommands } from './useWerewolfSeatCommands';
 
 interface UseWerewolfRoomResult {
   gameState: LocalGameState;
+  /** AU-39 view model for the effective viewer (own seat, or the controlled bot seat). */
+  viewModel: WerewolfViewModel;
   stateRevision: number;
 
   // Player info
@@ -241,8 +247,22 @@ interface UseWerewolfRoomResult {
   // Derived values
   // =========================================================================
 
+  // AU-39: the viewer-cropped projection is built once per snapshot next to
+  // the local-state conversion, for the effective viewer (the controlled bot
+  // seat while the host is delegating, otherwise the user's own seat).
+  const viewModel = useMemo(
+    () => getWerewolfViewModel(snapshot, botControl.effectiveSeat),
+    [snapshot, botControl.effectiveSeat],
+  );
+
+  // myRole keeps own-seat semantics (the identity layer's real identity);
+  // when not delegating it is the room view model's own role.
   const myRole: RoleId | null =
-    mySeat !== null ? (gameState.players.get(mySeat)?.role ?? null) : null;
+    mySeat === null
+      ? null
+      : botControl.effectiveSeat === mySeat
+        ? viewModel.myRole
+        : getWerewolfViewModel(snapshot, mySeat).myRole;
 
   const roomStatus = gameState.status;
 
@@ -251,6 +271,7 @@ interface UseWerewolfRoomResult {
   // =========================================================================
   return {
     gameState,
+    viewModel,
     stateRevision: sessionSnapshot.snapshot.revision,
     isHost,
     myUserId,

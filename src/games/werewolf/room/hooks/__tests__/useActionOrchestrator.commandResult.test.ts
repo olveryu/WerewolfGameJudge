@@ -1,5 +1,9 @@
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  getSchema,
+  getWerewolfViewModel,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';
@@ -37,6 +41,7 @@ function createParams(
   const state = buildWerewolfTestState({ status: GameStatus.Ongoing });
   return {
     gameState: toWerewolfLocalState(state),
+    viewModel: getWerewolfViewModel(state, 0),
     roomStatus: GameStatus.Ongoing,
     currentActionRole: 'seer' as const,
     currentSchema: getSchema('seerCheck'),

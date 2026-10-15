@@ -7,6 +7,7 @@
  */
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
@@ -153,7 +154,7 @@ export function useChatMessages(
       }
       const gameState = room.snapshot.state;
       const mySeat = getWerewolfUserSeat(gameState, owner.userId);
-      const gameContext = buildPlayerContext(gameState, mySeat);
+      const gameContext = buildPlayerContext(gameState, getWerewolfViewModel(gameState, mySeat));
       if (!isAIChatReady()) {
         showErrorAlert('AI 助手', 'AI 助手暂不可用');
         return;

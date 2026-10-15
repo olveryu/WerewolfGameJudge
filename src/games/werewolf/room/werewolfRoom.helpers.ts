@@ -10,8 +10,8 @@ import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import {
-  canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
   getRoleSpec,
   isWolfRole,
@@ -342,12 +342,19 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
 /**
  * Build SeatViewModel array from game state
  *
+ * Wolf visibility and wolf-vote badges come from the AU-39 view model
+ * (viewer-cropped projection): a seat is highlighted when the view model
+ * flags it as a wolf-pack peer for this viewer, and vote badges read the
+ * view model's gated wolfVotesBySeat. Interaction state (selection,
+ * schema disabled reasons) is layered on here, never projected.
+ *
+ * @param viewModel - AU-39 view model for the effective viewer.
  * @param actorSeat - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
  */
 export function buildSeatViewModels(
   gameState: LocalGameState,
+  viewModel: WerewolfViewModel,
   actorSeat: number | null,
-  showWolves: boolean,
   selectedSeat: number | null,
   options?: {
     /**
@@ -377,27 +384,21 @@ export function buildSeatViewModels(
     groupConfirmAcks?: readonly number[];
   },
 ): SeatViewModel[] {
-  // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
-  const wolfVotesBySeat = showWolves ? gameState.currentNightResults?.wolfVotesBySeat : undefined;
+  // Wolf vote progress comes from the view model (viewer-gated; null while
+  // the viewer may not see wolf votes): reuse ✅ badge on wolf seats that
+  // have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
+  const wolfVotesBySeat = viewModel.night.wolfVotesBySeat;
+  const seatViewBySeat = new Map(viewModel.seats.map((seatView) => [seatView.seat, seatView]));
 
   const playerRoles = gameState.template.roles.slice(0, gameState.template.numberOfPlayers);
   return playerRoles.map((role, seat) => {
     const player = gameState.players.get(seat);
-    // For bottom card actors (thief/treasureMaster), use the chosen card's role
-    // so they are highlighted as wolf / shown vote badge during wolfKill.
-    const effectiveRole = player?.role
-      ? getBottomCardEffectiveRole(player.role, gameState.currentNightResults)
-      : role;
-    // Wolf visibility is controlled by ActionerState.showWolves.
-    // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
-    // Roles like gargoyle/wolfRobot (canSeeWolves=false) are hidden from wolf pack view.
-    // treasureMaster never meets wolves even when choosing a wolf card.
-    const originalRole = player?.role ?? role;
-    const isWolf =
-      showWolves &&
-      isWolfRole(effectiveRole) &&
-      canRoleSeeWolves(effectiveRole) &&
-      !isBottomCardWolfVoteExcluded(originalRole);
+    const seatView = seatViewBySeat.get(seat);
+    // Wolf visibility is decided by the view model: a seat is highlighted
+    // when it is a wolf-pack peer for this viewer (bottom-card effective
+    // role, canSeeWolves and bottom-card exclusion rules applied
+    // engine-side). Gargoyle/wolfRobot and bottom-card actors never appear.
+    const isWolf = seatView?.isWolfPackPeer ?? false;
 
     // UX-only early rejection based on schema constraints.
     // IMPORTANT: Server remains the authority. This is just early UI guidance.
@@ -414,7 +415,7 @@ export function buildSeatViewModels(
     const hasWolfVoteBadge = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
     const readyBadge =
       !hasWolfVoteBadge &&
-      ((options?.showReadyBadges && player != null && player.hasViewedRole) ||
+      ((options?.showReadyBadges && player != null && (seatView?.hasViewedRole ?? false)) ||
         (options?.groupConfirmAcks?.includes(seat) ?? false));
 
     return {

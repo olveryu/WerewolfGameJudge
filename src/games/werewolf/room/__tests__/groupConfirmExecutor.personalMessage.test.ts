@@ -3,12 +3,18 @@
  *
  * Pins the per-viewer reveal filtering of the four groupConfirm families:
  * each viewer learns only their own subject status (hypnotized / converted /
- * lover partner), never another seat's. These are the client behaviors the
- * engine ViewModel's night.reveals gating must reproduce field-for-field.
+ * lover partner), never another seat's. Since Slice 3 the executor reads
+ * the view model's night.reveals; createContext below projects each raw
+ * fixture fact set into the reveal the engine view model produces for that
+ * viewer (cross-checked field-for-field by the engine visibility tests).
  * Uses the real SCHEMAS registry: asserted strings are the production texts.
  */
 
-import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  WerewolfRevealView,
+  WerewolfViewModel,
+} from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, getSchema } from '@game-judge/game-engine/games/werewolf/public';
 
 import { groupConfirmAckExecutor } from '@/games/werewolf/room/executors/groupConfirmExecutor';
 import type { ExecutorContext } from '@/games/werewolf/room/executors/types';
@@ -27,6 +33,86 @@ interface PromptCall {
   buttonLabel?: string;
 }
 
+/** The reveal the engine view model yields for this viewer and fact set. */
+function revealFor(
+  schemaId: string,
+  gameState: Partial<LocalGameState>,
+  actorSeatForUi: number | null,
+): WerewolfRevealView {
+  const viewer = actorSeatForUi;
+  switch (schemaId) {
+    case 'piperHypnotizedReveal': {
+      const hypnotizedSeats = gameState.hypnotizedSeats ?? [];
+      const isSubject = viewer !== null && hypnotizedSeats.includes(viewer);
+      return {
+        stepId: 'piperHypnotizedReveal',
+        isSubject,
+        subjectSeats: isSubject ? hypnotizedSeats : null,
+        partnerSeat: null,
+        hasAcked: false,
+        ackedSeats: [],
+      };
+    }
+    case 'awakenedGargoyleConvertReveal':
+      return {
+        stepId: 'awakenedGargoyleConvertReveal',
+        isSubject: viewer !== null && gameState.convertedSeat === viewer,
+        subjectSeats: null,
+        partnerSeat: null,
+        hasAcked: false,
+        ackedSeats: [],
+      };
+    case 'cupidLoversReveal': {
+      const loverSeats = gameState.loverSeats;
+      const isSubject = viewer !== null && (loverSeats?.includes(viewer) ?? false);
+      return {
+        stepId: 'cupidLoversReveal',
+        isSubject,
+        subjectSeats: null,
+        partnerSeat:
+          isSubject && loverSeats
+            ? loverSeats[0] === viewer
+              ? (loverSeats[1] ?? null)
+              : (loverSeats[0] ?? null)
+            : null,
+        hasAcked: false,
+        ackedSeats: [],
+      };
+    }
+    default: {
+      const result = gameState.seedWolfInfectionResult;
+      return {
+        stepId: 'seedWolfInfectReveal',
+        isSubject:
+          viewer !== null && result?.outcome === 'converted' && result.targetSeat === viewer,
+        subjectSeats: null,
+        partnerSeat: null,
+        hasAcked: false,
+        ackedSeats: [],
+      };
+    }
+  }
+}
+
+function viewModelWith(reveal: WerewolfRevealView): WerewolfViewModel {
+  return {
+    status: GameStatus.Ongoing,
+    mySeat: null,
+    myRole: null,
+    myEffectiveRole: null,
+    seats: [],
+    wolfPackSeats: null,
+    viewedSeats: [],
+    night: {
+      stepSchemaKind: 'groupConfirm',
+      confirmStatus: null,
+      reveals: [reveal],
+      wolfVotesBySeat: null,
+    },
+    day: { sheriffSeat: null, mvpSeat: null },
+  };
+}
+
 function createContext(options: {
   schemaId: Parameters<typeof getSchema>[0];
   gameState: Partial<LocalGameState>;
@@ -35,6 +121,9 @@ function createContext(options: {
   const promptCalls: PromptCall[] = [];
   const ctx = {
     gameState: options.gameState as LocalGameState,
+    viewModel: viewModelWith(
+      revealFor(options.schemaId, options.gameState, options.actorSeatForUi),
+    ),
     currentSchema: getSchema(options.schemaId),
     actorSeatForUi: options.actorSeatForUi,
     groupConfirmAckMutation: { mutate: jest.fn() },
