@@ -140,6 +140,8 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onLadyAcknowledgePress: jest.fn(),
     onLadyResultPress: jest.fn(),
     onEarlyStrikePress: jest.fn(),
+    strikePickMode: false,
+    onCancelEarlyStrikePress: jest.fn(),
     hostManagement: null,
     canControlBots: true,
     releaseBot: jest.fn(),
@@ -461,6 +463,26 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(onEarlyStrikePress).toHaveBeenCalledTimes(1);
     const merlinBottom = shellFor(running, roleSeat(running, 'merlin'));
     expect(merlinBottom.actions.find((action) => action.key === 'earlyStrike')).toBeUndefined();
+  });
+
+  it('early strike pick mode: bottom area is the seat-board pick prompt with only a cancel action', () => {
+    const running = daytimeSession();
+    const assassin = roleSeat(running, 'assassin');
+    const onCancelEarlyStrikePress = jest.fn();
+    const bottom = shellFor(running, assassin, { strikePickMode: true, onCancelEarlyStrikePress });
+    expect(bottom.message).toBe(
+      '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
+    );
+    // 独占底部区：只剩局内常驻「查看身份」与取消入口，阶段主按钮（如提交队伍）不出现。
+    expect(bottom.actions.map((action) => action.key)).toEqual(['viewRole', 'earlyStrike']);
+    const cancel = bottom.actions.find((action) => action.key === 'earlyStrike');
+    expect(cancel).toMatchObject({
+      label: '取消刺杀',
+      isEnabled: true,
+      testID: 'avalon-early-strike',
+    });
+    if (cancel && cancel.isEnabled) cancel.onPress();
+    expect(onCancelEarlyStrikePress).toHaveBeenCalledTimes(1);
   });
 
   it('vote: voters get the open button, their ballot in the message, then the armed countdown', () => {

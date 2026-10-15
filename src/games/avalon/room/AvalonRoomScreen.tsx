@@ -17,7 +17,6 @@ import { colors } from '@/theme';
 
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
-import { AvalonEarlyStrikeModal } from './components/AvalonEarlyStrikeModal';
 import { AvalonEndedSection } from './components/AvalonEndedSection';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -166,7 +165,8 @@ function AvalonRoomContent(
     (viewModel.phase === 'nominate' || viewModel.phase === 'lady' || viewModel.phase === 'assassin')
       ? viewModel.questHistory[questHistoryCount - 1]
       : undefined;
-  // 座位盘选人：提名（队长点选切换选中集）/ 湖仙（持有人点选→二次确认）/ 刺杀（刺客点选→二次确认）。
+  // 座位盘选人：提名（队长点选切换选中集）/ 湖仙（持有人点选→二次确认）/ 刺杀
+  // （刺客点选→二次确认）/ 提前刺杀（选人模式开启时点选→二次确认，优先于阶段点选）。
   const [nominateSelection, setNominateSelection] = useState<ReadonlySet<number>>(new Set());
   const nominateKey =
     viewModel === null ? null : `${viewModel.questResults.length}:${viewModel.leaderSeat}`;
@@ -225,10 +225,20 @@ function AvalonRoomContent(
   const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
-  const { setSeatPickHandler, setPickedSeats } = screen;
+  const { setSeatPickHandler, setPickedSeats, strikePickMode } = screen;
   useEffect(() => {
     if (viewModel === null) {
       setSeatPickHandler(null);
+      return;
+    }
+    if (strikePickMode && viewModel.canEarlyStrike) {
+      const targets = eligibleStrikeTargets(viewModel);
+      setSeatPickHandler((seat) => {
+        if (!targets.includes(seat)) return false;
+        setStrikePickMode(false);
+        setStrikeConfirm({ seat, mode: 'earlyStrike' });
+        return true;
+      });
       return;
     }
     if (
@@ -271,7 +281,7 @@ function AvalonRoomContent(
       return;
     }
     setSeatPickHandler(null);
-  }, [viewModel, setSeatPickHandler]);
+  }, [viewModel, setSeatPickHandler, strikePickMode, setStrikePickMode]);
   // 提名选中集同步给座位数据源（选中座位的「队员」徽标）。
   useEffect(() => {
     const isLeaderPicking =
@@ -455,16 +465,6 @@ function AvalonRoomContent(
                   targetName={seatDisplayName(ladyResult.targetSeat)}
                   faction={ladyResult.faction}
                   onClose={ladyResultWatermark.dismiss}
-                />
-              ) : null}
-              {screen.strikePickMode ? (
-                <AvalonEarlyStrikeModal
-                  viewModel={viewModel}
-                  onSelectSeat={(seat) => {
-                    setStrikePickMode(false);
-                    setStrikeConfirm({ seat, mode: 'earlyStrike' });
-                  }}
-                  onClose={() => setStrikePickMode(false)}
                 />
               ) : null}
             </>
