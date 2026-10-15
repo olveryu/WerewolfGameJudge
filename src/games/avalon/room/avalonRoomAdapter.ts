@@ -37,6 +37,7 @@ import {
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildNextRoundAction,
+  buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildStartGameAction,
@@ -855,32 +856,30 @@ export function createAvalonHostManagement(
       key: 'vote',
       title: '投票管理',
       actions: [
-        {
-          key: 'finish-vote',
-          label: '结束投票',
-          icon: 'checkmark-done-outline',
-          variant: 'primary',
-          isLoading: input.isSubmitting,
-          testID: 'avalon-finish-vote',
-          ...(input.isSubmitting
-            ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
-            : {
-                isEnabled: true as const,
-                onPress: () =>
-                  showConfirmAlert(
-                    '结束投票',
-                    input.controlledSeat !== null
-                      ? '未投票的座位将视为弃权，确定结束投票并结算吗？你正在接管机器人座位，结算前将先释放接管。'
-                      : '未投票的座位将视为弃权，确定结束投票并结算吗？',
-                    () => {
-                      // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
-                      // 显式传 null，避免闭包捕获旧的 controlledSeat。
-                      if (input.controlledSeat !== null) input.releaseBot();
-                      void submit('结束投票', { type: 'avalon.vote.finish' }, null);
-                    },
-                  ),
-              }),
-        },
+        buildPendingAwareHostAction(
+          {
+            key: 'finish-vote',
+            label: '结束投票',
+            icon: 'checkmark-done-outline',
+            variant: 'primary',
+            isLoading: input.isSubmitting,
+            testID: 'avalon-finish-vote',
+          },
+          input.isSubmitting,
+          () =>
+            showConfirmAlert(
+              '结束投票',
+              input.controlledSeat !== null
+                ? '未投票的座位将视为弃权，确定结束投票并结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                : '未投票的座位将视为弃权，确定结束投票并结算吗？',
+              () => {
+                // 房主接管中需先释放，否则服务端按"机器人身份"拒绝（requireAvalonHost）。
+                // 显式传 null，避免闭包捕获旧的 controlledSeat。
+                if (input.controlledSeat !== null) input.releaseBot();
+                void submit('结束投票', { type: 'avalon.vote.finish' }, null);
+              },
+            ),
+        ),
       ],
     });
   if (state.phase.kind === 'quest')
@@ -888,30 +887,28 @@ export function createAvalonHostManagement(
       key: 'quest',
       title: '任务管理',
       actions: [
-        {
-          key: 'finish-quest',
-          label: '结束任务',
-          icon: 'checkmark-done-outline',
-          variant: 'primary',
-          isLoading: input.isSubmitting,
-          testID: 'avalon-finish-quest',
-          ...(input.isSubmitting
-            ? { isEnabled: false as const, disabledReason: null, onDisabledPress: null }
-            : {
-                isEnabled: true as const,
-                onPress: () =>
-                  showConfirmAlert(
-                    '结束任务',
-                    input.controlledSeat !== null
-                      ? '未出牌的队员将视为成功，确定提前结算吗？你正在接管机器人座位，结算前将先释放接管。'
-                      : '未出牌的队员将视为成功，确定提前结算吗？',
-                    () => {
-                      if (input.controlledSeat !== null) input.releaseBot();
-                      void submit('结束任务', { type: 'avalon.quest.finish' }, null);
-                    },
-                  ),
-              }),
-        },
+        buildPendingAwareHostAction(
+          {
+            key: 'finish-quest',
+            label: '结束任务',
+            icon: 'checkmark-done-outline',
+            variant: 'primary',
+            isLoading: input.isSubmitting,
+            testID: 'avalon-finish-quest',
+          },
+          input.isSubmitting,
+          () =>
+            showConfirmAlert(
+              '结束任务',
+              input.controlledSeat !== null
+                ? '未出牌的队员将视为成功，确定提前结算吗？你正在接管机器人座位，结算前将先释放接管。'
+                : '未出牌的队员将视为成功，确定提前结算吗？',
+              () => {
+                if (input.controlledSeat !== null) input.releaseBot();
+                void submit('结束任务', { type: 'avalon.quest.finish' }, null);
+              },
+            ),
+        ),
       ],
     });
   // 身份查看脚手架（对齐狼人杀）：还有机器人座位未落查看记录时，

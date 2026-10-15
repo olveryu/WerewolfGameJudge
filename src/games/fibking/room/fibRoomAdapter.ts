@@ -23,6 +23,7 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildPendingAwareHostAction,
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
@@ -304,37 +305,6 @@ interface FibHostManagementInput {
   readonly onStartDisabled: () => void;
 }
 
-interface FibHostActionDescriptor {
-  readonly key: string;
-  readonly label: string;
-  readonly icon: RoomHostManagementAction['icon'];
-  readonly variant: RoomHostManagementAction['variant'];
-  readonly testID?: string;
-}
-
-function enabledHostAction(
-  descriptor: FibHostActionDescriptor,
-  onPress: () => void,
-): RoomHostManagementAction {
-  return { ...descriptor, isEnabled: true, onPress };
-}
-
-function commandHostAction(
-  input: FibHostManagementInput,
-  descriptor: FibHostActionDescriptor,
-  onPress: () => void,
-): RoomHostManagementAction {
-  return input.isCommandSubmitting
-    ? {
-        ...descriptor,
-        isLoading: true,
-        isEnabled: false,
-        disabledReason: null,
-        onDisabledPress: null,
-      }
-    : enabledHostAction(descriptor, onPress);
-}
-
 function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
   switch (input.state.phase) {
     case 'viewing': {
@@ -384,90 +354,97 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
     }
     case 'preparing':
       return [
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'cancel-preparing',
             label: '取消准备',
             icon: 'close-circle-outline',
             variant: 'secondary',
             testID: TESTIDS.fibCancelPreparingButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.cancelPreparing,
         ),
       ];
     case 'preparationFailed':
       return [
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'retry-preparation',
             label: '重新准备',
             icon: 'refresh-outline',
             variant: 'primary',
             testID: TESTIDS.fibRetryPreparationButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.startRound,
         ),
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'return-lobby',
             label: '返回大厅',
             icon: 'return-down-back-outline',
             variant: 'secondary',
             testID: TESTIDS.fibReturnLobbyButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.cancelPreparing,
         ),
       ];
     case 'ongoing':
       return [
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'guess-seat',
             label: input.isGuessing ? '取消选人' : '大聪明选人',
             icon: 'person-outline',
             variant: input.isGuessing ? 'secondary' : 'primary',
             testID: TESTIDS.fibGuessSeatButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.toggleGuessMode,
         ),
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'reveal-round',
             label: '公布答案',
             icon: 'eye-outline',
             variant: 'primary',
             testID: TESTIDS.fibRevealRoundButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.revealRound,
         ),
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'redraw-round',
             label: '重新抽词',
             icon: 'refresh-outline',
             variant: 'secondary',
             testID: TESTIDS.fibRedrawRoundButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.redrawRound,
         ),
       ];
     case 'ended':
       return [
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'next-round',
             label: '下一轮',
             icon: 'play-forward-outline',
             variant: 'primary',
             testID: TESTIDS.fibNextRoundButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.startRound,
         ),
       ];
@@ -505,29 +482,31 @@ function createFibDangerActions(input: FibHostManagementInput): RoomHostManageme
     case 'viewing':
     case 'ongoing':
       return [
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'abandon-game',
             label: '放弃游戏',
             icon: 'stop-circle-outline',
             variant: 'danger',
             testID: TESTIDS.fibAbandonGameButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.abandonGame,
         ),
       ];
     case 'ended':
       return [
-        commandHostAction(
-          input,
+        buildPendingAwareHostAction(
           {
             key: 'end-game',
             label: '结束游戏',
             icon: 'stop-circle-outline',
             variant: 'danger',
             testID: TESTIDS.fibEndGameButton,
+            isLoading: input.isCommandSubmitting || undefined,
           },
+          input.isCommandSubmitting,
           input.endGame,
         ),
       ];
