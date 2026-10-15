@@ -41,20 +41,68 @@ jobs:
       - name: Check agent configuration drift
         run: pnpm run sync:agents:check
 
+  # Lint and format check run as their own job so they parallelize with
+  # quality / test-root instead of serializing inside quality.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
       - name: Lint
         run: pnpm run lint
 
       - name: Format check
         run: pnpm run format
 
-      - name: 'Test (fast: root + game-engine)'
-        run: pnpm --filter @game-judge/game-engine run test && pnpm --filter werewolfgamejudge run test
+  # Root jest + game-engine vitest, sharded across 2 runners (mirrors the
+  # test-api-worker sharding below). This was the last step of quality and
+  # its long pole (~4min of quality's ~8min); as its own job it runs in
+  # parallel with quality and lint.
+  test-root:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build game-engine
+        run: pnpm --filter @game-judge/game-engine run build
+
+      - name: Test game-engine (shard ${{ matrix.shard }}/2)
+        run: pnpm --filter @game-judge/game-engine run test -- --shard=${{ matrix.shard }}/2
+
+      - name: Test root (shard ${{ matrix.shard }}/2)
+        run: pnpm --filter werewolfgamejudge run test -- --shard=${{ matrix.shard }}/2
 
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
   test-api-worker:
     runs-on: ubuntu-latest
-    needs: [quality]
-    if: always() && needs.quality.result == 'success'
+    needs: [quality, lint, test-root]
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.test-root.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -78,9 +126,11 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.test-root.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
-    needs: quality
+    needs: [quality, lint, test-root]
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -109,10 +159,12 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.test-root.result == 'success' &&
       needs.deploy-api-worker.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/main'
-    needs: [quality, deploy-api-worker]
+    needs: [quality, lint, test-root, deploy-api-worker]
     permissions:
       contents: read
       deployments: write
@@ -416,8 +468,10 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.test-root.result == 'success' &&
       github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: quality
+    needs: [quality, lint, test-root]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -461,8 +515,10 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       always() &&
-      needs.quality.result == 'success'
-    needs: [quality]
+      needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.test-root.result == 'success'
+    needs: [quality, lint, test-root]
     steps:
       - uses: actions/checkout@v6
 
@@ -493,9 +549,11 @@ jobs:
     if: |
       always() &&
       needs.quality.result == 'success' &&
+      needs.lint.result == 'success' &&
+      needs.test-root.result == 'success' &&
       needs.build-web.result == 'success' &&
       needs.test-api-worker.result == 'success'
-    needs: [quality, build-web, test-api-worker]
+    needs: [quality, lint, test-root, build-web, test-api-worker]
     strategy:
       fail-fast: false
       matrix:
