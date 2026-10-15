@@ -22,6 +22,7 @@ import {
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
+  buildPendingAwareHostAction,
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
@@ -285,31 +286,20 @@ export function createUndercoverHostManagement(
   const { state, isHost, capabilities, controls } = input;
   if (!isHost) return null;
   const actions: RoomHostManagementAction[] = [];
-  const add = (
-    key: string,
-    label: string,
-    icon: RoomHostManagementAction['icon'],
-    onPress: () => void,
-    variant: RoomHostManagementAction['variant'] = 'secondary',
-    isAllowed = true,
-  ) => {
-    actions.push({
-      key,
-      label,
-      icon,
-      variant,
-      testID: `undercover-${key}`,
-      ...(controls.isSubmitting || !isAllowed
-        ? ({
-            isEnabled: false,
-            disabledReason: isAllowed ? null : ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
-            onDisabledPress: null,
-          } as const)
-        : ({ isEnabled: true, onPress } as const)),
-    });
-  };
   if (state.phase !== 'lobby' && state.phase !== 'ended' && state.phase !== 'aborted')
-    add('restart', '重新开始', 'refresh-outline', controls.restart);
+    actions.push(
+      buildPendingAwareHostAction(
+        {
+          key: 'restart',
+          label: '重新开始',
+          icon: 'refresh-outline',
+          variant: 'secondary',
+          testID: 'undercover-restart',
+        },
+        controls.isSubmitting,
+        controls.restart,
+      ),
+    );
   switch (state.phase) {
     case 'lobby':
       actions.push(
@@ -345,7 +335,19 @@ export function createUndercoverHostManagement(
         );
       break;
     case 'preparing':
-      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'abort',
+            label: '中止本局',
+            icon: 'stop-circle-outline',
+            variant: 'danger',
+            testID: 'undercover-abort',
+          },
+          controls.isSubmitting,
+          controls.abort,
+        ),
+      );
       break;
     case 'viewing': {
       // The begin gate mirrors the engine checkpoint: play opens only
@@ -370,34 +372,118 @@ export function createUndercoverHostManagement(
             isLoading: controls.isSubmitting,
           }),
         );
-      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'abort',
+            label: '中止本局',
+            icon: 'stop-circle-outline',
+            variant: 'danger',
+            testID: 'undercover-abort',
+          },
+          controls.isSubmitting,
+          controls.abort,
+        ),
+      );
       break;
     }
     case 'preparationFailed':
-      add('retry', '重新准备', 'refresh-outline', controls.retry, 'primary');
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'retry',
+            label: '重新准备',
+            icon: 'refresh-outline',
+            variant: 'primary',
+            testID: 'undercover-retry',
+          },
+          controls.isSubmitting,
+          controls.retry,
+        ),
+      );
       if (state.failureCode === 'inventoryExhausted')
-        add('allow-repeated', '本次允许重复词对', 'repeat-outline', controls.allowRepeated);
-      add('return-lobby', '返回大厅', 'return-down-back-outline', controls.returnToLobby);
+        actions.push(
+          buildPendingAwareHostAction(
+            {
+              key: 'allow-repeated',
+              label: '本次允许重复词对',
+              icon: 'repeat-outline',
+              variant: 'secondary',
+              testID: 'undercover-allow-repeated',
+            },
+            controls.isSubmitting,
+            controls.allowRepeated,
+          ),
+        );
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'return-lobby',
+            label: '返回大厅',
+            icon: 'return-down-back-outline',
+            variant: 'secondary',
+            testID: 'undercover-return-lobby',
+          },
+          controls.isSubmitting,
+          controls.returnToLobby,
+        ),
+      );
       break;
     case 'ongoing':
-      add(
-        'select-player',
-        '选择出局玩家',
-        'person-remove-outline',
-        controls.beginSelection,
-        'primary',
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'select-player',
+            label: '选择出局玩家',
+            icon: 'person-remove-outline',
+            variant: 'primary',
+            testID: 'undercover-select-player',
+          },
+          controls.isSubmitting,
+          controls.beginSelection,
+        ),
       );
-      add('abort', '中止本局', 'stop-circle-outline', controls.abort, 'danger');
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'abort',
+            label: '中止本局',
+            icon: 'stop-circle-outline',
+            variant: 'danger',
+            testID: 'undercover-abort',
+          },
+          controls.isSubmitting,
+          controls.abort,
+        ),
+      );
       break;
     case 'ended':
     case 'aborted':
-      add('restart', '重新开始', 'refresh-outline', controls.restart, 'primary');
-      add(
-        'return-lobby',
-        '返回大厅',
-        'return-down-back-outline',
-        controls.returnToLobby,
-        'secondary',
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'restart',
+            label: '重新开始',
+            icon: 'refresh-outline',
+            variant: 'primary',
+            testID: 'undercover-restart',
+          },
+          controls.isSubmitting,
+          controls.restart,
+        ),
+      );
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'return-lobby',
+            label: '返回大厅',
+            icon: 'return-down-back-outline',
+            variant: 'secondary',
+            testID: 'undercover-return-lobby',
+          },
+          controls.isSubmitting,
+          controls.returnToLobby,
+        ),
       );
       break;
   }
