@@ -8,7 +8,6 @@ import { TESTIDS } from '../../src/testids';
  * Encapsulates BoardPicker screen interactions:
  * - Waiting for the screen to be visible
  * - Selecting a preset template by name
- * - Navigating to custom config
  *
  * The BoardPicker is the intermediate screen between Home and Config.
  * After clicking "创建房间", users land here to browse / select a preset.
@@ -57,15 +56,5 @@ export class BoardPickerPage {
    */
   async selectDefaultTemplate() {
     await this.selectTemplate('预女猎白');
-  }
-
-  /**
-   * Click the custom config entry at the bottom.
-   */
-  async clickCustomConfig() {
-    const root = this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`);
-    const customBtn = root.getByText('从零开始自定义配置');
-    await expect(customBtn).toBeVisible({ timeout: 5000 });
-    await customBtn.click();
   }
 }
