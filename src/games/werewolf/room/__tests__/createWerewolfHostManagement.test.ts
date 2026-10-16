@@ -19,6 +19,7 @@ function createInput(overrides: Record<string, unknown> = {}) {
     roomStatus: GameStatus.Unseated,
     isPlagueMode: false,
     seatedCount: 0,
+    viewedCount: 0,
     totalSeats: 9,
     isAudioPlaying: false,
     isStartingGame: false,
@@ -319,6 +320,52 @@ describe('createWerewolfHostManagement', () => {
         createInput({ roomStatus: GameStatus.Ready, isPlagueMode: true }),
       );
       expect(resolveHostConsolePrimary(plague!)).toBeNull();
+    });
+
+    it('carries the viewing count as the Assigned start reason, exactly once on the console', () => {
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Assigned,
+          seatedCount: 9,
+          viewedCount: 4,
+          totalSeats: 9,
+        }),
+      );
+      const primary = resolveHostConsolePrimary(model!);
+      expect(primary).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+      if (primary?.kind !== 'blocked') throw new Error('Expected a blocked console primary');
+      expect(primary.reason).toBe('4/9 位玩家已查看角色，等待剩余玩家');
+      // The same sentence is the panel action's disabledReason, and the
+      // panel renders no caption for a primary — the console is its only
+      // rendered surface.
+      const startAction = model?.sections
+        .flatMap((section) => section.actions)
+        .find((action) => action.key === 'start-game');
+      expect(startAction).toMatchObject({
+        isEnabled: false,
+        isPrimary: true,
+        disabledReason: '4/9 位玩家已查看角色，等待剩余玩家',
+      });
+    });
+
+    it('clears the Assigned start reason once every player has viewed', () => {
+      const input = createInput({
+        roomStatus: GameStatus.Assigned,
+        seatedCount: 9,
+        viewedCount: 9,
+        totalSeats: 9,
+      });
+      const model = createWerewolfHostManagement(input);
+      const startAction = model?.sections
+        .flatMap((section) => section.actions)
+        .find((action) => action.key === 'start-game');
+      if (startAction?.isEnabled !== true) {
+        throw new Error('Expected an enabled start action once all players viewed');
+      }
+      const primary = resolveHostConsolePrimary(model!);
+      if (primary?.kind !== 'ready') throw new Error('Expected a ready console primary');
+      primary.onPress();
+      expect(input.onHostControl).toHaveBeenCalledWith('startGame');
     });
 
     it('suppresses the console primary while a host action is submitting', () => {

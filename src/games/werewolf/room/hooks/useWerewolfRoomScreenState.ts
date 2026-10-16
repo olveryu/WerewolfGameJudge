@@ -161,18 +161,20 @@ export interface WerewolfRoomScreenStateProps {
   readonly client: WerewolfGameClient;
 }
 
-/** Seat counts the host management projection reads. */
+/** Seat/viewing counts the host management projection reads. */
 function deriveWerewolfSeatCounts(gameState: {
   readonly players: ReadonlyMap<number, { readonly hasViewedRole: boolean } | null>;
   readonly template: { readonly numberOfPlayers: number };
-}): { readonly seatedCount: number; readonly totalSeats: number } {
+}): { readonly seatedCount: number; readonly viewedCount: number; readonly totalSeats: number } {
   let seatedCount = 0;
+  let viewedCount = 0;
   for (const p of gameState.players.values()) {
     if (p !== null) {
       seatedCount++;
+      if (p.hasViewedRole) viewedCount++;
     }
   }
-  return { seatedCount, totalSeats: gameState.template.numberOfPlayers };
+  return { seatedCount, viewedCount, totalSeats: gameState.template.numberOfPlayers };
 }
 
 export function useWerewolfRoomScreenState(

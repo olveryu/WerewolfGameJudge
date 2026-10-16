@@ -29,6 +29,7 @@ interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
+  readonly viewedCount: number;
   readonly totalSeats: number;
   readonly isAudioPlaying: boolean;
   readonly isStartingGame: boolean;
@@ -166,7 +167,25 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           isLoading: input.isHostActionSubmitting,
         }),
       ];
-    case GameStatus.Assigned:
+    case GameStatus.Assigned: {
+      // Viewing progress lives on this action's blocked reason (the host
+      // console caption): the phase's primary is the start action, held
+      // disabled until every seated player has viewed their role. Once
+      // all have viewed the reason clears; the phase then promotes to
+      // Ready, whose start action is the same press.
+      const allViewed = input.viewedCount >= input.totalSeats;
+      return [
+        buildStartGameAction({
+          onPress: () => input.onHostControl('startGame'),
+          isEnabled: !input.isHostActionSubmitting && allViewed,
+          disabledReason: allViewed
+            ? null
+            : `${input.viewedCount}/${input.totalSeats} 位玩家已查看角色，等待剩余玩家`,
+          isLoading: input.isHostActionSubmitting,
+          isPrimary: true,
+        }),
+      ];
+    }
     case GameStatus.Ongoing:
       return [];
   }

@@ -384,6 +384,7 @@ describe('createWerewolfRoomShellModel', () => {
       imActioner: false,
       isPlagueMode: false,
       seatedCount: 0,
+      viewedCount: 0,
       totalSeats: 9,
       actionMessage: null,
       guideMessage: null,

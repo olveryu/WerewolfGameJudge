@@ -345,6 +345,7 @@ export interface WerewolfRoomShellModelInput {
   readonly imActioner: boolean;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
+  readonly viewedCount: number;
   readonly totalSeats: number;
   readonly actionMessage: string | null;
   /** Non-host phase hint; the bottom action message is its single home. Null for the host. */
@@ -393,6 +394,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     roomStatus: input.roomStatus,
     isPlagueMode: input.isPlagueMode,
     seatedCount: input.seatedCount,
+    viewedCount: input.viewedCount,
     totalSeats: input.totalSeats,
     isAudioPlaying: input.isAudioPlaying,
     isStartingGame: input.isStartingGame,
