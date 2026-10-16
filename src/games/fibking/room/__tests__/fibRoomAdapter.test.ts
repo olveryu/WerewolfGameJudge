@@ -585,6 +585,79 @@ describe('FibKing room adapter', () => {
   });
 });
 
+describe('createFibHostManagement next step', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const build = (state: FibState) =>
+    createFibHostManagement({
+      state,
+      isHost: true,
+      isCommandSubmitting: false,
+      capabilities: createFibRoomCapabilities({ state, isHost: true, mySeat: 0, ...callbacks }),
+      startRound: jest.fn(),
+      markAllBotsViewed: jest.fn(),
+      beginRound: jest.fn(),
+      onBeginDisabled: jest.fn(),
+      isGuessing: false,
+      toggleGuessMode: jest.fn(),
+      cancelPreparing: jest.fn(),
+      revealRound: jest.fn(),
+      redrawRound: jest.fn(),
+      abandonGame: jest.fn(),
+      endGame: jest.fn(),
+      onStartDisabled: jest.fn(),
+    });
+
+  it('blocks the round start in a non-full lobby and offers room sharing as the remedy', () => {
+    const step = build(createLobby(4))?.nextStep;
+    expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本轮' });
+    if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+    expect(step.state.reason).toBe('座位尚未坐满');
+    expect(step.state.remedy?.label).toBe('分享房间');
+    step.state.remedy?.onPress();
+    expect(callbacks.shareRoom).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the round start once every seat is taken', () => {
+    const step = build(withBotSeats(createLobby(4), [1, 2, 3]))?.nextStep;
+    expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本轮' });
+    if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+  });
+
+  it('blocks game start until every seat has viewed, then offers it', () => {
+    const blocked = build(createViewing([0]))?.nextStep;
+    expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+    if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+    expect(blocked.state.reason).toBe('还有玩家未查看身份');
+    expect(blocked.state.remedy).toBeNull();
+
+    const ready = build(createViewing([0, 1, 2, 3]))?.nextStep;
+    if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+  });
+
+  it('offers re-preparation directly after a failed preparation', () => {
+    const failed: FibState = {
+      ...withBotSeats(createLobby(4), [1, 2, 3]),
+      phase: 'preparationFailed',
+      pendingRound: null,
+      preparationFailure: {
+        roundId: 'round-1',
+        requestedAt: 1,
+        failedAt: 8_001,
+        failureCode: 'selectionFailed',
+      },
+      round: null,
+    };
+    const step = build(failed)?.nextStep;
+    expect(step).toMatchObject({ actionKey: 'retry-preparation', label: '重新准备' });
+    if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+  });
+
+  it('has no next step while a round is ongoing', () => {
+    expect(build(createOngoing())?.nextStep).toBeNull();
+  });
+});
+
 describe('createFibBoardInfoSections', () => {
   it('builds the guesser / honest / fibber sections with fibber count N-2', () => {
     const sections = createFibBoardInfoSections(4);
