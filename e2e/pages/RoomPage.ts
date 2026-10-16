@@ -296,13 +296,11 @@ export class RoomPage {
       timeout: 3000,
     });
     await this.page.getByText('重新开始', { exact: true }).click();
-    // Wait for restart broadcast — the Host preview changes when the room is ready again.
-    await expect(
-      this.page.getByRole('button', {
-        name: '主持管理，下一步：分配角色',
-        exact: true,
-      }),
-    ).toBeVisible({ timeout: 15_000 });
+    // Wait for restart broadcast — the console primary returns when the room is ready again.
+    await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+      '下一步：分配角色',
+      { timeout: 15_000 },
+    );
   }
 
   /** Click the settings button to open config in edit mode. */

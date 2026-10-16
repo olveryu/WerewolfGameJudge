@@ -49,10 +49,12 @@ export class SheriffElectionPage {
     const hostManagementButton = this.page.getByTestId(TESTIDS.roomHostManagementButton);
     await expect(personalButton).toHaveText(personalLabel, { timeout: 15_000 });
     await expect(personalButton).toBeEnabled();
-    await expect(hostManagementButton).toHaveAccessibleName('主持管理，待处理：结束报名');
+    await expect(hostManagementButton).toHaveAccessibleName('主持管理');
     await this.expectSingleLineButtonLabel(personalButton, personalLabel);
     await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
-    await this.expectSingleLineButtonLabel(hostManagementButton, '待处理：结束报名');
+    await this.expectSingleLineButtonLabel(hostManagementButton, '待处理');
+    const consoleButton = this.page.getByTestId(TESTIDS.roomNextStepButton);
+    await expect(consoleButton).toHaveAccessibleName('下一步：结束报名');
 
     const personalBox = await personalButton.boundingBox();
     const hostManagementBox = await hostManagementButton.boundingBox();
