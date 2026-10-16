@@ -57,9 +57,17 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
     await joinRoom(joinerPage, code, 1);
 
     await test.step('start is gated until the room is full', async () => {
+      // The gate reason renders once, on the console primary in the bottom
+      // bar — asserted before the management panel opens.
+      const gateReason = hostPage
+        .getByTestId(TESTIDS.bottomActionPanel)
+        .getByText('座位尚未坐满（还差 2 人）', { exact: true });
+      await expect(gateReason).toHaveCount(1);
+      await expect(gateReason).toBeVisible();
       const panel = await room.openHostManagement();
-      // The gate reason renders once, as the start action's panel caption.
-      await expect(panel.getByText('座位尚未坐满（还差 2 人）', { exact: true })).toBeVisible();
+      // The panel row for the primary action carries no caption: its reason
+      // stays on the console only, so it appears zero times in the panel.
+      await expect(panel.getByText('座位尚未坐满（还差 2 人）', { exact: true })).toHaveCount(0);
       const startButton = panel.getByTestId('start-game-button');
       await expect(startButton).toBeDisabled();
       await startButton.click();
