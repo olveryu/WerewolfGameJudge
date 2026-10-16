@@ -12,7 +12,7 @@ describe('getDemoRoomCommandFailureMessage', () => {
       getDemoRoomCommandFailureMessage(
         rejectedRoomCommand<DemoState>('demo_room_not_full', 'command-0'),
       ),
-    ).toBe('请先坐满所有座位，或填充机器人。');
+    ).toBe('请先坐满所有座位。');
   });
 
   it('delegates platform-level reason codes to the shared translator', () => {

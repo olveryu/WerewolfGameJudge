@@ -250,7 +250,7 @@ blocked 带原因与补救（未坐满的补救是分享房间）；无单一明
 - `supportsBots: true`；大厅房主管理面板提供"填充机器人"。
 - 配置页**不设**机器人前置开关。
 - 开局要求**坐满**：已入座席位（真人+机器人）必须等于配置人数，与故事接龙等现有小游戏一致
-  （`occupiedSeatCount !== config.numberOfPlayers → reject('请先坐满所有座位，或填充机器人。')`；
+  （`occupiedSeatCount !== config.numberOfPlayers → reject('请先坐满所有座位。')`；
   客户端开始按钮条件同理，禁用文案 `'座位尚未坐满'`）。不许自创"达到最小人数即可开"的放宽口径。
 - 仅房主可接管/释放机器人席位；受控席位有 banner/hint。
 - 机器人无自主 AI；无人接管时按超时/deadline 默认行为结算，不自动跳过。

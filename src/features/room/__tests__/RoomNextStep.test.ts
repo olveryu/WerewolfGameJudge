@@ -44,7 +44,7 @@ describe('buildRoomNextStep', () => {
     const action = buildStartGameAction({
       onPress: jest.fn(),
       isEnabled: false,
-      disabledReason: '请先坐满所有座位，或填充机器人。',
+      disabledReason: '请先坐满所有座位。',
     });
     const step = buildRoomNextStep({ action, blockedReason: '座位尚未坐满（还差 2 人）' });
     if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
