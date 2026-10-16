@@ -93,7 +93,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '开始游戏', nextStep: null, status: null, sections: [] };
+    const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
     const model = create__GAME_PASCAL__RoomShellModel({
       roomCode: '1234',
@@ -121,7 +121,6 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isHost: true,
       mySeat: 0,
       hostManagement,
-      canControlBots: true,
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
@@ -131,10 +130,10 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
     expect(model.hostManagement).toBe(hostManagement);
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    expect(model.controlledSeat).toBeNull();
   });
 
-  it('shows the stage ribbon once the game has started', () => {
+  it('assembles the shell once the game has started', () => {
     let state = lobbyState(true);
     state = drive(state, { type: '__GAME_ID__.game.start' });
     const model = create__GAME_PASCAL__RoomShellModel({
@@ -163,14 +162,13 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isHost: true,
       mySeat: 0,
       hostManagement: null,
-      canControlBots: true,
       releaseBot: jest.fn(),
     });
-    expect(model.statusRibbon).toEqual({
-      kind: 'message',
-      icon: 'guide',
-      text: '舞台进行中',
-      supportingText: null,
+    expect(model.bottomActions).toEqual({
+      kind: 'info',
+      message: null,
+      progress: null,
+      actions: [],
     });
   });
 });
@@ -186,7 +184,6 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       isSubmitting: false,
       submit: jest.fn(async () => true),
     });
-    expect(model?.preview).toBe('房主管理');
     expect(model?.sections.map((section) => section.key)).toEqual(['room']);
   });
 });

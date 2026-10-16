@@ -1,5 +1,5 @@
 /**
- * 把Demo权威状态投影到共享座位表与房间状态条，不暴露他人身份。
+ * 把Demo权威状态投影到共享座位表与房间外壳，不暴露他人身份。
  */
 
 import {
@@ -97,7 +97,6 @@ function createDemoSeatDataSource(input: DemoSeatSourceInput): RoomSeatDataSourc
   });
 }
 
-/** 公共状态条：查看阶段只报汇总进度（逐座状态看座位盘打勾）。 */
 export interface DemoRoomShellModelInput {
   readonly roomCode: string;
   readonly capabilities: RoomCapabilities;

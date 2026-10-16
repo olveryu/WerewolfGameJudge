@@ -99,7 +99,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '分配身份', nextStep: null, status: null, sections: [] };
+    const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
     const model = create__GAME_PASCAL__RoomShellModel({
       roomCode: '1234',
@@ -127,7 +127,6 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       isHost: true,
       mySeat: 0,
       hostManagement,
-      canControlBots: true,
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
@@ -137,13 +136,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
     expect(model.hostManagement).toBe(hostManagement);
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
-    expect(model.statusRibbon).toEqual({
-      kind: 'message',
-      icon: 'guide',
-      text: '等待入座 · 4/4',
-      supportingText: null,
-    });
+    expect(model.controlledSeat).toBeNull();
   });
 });
 
@@ -157,8 +150,6 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       isSubmitting: false,
       submit: jest.fn(async () => true),
     });
-    expect(model?.preview).toBe('开始游戏');
-    expect(model?.status).toBe('等待全员查看身份 · 0/4');
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'bot-viewing', 'room']);
     const begin = model?.sections[0]?.actions[0];
     expect(begin).toMatchObject({ isEnabled: false, disabledReason: '还有玩家未查看身份' });
@@ -175,7 +166,6 @@ describe('create__GAME_PASCAL__HostManagement', () => {
       isSubmitting: false,
       submit: jest.fn(async () => true),
     });
-    expect(model?.status).toBe('等待全员查看身份 · 4/4');
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({ isEnabled: true });
   });

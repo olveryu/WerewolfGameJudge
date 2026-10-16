@@ -1,5 +1,5 @@
 /**
- * 把你画我猜权威状态投影到共享座位表与房间状态条，不暴露答案。
+ * 把你画我猜权威状态投影到共享座位表与房间外壳，不暴露答案。
  */
 
 import {
@@ -106,7 +106,6 @@ function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSea
   });
 }
 
-/** 公共状态条：不含答案与题目内容。 */
 export interface DrawGuessRoomShellModelInput {
   readonly roomCode: string;
   readonly capabilities: RoomCapabilities;
