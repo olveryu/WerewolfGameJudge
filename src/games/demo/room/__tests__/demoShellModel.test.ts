@@ -96,7 +96,7 @@ describe('createDemoRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '分配身份', status: null, sections: [] };
+    const hostManagement = { preview: '分配身份', nextStep: null, status: null, sections: [] };
     const onSeatPress = jest.fn();
     const model = createDemoRoomShellModel({
       roomCode: '1234',
@@ -175,5 +175,43 @@ describe('createDemoHostManagement', () => {
     expect(model?.status).toBe('等待全员查看身份 · 4/4');
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({ isEnabled: true });
+  });
+
+  describe('next step', () => {
+    const build = (state: DemoState) =>
+      createDemoHostManagement({
+        state,
+        isHost: true,
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit: jest.fn(async () => true),
+      });
+
+    it('blocks identity assignment in a non-full lobby and offers room sharing', () => {
+      const step = build(lobbyState(false))?.nextStep;
+      expect(step).toMatchObject({ actionKey: 'start-game', label: '分配身份' });
+      if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+      expect(step.state.reason).toBe('座位尚未坐满');
+      expect(step.state.remedy?.label).toBe('分享房间');
+    });
+
+    it('offers identity assignment once the room is full', () => {
+      const step = build(lobbyState(true))?.nextStep;
+      if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    });
+
+    it('blocks game start while viewing is incomplete, then offers it', () => {
+      const blocked = build(viewingState())?.nextStep;
+      expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+      if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+      expect(blocked.state.reason).toBe('还有玩家未查看身份');
+      expect(blocked.state.remedy).toBeNull();
+
+      let state = viewingState();
+      state = drive(state, { type: 'demo.role.viewed' });
+      state = drive(state, { type: 'demo.bots.markAllBotsViewed' });
+      const ready = build(state)?.nextStep;
+      if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    });
   });
 });
