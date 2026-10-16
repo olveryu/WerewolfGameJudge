@@ -31,10 +31,12 @@ import {
   type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostManagementSection,
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+  type RoomHostManagementModel,
+  type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -55,6 +57,7 @@ import {
   messageRibbon,
   progressRibbon,
 } from '@/features/room/model/statusRibbon';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
 
@@ -227,7 +230,7 @@ interface PictionaryHostManagementInput {
   readonly isCommandSubmitting: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
   >;
   readonly startRound: () => void;
   readonly nextRound: () => void;
@@ -268,6 +271,7 @@ export function createPictionaryHostManagement(
     );
     return {
       preview: '本轮已结束',
+      nextStep: null,
       status: null,
       sections: [{ key: 'current-flow', title: '当前流程', actions }],
     };
@@ -302,7 +306,7 @@ export function createPictionaryHostManagement(
         hostAction('abort-round', '中止本局', 'close-circle-outline', 'danger', input.abortRound),
       ],
     });
-    return { preview: '管理本局', status: null, sections };
+    return { preview: '管理本局', nextStep: null, status: null, sections };
   }
   const startAction: RoomHostManagementAction = buildStartGameAction({
     onPress: input.startRound,
@@ -341,6 +345,11 @@ export function createPictionaryHostManagement(
   }
   return {
     preview: '下一步：开始游戏',
+    nextStep: buildRoomNextStep({
+      action: startAction,
+      onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画接龙', input.startRound),
+      remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+    }),
     status: buildLobbyWaitingText(
       getPictionaryOccupiedSeatCount(input.state),
       input.state.config.numberOfPlayers,
