@@ -70,7 +70,9 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       await expect(panel.getByText('座位尚未坐满（还差 2 人）', { exact: true })).toHaveCount(0);
       const startButton = panel.getByTestId('start-game-button');
       await expect(startButton).toBeDisabled();
-      await startButton.click();
+      // Force the press attempt: a plain click() waits forever for the
+      // button to become enabled, which is exactly what must not happen.
+      await startButton.click({ force: true });
       // Pressing the disabled action fires nothing: no popup, still gated.
       await expect(hostPage.getByText('暂时不能开始', { exact: true })).toHaveCount(0);
       await expect(panel.getByTestId('start-game-button')).toBeDisabled();
