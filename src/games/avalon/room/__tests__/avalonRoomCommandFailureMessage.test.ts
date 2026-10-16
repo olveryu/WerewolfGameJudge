@@ -12,7 +12,7 @@ describe('getAvalonRoomCommandFailureMessage', () => {
       getAvalonRoomCommandFailureMessage(
         rejectedRoomCommand<AvalonState>('avalon_room_not_full', 'command-0'),
       ),
-    ).toBe('请先坐满所有座位，或填充机器人。');
+    ).toBe('请先坐满所有座位。');
   });
 
   it('passes through the team-size reason with the required count', () => {

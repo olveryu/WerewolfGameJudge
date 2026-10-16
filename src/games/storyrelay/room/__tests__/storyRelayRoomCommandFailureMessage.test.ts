@@ -13,7 +13,7 @@ describe('getStoryRelayRoomCommandFailureMessage', () => {
     ['storyrelay_task_changed', '故事任务已变化，请刷新后重试'],
     ['storyrelay_already_submitted', '本棒已收稿'],
     ['storyrelay_text_invalid', '请填写 1 至 512 字符的正文'],
-    ['storyrelay_room_not_full', '请先坐满所有座位，或填充机器人。'],
+    ['storyrelay_room_not_full', '请先坐满所有座位。'],
     [
       'storyrelay_occupied_seat_out_of_range',
       '目标人数之外的座位仍有玩家入座，请先让这些玩家离座或换到空位',
