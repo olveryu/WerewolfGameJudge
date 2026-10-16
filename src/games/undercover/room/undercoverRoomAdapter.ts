@@ -47,7 +47,6 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { colors } from '@/theme';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -300,25 +299,24 @@ export function createUndercoverHostManagement(
   switch (state.phase) {
     case 'lobby': {
       const occupiedSeatCount = getUndercoverOccupiedSeatCount(state);
+      // Player-facing seat-count wording: the panel caption and the
+      // next-step strip both read this one reason (the strip derives it
+      // from the action). The command-failure copy stays on the
+      // command-rejection channel and never renders as a caption.
+      const startDisabledReason =
+        occupiedSeatCount === state.config.numberOfPlayers
+          ? null
+          : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
       const startAction = buildStartGameAction({
         label: '开始本局',
         onPress: controls.start,
         isEnabled: !controls.isSubmitting && occupiedSeatCount === state.config.numberOfPlayers,
-        disabledReason:
-          occupiedSeatCount === state.config.numberOfPlayers
-            ? null
-            : ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
+        disabledReason: startDisabledReason,
       });
       actions.push(startAction);
-      // The strip's blocked reason is player-facing copy without the
-      // command-failure wording, mirroring Avalon's seat-count form.
       nextStep = buildRoomNextStep({
         action: startAction,
         onPress: () => showConfirmAlert('开始本局？', '将为每位玩家分配词卡', controls.start),
-        blockedReason:
-          occupiedSeatCount === state.config.numberOfPlayers
-            ? undefined
-            : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`,
         remedy: buildShareRoomRemedy(capabilities.canShareRoom),
       });
       if (capabilities.canConfigureGame.isAllowed)

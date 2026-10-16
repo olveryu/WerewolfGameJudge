@@ -527,6 +527,12 @@ describe('createUndercoverHostManagement next step', () => {
     expect(step.state.remedy?.label).toBe('分享房间');
     step.state.remedy?.onPress();
     expect(shareRoom).toHaveBeenCalledTimes(1);
+    // The panel caption renders the same player-facing reason; the
+    // bot-mentioning command-failure copy must never reach it.
+    const startAction = model?.sections[0]?.actions.find((action) => action.key === 'start-game');
+    if (startAction?.isEnabled !== false) throw new Error('expected a disabled panel start action');
+    expect(startAction.disabledReason).toBe('座位尚未坐满（还差 5 人）');
+    expect(startAction.disabledReason).not.toContain('机器人');
   });
 
   it('offers the round start once the room is full and gates its press with a confirm', () => {
