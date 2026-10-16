@@ -268,6 +268,7 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: state.phase.kind,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

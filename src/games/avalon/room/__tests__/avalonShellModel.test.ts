@@ -168,6 +168,14 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.controlledSeat).toBeNull();
   });
 
+  it('exposes the current phase kind on the shell model', () => {
+    const lobby = session(3);
+    expect(createAvalonRoomShellModel(baseInput(lobby.state)).phase).toBe('lobby');
+    const running = session(5);
+    running.send({ type: 'avalon.game.start' });
+    expect(createAvalonRoomShellModel(baseInput(running.state)).phase).toBe('viewing');
+  });
+
   it('shows 等待房主分配角色 to a seated non-host in the lobby', () => {
     const { state } = session(5);
     const model = createAvalonRoomShellModel({

@@ -136,6 +136,38 @@ describe('createStoryRelayRoomShellModel', () => {
     });
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
+    // The shell phase anchor carries the state phase kind verbatim.
+    expect(model.phase).toBe('lobby');
+
+    const endedModel = createStoryRelayRoomShellModel({
+      roomCode: '1234',
+      capabilities: caps,
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: undefined,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state: { ...state, phase: 'ended' },
+      revision: 2,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: true,
+      onSeatPress,
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      isHost: true,
+      mySeat: 0,
+      hostManagement,
+      releaseBot: jest.fn(),
+    });
+    expect(endedModel.phase).toBe('ended');
   });
 
   it('shows 等待房主开始游戏 to a seated non-host and no hint without bots', () => {

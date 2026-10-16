@@ -365,6 +365,7 @@ export function createPictionaryRoomShellModel(
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: input.state.phase,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

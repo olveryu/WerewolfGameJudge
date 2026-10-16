@@ -605,6 +605,7 @@ export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShel
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: input.state.phase,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

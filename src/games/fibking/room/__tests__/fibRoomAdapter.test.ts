@@ -713,5 +713,51 @@ describe('createFibRoomShellModel', () => {
     expect(model.bottomActions).toBe(bottomActions);
     expect(model.hostManagement).toBeNull();
     expect(model.controlledSeat).toBeNull();
+    // The shell phase anchor carries the FibState phase verbatim.
+    expect(model.phase).toBe('lobby');
+  });
+
+  it('exposes the ongoing phase on the shell model', () => {
+    const state = createOngoing();
+    const model = createFibRoomShellModel({
+      roomCode: '1234',
+      capabilities: createFibRoomCapabilities({ state, isHost: true, mySeat: null, ...callbacks }),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: {
+        status: 'live' as const,
+        pendingCommandCount: 0,
+        onManualReconnect: jest.fn(),
+      },
+      state,
+      seatSource: createFibSeatDataSource({
+        state,
+        revision: 1,
+        myUserId: 'host',
+        controlledSeat: null,
+      }),
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatConfirmation: null,
+      profile: null,
+      share: {
+        isVisible: false,
+        roomCode: '1234',
+        roomUrl: 'https://example.test/1234',
+        open: jest.fn(),
+        close: jest.fn(),
+        copyLink: jest.fn(async () => undefined),
+        shareImage: jest.fn(async () => undefined),
+      },
+      bottomActions: { kind: 'info' as const, message: null, progress: null, actions: [] },
+      hostManagement: null,
+      controlledSeat: null,
+    });
+    expect(model.phase).toBe('ongoing');
   });
 });

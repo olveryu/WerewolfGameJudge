@@ -128,6 +128,8 @@ describe('createDemoRoomShellModel', () => {
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
+    // The shell phase anchor carries the demo phase kind verbatim.
+    expect(model.phase).toBe('lobby');
     expect(model.seats.source.count).toBe(4);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seatConfirmation).toBeNull();
@@ -135,6 +137,38 @@ describe('createDemoRoomShellModel', () => {
     expect(model.share).toBe(share);
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
+  });
+
+  it('exposes the viewing phase on the shell model', () => {
+    const model = createDemoRoomShellModel({
+      roomCode: '1234',
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state: viewingState(),
+      revision: 5,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      isHost: true,
+      mySeat: 0,
+      hostManagement: { sections: [] },
+      releaseBot: jest.fn(),
+    });
+    expect(model.phase).toBe('viewing');
   });
 });
 

@@ -66,25 +66,31 @@ async function getActionMsg(page: Page): Promise<string> {
   return (await loc.textContent({ timeout: 200 }).catch(() => '')) ?? '';
 }
 
-/** Check if any night-end keyword is visible on the page. */
-async function isNightEnded(page: Page): Promise<boolean> {
-  if (
-    await page
-      .getByTestId(TESTIDS.sheriffElectionPanel)
-      .isVisible()
-      .catch(() => false)
-  ) {
-    return true;
-  }
-  for (const kw of ['平安夜', '玩家死亡', '昨夜信息']) {
-    const visible = await page
-      .getByText(kw)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (visible) return true;
-  }
-  return false;
+/**
+ * Read the shell phase anchor: the game's current phase, verbatim from
+ * the shell header's `data-phase` attribute (see RoomShellModel.phase).
+ */
+export async function readRoomPhase(page: Page): Promise<string | null> {
+  return page
+    .locator(`[data-testid="${TESTIDS.roomHeader}"]`)
+    .getAttribute('data-phase', { timeout: 200 })
+    .catch(() => null);
+}
+
+/** Phases in which a werewolf night is over: day has broken or the game ended. */
+const NIGHT_END_PHASES: ReadonlySet<string> = new Set(['Day', 'Ended']);
+
+/**
+ * A night has ended when the room's authoritative phase has left the
+ * night. This reads the phase anchor — never display copy — so copy
+ * redesigns cannot silently break night-end detection (they did once:
+ * the host's Ended guide sentence carried the keyword the old text scan
+ * depended on, and removing the sentence stalled every night spec while
+ * the games themselves completed normally).
+ */
+export async function isNightEnded(page: Page): Promise<boolean> {
+  const phase = await readRoomPhase(page);
+  return phase !== null && NIGHT_END_PHASES.has(phase);
 }
 
 /** Check if a specific Chinese text is visible on the page. */
@@ -335,7 +341,14 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
     },
     maxIter,
   );
-  return isNightEnded(pages[0]!);
+  // Every client renders the same broadcast, but the host page's anchor
+  // can land a beat after the first page that flipped; give it a brief
+  // settle window before reporting.
+  for (let i = 0; i < 10; i++) {
+    if (await isNightEnded(pages[0]!)) return true;
+    await pages[0]!.waitForTimeout(300);
+  }
+  return false;
 }
 
 /**

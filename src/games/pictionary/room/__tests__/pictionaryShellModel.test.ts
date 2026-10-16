@@ -101,5 +101,32 @@ describe('createPictionaryRoomShellModel', () => {
       actions: [],
     });
     expect(model.share).toBe(share);
+    // The shell phase anchor carries the PictionaryState phase verbatim.
+    expect(model.phase).toBe('lobby');
+
+    const endedModel = createPictionaryRoomShellModel({
+      roomCode: '2468',
+      capabilities,
+      onBack,
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection,
+      state: { ...state, phase: 'ended' },
+      isHost: true,
+      mySeat: null,
+      seatSource,
+      seatsVisuallyDisabled: false,
+      onSeatPress,
+      onBotSeatLongPress: null,
+      seatConfirmation: null,
+      profile: null,
+      share,
+      hostManagement: null,
+      controlledSeat: null,
+    });
+    expect(endedModel.phase).toBe('ended');
   });
 });

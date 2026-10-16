@@ -421,6 +421,65 @@ describe('createUndercoverRoomShellModel', () => {
     // No takeover is active: no banner renders.
     expect(model.controlledSeat).toBeNull();
     expect(model.share).toBe(share);
+    // The shell phase anchor carries the UndercoverState phase verbatim.
+    expect(model.phase).toBe('lobby');
+  });
+
+  it('exposes the viewing phase on the shell model', () => {
+    const state = createViewingState();
+    const model = createUndercoverRoomShellModel({
+      roomCode: '1234',
+      capabilities: createUndercoverRoomCapabilities({
+        state,
+        isHost: true,
+        mySeat: 0,
+        requestTakeSeat: jest.fn(),
+        requestMoveSeat: jest.fn(),
+        leaveSeat: jest.fn(),
+        kickSeat: jest.fn(),
+        clearSeats: jest.fn(),
+        fillBots: jest.fn(),
+        configureGame: jest.fn(),
+        shareRoom: jest.fn(),
+        openProfile: jest.fn(),
+        takeOverBot: jest.fn(),
+      }),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: {
+        status: 'live' as const,
+        pendingCommandCount: 0,
+        onManualReconnect: jest.fn(),
+      },
+      state,
+      revision: 3,
+      myUserId: 'host',
+      controlledSeat: null,
+      selectedSeat: null,
+      isSelecting: false,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: jest.fn(),
+      seatConfirmation: null,
+      profile: null,
+      share: {
+        isVisible: false,
+        roomCode: '1234',
+        roomUrl: 'https://example.test/1234',
+        open: jest.fn(),
+        close: jest.fn(),
+        copyLink: jest.fn(async () => undefined),
+        shareImage: jest.fn(async () => undefined),
+      },
+      isHost: true,
+      controls,
+      release: jest.fn(),
+    });
+    expect(model.phase).toBe('viewing');
   });
 });
 

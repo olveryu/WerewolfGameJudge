@@ -1,6 +1,7 @@
 import { type Page, type TestInfo } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
+import { isNightEnded } from '../helpers/night-driver';
 
 /**
  * NightFlowPage Page Object
@@ -43,9 +44,6 @@ interface NightFlowResult {
  * NightProgressIndicator, and death result banners.
  */
 const UI_TEXT = {
-  /** Texts that signal the night phase has ended */
-  nightEnd: ['平安夜', '玩家死亡', '昨天晚上', '昨夜信息'] as const,
-
   /** Texts indicating a role's turn is active */
   roleTurn: [
     '请睁眼',
@@ -147,21 +145,6 @@ async function getMySeat(page: Page): Promise<number | null> {
 
 function getSeatTileLocator(page: Page, seat: number) {
   return page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
-}
-
-async function isNightEnded(page: Page): Promise<boolean> {
-  if (
-    await page
-      .getByTestId(TESTIDS.sheriffElectionPanel)
-      .isVisible()
-      .catch(() => false)
-  ) {
-    return true;
-  }
-  for (const kw of UI_TEXT.nightEnd) {
-    if (await isTextVisible(page, kw)) return true;
-  }
-  return false;
 }
 
 async function captureNightResult(page: Page): Promise<string> {

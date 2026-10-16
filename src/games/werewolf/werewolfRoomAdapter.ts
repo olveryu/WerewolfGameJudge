@@ -455,6 +455,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: input.roomStatus,
     header: {
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

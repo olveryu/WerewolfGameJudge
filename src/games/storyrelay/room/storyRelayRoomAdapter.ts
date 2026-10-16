@@ -324,6 +324,7 @@ export function createStoryRelayRoomShellModel(
   });
   return {
     roomCode: input.roomCode,
+    phase: state.phase,
     capabilities: input.capabilities,
     header: buildRoomHeaderModel({
       onBack: input.onBack,

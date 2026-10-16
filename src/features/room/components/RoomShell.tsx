@@ -178,6 +178,11 @@ export const RoomShell: React.FC<RoomShellProps> = ({
           { paddingTop: insets.top + layout.headerPaddingV },
         ]}
         testID={TESTIDS.roomHeader}
+        // The phase anchor (see RoomShellModel.phase) rides on the header:
+        // react-native-web maps `dataSet` to DOM data-* attributes, while a
+        // direct data-* prop is silently dropped on web, and SafeAreaView's
+        // props do not accept dataSet at all.
+        dataSet={{ phase: model.phase }}
       >
         {isHeaderStacked ? (
           <>

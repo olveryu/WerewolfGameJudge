@@ -462,6 +462,7 @@ export function createUndercoverRoomShellModel(
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: state.phase,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,

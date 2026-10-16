@@ -45,6 +45,14 @@ export interface RoomControlledSeatModel {
 
 export interface RoomShellModel {
   readonly roomCode: string;
+  /**
+   * The game's own phase identifier — its state machine's current status,
+   * verbatim (e.g. werewolf 'Ongoing' / 'Day' / 'Ended'). Rendered on the
+   * shell header as the `data-phase` anchor: the machine-readable contract
+   * for phase waits. The shell never interprets the value, and it must
+   * never carry display copy — copy may be redesigned freely, this may not.
+   */
+  readonly phase: string;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;
