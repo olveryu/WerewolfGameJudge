@@ -66,7 +66,7 @@
 - 狼人杀和瞎掰王拥有独立 state machine。
 - 座位不变量由纯共享 seating kernel 处理。
 - 初始游戏状态由服务端创建。
-- 共享房间视觉组件：header actions、status ribbon、seat tile/board、player profile、QR 分享、bot control banner、seat confirmation、bottom action panel。
+- 共享房间视觉组件：header actions、seat tile/board、player profile、QR 分享、bot control banner、seat confirmation、bottom action panel（主持台 + 底部进度行）。
 - 游戏 adapter 只负责本游戏的摘要、身份、规则、配置和特殊操作。
 - 从用户卡片直接移出座位，不再弹第二个确认窗。
 - 入座和换座使用确认弹窗；本人从 profile 离座直接提交，不增加第二个确认窗。
@@ -104,7 +104,7 @@
 ### 4.2 产品目标
 
 - 首页点击创建房间后，使用现有 centered modal 视觉选择游戏模式。
-- 狼人杀和瞎掰王使用同一套 header 几何、seat board、status ribbon、profile、分享和 bottom panel。
+- 狼人杀和瞎掰王使用同一套 header 几何、seat board、profile、分享和 bottom panel（主持台 + 底部进度行）。
 - 房间配置只在本游戏允许配置的阶段出现。
 - 基础房间操作位置和文案一致。
 - 瞎掰王可以手动填充机器人，房主可以接管 bot 进行手动测试。
@@ -1283,7 +1283,7 @@ Slot 不能重新渲染 header、seat board、bottom panel 或 shared modal。
 必须保持：
 
 - 相同 header 高度、左右按钮尺寸和 room code 居中方式。
-- 相同 status ribbon 位置和信息密度。
+- 相同主持台（收起态主行动 + 展开面板）与底部进度行的位置和信息密度。
 - 相同 seat tile 外形、头像、外框、名字样式、座位特效和本人 badge。
 - 相同 seat grid 间距及响应式列数策略。
 - 相同 bottom panel 层级和 safe-area padding。
