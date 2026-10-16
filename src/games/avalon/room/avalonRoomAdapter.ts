@@ -50,11 +50,13 @@ import {
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementSection,
-} from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+  type RoomHostManagementSection,
+} from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
@@ -706,7 +708,7 @@ export interface AvalonHostManagementInput {
   readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
   readonly controlledSeat: number | null;
@@ -738,24 +740,32 @@ export function createAvalonHostManagement(
     const startDisabledReason = canStart
       ? null
       : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
+    const submitAssign = () => void submit('分配角色', { type: 'avalon.game.start' });
+    const assignAction = buildStartGameAction({
+      label: '分配角色',
+      onPress: submitAssign,
+      isEnabled: !input.isSubmitting && canStart,
+      disabledReason: startDisabledReason,
+      onDisabledPress: () => showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
+      isLoading: input.isSubmitting,
+    });
     return {
-      preview: '分配角色',
+      preview: '下一步：分配角色',
+      // The panel action submits directly; the strip gates the same
+      // execution callback with the confirm Werewolf's dialog layer
+      // gives its own assign step.
+      nextStep: buildRoomNextStep({
+        action: assignAction,
+        onPress: () =>
+          showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', submitAssign),
+        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      }),
       status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
           title: '游戏',
-          actions: [
-            buildStartGameAction({
-              label: '分配角色',
-              onPress: () => void submit('分配角色', { type: 'avalon.game.start' }),
-              isEnabled: !input.isSubmitting && canStart,
-              disabledReason: startDisabledReason,
-              onDisabledPress: () =>
-                showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-              isLoading: input.isSubmitting,
-            }),
-          ],
+          actions: [assignAction],
         },
         { key: 'room', title: '房间管理', actions: roomActions },
       ],
@@ -770,20 +780,19 @@ export function createAvalonHostManagement(
     ).length;
     const allViewed = viewedCount === participants.length;
     const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
+    const submitBegin = () => void submit('开始游戏', { type: 'avalon.game.begin' });
+    const beginAction = buildStartGameAction({
+      onPress: submitBegin,
+      isEnabled: !input.isSubmitting && allViewed,
+      disabledReason: beginDisabledReason,
+      onDisabledPress: () => showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
+      isLoading: input.isSubmitting,
+    });
     const sections: RoomHostManagementSection[] = [
       {
         key: 'game',
         title: '游戏',
-        actions: [
-          buildStartGameAction({
-            onPress: () => void submit('开始游戏', { type: 'avalon.game.begin' }),
-            isEnabled: !input.isSubmitting && allViewed,
-            disabledReason: beginDisabledReason,
-            onDisabledPress: () =>
-              showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
-            isLoading: input.isSubmitting,
-          }),
-        ],
+        actions: [beginAction],
       },
     ];
     const hasUnviewedBot = participants.some(
@@ -804,7 +813,12 @@ export function createAvalonHostManagement(
       });
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
     return {
-      preview: '开始游戏',
+      preview: '下一步：开始游戏',
+      nextStep: buildRoomNextStep({
+        action: beginAction,
+        onPress: () =>
+          showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
+      }),
       status: `等待全员查看身份 · ${viewedCount}/${participants.length}`,
       sections,
     };
@@ -812,6 +826,7 @@ export function createAvalonHostManagement(
   if (state.phase.kind === 'ended') {
     return {
       preview: '本局已结束',
+      nextStep: null,
       status: null,
       sections: [
         {
@@ -921,6 +936,7 @@ export function createAvalonHostManagement(
   // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
   // 投票/任务阶段额外出现"结束投票"/"结束任务"。
   return {
+    nextStep: null,
     preview:
       state.phase.kind === 'vote'
         ? '结束投票'
