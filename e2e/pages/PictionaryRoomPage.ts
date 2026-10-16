@@ -9,6 +9,9 @@ import { RoomPage } from './RoomPage';
 
 const PHONE_STAGE_MAX_WIDTH = 430;
 const GALLERY_ALIGNMENT_TOLERANCE = 2;
+/** The drawing stays usable only if it keeps at least this share of the
+ *  viewport height — a relative floor, so it holds at any viewport size. */
+const MIN_TASK_MEDIA_VIEWPORT_FRACTION = 0.2;
 
 /** Operates one real player's Pictionary room surface. */
 export class PictionaryRoomPage extends RoomPage {
@@ -435,7 +438,8 @@ export class PictionaryRoomPage extends RoomPage {
       await expect(media).toBeInViewport({ ratio: 1 });
       const bounds = await media.boundingBox();
       if (bounds === null) throw new Error('Task media layout is missing');
-      expect(bounds.height).toBeGreaterThan(60);
+      const viewportHeight = await this.page.evaluate(() => window.innerHeight);
+      expect(bounds.height).toBeGreaterThan(viewportHeight * MIN_TASK_MEDIA_VIEWPORT_FRACTION);
       expect(bounds.width / bounds.height).toBeCloseTo(4 / 3, 1);
     }
     expect(

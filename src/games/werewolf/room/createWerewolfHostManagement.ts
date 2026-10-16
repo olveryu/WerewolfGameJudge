@@ -19,11 +19,9 @@ import {
   type RoomHostManagementAction,
   type RoomHostManagementModel,
   type RoomHostManagementSection,
-  type RoomNextStep,
 } from '@/features/room/model/RoomHostManagement';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { HostControlEvent } from '@/games/werewolf/room/policy/types';
-import { resolveWerewolfPhaseStatusCopy } from '@/games/werewolf/room/resolveWerewolfPhaseStatusCopy';
 import { TESTIDS } from '@/testids';
 
 interface WerewolfHostManagementInput {
@@ -31,8 +29,8 @@ interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
-  readonly totalSeats: number;
   readonly viewedCount: number;
+  readonly totalSeats: number;
   readonly isAudioPlaying: boolean;
   readonly isStartingGame: boolean;
   readonly isHostActionSubmitting: boolean;
@@ -74,6 +72,7 @@ function createSheriffAdvanceAction(
     variant: 'primary',
     testID: TESTIDS.sheriffAdvanceButton,
     isLoading: election.pendingAction?.kind === 'advance',
+    isPrimary: true,
   };
   return buildPendingAwareHostAction(
     descriptor,
@@ -105,6 +104,7 @@ function createSheriffSelfDestructAction(
 
 function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   switch (input.roomStatus) {
+    case GameStatus.Unseated:
     case GameStatus.Seated:
       return [
         createHostControlAction(input, 'prepareToFlip', {
@@ -114,6 +114,16 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           variant: 'primary',
           testID: TESTIDS.prepareToFlipButton,
           isLoading: input.isHostActionSubmitting,
+          isPrimary: true,
+          remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+          // The panel action stays enabled: its full-seat gate lives in
+          // the dialog layer. The console alone renders blocked while
+          // seats are open, with the same seat-count reason the former
+          // next-step strip derived.
+          consoleBlockedReason:
+            !input.isHostActionSubmitting && input.seatedCount < input.totalSeats
+              ? `还有 ${input.totalSeats - input.seatedCount} 个空位等待入座`
+              : null,
         }),
       ];
     case GameStatus.Ready:
@@ -124,6 +134,7 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
               onPress: () => input.onHostControl('startGame'),
               isEnabled: !input.isHostActionSubmitting,
               isLoading: input.isHostActionSubmitting,
+              isPrimary: true,
             }),
           ];
     case GameStatus.Day: {
@@ -156,8 +167,25 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           isLoading: input.isHostActionSubmitting,
         }),
       ];
-    case GameStatus.Unseated:
-    case GameStatus.Assigned:
+    case GameStatus.Assigned: {
+      // Viewing progress lives on this action's blocked reason (the host
+      // console caption): the phase's primary is the start action, held
+      // disabled until every seated player has viewed their role. Once
+      // all have viewed the reason clears; the phase then promotes to
+      // Ready, whose start action is the same press.
+      const allViewed = input.viewedCount >= input.totalSeats;
+      return [
+        buildStartGameAction({
+          onPress: () => input.onHostControl('startGame'),
+          isEnabled: !input.isHostActionSubmitting && allViewed,
+          disabledReason: allViewed
+            ? null
+            : `${input.viewedCount}/${input.totalSeats} 位玩家已查看角色，等待剩余玩家`,
+          isLoading: input.isHostActionSubmitting,
+          isPrimary: true,
+        }),
+      ];
+    }
     case GameStatus.Ongoing:
       return [];
   }
@@ -301,71 +329,10 @@ export function createWerewolfHostManagement(
   if (sections.length === 0) {
     throw new Error('Werewolf Host management must expose at least one action');
   }
-  const copy = resolveWerewolfPhaseStatusCopy({
-    roomStatus: input.roomStatus,
-    isPlagueMode: input.isPlagueMode,
-    sheriffPhaseTitle: input.sheriffElection?.view.phaseTitle ?? null,
-    sheriffAdvanceLabel:
-      input.sheriffElection?.view.canAdvance === true
-        ? input.sheriffElection.view.advanceLabel
-        : null,
-    seatedCount: input.seatedCount,
-    totalSeats: input.totalSeats,
-    viewedCount: input.viewedCount,
-  });
   return {
-    preview: copy.hostPreview,
     hasPendingAction: getHasPendingAction(input),
-    nextStep: createWerewolfNextStep(input),
-    status: copy.hostStatus,
     sections,
   };
-}
-
-/**
- * The Werewolf next step. Role assignment is the one step whose panel
- * action stays enabled while its gate (full seats) lives in the dialog
- * layer, so its blocked state is derived from the seat count here; the
- * ready press dispatches the exact host-control events the panel
- * actions use, so the strip and the panel share one execution path
- * (including the dialogs' confirm and seat checks).
- */
-function createWerewolfNextStep(input: WerewolfHostManagementInput): RoomNextStep | null {
-  if (input.isHostActionSubmitting) return null;
-  switch (input.roomStatus) {
-    case GameStatus.Unseated:
-    case GameStatus.Seated: {
-      if (input.seatedCount < input.totalSeats) {
-        return {
-          actionKey: 'prepare-to-flip',
-          label: '分配角色',
-          state: {
-            kind: 'blocked',
-            reason: `还有 ${input.totalSeats - input.seatedCount} 个空位等待入座`,
-            remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-          },
-        };
-      }
-      return {
-        actionKey: 'prepare-to-flip',
-        label: '分配角色',
-        state: { kind: 'ready', onPress: () => input.onHostControl('prepareToFlip') },
-      };
-    }
-    case GameStatus.Ready:
-      return input.isPlagueMode
-        ? null
-        : {
-            actionKey: 'start-game',
-            label: '开始游戏',
-            state: { kind: 'ready', onPress: () => input.onHostControl('startGame') },
-          };
-    case GameStatus.Assigned:
-    case GameStatus.Ongoing:
-    case GameStatus.Day:
-    case GameStatus.Ended:
-      return null;
-  }
 }
 
 function getHasPendingAction(input: WerewolfHostManagementInput): boolean {

@@ -40,7 +40,6 @@ export type ButtonConfig = ButtonConfigBase &
     | {
         readonly isEnabled: false;
         readonly disabledReason: string | null;
-        readonly onDisabledBehavior: ButtonBehavior | null;
       }
   );
 
@@ -58,7 +57,7 @@ export interface BottomLayout {
 export type StaticButtonId = 'viewRole' | 'waitForHost' | 'audioWaiting' | 'nightReview';
 
 /** Static entries that represent real user intent. Display-only entries are excluded. */
-export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting'>;
+export type StaticButtonAction = Exclude<StaticButtonId, 'audioWaiting' | 'waitForHost'>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static button definitions

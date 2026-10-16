@@ -14,7 +14,7 @@ import {
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
   createWerewolfSeatDataSource,
-  createWerewolfStatusRibbon,
+  deriveWerewolfBottomProgress,
   type WerewolfRoomShellModelInput,
 } from '@/games/werewolf/werewolfRoomAdapter';
 
@@ -245,28 +245,21 @@ describe('werewolfRoomAdapter', () => {
     expect(runoffSource.getSeat(0).statusBadge).toEqual({ label: 'PK', tone: 'warning' });
   });
 
-  it('preserves the Werewolf status priority before rendering shared UI', () => {
+  it('derives the night step progress for the bottom progress row', () => {
     const gameState = createLocalGameState();
     const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
     const step = plan.steps[1];
     expect(step).toBeDefined();
-    expect(
-      createWerewolfStatusRibbon({
-        currentStepId: step?.stepId ?? null,
-        gameState,
-        guideMessage: '等待玩家',
-      }),
-    ).toEqual({ kind: 'progress', current: 2, total: plan.length, label: step?.displayName });
+    expect(deriveWerewolfBottomProgress(step?.stepId ?? null, gameState)).toEqual({
+      current: 2,
+      total: plan.length,
+      label: step?.displayName,
+    });
   });
 
-  it('falls back to the guide message, then to null, without night progress', () => {
+  it('returns no progress without a current night step', () => {
     const gameState = createLocalGameState();
-    expect(
-      createWerewolfStatusRibbon({ currentStepId: null, gameState, guideMessage: '等待玩家' }),
-    ).toEqual({ kind: 'message', icon: 'guide', text: '等待玩家', supportingText: null });
-    expect(
-      createWerewolfStatusRibbon({ currentStepId: null, gameState, guideMessage: null }),
-    ).toBeNull();
+    expect(deriveWerewolfBottomProgress(null, gameState)).toBeNull();
   });
 
   it('does not expose a second submit callback while a host action is disabled', () => {
@@ -281,7 +274,6 @@ describe('werewolfRoomAdapter', () => {
             size: 'lg',
             isEnabled: false,
             disabledReason: null,
-            onDisabledBehavior: null,
           },
         ],
         secondary: [],
@@ -292,14 +284,12 @@ describe('werewolfRoomAdapter', () => {
       onStaticAction,
     });
 
-    expect(layout.primary[0]).toMatchObject({
-      isEnabled: false,
-      onDisabledPress: null,
-    });
+    expect(layout.primary[0]).toMatchObject({ isEnabled: false });
+    expect(layout.primary[0]).not.toHaveProperty('onPress');
     expect(onStaticAction).not.toHaveBeenCalled();
   });
 
-  it('maps explicit disabled feedback without inventing an enabled action', () => {
+  it('maps a disabled button to its reason only, with no press channel', () => {
     const onStaticAction = jest.fn();
     const layout = createWerewolfBottomActionLayout({
       layout: {
@@ -311,7 +301,6 @@ describe('werewolfRoomAdapter', () => {
             size: 'lg',
             isEnabled: false,
             disabledReason: '等待房主开始分配角色',
-            onDisabledBehavior: { kind: 'static', action: 'waitForHost' },
           },
         ],
         secondary: [],
@@ -323,12 +312,12 @@ describe('werewolfRoomAdapter', () => {
     });
     const button = layout.primary[0]!;
 
-    if (button.isEnabled || button.onDisabledPress === null) {
-      throw new Error('Expected explicit Werewolf disabled feedback');
-    }
-    button.onDisabledPress();
-
-    expect(onStaticAction).toHaveBeenCalledWith('waitForHost');
+    expect(button).toMatchObject({
+      isEnabled: false,
+      disabledReason: '等待房主开始分配角色',
+    });
+    expect(button).not.toHaveProperty('onPress');
+    expect(onStaticAction).not.toHaveBeenCalled();
   });
 
   it('locks an action intent while its authoritative result is pending', () => {
@@ -356,7 +345,6 @@ describe('werewolfRoomAdapter', () => {
     expect(layout.primary[0]).toMatchObject({
       isEnabled: false,
       disabledReason: '行动正在确认中',
-      onDisabledPress: null,
     });
     expect(onIntent).not.toHaveBeenCalled();
   });
@@ -396,8 +384,8 @@ describe('createWerewolfRoomShellModel', () => {
       imActioner: false,
       isPlagueMode: false,
       seatedCount: 0,
-      totalSeats: 9,
       viewedCount: 0,
+      totalSeats: 9,
       actionMessage: null,
       guideMessage: null,
       currentStepId: null,
@@ -590,7 +578,7 @@ describe('createWerewolfRoomShellModel', () => {
     expect(actionKeys(humanUnviewedBotViewed)).not.toContain('mark-bots-viewed');
   });
 
-  it('surfaces the controlled-seat banner through the shared gate', () => {
+  it('surfaces the controlled-seat banner only while a takeover is active', () => {
     // While a takeover is active the banner always shows: the release entry
     // must never vanish, whatever the other inputs say.
     const visible = createWerewolfRoomShellModel(
@@ -602,14 +590,8 @@ describe('createWerewolfRoomShellModel', () => {
         controlledBotName: '机器人乙',
       }),
     );
-    expect(visible.controlledSeat).toMatchObject({
-      kind: 'controlled',
-      seat: 2,
-      displayName: '机器人乙',
-    });
-    if (visible.controlledSeat?.kind === 'controlled') {
-      expect(typeof visible.controlledSeat.onRelease).toBe('function');
-    }
+    expect(visible.controlledSeat).toMatchObject({ seat: 2, displayName: '机器人乙' });
+    expect(typeof visible.controlledSeat?.onRelease).toBe('function');
     const controlledNoBots = createWerewolfRoomShellModel(
       createShellModelInput({
         isHost: true,
@@ -619,11 +601,10 @@ describe('createWerewolfRoomShellModel', () => {
         controlledBotName: '机器人乙',
       }),
     );
-    expect(controlledNoBots.controlledSeat).toMatchObject({ kind: 'controlled', seat: 2 });
+    expect(controlledNoBots.controlledSeat).toMatchObject({ seat: 2 });
 
-    // Not controlling: the hint needs host capability and actual bot seats.
-    // Debug mode and seat status no longer gate the banner (shared gate).
-    const hint = createWerewolfRoomShellModel(
+    // No active takeover: no banner, whatever the host or bot inputs say.
+    const hostWithBots = createWerewolfRoomShellModel(
       createShellModelInput({
         isHost: true,
         hasBots: true,
@@ -631,7 +612,7 @@ describe('createWerewolfRoomShellModel', () => {
         controlledSeat: null,
       }),
     );
-    expect(hint.controlledSeat).toEqual({ kind: 'hint' });
+    expect(hostWithBots.controlledSeat).toBeNull();
 
     const hostNoBots = createWerewolfRoomShellModel(
       createShellModelInput({ isHost: true, hasBots: false, controlledSeat: null }),
@@ -642,6 +623,63 @@ describe('createWerewolfRoomShellModel', () => {
       createShellModelInput({ isHost: false, hasBots: true, controlledSeat: null }),
     );
     expect(guestWithBots.controlledSeat).toBeNull();
+  });
+
+  it('shows the non-host guide as the bottom message when no action message applies', () => {
+    const seated = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Seated,
+        guideMessage: '等待所有玩家入座',
+      }),
+    );
+    expect(seated.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '等待所有玩家入座',
+    });
+
+    const ended = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        guideMessage: '天亮了 → 昨夜信息/本局复盘由房主操作',
+      }),
+    );
+    expect(ended.bottomActions).toMatchObject({
+      kind: 'info',
+      message: '天亮了 → 昨夜信息/本局复盘由房主操作',
+    });
+  });
+
+  it('falls back to the guide at Ended when the action message is an empty string', () => {
+    // Live, useRoomDerived yields '' (not null) once no action role remains;
+    // the Ended settlement line must still surface.
+    const ended = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        actionMessage: '',
+        guideMessage: '天亮了 → 昨夜信息/本局复盘由房主操作',
+      }),
+    );
+    expect(ended.bottomActions).toMatchObject({
+      kind: 'info',
+      message: '天亮了 → 昨夜信息/本局复盘由房主操作',
+    });
+  });
+
+  it('carries the night progress in the stacked bottom model', () => {
+    const gameState = createLocalGameState();
+    const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
+    const step = plan.steps[0];
+    const model = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ongoing,
+        gameState,
+        currentStepId: step?.stepId ?? null,
+      }),
+    );
+    expect(model.bottomActions).toMatchObject({
+      kind: 'stacked',
+      progress: { current: 1, total: plan.length, label: step?.displayName },
+    });
   });
 });
 

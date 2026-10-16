@@ -57,21 +57,37 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
     await joinRoom(joinerPage, code, 1);
 
     await test.step('start is gated until the room is full', async () => {
+      // The gate reason renders once, on the console primary in the bottom
+      // bar — asserted before the management panel opens.
+      const gateReason = hostPage
+        .getByTestId(TESTIDS.bottomActionPanel)
+        .getByText('座位尚未坐满（还差 2 人）', { exact: true });
+      await expect(gateReason).toHaveCount(1);
+      await expect(gateReason).toBeVisible();
       const panel = await room.openHostManagement();
-      await expect(panel.getByText('等待入座 · 2/4', { exact: true })).toBeVisible();
-      await panel.getByTestId('start-game-button').click();
-      await expect(hostPage.getByText('暂时不能开始', { exact: true })).toBeVisible();
-      await expect(hostPage.getByTestId(TESTIDS.alertMessage)).toHaveText('座位尚未坐满');
-      await confirm(hostPage);
+      // The panel row for the primary action carries no caption: its reason
+      // stays on the console only, so it appears zero times in the panel.
+      await expect(panel.getByText('座位尚未坐满（还差 2 人）', { exact: true })).toHaveCount(0);
+      const startButton = panel.getByTestId('start-game-button');
+      await expect(startButton).toBeDisabled();
+      // Force the press attempt: a plain click() waits forever for the
+      // button to become enabled, which is exactly what must not happen.
+      await startButton.click({ force: true });
+      // Pressing the disabled action fires nothing: no popup, still gated.
+      await expect(hostPage.getByText('暂时不能开始', { exact: true })).toHaveCount(0);
+      await expect(panel.getByTestId('start-game-button')).toBeDisabled();
+      await room.closeHostManagement();
     });
 
     await test.step('fill bots to reach a full room', async () => {
       const panel = await room.openHostManagement();
       await panel.getByRole('button', { name: '填充机器人', exact: true }).click();
       await confirm(hostPage);
-      // The host management panel closes after fill bots; the 4/4 status
-      // is shown in the main lobby header.
-      await expect(hostPage.getByText('等待入座 · 4/4', { exact: true })).toBeVisible();
+      // The host management panel closes after fill bots; the full room
+      // shows through the console primary in the lobby.
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始游戏',
+      );
     });
 
     await test.step('start the game and reach wordSelect', async () => {

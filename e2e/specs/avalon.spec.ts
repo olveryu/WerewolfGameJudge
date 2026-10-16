@@ -443,22 +443,24 @@ test.describe('Avalon full game', () => {
           await rooms[seat]!.joinViaCode(code);
           await rooms[seat]!.seatAt(seat);
         }
-        await expect(hostPage.getByText('等待入座 · 10/10', { exact: true })).toBeVisible({
-          timeout: 15_000,
-        });
+        await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+          '下一步：分配角色',
+          { timeout: 15_000 },
+        );
       });
       await hostPage.screenshot({ path: testInfo.outputPath('avalon-lobby.png') });
 
       const roles = await test.step('发牌、全员查看身份并捕获各自角色', async () => {
         await rooms[0]!.clickHostManagementAction(TESTIDS.startGameButton);
-        await expect(hostPage.getByText('等待全员查看身份 · 0/10', { exact: true })).toBeVisible({
+        await expect(hostPage.getByText('还有玩家未查看身份', { exact: true })).toBeVisible({
           timeout: 15_000,
         });
         const captured: RoleName[] = [];
         for (const page of pages) captured.push(await viewAndCaptureRole(page));
-        await expect(
-          hostPage.getByText('全员已查看身份，等待房主开始游戏', { exact: true }),
-        ).toBeVisible({ timeout: 15_000 });
+        await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+          '下一步：开始游戏',
+          { timeout: 15_000 },
+        );
         return captured;
       });
 

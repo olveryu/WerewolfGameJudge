@@ -11,18 +11,18 @@
 
 ## 1. 需求定稿表（10 项，缺一不可）
 
-| #   | 项目                                       | 定稿           |
-| --- | ------------------------------------------ | -------------- |
-| 1   | 人数与身份/角色构成                        | TODO(gameplay) |
-| 2   | 阶段流转图                                 | TODO(gameplay) |
-| 3   | 每阶段的行动与胜负判定                     | TODO(gameplay) |
-| 4   | 阶段时长与超时处理                         | TODO(gameplay) |
-| 5   | 公开/私有信息边界（visibility 裁剪口径）   | TODO(gameplay) |
-| 6   | 机器人行为（接管口径，沿用平台接管规则）   | TODO(gameplay) |
-| 7   | 配置项（Config 字段与默认值）              | TODO(gameplay) |
-| 8   | 结算与奖励口径（注册表 rewards 三数）      | TODO(gameplay) |
-| 9   | 失败与边界（掉线、重连、空座位、中途退出） | TODO(gameplay) |
-| 10  | 文案清单（状态条/按钮/说明页的自有声音）   | TODO(gameplay) |
+| #   | 项目                                              | 定稿           |
+| --- | ------------------------------------------------- | -------------- |
+| 1   | 人数与身份/角色构成                               | TODO(gameplay) |
+| 2   | 阶段流转图                                        | TODO(gameplay) |
+| 3   | 每阶段的行动与胜负判定                            | TODO(gameplay) |
+| 4   | 阶段时长与超时处理                                | TODO(gameplay) |
+| 5   | 公开/私有信息边界（visibility 裁剪口径）          | TODO(gameplay) |
+| 6   | 机器人行为（接管口径，沿用平台接管规则）          | TODO(gameplay) |
+| 7   | 配置项（Config 字段与默认值）                     | TODO(gameplay) |
+| 8   | 结算与奖励口径（注册表 rewards 三数）             | TODO(gameplay) |
+| 9   | 失败与边界（掉线、重连、空座位、中途退出）        | TODO(gameplay) |
+| 10  | 文案清单（底部消息/进度行/按钮/说明页的自有声音） | TODO(gameplay) |
 
 ## 2. 平台边界（骨架已接通，不许改口径）
 

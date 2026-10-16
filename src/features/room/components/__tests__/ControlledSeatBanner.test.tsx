@@ -13,7 +13,7 @@ describe('ControlledSeatBanner', () => {
     const onRelease = jest.fn();
     const view = render(
       <ControlledSeatBanner
-        model={{ kind: 'controlled', seat: 3, displayName: '机器人4号', onRelease }}
+        model={{ seat: 3, displayName: '机器人4号', onRelease }}
         styles={styles}
       />,
     );
@@ -23,12 +23,5 @@ describe('ControlledSeatBanner', () => {
     );
     fireEvent.press(view.getByTestId(TESTIDS.controlledSeatReleaseButton));
     expect(onRelease).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders a non-interactive takeover hint without a release action', () => {
-    const view = render(<ControlledSeatBanner model={{ kind: 'hint' }} styles={styles} />);
-
-    expect(view.getByText(/长按座位可接管机器人/)).toBeTruthy();
-    expect(view.queryByTestId(TESTIDS.controlledSeatReleaseButton)).toBeNull();
   });
 });

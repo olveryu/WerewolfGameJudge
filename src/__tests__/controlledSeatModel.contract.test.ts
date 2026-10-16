@@ -1,17 +1,18 @@
 /**
  * Contract test: games must not hand-write controlled seat models.
  *
- * The controlled seat model (RoomShellModel.seatBanner union member with
- * kind: 'controlled') may only be produced by the shared factory
- * `createControlledSeatModel` in src/features/room. A game that hand-writes
- * `{ kind: 'controlled', ... }` drifts from the shared banner contract.
+ * The controlled seat model may only be produced by the shared factory
+ * `createControlledSeatModel` in src/features/room. The banner reports an
+ * active takeover only: the factory returns a model while a seat is being
+ * controlled and null otherwise — there is no hint variant, and no game
+ * computes banner visibility itself.
  */
 
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 const GAMES_DIR = join(__dirname, '../games');
-const HANDWRITTEN_PATTERN = /kind:\s*['"]controlled['"]/;
+const HANDWRITTEN_PATTERN = /displayName:.*\n.*onRelease:/;
 
 function getAllTsFiles(dir: string): string[] {
   const files: string[] = [];
@@ -40,24 +41,22 @@ describe('controlled seat model contract', () => {
     expect(violations).toEqual([]);
   });
 
-  it('the visibility gate lives in the factory, fed by two inputs from every game', () => {
+  it('the factory owns the takeover-only rule and carries no hint variant', () => {
     const factory = readFileSync(
       join(__dirname, '../features/room/model/createControlledSeatModel.ts'),
       'utf-8',
     );
-    // The factory owns the gate; its input carries no precomputed visibility.
-    expect(factory).not.toMatch(/isVisible: boolean/);
-    expect(factory).toMatch(/canControlBots: boolean;/);
-    expect(factory).toMatch(/hasBots: boolean;/);
-    expect(factory).toMatch(
-      /input\.controlledSeat !== null \|\| \(input\.canControlBots && input\.hasBots\)/,
-    );
-    // Every game passes both gate inputs; none hand-writes the visibility rule.
-    // Assembly sites: since AU-01 the shell factories in the adapters own
-    // the call for five games; fibking/pictionary still assemble in their
-    // screen-state hooks (their factories receive the model as an input).
+    expect(factory).toMatch(/if \(input\.controlledSeat === null\) return null;/);
+    expect(factory).not.toMatch(/hint/);
+    expect(factory).not.toMatch(/canControlBots|hasBots/);
+    // Every game feeds the factory the controlled seat and its display
+    // name; none passes a precomputed visibility flag.
+    // Assembly sites: the shell factories in the adapters own the call for
+    // six games; fibking/pictionary still assemble in their screen-state
+    // hooks (their factories receive the model as an input).
     const consumers = [
       'avalon/room/avalonRoomAdapter.ts',
+      'demo/room/demoRoomAdapter.ts',
       'drawguess/room/drawGuessRoomAdapter.ts',
       'fibking/room/hooks/useFibRoomScreenState.ts',
       'pictionary/room/hooks/usePictionaryRoomScreenState.ts',
@@ -69,18 +68,18 @@ describe('controlled seat model contract', () => {
       const source = readFileSync(join(GAMES_DIR, consumer), 'utf-8');
       const call = /createControlledSeatModel\(\{[\s\S]*?\}\)/.exec(source);
       if (call === null) throw new Error(`No factory call found in ${consumer}`);
-      expect(call[0]).toMatch(/canControlBots[:,]/);
-      expect(call[0]).toMatch(/hasBots[:,]/);
-      expect(call[0]).not.toMatch(/isVisible/);
+      expect(call[0]).toMatch(/controlledSeat[:,]/);
+      expect(call[0]).toMatch(/controlledBotName[:,]/);
+      expect(call[0]).not.toMatch(/canControlBots|hasBots|isVisible/);
     }
   });
 
-  it('the shared factory is the single producer of the controlled kind', () => {
+  it('the shared factory is the single producer of the banner model', () => {
     const factory = readFileSync(
       join(__dirname, '../features/room/model/createControlledSeatModel.ts'),
       'utf-8',
     );
-    expect(factory).toContain("kind: 'controlled'");
     expect(factory).toContain('export function createControlledSeatModel');
+    expect(factory).toContain('onRelease: input.release');
   });
 });

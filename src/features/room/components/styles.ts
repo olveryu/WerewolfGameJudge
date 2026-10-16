@@ -9,8 +9,12 @@ import { createStatusPanelStyles } from './statusPanels.styles';
 
 export interface BottomActionPanelStyles {
   container: ViewStyle;
+  compactContainer: ViewStyle;
   dockContainer: ViewStyle;
+  progressRow: ViewStyle;
+  progressRowCompact: ViewStyle;
   message: TextStyle;
+  messageCompact: TextStyle;
   buttonRow: ViewStyle;
   compactManagementStack: ViewStyle;
   ghostRow: ViewStyle;
@@ -26,9 +30,9 @@ export interface BottomActionPanelStyles {
   hostManagementContent: ViewStyle;
   hostManagementTitleRow: ViewStyle;
   hostManagementTitle: TextStyle;
-  hostManagementPreviewRow: ViewStyle;
-  hostManagementPreview: TextStyle;
-  hostManagementPreviewUrgent: TextStyle;
+  hostManagementExpandRow: ViewStyle;
+  hostManagementExpandLabel: TextStyle;
+  hostManagementPending: TextStyle;
   nextStepReady: ViewStyle;
   nextStepContent: ViewStyle;
   nextStepReadyLabel: TextStyle;
@@ -50,25 +54,9 @@ export interface ConnectionStatusBarStyles {
 
 export interface ControlledSeatBannerStyles {
   container: ViewStyle;
-  hintContainer: ViewStyle;
   text: TextStyle;
-  hintText: TextStyle;
   releaseButton: ViewStyle;
   releaseButtonText: TextStyle;
-}
-
-export interface HostGuideBannerStyles {
-  container: ViewStyle;
-  icon: TextStyle;
-  text: TextStyle;
-}
-
-export interface StatusRibbonStyles {
-  speakingOrderContainer: ViewStyle;
-  speakingOrderIcon: TextStyle;
-  speakingOrderTextContainer: ViewStyle;
-  speakingOrderText: TextStyle;
-  speakingOrderSubText: TextStyle;
 }
 
 export interface HeaderActionsStyles {
@@ -78,6 +66,7 @@ export interface HeaderActionsStyles {
 
 export interface RoomProgressIndicatorStyles {
   container: ViewStyle;
+  compactContainer: ViewStyle;
   headerRow: ViewStyle;
   stepText: TextStyle;
   labelText: TextStyle;
@@ -98,18 +87,14 @@ export interface RoomFeatureStyles {
   readonly bottomActionPanel: BottomActionPanelStyles;
   readonly connectionStatusBar: ConnectionStatusBarStyles;
   readonly controlledSeatBanner: ControlledSeatBannerStyles;
-  readonly hostGuideBanner: HostGuideBannerStyles;
   readonly headerActions: HeaderActionsStyles;
   readonly progressIndicator: RoomProgressIndicatorStyles;
   readonly seatConfirmModal: SeatConfirmModalStyles;
-  readonly statusRibbon: StatusRibbonStyles;
 }
 
 export function createRoomFeatureStyles(colors: ThemeColors): RoomFeatureStyles {
-  const statusPanels = createStatusPanelStyles(colors);
   return {
-    ...statusPanels,
+    ...createStatusPanelStyles(colors),
     ...createModalMenuStyles(colors),
-    statusRibbon: statusPanels.statusRibbon,
   };
 }

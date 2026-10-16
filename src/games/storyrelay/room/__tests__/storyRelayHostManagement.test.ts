@@ -11,6 +11,7 @@ import {
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -132,14 +133,12 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true, true);
-    expect(model?.preview).toBe('下一步：开始游戏');
-    expect(model?.status).toBe('等待入座 · 1/4');
     const start = model?.sections[0]?.actions[0];
     expect(start).toMatchObject({
       key: 'start-game',
       testID: 'start-game-button',
       isEnabled: false,
-      disabledReason: '座位尚未坐满',
+      disabledReason: '座位尚未坐满（还差 3 人）',
     });
     expect(model?.sections[1]?.actions.map((action) => action.key)).toEqual([
       'configure-game',
@@ -152,18 +151,18 @@ describe('createStoryRelayHostManagement', () => {
     });
   });
 
-  it('derives the next step from the lobby start gate', () => {
+  it('derives the console primary from the lobby start gate', () => {
     const game = session();
     game.seatHost();
-    const blocked = build(game.state, true, true)?.nextStep;
+    const blocked = resolveHostConsolePrimary(build(game.state, true, true)!);
     expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-    if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-    expect(blocked.state.reason).toBe('座位尚未坐满');
-    expect(blocked.state.remedy?.label).toBe('分享房间');
+    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    expect(blocked.reason).toBe('座位尚未坐满（还差 3 人）');
+    expect(blocked.remedy?.label).toBe('分享房间');
 
     game.send({ type: 'room.seat.fillBots' });
-    const ready = build(game.state, true, true)?.nextStep;
-    if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    const ready = resolveHostConsolePrimary(build(game.state, true, true)!);
+    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
 
   it('pins the answering panel: finish-phase plus abort', () => {
@@ -172,7 +171,6 @@ describe('createStoryRelayHostManagement', () => {
     game.fillAndStart();
     expect(game.state.phase).toBe('answering');
     const model = build(game.state, true, false);
-    expect(model?.preview).toBe('管理本局');
     expect(model?.sections.map((section) => section.key)).toEqual(['current-flow', 'danger']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'finish-phase',
@@ -199,7 +197,6 @@ describe('createStoryRelayHostManagement', () => {
     game.send({ type: 'storyrelay.round.abort', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('aborted');
     const model = build(game.state, true, false);
-    expect(model?.preview).toBe('未完成的故事');
     expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['return-lobby']);
   });
 
@@ -220,7 +217,6 @@ describe('createStoryRelayHostManagement', () => {
     game.send({ type: 'storyrelay.gallery.finish', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('ended');
     const model = build(game.state, true, false);
-    expect(model?.preview).toBe('故事已揭晓');
     const actions = model?.sections[0]?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([

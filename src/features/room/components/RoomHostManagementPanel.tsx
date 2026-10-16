@@ -79,10 +79,7 @@ const ManagementContent: React.FC<{
 }> = ({ model, bottomInset, onClose }) => (
   <>
     <View style={styles.header}>
-      <View style={styles.heading}>
-        <Text style={styles.title}>{HOST_MANAGEMENT_LABEL}</Text>
-        {model.status !== null && <Text style={styles.status}>{model.status}</Text>}
-      </View>
+      <Text style={styles.title}>{HOST_MANAGEMENT_LABEL}</Text>
       <Button
         variant="icon"
         size="sm"
@@ -99,15 +96,6 @@ const ManagementContent: React.FC<{
       contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}
       showsVerticalScrollIndicator
     >
-      <View style={styles.previewRow}>
-        <Ionicons
-          name="shield-checkmark-outline"
-          size={componentSizes.icon.md}
-          color={colors.primary}
-        />
-        <Text style={styles.preview}>{model.preview}</Text>
-      </View>
-
       {model.sections.map((section) => (
         <View key={section.key} style={styles.section}>
           <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -154,17 +142,20 @@ const ManagementAction: React.FC<{
       </Button>
     );
   }
-  const button =
-    action.onDisabledPress === null ? (
-      <Button {...visualProps} disabled>
-        {action.label}
-      </Button>
-    ) : (
-      <Button {...visualProps} disabled onDisabledPress={action.onDisabledPress}>
-        {action.label}
-      </Button>
-    );
-  if (action.disabledReason === null || action.disabledReason.length === 0) return button;
+  const button = (
+    <Button {...visualProps} disabled>
+      {action.label}
+    </Button>
+  );
+  // The primary action's blocked reason renders once, on the collapsed
+  // console; the panel row for the same action carries no caption.
+  if (
+    action.isPrimary === true ||
+    action.disabledReason === null ||
+    action.disabledReason.length === 0
+  ) {
+    return button;
+  }
   return (
     <View>
       {button}
@@ -211,18 +202,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: fixed.borderWidth,
     borderBottomColor: colors.border,
   },
-  heading: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.micro,
-  },
   title: {
     ...textStyles.subtitleSemibold,
     color: colors.text,
-  },
-  status: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
+    flex: 1,
+    minWidth: 0,
   },
   scroll: {
     flex: 1,
@@ -231,19 +215,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.large,
     paddingTop: spacing.medium,
     gap: spacing.large,
-  },
-  previewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.small,
-    paddingBottom: spacing.medium,
-    borderBottomWidth: fixed.borderWidth,
-    borderBottomColor: colors.border,
-  },
-  preview: {
-    ...textStyles.bodySemibold,
-    color: colors.text,
-    flex: 1,
   },
   section: {
     gap: spacing.small,

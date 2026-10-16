@@ -11,7 +11,7 @@
 
 import { TESTIDS } from '@/testids';
 
-import type { RoomHostManagementAction } from './RoomHostManagement';
+import type { RoomHostManagementAction, RoomHostRemedy } from './RoomHostManagement';
 
 interface ActionInput {
   readonly onPress: () => void;
@@ -20,8 +20,14 @@ interface ActionInput {
   readonly isLoading?: boolean;
   /** Overrides the builder's default label (e.g. a game's own round wording). */
   readonly label?: string;
-  /** Feedback for pressing while disabled; defaults to no feedback. */
-  readonly onDisabledPress?: (() => void) | null;
+  /** Marks this action as the phase's primary for the collapsed host console. */
+  readonly isPrimary?: boolean;
+  /** Remedy offered beside this action when the console renders it blocked. */
+  readonly remedy?: RoomHostRemedy | null;
+  /** Press handler used by the collapsed console only; defaults to onPress. */
+  readonly onConsolePress?: () => void;
+  /** Console-only blocked reason while the panel action stays enabled. */
+  readonly consoleBlockedReason?: string | null;
 }
 
 function buildAction(
@@ -39,13 +45,16 @@ function buildAction(
     variant,
     testID,
     isLoading: input.isLoading,
+    isPrimary: input.isPrimary,
+    remedy: input.remedy,
+    onConsolePress: input.onConsolePress,
+    consoleBlockedReason: input.consoleBlockedReason,
   };
   if (input.isEnabled === false) {
     return {
       ...base,
       isEnabled: false,
       disabledReason: input.disabledReason ?? null,
-      onDisabledPress: input.onDisabledPress ?? null,
     };
   }
   return {
@@ -68,6 +77,14 @@ export interface RoomHostActionDescriptor {
   readonly variant: RoomHostManagementAction['variant'];
   readonly testID?: string;
   readonly isLoading?: boolean;
+  /** Marks this action as the phase's primary for the collapsed host console. */
+  readonly isPrimary?: boolean;
+  /** Remedy offered beside this action when the console renders it blocked. */
+  readonly remedy?: RoomHostRemedy | null;
+  /** Press handler used by the collapsed console only; defaults to onPress. */
+  readonly onConsolePress?: () => void;
+  /** Console-only blocked reason while the panel action stays enabled. */
+  readonly consoleBlockedReason?: string | null;
 }
 
 /** Bind a descriptor to its press handler as an enabled action. */
@@ -81,8 +98,8 @@ export function buildEnabledHostAction(
 /**
  * Marshal a command action around a pending flag: while pending, the
  * action drops its press handler and renders disabled with no reason
- * and no disabled feedback (the submission lock already prevents a
- * second dispatch); otherwise it is the enabled action.
+ * (the submission lock already prevents a second dispatch); otherwise
+ * it is the enabled action.
  */
 export function buildPendingAwareHostAction(
   descriptor: RoomHostActionDescriptor,
@@ -90,7 +107,7 @@ export function buildPendingAwareHostAction(
   onPress: () => void,
 ): RoomHostManagementAction {
   return isPending
-    ? { ...descriptor, isEnabled: false, disabledReason: null, onDisabledPress: null }
+    ? { ...descriptor, isEnabled: false, disabledReason: null }
     : buildEnabledHostAction(descriptor, onPress);
 }
 

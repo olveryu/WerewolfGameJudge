@@ -1,5 +1,7 @@
 /** Game-neutral render models for stacked and compact room action panels. */
 
+import type { NightStepProgress } from './nightProgress';
+
 type RoomBottomActionAvailability =
   | {
       readonly isEnabled: true;
@@ -8,7 +10,6 @@ type RoomBottomActionAvailability =
   | {
       readonly isEnabled: false;
       readonly disabledReason: string | null;
-      readonly onDisabledPress: (() => void) | null;
     };
 
 interface RoomBottomButtonBase {
@@ -44,7 +45,6 @@ export function buildAudioWaitingButton(input: {
     size: 'md',
     isEnabled: false,
     disabledReason: '语音播报尚未结束，请稍候',
-    onDisabledPress: null,
     testID: input.testID,
   };
 }
@@ -81,18 +81,24 @@ export interface RoomBottomActionLayout {
 export interface RoomBottomStackModel {
   readonly kind: 'stacked';
   readonly message: string | null;
+  /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
+  readonly progress: NightStepProgress | null;
   readonly layout: RoomBottomActionLayout;
 }
 
 export interface RoomBottomInfoModel {
   readonly kind: 'info';
   readonly message: string | null;
+  /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
+  readonly progress: NightStepProgress | null;
   readonly actions: readonly RoomBottomButton[];
 }
 
 export interface RoomBottomDockModel {
   readonly kind: 'dock';
   readonly message: string | null;
+  /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
+  readonly progress: NightStepProgress | null;
   readonly leading: RoomBottomToolButton | null;
   readonly primary: RoomBottomButton;
   readonly trailing: RoomBottomToolButton | null;

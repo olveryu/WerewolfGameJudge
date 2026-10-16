@@ -244,4 +244,27 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       );
     }
   });
+
+  it('exposes the room status verbatim as the shell phase anchor', async () => {
+    // The phase anchor is the contract e2e phase waits bind to (a night
+    // ending = the anchor leaving 'Ongoing'); it must mirror the
+    // authoritative room status, never display copy.
+    const cases = [GameStatus.Ongoing, GameStatus.Day, GameStatus.Ended] as const;
+    for (const status of cases) {
+      mockUseWerewolfRoomReturn = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'villager',
+        mySeat: 3,
+        numberOfPlayers: 4,
+        gameStateOverrides: { status },
+        hookOverrides: { roomStatus: status },
+      });
+
+      const model = await captureModel(renderRoom());
+
+      expect(model.phase).toBe(status);
+      mockCapturedShellModel = null;
+    }
+  });
 });

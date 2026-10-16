@@ -15,6 +15,11 @@ import { RoomPage } from '../pages/RoomPage';
 test.setTimeout(180_000);
 test.use({ actionTimeout: 15_000 });
 
+/** The editor stays usable only if it keeps at least this share of the
+ *  viewport height (measured healthy minimum is ~14%, across phases) —
+ *  a relative floor, so it holds at any viewport size. */
+const MIN_EDITOR_VIEWPORT_FRACTION = 0.1;
+
 async function createRoom(page: Page): Promise<RoomPage> {
   await new HomePage(page).clickCreateRoom('storyrelay');
   await expect(page.getByTestId('storyrelay-config')).toBeVisible();
@@ -51,8 +56,12 @@ async function expectFixedTask(page: Page): Promise<void> {
     )
     .toBeLessThanOrEqual(1);
   await expect
-    .poll(() => page.getByTestId('storyrelay-editor').evaluate((element) => element.clientHeight))
-    .toBeGreaterThan(40);
+    .poll(() =>
+      page
+        .getByTestId('storyrelay-editor')
+        .evaluate((element) => element.clientHeight / window.innerHeight),
+    )
+    .toBeGreaterThan(MIN_EDITOR_VIEWPORT_FRACTION);
   await expect
     .poll(() =>
       page

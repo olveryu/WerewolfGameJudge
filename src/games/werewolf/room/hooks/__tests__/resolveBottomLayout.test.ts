@@ -58,7 +58,6 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'primary')).toEqual(['waitForHost']);
       expect(layout.primary[0]).toMatchObject({
         isEnabled: false,
-        onDisabledBehavior: { kind: 'static', action: 'waitForHost' },
       });
     });
 
@@ -550,7 +549,6 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'ghost')).toEqual([]);
       expect(layout.primary[0]).toMatchObject({
         isEnabled: false,
-        onDisabledBehavior: null,
       });
     });
 

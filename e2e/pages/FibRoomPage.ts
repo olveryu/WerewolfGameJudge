@@ -56,7 +56,11 @@ export class FibRoomPage extends RoomPage {
   }
 
   async expectOngoing(): Promise<void> {
-    await expect(this.page.getByText('描述进行中', { exact: true })).toBeVisible();
+    // The Ongoing phase has no status ribbon after the guidance redesign;
+    // the host's reveal action in the management panel is the phase mark.
+    const panel = await this.openHostManagement();
+    await expect(panel.getByTestId(TESTIDS.fibRevealRoundButton)).toBeVisible();
+    await this.closeHostManagement();
   }
 
   async openRules(): Promise<void> {
@@ -178,12 +182,10 @@ export class FibRoomPage extends RoomPage {
     await this.expectHostManagementClosed();
     await expect(this.page.getByText('放弃游戏？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
-    await expect(
-      this.page.getByRole('button', {
-        name: '主持管理，下一步：开始本轮',
-        exact: true,
-      }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+      '下一步：开始本轮',
+      { timeout: 15_000 },
+    );
   }
 
   async startNextRound(): Promise<void> {
@@ -201,12 +203,10 @@ export class FibRoomPage extends RoomPage {
     await this.expectHostManagementClosed();
     await expect(this.page.getByText('结束游戏？', { exact: true })).toBeVisible();
     await this.page.getByText('确定', { exact: true }).click();
-    await expect(
-      this.page.getByRole('button', {
-        name: '主持管理，下一步：开始本轮',
-        exact: true,
-      }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+      '下一步：开始本轮',
+      { timeout: 15_000 },
+    );
   }
 
   async expectLobbySeatOperations(): Promise<void> {

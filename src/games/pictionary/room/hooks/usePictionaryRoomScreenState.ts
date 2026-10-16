@@ -2,7 +2,6 @@
 
 import {
   createPictionaryCommand,
-  getBotSeats,
   getPictionaryOccupiedSeatCount,
   getPictionaryUserSeat,
   isBotSeat,
@@ -37,7 +36,6 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -311,7 +309,6 @@ export function usePictionaryRoomScreenState({
               createPictionaryCommand(state, { type: 'pictionary.round.abort' }, null),
             );
           }),
-        onStartDisabled: () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
       }),
     [
       capabilities,
@@ -325,8 +322,6 @@ export function usePictionaryRoomScreenState({
     ],
   );
   const controlledSeatModel = createControlledSeatModel({
-    canControlBots: capabilities.canTakeOverBots.isAllowed,
-    hasBots: getBotSeats(state.roster).length > 0,
     controlledSeat,
     controlledBotName:
       controlledSeat !== null

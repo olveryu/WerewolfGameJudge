@@ -1,11 +1,10 @@
 /**
- * 把你画我猜权威状态投影到共享座位表与房间状态条，不暴露答案。
+ * 把你画我猜权威状态投影到共享座位表与房间外壳，不暴露答案。
  */
 
 import {
   type DrawGuessCommand,
   type DrawGuessState,
-  getBotSeats,
   getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -34,17 +33,14 @@ import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
-import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getDrawGuessProfileTarget(state: DrawGuessState, seat: number): RoomProfileTarget | null {
@@ -110,18 +106,6 @@ function createDrawGuessSeatDataSource(input: DrawGuessSeatSourceInput): RoomSea
   });
 }
 
-/** 公共状态条：不含答案与题目内容。 */
-function createDrawGuessStatusRibbon(state: DrawGuessState): RoomStatusRibbonModel | null {
-  const phase = state.phase;
-  if (phase.kind === 'wordSelect') return messageRibbon('画手正在选词');
-  if (phase.kind === 'drawing') return messageRibbon('作画猜词中');
-  if (phase.kind === 'roundEnd') return messageRibbon('本轮结算');
-  if (phase.kind === 'ended') return messageRibbon('本局已结束');
-  return messageRibbon(
-    buildLobbyWaitingText(getDrawGuessOccupiedSeatCount(state), state.config.numberOfPlayers),
-  );
-}
-
 export interface DrawGuessRoomShellModelInput {
   readonly roomCode: string;
   readonly capabilities: RoomCapabilities;
@@ -148,7 +132,6 @@ export interface DrawGuessRoomShellModelInput {
   readonly isHost: boolean;
   readonly mySeat: number | null;
   readonly hostManagement: RoomHostManagementModel | null;
-  readonly canControlBots: boolean;
   readonly releaseBot: () => void;
 }
 
@@ -179,23 +162,20 @@ export function createDrawGuessHostManagement(
   const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
   if (state.phase.kind === 'lobby') {
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
-    const startDisabledReason = canStart ? null : '座位尚未坐满';
+    const startDisabledReason = canStart
+      ? null
+      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
     const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.round.start' });
     const startAction = buildStartGameAction({
       onPress: submitStart,
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
-      onDisabledPress: () => showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
       isLoading: input.isSubmitting,
+      isPrimary: true,
+      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      onConsolePress: () => showConfirmAlert('开始游戏？', '将开始本局绘画猜词', submitStart),
     });
     return {
-      preview: '下一步：开始游戏',
-      nextStep: buildRoomNextStep({
-        action: startAction,
-        onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画猜词', submitStart),
-        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      }),
-      status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
@@ -208,9 +188,6 @@ export function createDrawGuessHostManagement(
   }
   if (state.phase.kind === 'ended') {
     return {
-      preview: '本局已结束',
-      nextStep: null,
-      status: null,
       sections: [
         {
           key: 'current-flow',
@@ -239,9 +216,6 @@ export function createDrawGuessHostManagement(
   }
   // 局中房主面板常驻（裁决⑧，对齐狼人杀/阿瓦隆）：房间管理区始终在。
   return {
-    preview: '房主管理',
-    nextStep: null,
-    status: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   };
 }
@@ -258,6 +232,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: state.phase.kind,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,
@@ -267,7 +242,6 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createDrawGuessStatusRibbon(state),
     seats: {
       source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
@@ -289,12 +263,11 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
         isHost: input.isHost,
         mySeat: input.mySeat,
       }),
+      progress: null,
       actions: [],
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
-      canControlBots: input.canControlBots,
-      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

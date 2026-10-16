@@ -6,6 +6,7 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import {
   closeAll,
   type ColdRoomFixture,
@@ -138,9 +139,10 @@ test.describe('FibKing', () => {
       await hostRoom.waitForReady('host');
 
       // Presence gate: all 4 real players seated, no bots involved.
-      await expect(hostPage.getByText('等待入座 · 4/4', { exact: true })).toBeVisible({
-        timeout: 15_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始本轮',
+        { timeout: 15_000 },
+      );
 
       // Kicking one seated player must not remove the others.
       await hostRoom.kickPlayer(2);
@@ -153,9 +155,10 @@ test.describe('FibKing', () => {
       ).toBe(false);
       await firstBatchRooms[1]!.expectNotSeated();
       await firstBatchRooms[1]!.seatAt(2);
-      await expect(hostPage.getByText('等待入座 · 4/4', { exact: true })).toBeVisible({
-        timeout: 15_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始本轮',
+        { timeout: 15_000 },
+      );
 
       await hostRoom.screenshot(testInfo, 'fibking-lobby-four-player.png');
       await hostRoom.startRound();

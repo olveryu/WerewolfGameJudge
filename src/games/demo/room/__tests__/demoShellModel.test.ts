@@ -11,6 +11,7 @@ import {
 } from '@game-judge/game-engine/games/demo/public';
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -96,7 +97,7 @@ describe('createDemoRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '分配身份', nextStep: null, status: null, sections: [] };
+    const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
     const model = createDemoRoomShellModel({
       roomCode: '1234',
@@ -124,23 +125,50 @@ describe('createDemoRoomShellModel', () => {
       isHost: true,
       mySeat: 0,
       hostManagement,
-      canControlBots: true,
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
+    // The shell phase anchor carries the demo phase kind verbatim.
+    expect(model.phase).toBe('lobby');
     expect(model.seats.source.count).toBe(4);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
     expect(model.hostManagement).toBe(hostManagement);
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
-    expect(model.statusRibbon).toEqual({
-      kind: 'message',
-      icon: 'guide',
-      text: '等待入座 · 4/4',
-      supportingText: null,
+    expect(model.controlledSeat).toBeNull();
+  });
+
+  it('exposes the viewing phase on the shell model', () => {
+    const model = createDemoRoomShellModel({
+      roomCode: '1234',
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state: viewingState(),
+      revision: 5,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      isHost: true,
+      mySeat: 0,
+      hostManagement: { sections: [] },
+      releaseBot: jest.fn(),
     });
+    expect(model.phase).toBe('viewing');
   });
 });
 
@@ -154,8 +182,6 @@ describe('createDemoHostManagement', () => {
       isSubmitting: false,
       submit: jest.fn(async () => true),
     });
-    expect(model?.preview).toBe('开始游戏');
-    expect(model?.status).toBe('等待全员查看身份 · 0/4');
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'bot-viewing', 'room']);
     const begin = model?.sections[0]?.actions[0];
     expect(begin).toMatchObject({ isEnabled: false, disabledReason: '还有玩家未查看身份' });
@@ -172,12 +198,11 @@ describe('createDemoHostManagement', () => {
       isSubmitting: false,
       submit: jest.fn(async () => true),
     });
-    expect(model?.status).toBe('等待全员查看身份 · 4/4');
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({ isEnabled: true });
   });
 
-  describe('next step', () => {
+  describe('console primary', () => {
     const build = (state: DemoState) =>
       createDemoHostManagement({
         state,
@@ -188,30 +213,30 @@ describe('createDemoHostManagement', () => {
       });
 
     it('blocks identity assignment in a non-full lobby and offers room sharing', () => {
-      const step = build(lobbyState(false))?.nextStep;
+      const step = resolveHostConsolePrimary(build(lobbyState(false))!);
       expect(step).toMatchObject({ actionKey: 'start-game', label: '分配身份' });
-      if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-      expect(step.state.reason).toBe('座位尚未坐满');
-      expect(step.state.remedy?.label).toBe('分享房间');
+      if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+      expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
+      expect(step.remedy?.label).toBe('分享房间');
     });
 
     it('offers identity assignment once the room is full', () => {
-      const step = build(lobbyState(true))?.nextStep;
-      if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+      const step = resolveHostConsolePrimary(build(lobbyState(true))!);
+      if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
     });
 
     it('blocks game start while viewing is incomplete, then offers it', () => {
-      const blocked = build(viewingState())?.nextStep;
+      const blocked = resolveHostConsolePrimary(build(viewingState())!);
       expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-      if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-      expect(blocked.state.reason).toBe('还有玩家未查看身份');
-      expect(blocked.state.remedy).toBeNull();
+      if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+      expect(blocked.reason).toBe('还有玩家未查看身份');
+      expect(blocked.remedy).toBeNull();
 
       let state = viewingState();
       state = drive(state, { type: 'demo.role.viewed' });
       state = drive(state, { type: 'demo.bots.markAllBotsViewed' });
-      const ready = build(state)?.nextStep;
-      if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+      const ready = resolveHostConsolePrimary(build(state)!);
+      if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
     });
   });
 });

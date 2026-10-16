@@ -89,7 +89,7 @@ describe('createStoryRelayRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '开始游戏', nextStep: null, status: null, sections: [] };
+    const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
@@ -117,22 +117,57 @@ describe('createStoryRelayRoomShellModel', () => {
       isHost: true,
       mySeat: 0,
       hostManagement,
-      canControlBots: true,
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
     expect(model.capabilities).toBe(caps);
     expect(model.header.userAction?.ticketCount).toBeNull();
-    expect(model.statusRibbon).toMatchObject({ kind: 'message' });
     expect(model.seats.source.count).toBe(4);
     expect(model.seats.visuallyDisabled).toBe(true);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({ kind: 'info', message: null, actions: [] });
+    expect(model.bottomActions).toEqual({
+      kind: 'info',
+      message: null,
+      progress: null,
+      actions: [],
+    });
     expect(model.hostManagement).toBe(hostManagement);
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    expect(model.controlledSeat).toBeNull();
+    // The shell phase anchor carries the state phase kind verbatim.
+    expect(model.phase).toBe('lobby');
+
+    const endedModel = createStoryRelayRoomShellModel({
+      roomCode: '1234',
+      capabilities: caps,
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: undefined,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state: { ...state, phase: 'ended' },
+      revision: 2,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: true,
+      onSeatPress,
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      isHost: true,
+      mySeat: 0,
+      hostManagement,
+      releaseBot: jest.fn(),
+    });
+    expect(endedModel.phase).toBe('ended');
   });
 
   it('shows 等待房主开始游戏 to a seated non-host and no hint without bots', () => {
@@ -163,12 +198,12 @@ describe('createStoryRelayRoomShellModel', () => {
       isHost: false,
       mySeat: 0,
       hostManagement: null,
-      canControlBots: false,
       releaseBot: jest.fn(),
     });
     expect(model.bottomActions).toEqual({
       kind: 'info',
       message: '等待房主开始游戏',
+      progress: null,
       actions: [],
     });
     expect(model.controlledSeat).toBeNull();

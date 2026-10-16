@@ -17,7 +17,9 @@ export function RoomGameSummary({
 }: {
   readonly icon: ComponentProps<typeof Ionicons>['name'];
   readonly title: string;
-  readonly subtitle: string;
+  /** Optional configuration line; a game whose title already carries its
+   * configuration passes none rather than repeating a status line here. */
+  readonly subtitle?: string;
   readonly headerRight?: ReactNode;
   readonly children?: ReactNode;
   readonly testID?: string;
@@ -31,7 +33,7 @@ export function RoomGameSummary({
           </View>
           <View style={styles.summaryText}>
             <Text style={styles.title}>{title}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
+            {subtitle !== undefined ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
         </View>
         {headerRight}

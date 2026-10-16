@@ -39,25 +39,21 @@ import {
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
   type RoomHostManagementModel,
   type RoomHostManagementSection,
-  type RoomNextStep,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type {
   RoomConnectionViewModel,
   RoomControlledSeatModel,
   RoomShellModel,
 } from '@/features/room/model/RoomShellModel';
-import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -191,73 +187,6 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
   });
 }
 
-interface FibPhaseStatusCopy {
-  /** Status line shared by the ribbon and the host panel status. */
-  readonly text: string;
-  /** Ribbon-only supporting line. */
-  readonly supportingText: string | null;
-  /** Host panel preview line. */
-  readonly preview: string;
-}
-
-/**
- * FibKing phase copy has exactly one computation site: the status
- * ribbon, the host panel status and the host panel preview all read
- * from this resolver, so the three faces of the same phase cannot
- * drift apart.
- */
-function resolveFibPhaseStatusCopy(state: FibState): FibPhaseStatusCopy {
-  switch (state.phase) {
-    case 'lobby':
-      return {
-        text: buildLobbyWaitingText(getFibOccupiedSeatCount(state), state.numberOfPlayers),
-        supportingText: null,
-        preview: '下一步：开始本轮',
-      };
-    case 'preparing':
-      return { text: '正在准备本轮词语', supportingText: null, preview: '正在准备，可取消' };
-    case 'preparationFailed':
-      return {
-        text: '词语准备失败',
-        supportingText: '暂无可用词语，请重新准备',
-        preview: '待处理：重新准备',
-      };
-    case 'viewing': {
-      const unviewedCount = getFibViewingParticipants(state).filter(
-        (participant) => !state.round.viewedSeats.includes(participant.seat),
-      ).length;
-      return unviewedCount > 0
-        ? {
-            text: '等待全员查看身份',
-            supportingText: `还差 ${unviewedCount} 人`,
-            preview: '等待全员查看身份',
-          }
-        : {
-            text: '全员已查看身份',
-            supportingText: '等待房主开始游戏',
-            preview: '下一步：开始游戏',
-          };
-    }
-    case 'ongoing':
-      return {
-        text: '描述进行中',
-        supportingText: '大聪明根据大家的描述猜词',
-        preview: '可公布答案、重新抽词',
-      };
-    case 'ended':
-      return { text: '本轮答案已公布', supportingText: null, preview: '下一步：下一轮' };
-  }
-}
-
-export function createFibStatusRibbon(state: FibState): RoomStatusRibbonModel | null {
-  const copy = resolveFibPhaseStatusCopy(state);
-  return messageRibbon(
-    copy.text,
-    copy.supportingText,
-    state.phase === 'ongoing' ? 'speaking' : 'guide',
-  );
-}
-
 interface FibHostManagementInput {
   readonly state: FibState;
   readonly isHost: boolean;
@@ -269,7 +198,6 @@ interface FibHostManagementInput {
   readonly startRound: () => void;
   readonly markAllBotsViewed: () => void;
   readonly beginRound: () => void;
-  readonly onBeginDisabled: () => void;
   readonly isGuessing: boolean;
   readonly toggleGuessMode: () => void;
   readonly cancelPreparing: () => void;
@@ -277,7 +205,6 @@ interface FibHostManagementInput {
   readonly redrawRound: () => void;
   readonly abandonGame: () => void;
   readonly endGame: () => void;
-  readonly onStartDisabled: () => void;
 }
 
 function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
@@ -298,7 +225,11 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           isEnabled: !input.isCommandSubmitting && allViewed,
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: allViewed ? null : '还有玩家未查看身份',
-          onDisabledPress: allViewed ? null : input.onBeginDisabled,
+          isPrimary: true,
+          // The panel action submits directly; the console gates the same
+          // callback with a confirm.
+          onConsolePress: () =>
+            showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
         }),
       ];
       const hasUnviewedBot = participants.some(
@@ -322,8 +253,15 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           onPress: input.startRound,
           isEnabled: !input.isCommandSubmitting && isFibRoomFull(input.state),
           isLoading: input.isCommandSubmitting || undefined,
-          disabledReason: input.isCommandSubmitting ? null : '座位尚未坐满',
-          onDisabledPress: input.isCommandSubmitting ? null : input.onStartDisabled,
+          disabledReason: input.isCommandSubmitting
+            ? null
+            : `座位尚未坐满（还差 ${input.state.numberOfPlayers - getFibOccupiedSeatCount(input.state)} 人）`,
+          isPrimary: true,
+          remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+          // The panel action submits directly; the console gates the same
+          // callback with a confirm.
+          onConsolePress: () =>
+            showConfirmAlert('开始本轮？', '将为每位玩家分配身份并准备本轮词语', input.startRound),
         }),
       ];
     }
@@ -352,6 +290,9 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
             variant: 'primary',
             testID: TESTIDS.fibRetryPreparationButton,
             isLoading: input.isCommandSubmitting || undefined,
+            // Re-preparation is the recovery path out of a failed state:
+            // the console re-presents it directly, with no confirm.
+            isPrimary: true,
           },
           input.isCommandSubmitting,
           input.startRound,
@@ -512,9 +453,8 @@ export function createFibHostManagement(
   input: FibHostManagementInput,
 ): RoomHostManagementModel | null {
   if (!input.isHost) return null;
-  const currentFlowActions = createFibCurrentFlowActions(input);
   const sections = [
-    createFibHostSection('current-flow', '当前流程', currentFlowActions),
+    createFibHostSection('current-flow', '当前流程', createFibCurrentFlowActions(input)),
     createFibHostSection('room-management', '房间管理', createFibRoomManagementActions(input)),
     createFibHostSection('danger', '危险操作', createFibDangerActions(input)),
   ].filter((section): section is RoomHostManagementSection => section !== null);
@@ -522,59 +462,9 @@ export function createFibHostManagement(
   if (sections.length === 0) {
     throw new Error('FibKing Host management must expose at least one action');
   }
-  const copy = resolveFibPhaseStatusCopy(input.state);
   return {
-    preview: copy.preview,
-    nextStep: createFibNextStep(input, currentFlowActions),
-    status: copy.text,
     sections,
   };
-}
-
-/**
- * The FibKing next step, derived beside the phase copy from the same
- * current-flow actions the panel renders: start of round (lobby),
- * begin after viewing, and re-preparation after a failed preparation.
- * The panel actions submit directly; the strip gates the same
- * callbacks with a confirm for the two progression steps, while
- * re-preparation — the recovery path out of a failed state — stays
- * direct. Ongoing and ended phases have no single next step here.
- */
-function createFibNextStep(
-  input: FibHostManagementInput,
-  currentFlowActions: readonly RoomHostManagementAction[],
-): RoomNextStep | null {
-  const findAction = (key: string) => currentFlowActions.find((action) => action.key === key);
-  switch (input.state.phase) {
-    case 'lobby': {
-      const action = findAction('start-game');
-      if (action === undefined) return null;
-      return buildRoomNextStep({
-        action,
-        onPress: () =>
-          showConfirmAlert('开始本轮？', '将为每位玩家分配身份并准备本轮词语', input.startRound),
-        remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-      });
-    }
-    case 'viewing': {
-      const action = findAction('start-game');
-      if (action === undefined) return null;
-      return buildRoomNextStep({
-        action,
-        onPress: () =>
-          showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
-      });
-    }
-    case 'preparationFailed': {
-      const action = findAction('retry-preparation');
-      if (action === undefined) return null;
-      return buildRoomNextStep({ action });
-    }
-    case 'preparing':
-    case 'ongoing':
-    case 'ended':
-      return null;
-  }
 }
 
 function enabledButton(
@@ -640,6 +530,7 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
   return {
     kind: 'stacked',
     message: input.isHost ? null : getPlayerMessage(input.state, input.viewerSeat),
+    progress: null,
     layout: { primary, secondary, ghost },
   };
 }
@@ -714,6 +605,7 @@ export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShel
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: input.state.phase,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,
@@ -723,7 +615,6 @@ export function createFibRoomShellModel(input: FibRoomShellModelInput): RoomShel
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createFibStatusRibbon(input.state),
     seats: {
       source: input.seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,

@@ -15,7 +15,6 @@ import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/produc
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -35,7 +34,6 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
-import { resolveWerewolfPhaseStatusCopy } from '@/games/werewolf/room/resolveWerewolfPhaseStatusCopy';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
 import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
@@ -163,7 +161,7 @@ export interface WerewolfRoomScreenStateProps {
   readonly client: WerewolfGameClient;
 }
 
-/** Seat/viewing counts the phase status copy resolver reads. */
+/** Seat/viewing counts the host management projection reads. */
 function deriveWerewolfSeatCounts(gameState: {
   readonly players: ReadonlyMap<number, { readonly hasViewedRole: boolean } | null>;
   readonly template: { readonly numberOfPlayers: number };
@@ -711,29 +709,24 @@ export function useWerewolfRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Guide message (contextual hint bar — host gets detailed tips, others get phase hints)
+  // Guide message (phase hints whose single home is the bottom action
+  // message. Host ACTION guidance lives on the host console; the Ended
+  // settlement line is information for every viewer, the host included,
+  // so it is produced here for both audiences.)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const guideMessage = useMemo((): string | null => {
     if (!gameState) return null;
 
+    if (isHost) {
+      return roomStatus === GameStatus.Ended
+        ? '天亮了 →「昨夜信息」查看结果，「本局复盘」查看/分享战报'
+        : null;
+    }
+
     const players = gameState.players;
     const totalSeats = gameState.template.numberOfPlayers;
 
-    if (isHost) {
-      return resolveWerewolfPhaseStatusCopy({
-        roomStatus,
-        isPlagueMode: gameState.rules?.isPlagueMode ?? false,
-        sheriffPhaseTitle: sheriffElectionPanel?.view.phaseTitle ?? null,
-        sheriffAdvanceLabel:
-          sheriffElectionPanel?.view.canAdvance === true
-            ? sheriffElectionPanel.view.advanceLabel
-            : null,
-        ...deriveWerewolfSeatCounts(gameState),
-      }).hostGuideMessage;
-    }
-
-    // Non-host phase hints
     switch (roomStatus) {
       case GameStatus.Unseated:
       case GameStatus.Seated:
@@ -766,7 +759,7 @@ export function useWerewolfRoomScreenState(
       default:
         return null;
     }
-  }, [isHost, gameState, roomStatus, sheriffElectionPanel]);
+  }, [isHost, gameState, roomStatus]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card handler (treasureMaster / thief bottom card selection)
@@ -922,9 +915,6 @@ export function useWerewolfRoomScreenState(
       switch (action) {
         case 'viewRole':
           dispatchInteraction({ kind: 'VIEW_ROLE' });
-          break;
-        case 'waitForHost':
-          toast.info('等待房主开始分配角色');
           break;
         case 'nightReview':
           openNightReview();

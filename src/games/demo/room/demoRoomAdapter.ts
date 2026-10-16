@@ -1,11 +1,10 @@
 /**
- * 把Demo权威状态投影到共享座位表与房间状态条，不暴露他人身份。
+ * 把Demo权威状态投影到共享座位表与房间外壳，不暴露他人身份。
  */
 
 import {
   type DemoCommand,
   type DemoState,
-  getBotSeats,
   getDemoOccupiedSeatCount,
   getDemoViewingParticipants,
 } from '@game-judge/game-engine/games/demo/public';
@@ -35,7 +34,6 @@ import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActi
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
   type RoomHostManagementModel,
@@ -44,10 +42,8 @@ import {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
-import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 function getDemoProfileTarget(state: DemoState, seat: number): RoomProfileTarget | null {
@@ -101,27 +97,6 @@ function createDemoSeatDataSource(input: DemoSeatSourceInput): RoomSeatDataSourc
   });
 }
 
-/** 公共状态条：查看阶段只报汇总进度（逐座状态看座位盘打勾）。 */
-function createDemoStatusRibbon(state: DemoState): RoomStatusRibbonModel | null {
-  const phase = state.phase;
-  if (phase.kind === 'viewing') {
-    const participants = getDemoViewingParticipants(state);
-    const viewedCount = participants.filter((participant) =>
-      state.roleViewedSeats.includes(participant.seat),
-    ).length;
-    if (participants.length > 0 && viewedCount === participants.length)
-      return messageRibbon('全员已查看身份，等待房主开始游戏');
-    return messageRibbon(`等待全员查看身份 · ${viewedCount}/${participants.length}`);
-  }
-  if (phase.kind === 'playing')
-    // TODO(gameplay): 进行中状态条文案随玩法阶段补齐（本游戏自有声音）。
-    return messageRibbon('对局进行中');
-  if (phase.kind === 'ended') return messageRibbon('本局已结束');
-  return messageRibbon(
-    buildLobbyWaitingText(getDemoOccupiedSeatCount(state), state.config.numberOfPlayers),
-  );
-}
-
 export interface DemoRoomShellModelInput {
   readonly roomCode: string;
   readonly capabilities: RoomCapabilities;
@@ -148,7 +123,6 @@ export interface DemoRoomShellModelInput {
   readonly isHost: boolean;
   readonly mySeat: number | null;
   readonly hostManagement: RoomHostManagementModel | null;
-  readonly canControlBots: boolean;
   readonly releaseBot: () => void;
 }
 
@@ -179,25 +153,22 @@ export function createDemoHostManagement(
   if (state.phase.kind === 'lobby') {
     const occupiedSeatCount = getDemoOccupiedSeatCount(state);
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
-    const startDisabledReason = canStart ? null : '座位尚未坐满';
+    const startDisabledReason = canStart
+      ? null
+      : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
     const submitAssign = () => void input.submit('分配身份', { type: 'demo.game.start' });
     const assignAction = buildStartGameAction({
       label: '分配身份',
       onPress: submitAssign,
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
-      onDisabledPress: () => showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
       isLoading: input.isSubmitting,
+      isPrimary: true,
+      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      onConsolePress: () =>
+        showConfirmAlert('分配身份？', '所有座位已满，将为每位玩家分配身份', submitAssign),
     });
     return {
-      preview: '分配身份',
-      nextStep: buildRoomNextStep({
-        action: assignAction,
-        onPress: () =>
-          showConfirmAlert('分配身份？', '所有座位已满，将为每位玩家分配身份', submitAssign),
-        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      }),
-      status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
@@ -222,8 +193,10 @@ export function createDemoHostManagement(
       onPress: submitBegin,
       isEnabled: !input.isSubmitting && allViewed,
       disabledReason: beginDisabledReason,
-      onDisabledPress: () => showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
       isLoading: input.isSubmitting,
+      isPrimary: true,
+      onConsolePress: () =>
+        showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
     });
     const sections: RoomHostManagementSection[] = [
       {
@@ -251,21 +224,10 @@ export function createDemoHostManagement(
         ],
       });
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    return {
-      preview: '开始游戏',
-      nextStep: buildRoomNextStep({
-        action: beginAction,
-        onPress: () => showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
-      }),
-      status: `等待全员查看身份 · ${viewedCount}/${participants.length}`,
-      sections,
-    };
+    return { sections };
   }
   if (state.phase.kind === 'ended') {
     return {
-      preview: '本局已结束',
-      nextStep: null,
-      status: null,
       sections: [
         {
           key: 'current-flow',
@@ -290,9 +252,6 @@ export function createDemoHostManagement(
   }
   // 局中房主面板常驻：房间管理区始终在。
   return {
-    preview: '房主管理',
-    nextStep: null,
-    status: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   };
 }
@@ -309,6 +268,7 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: state.phase.kind,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,
@@ -318,7 +278,6 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createDemoStatusRibbon(state),
     seats: {
       source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
@@ -340,12 +299,11 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
         isHost: input.isHost,
         mySeat: input.mySeat,
       }),
+      progress: null,
       actions: [],
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
-      canControlBots: input.canControlBots,
-      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

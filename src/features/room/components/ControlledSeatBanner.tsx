@@ -1,4 +1,4 @@
-/** Shared controlled-bot banner with a type-honest mode contract. */
+/** Shared banner reporting the host's active bot-seat takeover. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -18,17 +18,6 @@ interface ControlledSeatBannerProps {
 }
 
 const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({ model, styles }) => {
-  if (model.kind === 'hint') {
-    return (
-      <View style={styles.hintContainer}>
-        <Text style={styles.hintText}>
-          <Ionicons name={UI_ICONS.HINT} size={typography.secondary} />
-          {' 长按座位可接管机器人'}
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container} testID={TESTIDS.controlledSeatBanner}>
       <Text style={styles.text}>

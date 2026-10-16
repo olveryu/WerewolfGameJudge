@@ -41,6 +41,7 @@ export function createUndercoverBottomActions(controls: Controls): RoomBottomAct
       : controls.shouldConfirm
         ? `请点击下方「${cardLabel}」，查看词语`
         : null,
+    progress: null,
     actions,
   };
 }

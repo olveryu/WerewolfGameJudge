@@ -9,6 +9,7 @@ import {
 import { act, renderHook } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -23,7 +24,6 @@ import {
   createUndercoverRoomCapabilities,
   createUndercoverRoomShellModel,
   createUndercoverSeatDataSource,
-  createUndercoverStatusRibbon,
 } from '../undercoverRoomAdapter';
 
 jest.mock('@/utils/alertPresets', () => ({
@@ -83,7 +83,6 @@ it('conceals roles and words while everyone views their cards', () => {
   expect(source.getSeat(1).highlight).toBe('controlled');
   expect(getUndercoverUserSeat(state, 'host')).toBe(0);
   expect(getUndercoverUserSeat(state, 'visitor')).toBeNull();
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({ text: '等待全员查看词卡 · 0/6' });
 });
 
 it('conceals cards on control changes, backgrounding and remount', () => {
@@ -229,32 +228,6 @@ it('selects directly for confirmation, cancels without submission and invalidate
   ).toBe('该玩家已出局');
   act(() => result.current.selectSeat(1));
   expect(result.current.selectedSeat).toBeNull();
-});
-
-it('shows the authoritative starting speaker only once the host begins', () => {
-  let state = createViewingState();
-  if (state.round === null) throw new Error('Expected round');
-  const { roundId, speakingStartSeat } = state.round;
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({
-    kind: 'message',
-    supportingText: null,
-  });
-  state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({
-    kind: 'message',
-    supportingText: null,
-  });
-  state = dispatch(state, { type: 'undercover.round.confirm', roundId });
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({
-    kind: 'message',
-    supportingText: null,
-  });
-  state = dispatch(state, { type: 'undercover.round.begin', roundId });
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({
-    kind: 'message',
-    icon: 'speaking',
-    supportingText: `首轮从 ${speakingStartSeat + 1} 号开始发言（随机）`,
-  });
 });
 
 it('requires confirmation to restart an active round and exposes restart in host management after abort', async () => {
@@ -440,21 +413,79 @@ describe('createUndercoverRoomShellModel', () => {
     expect(model.capabilities).toBe(capabilities);
     expect(model.header.userAction?.ticketCount).toBe(2);
     expect(model.connection).toBe(connection);
-    expect(model.statusRibbon).toEqual(createUndercoverStatusRibbon(state));
     expect(model.seats.source.count).toBe(6);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seats.onBotSeatLongPress).toBe(onBotSeatLongPress);
     expect(model.bottomActions).toEqual(createUndercoverBottomActions(controls));
     expect(model.hostManagement).not.toBeNull();
-    // Bots exist and the host may take over: the hint shows.
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    // No takeover is active: no banner renders.
+    expect(model.controlledSeat).toBeNull();
     expect(model.share).toBe(share);
+    // The shell phase anchor carries the UndercoverState phase verbatim.
+    expect(model.phase).toBe('lobby');
+  });
+
+  it('exposes the viewing phase on the shell model', () => {
+    const state = createViewingState();
+    const model = createUndercoverRoomShellModel({
+      roomCode: '1234',
+      capabilities: createUndercoverRoomCapabilities({
+        state,
+        isHost: true,
+        mySeat: 0,
+        requestTakeSeat: jest.fn(),
+        requestMoveSeat: jest.fn(),
+        leaveSeat: jest.fn(),
+        kickSeat: jest.fn(),
+        clearSeats: jest.fn(),
+        fillBots: jest.fn(),
+        configureGame: jest.fn(),
+        shareRoom: jest.fn(),
+        openProfile: jest.fn(),
+        takeOverBot: jest.fn(),
+      }),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: {
+        status: 'live' as const,
+        pendingCommandCount: 0,
+        onManualReconnect: jest.fn(),
+      },
+      state,
+      revision: 3,
+      myUserId: 'host',
+      controlledSeat: null,
+      selectedSeat: null,
+      isSelecting: false,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: jest.fn(),
+      seatConfirmation: null,
+      profile: null,
+      share: {
+        isVisible: false,
+        roomCode: '1234',
+        roomUrl: 'https://example.test/1234',
+        open: jest.fn(),
+        close: jest.fn(),
+        copyLink: jest.fn(async () => undefined),
+        shareImage: jest.fn(async () => undefined),
+      },
+      isHost: true,
+      controls,
+      release: jest.fn(),
+    });
+    expect(model.phase).toBe('viewing');
   });
 });
 
 // 本用例注册 AppState 监听（经 hook），必须排在其余用例之后：更早的
 // 'conceals cards…' 用例按注册顺序取第一个 change 监听器，顺序不可动。
-it('reports ready on the ribbon once every seat has viewed, and hints the unviewed viewer below', () => {
+it('clears the self-hint once every seat has viewed', () => {
   const viewing = createViewingState();
   const roundId = viewing.round!.roundId;
   const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
@@ -470,15 +501,12 @@ it('reports ready on the ribbon once every seat has viewed, and hints the unview
   let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
   state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(state.round!.confirmedSeats).toHaveLength(6);
-  expect(createUndercoverStatusRibbon(state)).toMatchObject({
-    text: '全员已查看词卡，等待房主开始游戏',
-  });
   rerender({ currentState: state });
   expect(createUndercoverBottomActions(result.current)).toMatchObject({ message: null });
   unmount();
 });
 
-describe('createUndercoverHostManagement next step', () => {
+describe('createUndercoverHostManagement console primary', () => {
   const buildFor = (state: UndercoverState) => {
     const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
     const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
@@ -519,13 +547,12 @@ describe('createUndercoverHostManagement next step', () => {
 
   it('blocks the round start in a non-full lobby with a seat-count reason and share remedy', () => {
     const { model, shareRoom } = buildFor(lobbyState(false));
-    expect(model?.preview).toBe('下一步：开始本局');
-    const step = model?.nextStep;
+    const step = resolveHostConsolePrimary(model!);
     expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本局' });
-    if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-    expect(step.state.reason).toBe('座位尚未坐满（还差 5 人）');
-    expect(step.state.remedy?.label).toBe('分享房间');
-    step.state.remedy?.onPress();
+    if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    expect(step.reason).toBe('座位尚未坐满（还差 5 人）');
+    expect(step.remedy?.label).toBe('分享房间');
+    step.remedy?.onPress();
     expect(shareRoom).toHaveBeenCalledTimes(1);
     // The panel caption renders the same player-facing reason; the
     // bot-mentioning command-failure copy must never reach it.
@@ -538,10 +565,9 @@ describe('createUndercoverHostManagement next step', () => {
   it('offers the round start once the room is full and gates its press with a confirm', () => {
     jest.mocked(showConfirmAlert).mockClear();
     const { model } = buildFor(lobbyState(true));
-    expect(model?.preview).toBe('下一步：开始本局');
-    const step = model?.nextStep;
-    if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
-    step.state.onPress();
+    const step = resolveHostConsolePrimary(model!);
+    if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
+    step.onPress();
     expect(showConfirmAlert).toHaveBeenCalledWith(
       '开始本局？',
       '将为每位玩家分配词卡',
@@ -552,17 +578,16 @@ describe('createUndercoverHostManagement next step', () => {
   it('blocks game start while cards are unviewed, then offers it once all are confirmed', () => {
     const viewing = createViewingState();
     const blockedBuild = buildFor(viewing);
-    expect(blockedBuild.model?.preview).toBe('下一步：开始游戏');
-    const blocked = blockedBuild.model?.nextStep;
+    const blocked = resolveHostConsolePrimary(blockedBuild.model!);
     expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-    if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-    expect(blocked.state.reason).toBe('还有玩家未查看词卡');
-    expect(blocked.state.remedy).toBeNull();
+    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    expect(blocked.reason).toBe('还有玩家未查看词卡');
+    expect(blocked.remedy).toBeNull();
 
     const roundId = viewing.round!.roundId;
     let confirmed = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
     confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
-    const ready = buildFor(confirmed).model?.nextStep;
-    if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    const ready = resolveHostConsolePrimary(buildFor(confirmed).model!);
+    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
 });

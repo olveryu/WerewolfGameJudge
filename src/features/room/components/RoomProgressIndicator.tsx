@@ -25,6 +25,8 @@ interface RoomProgressIndicatorProps {
   currentLabel?: string;
   /** Pre-created styles from parent */
   styles: RoomProgressIndicatorStyles;
+  /** Slim vertical padding for short viewports (e.g. on-screen keyboard open). */
+  isCompact?: boolean;
 }
 
 const RoomProgressIndicatorComponent: React.FC<RoomProgressIndicatorProps> = ({
@@ -32,12 +34,16 @@ const RoomProgressIndicatorComponent: React.FC<RoomProgressIndicatorProps> = ({
   totalSteps,
   currentLabel,
   styles,
+  isCompact,
 }) => {
   // Calculate progress percentage
   const progressPercent = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
 
   return (
-    <View style={styles.container} testID={TESTIDS.roomProgressIndicator}>
+    <View
+      style={[styles.container, isCompact === true && styles.compactContainer]}
+      testID={TESTIDS.roomProgressIndicator}
+    >
       <View style={styles.headerRow}>
         <Text style={styles.stepText}>
           第{currentStep}步 / 共{totalSteps}步

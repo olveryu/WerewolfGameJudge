@@ -9,7 +9,7 @@ import { getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { BoardInfoSection, RoleDisplayItem } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
-import { resolveStepProgress } from '@/features/room/model/nightProgress';
+import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import type {
   RoomBottomActionLayout,
   RoomBottomActionModel,
@@ -30,11 +30,7 @@ import type {
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type {
-  RoomConnectionViewModel,
-  RoomShellModel,
-  RoomStatusRibbonModel,
-} from '@/features/room/model/RoomShellModel';
+import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { toRoomSeatPlayer } from '@/features/room/model/toRoomSeatPlayer';
 import { createWerewolfHostManagement } from '@/games/werewolf/room/createWerewolfHostManagement';
 import type {
@@ -192,12 +188,6 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
   };
 }
 
-interface WerewolfStatusRibbonInput {
-  readonly currentStepId: SchemaId | null;
-  readonly gameState: LocalGameState;
-  readonly guideMessage: string | null;
-}
-
 interface WerewolfNightProgress {
   readonly current: number;
   readonly total: number;
@@ -226,10 +216,11 @@ function resolveWerewolfStepRoleName(
 
 /**
  * Pure night-progress derivation over the local state (the former
- * useNightProgress hook body, moved into the factory so the ribbon
- * takes raw room facts like the other six games' factories). The
- * step math is the shared resolveStepProgress; only the step list
- * (night plan) and the label resolution stay werewolf's own.
+ * useNightProgress hook body, moved into the factory so the bottom
+ * progress row takes raw room facts like the other six games'
+ * factories). The step math is the shared resolveStepProgress; only
+ * the step list (night plan) and the label resolution stay werewolf's
+ * own.
  */
 function deriveWerewolfNightProgress(
   currentStepId: SchemaId | null,
@@ -252,27 +243,18 @@ function deriveWerewolfNightProgress(
   return { current: progress.current, total: progress.total, roleName: progress.label };
 }
 
-export function createWerewolfStatusRibbon(
-  input: WerewolfStatusRibbonInput,
-): RoomStatusRibbonModel | null {
-  const nightProgress = deriveWerewolfNightProgress(input.currentStepId, input.gameState);
-  if (nightProgress) {
-    return {
-      kind: 'progress',
-      current: nightProgress.current,
-      total: nightProgress.total,
-      label: nightProgress.roleName ?? null,
-    };
-  }
-  if (input.guideMessage) {
-    return {
-      kind: 'message',
-      icon: 'guide',
-      text: input.guideMessage,
-      supportingText: null,
-    };
-  }
-  return null;
+/** Night step progress for the bottom action panel's slim progress row. */
+export function deriveWerewolfBottomProgress(
+  currentStepId: SchemaId | null,
+  gameState: LocalGameState,
+): NightStepProgress | null {
+  const nightProgress = deriveWerewolfNightProgress(currentStepId, gameState);
+  if (nightProgress === null) return null;
+  return {
+    current: nightProgress.current,
+    total: nightProgress.total,
+    label: nightProgress.roleName ?? '',
+  };
 }
 
 export function createWerewolfBottomActionLayout(input: {
@@ -306,7 +288,6 @@ export function createWerewolfBottomActionLayout(input: {
         ...base,
         isEnabled: false,
         disabledReason: '行动正在确认中',
-        onDisabledPress: null,
       };
     }
 
@@ -318,13 +299,10 @@ export function createWerewolfBottomActionLayout(input: {
       };
     }
 
-    const onDisabledBehavior = button.onDisabledBehavior;
     return {
       ...base,
       isEnabled: false,
       disabledReason: button.disabledReason,
-      onDisabledPress:
-        onDisabledBehavior === null ? null : () => executeBehavior(onDisabledBehavior),
     };
   };
 
@@ -367,9 +345,10 @@ export interface WerewolfRoomShellModelInput {
   readonly imActioner: boolean;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
-  readonly totalSeats: number;
   readonly viewedCount: number;
+  readonly totalSeats: number;
   readonly actionMessage: string | null;
+  /** Non-host phase hint; the bottom action message is its single home. Null for the host. */
   readonly guideMessage: string | null;
   readonly currentStepId: SchemaId | null;
   readonly gameState: LocalGameState;
@@ -405,9 +384,9 @@ export interface WerewolfRoomShellModelInput {
  * Assemble the complete RoomShellModel from raw room facts.
  *
  * Single assembly point for the werewolf room shell: host management, seat
- * data source, status ribbon, controlled-seat banner, and the three-way
- * bottom-action branch (sheriff dock / ended info / stacked) all derive here
- * so the Screen cannot drift from the factories' contracts.
+ * data source, controlled-seat banner, and the three-way bottom-action
+ * branch (sheriff dock / ended info / stacked) all derive here so the
+ * Screen cannot drift from the factories' contracts.
  */
 export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput): RoomShellModel {
   const hostManagement = createWerewolfHostManagement({
@@ -415,8 +394,8 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     roomStatus: input.roomStatus,
     isPlagueMode: input.isPlagueMode,
     seatedCount: input.seatedCount,
-    totalSeats: input.totalSeats,
     viewedCount: input.viewedCount,
+    totalSeats: input.totalSeats,
     isAudioPlaying: input.isAudioPlaying,
     isStartingGame: input.isStartingGame,
     isHostActionSubmitting: input.isHostActionSubmitting,
@@ -457,15 +436,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     revision: input.stateRevision,
   });
 
-  const statusRibbon = createWerewolfStatusRibbon({
-    currentStepId: input.currentStepId,
-    gameState: input.gameState,
-    guideMessage: input.guideMessage,
-  });
-
   const controlledSeatModel = createControlledSeatModel({
-    canControlBots: input.isHost,
-    hasBots: input.hasBots,
     controlledSeat: input.controlledSeat,
     controlledBotName: input.controlledBotName,
     release: input.onReleaseBot,
@@ -484,6 +455,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: input.roomStatus,
     header: {
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,
@@ -495,7 +467,6 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
       },
     },
     connection: input.connection,
-    statusRibbon,
     seats: {
       source: seatSource,
       visuallyDisabled:
@@ -531,7 +502,13 @@ function createWerewolfBottomActions(
   if (input.roomStatus === GameStatus.Ended) {
     return {
       kind: 'info',
-      message: input.actionMessage,
+      // The live actionMessage is '' (not null) once no action role remains,
+      // so the guide fallback must skip empty strings, not just nullish ones.
+      message:
+        input.actionMessage !== null && input.actionMessage.length > 0
+          ? input.actionMessage
+          : input.guideMessage,
+      progress: null,
       actions: [
         ...roomBottomActionLayout.primary,
         ...roomBottomActionLayout.secondary,
@@ -549,7 +526,8 @@ function createWerewolfBottomActions(
         ? input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready
           ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
           : input.actionMessage
-        : null,
+        : input.guideMessage,
+    progress: deriveWerewolfBottomProgress(input.currentStepId, input.gameState),
     layout: roomBottomActionLayout,
   };
 }

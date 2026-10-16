@@ -12,7 +12,6 @@ import {
   createPictionaryRoomCapabilities,
   createPictionaryRoomShellModel,
   createPictionarySeatDataSource,
-  createPictionaryStatusRibbon,
 } from '../pictionaryRoomAdapter';
 
 function lobbyState(): PictionaryState {
@@ -89,14 +88,45 @@ describe('createPictionaryRoomShellModel', () => {
     expect(model.header.onBack).toBe(onBack);
     expect(model.header.userAction?.ticketCount).toBeNull();
     expect(model.connection).toBe(connection);
-    expect(model.statusRibbon).toEqual(createPictionaryStatusRibbon(state));
     expect(model.seats).toEqual({
       source: seatSource,
       visuallyDisabled: false,
       onSeatPress,
       onBotSeatLongPress: null,
     });
-    expect(model.bottomActions).toEqual({ kind: 'info', message: null, actions: [] });
+    expect(model.bottomActions).toEqual({
+      kind: 'info',
+      message: null,
+      progress: null,
+      actions: [],
+    });
     expect(model.share).toBe(share);
+    // The shell phase anchor carries the PictionaryState phase verbatim.
+    expect(model.phase).toBe('lobby');
+
+    const endedModel = createPictionaryRoomShellModel({
+      roomCode: '2468',
+      capabilities,
+      onBack,
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection,
+      state: { ...state, phase: 'ended' },
+      isHost: true,
+      mySeat: null,
+      seatSource,
+      seatsVisuallyDisabled: false,
+      onSeatPress,
+      onBotSeatLongPress: null,
+      seatConfirmation: null,
+      profile: null,
+      share,
+      hostManagement: null,
+      controlledSeat: null,
+    });
+    expect(endedModel.phase).toBe('ended');
   });
 });

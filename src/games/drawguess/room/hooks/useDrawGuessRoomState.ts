@@ -279,7 +279,6 @@ export function useDrawGuessRoomState(
     isHost,
     mySeat,
     hostManagement,
-    canControlBots,
     releaseBot,
   });
   const openShare = share.open;

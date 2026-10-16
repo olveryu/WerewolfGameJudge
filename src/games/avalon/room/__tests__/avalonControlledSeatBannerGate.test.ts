@@ -1,97 +1,39 @@
 /**
- * Takeover hint banner gate wiring: the gate itself lives in the shared
- * factory (createControlledSeatModel); this test pins that the Avalon shell
- * factory passes the two gate inputs — the hook's canControlBots and a
- * roster-derived hasBots — and runs the outcomes through the factory on real engine
- * states. Before the gate existed, an Avalon host in an all-human room
- * saw the long-press hint permanently.
+ * Takeover banner wiring: the banner model comes from the shared factory
+ * (createControlledSeatModel) and reports an active takeover only — there
+ * is no hint state. This test pins that the Avalon shell factory feeds the
+ * factory the controlled seat and its display name.
  */
-import {
-  avalonEngine,
-  type AvalonPublicCommand,
-  type AvalonState,
-  DEFAULT_AVALON_CONFIG,
-  getBotSeats,
-} from '@game-judge/game-engine/games/avalon/public';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 
-type CommandContext = Parameters<typeof avalonEngine.decide>[2];
-
-function roomState(humanCount: number): AvalonState {
-  let commandNumber = 0;
-  let state: AvalonState = avalonEngine.createInitialState(
-    { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
-    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
-  );
-  const send = (command: AvalonPublicCommand, userId = 'host') => {
-    const context: CommandContext = {
-      actor: { kind: 'user', userId },
-      controlledSeat: null,
-      nowMs: 1000,
-      commandId: `command:${commandNumber++}`,
-      randomSeed: `seed:${commandNumber}`,
-    };
-    const decision = avalonEngine.decide(state, command, context);
-    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
-    state = decision.events.reduce(avalonEngine.evolve, state);
-  };
-  for (let seat = 0; seat < humanCount; seat += 1) {
-    send(
-      { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
-      seat === 0 ? 'host' : `u${seat}`,
-    );
-  }
-  if (humanCount < 5) send({ type: 'room.seat.fillBots' });
-  return state;
-}
-
-/** The inputs the hook passes: on main, canControlBots is exactly isHost. */
-function bannerModel(
-  state: AvalonState,
-  input: { isHost: boolean; controlledSeat: number | null },
-) {
+/** The inputs the shell factory passes to the shared banner factory. */
+function bannerModel(controlledSeat: number | null) {
   return createControlledSeatModel({
-    canControlBots: input.isHost,
-    hasBots: getBotSeats(state.roster).length > 0,
-    controlledSeat: input.controlledSeat,
-    controlledBotName: input.controlledSeat !== null ? `机器人${input.controlledSeat + 1}号` : null,
+    controlledSeat,
+    controlledBotName: controlledSeat !== null ? `机器人${controlledSeat + 1}号` : null,
     release: () => undefined,
     gameName: 'Avalon',
   });
 }
 
 describe('avalon takeover banner gate', () => {
-  it('pins the gate-input wiring in the shell factory', () => {
-    // AU-01 moved the assembly into createAvalonRoomShellModel; the gate
-    // inputs are pinned where they are now produced.
+  it('pins the factory wiring in the shell factory', () => {
     const adapter = readFileSync(join(__dirname, '../avalonRoomAdapter.ts'), 'utf8');
-    expect(adapter).toContain('getBotSeats,');
     expect(adapter).toMatch(
-      /createControlledSeatModel\(\{\s*canControlBots: input\.canControlBots,\s*hasBots: getBotSeats\(state\.roster\)\.length > 0,/,
+      /createControlledSeatModel\(\{\s*controlledSeat: input\.controlledSeat,/,
     );
   });
 
-  it('hides the hint from the host in an all-human room', () => {
-    expect(bannerModel(roomState(5), { isHost: true, controlledSeat: null })).toBeNull();
-  });
-
-  it('shows the hint to the host when bot seats exist', () => {
-    expect(bannerModel(roomState(3), { isHost: true, controlledSeat: null })).toEqual({
-      kind: 'hint',
-    });
+  it('renders no banner while no takeover is active', () => {
+    expect(bannerModel(null)).toBeNull();
   });
 
   it('keeps the controlled banner while a takeover is active', () => {
-    const model = bannerModel(roomState(3), { isHost: true, controlledSeat: 3 });
-    expect(model?.kind).toBe('controlled');
-    // The release entry survives even on a state whose bot set changed.
-    expect(bannerModel(roomState(5), { isHost: true, controlledSeat: 3 })?.kind).toBe('controlled');
-  });
-
-  it('hides the banner from non-hosts even when bots exist', () => {
-    expect(bannerModel(roomState(3), { isHost: false, controlledSeat: null })).toBeNull();
+    const model = bannerModel(3);
+    expect(model).toMatchObject({ seat: 3, displayName: '机器人4号' });
+    expect(typeof model?.onRelease).toBe('function');
   });
 });

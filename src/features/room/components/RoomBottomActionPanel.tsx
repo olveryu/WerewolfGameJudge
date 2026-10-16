@@ -6,6 +6,8 @@ import { memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import type { RoomHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import type {
   RoomBottomActionModel,
   RoomBottomButton,
@@ -13,16 +15,14 @@ import type {
   RoomBottomInfoModel,
   RoomBottomToolButton,
 } from '@/features/room/model/RoomBottomActions';
-import type {
-  RoomHostManagementModel,
-  RoomNextStep,
-} from '@/features/room/model/RoomHostManagement';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
 import { DisabledReasonCaption } from './DisabledReasonCaption';
-import type { BottomActionPanelStyles } from './styles';
+import { RoomProgressIndicator } from './RoomProgressIndicator';
+import type { BottomActionPanelStyles, RoomProgressIndicatorStyles } from './styles';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -31,7 +31,10 @@ interface RoomBottomActionPanelProps {
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
+  readonly progressStyles: RoomProgressIndicatorStyles;
   readonly bottomInset: number;
+  /** Short viewport (e.g. on-screen keyboard open): status rows use slim spacing. */
+  readonly isCompactHeight?: boolean;
 }
 
 const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
@@ -39,7 +42,9 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   hostManagement,
   onOpenHostManagement,
   styles,
+  progressStyles,
   bottomInset,
+  isCompactHeight,
 }) => {
   const messageFade = useMemo(() => new Animated.Value(1), []);
   const messageSlide = useMemo(() => new Animated.Value(0), []);
@@ -75,20 +80,35 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
         model.layout.ghost.length > 0);
   const message = model.message;
   const hasMessage = message !== null && message.length > 0;
-  if (!hasButtons && !hasMessage) return null;
+  if (!hasButtons && !hasMessage && model.progress === null) return null;
 
+  const isCompact = isCompactHeight === true;
   const containerStyle = [
     styles.container,
+    isCompact && styles.compactContainer,
     model.kind === 'dock' && styles.dockContainer,
     bottomInset > 0 && { paddingBottom: bottomInset },
   ];
 
   return (
     <View style={containerStyle} testID={TESTIDS.bottomActionPanel}>
+      {model.progress !== null && (
+        <View style={isCompact ? styles.progressRowCompact : styles.progressRow}>
+          <RoomProgressIndicator
+            currentStep={model.progress.current}
+            totalSteps={model.progress.total}
+            currentLabel={model.progress.label}
+            styles={progressStyles}
+            isCompact={isCompact}
+          />
+        </View>
+      )}
+
       {hasMessage && (
         <Animated.Text
           style={[
             styles.message,
+            isCompact && styles.messageCompact,
             { opacity: messageFade, transform: [{ translateY: messageSlide }] },
           ]}
           testID={TESTIDS.actionMessage}
@@ -232,41 +252,44 @@ const HostManagementBlock: React.FC<{
   readonly model: RoomHostManagementModel;
   readonly onOpenHostManagement: () => void;
   readonly styles: BottomActionPanelStyles;
-}> = ({ model, onOpenHostManagement, styles }) => (
-  <View style={styles.compactManagementStack}>
-    {model.nextStep !== null && <NextStepStrip step={model.nextStep} styles={styles} />}
-    <HostManagementEntry model={model} onPress={onOpenHostManagement} styles={styles} />
-  </View>
-);
+}> = ({ model, onOpenHostManagement, styles }) => {
+  const primary = resolveHostConsolePrimary(model);
+  return (
+    <View style={styles.compactManagementStack}>
+      {primary !== null && <HostConsolePrimary primary={primary} styles={styles} />}
+      <HostManagementEntry model={model} onPress={onOpenHostManagement} styles={styles} />
+    </View>
+  );
+};
 
-const NextStepStrip: React.FC<{
-  readonly step: RoomNextStep;
+const HostConsolePrimary: React.FC<{
+  readonly primary: RoomHostConsolePrimary;
   readonly styles: BottomActionPanelStyles;
-}> = ({ step, styles }) => {
-  if (step.state.kind === 'ready') {
+}> = ({ primary, styles }) => {
+  if (primary.kind === 'ready') {
     return (
       <Button
         variant="primary"
         size="md"
-        onPress={step.state.onPress}
+        onPress={primary.onPress}
         testID={TESTIDS.roomNextStepButton}
-        accessibilityLabel={`下一步：${step.label}`}
+        accessibilityLabel={`下一步：${primary.label}`}
         style={styles.nextStepReady}
       >
         <View style={styles.nextStepContent}>
           <Text style={styles.nextStepReadyLabel} numberOfLines={1}>
-            {`下一步：${step.label}`}
+            {`下一步：${primary.label}`}
           </Text>
           <Ionicons name="arrow-forward" size={componentSizes.icon.sm} color={colors.textInverse} />
         </View>
       </Button>
     );
   }
-  const { reason, remedy } = step.state;
+  const { reason, remedy } = primary;
   return (
     <View style={styles.nextStepBlocked}>
       <View style={styles.nextStepBlockedText}>
-        <Text style={styles.nextStepBlockedLabel}>{step.label}</Text>
+        <Text style={styles.nextStepBlockedLabel}>{primary.label}</Text>
         <Text style={styles.nextStepBlockedReason}>{reason}</Text>
       </View>
       {remedy !== null && (
@@ -293,7 +316,7 @@ const HostManagementEntry: React.FC<{
     size="md"
     onPress={onPress}
     testID={TESTIDS.roomHostManagementButton}
-    accessibilityLabel={`${HOST_MANAGEMENT_LABEL}，${model.preview}`}
+    accessibilityLabel={HOST_MANAGEMENT_LABEL}
     style={styles.hostManagementEntry}
   >
     <View style={styles.hostManagementContent}>
@@ -307,16 +330,14 @@ const HostManagementEntry: React.FC<{
           {HOST_MANAGEMENT_LABEL}
         </Text>
       </View>
-      <View style={styles.hostManagementPreviewRow}>
-        <Text
-          style={
-            model.hasPendingAction === true
-              ? styles.hostManagementPreviewUrgent
-              : styles.hostManagementPreview
-          }
-          numberOfLines={1}
-        >
-          {model.preview}
+      <View style={styles.hostManagementExpandRow}>
+        {model.hasPendingAction === true && (
+          <Text style={styles.hostManagementPending} numberOfLines={1}>
+            待处理
+          </Text>
+        )}
+        <Text style={styles.hostManagementExpandLabel} numberOfLines={1}>
+          全部操作
         </Text>
         <Ionicons name="chevron-forward" size={componentSizes.icon.sm} color={colors.textInverse} />
       </View>
@@ -341,20 +362,21 @@ const DockTool: React.FC<{
     style: isExpanded ? styles.dockPrimary : undefined,
   };
 
+  const button = model.isEnabled ? (
+    <Button {...buttonProps} onPress={model.onPress}>
+      {model.label}
+    </Button>
+  ) : (
+    <Button {...buttonProps} disabled>
+      {model.label}
+    </Button>
+  );
+
   return (
     <View style={isExpanded ? styles.dockExpandedToolSlot : styles.toolSlot}>
-      {model.isEnabled ? (
-        <Button {...buttonProps} onPress={model.onPress}>
-          {model.label}
-        </Button>
-      ) : model.onDisabledPress === null ? (
-        <Button {...buttonProps} disabled>
-          {model.label}
-        </Button>
-      ) : (
-        <Button {...buttonProps} disabled onDisabledPress={model.onDisabledPress}>
-          {model.label}
-        </Button>
+      {button}
+      {!model.isEnabled && model.disabledReason !== null && model.disabledReason.length > 0 && (
+        <DisabledReasonCaption reason={model.disabledReason} />
       )}
     </View>
   );
@@ -382,16 +404,11 @@ const LayoutButton: React.FC<{
     );
   }
 
-  const button =
-    model.onDisabledPress === null ? (
-      <Button {...visualProps} disabled>
-        {model.label}
-      </Button>
-    ) : (
-      <Button {...visualProps} disabled onDisabledPress={model.onDisabledPress}>
-        {model.label}
-      </Button>
-    );
+  const button = (
+    <Button {...visualProps} disabled>
+      {model.label}
+    </Button>
+  );
 
   if (model.disabledReason === null || model.disabledReason.length === 0) return button;
   return (

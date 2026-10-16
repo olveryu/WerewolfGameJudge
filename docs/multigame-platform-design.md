@@ -66,7 +66,7 @@
 - 狼人杀和瞎掰王拥有独立 state machine。
 - 座位不变量由纯共享 seating kernel 处理。
 - 初始游戏状态由服务端创建。
-- 共享房间视觉组件：header actions、status ribbon、seat tile/board、player profile、QR 分享、bot control banner、seat confirmation、bottom action panel。
+- 共享房间视觉组件：header actions、seat tile/board、player profile、QR 分享、bot control banner、seat confirmation、bottom action panel（主持台 + 底部进度行）。
 - 游戏 adapter 只负责本游戏的摘要、身份、规则、配置和特殊操作。
 - 从用户卡片直接移出座位，不再弹第二个确认窗。
 - 入座和换座使用确认弹窗；本人从 profile 离座直接提交，不增加第二个确认窗。
@@ -104,7 +104,7 @@
 ### 4.2 产品目标
 
 - 首页点击创建房间后，使用现有 centered modal 视觉选择游戏模式。
-- 狼人杀和瞎掰王使用同一套 header 几何、seat board、status ribbon、profile、分享和 bottom panel。
+- 狼人杀和瞎掰王使用同一套 header 几何、seat board、profile、分享和 bottom panel（主持台 + 底部进度行）。
 - 房间配置只在本游戏允许配置的阶段出现。
 - 基础房间操作位置和文案一致。
 - 瞎掰王可以手动填充机器人，房主可以接管 bot 进行手动测试。
@@ -340,7 +340,8 @@ src/
 │       ├── components/
 │       │   ├── RoomShell.tsx
 │       │   ├── RoomHeaderActions.tsx
-│       │   ├── RoomStatusRibbon.tsx
+│       │   ├── RoomHostManagementPanel.tsx
+│       │   ├── RoomProgressIndicator.tsx
 │       │   ├── RoomSeatBoard.tsx
 │       │   ├── RoomSeatTile.tsx
 │       │   ├── RoomBottomActionPanel.tsx
@@ -1181,10 +1182,9 @@ Active room host screen 使用已解析的 game module 创建或选择 typed ses
 
 - Safe area container。
 - 左侧返回按钮、中间 room code、右侧 overflow menu 的稳定三列 header。
-- Connection 和 host status ribbon。
-- Controlled-bot banner。
+- 横幅位（内容区上方，一次一条）：Connection 横幅优先，其次 Controlled-bot 接管横幅。
 - Seat board。
-- Bottom action panel。
+- Bottom action panel（玩家行动 + 主持台 + 底部细进度行）。
 - Seat confirmation modal。
 - Player profile card。
 - QR code modal。
@@ -1197,15 +1197,22 @@ Active room host screen 使用已解析的 game module 创建或选择 typed ses
 ```ts
 interface RoomShellModel {
   readonly roomCode: string;
-  readonly connection: RoomConnectionViewModel;
-  readonly statusRibbon: RoomStatusRibbonModel;
   readonly capabilities: RoomCapabilities;
-  readonly seats: RoomSeatDataSource;
   readonly header: RoomHeaderModel;
-  readonly bottomActions: RoomBottomActionLayout;
-  readonly controlledSeat: ControlledSeatModel | null;
+  readonly connection: RoomConnectionViewModel;
+  readonly seats: RoomSeatBoardModel;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  readonly bottomActions: RoomBottomActionModel;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly controlledSeat: RoomControlledSeatModel | null;
 }
 ```
+
+主持侧不设独立状态面：`hostManagement` 是主持台的唯一数据源（收起态主行动与展开态
+面板渲染同一份动作数据），步进进度由 `bottomActions.progress` 承载、在底部面板顶部
+渲染共享细进度行。
 
 Game adapter 从 typed state、登录用户和本地 controller state 派生这个 model。
 
@@ -1276,7 +1283,7 @@ Slot 不能重新渲染 header、seat board、bottom panel 或 shared modal。
 必须保持：
 
 - 相同 header 高度、左右按钮尺寸和 room code 居中方式。
-- 相同 status ribbon 位置和信息密度。
+- 相同主持台（收起态主行动 + 展开面板）与底部进度行的位置和信息密度。
 - 相同 seat tile 外形、头像、外框、名字样式、座位特效和本人 badge。
 - 相同 seat grid 间距及响应式列数策略。
 - 相同 bottom panel 层级和 safe-area padding。
@@ -2226,7 +2233,9 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 
 - `NightProgressIndicator/currentRoleName/nightProgressIndicator` 完整改为
   `RoomProgressIndicator/currentLabel/progressIndicator`；`RoomStatusRibbonModel` 继续只接收 game adapter
-  提供的 label，不解释狼人杀 night/role。旧文件、test ID、style type 和 import 不保留 alias。
+  提供的 label，不解释狼人杀 night/role（该 model 与状态条已于 2026-10-16 房间提示面重设计
+  PR-A 整删：原状态信息归位到主持台 caption、玩家底部 message 与底部进度行，口径见各游戏
+  设计文档的 D21 记录）。旧文件、test ID、style type 和 import 不保留 alias。
 - Shared seat contract 只暴露 `danger | selected | controlled`、`badgeText` 和 `seatPetId`。`RoomSeatTile`
   不再出现 `wolfRing/wolfVoteBadge/playerRoleRevealEffect/colors.wolf`；Werewolf adapter 负责把
   `isWolf/wolfVoteBadge/roleRevealEffect` 映射为中性 presentation model。

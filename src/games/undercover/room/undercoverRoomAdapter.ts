@@ -34,26 +34,22 @@ import {
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
   type RoomHostManagementModel,
-  type RoomNextStep,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
-import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { colors } from '@/theme';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from './undercoverActionModels';
 
-const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
+export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
   undercover: '卧底',
   blank: '白板',
@@ -161,53 +157,6 @@ export function createUndercoverSeatDataSource(
   });
 }
 
-/** Status text contains no hidden identities or words. */
-export function createUndercoverStatusRibbon(state: UndercoverState): RoomStatusRibbonModel | null {
-  let text: string;
-  switch (state.phase) {
-    case 'lobby':
-      text = buildLobbyWaitingText(
-        getUndercoverOccupiedSeatCount(state),
-        state.config.numberOfPlayers,
-      );
-      break;
-    case 'preparing':
-      text = '正在准备词语';
-      break;
-    case 'preparationFailed':
-      text =
-        state.failureCode === 'inventoryEmpty'
-          ? '暂无可用词语'
-          : state.failureCode === 'inventoryExhausted'
-            ? '该类别的新词已用完'
-            : '词语准备失败';
-      break;
-    case 'viewing':
-      // 查看阶段展示契约：未齐报进度，齐了报等待房主开始（两态只出状态条）。
-      text =
-        state.round.confirmedSeats.length >= state.config.numberOfPlayers
-          ? '全员已查看词卡，等待房主开始游戏'
-          : `等待全员查看词卡 · ${state.round.confirmedSeats.length}/${state.config.numberOfPlayers}`;
-      break;
-    case 'ongoing':
-      text = `游戏进行中 · 存活 ${state.config.numberOfPlayers - state.round.revelations.length} 人`;
-      break;
-    case 'ended':
-      text = `${UNDERCOVER_ROLE_NAMES[state.winner]}获胜`;
-      break;
-    case 'aborted':
-      text = '本局已中止';
-      break;
-  }
-  return messageRibbon(
-    text,
-    state.phase === 'ongoing'
-      ? `首轮从 ${state.round.speakingStartSeat + 1} 号开始发言（随机）`
-      : null,
-    state.phase === 'ongoing' ? 'speaking' : 'guide',
-  );
-}
-
 export interface UndercoverBoardInfoSectionsInput {
   readonly roleCounts: UndercoverRoleCounts;
   readonly hasBlank: boolean;
@@ -281,7 +230,6 @@ export function createUndercoverHostManagement(
   const { state, isHost, capabilities, controls } = input;
   if (!isHost) return null;
   const actions: RoomHostManagementAction[] = [];
-  let nextStep: RoomNextStep | null = null;
   if (state.phase !== 'lobby' && state.phase !== 'ended' && state.phase !== 'aborted')
     actions.push(
       buildPendingAwareHostAction(
@@ -300,8 +248,8 @@ export function createUndercoverHostManagement(
     case 'lobby': {
       const occupiedSeatCount = getUndercoverOccupiedSeatCount(state);
       // Player-facing seat-count wording: the panel caption and the
-      // next-step strip both read this one reason (the strip derives it
-      // from the action). The command-failure copy stays on the
+      // console both read this one reason (the console derives it from
+      // the action). The command-failure copy stays on the
       // command-rejection channel and never renders as a caption.
       const startDisabledReason =
         occupiedSeatCount === state.config.numberOfPlayers
@@ -312,13 +260,14 @@ export function createUndercoverHostManagement(
         onPress: controls.start,
         isEnabled: !controls.isSubmitting && occupiedSeatCount === state.config.numberOfPlayers,
         disabledReason: startDisabledReason,
+        isPrimary: true,
+        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+        // The panel action submits directly; the console gates the same
+        // callback with a confirm.
+        onConsolePress: () =>
+          showConfirmAlert('开始本局？', '将为每位玩家分配词卡', controls.start),
       });
       actions.push(startAction);
-      nextStep = buildRoomNextStep({
-        action: startAction,
-        onPress: () => showConfirmAlert('开始本局？', '将为每位玩家分配词卡', controls.start),
-        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      });
       if (capabilities.canConfigureGame.isAllowed)
         actions.push(
           buildRoomConfigAction({
@@ -364,14 +313,11 @@ export function createUndercoverHostManagement(
         onPress: controls.begin,
         isEnabled: !controls.isSubmitting && allViewed,
         disabledReason: beginDisabledReason,
-        onDisabledPress: () => showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
-      });
-      actions.push(beginAction);
-      nextStep = buildRoomNextStep({
-        action: beginAction,
-        onPress: () =>
+        isPrimary: true,
+        onConsolePress: () =>
           showConfirmAlert('开始游戏？', '全员已查看词卡，将开始轮流发言', controls.begin),
       });
+      actions.push(beginAction);
       if (getBotSeats(state.roster).some((seat) => !state.round.confirmedSeats.includes(seat)))
         actions.push(
           buildMarkBotsViewedAction({
@@ -496,16 +442,6 @@ export function createUndercoverHostManagement(
       break;
   }
   return {
-    preview:
-      state.phase === 'lobby'
-        ? '下一步：开始本局'
-        : state.phase === 'viewing'
-          ? '下一步：开始游戏'
-          : state.phase === 'ongoing'
-            ? '选择出局玩家'
-            : '对局管理',
-    nextStep,
-    status: null,
     sections: [{ key: 'game', title: '房主操作', actions }],
   };
 }
@@ -526,6 +462,7 @@ export function createUndercoverRoomShellModel(
   return {
     roomCode: input.roomCode,
     capabilities: input.capabilities,
+    phase: state.phase,
     header: buildRoomHeaderModel({
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,
@@ -535,7 +472,6 @@ export function createUndercoverRoomShellModel(
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createUndercoverStatusRibbon(state),
     seats: {
       source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
@@ -553,8 +489,6 @@ export function createUndercoverRoomShellModel(
       controls: input.controls,
     }),
     controlledSeat: createControlledSeatModel({
-      canControlBots: input.capabilities.canTakeOverBots.isAllowed,
-      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

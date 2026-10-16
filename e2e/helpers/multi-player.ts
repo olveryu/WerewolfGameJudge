@@ -104,9 +104,9 @@ async function waitForPresenceStable(
     await ensureConnected([hostPage, ...joinerPages]);
 
     const isReadyToPrepare = await hostPage
-      .getByTestId(TESTIDS.roomHostManagementButton)
+      .getByTestId(TESTIDS.roomNextStepButton)
       .getAttribute('aria-label')
-      .then((label) => label === '主持管理，下一步：分配角色')
+      .then((label) => label === '下一步：分配角色')
       .catch(() => false);
     if (isReadyToPrepare) return;
   }

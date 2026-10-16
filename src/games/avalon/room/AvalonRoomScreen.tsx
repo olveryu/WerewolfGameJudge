@@ -292,7 +292,7 @@ function AvalonRoomContent(
   ]);
   // 晚上阶段：座位盘保持可见（对齐狼人杀），确认信息走弹窗。
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
-  // 动作区 / 状态条），座位盘下方不放任何阶段 UI——与全平台各家一致。
+  // 动作区），座位盘下方不放任何阶段 UI——与全平台各家一致。
   const isNight = viewModel !== null && viewModel.phase === 'night';
   return (
     <RoomShell
