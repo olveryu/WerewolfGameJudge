@@ -477,3 +477,92 @@ it('reports ready on the ribbon once every seat has viewed, and hints the unview
   expect(createUndercoverBottomActions(result.current)).toMatchObject({ message: null });
   unmount();
 });
+
+describe('createUndercoverHostManagement next step', () => {
+  const buildFor = (state: UndercoverState) => {
+    const session = { dispatch: jest.fn() } as unknown as UndercoverRoomSession;
+    const { result } = renderHook(() => useUndercoverRoundControls(state, session, 'host', null));
+    const shareRoom = jest.fn();
+    const capabilities = createUndercoverRoomCapabilities({
+      state,
+      isHost: true,
+      mySeat: 0,
+      requestTakeSeat: jest.fn(),
+      requestMoveSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      kickSeat: jest.fn(),
+      clearSeats: jest.fn(),
+      fillBots: jest.fn(),
+      configureGame: jest.fn(),
+      shareRoom,
+      openProfile: jest.fn(),
+      takeOverBot: jest.fn(),
+    });
+    const model = createUndercoverHostManagement({
+      state,
+      isHost: true,
+      capabilities,
+      controls: result.current,
+    });
+    return { model, shareRoom };
+  };
+
+  const lobbyState = (fill: boolean) => {
+    let state = undercoverEngine.createInitialState(
+      { numberOfPlayers: 6, hasBlank: true, category: 'all' },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1, commandId: 'create' },
+    );
+    state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+    if (fill) state = dispatch(state, { type: 'room.seat.fillBots' });
+    return state;
+  };
+
+  it('blocks the round start in a non-full lobby with a seat-count reason and share remedy', () => {
+    const { model, shareRoom } = buildFor(lobbyState(false));
+    expect(model?.preview).toBe('下一步：开始本局');
+    const step = model?.nextStep;
+    expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本局' });
+    if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+    expect(step.state.reason).toBe('座位尚未坐满（还差 5 人）');
+    expect(step.state.remedy?.label).toBe('分享房间');
+    step.state.remedy?.onPress();
+    expect(shareRoom).toHaveBeenCalledTimes(1);
+    // The panel caption renders the same player-facing reason; the
+    // bot-mentioning command-failure copy must never reach it.
+    const startAction = model?.sections[0]?.actions.find((action) => action.key === 'start-game');
+    if (startAction?.isEnabled !== false) throw new Error('expected a disabled panel start action');
+    expect(startAction.disabledReason).toBe('座位尚未坐满（还差 5 人）');
+    expect(startAction.disabledReason).not.toContain('机器人');
+  });
+
+  it('offers the round start once the room is full and gates its press with a confirm', () => {
+    jest.mocked(showConfirmAlert).mockClear();
+    const { model } = buildFor(lobbyState(true));
+    expect(model?.preview).toBe('下一步：开始本局');
+    const step = model?.nextStep;
+    if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    step.state.onPress();
+    expect(showConfirmAlert).toHaveBeenCalledWith(
+      '开始本局？',
+      '将为每位玩家分配词卡',
+      expect.any(Function),
+    );
+  });
+
+  it('blocks game start while cards are unviewed, then offers it once all are confirmed', () => {
+    const viewing = createViewingState();
+    const blockedBuild = buildFor(viewing);
+    expect(blockedBuild.model?.preview).toBe('下一步：开始游戏');
+    const blocked = blockedBuild.model?.nextStep;
+    expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+    if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+    expect(blocked.state.reason).toBe('还有玩家未查看词卡');
+    expect(blocked.state.remedy).toBeNull();
+
+    const roundId = viewing.round!.roundId;
+    let confirmed = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
+    confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
+    const ready = buildFor(confirmed).model?.nextStep;
+    if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+  });
+});

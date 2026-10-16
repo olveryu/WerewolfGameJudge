@@ -61,7 +61,7 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
       await expect(panel.getByText('等待入座 · 2/4', { exact: true })).toBeVisible();
       await panel.getByTestId('start-game-button').click();
       await expect(hostPage.getByText('暂时不能开始', { exact: true })).toBeVisible();
-      await expect(hostPage.getByText('座位尚未坐满')).toBeVisible();
+      await expect(hostPage.getByTestId(TESTIDS.alertMessage)).toHaveText('座位尚未坐满');
       await confirm(hostPage);
     });
 

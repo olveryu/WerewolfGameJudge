@@ -32,8 +32,12 @@ import {
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+} from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
@@ -153,7 +157,7 @@ export interface DrawGuessHostManagementInput {
   readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
@@ -176,23 +180,27 @@ export function createDrawGuessHostManagement(
   if (state.phase.kind === 'lobby') {
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
     const startDisabledReason = canStart ? null : '座位尚未坐满';
+    const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.round.start' });
+    const startAction = buildStartGameAction({
+      onPress: submitStart,
+      isEnabled: !input.isSubmitting && canStart,
+      disabledReason: startDisabledReason,
+      onDisabledPress: () => showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
+      isLoading: input.isSubmitting,
+    });
     return {
-      preview: '开始游戏',
+      preview: '下一步：开始游戏',
+      nextStep: buildRoomNextStep({
+        action: startAction,
+        onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画猜词', submitStart),
+        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      }),
       status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
           title: '游戏',
-          actions: [
-            buildStartGameAction({
-              onPress: () => void input.submit('开始游戏', { type: 'drawguess.round.start' }),
-              isEnabled: !input.isSubmitting && canStart,
-              disabledReason: startDisabledReason,
-              onDisabledPress: () =>
-                showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-              isLoading: input.isSubmitting,
-            }),
-          ],
+          actions: [startAction],
         },
         { key: 'room', title: '房间管理', actions: roomActions },
       ],
@@ -201,6 +209,7 @@ export function createDrawGuessHostManagement(
   if (state.phase.kind === 'ended') {
     return {
       preview: '本局已结束',
+      nextStep: null,
       status: null,
       sections: [
         {
@@ -231,6 +240,7 @@ export function createDrawGuessHostManagement(
   // 局中房主面板常驻（裁决⑧，对齐狼人杀/阿瓦隆）：房间管理区始终在。
   return {
     preview: '房主管理',
+    nextStep: null,
     status: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   };

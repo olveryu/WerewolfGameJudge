@@ -38,10 +38,13 @@ import {
   type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostManagementSection,
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+  type RoomHostManagementModel,
+  type RoomHostManagementSection,
+  type RoomNextStep,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -57,6 +60,7 @@ import type {
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
 
@@ -260,7 +264,7 @@ interface FibHostManagementInput {
   readonly isCommandSubmitting: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
   >;
   readonly startRound: () => void;
   readonly markAllBotsViewed: () => void;
@@ -508,8 +512,9 @@ export function createFibHostManagement(
   input: FibHostManagementInput,
 ): RoomHostManagementModel | null {
   if (!input.isHost) return null;
+  const currentFlowActions = createFibCurrentFlowActions(input);
   const sections = [
-    createFibHostSection('current-flow', '当前流程', createFibCurrentFlowActions(input)),
+    createFibHostSection('current-flow', '当前流程', currentFlowActions),
     createFibHostSection('room-management', '房间管理', createFibRoomManagementActions(input)),
     createFibHostSection('danger', '危险操作', createFibDangerActions(input)),
   ].filter((section): section is RoomHostManagementSection => section !== null);
@@ -520,9 +525,56 @@ export function createFibHostManagement(
   const copy = resolveFibPhaseStatusCopy(input.state);
   return {
     preview: copy.preview,
+    nextStep: createFibNextStep(input, currentFlowActions),
     status: copy.text,
     sections,
   };
+}
+
+/**
+ * The FibKing next step, derived beside the phase copy from the same
+ * current-flow actions the panel renders: start of round (lobby),
+ * begin after viewing, and re-preparation after a failed preparation.
+ * The panel actions submit directly; the strip gates the same
+ * callbacks with a confirm for the two progression steps, while
+ * re-preparation — the recovery path out of a failed state — stays
+ * direct. Ongoing and ended phases have no single next step here.
+ */
+function createFibNextStep(
+  input: FibHostManagementInput,
+  currentFlowActions: readonly RoomHostManagementAction[],
+): RoomNextStep | null {
+  const findAction = (key: string) => currentFlowActions.find((action) => action.key === key);
+  switch (input.state.phase) {
+    case 'lobby': {
+      const action = findAction('start-game');
+      if (action === undefined) return null;
+      return buildRoomNextStep({
+        action,
+        onPress: () =>
+          showConfirmAlert('开始本轮？', '将为每位玩家分配身份并准备本轮词语', input.startRound),
+        remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+      });
+    }
+    case 'viewing': {
+      const action = findAction('start-game');
+      if (action === undefined) return null;
+      return buildRoomNextStep({
+        action,
+        onPress: () =>
+          showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
+      });
+    }
+    case 'preparationFailed': {
+      const action = findAction('retry-preparation');
+      if (action === undefined) return null;
+      return buildRoomNextStep({ action });
+    }
+    case 'preparing':
+    case 'ongoing':
+    case 'ended':
+      return null;
+  }
 }
 
 function enabledButton(

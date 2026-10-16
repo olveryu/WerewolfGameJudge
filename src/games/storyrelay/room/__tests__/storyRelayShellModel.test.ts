@@ -89,7 +89,7 @@ describe('createStoryRelayRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '开始游戏', status: null, sections: [] };
+    const hostManagement = { preview: '开始游戏', nextStep: null, status: null, sections: [] };
     const onSeatPress = jest.fn();
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',

@@ -34,10 +34,12 @@ import {
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostManagementSection,
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+  type RoomHostManagementModel,
+  type RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
@@ -155,7 +157,7 @@ export interface DemoHostManagementInput {
   readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: DemoCommand) => Promise<boolean>;
@@ -178,24 +180,29 @@ export function createDemoHostManagement(
     const occupiedSeatCount = getDemoOccupiedSeatCount(state);
     const canStart = occupiedSeatCount === state.config.numberOfPlayers;
     const startDisabledReason = canStart ? null : '座位尚未坐满';
+    const submitAssign = () => void input.submit('分配身份', { type: 'demo.game.start' });
+    const assignAction = buildStartGameAction({
+      label: '分配身份',
+      onPress: submitAssign,
+      isEnabled: !input.isSubmitting && canStart,
+      disabledReason: startDisabledReason,
+      onDisabledPress: () => showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
+      isLoading: input.isSubmitting,
+    });
     return {
       preview: '分配身份',
+      nextStep: buildRoomNextStep({
+        action: assignAction,
+        onPress: () =>
+          showConfirmAlert('分配身份？', '所有座位已满，将为每位玩家分配身份', submitAssign),
+        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      }),
       status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
       sections: [
         {
           key: 'game',
           title: '游戏',
-          actions: [
-            buildStartGameAction({
-              label: '分配身份',
-              onPress: () => void input.submit('分配身份', { type: 'demo.game.start' }),
-              isEnabled: !input.isSubmitting && canStart,
-              disabledReason: startDisabledReason,
-              onDisabledPress: () =>
-                showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
-              isLoading: input.isSubmitting,
-            }),
-          ],
+          actions: [assignAction],
         },
         { key: 'room', title: '房间管理', actions: roomActions },
       ],
@@ -210,20 +217,19 @@ export function createDemoHostManagement(
     ).length;
     const allViewed = participants.length > 0 && viewedCount === participants.length;
     const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
+    const submitBegin = () => void input.submit('开始游戏', { type: 'demo.game.begin' });
+    const beginAction = buildStartGameAction({
+      onPress: submitBegin,
+      isEnabled: !input.isSubmitting && allViewed,
+      disabledReason: beginDisabledReason,
+      onDisabledPress: () => showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
+      isLoading: input.isSubmitting,
+    });
     const sections: RoomHostManagementSection[] = [
       {
         key: 'game',
         title: '游戏',
-        actions: [
-          buildStartGameAction({
-            onPress: () => void input.submit('开始游戏', { type: 'demo.game.begin' }),
-            isEnabled: !input.isSubmitting && allViewed,
-            disabledReason: beginDisabledReason,
-            onDisabledPress: () =>
-              showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
-            isLoading: input.isSubmitting,
-          }),
-        ],
+        actions: [beginAction],
       },
     ];
     const hasUnviewedBot = participants.some(
@@ -247,6 +253,10 @@ export function createDemoHostManagement(
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
     return {
       preview: '开始游戏',
+      nextStep: buildRoomNextStep({
+        action: beginAction,
+        onPress: () => showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
+      }),
       status: `等待全员查看身份 · ${viewedCount}/${participants.length}`,
       sections,
     };
@@ -254,6 +264,7 @@ export function createDemoHostManagement(
   if (state.phase.kind === 'ended') {
     return {
       preview: '本局已结束',
+      nextStep: null,
       status: null,
       sections: [
         {
@@ -280,6 +291,7 @@ export function createDemoHostManagement(
   // 局中房主面板常驻：房间管理区始终在。
   return {
     preview: '房主管理',
+    nextStep: null,
     status: null,
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   };

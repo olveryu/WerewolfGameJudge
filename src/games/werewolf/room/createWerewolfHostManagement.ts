@@ -14,10 +14,12 @@ import {
   type RoomHostActionDescriptor,
 } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostManagementSection,
+import {
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+  type RoomHostManagementModel,
+  type RoomHostManagementSection,
+  type RoomNextStep,
 } from '@/features/room/model/RoomHostManagement';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/hooks/useSheriffElection';
 import type { HostControlEvent } from '@/games/werewolf/room/policy/types';
@@ -40,7 +42,7 @@ interface WerewolfHostManagementInput {
   readonly canMarkAllBotsGroupConfirmed: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
   >;
   readonly sheriffElection: SheriffElectionPanelModel | null;
   readonly onHostControl: (action: HostControlEvent['action']) => void;
@@ -314,9 +316,56 @@ export function createWerewolfHostManagement(
   return {
     preview: copy.hostPreview,
     hasPendingAction: getHasPendingAction(input),
+    nextStep: createWerewolfNextStep(input),
     status: copy.hostStatus,
     sections,
   };
+}
+
+/**
+ * The Werewolf next step. Role assignment is the one step whose panel
+ * action stays enabled while its gate (full seats) lives in the dialog
+ * layer, so its blocked state is derived from the seat count here; the
+ * ready press dispatches the exact host-control events the panel
+ * actions use, so the strip and the panel share one execution path
+ * (including the dialogs' confirm and seat checks).
+ */
+function createWerewolfNextStep(input: WerewolfHostManagementInput): RoomNextStep | null {
+  if (input.isHostActionSubmitting) return null;
+  switch (input.roomStatus) {
+    case GameStatus.Unseated:
+    case GameStatus.Seated: {
+      if (input.seatedCount < input.totalSeats) {
+        return {
+          actionKey: 'prepare-to-flip',
+          label: '分配角色',
+          state: {
+            kind: 'blocked',
+            reason: `还有 ${input.totalSeats - input.seatedCount} 个空位等待入座`,
+            remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+          },
+        };
+      }
+      return {
+        actionKey: 'prepare-to-flip',
+        label: '分配角色',
+        state: { kind: 'ready', onPress: () => input.onHostControl('prepareToFlip') },
+      };
+    }
+    case GameStatus.Ready:
+      return input.isPlagueMode
+        ? null
+        : {
+            actionKey: 'start-game',
+            label: '开始游戏',
+            state: { kind: 'ready', onPress: () => input.onHostControl('startGame') },
+          };
+    case GameStatus.Assigned:
+    case GameStatus.Ongoing:
+    case GameStatus.Day:
+    case GameStatus.Ended:
+      return null;
+  }
 }
 
 function getHasPendingAction(input: WerewolfHostManagementInput): boolean {

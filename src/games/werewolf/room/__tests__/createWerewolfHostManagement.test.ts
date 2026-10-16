@@ -9,6 +9,7 @@ const deniedRoomCapabilities = {
   canConfigureGame: deniedCapability,
   canClearSeats: deniedCapability,
   canFillBots: deniedCapability,
+  canShareRoom: deniedCapability,
 };
 
 function createInput(overrides: Record<string, unknown> = {}) {
@@ -30,6 +31,7 @@ function createInput(overrides: Record<string, unknown> = {}) {
       canConfigureGame: { isAllowed: true as const, execute: jest.fn() },
       canClearSeats: deniedCapability,
       canFillBots: deniedCapability,
+      canShareRoom: { isAllowed: true as const, execute: jest.fn() },
     },
     sheriffElection: null,
     onHostControl: jest.fn(),
@@ -114,6 +116,7 @@ describe('createWerewolfHostManagement', () => {
           canConfigureGame: { isAllowed: true as const, execute: jest.fn() },
           canClearSeats: { isAllowed: true as const, execute: jest.fn() },
           canFillBots: { isAllowed: true as const, execute: jest.fn() },
+          canShareRoom: { isAllowed: true as const, execute: jest.fn() },
         },
       }),
     );
@@ -253,5 +256,68 @@ describe('createWerewolfHostManagement', () => {
     if (reviewAction?.isEnabled !== true) throw new Error('Expected enabled post-game review');
     reviewAction.onPress();
     expect(onNightReview).toHaveBeenCalledTimes(1);
+  });
+
+  describe('next step', () => {
+    it('blocks role assignment while seats are open and offers room sharing as the remedy', () => {
+      const input = createInput({ roomStatus: GameStatus.Seated, seatedCount: 6, totalSeats: 9 });
+      const model = createWerewolfHostManagement(input);
+      const step = model?.nextStep;
+      expect(step).toMatchObject({ actionKey: 'prepare-to-flip', label: '分配角色' });
+      if (step?.state.kind !== 'blocked') throw new Error('Expected a blocked next step');
+      expect(step.state.reason).toBe('还有 3 个空位等待入座');
+      expect(step.state.remedy?.label).toBe('分享房间');
+      step.state.remedy?.onPress();
+      expect(input.capabilities.canShareRoom.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops the share remedy when sharing is not allowed', () => {
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Seated,
+          seatedCount: 6,
+          totalSeats: 9,
+          capabilities: deniedRoomCapabilities,
+        }),
+      );
+      const step = model?.nextStep;
+      if (step?.state.kind !== 'blocked') throw new Error('Expected a blocked next step');
+      expect(step.state.remedy).toBeNull();
+    });
+
+    it('runs role assignment through the host-control channel once every seat is taken', () => {
+      const input = createInput({ roomStatus: GameStatus.Seated, seatedCount: 9, totalSeats: 9 });
+      const model = createWerewolfHostManagement(input);
+      const step = model?.nextStep;
+      if (step?.state.kind !== 'ready') throw new Error('Expected a ready next step');
+      step.state.onPress();
+      expect(input.onHostControl).toHaveBeenCalledWith('prepareToFlip');
+    });
+
+    it('offers game start once roles are assigned, except in plague mode', () => {
+      const input = createInput({ roomStatus: GameStatus.Ready });
+      const model = createWerewolfHostManagement(input);
+      const step = model?.nextStep;
+      expect(step).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+      if (step?.state.kind !== 'ready') throw new Error('Expected a ready next step');
+      step.state.onPress();
+      expect(input.onHostControl).toHaveBeenCalledWith('startGame');
+
+      const plague = createWerewolfHostManagement(
+        createInput({ roomStatus: GameStatus.Ready, isPlagueMode: true }),
+      );
+      expect(plague?.nextStep).toBeNull();
+    });
+
+    it('suppresses the next step while a host action is submitting', () => {
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Seated,
+          seatedCount: 9,
+          isHostActionSubmitting: true,
+        }),
+      );
+      expect(model?.nextStep).toBeNull();
+    });
   });
 });

@@ -27,7 +27,7 @@ const PLAYER_COUNT = 6;
 
 function capabilities(
   isSetup: boolean,
-): Pick<RoomCapabilities, 'canConfigureGame' | 'canFillBots' | 'canClearSeats'> {
+): Pick<RoomCapabilities, 'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'> {
   return createRoomSetupCapabilities({
     isSetup,
     isHost: true,
@@ -186,7 +186,7 @@ describe('createAvalonHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true, true);
-    expect(model?.preview).toBe('分配角色');
+    expect(model?.preview).toBe('下一步：分配角色');
     expect(model?.status).toBe('等待入座 · 1/6');
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'start-game',
@@ -226,7 +226,7 @@ describe('createAvalonHostManagement', () => {
     const model = build(game.state, true, false);
     // Viewing panel: begin waits for the checkpoint (only the host has
     // viewed), the scaffold action fills the bot records.
-    expect(model?.preview).toBe('开始游戏');
+    expect(model?.preview).toBe('下一步：开始游戏');
     expect(model?.status).toBe('等待全员查看身份 · 1/6');
     expect(model?.sections.map((entry) => entry.key)).toEqual(['game', 'bot-viewing', 'room']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({
@@ -275,6 +275,51 @@ describe('createAvalonHostManagement', () => {
       key: 'finish-quest',
       label: '结束任务',
       testID: 'avalon-finish-quest',
+    });
+  });
+
+  describe('next step', () => {
+    it('blocks role assignment in the lobby with the missing-seat count and a share remedy', () => {
+      const game = session();
+      game.seatHost();
+      const step = build(game.state, true, true)?.nextStep;
+      expect(step).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
+      if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+      expect(step.state.reason).toBe('座位尚未坐满（还差 5 人）');
+      expect(step.state.remedy?.label).toBe('分享房间');
+    });
+
+    it('offers role assignment once the room is full', () => {
+      const game = session();
+      game.seatHost();
+      game.fill();
+      const step = build(game.state, true, true)?.nextStep;
+      expect(step).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
+      if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    });
+
+    it('blocks game start while players have not viewed, then offers it once all have', () => {
+      const game = session();
+      game.seatHost();
+      game.fill();
+      game.startWithUnmarkedBots();
+      const blocked = build(game.state, true, false)?.nextStep;
+      expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+      if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+      expect(blocked.state.reason).toBe('还有玩家未查看身份');
+      expect(blocked.state.remedy).toBeNull();
+
+      game.send({ type: 'avalon.bots.markAllBotsViewed' });
+      const ready = build(game.state, true, false)?.nextStep;
+      if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    });
+
+    it('has no next step in the nomination phase', () => {
+      const game = session();
+      game.seatHost();
+      game.fill();
+      game.startToNominate();
+      expect(build(game.state, true, false)?.nextStep).toBeNull();
     });
   });
 

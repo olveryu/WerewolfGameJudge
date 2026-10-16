@@ -31,8 +31,12 @@ import {
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+} from '@/features/room/model/RoomHostManagement';
 import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
@@ -179,7 +183,7 @@ export interface StoryRelayHostManagementInput {
   readonly isHost: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
@@ -200,8 +204,25 @@ export function createStoryRelayHostManagement(
   if (capabilities.canClearSeats.isAllowed)
     roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   if (state.phase === 'lobby') {
+    const submitStart = () => void submit('开始游戏', { type: 'storyrelay.round.start' });
+    const startAction = buildStartGameAction({
+      onPress: submitStart,
+      isEnabled:
+        !input.isSubmitting &&
+        getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
+      disabledReason: input.isSubmitting ? null : '座位尚未坐满',
+      onDisabledPress: input.isSubmitting
+        ? null
+        : () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
+      isLoading: input.isSubmitting,
+    });
     return {
-      preview: '开始游戏',
+      preview: '下一步：开始游戏',
+      nextStep: buildRoomNextStep({
+        action: startAction,
+        onPress: () => showConfirmAlert('开始游戏？', '将分配写作顺序并开始故事接龙', submitStart),
+        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      }),
       status: buildLobbyWaitingText(
         getStoryRelayOccupiedSeatCount(state),
         state.config.numberOfPlayers,
@@ -210,19 +231,7 @@ export function createStoryRelayHostManagement(
         {
           key: 'game',
           title: '游戏',
-          actions: [
-            buildStartGameAction({
-              onPress: () => void submit('开始游戏', { type: 'storyrelay.round.start' }),
-              isEnabled:
-                !input.isSubmitting &&
-                getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
-              disabledReason: input.isSubmitting ? null : '座位尚未坐满',
-              onDisabledPress: input.isSubmitting
-                ? null
-                : () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
-              isLoading: input.isSubmitting,
-            }),
-          ],
+          actions: [startAction],
         },
         { key: 'room', title: '房间管理', actions: roomActions },
       ],
@@ -232,6 +241,7 @@ export function createStoryRelayHostManagement(
   if (isTerminal) {
     return {
       preview: state.phase === 'ended' ? '故事已揭晓' : '未完成的故事',
+      nextStep: null,
       status: null,
       sections: [
         {
@@ -272,6 +282,7 @@ export function createStoryRelayHostManagement(
   if (!canAbort) return null;
   return {
     preview: '管理本局',
+    nextStep: null,
     status: null,
     sections: [
       ...(state.phase === 'answering'

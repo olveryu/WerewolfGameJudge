@@ -12,6 +12,7 @@ describe('RoomHostManagementPanel', () => {
     const close = jest.fn(() => calls.push('close'));
     const model: RoomHostManagementModel = {
       preview: '待处理：结束报名',
+      nextStep: null,
       status: '警长竞选 · 报名中',
       sections: [
         {
@@ -64,6 +65,7 @@ describe('RoomHostManagementPanel', () => {
     const close = jest.fn();
     const model: RoomHostManagementModel = {
       preview: '下一步：开始本轮',
+      nextStep: null,
       status: '等待开始',
       sections: [
         {
@@ -93,9 +95,57 @@ describe('RoomHostManagementPanel', () => {
     expect(close).not.toHaveBeenCalled();
   });
 
+  it('shows the disabled reason as a caption under the disabled action', () => {
+    const model: RoomHostManagementModel = {
+      preview: '下一步：开始本轮',
+      nextStep: null,
+      status: '等待开始',
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            {
+              key: 'start-round',
+              label: '开始本轮',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: false,
+              disabledReason: '请先坐满所有座位',
+              onDisabledPress: jest.fn(),
+            },
+            {
+              key: 'configure',
+              label: '房间设置',
+              icon: 'settings-outline',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: jest.fn(),
+            },
+          ],
+        },
+      ],
+    };
+
+    const screen = render(
+      <RoomHostManagementPanel
+        model={model}
+        isVisible
+        presentation="inspector"
+        onClose={jest.fn()}
+      />,
+    );
+
+    // Button label plus its reason caption: the reason text appears once,
+    // attached to the disabled action only.
+    expect(screen.getAllByText('请先坐满所有座位')).toHaveLength(1);
+    expect(screen.getByText('房间设置')).toBeTruthy();
+  });
+
   it('does not render while closed', () => {
     const model: RoomHostManagementModel = {
       preview: '房间配置等 3 项',
+      nextStep: null,
       status: null,
       sections: [],
     };

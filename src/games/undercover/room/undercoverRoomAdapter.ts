@@ -33,9 +33,12 @@ import {
   type RoomProfileTarget,
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
+import {
+  buildRoomNextStep,
+  buildShareRoomRemedy,
+  type RoomHostManagementAction,
+  type RoomHostManagementModel,
+  type RoomNextStep,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -44,9 +47,8 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import { buildLobbyWaitingText, messageRibbon } from '@/features/room/model/statusRibbon';
-import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import { colors } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from './undercoverActionModels';
@@ -279,6 +281,7 @@ export function createUndercoverHostManagement(
   const { state, isHost, capabilities, controls } = input;
   if (!isHost) return null;
   const actions: RoomHostManagementAction[] = [];
+  let nextStep: RoomNextStep | null = null;
   if (state.phase !== 'lobby' && state.phase !== 'ended' && state.phase !== 'aborted')
     actions.push(
       buildPendingAwareHostAction(
@@ -294,20 +297,28 @@ export function createUndercoverHostManagement(
       ),
     );
   switch (state.phase) {
-    case 'lobby':
-      actions.push(
-        buildStartGameAction({
-          label: '开始本局',
-          onPress: controls.start,
-          isEnabled:
-            !controls.isSubmitting &&
-            getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers,
-          disabledReason:
-            getUndercoverOccupiedSeatCount(state) === state.config.numberOfPlayers
-              ? null
-              : ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
-        }),
-      );
+    case 'lobby': {
+      const occupiedSeatCount = getUndercoverOccupiedSeatCount(state);
+      // Player-facing seat-count wording: the panel caption and the
+      // next-step strip both read this one reason (the strip derives it
+      // from the action). The command-failure copy stays on the
+      // command-rejection channel and never renders as a caption.
+      const startDisabledReason =
+        occupiedSeatCount === state.config.numberOfPlayers
+          ? null
+          : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
+      const startAction = buildStartGameAction({
+        label: '开始本局',
+        onPress: controls.start,
+        isEnabled: !controls.isSubmitting && occupiedSeatCount === state.config.numberOfPlayers,
+        disabledReason: startDisabledReason,
+      });
+      actions.push(startAction);
+      nextStep = buildRoomNextStep({
+        action: startAction,
+        onPress: () => showConfirmAlert('开始本局？', '将为每位玩家分配词卡', controls.start),
+        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      });
       if (capabilities.canConfigureGame.isAllowed)
         actions.push(
           buildRoomConfigAction({
@@ -327,6 +338,7 @@ export function createUndercoverHostManagement(
           }),
         );
       break;
+    }
     case 'preparing':
       actions.push(
         buildPendingAwareHostAction(
@@ -347,16 +359,19 @@ export function createUndercoverHostManagement(
       // once every seat has viewed; the panel shows why it is disabled.
       const allViewed = state.round.confirmedSeats.length === state.config.numberOfPlayers;
       const beginDisabledReason = allViewed ? null : '还有玩家未查看词卡';
-      actions.push(
-        buildStartGameAction({
-          label: '开始游戏',
-          onPress: controls.begin,
-          isEnabled: !controls.isSubmitting && allViewed,
-          disabledReason: beginDisabledReason,
-          onDisabledPress: () =>
-            showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
-        }),
-      );
+      const beginAction = buildStartGameAction({
+        label: '开始游戏',
+        onPress: controls.begin,
+        isEnabled: !controls.isSubmitting && allViewed,
+        disabledReason: beginDisabledReason,
+        onDisabledPress: () => showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
+      });
+      actions.push(beginAction);
+      nextStep = buildRoomNextStep({
+        action: beginAction,
+        onPress: () =>
+          showConfirmAlert('开始游戏？', '全员已查看词卡，将开始轮流发言', controls.begin),
+      });
       if (getBotSeats(state.roster).some((seat) => !state.round.confirmedSeats.includes(seat)))
         actions.push(
           buildMarkBotsViewedAction({
@@ -481,7 +496,15 @@ export function createUndercoverHostManagement(
       break;
   }
   return {
-    preview: state.phase === 'ongoing' ? '选择出局玩家' : '对局管理',
+    preview:
+      state.phase === 'lobby'
+        ? '下一步：开始本局'
+        : state.phase === 'viewing'
+          ? '下一步：开始游戏'
+          : state.phase === 'ongoing'
+            ? '选择出局玩家'
+            : '对局管理',
+    nextStep,
     status: null,
     sections: [{ key: 'game', title: '房主操作', actions }],
   };
