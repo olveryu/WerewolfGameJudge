@@ -252,7 +252,6 @@ export function useDemoRoomState(
     isHost,
     mySeat,
     hostManagement,
-    canControlBots,
     releaseBot,
   });
   const openShare = share.open;
