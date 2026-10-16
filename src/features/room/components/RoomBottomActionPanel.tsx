@@ -33,6 +33,8 @@ interface RoomBottomActionPanelProps {
   readonly styles: BottomActionPanelStyles;
   readonly progressStyles: RoomProgressIndicatorStyles;
   readonly bottomInset: number;
+  /** Short viewport (e.g. on-screen keyboard open): status rows use slim spacing. */
+  readonly isCompactHeight?: boolean;
 }
 
 const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
@@ -42,6 +44,7 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   styles,
   progressStyles,
   bottomInset,
+  isCompactHeight,
 }) => {
   const messageFade = useMemo(() => new Animated.Value(1), []);
   const messageSlide = useMemo(() => new Animated.Value(0), []);
@@ -79,8 +82,10 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   const hasMessage = message !== null && message.length > 0;
   if (!hasButtons && !hasMessage && model.progress === null) return null;
 
+  const isCompact = isCompactHeight === true;
   const containerStyle = [
     styles.container,
+    isCompact && styles.compactContainer,
     model.kind === 'dock' && styles.dockContainer,
     bottomInset > 0 && { paddingBottom: bottomInset },
   ];
@@ -88,12 +93,13 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   return (
     <View style={containerStyle} testID={TESTIDS.bottomActionPanel}>
       {model.progress !== null && (
-        <View style={styles.progressRow}>
+        <View style={isCompact ? styles.progressRowCompact : styles.progressRow}>
           <RoomProgressIndicator
             currentStep={model.progress.current}
             totalSteps={model.progress.total}
             currentLabel={model.progress.label}
             styles={progressStyles}
+            isCompact={isCompact}
           />
         </View>
       )}
@@ -102,6 +108,7 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
         <Animated.Text
           style={[
             styles.message,
+            isCompact && styles.messageCompact,
             { opacity: messageFade, transform: [{ translateY: messageSlide }] },
           ]}
           testID={TESTIDS.actionMessage}

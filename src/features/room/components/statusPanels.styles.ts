@@ -42,11 +42,18 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         overflow: 'hidden',
         ...shadows.lgUpward,
       },
+      compactContainer: {
+        paddingTop: spacing.small,
+        paddingBottom: spacing.small,
+      },
       dockContainer: {
         paddingTop: spacing.small,
       },
       progressRow: {
         marginBottom: spacing.small,
+      },
+      progressRowCompact: {
+        marginBottom: spacing.tight,
       },
       message: {
         textAlign: 'center',
@@ -55,6 +62,9 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         color: colors.text,
         marginBottom: spacing.small,
         paddingHorizontal: spacing.small,
+      },
+      messageCompact: {
+        marginBottom: spacing.tight,
       },
       buttonRow: {
         flexDirection: 'column',
@@ -292,6 +302,9 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         backgroundColor: colors.surface,
         borderRadius: borderRadius.large,
         ...shadows.sm,
+      },
+      compactContainer: {
+        paddingVertical: spacing.tight,
       },
       headerRow: {
         flexDirection: 'row',

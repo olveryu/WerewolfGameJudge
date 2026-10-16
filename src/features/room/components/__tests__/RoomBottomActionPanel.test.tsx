@@ -86,6 +86,30 @@ describe('RoomBottomActionPanel', () => {
     expect(getByText('狼人请行动')).toBeTruthy();
   });
 
+  it('keeps progress and message rendered in compact-height mode', () => {
+    const model: RoomBottomActionModel = {
+      kind: 'stacked',
+      message: '等待其他玩家',
+      progress: { current: 2, total: 5, label: '狼人请行动' },
+      layout: { primary: [], secondary: [], ghost: [] },
+    };
+    const { getByTestId, getByText } = render(
+      <RoomBottomActionPanel
+        model={model}
+        hostManagement={null}
+        onOpenHostManagement={jest.fn()}
+        styles={styles}
+        progressStyles={progressStyles}
+        bottomInset={0}
+        isCompactHeight
+      />,
+    );
+
+    expect(getByTestId(TESTIDS.roomProgressIndicator)).toBeTruthy();
+    expect(getByTestId(TESTIDS.actionMessage)).toBeTruthy();
+    expect(getByText('等待其他玩家')).toBeTruthy();
+  });
+
   it('does not expose a mutation callback for a disabled display action', () => {
     const model: RoomBottomActionModel = {
       kind: 'stacked',

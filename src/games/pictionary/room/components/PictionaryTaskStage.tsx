@@ -587,7 +587,10 @@ export const PictionaryTaskStage: React.FC<PictionaryTaskStageProps> = ({
 const styles = StyleSheet.create({
   taskFooter: { flexDirection: 'row', alignItems: 'center', gap: spacing.small },
   primaryAction: { flex: 1 },
-  contextBlock: { flex: 1, minHeight: 0, gap: spacing.tight },
+  // The drawing the player is guessing from is the primary content: it keeps
+  // a floor of three touch targets while the composer below shrinks first
+  // (its text input already declares flexShrink with a one-target floor).
+  contextBlock: { flex: 1, minHeight: fixed.minTouchTarget * 3, gap: spacing.tight },
   contextLabel: {
     ...textStyles.caption,
     color: colors.textSecondary,

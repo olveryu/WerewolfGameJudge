@@ -28,6 +28,9 @@ import { createRoomShellStyles } from './RoomShell.styles';
 import { createRoomFeatureStyles } from './styles';
 
 const LONG_PRESS_DELAY_MS = 1000;
+/** At or below this viewport height (on-screen keyboard, landscape phones) the
+ *  bottom panel renders compact so the workspace keeps a usable share. */
+const ROOM_SHORT_VIEWPORT_HEIGHT = 560;
 const ROOM_HEADER_TITLE_RESERVED_FONT_UNITS = 5;
 const ROOM_HEADER_CENTER_CONTENT_WIDTH =
   layout.headerTitleSize * ROOM_HEADER_TITLE_RESERVED_FONT_UNITS +
@@ -70,7 +73,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
   profileDetailsRenderer,
 }) => {
   const insets = useSafeAreaInsets();
-  const { width: viewportWidth } = useWindowDimensions();
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [isHostManagementOpen, setIsHostManagementOpen] = useState(false);
   const styles = useMemo(() => createRoomShellStyles(colors), []);
   const componentStyles = useMemo(() => createRoomFeatureStyles(colors), []);
@@ -251,6 +254,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         styles={componentStyles.bottomActionPanel}
         progressStyles={componentStyles.progressIndicator}
         bottomInset={insets.bottom}
+        isCompactHeight={viewportHeight <= ROOM_SHORT_VIEWPORT_HEIGHT}
       />
 
       {model.hostManagement !== null && (

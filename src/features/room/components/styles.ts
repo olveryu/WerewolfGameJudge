@@ -9,9 +9,12 @@ import { createStatusPanelStyles } from './statusPanels.styles';
 
 export interface BottomActionPanelStyles {
   container: ViewStyle;
+  compactContainer: ViewStyle;
   dockContainer: ViewStyle;
   progressRow: ViewStyle;
+  progressRowCompact: ViewStyle;
   message: TextStyle;
+  messageCompact: TextStyle;
   buttonRow: ViewStyle;
   compactManagementStack: ViewStyle;
   ghostRow: ViewStyle;
@@ -63,6 +66,7 @@ export interface HeaderActionsStyles {
 
 export interface RoomProgressIndicatorStyles {
   container: ViewStyle;
+  compactContainer: ViewStyle;
   headerRow: ViewStyle;
   stepText: TextStyle;
   labelText: TextStyle;
