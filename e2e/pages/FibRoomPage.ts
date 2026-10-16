@@ -39,10 +39,6 @@ export class FibRoomPage extends RoomPage {
     await expect(this.page.getByText(`瞎掰王 · ${playerCount}人局`, { exact: true })).toBeVisible();
   }
 
-  async expectPaginationVisible(): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.roomSeatPagination)).toBeVisible();
-  }
-
   async expectShareRoomCode(roomCode: string): Promise<void> {
     await expect(this.page.getByText(`房间号 ${roomCode}`, { exact: true })).toBeVisible();
   }
@@ -87,17 +83,6 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.roomSettingsButton).click();
     await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible();
-  }
-
-  async fillEmptySeatsWithBots(playerCount: number): Promise<void> {
-    await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.roomFillBotsButton).click();
-    await this.expectHostManagementClosed();
-    await expect(this.page.getByText('填充机器人？', { exact: true })).toBeVisible();
-    await this.page.getByText('确定', { exact: true }).click();
-    await expect(
-      this.page.getByText(`等待入座 · ${playerCount}/${playerCount}`, { exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
   }
 
   async startRound(): Promise<void> {
@@ -160,16 +145,6 @@ export class FibRoomPage extends RoomPage {
     const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
     await modal.getByText('我已看清', { exact: true }).click();
     await expect(modal).not.toBeVisible();
-  }
-
-  async takeOverBot(seat: number): Promise<void> {
-    await this.getSeatTile(seat).click({ delay: 650 });
-    await expect(this.page.getByTestId(TESTIDS.controlledSeatBanner)).toBeVisible();
-  }
-
-  async releaseBot(): Promise<void> {
-    await this.page.getByTestId(TESTIDS.controlledSeatReleaseButton).click();
-    await expect(this.page.getByTestId(TESTIDS.controlledSeatBanner)).not.toBeVisible();
   }
 
   async revealRound(): Promise<void> {

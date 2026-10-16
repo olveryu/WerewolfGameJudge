@@ -91,14 +91,6 @@ export class ConfigPage {
     await pill.click();
   }
 
-  /**
-   * @deprecated Use selectTemplate() instead. The old TemplatePicker modal no longer exists.
-   * In create mode, the template pill navigates back to BoardPicker.
-   */
-  async openTemplateDropdown(_currentTemplate: string) {
-    await this.clickTemplatePill();
-  }
-
   /** Expect template pill to be visible (config screen identity check). */
   async expectTemplateVisible() {
     // The template pill shows the short label (e.g. "预女猎白"), not the full name

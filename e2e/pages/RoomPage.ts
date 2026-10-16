@@ -216,43 +216,12 @@ export class RoomPage {
     });
   }
 
-  /** Click "查看身份" → wait for flip → click "知道了". */
-  async viewAndDismissRole() {
-    const viewBtn = this.page.getByRole('button', { name: '查看身份' });
-    await expect(viewBtn).toBeVisible({ timeout: 15_000 });
-
-    for (let attempt = 1; attempt <= 50; attempt++) {
-      await viewBtn.click();
-
-      const okBtn = this.page.getByText('知道了', { exact: true });
-      const waitAlert = this.page.getByText('等待房主分配角色…');
-
-      const appeared = await Promise.race([
-        okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
-        waitAlert.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'waitAlert' as const),
-      ]).catch(() => 'neither' as const);
-
-      if (appeared === 'roleCard') {
-        await okBtn.click();
-        return;
-      }
-      if (appeared === 'waitAlert') {
-        await this.page.getByText('确定', { exact: true }).click();
-        // Wait for alert to disappear before retrying
-        await waitAlert.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
-        continue;
-      }
-      // Poll cadence for retry loop
-      await this.page.waitForTimeout(300);
-    }
-    throw new Error('viewAndDismissRole: "知道了" never appeared after retries.');
-  }
-
   /**
    * Click "查看身份" → capture role displayName from RoleCardSimple → click "知道了".
    *
-   * Same retry logic as viewAndDismissRole but reads the visible role name
-   * before dismissing. Returns the Chinese displayName (e.g. "狼人", "预言家").
+   * Retries until the role card appears (the "等待房主分配角色…" alert is
+   * dismissed between attempts). Returns the Chinese displayName
+   * (e.g. "狼人", "预言家").
    */
   async viewRoleAndCapture(): Promise<string> {
     const KNOWN_ROLES = Object.values(ROLE_SPECS).map((s) => s.displayName);
