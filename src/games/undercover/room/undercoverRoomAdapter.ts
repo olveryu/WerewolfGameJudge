@@ -49,7 +49,7 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from './undercoverActionModels';
 
-const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
+export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {
   civilian: '平民',
   undercover: '卧底',
   blank: '白板',

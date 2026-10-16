@@ -31,6 +31,7 @@ import { useUndercoverRoomScreenState } from './hooks/useUndercoverRoomScreenSta
 import {
   createUndercoverBoardInfoSections,
   UNDERCOVER_CATEGORY_NAMES,
+  UNDERCOVER_ROLE_NAMES,
 } from './undercoverRoomAdapter';
 
 interface UndercoverRoomScreenProps extends GameRoomScreenProps<'undercover'> {
@@ -83,6 +84,8 @@ function UndercoverRoomContent(
             />
             {state.phase === 'ended' && (
               <View style={styles.section} testID="undercover-results">
+                {/* 胜负文字归结算面（原状态条的「X获胜」照搬至此）。 */}
+                <Text style={styles.text}>{UNDERCOVER_ROLE_NAMES[state.winner]}获胜</Text>
                 <Text style={styles.text}>平民词：{state.round.civilianWord}</Text>
                 <Text style={styles.text}>卧底词：{state.round.undercoverWord}</Text>
                 <Text style={styles.muted}>
