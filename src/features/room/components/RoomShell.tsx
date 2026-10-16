@@ -15,6 +15,7 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';
 
+import { ConnectionStatusBar } from './ConnectionStatusBar';
 import { ControlledSeatBanner } from './ControlledSeatBanner';
 import { PlayerProfileCard } from './PlayerProfileCard';
 import { QRCodeModal } from './QRCodeModal';
@@ -24,7 +25,6 @@ import { RoomHostManagementPanel } from './RoomHostManagementPanel';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomSeatConfirmModal } from './RoomSeatConfirmModal';
 import { createRoomShellStyles } from './RoomShell.styles';
-import { RoomStatusRibbon } from './RoomStatusRibbon';
 import { createRoomFeatureStyles } from './styles';
 
 const LONG_PRESS_DELAY_MS = 1000;
@@ -196,16 +196,17 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         )}
       </View>
 
-      <RoomStatusRibbon
-        connection={model.connection}
-        status={model.statusRibbon}
-        styles={componentStyles.statusRibbon}
-        connectionStatusBarStyles={componentStyles.connectionStatusBar}
-        progressIndicatorStyles={componentStyles.progressIndicator}
-        hostGuideBannerStyles={componentStyles.hostGuideBanner}
+      {/* Banner slot: the connection bar takes the slot first (it renders
+          nothing while the connection is live); an active bot-seat
+          takeover banner follows it. */}
+      <ConnectionStatusBar
+        status={model.connection.status}
+        pendingCommandCount={model.connection.pendingCommandCount}
+        onManualReconnect={model.connection.onManualReconnect}
+        styles={componentStyles.connectionStatusBar}
       />
 
-      {model.controlledSeat && (
+      {model.controlledSeat !== null && (
         <ControlledSeatBanner
           model={model.controlledSeat}
           styles={componentStyles.controlledSeatBanner}
@@ -243,6 +244,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         hostManagement={model.hostManagement}
         onOpenHostManagement={openHostManagement}
         styles={componentStyles.bottomActionPanel}
+        progressStyles={componentStyles.progressIndicator}
         bottomInset={insets.bottom}
       />
 

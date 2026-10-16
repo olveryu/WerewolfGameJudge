@@ -19,18 +19,14 @@ import type {
   BottomActionPanelStyles,
   ConnectionStatusBarStyles,
   ControlledSeatBannerStyles,
-  HostGuideBannerStyles,
   RoomProgressIndicatorStyles,
-  StatusRibbonStyles,
 } from './styles';
 
 export function createStatusPanelStyles(colors: ThemeColors): {
   bottomActionPanel: BottomActionPanelStyles;
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
-  hostGuideBanner: HostGuideBannerStyles;
   progressIndicator: RoomProgressIndicatorStyles;
-  statusRibbon: StatusRibbonStyles;
 } {
   return {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
@@ -48,6 +44,9 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
       dockContainer: {
         paddingTop: spacing.small,
+      },
+      progressRow: {
+        marginBottom: spacing.small,
       },
       message: {
         textAlign: 'center',
@@ -135,7 +134,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         ...textStyles.secondarySemibold,
         color: colors.textInverse,
       },
-      hostManagementPreviewRow: {
+      hostManagementExpandRow: {
         flex: 1,
         minWidth: 0,
         flexDirection: 'row',
@@ -143,12 +142,12 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         justifyContent: 'flex-end',
         gap: spacing.tight,
       },
-      hostManagementPreview: {
+      hostManagementExpandLabel: {
         ...textStyles.caption,
         color: withAlpha(colors.textInverse, 0.78),
         flexShrink: 1,
       },
-      hostManagementPreviewUrgent: {
+      hostManagementPending: {
         ...textStyles.caption,
         color: colors.textInverse,
         fontWeight: typography.weights.semibold,
@@ -262,20 +261,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         paddingVertical: spacing.small,
         paddingHorizontal: spacing.medium,
         marginHorizontal: spacing.medium,
-        marginBottom: spacing.small,
-        borderRadius: borderRadius.large,
-        ...shadows.sm,
-      },
-      hintContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: withAlpha(colors.warning, 0.125),
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.warning,
-        paddingVertical: spacing.small,
-        paddingHorizontal: spacing.medium,
-        marginHorizontal: spacing.medium,
+        marginTop: spacing.small,
         marginBottom: spacing.small,
         borderRadius: borderRadius.large,
         ...shadows.sm,
@@ -284,10 +270,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         ...textStyles.secondarySemibold,
         color: colors.text,
         flex: 1,
-      },
-      hintText: {
-        ...textStyles.secondarySemibold,
-        color: colors.text,
       },
       releaseButton: {
         backgroundColor: colors.surface,
@@ -303,37 +285,12 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
     }),
 
-    hostGuideBanner: StyleSheet.create<HostGuideBannerStyles>({
-      container: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: withAlpha(colors.info, 0.08),
-        paddingVertical: spacing.small,
-        paddingHorizontal: spacing.medium,
-        marginHorizontal: spacing.medium,
-        marginTop: spacing.small,
-        borderRadius: borderRadius.large,
-        ...shadows.sm,
-      },
-      icon: {
-        color: colors.info,
-        marginRight: spacing.small,
-      },
-      text: {
-        ...textStyles.secondarySemibold,
-        color: colors.info,
-        flex: 1,
-      },
-    }),
-
     progressIndicator: StyleSheet.create<RoomProgressIndicatorStyles>({
       container: {
         paddingHorizontal: spacing.medium,
         paddingVertical: spacing.small,
         backgroundColor: colors.surface,
         borderRadius: borderRadius.large,
-        marginHorizontal: spacing.medium,
-        marginTop: spacing.small,
         ...shadows.sm,
       },
       headerRow: {
@@ -361,39 +318,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         height: '100%',
         backgroundColor: colors.primary,
         borderRadius: borderRadius.full,
-      },
-    }),
-
-    statusRibbon: StyleSheet.create<StatusRibbonStyles>({
-      speakingOrderContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        backgroundColor: withAlpha(colors.warning, 0.1),
-        paddingVertical: spacing.small,
-        paddingHorizontal: spacing.medium,
-        marginHorizontal: spacing.medium,
-        marginTop: spacing.small,
-        borderRadius: borderRadius.large,
-      },
-      speakingOrderIcon: {
-        color: colors.warning,
-        marginRight: spacing.small,
-        marginTop: spacing.micro,
-      },
-      speakingOrderTextContainer: {
-        flex: 1,
-      },
-      speakingOrderText: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        color: colors.warning,
-        fontWeight: typography.weights.semibold,
-      },
-      speakingOrderSubText: {
-        fontSize: typography.caption,
-        lineHeight: typography.lineHeights.caption,
-        color: colors.textMuted,
-        marginTop: spacing.micro,
       },
     }),
   };

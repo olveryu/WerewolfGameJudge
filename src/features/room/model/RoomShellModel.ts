@@ -16,20 +16,6 @@ export interface RoomConnectionViewModel {
   readonly onManualReconnect: () => void;
 }
 
-export type RoomStatusRibbonModel =
-  | {
-      readonly kind: 'progress';
-      readonly current: number;
-      readonly total: number;
-      readonly label: string | null;
-    }
-  | {
-      readonly kind: 'message';
-      readonly icon: 'guide' | 'speaking';
-      readonly text: string;
-      readonly supportingText: string | null;
-    };
-
 export interface RoomHeaderUserAction {
   readonly user: { readonly id: string; readonly avatarUrl?: string | null } | null;
   readonly ticketCount: number | null;
@@ -50,23 +36,18 @@ export interface RoomSeatBoardModel {
   readonly onBotSeatLongPress: ((seat: number) => void) | null;
 }
 
-export type RoomControlledSeatModel =
-  | {
-      readonly kind: 'controlled';
-      readonly seat: number;
-      readonly displayName: string;
-      readonly onRelease: () => void;
-    }
-  | {
-      readonly kind: 'hint';
-    };
+/** The active bot-seat takeover shown by the banner slot; null hides the banner. */
+export interface RoomControlledSeatModel {
+  readonly seat: number;
+  readonly displayName: string;
+  readonly onRelease: () => void;
+}
 
 export interface RoomShellModel {
   readonly roomCode: string;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;
-  readonly statusRibbon: RoomStatusRibbonModel | null;
   readonly seats: RoomSeatBoardModel;
   readonly seatConfirmation: RoomSeatConfirmationModel | null;
   readonly profile: RoomProfileCardModel | null;

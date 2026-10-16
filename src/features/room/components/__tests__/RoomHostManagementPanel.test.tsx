@@ -11,9 +11,7 @@ describe('RoomHostManagementPanel', () => {
     const restart = jest.fn();
     const close = jest.fn(() => calls.push('close'));
     const model: RoomHostManagementModel = {
-      preview: '待处理：结束报名',
-      nextStep: null,
-      status: '警长竞选 · 报名中',
+      hasPendingAction: true,
       sections: [
         {
           key: 'current-flow',
@@ -50,8 +48,6 @@ describe('RoomHostManagementPanel', () => {
       <RoomHostManagementPanel model={model} isVisible presentation="inspector" onClose={close} />,
     );
 
-    expect(screen.getByText('待处理：结束报名')).toBeTruthy();
-    expect(screen.getByText('警长竞选 · 报名中')).toBeTruthy();
     const advanceButton = screen.getByLabelText('结束报名');
     fireEvent.press(advanceButton);
     expect(calls).toEqual(['close', 'action']);
@@ -60,13 +56,9 @@ describe('RoomHostManagementPanel', () => {
     expect(close).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the panel open when routing disabled action feedback', () => {
-    const onDisabledPress = jest.fn();
+  it('keeps the panel open and fires nothing when a disabled action is pressed', () => {
     const close = jest.fn();
     const model: RoomHostManagementModel = {
-      preview: '下一步：开始本轮',
-      nextStep: null,
-      status: '等待开始',
       sections: [
         {
           key: 'current-flow',
@@ -79,7 +71,6 @@ describe('RoomHostManagementPanel', () => {
               variant: 'primary',
               isEnabled: false,
               disabledReason: '请先坐满所有座位',
-              onDisabledPress,
             },
           ],
         },
@@ -91,15 +82,11 @@ describe('RoomHostManagementPanel', () => {
     );
 
     fireEvent.press(screen.getByText('开始本轮'));
-    expect(onDisabledPress).toHaveBeenCalledTimes(1);
     expect(close).not.toHaveBeenCalled();
   });
 
-  it('shows the disabled reason as a caption under the disabled action', () => {
+  it('shows the disabled reason as a caption under a disabled non-primary action', () => {
     const model: RoomHostManagementModel = {
-      preview: '下一步：开始本轮',
-      nextStep: null,
-      status: '等待开始',
       sections: [
         {
           key: 'current-flow',
@@ -112,7 +99,6 @@ describe('RoomHostManagementPanel', () => {
               variant: 'primary',
               isEnabled: false,
               disabledReason: '请先坐满所有座位',
-              onDisabledPress: jest.fn(),
             },
             {
               key: 'configure',
@@ -142,11 +128,42 @@ describe('RoomHostManagementPanel', () => {
     expect(screen.getByText('房间设置')).toBeTruthy();
   });
 
+  it('renders no caption for the primary action: its reason lives on the console only', () => {
+    const model: RoomHostManagementModel = {
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [
+            {
+              key: 'start-round',
+              label: '开始本轮',
+              icon: 'play-outline',
+              variant: 'primary',
+              isEnabled: false,
+              disabledReason: '座位尚未坐满（还差 2 人）',
+              isPrimary: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    const screen = render(
+      <RoomHostManagementPanel
+        model={model}
+        isVisible
+        presentation="inspector"
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('座位尚未坐满（还差 2 人）')).toBeNull();
+    expect(screen.getByText('开始本轮')).toBeTruthy();
+  });
+
   it('does not render while closed', () => {
     const model: RoomHostManagementModel = {
-      preview: '房间配置等 3 项',
-      nextStep: null,
-      status: null,
       sections: [],
     };
 

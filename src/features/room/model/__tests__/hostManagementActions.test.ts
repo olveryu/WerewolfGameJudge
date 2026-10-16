@@ -32,13 +32,11 @@ describe('host management action builders', () => {
     });
   });
 
-  it('carries onDisabledPress and the reason into the disabled variant', () => {
-    const onDisabledPress = jest.fn();
+  it('carries the reason into the disabled variant', () => {
     const action = buildStartGameAction({
       onPress: () => undefined,
       isEnabled: false,
       disabledReason: '座位尚未坐满',
-      onDisabledPress,
       isLoading: true,
     });
     expect(action).toMatchObject({
@@ -47,13 +45,26 @@ describe('host management action builders', () => {
       disabledReason: '座位尚未坐满',
       isLoading: true,
     });
-    if (!action.isEnabled && action.onDisabledPress) action.onDisabledPress();
-    expect(onDisabledPress).toHaveBeenCalledTimes(1);
+    expect(action).not.toHaveProperty('onPress');
   });
 
-  it('defaults the disabled feedback to null', () => {
+  it('defaults the disabled reason to null', () => {
     const action = buildStartGameAction({ onPress: () => undefined, isEnabled: false });
-    expect(action).toMatchObject({ isEnabled: false, disabledReason: null, onDisabledPress: null });
+    expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
+  });
+
+  it('carries the console fields into the built action', () => {
+    const onConsolePress = jest.fn();
+    const remedy = { label: '分享房间', onPress: jest.fn() };
+    const action = buildStartGameAction({
+      onPress: () => undefined,
+      isEnabled: false,
+      disabledReason: '座位尚未坐满',
+      isPrimary: true,
+      remedy,
+      onConsolePress,
+    });
+    expect(action).toMatchObject({ isPrimary: true, remedy, onConsolePress });
   });
 
   it('builds the terminal pair with unified keys and testIDs', () => {
@@ -94,13 +105,12 @@ describe('host action pending marshal', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('drops the press handler and nulls reason and feedback while pending', () => {
+  it('drops the press handler and nulls the reason while pending', () => {
     const action = buildPendingAwareHostAction(descriptor, true, () => undefined);
     expect(action).toMatchObject({
       ...descriptor,
       isEnabled: false,
       disabledReason: null,
-      onDisabledPress: null,
     });
     expect(action).not.toHaveProperty('onPress');
   });
