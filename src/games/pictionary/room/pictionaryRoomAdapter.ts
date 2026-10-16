@@ -22,6 +22,7 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
+import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import {
@@ -32,7 +33,6 @@ import {
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
   type RoomHostManagementModel,
@@ -46,17 +46,11 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type {
   RoomConnectionViewModel,
   RoomControlledSeatModel,
   RoomShellModel,
 } from '@/features/room/model/RoomShellModel';
-import {
-  buildLobbyWaitingText,
-  messageRibbon,
-  progressRibbon,
-} from '@/features/room/model/statusRibbon';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
@@ -173,41 +167,33 @@ export function getPictionarySeatTapIntent(input: {
   });
 }
 
-export function createPictionaryStatusRibbon(state: PictionaryState): RoomStatusRibbonModel | null {
+/**
+ * The stepped relay phases feed the bottom panel's slim progress row;
+ * every other phase has no step progress.
+ */
+export function derivePictionaryBottomProgress(state: PictionaryState): NightStepProgress | null {
   const relayStepCount = getPictionaryRelayStepCount(state.config.numberOfPlayers);
   switch (state.phase) {
-    case 'lobby':
-      return messageRibbon(
-        buildLobbyWaitingText(getPictionaryOccupiedSeatCount(state), state.config.numberOfPlayers),
-      );
     case 'answering':
-      return progressRibbon({
+      return {
         current: state.stepIndex + 1,
         total: relayStepCount,
         label: state.stepIndex === 0 ? '全员出题中' : '接龙作答中',
-      });
-    case 'settling':
-      return messageRibbon('正在收取最终内容');
+      };
     case 'transition':
-      return progressRibbon({
-        current: state.stepIndex + 1,
-        total: relayStepCount,
-        label: '准备下一棒',
-      });
+      return { current: state.stepIndex + 1, total: relayStepCount, label: '准备下一棒' };
     case 'gallery': {
       if (state.gallery === null) {
         throw new Error('[FAIL-FAST] Pictionary gallery phase requires gallery state');
       }
-      return progressRibbon({
+      return {
         current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
         total: state.config.numberOfPlayers * (state.stepIndex + 1),
         label: '接龙揭晓中',
-      });
+      };
     }
-    case 'ended':
-      return messageRibbon('本局接龙已揭晓');
-    case 'aborted':
-      return messageRibbon('本局已中止，作品未完成');
+    default:
+      return null;
   }
 }
 
@@ -221,7 +207,7 @@ function createPictionaryBottomActions(
     isHost,
     mySeat,
   });
-  return { kind: 'info', message, actions: [] };
+  return { kind: 'info', message, progress: derivePictionaryBottomProgress(state), actions: [] };
 }
 
 interface PictionaryHostManagementInput {
@@ -237,7 +223,6 @@ interface PictionaryHostManagementInput {
   readonly returnToLobby: () => void;
   readonly finishPhase: () => void;
   readonly abortRound: () => void;
-  readonly onStartDisabled: () => void;
 }
 
 function hostAction(
@@ -270,9 +255,6 @@ export function createPictionaryHostManagement(
       ),
     );
     return {
-      preview: '本轮已结束',
-      nextStep: null,
-      status: null,
       sections: [{ key: 'current-flow', title: '当前流程', actions }],
     };
   }
@@ -306,14 +288,20 @@ export function createPictionaryHostManagement(
         hostAction('abort-round', '中止本局', 'close-circle-outline', 'danger', input.abortRound),
       ],
     });
-    return { preview: '管理本局', nextStep: null, status: null, sections };
+    return { sections };
   }
   const startAction: RoomHostManagementAction = buildStartGameAction({
     onPress: input.startRound,
     isEnabled: !input.isCommandSubmitting && isPictionaryRoomFull(input.state),
     isLoading: input.isCommandSubmitting || undefined,
-    disabledReason: input.isCommandSubmitting ? null : '座位尚未坐满',
-    onDisabledPress: input.isCommandSubmitting ? null : input.onStartDisabled,
+    disabledReason: input.isCommandSubmitting
+      ? null
+      : `座位尚未坐满（还差 ${
+          input.state.config.numberOfPlayers - getPictionaryOccupiedSeatCount(input.state)
+        } 人）`,
+    isPrimary: true,
+    remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+    onConsolePress: () => showConfirmAlert('开始游戏？', '将开始本局绘画接龙', input.startRound),
   });
   const roomActions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
@@ -343,19 +331,7 @@ export function createPictionaryHostManagement(
   if (roomActions.length > 0) {
     sections.push({ key: 'room-management', title: '房间管理', actions: roomActions });
   }
-  return {
-    preview: '下一步：开始游戏',
-    nextStep: buildRoomNextStep({
-      action: startAction,
-      onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画接龙', input.startRound),
-      remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-    }),
-    status: buildLobbyWaitingText(
-      getPictionaryOccupiedSeatCount(input.state),
-      input.state.config.numberOfPlayers,
-    ),
-    sections,
-  };
+  return { sections };
 }
 
 export interface PictionaryRoomShellModelInput {
@@ -398,7 +374,6 @@ export function createPictionaryRoomShellModel(
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createPictionaryStatusRibbon(input.state),
     seats: {
       source: input.seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,

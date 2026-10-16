@@ -12,7 +12,6 @@ import {
   createPictionaryRoomCapabilities,
   createPictionaryRoomShellModel,
   createPictionarySeatDataSource,
-  createPictionaryStatusRibbon,
 } from '../pictionaryRoomAdapter';
 
 function lobbyState(): PictionaryState {
@@ -89,14 +88,18 @@ describe('createPictionaryRoomShellModel', () => {
     expect(model.header.onBack).toBe(onBack);
     expect(model.header.userAction?.ticketCount).toBeNull();
     expect(model.connection).toBe(connection);
-    expect(model.statusRibbon).toEqual(createPictionaryStatusRibbon(state));
     expect(model.seats).toEqual({
       source: seatSource,
       visuallyDisabled: false,
       onSeatPress,
       onBotSeatLongPress: null,
     });
-    expect(model.bottomActions).toEqual({ kind: 'info', message: null, actions: [] });
+    expect(model.bottomActions).toEqual({
+      kind: 'info',
+      message: null,
+      progress: null,
+      actions: [],
+    });
     expect(model.share).toBe(share);
   });
 });
