@@ -73,11 +73,14 @@ test.describe('Werewolf Night — Flow Verification', () => {
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
 
-      // Wait for wolf's action message to appear
+      // Wait for the wolf's action prompt itself: the action-message
+      // element is already visible before the start carrying the
+      // ready/waiting text, so visibility alone would read too early —
+      // poll until the prompt is the wolf's.
       const wolfAction = wolfPage.locator('[data-testid="action-message"]');
-      await wolfAction.waitFor({ state: 'visible', timeout: 30_000 });
-      const actionText = await wolfAction.textContent();
-      expect(actionText).toContain('袭击');
+      await expect
+        .poll(async () => (await wolfAction.textContent()) ?? '', { timeout: 30_000 })
+        .toContain('袭击');
 
       // Wolf clicks the villager's seat
       const confirmed = await clickSeatAndConfirm(wolfPage, villagerSeat);
