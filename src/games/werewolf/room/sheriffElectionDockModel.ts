@@ -56,7 +56,6 @@ function createRoomTool(
     ...base,
     isEnabled: false,
     disabledReason: button.disabledReason,
-    onDisabledPress: button.onDisabledPress,
   };
 }
 
@@ -81,7 +80,6 @@ function createCommandButton(
     ...base,
     isEnabled: false,
     disabledReason: null,
-    onDisabledPress: null,
   };
 }
 
@@ -94,7 +92,6 @@ function createInspectorVotePrompt(action: SheriffDockAction): RoomBottomButton 
     testID: action.testID,
     isEnabled: false,
     disabledReason: null,
-    onDisabledPress: null,
   };
 }
 
@@ -180,7 +177,6 @@ function createWaitingButton(model: SheriffElectionPanelModel): RoomBottomButton
     size: 'lg',
     isEnabled: false,
     disabledReason: null,
-    onDisabledPress: null,
   };
 }
 
@@ -202,5 +198,5 @@ export function createSheriffElectionDockModel(
       : input.isInspectorVisible && personalAction.key === 'sheriff-open-vote'
         ? createInspectorVotePrompt(personalAction)
         : createCommandButton(personalAction, input.election);
-  return { kind: 'dock', message: null, leading, primary, trailing };
+  return { kind: 'dock', message: null, progress: null, leading, primary, trailing };
 }

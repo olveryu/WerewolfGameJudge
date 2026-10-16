@@ -13,7 +13,6 @@ import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import type { BottomButton } from './bottomActionBuilder';
 import {
   type BottomLayout,
-  type ButtonBehavior,
   type ButtonConfig,
   type ButtonSlot,
   EMPTY_LAYOUT,
@@ -81,21 +80,17 @@ function materializeStaticButton(
   } as const;
 
   switch (id) {
-    case 'waitForHost': {
-      const onDisabledBehavior: ButtonBehavior = { kind: 'static', action: id };
+    case 'waitForHost':
       return {
         ...base,
         isEnabled: false,
         disabledReason: '等待房主开始分配角色',
-        onDisabledBehavior,
       };
-    }
     case 'audioWaiting':
       return {
         ...base,
         isEnabled: false,
         disabledReason: null,
-        onDisabledBehavior: null,
       };
 
     default:

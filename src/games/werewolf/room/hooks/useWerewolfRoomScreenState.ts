@@ -15,7 +15,6 @@ import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/produc
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -35,7 +34,6 @@ import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
-import { resolveWerewolfPhaseStatusCopy } from '@/games/werewolf/room/resolveWerewolfPhaseStatusCopy';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { isWerewolfLocalBotSeat } from '@/games/werewolf/state/isWerewolfLocalBotSeat';
 import { createWerewolfRoomShellModel } from '@/games/werewolf/werewolfRoomAdapter';
@@ -163,20 +161,18 @@ export interface WerewolfRoomScreenStateProps {
   readonly client: WerewolfGameClient;
 }
 
-/** Seat/viewing counts the phase status copy resolver reads. */
+/** Seat counts the host management projection reads. */
 function deriveWerewolfSeatCounts(gameState: {
   readonly players: ReadonlyMap<number, { readonly hasViewedRole: boolean } | null>;
   readonly template: { readonly numberOfPlayers: number };
-}): { readonly seatedCount: number; readonly viewedCount: number; readonly totalSeats: number } {
+}): { readonly seatedCount: number; readonly totalSeats: number } {
   let seatedCount = 0;
-  let viewedCount = 0;
   for (const p of gameState.players.values()) {
     if (p !== null) {
       seatedCount++;
-      if (p.hasViewedRole) viewedCount++;
     }
   }
-  return { seatedCount, viewedCount, totalSeats: gameState.template.numberOfPlayers };
+  return { seatedCount, totalSeats: gameState.template.numberOfPlayers };
 }
 
 export function useWerewolfRoomScreenState(
@@ -711,29 +707,16 @@ export function useWerewolfRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Guide message (contextual hint bar — host gets detailed tips, others get phase hints)
+  // Guide message (non-host phase hints; the bottom action message is
+  // their single home. The host's guidance lives on the host console.)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const guideMessage = useMemo((): string | null => {
-    if (!gameState) return null;
+    if (!gameState || isHost) return null;
 
     const players = gameState.players;
     const totalSeats = gameState.template.numberOfPlayers;
 
-    if (isHost) {
-      return resolveWerewolfPhaseStatusCopy({
-        roomStatus,
-        isPlagueMode: gameState.rules?.isPlagueMode ?? false,
-        sheriffPhaseTitle: sheriffElectionPanel?.view.phaseTitle ?? null,
-        sheriffAdvanceLabel:
-          sheriffElectionPanel?.view.canAdvance === true
-            ? sheriffElectionPanel.view.advanceLabel
-            : null,
-        ...deriveWerewolfSeatCounts(gameState),
-      }).hostGuideMessage;
-    }
-
-    // Non-host phase hints
     switch (roomStatus) {
       case GameStatus.Unseated:
       case GameStatus.Seated:
@@ -766,7 +749,7 @@ export function useWerewolfRoomScreenState(
       default:
         return null;
     }
-  }, [isHost, gameState, roomStatus, sheriffElectionPanel]);
+  }, [isHost, gameState, roomStatus]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card handler (treasureMaster / thief bottom card selection)
@@ -922,9 +905,6 @@ export function useWerewolfRoomScreenState(
       switch (action) {
         case 'viewRole':
           dispatchInteraction({ kind: 'VIEW_ROLE' });
-          break;
-        case 'waitForHost':
-          toast.info('等待房主开始分配角色');
           break;
         case 'nightReview':
           openNightReview();
