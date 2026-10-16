@@ -89,7 +89,7 @@ describe('createDrawGuessRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '开始游戏', nextStep: null, status: null, sections: [] };
+    const hostManagement = { sections: [] };
     const onSeatPress = jest.fn();
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
@@ -117,7 +117,6 @@ describe('createDrawGuessRoomShellModel', () => {
       isHost: true,
       mySeat: 0,
       hostManagement,
-      canControlBots: true,
       releaseBot: jest.fn(),
     });
     expect(model.roomCode).toBe('1234');
@@ -128,9 +127,14 @@ describe('createDrawGuessRoomShellModel', () => {
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({ kind: 'info', message: null, actions: [] });
+    expect(model.bottomActions).toEqual({
+      kind: 'info',
+      message: null,
+      progress: null,
+      actions: [],
+    });
     expect(model.hostManagement).toBe(hostManagement);
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    expect(model.controlledSeat).toBeNull();
   });
 
   it('shows 等待房主开始游戏 to a seated non-host and no hint without bots', () => {
@@ -161,12 +165,12 @@ describe('createDrawGuessRoomShellModel', () => {
       isHost: false,
       mySeat: 0,
       hostManagement: null,
-      canControlBots: false,
       releaseBot: jest.fn(),
     });
     expect(model.bottomActions).toEqual({
       kind: 'info',
       message: '等待房主开始游戏',
+      progress: null,
       actions: [],
     });
     expect(model.controlledSeat).toBeNull();
