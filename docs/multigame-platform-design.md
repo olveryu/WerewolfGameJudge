@@ -340,7 +340,8 @@ src/
 │       ├── components/
 │       │   ├── RoomShell.tsx
 │       │   ├── RoomHeaderActions.tsx
-│       │   ├── RoomStatusRibbon.tsx
+│       │   ├── RoomHostManagementPanel.tsx
+│       │   ├── RoomProgressIndicator.tsx
 │       │   ├── RoomSeatBoard.tsx
 │       │   ├── RoomSeatTile.tsx
 │       │   ├── RoomBottomActionPanel.tsx
@@ -1181,10 +1182,9 @@ Active room host screen 使用已解析的 game module 创建或选择 typed ses
 
 - Safe area container。
 - 左侧返回按钮、中间 room code、右侧 overflow menu 的稳定三列 header。
-- Connection 和 host status ribbon。
-- Controlled-bot banner。
+- 横幅位（内容区上方，一次一条）：Connection 横幅优先，其次 Controlled-bot 接管横幅。
 - Seat board。
-- Bottom action panel。
+- Bottom action panel（玩家行动 + 主持台 + 底部细进度行）。
 - Seat confirmation modal。
 - Player profile card。
 - QR code modal。
@@ -1197,15 +1197,22 @@ Active room host screen 使用已解析的 game module 创建或选择 typed ses
 ```ts
 interface RoomShellModel {
   readonly roomCode: string;
-  readonly connection: RoomConnectionViewModel;
-  readonly statusRibbon: RoomStatusRibbonModel;
   readonly capabilities: RoomCapabilities;
-  readonly seats: RoomSeatDataSource;
   readonly header: RoomHeaderModel;
-  readonly bottomActions: RoomBottomActionLayout;
-  readonly controlledSeat: ControlledSeatModel | null;
+  readonly connection: RoomConnectionViewModel;
+  readonly seats: RoomSeatBoardModel;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly profile: RoomProfileCardModel | null;
+  readonly share: RoomShareModel;
+  readonly bottomActions: RoomBottomActionModel;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly controlledSeat: RoomControlledSeatModel | null;
 }
 ```
+
+主持侧不设独立状态面：`hostManagement` 是主持台的唯一数据源（收起态主行动与展开态
+面板渲染同一份动作数据），步进进度由 `bottomActions.progress` 承载、在底部面板顶部
+渲染共享细进度行。
 
 Game adapter 从 typed state、登录用户和本地 controller state 派生这个 model。
 
@@ -2226,7 +2233,9 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 
 - `NightProgressIndicator/currentRoleName/nightProgressIndicator` 完整改为
   `RoomProgressIndicator/currentLabel/progressIndicator`；`RoomStatusRibbonModel` 继续只接收 game adapter
-  提供的 label，不解释狼人杀 night/role。旧文件、test ID、style type 和 import 不保留 alias。
+  提供的 label，不解释狼人杀 night/role（该 model 与状态条已于 2026-10-16 房间提示面重设计
+  PR-A 整删：原状态信息归位到主持台 caption、玩家底部 message 与底部进度行，口径见各游戏
+  设计文档的 D21 记录）。旧文件、test ID、style type 和 import 不保留 alias。
 - Shared seat contract 只暴露 `danger | selected | controlled`、`badgeText` 和 `seatPetId`。`RoomSeatTile`
   不再出现 `wolfRing/wolfVoteBadge/playerRoleRevealEffect/colors.wolf`；Werewolf adapter 负责把
   `isWolf/wolfVoteBadge/roleRevealEffect` 映射为中性 presentation model。
