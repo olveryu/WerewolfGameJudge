@@ -56,7 +56,11 @@ export class FibRoomPage extends RoomPage {
   }
 
   async expectOngoing(): Promise<void> {
-    await expect(this.page.getByText('描述进行中', { exact: true })).toBeVisible();
+    // The Ongoing phase has no status ribbon after the guidance redesign;
+    // the host's reveal action in the management panel is the phase mark.
+    const panel = await this.openHostManagement();
+    await expect(panel.getByTestId(TESTIDS.fibRevealRoundButton)).toBeVisible();
+    await this.closeHostManagement();
   }
 
   async openRules(): Promise<void> {
