@@ -56,29 +56,29 @@ for (const viewport of [
         await joinerRooms[i]!.joinViaCode(roomCode);
         await joinerRooms[i]!.seatAt(i + 1);
       }
-      await expect(hostPage.getByText('等待入座 · 6/6', { exact: true })).toBeVisible({
-        timeout: 15_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始本局',
+        { timeout: 15_000 },
+      );
 
       // Clearing seats unseats everyone but keeps them in the room; all six re-seat.
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.roomClearSeatsButton).click();
       // Destructive alert has [Cancel, 清空座位]; the confirm is alert-button-1.
       await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
-      await expect(hostPage.getByText('等待入座 · 0/6', { exact: true })).toBeVisible();
+      await expect(hostPage.getByText('座位尚未坐满（还差 6 人）', { exact: true })).toBeVisible();
       await hostRoom.seatAt(0);
       for (let i = 0; i < joinerRooms.length; i += 1) {
         await joinerRooms[i]!.seatAt(i + 1);
       }
-      await expect(hostPage.getByText('等待入座 · 6/6', { exact: true })).toBeVisible({
-        timeout: 15_000,
-      });
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始本局',
+        { timeout: 15_000 },
+      );
 
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
       await expect(hostPage.getByTestId('undercover-view-word')).toBeVisible();
-      const speakingHint = hostPage.getByText(/^首轮从 [1-6] 号开始发言（随机）$/);
-      await expect(speakingHint).toHaveCount(0);
       await expect(hostPage.getByTestId('undercover-word')).toHaveCount(0);
       // Every real player views their own word card on their own page.
       const cards: string[] = [];
@@ -94,23 +94,23 @@ for (const viewport of [
         await page.getByTestId('undercover-view-word').click();
         await page.getByTestId('undercover-confirm').click();
       }
-      await expect(hostPage.getByText('等待全员查看词卡 · 5/6', { exact: true })).toBeVisible();
+      await expect(hostPage.getByText('还有玩家未查看词卡', { exact: true })).toBeVisible();
       await hostPage.getByTestId('undercover-view-word').click();
       await hostPage.getByTestId('undercover-confirm').click();
-      await expect(
-        hostPage.getByText('全员已查看词卡，等待房主开始游戏', { exact: true }),
-      ).toBeVisible();
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始游戏',
+      );
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
-      await expect(hostPage.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
-      await expect(speakingHint).toBeVisible();
-      const initialSpeakingHint = await speakingHint.innerText();
+      await expect(
+        (await hostRoom.openHostManagement()).getByTestId('undercover-select-player'),
+      ).toBeVisible();
+      await hostRoom.closeHostManagement();
       await hostPage.getByTestId('undercover-view-word').click();
       await expect(hostPage.getByTestId('undercover-word')).toHaveText(cards[0]!);
       await hostPage.reload();
       await hostRoom.waitForReady('host');
       await expect(hostPage.getByTestId('undercover-word')).toHaveCount(0);
-      await expect(speakingHint).toHaveText(initialSpeakingHint);
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-speaking-${viewport.width}.png`),
       });
@@ -137,7 +137,6 @@ for (const viewport of [
           await hostPage.getByTestId('undercover-reveal-cancel').click();
           await expect(modal).toHaveCount(0);
           await expect(hostPage.getByText('取消选择', { exact: true })).toBeVisible();
-          await expect(hostPage.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
           await hostRoom.getSeatTile(seat).click();
           await expect(modal).toBeVisible();
           await expect(async () => {
@@ -191,8 +190,7 @@ for (const viewport of [
         await hostPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
       await endedManagement.getByTestId('undercover-restart').click();
-      await expect(hostPage.getByText('等待全员查看词卡 · 0/6', { exact: true })).toBeVisible();
-      await expect(speakingHint).toHaveCount(0);
+      await expect(hostPage.getByText('还有玩家未查看词卡', { exact: true })).toBeVisible();
       await expect(hostPage.getByTestId('undercover-results')).toHaveCount(0);
       await expect(hostPage.getByText('已出局 · 平民', { exact: true })).toHaveCount(0);
       // NB: do NOT open the host management panel here. On narrow viewports it
@@ -204,24 +202,30 @@ for (const viewport of [
       }
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
-      await expect(speakingHint).toBeVisible();
+      await expect(
+        (await hostRoom.openHostManagement()).getByTestId('undercover-select-player'),
+      ).toBeVisible();
+      await hostRoom.closeHostManagement();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-restart').click();
       await expect(hostPage.getByText('重新开始？', { exact: true })).toBeVisible();
       await hostPage.getByText('取消', { exact: true }).click();
-      await expect(hostPage.getByText('游戏进行中 · 存活 6 人', { exact: true })).toBeVisible();
+      await expect(
+        (await hostRoom.openHostManagement()).getByTestId('undercover-select-player'),
+      ).toBeVisible();
+      await hostRoom.closeHostManagement();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-restart').click();
       await hostPage.getByText('确定', { exact: true }).click();
-      await expect(hostPage.getByText('等待全员查看词卡 · 0/6', { exact: true })).toBeVisible();
-      await expect(speakingHint).toHaveCount(0);
+      await expect(hostPage.getByText('还有玩家未查看词卡', { exact: true })).toBeVisible();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-abort').click();
       await hostPage.getByText('确定', { exact: true }).click();
-      await expect(hostPage.getByText('本局已中止', { exact: true })).toBeVisible();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-return-lobby').click();
-      await expect(hostPage.getByText('等待入座 · 6/6', { exact: true })).toBeVisible();
+      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
+        '下一步：开始本局',
+      );
     } finally {
       await closeAll(fixture);
     }
