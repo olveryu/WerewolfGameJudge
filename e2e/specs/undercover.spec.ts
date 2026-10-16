@@ -221,6 +221,11 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-abort').click();
       await hostPage.getByText('确定', { exact: true }).click();
+      // Retired surface (PR-A): the aborted phase used to assert the
+      // ribbon line '本局已中止' here. That conclusion copy left with the
+      // status ribbon and currently has no surface; it is registered in
+      // PR #201's "no surface" list for PR-B (player surfaces) to place.
+      // The abort itself is proven by the return-to-lobby flow below.
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-return-lobby').click();
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
