@@ -649,6 +649,22 @@ describe('createWerewolfRoomShellModel', () => {
     });
   });
 
+  it('falls back to the guide at Ended when the action message is an empty string', () => {
+    // Live, useRoomDerived yields '' (not null) once no action role remains;
+    // the Ended settlement line must still surface.
+    const ended = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ended,
+        actionMessage: '',
+        guideMessage: '天亮了 → 昨夜信息/本局复盘由房主操作',
+      }),
+    );
+    expect(ended.bottomActions).toMatchObject({
+      kind: 'info',
+      message: '天亮了 → 昨夜信息/本局复盘由房主操作',
+    });
+  });
+
   it('carries the night progress in the stacked bottom model', () => {
     const gameState = createLocalGameState();
     const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);

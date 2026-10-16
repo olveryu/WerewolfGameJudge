@@ -709,12 +709,20 @@ export function useWerewolfRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Guide message (non-host phase hints; the bottom action message is
-  // their single home. The host's guidance lives on the host console.)
+  // Guide message (phase hints whose single home is the bottom action
+  // message. Host ACTION guidance lives on the host console; the Ended
+  // settlement line is information for every viewer, the host included,
+  // so it is produced here for both audiences.)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const guideMessage = useMemo((): string | null => {
-    if (!gameState || isHost) return null;
+    if (!gameState) return null;
+
+    if (isHost) {
+      return roomStatus === GameStatus.Ended
+        ? '天亮了 →「昨夜信息」查看结果，「本局复盘」查看/分享战报'
+        : null;
+    }
 
     const players = gameState.players;
     const totalSeats = gameState.template.numberOfPlayers;
