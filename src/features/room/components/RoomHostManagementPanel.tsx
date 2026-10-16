@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { DisabledReasonCaption } from '@/features/room/components/DisabledReasonCaption';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
@@ -153,17 +154,22 @@ const ManagementAction: React.FC<{
       </Button>
     );
   }
-  if (action.onDisabledPress === null) {
-    return (
+  const button =
+    action.onDisabledPress === null ? (
       <Button {...visualProps} disabled>
         {action.label}
       </Button>
+    ) : (
+      <Button {...visualProps} disabled onDisabledPress={action.onDisabledPress}>
+        {action.label}
+      </Button>
     );
-  }
+  if (action.disabledReason === null || action.disabledReason.length === 0) return button;
   return (
-    <Button {...visualProps} disabled onDisabledPress={action.onDisabledPress}>
-      {action.label}
-    </Button>
+    <View>
+      {button}
+      <DisabledReasonCaption reason={action.disabledReason} />
+    </View>
   );
 };
 

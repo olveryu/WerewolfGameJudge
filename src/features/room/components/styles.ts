@@ -29,6 +29,13 @@ export interface BottomActionPanelStyles {
   hostManagementPreviewRow: ViewStyle;
   hostManagementPreview: TextStyle;
   hostManagementPreviewUrgent: TextStyle;
+  nextStepReady: ViewStyle;
+  nextStepContent: ViewStyle;
+  nextStepReadyLabel: TextStyle;
+  nextStepBlocked: ViewStyle;
+  nextStepBlockedText: ViewStyle;
+  nextStepBlockedLabel: TextStyle;
+  nextStepBlockedReason: TextStyle;
 }
 
 export interface ConnectionStatusBarStyles {

@@ -13,11 +13,15 @@ import type {
   RoomBottomInfoModel,
   RoomBottomToolButton,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import type {
+  RoomHostManagementModel,
+  RoomNextStep,
+} from '@/features/room/model/RoomHostManagement';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 
+import { DisabledReasonCaption } from './DisabledReasonCaption';
 import type { BottomActionPanelStyles } from './styles';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
@@ -150,7 +154,11 @@ const DockActions: React.FC<{
   return (
     <View style={styles.compactManagementStack}>
       {dockContent}
-      <HostManagementEntry model={hostManagement} onPress={onOpenHostManagement} styles={styles} />
+      <HostManagementBlock
+        model={hostManagement}
+        onOpenHostManagement={onOpenHostManagement}
+        styles={styles}
+      />
     </View>
   );
 };
@@ -184,9 +192,9 @@ const StackedActions: React.FC<{
       )}
 
       {hostManagement !== null && (
-        <HostManagementEntry
+        <HostManagementBlock
           model={hostManagement}
-          onPress={onOpenHostManagement}
+          onOpenHostManagement={onOpenHostManagement}
           styles={styles}
         />
       )}
@@ -211,10 +219,69 @@ const InfoActions: React.FC<{
       </View>
     )}
     {hostManagement !== null && (
-      <HostManagementEntry model={hostManagement} onPress={onOpenHostManagement} styles={styles} />
+      <HostManagementBlock
+        model={hostManagement}
+        onOpenHostManagement={onOpenHostManagement}
+        styles={styles}
+      />
     )}
   </View>
 );
+
+const HostManagementBlock: React.FC<{
+  readonly model: RoomHostManagementModel;
+  readonly onOpenHostManagement: () => void;
+  readonly styles: BottomActionPanelStyles;
+}> = ({ model, onOpenHostManagement, styles }) => (
+  <View style={styles.compactManagementStack}>
+    {model.nextStep !== null && <NextStepStrip step={model.nextStep} styles={styles} />}
+    <HostManagementEntry model={model} onPress={onOpenHostManagement} styles={styles} />
+  </View>
+);
+
+const NextStepStrip: React.FC<{
+  readonly step: RoomNextStep;
+  readonly styles: BottomActionPanelStyles;
+}> = ({ step, styles }) => {
+  if (step.state.kind === 'ready') {
+    return (
+      <Button
+        variant="primary"
+        size="md"
+        onPress={step.state.onPress}
+        testID={TESTIDS.roomNextStepButton}
+        accessibilityLabel={`下一步：${step.label}`}
+        style={styles.nextStepReady}
+      >
+        <View style={styles.nextStepContent}>
+          <Text style={styles.nextStepReadyLabel} numberOfLines={1}>
+            {`下一步：${step.label}`}
+          </Text>
+          <Ionicons name="arrow-forward" size={componentSizes.icon.sm} color={colors.textInverse} />
+        </View>
+      </Button>
+    );
+  }
+  const { reason, remedy } = step.state;
+  return (
+    <View style={styles.nextStepBlocked}>
+      <View style={styles.nextStepBlockedText}>
+        <Text style={styles.nextStepBlockedLabel}>{step.label}</Text>
+        <Text style={styles.nextStepBlockedReason}>{reason}</Text>
+      </View>
+      {remedy !== null && (
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={remedy.onPress}
+          testID={TESTIDS.roomNextStepRemedyButton}
+        >
+          {remedy.label}
+        </Button>
+      )}
+    </View>
+  );
+};
 
 const HostManagementEntry: React.FC<{
   readonly model: RoomHostManagementModel;
@@ -315,18 +382,23 @@ const LayoutButton: React.FC<{
     );
   }
 
-  if (model.onDisabledPress === null) {
-    return (
+  const button =
+    model.onDisabledPress === null ? (
       <Button {...visualProps} disabled>
         {model.label}
       </Button>
+    ) : (
+      <Button {...visualProps} disabled onDisabledPress={model.onDisabledPress}>
+        {model.label}
+      </Button>
     );
-  }
 
+  if (model.disabledReason === null || model.disabledReason.length === 0) return button;
   return (
-    <Button {...visualProps} disabled onDisabledPress={model.onDisabledPress}>
-      {model.label}
-    </Button>
+    <View>
+      {button}
+      <DisabledReasonCaption reason={model.disabledReason} />
+    </View>
   );
 };
 

@@ -154,6 +154,49 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         fontWeight: typography.weights.semibold,
         flexShrink: 1,
       },
+      nextStepReady: {
+        width: '100%',
+        minHeight: componentSizes.button.md,
+        paddingHorizontal: spacing.small,
+        borderRadius: borderRadius.small,
+      },
+      nextStepContent: {
+        width: '100%',
+        minWidth: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.small,
+      },
+      nextStepReadyLabel: {
+        ...textStyles.bodySemibold,
+        color: colors.textInverse,
+        flexShrink: 1,
+      },
+      nextStepBlocked: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.small,
+        paddingHorizontal: spacing.small,
+        paddingVertical: spacing.small,
+        borderRadius: borderRadius.small,
+        borderWidth: fixed.borderWidth,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+      },
+      nextStepBlockedText: {
+        flex: 1,
+        minWidth: 0,
+        gap: spacing.micro,
+      },
+      nextStepBlockedLabel: {
+        ...textStyles.secondarySemibold,
+        color: colors.text,
+      },
+      nextStepBlockedReason: {
+        ...textStyles.caption,
+        color: colors.textSecondary,
+      },
     }),
 
     connectionStatusBar: StyleSheet.create<ConnectionStatusBarStyles>({

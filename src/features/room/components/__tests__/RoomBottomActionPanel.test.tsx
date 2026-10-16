@@ -98,7 +98,7 @@ describe('RoomBottomActionPanel', () => {
         ghost: [],
       },
     };
-    const { getByText } = render(
+    const { getAllByText } = render(
       <RoomBottomActionPanel
         model={model}
         hostManagement={null}
@@ -107,7 +107,12 @@ describe('RoomBottomActionPanel', () => {
         bottomInset={0}
       />,
     );
-    fireEvent.press(getByText('等待房主开始'));
+    // The disabled reason renders again as the caption under the button.
+    const matches = getAllByText('等待房主开始');
+    expect(matches).toHaveLength(2);
+    const buttonLabel = matches[0];
+    if (buttonLabel === undefined) throw new Error('expected the disabled button label');
+    fireEvent.press(buttonLabel);
     expect(onDisabledPress).toHaveBeenCalledTimes(1);
   });
 
@@ -187,6 +192,7 @@ describe('RoomBottomActionPanel', () => {
         model={model}
         hostManagement={{
           preview: '下一步：开始游戏',
+          nextStep: null,
           status: '角色确认完成',
           sections: [],
         }}
@@ -235,7 +241,7 @@ describe('RoomBottomActionPanel', () => {
     const screen = render(
       <RoomBottomActionPanel
         model={model}
-        hostManagement={{ preview: '待处理：结束报名', status: null, sections: [] }}
+        hostManagement={{ preview: '待处理：结束报名', nextStep: null, status: null, sections: [] }}
         onOpenHostManagement={openHostManagement}
         styles={styles}
         bottomInset={0}
@@ -316,7 +322,7 @@ describe('RoomBottomActionPanel', () => {
             },
           ],
         }}
-        hostManagement={{ preview: '可重新开始', status: null, sections: [] }}
+        hostManagement={{ preview: '可重新开始', nextStep: null, status: null, sections: [] }}
         onOpenHostManagement={jest.fn()}
         styles={styles}
         bottomInset={0}
@@ -394,5 +400,79 @@ describe('RoomBottomActionPanel', () => {
     expect(screen.getByText('本局复盘')).toBeTruthy();
     expect(screen.queryByText('查看身份')).toBeNull();
     expect(screen.queryByTestId(TESTIDS.roomHostManagementButton)).toBeNull();
+  });
+
+  describe('next step strip', () => {
+    const emptyModel: RoomBottomActionModel = { kind: 'info', message: null, actions: [] };
+
+    it('runs the ready step through the same callback the panel action carries', () => {
+      const onPress = jest.fn();
+      const screen = render(
+        <RoomBottomActionPanel
+          model={emptyModel}
+          hostManagement={{
+            preview: '下一步：开始游戏',
+            nextStep: {
+              actionKey: 'start-game',
+              label: '开始游戏',
+              state: { kind: 'ready', onPress },
+            },
+            status: null,
+            sections: [],
+          }}
+          onOpenHostManagement={jest.fn()}
+          styles={styles}
+          bottomInset={0}
+        />,
+      );
+      const strip = screen.getByTestId(TESTIDS.roomNextStepButton);
+      expect(strip.props.accessibilityLabel).toBe('下一步：开始游戏');
+      fireEvent.press(strip);
+      expect(onPress).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the blocked reason on the strip and runs the remedy from its button', () => {
+      const onRemedy = jest.fn();
+      const screen = render(
+        <RoomBottomActionPanel
+          model={emptyModel}
+          hostManagement={{
+            preview: '下一步：分配角色',
+            nextStep: {
+              actionKey: 'start-game',
+              label: '分配角色',
+              state: {
+                kind: 'blocked',
+                reason: '座位尚未坐满（还差 2 人）',
+                remedy: { label: '分享房间', onPress: onRemedy },
+              },
+            },
+            status: null,
+            sections: [],
+          }}
+          onOpenHostManagement={jest.fn()}
+          styles={styles}
+          bottomInset={0}
+        />,
+      );
+      expect(screen.getByText('分配角色')).toBeTruthy();
+      expect(screen.getByText('座位尚未坐满（还差 2 人）')).toBeTruthy();
+      fireEvent.press(screen.getByTestId(TESTIDS.roomNextStepRemedyButton));
+      expect(onRemedy).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders no strip when the model carries no next step', () => {
+      const screen = render(
+        <RoomBottomActionPanel
+          model={emptyModel}
+          hostManagement={{ preview: '房主管理', nextStep: null, status: null, sections: [] }}
+          onOpenHostManagement={jest.fn()}
+          styles={styles}
+          bottomInset={0}
+        />,
+      );
+      expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
+      expect(screen.queryByTestId(TESTIDS.roomNextStepRemedyButton)).toBeNull();
+    });
   });
 });

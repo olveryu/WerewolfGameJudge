@@ -70,6 +70,8 @@ export const TESTIDS = {
   roomUserSettingsButton: 'room-user-settings-button',
   roomHostManagementButton: 'room-host-management-button',
   roomHostManagementPanel: 'room-host-management-panel',
+  roomNextStepButton: 'room-next-step-button',
+  roomNextStepRemedyButton: 'room-next-step-remedy-button',
   roomSettingsButton: 'room-settings-button',
   roomFillBotsButton: 'room-fill-bots-button',
   roomClearSeatsButton: 'room-clear-seats-button',
