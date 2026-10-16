@@ -99,7 +99,7 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { preview: '分配身份', status: null, sections: [] };
+    const hostManagement = { preview: '分配身份', nextStep: null, status: null, sections: [] };
     const onSeatPress = jest.fn();
     const model = create__GAME_PASCAL__RoomShellModel({
       roomCode: '1234',
