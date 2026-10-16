@@ -22,7 +22,7 @@ type CommandContext = Parameters<typeof storyRelayEngine.decide>[2];
 
 function capabilities(
   isSetup: boolean,
-): Pick<RoomCapabilities, 'canConfigureGame' | 'canFillBots' | 'canClearSeats'> {
+): Pick<RoomCapabilities, 'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'> {
   return createRoomSetupCapabilities({
     isSetup,
     isHost: true,
@@ -132,7 +132,7 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true, true);
-    expect(model?.preview).toBe('开始游戏');
+    expect(model?.preview).toBe('下一步：开始游戏');
     expect(model?.status).toBe('等待入座 · 1/4');
     const start = model?.sections[0]?.actions[0];
     expect(start).toMatchObject({
@@ -150,6 +150,20 @@ describe('createStoryRelayHostManagement', () => {
     expect(build(game.state, true, true)?.sections[0]?.actions[0]).toMatchObject({
       isEnabled: true,
     });
+  });
+
+  it('derives the next step from the lobby start gate', () => {
+    const game = session();
+    game.seatHost();
+    const blocked = build(game.state, true, true)?.nextStep;
+    expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
+    if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
+    expect(blocked.state.reason).toBe('座位尚未坐满');
+    expect(blocked.state.remedy?.label).toBe('分享房间');
+
+    game.send({ type: 'room.seat.fillBots' });
+    const ready = build(game.state, true, true)?.nextStep;
+    if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
   });
 
   it('pins the answering panel: finish-phase plus abort', () => {
