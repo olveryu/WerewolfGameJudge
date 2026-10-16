@@ -203,7 +203,6 @@ export function useStoryRelayRoomState(
     isHost,
     mySeat,
     hostManagement,
-    canControlBots,
     releaseBot,
   });
   const openShare = share.open;

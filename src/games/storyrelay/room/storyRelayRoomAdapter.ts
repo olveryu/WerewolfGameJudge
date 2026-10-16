@@ -1,7 +1,6 @@
 /** Projects Story Relay state into shared seats and public room status without exposing drafts. */
 
 import {
-  getBotSeats,
   getStoryRelayOccupiedSeatCount,
   getStoryRelayTaskForSeat,
   type StoryRelayCommand,
@@ -28,12 +27,12 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
+import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
 } from '@/features/room/model/RoomHostManagement';
@@ -43,15 +42,8 @@ import type {
 } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
-import {
-  buildLobbyWaitingText,
-  messageRibbon,
-  progressRibbon,
-} from '@/features/room/model/statusRibbon';
-import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 /** Returns a public occupant identity for shared profile controls. */
 function getStoryRelayProfileTarget(
@@ -122,30 +114,23 @@ function createStoryRelaySeatDataSource(input: StoryRelaySeatSourceInput): RoomS
   });
 }
 
-/** Public status never includes story content or writer identity. */
-function createStoryRelayStatusRibbon(state: StoryRelayState): RoomStatusRibbonModel | null {
-  if (state.phase === 'answering' || state.phase === 'transition')
-    return progressRibbon({
-      current: state.stepIndex + 1,
-      total: state.config.numberOfPlayers,
-      label:
-        state.phase === 'transition'
-          ? '稿件已收齐'
-          : state.stepIndex === 0
-            ? '写下故事开头'
-            : '续写故事',
-    });
-  const text =
-    state.phase === 'lobby'
-      ? buildLobbyWaitingText(getStoryRelayOccupiedSeatCount(state), state.config.numberOfPlayers)
-      : state.phase === 'settling'
-        ? '正在收稿'
-        : state.phase === 'gallery'
-          ? '故事揭晓中'
-          : state.phase === 'aborted'
-            ? '未完成的故事'
-            : '本局故事已完成';
-  return messageRibbon(text);
+/**
+ * The relay steps feed the bottom panel's slim progress row; every
+ * other phase has no step progress. Public progress never includes
+ * story content or writer identity.
+ */
+function deriveStoryRelayBottomProgress(state: StoryRelayState): NightStepProgress | null {
+  if (state.phase !== 'answering' && state.phase !== 'transition') return null;
+  return {
+    current: state.stepIndex + 1,
+    total: state.config.numberOfPlayers,
+    label:
+      state.phase === 'transition'
+        ? '稿件已收齐'
+        : state.stepIndex === 0
+          ? '写下故事开头'
+          : '续写故事',
+  };
 }
 
 export interface StoryRelayRoomShellModelInput {
@@ -174,7 +159,6 @@ export interface StoryRelayRoomShellModelInput {
   readonly isHost: boolean;
   readonly mySeat: number | null;
   readonly hostManagement: RoomHostManagementModel | null;
-  readonly canControlBots: boolean;
   readonly releaseBot: () => void;
 }
 
@@ -210,23 +194,18 @@ export function createStoryRelayHostManagement(
       isEnabled:
         !input.isSubmitting &&
         getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
-      disabledReason: input.isSubmitting ? null : '座位尚未坐满',
-      onDisabledPress: input.isSubmitting
+      disabledReason: input.isSubmitting
         ? null
-        : () => showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL),
+        : `座位尚未坐满（还差 ${
+            state.config.numberOfPlayers - getStoryRelayOccupiedSeatCount(state)
+          } 人）`,
       isLoading: input.isSubmitting,
+      isPrimary: true,
+      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      onConsolePress: () =>
+        showConfirmAlert('开始游戏？', '将分配写作顺序并开始故事接龙', submitStart),
     });
     return {
-      preview: '下一步：开始游戏',
-      nextStep: buildRoomNextStep({
-        action: startAction,
-        onPress: () => showConfirmAlert('开始游戏？', '将分配写作顺序并开始故事接龙', submitStart),
-        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      }),
-      status: buildLobbyWaitingText(
-        getStoryRelayOccupiedSeatCount(state),
-        state.config.numberOfPlayers,
-      ),
       sections: [
         {
           key: 'game',
@@ -240,9 +219,6 @@ export function createStoryRelayHostManagement(
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
   if (isTerminal) {
     return {
-      preview: state.phase === 'ended' ? '故事已揭晓' : '未完成的故事',
-      nextStep: null,
-      status: null,
       sections: [
         {
           key: 'current-flow',
@@ -281,9 +257,6 @@ export function createStoryRelayHostManagement(
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
   if (!canAbort) return null;
   return {
-    preview: '管理本局',
-    nextStep: null,
-    status: null,
     sections: [
       ...(state.phase === 'answering'
         ? [
@@ -361,7 +334,6 @@ export function createStoryRelayRoomShellModel(
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createStoryRelayStatusRibbon(state),
     seats: {
       source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
@@ -383,12 +355,11 @@ export function createStoryRelayRoomShellModel(
         isHost: input.isHost,
         mySeat: input.mySeat,
       }),
+      progress: deriveStoryRelayBottomProgress(state),
       actions: [],
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
-      canControlBots: input.canControlBots,
-      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null
