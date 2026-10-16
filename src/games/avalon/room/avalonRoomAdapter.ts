@@ -1,5 +1,5 @@
 /**
- * 把阿瓦隆权威状态投影到共享座位表与房间状态条，不暴露私密信息。
+ * 把阿瓦隆权威状态投影到共享座位表与房间壳模型，不暴露私密信息。
  */
 
 import {
@@ -15,7 +15,6 @@ import {
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   getAvalonViewModel,
-  getBotSeats,
   isAvalonPlayerCount,
 } from '@game-judge/game-engine/games/avalon/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
@@ -42,7 +41,7 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
-import { resolveStepProgress } from '@/features/room/model/nightProgress';
+import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
   buildAudioWaitingButton,
   type RoomBottomButton,
@@ -52,7 +51,6 @@ import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
-  buildRoomNextStep,
   buildShareRoomRemedy,
   type RoomHostManagementAction,
   type RoomHostManagementSection,
@@ -60,15 +58,9 @@ import {
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { getRoomSeatTapIntent } from '@/features/room/model/RoomSeatTap';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
-import type { RoomStatusRibbonModel } from '@/features/room/model/RoomShellModel';
 import type { RoomConnectionViewModel, RoomShellModel } from '@/features/room/model/RoomShellModel';
-import {
-  buildLobbyWaitingText,
-  messageRibbon,
-  progressRibbon,
-} from '@/features/room/model/statusRibbon';
 import { colors } from '@/theme';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
@@ -222,68 +214,14 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
   percivalReveal: '派西维尔的视野',
 };
 
-/** 公共状态条：不含私密信息。 */
-export function createAvalonStatusRibbon(state: AvalonState): RoomStatusRibbonModel | null {
-  const phase = state.phase;
-  if (phase.kind === 'viewing') {
-    // 查看阶段（对局未开始）两态：未齐报进度、齐了报等待房主开始；
-    // 逐座名单看座位盘打勾（展示契约 §3.3：汇总只此一处出口）。
-    const participants = getAvalonViewingParticipants(state);
-    const viewedCount = participants.filter((participant) =>
-      state.roleViewedSeats.includes(participant.seat),
-    ).length;
-    if (participants.length > 0 && viewedCount === participants.length)
-      return messageRibbon('全员已查看身份，等待房主开始游戏');
-    return messageRibbon(`等待全员查看身份 · ${viewedCount}/${participants.length}`);
-  }
-  if (phase.kind === 'night') {
-    // 夜晚横幅与狼人杀同形：共享进度派生（第x步/共y步 + 步名 + 进度条）。
-    // 私密确认进度由逐座位徽标呈现（仅参与者可见），横幅不计数。
-    const progress = resolveStepProgress(AVALON_NIGHT_STEPS, phase.step, AVALON_NIGHT_STEP_LABELS);
-    if (progress !== null) return progressRibbon(progress);
-    return messageRibbon(`天黑 · ${AVALON_NIGHT_STEP_LABELS[phase.step]}`);
-  }
-  if (phase.kind === 'nominate') {
-    // 副行承载对局上下文（任务成败 tally），不是进度——逐轮进度看座位盘徽标。
-    const successCount = state.questResults.filter((result) => result === 'success').length;
-    const failCount = state.questResults.filter((result) => result === 'fail').length;
-    return messageRibbon(
-      `第 ${phase.round} 轮 · 队长组队中`,
-      `任务成功 ${successCount} · 失败 ${failCount}`,
-    );
-  }
-  if (phase.kind === 'vote') {
-    // 已投计数是公开信息（座位徽标同口径）；武装后进入揭晓倒计时。
-    const castCount = Object.keys(phase.ballots).length;
-    const totalCount = Object.keys(state.roster).length;
-    return messageRibbon(
-      `第 ${phase.round} 轮 · 组队投票中`,
-      phase.deadlineAt !== null ? '已全部投票 · 即将揭晓' : `已投 ${castCount}/${totalCount}`,
-    );
-  }
-  if (phase.kind === 'quest') {
-    const playedCount = phase.teamSeats.filter((seat) => phase.plays[seat] !== undefined).length;
-    return messageRibbon(
-      `第 ${phase.round} 轮 · 任务执行中`,
-      phase.deadlineAt !== null
-        ? '已全部出牌 · 即将揭晓'
-        : `已出牌 ${playedCount}/${phase.teamSeats.length}`,
-    );
-  }
-  if (phase.kind === 'lady') {
-    // 查验的发起与对象是公开事件，归状态条副行；结果是私人信息、只住弹窗。
-    return messageRibbon(
-      '湖中仙女查验',
-      phase.targetSeat !== null
-        ? `${avalonSeatLabel(state, phase.holderSeat)} 正在查验 ${avalonSeatLabel(state, phase.targetSeat)}`
-        : `${avalonSeatLabel(state, phase.holderSeat)} 正在选择查验目标`,
-    );
-  }
-  if (phase.kind === 'assassin') return messageRibbon('刺杀阶段', '等待刺客指认');
-  if (phase.kind === 'ended') return messageRibbon('本局已结束');
-  return messageRibbon(
-    buildLobbyWaitingText(getAvalonOccupiedSeatCount(state), state.config.numberOfPlayers),
-  );
+/**
+ * 夜晚步进进度（底部细进度行的数据）：与狼人杀同形，共享步进派生
+ * （第x步/共y步 + 步名）。私密确认进度由逐座位徽标呈现（仅参与者
+ * 可见），进度行不计数。非夜晚阶段为 null。
+ */
+export function deriveAvalonBottomProgress(state: AvalonState): NightStepProgress | null {
+  if (state.phase.kind !== 'night') return null;
+  return resolveStepProgress(AVALON_NIGHT_STEPS, state.phase.step, AVALON_NIGHT_STEP_LABELS);
 }
 
 /** 最新一次任务结算的结论句；尚无任务结算时为 null。 */
@@ -418,7 +356,8 @@ export interface AvalonBottomActionsInput {
  * 阿瓦隆底部动作区：全游戏个人动作与个人指令的唯一落点（落点总规则）——
  * 查看身份局内常驻；夜晚信息步两步确认（按钮 → 弹窗）；白天各阶段的主按钮
  * （提交队伍 / 去投票 / 去出牌 / 查看查验请求）与个人状态走 message；
- * 公开阶段状态归状态条、逐座状态归座位盘、一次性信息归弹窗。
+ * 夜晚步进走底部细进度行、公开阶段状态归摘要条、逐座状态归座位盘、
+ * 一次性信息归弹窗。
  */
 function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomInfoModel {
   const { state } = input;
@@ -427,7 +366,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
   if (input.isLobby) {
     // 大厅客人等分配（个人提示）；房主走房主面板。
     if (!input.isHost && input.mySeat !== null) message = '等待房主分配角色';
-    return { kind: 'info', message, actions };
+    return { kind: 'info', message, progress: null, actions };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
   if (input.effectiveSeat !== null) {
@@ -447,7 +386,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     if (input.effectiveSeat !== null && !state.roleViewedSeats.includes(input.effectiveSeat)) {
       message = '请点击下方「查看身份」，查看你的角色';
     }
-    return { kind: 'info', message, actions };
+    return { kind: 'info', message, progress: null, actions };
   }
   if (phase.kind === 'night') {
     // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
@@ -474,7 +413,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
         );
       }
     }
-    return { kind: 'info', message, actions };
+    return { kind: 'info', message, progress: deriveAvalonBottomProgress(state), actions };
   }
   const vm = getAvalonViewModel(state, input.effectiveSeat);
   // 提前刺杀：刺客个人常驻动作（不属于房主管理），白天阶段与阶段主按钮并存。
@@ -494,7 +433,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       });
       message =
         '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
-      return { kind: 'info', message, actions };
+      return { kind: 'info', message, progress: null, actions };
     }
     actions.push({
       key: 'earlyStrike',
@@ -544,20 +483,17 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
             size: 'md',
             isEnabled: false,
             disabledReason: null,
-            onDisabledPress: null,
             isLoading: true,
             testID: 'avalon-nominate-submit',
           });
         } else {
-          const reason = `队员人数必须为 ${instruction.requiredSize} 人`;
           actions.push({
             key: 'proposeTeam',
             label: '提交队伍',
             variant: 'primary',
             size: 'md',
             isEnabled: false,
-            disabledReason: reason,
-            onDisabledPress: () => showErrorAlert('暂时不能提交队伍', reason),
+            disabledReason: `队员人数必须为 ${instruction.requiredSize} 人`,
             testID: 'avalon-nominate-submit',
           });
         }
@@ -636,7 +572,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
           break;
         case 'watching':
         case 'result':
-          // 公开进程归状态条副行；结果本体归弹窗（上方重开入口）。
+          // 结果本体归弹窗（上方重开入口）；公开进程由座位盘徽标呈现。
           break;
       }
       break;
@@ -657,7 +593,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     default:
       break;
   }
-  return { kind: 'info', message, actions };
+  return { kind: 'info', message, progress: null, actions };
 }
 
 export interface AvalonRoomShellModelInput {
@@ -746,21 +682,16 @@ export function createAvalonHostManagement(
       onPress: submitAssign,
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
-      onDisabledPress: () => showErrorAlert('暂时不能开始', startDisabledReason ?? '请稍后重试'),
       isLoading: input.isSubmitting,
-    });
-    return {
-      preview: '下一步：分配角色',
-      // The panel action submits directly; the strip gates the same
+      isPrimary: true,
+      remedy: buildShareRoomRemedy(capabilities.canShareRoom),
+      // The panel action submits directly; the console gates the same
       // execution callback with the confirm Werewolf's dialog layer
       // gives its own assign step.
-      nextStep: buildRoomNextStep({
-        action: assignAction,
-        onPress: () =>
-          showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', submitAssign),
-        remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      }),
-      status: buildLobbyWaitingText(occupiedSeatCount, state.config.numberOfPlayers),
+      onConsolePress: () =>
+        showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', submitAssign),
+    });
+    return {
       sections: [
         {
           key: 'game',
@@ -785,8 +716,10 @@ export function createAvalonHostManagement(
       onPress: submitBegin,
       isEnabled: !input.isSubmitting && allViewed,
       disabledReason: beginDisabledReason,
-      onDisabledPress: () => showErrorAlert('暂时不能开始', beginDisabledReason ?? '请稍后重试'),
       isLoading: input.isSubmitting,
+      isPrimary: true,
+      onConsolePress: () =>
+        showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
     });
     const sections: RoomHostManagementSection[] = [
       {
@@ -813,21 +746,11 @@ export function createAvalonHostManagement(
       });
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
     return {
-      preview: '下一步：开始游戏',
-      nextStep: buildRoomNextStep({
-        action: beginAction,
-        onPress: () =>
-          showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
-      }),
-      status: `等待全员查看身份 · ${viewedCount}/${participants.length}`,
       sections,
     };
   }
   if (state.phase.kind === 'ended') {
     return {
-      preview: '本局已结束',
-      nextStep: null,
-      status: null,
       sections: [
         {
           key: 'current-flow',
@@ -936,14 +859,6 @@ export function createAvalonHostManagement(
   // 房主管理常驻（对齐狼人杀）：局内任何时候房主都能点开，房间管理区始终有，
   // 投票/任务阶段额外出现"结束投票"/"结束任务"。
   return {
-    nextStep: null,
-    preview:
-      state.phase.kind === 'vote'
-        ? '结束投票'
-        : state.phase.kind === 'quest'
-          ? '结束任务'
-          : '房主管理',
-    status: null,
     sections: [...inGameSections, { key: 'room', title: '房间管理', actions: roomActions }],
   };
 }
@@ -969,7 +884,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onUserActionPress: input.onUserActionPress,
     }),
     connection: input.connection,
-    statusRibbon: createAvalonStatusRibbon(state),
     seats: {
       source: seatSource,
       visuallyDisabled: input.seatsVisuallyDisabled,
@@ -1007,8 +921,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     }),
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({
-      canControlBots: input.canControlBots,
-      hasBots: getBotSeats(state.roster).length > 0,
       controlledSeat: input.controlledSeat,
       controlledBotName:
         input.controlledSeat !== null

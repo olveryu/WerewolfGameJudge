@@ -21,7 +21,7 @@ import {
 import {
   type AvalonRoomShellModelInput,
   createAvalonRoomShellModel,
-  createAvalonStatusRibbon,
+  deriveAvalonBottomProgress,
 } from '../avalonRoomAdapter';
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
@@ -148,20 +148,24 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
 }
 
 describe('createAvalonRoomShellModel', () => {
-  it('assembles the lobby shell: header sums tickets, bot lobby shows the takeover hint', () => {
+  it('assembles the lobby shell: header sums tickets, no banner without a takeover', () => {
     const { state } = session(3);
     const input = baseInput(state);
     const model = createAvalonRoomShellModel(input);
     expect(model.roomCode).toBe('1234');
     expect(model.header.userAction?.ticketCount).toBe(5);
-    expect(model.statusRibbon).toEqual(createAvalonStatusRibbon(state));
     expect(model.seats.source.count).toBe(5);
     expect(model.seats.onBotSeatLongPress).toBe(input.onBotSeatLongPress);
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({ kind: 'info', message: null, actions: [] });
-    expect(model.controlledSeat).toEqual({ kind: 'hint' });
+    expect(model.bottomActions).toEqual({
+      kind: 'info',
+      message: null,
+      progress: null,
+      actions: [],
+    });
+    expect(model.controlledSeat).toBeNull();
   });
 
   it('shows 等待房主分配角色 to a seated non-host in the lobby', () => {
@@ -175,6 +179,7 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.bottomActions).toEqual({
       kind: 'info',
       message: '等待房主分配角色',
+      progress: null,
       actions: [],
     });
     expect(model.controlledSeat).toBeNull();
@@ -249,10 +254,12 @@ describe('createAvalonRoomShellModel', () => {
         label: '语音播报中…',
         isEnabled: false,
         disabledReason: '语音播报尚未结束，请稍候',
-        onDisabledPress: null,
         testID: 'avalon-night-info',
       },
     );
+    // The night step progress rides the bottom model during the night.
+    expect(during.bottomActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
+    expect(during.bottomActions.progress).not.toBeNull();
     // Drain the queued narration; the action becomes the confirm step.
     let guard = 0;
     while (running.state.isAudioPlaying && guard < 10) {

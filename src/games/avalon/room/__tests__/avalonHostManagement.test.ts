@@ -14,6 +14,7 @@ import {
   parseAvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -186,8 +187,6 @@ describe('createAvalonHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true, true);
-    expect(model?.preview).toBe('下一步：分配角色');
-    expect(model?.status).toBe('等待入座 · 1/6');
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'start-game',
       label: '分配角色',
@@ -213,8 +212,8 @@ describe('createAvalonHostManagement', () => {
     game.startToNominate();
     expect(game.state.phase.kind).toBe('nominate');
     const model = build(game.state, true, false);
-    expect(model?.preview).toBe('房主管理');
     expect(model?.sections.map((section) => section.key)).toEqual(['room']);
+    expect(resolveHostConsolePrimary(model!)).toBeNull();
   });
 
   it('offers the bot-viewing scaffold while bot seats are unmarked, then drops it', () => {
@@ -226,8 +225,6 @@ describe('createAvalonHostManagement', () => {
     const model = build(game.state, true, false);
     // Viewing panel: begin waits for the checkpoint (only the host has
     // viewed), the scaffold action fills the bot records.
-    expect(model?.preview).toBe('下一步：开始游戏');
-    expect(model?.status).toBe('等待全员查看身份 · 1/6');
     expect(model?.sections.map((entry) => entry.key)).toEqual(['game', 'bot-viewing', 'room']);
     expect(model?.sections[0]?.actions[0]).toMatchObject({
       key: 'start-game',
@@ -257,7 +254,6 @@ describe('createAvalonHostManagement', () => {
     game.sendAsSeat({ type: 'avalon.team.propose' }, game.state.leaderSeat);
     expect(game.state.phase.kind).toBe('vote');
     const voteModel = build(game.state, true, false);
-    expect(voteModel?.preview).toBe('结束投票');
     expect(voteModel?.sections.map((section) => section.key)).toEqual(['vote', 'room']);
     expect(voteModel?.sections[0]?.actions[0]).toMatchObject({
       key: 'finish-vote',
@@ -269,7 +265,6 @@ describe('createAvalonHostManagement', () => {
     game.send({ type: 'avalon.vote.finish' });
     expect(game.state.phase.kind).toBe('quest');
     const questModel = build(game.state, true, false);
-    expect(questModel?.preview).toBe('结束任务');
     expect(questModel?.sections.map((section) => section.key)).toEqual(['quest', 'room']);
     expect(questModel?.sections[0]?.actions[0]).toMatchObject({
       key: 'finish-quest',
@@ -278,24 +273,24 @@ describe('createAvalonHostManagement', () => {
     });
   });
 
-  describe('next step', () => {
+  describe('console primary', () => {
     it('blocks role assignment in the lobby with the missing-seat count and a share remedy', () => {
       const game = session();
       game.seatHost();
-      const step = build(game.state, true, true)?.nextStep;
-      expect(step).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
-      if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-      expect(step.state.reason).toBe('座位尚未坐满（还差 5 人）');
-      expect(step.state.remedy?.label).toBe('分享房间');
+      const primary = resolveHostConsolePrimary(build(game.state, true, true)!);
+      expect(primary).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
+      if (primary?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+      expect(primary.reason).toBe('座位尚未坐满（还差 5 人）');
+      expect(primary.remedy?.label).toBe('分享房间');
     });
 
     it('offers role assignment once the room is full', () => {
       const game = session();
       game.seatHost();
       game.fill();
-      const step = build(game.state, true, true)?.nextStep;
-      expect(step).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
-      if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+      const primary = resolveHostConsolePrimary(build(game.state, true, true)!);
+      expect(primary).toMatchObject({ actionKey: 'start-game', label: '分配角色' });
+      if (primary?.kind !== 'ready') throw new Error('expected a ready console primary');
     });
 
     it('blocks game start while players have not viewed, then offers it once all have', () => {
@@ -303,23 +298,23 @@ describe('createAvalonHostManagement', () => {
       game.seatHost();
       game.fill();
       game.startWithUnmarkedBots();
-      const blocked = build(game.state, true, false)?.nextStep;
+      const blocked = resolveHostConsolePrimary(build(game.state, true, false)!);
       expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-      if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-      expect(blocked.state.reason).toBe('还有玩家未查看身份');
-      expect(blocked.state.remedy).toBeNull();
+      if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+      expect(blocked.reason).toBe('还有玩家未查看身份');
+      expect(blocked.remedy).toBeNull();
 
       game.send({ type: 'avalon.bots.markAllBotsViewed' });
-      const ready = build(game.state, true, false)?.nextStep;
-      if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+      const ready = resolveHostConsolePrimary(build(game.state, true, false)!);
+      if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
     });
 
-    it('has no next step in the nomination phase', () => {
+    it('has no console primary in the nomination phase', () => {
       const game = session();
       game.seatHost();
       game.fill();
       game.startToNominate();
-      expect(build(game.state, true, false)?.nextStep).toBeNull();
+      expect(resolveHostConsolePrimary(build(game.state, true, false)!)).toBeNull();
     });
   });
 
@@ -331,7 +326,6 @@ describe('createAvalonHostManagement', () => {
     game.playToEnded();
     expect(game.state.phase.kind).toBe('ended');
     const model = build(game.state, true, false);
-    expect(model?.preview).toBe('本局已结束');
     const actions = model?.sections[0]?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['next-round', 'return-lobby']);
     expect(actions.map((action) => action.testID)).toEqual([
