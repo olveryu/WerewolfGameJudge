@@ -85,7 +85,6 @@ const FibRoomContent: React.FC<FibRoomContentProps> = ({
           <>
             <FibRoomSummary
               phase={screen.phase}
-              occupiedSeatCount={screen.occupiedSeatCount}
               playerCount={screen.playerCount}
               preparationStage={screen.preparationStage}
               preparationFailureCode={screen.preparationFailureCode}

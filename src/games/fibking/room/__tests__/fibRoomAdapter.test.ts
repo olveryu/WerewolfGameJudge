@@ -4,6 +4,7 @@ import {
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import { resolveHostConsolePrimary } from '@/features/room/model/resolveHostConsolePrimary';
 import {
   createFibBoardInfoSections,
   createFibBottomActions,
@@ -11,7 +12,6 @@ import {
   createFibRoomCapabilities,
   createFibRoomShellModel,
   createFibSeatDataSource,
-  createFibStatusRibbon,
   getFibProfileTarget,
   getFibSeatTapIntent,
 } from '@/games/fibking/room/fibRoomAdapter';
@@ -104,7 +104,6 @@ describe('FibKing room adapter', () => {
         startRound: jest.fn(),
         markAllBotsViewed,
         beginRound: jest.fn(),
-        onBeginDisabled: jest.fn(),
         isGuessing: false,
         toggleGuessMode: jest.fn(),
         cancelPreparing: jest.fn(),
@@ -112,7 +111,6 @@ describe('FibKing room adapter', () => {
         redrawRound: jest.fn(),
         abandonGame: jest.fn(),
         endGame: jest.fn(),
-        onStartDisabled: jest.fn(),
       });
     const flowActions = (state: FibState) =>
       build(state)?.sections.find((section) => section.key === 'current-flow')?.actions ?? [];
@@ -308,7 +306,6 @@ describe('FibKing room adapter', () => {
       { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
     ]);
     expect(actions.layout.ghost).toEqual([]);
-    expect(createFibStatusRibbon(ended)).toMatchObject({ text: '本轮答案已公布' });
   });
 
   it('derives discoverable Host management tasks from Fib phases', () => {
@@ -317,7 +314,6 @@ describe('FibKing room adapter', () => {
     const redrawRound = jest.fn();
     const abandonGame = jest.fn();
     const endGame = jest.fn();
-    const onStartDisabled = jest.fn();
     const lobby = createLobby();
     const lobbyCapabilities = createFibRoomCapabilities({
       state: lobby,
@@ -333,7 +329,6 @@ describe('FibKing room adapter', () => {
       startRound,
       markAllBotsViewed: jest.fn(),
       beginRound: jest.fn(),
-      onBeginDisabled: jest.fn(),
       isGuessing: false,
       toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
@@ -341,22 +336,18 @@ describe('FibKing room adapter', () => {
       redrawRound,
       abandonGame,
       endGame,
-      onStartDisabled,
     });
 
-    expect(lobbyManagement?.preview).toBe('下一步：开始本轮');
     expect(lobbyManagement?.sections.flatMap((section) => section.actions)).toMatchObject([
-      { label: '开始本轮', isEnabled: false, disabledReason: '座位尚未坐满' },
+      { label: '开始本轮', isEnabled: false, disabledReason: '座位尚未坐满（还差 7 人）' },
       { label: '房间设置', isEnabled: true },
       { label: '填充机器人', isEnabled: true },
       { label: '清空座位', isEnabled: true },
     ]);
     const startAction = lobbyManagement?.sections[0]?.actions[0];
-    if (startAction?.isEnabled !== false || startAction.onDisabledPress === null) {
-      throw new Error('Expected disabled Fib start feedback');
-    }
-    startAction.onDisabledPress();
-    expect(onStartDisabled).toHaveBeenCalledTimes(1);
+    if (startAction?.isEnabled !== false) throw new Error('Expected a disabled Fib start');
+    expect(startAction).not.toHaveProperty('onPress');
+    expect(startAction.isPrimary).toBe(true);
 
     const ongoing = createOngoing();
     const ongoingCapabilities = createFibRoomCapabilities({
@@ -373,7 +364,6 @@ describe('FibKing room adapter', () => {
       startRound,
       markAllBotsViewed: jest.fn(),
       beginRound: jest.fn(),
-      onBeginDisabled: jest.fn(),
       isGuessing: false,
       toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
@@ -381,9 +371,7 @@ describe('FibKing room adapter', () => {
       redrawRound,
       abandonGame,
       endGame,
-      onStartDisabled,
     });
-    expect(ongoingManagement?.preview).toBe('可公布答案、重新抽词');
     expect(ongoingManagement?.sections.map((section) => section.title)).toEqual([
       '当前流程',
       '危险操作',
@@ -427,7 +415,6 @@ describe('FibKing room adapter', () => {
       startRound,
       markAllBotsViewed: jest.fn(),
       beginRound: jest.fn(),
-      onBeginDisabled: jest.fn(),
       isGuessing: false,
       toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
@@ -435,9 +422,7 @@ describe('FibKing room adapter', () => {
       redrawRound,
       abandonGame,
       endGame,
-      onStartDisabled,
     });
-    expect(endedManagement?.preview).toBe('下一步：下一轮');
     expect(endedManagement?.sections.map((section) => section.title)).toEqual([
       '当前流程',
       '危险操作',
@@ -509,7 +494,6 @@ describe('FibKing room adapter', () => {
       startRound,
       markAllBotsViewed: jest.fn(),
       beginRound: jest.fn(),
-      onBeginDisabled: jest.fn(),
       isGuessing: false,
       toggleGuessMode: jest.fn(),
       cancelPreparing,
@@ -517,7 +501,6 @@ describe('FibKing room adapter', () => {
       revealRound: jest.fn(),
       redrawRound: jest.fn(),
       abandonGame: jest.fn(),
-      onStartDisabled: jest.fn(),
     });
     expect(hostManagement?.sections[0]?.actions).toMatchObject([
       { label: '重新准备', isEnabled: true },
@@ -532,10 +515,6 @@ describe('FibKing room adapter', () => {
     returnLobbyAction.onPress();
     expect(startRound).toHaveBeenCalledTimes(1);
     expect(cancelPreparing).toHaveBeenCalledTimes(1);
-    expect(createFibStatusRibbon(failed)).toMatchObject({
-      text: '词语准备失败',
-      supportingText: '暂无可用词语，请重新准备',
-    });
 
     const playerActions = createFibBottomActions({ state: failed, isHost: false, ...common });
     expect(playerActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
@@ -585,7 +564,7 @@ describe('FibKing room adapter', () => {
   });
 });
 
-describe('createFibHostManagement next step', () => {
+describe('createFibHostManagement console primary', () => {
   beforeEach(() => jest.clearAllMocks());
 
   const build = (state: FibState) =>
@@ -597,7 +576,6 @@ describe('createFibHostManagement next step', () => {
       startRound: jest.fn(),
       markAllBotsViewed: jest.fn(),
       beginRound: jest.fn(),
-      onBeginDisabled: jest.fn(),
       isGuessing: false,
       toggleGuessMode: jest.fn(),
       cancelPreparing: jest.fn(),
@@ -605,34 +583,33 @@ describe('createFibHostManagement next step', () => {
       redrawRound: jest.fn(),
       abandonGame: jest.fn(),
       endGame: jest.fn(),
-      onStartDisabled: jest.fn(),
     });
 
   it('blocks the round start in a non-full lobby and offers room sharing as the remedy', () => {
-    const step = build(createLobby(4))?.nextStep;
+    const step = resolveHostConsolePrimary(build(createLobby(4))!);
     expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本轮' });
-    if (step?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-    expect(step.state.reason).toBe('座位尚未坐满');
-    expect(step.state.remedy?.label).toBe('分享房间');
-    step.state.remedy?.onPress();
+    if (step?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
+    expect(step.remedy?.label).toBe('分享房间');
+    step.remedy?.onPress();
     expect(callbacks.shareRoom).toHaveBeenCalledTimes(1);
   });
 
   it('offers the round start once every seat is taken', () => {
-    const step = build(withBotSeats(createLobby(4), [1, 2, 3]))?.nextStep;
+    const step = resolveHostConsolePrimary(build(withBotSeats(createLobby(4), [1, 2, 3]))!);
     expect(step).toMatchObject({ actionKey: 'start-game', label: '开始本轮' });
-    if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
 
   it('blocks game start until every seat has viewed, then offers it', () => {
-    const blocked = build(createViewing([0]))?.nextStep;
+    const blocked = resolveHostConsolePrimary(build(createViewing([0]))!);
     expect(blocked).toMatchObject({ actionKey: 'start-game', label: '开始游戏' });
-    if (blocked?.state.kind !== 'blocked') throw new Error('expected a blocked next step');
-    expect(blocked.state.reason).toBe('还有玩家未查看身份');
-    expect(blocked.state.remedy).toBeNull();
+    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked console primary');
+    expect(blocked.reason).toBe('还有玩家未查看身份');
+    expect(blocked.remedy).toBeNull();
 
-    const ready = build(createViewing([0, 1, 2, 3]))?.nextStep;
-    if (ready?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    const ready = resolveHostConsolePrimary(build(createViewing([0, 1, 2, 3]))!);
+    if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
 
   it('offers re-preparation directly after a failed preparation', () => {
@@ -648,13 +625,13 @@ describe('createFibHostManagement next step', () => {
       },
       round: null,
     };
-    const step = build(failed)?.nextStep;
+    const step = resolveHostConsolePrimary(build(failed)!);
     expect(step).toMatchObject({ actionKey: 'retry-preparation', label: '重新准备' });
-    if (step?.state.kind !== 'ready') throw new Error('expected a ready next step');
+    if (step?.kind !== 'ready') throw new Error('expected a ready console primary');
   });
 
-  it('has no next step while a round is ongoing', () => {
-    expect(build(createOngoing())?.nextStep).toBeNull();
+  it('has no console primary while a round is ongoing', () => {
+    expect(resolveHostConsolePrimary(build(createOngoing())!)).toBeNull();
   });
 });
 
@@ -691,7 +668,7 @@ describe('createFibRoomShellModel', () => {
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     };
-    const bottomActions = { kind: 'info' as const, message: null, actions: [] };
+    const bottomActions = { kind: 'info' as const, message: null, progress: null, actions: [] };
     const connection = {
       status: 'live' as const,
       pendingCommandCount: 0,
@@ -726,7 +703,6 @@ describe('createFibRoomShellModel', () => {
     expect(model.header.onBack).toBe(onBack);
     expect(model.header.userAction?.ticketCount).toBe(5);
     expect(model.connection).toBe(connection);
-    expect(model.statusRibbon).toEqual(createFibStatusRibbon(state));
     expect(model.seats).toEqual({
       source: seatSource,
       visuallyDisabled: true,

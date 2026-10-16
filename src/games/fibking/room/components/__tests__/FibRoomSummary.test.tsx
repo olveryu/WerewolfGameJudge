@@ -19,7 +19,6 @@ describe('FibRoomSummary', () => {
     const view = render(
       <FibRoomSummary
         phase="preparing"
-        occupiedSeatCount={4}
         playerCount={4}
         preparationStage={preparationStage}
         preparationFailureCode={null}
@@ -29,31 +28,39 @@ describe('FibRoomSummary', () => {
     expect(view.getByTestId(TESTIDS.fibPreparationStatus)).toHaveTextContent(label);
   });
 
-  it.each([
-    ['selectionFailed', '暂无可用词语，请重新准备'],
-    ['inventoryExhausted', '本桌新题已用完，请等待题库更新'],
-  ] satisfies readonly (readonly [FibPreparationFailureCode, string])[])(
-    'shows the Chinese %s preparation failure',
-    (preparationFailureCode, label) => {
-      const view = render(
-        <FibRoomSummary
-          phase="preparationFailed"
-          occupiedSeatCount={4}
-          playerCount={4}
-          preparationStage={null}
-          preparationFailureCode={preparationFailureCode}
-        />,
-      );
+  it('shows the inventory-exhausted failure line', () => {
+    const view = render(
+      <FibRoomSummary
+        phase="preparationFailed"
+        playerCount={4}
+        preparationStage={null}
+        preparationFailureCode={'inventoryExhausted' satisfies FibPreparationFailureCode}
+      />,
+    );
 
-      expect(view.getByTestId(TESTIDS.fibPreparationStatus)).toHaveTextContent(label);
-    },
-  );
+    expect(view.getByTestId(TESTIDS.fibPreparationStatus)).toHaveTextContent(
+      '本桌新题已用完，请等待题库更新',
+    );
+  });
+
+  it('shows no failure line for a plain selection failure (the retry lives on the host console)', () => {
+    const view = render(
+      <FibRoomSummary
+        phase="preparationFailed"
+        playerCount={4}
+        preparationStage={null}
+        preparationFailureCode={'selectionFailed' satisfies FibPreparationFailureCode}
+      />,
+    );
+
+    expect(view.queryByTestId(TESTIDS.fibPreparationStatus)).toBeNull();
+    expect(view.queryByText(/暂无可用词语/)).toBeNull();
+  });
 
   it('hides preparation status outside the preparing phases', () => {
     const view = render(
       <FibRoomSummary
         phase="preparing"
-        occupiedSeatCount={4}
         playerCount={4}
         preparationStage={FIB_PREPARATION_STAGES.finalizing}
         preparationFailureCode={null}
@@ -63,7 +70,6 @@ describe('FibRoomSummary', () => {
     view.rerender(
       <FibRoomSummary
         phase="ongoing"
-        occupiedSeatCount={4}
         playerCount={4}
         preparationStage={null}
         preparationFailureCode={null}

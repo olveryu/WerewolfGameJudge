@@ -18,20 +18,10 @@ import { componentSizes } from '@/theme/tokens';
 interface FibRoomSummaryProps {
   readonly headerRight?: React.ReactNode;
   readonly phase: FibPhase;
-  readonly occupiedSeatCount: number;
   readonly playerCount: number;
   readonly preparationStage: FibPreparationStage | null;
   readonly preparationFailureCode: FibPreparationFailureCode | null;
 }
-
-const PHASE_LABELS = {
-  lobby: '等待入座',
-  preparing: '准备词语',
-  preparationFailed: '准备失败',
-  viewing: '查看身份',
-  ongoing: '描述进行中',
-  ended: '本轮已结束',
-} as const;
 
 const PREPARATION_STAGE_LABELS: Readonly<Record<FibPreparationStage, string>> = {
   queued: '等待选取词语',
@@ -39,30 +29,31 @@ const PREPARATION_STAGE_LABELS: Readonly<Record<FibPreparationStage, string>> = 
   finalizing: '正在检查词语和释义',
 };
 
-const PREPARATION_FAILURE_LABELS: Readonly<Record<FibPreparationFailureCode, string>> = {
-  selectionFailed: '暂无可用词语，请重新准备',
-  inventoryExhausted: '本桌新题已用完，请等待题库更新',
-};
+const INVENTORY_EXHAUSTED_LABEL = '本桌新题已用完，请等待题库更新';
 
 const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
   headerRight,
   phase,
-  occupiedSeatCount,
   playerCount,
   preparationStage,
   preparationFailureCode,
 }) => {
+  // The summary carries configuration only. Preparation stage detail
+  // stays while preparing; of the failure codes only inventory
+  // exhaustion is explained here — a plain selection failure is the
+  // host console's retry primary and the players' bottom message.
   const preparationStatus =
     phase === 'preparing'
       ? preparationStage === null
         ? null
         : PREPARATION_STAGE_LABELS[preparationStage]
-      : phase === 'preparationFailed'
-        ? preparationFailureCode === null
-          ? null
-          : PREPARATION_FAILURE_LABELS[preparationFailureCode]
+      : phase === 'preparationFailed' && preparationFailureCode === 'inventoryExhausted'
+        ? INVENTORY_EXHAUSTED_LABEL
         : null;
-  if ((phase === 'preparing' || phase === 'preparationFailed') && preparationStatus === null) {
+  if (phase === 'preparing' && preparationStatus === null) {
+    throw new Error(`[FAIL-FAST] Fib summary is missing status for phase ${phase}`);
+  }
+  if (phase === 'preparationFailed' && preparationFailureCode === null) {
     throw new Error(`[FAIL-FAST] Fib summary is missing status for phase ${phase}`);
   }
 
@@ -71,7 +62,6 @@ const FibRoomSummaryComponent: React.FC<FibRoomSummaryProps> = ({
       headerRight={headerRight}
       icon="bulb-outline"
       title={`瞎掰王 · ${playerCount}人局`}
-      subtitle={`${PHASE_LABELS[phase]} · ${occupiedSeatCount}/${playerCount} 人就座`}
     >
       {preparationStatus !== null ? (
         <View style={styles.preparationStatusRow} accessibilityLabel={preparationStatus}>

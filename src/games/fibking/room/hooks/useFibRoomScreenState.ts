@@ -6,7 +6,6 @@ import {
   type FibPreparationStage,
   type FibPublicCommand,
   type FibRoundView,
-  getBotSeats,
   getFibOccupiedSeatCount,
   getFibRoundView,
   getFibUserSeat,
@@ -43,7 +42,6 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { ROOM_SEAT_TAP_BLOCKED_TITLE } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { ROOM_COMMAND_FAILURE_SEATS_NOT_FULL } from '@/features/room/session/createRoomCommandFailureMessage';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -85,7 +83,6 @@ export interface FibRoomScreenState {
   /** 是否正接管机器人座位（接管时不播查看者本人的揭示动画，D-1）。 */
   readonly isBotTakeoverActive: boolean;
   readonly openRules: () => void;
-  readonly occupiedSeatCount: number;
   readonly playerCount: number;
   readonly phase: FibPhase;
   readonly preparationStage: FibPreparationStage | null;
@@ -225,10 +222,6 @@ export function useFibRoomScreenState({
   const beginRound = useCallback(() => {
     void submitCommand('开始游戏', { type: 'fibking.round.begin' });
   }, [submitCommand]);
-
-  const showBeginDisabled = useCallback(() => {
-    showErrorAlert('暂时不能开始', '还有玩家未查看身份');
-  }, []);
 
   const toggleGuessMode = useCallback(() => {
     if (state.phase !== 'ongoing' || state.round === null) return;
@@ -472,10 +465,6 @@ export function useFibRoomScreenState({
     ],
   );
 
-  const showStartRoundDisabled = useCallback(() => {
-    showErrorAlert('暂时不能开始', ROOM_COMMAND_FAILURE_SEATS_NOT_FULL);
-  }, []);
-
   const markAllBotsViewed = useCallback(() => {
     void submitCommand('标记机器人已查看', { type: 'fibking.bots.markAllBotsViewed' });
   }, [submitCommand]);
@@ -490,7 +479,6 @@ export function useFibRoomScreenState({
         startRound,
         markAllBotsViewed,
         beginRound,
-        onBeginDisabled: showBeginDisabled,
         isGuessing,
         toggleGuessMode,
         cancelPreparing,
@@ -498,7 +486,6 @@ export function useFibRoomScreenState({
         redrawRound,
         abandonGame,
         endGame,
-        onStartDisabled: showStartRoundDisabled,
       }),
     [
       abandonGame,
@@ -512,8 +499,6 @@ export function useFibRoomScreenState({
       markAllBotsViewed,
       redrawRound,
       revealRound,
-      showBeginDisabled,
-      showStartRoundDisabled,
       startRound,
       state,
       toggleGuessMode,
@@ -532,8 +517,6 @@ export function useFibRoomScreenState({
   );
 
   const controlledSeatModel = createControlledSeatModel({
-    canControlBots: capabilities.canTakeOverBots.isAllowed,
-    hasBots: getBotSeats(state.roster).length > 0,
     controlledSeat,
     controlledBotName:
       controlledSeat !== null
@@ -604,7 +587,6 @@ export function useFibRoomScreenState({
     identityAllRoles,
     isBotTakeoverActive: controlledSeat !== null,
     openRules,
-    occupiedSeatCount: getFibOccupiedSeatCount(state),
     playerCount: state.numberOfPlayers,
     phase: state.phase,
     preparationStage: state.phase === 'preparing' ? state.pendingRound.stage : null,
