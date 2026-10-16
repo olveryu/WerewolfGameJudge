@@ -27,6 +27,9 @@ import {
 } from '@game-judge/game-engine/games/storyrelay/public';
 import { render } from '@testing-library/react-native';
 
+import { RoomBottomActionPanel } from '@/features/room/components/RoomBottomActionPanel';
+import { RoomHostManagementPanel } from '@/features/room/components/RoomHostManagementPanel';
+import { createRoomFeatureStyles } from '@/features/room/components/styles';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import {
   createBotTakeoverCapability,
@@ -47,10 +50,6 @@ import {
   createStoryRelayRoomShellModel,
 } from '@/games/storyrelay/room/storyRelayRoomAdapter';
 import { colors } from '@/theme';
-
-import { RoomBottomActionPanel } from '../RoomBottomActionPanel';
-import { RoomHostManagementPanel } from '../RoomHostManagementPanel';
-import { createRoomFeatureStyles } from '../styles';
 
 const featureStyles = createRoomFeatureStyles(colors);
 
