@@ -15,6 +15,7 @@ import type {
   RoomBottomActionModel,
   RoomBottomButton,
 } from '@/features/room/model/RoomBottomActions';
+import { buildStepActorWaitingMessage } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -517,6 +518,11 @@ function createWerewolfBottomActions(
     };
   }
 
+  const progress = deriveWerewolfBottomProgress(input.currentStepId, input.gameState);
+  // 夜晚步进中非行动者的等待句与进度行同源：同一个 progress 派生出
+  // 「正在等待 {本步角色} 行动」，两处永远指同一步。
+  const stepWaitingMessage =
+    input.roomStatus === GameStatus.Ongoing ? buildStepActorWaitingMessage(progress) : null;
   return {
     kind: 'stacked',
     message:
@@ -526,8 +532,8 @@ function createWerewolfBottomActions(
         ? input.isPlagueMode && input.isHost && input.roomStatus === GameStatus.Ready
           ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
           : input.actionMessage
-        : input.guideMessage,
-    progress: deriveWerewolfBottomProgress(input.currentStepId, input.gameState),
+        : (stepWaitingMessage ?? input.guideMessage),
+    progress,
     layout: roomBottomActionLayout,
   };
 }
