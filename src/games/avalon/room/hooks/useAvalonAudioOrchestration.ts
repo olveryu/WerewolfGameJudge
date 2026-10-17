@@ -1,22 +1,42 @@
 /**
- * 阿瓦隆第一晚播报 orchestration — 对齐狼人杀 WerewolfAudioOrchestrator（简化版）。
+ * 阿瓦隆第一晚播报 — 共享房间音频运行核（RoomAudioOrchestrator）的 React 薄绑定。
  *
- * 职责：监听 state.pendingAudioEffects，非空且为房主时按序播放，播完提交
- * `avalon.audio.ack`。非房主静默忽略。
+ * 生命周期（队列身份识别、顺序播放、prepared envelope ack、三层连接恢复、
+ * 重连整队重播、ack 后 recheck 链式续播）已搬入共享核心
+ * （src/features/room/audio/RoomAudioOrchestrator），全平台只此一份。本 hook
+ * 只做适配，不再自维护 ack/重试/去重逻辑：
+ * - queue source：直接读 session 权威快照（连接状态 + state.pendingAudioEffects）。
+ *   必须读快照而非 React prop：ack 提交后 session 先应用新快照再返回结果，
+ *   核心的 ack 后 recheck 只有读快照才能同步看到已清的队列（读 prop 会因
+ *   重渲染滞后而重播已确认的队列）。session 非 ready 或播放器未就绪时
+ *   快照为 null（核心静默）。
+ * - player port：AvalonAudioPlayer 的 playEffect；prepareQueue 承接原队列
+ *   播放前的整批 preload（失败只告警、不阻塞播放，与原行为一致）；
+ *   MissingAvalonAudioError 仍是 fail-fast。
+ * - ack port：session.prepare/dispatchPrepared 制 `avalon.audio.ack`，
+ *   envelope 由核心保留至终局决定（服务端按 commandId 幂等）。
  *
- * 与狼人杀的差异（产品差异，保留）：
- * - 无 BGM 联动：阿瓦隆无 BGM；无 ack 后链式续播。
+ * 入参 pendingAudioEffects 与快照里的同一字段是同一个数组（调用方
+ * useAvalonRoomState 正是从快照取出后传入），保留在签名上供调用方表达
+ * 队列输入；绑定本身以快照为准。
  *
- * ack 可靠性（AU-33，对齐狼人杀核心）：ack 命令预制备一次，同一
- * envelope 复用至确认或终局拒绝（服务端按 commandId 幂等）；ack 未
- * 确认时，会话重连（connection 回到 live）即重试同一命令，不重播整队。
- * 保留：重入 guard、单段失败跳过继续、空队列不 ack。
+ * 与原自维护实现的口径变化（按狼人杀基准，对齐方案 E3 §4）：队列已播完但
+ * ack 未确认时，重连不再只重试 ack——核心按队列仍在权威状态中为准，整队
+ * 重播后再 ack，避免播放被打断时未播完的播报被 ack 清掉。
  */
 
-import type { AudioEffect, AvalonPublicCommand } from '@game-judge/game-engine/games/avalon/public';
-import { useCallback, useEffect, useRef } from 'react';
+import type {
+  AudioEffect,
+  AvalonPublicCommand,
+  AvalonState,
+} from '@game-judge/game-engine/games/avalon/public';
+import { useEffect, useRef } from 'react';
 
-import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
+import {
+  RoomAudioOrchestrator,
+  type RoomAudioQueueSnapshot,
+  type RoomAudioQueueSource,
+} from '@/features/room/audio/RoomAudioOrchestrator';
 import type { PreparedRoomCommand } from '@/features/room/session/types';
 import { log } from '@/utils/logger';
 
@@ -29,143 +49,107 @@ const avalonAudioLog = log.extend('AvalonAudio');
 interface UseAvalonAudioOrchestrationDeps {
   readonly session: AvalonRoomSession;
   readonly isHost: boolean;
+  /** The session snapshot's queue, passed by the caller; the binding reads the authoritative queue from the session snapshot itself (see header). */
   readonly pendingAudioEffects: readonly AudioEffect[];
   readonly audio: AvalonAudioRuntime | null;
 }
 
-export function useAvalonAudioOrchestration({
-  session,
-  isHost,
-  pendingAudioEffects,
-  audio,
-}: UseAvalonAudioOrchestrationDeps): void {
-  const isPlayingRef = useRef(false);
-  const lastQueuedRef = useRef<string | null>(null);
-  const ackedRef = useRef<string | null>(null);
-  const pendingAckRef = useRef<{
-    queueKey: string;
-    prepared: PreparedRoomCommand<AvalonPublicCommand>;
-  } | null>(null);
-  const queueKeyRef = useRef<string | null>(null);
+type AvalonAudioCore = RoomAudioOrchestrator<
+  AudioEffect,
+  PreparedRoomCommand<AvalonPublicCommand>,
+  AvalonState
+>;
 
-  /**
-   * Send the ack for a queue through one prepared envelope, reused
-   * across retries until the server commits or terminally rejects it.
-   * Never throws: failures stay pending for the next retry trigger
-   * (effect re-run or reconnect).
-   */
-  const sendAck = useCallback(
-    async (queueKey: string): Promise<void> => {
-      try {
-        let pending = pendingAckRef.current;
-        if (pending === null || pending.queueKey !== queueKey) {
-          pending = {
-            queueKey,
-            prepared: session.prepare({ type: 'avalon.audio.ack' }, null),
-          };
-          pendingAckRef.current = pending;
-        }
-        const outcome = await session.dispatchPrepared(pending.prepared, '播报确认');
-        if (isSuccessfulRoomCommand(outcome)) {
-          ackedRef.current = queueKey;
-          if (pendingAckRef.current?.queueKey === queueKey) pendingAckRef.current = null;
-          return;
-        }
-        if (outcome.kind === 'decided') {
-          // Terminal rejection: the state has moved on; stop retrying
-          // this queue instead of resending a decided command forever.
-          avalonAudioLog.warn('avalon audio ack rejected; dropping pending ack', { queueKey });
-          ackedRef.current = queueKey;
-          if (pendingAckRef.current?.queueKey === queueKey) pendingAckRef.current = null;
-          return;
-        }
-        avalonAudioLog.warn('avalon audio ack undecided; will retry', {
-          queueKey,
-          outcomeKind: outcome.kind,
-        });
-      } catch (error) {
-        avalonAudioLog.warn('avalon audio ack failed; will retry', { error });
-      }
-    },
-    [session],
+export function useAvalonAudioOrchestration(deps: UseAvalonAudioOrchestrationDeps): void {
+  const { session, isHost, audio } = deps;
+  const sessionRef = useRef(session);
+  const isHostRef = useRef(isHost);
+  const audioRef = useRef(audio);
+  const abortedRef = useRef(false);
+  const coreRef = useRef<AvalonAudioCore | null>(null);
+  const listenersRef = useRef(
+    new Set<(snapshot: RoomAudioQueueSnapshot<AudioEffect> | null) => void>(),
   );
 
-  // Reconnect (L2): a pending ack retries as soon as the session is
-  // live again, with the same prepared envelope - no queue replay.
+  // Sync latest inputs and poke the core with the current snapshot on every
+  // render: host/player changes arrive as props, queue/connection changes
+  // arrive through the queue source's session forwarding below.
   useEffect(() => {
-    let wasLive = session.getSnapshot().connection === 'live';
-    return session.subscribe(() => {
-      const snapshot = session.getSnapshot();
-      const isLive = snapshot.connection === 'live';
-      const reconnected = isLive && !wasLive;
-      wasLive = isLive;
-      if (!reconnected || snapshot.phase !== 'ready') return;
-      const pending = pendingAckRef.current;
-      if (pending !== null && pending.queueKey === queueKeyRef.current) {
-        void sendAck(pending.queueKey);
-      }
-    });
-  }, [session, sendAck]);
+    sessionRef.current = session;
+    isHostRef.current = isHost;
+    audioRef.current = audio;
 
-  useEffect(() => {
-    if (pendingAudioEffects.length === 0) {
-      pendingAckRef.current = null;
-      queueKeyRef.current = null;
-      return;
-    }
-    if (!isHost || audio === null) return;
-    // 同一批队列只播一次（state 未变时 effect 重跑不重复播）。
-    const queueKey = pendingAudioEffects
-      .map((e) => `${e.audioKey}:${e.isEndAudio === true ? 'end' : 'begin'}`)
-      .join('|');
-    queueKeyRef.current = queueKey;
-    if (isPlayingRef.current || lastQueuedRef.current === queueKey) {
-      // 队列已播完但 ack 失败时，只重试 ack，不重播（QA Bug 4）。
-      if (lastQueuedRef.current === queueKey && ackedRef.current !== queueKey) {
-        void sendAck(queueKey);
-      }
-      return;
-    }
-    isPlayingRef.current = true;
-    lastQueuedRef.current = queueKey;
-
-    let cancelled = false;
-    const playQueue = async () => {
-      try {
-        // 先预加载全部 8 段，避免播放时卡顿（对齐狼人杀 startNight 后 preload）。
-        await audio.preload().catch((error: unknown) => {
-          avalonAudioLog.warn('avalon audio preload failed', { error });
-        });
-        for (const effect of pendingAudioEffects) {
-          if (cancelled) break;
-          try {
-            await audio.playEffect(effect.audioKey, effect.isEndAudio);
-          } catch (error) {
-            // Registry 缺失是编程错误，fail-fast 不吞（对齐狼人杀）。
-            if (error instanceof MissingAvalonAudioError) throw error;
-            // 单段播放失败不阻塞队列（对齐狼人杀）。
-            avalonAudioLog.warn('avalon audio effect failed, skipping', {
-              audioKey: effect.audioKey,
-              error,
-            });
-          }
-        }
-      } finally {
-        isPlayingRef.current = false;
-      }
-      if (cancelled) return;
-      // 播完（或全部跳过）后 ack，释放服务端门控。ack 未确认时
-      // lastQueuedRef 不重置，后续 effect 重跑或重连会用同一预制备
-      // 命令重试 ack（不重播，AU-33）。
-      await sendAck(queueKey);
+    const readSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
+      const current = sessionRef.current.getSnapshot();
+      if (current.phase !== 'ready' || audioRef.current === null) return null;
+      return {
+        pendingAudioEffects: current.snapshot.state.pendingAudioEffects,
+        connection: current.connection,
+      };
     };
 
-    void playQueue();
+    if (coreRef.current === null) {
+      const queueSource: RoomAudioQueueSource<AudioEffect> = {
+        getSnapshot: readSnapshot,
+        subscribe: (listener) => {
+          listenersRef.current.add(listener);
+          const unsubscribeSession = sessionRef.current.subscribe(() => listener(readSnapshot()));
+          return () => {
+            listenersRef.current.delete(listener);
+            unsubscribeSession();
+          };
+        },
+      };
+      coreRef.current = new RoomAudioOrchestrator<
+        AudioEffect,
+        PreparedRoomCommand<AvalonPublicCommand>,
+        AvalonState
+      >({
+        queueSource,
+        player: {
+          playEffect: (effect) => {
+            const player = audioRef.current;
+            if (player === null) {
+              throw new Error('[FAIL-FAST] Avalon audio playback requires a ready audio runtime');
+            }
+            return player.playEffect(effect.audioKey, effect.isEndAudio);
+          },
+          prepareQueue: async () => {
+            const player = audioRef.current;
+            if (player === null) return;
+            try {
+              await player.preload();
+            } catch (error) {
+              avalonAudioLog.warn('avalon audio preload failed', { error });
+            }
+          },
+          isMissingAssetError: (error) => error instanceof MissingAvalonAudioError,
+        },
+        ack: {
+          prepare: () => sessionRef.current.prepare({ type: 'avalon.audio.ack' }, null),
+          dispatch: (prepared) => sessionRef.current.dispatchPrepared(prepared, '播报确认'),
+        },
+        isHost: () => isHostRef.current,
+        isAborted: () => abortedRef.current,
+        logger: avalonAudioLog,
+        onError: (error, label) =>
+          avalonAudioLog.warn('avalon audio orchestration failed', { label, error }),
+      });
+    }
 
-    // Unmount 或队列变化时停止播放（QA Bug 5）。
-    return () => {
-      cancelled = true;
-      audio.stopNarration();
-    };
-  }, [session, isHost, pendingAudioEffects, audio, sendAck]);
+    const snapshot = readSnapshot();
+    for (const listener of listenersRef.current) listener(snapshot);
+  });
+
+  // Unmount: stop the lifecycle (timers, subscriptions, retained ack) and
+  // stop any in-flight narration, mirroring the previous hook's cleanup.
+  useEffect(
+    () => () => {
+      abortedRef.current = true;
+      coreRef.current?.dispose();
+      coreRef.current = null;
+      audioRef.current?.stopNarration();
+    },
+    [],
+  );
 }

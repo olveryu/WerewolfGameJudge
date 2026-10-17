@@ -127,8 +127,10 @@ function parseSeatNumbers(message: string): number[] {
 
 /**
  * Drive one night participant: bottom 确认信息 → modal → assert what they
- * see → confirm. The button stays disabled while the host narration plays,
- * so the click itself waits out the audio gate.
+ * see → confirm. The button is available while the host narration plays
+ * (confirmation and narration run in parallel; the step settles once
+ * every participant has confirmed and the host ack has landed, in
+ * either order), so no waiting out an audio gate here.
  */
 async function confirmNightInfo(
   page: Page,

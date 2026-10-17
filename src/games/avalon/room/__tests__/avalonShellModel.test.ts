@@ -235,7 +235,7 @@ describe('createAvalonRoomShellModel', () => {
     expect(onViewRolePress).toHaveBeenCalledTimes(1);
   });
 
-  it('pins the night info action: disabled while audio plays, confirm opens the modal after', () => {
+  it('pins the night info action: confirm stays available while audio plays', () => {
     const running = session(5);
     running.send({ type: 'avalon.game.start' });
     for (let seat = 0; seat < 5; seat += 1) {
@@ -247,40 +247,40 @@ describe('createAvalonRoomShellModel', () => {
         ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
       )?.[0],
     );
+    const onNightInfoPress = jest.fn();
     const nightInput = {
       ...baseInput(running.state),
       isLobby: false,
       mySeat: evilSeat,
       effectiveSeat: evilSeat,
       userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+      onNightInfoPress,
     };
-    // Audio is still playing right after the start: the action is disabled.
+    // Confirmation runs parallel to the narration: right after the
+    // start, while the audio is still playing, the action is already
+    // the enabled confirm step (no disabled audio-waiting placeholder).
+    expect(running.state.isAudioPlaying).toBe(true);
     const during = createAvalonRoomShellModel(nightInput);
     if (during.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
-    expect(during.bottomActions.actions.find((action) => action.key === 'nightInfo')).toMatchObject(
-      {
-        label: '语音播报中…',
-        isEnabled: false,
-        disabledReason: '语音播报尚未结束，请稍候',
-        testID: 'avalon-night-info',
-      },
-    );
+    const duringInfo = during.bottomActions.actions.find((action) => action.key === 'nightInfo');
+    expect(duringInfo).toMatchObject({
+      label: '确认信息',
+      isEnabled: true,
+      testID: 'avalon-night-info',
+    });
+    if (duringInfo && duringInfo.isEnabled) duringInfo.onPress();
+    expect(onNightInfoPress).toHaveBeenCalledTimes(1);
     // The night step progress rides the bottom model during the night.
     expect(during.bottomActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
     expect(during.bottomActions.progress).not.toBeNull();
-    // Drain the queued narration; the action becomes the confirm step.
+    // Drain the queued narration; the confirm action stays the same.
     let guard = 0;
     while (running.state.isAudioPlaying && guard < 10) {
       running.send({ type: 'avalon.audio.ack' });
       guard += 1;
     }
     expect(running.state.isAudioPlaying).toBe(false);
-    const onNightInfoPress = jest.fn();
-    const after = createAvalonRoomShellModel({
-      ...nightInput,
-      state: running.state,
-      onNightInfoPress,
-    });
+    const after = createAvalonRoomShellModel({ ...nightInput, state: running.state });
     if (after.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
     const nightInfo = after.bottomActions.actions.find((action) => action.key === 'nightInfo');
     expect(nightInfo).toMatchObject({
@@ -289,7 +289,49 @@ describe('createAvalonRoomShellModel', () => {
       testID: 'avalon-night-info',
     });
     if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
+    expect(onNightInfoPress).toHaveBeenCalledTimes(2);
+  });
+
+  it('lets a night participant confirm while the narration is still queued', () => {
+    const running = session(5);
+    running.send({ type: 'avalon.game.start' });
+    for (let seat = 0; seat < 5; seat += 1) {
+      running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
+    }
+    running.send({ type: 'avalon.game.begin' });
+    // The opening narration is queued and playing; nobody has acked yet.
+    expect(running.state.isAudioPlaying).toBe(true);
+    expect(running.state.pendingAudioEffects.length).toBeGreaterThan(0);
+    const evilSeat = Number(
+      Object.entries(running.state.roles).find(([, roleId]) =>
+        ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
+      )?.[0],
+    );
+    const onNightInfoPress = jest.fn();
+    const model = createAvalonRoomShellModel({
+      ...baseInput(running.state),
+      isLobby: false,
+      mySeat: evilSeat,
+      effectiveSeat: evilSeat,
+      userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+      onNightInfoPress,
+    });
+    if (model.bottomActions.kind !== 'info') throw new Error('expected info bottom actions');
+    const nightInfo = model.bottomActions.actions.find((action) => action.key === 'nightInfo');
+    expect(nightInfo).toMatchObject({
+      label: '确认信息',
+      isEnabled: true,
+      testID: 'avalon-night-info',
+    });
+    if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
     expect(onNightInfoPress).toHaveBeenCalledTimes(1);
+    // The confirm command itself dispatches and is recorded while the
+    // audio gate is still open; the step settles only once the host ack
+    // also lands (confirm-first and ack-first are equivalent by design).
+    running.send({ type: 'avalon.night.confirm' }, seatUser(evilSeat));
+    expect(running.state.isAudioPlaying).toBe(true);
+    if (running.state.phase.kind !== 'night') throw new Error('expected night phase');
+    expect(running.state.phase.confirmedSeats).toContain(evilSeat);
   });
 });
 

@@ -1,7 +1,9 @@
 /**
- * AU-33: the avalon audio ack reuses one prepared envelope and
- * retries it on reconnect - it never replays the queue and never
- * prepares a second command for the same queue.
+ * AU-33: the avalon audio ack reuses one prepared envelope across
+ * reconnect retries and never prepares a second command for the same
+ * queue. When the queue is still in the authoritative state on
+ * reconnect, the shared core replays it in full before resending the
+ * retained ack (an interrupted narration is never acked away unheard).
  */
 import { act, renderHook } from '@testing-library/react-native';
 
@@ -13,15 +15,25 @@ type Listener = () => void;
 function createFakeSession() {
   const listeners = new Set<Listener>();
   let connection: 'live' | 'reconnecting' = 'live';
+  // The queue lives in the session's authoritative snapshot state, the
+  // way the real session exposes it to the shared core. A committed ack
+  // clears the queue there before the dispatch outcome returns (the
+  // real session applies the post-command snapshot first).
+  let pendingAudioEffects: readonly { audioKey: string }[] = [
+    { audioKey: 'night' },
+    { audioKey: 'evil_reveal' },
+  ];
   let prepareCount = 0;
   const preparedObjects: unknown[] = [];
   const dispatchedPrepared: unknown[] = [];
   const dispatchPrepared = jest
     .fn(async (prepared: unknown) => {
       dispatchedPrepared.push(prepared);
-      return dispatchedPrepared.length === 1
-        ? { kind: 'notDecided', commandId: 'ack-1', reason: 'NETWORK_ERROR' }
-        : { kind: 'decided', decision: { kind: 'committed', outcome: { kind: 'success' } } };
+      if (dispatchedPrepared.length === 1) {
+        return { kind: 'notDecided', commandId: 'ack-1', reason: 'NETWORK_ERROR' };
+      }
+      pendingAudioEffects = [];
+      return { kind: 'decided', decision: { kind: 'committed', outcome: { kind: 'success' } } };
     })
     .mockName('dispatchPrepared');
   const session = {
@@ -29,7 +41,7 @@ function createFakeSession() {
       phase: 'ready',
       connection,
       pendingCommandCount: 0,
-      snapshot: { state: {} },
+      snapshot: { state: { pendingAudioEffects } },
     }),
     subscribe: (listener: Listener) => {
       listeners.add(listener);
@@ -70,7 +82,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     jest.clearAllMocks();
   });
 
-  it('retries the same prepared ack on reconnect without replaying', async () => {
+  it('replays the queue in full and retries the same prepared ack on reconnect', async () => {
     const fake = createFakeSession();
     renderHook(() =>
       useAvalonAudioOrchestration({
@@ -89,7 +101,8 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     expect(fake.dispatchPrepared).toHaveBeenCalledTimes(1);
     expect(fake.getPrepareCount()).toBe(1);
 
-    // Reconnect: the SAME prepared envelope is retried, no replay.
+    // Reconnect: the queue is still in the authoritative state, so it
+    // replays in full before the SAME prepared envelope is retried.
     await act(async () => {
       fake.setConnection('reconnecting');
     });
@@ -99,7 +112,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     expect(fake.dispatchPrepared).toHaveBeenCalledTimes(2);
     expect(fake.dispatchedPrepared[1]).toBe(fake.preparedObjects[0]);
     expect(fake.getPrepareCount()).toBe(1);
-    expect(audio.playEffect).toHaveBeenCalledTimes(2);
+    expect(audio.playEffect).toHaveBeenCalledTimes(4);
 
     // Once committed, further reconnects resend nothing.
     await act(async () => {
@@ -109,5 +122,6 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       fake.setConnection('live');
     });
     expect(fake.dispatchPrepared).toHaveBeenCalledTimes(2);
+    expect(audio.playEffect).toHaveBeenCalledTimes(4);
   });
 });

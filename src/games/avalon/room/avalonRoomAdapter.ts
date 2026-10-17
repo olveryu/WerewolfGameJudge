@@ -43,7 +43,6 @@ import {
 } from '@/features/room/model/hostManagementActions';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
-  buildAudioWaitingButton,
   buildEndedWaitingMessage,
   type RoomBottomButton,
   type RoomBottomInfoModel,
@@ -405,19 +404,17 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
         instruction.kind === 'merlin' ||
         instruction.kind === 'percival'
       ) {
-        actions.push(
-          state.isAudioPlaying
-            ? buildAudioWaitingButton({ key: 'nightInfo', testID: 'avalon-night-info' })
-            : {
-                key: 'nightInfo',
-                label: '确认信息',
-                variant: 'primary',
-                size: 'md',
-                isEnabled: true,
-                onPress: input.onNightInfoPress,
-                testID: 'avalon-night-info',
-              },
-        );
+        // 确认与播报并行：音频播放中也保持可用（引擎完成评估与确认、
+        // ack 的到达顺序无关，见 E3 §5b）；不再换成禁用占位等播报结束。
+        actions.push({
+          key: 'nightInfo',
+          label: '确认信息',
+          variant: 'primary',
+          size: 'md',
+          isEnabled: true,
+          onPress: input.onNightInfoPress,
+          testID: 'avalon-night-info',
+        });
       }
     }
     return { kind: 'info', message, progress: deriveAvalonBottomProgress(state), actions };
