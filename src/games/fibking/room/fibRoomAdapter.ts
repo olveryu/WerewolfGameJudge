@@ -31,6 +31,7 @@ import type {
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
+import { buildPreparationFailureMessage } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -542,7 +543,7 @@ function getPlayerMessage(state: FibState, viewerSeat: number | null): string | 
     case 'preparing':
       return '房主正在准备本轮';
     case 'preparationFailed':
-      return '词语准备失败，等待房主重新准备';
+      return buildPreparationFailureMessage({ reason: '词语准备失败', hostAction: '重新准备' });
     case 'viewing':
       if (viewerSeat === null) return '等待玩家查看身份';
       return state.round.viewedSeats.includes(viewerSeat) ? null : '请先查看你的身份';
