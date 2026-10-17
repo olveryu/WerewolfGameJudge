@@ -122,6 +122,7 @@ function expectedCreatedFiles(gameId, preset) {
     `${client}/screens/${pascal}RulesScreen.tsx`,
     `${client}/room/${pascal}RoomScreen.tsx`,
     `${client}/room/${gameId}RoomAdapter.ts`,
+    `${client}/room/${gameId}GuidanceMatrix.ts`,
     `${client}/room/${gameId}RoomCommandFailureMessage.ts`,
     `${client}/room/hooks/use${pascal}RoomState.ts`,
     `${client}/room/hooks/use${pascal}SeatCommands.ts`,

@@ -1,0 +1,37 @@
+/**
+ * __GAME_PASCAL__（阶段 × 观看者）底部提示矩阵声明：本表是新游戏的起点声明——
+ * 每格要么承诺该阶段入口态底部有一句提示，要么登记豁免理由（指出由哪个
+ * 表面承载引导）。生成后必须：①在 src/__tests__/roomGuidanceMatrix.contract.test.ts
+ * 的注册表里登记本表；②写一个矩阵测试，用真实引擎流驱动本游戏的
+ * shell model 逐格对账（参考 demo 的 demoGuidanceMatrix.test.ts）。
+ */
+import type { __GAME_PASCAL__PhaseKind } from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import {
+  GUIDANCE_MESSAGE,
+  guidanceExempt,
+  type RoomGuidanceMatrix,
+} from '@/features/room/model/RoomGuidanceMatrix';
+
+export const __GAME_UPPER___GUIDANCE_MATRIX: RoomGuidanceMatrix<__GAME_PASCAL__PhaseKind> = {
+  lobby: {
+    host: guidanceExempt('房主由房主面板承载分配身份动作'),
+    seated: GUIDANCE_MESSAGE,
+    spectator: guidanceExempt('无座位无个人提示；房间状态归座位盘'),
+  },
+  viewing: {
+    host: guidanceExempt('房主由房主面板承载开始游戏动作'),
+    seated: guidanceExempt('查看动作与阶段说明在 stage 区，查看进度归座位盘勾'),
+    spectator: guidanceExempt('身份查看阶段由 stage 区呈现，查看进度归座位盘勾'),
+  },
+  playing: {
+    host: guidanceExempt('玩法阶段界面在 stage 区'),
+    seated: guidanceExempt('玩法阶段界面在 stage 区'),
+    spectator: guidanceExempt('玩法阶段界面在 stage 区'),
+  },
+  ended: {
+    host: guidanceExempt('房主由房主面板承载再来一局 / 返回大厅'),
+    seated: GUIDANCE_MESSAGE,
+    spectator: guidanceExempt('终局由 stage 区呈现本局已结束'),
+  },
+};
