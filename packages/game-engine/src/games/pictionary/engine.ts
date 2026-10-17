@@ -42,6 +42,7 @@ import {
   REASON_PICTIONARY_UPLOAD_INVALID,
 } from './domain/reasons';
 import {
+  buildPictionaryCompletionPayload,
   controlPictionaryGallery,
   createPictionaryAssignment,
   decidePictionaryTask,
@@ -52,6 +53,7 @@ import { getPictionaryTaskForSeat } from './domain/visibility';
 import type { PictionaryEffect } from './effects/types';
 import { normalizePictionaryState } from './state/normalize';
 import {
+  getPictionaryRelayStepCount,
   isPictionaryRoomFull,
   isValidPictionaryConfig,
   PICTIONARY_DRAWING_HEIGHT,
@@ -336,22 +338,30 @@ function decideCommitPictionaryDrawing(
   if (reservation === undefined || !isValidMedia(media)) {
     return reject(REASON_PICTIONARY_UPLOAD_INVALID);
   }
+  const entry: PictionaryEntry = {
+    kind: 'drawing',
+    id: reservation.entryId,
+    authorSeat: reservation.authorSeat,
+    media,
+    submittedAt: context.nowMs,
+  };
   const events: PictionaryEvent[] = [
-    {
-      type: 'pictionary.task.submitted',
-      chainId: reservation.chainId,
-      entry: {
-        kind: 'drawing',
-        id: reservation.entryId,
-        authorSeat: reservation.authorSeat,
-        media,
-        submittedAt: context.nowMs,
-      },
-      submissionId,
-    },
+    { type: 'pictionary.task.submitted', chainId: reservation.chainId, entry, submissionId },
   ];
-  if (hasResolvedCurrentStep(state, 1)) events.push(transitionEvent(state, context.nowMs));
-  return commitPictionary(events);
+  if (!hasResolvedCurrentStep(state, 1)) return commitPictionary(events);
+  events.push(transitionEvent(state, context.nowMs));
+  // A drawing commit bypasses the shared task machine, so the final
+  // step's last drawing fires the round settlement from here — the
+  // same decision and payload assembly as the machine's path.
+  if (state.stepIndex !== getPictionaryRelayStepCount(state.config.numberOfPlayers) - 1) {
+    return commitPictionary(events);
+  }
+  return commitPictionary(events, [
+    {
+      type: 'pictionary.game.completed',
+      payload: buildPictionaryCompletionPayload(state, [entry], context.nowMs),
+    },
+  ]);
 }
 
 function expireAnsweringPhase(state: PictionaryState): PictionaryDecision {
