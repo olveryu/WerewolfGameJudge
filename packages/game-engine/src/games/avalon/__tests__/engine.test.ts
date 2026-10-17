@@ -104,7 +104,7 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
     },
     /** 确认当前 night 步骤的全部参与者，直到天亮（机器人席位由房主接管确认）。 */
     passNight() {
-      // 开局播报先 ack（对齐狼人杀：房主播完才放行确认）。
+      // 开局播报先 ack（确认与 ack 顺序无关，本 helper 取先 ack 的驱动顺序）。
       if (session.state.isAudioPlaying) send({ type: 'avalon.audio.ack' }, 'host');
       while (session.state.phase.kind === 'night') {
         const participants = getAvalonNightParticipants(
@@ -1692,7 +1692,7 @@ describe('Avalon engine', () => {
     expect(view.lastVoteResult?.abstainCount).toBe(0);
   });
 
-  it('queues night narration on game begin (never at deal) and blocks confirm until host ack', () => {
+  it('queues night narration on game begin (never at deal) and records confirm during playback', () => {
     // startGame helper 已 ack；这里手动走一遍验证队列内容。
     const raw = game({ numberOfPlayers: 7 });
     raw.send({ type: 'avalon.game.start' });
@@ -1706,13 +1706,17 @@ describe('Avalon engine', () => {
     raw.send({ type: 'avalon.game.begin' });
     expect(raw.state.isAudioPlaying).toBe(true);
     expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual(['night', 'evil_reveal']);
-    // 播报未播完时确认被阻塞。
+    // 播报未播完时确认照常记账（顺序门已删）：只记账、不推进，中间态合法。
     const morgana = raw.seatOfRole('morgana');
-    raw.expectReject(
-      { type: 'avalon.night.confirm' },
-      'avalon_audio_playing',
-      raw.seatUser(morgana),
-    );
+    raw.send({ type: 'avalon.night.confirm' }, raw.seatUser(morgana));
+    const nightPhase = raw.state.phase;
+    expect(nightPhase.kind).toBe('night');
+    if (nightPhase.kind === 'night') {
+      expect(nightPhase.step).toBe('evilReveal');
+      expect(nightPhase.confirmedSeats).toEqual([morgana]);
+    }
+    expect(raw.state.isAudioPlaying).toBe(true);
+    expect(raw.state.pendingAudioEffects.map((e) => e.audioKey)).toEqual(['night', 'evil_reveal']);
     // 非房主 ack 被拒绝（确保用非 0 号座位，莫甘娜可能随机分到房主座位）。
     const nonHostSeat = morgana === 0 ? 1 : morgana;
     raw.expectReject(
@@ -1720,7 +1724,7 @@ describe('Avalon engine', () => {
       'avalon_not_host_ack_audio',
       raw.seatUser(nonHostSeat),
     );
-    // 房主 ack 后放行。
+    // 房主 ack 清队（仅莫甘娜一人确认、未齐，不推进、只开门）。
     raw.send({ type: 'avalon.audio.ack' }, 'host');
     expect(raw.state.isAudioPlaying).toBe(false);
     expect(raw.state.pendingAudioEffects).toEqual([]);
