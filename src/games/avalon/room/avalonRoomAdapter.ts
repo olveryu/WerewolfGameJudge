@@ -583,7 +583,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
           // 持有人私密信息，不在此句出现。
           message =
             instruction.targetSeat !== null
-              ? `${avalonSeatLabel(state, instruction.holderSeat)} 正在查验 ${avalonSeatLabel(state, instruction.targetSeat)} 的阵营`
+              ? `${avalonSeatLabel(state, instruction.holderSeat)} 已选择查验 ${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认`
               : `${avalonSeatLabel(state, instruction.holderSeat)} 正在选择查验对象`;
           break;
         case 'result':

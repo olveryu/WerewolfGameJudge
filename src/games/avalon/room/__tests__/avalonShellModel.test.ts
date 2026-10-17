@@ -686,7 +686,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     const other = seats.find((seat) => seat !== holderSeat && seat !== target);
     if (other === undefined) throw new Error('expected another bystander seat');
     expect(shellFor(running, other).message).toBe(
-      `${holderSeat + 1} 号 · P${holderSeat} 正在查验 ${target + 1} 号 · P${target} 的阵营`,
+      `${holderSeat + 1} 号 · P${holderSeat} 已选择查验 ${target + 1} 号 · P${target}，等待对方确认`,
     );
   });
 
