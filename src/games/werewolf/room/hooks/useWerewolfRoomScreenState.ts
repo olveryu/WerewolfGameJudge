@@ -744,10 +744,7 @@ export function useWerewolfRoomScreenState(
       case GameStatus.Ready:
         return '准备就绪，等待房主开始';
       case GameStatus.Day:
-        // 无竞选白天（竞选期走警长 dock）：非房主无线上动作，等房主
-        // （法官）主持推进讨论与投票。行动者（白天技能窗口）走
-        // actionMessage，不经此句。
-        return '白天阶段，等待房主主持推进';
+        return null;
       case GameStatus.Ended: {
         let hostSeat: number | null = null;
         for (const [seat, p] of players) {

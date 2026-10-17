@@ -191,11 +191,10 @@ test.describe('Werewolf Night — Flow Verification', () => {
       // --- Phase 4: Wait for night to complete ---
       const nightDone = await waitForNightEnd(pages, 80);
       expect(nightDone, 'Night should have ended').toBe(true);
-      // NB: no day-phase assertion here — this flow's generic night
-      // driving regularly ends the 6p game at dawn (side wipe or
-      // parity), so a live day is not a deterministic landing. The
-      // PR-B G-3 day guide is pinned at the adapter assembly level
-      // (werewolfRoomAdapter.test.ts) instead.
+      // NB: no day-phase assertion here — with sheriff election off
+      // (helper default), the engine moves straight to Ended when
+      // the night resolves (handleEndNight): the day is hosted in
+      // person, and GameStatus.Day exists only for the election.
 
       // Attach diagnostic report
       await testInfo.attach('6p-seer-verify.txt', {
