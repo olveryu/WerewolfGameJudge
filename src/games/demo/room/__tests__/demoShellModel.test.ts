@@ -170,6 +170,68 @@ describe('createDemoRoomShellModel', () => {
     });
     expect(model.phase).toBe('viewing');
   });
+
+  it('shows the shared ended wait to a seated non-host player once ended', () => {
+    let state = viewingState();
+    state = drive(state, { type: 'demo.role.viewed' });
+    state = drive(state, { type: 'demo.bots.markAllBotsViewed' });
+    state = drive(state, { type: 'demo.game.begin' });
+    const playing = state.phase;
+    if (playing.kind !== 'playing') throw new Error('expected playing phase');
+    const settleContext: CommandContext = {
+      actor: { kind: 'system', effectId: 'effect:1' },
+      controlledSeat: null,
+      nowMs: playing.deadlineAt,
+      commandId: 'demo.phase.settleExpired',
+      randomSeed: 'seed',
+    };
+    const decision = demoEngine.decide(state, { type: 'demo.phase.settleExpired' }, settleContext);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(demoEngine.evolve, state);
+    if (state.phase.kind !== 'ended') throw new Error('expected ended phase');
+    const shellInput = {
+      roomCode: '1234',
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: null,
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state,
+      revision: 9,
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      hostManagement: { sections: [] },
+      releaseBot: jest.fn(),
+    } as const;
+    const playerModel = createDemoRoomShellModel({
+      ...shellInput,
+      userId: 'bot-user',
+      isHost: false,
+      mySeat: 2,
+    });
+    expect(playerModel.bottomActions).toMatchObject({
+      kind: 'info',
+      message: '等待房主操作（再来一局 / 返回大厅）',
+    });
+    const hostModel = createDemoRoomShellModel({
+      ...shellInput,
+      userId: 'host',
+      isHost: true,
+      mySeat: 0,
+    });
+    expect(hostModel.bottomActions).toMatchObject({ kind: 'info', message: null });
+  });
 });
 
 describe('createDemoHostManagement', () => {
