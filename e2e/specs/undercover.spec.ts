@@ -75,6 +75,9 @@ for (const viewport of [
         '下一步：开始本局',
         { timeout: 15_000 },
       );
+      // PR-B G-7: seated non-host players see the shared lobby wait in
+      // the bottom panel while the host has not started the game.
+      await expect(joinerPages[0]!.getByText('等待房主开始游戏', { exact: true })).toBeVisible();
 
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
@@ -102,6 +105,12 @@ for (const viewport of [
       );
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
+      // PR-B G-1: the speaking order is resident in the bottom panel
+      // for everyone once the round is ongoing (server round state).
+      const speakingOrder = hostPage.getByText(/本轮从 \d+ 号起按座位顺序发言/);
+      await expect(speakingOrder).toBeVisible();
+      const speakingOrderText = await speakingOrder.innerText();
+      await expect(joinerPages[0]!.getByText(speakingOrderText, { exact: true })).toBeVisible();
       await expect(
         (await hostRoom.openHostManagement()).getByTestId('undercover-select-player'),
       ).toBeVisible();
@@ -110,6 +119,9 @@ for (const viewport of [
       await expect(hostPage.getByTestId('undercover-word')).toHaveText(cards[0]!);
       await hostPage.reload();
       await hostRoom.waitForReady('host');
+      // Reload consistency: the same speaking order sentence is still
+      // there, derived from the same server round after a fresh load.
+      await expect(hostPage.getByText(speakingOrderText, { exact: true })).toBeVisible();
       await expect(hostPage.getByTestId('undercover-word')).toHaveCount(0);
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-speaking-${viewport.width}.png`),
@@ -221,11 +233,13 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-abort').click();
       await hostPage.getByText('确定', { exact: true }).click();
-      // Retired surface (PR-A): the aborted phase used to assert the
-      // ribbon line '本局已中止' here. That conclusion copy left with the
-      // status ribbon and currently has no surface; it is registered in
-      // PR #201's "no surface" list for PR-B (player surfaces) to place.
-      // The abort itself is proven by the return-to-lobby flow below.
+      // PR-B G-7: the aborted conclusion lives in the bottom panel —
+      // players get the conclusion plus the host wait, the host the
+      // bare conclusion (their console holds the return action).
+      await expect(
+        joinerPages[0]!.getByText('本局已中止，等待房主处理', { exact: true }),
+      ).toBeVisible();
+      await expect(hostPage.getByText('本局已中止', { exact: true })).toBeVisible();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('undercover-return-lobby').click();
       await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
