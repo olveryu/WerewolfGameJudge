@@ -51,6 +51,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

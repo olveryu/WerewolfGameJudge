@@ -170,6 +170,14 @@ function createFullState(): GameState {
 }
 
 describe('parseWerewolfState', () => {
+  it('defaults a missing pendingAudioEffects to an empty queue (legacy persisted state)', () => {
+    const state = createFullState();
+    const encoded = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
+    delete encoded['pendingAudioEffects'];
+
+    expect(parseWerewolfState(encoded).pendingAudioEffects).toEqual([]);
+  });
+
   it('decodes every current GameState field from JSON', () => {
     const state = createFullState();
     const encoded: unknown = JSON.parse(JSON.stringify(state));

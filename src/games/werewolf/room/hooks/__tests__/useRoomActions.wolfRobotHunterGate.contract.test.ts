@@ -32,6 +32,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},
     pendingRevealAcks: [],

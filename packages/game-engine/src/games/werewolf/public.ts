@@ -1,5 +1,6 @@
 /** Public pure API for the Werewolf game module. */
 
+export type { AudioEffect } from '../../platform/audio';
 export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
   WerewolfActionInput,
@@ -93,7 +94,6 @@ export {
   isBottomCardWolfVoteExcluded,
 } from './domain/playerHelpers';
 export type {
-  AudioEffect,
   BoardNomination,
   ConfirmStatus,
   FactionConfirmStatus,

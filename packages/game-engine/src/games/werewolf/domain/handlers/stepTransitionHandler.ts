@@ -20,13 +20,13 @@
  * UI hint calculation → uiHint.ts
  */
 
+import type { AudioEffect } from '../../../../platform/audio';
 import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { createAudioQueueActions } from '../audioQueue';
 import type { AdvanceNightIntent, EndNightIntent } from '../intents/types';
 import { type SchemaId } from '../models';
 import { buildNightPlan, getStepSpec } from '../models/roles/spec';
-import type { AudioEffect } from '../protocol/types';
 import type {
   AdvanceToNextActionAction,
   EndNightAction,

@@ -4,6 +4,7 @@
  * StateAction is reducer input, describing state mutations
  */
 
+import type { AudioEffect } from '../../../../platform/audio';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, RoleId, SchemaId } from '../models';
@@ -19,7 +20,7 @@ import type {
   SheriffElectionState,
   WerewolfHumanSeat,
 } from '../protocol/types';
-import type { AudioEffect, BoardNomination } from '../protocol/types';
+import type { BoardNomination } from '../protocol/types';
 
 // =============================================================================
 // Game lifecycle actions

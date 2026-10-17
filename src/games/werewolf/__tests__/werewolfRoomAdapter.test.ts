@@ -32,6 +32,7 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

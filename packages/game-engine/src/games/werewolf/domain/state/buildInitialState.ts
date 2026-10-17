@@ -32,6 +32,7 @@ export function buildInitialGameState(
     playerProfiles: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
     pendingRevealAcks: [],

@@ -8,6 +8,7 @@
  */
 
 // ⚠️ Use existing repo export paths as canonical reference
+import type { AudioEffect } from '../../../../platform/audio';
 import type { WerewolfGameType } from '../../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../../platform/protocol/roomSnapshot';
 import type { RosterEntry } from '../../../../platform/room/roster';
@@ -114,24 +115,6 @@ export interface ProtocolAction {
   readonly targetSeat?: number;
   /** Submission timestamp (epoch ms) */
   readonly timestamp: number;
-}
-
-// =============================================================================
-// Audio Effects (AudioEffect) — produced by server-side inline progression
-// =============================================================================
-
-/**
- * Audio effect descriptor
- *
- * Produced during server-side inline progression, written to `GameStatePayload.pendingAudioEffects`.
- * Host device consumes the queue, then submits `werewolf.audio.ack` through the room command protocol.
- * Non-Host devices ignore this.
- */
-export interface AudioEffect {
-  /** Audio resource key (role ID / 'night' / 'night_end') */
-  readonly audioKey: string;
-  /** Whether this is end audio (true -> audio_end directory) */
-  readonly isEndAudio?: boolean;
 }
 
 // =============================================================================
@@ -475,8 +458,13 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * - Write: composed from authoritative audio-queue events during inline progression
    * - Consume: Host device watches state changes -> detects non-empty -> plays -> POST ack clears
    * - Clear: committed `werewolf.audio.ack` empties the array and releases the audio gate
+   *
+   * Always present (the shared audio-queue slice in `platform/audio`);
+   * an empty array means nothing is pending. Legacy persisted states
+   * without the field are defaulted to `[]` at the parse/normalize
+   * boundary.
    */
-  pendingAudioEffects?: AudioEffect[];
+  pendingAudioEffects: AudioEffect[];
 
   // --- UI Hints (server broadcast driven, UI read-only display) ---
   /**

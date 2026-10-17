@@ -49,6 +49,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
     playerProfiles: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
     pendingRevealAcks: [],
@@ -123,13 +124,13 @@ const GROUP_CONFIRM_CASES = [
 
 describe('Werewolf command handlers', () => {
   describe('handleAudioAck', () => {
+    // A GameState with an absent queue is unrepresentable now that the
+    // field is required; legacy states missing it are defaulted to []
+    // at the parse/normalize boundary (migration tests there pin that).
     const noOpCases: ReadonlyArray<{
       name: string;
       pendingAudioEffects: GameState['pendingAudioEffects'];
-    }> = [
-      { name: 'an absent queue', pendingAudioEffects: undefined },
-      { name: 'an empty queue', pendingAudioEffects: [] },
-    ];
+    }> = [{ name: 'an empty queue', pendingAudioEffects: [] }];
 
     it.each(noOpCases)('is an idempotent no-op with $name', ({ pendingAudioEffects }) => {
       const result = handleAudioAck(createContext(createState({ pendingAudioEffects })));

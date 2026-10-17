@@ -80,6 +80,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     currentStepIndex: 0,
     currentStepId: NIGHT_STEPS[0]?.id,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
     currentNightResults: {},
@@ -381,6 +382,7 @@ describe('nightFlowHandler', () => {
           },
           currentStepIndex: 0,
           currentStepId: undefined,
+          pendingAudioEffects: [],
           actions: [],
           resolvedNightEffects: [],
           currentNightResults: {

@@ -41,6 +41,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

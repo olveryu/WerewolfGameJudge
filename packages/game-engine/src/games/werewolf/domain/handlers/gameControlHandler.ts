@@ -10,6 +10,7 @@
  * does not directly modify state (returns StateAction list for reducer to execute).
  */
 
+import type { AudioEffect } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
 import { getBotDisplayName } from '../../../../platform/room/getBotDisplayName';
 import { planMarkBotsViewed } from '../../../../platform/room/identityViewing';
@@ -42,7 +43,7 @@ import {
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
 import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
-import type { AudioEffect, Player } from '../protocol/types';
+import type { Player } from '../protocol/types';
 import type {
   AssignRolesAction,
   EndNightAction,

@@ -807,7 +807,7 @@ describe('Werewolf engine definition and catalog', () => {
       isAudioPlaying: false,
       sheriffElection: { phase: 'registration' },
     });
-    expect(state.pendingAudioEffects).toBeUndefined();
+    expect(state.pendingAudioEffects).toEqual([]);
 
     state = evolveCommittedCommand(
       state,

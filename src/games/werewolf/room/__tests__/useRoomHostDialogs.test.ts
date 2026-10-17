@@ -55,6 +55,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
     wolfVotes: new Map<number, number>(),
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},
     pendingRevealAcks: [],

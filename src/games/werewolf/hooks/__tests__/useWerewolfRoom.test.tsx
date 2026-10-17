@@ -63,6 +63,7 @@ function createGameState(overrides: Partial<GameState> = {}): GameState {
     playerProfiles: {},
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

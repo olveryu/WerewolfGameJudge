@@ -153,6 +153,7 @@ function createMinimalState(
     },
     currentStepIndex: 1,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],
