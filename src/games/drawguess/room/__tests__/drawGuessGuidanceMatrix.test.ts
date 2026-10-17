@@ -175,8 +175,8 @@ function stateFor(phase: DrawGuessPhase['kind']): DrawGuessState {
       if (session.state.phase.kind !== 'ended') throw new Error('expected ended');
       return session.state;
     }
-    case 'lobby':
-      throw new Error('unreachable');
+    default:
+      throw new Error(`unhandled phase ${phase}`);
   }
 }
 

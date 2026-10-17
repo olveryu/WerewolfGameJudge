@@ -145,16 +145,19 @@ function stateFor(phase: Phase): StoryRelayState {
         type: 'storyrelay.gallery.finish',
         phaseRevision: session.state.phaseRevision,
       });
-      if (session.state.phase !== 'ended') throw new Error('expected ended');
+      if (phaseOf(session) !== 'ended') throw new Error('expected ended');
       return session.state;
     case 'aborted':
-      session.send({ type: 'storyrelay.round.abort' });
+      session.send({ type: 'storyrelay.round.abort', phaseRevision: session.state.phaseRevision });
       if (session.state.phase !== 'aborted') throw new Error('expected aborted');
       return session.state;
-    case 'lobby':
-      throw new Error('unreachable');
+    default:
+      throw new Error(`unhandled phase ${phase}`);
   }
 }
+
+/** Reads the phase through a call so TS narrowing never goes stale across sends. */
+const phaseOf = (session: Session): Phase => session.state.phase;
 
 function capabilities(): RoomCapabilities {
   return {

@@ -27,6 +27,9 @@ type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
 const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
 
+/** Reads the phase kind through a call so TS narrowing never goes stale across sends. */
+const phaseKind = (s: Session): AvalonState['phase']['kind'] => s.state.phase.kind;
+
 interface Session {
   readonly state: AvalonState;
   send(command: AvalonPublicCommand, userId?: string): void;
@@ -104,7 +107,7 @@ function proposeTeam(s: Session, team: readonly number[]) {
   const leader = s.state.leaderSeat;
   s.send({ type: 'avalon.team.updateDraft', seats: [...team] }, seatUser(leader));
   s.send({ type: 'avalon.team.propose' }, seatUser(leader));
-  if (s.state.phase.kind !== 'vote') throw new Error('expected vote');
+  if (phaseKind(s) !== 'vote') throw new Error('expected vote');
 }
 
 function approveTeam(s: Session) {

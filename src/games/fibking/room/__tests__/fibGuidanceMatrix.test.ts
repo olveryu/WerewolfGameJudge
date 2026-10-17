@@ -7,6 +7,7 @@
 import {
   FIB_STATE_VERSION,
   type FibPhase,
+  type FibRound,
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
@@ -22,7 +23,7 @@ const FIB_PHASES: readonly FibPhase[] = [
   'ended',
 ];
 
-function baseRound(viewedSeats: readonly number[]): FibState['round'] {
+function baseRound(viewedSeats: readonly number[]): FibRound {
   return {
     roundId: 'round-1',
     word: '山谷',

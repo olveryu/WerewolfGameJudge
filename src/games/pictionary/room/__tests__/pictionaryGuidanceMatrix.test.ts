@@ -129,17 +129,20 @@ function stateFor(phase: PictionaryPhase): PictionaryState {
       for (let step = 0; step < steps; step += 1) crossStep(session);
       if (session.state.phase !== 'gallery') throw new Error('expected gallery');
       session.dispatch({ type: 'pictionary.gallery.finish' });
-      if (session.state.phase !== 'ended') throw new Error('expected ended');
+      if (phaseOf(session) !== 'ended') throw new Error('expected ended');
       return session.state;
     }
     case 'aborted':
       session.dispatch({ type: 'pictionary.round.abort' });
       if (session.state.phase !== 'aborted') throw new Error('expected aborted');
       return session.state;
-    case 'lobby':
-      throw new Error('unreachable');
+    default:
+      throw new Error(`unhandled phase ${phase}`);
   }
 }
+
+/** Reads the phase through a call so TS narrowing never goes stale across dispatches. */
+const phaseOf = (session: Session): PictionaryPhase => session.state.phase;
 
 type Viewer = 'host' | 'seated' | 'spectator';
 
