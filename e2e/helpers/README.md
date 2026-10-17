@@ -64,7 +64,7 @@ No per-environment E2E JSON configuration is used.
 
 Playwright runs Chromium desktop tests in parallel. Home, configuration, and FibKing responsive coverage also run in a `320 x 640` Chromium project. Each spec must create an independent room so parallel workers cannot share state.
 
-CI assigns the suite to five measured groups in `.github/workflows/ci.yml`. Each group uploads a blob report; `merge-reports` combines them into one HTML report.
+CI assigns the suite to nine measured shards in `.github/workflows/ci.yml`. Each shard uploads a blob report; `merge-reports` combines them into one HTML report.
 
 ## Helper Ownership
 

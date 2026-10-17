@@ -442,6 +442,36 @@ describe('createUndercoverRoomShellModel', () => {
     expect(model.phase).toBe('lobby');
   });
 
+  it('locks the lobby start action while a command is submitting', () => {
+    const state = createLobbyState();
+    const capabilities = createUndercoverRoomCapabilities({
+      state,
+      isHost: true,
+      mySeat: 0,
+      requestTakeSeat: jest.fn(),
+      requestMoveSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      kickSeat: jest.fn(),
+      clearSeats: jest.fn(),
+      fillBots: jest.fn(),
+      configureGame: jest.fn(),
+      shareRoom: jest.fn(),
+      openProfile: jest.fn(),
+      takeOverBot: jest.fn(),
+    });
+    const model = createUndercoverHostManagement({
+      state,
+      isHost: true,
+      capabilities,
+      controls: { ...controls, isSubmitting: true },
+    });
+    const start = model?.sections[0]?.actions.find((action) => action.key === 'start-game');
+    // Submitting marshal: disabled with no reason (the room IS full —
+    // the lock, not a seat shortage, is what blocks it) and no handler.
+    expect(start).toMatchObject({ label: '开始本局', isEnabled: false, disabledReason: null });
+    expect(start).not.toHaveProperty('onPress');
+  });
+
   it('exposes the viewing phase on the shell model', () => {
     const state = createViewingState();
     const model = createUndercoverRoomShellModel({

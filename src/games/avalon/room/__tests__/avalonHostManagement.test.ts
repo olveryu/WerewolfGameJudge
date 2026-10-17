@@ -50,12 +50,12 @@ function capabilities(
 const submit = jest.fn(async () => true);
 const releaseBot = jest.fn();
 
-function build(state: AvalonState, isHost: boolean, isSetup: boolean) {
+function build(state: AvalonState, isHost: boolean, isSetup: boolean, isSubmitting = false) {
   return createAvalonHostManagement({
     state,
     isHost,
     capabilities: capabilities(isSetup),
-    isSubmitting: false,
+    isSubmitting,
     controlledSeat: null,
     releaseBot,
     submit,
@@ -203,6 +203,24 @@ describe('createAvalonHostManagement', () => {
     expect(build(game.state, true, true)?.sections[0]?.actions[0]).toMatchObject({
       isEnabled: true,
     });
+  });
+
+  it('locks the full-room assign action while a command is submitting', () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    const action = build(game.state, true, true, true)?.sections[0]?.actions[0];
+    // Submitting marshal: the action keeps its loading state but drops
+    // its press handler, disabled with no reason (the room IS full —
+    // the lock, not a seat shortage, is what blocks it).
+    expect(action).toMatchObject({
+      key: 'start-game',
+      label: '分配角色',
+      isEnabled: false,
+      disabledReason: null,
+      isLoading: true,
+    });
+    expect(action).not.toHaveProperty('onPress');
   });
 
   it('pins the nominate panel: always-present room section only', () => {

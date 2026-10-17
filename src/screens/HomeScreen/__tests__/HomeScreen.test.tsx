@@ -1,6 +1,8 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
 
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
+import { TESTIDS } from '@/testids';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -123,6 +125,55 @@ describe('HomeScreen', () => {
       fireEvent.press(getByTestId('home-settings-button'));
 
       expect(mockNavigate).toHaveBeenCalledWith('Settings');
+    });
+  });
+
+  describe('Hero icon dots folding', () => {
+    const originalModeOptions = mockClientGameHome.modeOptions;
+
+    function setModeOptionCount(count: number) {
+      mockClientGameHome.modeOptions = Array.from({ length: count }, (_, index) => ({
+        gameType: `game-${index}` as 'werewolf',
+        displayName: `游戏${index + 1}`,
+        subtitle: '副标题',
+        iconName: 'moon-outline' as const,
+        tier: 'main' as const,
+        gradient: ['#818CF8', '#4F46E5'] as const,
+      }));
+    }
+
+    /** Icon dots rendered inside the hero card (one Ionicons per dot). */
+    function heroDotCount(view: ReturnType<typeof render>) {
+      const hero = within(view.getByTestId(TESTIDS.homeCreateRoomButton));
+      return hero.UNSAFE_getAllByType(Ionicons).filter((icon) => icon.props.name === 'moon-outline')
+        .length;
+    }
+
+    afterEach(() => {
+      mockClientGameHome.modeOptions = originalModeOptions;
+    });
+
+    it('renders every game as a dot at the limit of 8, with no overflow chip', () => {
+      setModeOptionCount(8);
+      const view = render(<HomeScreen />);
+      expect(heroDotCount(view)).toBe(8);
+      expect(view.queryByText(/^\+\d+$/)).toBeNull();
+      expect(view.getByText('8 款游戏 · 点开挑一款')).toBeTruthy();
+    });
+
+    it('folds the tail into a +N chip past 8: 7 dots and +2 at 9 games', () => {
+      setModeOptionCount(9);
+      const view = render(<HomeScreen />);
+      expect(heroDotCount(view)).toBe(7);
+      expect(view.getByText('+2')).toBeTruthy();
+    });
+
+    it('keeps 7 dots and counts all folded games in the chip at 10 games', () => {
+      setModeOptionCount(10);
+      const view = render(<HomeScreen />);
+      expect(heroDotCount(view)).toBe(7);
+      expect(view.getByText('+3')).toBeTruthy();
+      expect(view.getByText('10 款游戏 · 点开挑一款')).toBeTruthy();
     });
   });
 

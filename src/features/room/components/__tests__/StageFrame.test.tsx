@@ -6,6 +6,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { STAGE_FRAME_MAX_WIDTH, StageFrame } from '../StageFrame';
 
 describe('StageFrame', () => {
+  it('pins the frame max width at the literal 430', () => {
+    expect(STAGE_FRAME_MAX_WIDTH).toBe(430);
+  });
+
   it('renders the header outside the scroll area and the content inside it', () => {
     const view = render(
       <StageFrame
