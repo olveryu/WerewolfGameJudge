@@ -8,7 +8,9 @@
  * actually consumes from the view model (werewolfRoom.helpers reads
  * seats[].isWolfPackPeer, seats[].hasViewedRole and
  * night.wolfVotesBySeat; wolfPackSeats / viewedSeats are the same facts
- * in list form, night.stepSchemaKind gates the board's step rendering).
+ * in list form. night.stepSchemaKind is pinned as well: both builders
+ * derive the current step, and parity here keeps the mock's step
+ * derivation honest against the real VM).
  *
  * Deliberately NOT compared: displayName / isBot / visibleRole. The seat
  * board takes names and bot flags from gameState players, not the view
