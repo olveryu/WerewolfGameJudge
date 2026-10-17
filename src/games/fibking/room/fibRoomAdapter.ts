@@ -227,15 +227,12 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       const actions: RoomHostManagementAction[] = [
         buildStartGameAction({
           label: '开始游戏',
-          onPress: input.beginRound,
+          onPress: () =>
+            showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
           isEnabled: !input.isCommandSubmitting && allViewed,
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: allViewed ? null : '还有玩家未查看身份',
           isPrimary: true,
-          // The panel action submits directly; the console gates the same
-          // callback with a confirm.
-          onConsolePress: () =>
-            showConfirmAlert('开始游戏？', '全员已查看身份，将开始本轮描述', input.beginRound),
         }),
       ];
       const hasUnviewedBot = participants.some(
@@ -256,7 +253,8 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       return [
         buildStartGameAction({
           label: '开始本轮',
-          onPress: input.startRound,
+          onPress: () =>
+            showConfirmAlert('开始本轮？', '将为每位玩家分配身份并准备本轮词语', input.startRound),
           isEnabled: !input.isCommandSubmitting && isFibRoomFull(input.state),
           isLoading: input.isCommandSubmitting || undefined,
           disabledReason: input.isCommandSubmitting
@@ -264,10 +262,6 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
             : `座位尚未坐满（还差 ${input.state.numberOfPlayers - getFibOccupiedSeatCount(input.state)} 人）`,
           isPrimary: true,
           remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-          // The panel action submits directly; the console gates the same
-          // callback with a confirm.
-          onConsolePress: () =>
-            showConfirmAlert('开始本轮？', '将为每位玩家分配身份并准备本轮词语', input.startRound),
         }),
       ];
     }

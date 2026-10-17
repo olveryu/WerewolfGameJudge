@@ -162,14 +162,13 @@ export function createDemoHostManagement(
     const submitAssign = () => void input.submit('分配身份', { type: 'demo.game.start' });
     const assignAction = buildStartGameAction({
       label: '分配身份',
-      onPress: submitAssign,
+      onPress: () =>
+        showConfirmAlert('分配身份？', '所有座位已满，将为每位玩家分配身份', submitAssign),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
       remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      onConsolePress: () =>
-        showConfirmAlert('分配身份？', '所有座位已满，将为每位玩家分配身份', submitAssign),
     });
     return {
       sections: [
@@ -193,13 +192,11 @@ export function createDemoHostManagement(
     const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
     const submitBegin = () => void input.submit('开始游戏', { type: 'demo.game.begin' });
     const beginAction = buildStartGameAction({
-      onPress: submitBegin,
+      onPress: () => showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
       isEnabled: !input.isSubmitting && allViewed,
       disabledReason: beginDisabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
-      onConsolePress: () =>
-        showConfirmAlert('开始游戏？', '全员已查看身份，将开始对局', submitBegin),
     });
     const sections: RoomHostManagementSection[] = [
       {

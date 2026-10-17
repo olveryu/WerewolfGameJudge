@@ -24,8 +24,6 @@ interface ActionInput {
   readonly isPrimary?: boolean;
   /** Remedy offered beside this action when the console renders it blocked. */
   readonly remedy?: RoomHostRemedy | null;
-  /** Press handler used by the collapsed console only; defaults to onPress. */
-  readonly onConsolePress?: () => void;
   /** Console-only blocked reason while the panel action stays enabled. */
   readonly consoleBlockedReason?: string | null;
 }
@@ -47,7 +45,6 @@ function buildAction(
     isLoading: input.isLoading,
     isPrimary: input.isPrimary,
     remedy: input.remedy,
-    onConsolePress: input.onConsolePress,
     consoleBlockedReason: input.consoleBlockedReason,
   };
   if (input.isEnabled === false) {
@@ -81,8 +78,6 @@ export interface RoomHostActionDescriptor {
   readonly isPrimary?: boolean;
   /** Remedy offered beside this action when the console renders it blocked. */
   readonly remedy?: RoomHostRemedy | null;
-  /** Press handler used by the collapsed console only; defaults to onPress. */
-  readonly onConsolePress?: () => void;
   /** Console-only blocked reason while the panel action stays enabled. */
   readonly consoleBlockedReason?: string | null;
 }

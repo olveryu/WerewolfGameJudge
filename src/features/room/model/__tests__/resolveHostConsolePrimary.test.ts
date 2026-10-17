@@ -30,18 +30,6 @@ describe('resolveHostConsolePrimary', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('prefers the console press override over the panel press', () => {
-    const onPress = jest.fn();
-    const onConsolePress = jest.fn();
-    const primary = resolveHostConsolePrimary(
-      modelWith([{ ...enabledStart, onPress, onConsolePress, isPrimary: true }]),
-    );
-    if (primary?.kind !== 'ready') throw new Error('expected a ready primary');
-    primary.onPress();
-    expect(onConsolePress).toHaveBeenCalledTimes(1);
-    expect(onPress).not.toHaveBeenCalled();
-  });
-
   it('resolves a disabled primary with a reason as blocked with its remedy', () => {
     const remedy = { label: '分享房间', onPress: jest.fn() };
     const primary = resolveHostConsolePrimary(
