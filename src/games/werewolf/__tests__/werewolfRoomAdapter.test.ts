@@ -649,6 +649,36 @@ describe('createWerewolfRoomShellModel', () => {
     });
   });
 
+  it('shows the day host wait as the bottom message on a no-election day (G-3)', () => {
+    const day = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Day,
+        sheriffElectionPanel: null,
+        guideMessage: '白天阶段，等待房主主持推进',
+      }),
+    );
+    expect(day.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '白天阶段，等待房主主持推进',
+    });
+
+    // An actioner on the day (a death-triggered skill window) still
+    // reads their own action message, not the host wait.
+    const actioner = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Day,
+        sheriffElectionPanel: null,
+        imActioner: true,
+        actionMessage: '请选择要开枪的目标',
+        guideMessage: '白天阶段，等待房主主持推进',
+      }),
+    );
+    expect(actioner.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: '请选择要开枪的目标',
+    });
+  });
+
   it('falls back to the guide at Ended when the action message is an empty string', () => {
     // Live, useRoomDerived yields '' (not null) once no action role remains;
     // the Ended settlement line must still surface.
