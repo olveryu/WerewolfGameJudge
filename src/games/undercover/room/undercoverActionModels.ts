@@ -11,6 +11,8 @@ import type {
 import {
   buildLobbyHostStartMessage,
   buildPreparationFailureMessage,
+  buildViewIdentityButton,
+  resolveViewIdentityAction,
 } from '@/features/room/model/RoomBottomActions';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
@@ -79,16 +81,20 @@ export function createUndercoverBottomActions(
   const actions: RoomBottomButton[] = [];
   const cardLabel =
     controls.controlledSeat !== null ? `查看 ${controls.controlledSeat + 1} 号词卡` : '查看我的词';
-  if (controls.canViewCard && !controls.isSelecting)
-    actions.push({
-      key: 'card',
-      label: cardLabel,
-      variant: 'primary',
-      size: 'lg',
-      isEnabled: true,
-      onPress: controls.openCard,
-      testID: 'undercover-view-word',
-    });
+  const viewIdentityAction = resolveViewIdentityAction({
+    isVisible: controls.canViewCard && !controls.isSelecting,
+    label: cardLabel,
+    onPress: controls.openCard,
+  });
+  if (viewIdentityAction !== null)
+    actions.push(
+      buildViewIdentityButton(viewIdentityAction, {
+        key: 'card',
+        variant: 'primary',
+        size: 'lg',
+        testID: 'undercover-view-word',
+      }),
+    );
   if (controls.isSelecting) {
     actions.push({
       key: 'cancel',

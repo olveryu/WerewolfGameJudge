@@ -3,6 +3,9 @@ import {
   buildLobbyHostStartMessage,
   buildPreparationFailureMessage,
   buildStepActorWaitingMessage,
+  buildViewIdentityButton,
+  resolveViewIdentityAction,
+  VIEW_IDENTITY_LABEL,
 } from '../RoomBottomActions';
 
 describe('buildLobbyHostStartMessage', () => {
@@ -58,6 +61,63 @@ describe('buildStepActorWaitingMessage', () => {
 
   it('is null when the step has no actor label', () => {
     expect(buildStepActorWaitingMessage({ current: 1, total: 3, label: '' })).toBeNull();
+  });
+});
+
+describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
+  it('exposes the canonical identity label', () => {
+    expect(VIEW_IDENTITY_LABEL).toBe('查看身份');
+  });
+
+  it('resolves to null when the audience predicate hides the action', () => {
+    expect(
+      resolveViewIdentityAction({ isVisible: false, label: '查看身份', onPress: () => {} }),
+    ).toBeNull();
+  });
+
+  it('carries the game label and handler through unchanged', () => {
+    const onPress = () => {};
+    expect(resolveViewIdentityAction({ isVisible: true, label: '查看我的词', onPress })).toEqual({
+      label: '查看我的词',
+      onPress,
+    });
+  });
+
+  it('renders an always-enabled bottom button with the surface anchors', () => {
+    const onPress = () => {};
+    const action = resolveViewIdentityAction({ isVisible: true, label: '查看身份', onPress });
+    if (action === null) throw new Error('expected a resolved action');
+    expect(
+      buildViewIdentityButton(action, {
+        key: 'viewRole',
+        variant: 'secondary',
+        size: 'md',
+        testID: 'avalon-view-role',
+      }),
+    ).toEqual({
+      key: 'viewRole',
+      label: '查看身份',
+      variant: 'secondary',
+      size: 'md',
+      testID: 'avalon-view-role',
+      isEnabled: true,
+      onPress,
+    });
+  });
+
+  it('omits the testID key entirely when the surface has none', () => {
+    const action = resolveViewIdentityAction({
+      isVisible: true,
+      label: '查看题目',
+      onPress: () => {},
+    });
+    if (action === null) throw new Error('expected a resolved action');
+    const button = buildViewIdentityButton(action, {
+      key: 'view-identity',
+      variant: 'secondary',
+      size: 'md',
+    });
+    expect('testID' in button).toBe(false);
   });
 });
 

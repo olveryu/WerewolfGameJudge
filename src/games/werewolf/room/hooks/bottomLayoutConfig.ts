@@ -10,7 +10,7 @@
 
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
-import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomBottomActions';
+import { AUDIO_WAITING_LABEL, VIEW_IDENTITY_LABEL } from '@/features/room/model/RoomBottomActions';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';
 
@@ -70,7 +70,7 @@ interface StaticButtonDef {
 
 export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
   viewRole: {
-    label: '查看身份',
+    label: VIEW_IDENTITY_LABEL,
   },
   waitForHost: {
     label: '等待房主开始',

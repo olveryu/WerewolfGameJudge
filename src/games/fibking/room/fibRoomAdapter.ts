@@ -31,7 +31,12 @@ import type {
   RoomBottomButton,
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
-import { buildPreparationFailureMessage } from '@/features/room/model/RoomBottomActions';
+import {
+  buildPreparationFailureMessage,
+  buildViewIdentityButton,
+  resolveViewIdentityAction,
+  VIEW_IDENTITY_LABEL,
+} from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
@@ -504,17 +509,25 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
     case 'preparationFailed':
       break;
     case 'viewing':
-    case 'ongoing':
-      secondary.push(
-        enabledButton(
-          'view-identity',
-          input.viewerSeat === null ? '查看题目' : '查看身份',
-          'secondary',
-          TESTIDS.fibViewIdentityButton,
-          input.openIdentity,
-        ),
-      );
+    case 'ongoing': {
+      // 查看动作定义走共享解析：旁观者看题目、在座玩家看身份，同一命令两种内容。
+      const viewIdentityAction = resolveViewIdentityAction({
+        isVisible: true,
+        label: input.viewerSeat === null ? '查看题目' : VIEW_IDENTITY_LABEL,
+        onPress: input.openIdentity,
+      });
+      if (viewIdentityAction !== null) {
+        secondary.push(
+          buildViewIdentityButton(viewIdentityAction, {
+            key: 'view-identity',
+            variant: 'secondary',
+            size: 'md',
+            testID: TESTIDS.fibViewIdentityButton,
+          }),
+        );
+      }
       break;
+    }
     case 'ended':
       secondary.push(
         enabledButton(
