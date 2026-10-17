@@ -214,6 +214,13 @@ test('four humans write four turns without restoring unsubmitted input and revea
         await expect(page.getByTestId('storyrelay-entry-0')).toBeVisible();
         await expect(page.getByTestId('storyrelay-entry-1')).toHaveCount(0);
       }
+      // PR-B G-2: while the host drives playback, everyone else is
+      // told so in place of the host-only controls (same form as
+      // Pictionary's spectator notice).
+      await expect(
+        fixture.pages[1]!.getByText('由房主控制播放进度。', { exact: true }),
+      ).toBeVisible();
+      await expect(spectator.page.getByText('由房主控制播放进度。', { exact: true })).toBeVisible();
       await hostPage.getByRole('button', { name: '下一段', exact: true }).click();
       await expect(spectator.page.getByTestId('storyrelay-entry-1')).toBeVisible();
       await hostPage.getByRole('button', { name: '上一段', exact: true }).click();

@@ -44,6 +44,7 @@ import {
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
   buildAudioWaitingButton,
+  buildEndedWaitingMessage,
   type RoomBottomButton,
   type RoomBottomInfoModel,
 } from '@/features/room/model/RoomBottomActions';
@@ -393,6 +394,11 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     if (input.effectiveSeat !== null) {
       const vm = getAvalonViewModel(state, input.effectiveSeat);
       const instruction = resolveNightInstruction(vm);
+      if (instruction.kind === 'waiting' || instruction.kind === 'confirmed') {
+        // 非本步参与者与已确认者：等本步其余参与者确认（步名归进度行，
+        // 此处只给等待对象，不复述步名）。
+        message = '等待本步玩家确认';
+      }
       if (
         instruction.kind === 'evilPeers' ||
         instruction.kind === 'merlin' ||
@@ -514,11 +520,13 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
           onPress: input.onOpenVotePress,
           testID: 'avalon-vote-open',
         });
+        // 已投计数与引擎视图层 AvalonCurrentProposalView 同一派生
+        // （只数已投人数、永不归名，与暗投口径一致）。
         message =
           phase.deadlineAt !== null && input.settleCountdownSeconds !== null
             ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
             : instruction.myBallot !== null
-              ? `你已投：${instruction.myBallot === 'approve' ? '赞成' : '反对'}（揭晓前可改票）`
+              ? `你已投：${instruction.myBallot === 'approve' ? '赞成' : '反对'}（揭晓前可改票）· 已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
               : null;
       } else {
         message = input.canControlBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
@@ -571,8 +579,15 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
           });
           break;
         case 'watching':
+          // 旁观者看公开进程：谁在查验谁（或还在选对象）。查验结果是
+          // 持有人私密信息，不在此句出现。
+          message =
+            instruction.targetSeat !== null
+              ? `${avalonSeatLabel(state, instruction.holderSeat)} 已选择查验 ${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认`
+              : `${avalonSeatLabel(state, instruction.holderSeat)} 正在选择查验对象`;
+          break;
         case 'result':
-          // 结果本体归弹窗（上方重开入口）；公开进程由座位盘徽标呈现。
+          // 结果本体归弹窗（上方重开入口），是持有人私密信息，此处不落文案。
           break;
       }
       break;
@@ -588,7 +603,13 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       break;
     }
     case 'ended':
-      // 结算常驻于座位表上方区，此处只留查看身份。
+      // 结算常驻于座位表上方区；非房主玩家在此等房主决定再来一局
+      // 或返回大厅（共享终局等待句，DrawGuess 基准句式）。
+      message = buildEndedWaitingMessage({
+        isEnded: true,
+        isHost: input.isHost,
+        mySeat: input.mySeat,
+      });
       break;
     default:
       break;

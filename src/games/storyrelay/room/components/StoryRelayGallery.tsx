@@ -1,5 +1,6 @@
 /** Displays the server-revealed story prefix; terminal rounds permit rereading and image sharing. */
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type {
   StoryRelayCommand,
   StoryRelayState,
@@ -9,6 +10,7 @@ import { FlatList, Text, View } from 'react-native';
 
 import { GalleryPagerControls } from '@/features/room/components/GalleryPagerControls';
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
+import { colors } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getStoryRelayVisibleStories } from '../storyRelayPresentation';
@@ -118,6 +120,14 @@ export function StoryRelayGallery({
             })
           }
         />
+      )}
+      {!isHost && isPlayback && state.gallery !== null && (
+        // 非房主在播放期没有控制权：与 Pictionary 同阶段同形态，在
+        // 房主控制条的位置给一行观看提示，说明播放由房主控制。
+        <View style={[styles.controls, styles.row]}>
+          <Ionicons name="people-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.muted}>由房主控制播放进度。</Text>
+        </View>
       )}
       {!isPlayback && (
         <View style={[styles.controls, styles.row]}>

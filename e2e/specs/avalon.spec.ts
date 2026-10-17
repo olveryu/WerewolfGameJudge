@@ -310,6 +310,17 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     }
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);
+      if (seat === 0) {
+        // PR-B (Avalon count ruling): the first voter's bottom panel
+        // reports their own ballot plus the cast count — counts only,
+        // never who else voted how.
+        const label = script.ballots.get(0) === 'approve' ? '赞成' : '反对';
+        await expect(
+          pages[0]!.getByText(`你已投：${label}（揭晓前可改票）· 已投 1/${PLAYER_COUNT}`, {
+            exact: true,
+          }),
+        ).toBeVisible({ timeout: 10_000 });
+      }
     }
   });
 
@@ -374,6 +385,13 @@ async function runLadyCheck(
   const holderPage = pages[holderSeat]!;
   const targetSeat = chooseTarget(holderSeat);
   const targetPage = pages[targetSeat]!;
+  // PR-B (lady bystanders): everyone else watches the public process
+  // in their bottom panel — first the picking, then who was picked.
+  const bystanderSeat = pages.findIndex((_, seat) => seat !== holderSeat && seat !== targetSeat);
+  const bystanderPage = pages[bystanderSeat]!;
+  await expect(
+    bystanderPage.getByText(new RegExp(`${holderSeat + 1} 号 · .+ 正在选择查验对象`)),
+  ).toBeVisible({ timeout: 10_000 });
 
   await new RoomPage(holderPage).getSeatTile(targetSeat).click();
   const confirmModal = holderPage.getByTestId(TESTIDS.alertModal);
@@ -381,6 +399,11 @@ async function runLadyCheck(
   await expect(holderPage.getByTestId(TESTIDS.alertTitle)).toHaveText('湖中仙女查验');
   await holderPage.getByTestId(TESTIDS.alertButton(1)).click();
   await expect(confirmModal).toBeHidden({ timeout: 10_000 });
+  await expect(
+    bystanderPage.getByText(
+      new RegExp(`${holderSeat + 1} 号 · .+ 已选择查验 ${targetSeat + 1} 号 · .+，等待对方确认`),
+    ),
+  ).toBeVisible({ timeout: 10_000 });
 
   // 被查验者先在自己界面确认展示，持有人随后才看到结果。
   const ackModal = targetPage.getByTestId('avalon-lady-acknowledge-modal');
@@ -506,6 +529,11 @@ test.describe('Avalon full game', () => {
         // 规则口径（不参与、不确认）。「别人也看不见他」由下一拍三人互认的
         // 同伴集合断言（不含奥伯伦）覆盖。
         await expect(pages[oberonSeat]!.getByTestId('avalon-night-info')).toHaveCount(0);
+        // PR-B G-5: a non-participant's bottom panel names what they
+        // are waiting for instead of going blank.
+        await expect(pages[oberonSeat]!.getByText('等待本步玩家确认', { exact: true })).toBeVisible(
+          { timeout: 10_000 },
+        );
       });
 
       await test.step('夜晚：其余坏人互认同伴（不含奥伯伦）', async () => {
@@ -520,6 +548,14 @@ test.describe('Avalon full game', () => {
         // 忠臣全程没有夜晚确认入口。
         const loyalSeat = goodSeats.find((seat) => seat !== merlinSeat && seat !== percivalSeat)!;
         await expect(pages[loyalSeat]!.getByTestId('avalon-night-info')).toHaveCount(0);
+        // PR-B G-5: once step 1 settles, its confirmed participants
+        // and the never-participating loyal seat both wait on step 2.
+        await expect(
+          pages[morganaSeat]!.getByText('等待本步玩家确认', { exact: true }),
+        ).toBeVisible({ timeout: 10_000 });
+        await expect(pages[loyalSeat]!.getByText('等待本步玩家确认', { exact: true })).toBeVisible({
+          timeout: 10_000,
+        });
       });
 
       await test.step('夜晚：梅林看见除莫德雷德外的全部坏人', async () => {
@@ -696,6 +732,19 @@ test.describe('Avalon full game', () => {
         await expect(hostPage.getByTestId('avalon-history-summary')).toContainText(
           '本局结束 · 坏人获胜',
         );
+        // PR-B G-6: the ended wait lives only in the bottom panel of
+        // seated non-host players (shared constant, no full stop);
+        // the settlement section no longer repeats it for anyone and
+        // the host is never told to wait on themselves.
+        await expect(
+          pages[1]!.getByText('等待房主操作（再来一局 / 返回大厅）', { exact: true }),
+        ).toBeVisible({ timeout: 10_000 });
+        await expect(
+          pages[1]!.getByText('等待房主操作（再来一局 / 返回大厅）。', { exact: true }),
+        ).toHaveCount(0);
+        await expect(
+          hostPage.getByText('等待房主操作（再来一局 / 返回大厅）', { exact: true }),
+        ).toHaveCount(0);
         await hostPage.screenshot({ path: testInfo.outputPath('avalon-ended.png') });
       });
     } finally {

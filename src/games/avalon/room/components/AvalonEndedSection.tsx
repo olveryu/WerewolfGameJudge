@@ -52,7 +52,6 @@ export function AvalonEndedSection({ viewModel }: { readonly viewModel: AvalonVi
           </Text>
         ))}
       </View>
-      <Text style={styles.hint}>等待房主操作（再来一局 / 返回大厅）。</Text>
     </View>
   );
 }
@@ -101,9 +100,5 @@ const styles = StyleSheet.create({
   roleRow: {
     ...textStyles.body,
     color: colors.text,
-  },
-  hint: {
-    ...textStyles.secondary,
-    color: colors.textSecondary,
   },
 });

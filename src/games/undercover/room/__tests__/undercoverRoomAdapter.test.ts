@@ -204,8 +204,14 @@ it('selects directly for confirmation, cancels without submission and invalidate
       isSelecting: true,
     }).getSeat(1).highlight,
   ).toBe('selected');
-  expect(createUndercoverBottomActions(result.current)).toMatchObject({
+  expect(
+    createUndercoverBottomActions(result.current, state, {
+      isHost: true,
+      mySeat: getUndercoverUserSeat(state, 'host'),
+    }),
+  ).toMatchObject({
     kind: 'info',
+    message: '选择本次出局玩家',
     actions: [{ key: 'cancel' }],
   });
   act(() => result.current.cancelRevelation());
@@ -258,7 +264,13 @@ it('requires confirmation to restart an active round and exposes restart in host
   );
   const aborted = dispatch(state, { type: 'undercover.round.abort', roundId: state.round.roundId });
   rerender({ currentState: aborted });
-  expect(createUndercoverBottomActions(result.current)).toMatchObject({
+  expect(
+    createUndercoverBottomActions(result.current, aborted, {
+      isHost: true,
+      mySeat: getUndercoverUserSeat(aborted, 'host'),
+    }),
+  ).toMatchObject({
+    message: '本局已中止',
     actions: [],
   });
   const capabilities = createUndercoverRoomCapabilities({
@@ -416,7 +428,12 @@ describe('createUndercoverRoomShellModel', () => {
     expect(model.seats.source.count).toBe(6);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seats.onBotSeatLongPress).toBe(onBotSeatLongPress);
-    expect(model.bottomActions).toEqual(createUndercoverBottomActions(controls));
+    expect(model.bottomActions).toEqual(
+      createUndercoverBottomActions(controls, state, {
+        isHost: true,
+        mySeat: getUndercoverUserSeat(state, 'host'),
+      }),
+    );
     expect(model.hostManagement).not.toBeNull();
     // No takeover is active: no banner renders.
     expect(model.controlledSeat).toBeNull();
@@ -495,14 +512,24 @@ it('clears the self-hint once every seat has viewed', () => {
     { initialProps: { currentState: viewing } },
   );
   // 本人未确认：底部只出一处提示，指向查看按钮（展示契约 self-hint 态）。
-  expect(createUndercoverBottomActions(result.current)).toMatchObject({
+  expect(
+    createUndercoverBottomActions(result.current, viewing, {
+      isHost: true,
+      mySeat: getUndercoverUserSeat(viewing, 'host'),
+    }),
+  ).toMatchObject({
     message: '请点击下方「查看我的词」，查看词语',
   });
   let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
   state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(state.round!.confirmedSeats).toHaveLength(6);
   rerender({ currentState: state });
-  expect(createUndercoverBottomActions(result.current)).toMatchObject({ message: null });
+  expect(
+    createUndercoverBottomActions(result.current, state, {
+      isHost: true,
+      mySeat: getUndercoverUserSeat(state, 'host'),
+    }),
+  ).toMatchObject({ message: null });
   unmount();
 });
 
@@ -589,5 +616,129 @@ describe('createUndercoverHostManagement console primary', () => {
     confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
     const ready = resolveHostConsolePrimary(buildFor(confirmed).model!);
     if (ready?.kind !== 'ready') throw new Error('expected a ready console primary');
+  });
+});
+
+describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () => {
+  const idleControls: UndercoverRoundControls = {
+    isSubmitting: false,
+    controlledSeat: null,
+    card: null,
+    canViewCard: false,
+    shouldConfirm: false,
+    openCard: jest.fn(),
+    closeCard: jest.fn(),
+    confirmCard: jest.fn(),
+    markAllBotsViewed: jest.fn(),
+    begin: jest.fn(),
+    isSelecting: false,
+    selectedSeat: null,
+    reveal: jest.fn(),
+    selectSeat: jest.fn(),
+    beginSelection: jest.fn(),
+    cancelRevelation: jest.fn(),
+    cancelSelection: jest.fn(),
+    start: jest.fn(),
+    retry: jest.fn(),
+    abort: jest.fn(),
+    restart: jest.fn(),
+    returnToLobby: jest.fn(),
+    allowRepeated: jest.fn(),
+  };
+
+  function createLobbyState() {
+    let state = undercoverEngine.createInitialState(
+      { numberOfPlayers: 6, hasBlank: true, category: 'all' },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1, commandId: 'create' },
+    );
+    state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+    state = dispatch(state, { type: 'room.seat.fillBots' });
+    return state;
+  }
+
+  function createOngoingState() {
+    let state = createViewingState();
+    const roundId = state.round!.roundId;
+    state = dispatch(state, { type: 'undercover.round.confirm', roundId });
+    state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
+    state = dispatch(state, { type: 'undercover.round.begin', roundId });
+    return state;
+  }
+
+  it('shows the shared lobby wait to a seated non-host player only', () => {
+    const state = createLobbyState();
+    expect(
+      createUndercoverBottomActions(idleControls, state, { isHost: false, mySeat: 2 }).message,
+    ).toBe('等待房主开始游戏');
+    expect(
+      createUndercoverBottomActions(idleControls, state, { isHost: true, mySeat: 0 }).message,
+    ).toBeNull();
+    expect(
+      createUndercoverBottomActions(idleControls, state, { isHost: false, mySeat: null }).message,
+    ).toBeNull();
+  });
+
+  it('shows the preparing status while words are prepared', () => {
+    const state = dispatch(createLobbyState(), {
+      type: 'undercover.round.start',
+      shouldAllowRepeated: false,
+    });
+    expect(state.phase).toBe('preparing');
+    expect(
+      createUndercoverBottomActions(idleControls, state, { isHost: false, mySeat: 2 }).message,
+    ).toBe('正在准备词语');
+  });
+
+  it('keeps the three failure reasons distinct for players and bare for the host', () => {
+    const preparing = dispatch(createLobbyState(), {
+      type: 'undercover.round.start',
+      shouldAllowRepeated: false,
+    });
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparing');
+    const failed = (
+      failureCode: 'selectionFailed' | 'inventoryEmpty' | 'inventoryExhausted',
+    ): UndercoverState => ({ ...preparing, phase: 'preparationFailed', failureCode });
+    const player = { isHost: false, mySeat: 2 };
+    const host = { isHost: true, mySeat: 0 };
+    expect(
+      createUndercoverBottomActions(idleControls, failed('selectionFailed'), player).message,
+    ).toBe('词语准备失败，等待房主处理');
+    expect(
+      createUndercoverBottomActions(idleControls, failed('inventoryEmpty'), player).message,
+    ).toBe('暂无可用词语，等待房主处理');
+    expect(
+      createUndercoverBottomActions(idleControls, failed('inventoryExhausted'), player).message,
+    ).toBe('该类别的新词已用完，等待房主处理');
+    expect(
+      createUndercoverBottomActions(idleControls, failed('inventoryExhausted'), host).message,
+    ).toBe('该类别的新词已用完');
+  });
+
+  it('keeps the speaking order resident for everyone during ongoing', () => {
+    const state = createOngoingState();
+    expect(state.phase).toBe('ongoing');
+    if (state.phase !== 'ongoing') throw new Error('Expected ongoing');
+    const expected = `本轮从 ${state.round.speakingStartSeat + 1} 号起按座位顺序发言`;
+    expect(
+      createUndercoverBottomActions(idleControls, state, { isHost: false, mySeat: 2 }).message,
+    ).toBe(expected);
+    expect(
+      createUndercoverBottomActions(idleControls, state, { isHost: true, mySeat: 0 }).message,
+    ).toBe(expected);
+  });
+
+  it('gives aborted players the conclusion plus the host wait', () => {
+    const ongoing = createOngoingState();
+    const aborted = dispatch(ongoing, {
+      type: 'undercover.round.abort',
+      roundId: ongoing.round!.roundId,
+    });
+    expect(aborted.phase).toBe('aborted');
+    expect(
+      createUndercoverBottomActions(idleControls, aborted, { isHost: false, mySeat: 2 }).message,
+    ).toBe('本局已中止，等待房主处理');
+    expect(
+      createUndercoverBottomActions(idleControls, aborted, { isHost: true, mySeat: 0 }).message,
+    ).toBe('本局已中止');
   });
 });

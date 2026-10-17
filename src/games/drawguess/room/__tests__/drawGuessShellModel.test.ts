@@ -208,3 +208,91 @@ describe('createDrawGuessRoomShellModel', () => {
     expect(model.controlledSeat).toBeNull();
   });
 });
+
+describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
+  it('shows the settlement wait to every viewer during roundEnd', () => {
+    let commandNumber = 0;
+    const dispatch = (
+      current: DrawGuessState,
+      command: DrawGuessCommand,
+      opts: { readonly userId?: string; readonly system?: boolean; readonly nowMs?: number } = {},
+    ): DrawGuessState => {
+      const shared = {
+        controlledSeat: null,
+        nowMs: opts.nowMs ?? 1000,
+        commandId: `command:${commandNumber++}`,
+        randomSeed: `seed:${commandNumber}`,
+      };
+      const context: CommandContext =
+        opts.system === true
+          ? { ...shared, actor: { kind: 'system', effectId: 'effect:1' } }
+          : { ...shared, actor: { kind: 'user', userId: opts.userId ?? 'host' } };
+      const decision = drawGuessEngine.decide(current, command, context);
+      if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+      return decision.events.reduce(drawGuessEngine.evolve, current);
+    };
+    let state = lobbyState(true);
+    state = dispatch(state, { type: 'drawguess.round.start' });
+    state = dispatch(
+      state,
+      {
+        type: 'drawguess.words.dealt',
+        turnIndex: 0,
+        choices: [
+          { word: '苹果', pinyinInitials: 'p g' },
+          { word: '香蕉', pinyinInitials: 'x j' },
+          { word: '西瓜', pinyinInitials: 'x g' },
+        ],
+      },
+      { system: true },
+    );
+    if (state.phase.kind !== 'wordSelect') throw new Error('expected wordSelect phase');
+    state = dispatch(state, {
+      type: 'drawguess.word.choose',
+      word: '苹果',
+      phaseRevision: state.phaseRevision,
+      turnIndex: state.turnIndex,
+    });
+    const drawing = state.phase;
+    if (drawing.kind !== 'drawing') throw new Error('expected drawing phase');
+    state = dispatch(
+      state,
+      {
+        type: 'drawguess.phase.expire',
+        phaseRevision: state.phaseRevision,
+        turnIndex: state.turnIndex,
+      },
+      { nowMs: drawing.deadlineAt },
+    );
+    if (state.phase.kind !== 'roundEnd') throw new Error('expected roundEnd phase');
+    const model = createDrawGuessRoomShellModel({
+      roomCode: '1234',
+      capabilities: capabilities(),
+      onBack: jest.fn(),
+      onTitlePress: jest.fn(),
+      onTitleLongPress: jest.fn(),
+      user: { id: 'host', avatarUrl: null },
+      gachaStatus: { normalDraws: 4, goldenDraws: 1 },
+      onUserActionPress: jest.fn(),
+      connection: { status: 'live', pendingCommandCount: 0, onManualReconnect: jest.fn() },
+      state,
+      revision: 9,
+      userId: 'host',
+      controlledSeat: null,
+      seatsVisuallyDisabled: false,
+      onSeatPress: jest.fn(),
+      onBotSeatLongPress: null,
+      seatController,
+      profileSelection: null,
+      onProfileClose: jest.fn(),
+      onProfileLeaveSeat: jest.fn(),
+      share,
+      isLobby: false,
+      isHost: true,
+      mySeat: 0,
+      hostManagement: { sections: [] },
+      releaseBot: jest.fn(),
+    });
+    expect(model.bottomActions).toMatchObject({ kind: 'info', message: '等待本轮结算' });
+  });
+});

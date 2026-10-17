@@ -520,7 +520,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(cast.actions.find((action) => action.key === 'openVote')).toMatchObject({
       label: '修改投票',
     });
-    expect(cast.message).toBe('你已投：赞成（揭晓前可改票）');
+    expect(cast.message).toBe('你已投：赞成（揭晓前可改票）· 已投 1/5');
     for (let seat = 0; seat < 5; seat += 1) {
       if (seat !== voter)
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -611,5 +611,116 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (otherEvil === undefined) throw new Error('expected a second evil seat');
     expect(shellFor(running, otherEvil).message).toBe('坏人商量时间（线下口头），等待刺客指认。');
     expect(shellFor(running, roleSeat(running, 'merlin')).message).toBe('坏人正在商量刺杀目标…');
+  });
+});
+
+/** Reads the current phase across a function boundary (no narrowing). */
+function currentPhase(running: RunningSession): AvalonState['phase'] {
+  return running.state.phase;
+}
+
+/** Walks a five-human game into the first night step (evilReveal). */
+function nightSession() {
+  const running = session(5);
+  running.send({ type: 'avalon.game.start' });
+  for (let seat = 0; seat < 5; seat += 1) {
+    running.send({ type: 'avalon.role.viewed' }, seatUser(seat));
+  }
+  running.send({ type: 'avalon.game.begin' });
+  if (running.state.isAudioPlaying) running.send({ type: 'avalon.audio.ack' }, 'host');
+  if (running.state.phase.kind !== 'night') throw new Error('expected night phase');
+  return running;
+}
+
+describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
+  it('night: non-participants and confirmed participants wait on the step, pending participants act', () => {
+    const running = nightSession();
+    const participants = getAvalonNightParticipants(running.state.roles, 'evilReveal');
+    const nonParticipant = [0, 1, 2, 3, 4].find((seat) => !participants.includes(seat));
+    if (nonParticipant === undefined) throw new Error('expected a non-participant seat');
+    expect(shellFor(running, nonParticipant).message).toBe('等待本步玩家确认');
+    const pending = participants[0];
+    if (pending === undefined) throw new Error('expected a participant seat');
+    const pendingShell = shellFor(running, pending);
+    expect(pendingShell.message).toBeNull();
+    expect(pendingShell.actions.some((action) => action.key === 'nightInfo')).toBe(true);
+    running.send({ type: 'avalon.night.confirm' }, seatUser(pending));
+    const confirmedShell = shellFor(running, pending);
+    expect(confirmedShell.message).toBe('等待本步玩家确认');
+    expect(confirmedShell.actions.some((action) => action.key === 'nightInfo')).toBe(false);
+  });
+
+  it('vote: a player who has voted sees the cast count, a pending voter keeps the bare action', () => {
+    const running = daytimeSession();
+    if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    const leader = running.state.leaderSeat;
+    const required = running.state.phase.requiredSize;
+    const team: number[] = [leader];
+    for (let seat = 0; team.length < required; seat += 1) {
+      if (!team.includes(seat)) team.push(seat);
+    }
+    running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+    running.send({ type: 'avalon.team.propose' }, seatUser(leader));
+    if (currentPhase(running).kind !== 'vote') throw new Error('expected vote phase');
+    running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(1));
+    expect(shellFor(running, 1).message).toBe('你已投：赞成（揭晓前可改票）· 已投 1/5');
+    expect(shellFor(running, 2).message).toBeNull();
+  });
+
+  it('lady: bystanders read the public process before and after the target is chosen', () => {
+    const running = ninePlayerDaytimeSession();
+    playQuestRound(running);
+    completeLadyIfPresent(running);
+    playQuestRound(running);
+    if (running.state.phase.kind !== 'lady') throw new Error('expected lady phase');
+    const { holderSeat, examinedSeats } = running.state.phase;
+    const seats = Array.from({ length: 9 }, (_, seat) => seat);
+    const bystander = seats.find((seat) => seat !== holderSeat);
+    if (bystander === undefined) throw new Error('expected a bystander seat');
+    expect(shellFor(running, bystander).message).toBe(
+      `${holderSeat + 1} 号 · P${holderSeat} 正在选择查验对象`,
+    );
+    const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
+    if (target === undefined) throw new Error('expected an eligible lady target');
+    running.send({ type: 'avalon.lady.check', seat: target }, seatUser(holderSeat));
+    const other = seats.find((seat) => seat !== holderSeat && seat !== target);
+    if (other === undefined) throw new Error('expected another bystander seat');
+    expect(shellFor(running, other).message).toBe(
+      `${holderSeat + 1} 号 · P${holderSeat} 已选择查验 ${target + 1} 号 · P${target}，等待对方确认`,
+    );
+  });
+
+  it('ended: seated non-host players wait on the host, the host gets no wait sentence', () => {
+    const running = daytimeSession();
+    for (let round = 0; round < 5 && running.state.phase.kind !== 'ended'; round += 1) {
+      if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
+      const leader = running.state.leaderSeat;
+      const required = running.state.phase.requiredSize;
+      const evils = evilSeats(running);
+      const evilOnTeam = evils.find((seat) => seat !== leader) ?? evils[0];
+      if (evilOnTeam === undefined) throw new Error('expected an evil seat');
+      const team: number[] = [leader];
+      if (!team.includes(evilOnTeam)) team.push(evilOnTeam);
+      for (let seat = 0; team.length < required; seat += 1) {
+        if (!team.includes(seat)) team.push(seat);
+      }
+      running.send({ type: 'avalon.team.updateDraft', seats: team }, seatUser(leader));
+      running.send({ type: 'avalon.team.propose' }, seatUser(leader));
+      for (let seat = 0; seat < 5; seat += 1) {
+        running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
+      }
+      running.send({ type: 'avalon.vote.finish' });
+      if (currentPhase(running).kind !== 'quest') throw new Error('expected quest phase');
+      for (const seat of team) {
+        running.send(
+          { type: 'avalon.quest.play', play: seat === evilOnTeam ? 'fail' : 'success' },
+          seatUser(seat),
+        );
+      }
+      running.send({ type: 'avalon.quest.finish' });
+    }
+    if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
+    expect(shellFor(running, 2).message).toBe('等待房主操作（再来一局 / 返回大厅）');
+    expect(shellFor(running, 0).message).toBeNull();
   });
 });

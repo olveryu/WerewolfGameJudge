@@ -30,7 +30,10 @@ import {
   buildRoomConfigAction,
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
-import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
+import {
+  buildEndedWaitingMessage,
+  buildLobbyHostStartMessage,
+} from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import {
@@ -294,11 +297,18 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
     share: input.share,
     bottomActions: {
       kind: 'info',
-      message: buildLobbyHostStartMessage({
-        isLobby: input.isLobby,
-        isHost: input.isHost,
-        mySeat: input.mySeat,
-      }),
+      message:
+        state.phase.kind === 'ended'
+          ? buildEndedWaitingMessage({
+              isEnded: true,
+              isHost: input.isHost,
+              mySeat: input.mySeat,
+            })
+          : buildLobbyHostStartMessage({
+              isLobby: input.isLobby,
+              isHost: input.isHost,
+              mySeat: input.mySeat,
+            }),
       progress: null,
       actions: [],
     },

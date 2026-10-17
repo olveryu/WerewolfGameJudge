@@ -3,6 +3,7 @@
 import {
   getBotSeats,
   getUndercoverOccupiedSeatCount,
+  getUndercoverUserSeat,
   type UndercoverCategory,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -481,7 +482,10 @@ export function createUndercoverRoomShellModel(
     seatConfirmation: input.seatConfirmation,
     profile: input.profile,
     share: input.share,
-    bottomActions: createUndercoverBottomActions(input.controls),
+    bottomActions: createUndercoverBottomActions(input.controls, state, {
+      isHost: input.isHost,
+      mySeat: getUndercoverUserSeat(state, input.myUserId),
+    }),
     hostManagement: createUndercoverHostManagement({
       state,
       isHost: input.isHost,

@@ -30,6 +30,7 @@ import { RoomTaskViewport } from '@/features/room/components/RoomTaskViewport';
 import { StageFrame } from '@/features/room/components/StageFrame';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
+import { ENDED_WAITING_MESSAGE } from '@/features/room/model/RoomBottomActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -687,7 +688,7 @@ function DrawGuessEndedView({
   return (
     <DrawGuessStageFrame turnLabel="本局结束" remainingSeconds={null} countdownLabel="">
       <DrawGuessScoreboard title="最终排名" competitionRanking rows={totalRows} />
-      {!isHost && <Text style={styles.hint}>等待房主操作（再来一局 / 返回大厅）</Text>}
+      {!isHost && <Text style={styles.hint}>{ENDED_WAITING_MESSAGE}</Text>}
     </DrawGuessStageFrame>
   );
 }
