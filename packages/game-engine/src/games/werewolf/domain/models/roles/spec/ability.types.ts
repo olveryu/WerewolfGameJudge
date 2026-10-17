@@ -9,7 +9,7 @@
  */
 
 import type { NightStepId } from './nightStepIds';
-import type { ConfirmStatusUi } from './schema.types';
+import type { ConfirmStatusUi, SeatActionUi } from './schema.types';
 import { TargetConstraint } from './schema.types';
 
 // Re-export TargetConstraint from the role-spec boundary.
@@ -317,6 +317,13 @@ export interface NightStepUi {
   readonly confirmTitle?: string;
   readonly confirmText?: string;
   readonly bottomActionText?: string;
+  /**
+   * Structured seat-action declaration for steps using the canonical
+   * chooseSeat sentence pattern. When present, prompt / confirmText /
+   * bottomActionText are composed by the schema builder's resolver
+   * and must not also be declared literally.
+   */
+  readonly seatAction?: SeatActionUi;
   readonly revealTitlePrefix?: string;
   readonly revealResultFormat?: 'factionCheck' | 'roleName';
   readonly emptyVoteText?: string;
