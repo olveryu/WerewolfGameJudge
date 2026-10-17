@@ -718,6 +718,38 @@ describe('createWerewolfRoomShellModel', () => {
       message: '请选择要袭击的玩家',
     });
   });
+
+  it('scopes the night waiting sentence to non-actioners, including during audio', () => {
+    const gameState = createLocalGameState();
+    const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
+    const step = plan.steps[0];
+    // The actioner does not read a wait sentence about their own step,
+    // not even while the step narration audio is playing.
+    const actionerAudio = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ongoing,
+        gameState,
+        currentStepId: step?.stepId ?? null,
+        imActioner: true,
+        isAudioPlaying: true,
+        actionMessage: '请选择要袭击的玩家',
+      }),
+    );
+    expect(actionerAudio.bottomActions).toMatchObject({ kind: 'stacked', message: null });
+    // Non-actioners keep the waiting sentence during audio.
+    const watcherAudio = createWerewolfRoomShellModel(
+      createShellModelInput({
+        roomStatus: GameStatus.Ongoing,
+        gameState,
+        currentStepId: step?.stepId ?? null,
+        isAudioPlaying: true,
+      }),
+    );
+    expect(watcherAudio.bottomActions).toMatchObject({
+      kind: 'stacked',
+      message: `正在等待 ${step?.displayName} 行动`,
+    });
+  });
 });
 
 describe('createWerewolfBoardInfoSections', () => {

@@ -520,9 +520,12 @@ function createWerewolfBottomActions(
 
   const progress = deriveWerewolfBottomProgress(input.currentStepId, input.gameState);
   // 夜晚步进中非行动者的等待句与进度行同源：同一个 progress 派生出
-  // 「正在等待 {本步角色} 行动」，两处永远指同一步。
+  // 「正在等待 {本步角色} 行动」，两处永远指同一步。行动者本人不看
+  // 这句（其行动提示走 actionMessage，音频窗口内由播报占位按钮承载）。
   const stepWaitingMessage =
-    input.roomStatus === GameStatus.Ongoing ? buildStepActorWaitingMessage(progress) : null;
+    input.roomStatus === GameStatus.Ongoing && !input.imActioner
+      ? buildStepActorWaitingMessage(progress)
+      : null;
   return {
     kind: 'stacked',
     message:

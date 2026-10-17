@@ -27,10 +27,10 @@ import {
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import type {
+  RoomBottomActionModel,
   RoomBottomButton,
   RoomBottomStackModel,
 } from '@/features/room/model/RoomBottomActions';
-import type { RoomBottomActionModel } from '@/features/room/model/RoomBottomActions';
 import { buildPreparationFailureMessage } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
