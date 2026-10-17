@@ -28,27 +28,6 @@ export type RoomBottomButton = RoomBottomButtonBase & RoomBottomActionAvailabili
 /** Label of the disabled placeholder shown while narration audio plays. */
 export const AUDIO_WAITING_LABEL = '语音播报中…';
 
-/**
- * The audio-waiting placeholder button: while the room's narration is
- * playing, the primary action slot shows this disabled button instead
- * of the real action. Shared by every game with narration audio so
- * the copy and disabled semantics cannot drift.
- */
-export function buildAudioWaitingButton(input: {
-  readonly key: string;
-  readonly testID?: string;
-}): RoomBottomButton {
-  return {
-    key: input.key,
-    label: AUDIO_WAITING_LABEL,
-    variant: 'primary',
-    size: 'md',
-    isEnabled: false,
-    disabledReason: '语音播报尚未结束，请稍候',
-    testID: input.testID,
-  };
-}
-
 interface RoomBottomToolButtonBase {
   readonly key: string;
   readonly label: string;
