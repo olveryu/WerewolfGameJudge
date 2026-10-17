@@ -82,6 +82,13 @@ test.describe('Werewolf Night — Flow Verification', () => {
         .poll(async () => (await wolfAction.textContent()) ?? '', { timeout: 30_000 })
         .toContain('袭击');
 
+      // PR-B G-4: while the wolf acts, the non-actioner's bottom
+      // panel names the step it is waiting on (same derived progress
+      // as the progress line, so the two can never disagree).
+      await expect(
+        pages[villagerIdx]!.getByText('正在等待 狼人 行动', { exact: true }),
+      ).toBeVisible({ timeout: 10_000 });
+
       // Wolf clicks the villager's seat
       const confirmed = await clickSeatAndConfirm(wolfPage, villagerSeat);
       expect(confirmed, 'Wolf vote should be confirmed').toBe(true);
@@ -184,6 +191,16 @@ test.describe('Werewolf Night — Flow Verification', () => {
       // --- Phase 4: Wait for night to complete ---
       const nightDone = await waitForNightEnd(pages, 80);
       expect(nightDone, 'Night should have ended').toBe(true);
+
+      // PR-B G-3: day with no sheriff election (helper default) —
+      // a non-host player has no online day action, so their bottom
+      // panel says they are waiting on the host to run the day. A
+      // wolf page is used: wolves are never the night kill target in
+      // this flow and hold no day-opening action window.
+      const dayViewerIdx = wolfIndices.find((idx) => idx !== 0)!;
+      await expect(
+        pages[dayViewerIdx]!.getByText('白天阶段，等待房主主持推进', { exact: true }),
+      ).toBeVisible({ timeout: 15_000 });
 
       // Attach diagnostic report
       await testInfo.attach('6p-seer-verify.txt', {
