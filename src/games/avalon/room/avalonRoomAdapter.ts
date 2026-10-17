@@ -113,8 +113,9 @@ function avalonSeatStatusLabel(state: AvalonState, seat: number): string | null 
   const phase = state.phase;
   if (state.leaderSeat === seat && AVALON_LEADER_BADGE_PHASES[phase.kind]) return '队长';
   if (phase.kind === 'lady' && phase.holderSeat === seat) return '湖仙';
-  // 提名草稿（服务端权威、全房可见）：草稿中的座位即「队员」徽标，
-  // 以服务端回声为准，不做本地乐观显示。
+  // 提名草稿（服务端权威、全房可见）：草稿中的座位即「队员」徽标。
+  // 本函数读的是调用方给的派生输入：队长本人屏幕由 room-state 以点选
+  // 镜像覆盖 draftSeats（未回声先按镜像亮），其余视角恒为服务端草稿。
   if (phase.kind === 'nominate' && phase.draftSeats.includes(seat)) return '队员';
   if (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) return '队员';
   if (phase.kind === 'quest' && phase.teamSeats.includes(seat)) return '队员';

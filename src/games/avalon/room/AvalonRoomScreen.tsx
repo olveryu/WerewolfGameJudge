@@ -208,7 +208,8 @@ function AvalonRoomContent(
   const showLadyResult = ladyResult !== null && ladyResultWatermark.shouldReveal;
   const seatDisplayName = (seat: number) =>
     `${seat + 1} 号 · ${viewModel?.seats.find((entry) => entry.seat === seat)?.displayName ?? `座位${seat + 1}`}`;
-  const { setSeatPickHandler, strikePickMode, submit, controlledSeat } = screen;
+  const { setSeatPickHandler, strikePickMode, submitTeamDraft, setNominationDraftOverride } =
+    screen;
   // 座位盘点选全部经共享点选机制（useSeatPicking）：四个消费点各一份配置，
   // 资格集仍由 avalonInteractionPolicy 产出，本组件只做装配。注册桥按现行
   // 优先级合成单个 handler：提前刺杀选人模式开启时独占点按（遮蔽其余
@@ -235,8 +236,11 @@ function AvalonRoomContent(
     },
   });
   const nominatePicking = useSeatPicking({
-    // 提名草稿住服务端：selection 是 VM 投影，变化经 updateDraft 整集提交，
-    // 徽标以服务端回声为准（不做本地乐观更新）。点未入座座位落回默认语义。
+    // 提名草稿住服务端：selection 是 VM 投影，点选先落机制的乐观镜像
+    // 即时显示、变化经 updateDraft 整集提交；镜像经 onMirrorChange 同步
+    // 进 room-state 的派生覆盖（徽标与满员判断读镜像，见
+    // useAvalonRoomState 的 shellState），派发结果回传机制回滚被拒的
+    // 镜像，服务端草稿始终是权威。点未入座座位落回默认语义。
     active: nominateInstruction?.isLeader === true,
     mode: 'toggle',
     eligibleSeats: viewModel === null ? [] : viewModel.seats.map((entry) => entry.seat),
@@ -245,13 +249,8 @@ function AvalonRoomContent(
     storage: {
       kind: 'room',
       selection: viewModel?.draftSeats ?? [],
-      onSelectionChange: (nextSelection) => {
-        void submit(
-          '更新草稿',
-          { type: 'avalon.team.updateDraft', seats: nextSelection },
-          controlledSeat,
-        );
-      },
+      onSelectionChange: (nextSelection) => submitTeamDraft(nextSelection),
+      onMirrorChange: (mirror) => setNominationDraftOverride(mirror),
     },
   });
   const ladyPicking = useSeatPicking({

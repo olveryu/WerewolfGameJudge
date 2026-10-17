@@ -89,6 +89,18 @@ export interface AvalonRoomScreenState {
     command: AvalonPublicCommand,
     control?: number | null,
   ) => Promise<boolean>;
+  /**
+   * 同步提名点选镜像（Screen 的点选机制经 onMirrorChange 推来）：只覆盖
+   * 本 hook 派生 shell model 时 nominate 阶段的 draftSeats，权威 state
+   * 本体与返回的 viewModel 不受影响；传 null 表示镜像已清除。
+   */
+  readonly setNominationDraftOverride: (selection: readonly number[] | null) => void;
+  /**
+   * 派发提名草稿更新（avalon.team.updateDraft）并记录在飞派发：
+   * onProposeTeamPress 会先等最近一笔草稿派发落定再发 propose。
+   * 返回派发结果（true 成功 / false 被拒），供点选机制回滚镜像。
+   */
+  readonly submitTeamDraft: (seats: readonly number[]) => Promise<boolean>;
   readonly isSubmitting: boolean;
   readonly session: AvalonRoomSession;
   readonly openRules: () => void;
@@ -191,6 +203,28 @@ export function useAvalonRoomState(
   // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
   const submit = (label: string, command: AvalonPublicCommand, control: number | null = null) =>
     submission.submit(label, () => session.dispatch(command, { controlledSeat: control, label }));
+  // 提名点选镜像（队长本人屏幕的派生覆盖，见 shellState）与草稿派发
+  // 链：Screen 的点选机制经 setNominationDraftOverride 同步镜像，草稿
+  // 派发统一经 submitTeamDraft 按发送顺序串行、记录链尾供 propose 等待。
+  const [nominationDraftOverride, setNominationDraftOverrideState] = useState<
+    readonly number[] | null
+  >(null);
+  const setNominationDraftOverride = useCallback((selection: readonly number[] | null) => {
+    setNominationDraftOverrideState(selection);
+  }, []);
+  const lastTeamDraftDispatchRef = useRef<Promise<boolean> | null>(null);
+  const submitTeamDraft = (seats: readonly number[]): Promise<boolean> => {
+    // submission 是单飞锁：队长连点时后一笔若与在飞的前一笔重叠，会被
+    // 锁以「已有操作进行中」直接拒绝，整集丢失且镜像误回滚。故按发送
+    // 顺序逐笔接续——等前一笔落定再发本笔，本笔返回值仍是它自己的
+    // 派发结果；镜像的连点复合靠这里的串行才真正成立。
+    const dispatchNow = () =>
+      submit('更新草稿', { type: 'avalon.team.updateDraft', seats }, controlledSeat);
+    const previous = lastTeamDraftDispatchRef.current;
+    const dispatch = previous === null ? dispatchNow() : previous.then(dispatchNow, dispatchNow);
+    lastTeamDraftDispatchRef.current = dispatch;
+    return dispatch;
+  };
   // 投票/任务倒计时：结算的正确性由服务端定时投递保证（引擎武装倒计时的
   // 同时排下 avalon.settle.due，Worker 到点以系统身份内部结算）。客户端
   // 这条 expire 派发只是加速路径：抢先提交同一个超时结算，先到者生效。
@@ -309,6 +343,17 @@ export function useAvalonRoomState(
   });
 
   const selection = profile.selection;
+  // 队长本人屏幕的派生输入：nominate 阶段以点选镜像覆盖草稿，让「队员」
+  // 徽标与「提交队伍」的满员判断不必等服务端回声。只覆盖喂给 shell
+  // model 的这一份派生：state 本体、返回的 viewModel、摘要与房主管理
+  // 读的仍是权威状态；无镜像或非队长视角时恒为原 state。
+  const shellState: AvalonState =
+    nominationDraftOverride !== null &&
+    state.phase.kind === 'nominate' &&
+    effectiveSeat !== null &&
+    state.leaderSeat === effectiveSeat
+      ? { ...state, phase: { ...state.phase, draftSeats: nominationDraftOverride } }
+      : state;
   const shellModel: RoomShellModel = createAvalonRoomShellModel({
     roomCode: room.roomCode,
     capabilities,
@@ -319,7 +364,7 @@ export function useAvalonRoomState(
     gachaStatus,
     onUserActionPress: () => navigation.navigate('Settings', { roomCode: room.roomCode }),
     connection: entryController.connection,
-    state,
+    state: shellState,
     revision: snapshot.snapshot.revision,
     userId: user.id,
     controlledSeat,
@@ -354,8 +399,18 @@ export function useAvalonRoomState(
     onOpenVotePress: () => setVoteModalOpen(true),
     onOpenQuestPress: () => setQuestModalOpen(true),
     onProposeTeamPress: () => {
-      // 提案以服务端草稿为准：草稿由队长的点选经 updateDraft 维护。
-      void submit('提交队伍', { type: 'avalon.team.propose' }, controlledSeat);
+      // 提案以服务端草稿为准：草稿由队长的点选经 submitTeamDraft 维护。
+      // 先等最后一笔在飞的草稿派发落定再发 propose，免得 propose 抢在
+      // 草稿前面被引擎按旧草稿长度拒绝；草稿派发被拒时 propose 照常
+      // 发出，由引擎按服务端草稿校验、既有失败提示承接。
+      const propose = () =>
+        void submit('提交队伍', { type: 'avalon.team.propose' }, controlledSeat);
+      const pendingDraft = lastTeamDraftDispatchRef.current;
+      if (pendingDraft === null) {
+        propose();
+        return;
+      }
+      void pendingDraft.then(propose, propose);
     },
     onLadyAcknowledgePress: () => setLadyAckOpen(true),
     onLadyResultPress: () => ladyResultReopenRef.current?.(),
@@ -383,6 +438,8 @@ export function useAvalonRoomState(
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     phaseRemainingSeconds,
     submit,
+    setNominationDraftOverride,
+    submitTeamDraft,
     isSubmitting: submission.isSubmitting,
     session,
     openRules: () =>
