@@ -140,9 +140,9 @@ function createBaseWerewolfRoomMock(overrides?: Record<string, unknown>) {
     // Actions used by WerewolfRoomScreen
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
-    assignRoles: jest.fn(),
-    startGame: jest.fn(),
-    restartGame: jest.fn(),
+    assignRoles: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
+    startGame: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
+    restartGame: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
     submitAction: mockSubmitAction,
     hasWolfVoted: () => false,
     viewedRole: jest.fn(),

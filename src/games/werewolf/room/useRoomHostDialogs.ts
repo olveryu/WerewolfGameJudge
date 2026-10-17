@@ -23,9 +23,9 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomHostDialogsParams {
   gameState: LocalGameState;
-  assignRoles: () => Promise<void>;
-  startGame: () => Promise<void>;
-  restartGame: () => Promise<void>;
+  assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
+  startGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   /** Share night review report. Returns true on success, false on failure. */
   shareNightReviewReport: () => Promise<boolean>;

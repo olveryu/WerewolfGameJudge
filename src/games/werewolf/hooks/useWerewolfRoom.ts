@@ -92,9 +92,9 @@ interface UseWerewolfRoomResult {
   kickPlayer: (targetSeat: number) => Promise<WerewolfCommandDispatchOutcome>;
 
   // Game actions (from useWerewolfGameActions)
-  assignRoles: () => Promise<void>;
-  startGame: () => Promise<void>;
-  restartGame: () => Promise<void>;
+  assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
+  startGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;

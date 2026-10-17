@@ -8,6 +8,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useRoomHostDialogs } from '@/games/werewolf/room/useRoomHostDialogs';
+import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
@@ -271,9 +272,9 @@ describe('useRoomHostDialogs', () => {
 
     it('showPrepareToFlipDialog confirm should call assignRoles once and reject second press', async () => {
       const gameState = createMockGameState(4);
-      let resolveAssign!: () => void;
+      let resolveAssign!: (outcome: WerewolfCommandDispatchOutcome) => void;
       const mockAssignRoles = jest.fn(
-        () => new Promise<void>((resolve) => (resolveAssign = resolve)),
+        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveAssign = resolve)),
       );
 
       const { result } = renderHook(() =>
@@ -316,7 +317,7 @@ describe('useRoomHostDialogs', () => {
 
       // Resolve the first call
       await act(async () => {
-        resolveAssign();
+        resolveAssign(successfulRoomCommand(buildWerewolfTestState()));
       });
       expect(result.current.isHostActionSubmitting).toBe(false);
     });
@@ -324,9 +325,9 @@ describe('useRoomHostDialogs', () => {
     it('showRestartDialog confirm should call restartGame once and reject double press', async () => {
       const gameState = createMockGameState(4);
       gameState.status = GameStatus.Ended;
-      let resolveRestart!: () => void;
+      let resolveRestart!: (outcome: WerewolfCommandDispatchOutcome) => void;
       const mockRestartGame = jest.fn(
-        () => new Promise<void>((resolve) => (resolveRestart = resolve)),
+        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveRestart = resolve)),
       );
 
       const { result } = renderHook(() =>
@@ -366,15 +367,17 @@ describe('useRoomHostDialogs', () => {
 
       // Resolve
       await act(async () => {
-        resolveRestart();
+        resolveRestart(successfulRoomCommand(buildWerewolfTestState()));
       });
       expect(result.current.isHostActionSubmitting).toBe(false);
     });
 
     it('handleStartGame should reject double press', async () => {
       const gameState = createMockGameState(4);
-      let resolveStart!: () => void;
-      const mockStartGame = jest.fn(() => new Promise<void>((resolve) => (resolveStart = resolve)));
+      let resolveStart!: (outcome: WerewolfCommandDispatchOutcome) => void;
+      const mockStartGame = jest.fn(
+        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveStart = resolve)),
+      );
 
       const { result } = renderHook(() =>
         useRoomHostDialogs({
@@ -421,7 +424,7 @@ describe('useRoomHostDialogs', () => {
 
       // Resolve
       await act(async () => {
-        resolveStart();
+        resolveStart(successfulRoomCommand(buildWerewolfTestState()));
       });
       expect(result.current.isHostActionSubmitting).toBe(false);
     });
