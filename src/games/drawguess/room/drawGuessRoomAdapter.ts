@@ -258,11 +258,16 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     share: input.share,
     bottomActions: {
       kind: 'info',
-      message: buildLobbyHostStartMessage({
-        isLobby: input.isLobby,
-        isHost: input.isHost,
-        mySeat: input.mySeat,
-      }),
+      // 回合结算期全员（房主也一样）等倒计时走完：给一行等待对象，
+      // 与工作区内的结算倒计时同指一件事。
+      message:
+        state.phase.kind === 'roundEnd'
+          ? '等待本轮结算'
+          : buildLobbyHostStartMessage({
+              isLobby: input.isLobby,
+              isHost: input.isHost,
+              mySeat: input.mySeat,
+            }),
       progress: null,
       actions: [],
     },
