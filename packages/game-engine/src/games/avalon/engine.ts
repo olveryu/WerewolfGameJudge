@@ -1,11 +1,6 @@
 /** Authoritative Avalon engine; delegates persistence and delivery to the platform. */
 
-import {
-  acknowledgeAudioQueue,
-  type AudioEffect,
-  isAudioGateOpen,
-  queueAudioBatch,
-} from '../../platform/audio';
+import { acknowledgeAudioQueue, isAudioGateOpen } from '../../platform/audio';
 import {
   buildGameCompletionPayload,
   type CommandContext,
@@ -32,6 +27,8 @@ import {
   teamSizeReason,
 } from './domain/decision';
 import { evolveAvalonState } from './domain/evolve';
+import { evaluateAvalonNightCompletion, queueAudio } from './domain/nightProgression';
+import { getAvalonNightStepDef } from './domain/nightSteps';
 import {
   AVALON_SETTLE_COUNTDOWN_SECONDS,
   buildAvalonNightInfo,
@@ -46,6 +43,7 @@ import { normalizeAvalonState } from './state/normalize';
 import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
+  AVALON_NIGHT_STEPS,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonPlay,
@@ -165,50 +163,28 @@ function beginGame(state: AvalonState, context: CommandContext): AvalonDecision 
     return reject(AVALON_REASONS.notAllViewed);
   return commitAvalon([
     { type: 'avalon.game.begun' },
-    queueAudio([{ audioKey: 'night' }, { audioKey: 'evil_reveal' }]),
+    queueAudio([
+      { audioKey: 'night' },
+      { audioKey: getAvalonNightStepDef(AVALON_NIGHT_STEPS[0]!).audioKey },
+    ]),
   ]);
 }
 
-/** 第一晚播报队列事件；入队纪律（空批 fail-fast＋整批拷贝）由共享音频机器负责。 */
-function queueAudio(effects: readonly AudioEffect[]): AvalonEvent {
-  return { type: 'avalon.audio.queued', effects: queueAudioBatch(effects).pendingAudioEffects };
-}
-
-/** Night step confirmation; advances the step (or dawn) once every participant confirmed. */
+/**
+ * Night step confirmation: records the actor's confirmation only.
+ * Whether the step completes is evaluated once at the decide exit
+ * (evaluateAvalonNightCompletion), so a confirmation recorded while
+ * the narration is still playing advances later, when the host's
+ * audio ack opens the gate — arrival order does not matter.
+ */
 function confirmNight(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'night') return reject(AVALON_REASONS.phase);
-  // 播报未播完时阻塞确认（共享音频门控，与狼人杀 progression gate 同一份）。
-  if (!isAudioGateOpen(state)) return reject(AVALON_REASONS.audioPlaying);
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   const participants = getAvalonNightParticipants(state.roles, state.phase.step);
   if (!participants.includes(resolved.value)) return reject(AVALON_REASONS.notNightParticipant);
   if (state.phase.confirmedSeats.includes(resolved.value)) return commitAvalon([]);
-  const confirmed = [...state.phase.confirmedSeats, resolved.value];
-  if (!participants.every((seat) => confirmed.includes(seat)))
-    return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.value }]);
-  switch (state.phase.step) {
-    case 'evilReveal':
-      return commitAvalon([
-        { type: 'avalon.night.stepped', step: 'merlinReveal' },
-        queueAudio([{ audioKey: 'evil_reveal', isEndAudio: true }, { audioKey: 'merlin_reveal' }]),
-      ]);
-    case 'merlinReveal':
-      return commitAvalon([
-        { type: 'avalon.night.stepped', step: 'percivalReveal' },
-        queueAudio([
-          { audioKey: 'merlin_reveal', isEndAudio: true },
-          { audioKey: 'percival_reveal' },
-        ]),
-      ]);
-    case 'percivalReveal':
-      // The identity checkpoint already gated the night at begin time;
-      // the last step confirmation closes the night directly.
-      return commitAvalon([
-        { type: 'avalon.night.completed' },
-        queueAudio([{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: 'night_end' }]),
-      ]);
-  }
+  return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.value }]);
 }
 
 /**
@@ -723,13 +699,31 @@ function decideCommand(
   }
 }
 
-/** Decides public and worker-internal commands against the authoritative state. */
+/**
+ * Decides public and worker-internal commands against the authoritative state.
+ *
+ * @remarks Night completion is evaluated here, at the engine's single
+ * decide exit, for the two commands that can complete a night step —
+ * a participant's confirmation and the host's audio ack (the same
+ * shape as werewolf's progressAfterSuccess): the command's own events
+ * are evolved into an in-memory intermediate state, completion is
+ * evaluated once against it, and any progression events join the same
+ * decision. Rejections and unrelated commands pass through untouched.
+ */
 export function decideAvalonCommand(
   state: AvalonState,
   command: AvalonCommand,
   context: CommandContext,
 ): AvalonDecision {
-  return decideCommand(state, command, context);
+  const decision = decideCommand(state, command, context);
+  if (command.type !== 'avalon.night.confirm' && command.type !== 'avalon.audio.ack')
+    return decision;
+  if (decision.kind !== 'commit') return decision;
+  let intermediate = state;
+  for (const event of decision.events) intermediate = evolveAvalonState(intermediate, event);
+  const progression = evaluateAvalonNightCompletion(intermediate);
+  if (progression.length === 0) return decision;
+  return commitAvalon([...decision.events, ...progression], decision.effects);
 }
 
 /** Projects domain phases into the shared room lifecycle. */

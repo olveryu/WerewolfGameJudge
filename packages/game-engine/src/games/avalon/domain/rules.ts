@@ -11,6 +11,7 @@ import {
   type AvalonRoleId,
   isAvalonEvilRole,
 } from '../state/types';
+import { AVALON_NIGHT_STEP_DEFS } from './nightSteps';
 
 /** 揭晓倒计时（秒）：全员投完票/出完牌后才开始计时，到点自动结算揭晓。 */
 export const AVALON_SETTLE_COUNTDOWN_SECONDS = 5;
@@ -51,21 +52,15 @@ export function getAvalonLadyInitialHolderSeat(
   return (leaderSeat - 1 + numberOfPlayers) % numberOfPlayers;
 }
 
-/** night 各步骤的参与者集合（§4.1）。 */
+/**
+ * night 各步骤的参与者集合（§4.1）。构成规则只有步定义表一份
+ * （domain/nightSteps），本函数退化为查表门面，签名与导出不变。
+ */
 export function getAvalonNightParticipants(
   roles: Readonly<Record<number, AvalonRoleId>>,
   step: AvalonNightStep,
 ): readonly number[] {
-  const seats = Object.keys(roles).map(Number);
-  switch (step) {
-    case 'evilReveal':
-      // 坏人互认：奥伯伦全程闭眼，不参与、不确认。
-      return seats.filter((seat) => isAvalonEvilRole(roles[seat]!) && roles[seat] !== 'oberon');
-    case 'merlinReveal':
-      return seats.filter((seat) => roles[seat] === 'merlin');
-    case 'percivalReveal':
-      return seats.filter((seat) => roles[seat] === 'percival');
-  }
+  return AVALON_NIGHT_STEP_DEFS[step].participants(roles);
 }
 
 /** 发牌时服务端算好的可见集合（§4.3）。 */
