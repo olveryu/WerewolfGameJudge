@@ -9,6 +9,7 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { resolveViewIdentityAction } from '@/features/room/model/RoomBottomActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { DemoRoomSession } from '@/games/demo/model/DemoRoomSession';
@@ -89,6 +90,12 @@ function DemoRoomContent(
  */
 function DemoStageArea({ screen }: { readonly screen: DemoRoomScreenState }) {
   const phase = screen.state.phase;
+  // 查看动作定义走共享解析（身份模板同形态）：此处是 stage 区表面渲染。
+  const viewIdentityAction = resolveViewIdentityAction({
+    isVisible: phase.kind !== 'ended',
+    label: '查看我的身份',
+    onPress: screen.onViewRolePress,
+  });
   return (
     <View style={styles.stageArea}>
       <Text style={styles.stageTitle}>
@@ -103,9 +110,9 @@ function DemoStageArea({ screen }: { readonly screen: DemoRoomScreenState }) {
           ? '点下方按钮查看你的身份；全员查看完后由房主开始游戏。'
           : 'TODO(gameplay):玩法阶段界面随玩法状态机落地。'}
       </Text>
-      {phase.kind !== 'ended' ? (
-        <Button variant="secondary" size="lg" onPress={screen.onViewRolePress}>
-          查看我的身份
+      {viewIdentityAction !== null ? (
+        <Button variant="secondary" size="lg" onPress={viewIdentityAction.onPress}>
+          {viewIdentityAction.label}
         </Button>
       ) : null}
     </View>

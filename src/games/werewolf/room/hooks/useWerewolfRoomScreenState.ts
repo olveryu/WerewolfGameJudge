@@ -48,9 +48,9 @@ import { roomScreenLog } from '@/utils/logger';
 import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
+import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import { getWolfVoteSummary, toGameRoomLike } from '../werewolfRoom.helpers';
 import type { LayoutContext, StaticButtonAction } from './bottomLayoutConfig';
-import { STATIC_BUTTONS } from './bottomLayoutConfig';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
 import { useBottomLayout } from './useBottomLayout';
@@ -717,49 +717,8 @@ export function useWerewolfRoomScreenState(
 
   const guideMessage = useMemo((): string | null => {
     if (!gameState) return null;
-
-    if (isHost) {
-      return roomStatus === GameStatus.Ended
-        ? '天亮了 →「昨夜信息」查看结果，「本局复盘」查看/分享战报'
-        : null;
-    }
-
-    const players = gameState.players;
-    const totalSeats = gameState.template.numberOfPlayers;
-
-    switch (roomStatus) {
-      case GameStatus.Unseated:
-      case GameStatus.Seated:
-        return '等待所有玩家入座';
-      case GameStatus.Assigned: {
-        let viewedCount = 0;
-        for (const p of players.values()) {
-          if (p && p.hasViewedRole) viewedCount++;
-        }
-        if (viewedCount < totalSeats) {
-          return `请点击下方「${STATIC_BUTTONS.viewRole.label}」查看你的身份`;
-        }
-        return null;
-      }
-      case GameStatus.Ready:
-        return '准备就绪，等待房主开始';
-      case GameStatus.Day:
-        return null;
-      case GameStatus.Ended: {
-        let hostSeat: number | null = null;
-        for (const [seat, p] of players) {
-          if (p?.userId === gameState.hostUserId) {
-            hostSeat = seat;
-            break;
-          }
-        }
-        const hostLabel = hostSeat !== null ? `${hostSeat + 1}号玩家` : '房主';
-        return `天亮了 → 昨夜信息/本局复盘由${hostLabel}操作`;
-      }
-      default:
-        return null;
-    }
-  }, [isHost, gameState, roomStatus]);
+    return buildWerewolfGuideMessage({ isHost, roomStatus, mySeat, gameState });
+  }, [isHost, gameState, roomStatus, mySeat]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card handler (treasureMaster / thief bottom card selection)

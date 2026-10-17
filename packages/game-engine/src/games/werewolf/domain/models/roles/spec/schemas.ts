@@ -69,6 +69,39 @@ function getRevealKind(roleId: RoleId): RevealKind | undefined {
   }
 }
 
+/** Bottom button text shared by every canonical seat-action step. */
+const SEAT_ACTION_SKIP_TEXT = '不用技能';
+
+/**
+ * The one resolver for the canonical seat-action sentence pattern.
+ *
+ * A step declaring `seatAction: { verb, target? }` gets its prompt,
+ * confirmText and bottomActionText composed here — the pattern lives
+ * in exactly one place instead of being re-typed per role. Declaring
+ * the structured form alongside any of the literal fields it composes
+ * is an authoring error and fails fast at registry build time.
+ */
+export function resolveSeatActionUi(stepUi: NightStepUi): SchemaUi {
+  const { seatAction, ...rest } = stepUi;
+  if (!seatAction) return { ...stepUi };
+  if (
+    stepUi.prompt !== undefined ||
+    stepUi.confirmText !== undefined ||
+    stepUi.bottomActionText !== undefined
+  ) {
+    throw new Error(
+      '[schemas] seatAction must not coexist with literal prompt/confirmText/bottomActionText',
+    );
+  }
+  const target = seatAction.target ?? '玩家';
+  return {
+    ...rest,
+    prompt: `请选择要${seatAction.verb}的${target}，如不使用请点击「${SEAT_ACTION_SKIP_TEXT}」`,
+    confirmText: `${seatAction.verb}此玩家？`,
+    bottomActionText: SEAT_ACTION_SKIP_TEXT,
+  };
+}
+
 /**
  * Build SchemaUi from NightStepUi, adding revealKind when applicable.
  * NightStepUi is structurally assignable to SchemaUi (a superset of shared optional fields).
@@ -78,7 +111,7 @@ function buildSchemaUi(
   stepUi: NightStepUi,
   ability?: ActiveAbility<RoleId>,
 ): SchemaUi {
-  const base: SchemaUi = { ...stepUi };
+  const base: SchemaUi = resolveSeatActionUi(stepUi);
   const revealKind = getRevealKind(roleId);
 
   // Derive revealKind for check/learn effects
@@ -149,7 +182,7 @@ function buildSchema(
             kind: sub.kind,
             constraints: [...sub.constraints],
             canSkip: sub.canSkip,
-            ui: sub.ui,
+            ui: sub.ui ? resolveSeatActionUi(sub.ui) : undefined,
           }),
         ),
       };

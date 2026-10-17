@@ -90,6 +90,59 @@ export function buildPreparationFailureMessage(input: {
   return `${input.reason}，等待房主${input.hostAction}`;
 }
 
+/** Canonical label of the view-identity action where the game's own word for it is 身份. */
+export const VIEW_IDENTITY_LABEL = '查看身份';
+
+/**
+ * The view-identity action definition: the one player command whose
+ * execution (role card modal + viewed submission) already runs through
+ * the shared viewing flow. What remained per game was the definition —
+ * label, audience visibility, handler — re-assembled at every surface.
+ * A surface resolves the definition once, then renders it in its own
+ * form (bottom button, stage-area button, static layout entry). The
+ * label is the game's own content （查看身份 / 查看词卡 / 查看题目 …);
+ * visibility is the game's own audience predicate, evaluated by the
+ * caller (seated-only, phase-gated, control-state-gated …).
+ */
+export interface RoomViewIdentityAction {
+  readonly label: string;
+  readonly onPress: () => void;
+}
+
+export function resolveViewIdentityAction(input: {
+  readonly isVisible: boolean;
+  readonly label: string;
+  readonly onPress: () => void;
+}): RoomViewIdentityAction | null {
+  return input.isVisible ? { label: input.label, onPress: input.onPress } : null;
+}
+
+/**
+ * Renders a resolved view-identity action as a bottom button. Key,
+ * variant, size and testID are the surface's own anchors and remain
+ * per game; the button is always enabled (a hidden action is expressed
+ * by resolving to null, never by a disabled view button).
+ */
+export function buildViewIdentityButton(
+  action: RoomViewIdentityAction,
+  surface: {
+    readonly key: string;
+    readonly variant: 'primary' | 'secondary' | 'ghost';
+    readonly size: 'lg' | 'md';
+    readonly testID?: string;
+  },
+): RoomBottomButton {
+  return {
+    key: surface.key,
+    label: action.label,
+    variant: surface.variant,
+    size: surface.size,
+    ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
+    isEnabled: true,
+    onPress: action.onPress,
+  };
+}
+
 export interface RoomBottomActionLayout {
   readonly primary: readonly RoomBottomButton[];
   readonly secondary: readonly RoomBottomButton[];

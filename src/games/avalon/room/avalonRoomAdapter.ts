@@ -44,8 +44,11 @@ import {
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
 import {
   buildEndedWaitingMessage,
+  buildViewIdentityButton,
+  resolveViewIdentityAction,
   type RoomBottomButton,
   type RoomBottomInfoModel,
+  VIEW_IDENTITY_LABEL,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
@@ -370,16 +373,20 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     return { kind: 'info', message, progress: null, actions };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
-  if (input.effectiveSeat !== null) {
-    actions.push({
-      key: 'viewRole',
-      label: '查看身份',
-      variant: 'secondary',
-      size: 'md',
-      isEnabled: true,
-      onPress: input.onViewRolePress,
-      testID: 'avalon-view-role',
-    });
+  const viewIdentityAction = resolveViewIdentityAction({
+    isVisible: input.effectiveSeat !== null,
+    label: VIEW_IDENTITY_LABEL,
+    onPress: input.onViewRolePress,
+  });
+  if (viewIdentityAction !== null) {
+    actions.push(
+      buildViewIdentityButton(viewIdentityAction, {
+        key: 'viewRole',
+        variant: 'secondary',
+        size: 'md',
+        testID: 'avalon-view-role',
+      }),
+    );
   }
   const phase = state.phase;
   if (phase.kind === 'viewing') {

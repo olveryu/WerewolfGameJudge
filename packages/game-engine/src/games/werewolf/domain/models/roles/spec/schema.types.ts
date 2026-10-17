@@ -101,6 +101,22 @@ export const WOLF_KILL_OVERRIDE_TEXTS = {
   },
 } as const satisfies Record<string, WolfKillOverrideUi>;
 
+/**
+ * Structured seat-action prompt declaration (authoring surface only,
+ * carried by NightStepUi). A step whose player sentence is the
+ * canonical chooseSeat form declares just its verb (and a non-default
+ * target noun); the schema builder composes prompt / confirmText /
+ * bottomActionText from the one resolver, so the sentence pattern
+ * exists exactly once. Steps with bespoke sentences keep literal
+ * fields instead — the two forms must never coexist on one step.
+ */
+export interface SeatActionUi {
+  /** The action verb, e.g. '查验' in 「请选择要查验的玩家」. */
+  readonly verb: string;
+  /** Target noun phrase following 要{verb}的; defaults to '玩家'. */
+  readonly target?: string;
+}
+
 /** Constraint types for target selection */
 export enum TargetConstraint {
   NotSelf = 'NotSelf',
