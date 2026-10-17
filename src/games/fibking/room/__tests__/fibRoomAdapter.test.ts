@@ -131,6 +131,58 @@ describe('FibKing room adapter', () => {
     expect(ready[0]).toEqual(expect.objectContaining({ label: '开始游戏', isEnabled: true }));
   });
 
+  it('locks host actions while a command is submitting', () => {
+    const build = (state: FibState) =>
+      createFibHostManagement({
+        state,
+        isHost: true,
+        isCommandSubmitting: true,
+        capabilities: createFibRoomCapabilities({
+          state,
+          isHost: true,
+          mySeat: 0,
+          ...callbacks,
+        }),
+        startRound: jest.fn(),
+        markAllBotsViewed: jest.fn(),
+        beginRound: jest.fn(),
+        isGuessing: false,
+        toggleGuessMode: jest.fn(),
+        cancelPreparing: jest.fn(),
+        revealRound: jest.fn(),
+        redrawRound: jest.fn(),
+        abandonGame: jest.fn(),
+        endGame: jest.fn(),
+      });
+
+    // Full lobby: the start action is lock-disabled with no reason and
+    // a loading state (the room IS full — the lock blocks it, not seats).
+    const fullLobby = withBotSeats(createLobby(4), [1, 2, 3]);
+    const lobbyStart = build(fullLobby)?.sections.find((section) => section.key === 'current-flow')
+      ?.actions[0];
+    expect(lobbyStart).toMatchObject({
+      label: '开始本轮',
+      isEnabled: false,
+      disabledReason: null,
+      isLoading: true,
+    });
+    expect(lobbyStart).not.toHaveProperty('onPress');
+
+    // Ongoing: every pending-aware flow/danger action drops its handler.
+    const ongoingActions =
+      build(createOngoing())?.sections.flatMap((section) => section.actions) ?? [];
+    expect(ongoingActions.map((action) => action.key)).toEqual([
+      'guess-seat',
+      'reveal-round',
+      'redraw-round',
+      'abandon-game',
+    ]);
+    for (const action of ongoingActions) {
+      expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
+      expect(action).not.toHaveProperty('onPress');
+    }
+  });
+
   it('derives shared lobby operations without a Fib-specific header implementation', () => {
     const state = createLobby();
     const capabilities = createFibRoomCapabilities({
