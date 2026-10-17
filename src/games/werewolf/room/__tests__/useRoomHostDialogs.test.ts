@@ -1,5 +1,7 @@
 /**
- * Tests for useRoomHostDialogs hook
+ * Tests for useRoomHostDialogs hook (MVP selection + settings entry).
+ * The host flow commands (assign / start / restart) are covered by
+ * useWerewolfHostControl.test.ts.
  */
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
@@ -73,70 +75,8 @@ describe('useRoomHostDialogs', () => {
     jest.clearAllMocks();
   });
 
-  describe('showPrepareToFlipDialog', () => {
-    it('should show error when not all seats are occupied', () => {
-      const gameState = createMockGameState(8);
-      // Set some players to null to simulate empty seats
-      gameState.players.set(1, null);
-      gameState.players.set(2, null);
-
-      const { result } = renderHook(() =>
-        useRoomHostDialogs({
-          gameState,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          restartGame: jest.fn(),
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
-          navigation: mockNavigation,
-          roomCode: '1234',
-        }),
-      );
-
-      act(() => {
-        result.current.showPrepareToFlipDialog();
-      });
-
-      expect(mockShowAlert).toHaveBeenCalledWith('无法开始游戏', '还有空位未入座', [
-        { text: '知道了', style: 'default' },
-      ]);
-    });
-
-    it('should show confirmation when all seats are occupied', () => {
-      const gameState = createMockGameState(8);
-
-      const { result } = renderHook(() =>
-        useRoomHostDialogs({
-          gameState,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          restartGame: jest.fn(),
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
-          navigation: mockNavigation,
-          roomCode: '1234',
-        }),
-      );
-
-      act(() => {
-        result.current.showPrepareToFlipDialog();
-      });
-
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '分配角色？',
-        '所有座位已满，将洗牌并分配角色',
-        expect.arrayContaining([
-          expect.objectContaining({ text: '确定' }),
-          expect.objectContaining({ text: '取消', style: 'cancel' }),
-        ]),
-      );
-    });
-  });
-
-  describe('showRestartDialog', () => {
-    it('selects MVP for the captured round without restarting and allows cancellation', async () => {
+  describe('showMvpSelection', () => {
+    it('selects MVP for the captured round and allows cancellation', async () => {
       const mvpUserId = 'test-uid-1';
       const gameState = createMockGameState(8);
       gameState.status = GameStatus.Ended;
@@ -144,19 +84,13 @@ describe('useRoomHostDialogs', () => {
       gameState.startingParticipants = Array.from(gameState.players.values()).flatMap((player) =>
         player === null ? [] : [{ userId: player.userId, seat: player.seat }],
       );
-      const restartGame = jest.fn().mockResolvedValue(undefined);
       const selectMvp = jest
         .fn()
         .mockResolvedValue(successfulRoomCommand(buildWerewolfTestState()));
       const { result } = renderHook(() =>
         useRoomHostDialogs({
           gameState,
-          restartGame,
           selectMvp,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          shareNightReviewReport: jest.fn(),
-          setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
         }),
@@ -176,42 +110,54 @@ describe('useRoomHostDialogs', () => {
         roleRevealRandomNonce: 'completed-round',
         mvpUserId,
       });
-      expect(restartGame).not.toHaveBeenCalled();
       expect(mockShowAlert).not.toHaveBeenCalled();
       expect(result.current.mvpSelection).toBeNull();
     });
 
-    it('should show share-before-restart dialog when game is ended', () => {
+    it('isMvpSubmitting tracks the selection submission and blocks close while in flight', async () => {
       const gameState = createMockGameState(8);
       gameState.status = GameStatus.Ended;
-
+      gameState.roleRevealRandomNonce = 'completed-round';
+      gameState.startingParticipants = Array.from(gameState.players.values()).flatMap((player) =>
+        player === null ? [] : [{ userId: player.userId, seat: player.seat }],
+      );
+      let resolveSelect!: (outcome: WerewolfCommandDispatchOutcome) => void;
+      const selectMvp = jest.fn(
+        () =>
+          new Promise<WerewolfCommandDispatchOutcome>((resolve) => {
+            resolveSelect = resolve;
+          }),
+      );
       const { result } = renderHook(() =>
         useRoomHostDialogs({
           gameState,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          restartGame: jest.fn(),
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
+          selectMvp,
           navigation: mockNavigation,
           roomCode: '1234',
         }),
       );
 
-      act(() => {
-        result.current.showRestartDialog();
-      });
+      expect(result.current.isMvpSubmitting).toBe(false);
+      act(() => result.current.showMvpSelection());
+      const selection = result.current.mvpSelection;
+      expect(selection).not.toBeNull();
 
-      expect(mockShowAlert).toHaveBeenCalledWith(
-        '重新开始游戏？',
-        '重新开始后本局复盘将无法查看，是否先分享战报？',
-        expect.arrayContaining([
-          expect.objectContaining({ text: '分享战报' }),
-          expect.objectContaining({ text: '重新开始' }),
-          expect.objectContaining({ text: '取消', style: 'cancel' }),
-        ]),
-      );
+      let selectPromise: Promise<void> | undefined;
+      act(() => {
+        selectPromise = selection?.onSelect('test-uid-1');
+      });
+      expect(result.current.isMvpSubmitting).toBe(true);
+
+      // Close is blocked while the selection is submitting.
+      act(() => result.current.closeMvpSelection());
+      expect(result.current.mvpSelection).not.toBeNull();
+
+      await act(async () => {
+        resolveSelect(successfulRoomCommand(buildWerewolfTestState()));
+        await selectPromise;
+      });
+      expect(result.current.isMvpSubmitting).toBe(false);
+      expect(result.current.mvpSelection).toBeNull();
     });
   });
 
@@ -222,12 +168,7 @@ describe('useRoomHostDialogs', () => {
       const { result } = renderHook(() =>
         useRoomHostDialogs({
           gameState,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          restartGame: jest.fn(),
           selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '5678',
         }),
@@ -242,191 +183,6 @@ describe('useRoomHostDialogs', () => {
         mode: 'edit',
         roomCode: '5678',
       });
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Double-click protection (submittingRef + isHostActionSubmitting)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('double-click protection', () => {
-    it('isHostActionSubmitting should start as false', () => {
-      const gameState = createMockGameState(8);
-
-      const { result } = renderHook(() =>
-        useRoomHostDialogs({
-          gameState,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          restartGame: jest.fn(),
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
-          navigation: mockNavigation,
-          roomCode: '1234',
-        }),
-      );
-
-      expect(result.current.isHostActionSubmitting).toBe(false);
-    });
-
-    it('showPrepareToFlipDialog confirm should call assignRoles once and reject second press', async () => {
-      const gameState = createMockGameState(4);
-      let resolveAssign!: (outcome: WerewolfCommandDispatchOutcome) => void;
-      const mockAssignRoles = jest.fn(
-        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveAssign = resolve)),
-      );
-
-      const { result } = renderHook(() =>
-        useRoomHostDialogs({
-          gameState,
-          assignRoles: mockAssignRoles,
-          startGame: jest.fn(),
-          restartGame: jest.fn(),
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
-          navigation: mockNavigation,
-          roomCode: '1234',
-        }),
-      );
-
-      // Trigger the dialog
-      act(() => {
-        result.current.showPrepareToFlipDialog();
-      });
-
-      // Get the confirm button callback
-      const alertCall = mockShowAlert.mock.calls[0]!;
-      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
-      const confirmBtn = buttons.find((b) => b.text === '确定');
-      expect(confirmBtn).toBeDefined();
-
-      // First press: should call assignRoles
-      act(() => {
-        confirmBtn?.onPress?.();
-      });
-      expect(mockAssignRoles).toHaveBeenCalledTimes(1);
-      expect(result.current.isHostActionSubmitting).toBe(true);
-
-      // Second press while first still in-flight: should be rejected
-      act(() => {
-        confirmBtn?.onPress?.();
-      });
-      expect(mockAssignRoles).toHaveBeenCalledTimes(1); // still 1
-
-      // Resolve the first call
-      await act(async () => {
-        resolveAssign(successfulRoomCommand(buildWerewolfTestState()));
-      });
-      expect(result.current.isHostActionSubmitting).toBe(false);
-    });
-
-    it('showRestartDialog confirm should call restartGame once and reject double press', async () => {
-      const gameState = createMockGameState(4);
-      gameState.status = GameStatus.Ended;
-      let resolveRestart!: (outcome: WerewolfCommandDispatchOutcome) => void;
-      const mockRestartGame = jest.fn(
-        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveRestart = resolve)),
-      );
-
-      const { result } = renderHook(() =>
-        useRoomHostDialogs({
-          gameState,
-          assignRoles: jest.fn(),
-          startGame: jest.fn(),
-          restartGame: mockRestartGame,
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
-          navigation: mockNavigation,
-          roomCode: '1234',
-        }),
-      );
-
-      act(() => {
-        result.current.showRestartDialog();
-      });
-
-      const alertCall = mockShowAlert.mock.calls[0]!;
-      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
-      const confirmBtn = buttons.find((b) => b.text === '重新开始');
-
-      // First press
-      await act(async () => {
-        confirmBtn?.onPress?.();
-      });
-      expect(mockRestartGame).toHaveBeenCalledTimes(1);
-      expect(result.current.isHostActionSubmitting).toBe(true);
-
-      // Second press rejected
-      await act(async () => {
-        confirmBtn?.onPress?.();
-      });
-      expect(mockRestartGame).toHaveBeenCalledTimes(1);
-
-      // Resolve
-      await act(async () => {
-        resolveRestart(successfulRoomCommand(buildWerewolfTestState()));
-      });
-      expect(result.current.isHostActionSubmitting).toBe(false);
-    });
-
-    it('handleStartGame should reject double press', async () => {
-      const gameState = createMockGameState(4);
-      let resolveStart!: (outcome: WerewolfCommandDispatchOutcome) => void;
-      const mockStartGame = jest.fn(
-        () => new Promise<WerewolfCommandDispatchOutcome>((resolve) => (resolveStart = resolve)),
-      );
-
-      const { result } = renderHook(() =>
-        useRoomHostDialogs({
-          gameState,
-          assignRoles: jest.fn(),
-          startGame: mockStartGame,
-          restartGame: jest.fn(),
-          selectMvp: jest.fn(),
-          shareNightReviewReport: jest.fn().mockResolvedValue(false),
-          setIsStartingGame: jest.fn(),
-          navigation: mockNavigation,
-          roomCode: '1234',
-        }),
-      );
-
-      // showStartGameDialog calls showAlert, we need to press confirm
-      act(() => {
-        result.current.showStartGameDialog();
-      });
-
-      const alertCall = mockShowAlert.mock.calls[0]!;
-      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
-      const confirmBtn = buttons.find((b) => b.text === '确定');
-
-      // First press via dialog confirm
-      await act(async () => {
-        confirmBtn?.onPress?.();
-      });
-      expect(mockStartGame).toHaveBeenCalledTimes(1);
-
-      // Trigger dialog again and press confirm — should be rejected (still in-flight)
-      mockShowAlert.mockClear();
-      act(() => {
-        result.current.showStartGameDialog();
-      });
-      const alertCall2 = mockShowAlert.mock.calls[0]!;
-      const buttons2 = alertCall2[2]! as Array<{ text: string; onPress?: () => void }>;
-      const confirmBtn2 = buttons2.find((b) => b.text === '确定');
-
-      await act(async () => {
-        confirmBtn2?.onPress?.();
-      });
-      expect(mockStartGame).toHaveBeenCalledTimes(1); // still 1
-
-      // Resolve
-      await act(async () => {
-        resolveStart(successfulRoomCommand(buildWerewolfTestState()));
-      });
-      expect(result.current.isHostActionSubmitting).toBe(false);
     });
   });
 });

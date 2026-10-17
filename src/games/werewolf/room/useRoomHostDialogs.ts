@@ -1,8 +1,11 @@
 /**
- * useRoomHostDialogs - Hook for Host dialog callbacks in WerewolfRoomScreen
+ * useRoomHostDialogs - MVP selection and settings entry for
+ * WerewolfRoomScreen.
  *
- * Centralizes all Host-related dialog logic and alert text.
- * WerewolfRoomScreen only needs to call these returned functions.
+ * The host flow commands (assign / start / restart) are panel commands
+ * and live in useWerewolfHostControl on the shared command pipeline.
+ * This hook keeps the two remaining host extras that are not panel
+ * commands: the MVP selection flow and the room-settings navigation.
  */
 import {
   GameStatus,
@@ -16,21 +19,13 @@ import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResu
 import type { WerewolfCommandDispatchOutcome } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import type { RootStackParamList } from '@/navigation/types';
-import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
-import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
+import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomHostDialogsParams {
   gameState: LocalGameState;
-  assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
-  startGame: () => Promise<WerewolfCommandDispatchOutcome>;
-  restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
-  /** Share night review report. Returns true on success, false on failure. */
-  shareNightReviewReport: () => Promise<boolean>;
-
-  setIsStartingGame: React.Dispatch<React.SetStateAction<boolean>>;
 
   navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
   roomCode: string;
@@ -50,137 +45,30 @@ interface UseRoomHostDialogsResult {
   } | null;
   showMvpSelection: () => void;
   closeMvpSelection: () => void;
-  showPrepareToFlipDialog: () => void;
-  showStartGameDialog: () => void;
-  showRestartDialog: () => void;
   handleSettingsPress: () => void;
-  /** True while any host action (assign/start/restart) is in-flight. */
-  isHostActionSubmitting: boolean;
+  /** True while an MVP selection submission is in-flight. */
+  isMvpSubmitting: boolean;
 }
 
-/** Host action dialog hook (assign / start / restart). */
+/** Host extras hook (MVP selection + room settings navigation). */
 export const useRoomHostDialogs = ({
   gameState,
-  assignRoles,
-  startGame,
-  restartGame,
   selectMvp,
-  shareNightReviewReport,
-  setIsStartingGame,
   navigation,
   roomCode,
 }: UseRoomHostDialogsParams): UseRoomHostDialogsResult => {
   const submittingRef = useRef(false);
-  const [isHostActionSubmitting, setIsHostActionSubmitting] = useState(false);
+  const [isMvpSubmitting, setIsMvpSubmitting] = useState(false);
   const [mvpSelection, setMvpSelection] = useState<UseRoomHostDialogsResult['mvpSelection']>(null);
   const closeMvpSelection = useCallback(() => {
     if (!submittingRef.current) setMvpSelection(null);
   }, []);
 
-  /** Mark submission start (ref + state). */
+  /** Mark MVP submission start (ref + state). */
   const markSubmitting = useCallback((v: boolean) => {
     submittingRef.current = v;
-    setIsHostActionSubmitting(v);
+    setIsMvpSubmitting(v);
   }, []);
-
-  const showPrepareToFlipDialog = useCallback(() => {
-    let seatedCount = 0;
-    gameState.players.forEach((player) => {
-      if (player !== null) seatedCount++;
-    });
-    const totalSeats = gameState.template.numberOfPlayers;
-
-    if (seatedCount !== totalSeats) {
-      roomScreenLog.warn('Cannot prepare to flip — seats not full', {
-        seatedCount,
-        totalSeats,
-      });
-      showDismissAlert('无法开始游戏', '还有空位未入座');
-      return;
-    }
-
-    showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', async () => {
-      if (submittingRef.current) return;
-      markSubmitting(true);
-      roomScreenLog.debug('Assigning roles');
-      try {
-        await assignRoles();
-      } catch (err) {
-        handleError(err, {
-          label: '分配角色',
-          logger: roomScreenLog,
-          feedback: 'toast',
-        });
-        throw err;
-      } finally {
-        markSubmitting(false);
-      }
-    });
-  }, [gameState, assignRoles, markSubmitting]);
-
-  const handleStartGame = useCallback(async () => {
-    if (submittingRef.current) return;
-    markSubmitting(true);
-    roomScreenLog.debug('Starting game');
-    try {
-      setIsStartingGame(true);
-      await startGame();
-    } catch (err) {
-      handleError(err, {
-        label: '开始游戏',
-        logger: roomScreenLog,
-        feedback: 'toast',
-      });
-      throw err;
-    } finally {
-      markSubmitting(false);
-      setIsStartingGame(false);
-    }
-  }, [markSubmitting, setIsStartingGame, startGame]);
-
-  const showStartGameDialog = useCallback(() => {
-    showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => handleStartGame());
-  }, [handleStartGame]);
-
-  const handleRestart = useCallback(async () => {
-    if (submittingRef.current) return;
-    markSubmitting(true);
-    roomScreenLog.debug('Restarting game');
-    try {
-      await restartGame();
-    } catch (err) {
-      handleError(err, {
-        label: '重新开始',
-        logger: roomScreenLog,
-        feedback: 'toast',
-      });
-      throw err;
-    } finally {
-      markSubmitting(false);
-    }
-  }, [restartGame, markSubmitting]);
-
-  const showRestartDialog = useCallback(() => {
-    if (gameState.status !== GameStatus.Ended) {
-      // Game not ended — no complete report to share, plain restart
-      showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', () => handleRestart());
-      return;
-    }
-
-    showAlert('重新开始游戏？', '重新开始后本局复盘将无法查看，是否先分享战报？', [
-      CANCEL_BUTTON,
-      {
-        text: '分享战报',
-        onPress: () => {
-          void shareNightReviewReport();
-        },
-      },
-      {
-        text: '重新开始',
-        onPress: () => handleRestart(),
-      },
-    ]);
-  }, [gameState.status, shareNightReviewReport, handleRestart]);
 
   const showMvpSelection = useCallback(() => {
     if (submittingRef.current) return;
@@ -235,10 +123,7 @@ export const useRoomHostDialogs = ({
         : null,
     showMvpSelection,
     closeMvpSelection,
-    showPrepareToFlipDialog,
-    showStartGameDialog,
-    showRestartDialog,
     handleSettingsPress,
-    isHostActionSubmitting,
+    isMvpSubmitting,
   };
 };

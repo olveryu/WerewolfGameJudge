@@ -48,6 +48,7 @@ import { roomScreenLog } from '@/utils/logger';
 import type { ActionIntent, HostControlEvent } from '../policy/types';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
+import { useWerewolfHostControl } from '../useWerewolfHostControl';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import { getWolfVoteSummary, toGameRoomLike } from '../werewolfRoom.helpers';
 import type { LayoutContext, StaticButtonAction } from './bottomLayoutConfig';
@@ -287,7 +288,6 @@ export function useWerewolfRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const [secondSeat, setSecondSeat] = useState<number | null>(null);
-  const [isStartingGame, setIsStartingGame] = useState(false);
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
@@ -401,7 +401,6 @@ export function useWerewolfRoomScreenState(
     if (!gameState) return;
     if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
       roomScreenLog.debug('Resetting UI state for restart', { roomStatus });
-      setIsStartingGame(false);
       setFirstSwapSeat(null);
       setSecondSeat(null);
       setMultiSelectedSeats([]);
@@ -559,25 +558,36 @@ export function useWerewolfRoomScreenState(
   } = useNightReviewShare(room.roomId, roomCode, myUserId, gameState);
 
   const {
-    showPrepareToFlipDialog,
-    showStartGameDialog,
-    showRestartDialog,
     handleSettingsPress,
-    isHostActionSubmitting,
+    isMvpSubmitting,
     mvpSelection,
     closeMvpSelection,
     showMvpSelection,
   } = useRoomHostDialogs({
     gameState,
-    assignRoles,
-    startGame,
-    restartGame,
     selectMvp,
-    shareNightReviewReport: shareNightReviewReportDirectly,
-    setIsStartingGame,
     navigation,
     roomCode,
   });
+
+  const {
+    showPrepareToFlipDialog,
+    showStartGameDialog,
+    showRestartDialog,
+    isSubmitting: isHostControlSubmitting,
+    isStartingGame,
+  } = useWerewolfHostControl({
+    roomStatus,
+    assignRoles,
+    startGame,
+    restartGame,
+    shareNightReviewReport: shareNightReviewReportDirectly,
+  });
+
+  // Panel-wide host-action pending: the command pipeline's lock plus the
+  // MVP selection submission (not a panel command, still disables the
+  // panel while it is in flight).
+  const isHostActionSubmitting = isHostControlSubmitting || isMvpSubmitting;
 
   const hostOperations = useRoomHostOperations({
     clearSeats: clearAllSeats,
