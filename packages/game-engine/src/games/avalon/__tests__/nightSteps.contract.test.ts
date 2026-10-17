@@ -13,7 +13,7 @@ import {
   getAvalonNightStepEndKey,
 } from '../domain/nightSteps';
 import { getAvalonNightParticipants } from '../domain/rules';
-import { AVALON_NIGHT_STEPS, type AvalonRoleId } from '../state/types';
+import { AVALON_NIGHT_STEPS, type AvalonNightStep, type AvalonRoleId } from '../state/types';
 
 describe('Avalon night step definitions', () => {
   it('covers exactly the ordered step list, no more and no less', () => {
@@ -23,11 +23,22 @@ describe('Avalon night step definitions', () => {
     }
   });
 
-  it('gives every step a non-empty narration key whose end key falls back to it', () => {
+  it('pins each step narration key and end key to literal values', () => {
+    // All three steps omit audioEndKey in the step table, so each end
+    // key is the default derivation — the step's own audioKey (pinned
+    // by the toBeUndefined assertions below). Both keys are pinned as
+    // literals here so a step-table edit cannot silently re-voice a
+    // step; the literal audioKey pins subsume a non-empty check.
+    const expected: Record<AvalonNightStep, { audioKey: string; endKey: string }> = {
+      evilReveal: { audioKey: 'evil_reveal', endKey: 'evil_reveal' },
+      merlinReveal: { audioKey: 'merlin_reveal', endKey: 'merlin_reveal' },
+      percivalReveal: { audioKey: 'percival_reveal', endKey: 'percival_reveal' },
+    };
     for (const step of AVALON_NIGHT_STEPS) {
       const def = getAvalonNightStepDef(step);
-      expect(def.audioKey.length).toBeGreaterThan(0);
-      expect(getAvalonNightStepEndKey(def)).toBe(def.audioEndKey ?? def.audioKey);
+      expect(def.audioKey).toBe(expected[step].audioKey);
+      expect(def.audioEndKey).toBeUndefined();
+      expect(getAvalonNightStepEndKey(def)).toBe(expected[step].endKey);
     }
   });
 
