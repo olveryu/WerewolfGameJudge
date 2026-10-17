@@ -705,17 +705,12 @@ export function createAvalonHostManagement(
     const submitAssign = () => void submit('分配角色', { type: 'avalon.game.start' });
     const assignAction = buildStartGameAction({
       label: '分配角色',
-      onPress: submitAssign,
+      onPress: () => showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', submitAssign),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
       remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      // The panel action submits directly; the console gates the same
-      // execution callback with the confirm Werewolf's dialog layer
-      // gives its own assign step.
-      onConsolePress: () =>
-        showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', submitAssign),
     });
     return {
       sections: [
@@ -739,13 +734,12 @@ export function createAvalonHostManagement(
     const beginDisabledReason = allViewed ? null : '还有玩家未查看身份';
     const submitBegin = () => void submit('开始游戏', { type: 'avalon.game.begin' });
     const beginAction = buildStartGameAction({
-      onPress: submitBegin,
+      onPress: () =>
+        showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
       isEnabled: !input.isSubmitting && allViewed,
       disabledReason: beginDisabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
-      onConsolePress: () =>
-        showConfirmAlert('开始游戏？', '全员已查看身份，开始后将进入夜晚阶段', submitBegin),
     });
     const sections: RoomHostManagementSection[] = [
       {

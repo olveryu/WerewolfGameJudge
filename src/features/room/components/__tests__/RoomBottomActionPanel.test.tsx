@@ -427,9 +427,8 @@ describe('RoomBottomActionPanel', () => {
   });
 
   describe('host console primary', () => {
-    it('runs the ready primary through its console press override', () => {
+    it('runs the ready primary through the action’s own onPress', () => {
       const onPress = jest.fn();
-      const onConsolePress = jest.fn();
       const screen = renderPanel(
         emptyInfoModel,
         hostModelWith([
@@ -441,34 +440,12 @@ describe('RoomBottomActionPanel', () => {
             isEnabled: true,
             onPress,
             isPrimary: true,
-            onConsolePress,
           },
         ]),
       );
       const strip = screen.getByTestId(TESTIDS.roomNextStepButton);
       expect(strip.props.accessibilityLabel).toBe('下一步：开始游戏');
       fireEvent.press(strip);
-      expect(onConsolePress).toHaveBeenCalledTimes(1);
-      expect(onPress).not.toHaveBeenCalled();
-    });
-
-    it('falls back to the panel press when the primary carries no console override', () => {
-      const onPress = jest.fn();
-      const screen = renderPanel(
-        emptyInfoModel,
-        hostModelWith([
-          {
-            key: 'start-game',
-            label: '开始游戏',
-            icon: 'play-outline',
-            variant: 'primary',
-            isEnabled: true,
-            onPress,
-            isPrimary: true,
-          },
-        ]),
-      );
-      fireEvent.press(screen.getByTestId(TESTIDS.roomNextStepButton));
       expect(onPress).toHaveBeenCalledTimes(1);
     });
 

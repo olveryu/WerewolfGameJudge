@@ -53,8 +53,7 @@ describe('host management action builders', () => {
     expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
   });
 
-  it('carries the console fields into the built action', () => {
-    const onConsolePress = jest.fn();
+  it('carries the primary and remedy fields into the built action', () => {
     const remedy = { label: '分享房间', onPress: jest.fn() };
     const action = buildStartGameAction({
       onPress: () => undefined,
@@ -62,9 +61,8 @@ describe('host management action builders', () => {
       disabledReason: '座位尚未坐满',
       isPrimary: true,
       remedy,
-      onConsolePress,
     });
-    expect(action).toMatchObject({ isPrimary: true, remedy, onConsolePress });
+    expect(action).toMatchObject({ isPrimary: true, remedy });
   });
 
   it('builds the terminal pair with unified keys and testIDs', () => {

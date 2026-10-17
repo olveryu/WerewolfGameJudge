@@ -40,13 +40,6 @@ interface RoomHostManagementActionBase {
   /** Remedy offered beside this action when the console renders it blocked. */
   readonly remedy?: RoomHostRemedy | null;
   /**
-   * Press handler used by the collapsed console only (e.g. the confirm the
-   * console carries while the panel action runs directly). Falls back to
-   * the action's own onPress when absent. Meaningful only on an enabled
-   * primary action.
-   */
-  readonly onConsolePress?: () => void;
-  /**
    * Console-only blocked reason for a primary action that stays enabled in
    * the panel because its gate lives in a later layer (e.g. a dialog the
    * panel action opens). When set to a non-empty string, the console
