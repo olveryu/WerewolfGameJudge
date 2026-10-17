@@ -1,5 +1,6 @@
 /** Strict Avalon persistence and transport codec; v1 payloads migrate through migratePersistedAvalonState. */
 
+import type { AudioEffect } from '../../../platform/audio';
 import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
@@ -29,7 +30,6 @@ import {
   AVALON_QUEST_ROUNDS,
   AVALON_ROLES,
   AVALON_VOTE_MODES,
-  type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonHumanSeat,
@@ -251,7 +251,7 @@ function ladyCheck(value: unknown, path: string): AvalonLadyCheckResult {
   );
 }
 
-function audioEffect(value: unknown, path: string): AvalonAudioEffect {
+function audioEffect(value: unknown, path: string): AudioEffect {
   const raw = parseObject(value, path);
   return finishObject(
     raw,

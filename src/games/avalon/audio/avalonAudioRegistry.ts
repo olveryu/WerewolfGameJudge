@@ -1,7 +1,7 @@
 /**
  * 阿瓦隆第一晚播报 asset registry — 对齐狼人杀 audioRegistry。
  *
- * key 到 mp3 的严格映射；engine 的 AvalonAudioEffect.audioKey 必须在这里有对应，
+ * key 到 mp3 的严格映射；engine 的 AudioEffect.audioKey 必须在这里有对应，
  * 缺失时 fail-fast（MissingAvalonAudioError）。
  */
 

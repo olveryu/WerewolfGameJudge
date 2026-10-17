@@ -1,5 +1,6 @@
 /** Public pure Avalon API for transport, persistence and the client game module. */
 
+export type { AudioEffect } from '../../platform/audio';
 export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type { AvalonCommand, AvalonInternalCommand, AvalonPublicCommand } from './commands/types';
 export {
@@ -58,7 +59,6 @@ export {
   AVALON_VETO_LIMIT_MAX,
   AVALON_VETO_LIMIT_MIN,
   AVALON_VOTE_MODES,
-  type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonEndReason,
