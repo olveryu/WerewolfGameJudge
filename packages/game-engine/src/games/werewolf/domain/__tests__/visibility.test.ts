@@ -90,6 +90,7 @@ function createState(spec: StateSpec): GameState {
     currentStepIndex: spec.stepId ? stepIndexFor(templateRoles, spec.stepId) : -1,
     ...(spec.stepId ? { currentStepId: spec.stepId } : {}),
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
     pendingRevealAcks: [],

@@ -1,5 +1,6 @@
 /** Runtime decoder for persisted and transported Werewolf state. */
 
+import type { AudioEffect } from '../../../platform/audio';
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import {
   failDecode as fail,
@@ -24,7 +25,6 @@ import { isValidSchemaId } from '../domain/models/roles/spec/schemas';
 import { Team } from '../domain/models/roles/spec/types';
 import type { GameRuleOverrides } from '../domain/models/Template';
 import type {
-  AudioEffect,
   BoardNomination,
   ConfirmStatus,
   GameState,
@@ -1043,11 +1043,12 @@ export function parseWerewolfState(value: unknown): GameState {
       parseActionRejected,
     ),
     stepDeadline: parseOptional(raw.stepDeadline, 'GameState.stepDeadline', parseInteger),
-    pendingAudioEffects: parseOptional(
-      raw.pendingAudioEffects,
-      'GameState.pendingAudioEffects',
-      (effects, p) => parseArray(effects, p, parseAudioEffect),
-    ),
+    // Legacy persisted states predate the queue field; a missing field
+    // decodes to an empty queue instead of failing the whole state.
+    pendingAudioEffects:
+      raw.pendingAudioEffects === undefined
+        ? []
+        : parseArray(raw.pendingAudioEffects, 'GameState.pendingAudioEffects', parseAudioEffect),
     ui: parseOptional(raw.ui, 'GameState.ui', parseUi),
     seerLabelMap: parseOptional(
       raw.seerLabelMap,

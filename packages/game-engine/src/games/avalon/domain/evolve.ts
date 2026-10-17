@@ -1,5 +1,6 @@
 /** Applies Avalon domain events; reset paths clear all game-owned state. */
 
+import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
 import {
@@ -140,16 +141,14 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       };
     }
     case 'avalon.audio.queued': {
-      if (event.effects.length === 0) return state;
-      return {
-        ...bumped,
-        pendingAudioEffects: [...event.effects],
-        isAudioPlaying: true,
-      };
+      // The shared machine owns the transition (replace + gate close);
+      // an empty batch cannot reach here — queueing fail-fasts in decide.
+      return { ...bumped, ...queueAudioBatch(event.effects) };
     }
     case 'avalon.audio.cleared': {
-      if (!state.isAudioPlaying && state.pendingAudioEffects.length === 0) return state;
-      return { ...bumped, pendingAudioEffects: [], isAudioPlaying: false };
+      const cleared = acknowledgeAudioQueue(state);
+      if (cleared === null) return state;
+      return { ...bumped, ...cleared };
     }
     case 'avalon.team.draftUpdated': {
       if (state.phase.kind !== 'nominate') return state;

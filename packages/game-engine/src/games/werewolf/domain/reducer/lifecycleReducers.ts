@@ -123,7 +123,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     nightmareBlockedSeat: undefined,
     wolfKillOverride: undefined,
     pendingRevealAcks: [],
-    pendingAudioEffects: undefined,
+    pendingAudioEffects: [],
     stepDeadline: undefined,
     ui: undefined,
     nightReviewAllowedSeats: undefined,

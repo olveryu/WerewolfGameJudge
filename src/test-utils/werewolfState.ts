@@ -15,6 +15,7 @@ export function buildWerewolfTestState(overrides: Partial<GameState> = {}): Game
     playerProfiles: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

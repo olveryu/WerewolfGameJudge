@@ -1,5 +1,6 @@
 /** Pure Werewolf command handlers shared by the current Durable Object and typed engine. */
 
+import { acknowledgeAudioQueue } from '../../../../platform/audio';
 import { getBotSeats, isBotOccupant } from '../../../../platform/room/seating';
 import { GameStatus } from '../models/GameStatus';
 import { SCHEMAS } from '../models/roles/spec/schemas';
@@ -7,18 +8,14 @@ import type { StateAction } from '../reducer/types';
 import { type HandlerContext, handlerError, type HandlerResult, handlerSuccess } from './types';
 
 export function handleAudioAck(context: HandlerContext): HandlerResult {
-  const state = context.state;
-
-  if (
-    !state.isAudioPlaying &&
-    (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0)
-  ) {
+  const cleared = acknowledgeAudioQueue(context.state);
+  if (cleared === null) {
     return handlerSuccess([]);
   }
 
   return handlerSuccess([
     { type: 'CLEAR_PENDING_AUDIO_EFFECTS' },
-    { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: false } },
+    { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: cleared.isAudioPlaying } },
   ]);
 }
 

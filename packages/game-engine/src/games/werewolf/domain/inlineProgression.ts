@@ -16,6 +16,7 @@
  * contains no IO, side effects, or time dependency (Date.now is passed in by caller).
  */
 
+import type { AudioEffect } from '../../../platform/audio';
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
 import { createAudioQueueActions, isAudioQueueAction } from './audioQueue';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
@@ -24,7 +25,7 @@ import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHan
 import type { HandlerContext, HandlerExecutionContext } from './handlers/types';
 import { GameStatus, SCHEMAS } from './models';
 import { isVacantBottomCardStep } from './playerHelpers';
-import type { AudioEffect, GameState } from './protocol/types';
+import type { GameState } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
 

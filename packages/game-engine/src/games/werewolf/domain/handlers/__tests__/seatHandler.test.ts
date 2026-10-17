@@ -40,6 +40,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     players: { 0: null, 1: null, 2: null },
     currentStepIndex: -1,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     pendingRevealAcks: [],
     hypnotizedSeats: [],

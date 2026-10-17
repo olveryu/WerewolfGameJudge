@@ -1,6 +1,12 @@
 /** Authoritative Avalon engine; delegates persistence and delivery to the platform. */
 
 import {
+  acknowledgeAudioQueue,
+  type AudioEffect,
+  isAudioGateOpen,
+  queueAudioBatch,
+} from '../../platform/audio';
+import {
   buildGameCompletionPayload,
   type CommandContext,
   type CommonGameLifecycle,
@@ -40,7 +46,6 @@ import { normalizeAvalonState } from './state/normalize';
 import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
-  type AvalonAudioEffect,
   type AvalonBallot,
   type AvalonConfig,
   type AvalonPlay,
@@ -164,17 +169,16 @@ function beginGame(state: AvalonState, context: CommandContext): AvalonDecision 
   ]);
 }
 
-/** 第一晚播报队列事件；空数组时由 evolve 忽略（fail-fast 在上游）。 */
-function queueAudio(effects: readonly AvalonAudioEffect[]): AvalonEvent {
-  if (effects.length === 0) throw new Error('[FAIL-FAST] Avalon audio queue requires effects');
-  return { type: 'avalon.audio.queued', effects: [...effects] };
+/** 第一晚播报队列事件；入队纪律（空批 fail-fast＋整批拷贝）由共享音频机器负责。 */
+function queueAudio(effects: readonly AudioEffect[]): AvalonEvent {
+  return { type: 'avalon.audio.queued', effects: queueAudioBatch(effects).pendingAudioEffects };
 }
 
 /** Night step confirmation; advances the step (or dawn) once every participant confirmed. */
 function confirmNight(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'night') return reject(AVALON_REASONS.phase);
-  // 播报未播完时阻塞确认（对齐狼人杀 progression gate）。
-  if (state.isAudioPlaying) return reject(AVALON_REASONS.audioPlaying);
+  // 播报未播完时阻塞确认（共享音频门控，与狼人杀 progression gate 同一份）。
+  if (!isAudioGateOpen(state)) return reject(AVALON_REASONS.audioPlaying);
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   const participants = getAvalonNightParticipants(state.roles, state.phase.step);
@@ -649,14 +653,16 @@ function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecis
   if (hostRejection !== null) return hostRejection;
   if (state.phase.kind !== 'ended') return reject(AVALON_REASONS.phase);
   // 播报未播完时阻塞回大厅，避免 orphan 音频队列（用户 2026-10-07 确认）。
-  if (state.isAudioPlaying) return reject(AVALON_REASONS.audioPlaying);
+  if (!isAudioGateOpen(state)) return reject(AVALON_REASONS.audioPlaying);
   return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
 }
 
-/** 房主播完第一晚播报后提交 ack，清空队列、释放门控（对齐狼人杀 handleAudioAck）。 */
+/** 房主播完第一晚播报后提交 ack，清空队列、释放门控（共享音频机器，与狼人杀 handleAudioAck 同一份 ack 转移）。 */
 function ackAudio(state: AvalonState, context: CommandContext): AvalonDecision {
   const hostRejection = requireAvalonHost(state, context, AVALON_REASONS.notHostAckAudio);
   if (hostRejection !== null) return hostRejection;
+  // 队列已空且未在播时 ack 是幂等空转：不发事件、不 bump 修订号。
+  if (acknowledgeAudioQueue(state) === null) return commitAvalon([]);
   return commitAvalon([{ type: 'avalon.audio.cleared' }]);
 }
 

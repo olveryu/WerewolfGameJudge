@@ -42,6 +42,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     players,
     currentStepIndex: -1,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     actions: [],
     resolvedNightEffects: [],
     pendingRevealAcks: [],
@@ -1186,7 +1187,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.pendingAudioEffects).toBeUndefined();
+      expect(newState.pendingAudioEffects).toEqual([]);
     });
   });
 

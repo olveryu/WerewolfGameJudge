@@ -196,8 +196,9 @@ export function normalizeState(raw: GameState): GameState {
     // Step progression deadline (unified deadline-gate, pass-through)
     stepDeadline: raw.stepDeadline,
 
-    // Pending audio effect queue (pass-through)
-    pendingAudioEffects: raw.pendingAudioEffects,
+    // Pending audio effect queue (boundary normalize: legacy states
+    // without the field default to an empty queue)
+    pendingAudioEffects: raw.pendingAudioEffects ?? [],
 
     // UI Hints (Host broadcast-driven, UI read-only display, must be passed through)
     ui: raw.ui,

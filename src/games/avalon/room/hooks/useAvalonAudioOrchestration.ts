@@ -13,10 +13,7 @@
  * 保留：重入 guard、单段失败跳过继续、空队列不 ack。
  */
 
-import type {
-  AvalonAudioEffect,
-  AvalonPublicCommand,
-} from '@game-judge/game-engine/games/avalon/public';
+import type { AudioEffect, AvalonPublicCommand } from '@game-judge/game-engine/games/avalon/public';
 import { useCallback, useEffect, useRef } from 'react';
 
 import { isSuccessfulRoomCommand } from '@/features/room/session/roomCommandResult';
@@ -32,7 +29,7 @@ const avalonAudioLog = log.extend('AvalonAudio');
 interface UseAvalonAudioOrchestrationDeps {
   readonly session: AvalonRoomSession;
   readonly isHost: boolean;
-  readonly pendingAudioEffects: readonly AvalonAudioEffect[];
+  readonly pendingAudioEffects: readonly AudioEffect[];
   readonly audio: AvalonAudioRuntime | null;
 }
 

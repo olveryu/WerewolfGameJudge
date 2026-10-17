@@ -1,5 +1,6 @@
 /** Avalon decision outcomes and permission gates; no IO. */
 
+import type { AudioEffect } from '../../../platform/audio';
 import {
   type ActorResolution,
   type CommandContext,
@@ -11,7 +12,6 @@ import {
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { type RosterChange } from '../../../platform/room/seating';
 import type {
-  AvalonAudioEffect,
   AvalonBallot,
   AvalonEndReason,
   AvalonHumanSeat,
@@ -92,7 +92,7 @@ export type AvalonEvent =
   | { readonly type: 'avalon.night.completed' }
   | {
       readonly type: 'avalon.audio.queued';
-      readonly effects: readonly AvalonAudioEffect[];
+      readonly effects: readonly AudioEffect[];
     }
   | { readonly type: 'avalon.audio.cleared' }
   | { readonly type: 'avalon.team.draftUpdated'; readonly seats: readonly number[] }

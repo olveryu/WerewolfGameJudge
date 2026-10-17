@@ -161,7 +161,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, pendingAudioEffects: action.payload.effects };
 
     case 'CLEAR_PENDING_AUDIO_EFFECTS':
-      return { ...state, pendingAudioEffects: undefined };
+      return { ...state, pendingAudioEffects: [] };
 
     case 'SET_NIGHT_REVIEW_ALLOWED_SEATS':
       return { ...state, nightReviewAllowedSeats: action.allowedSeats };

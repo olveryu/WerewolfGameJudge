@@ -81,6 +81,7 @@ export function createBaseWerewolfRoomMock({
     wolfVotes: new Map<number, number>(),
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     lastNightDeaths: [] as number[],
     nightmareBlockedSeat: undefined as number | undefined,
     templateRoles: [] as RoleId[],

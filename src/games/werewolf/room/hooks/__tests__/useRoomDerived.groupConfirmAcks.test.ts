@@ -49,6 +49,7 @@ function createState(): LocalGameState {
     wolfVotes: new Map(),
     currentStepIndex: 0,
     isAudioPlaying: false,
+    pendingAudioEffects: [],
     lastNightDeaths: [],
     currentNightResults: {},
     pendingRevealAcks: [],

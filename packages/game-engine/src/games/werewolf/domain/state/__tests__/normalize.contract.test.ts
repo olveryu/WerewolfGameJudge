@@ -232,6 +232,13 @@ describe('normalizeState contract', () => {
     };
   };
 
+  it('should default a missing pendingAudioEffects to an empty queue (legacy state)', () => {
+    const legacy = { ...createFullState() } as Record<string, unknown>;
+    delete legacy['pendingAudioEffects'];
+
+    expect(normalizeState(legacy as unknown as GameState).pendingAudioEffects).toEqual([]);
+  });
+
   it('should preserve all GameState fields after normalization', () => {
     const fullState = createFullState();
     const normalized = normalizeState(fullState);
@@ -276,6 +283,7 @@ describe('normalizeState contract', () => {
       players: {},
       currentStepIndex: -1,
       isAudioPlaying: false,
+      pendingAudioEffects: [],
       actions: [],
       pendingRevealAcks: [],
       hypnotizedSeats: [],
