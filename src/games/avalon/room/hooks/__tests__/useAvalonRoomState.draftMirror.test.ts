@@ -18,6 +18,7 @@ import {
 import { act, renderHook } from '@testing-library/react-native';
 
 import type { RoomBottomButton } from '@/features/room/model/RoomBottomActions';
+import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { AvalonRoomSession } from '../../../model/AvalonRoomSession';
 import { useAvalonRoomState } from '../useAvalonRoomState';
@@ -308,5 +309,52 @@ describe('useAvalonRoomState nomination draft mirror', () => {
       expect.objectContaining({ label: '提交队伍' }),
     );
     await expect(draftDispatch).resolves.toBe(true);
+  });
+
+  it('still dispatches propose after the in-flight draft dispatch is rejected', async () => {
+    const state = nominateState();
+    mockAuth.currentUserId = seatUserOf(state.leaderSeat);
+    const { result, dispatch } = renderRoomState(state);
+    const team: readonly number[] = [state.leaderSeat, (state.leaderSeat + 1) % 5];
+    act(() => {
+      result.current.setNominationDraftOverride(team);
+    });
+    const proposeAction = findProposeAction(result);
+    if (!proposeAction.isEnabled || proposeAction.onPress === undefined)
+      throw new Error('propose action must be enabled with a full mirrored draft');
+    const pressPropose = proposeAction.onPress;
+
+    // The server refuses the draft write: the submission resolves
+    // false and surfaces the failure, but the rejection must not
+    // poison the chain tail that propose waits on.
+    const rejectedOutcome = {
+      kind: 'decided',
+      decision: { kind: 'rejected', commandId: 'command:draft', reason: 'avalon_wrong_phase' },
+    } as const;
+    dispatch.mockImplementationOnce(
+      async () => rejectedOutcome as unknown as typeof successOutcome,
+    );
+    let draftDispatch!: Promise<boolean>;
+    act(() => {
+      draftDispatch = result.current.submitTeamDraft(team);
+    });
+    await act(async () => {
+      await draftDispatch;
+    });
+    await expect(draftDispatch).resolves.toBe(false);
+    expect(showErrorAlert).toHaveBeenCalledWith('更新草稿失败', expect.any(String));
+    expect(
+      dispatch.mock.calls.filter(([command]) => command.type === 'avalon.team.propose'),
+    ).toHaveLength(0);
+
+    // Propose still goes out against the server draft; the engine's
+    // own validation and failure presentation take it from there.
+    await act(async () => {
+      pressPropose();
+    });
+    expect(dispatch).toHaveBeenCalledWith(
+      { type: 'avalon.team.propose' },
+      expect.objectContaining({ label: '提交队伍' }),
+    );
   });
 });

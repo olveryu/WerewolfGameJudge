@@ -11,6 +11,8 @@ import {
   type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
+  getAvalonNightParticipants,
+  isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import { act, renderHook } from '@testing-library/react-native';
 
@@ -64,6 +66,63 @@ function viewingStateWithBots(): AvalonState {
   }
   send({ type: 'room.seat.fillBots' });
   send({ type: 'avalon.game.start' });
+  return state;
+}
+
+/**
+ * Real engine walk into nominate with the host at seat 0 and bots on
+ * seats 1-4. Roles and the first leader are drawn from entropy (the
+ * command seeds do not fix them), so the fixture re-draws until a bot
+ * leads; every assertion keys off state.leaderSeat, never a fixed
+ * seat. Bot night confirms go through the host with the bot seat as
+ * the controlled seat, as in production.
+ */
+function nominateStateWithBotLeader(): AvalonState {
+  for (let attempt = 0; attempt < 25; attempt += 1) {
+    const state = buildNominateWithBots();
+    if (isBotSeat(state.roster, state.leaderSeat)) return state;
+  }
+  throw new Error('no bot-led nominate state in 25 draws');
+}
+
+function buildNominateWithBots(): AvalonState {
+  let commandNumber = 0;
+  let state = avalonEngine.createInitialState(
+    { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
+    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+  );
+  const send = (
+    command: AvalonPublicCommand,
+    userId = 'host',
+    controlledSeat: number | null = null,
+  ) => {
+    const context: CommandContext = {
+      actor: { kind: 'user', userId },
+      controlledSeat,
+      nowMs: 1000,
+      commandId: `command:${commandNumber++}`,
+      randomSeed: `seed:${commandNumber}`,
+    };
+    const decision = avalonEngine.decide(state, command, context);
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(avalonEngine.evolve, state);
+  };
+  send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'P0' } });
+  send({ type: 'room.seat.fillBots' });
+  send({ type: 'avalon.game.start' });
+  send({ type: 'avalon.role.viewed' });
+  send({ type: 'avalon.bots.markAllBotsViewed' });
+  send({ type: 'avalon.game.begin' });
+  if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+  while (state.phase.kind === 'night') {
+    const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+    for (const seat of participants) {
+      if (isBotSeat(state.roster, seat)) send({ type: 'avalon.night.confirm' }, 'host', seat);
+      else send({ type: 'avalon.night.confirm' });
+    }
+    if (state.isAudioPlaying) send({ type: 'avalon.audio.ack' });
+  }
+  if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
   return state;
 }
 
@@ -191,5 +250,63 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     });
     expect(showErrorAlert).toHaveBeenCalledWith('不可选择', '游戏进行中不能入座');
     expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAvalonRoomState takeover nomination mirror', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('mirrors picks and dispatches drafts as the taken-over bot leader', async () => {
+    const state = nominateStateWithBotLeader();
+    const { result, dispatch } = renderRoomState(state);
+    const leaderSeat = state.leaderSeat;
+    const picked = 0;
+    const team: readonly number[] = [leaderSeat, picked];
+
+    // The host's own seat does not lead: the picking mirror is keyed
+    // on the effective seat, so the override stays inert here even
+    // though it was pushed in.
+    act(() => {
+      result.current.setNominationDraftOverride(team);
+    });
+    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toBeNull();
+
+    // Take over the bot leader seat: the same override now derives
+    // the leader's screen — badge and full-draft gate included.
+    act(() => {
+      result.current.shellModel.seats.onBotSeatLongPress?.(leaderSeat);
+    });
+    expect(result.current.controlledSeat).toBe(leaderSeat);
+    expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toEqual({
+      label: '队员',
+      tone: 'success',
+    });
+    const bottom = result.current.shellModel.bottomActions;
+    if (bottom.kind !== 'info') throw new Error('expected info bottom actions in nominate');
+    const propose = bottom.actions.find((action) => action.testID === 'avalon-nominate-submit');
+    if (propose === undefined) throw new Error('propose action not found under takeover');
+    expect(propose.isEnabled).toBe(true);
+    // The authoritative state and the returned view model still carry
+    // the (empty) server draft: the mirror only fed the derivation.
+    const phase = result.current.state.phase;
+    if (phase.kind !== 'nominate') throw new Error('expected nominate phase');
+    expect(phase.draftSeats).toEqual([]);
+    expect(result.current.viewModel?.draftSeats).toEqual([]);
+
+    // Draft dispatches go out under the controlled bot leader seat.
+    let draftDispatch!: Promise<boolean>;
+    act(() => {
+      draftDispatch = result.current.submitTeamDraft(team);
+    });
+    await act(async () => {
+      await draftDispatch;
+    });
+    await expect(draftDispatch).resolves.toBe(true);
+    expect(dispatch).toHaveBeenCalledWith(
+      { type: 'avalon.team.updateDraft', seats: team },
+      expect.objectContaining({ controlledSeat: leaderSeat, label: '更新草稿' }),
+    );
   });
 });
