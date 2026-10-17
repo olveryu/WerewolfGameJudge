@@ -14,8 +14,8 @@
  * reason strings (RelayReasons carries each game's own table — the
  * strings are keys into that game's client failure copy), the event
  * and effect shapes (built through RelayEventKit factories), and the
- * moment a completed round settles (injected per game; the two games
- * currently settle at different points by registered difference).
+ * settlement a completed round fires when its final step completes
+ * (injected per game; the shapes are game-owned).
  */
 
 import type { Decision, GameCompletionPayload, GameEffect, GameEvent } from '../../engine';

@@ -13,9 +13,9 @@
  * gate (expected entry kind, in-flight work). When the last missing entry of
  * a step lands, the step advances into a timed transition; what a
  * completed final step fires (the round-completed event and the
- * settlement effect) is injected per game — the games currently
- * settle at different points by registered difference, so that point
- * is deliberately not merged here.
+ * settlement effect) is injected per game, because the event and
+ * effect shapes are game-owned — both games fire it from this
+ * point, in the decision that lands the final step's last entry.
  */
 
 import {
@@ -114,7 +114,7 @@ export interface RelayTaskHooks<
   /**
    * Fires when the final step's last entry lands: the game's
    * round-completed event and settlement effect. Injected because
-   * the games settle at different points by registered difference.
+   * the event and effect shapes are game-owned.
    */
   readonly onRoundCompleted: (
     kit: RelayEventKit<TEntry, TEvent, TEffect>,

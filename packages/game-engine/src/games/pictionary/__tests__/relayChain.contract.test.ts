@@ -9,11 +9,13 @@
  * revision contract — the same proposition set Story Relay pins in
  * its relayChain.contract.test.ts.
  *
- * Pictionary's registered differences are pinned here too: the
- * round settles only when the final transition expires into the
- * gallery (never when the last entry lands), and a stale-revision
- * phase.expire silently commits empty instead of rejecting — in
- * both cases the proposition is that an expired command never
+ * Pictionary's settlement caliber is pinned here too: the round
+ * settles when the final step's last entry lands, from the frozen
+ * participant list — the caliber Story Relay runs (unified by the
+ * 2026-10-18 ruling); entering the gallery settles nothing. Its
+ * remaining registered difference, a stale-revision phase.expire
+ * silently committing empty instead of rejecting, is pinned here
+ * as well — the proposition is that an expired command never
  * changes state.
  */
 
@@ -193,7 +195,7 @@ describe('Pictionary relay-chain contract', () => {
     }
   });
 
-  it('settles exactly once, when the final transition expires into the gallery', () => {
+  it('settles exactly once, when the last entry of the final step lands', () => {
     const session = game();
     for (let step = 0; step < NUMBER_OF_PLAYERS - 1; step += 1) session.playStep();
     session.expireCurrentPhase();
@@ -211,7 +213,7 @@ describe('Pictionary relay-chain contract', () => {
     expect(session.state.phase).toBe('transition');
     expect(
       session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
-    ).toHaveLength(0);
+    ).toHaveLength(1);
     session.expireCurrentPhase();
     expect(session.state.phase).toBe('gallery');
     const completions = session.effects.filter(

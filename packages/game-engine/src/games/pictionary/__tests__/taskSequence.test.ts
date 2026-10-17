@@ -273,7 +273,7 @@ describe('Pictionary task sequence', () => {
   });
 
   it.each([true, false])(
-    'settles at gallery entry and excludes blank-only players (hasContent=%s)',
+    'settles when the final step completes and excludes blank-only players (hasContent=%s)',
     (hasContent) => {
       let state = dispatch(
         createFullLobby(),
@@ -283,13 +283,34 @@ describe('Pictionary task sequence', () => {
       for (let step = 0; step < 4; step += 1) {
         state = expireCurrentPhase(state);
         for (let seat = 0; seat < 4; seat += 1) {
-          state = dispatch(
-            state,
+          const command: PictionaryCommandInput | PictionaryInternalCommand =
             hasContent && step === 0 && seat === 0
               ? { type: 'pictionary.text.submit', text: '画一座山' }
-              : { type: 'pictionary.task.empty.submit' },
-            userContext(`user-${seat}`, 10_000 + step * 1000 + seat),
+              : { type: 'pictionary.task.empty.submit' };
+          const context = userContext(`user-${seat}`, 10_000 + step * 1000 + seat);
+          if (step < 3) {
+            state = dispatch(state, command, context);
+            continue;
+          }
+          // The final step settles in the decision that lands its
+          // last entry — not at the gallery entry that follows.
+          const decision = decidePictionaryCommand(state, command, context);
+          if (decision.kind === 'reject') throw new Error(decision.reason);
+          expect(decision.effects).toEqual(
+            seat === 3
+              ? [
+                  {
+                    type: 'pictionary.game.completed',
+                    payload: {
+                      roundId: state.roundId,
+                      completedAt: context.nowMs,
+                      participantUserIds: hasContent ? ['user-0'] : [],
+                    },
+                  },
+                ]
+              : [],
           );
+          state = applyDecision(state, decision);
         }
         const context = userContext('user-0', state.deadlineAt!);
         const decision = decidePictionaryCommand(
@@ -298,20 +319,7 @@ describe('Pictionary task sequence', () => {
           context,
         );
         if (decision.kind === 'reject') throw new Error(decision.reason);
-        expect(decision.effects).toEqual(
-          step === 3
-            ? [
-                {
-                  type: 'pictionary.game.completed',
-                  payload: {
-                    roundId: state.roundId,
-                    completedAt: context.nowMs,
-                    participantUserIds: hasContent ? ['user-0'] : [],
-                  },
-                },
-              ]
-            : [],
-        );
+        expect(decision.effects).toEqual([]);
         state = applyDecision(state, decision);
       }
       expect(state.phase).toBe('gallery');

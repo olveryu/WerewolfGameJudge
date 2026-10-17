@@ -9,10 +9,13 @@
  * projection (the full entry — Pictionary's task projection is the
  * privacy boundary and shows exactly the one previous entry), its
  * reservation gate (a reserved drawing already claims the seat's
- * submission), and its completion point — Pictionary settles when
- * the final step's transition expires into the gallery, from the
- * live roster, rewarding seats that authored a drawing or a
- * non-blank text.
+ * submission), and its completion point — Pictionary settles in the
+ * same decision that lands the final step's last entry, from the
+ * frozen participant list, rewarding seats that authored a drawing
+ * or a non-blank text. Entries land through this machine (text and
+ * empty submissions) or through Pictionary's own drawing-commit
+ * decision; both paths fire the one settlement assembled here. The
+ * gallery is display only: entering it settles nothing.
  *
  * Pictionary persists its gallery position two-dimensionally
  * ({chainIndex, entryIndex}); the machine speaks a linear position.
@@ -21,7 +24,12 @@
  * (state v9) never changes.
  */
 
-import { buildGameCompletionPayload, type CommandContext, reject } from '../../../platform/engine';
+import {
+  buildGameCompletionPayload,
+  type CommandContext,
+  type GameCompletionPayload,
+  reject,
+} from '../../../platform/engine';
 import { createRelayAssignment } from '../../../platform/room/relay/assignment';
 import {
   expireRelayPhase,
@@ -36,7 +44,6 @@ import type {
   RelayGalleryState,
   RelayTaskCommand,
 } from '../../../platform/room/relay/types';
-import { getHumanSeatMap } from '../../../platform/room/seating';
 import type { PictionaryCommand } from '../commands/types';
 import type { PictionaryEffect } from '../effects/types';
 import {
@@ -138,12 +145,53 @@ function createPictionaryRelayKit(
       submissionId: null,
     }),
     roundCompleted: () => {
-      // Pictionary settles at gallery entry (see the expire hooks);
-      // it has no round-completed event, so this factory is unreachable.
+      // Pictionary has no round-completed event: round completion is
+      // derived from the step index, and the settlement fires from
+      // the task hooks (and the drawing-commit decision), so this
+      // factory is unreachable.
       throw new Error('Pictionary has no round-completed event');
     },
     completionEffect: (payload) => ({ type: 'pictionary.game.completed', payload }),
   };
+}
+
+/**
+ * Assembles Pictionary's one settlement payload for a completed
+ * round: the frozen participant list supplies the humans (bot seats
+ * carry no user id and drop out), narrowed to seats that authored a
+ * drawing or a non-blank text across the round's chains — the entry
+ * appended by the completing decision included, as it is not in the
+ * chains yet. The participant list is frozen in rotation order; the
+ * shared builder's input contract is seat order, so the humans are
+ * sorted by seat here. Both completion paths (the shared task
+ * machine's round-completed hook and the drawing-commit decision)
+ * build the payload here so the settlement content exists exactly
+ * once.
+ */
+export function buildPictionaryCompletionPayload(
+  state: Pick<PictionaryState, 'roundId' | 'chains' | 'participants'>,
+  appendedEntries: readonly PictionaryEntry[],
+  nowMs: number,
+): GameCompletionPayload {
+  if (state.roundId === null) throw new Error('[FAIL-FAST] Completion requires a round');
+  const authors = new Set(
+    [...state.chains.flatMap((chain) => chain.entries), ...appendedEntries]
+      .filter(
+        (entry) =>
+          entry.kind === 'drawing' || (entry.kind === 'text' && entry.text.trim().length > 0),
+      )
+      .map((entry) => entry.authorSeat),
+  );
+  return buildGameCompletionPayload({
+    roundId: state.roundId,
+    completedAt: nowMs,
+    humans: [...state.participants]
+      .sort((left, right) => left.seat - right.seat)
+      .flatMap((participant) =>
+        participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
+      ),
+    includeSeat: (player) => authors.has(player.seat),
+  });
 }
 
 /** Creates the persisted player permutation and Williams relay offsets for one round. */
@@ -195,7 +243,18 @@ function createPictionaryTaskHooks(
             authorSeat: seat,
             expectedKind: getPictionaryExpectedKind(task.stepIndex),
           },
-    onRoundCompleted: () => ({ events: [], effects: [] }),
+    onRoundCompleted: (kit, state, appended, nowMs) => ({
+      events: [],
+      effects: [
+        kit.completionEffect(
+          buildPictionaryCompletionPayload(
+            state,
+            appended.map((item) => item.entry),
+            nowMs,
+          ),
+        ),
+      ],
+    }),
   };
 }
 
@@ -261,9 +320,9 @@ export function controlPictionaryGallery(
 
 /**
  * Pictionary transition continuation: the last step's expiry enters
- * the gallery and settles the round in the same decision, from the
- * live roster; earlier steps open the next answering step. The
- * completion timing itself stays here (see header).
+ * the gallery — display only, the round already settled when its
+ * final entry landed (see header); earlier steps open the next
+ * answering step.
  */
 const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
   PictionaryEntry,
@@ -285,34 +344,14 @@ const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
       ]);
     }
     const isPlaying = state.config.galleryItemDurationSeconds !== null;
-    return kit.commit(
-      [
-        kit.phaseChanged(
-          'gallery',
-          relayDeadline(nowMs, state.config.galleryItemDurationSeconds),
-          state.stepIndex,
-          { position: 0, revealedPosition: 0, isPlaying, remainingMs: null },
-        ),
-      ],
-      [
-        kit.completionEffect(
-          buildGameCompletionPayload({
-            roundId: state.roundId,
-            completedAt: nowMs,
-            humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
-            includeSeat: (player) =>
-              state.chains.some((chain) =>
-                chain.entries.some(
-                  (entry) =>
-                    entry.authorSeat === player.seat &&
-                    (entry.kind === 'drawing' ||
-                      (entry.kind === 'text' && entry.text.trim().length > 0)),
-                ),
-              ),
-          }),
-        ),
-      ],
-    );
+    return kit.commit([
+      kit.phaseChanged(
+        'gallery',
+        relayDeadline(nowMs, state.config.galleryItemDurationSeconds),
+        state.stepIndex,
+        { position: 0, revealedPosition: 0, isPlaying, remainingMs: null },
+      ),
+    ]);
   },
 };
 
