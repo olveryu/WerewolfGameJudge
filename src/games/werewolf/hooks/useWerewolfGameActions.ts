@@ -90,9 +90,12 @@ function handleCommandOutcome(
 interface WerewolfGameActionsState {
   // Game control (host-only)
   updateTemplate: (template: GameTemplate) => Promise<void>;
-  assignRoles: () => Promise<void>;
-  startGame: () => Promise<void>;
-  restartGame: () => Promise<void>;
+  // The three host flow commands return their dispatch outcome unpresented:
+  // the host-control pipeline (useWerewolfHostControl) owns submission
+  // locking and failure presentation for them.
+  assignRoles: () => Promise<WerewolfCommandDispatchOutcome>;
+  startGame: () => Promise<WerewolfCommandDispatchOutcome>;
+  restartGame: () => Promise<WerewolfCommandDispatchOutcome>;
   selectMvp: (selection: WerewolfMvpSelection) => Promise<WerewolfCommandDispatchOutcome>;
   clearAllSeats: () => Promise<WerewolfCommandDispatchOutcome>;
   shareNightReview: (allowedSeats: number[]) => Promise<WerewolfCommandDispatchOutcome>;
@@ -161,32 +164,34 @@ interface WerewolfGameActionsDeps {
   );
 
   // Assign roles (host only)
-  const assignRoles = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
-    const result = await client.assignRoles();
-    handleCommandOutcome(result, '分配角色', toastError);
+  const assignRoles = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Assigning Werewolf roles requires the host');
+    }
+    return client.assignRoles();
   }, [client, isHost]);
 
   // Start game (host only)
   // BGM is driven by useWerewolfBgmControl's gameStatus->Ongoing reactive effect; not imperatively started here.
-  const startGame = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
-
-    const result = await client.startNight();
-    handleCommandOutcome(result, '开始游戏', toastError);
+  const startGame = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Starting a Werewolf game requires the host');
+    }
+    return client.startNight();
   }, [client, isHost]);
 
   // Restart game (host only)
-  const restartGame = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
+  const restartGame = useCallback(async (): Promise<WerewolfCommandDispatchOutcome> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Restarting a Werewolf game requires the host');
+    }
     // Stop BGM on restart
     bgm.stopBgm();
     // Clear controlled seat on restart
     if (botControl.controlledSeat !== null) {
       botControl.releaseBot();
     }
-    const result = await client.restartGame();
-    handleCommandOutcome(result, '重新开始', toastError);
+    return client.restartGame();
   }, [client, bgm, botControl, isHost]);
 
   const selectMvp = useCallback(

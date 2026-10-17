@@ -105,27 +105,34 @@ function createSheriffSelfDestructAction(
 function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   switch (input.roomStatus) {
     case GameStatus.Unseated:
-    case GameStatus.Seated:
-      return [
-        createHostControlAction(input, 'prepareToFlip', {
-          key: 'prepare-to-flip',
-          label: '分配角色',
-          icon: 'layers-outline',
-          variant: 'primary',
-          testID: TESTIDS.prepareToFlipButton,
-          isLoading: input.isHostActionSubmitting,
-          isPrimary: true,
-          remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-          // The panel action stays enabled: its full-seat gate lives in
-          // the dialog layer. The console alone renders blocked while
-          // seats are open, with the same seat-count reason the former
-          // next-step strip derived.
-          consoleBlockedReason:
-            !input.isHostActionSubmitting && input.seatedCount < input.totalSeats
-              ? `还有 ${input.totalSeats - input.seatedCount} 个空位等待入座`
-              : null,
-        }),
-      ];
+    case GameStatus.Seated: {
+      const descriptor: RoomHostActionDescriptor = {
+        key: 'prepare-to-flip',
+        label: '分配角色',
+        icon: 'layers-outline',
+        variant: 'primary',
+        testID: TESTIDS.prepareToFlipButton,
+        isLoading: input.isHostActionSubmitting,
+        isPrimary: true,
+        remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
+      };
+      // Availability lives on the descriptor: while seats are open the
+      // action itself renders disabled with the seat-count reason, and
+      // the console derives its blocked state from the disabled
+      // primary action — the same shape as the start-game action once
+      // roles are assigned. The dialog layer no longer gates on a full
+      // room; a server-side rejection surfaces via the failure alert.
+      if (!input.isHostActionSubmitting && input.seatedCount < input.totalSeats) {
+        return [
+          {
+            ...descriptor,
+            isEnabled: false,
+            disabledReason: `还有 ${input.totalSeats - input.seatedCount} 个空位等待入座`,
+          },
+        ];
+      }
+      return [createHostControlAction(input, 'prepareToFlip', descriptor)];
+    }
     case GameStatus.Ready:
       return input.isPlagueMode
         ? []
