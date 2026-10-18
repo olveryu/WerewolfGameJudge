@@ -81,6 +81,7 @@ for (const viewport of [
 
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
+      await hostRoom.confirmHostActionDialog('开始本局？');
       await expect(hostPage.getByTestId('undercover-view-word')).toBeVisible();
       await expect(hostPage.getByTestId('undercover-word')).toHaveCount(0);
       // Every real player views their own word card on their own page.
@@ -105,6 +106,7 @@ for (const viewport of [
       );
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
+      await hostRoom.confirmHostActionDialog('开始游戏？');
       // PR-B G-1: the speaking order is resident in the bottom panel
       // for everyone once the round is ongoing (server round state).
       const speakingOrder = hostPage.getByText(/本轮从 \d+ 号起按座位顺序发言/);
@@ -214,6 +216,7 @@ for (const viewport of [
       }
       await hostRoom.openHostManagement();
       await hostPage.getByTestId('start-game-button').click();
+      await hostRoom.confirmHostActionDialog('开始游戏？');
       await expect(
         (await hostRoom.openHostManagement()).getByTestId('undercover-select-player'),
       ).toBeVisible();
