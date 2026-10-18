@@ -6,14 +6,24 @@
  * popup channel were removed as mechanisms: host guidance is one action
  * data set rendered two ways (collapsed console + expanded panel), step
  * progress travels inside the bottom-actions model, and a disabled
- * action's reason renders as a caption where the action sits. These
- * identifiers must not reappear in room production code.
+ * action's reason renders as a caption where the action sits. The flat
+ * info bottom model was likewise removed: the stacked three-tier layout
+ * (plus the sheriff dock) is the only bottom-actions model. These
+ * identifiers must not reappear in room production code or in the
+ * new-game generator templates that distribute the same parts.
  */
 
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-const SCAN_ROOTS = [join(__dirname, '../features/room'), join(__dirname, '../games')];
+// The generator templates are a distribution surface for the same
+// standard parts: a removed mechanism must not survive there either,
+// or every newly generated game re-imports it.
+const SCAN_ROOTS = [
+  join(__dirname, '../features/room'),
+  join(__dirname, '../games'),
+  join(__dirname, '../../scripts/lib/new-game/templates'),
+];
 
 const FORBIDDEN_PATTERNS: readonly { readonly pattern: RegExp; readonly label: string }[] = [
   { pattern: /StatusRibbon/, label: 'status ribbon (component, model or factory)' },
@@ -24,6 +34,7 @@ const FORBIDDEN_PATTERNS: readonly { readonly pattern: RegExp; readonly label: s
   { pattern: /HostGuideBanner/, label: 'host guide banner' },
   { pattern: /onDisabledPress/, label: 'disabled-press popup channel' },
   { pattern: /长按座位可接管机器人/, label: 'takeover hint copy' },
+  { pattern: /RoomBottomInfoModel/, label: 'flat info bottom model (stacked/dock only)' },
 ];
 
 function getAllTsFiles(dir: string): string[] {
@@ -32,7 +43,12 @@ function getAllTsFiles(dir: string): string[] {
     const fullPath = join(dir, entry);
     if (statSync(fullPath).isDirectory()) {
       files.push(...getAllTsFiles(fullPath));
-    } else if (entry.endsWith('.ts') || entry.endsWith('.tsx')) {
+    } else if (
+      entry.endsWith('.ts') ||
+      entry.endsWith('.tsx') ||
+      entry.endsWith('.ts.tmpl') ||
+      entry.endsWith('.tsx.tmpl')
+    ) {
       files.push(fullPath);
     }
   }
@@ -44,7 +60,7 @@ function isProductionFile(file: string): boolean {
 }
 
 describe('room guidance surfaces contract', () => {
-  it('no removed guidance mechanism identifier survives in room production code', () => {
+  it('no removed guidance mechanism identifier survives in room production code or templates', () => {
     const violations: string[] = [];
     for (const root of SCAN_ROOTS) {
       for (const file of getAllTsFiles(root)) {
@@ -52,7 +68,7 @@ describe('room guidance surfaces contract', () => {
         const source = readFileSync(file, 'utf-8');
         for (const { pattern, label } of FORBIDDEN_PATTERNS) {
           if (pattern.test(source)) {
-            violations.push(`${file.replace(join(__dirname, '..'), 'src')}: ${label}`);
+            violations.push(`${file.replace(join(__dirname, '../..'), '.')}: ${label}`);
           }
         }
       }

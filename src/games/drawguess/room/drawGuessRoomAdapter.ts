@@ -256,7 +256,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
     }),
     share: input.share,
     bottomActions: {
-      kind: 'info',
+      kind: 'stacked',
       // 回合结算期全员（房主也一样）等倒计时走完：给一行等待对象，
       // 与工作区内的结算倒计时同指一件事。
       message:
@@ -268,7 +268,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
               mySeat: input.mySeat,
             }),
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({

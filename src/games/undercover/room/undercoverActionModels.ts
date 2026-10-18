@@ -11,7 +11,6 @@ import type {
 import {
   buildLobbyHostStartMessage,
   buildPreparationFailureMessage,
-  buildViewIdentityButton,
   resolveViewIdentityAction,
 } from '@/features/room/model/RoomBottomActions';
 
@@ -78,25 +77,33 @@ export function createUndercoverBottomActions(
   state: UndercoverState,
   viewer: { readonly isHost: boolean; readonly mySeat: number | null },
 ): RoomBottomActionModel {
-  const actions: RoomBottomButton[] = [];
+  const primary: RoomBottomButton[] = [];
+  const ghost: RoomBottomButton[] = [];
   const cardLabel =
     controls.controlledSeat !== null ? `查看 ${controls.controlledSeat + 1} 号词卡` : '查看我的词';
-  const viewIdentityAction = resolveViewIdentityAction({
+  // The word card is this game's viewing-step main action (the step's
+  // server-side confirmation hangs on it), not a persistent review
+  // tool: its definition resolves through the shared view-action
+  // resolver, but it renders as a stage action in the primary tier —
+  // it does not go through buildViewIdentityButton, whose ghost-tier
+  // presentation is the platform rule for review tools only.
+  const viewCardAction = resolveViewIdentityAction({
     isVisible: controls.canViewCard && !controls.isSelecting,
     label: cardLabel,
     onPress: controls.openCard,
   });
-  if (viewIdentityAction !== null)
-    actions.push(
-      buildViewIdentityButton(viewIdentityAction, {
-        key: 'card',
-        variant: 'primary',
-        size: 'lg',
-        testID: 'undercover-view-word',
-      }),
-    );
+  if (viewCardAction !== null)
+    primary.push({
+      key: 'card',
+      label: viewCardAction.label,
+      variant: 'primary',
+      size: 'lg',
+      testID: 'undercover-view-word',
+      isEnabled: true,
+      onPress: viewCardAction.onPress,
+    });
   if (controls.isSelecting) {
-    actions.push({
+    ghost.push({
       key: 'cancel',
       label: '取消选择',
       variant: 'ghost',
@@ -106,9 +113,9 @@ export function createUndercoverBottomActions(
     });
   }
   return {
-    kind: 'info',
+    kind: 'stacked',
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),
     progress: null,
-    actions,
+    layout: { primary, secondary: [], ghost },
   };
 }

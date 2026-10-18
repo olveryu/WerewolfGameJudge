@@ -47,7 +47,7 @@ import {
   buildViewIdentityButton,
   resolveViewIdentityAction,
   type RoomBottomButton,
-  type RoomBottomInfoModel,
+  type RoomBottomStackModel,
   VIEW_IDENTITY_LABEL,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
@@ -363,14 +363,16 @@ export interface AvalonBottomActionsInput {
  * 夜晚步进走底部细进度行、公开阶段状态归摘要条、逐座状态归座位盘、
  * 一次性信息归弹窗。
  */
-function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomInfoModel {
+function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomStackModel {
   const { state } = input;
-  const actions: RoomBottomButton[] = [];
+  const primary: RoomBottomButton[] = [];
+  const secondary: RoomBottomButton[] = [];
+  const ghost: RoomBottomButton[] = [];
   let message: string | null = null;
   if (input.isLobby) {
     // 大厅客人等分配（个人提示）；房主走房主面板。
     if (!input.isHost && input.mySeat !== null) message = '等待房主分配角色';
-    return { kind: 'info', message, progress: null, actions };
+    return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
   const viewIdentityAction = resolveViewIdentityAction({
@@ -379,11 +381,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     onPress: input.onViewRolePress,
   });
   if (viewIdentityAction !== null) {
-    actions.push(
+    ghost.push(
       buildViewIdentityButton(viewIdentityAction, {
         key: 'viewRole',
-        variant: 'secondary',
-        size: 'md',
         testID: 'avalon-view-role',
       }),
     );
@@ -394,7 +394,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     if (input.effectiveSeat !== null && !state.roleViewedSeats.includes(input.effectiveSeat)) {
       message = '请点击下方「查看身份」，查看你的角色';
     }
-    return { kind: 'info', message, progress: null, actions };
+    return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
   }
   if (phase.kind === 'night') {
     // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
@@ -413,7 +413,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       ) {
         // 确认与播报并行：音频播放中也保持可用（引擎完成评估与确认、
         // ack 的到达顺序无关，见 E3 §5b）；不再换成禁用占位等播报结束。
-        actions.push({
+        primary.push({
           key: 'nightInfo',
           label: '确认信息',
           variant: 'primary',
@@ -424,7 +424,12 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
         });
       }
     }
-    return { kind: 'info', message, progress: deriveAvalonBottomProgress(state), actions };
+    return {
+      kind: 'stacked',
+      message,
+      progress: deriveAvalonBottomProgress(state),
+      layout: { primary, secondary, ghost },
+    };
   }
   const vm = getAvalonViewModel(state, input.effectiveSeat);
   // 提前刺杀：刺客个人常驻动作（不属于房主管理），白天阶段与阶段主按钮并存。
@@ -433,7 +438,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       // 选人模式独占底部区（对齐原选人弹窗对其他交互的阻断）：只留取消
       // 入口与座位盘点选提示；点选由 Screen 的 seatPickHandler 消费，选中
       // 后开刺杀二次确认。查看身份是局内常驻个人动作，已在上方入列。
-      actions.push({
+      secondary.push({
         key: 'earlyStrike',
         label: '取消刺杀',
         variant: 'secondary',
@@ -444,9 +449,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
       });
       message =
         '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
-      return { kind: 'info', message, progress: null, actions };
+      return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
     }
-    actions.push({
+    primary.push({
       key: 'earlyStrike',
       label: '刺杀',
       variant: 'primary',
@@ -460,7 +465,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
   // 湖仙查验结果重开入口：结果本体只住弹窗（一次性私密信息），此处只放入口；
   // VM 只向持有人暴露 lastLadyCheck 结果，非持有人恒无此按钮。
   if (vm.ladyCheckResult !== null && phase.kind !== 'ended') {
-    actions.push({
+    secondary.push({
       key: 'ladyResult',
       label: '查验结果',
       variant: 'secondary',
@@ -477,7 +482,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
         message = `点座位盘点选 ${instruction.requiredSize} 名队员（可含自己），选中的座位会亮起「队员」徽标，再点一次取消。`;
         const isFull = vm.draftSeats !== null && vm.draftSeats.length === instruction.requiredSize;
         if (isFull && !input.isSubmitting) {
-          actions.push({
+          primary.push({
             key: 'proposeTeam',
             label: '提交队伍',
             variant: 'primary',
@@ -487,7 +492,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
             testID: 'avalon-nominate-submit',
           });
         } else if (isFull) {
-          actions.push({
+          primary.push({
             key: 'proposeTeam',
             label: '提交队伍',
             variant: 'primary',
@@ -498,7 +503,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
             testID: 'avalon-nominate-submit',
           });
         } else {
-          actions.push({
+          primary.push({
             key: 'proposeTeam',
             label: '提交队伍',
             variant: 'primary',
@@ -516,7 +521,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     case 'vote': {
       const instruction = resolveVoteInstruction(vm);
       if (instruction.canVote) {
-        actions.push({
+        primary.push({
           key: 'openVote',
           label: instruction.myBallot === null ? '去投票' : '修改投票',
           variant: 'primary',
@@ -541,7 +546,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     case 'quest': {
       const instruction = resolveQuestInstruction(vm);
       if (instruction.isTeamMember) {
-        actions.push({
+        primary.push({
           key: 'openQuest',
           label: instruction.myPlay === null ? '去出牌' : '修改出牌',
           variant: 'primary',
@@ -573,7 +578,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
           break;
         case 'targetConfirm':
           message = `${avalonSeatLabel(state, instruction.holderSeat)} 要查验你的阵营，确认展示后对方将看到你是好人还是坏人。`;
-          actions.push({
+          primary.push({
             key: 'ladyAcknowledge',
             label: '查看查验请求',
             variant: 'primary',
@@ -619,7 +624,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomI
     default:
       break;
   }
-  return { kind: 'info', message, progress: null, actions };
+  return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
 }
 
 export interface AvalonRoomShellModelInput {

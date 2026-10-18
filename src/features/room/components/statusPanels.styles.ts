@@ -110,15 +110,6 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         minWidth: 0,
         minHeight: componentSizes.button.lg,
       },
-      infoRow: {
-        flexDirection: 'row',
-        alignItems: 'stretch',
-        gap: spacing.small,
-      },
-      infoAction: {
-        flex: 1,
-        minWidth: 0,
-      },
       hostManagementEntry: {
         width: '100%',
         minHeight: componentSizes.button.md,

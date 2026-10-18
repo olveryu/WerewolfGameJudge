@@ -348,14 +348,14 @@ export function createStoryRelayRoomShellModel(
     }),
     share: input.share,
     bottomActions: {
-      kind: 'info',
+      kind: 'stacked',
       message: buildLobbyHostStartMessage({
         isLobby: input.isLobby,
         isHost: input.isHost,
         mySeat: input.mySeat,
       }),
       progress: deriveStoryRelayBottomProgress(state),
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({

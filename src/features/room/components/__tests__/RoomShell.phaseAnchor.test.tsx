@@ -67,7 +67,12 @@ function buildModel(phase: string): RoomShellModel {
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     },
-    bottomActions: { kind: 'info', message: null, progress: null, actions: [] },
+    bottomActions: {
+      kind: 'stacked',
+      message: null,
+      progress: null,
+      layout: { primary: [], secondary: [], ghost: [] },
+    },
     hostManagement: null,
     controlledSeat: null,
   };

@@ -23,7 +23,7 @@ import {
   buildStartGameAction,
 } from '@/features/room/model/hostManagementActions';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
-import type { RoomBottomInfoModel } from '@/features/room/model/RoomBottomActions';
+import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
 import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
@@ -201,13 +201,18 @@ function createPictionaryBottomActions(
   state: PictionaryState,
   isHost: boolean,
   mySeat: number | null,
-): RoomBottomInfoModel {
+): RoomBottomStackModel {
   const message = buildLobbyHostStartMessage({
     isLobby: state.phase === 'lobby',
     isHost,
     mySeat,
   });
-  return { kind: 'info', message, progress: derivePictionaryBottomProgress(state), actions: [] };
+  return {
+    kind: 'stacked',
+    message,
+    progress: derivePictionaryBottomProgress(state),
+    layout: { primary: [], secondary: [], ghost: [] },
+  };
 }
 
 interface PictionaryHostManagementInput {

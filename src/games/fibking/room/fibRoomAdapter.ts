@@ -511,11 +511,9 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
         onPress: input.openIdentity,
       });
       if (viewIdentityAction !== null) {
-        secondary.push(
+        ghost.push(
           buildViewIdentityButton(viewIdentityAction, {
             key: 'view-identity',
-            variant: 'secondary',
-            size: 'md',
             testID: TESTIDS.fibViewIdentityButton,
           }),
         );

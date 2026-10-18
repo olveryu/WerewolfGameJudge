@@ -293,7 +293,7 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
     }),
     share: input.share,
     bottomActions: {
-      kind: 'info',
+      kind: 'stacked',
       message:
         state.phase.kind === 'ended'
           ? buildEndedWaitingMessage({
@@ -307,7 +307,7 @@ export function createDemoRoomShellModel(input: DemoRoomShellModelInput): RoomSh
               mySeat: input.mySeat,
             }),
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({

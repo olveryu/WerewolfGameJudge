@@ -128,10 +128,10 @@ describe('createDrawGuessRoomShellModel', () => {
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
     expect(model.bottomActions).toEqual({
-      kind: 'info',
+      kind: 'stacked',
       message: null,
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     });
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
@@ -200,10 +200,10 @@ describe('createDrawGuessRoomShellModel', () => {
       releaseBot: jest.fn(),
     });
     expect(model.bottomActions).toEqual({
-      kind: 'info',
+      kind: 'stacked',
       message: '等待房主开始游戏',
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -293,6 +293,6 @@ describe('createDrawGuessRoomShellModel — roundEnd wait (PR-B G-8)', () => {
       hostManagement: { sections: [] },
       releaseBot: jest.fn(),
     });
-    expect(model.bottomActions).toMatchObject({ kind: 'info', message: '等待本轮结算' });
+    expect(model.bottomActions).toMatchObject({ kind: 'stacked', message: '等待本轮结算' });
   });
 });

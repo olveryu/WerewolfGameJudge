@@ -95,10 +95,10 @@ describe('createPictionaryRoomShellModel', () => {
       onBotSeatLongPress: null,
     });
     expect(model.bottomActions).toEqual({
-      kind: 'info',
+      kind: 'stacked',
       message: null,
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     });
     expect(model.share).toBe(share);
     // The shell phase anchor carries the PictionaryState phase verbatim.

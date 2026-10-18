@@ -118,31 +118,43 @@ export function resolveViewIdentityAction(input: {
 }
 
 /**
- * Renders a resolved view-identity action as a bottom button. Key,
- * variant, size and testID are the surface's own anchors and remain
- * per game; the button is always enabled (a hidden action is expressed
- * by resolving to null, never by a disabled view button).
+ * Renders a resolved view-identity action as a bottom button. The
+ * view-identity action is a persistent review tool, so its tier is a
+ * platform rule, not a per-game choice: it always renders as a ghost
+ * button (variant 'ghost', size 'md') and belongs in the layout's
+ * ghost tier, on its own row, never mixed into a stage-action row.
+ * Only the key and testID remain the surface's own anchors. The button
+ * is always enabled (a hidden action is expressed by resolving to
+ * null, never by a disabled view button).
  */
 export function buildViewIdentityButton(
   action: RoomViewIdentityAction,
   surface: {
     readonly key: string;
-    readonly variant: 'primary' | 'secondary' | 'ghost';
-    readonly size: 'lg' | 'md';
     readonly testID?: string;
   },
 ): RoomBottomButton {
   return {
     key: surface.key,
     label: action.label,
-    variant: surface.variant,
-    size: surface.size,
+    variant: 'ghost',
+    size: 'md',
     ...(surface.testID !== undefined ? { testID: surface.testID } : {}),
     isEnabled: true,
     onPress: action.onPress,
   };
 }
 
+/**
+ * The three tiers of the stacked bottom layout, one tier per row.
+ * Tier ownership is a platform contract, decided by semantics:
+ * stage actions (what this step asks the player to do) belong in
+ * primary / secondary; persistent review tools (present all game,
+ * unrelated to the current step — view identity, review) belong in
+ * ghost, on their own row. A stage main action keeps its primary
+ * tier even when it opens a card (e.g. Undercover's word card is the
+ * viewing step's main action, not a review tool).
+ */
 export interface RoomBottomActionLayout {
   readonly primary: readonly RoomBottomButton[];
   readonly secondary: readonly RoomBottomButton[];
@@ -157,14 +169,6 @@ export interface RoomBottomStackModel {
   readonly layout: RoomBottomActionLayout;
 }
 
-export interface RoomBottomInfoModel {
-  readonly kind: 'info';
-  readonly message: string | null;
-  /** Step progress for stepped phases (night sequences, relay chains); null elsewhere. */
-  readonly progress: NightStepProgress | null;
-  readonly actions: readonly RoomBottomButton[];
-}
-
 export interface RoomBottomDockModel {
   readonly kind: 'dock';
   readonly message: string | null;
@@ -175,7 +179,4 @@ export interface RoomBottomDockModel {
   readonly trailing: RoomBottomToolButton | null;
 }
 
-export type RoomBottomActionModel =
-  | RoomBottomStackModel
-  | RoomBottomInfoModel
-  | RoomBottomDockModel;
+export type RoomBottomActionModel = RoomBottomStackModel | RoomBottomDockModel;

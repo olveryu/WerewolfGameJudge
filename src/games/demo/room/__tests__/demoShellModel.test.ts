@@ -221,7 +221,7 @@ describe('createDemoRoomShellModel', () => {
       mySeat: 2,
     });
     expect(playerModel.bottomActions).toMatchObject({
-      kind: 'info',
+      kind: 'stacked',
       message: '等待房主操作（再来一局 / 返回大厅）',
     });
     const hostModel = createDemoRoomShellModel({
@@ -230,7 +230,7 @@ describe('createDemoRoomShellModel', () => {
       isHost: true,
       mySeat: 0,
     });
-    expect(hostModel.bottomActions).toMatchObject({ kind: 'info', message: null });
+    expect(hostModel.bottomActions).toMatchObject({ kind: 'stacked', message: null });
   });
 });
 

@@ -152,8 +152,10 @@ type RoomStateResult = ReturnType<typeof renderRoomState>['result'];
 
 function findProposeAction(result: RoomStateResult): RoomBottomButton {
   const bottom = result.current.shellModel.bottomActions;
-  if (bottom.kind !== 'info') throw new Error('expected info bottom actions in nominate');
-  const action = bottom.actions.find((candidate) => candidate.testID === 'avalon-nominate-submit');
+  if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
+  const action = bottom.layout.primary.find(
+    (candidate) => candidate.testID === 'avalon-nominate-submit',
+  );
   if (action === undefined) throw new Error('propose action not found');
   return action;
 }
@@ -215,9 +217,9 @@ describe('useAvalonRoomState nomination draft mirror', () => {
     // leak — no badge, and no propose action is offered at all.
     expect(result.current.shellModel.seats.source.getSeat(picked).statusBadge).toBeNull();
     const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'info') throw new Error('expected info bottom actions in nominate');
+    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
     expect(
-      bottom.actions.find((candidate) => candidate.testID === 'avalon-nominate-submit'),
+      bottom.layout.primary.find((candidate) => candidate.testID === 'avalon-nominate-submit'),
     ).toBeUndefined();
   });
 

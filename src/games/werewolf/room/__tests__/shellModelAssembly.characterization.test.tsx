@@ -167,12 +167,14 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
     const model = await captureModel(renderRoom());
 
-    expect(model.bottomActions.kind).toBe('info');
-    if (model.bottomActions.kind === 'info') {
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
       expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
-      expect(model.bottomActions.actions.map((a) => [a.key, a.label, a.variant])).toEqual([
+      expect(model.bottomActions.layout.primary).toEqual([]);
+      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
         ['viewRole', '查看身份', 'secondary'],
       ]);
+      expect(model.bottomActions.layout.ghost).toEqual([]);
     }
   });
 

@@ -12,7 +12,6 @@ import type {
   RoomBottomActionModel,
   RoomBottomButton,
   RoomBottomDockModel,
-  RoomBottomInfoModel,
   RoomBottomToolButton,
 } from '@/features/room/model/RoomBottomActions';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
@@ -73,11 +72,9 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
   const hasButtons =
     hostManagement !== null ||
     model.kind === 'dock' ||
-    (model.kind === 'info'
-      ? model.actions.length > 0
-      : model.layout.primary.length > 0 ||
-        model.layout.secondary.length > 0 ||
-        model.layout.ghost.length > 0);
+    model.layout.primary.length > 0 ||
+    model.layout.secondary.length > 0 ||
+    model.layout.ghost.length > 0;
   const message = model.message;
   const hasMessage = message !== null && message.length > 0;
   if (!hasButtons && !hasMessage && model.progress === null) return null;
@@ -119,13 +116,6 @@ const RoomBottomActionPanelComponent: React.FC<RoomBottomActionPanelProps> = ({
 
       {model.kind === 'dock' ? (
         <DockActions
-          model={model}
-          hostManagement={hostManagement}
-          onOpenHostManagement={onOpenHostManagement}
-          styles={styles}
-        />
-      ) : model.kind === 'info' ? (
-        <InfoActions
           model={model}
           hostManagement={hostManagement}
           onOpenHostManagement={onOpenHostManagement}
@@ -221,32 +211,6 @@ const StackedActions: React.FC<{
     </View>
   );
 };
-
-const InfoActions: React.FC<{
-  readonly model: RoomBottomInfoModel;
-  readonly hostManagement: RoomHostManagementModel | null;
-  readonly onOpenHostManagement: () => void;
-  readonly styles: BottomActionPanelStyles;
-}> = ({ model, hostManagement, onOpenHostManagement, styles }) => (
-  <View style={styles.compactManagementStack}>
-    {model.actions.length > 0 && (
-      <View style={styles.infoRow}>
-        {model.actions.map((action) => (
-          <View key={action.key} style={styles.infoAction}>
-            <LayoutButton model={action} />
-          </View>
-        ))}
-      </View>
-    )}
-    {hostManagement !== null && (
-      <HostManagementBlock
-        model={hostManagement}
-        onOpenHostManagement={onOpenHostManagement}
-        styles={styles}
-      />
-    )}
-  </View>
-);
 
 const HostManagementBlock: React.FC<{
   readonly model: RoomHostManagementModel;

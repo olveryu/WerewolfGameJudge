@@ -499,14 +499,17 @@ describe('FibKing room adapter', () => {
     const ongoing = createOngoing();
     const ongoingActions = createFibBottomActions({ state: ongoing, ...common });
     expect(ongoingActions.layout.primary).toEqual([]);
-    expect(ongoingActions.layout.secondary).toMatchObject([
+    expect(ongoingActions.layout.secondary).toEqual([]);
+    // Tier contract: the persistent view-identity tool lives in the ghost tier.
+    expect(ongoingActions.layout.ghost).toMatchObject([
       {
         label: '查看身份',
+        variant: 'ghost',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },
     ]);
-    const identityAction = ongoingActions.layout.secondary[0];
+    const identityAction = ongoingActions.layout.ghost[0];
     if (identityAction?.isEnabled !== true) throw new Error('Expected enabled identity action');
     identityAction.onPress();
     expect(openIdentity).toHaveBeenCalledTimes(1);
@@ -592,9 +595,11 @@ describe('FibKing room adapter', () => {
       openIdentity,
     });
     expect(ongoingPlayer.layout.primary).toEqual([]);
-    expect(ongoingPlayer.layout.secondary).toMatchObject([
+    expect(ongoingPlayer.layout.secondary).toEqual([]);
+    expect(ongoingPlayer.layout.ghost).toMatchObject([
       {
         label: '查看身份',
+        variant: 'ghost',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },
@@ -606,9 +611,11 @@ describe('FibKing room adapter', () => {
       viewerSeat: null,
       openIdentity,
     });
-    expect(ongoingSpectator.layout.secondary).toMatchObject([
+    expect(ongoingSpectator.layout.secondary).toEqual([]);
+    expect(ongoingSpectator.layout.ghost).toMatchObject([
       {
         label: '查看题目',
+        variant: 'ghost',
         testID: TESTIDS.fibViewIdentityButton,
         isEnabled: true,
       },
@@ -720,7 +727,12 @@ describe('createFibRoomShellModel', () => {
       copyLink: jest.fn(async () => undefined),
       shareImage: jest.fn(async () => undefined),
     };
-    const bottomActions = { kind: 'info' as const, message: null, progress: null, actions: [] };
+    const bottomActions = {
+      kind: 'stacked' as const,
+      message: null,
+      progress: null,
+      layout: { primary: [], secondary: [], ghost: [] },
+    };
     const connection = {
       status: 'live' as const,
       pendingCommandCount: 0,
@@ -806,7 +818,12 @@ describe('createFibRoomShellModel', () => {
         copyLink: jest.fn(async () => undefined),
         shareImage: jest.fn(async () => undefined),
       },
-      bottomActions: { kind: 'info' as const, message: null, progress: null, actions: [] },
+      bottomActions: {
+        kind: 'stacked' as const,
+        message: null,
+        progress: null,
+        layout: { primary: [], secondary: [], ghost: [] },
+      },
       hostManagement: null,
       controlledSeat: null,
     });

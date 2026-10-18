@@ -221,8 +221,8 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     // Seat action (view the controlled bot's role): must carry seat 3.
     dispatch.mockClear();
     const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'info') throw new Error('expected info bottom actions in viewing');
-    const viewRole = bottom.actions.find((action) => action.testID === 'avalon-view-role');
+    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in viewing');
+    const viewRole = bottom.layout.ghost.find((action) => action.testID === 'avalon-view-role');
     if (viewRole === undefined || !viewRole.isEnabled)
       throw new Error('view-role action missing or disabled');
     await act(async () => {
@@ -284,8 +284,10 @@ describe('useAvalonRoomState takeover nomination mirror', () => {
       tone: 'success',
     });
     const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'info') throw new Error('expected info bottom actions in nominate');
-    const propose = bottom.actions.find((action) => action.testID === 'avalon-nominate-submit');
+    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
+    const propose = bottom.layout.primary.find(
+      (action) => action.testID === 'avalon-nominate-submit',
+    );
     if (propose === undefined) throw new Error('propose action not found under takeover');
     expect(propose.isEnabled).toBe(true);
     // The authoritative state and the returned view model still carry
