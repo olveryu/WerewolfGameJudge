@@ -50,8 +50,12 @@ export default defineConfig({
   /* Limit workers on CI to reduce concurrent connection pressure */
   workers: process.env.CI ? 2 : undefined,
 
-  /* Reporter to use */
-  reporter: 'html',
+  /* Reporter to use. The failure bundle reporter always rides along: it is
+   * silent on green runs and writes failure-bundles/ only when a test ends
+   * failed or flaky (see e2e/reporters/failureBundle.ts). CI passes explicit
+   * --reporter flags on the command line, which replace this list, so the CI
+   * workflows name the bundle reporter there as well. */
+  reporter: [['html'], ['./e2e/reporters/failureBundle.ts']],
 
   /* Shared settings for all the projects below */
   use: {

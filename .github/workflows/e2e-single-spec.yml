@@ -68,7 +68,9 @@ jobs:
       - name: Run single spec
         env:
           SPEC: ${{ inputs.spec }}
-        run: pnpm exec playwright test "$SPEC" --reporter=list --reporter=blob
+          E2E_BUNDLE_RUN_ID: ${{ github.run_id }}
+          E2E_BUNDLE_SHARD: single
+        run: pnpm exec playwright test "$SPEC" --reporter=list,blob,./e2e/reporters/failureBundle.ts
 
       - name: Upload blob report
         uses: actions/upload-artifact@v7
@@ -77,3 +79,12 @@ jobs:
           name: blob-report-single
           path: blob-report/
           retention-days: 1
+
+      - name: Upload failure bundle
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: failure-bundle-single
+          path: failure-bundles/
+          if-no-files-found: ignore
+          retention-days: 30
