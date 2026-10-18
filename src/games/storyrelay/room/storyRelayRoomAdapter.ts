@@ -190,7 +190,7 @@ export function createStoryRelayHostManagement(
   if (state.phase === 'lobby') {
     const submitStart = () => void submit('开始游戏', { type: 'storyrelay.round.start' });
     const startAction = buildStartGameAction({
-      onPress: submitStart,
+      onPress: () => showConfirmAlert('开始游戏？', '将分配写作顺序并开始故事接龙', submitStart),
       isEnabled:
         !input.isSubmitting &&
         getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
@@ -202,8 +202,6 @@ export function createStoryRelayHostManagement(
       isLoading: input.isSubmitting,
       isPrimary: true,
       remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      onConsolePress: () =>
-        showConfirmAlert('开始游戏？', '将分配写作顺序并开始故事接龙', submitStart),
     });
     return {
       sections: [

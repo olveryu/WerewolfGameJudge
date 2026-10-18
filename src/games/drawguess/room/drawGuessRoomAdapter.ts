@@ -167,13 +167,12 @@ export function createDrawGuessHostManagement(
       : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
     const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.round.start' });
     const startAction = buildStartGameAction({
-      onPress: submitStart,
+      onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画猜词', submitStart),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
       isPrimary: true,
       remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-      onConsolePress: () => showConfirmAlert('开始游戏？', '将开始本局绘画猜词', submitStart),
     });
     return {
       sections: [

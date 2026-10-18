@@ -258,15 +258,11 @@ export function createUndercoverHostManagement(
           : `座位尚未坐满（还差 ${state.config.numberOfPlayers - occupiedSeatCount} 人）`;
       const startAction = buildStartGameAction({
         label: '开始本局',
-        onPress: controls.start,
+        onPress: () => showConfirmAlert('开始本局？', '将为每位玩家分配词卡', controls.start),
         isEnabled: !controls.isSubmitting && occupiedSeatCount === state.config.numberOfPlayers,
         disabledReason: startDisabledReason,
         isPrimary: true,
         remedy: buildShareRoomRemedy(capabilities.canShareRoom),
-        // The panel action submits directly; the console gates the same
-        // callback with a confirm.
-        onConsolePress: () =>
-          showConfirmAlert('开始本局？', '将为每位玩家分配词卡', controls.start),
       });
       actions.push(startAction);
       if (capabilities.canConfigureGame.isAllowed)
@@ -311,12 +307,11 @@ export function createUndercoverHostManagement(
       const beginDisabledReason = allViewed ? null : '还有玩家未查看词卡';
       const beginAction = buildStartGameAction({
         label: '开始游戏',
-        onPress: controls.begin,
+        onPress: () =>
+          showConfirmAlert('开始游戏？', '全员已查看词卡，将开始轮流发言', controls.begin),
         isEnabled: !controls.isSubmitting && allViewed,
         disabledReason: beginDisabledReason,
         isPrimary: true,
-        onConsolePress: () =>
-          showConfirmAlert('开始游戏？', '全员已查看词卡，将开始轮流发言', controls.begin),
       });
       actions.push(beginAction);
       if (getBotSeats(state.roster).some((seat) => !state.round.confirmedSeats.includes(seat)))

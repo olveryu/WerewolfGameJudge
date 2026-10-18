@@ -8,7 +8,7 @@ import type { RoomHostManagementModel, RoomHostRemedy } from './RoomHostManageme
 
 export type RoomHostConsolePrimary =
   | {
-      /** Executable now: pressing the console row runs the action (through its console press override, if any). */
+      /** Executable now: pressing the console row runs the action's own onPress. */
       readonly kind: 'ready';
       readonly actionKey: string;
       readonly label: string;
@@ -25,8 +25,8 @@ export type RoomHostConsolePrimary =
 
 /**
  * Resolve the console primary from the host management model:
- * - an enabled primary becomes ready (its `onConsolePress` override wins
- *   over the panel `onPress`, e.g. the confirm the console carries);
+ * - an enabled primary becomes ready (the console row runs the action's
+ *   own `onPress` — one press behavior per action, on every surface);
  * - a primary carrying a non-empty `consoleBlockedReason` renders blocked
  *   with that reason even while the panel action stays enabled;
  * - a disabled primary with a non-empty reason becomes blocked;
@@ -65,7 +65,7 @@ export function resolveHostConsolePrimary(
       kind: 'ready',
       actionKey: action.key,
       label: action.label,
-      onPress: action.onConsolePress ?? action.onPress,
+      onPress: action.onPress,
     };
   }
   const reason = action.disabledReason;

@@ -91,7 +91,7 @@ test('create, guide, full-room gating, fill bots, and wordSelect', async ({ brow
     });
 
     await test.step('start the game and reach wordSelect', async () => {
-      await room.clickHostManagementAction('start-game-button');
+      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
       // Host (seat 0) is the first drawer.
       await expect(hostPage.getByText('请选择本轮题目')).toBeVisible();
       // E2E seeds 20 drawguess words, so 3 choices should arrive (not "preparing").

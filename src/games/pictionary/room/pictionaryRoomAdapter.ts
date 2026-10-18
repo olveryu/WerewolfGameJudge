@@ -291,7 +291,7 @@ export function createPictionaryHostManagement(
     return { sections };
   }
   const startAction: RoomHostManagementAction = buildStartGameAction({
-    onPress: input.startRound,
+    onPress: () => showConfirmAlert('开始游戏？', '将开始本局绘画接龙', input.startRound),
     isEnabled: !input.isCommandSubmitting && isPictionaryRoomFull(input.state),
     isLoading: input.isCommandSubmitting || undefined,
     disabledReason: input.isCommandSubmitting
@@ -301,7 +301,6 @@ export function createPictionaryHostManagement(
         } 人）`,
     isPrimary: true,
     remedy: buildShareRoomRemedy(input.capabilities.canShareRoom),
-    onConsolePress: () => showConfirmAlert('开始游戏？', '将开始本局绘画接龙', input.startRound),
   });
   const roomActions: RoomHostManagementAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {

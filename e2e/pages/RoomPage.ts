@@ -171,6 +171,23 @@ export class RoomPage {
     await expect(panel).not.toBeVisible();
   }
 
+  /** Confirm the dialog a Host action opens: wait for its title, then press 确定. */
+  async confirmHostActionDialog(dialogTitle: string): Promise<void> {
+    await expect(this.page.getByText(dialogTitle, { exact: true })).toBeVisible({
+      timeout: 3000,
+    });
+    await this.page.getByText('确定', { exact: true }).click();
+  }
+
+  /** Run a Host action that asks for confirmation, and confirm its dialog. */
+  async clickHostManagementActionAndConfirm(
+    actionTestID: string,
+    dialogTitle: string,
+  ): Promise<void> {
+    await this.clickHostManagementAction(actionTestID);
+    await this.confirmHostActionDialog(dialogTitle);
+  }
+
   /** Probe whether a Host action is currently exposed, then close the management surface. */
   async isHostManagementActionVisible(actionTestID: string): Promise<boolean> {
     const panel = await this.openHostManagement();
@@ -206,9 +223,7 @@ export class RoomPage {
 
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
-    await this.clickHostManagementAction(TESTIDS.prepareToFlipButton);
-    await expect(this.page.getByText('分配角色？')).toBeVisible({ timeout: 3000 });
-    await this.page.getByText('确定', { exact: true }).click();
+    await this.clickHostManagementActionAndConfirm(TESTIDS.prepareToFlipButton, '分配角色？');
     // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
     // instead of fixed timeout — server-authoritative mode has variable latency.
     await expect(this.page.getByRole('button', { name: '查看身份' })).toBeEnabled({
@@ -284,9 +299,7 @@ export class RoomPage {
   async startGame() {
     // All players must complete viewRole before this button appears —
     // server-authoritative broadcast propagation can take several seconds.
-    await this.clickHostManagementAction(TESTIDS.startGameButton);
-    await expect(this.page.getByText('开始游戏？', { exact: true })).toBeVisible({ timeout: 3000 });
-    await this.page.getByText('确定', { exact: true }).click();
+    await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
   }
 
   /** Click "重新开始" (restart) and confirm dialog. */
