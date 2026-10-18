@@ -359,7 +359,13 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     const assassinSeat = Number(
       Object.entries(s.state.roles).find(([, roleId]) => roleId === 'assassin')?.[0],
     );
-    s.send({ type: 'avalon.assassin.accuse', seat: 1 }, seatUser(assassinSeat));
+    // The accusation target must come from the dealt roles: dealing is truly
+    // random, so a hardcoded seat can be the assassin's own seat, which the
+    // engine rightly rejects as a self-accusation.
+    const merlinSeat = Number(
+      Object.entries(s.state.roles).find(([, roleId]) => roleId === 'merlin')?.[0],
+    );
+    s.send({ type: 'avalon.assassin.accuse', seat: merlinSeat }, seatUser(assassinSeat));
     expect(s.state.phase.kind).toBe('ended');
     expectCell('ended', s.state);
   });
