@@ -143,7 +143,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
     try {
       await fixture.pages[1]!.setViewportSize({ width: 390, height: 844 });
       await fixture.pages[2]!.setViewportSize({ width: 320, height: 640 });
-      await room.clickHostManagementAction('start-game-button');
+      await room.clickHostManagementActionAndConfirm('start-game-button', '开始游戏？');
       for (let stepIndex = 0; stepIndex < 4; stepIndex += 1) {
         await test.step(`write and collect turn ${stepIndex + 1}`, async () => {
           for (const page of fixture.pages) {
