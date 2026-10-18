@@ -476,7 +476,7 @@ test.describe('Avalon full game', () => {
       await hostPage.screenshot({ path: testInfo.outputPath('avalon-lobby.png') });
 
       const roles = await test.step('发牌、全员查看身份并捕获各自角色', async () => {
-        await rooms[0]!.clickHostManagementAction(TESTIDS.startGameButton);
+        await rooms[0]!.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '分配角色？');
         await expect(hostPage.getByText('还有玩家未查看身份', { exact: true })).toBeVisible({
           timeout: 15_000,
         });
@@ -517,7 +517,7 @@ test.describe('Avalon full game', () => {
       expect(goodSeats).toHaveLength(6);
 
       await test.step('房主开始游戏，进入夜晚坏人互认', async () => {
-        await rooms[0]!.clickHostManagementAction(TESTIDS.startGameButton);
+        await rooms[0]!.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
         // 夜晚状态条是进度形态：第1步 / 共3步 · 坏人互认。
         await expect(hostPage.getByText('第1步 / 共3步', { exact: true })).toBeVisible({
           timeout: 15_000,
