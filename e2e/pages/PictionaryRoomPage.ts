@@ -30,7 +30,7 @@ export class PictionaryRoomPage extends RoomPage {
 
   /** Start the round from the shared host-management panel. */
   async startRound(): Promise<void> {
-    await this.clickHostManagementAction(TESTIDS.startGameButton);
+    await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
     await expect(this.page.getByTestId(TESTIDS.pictionaryStageFrame)).toBeVisible({
       timeout: 15_000,
     });
