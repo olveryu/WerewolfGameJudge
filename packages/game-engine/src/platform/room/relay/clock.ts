@@ -7,8 +7,8 @@
  * This module receives a state whose revision the caller has already
  * verified and performs only the phase dispatch: answering settles,
  * transition is resolved by the game's injected continuation (the
- * games part ways here — next step or gallery entry is where their
- * completion timing differs), and gallery advances one cell.
+ * games part ways here — next step or gallery entry), and gallery
+ * advances one cell.
  */
 
 import { type Decision, type GameEffect, type GameEvent, reject } from '../../engine';

@@ -122,9 +122,9 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
 
         takeSeat: jest.fn(),
         leaveSeat: jest.fn(),
-        assignRoles: jest.fn(),
-        startGame: jest.fn(),
-        restartGame: jest.fn(),
+        assignRoles: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
+        startGame: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
+        restartGame: jest.fn().mockResolvedValue(mockSuccessfulCommand()),
 
         submitAction: mockSubmitAction,
 

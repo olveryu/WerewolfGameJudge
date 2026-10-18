@@ -198,19 +198,34 @@ describe('useWerewolfGameActions - game control', () => {
     expect(deps.client.updateTemplate).not.toHaveBeenCalled();
   });
 
-  it('assignRoles should call client and toast on failure', async () => {
+  it('assignRoles should return the client outcome without presenting it', async () => {
+    const rejected = domainRejected('role_count_mismatch');
     const client = createMockClient({
-      assignRoles: jest.fn().mockResolvedValue(domainRejected('role_count_mismatch')),
+      assignRoles: jest.fn().mockResolvedValue(rejected),
     });
     const deps = createDeps({ client });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
-    await act(() => result.current.assignRoles());
-
-    expect(mockShowAlert).not.toHaveBeenCalled();
-    expect(toast.error).toHaveBeenCalledWith('分配角色失败', {
-      description: '角色数量与座位数不匹配',
+    let outcome: WerewolfCommandDispatchOutcome | undefined;
+    await act(async () => {
+      outcome = await result.current.assignRoles();
     });
+
+    // Presentation lives in the host-control submission pipeline now;
+    // the action layer hands the outcome back untouched.
+    expect(outcome).toBe(rejected);
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('assignRoles should fail fast when not host', async () => {
+    const deps = createDeps({ isHost: false });
+    const { result } = renderHook(() => useWerewolfGameActions(deps));
+
+    await expect(result.current.assignRoles()).rejects.toThrow(
+      '[FAIL-FAST] Assigning Werewolf roles requires the host',
+    );
+    expect(deps.client.assignRoles).not.toHaveBeenCalled();
   });
 
   it('assignRoles should NOT alert on success', async () => {

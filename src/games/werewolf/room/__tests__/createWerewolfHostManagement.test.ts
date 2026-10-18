@@ -112,6 +112,7 @@ describe('createWerewolfHostManagement', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Seated,
+        seatedCount: 9,
         onHostControl,
         capabilities: {
           canConfigureGame: { isAllowed: true as const, execute: jest.fn() },
@@ -267,7 +268,7 @@ describe('createWerewolfHostManagement', () => {
       expect(primary.reason).toBe('还有 9 个空位等待入座');
     });
 
-    it('blocks role assignment on the console while seats are open and offers room sharing as the remedy', () => {
+    it('blocks role assignment while seats are open and offers room sharing as the remedy', () => {
       const input = createInput({ roomStatus: GameStatus.Seated, seatedCount: 6, totalSeats: 9 });
       const model = createWerewolfHostManagement(input);
       const primary = resolveHostConsolePrimary(model!);
@@ -277,11 +278,13 @@ describe('createWerewolfHostManagement', () => {
       expect(primary.remedy?.label).toBe('分享房间');
       primary.remedy?.onPress();
       expect(input.capabilities.canShareRoom.execute).toHaveBeenCalledTimes(1);
-      // The panel action itself stays enabled: its gate lives in the dialog layer.
+      // The panel action itself is disabled with the seat-count reason:
+      // availability lives on the descriptor, not in a dialog gate.
       const assignAction = model?.sections
         .flatMap((section) => section.actions)
         .find((action) => action.key === 'prepare-to-flip');
-      expect(assignAction?.isEnabled).toBe(true);
+      if (assignAction?.isEnabled !== false) throw new Error('Expected a disabled panel action');
+      expect(assignAction.disabledReason).toBe('还有 3 个空位等待入座');
     });
 
     it('drops the share remedy when sharing is not allowed', () => {
