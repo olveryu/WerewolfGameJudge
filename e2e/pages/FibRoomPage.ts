@@ -93,6 +93,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.startGameButton).click();
     await this.expectHostManagementClosed();
+    await this.confirmHostActionDialog('开始本轮？');
     await expect(this.page.getByTestId(TESTIDS.fibViewIdentityButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -103,6 +104,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.startGameButton).click();
     await this.expectHostManagementClosed();
+    await this.confirmHostActionDialog('开始游戏？');
     await this.expectOngoing();
   }
 
