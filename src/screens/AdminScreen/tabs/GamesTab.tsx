@@ -103,7 +103,9 @@ export const GamesTab: React.FC = () => {
         ? `突破本月 ${data?.monthlySupply?.batchLimit ?? '—'} 次配额`
         : '突破每日批次上限';
     if (confirm.count > 1)
-      return `将为「${gameLabel}」连续强制触发 ${confirm.count} 次补词，${forceDetail}，确定吗？`;
+      return confirm.force
+        ? `将为「${gameLabel}」连续强制触发 ${confirm.count} 次补词，${forceDetail}，确定吗？`
+        : `将为「${gameLabel}」连续触发 ${confirm.count} 次补词，确定吗？`;
     return confirm.force
       ? `将为「${gameLabel}」强制触发一次补词，${forceDetail}，确定吗？`
       : `为「${gameLabel}」立即触发一次补词，确定吗？`;
@@ -281,42 +283,58 @@ export const GamesTab: React.FC = () => {
           )}
 
           <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={triggering || !data.supplyEnabled}
-              onPress={() => setConfirm({ force: false, count: 1 })}
-              style={[
-                styles.button,
-                styles.buttonPrimary,
-                (triggering || !data.supplyEnabled) && styles.buttonDisabled,
-              ]}
-            >
-              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '补词'}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={triggering || !data.supplyEnabled}
-              onPress={() => setConfirm({ force: true, count: 1 })}
-              style={[
-                styles.button,
-                styles.buttonDanger,
-                (triggering || !data.supplyEnabled) && styles.buttonDisabled,
-              ]}
-            >
-              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '强制补词'}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={triggering || !data.supplyEnabled}
-              onPress={() => setConfirm({ force: true, count: 10 })}
-              style={[
-                styles.button,
-                styles.buttonPrimary,
-                (triggering || !data.supplyEnabled) && styles.buttonDisabled,
-              ]}
-            >
-              <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '补词×10'}</Text>
-            </Pressable>
+            <View style={styles.actionsRow}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={triggering || !data.supplyEnabled}
+                onPress={() => setConfirm({ force: false, count: 1 })}
+                style={[
+                  styles.button,
+                  styles.buttonPrimary,
+                  (triggering || !data.supplyEnabled) && styles.buttonDisabled,
+                ]}
+              >
+                <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '补词'}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={triggering || !data.supplyEnabled}
+                onPress={() => setConfirm({ force: false, count: 10 })}
+                style={[
+                  styles.button,
+                  styles.buttonPrimary,
+                  (triggering || !data.supplyEnabled) && styles.buttonDisabled,
+                ]}
+              >
+                <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '补词×10'}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.actionsRow}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={triggering || !data.supplyEnabled}
+                onPress={() => setConfirm({ force: true, count: 1 })}
+                style={[
+                  styles.button,
+                  styles.buttonDanger,
+                  (triggering || !data.supplyEnabled) && styles.buttonDisabled,
+                ]}
+              >
+                <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '强制补词'}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={triggering || !data.supplyEnabled}
+                onPress={() => setConfirm({ force: true, count: 10 })}
+                style={[
+                  styles.button,
+                  styles.buttonDanger,
+                  (triggering || !data.supplyEnabled) && styles.buttonDisabled,
+                ]}
+              >
+                <Text style={styles.buttonLabel}>{triggering ? '触发中…' : '强制补词×10'}</Text>
+              </Pressable>
+            </View>
           </View>
           <Text style={styles.hint}>
             {data.supplyEnabled
@@ -380,9 +398,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.medium,
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: spacing.small,
     marginTop: spacing.medium,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.small,
   },
   button: {
     flex: 1,
