@@ -450,7 +450,7 @@ describe('createWerewolfRoomShellModel', () => {
     });
   });
 
-  it('flattens the bottom layout into a single info action list when the game ended', () => {
+  it('keeps the bottom layout in its three tiers when the game ended', () => {
     const button = (key: string, label: string) =>
       ({
         key,
@@ -471,10 +471,12 @@ describe('createWerewolfRoomShellModel', () => {
         },
       }),
     );
-    expect(model.bottomActions.kind).toBe('info');
-    if (model.bottomActions.kind === 'info') {
+    expect(model.bottomActions.kind).toBe('stacked');
+    if (model.bottomActions.kind === 'stacked') {
       expect(model.bottomActions.message).toBe('对局结束');
-      expect(model.bottomActions.actions.map((a) => a.key)).toEqual(['p1', 's1', 'g1']);
+      expect(model.bottomActions.layout.primary.map((a) => a.key)).toEqual(['p1']);
+      expect(model.bottomActions.layout.secondary.map((a) => a.key)).toEqual(['s1']);
+      expect(model.bottomActions.layout.ghost.map((a) => a.key)).toEqual(['g1']);
     }
   });
 
@@ -645,9 +647,12 @@ describe('createWerewolfRoomShellModel', () => {
       }),
     );
     expect(ended.bottomActions).toMatchObject({
-      kind: 'info',
+      kind: 'stacked',
       message: '天亮了 → 昨夜信息/本局复盘由房主操作',
     });
+    // Ended keeps the three tiers as tiers (no flattening into one row).
+    if (ended.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
+    expect(ended.bottomActions.layout).toEqual(EMPTY_LAYOUT);
   });
 
   it('falls back to the guide at Ended when the action message is an empty string', () => {
@@ -661,7 +666,7 @@ describe('createWerewolfRoomShellModel', () => {
       }),
     );
     expect(ended.bottomActions).toMatchObject({
-      kind: 'info',
+      kind: 'stacked',
       message: '天亮了 → 昨夜信息/本局复盘由房主操作',
     });
   });

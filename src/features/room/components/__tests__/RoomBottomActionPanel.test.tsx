@@ -36,11 +36,11 @@ function hostModelWith(actions: RoomHostManagementAction[]): RoomHostManagementM
   return { sections: [{ key: 'game', title: '游戏', actions }] };
 }
 
-const emptyInfoModel: RoomBottomActionModel = {
-  kind: 'info',
+const emptyStackedModel: RoomBottomActionModel = {
+  kind: 'stacked',
   message: null,
   progress: null,
-  actions: [],
+  layout: { primary: [], secondary: [], ghost: [] },
 };
 
 describe('RoomBottomActionPanel', () => {
@@ -234,7 +234,7 @@ describe('RoomBottomActionPanel', () => {
   });
 
   it('marks the entry as pending when the model carries a pending action', () => {
-    const screen = renderPanel(emptyInfoModel, { hasPendingAction: true, sections: [] });
+    const screen = renderPanel(emptyStackedModel, { hasPendingAction: true, sections: [] });
 
     expect(screen.getByText('待处理')).toBeTruthy();
   });
@@ -347,22 +347,26 @@ describe('RoomBottomActionPanel', () => {
     expect(screen.getByText('夜晚阶段不可查看')).toBeTruthy();
   });
 
-  it('keeps the Host review out of the information row and renders management last', () => {
+  it('keeps the Host review out of the ghost row and renders management last', () => {
     const screen = renderPanel(
       {
-        kind: 'info',
+        kind: 'stacked',
         message: null,
         progress: null,
-        actions: [
-          {
-            key: 'view-role',
-            label: '查看身份',
-            variant: 'secondary',
-            size: 'md',
-            isEnabled: true,
-            onPress: jest.fn(),
-          },
-        ],
+        layout: {
+          primary: [],
+          secondary: [],
+          ghost: [
+            {
+              key: 'view-role',
+              label: '查看身份',
+              variant: 'ghost',
+              size: 'md',
+              isEnabled: true,
+              onPress: jest.fn(),
+            },
+          ],
+        },
       },
       { sections: [] },
     );
@@ -376,27 +380,32 @@ describe('RoomBottomActionPanel', () => {
 
   it('renders identity and review together for an authorized player', () => {
     const screen = renderPanel({
-      kind: 'info',
+      kind: 'stacked',
       message: null,
       progress: null,
-      actions: [
-        {
-          key: 'view-role',
-          label: '查看身份',
-          variant: 'secondary',
-          size: 'md',
-          isEnabled: true,
-          onPress: jest.fn(),
-        },
-        {
-          key: 'night-review',
-          label: '本局复盘',
-          variant: 'secondary',
-          size: 'md',
-          isEnabled: true,
-          onPress: jest.fn(),
-        },
-      ],
+      layout: {
+        primary: [],
+        secondary: [
+          {
+            key: 'night-review',
+            label: '本局复盘',
+            variant: 'secondary',
+            size: 'md',
+            isEnabled: true,
+            onPress: jest.fn(),
+          },
+        ],
+        ghost: [
+          {
+            key: 'view-role',
+            label: '查看身份',
+            variant: 'ghost',
+            size: 'md',
+            isEnabled: true,
+            onPress: jest.fn(),
+          },
+        ],
+      },
     });
 
     expect(screen.getByText('查看身份')).toBeTruthy();
@@ -406,19 +415,23 @@ describe('RoomBottomActionPanel', () => {
 
   it('renders only the review action for a spectator', () => {
     const screen = renderPanel({
-      kind: 'info',
+      kind: 'stacked',
       message: null,
       progress: null,
-      actions: [
-        {
-          key: 'night-review',
-          label: '本局复盘',
-          variant: 'secondary',
-          size: 'md',
-          isEnabled: true,
-          onPress: jest.fn(),
-        },
-      ],
+      layout: {
+        primary: [],
+        secondary: [
+          {
+            key: 'night-review',
+            label: '本局复盘',
+            variant: 'secondary',
+            size: 'md',
+            isEnabled: true,
+            onPress: jest.fn(),
+          },
+        ],
+        ghost: [],
+      },
     });
 
     expect(screen.getByText('本局复盘')).toBeTruthy();
@@ -430,7 +443,7 @@ describe('RoomBottomActionPanel', () => {
     it('runs the ready primary through the action’s own onPress', () => {
       const onPress = jest.fn();
       const screen = renderPanel(
-        emptyInfoModel,
+        emptyStackedModel,
         hostModelWith([
           {
             key: 'start-game',
@@ -452,7 +465,7 @@ describe('RoomBottomActionPanel', () => {
     it('shows the blocked reason on the console and runs the remedy from its button', () => {
       const onRemedy = jest.fn();
       const screen = renderPanel(
-        emptyInfoModel,
+        emptyStackedModel,
         hostModelWith([
           {
             key: 'start-game',
@@ -474,7 +487,7 @@ describe('RoomBottomActionPanel', () => {
 
     it('renders the console blocked while the primary stays enabled behind a console-only reason', () => {
       const screen = renderPanel(
-        emptyInfoModel,
+        emptyStackedModel,
         hostModelWith([
           {
             key: 'prepare-to-flip',
@@ -495,14 +508,14 @@ describe('RoomBottomActionPanel', () => {
     });
 
     it('renders no console row when the model carries no primary', () => {
-      const screen = renderPanel(emptyInfoModel, { sections: [] });
+      const screen = renderPanel(emptyStackedModel, { sections: [] });
       expect(screen.queryByTestId(TESTIDS.roomNextStepButton)).toBeNull();
       expect(screen.queryByTestId(TESTIDS.roomNextStepRemedyButton)).toBeNull();
     });
 
     it('renders no console row for a primary locked by a transient submission', () => {
       const screen = renderPanel(
-        emptyInfoModel,
+        emptyStackedModel,
         hostModelWith([
           {
             key: 'start-game',

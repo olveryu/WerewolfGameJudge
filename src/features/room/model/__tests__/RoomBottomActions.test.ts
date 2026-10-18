@@ -83,21 +83,19 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     });
   });
 
-  it('renders an always-enabled bottom button with the surface anchors', () => {
+  it('renders an always-enabled ghost button with the surface anchors', () => {
     const onPress = () => {};
     const action = resolveViewIdentityAction({ isVisible: true, label: '查看身份', onPress });
     if (action === null) throw new Error('expected a resolved action');
     expect(
       buildViewIdentityButton(action, {
         key: 'viewRole',
-        variant: 'secondary',
-        size: 'md',
         testID: 'avalon-view-role',
       }),
     ).toEqual({
       key: 'viewRole',
       label: '查看身份',
-      variant: 'secondary',
+      variant: 'ghost',
       size: 'md',
       testID: 'avalon-view-role',
       isEnabled: true,
@@ -114,8 +112,6 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     if (action === null) throw new Error('expected a resolved action');
     const button = buildViewIdentityButton(action, {
       key: 'view-identity',
-      variant: 'secondary',
-      size: 'md',
     });
     expect('testID' in button).toBe(false);
   });

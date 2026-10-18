@@ -304,7 +304,7 @@ export function create__GAME_PASCAL__RoomShellModel(
     }),
     share: input.share,
     bottomActions: {
-      kind: 'info',
+      kind: 'stacked',
       message:
         state.phase.kind === 'ended'
           ? buildEndedWaitingMessage({
@@ -318,7 +318,7 @@ export function create__GAME_PASCAL__RoomShellModel(
               mySeat: input.mySeat,
             }),
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     },
     hostManagement: input.hostManagement,
     controlledSeat: createControlledSeatModel({

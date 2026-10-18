@@ -129,10 +129,10 @@ describe('createStoryRelayRoomShellModel', () => {
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
     expect(model.bottomActions).toEqual({
-      kind: 'info',
+      kind: 'stacked',
       message: null,
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     });
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
@@ -201,10 +201,10 @@ describe('createStoryRelayRoomShellModel', () => {
       releaseBot: jest.fn(),
     });
     expect(model.bottomActions).toEqual({
-      kind: 'info',
+      kind: 'stacked',
       message: '等待房主开始游戏',
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     });
     expect(model.controlledSeat).toBeNull();
   });

@@ -165,10 +165,10 @@ describe('create__GAME_PASCAL__RoomShellModel', () => {
       releaseBot: jest.fn(),
     });
     expect(model.bottomActions).toEqual({
-      kind: 'info',
+      kind: 'stacked',
       message: null,
       progress: null,
-      actions: [],
+      layout: { primary: [], secondary: [], ghost: [] },
     });
   });
 });

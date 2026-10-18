@@ -502,7 +502,7 @@ function createWerewolfBottomActions(
 
   if (input.roomStatus === GameStatus.Ended) {
     return {
-      kind: 'info',
+      kind: 'stacked',
       // The live actionMessage is '' (not null) once no action role remains,
       // so the guide fallback must skip empty strings, not just nullish ones.
       message:
@@ -510,11 +510,7 @@ function createWerewolfBottomActions(
           ? input.actionMessage
           : input.guideMessage,
       progress: null,
-      actions: [
-        ...roomBottomActionLayout.primary,
-        ...roomBottomActionLayout.secondary,
-        ...roomBottomActionLayout.ghost,
-      ],
+      layout: roomBottomActionLayout,
     };
   }
 

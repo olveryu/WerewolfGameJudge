@@ -210,9 +210,13 @@ it('selects directly for confirmation, cancels without submission and invalidate
       mySeat: getUndercoverUserSeat(state, 'host'),
     }),
   ).toMatchObject({
-    kind: 'info',
+    kind: 'stacked',
     message: '选择本次出局玩家',
-    actions: [{ key: 'cancel' }],
+    layout: {
+      primary: [],
+      secondary: [],
+      ghost: [{ key: 'cancel', label: '取消选择', variant: 'ghost' }],
+    },
   });
   act(() => result.current.cancelRevelation());
   expect(result.current.isSelecting).toBe(true);
@@ -270,8 +274,9 @@ it('requires confirmation to restart an active round and exposes restart in host
       mySeat: getUndercoverUserSeat(aborted, 'host'),
     }),
   ).toMatchObject({
+    kind: 'stacked',
     message: '本局已中止',
-    actions: [],
+    layout: { primary: [], secondary: [], ghost: [] },
   });
   const capabilities = createUndercoverRoomCapabilities({
     state: aborted,
@@ -550,6 +555,27 @@ it('clears the self-hint once every seat has viewed', () => {
   ).toMatchObject({
     message: '请点击下方「查看我的词」，查看词语',
   });
+  // Tier contract: the word card is the viewing step's main action, so
+  // it sits in the primary tier at stage-action size — it is not a
+  // ghost-tier review tool even though its definition resolves through
+  // the shared view-action resolver.
+  const viewingBottom = createUndercoverBottomActions(result.current, viewing, {
+    isHost: true,
+    mySeat: getUndercoverUserSeat(viewing, 'host'),
+  });
+  if (viewingBottom.kind !== 'stacked') throw new Error('expected stacked bottom actions');
+  expect(viewingBottom.layout.primary).toMatchObject([
+    {
+      key: 'card',
+      label: '查看我的词',
+      variant: 'primary',
+      size: 'lg',
+      testID: 'undercover-view-word',
+      isEnabled: true,
+    },
+  ]);
+  expect(viewingBottom.layout.secondary).toEqual([]);
+  expect(viewingBottom.layout.ghost).toEqual([]);
   let state = dispatch(viewing, { type: 'undercover.round.confirm', roundId });
   state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(state.round!.confirmedSeats).toHaveLength(6);
