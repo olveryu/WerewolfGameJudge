@@ -150,10 +150,25 @@ describe('GamesTab', () => {
     await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', true));
   });
 
-  it('triggers ten serial supply runs on 补词×10', async () => {
+  it('triggers ten serial normal supply runs on 补词×10', async () => {
     render(<GamesTab />);
     await waitFor(() => expect(screen.getByText('补词×10')).toBeTruthy());
     fireEvent.press(screen.getByText('补词×10'));
+    expect(screen.getByText('确认补词')).toBeTruthy();
+    expect(screen.getByText(/将为「瞎掰王」连续触发 10 次补词，确定吗？/)).toBeTruthy();
+    expect(screen.queryByText(/连续强制触发/)).toBeNull();
+    pressModalConfirm();
+    await waitFor(() => expect(mockTriggerGameWordSupply).toHaveBeenCalledTimes(10));
+    expect(mockTriggerGameWordSupply).toHaveBeenCalledWith('fibking', false);
+    expect(mockTriggerGameWordSupply).not.toHaveBeenCalledWith('fibking', true);
+    // Reloads stats after the batch completes.
+    await waitFor(() => expect(mockFetchGameWordsStats).toHaveBeenCalledTimes(2));
+  });
+
+  it('triggers ten serial force supply runs on 强制补词×10', async () => {
+    render(<GamesTab />);
+    await waitFor(() => expect(screen.getByText('强制补词×10')).toBeTruthy());
+    fireEvent.press(screen.getByText('强制补词×10'));
     expect(screen.getByText('确认补词')).toBeTruthy();
     expect(screen.getByText(/将为「瞎掰王」连续强制触发 10 次补词/)).toBeTruthy();
     pressModalConfirm();
