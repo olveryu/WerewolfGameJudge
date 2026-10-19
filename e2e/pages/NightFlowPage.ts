@@ -1,7 +1,7 @@
 import { type Page, type TestInfo } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
-import { isNightEnded } from '../helpers/night-driver';
+import { isNightEnded, readRoomPhase, readRoomStep } from '../helpers/night-driver';
 
 /**
  * NightFlowPage Page Object
@@ -20,11 +20,10 @@ import { isNightEnded } from '../helpers/night-driver';
 
 interface NightFlowState {
   wolfVotedPages: Set<string>;
-  expectedWolfCount: number;
-  wolfVoteStuckIterations: number;
-  lastWolfVoteCount: number;
-  noProgressIterations: number;
-  lastActionMessage: string;
+  /** Last observed (phase, step) signature of the primary page. */
+  lastSignature: string;
+  /** Iterations with no advance and no signature change. */
+  stuckIterations: number;
 }
 
 interface NightFlowResult {
@@ -37,11 +36,14 @@ interface NightFlowResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Chinese UI text constants used for night flow detection.
+ * Chinese UI text constants for this generic runner.
  *
+ * Roles: advance-button labels (the interaction surface every driver
+ * clicks by label), the per-page actor gate for seat selection (see
+ * tryClickSeatTarget — this runner receives no role map), turn-log
+ * diagnostics, and night-result capture. Progression and stuck
+ * detection read the (phase, step) anchor instead — never these.
  * Centralised here so i18n changes only need one update.
- * Sources: RoomScreen action messages, AlertModal titles,
- * NightProgressIndicator, and death result banners.
  */
 const UI_TEXT = {
   /** Texts indicating a role's turn is active */
@@ -73,32 +75,18 @@ const UI_TEXT = {
     '点击选择',
     '选择目标',
   ] as const,
-
-  /**
-   * Wolf vote confirm AlertModal title (data-testid="alert-title").
-   *
-   * Reliability note: we detect the wolf vote confirm dialog by its *title*
-   * (`alertTitle === '狼人投票'`) rather than by the button text ('确定'),
-   * because '确定' also appears in non-wolf-vote alerts (e.g. action prompts).
-   * The title is rendered via a dedicated `alert-title` testID inside
-   * `AlertModal`, which is stable across layouts.
-   */
-  wolfVoteConfirmTitle: '狼人投票',
 } as const;
 
-/** Regex pattern for wolf vote progress (e.g. "1/2 狼人已确认"). */
-const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已确认`;
-
 /**
- * Wolf vote "stuck" iteration threshold.
+ * "Stuck" iteration thresholds, keyed on the (phase, step) signature.
  *
- * After all wolves confirm, the server sets a 5 s countdown
+ * Wolf vote: after all wolves confirm, the server sets a 5 s countdown
  * (`WOLF_VOTE_COUNTDOWN_MS`). Once the countdown expires the Host calls
  * `postProgression`, which may take up to `API_TIMEOUT_MS` (8 s) on a
- * cold-start Edge Function. During this whole window the vote count text
- * ("1/1 狼人已确认") stays unchanged, so the stuck-detector keeps
- * incrementing. 50 iterations × ~300 ms ≈ 15 s covers
- * 5 s countdown + 8 s API timeout + 2 s buffer.
+ * cold-start Edge Function. During this whole window the step stays
+ * `wolfKill`, so the signature-based stuck detector keeps incrementing.
+ * 50 iterations × ~300 ms ≈ 15 s covers 5 s countdown + 8 s API timeout
+ * + 2 s buffer. Other steps use the tighter generic threshold.
  */
 const WOLF_VOTE_STUCK_THRESHOLD = 50;
 const NO_PROGRESS_THRESHOLD = 35;
@@ -113,17 +101,6 @@ async function isTextVisible(page: Page, text: string, exact = false): Promise<b
     .first()
     .isVisible()
     .catch(() => false);
-}
-
-async function parseWolfVoteCount(page: Page): Promise<{ current: number; total: number } | null> {
-  const loc = page.locator(`text=/${VOTE_COUNT_PATTERN}/`);
-  if (!(await loc.isVisible().catch(() => false))) return null;
-  const text = await loc.textContent().catch(() => null);
-  if (!text) return null;
-  const match = /(\d+)\/(\d+)/.exec(text);
-  return match
-    ? { current: Number.parseInt(match[1]!, 10), total: Number.parseInt(match[2]!, 10) }
-    : null;
 }
 
 async function getMySeat(page: Page): Promise<number | null> {
@@ -170,7 +147,6 @@ async function captureDiagnostics(
 ): Promise<Record<string, unknown>> {
   const diag: Record<string, unknown> = {
     wolfVotedPages: Array.from(state.wolfVotedPages),
-    expectedWolfCount: state.expectedWolfCount,
     pageUrl: page.url(),
   };
   const actionMsg = page.locator('[data-testid="action-message"]');
@@ -180,25 +156,12 @@ async function captureDiagnostics(
   return diag;
 }
 
-async function getActionMessageText(page: Page): Promise<string> {
-  const loc = page.locator('[data-testid="action-message"]');
-  return (await loc.textContent({ timeout: 100 }).catch(() => '')) ?? '';
-}
-
 // ---------------------------------------------------------------------------
 // Action execution (split for complexity reduction)
 // ---------------------------------------------------------------------------
 
-async function shouldSkipWolfVoteButton(
-  page: Page,
-  state: NightFlowState,
-  pageLabel: string,
-): Promise<boolean> {
-  const vc = await parseWolfVoteCount(page);
-  if (!vc) return false;
-  if (state.expectedWolfCount === 0) state.expectedWolfCount = vc.total;
-  if (state.wolfVotedPages.has(pageLabel)) return true;
-  return vc.current >= vc.total;
+function shouldSkipWolfVoteButton(state: NightFlowState, pageLabel: string): boolean {
+  return state.wolfVotedPages.has(pageLabel);
 }
 
 async function handlePostClick(
@@ -218,8 +181,7 @@ async function handlePostClick(
   }
 
   if (buttonText === '确定') {
-    const vc = await parseWolfVoteCount(page);
-    if (vc) state.wolfVotedPages.add(pageLabel);
+    if ((await readRoomStep(page)) === 'wolfKill') state.wolfVotedPages.add(pageLabel);
     return true;
   }
 
@@ -233,7 +195,7 @@ async function executeAction(
   pageLabel: string,
 ): Promise<boolean> {
   const isVoteButton = buttonText === '放弃袭击' || buttonText === '确定';
-  if (isVoteButton && (await shouldSkipWolfVoteButton(page, state, pageLabel))) {
+  if (isVoteButton && shouldSkipWolfVoteButton(state, pageLabel)) {
     return false;
   }
 
@@ -280,7 +242,7 @@ async function tryConfirmSeatViaAlert(
   if (alertAppeared) {
     const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
     if (await confirmBtn.isVisible().catch(() => false)) {
-      await confirmBtn.click();
+      await confirmBtn.click({ timeout: 3000 });
       if (isWolfVote) state.wolfVotedPages.add(pageLabel);
       return true;
     }
@@ -295,7 +257,7 @@ async function tryConfirmSeatViaAlert(
 
   if (!visible) return false;
 
-  await fallbackBtn.click();
+  await fallbackBtn.click({ timeout: 2000 });
   if (isWolfVote) state.wolfVotedPages.add(pageLabel);
   return true;
 }
@@ -333,10 +295,15 @@ async function tryClickSeatTarget(
   const actionMsgLocator = page.locator('[data-testid="action-message"]');
   if (!(await actionMsgLocator.isVisible().catch(() => false))) return false;
 
+  // Actor gate: this generic runner is given pages only — no role map —
+  // so the acting page's own bottom-panel request is the only per-page
+  // signal that THIS page is the one being asked to pick a seat. It
+  // gates interaction only; progression/stuck detection below reads
+  // the (phase, step) anchor, never copy.
   const text = (await actionMsgLocator.textContent().catch(() => '')) ?? '';
   if (!UI_TEXT.targetSelection.some((p) => text.includes(p))) return false;
 
-  const isWolfVote = text.includes('袭击') || text.includes('狼人已确认');
+  const isWolfVote = (await readRoomStep(page)) === 'wolfKill';
   if (isWolfVote && state.wolfVotedPages.has(pageLabel)) return false;
 
   const mySeat = await getMySeat(page);
@@ -374,20 +341,16 @@ async function tryAdvanceNight(
   const alertModal = page.locator('[data-testid="alert-modal"]');
   const hasAlert = await alertModal.isVisible().catch(() => false);
   if (hasAlert) {
-    // Use the alert TITLE (testid="alert-title") to detect wolf vote confirm.
-    // See UI_TEXT.wolfVoteConfirmTitle for rationale on why title-based detection
-    // is more reliable than button-text matching.
-    const alertTitle =
-      (await alertModal
-        .locator('[data-testid="alert-title"]')
-        .textContent()
-        .catch(() => '')) ?? '';
-    const isWolfVoteConfirm = alertTitle === UI_TEXT.wolfVoteConfirmTitle;
+    // The wolf vote confirm is identified by state, not by the dialog
+    // title: during the wolfKill step, an alert on a page that still
+    // owes its vote is the vote flow's dialog.
+    const inWolfVote = (await readRoomStep(page)) === 'wolfKill';
 
-    // Skip wolf vote confirm if this page already voted — prevents re-voting
-    // which would reset the 5-second countdown and cause an infinite loop.
-    // Just dismiss the alert and let the countdown expire naturally.
-    if (isWolfVoteConfirm && state.wolfVotedPages.has(pageLabel)) {
+    // Skip the wolf vote confirm if this page already voted — prevents
+    // re-voting which would reset the 5-second countdown and cause an
+    // infinite loop. Just dismiss the alert and let the countdown
+    // expire naturally.
+    if (inWolfVote && state.wolfVotedPages.has(pageLabel)) {
       // Dismiss by pressing Escape or clicking outside (don't click Confirm)
       await page.keyboard.press('Escape').catch(() => {});
       return false;
@@ -397,9 +360,9 @@ async function tryAdvanceNight(
     for (const text of UI_TEXT.advanceButtons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
-        await btn.click();
-        // Track wolf vote ONLY if this was the wolf vote confirm dialog ('狼人投票')
-        if (isWolfVoteConfirm && text === '确定') {
+        await btn.click({ timeout: 2000 });
+        // Track the vote when the confirm is accepted during wolfKill.
+        if (inWolfVote && text === '确定') {
           state.wolfVotedPages.add(pageLabel);
         }
         return true;
@@ -424,49 +387,26 @@ async function tryAdvanceNight(
 // Fail-fast helpers (extracted from main loop)
 // ---------------------------------------------------------------------------
 
-function checkWolfVoteStuck(
-  vc: { current: number; total: number } | null,
-  state: NightFlowState,
-): void {
-  if (vc === null) {
-    state.wolfVoteStuckIterations = 0;
-    state.lastWolfVoteCount = -1;
-    return;
-  }
-  if (state.lastWolfVoteCount === vc.current) {
-    state.wolfVoteStuckIterations++;
-  } else {
-    state.wolfVoteStuckIterations = 0;
-    state.lastWolfVoteCount = vc.current;
-  }
+async function readStepSignature(page: Page): Promise<string> {
+  const phase = (await readRoomPhase(page)) ?? '?';
+  const step = (await readRoomStep(page)) ?? '-';
+  return `${phase}/${step}`;
 }
 
-function updateProgressTracking(
-  advanced: boolean,
-  currentMsg: string,
-  state: NightFlowState,
-): void {
-  if (advanced) {
-    state.noProgressIterations = 0;
-    state.lastActionMessage = currentMsg;
+function updateStuckTracking(advanced: boolean, signature: string, state: NightFlowState): void {
+  if (advanced || signature !== state.lastSignature) {
+    state.stuckIterations = 0;
+    state.lastSignature = signature;
     return;
   }
-  if (currentMsg === state.lastActionMessage) {
-    state.noProgressIterations++;
-  } else {
-    state.noProgressIterations = 0;
-    state.lastActionMessage = currentMsg;
-  }
+  state.stuckIterations++;
 }
 
 function createInitialState(): NightFlowState {
   return {
     wolfVotedPages: new Set(),
-    expectedWolfCount: 0,
-    wolfVoteStuckIterations: 0,
-    lastWolfVoteCount: -1,
-    noProgressIterations: 0,
-    lastActionMessage: '',
+    lastSignature: '',
+    stuckIterations: 0,
   };
 }
 
@@ -474,11 +414,16 @@ function createInitialState(): NightFlowState {
 // Loop iteration helpers (extracted to reduce cognitive complexity)
 // ---------------------------------------------------------------------------
 
-async function assertWolfVoteNotStuck(page: Page, state: NightFlowState): Promise<void> {
-  checkWolfVoteStuck(await parseWolfVoteCount(page), state);
-  if (state.wolfVoteStuckIterations >= WOLF_VOTE_STUCK_THRESHOLD) {
+async function assertNotStuck(page: Page, advanced: boolean, state: NightFlowState): Promise<void> {
+  const signature = await readStepSignature(page);
+  updateStuckTracking(advanced, signature, state);
+  const step = signature.split('/')[1];
+  const threshold = step === 'wolfKill' ? WOLF_VOTE_STUCK_THRESHOLD : NO_PROGRESS_THRESHOLD;
+  if (state.stuckIterations >= threshold) {
     const diag = await captureDiagnostics(page, state);
-    throw new Error(`FAIL-FAST: Wolf vote stuck. ${JSON.stringify(diag)}`);
+    throw new Error(
+      `FAIL-FAST: No progress at ${signature} for ${state.stuckIterations} iters. ${JSON.stringify(diag)}`,
+    );
   }
 }
 
@@ -520,27 +465,6 @@ async function tryAdvanceAnyPage(
   return false;
 }
 
-async function assertProgress(
-  pages: Page[],
-  advanced: boolean,
-  state: NightFlowState,
-): Promise<void> {
-  // Check action messages across ALL pages, not just primary
-  const msgs: string[] = [];
-  for (const p of pages) {
-    const msg = await getActionMessageText(p);
-    if (msg) msgs.push(msg);
-  }
-  const currentMsg = msgs.join('|') || '';
-  updateProgressTracking(advanced, currentMsg, state);
-  if (state.noProgressIterations >= NO_PROGRESS_THRESHOLD) {
-    const diag = await captureDiagnostics(pages[0]!, state);
-    throw new Error(
-      `FAIL-FAST: No progress for ${state.noProgressIterations} iters. ${JSON.stringify(diag)}`,
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -564,12 +488,11 @@ export async function runNightFlowLoop(
       return { resultText: await captureNightResult(primaryPage), turnLog };
     }
 
-    await assertWolfVoteNotStuck(primaryPage, state);
     await maybeTakeAllScreenshots(pages, testInfo, iter, iter <= 3 ? 1 : screenshotInterval);
 
     const advanced = await tryAdvanceAnyPage(pages, turnLog, state);
 
-    await assertProgress(pages, advanced, state);
+    await assertNotStuck(primaryPage, advanced, state);
 
     // Poll cadence for main driver loop
     await primaryPage.waitForTimeout(advanced ? 200 : 300);
