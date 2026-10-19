@@ -516,12 +516,14 @@ jobs:
   # shard running `expo export` independently (5x waste).
   build-web:
     runs-on: ubuntu-latest
+    # Building needs types and lint to hold — unit test results are not a
+    # build prerequisite (gate decoupling: tests report independently and
+    # are enforced by ci-gate, not by chaining needs).
     if: |
       always() &&
       needs.quality.result == 'success' &&
-      needs.lint.result == 'success' &&
-      needs.test-root.result == 'success'
-    needs: [quality, lint, test-root]
+      needs.lint.result == 'success'
+    needs: [quality, lint]
     steps:
       - uses: actions/checkout@v6
 
@@ -549,14 +551,17 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    # Decoupled gate: e2e's only hard input is the web dist from build-web
+    # (plus quality/lint, which build-web already implies — listed here so
+    # the needs context carries them for the explicit result checks below).
+    # Unit and api-worker test results no longer gate e2e: they run in
+    # parallel, report independently, and are enforced by ci-gate instead.
     if: |
       always() &&
       needs.quality.result == 'success' &&
       needs.lint.result == 'success' &&
-      needs.test-root.result == 'success' &&
-      needs.build-web.result == 'success' &&
-      needs.test-api-worker.result == 'success'
-    needs: [quality, lint, test-root, build-web, test-api-worker]
+      needs.build-web.result == 'success'
+    needs: [quality, lint, build-web]
     strategy:
       fail-fast: false
       matrix:
@@ -767,3 +772,42 @@ jobs:
           echo "## 📊 Playwright Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "👉 [View Report](${{ steps.deploy.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+
+  # The single stable required status check (ruleset "push to main"
+  # requires the context "ci-gate"). It aggregates the jobs that define
+  # "mergeable" so the ruleset names ONE context instead of every matrix
+  # shard — the matrices can grow or shrink without rotting the ruleset.
+  # Any needed job that fails, is cancelled, or is skipped turns this
+  # gate red; decoupled jobs therefore stay individually visible AND
+  # collectively enforced.
+  ci-gate:
+    name: ci-gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [quality, lint, test-root, test-api-worker, e2e]
+    steps:
+      - name: Assert every required job succeeded
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TEST_ROOT_RESULT: ${{ needs.test-root.result }}
+          TEST_API_WORKER_RESULT: ${{ needs.test-api-worker.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          failed=0
+          for pair in \
+            "quality=$QUALITY_RESULT" \
+            "lint=$LINT_RESULT" \
+            "test-root=$TEST_ROOT_RESULT" \
+            "test-api-worker=$TEST_API_WORKER_RESULT" \
+            "e2e=$E2E_RESULT"; do
+            echo "$pair"
+            if [ "${pair#*=}" != "success" ]; then
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::ci-gate: at least one required job did not succeed"
+            exit 1
+          fi
+          echo "ci-gate: all required jobs succeeded"
