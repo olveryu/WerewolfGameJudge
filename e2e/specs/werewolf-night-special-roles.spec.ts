@@ -70,7 +70,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
         expect(wolfIndices.length, 'wolf must be a player').toBeGreaterThan(0);
 
         // === Step 1: TreasureMaster's turn — pick a bottom card ===
-        const tmTurn = await waitForRoleTurn(pages[tmIdx]!, ['选择', '底牌'], pages, 120);
+        const tmTurn = await waitForRoleTurn(pages[tmIdx]!, 'treasureMasterChoose', pages);
         expect(tmTurn, 'TreasureMaster turn should be detected').toBe(true);
 
         // Dismiss the "盗宝大师行动" info alert
@@ -87,12 +87,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
 
         // === Step 2: Wolf's turn — forced empty kill (poisoner in template) ===
         // All wolf players must confirm the empty kill.
-        const wolfTurn = await waitForRoleTurn(
-          pages[wolfIndices[0]!]!,
-          ['袭击', '放弃'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
 
         for (const wIdx of wolfIndices) {
@@ -107,7 +102,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
 
         // === Step 3: Poisoner & Seer (if they are players, not bottom cards) ===
         if (poisonerIdx !== -1) {
-          const turn = await waitForRoleTurn(pages[poisonerIdx]!, ['毒杀', '选择'], pages, 60);
+          const turn = await waitForRoleTurn(pages[poisonerIdx]!, 'poisonerPoison', pages, 60_000);
           if (turn) {
             await dismissAlert(pages[poisonerIdx]!);
             await clickBottomButton(pages[poisonerIdx]!, '不用技能');
@@ -115,7 +110,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
           }
         }
         if (seerIdx !== -1) {
-          const turn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 60);
+          const turn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages, 60_000);
           if (turn) {
             await dismissAlert(pages[seerIdx]!);
             await clickBottomButton(pages[seerIdx]!, '不用技能');
@@ -124,7 +119,7 @@ test.describe('Werewolf Night — Special Roles: TreasureMaster', () => {
         }
 
         // === Step 4: Night should end ===
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended, 'Night should complete with treasureMaster').toBe(true);
       },
     );
@@ -286,7 +281,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
 
         // === Step 1: Thief's turn — pick a bottom card ===
         await test.step('thief picks a bottom card', async () => {
-          const thiefTurn = await waitForRoleTurn(pages[thiefIdx]!, ['选择', '底牌'], pages, 120);
+          const thiefTurn = await waitForRoleTurn(pages[thiefIdx]!, 'thiefChoose', pages);
           expect(thiefTurn, 'Thief turn should be detected').toBe(true);
 
           await dismissAlert(pages[thiefIdx]!);
@@ -304,7 +299,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
 
         // === Step 2: Cupid's turn — link 2 lovers ===
         await test.step('cupid links two lovers', async () => {
-          const cupidTurn = await waitForRoleTurn(pages[cupidIdx]!, ['选择', '情侣'], pages, 120);
+          const cupidTurn = await waitForRoleTurn(pages[cupidIdx]!, 'cupidChooseLovers', pages);
           expect(cupidTurn, 'Cupid turn should be detected').toBe(true);
 
           // Pick two non-cupid players as lovers
@@ -342,12 +337,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
 
         // === Step 4: Wolf's turn — kill a lover to trigger lover suicide ===
         await test.step('wolf kills a lover', async () => {
-          const wolfTurn = await waitForRoleTurn(
-            pages[wolfIndices[0]!]!,
-            ['袭击', '选择'],
-            pages,
-            120,
-          );
+          const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]!]!, 'wolfKill', pages);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
 
           // If thief picked wolf, they participate in wolf vote
@@ -367,7 +357,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
         if (seerIdx !== -1) {
           const expectedFaction = thiefPickedWolf ? '狼人' : '好人';
           await test.step(`seer checks thief → ${expectedFaction}`, async () => {
-            const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
+            const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
             expect(seerTurn, 'Seer turn should be detected').toBe(true);
 
             const thiefSeat = roleMap.get(thiefIdx)!.seat;
@@ -382,7 +372,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
 
         // === Step 6: Night should end with death ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should complete').toBe(true);
 
           await viewLastNightInfo(pages[0]!);

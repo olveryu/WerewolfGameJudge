@@ -43,6 +43,23 @@ export interface ColdRoomFixture {
   readonly context: BrowserContext;
 }
 
+/**
+ * Default timeouts for manually created contexts. Contexts created via
+ * browser.newContext() do NOT inherit the playwright.config `use` block,
+ * so without this every action without an explicit timeout runs with
+ * timeout 0 — no timeout at all. One such click once blocked a night
+ * spec for four minutes until the test-level timeout killed it, with
+ * the game healthy on every page. The navigation default is pinned
+ * separately so capping actions does not shorten page loads.
+ */
+const DEFAULT_ACTION_TIMEOUT_MS = 10_000;
+const DEFAULT_NAVIGATION_TIMEOUT_MS = 30_000;
+
+function applyContextTimeouts(context: BrowserContext): void {
+  context.setDefaultTimeout(DEFAULT_ACTION_TIMEOUT_MS);
+  context.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MS);
+}
+
 export const test = base.extend<{
   app: AppFixture;
 }>({
@@ -73,6 +90,7 @@ export async function createPlayerContexts(
 
   for (let i = 0; i < count; i++) {
     const ctx = await browser.newContext();
+    applyContextTimeouts(ctx);
     const page = await ctx.newPage();
     const label = i === 0 ? 'HOST' : `JOINER-${i + 1}`;
 
@@ -95,6 +113,7 @@ export async function createColdRoomContext(
   roomCode: string,
 ): Promise<ColdRoomFixture> {
   const context = await browser.newContext();
+  applyContextTimeouts(context);
   const page = await context.newPage();
   const diag = setupDiagnostics(page, 'COLD-DEEP-LINK');
   try {

@@ -91,12 +91,7 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
         const wolfPageIndices = [...ordinaryWolfPageIndices, seedWolfPageIndex];
 
         await test.step('wolves select the infection target', async () => {
-          const wolfTurn = await waitForRoleTurn(
-            pages[seedWolfPageIndex]!,
-            ['袭击', '选择'],
-            pages,
-            120,
-          );
+          const wolfTurn = await waitForRoleTurn(pages[seedWolfPageIndex]!, 'wolfKill', pages);
           expect(wolfTurn, 'Wolf vote should become active').toBe(true);
           await driveWolfVote(pages, wolfPageIndices, infectionTargetSeat);
         });
@@ -104,9 +99,8 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
         await test.step('seed wolf confirms infection', async () => {
           const infectionTurn = await waitForRoleTurn(
             pages[seedWolfPageIndex]!,
-            ['感染', '狼人袭击目标'],
+            'seedWolfInfect',
             pages,
-            120,
           );
           expect(infectionTurn, 'Seed Wolf infection turn should become active').toBe(true);
 
@@ -123,12 +117,7 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
         });
 
         await test.step('seer finishes the last ordinary role action', async () => {
-          const seerTurn = await waitForRoleTurn(
-            pages[seerPageIndex]!,
-            ['查验', '选择'],
-            pages,
-            120,
-          );
+          const seerTurn = await waitForRoleTurn(pages[seerPageIndex]!, 'seerCheck', pages);
           expect(seerTurn, 'Seer turn should become active').toBe(true);
           await dismissAlert(pages[seerPageIndex]!);
           const skipped = await clickBottomButton(pages[seerPageIndex]!, '不用技能');
@@ -161,7 +150,7 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
         });
 
         await test.step('night ends peacefully after all acknowledgements', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should end only after the final acknowledgements').toBe(true);
 
           await viewLastNightInfo(pages[0]!);

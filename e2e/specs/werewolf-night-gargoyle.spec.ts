@@ -125,14 +125,18 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolf (gargoyle) kills villager ===
         await test.step('gargoyle kills villager via wolf vote', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx]!, 'wolfKill', pages);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
           await driveWolfVote(pages, [gargoyleIdx], killTargetSeat);
         });
 
         // === Gargoyle converts adjacent non-wolf villager ===
         await test.step('gargoyle converts villager', async () => {
-          const gargoyleTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['转化'], pages, 120);
+          const gargoyleTurn = await waitForRoleTurn(
+            pages[gargoyleIdx]!,
+            'awakenedGargoyleConvert',
+            pages,
+          );
           expect(gargoyleTurn, 'Gargoyle convert turn should be detected').toBe(true);
           const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
           expect(confirmed, 'Gargoyle should have confirmed convert').toBe(true);
@@ -161,7 +165,7 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Night ends ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should have ended').toBe(true);
 
           await viewLastNightInfo(pages[0]!);
@@ -222,7 +226,7 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolves kill villager ===
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           expect(wolfTurn).toBe(true);
           // Both wolf-faction players participate in wolf meeting
           await driveWolfVote(pages, [wolfIdx, gargoyleIdx], killTargetSeat);
@@ -230,7 +234,11 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Gargoyle converts ===
         await test.step('gargoyle converts adjacent villager', async () => {
-          const gargoyleTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['转化'], pages, 120);
+          const gargoyleTurn = await waitForRoleTurn(
+            pages[gargoyleIdx]!,
+            'awakenedGargoyleConvert',
+            pages,
+          );
           expect(gargoyleTurn).toBe(true);
           const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
           expect(confirmed).toBe(true);
@@ -261,7 +269,7 @@ test.describe('Werewolf Night — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Night ends ===
         await test.step('night ends', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended).toBe(true);
         });
       },

@@ -94,7 +94,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       expect(confirmed, 'Wolf vote should be confirmed').toBe(true);
 
       // Wait for night to end
-      const nightDone = await waitForNightEnd(pages, 80);
+      const nightDone = await waitForNightEnd(pages, 90_000);
       expect(nightDone, 'Night should have ended').toBe(true);
 
       // Verify the death message mentions the correct seat number (1-based display)
@@ -169,7 +169,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await driveWolfVote(pages, wolfIndices, killTargetSeat);
 
       // --- Phase 2: Wait for seer's turn ---
-      const seerTurnDetected = await waitForRoleTurn(seerPage, ['查验', '选择'], pages, 120);
+      const seerTurnDetected = await waitForRoleTurn(seerPage, 'seerCheck', pages);
 
       expect(seerTurnDetected, 'Seer turn should appear during night').toBe(true);
 
@@ -189,7 +189,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await dismissAlert(seerPage);
 
       // --- Phase 4: Wait for night to complete ---
-      const nightDone = await waitForNightEnd(pages, 80);
+      const nightDone = await waitForNightEnd(pages, 90_000);
       expect(nightDone, 'Night should have ended').toBe(true);
       // NB: no day-phase assertion here — with sheriff election off
       // (helper default), the engine moves straight to Ended when

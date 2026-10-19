@@ -61,19 +61,19 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         const targetSeat = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
 
         // Wait for guard's turn
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 120);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages);
         expect(guardTurn, 'Guard turn should be detected').toBe(true);
 
         // Guard protects the target
         await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
 
         // Wait for wolf's turn, wolf kills same target
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
 
         // Night should end with peaceful night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended, 'Night should have ended').toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -108,17 +108,12 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
 
         // Wait for wolf's turn
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget);
 
         // Wait for witch's turn — she sees "被狼人袭击" + save button
-        const witchTurn = await waitForRoleTurn(
-          pages[witchIdx]!,
-          ['被狼人袭击', '解药'],
-          pages,
-          120,
-        );
+        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
         expect(witchTurn, 'Witch turn should be detected').toBe(true);
 
         // Dismiss the witch info alert (shows kill info)
@@ -146,7 +141,7 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         await dismissAlert(pages[witchIdx]!);
 
         // Night should end with peaceful night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -184,19 +179,19 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         const targetSeat = villagerEntry ? villagerEntry[1].seat : roleMap.get(dcIdx)!.seat;
 
         // Wait for dreamcatcher's turn
-        const dcTurn = await waitForRoleTurn(pages[dcIdx]!, ['摄梦', '选择'], pages, 120);
+        const dcTurn = await waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages);
         expect(dcTurn, 'Dreamcatcher turn should be detected').toBe(true);
 
         // Dream the target
         await clickSeatAndConfirm(pages[dcIdx]!, targetSeat);
 
         // Wolf kills same target
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
 
         // Night should end with peaceful night (dreamcatcher immunity)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -234,17 +229,17 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         const killSeat = villagers[1]![1].seat; // wolf kills a different one
 
         // Dreamcatcher dreams villager1
-        const dcTurn = await waitForRoleTurn(pages[dcIdx]!, ['摄梦', '选择'], pages, 120);
+        const dcTurn = await waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages);
         expect(dcTurn).toBe(true);
         await clickSeatAndConfirm(pages[dcIdx]!, dreamSeat);
 
         // Wolf kills villager2 (different target -> no protection)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
         // Night ends with death (not peaceful night)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -278,17 +273,12 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         const witchSeat = roleMap.get(witchIdx)!.seat;
 
         // Wolf kills the witch
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], witchSeat);
 
         // Wait for witch's turn — she was targeted, should see self-save rejection
-        const witchTurn = await waitForRoleTurn(
-          pages[witchIdx]!,
-          ['被狼人袭击', '无法自救', '毒药'],
-          pages,
-          120,
-        );
+        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
         expect(witchTurn).toBe(true);
 
         // Read the prompt — should mention "无法自救"
@@ -301,7 +291,7 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         await dismissAlert(pages[witchIdx]!);
 
         // Night ends — witch dies
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -338,12 +328,7 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         );
 
         // Wait for wolf kill step
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
 
         // First wolf tries to vote spiritKnight -> confirm -> rejection
@@ -360,7 +345,7 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         await driveWolfVote(pages, allWolfIndices, validTarget);
 
         // Night should complete normally
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -400,28 +385,18 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         );
 
         // Wolf kills a villager
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killSeat);
 
         // Witch's turn — dismiss save info, then poison spiritKnight
-        const witchTurn = await waitForRoleTurn(
-          pages[witchIdx]!,
-          ['被狼人袭击', '解药', '毒药'],
-          pages,
-          120,
-        );
+        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
         expect(witchTurn).toBe(true);
         await dismissAlert(pages[witchIdx]!);
         await clickSeatAndConfirm(pages[witchIdx]!, skSeat);
 
         // Night ends
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         // Verify: witch should be dead (reflection), SK should survive
@@ -460,29 +435,24 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         const villagerSeat = villagers[0]?.[1].seat ?? 0;
 
         // Dreamcatcher dreams the villager
-        const dcTurn = await waitForRoleTurn(pages[dcIdx]!, ['摄梦', '选择'], pages, 120);
+        const dcTurn = await waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages);
         expect(dcTurn).toBe(true);
         await clickSeatAndConfirm(pages[dcIdx]!, villagerSeat);
 
         // Wolf kills the dreamcatcher
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], dcSeat);
 
         // Witch skips (don't save DC)
-        const witchTurn = await waitForRoleTurn(
-          pages[witchIdx]!,
-          ['被狼人袭击', '解药', '毒药'],
-          pages,
-          120,
-        );
+        const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
         expect(witchTurn).toBe(true);
         await dismissAlert(pages[witchIdx]!);
         await clickBottomButton(pages[witchIdx]!, '不用技能');
         await dismissAlert(pages[witchIdx]!);
 
         // Night ends — both DC and dream target should be dead (link death)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);

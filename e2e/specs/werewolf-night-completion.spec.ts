@@ -54,7 +54,7 @@ test.describe('Werewolf Night — Completion', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Magician is the first step — wait for turn
-        const magTurn = await waitForRoleTurn(pages[magicianIdx]!, ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magicianIdx]!, 'magicianSwap', pages);
         expect(magTurn, 'Magician turn should be detected').toBe(true);
 
         // Swap the other two players
@@ -65,14 +65,14 @@ test.describe('Werewolf Night — Completion', () => {
         await driveMagicianSwap(pages[magicianIdx]!, otherSeats[0]!, otherSeats[1]!);
 
         // Drive wolf kill after magician
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         // Wolf kills any non-wolf target
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended, 'Night should end after magician swap').toBe(true);
       },
     );
@@ -100,7 +100,7 @@ test.describe('Werewolf Night — Completion', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Wait for slacker's turn (early in step order)
-        const slackerTurn = await waitForRoleTurn(pages[slackerIdx]!, ['榜样', '选择'], pages, 120);
+        const slackerTurn = await waitForRoleTurn(pages[slackerIdx]!, 'slackerChooseIdol', pages);
         expect(slackerTurn, 'Slacker turn should be detected').toBe(true);
 
         // Choose wolf as idol (any seat except self)
@@ -108,7 +108,7 @@ test.describe('Werewolf Night — Completion', () => {
         await clickSeatAndConfirm(pages[slackerIdx]!, idolSeat);
 
         // Drive wolf kill
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         const villagerEntry = [...roleMap.entries()].find(
           ([, info]) => info.displayName === '平民',
@@ -116,7 +116,7 @@ test.describe('Werewolf Night — Completion', () => {
         await driveWolfVote(pages, [wolfIdx], villagerEntry ? villagerEntry[1].seat : 0);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended, 'Night should end after slacker picks idol').toBe(true);
       },
     );
@@ -145,12 +145,12 @@ test.describe('Werewolf Night — Completion', () => {
 
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
         // Seer's turn — skip via "不用技能"
-        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
         expect(seerTurn).toBe(true);
         await dismissAlert(pages[seerIdx]!);
         await clickBottomButton(pages[seerIdx]!, '不用技能');
@@ -159,7 +159,7 @@ test.describe('Werewolf Night — Completion', () => {
         await dismissAlert(pages[seerIdx]!);
 
         // Night should end
-        const ended = await waitForNightEnd(pages, 80);
+        const ended = await waitForNightEnd(pages, 90_000);
         expect(ended).toBe(true);
       },
     );
@@ -187,7 +187,7 @@ test.describe('Werewolf Night — Completion', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Guard's turn — skip via "不用技能"
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 120);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages);
         expect(guardTurn).toBe(true);
         await dismissAlert(pages[guardIdx]!);
         await clickBottomButton(pages[guardIdx]!, '不用技能');
@@ -195,12 +195,12 @@ test.describe('Werewolf Night — Completion', () => {
 
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
         // Night should end
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );

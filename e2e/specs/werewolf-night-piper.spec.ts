@@ -177,7 +177,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
@@ -185,7 +185,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
         // === Piper hypnotizes wolf ===
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
         await test.step('piper hypnotizes wolf', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, ['催眠', '选择'], pages, 120);
+          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           expect(piperTurn, 'Piper turn should be detected').toBe(true);
           const hypnotized = await drivePiperHypnotize(pages[piperIdx]!, [wolfSeat]);
           expect(hypnotized, 'Piper should have confirmed hypnotize').toBe(true);
@@ -217,7 +217,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Night ends ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended, 'Night should have ended').toBe(true);
 
           await viewLastNightInfo(pages[0]!);
@@ -262,14 +262,14 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Wolf kills ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           expect(wolfTurn).toBe(true);
           await driveWolfVote(pages, [wolfIdx], killTarget);
         });
 
         // === Piper hypnotizes 2 targets ===
         await test.step('piper hypnotizes 2 targets', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, ['催眠', '选择'], pages, 120);
+          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           expect(piperTurn).toBe(true);
           const hypnotized = await drivePiperHypnotize(pages[piperIdx]!, [
             target1Seat,
@@ -305,7 +305,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Night ends ===
         await test.step('night ends', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended).toBe(true);
         });
       },
@@ -338,14 +338,14 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
           expect(wolfTurn).toBe(true);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
 
         // === Piper skips ===
         await test.step('piper skips with 不用技能', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, ['催眠', '选择'], pages, 120);
+          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
           expect(piperTurn).toBe(true);
           // Dismiss action prompt alert first
           await dismissAlert(pages[piperIdx]!);
@@ -373,7 +373,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === Night ends with death ===
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages, 120);
+          const ended = await waitForNightEnd(pages);
           expect(ended).toBe(true);
 
           await viewLastNightInfo(pages[0]!);

@@ -65,12 +65,7 @@ test.describe('Werewolf Night — Block', () => {
         const killSeat = villagerEntry ? villagerEntry[1].seat : 0;
 
         // Wait for nightmare's turn
-        const nightmareTurn = await waitForRoleTurn(
-          pages[nightmareIdx]!,
-          ['封锁', '选择'],
-          pages,
-          120,
-        );
+        const nightmareTurn = await waitForRoleTurn(pages[nightmareIdx]!, 'nightmareBlock', pages);
         expect(nightmareTurn, 'Nightmare turn should be detected').toBe(true);
 
         // Block the guard
@@ -80,12 +75,12 @@ test.describe('Werewolf Night — Block', () => {
         // (nightmare blocks skip guard's action automatically)
 
         // Wolf (nightmare is a wolf) kills target
-        const wolfTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['袭击'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[nightmareIdx]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [nightmareIdx], killSeat);
 
         // Night should end with death (guard was blocked)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -120,7 +115,7 @@ test.describe('Werewolf Night — Block', () => {
         const seerSeat = roleMap.get(seerIdx)!.seat;
 
         // Nightmare blocks seer
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, 'nightmareBlock', pages);
         expect(nmTurn).toBe(true);
         await clickSeatAndConfirm(pages[nightmareIdx]!, seerSeat);
 
@@ -130,17 +125,12 @@ test.describe('Werewolf Night — Block', () => {
         );
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for seer's blocked turn — alert or action message contains "封锁"
-        const seerBlocked = await waitForRoleTurn(pages[seerIdx]!, ['封锁'], pages, 120);
+        const seerBlocked = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
         expect(seerBlocked, 'Seer should see blocked prompt').toBe(true);
 
         // Verify blocked text
@@ -149,7 +139,7 @@ test.describe('Werewolf Night — Block', () => {
         await dismissAlert(pages[seerIdx]!);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -180,7 +170,7 @@ test.describe('Werewolf Night — Block', () => {
         const witchSeat = roleMap.get(witchIdx)!.seat;
 
         // Nightmare blocks witch
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, 'nightmareBlock', pages);
         expect(nmTurn).toBe(true);
         await clickSeatAndConfirm(pages[nightmareIdx]!, witchSeat);
 
@@ -190,17 +180,12 @@ test.describe('Werewolf Night — Block', () => {
         );
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for witch's blocked turn
-        const witchBlocked = await waitForRoleTurn(pages[witchIdx]!, ['封锁'], pages, 120);
+        const witchBlocked = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
         expect(witchBlocked, 'Witch should see blocked prompt').toBe(true);
 
         // Verify blocked text
@@ -209,7 +194,7 @@ test.describe('Werewolf Night — Block', () => {
         await dismissAlert(pages[witchIdx]!);
 
         // Finish night — villager dies (witch couldn't save)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );
@@ -239,7 +224,7 @@ test.describe('Werewolf Night — Block', () => {
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
 
         // Nightmare blocks the generic wolf → wolfKillDisabled
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, 'nightmareBlock', pages);
         expect(nmTurn).toBe(true);
         await clickSeatAndConfirm(pages[nightmareIdx]!, wolfSeat);
 
@@ -249,12 +234,7 @@ test.describe('Werewolf Night — Block', () => {
         );
 
         // Wait for wolf step on any wolf page — detect "无法袭击" or "封锁"
-        const wolfBlocked = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['无法袭击', '封锁'],
-          pages,
-          120,
-        );
+        const wolfBlocked = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfBlocked, 'Wolves should see kill-disabled prompt').toBe(true);
 
         // When wolfKillDisabled, the button label is "放弃袭击（被封锁）".
@@ -281,7 +261,7 @@ test.describe('Werewolf Night — Block', () => {
         }
 
         // Night should end with peaceful night
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
 
         await viewLastNightInfo(pages[0]!);
@@ -316,13 +296,13 @@ test.describe('Werewolf Night — Block', () => {
         const dcSeat = roleMap.get(dcIdx)!.seat;
 
         // Nightmare blocks dreamcatcher
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, 'nightmareBlock', pages);
         expect(nmTurn).toBe(true);
         await clickSeatAndConfirm(pages[nightmareIdx]!, dcSeat);
 
         // Dreamcatcher's step comes BEFORE wolf vote in night order.
         // Wait for DC to see blocked prompt before advancing wolf vote.
-        const dcBlocked = await waitForRoleTurn(pages[dcIdx]!, ['封锁'], pages, 120);
+        const dcBlocked = await waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages);
         expect(dcBlocked, 'Dreamcatcher should see blocked prompt').toBe(true);
 
         const blockedText = await readAlertText(pages[dcIdx]!);
@@ -343,17 +323,12 @@ test.describe('Werewolf Night — Block', () => {
         );
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]!]!,
-          ['袭击', '选择'],
-          pages,
-          120,
-        );
+        const wolfTurn = await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Finish night — villager dies (no dream protection)
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages);
         expect(ended).toBe(true);
       },
     );

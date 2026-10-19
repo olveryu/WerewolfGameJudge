@@ -153,7 +153,7 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
         expect(guardTurn, 'Guard turn should be detected after reconnect').toBe(true);
 
         await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
@@ -163,14 +163,14 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
 
       // Step 6: Verify night completes
       await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 200);
+        const ended = await waitForNightEnd(pages, 180_000);
         expect(ended, 'Night should have ended after reconnect').toBe(true);
 
         await viewLastNightInfo(pages[0]);
@@ -320,7 +320,7 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
         expect(guardTurn, 'Guard turn should be detected after host reconnect').toBe(true);
 
         await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
@@ -330,14 +330,14 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
 
       // Step 6: Verify night completes
       await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 200);
+        const ended = await waitForNightEnd(pages, 180_000);
         expect(ended, 'Night should have ended after host reconnect').toBe(true);
 
         await viewLastNightInfo(pages[0]);
@@ -478,7 +478,7 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
         expect(guardTurn, 'Guard turn should be detected after extended reconnect').toBe(true);
 
         await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
@@ -488,14 +488,14 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
 
       // Step 6: Verify night completes
       await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 200);
+        const ended = await waitForNightEnd(pages, 180_000);
         expect(ended, 'Night should have ended after extended reconnect').toBe(true);
 
         await viewLastNightInfo(pages[0]);
@@ -620,7 +620,7 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
         expect(guardTurn, 'Guard turn should be detected after flap recovery').toBe(true);
 
         await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
@@ -630,14 +630,14 @@ test.describe('Resilience — Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
 
       // Step 5: Verify night completes
       await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 200);
+        const ended = await waitForNightEnd(pages, 180_000);
         expect(ended, 'Night should have ended after flap recovery').toBe(true);
 
         await viewLastNightInfo(pages[0]);
