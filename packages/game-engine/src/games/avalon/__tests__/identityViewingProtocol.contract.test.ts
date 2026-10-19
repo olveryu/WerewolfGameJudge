@@ -133,6 +133,17 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     if (decision.kind === 'reject') expect(decision.reason).toBe(AVALON_REASONS.phase);
   });
 
+  it('still confirms an already-viewed seat after play began (D-2)', () => {
+    const session = game({ numberOfPlayers: 5 });
+    session.startGame();
+    session.viewAllHumans();
+    session.begin();
+    expect(session.state.phase.kind).toBe('night');
+    const decision = session.decideAs({ type: 'avalon.role.viewed' }, session.seatUser(2));
+    expect(decision.kind).toBe('commit');
+    if (decision.kind === 'commit') expect(decision.events).toEqual([]);
+  });
+
   it('records views idempotently and projects them per viewer', () => {
     const session = game({ numberOfPlayers: 5 });
     session.startGame();

@@ -14,7 +14,11 @@ import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol
 import { REASON_GAME_IN_PROGRESS, REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import { hasBeenRevealed } from '../../platform/room/hostReveal';
-import { decideMarkBotsViewed, haveAllViewed } from '../../platform/room/identityViewing';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../platform/room/identityViewing';
 import {
   commitPreparationEntry,
   decidePreparationComplete,
@@ -356,13 +360,18 @@ function decideGuessFibSeat(state: FibState, seat: number, context: CommandConte
 }
 
 function decideConfirmFibRoleView(state: FibState, context: CommandContext): FibDecision {
-  if (state.phase !== 'viewing') return reject(REASON_FIB_ROUND_NOT_VIEWING);
-  const acting = resolveActingSeat(state, state.numberOfPlayers, context);
-  if (acting.kind === 'rejected') return reject(acting.reason);
-  const seat = acting.value;
-  const { viewedSeats } = state.round;
-  if (viewedSeats.includes(seat)) return commitFib([]);
-  return commitFib([{ type: 'fibking.role.viewed', seat }]);
+  return decideConfirmViewed({
+    actingSeat: resolveActingSeat(state, state.numberOfPlayers, context),
+    viewedSeats: state.round?.viewedSeats ?? [],
+    // FibKing's phase policy: new records are viewing-stage only. A
+    // confirmation that lands after the stage flipped still succeeds
+    // in the skeleton when the seat's record already exists (the
+    // begin gate requires the record, so a late confirm is always
+    // for an already-viewed seat).
+    phaseRejection: state.phase !== 'viewing' ? reject(REASON_FIB_ROUND_NOT_VIEWING) : null,
+    buildViewedEvent: (seat) => ({ type: 'fibking.role.viewed', seat }),
+    commit: commitFib,
+  });
 }
 
 /**

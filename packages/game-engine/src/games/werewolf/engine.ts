@@ -11,6 +11,7 @@ import {
 } from '../../platform/engine';
 import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
 import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
+import { decideConfirmViewed, decideMarkBotsViewed } from '../../platform/room/identityViewing';
 import { getMvpGoldenDraws } from '../../product/rewards/earnings';
 import type { WerewolfCommand } from './commands/types';
 import { resolveSubmitActionIntent } from './domain/actionInput';
@@ -37,7 +38,6 @@ import {
   handleBoardUpvote,
   handleBoardWithdraw,
   handleFillWithBots,
-  handleMarkAllBotsViewed,
   handleRestartGame,
   handleShareNightReview,
   handleStartNight,
@@ -59,7 +59,6 @@ import {
   handleWithdrawSheriffCandidate,
 } from './domain/handlers/sheriffElectionHandler';
 import type { HandlerResult } from './domain/handlers/types';
-import { handleViewedRole } from './domain/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from './domain/handlers/wolfRobotHunterGateHandler';
 import {
   createTemplateFromRoles,
@@ -68,6 +67,7 @@ import {
   type RoleId,
   validateTemplateRoles,
 } from './domain/models';
+import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from './domain/playerHelpers';
 import type { GameState } from './domain/protocol/types';
 import { gameReducer } from './domain/reducer/gameReducer';
 import type { StateAction } from './domain/reducer/types';
@@ -131,6 +131,18 @@ function decideHandler(
   progressAfterSuccess = false,
 ): WerewolfDecision {
   return handlerResultToDecision(state, result, context, { progressAfterSuccess });
+}
+
+/**
+ * The commit the platform viewing skeletons expect, in werewolf's
+ * decision form — the same shape handlerResultToDecision produces
+ * for a handler success (actions as events, empty means no broadcast).
+ */
+function commitActions(events: readonly StateAction[]): WerewolfDecision {
+  return commit<StateAction, WerewolfEffect>({
+    events,
+    broadcast: events.length === 0 ? 'none' : 'state',
+  });
 }
 
 function validateRevealAckActor(state: GameState, actorSeat: number): string | null {
@@ -318,11 +330,18 @@ function decideWerewolfCommandRules(
     case 'werewolf.bots.markAllBotsViewed': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, actor.value.handlerContext),
-        context,
-      );
+      // Identity Viewing Protocol scaffold (F-3): the shared skeleton
+      // owns the gate order and the per-seat viewed actions; werewolf
+      // injects its Assigned window as the gate and its own action
+      // vocabulary as the viewed record.
+      return decideMarkBotsViewed({
+        gateRejection: state.status !== GameStatus.Assigned ? reject('invalid_status') : null,
+        participants: getWerewolfViewingParticipants(state),
+        viewedSeats: getWerewolfViewedSeats(state.players),
+        noBotSeatsReason: 'no_bot_seats',
+        buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
+        commit: commitActions,
+      });
     }
     case 'werewolf.action.submit': {
       const actor = resolveEffectiveSeatActor(state, context);
@@ -344,14 +363,18 @@ function decideWerewolfCommandRules(
     case 'werewolf.role.view': {
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleViewedRole(
-          { type: 'VIEWED_ROLE', payload: { seat: actor.value.seat } },
-          actor.value.handlerContext,
-        ),
-        context,
-      );
+      // Identity Viewing Protocol confirm: the shared skeleton owns
+      // the gate order; werewolf injects its Assigned window as the
+      // phase policy (a seat whose record exists still confirms after
+      // the checkpoint flipped the room to Ready) and its own action
+      // vocabulary as the viewed record.
+      return decideConfirmViewed({
+        actingSeat: { kind: 'resolved', value: actor.value.seat },
+        viewedSeats: getWerewolfViewedSeats(state.players),
+        phaseRejection: state.status !== GameStatus.Assigned ? reject('invalid_status') : null,
+        buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
+        commit: commitActions,
+      });
     }
     case 'werewolf.config.update': {
       const actor = resolveHostActor(state, context);

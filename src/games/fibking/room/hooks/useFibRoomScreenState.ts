@@ -186,25 +186,25 @@ export function useFibRoomScreenState({
     navigation.navigate('GameGuide', { gameType: 'fibking', roomCode: room.roomCode });
   }, [navigation, room.roomCode]);
 
-  const submitCommand = useCallback(
-    (label: string, command: FibPublicCommand): Promise<boolean> =>
-      submitRoomCommand(label, () => session.dispatch(command, { controlledSeat: null, label })),
-    [session, submitRoomCommand],
-  );
+  // 派发纪律（对齐阿瓦隆 submit 形态）：默认不带接管座位。房主命令的平台门
+  // 只认未接管身份（resolveHostActorId），挂着接管座位发房主命令必然被拒；
+  // 座位动作（以被接管机器人的身份发出）由调用方显式传 controlledSeat。
+  const submit = (label: string, command: FibPublicCommand, control: number | null = null) =>
+    submitRoomCommand(label, () => session.dispatch(command, { controlledSeat: control, label }));
 
-  const startRound = useCallback(() => {
+  const startRound = () => {
     const label =
       state.phase === 'ended'
         ? '开始下一轮'
         : state.phase === 'preparationFailed'
           ? '重新准备'
           : '开始本轮';
-    void submitCommand(label, {
+    void submit(label, {
       type: 'fibking.round.start',
     });
-  }, [state.phase, submitCommand]);
+  };
 
-  const cancelPreparing = useCallback(() => {
+  const cancelPreparing = () => {
     const isReturningToLobby = state.phase === 'preparationFailed';
     showConfirmAlert(
       isReturningToLobby ? '返回大厅？' : '取消准备？',
@@ -212,38 +212,35 @@ export function useFibRoomScreenState({
         ? '返回大厅后可以调整座位和房间设置。'
         : '本次词语准备会终止，座位和历史词语会保留。',
       async () => {
-        await submitCommand(isReturningToLobby ? '返回大厅' : '取消准备', {
+        await submit(isReturningToLobby ? '返回大厅' : '取消准备', {
           type: 'fibking.round.cancelPreparing',
         });
       },
     );
-  }, [state.phase, submitCommand]);
+  };
 
-  const beginRound = useCallback(() => {
-    void submitCommand('开始游戏', { type: 'fibking.round.begin' });
-  }, [submitCommand]);
+  const beginRound = () => {
+    void submit('开始游戏', { type: 'fibking.round.begin' });
+  };
 
   const toggleGuessMode = useCallback(() => {
     if (state.phase !== 'ongoing' || state.round === null) return;
     setGuessRoundId((current) => (current === state.round.roundId ? null : state.round.roundId));
   }, [state.phase, state.round]);
 
-  const guessSeat = useCallback(
-    (seat: number) => {
-      showConfirmAlert(
-        `确定选择 ${seat + 1} 号座位是老实人？`,
-        '选择后将公开该座位的身份；选中老实人将直接结束本轮。',
-        async () => {
-          const succeeded = await submitCommand('大聪明选人', {
-            type: 'fibking.round.guess',
-            seat,
-          });
-          if (succeeded) setGuessRoundId(null);
-        },
-      );
-    },
-    [submitCommand],
-  );
+  const guessSeat = (seat: number) => {
+    showConfirmAlert(
+      `确定选择 ${seat + 1} 号座位是老实人？`,
+      '选择后将公开该座位的身份；选中老实人将直接结束本轮。',
+      async () => {
+        const succeeded = await submit('大聪明选人', {
+          type: 'fibking.round.guess',
+          seat,
+        });
+        if (succeeded) setGuessRoundId(null);
+      },
+    );
+  };
 
   // 猜词点选经共享点选机制（trigger）：资格 = 已入座且尚未被猜过的座位；
   // 不合资格的点按在选人模式内静默吞掉（swallow），不落回默认座位行为。
@@ -266,33 +263,33 @@ export function useFibRoomScreenState({
   });
   const guessTap = guessPicking.handleSeatTap;
 
-  const revealRound = useCallback(() => {
+  const revealRound = () => {
     showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
-      await submitCommand('公布答案', { type: 'fibking.round.reveal' });
+      await submit('公布答案', { type: 'fibking.round.reveal' });
     });
-  }, [submitCommand]);
+  };
 
-  const redrawRound = useCallback(() => {
+  const redrawRound = () => {
     showConfirmAlert(
       '重新抽词？',
       '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
       async () => {
-        await submitCommand('重新抽词', { type: 'fibking.round.start' });
+        await submit('重新抽词', { type: 'fibking.round.start' });
       },
     );
-  }, [submitCommand]);
+  };
 
-  const abandonGame = useCallback(() => {
+  const abandonGame = () => {
     showConfirmAlert('放弃游戏？', '放弃后将返回大厅；座位和已用词记录会保留。', async () => {
-      await submitCommand('放弃游戏', { type: 'fibking.game.returnToLobby' });
+      await submit('放弃游戏', { type: 'fibking.game.returnToLobby' });
     });
-  }, [submitCommand]);
+  };
 
-  const endGame = useCallback(() => {
+  const endGame = () => {
     showConfirmAlert('结束游戏？', '结束后返回大厅，座位和已用词记录会保留。', async () => {
-      await submitCommand('结束游戏', { type: 'fibking.game.returnToLobby' });
+      await submit('结束游戏', { type: 'fibking.game.returnToLobby' });
     });
-  }, [submitCommand]);
+  };
 
   const openIdentity = useCallback(() => {
     if (getFibRoundView(state, effectiveSeat) === null) {
@@ -304,15 +301,15 @@ export function useFibRoomScreenState({
     setIsIdentityVisible(true);
   }, [effectiveSeat, isIdentityVisible, state]);
 
-  const confirmIdentity = useCallback(() => {
+  const confirmIdentity = () => {
     if (!isIdentityVisible) {
       throw new Error('[FAIL-FAST] FibKing identity modal is not open');
     }
     if (roundView?.phase === 'viewing' && !roundView.viewerHasViewed) {
-      void submitCommand('确认查看身份', { type: 'fibking.round.confirmRoleView' });
+      void submit('确认查看身份', { type: 'fibking.round.confirmRoleView' }, controlledSeat);
     }
     setIsIdentityVisible(false);
-  }, [isIdentityVisible, roundView, submitCommand]);
+  };
 
   const identityHasViewed =
     state.round !== null &&
@@ -465,45 +462,29 @@ export function useFibRoomScreenState({
     ],
   );
 
-  const markAllBotsViewed = useCallback(() => {
-    void submitCommand('标记机器人已查看', { type: 'fibking.bots.markAllBotsViewed' });
-  }, [submitCommand]);
+  const markAllBotsViewed = () => {
+    void submit('标记机器人已查看', { type: 'fibking.bots.markAllBotsViewed' });
+  };
 
-  const hostManagement = useMemo(
-    () =>
-      createFibHostManagement({
-        state,
-        isHost,
-        isCommandSubmitting,
-        capabilities,
-        startRound,
-        markAllBotsViewed,
-        beginRound,
-        isGuessing,
-        toggleGuessMode,
-        cancelPreparing,
-        revealRound,
-        redrawRound,
-        abandonGame,
-        endGame,
-      }),
-    [
-      abandonGame,
-      beginRound,
-      cancelPreparing,
-      capabilities,
-      endGame,
-      isCommandSubmitting,
-      isGuessing,
-      isHost,
-      markAllBotsViewed,
-      redrawRound,
-      revealRound,
-      startRound,
-      state,
-      toggleGuessMode,
-    ],
-  );
+  // Derived inline like the Avalon room state: the command callbacks
+  // are plain functions in the parameterized-submit form, so a memo
+  // keyed on them would recompute every render anyway.
+  const hostManagement = createFibHostManagement({
+    state,
+    isHost,
+    isCommandSubmitting,
+    capabilities,
+    startRound,
+    markAllBotsViewed,
+    beginRound,
+    isGuessing,
+    toggleGuessMode,
+    cancelPreparing,
+    revealRound,
+    redrawRound,
+    abandonGame,
+    endGame,
+  });
 
   const bottomActions = useMemo(
     () =>

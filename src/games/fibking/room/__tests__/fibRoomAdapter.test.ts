@@ -268,6 +268,29 @@ describe('FibKing room adapter', () => {
     ).toHaveLength(1);
   });
 
+  it('shows the viewed badge per seat only during the viewing stage (B-1)', () => {
+    const viewingSource = createFibSeatDataSource({
+      state: createViewing([0, 2]),
+      revision: 1,
+      myUserId: 'host',
+      controlledSeat: null,
+    });
+    expect(viewingSource.getSeat(0).showReadyBadge).toBe(true);
+    expect(viewingSource.getSeat(1).showReadyBadge).toBe(false);
+    expect(viewingSource.getSeat(2).showReadyBadge).toBe(true);
+    expect(viewingSource.getSeat(3).showReadyBadge).toBe(false);
+
+    // The record survives into ongoing, but the badge belongs to the
+    // viewing stage only.
+    const ongoingSource = createFibSeatDataSource({
+      state: createOngoing(),
+      revision: 2,
+      myUserId: 'host',
+      controlledSeat: null,
+    });
+    expect(ongoingSource.getSeat(0).showReadyBadge).toBe(false);
+  });
+
   it('reveals only the public guesser label during play and every role after reveal', () => {
     const ongoing = createOngoing();
     const ongoingSource = createFibSeatDataSource({

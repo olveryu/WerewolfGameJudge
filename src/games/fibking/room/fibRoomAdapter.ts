@@ -190,6 +190,10 @@ export function createFibSeatDataSource(input: FibSeatSourceInput): RoomSeatData
     lockedSeatReason: '当前阶段座位已锁定',
     resolveSecondaryLabel: (seat, player) =>
       player === null ? null : getSeatRoleLabel(state, seat),
+    // Per-seat viewed badge (public record): the check belongs to the
+    // viewing stage only — it clears the moment the round begins.
+    resolveShowReadyBadge: (seat) =>
+      state.phase === 'viewing' && state.round !== null && state.round.viewedSeats.includes(seat),
   });
 }
 

@@ -4,6 +4,7 @@ import { commit, type Decision, type GameEvent, reject } from '../../engine';
 import {
   buildIdentityViewingParticipants,
   buildRosterViewingParticipants,
+  decideConfirmViewed,
   decideMarkBotsViewed,
   haveAllViewed,
   type IdentityViewingParticipant,
@@ -175,6 +176,64 @@ describe('decideMarkBotsViewed', () => {
 
   it('commits one viewed event per unviewed bot seat', () => {
     expect(decide({ gateRejection: null, participants, viewedSeats: [] })).toEqual(
+      commit<ViewedEvent, never>({ events: [{ type: 'test.role.viewed', seat: 2 }] }),
+    );
+  });
+});
+
+describe('decideConfirmViewed', () => {
+  interface ViewedEvent extends GameEvent {
+    readonly type: 'test.role.viewed';
+    readonly seat: number;
+  }
+
+  const PHASE_REJECTION = reject<ViewedEvent, never>('test_phase');
+
+  const decide = (input: {
+    readonly actingSeat: { kind: 'resolved'; value: number } | { kind: 'rejected'; reason: string };
+    readonly viewedSeats: readonly number[];
+    readonly phaseRejection?: Decision<ViewedEvent, never> | null;
+  }) =>
+    decideConfirmViewed<ViewedEvent, never>({
+      actingSeat: input.actingSeat,
+      viewedSeats: input.viewedSeats,
+      phaseRejection: input.phaseRejection ?? null,
+      buildViewedEvent: (seat) => ({ type: 'test.role.viewed', seat }),
+      commit: (events) => commit({ events }),
+    });
+
+  it('returns the acting-seat rejection untouched, ahead of every other gate', () => {
+    expect(
+      decide({
+        actingSeat: { kind: 'rejected', reason: 'test_not_seated' },
+        viewedSeats: [1],
+        phaseRejection: PHASE_REJECTION,
+      }),
+    ).toEqual(reject('test_not_seated'));
+  });
+
+  it('short-circuits an already-viewed seat to an empty success, ahead of the phase policy', () => {
+    expect(
+      decide({
+        actingSeat: { kind: 'resolved', value: 1 },
+        viewedSeats: [1],
+        phaseRejection: PHASE_REJECTION,
+      }),
+    ).toEqual(commit<ViewedEvent, never>({ events: [] }));
+  });
+
+  it('returns the phase rejection for an unviewed seat outside the window', () => {
+    expect(
+      decide({
+        actingSeat: { kind: 'resolved', value: 1 },
+        viewedSeats: [],
+        phaseRejection: PHASE_REJECTION,
+      }),
+    ).toBe(PHASE_REJECTION);
+  });
+
+  it('commits exactly one viewed event for an unviewed seat inside the window', () => {
+    expect(decide({ actingSeat: { kind: 'resolved', value: 2 }, viewedSeats: [1] })).toEqual(
       commit<ViewedEvent, never>({ events: [{ type: 'test.role.viewed', seat: 2 }] }),
     );
   });

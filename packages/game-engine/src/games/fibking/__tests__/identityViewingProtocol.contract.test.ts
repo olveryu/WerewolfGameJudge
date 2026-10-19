@@ -257,12 +257,52 @@ describe('identity viewing protocol (fibking)', () => {
     expect(beginDecision.events.map((event) => event.type)).toEqual(['fibking.round.begun']);
     const ongoing = applyDecision(allViewed, beginDecision);
     expect(ongoing.phase).toBe('ongoing');
-    expect(
-      decideFibCommand(ongoing, { type: 'fibking.round.confirmRoleView' }, userContext('bob')),
-    ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING });
+    // D-2: bob's record already exists, so his late confirmation is an
+    // idempotent empty success even after the stage flipped — the
+    // shared confirm skeleton checks the record before the phase
+    // policy. (Begin in the wrong phase still rejects.)
+    const lateDecision = decideFibCommand(
+      ongoing,
+      { type: 'fibking.round.confirmRoleView' },
+      userContext('bob'),
+    );
+    if (lateDecision.kind !== 'commit') throw new Error('Expected commit');
+    expect(lateDecision.events).toEqual([]);
     expect(decideFibCommand(ongoing, { type: 'fibking.round.begin' }, userContext('host'))).toEqual(
       { kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING },
     );
+  });
+
+  it('rejects a confirmation for an unviewed seat outside the viewing stage', () => {
+    expect(
+      decideFibCommand(
+        createRoom(),
+        { type: 'fibking.round.confirmRoleView' },
+        userContext('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING });
+  });
+
+  it('lets the host confirm a bot seat under takeover so the begin gate opens', () => {
+    let state = dealRound(createRoom());
+    if (state.phase !== 'viewing') throw new Error('Expected viewing state');
+    state = confirm(confirm(confirm(state, 'host'), 'alice'), 'bob');
+    // The host views the bot seat's card under takeover and confirms
+    // for it (the client passes the controlled seat explicitly).
+    state = dispatch(
+      state,
+      { type: 'fibking.round.confirmRoleView' },
+      userContext('host', { controlledSeat: 3 }),
+    );
+    if (state.phase !== 'viewing') throw new Error('Expected viewing state');
+    expect(state.round.viewedSeats).toEqual([0, 1, 2, 3]);
+    const beginDecision = decideFibCommand(
+      state,
+      { type: 'fibking.round.begin' },
+      userContext('host'),
+    );
+    if (beginDecision.kind !== 'commit') throw new Error('Expected commit');
+    expect(beginDecision.events.map((event) => event.type)).toEqual(['fibking.round.begun']);
   });
 
   it('resets the viewing record on every new round', () => {

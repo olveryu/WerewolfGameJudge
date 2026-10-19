@@ -10,6 +10,8 @@
  * each compliant game's __tests__.
  */
 
+import type { CommandContext } from '../../../platform/engine';
+import { REASON_NOT_SEATED } from '../../../platform/protocol/reasons';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import {
   haveAllViewed,
@@ -18,11 +20,41 @@ import {
 import { GameStatus } from '../domain/models/GameStatus';
 import { getWerewolfViewingParticipants } from '../domain/playerHelpers';
 import type { GameState } from '../domain/protocol/types';
-import {
-  handleMarkAllBotsViewed,
-  handlePlayerViewedRole,
-} from '../domain/reducer/lifecycleReducers';
+import { handlePlayerViewedRole } from '../domain/reducer/lifecycleReducers';
+import { werewolfEngine } from '../engine';
 import { WEREWOLF_STATE_IDENTITY } from '../state/version';
+
+function hostContext(): CommandContext {
+  return {
+    actor: { kind: 'user', userId: 'host-1' },
+    controlledSeat: null,
+    commandId: 'mark-bots',
+    randomSeed: 'identity-viewing',
+    nowMs: 1_000,
+  };
+}
+
+function userContext(userId: string): CommandContext {
+  return { ...hostContext(), actor: { kind: 'user', userId }, commandId: 'confirm' };
+}
+
+/** The scaffold action, driven through the engine's decide (F-3). */
+function markAllBotsViewed(state: GameState): GameState {
+  // Werewolf's checkpoint auto-flips Assigned -> Ready the moment the
+  // last record lands, and the scaffold only runs inside the Assigned
+  // window; in Ready the bot records are complete by construction, so
+  // a trailing scaffold call is already satisfied.
+  if (state.status === GameStatus.Ready) return state;
+  const decision = werewolfEngine.decide(
+    state,
+    { type: 'werewolf.bots.markAllBotsViewed' },
+    hostContext(),
+  );
+  if (decision.kind === 'reject') {
+    throw new Error(`markAllBotsViewed rejected: ${decision.reason}`);
+  }
+  return decision.events.reduce((next, event) => werewolfEngine.evolve(next, event), state);
+}
 
 function createAssignedState(): GameState {
   return {
@@ -123,9 +155,52 @@ describe('Identity Viewing Protocol - werewolf bot seats count at the checkpoint
     expect(state.status).toBe(GameStatus.Assigned);
     expect(viewedSeats(state)).toEqual([0, 1]);
 
-    state = handleMarkAllBotsViewed(state);
+    state = markAllBotsViewed(state);
     expect(viewedSeats(state)).toEqual([0, 1, 2]);
     expect(state.status).toBe(GameStatus.Ready);
+  });
+});
+
+describe('Identity Viewing Protocol — werewolf confirm through the shared skeleton (D-2)', () => {
+  it('confirms an unviewed seat in the Assigned window', () => {
+    const decision = werewolfEngine.decide(
+      createAssignedState(),
+      { type: 'werewolf.role.view' },
+      userContext('p0'),
+    );
+    if (decision.kind !== 'commit') throw new Error('Expected commit');
+    expect(decision.events).toEqual([{ type: 'PLAYER_VIEWED_ROLE', payload: { seat: 0 } }]);
+  });
+
+  it('still confirms an already-viewed seat after the checkpoint flipped to Ready', () => {
+    let state = createAssignedState();
+    state = view(view(state, 0), 1);
+    state = view(state, 2);
+    expect(state.status).toBe(GameStatus.Ready);
+    const decision = werewolfEngine.decide(
+      state,
+      { type: 'werewolf.role.view' },
+      userContext('p0'),
+    );
+    if (decision.kind !== 'commit') throw new Error('Expected commit');
+    expect(decision.events).toEqual([]);
+  });
+
+  it('rejects an unviewed confirmation outside the Assigned window', () => {
+    const state: GameState = { ...createAssignedState(), status: GameStatus.Seated };
+    expect(werewolfEngine.decide(state, { type: 'werewolf.role.view' }, userContext('p0'))).toEqual(
+      { kind: 'reject', reason: 'invalid_status' },
+    );
+  });
+
+  it('rejects a confirmation from a user with no seat', () => {
+    expect(
+      werewolfEngine.decide(
+        createAssignedState(),
+        { type: 'werewolf.role.view' },
+        userContext('outsider'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_NOT_SEATED });
   });
 });
 
@@ -141,7 +216,7 @@ describeIdentityViewingProtocol({
         state = view(state, seat);
       },
       markAllBotsViewed: () => {
-        state = handleMarkAllBotsViewed(state);
+        state = markAllBotsViewed(state);
       },
       isCheckpointOpen: () => state.status === GameStatus.Ready,
     };

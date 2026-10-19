@@ -10,7 +10,11 @@ import {
   resolveSystemActorEffectId,
 } from '../../platform/engine';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { decideMarkBotsViewed, haveAllViewed } from '../../platform/room/identityViewing';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { DemoCommand } from './commands/types';
 import {
@@ -121,12 +125,16 @@ function beginGame(state: DemoState, context: CommandContext): DemoDecision {
  * only gates the host's begin command in the viewing stage.
  */
 function markRoleViewed(state: DemoState, context: CommandContext): DemoDecision {
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(DEMO_REASONS.phase);
-  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
-  if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (state.roleViewedSeats.includes(resolved.value)) return commitDemo([]);
-  return commitDemo([{ type: 'demo.role.viewed', seat: resolved.value }]);
+  return decideConfirmViewed({
+    actingSeat: resolveActingSeat(state, state.config.numberOfPlayers, context),
+    viewedSeats: state.roleViewedSeats,
+    phaseRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(DEMO_REASONS.phase)
+        : null,
+    buildViewedEvent: (seat) => ({ type: 'demo.role.viewed', seat }),
+    commit: commitDemo,
+  });
 }
 
 /**

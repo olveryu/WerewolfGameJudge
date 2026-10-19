@@ -213,6 +213,54 @@ describe('Identity Viewing Protocol — undercover viewing-stage begin gate', ()
   });
 });
 
+describe('Identity Viewing Protocol — undercover confirm through the shared skeleton (D-2)', () => {
+  it('still confirms an already-recorded seat after the round began', () => {
+    let state = viewingState();
+    state = dispatch(state, {
+      type: 'undercover.bots.markAllBotsViewed',
+      roundId: state.round!.roundId,
+    });
+    state = confirmSeat(state, 0);
+    state = beginRound(state);
+    expect(state.phase).toBe('ongoing');
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.confirm', roundId: state.round!.roundId },
+      user('host'),
+    );
+    if (decision.kind !== 'commit') throw new Error('Expected commit');
+    expect(decision.events).toEqual([]);
+  });
+
+  it('rejects an unrecorded confirmation outside the viewing stage', () => {
+    let state = undercoverEngine.createInitialState(config, {
+      roomCode: '1234',
+      hostUserId: 'host',
+      nowMs: 0,
+      commandId: 'create',
+    });
+    state = dispatch(state, { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+    expect(
+      undercoverEngine.decide(
+        state,
+        { type: 'undercover.round.confirm', roundId: 'round-none' },
+        user('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.phase });
+  });
+
+  it('rejects a stale-round confirmation for an unrecorded seat', () => {
+    const state = viewingState();
+    expect(
+      undercoverEngine.decide(
+        state,
+        { type: 'undercover.round.confirm', roundId: 'round-stale' },
+        user('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.round });
+  });
+});
+
 describeIdentityViewingProtocol({
   game: 'undercover',
   makeSession: () => {

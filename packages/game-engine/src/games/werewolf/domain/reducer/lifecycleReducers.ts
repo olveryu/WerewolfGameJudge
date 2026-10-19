@@ -12,11 +12,7 @@
  */
 
 import { haveAllViewed } from '../../../../platform/room/identityViewing';
-import {
-  type BotSeatOccupant,
-  getBotSeats,
-  isBotOccupant,
-} from '../../../../platform/room/seating';
+import { type BotSeatOccupant, isBotOccupant } from '../../../../platform/room/seating';
 import { GameStatus, getPlayerCount } from '../models';
 import { getWerewolfViewedSeats, getWerewolfViewingParticipants } from '../playerHelpers';
 import type { GameState, WerewolfHumanSeat } from '../protocol/types';
@@ -363,34 +359,8 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
   };
 }
 
-/** Mark all bots as having viewed roles. */
-export function handleMarkAllBotsViewed(state: GameState): GameState {
-  const newPlayers = { ...state.players };
-
-  for (const seat of getBotSeats(state.roster)) {
-    const player = newPlayers[seat];
-    if (player != null) {
-      newPlayers[seat] = {
-        ...player,
-        hasViewedRole: true,
-      };
-    }
-  }
-
-  // Same protocol checkpoint as handlePlayerViewedRole (AU-19).
-  const allViewed = haveAllViewed(
-    getWerewolfViewingParticipants(state, newPlayers),
-    getWerewolfViewedSeats(newPlayers),
-  );
-  const newStatus =
-    state.status === GameStatus.Assigned && allViewed ? GameStatus.Ready : state.status;
-
-  return {
-    ...state,
-    players: newPlayers,
-    status: newStatus,
-  };
-}
+/** (The mark-all-bots-viewed transition is per-seat PLAYER_VIEWED_ROLE
+ * actions now — the shared scaffold skeleton emits them; see engine.) */
 
 // =============================================================================
 // Board Nomination Reducers

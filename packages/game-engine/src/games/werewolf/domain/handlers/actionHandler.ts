@@ -7,7 +7,6 @@
  *
  * Reveal payload construction lives in revealPayload.ts.
  * Gate predicates live in actionGuards.ts.
- * VIEWED_ROLE handling lives in viewedRoleHandler.ts.
  */
 
 import { createSeededRng, type Rng } from '../../../../platform/random';

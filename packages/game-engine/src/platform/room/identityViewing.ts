@@ -22,9 +22,21 @@
  *   decide skeleton; each game injects its own gate outcome, reason
  *   strings, viewed-event shape and commit, so the gate order and
  *   the no-bot-seats rejection live in exactly one place.
+ * - decideConfirmViewed: the per-seat confirm decide skeleton (the
+ *   Avalon markRoleViewed shape, lifted here); each game injects its
+ *   acting-seat resolution, its phase policy as a ready-made
+ *   rejection, its viewed-event shape and its commit, so the gate
+ *   order — acting seat, already-viewed short-circuit, phase
+ *   policy, record — lives in exactly one place.
  */
 
-import { type Decision, type GameEffect, type GameEvent, reject } from '../engine';
+import {
+  type ActorResolution,
+  type Decision,
+  type GameEffect,
+  type GameEvent,
+  reject,
+} from '../engine';
 import { isBotSeat, type RosterMap, type SeatOccupant } from './seating';
 
 export interface IdentityViewingParticipant {
@@ -138,4 +150,31 @@ export function decideMarkBotsViewed<TEvent extends GameEvent, TEffect extends G
   if (plan.kind === 'noBotSeats') return reject(input.noBotSeatsReason);
   if (plan.kind === 'noop') return input.commit([]);
   return input.commit(plan.seats.map((seat) => input.buildViewedEvent(seat)));
+}
+
+/**
+ * The per-seat confirm decide skeleton: records that the acting seat
+ * viewed its identity. The gate order is welded here — acting-seat
+ * resolution, then the already-viewed short-circuit, then the game's
+ * phase policy, then the record. The short-circuit precedes the phase
+ * policy on purpose: a confirmation that lands after the viewing
+ * window closed (the stage flipped, the round rolled over) still
+ * succeeds idempotently when the seat's record already exists, while
+ * an unviewed seat outside the window is still rejected by the
+ * game's own phase policy with the game's own reason. The acting-seat
+ * resolution and the phase rejection are computed by the game and
+ * handed in ready-made, exactly like the scaffold skeleton's gate.
+ */
+export function decideConfirmViewed<TEvent extends GameEvent, TEffect extends GameEffect>(input: {
+  readonly actingSeat: ActorResolution<number>;
+  readonly viewedSeats: readonly number[];
+  readonly phaseRejection: Decision<TEvent, TEffect> | null;
+  readonly buildViewedEvent: (seat: number) => TEvent;
+  readonly commit: (events: readonly TEvent[]) => Decision<TEvent, TEffect>;
+}): Decision<TEvent, TEffect> {
+  if (input.actingSeat.kind === 'rejected') return reject(input.actingSeat.reason);
+  const seat = input.actingSeat.value;
+  if (input.viewedSeats.includes(seat)) return input.commit([]);
+  if (input.phaseRejection !== null) return input.phaseRejection;
+  return input.commit([input.buildViewedEvent(seat)]);
 }

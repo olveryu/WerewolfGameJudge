@@ -9,7 +9,11 @@ import {
   reject,
 } from '../../platform/engine';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { decideMarkBotsViewed, haveAllViewed } from '../../platform/room/identityViewing';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../platform/room/identityViewing';
 import { getHumanSeatMap } from '../../platform/room/seating';
 import type { __GAME_PASCAL__Command } from './commands/types';
 import {
@@ -104,12 +108,16 @@ function beginGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
  * only gates the host's begin command in the viewing stage.
  */
 function markRoleViewed(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(__GAME_UPPER___REASONS.phase);
-  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
-  if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (state.roleViewedSeats.includes(resolved.value)) return commit__GAME_PASCAL__([]);
-  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.role.viewed', seat: resolved.value }]);
+  return decideConfirmViewed({
+    actingSeat: resolveActingSeat(state, state.config.numberOfPlayers, context),
+    viewedSeats: state.roleViewedSeats,
+    phaseRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(__GAME_UPPER___REASONS.phase)
+        : null,
+    buildViewedEvent: (seat) => ({ type: '__GAME_ID__.role.viewed', seat }),
+    commit: commit__GAME_PASCAL__,
+  });
 }
 
 /**

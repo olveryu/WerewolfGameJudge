@@ -335,13 +335,9 @@ export interface FillWithBotsAction {
   };
 }
 
-/**
- * Mark all bots as having viewed roles action
- * Set hasViewedRole = true only for bot seats (roster bot occupants)
- */
-export interface MarkAllBotsViewedAction {
-  type: 'MARK_ALL_BOTS_VIEWED';
-}
+// (No MARK_ALL_BOTS_VIEWED action: the scaffold emits one
+// PLAYER_VIEWED_ROLE action per unviewed bot seat via the shared
+// platform skeleton.)
 
 // =============================================================================
 // Step progression deadline (unified deadline-gate)
@@ -540,7 +536,6 @@ export type StateAction =
   | ClearRevealAcksAction
   // Debug Bots
   | FillWithBotsAction
-  | MarkAllBotsViewedAction
   // Step progression deadline
   | SetStepDeadlineAction
   | ClearStepDeadlineAction
