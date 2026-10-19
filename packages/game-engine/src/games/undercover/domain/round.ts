@@ -1,11 +1,13 @@
 /** Undercover round decisions; preparation, controlled confirmations and atomic elimination.
- * @remarks System completions are correlated to a frozen round; host commands use real identity.
+ * @remarks System completions are correlated to a frozen round; host commands
+ * require the host acting outside bot takeover (platform host gate).
  */
 
 import {
   buildGameCompletionPayload,
   type CommandContext,
   reject,
+  resolveHostActorId,
   resolveUserActorId,
 } from '../../../platform/engine';
 import {
@@ -37,12 +39,7 @@ import {
   type UndercoverRound,
   type UndercoverState,
 } from '../state/types';
-import {
-  commitUndercover,
-  requireUndercoverHost,
-  UNDERCOVER_REASONS,
-  type UndercoverDecision,
-} from './decision';
+import { commitUndercover, UNDERCOVER_REASONS, type UndercoverDecision } from './decision';
 import type { UndercoverEffect } from './events';
 import { getUndercoverRoleCounts, getUndercoverWinner, type UndercoverRole } from './rules';
 
@@ -235,8 +232,8 @@ export function decideUndercoverRound(
     return decideInternal(state, command, context);
   if (command.type === 'undercover.round.confirm')
     return decideConfirmation(state, command.roundId, context);
-  const hostRejection = requireUndercoverHost(state, context);
-  if (hostRejection !== null) return hostRejection;
+  const hostActor = resolveHostActorId(context, state.hostUserId);
+  if (hostActor.kind === 'rejected') return reject(hostActor.reason);
   if (command.type === 'undercover.round.start')
     return state.phase === 'lobby'
       ? decideStart(state, command.shouldAllowRepeated, context)
@@ -271,7 +268,7 @@ export function decideUndercoverRound(
       // Host scaffold action: fill every unviewed bot seat's record
       // through the protocol's seat computation; the begin gate runs
       // the strict checkpoint when the host begins the round. The
-      // host gate is this dispatcher's hoisted requireUndercoverHost
+      // host gate is this dispatcher's hoisted platform host check
       // and the phase gate stays here (it also narrows the round);
       // the shared skeleton owns the rest.
       if (state.phase !== 'viewing') return reject(UNDERCOVER_REASONS.phase);

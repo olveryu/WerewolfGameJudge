@@ -5,6 +5,7 @@
 import {
   type CommandContext,
   reject,
+  resolveHostActorId,
   resolveUncontrolledUserActorId,
 } from '../../../platform/engine';
 import { REASON_NOT_SEATED, REASON_SEAT_TAKEN } from '../../../platform/protocol/reasons';
@@ -23,12 +24,7 @@ import {
 import type { UndercoverPublicCommand } from '../commands/types';
 import { isValidUndercoverConfig } from '../state/normalize';
 import type { UndercoverHumanSeat, UndercoverState } from '../state/types';
-import {
-  commitUndercover,
-  requireUndercoverHost,
-  UNDERCOVER_REASONS,
-  type UndercoverDecision,
-} from './decision';
+import { commitUndercover, UNDERCOVER_REASONS, type UndercoverDecision } from './decision';
 
 type RoomCommand = Extract<
   UndercoverPublicCommand,
@@ -93,8 +89,8 @@ export function decideUndercoverRoom(
         : decideRosterLeaveSeat(state.roster, state.config.numberOfPlayers, actor.value);
     return result.kind === 'rejected' ? reject(result.reason) : seatDecision(result.changes);
   }
-  const hostRejection = requireUndercoverHost(state, context);
-  if (hostRejection !== null) return hostRejection;
+  const hostActor = resolveHostActorId(context, state.hostUserId);
+  if (hostActor.kind === 'rejected') return reject(hostActor.reason);
   switch (command.type) {
     case 'undercover.config.update': {
       if (!isValidUndercoverConfig(command.config)) return reject(UNDERCOVER_REASONS.config);
