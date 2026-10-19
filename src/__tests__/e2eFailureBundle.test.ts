@@ -56,7 +56,7 @@ describe('e2e failure bundle reporter', () => {
     );
     expect(record.projectName).toBe('chromium');
     expect(record.status).toBe('failed');
-    expect(record.retry).toBe(999);
+    expect(record.retry).toBe(2);
     expect(record.durationMs).toBe(30123);
     expect(record.errorMessage).toBe('Error: expect(locator).toBeVisible() failed');
     expect(record.errorStack).toContain('at avalon.spec.ts:42:1');
