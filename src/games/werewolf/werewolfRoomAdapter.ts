@@ -223,13 +223,11 @@ function resolveWerewolfStepRoleName(
  * the step list (night plan) and the label resolution stay werewolf's
  * own.
  */
-function deriveWerewolfNightProgress(
-  currentStepId: SchemaId | null,
-  gameState: LocalGameState,
-): WerewolfNightProgress | null {
-  if (!currentStepId || gameState.status !== GameStatus.Ongoing) {
+function deriveWerewolfNightProgress(gameState: LocalGameState): WerewolfNightProgress | null {
+  if (gameState.status !== GameStatus.Ongoing || gameState.nightStep?.kind !== 'inStep') {
     return null;
   }
+  const currentStepId = gameState.nightStep.stepId;
   const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
   const labels: Partial<Record<SchemaId, string>> = {};
   for (const step of nightPlan.steps) {
@@ -245,11 +243,8 @@ function deriveWerewolfNightProgress(
 }
 
 /** Night step progress for the bottom action panel's slim progress row. */
-export function deriveWerewolfBottomProgress(
-  currentStepId: SchemaId | null,
-  gameState: LocalGameState,
-): NightStepProgress | null {
-  const nightProgress = deriveWerewolfNightProgress(currentStepId, gameState);
+export function deriveWerewolfBottomProgress(gameState: LocalGameState): NightStepProgress | null {
+  const nightProgress = deriveWerewolfNightProgress(gameState);
   if (nightProgress === null) return null;
   return {
     current: nightProgress.current,
@@ -351,7 +346,6 @@ export interface WerewolfRoomShellModelInput {
   readonly actionMessage: string | null;
   /** Non-host phase hint; the bottom action message is its single home. Null for the host. */
   readonly guideMessage: string | null;
-  readonly currentStepId: SchemaId | null;
   readonly gameState: LocalGameState;
   // Seats and takeover.
   readonly seatViewModels: readonly SeatViewModel[];
@@ -459,7 +453,10 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     phase: input.roomStatus,
     // The step anchor mirrors the night progress row's own gate: the
     // current night step is only meaningful while the game is Ongoing.
-    step: input.roomStatus === GameStatus.Ongoing ? input.currentStepId : null,
+    step:
+      input.roomStatus === GameStatus.Ongoing && input.gameState.nightStep?.kind === 'inStep'
+        ? input.gameState.nightStep.stepId
+        : null,
     header: {
       onBack: input.onBack,
       onTitlePress: input.onTitlePress,
@@ -517,7 +514,7 @@ function createWerewolfBottomActions(
     };
   }
 
-  const progress = deriveWerewolfBottomProgress(input.currentStepId, input.gameState);
+  const progress = deriveWerewolfBottomProgress(input.gameState);
   // 夜晚步进中非行动者的等待句与进度行同源：同一个 progress 派生出
   // 「正在等待 {本步角色} 行动」，两处永远指同一步。行动者本人不看
   // 这句（其行动提示走 actionMessage，音频窗口内由播报占位按钮承载）。

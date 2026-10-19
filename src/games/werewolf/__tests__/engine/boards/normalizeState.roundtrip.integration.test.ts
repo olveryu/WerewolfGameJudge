@@ -80,7 +80,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     assertNoKeysLost(state, normalized);
     // Core fields should match exactly
     expect(normalized.status).toBe(state.status);
-    expect(normalized.currentStepId).toBe(state.currentStepId);
+    expect(normalized.nightStep).toEqual(state.nightStep);
     expect(normalized.isAudioPlaying).toBe(state.isAudioPlaying);
     expect(normalized.roomCode).toBe(state.roomCode);
     expect(normalized.hostUserId).toBe(state.hostUserId);
@@ -122,7 +122,9 @@ describe('normalizeState round-trip (integration with real board state)', () => 
         submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    const wolfVoteState = ctx.getGameState();
+    const wolfVoteDeadline =
+      wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }

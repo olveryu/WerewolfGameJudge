@@ -66,7 +66,7 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         ),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: { kind: 'inStep', stepId: 'magicianSwap' },
         isAudioPlaying: false,
         lastNightDeaths: [],
         nightmareBlockedSeat: null,

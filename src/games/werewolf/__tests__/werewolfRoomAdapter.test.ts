@@ -30,7 +30,7 @@ function createLocalGameState(overrides: Partial<GameState> = {}): LocalGameStat
       1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
       2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
     },
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -247,11 +247,14 @@ describe('werewolfRoomAdapter', () => {
   });
 
   it('derives the night step progress for the bottom progress row', () => {
-    const gameState = createLocalGameState();
-    const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
+    const baseState = createLocalGameState();
+    const plan = buildNightPlan(baseState.template.roles, baseState.seerLabelMap);
     const step = plan.steps[1];
     expect(step).toBeDefined();
-    expect(deriveWerewolfBottomProgress(step?.stepId ?? null, gameState)).toEqual({
+    const gameState = createLocalGameState({
+      nightStep: { kind: 'inStep', stepId: step?.stepId ?? 'wolfKill' },
+    });
+    expect(deriveWerewolfBottomProgress(gameState)).toEqual({
       current: 2,
       total: plan.length,
       label: step?.displayName,
@@ -259,8 +262,8 @@ describe('werewolfRoomAdapter', () => {
   });
 
   it('returns no progress without a current night step', () => {
-    const gameState = createLocalGameState();
-    expect(deriveWerewolfBottomProgress(null, gameState)).toBeNull();
+    const gameState = createLocalGameState({ nightStep: { kind: 'exhausted' } });
+    expect(deriveWerewolfBottomProgress(gameState)).toBeNull();
   });
 
   it('does not expose a second submit callback while a host action is disabled', () => {
@@ -389,7 +392,6 @@ describe('createWerewolfRoomShellModel', () => {
       totalSeats: 9,
       actionMessage: null,
       guideMessage: null,
-      currentStepId: null,
       gameState: createLocalGameState(),
       seatViewModels: [],
       controlledSeat: null,
@@ -442,17 +444,23 @@ describe('createWerewolfRoomShellModel', () => {
 
   it('exposes the current night step as the shell step anchor only while Ongoing', () => {
     const night = createWerewolfRoomShellModel(
-      createShellModelInput({ roomStatus: GameStatus.Ongoing, currentStepId: 'wolfKill' }),
+      createShellModelInput({ roomStatus: GameStatus.Ongoing }),
     );
     expect(night.step).toBe('wolfKill');
 
     const day = createWerewolfRoomShellModel(
-      createShellModelInput({ roomStatus: GameStatus.Day, currentStepId: 'wolfKill' }),
+      createShellModelInput({
+        roomStatus: GameStatus.Day,
+        gameState: createLocalGameState({ status: GameStatus.Day, nightStep: null }),
+      }),
     );
     expect(day.step).toBeNull();
 
     const noStep = createWerewolfRoomShellModel(
-      createShellModelInput({ roomStatus: GameStatus.Ongoing, currentStepId: null }),
+      createShellModelInput({
+        roomStatus: GameStatus.Ongoing,
+        gameState: createLocalGameState({ nightStep: { kind: 'exhausted' } }),
+      }),
     );
     expect(noStep.step).toBeNull();
   });
@@ -696,7 +704,6 @@ describe('createWerewolfRoomShellModel', () => {
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
         gameState,
-        currentStepId: step?.stepId ?? null,
       }),
     );
     expect(model.bottomActions).toMatchObject({
@@ -713,7 +720,6 @@ describe('createWerewolfRoomShellModel', () => {
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
         gameState,
-        currentStepId: step?.stepId ?? null,
       }),
     );
     expect(model.bottomActions).toMatchObject({
@@ -725,13 +731,10 @@ describe('createWerewolfRoomShellModel', () => {
 
   it('keeps the action message for the current night actioner', () => {
     const gameState = createLocalGameState();
-    const plan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
-    const step = plan.steps[0];
     const model = createWerewolfRoomShellModel(
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
         gameState,
-        currentStepId: step?.stepId ?? null,
         imActioner: true,
         actionMessage: '请选择要袭击的玩家',
       }),
@@ -752,7 +755,6 @@ describe('createWerewolfRoomShellModel', () => {
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
         gameState,
-        currentStepId: step?.stepId ?? null,
         imActioner: true,
         isAudioPlaying: true,
         actionMessage: '请选择要袭击的玩家',
@@ -764,7 +766,6 @@ describe('createWerewolfRoomShellModel', () => {
       createShellModelInput({
         roomStatus: GameStatus.Ongoing,
         gameState,
-        currentStepId: step?.stepId ?? null,
         isAudioPlaying: true,
       }),
     );

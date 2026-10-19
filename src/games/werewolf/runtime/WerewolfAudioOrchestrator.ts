@@ -180,11 +180,11 @@ export class WerewolfAudioOrchestrator {
       }
 
       // Replay current step audio (isAudioPlaying persists as true from DB, gate is active)
-      if (state.currentStepId) {
-        const stepSpec = getStepSpec(state.currentStepId);
+      if (state.nightStep?.kind === 'inStep') {
+        const stepSpec = getStepSpec(state.nightStep.stepId);
         if (stepSpec) {
           werewolfRuntimeLog.info('Replaying current step audio after rejoin', {
-            stepId: state.currentStepId,
+            stepId: state.nightStep.stepId,
             audioKey: stepSpec.audioKey,
           });
           try {
@@ -199,7 +199,7 @@ export class WerewolfAudioOrchestrator {
           await this.#core.dispatchAudioAck('resumeAfterRejoin');
         }
       } else {
-        // No currentStepId, fallback release gate
+        // No live night step, fallback release gate
         await this.#core.dispatchAudioAck('resumeAfterRejoin');
       }
     } catch (e) {

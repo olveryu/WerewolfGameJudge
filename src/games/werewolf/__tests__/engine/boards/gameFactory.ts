@@ -238,7 +238,8 @@ export function createGame(
   };
 
   const assertStep = (expectedStepId: SchemaId): void => {
-    const currentStepId = internal.state.currentStepId;
+    const currentStepId =
+      internal.state.nightStep?.kind === 'inStep' ? internal.state.nightStep.stepId : undefined;
     if (currentStepId !== expectedStepId) {
       throw new Error(`Step mismatch: expected ${expectedStepId}, got ${String(currentStepId)}`);
     }

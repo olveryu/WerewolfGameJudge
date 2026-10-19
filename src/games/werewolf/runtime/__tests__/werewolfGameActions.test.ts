@@ -80,8 +80,7 @@ const ACTION_STATE = buildWerewolfTestState({
   roomCode: 'ABCD',
   status: GameStatus.Ongoing,
   templateRoles: ['wolf', 'seer'],
-  currentStepId: 'seerCheck',
-  currentStepIndex: 4,
+  nightStep: { kind: 'inStep', stepId: 'seerCheck' },
   roleRevealRandomNonce: 'game-2',
 });
 
@@ -235,7 +234,6 @@ describe('canonical Werewolf command builders', () => {
         input,
         expectedStep: {
           currentStepId: 'seerCheck',
-          currentStepIndex: 4,
           roleRevealRandomNonce: 'game-2',
         },
       },

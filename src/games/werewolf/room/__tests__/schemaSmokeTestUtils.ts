@@ -79,7 +79,7 @@ export function createBaseWerewolfRoomMock({
     players,
     actions: new Map<RoleId, RoleAction>(),
     wolfVotes: new Map<number, number>(),
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: schemaId } as const,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     lastNightDeaths: [] as number[],

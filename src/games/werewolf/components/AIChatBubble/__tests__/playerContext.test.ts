@@ -31,7 +31,7 @@ function viewModelFor(state: GameState, viewerSeat: number | null) {
     ...state,
     roster,
     playerProfiles,
-    currentStepIndex: state.currentStepIndex ?? -1,
+    nightStep: state.nightStep,
   };
   return getWerewolfViewModel(completed, viewerSeat);
 }

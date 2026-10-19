@@ -10,6 +10,7 @@ import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
 import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfNightStep } from '@game-judge/game-engine/games/werewolf/public';
 import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 import {
   doesRoleParticipateInWolfVote,
@@ -54,7 +55,7 @@ interface GameRoomLike {
   >;
   actions: Map<RoleId, RoleAction>;
   wolfVotes: Map<number, number>;
-  currentStepIndex: number;
+  nightStep: WerewolfNightStep | null;
   currentNightResults: CurrentNightResults;
 }
 
@@ -219,7 +220,7 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     players: gameState.players,
     actions: gameState.actions,
     wolfVotes: gameState.wolfVotes,
-    currentStepIndex: gameState.currentStepIndex,
+    nightStep: gameState.nightStep,
     currentNightResults: gameState.currentNightResults,
   };
 }

@@ -17,7 +17,7 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
       1: { seat: 1, hasViewedRole: true, role: 'witch' as RoleId },
       2: { seat: 2, hasViewedRole: true, role: 'seer' as RoleId },
     },
-    currentStepIndex: 0,
+    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     pendingAudioEffects: [],
     actions: [],
@@ -58,7 +58,7 @@ describe('toWerewolfLocalState', () => {
 
   it('maps core fields and optional role contexts', () => {
     const state = makeBaseGameState({
-      currentStepId: 'seerCheck' as SchemaId,
+      nightStep: { kind: 'inStep', stepId: 'seerCheck' as SchemaId },
       currentNightResults: { wolfVotesBySeat: { '0': 2 } },
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 0, result: '狼人' },
@@ -75,7 +75,7 @@ describe('toWerewolfLocalState', () => {
     expect(local.roomCode).toBe('ROOM');
     expect(local.hostUserId).toBe('HOST');
     expect(local.status).toBe(GameStatus.Ongoing);
-    expect(local.currentStepId).toBe('seerCheck');
+    expect(local.nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
 
     expect(local.players.get(0)?.userId).toBe('p0');
     expect(local.players.get(1)?.userId).toBe('p1');

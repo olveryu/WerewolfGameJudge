@@ -3233,7 +3233,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - 狼人杀 state version 从 1 升至 2，不提供旧字段 reader 或迁移兼容层；persisted/realtime payload 必须使用 exact v2
   codec。snapshot 协议负向测试改为从当前 codec 版本构造 `+1`，不再以硬编码版本制造会随升级失真的 fixture。
 - 纯村民板子不再从 `Ready` 直接写 `END_NIGHT`。空 night plan 显式产生
-  `START_NIGHT(currentStepId=null) -> END_NIGHT`，先建立 canonical `currentNightResults`，再进入 `Ended`，避免
+  `START_NIGHT(nightStep=exhausted) -> END_NIGHT`，先建立 canonical `currentNightResults`，再进入 `Ended`，避免
   reducer 或 normalize 暗中补默认状态。
 - 新增底牌物理组合、模板歧义、状态多重集、选择限制、黑死病盗贼、空夜晚和 bottom-card actor routing 测试；
   `@game-judge/game-engine` 88 suites / 2542 tests 全绿，根项目 `tsc --noEmit` 通过。

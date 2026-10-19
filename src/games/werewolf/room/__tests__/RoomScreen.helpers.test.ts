@@ -327,7 +327,7 @@ describe('toGameRoomLike', () => {
       players: new Map(),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -347,7 +347,7 @@ describe('toGameRoomLike', () => {
     expect(result.players).toBe(mockState.players);
     expect(result.actions).toBe(mockState.actions);
     expect(result.wolfVotes).toBe(mockState.wolfVotes);
-    expect(result.currentStepIndex).toBe(0);
+    expect(result.nightStep).toBeNull();
   });
 });
 
@@ -391,7 +391,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -477,7 +477,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -537,7 +537,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -601,7 +601,7 @@ describe('buildSeatViewModels', () => {
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: null,
         isAudioPlaying: false,
         pendingAudioEffects: [],
         lastNightDeaths: [],
@@ -671,7 +671,7 @@ describe('buildSeatViewModels', () => {
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: null,
         isAudioPlaying: false,
         pendingAudioEffects: [],
         lastNightDeaths: [],
@@ -743,7 +743,7 @@ describe('buildSeatViewModels', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -838,7 +838,7 @@ describe('buildSeatViewModels', () => {
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: null,
         isAudioPlaying: false,
         pendingAudioEffects: [],
         lastNightDeaths: [],
@@ -874,7 +874,7 @@ describe('buildSeatViewModels', () => {
         players: new Map([[0, null]]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: null,
         isAudioPlaying: false,
         pendingAudioEffects: [],
         lastNightDeaths: [],
@@ -919,7 +919,7 @@ describe('buildSeatViewModels', () => {
         ]),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: null,
         isAudioPlaying: false,
         pendingAudioEffects: [],
         lastNightDeaths: [],
@@ -952,7 +952,7 @@ describe('buildSeatViewModels', () => {
         players: new Map(),
         actions: new Map(),
         wolfVotes: new Map(),
-        currentStepIndex: 0,
+        nightStep: null,
         isAudioPlaying: false,
         pendingAudioEffects: [],
         lastNightDeaths: [],
@@ -998,7 +998,7 @@ describe('getWolfVoteSummary', () => {
       actions: new Map(),
       wolfVotes,
       currentNightResults: {},
-      currentStepIndex: 0,
+      nightStep: null,
     };
   }
 
@@ -1066,7 +1066,7 @@ describe('getWolfVoteSummary', () => {
       actions: new Map(),
       wolfVotes: new Map([[1, 0]]),
       currentNightResults: {},
-      currentStepIndex: 0,
+      nightStep: null,
     };
     expect(getWolfVoteSummary(room)).toBe('1/1 狼人已确认');
   });
@@ -1087,7 +1087,7 @@ describe('toGameRoomLike — canonical local projection', () => {
       players: new Map(),
       actions: new Map(),
       wolfVotes,
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -1114,7 +1114,7 @@ describe('toGameRoomLike — canonical local projection', () => {
       players: new Map(),
       actions: new Map(),
       wolfVotes: new Map(),
-      currentStepIndex: 0,
+      nightStep: null,
       isAudioPlaying: false,
       pendingAudioEffects: [],
       lastNightDeaths: [],
@@ -1336,7 +1336,7 @@ describe('AU-39 golden: buildSeatViewModels bottom-card wolf visibility', () => 
     ]),
     actions: new Map(),
     wolfVotes: new Map(),
-    currentStepIndex: 0,
+    nightStep: null,
     isAudioPlaying: false,
     pendingAudioEffects: [],
     lastNightDeaths: [],

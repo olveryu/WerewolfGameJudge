@@ -18,7 +18,6 @@ function createScope(overrides: Partial<WerewolfActionDraftScope> = {}): Werewol
     roomId: 'room-id-2473',
     userId: 'user-9',
     currentStepId: 'magicianSwap',
-    currentStepIndex: 2,
     roleRevealRandomNonce: 'round-1',
     actorSeat: 3,
     ...overrides,
@@ -41,7 +40,6 @@ describe('WerewolfActionDraftStore', () => {
 
   it.each([
     ['step ID', { currentStepId: 'seerCheck' as const }],
-    ['step index', { currentStepIndex: 3 }],
     ['round', { roleRevealRandomNonce: 'round-2' }],
     ['actor', { actorSeat: 4 }],
   ])('rejects a draft from a changed %s as stale', (_label, changedScope) => {
@@ -50,6 +48,40 @@ describe('WerewolfActionDraftStore', () => {
     store.write(createScope(), 12, { firstSwapSeat: 4, multiSelectedSeats: [] });
 
     expect(store.read(createScope(changedScope), 12)).toEqual({ kind: 'stale' });
+  });
+
+  it('discards a stored v1 draft instead of throwing (version rejection)', () => {
+    const storage = createStorage();
+    const store = new WerewolfActionDraftStore(storage);
+    const key = '@werewolf:action-draft:user-9:room-id-2473';
+    storage.values.set(
+      key,
+      JSON.stringify({
+        version: 1,
+        scope: {
+          roomId: 'room-id-2473',
+          userId: 'user-9',
+          currentStepId: 'magicianSwap',
+          currentStepIndex: 0,
+          roleRevealRandomNonce: 'round-1',
+          actorSeat: 3,
+        },
+        draft: { firstSwapSeat: 4, multiSelectedSeats: [1, 7] },
+      }),
+    );
+
+    expect(store.read(createScope(), 12)).toEqual({ kind: 'missing' });
+    expect(storage.values.has(key)).toBe(false);
+  });
+
+  it('discards a corrupt stored draft instead of throwing', () => {
+    const storage = createStorage();
+    const store = new WerewolfActionDraftStore(storage);
+    const key = '@werewolf:action-draft:user-9:room-id-2473';
+    storage.values.set(key, '{not json');
+
+    expect(store.read(createScope(), 12)).toEqual({ kind: 'missing' });
+    expect(storage.values.has(key)).toBe(false);
   });
 
   it('removes storage when the editable selection becomes empty', () => {

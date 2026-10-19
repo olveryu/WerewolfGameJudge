@@ -7,7 +7,7 @@
  *
  * Re-entry across the in-flight HTTP window is guarded upstream:
  * - Auto-trigger path: lastAutoIntentKeyRef in useActionOrchestrator dedupes
- *   while currentStepIndex hasn't advanced.
+ *   while the night step hasn't advanced.
  * - User click path: RoomInteractionPolicy's hasPendingAck gate blocks new
  *   events while the mutation is pending.
  */

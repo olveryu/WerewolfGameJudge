@@ -57,7 +57,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     // --- Initial state ---
     const s0 = ctx.getGameState();
     expect(s0.status).toBe(GameStatus.Ongoing);
-    expect(s0.currentStepId).toBe('wolfKill');
+    expect(s0.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfKill' });
     expect(s0.isAudioPlaying).toBe(false);
     expect(s0.actions).toEqual([]);
     expect(s0.pendingRevealAcks).toEqual([]);
@@ -89,7 +89,10 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     expect(wolfAction).toBeDefined();
     expect(wolfAction?.targetSeat).toBe(0);
 
-    const wolfVoteDeadline = afterWolfVotes.stepDeadline;
+    const wolfVoteDeadline =
+      afterWolfVotes.nightStep?.kind === 'inStep'
+        ? afterWolfVotes.nightStep.stepDeadline
+        : undefined;
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
@@ -166,7 +169,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     expect(afterAck.pendingRevealAcks).toEqual([]);
 
     // --- Night should end ---
-    expect(afterAck.currentStepId).toBeUndefined();
+    expect(afterAck.nightStep).toBeNull();
     expect(afterAck.status).toBe(GameStatus.Ended);
     // Seat 0 should have died (wolf killed, witch didn't save)
     expect(afterAck.lastNightDeaths).toContain(0);
@@ -183,7 +186,9 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
         submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    const wolfVoteState = ctx.getGameState();
+    const wolfVoteDeadline =
+      wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }
@@ -238,7 +243,9 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
         submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    const wolfVoteState = ctx.getGameState();
+    const wolfVoteDeadline =
+      wolfVoteState.nightStep?.kind === 'inStep' ? wolfVoteState.nightStep.stepDeadline : undefined;
     if (wolfVoteDeadline === undefined) {
       throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
     }

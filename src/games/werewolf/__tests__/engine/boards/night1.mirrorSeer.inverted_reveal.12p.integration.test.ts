@@ -114,7 +114,7 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
         mirrorSeer: null,
       });
       expect(reached).toBe(true);
-      expect(ctx.getGameState().currentStepId).toBe('drunkSeerCheck');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'drunkSeerCheck' });
 
       // drunkSeer checks seat 0 (villager)
       submitActionOrThrow(
@@ -193,7 +193,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
         seer: null,
       });
       expect(reached).toBe(true);
-      expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'mirrorSeerCheck' });
 
       // mirrorSeer checks seat 0 (villager)
       submitActionOrThrow(ctx, 8, { kind: 'target', target: 0 }, 'mirrorSeerCheck');
@@ -248,7 +248,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
         kind: 'committed',
         outcome: { kind: 'success' },
       });
-      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
+      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
 
       const audioAckResult = ctx.dispatch({ type: 'werewolf.audio.ack' });
       expect(audioAckResult).toMatchObject({

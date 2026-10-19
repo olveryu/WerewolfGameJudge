@@ -24,7 +24,6 @@ function createCommand() {
       input: { kind: 'target', target: 3 },
       expectedStep: {
         currentStepId: 'seerCheck',
-        currentStepIndex: 4,
         roleRevealRandomNonce: null,
       },
     },
