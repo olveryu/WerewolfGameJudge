@@ -376,3 +376,23 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   c.set('isAnonymous', authentication.principal.isAnonymous);
   await next();
 });
+
+/**
+ * Hono middleware: rejects anonymous (guest) principals.
+ *
+ * The single server-side gate for the guest policy — growth and reward
+ * mutations (game settlement already filters `is_anonymous = 0` in SQL)
+ * must sit behind this instead of re-checking `c.var.isAnonymous` per
+ * handler. Must run after `requireAuth`, which sets `c.var.isAnonymous`.
+ * Fails closed: a principal not positively known to be non-anonymous
+ * (including a missing `requireAuth`) is rejected.
+ *
+ * @throws 403 — `{ success: false, reason: 'ANONYMOUS_NOT_SUPPORTED' }`
+ *   when the authenticated principal is an anonymous guest account
+ */
+export const requireNonAnonymous = createMiddleware<AppEnv>(async (c, next) => {
+  if (c.var.isAnonymous !== false) {
+    return c.json({ success: false, reason: 'ANONYMOUS_NOT_SUPPORTED' }, 403);
+  }
+  await next();
+});

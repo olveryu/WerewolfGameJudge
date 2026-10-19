@@ -140,7 +140,7 @@ describe('Werewolf v5 -> v6 roster migration', () => {
   });
 });
 
-describe('v6 -> v7 migration (debugMode deletion)', () => {
+describe('v6 -> current migration (debugMode deletion + step canonicalization)', () => {
   it('drops the debugMode field and parses the rest unchanged', () => {
     const current = buildV6State();
     const stored = JSON.parse(
@@ -149,7 +149,7 @@ describe('v6 -> v7 migration (debugMode deletion)', () => {
 
     const migrated = migratePersistedWerewolfState(stored);
 
-    expect(migrated.stateVersion).toBe(7);
+    expect(migrated.stateVersion).toBe(8);
     expect('debugMode' in migrated).toBe(false);
     expect(migrated).toEqual(parseWerewolfState(JSON.parse(JSON.stringify(current)) as unknown));
   });
@@ -161,5 +161,126 @@ describe('v6 -> v7 migration (debugMode deletion)', () => {
     ) as unknown;
 
     expect(() => parseWerewolfState(stored)).toThrow('GameState contains unknown field: debugMode');
+  });
+});
+
+describe('v7 -> v8 migration (night-step window canonicalization)', () => {
+  // Base board is [wolf, seer, villager]: the night plan is
+  // [wolfKill, seerCheck] (length 2).
+  function storedV7(overrides: Record<string, unknown>): unknown {
+    return JSON.parse(
+      JSON.stringify({ ...buildV6State(), stateVersion: 7, ...overrides }),
+    ) as unknown;
+  }
+
+  it('clears a stepDeadline that survived END_NIGHT into Ended', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({
+        status: GameStatus.Ended,
+        currentNightResults: {},
+        currentStepIndex: 0,
+        currentStepId: 'wolfKill',
+        stepDeadline: 1_000,
+      }),
+    );
+    expect(migrated.stateVersion).toBe(8);
+    expect(migrated.currentStepIndex).toBe(-1);
+    expect(migrated.currentStepId).toBeUndefined();
+    expect(migrated.stepDeadline).toBeUndefined();
+  });
+
+  it('clears step fields on any non-Ongoing status', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({ status: GameStatus.Seated, currentStepId: 'wolfKill', currentStepIndex: 2 }),
+    );
+    expect(migrated.currentStepIndex).toBe(-1);
+    expect(migrated.currentStepId).toBeUndefined();
+  });
+
+  it('repairs an Ongoing index that disagrees with its step id (the id wins)', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepId: 'seerCheck',
+        currentStepIndex: 0,
+        stepDeadline: 2_000,
+      }),
+    );
+    expect(migrated.currentStepIndex).toBe(1);
+    expect(migrated.currentStepId).toBe('seerCheck');
+    expect(migrated.stepDeadline).toBe(2_000);
+  });
+
+  it('normalizes the exhausted position to the plan length and drops its deadline', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepIndex: 0,
+        stepDeadline: 3_000,
+      }),
+    );
+    expect(migrated.currentStepId).toBeUndefined();
+    expect(migrated.currentStepIndex).toBe(2);
+    expect(migrated.stepDeadline).toBeUndefined();
+  });
+
+  it('passes a consistent in-step Ongoing state through value-identical', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepId: 'wolfKill',
+        currentStepIndex: 0,
+        stepDeadline: 4_000,
+      }),
+    );
+    expect(migrated.currentStepId).toBe('wolfKill');
+    expect(migrated.currentStepIndex).toBe(0);
+    expect(migrated.stepDeadline).toBe(4_000);
+  });
+
+  it('rescues a step id outside the plan from the stored index position', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepId: 'guardProtect',
+        currentStepIndex: 1,
+      }),
+    );
+    expect(migrated.currentStepId).toBe('seerCheck');
+    expect(migrated.currentStepIndex).toBe(1);
+  });
+
+  it('rejects a current-version (v8) payload whose step window is already illegal', () => {
+    const stored = JSON.parse(
+      JSON.stringify({
+        ...buildV6State(),
+        status: GameStatus.Ongoing,
+        currentNightResults: {},
+        currentStepId: 'seerCheck',
+        currentStepIndex: 0,
+      }),
+    ) as unknown;
+    expect(() => migratePersistedWerewolfState(stored)).toThrow(
+      'currentStepId seerCheck does not match plan step at index 0',
+    );
+  });
+
+  it('canonicalizes a dirty v6 payload on its way to v8 as well', () => {
+    const migrated = migratePersistedWerewolfState(
+      storedV7({
+        stateVersion: 6,
+        debugMode: { botsEnabled: true },
+        status: GameStatus.Ended,
+        currentNightResults: {},
+        stepDeadline: 5_000,
+      }),
+    );
+    expect(migrated.stateVersion).toBe(8);
+    expect('debugMode' in migrated).toBe(false);
+    expect(migrated.stepDeadline).toBeUndefined();
   });
 });

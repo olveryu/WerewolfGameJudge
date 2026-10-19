@@ -56,12 +56,12 @@ async function getJson(path: string, token: string): Promise<Response> {
   });
 }
 
-async function ensureUser(userId: string = TEST_USER_ID): Promise<void> {
+async function ensureUser(userId: string = TEST_USER_ID, isAnonymous = 0): Promise<void> {
   await env.DB.prepare(
     `INSERT OR REPLACE INTO users (id, is_anonymous, created_at, updated_at)
-     VALUES (?, 1, datetime('now'), datetime('now'))`,
+     VALUES (?, ?, datetime('now'), datetime('now'))`,
   )
-    .bind(userId)
+    .bind(userId, isAnonymous)
     .run();
 }
 
@@ -195,6 +195,21 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(body.claimed).toBe(false);
     if (body.claimed) throw new Error('Expected daily reward cooldown');
     expect(body.reason).toBe('cooldown');
+  });
+
+  it('rejects anonymous guest accounts without creating a stats row', async () => {
+    await ensureUser(TEST_USER_ID, 1);
+    const token = await mintToken();
+    const res = await postJson('/api/gacha/daily-reward', {}, token);
+    expect(res.status).toBe(403);
+    await expect(res.json()).resolves.toEqual({
+      success: false,
+      reason: 'ANONYMOUS_NOT_SUPPORTED',
+    });
+    const stats = await env.DB.prepare(`SELECT user_id FROM user_stats WHERE user_id = ?`)
+      .bind(TEST_USER_ID)
+      .first();
+    expect(stats).toBeNull();
   });
 
   it('fails fast when a persisted cooldown timestamp is malformed', async () => {

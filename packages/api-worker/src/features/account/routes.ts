@@ -18,7 +18,7 @@ import { Hono } from 'hono';
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
 import { acknowledgeUserEvent, readNextUserEvent } from '../../platform/userEvents/inbox';
-import { requireAuth } from '../auth/tokenAuth';
+import { requireAuth, requireNonAnonymous } from '../auth/tokenAuth';
 import { users, userStats } from './dbSchema';
 
 /** User stats/profile routes. */
@@ -111,13 +111,9 @@ accountRoutes.get('/user/:userId/unlocks', requireAuth, async (c) => {
   return c.json({ unlockedItems }, 200);
 });
 
-/** GET /api/user/stats — current user's growth data */
-accountRoutes.get('/user/stats', requireAuth, async (c) => {
+/** GET /api/user/stats — current user's growth data (non-anonymous only) */
+accountRoutes.get('/user/stats', requireAuth, requireNonAnonymous, async (c) => {
   const db = createDb(c.env.DB);
-  if (c.var.isAnonymous) {
-    return c.json({ success: false, reason: 'ANONYMOUS_NOT_SUPPORTED' }, 403);
-  }
-
   const userId = c.var.userId;
 
   const statsRow = await db

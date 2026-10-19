@@ -1,100 +1,135 @@
+<div align="center">
+
 # 🐺 狼人杀电子法官
 
-**[English](./README.en.md)** | 简体中文 | [隐私说明](PRIVACY.md)
+**不用法官的线下聚会游戏平台**
 
-> 线下狼人杀总要有人当法官，法官却不能参与游戏——**这个 App 替你当法官。**
-> 首夜全自动语音引导，所有人（包括房主）都能闭眼参与游戏。
+7 个游戏 · 一间房 · 一个 4 位房间码，全桌一起玩
 
-[![Live](https://img.shields.io/badge/▶_Play-werewolfgamer.com-blue?style=for-the-badge)](https://werewolfgamer.com)
-
+[![Live](https://img.shields.io/badge/▶_立即玩-werewolfgamer.com-blue?style=for-the-badge)](https://werewolfgamer.com)
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TS-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Expo](https://img.shields.io/badge/Expo_SDK-56-000020?style=flat-square&logo=expo)](https://expo.dev/)
-[![Cloudflare](https://img.shields.io/badge/CF-Workers%20+%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/olveryu/WerewolfGameJudge?style=flat-square&logo=github)](https://github.com/olveryu/WerewolfGameJudge/stargazers)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/olveryu/WerewolfGameJudge/pulls)
+
+[English](./README.en.md) · [隐私说明](PRIVACY.md) · [更新日志](CHANGELOG.md)
+
+<img src="assets/readme/hero-werewolf.jpg" alt="狼人杀主视觉：月夜下的狼人" width="820">
+
+</div>
 
 ---
 
-<details>
-<summary><b>📑 目录</b></summary>
+## ⚡ 30 秒上手
 
-- [为什么做这个](#为什么做这个)
-- [核心特性](#核心特性)
-- [快速开始](#快速开始)
-- [架构](#架构)
-- [角色一览](#-47-种角色一览)
-- [开发](#开发)
-- [部署](#部署)
-- [常见问题](#常见问题)
-- [文档](#文档)
-- [贡献](#贡献)
-- [Contributors](#contributors)
-- [许可证](#许可证)
+1. **房主**打开 [werewolfgamer.com](https://werewolfgamer.com)，选游戏、创建房间
+2. 把 **4 位房间码**发给同桌的朋友
+3. 朋友输码入座、查看自己的身份/词卡，房主点开始——剩下的交给法官
 
-</details>
+主要玩法在微信小程序（搜「狼人面杀电子裁判助手」）：微信登录，打开即玩。网页版免登录可看首页与图鉴，创建房间需先登录（邮箱或匿名访客一键进入），也可添加到手机主屏幕像 App 一样用；iOS / Android App 同样可用。
 
 ---
 
-## 为什么做这个
+## 🎮 游戏一览
 
-玩线下狼人杀时，**法官是个苦差事**：
-
-- 🙅 法官不能参与游戏，只能坐在旁边主持
-- 📖 新手法官容易记混流程，影响体验
-- 🔇 纯线下口述效率低，夜间流程经常出错
-
-**狼人杀电子法官**让手机替你当法官——自动语音播报首夜流程，每个人（包括创建房间的 Host）都能闭眼正常参与游戏。4 位房间码一分享，线下同桌玩。
-
----
-
-## 核心特性
-
-### 🔊 自动语音播报
-
-首夜全流程语音引导，包括身份确认、技能行动、天亮公告。Host 也能闭眼参与，不再是旁观者。支持 BGM 和音效增强沉浸感。
-
-### 📱 多设备实时同步
-
-创建房间后分享 4 位房间码，所有人通过浏览器或 App 加入。WebSocket 实时推送游戏状态，操作秒级同步。
-
-### 🔌 断线自动恢复
-
-游戏状态持久化在 Cloudflare Durable Objects（边缘 SQLite）。网络断开后重连自动恢复到最新状态，不会丢失任何进度。
-
-### 🎭 47 种角色 · 26 套预设板子
-
-覆盖经典和扩展角色——预言家、女巫、猎人、守卫等神职，种狼、狼美人、白狼王、血月使徒等特殊狼人，以及丘比特、盗贼、吹笛者等第三方。26 套预设模板覆盖 12 人局，也支持自定义板子。
-
-### 🤖 AI 助手
-
-遇到不确定的规则？点击角色卡上的 AI 气泡，随时询问技能细节和策略建议。基于 Gemini 3.5 Flash Lite，通过 Worker 代理访问。
-
-### 🎰 扭蛋收集 · 等级成长
-
-每局有效游戏获得 XP + 2 张普通抽奖券，升级额外获得 2 张黄金券。每日登录也送 2 张普通券。在扭蛋机页面消耗券抽取头像、头像框、座位装饰和名字样式——支持单抽和 10 连，4 级稀有度（Common / Rare / Epic / Legendary）+ 10 次保底机制。1018 件可收集物品，等级无上限并配有进阶称号。Skia 物理动画扭蛋机 + 稀有度揭示特效。
-
-### 🌐 跨平台
-
-iOS · Android · Web · 微信小程序 四端支持。Web 版即开即用，无需下载安装，可添加到手机主屏幕。微信搜索「狼人面杀电子裁判助手」即可使用。
-
----
-
-## 快速开始
-
-| 步骤 | Host 房主                      | 玩家                  |
-| ---- | ------------------------------ | --------------------- |
-| 1    | 创建房间 → 选板子和人数        | 进入房间 → 输入房间号 |
-| 2    | 分享 4 位房间码                | 点击座位就座          |
-| 3    | 所有人查看身份后 →「开始游戏」 | 查看身份 → 确认       |
-| 4    | 夜间结束 →「查看昨夜死亡信息」 | 按身份执行行动        |
-
-> 白天发言投票由玩家自行进行，App 只负责首夜自动化。
+<table>
+  <tr>
+    <td width="50%">
+      <img src="assets/readme/game-werewolf.jpg" alt="狼人杀主视觉" width="100%">
+      <br><b>🐺 狼人杀</b> · 按板子定（预设 12 人）
+      <br>首夜全自动法官：身份确认、技能行动、天亮结算全程语音引导，白天发言投票由玩家自行进行
+    </td>
+    <td width="50%">
+      <img src="assets/readme/game-avalon.jpg" alt="阿瓦隆主视觉" width="100%">
+      <br><b>🏰 阿瓦隆</b> · 5–10 人
+      <br>好坏两阵营轮流组队出任务：好人先赢下 3 个任务获胜，坏人靠破坏任务、连续否决或终局刺杀梅林翻盘
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="assets/readme/game-fibking.jpg" alt="瞎掰王主视觉" width="100%">
+      <br><b>🤥 瞎掰王</b> · 4–20 人
+      <br>每轮一个冷门词：老实人知道真实释义，瞎掰王现场编，大聪明听完所有人的描述后，由房主代其逐个点选座位辨真假
+    </td>
+    <td>
+      <img src="assets/readme/game-undercover.jpg" alt="谁是卧底主视觉" width="100%">
+      <br><b>🕵️ 谁是卧底</b> · 4–12 人（白板需 6 人起）
+      <br>多数人拿到同一个词，卧底拿一个相关但不同的词、白板没词；线下描述讨论，房主揭示出局者，系统自动判定胜负
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="assets/readme/game-pictionary.jpg" alt="你画我猜接龙主视觉" width="100%">
+      <br><b>🎨 你画我猜接龙</b> · 4–20 人
+      <br>每人写题后在「看文字作画」和「看画猜词」之间交替接龙，最后逐条回放整本画册
+    </td>
+    <td>
+      <img src="assets/readme/game-drawguess.jpg" alt="经典你画我猜主视觉" width="100%">
+      <br><b>✏️ 经典你画我猜</b> · 4–12 人
+      <br>轮流一人作画、其余人在聊天里打字猜词，猜中按速度计分，画手按猜中人数得分，每人画 2 轮后按总分排名
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="assets/readme/game-storyrelay.jpg" alt="故事接龙主视觉" width="100%">
+      <br><b>📖 故事接龙</b> · 4–20 人
+      <br>每人开一篇故事，后续每棒只能看到上一段续写，全部写完后逐篇揭晓全文；没有胜负，纯看一桌人能编多离谱
+    </td>
+    <td>
+      <br><b>…以及同一间房</b>
+      <br>所有游戏共用同一套房间、座位、断线重连与对局记录。换游戏不用换 App，不用重新拉人。
+    </td>
+  </tr>
+</table>
 
 ---
 
-## 架构
+## 📱 界面一览
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/readme/ui-home.jpg" width="160" alt="首页"><br><sub>首页 · 创建 / 进入房间</sub></td>
+    <td align="center"><img src="assets/readme/ui-games.jpg" width="160" alt="游戏库"><br><sub>游戏库 · 7 款游戏</sub></td>
+    <td align="center"><img src="assets/readme/ui-werewolf-guide.jpg" width="160" alt="狼人杀图鉴"><br><sub>狼人杀图鉴 · 47 角色 / 26 板子</sub></td>
+    <td align="center"><img src="assets/readme/ui-room.jpg" width="160" alt="房间大厅"><br><sub>房间大厅 · 入座等开局</sub></td>
+    <td align="center"><img src="assets/readme/ui-gacha.jpg" width="160" alt="扭蛋机"><br><sub>扭蛋机 · 抽券解锁装扮</sub></td>
+  </tr>
+</table>
+
+---
+
+## 🙅 为什么不用真人法官
+
+线下玩这类游戏，总要有人当主持——而主持的人不能玩：
+
+- 🙅 法官/主持只能旁观，一局都参与不了
+- 📖 新手主持容易记混流程、漏判胜负
+- 🔇 口述推进效率低，身份和阶段一多就出错
+
+这个 App 把主持工作全部接管：发身份、推阶段、判胜负、播语音。**所有人，包括房主，都是玩家。**
+
+---
+
+## ✨ 平台特性
+
+|                            |                                                                                                                                                          |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📱 **多设备实时同步**      | 4 位房间码加入，WebSocket 实时推送游戏状态，操作秒级同步                                                                                                 |
+| 🔌 **断线自动恢复**        | 游戏状态持久化在 Cloudflare Durable Objects（边缘 SQLite），重连自动恢复到最新状态                                                                       |
+| 🎰 **扭蛋收集 · 等级成长** | 每局得 XP 与抽奖券，扭蛋收集头像、头像框、座位装饰、名字样式、身份揭示特效、座位动画共 **1043 件**，5 级稀有度（Common → Mythic）+ 10 次保底；等级无上限 |
+| 🌐 **跨平台**              | iOS · Android · Web · 微信小程序四端，同一间房                                                                                                           |
+
+---
+
+## 🐺 狼人杀专区（招牌游戏）
+
+- 🔊 **首夜全自动语音**：身份确认、技能行动、天亮公告全程播报，房主也能闭眼参与；配 BGM 与音效
+- 🎭 **47 种角色 · 26 套预设板子**：神职、特殊狼人、第三方一应俱全，预设均为 12 人局，另支持自定义板子——[角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) · [预设板子参考](docs/PRESET_BOARDS.md)
+- 🤖 **AI 规则助手**：点角色卡上的 AI 气泡，随时问技能细节与策略（Gemini 3.5 Flash Lite，Worker 代理）
+- ☀️ 白天发言、投票、放逐由玩家同桌进行——App 只管首夜，那是狼人杀最需要法官的部分
+
+---
+
+## 🏗 架构
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -104,50 +139,27 @@ iOS · Android · Web · 微信小程序 四端支持。Web 版即开即用，�
 │  │ (Auth +  │  │ (纯逻辑)  │  │  (GameRoom)  │  │
 │  │  Game)   │  │           │  │  WebSocket   │  │
 │  └────┬─────┘  └─────┬─────┘  └──────┬───────┘  │
-│       │              │               │           │
 │       └──────────────┴───────────────┘           │
-│                      │                           │
 │            Cloudflare D1 · R2                     │
 └─────────────────────┬───────────────────────────┘
-                      │
-     ┌────────────┬───┼───────────┐
-     │            │   │           │
-  iOS App   Android  Web App   微信小程序
-  ────────────────────────────  (web-view)
-  HTTP 提交 · WebSocket 接收
-  Host: 音频播放
+        iOS · Android · Web · 微信小程序（web-view）
+           HTTP 提交 · WebSocket 接收 · Host 播音频
 ```
 
-**核心约束：**
+三层结构：**平台层**共用房间、座位、连接、重连与广播管线；**游戏层**每个游戏有独立状态机与规则（`packages/game-engine/src/games/<game>/` 与 `src/games/<game>/`）；**目录层**在引擎、Worker、客户端各只有一个穷尽式 catalog，漏注册会在编译期或契约测试中失败。
 
-- 服务端（Worker + DO）是唯一游戏逻辑权威，客户端不做逻辑决策
-- 所有客户端平等，Host 仅决定 UI 可见性和音频播放
-- `GameState` 是单一真相源，服务端读-算-写-广播
+核心约束：服务端是唯一游戏逻辑权威，客户端不做逻辑决策；所有客户端平等，Host 只是 UI 与音频角色；`GameState` 是单一真相源，服务端读-算-写-广播。
 
----
-
-<details>
-<summary><strong>🎭 47 种角色一览</strong></summary>
-
-| 阵营           | 角色                                                                                                                                                             |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **村民** (3)   | 平民 · 灯影预言家 · 酒鬼预言家                                                                                                                                   |
-| **神职** (19)  | 预言家 · 女巫 · 毒师 · 猎人 · 守卫 · 愚者 · 骑士 · 魔术师 · 猎魔人 · 通灵师 · 摄梦人 · 守墓人 · 纯白之女 · 舞者 · 禁言长老 · 禁票长老 · 乌鸦 · 蒙面人 · 定序王子 |
-| **狼人** (16)  | 狼人 · 种狼 · 狼美人 · 白狼王 · 狼王 · 噩梦之影 · 石像鬼 · 觉醒石像鬼 · 血月使徒 · 机械狼人 · 恶灵骑士 · 狼巫 · 假面 · 典狱长 · 蚀时狼妃 · 隐狼                  |
-| **第三方** (9) | 混血儿 · 野孩子 · 吹笛者 · 影子 · 复仇者 · 盗贼 · 丘比特 · 盗宝大师 · 咒狐                                                                                       |
-
-详见 [角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
-
-</details>
+技术栈：React Native 0.85 · Expo SDK 56 · TypeScript 6 · Cloudflare Workers / D1 / R2 / Durable Objects · Jest · Playwright · Sentry
 
 ---
 
-## 开发
+## 🛠 开发
 
 ```bash
 pnpm install          # 安装依赖
 pnpm run dev          # Worker + Expo Web 同时启动 (localhost:8787 + :8081)
-pnpm run quality      # 完整质量门禁（类型、构建、Knip、配置漂移、lint、格式、测试）
+pnpm run quality      # 完整质量门禁（类型、构建、Knip、lint、格式、测试）
 pnpm run e2e          # Playwright E2E
 
 # 本地 D1 seed — dev 用户 (dev@test.local / dev123) + 全物品解锁
@@ -155,116 +167,60 @@ pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
 
-### 项目结构
-
-```
-packages/
-  api-worker/         Cloudflare Worker — REST API + Auth + Durable Objects (WebSocket)
-  game-engine/        纯游戏逻辑共享包 — models / resolvers / engine（客户端与服务端共用）
-miniapp/              微信小程序 web-view 壳（AppID: wx7f0c3bea5873908c）
-src/
-  screens/            React Native 页面
-  services/           facade / transport (WebSocket) / infra / feature
-  contexts/           Auth · GameFacade · Service
-  theme/              Design tokens + 主题色
-```
-
-### 技术栈
-
-|            |                                                            |
-| ---------- | ---------------------------------------------------------- |
-| **客户端** | React Native 0.85 · Expo SDK 56 · TypeScript ~6.0          |
-| **服务端** | Cloudflare Workers · D1 · R2 · Durable Objects             |
-| **AI**     | Gemini 3.5 Flash Lite（Worker 代理）                       |
-| **测试**   | Jest · Testing Library · Playwright                        |
-| **部署**   | Cloudflare Pages (Web) + Workers (API) · GitHub Actions CI |
-| **小程序** | 微信小程序 web-view 壳 · miniprogram-ci 上传               |
-| **监控**   | Sentry                                                     |
+贡献者与 AI 编码助手请先读 [AGENTS.md](AGENTS.md)（构建、测试与代码约定）；新游戏可用 `pnpm run new-game` 从生成器脚手架起步，接入清单见多游戏平台设计文档。
 
 ---
 
-## 部署
+## 📚 文档
 
-```bash
-pnpm run release            # patch（默认）— bump → CHANGELOG → tag → push
-pnpm run release minor      # minor 发版
-pnpm run release major      # major 发版
-# git push 自动触发 Cloudflare Pages + Workers 部署
-```
-
-详见 [部署指南](docs/DEPLOYMENT.md)
+- [多游戏平台设计](docs/multigame-platform-design.md) · [房间壳契约](docs/room-shell-contract.md)
+- 各游戏设计：[阿瓦隆](docs/avalon-game-design.md) · [瞎掰王供词](docs/fibking-word-supply.md) · [谁是卧底](docs/undercover-game-design.md) · [你画我猜接龙](docs/pictionary-game-design.md) · [经典你画我猜](docs/drawguess-game-design.md) · [故事接龙](docs/story-relay-game-design.md)
+- [部署指南](docs/DEPLOYMENT.md) · [设计系统](docs/DESIGN.md) · [网络韧性设计](docs/network-resilience-design.md)
+- [扭蛋系统](docs/gacha-system-design.md) · [等级成长](docs/growth-system-design.md) · [线下玩法 SOP](docs/offline-sop.md)
 
 ---
 
-## 常见问题
+## ❓ 常见问题
 
 <details>
 <summary><b>需要注册账号吗？</b></summary>
 
-不需要。打开网页即可创建或加入房间。如果需要保存自定义模板等数据，可以选择匿名登录或邮箱登录。
+微信小程序内用微信登录，无需单独注册。网页版浏览首页与图鉴不用登录；创建房间需先登录，支持邮箱账号或匿名访客一键进入——需要保存自定义板子等数据时建议用邮箱账号。
 
 </details>
 
 <details>
-<summary><b>支持哪些平台？</b></summary>
+<summary><b>每个游戏都自动主持吗？</b></summary>
 
-iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Firefox、Edge）。Web 版可以添加到手机主屏幕像原生 App 一样使用。微信搜索「狼人面杀电子裁判助手」即可使用。
+是的。7 个游戏都由服务端主持阶段推进、判定与结算，共用同一套房间与断线恢复；需要同桌口头进行的环节（卧底的描述、狼人杀的白天发言）由玩家线下进行，App 给出阶段提示。
 
 </details>
 
 <details>
 <summary><b>游戏数据存储在哪里？</b></summary>
 
-游戏状态存储在 Cloudflare Durable Objects（边缘 SQLite），房间元数据存储在 D1。房间在创建满 24 小时后自动清理。AI、错误监控、邮件和反馈等功能会使用外部服务；处理的数据、用途和保留规则详见[隐私说明](PRIVACY.md)。
+游戏状态在 Cloudflare Durable Objects（边缘 SQLite），房间元数据在 D1，房间创建满 24 小时后自动清理。AI、错误监控、邮件与反馈等外部服务处理的数据、用途与保留规则见[隐私说明](PRIVACY.md)。
 
 </details>
 
 <details>
-<summary><b>App 只管首夜吗？白天怎么办？</b></summary>
+<summary><b>可以自定义狼人杀板子吗？</b></summary>
 
-是的，App 自动化的是首夜（Night-1）流程——身份确认、技能行动、天亮结算。白天的发言、投票、放逐环节由玩家自行进行，这也是狼人杀最有趣的社交部分。
-
-</details>
-
-<details>
-<summary><b>可以自定义板子吗？</b></summary>
-
-可以。除了 26 套预设模板，你可以自由组合角色创建自定义模板，保存后下次直接使用。
+可以。除了 26 套预设模板，可自由组合角色创建自定义模板并保存复用。
 
 </details>
 
 ---
 
-## 文档
-
-- [部署指南](docs/DEPLOYMENT.md)
-- [设计系统](docs/DESIGN.md)
-- [角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
-- [预设板子参考](docs/PRESET_BOARDS.md)
-- [RoomScreen 状态机](docs/roomscreen-state-machine.md)
-- [网络韧性设计](docs/network-resilience-design.md)
-- [扭蛋系统设计](docs/gacha-system-design.md)
-- [等级成长系统](docs/growth-system-design.md)
-- [线下玩法 SOP](docs/offline-sop.md)
-- [隐私说明](PRIVACY.md)
-
 ## 贡献
 
-欢迎贡献！无论是 Bug 报告、功能建议还是代码 PR，我们都非常感谢。
-
-请参阅 [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-
-## 安全
-
-发现安全漏洞？请参阅 [SECURITY.md](SECURITY.md)
+欢迎 Bug 报告、功能建议与代码 PR。请参阅 [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)；发现安全漏洞请看 [SECURITY.md](SECURITY.md)。
 
 ## Contributors
 
 <a href="https://github.com/olveryu/WerewolfGameJudge/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=olveryu/WerewolfGameJudge" />
+  <img src="https://contrib.rocks/image?repo=olveryu/WerewolfGameJudge" alt="Contributors" />
 </a>
-
----
 
 ## 许可证
 

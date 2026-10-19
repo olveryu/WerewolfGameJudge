@@ -13,9 +13,12 @@
  *
  * Does not render UI — returns `countdownTick` for downstream consumers
  * (e.g. `useRoomActions.getBottomAction` countdown display).
+ *
+ * `stepDeadline` only ever exists on a live night step: the engine clears
+ * it when the night ends and the state invariants reject it anywhere else,
+ * so this hook needs no room-status gate of its own.
  */
 
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useEffect, useRef, useState } from 'react';
 
 import { fireAndForget } from '@/utils/errorPipeline';
@@ -24,7 +27,6 @@ import { roomScreenLog } from '@/utils/logger';
 interface UseStepDeadlineCountdownParams {
   stepDeadline: number | undefined;
   isHost: boolean;
-  roomStatus: GameStatus;
   postProgression: () => Promise<boolean>;
 }
 
@@ -35,7 +37,6 @@ interface UseStepDeadlineCountdownParams {
 export function useStepDeadlineCountdown({
   stepDeadline,
   isHost,
-  roomStatus,
   postProgression,
 }: UseStepDeadlineCountdownParams): number {
   const [countdownTick, setCountdownTick] = useState(0);
@@ -48,10 +49,6 @@ export function useStepDeadlineCountdown({
 
   useEffect(() => {
     if (stepDeadline == null) return;
-    // Guard: only fire postProgression while game is ongoing.
-    // On host rejoin with status `ended`, stale stepDeadline may still exist
-    // and be expired — without this guard it would fire immediately and get 400.
-    if (roomStatus !== GameStatus.Ongoing) return;
 
     const tryProgression = (): void => {
       if (!isHost || postProgressionFiredRef.current) return;
@@ -93,7 +90,7 @@ export function useStepDeadlineCountdown({
       setCountdownTick((t) => t + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [stepDeadline, isHost, postProgression, roomStatus]);
+  }, [stepDeadline, isHost, postProgression]);
 
   return countdownTick;
 }

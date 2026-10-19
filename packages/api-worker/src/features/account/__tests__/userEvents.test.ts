@@ -34,3 +34,12 @@ it('replays without a room and only lets the authenticated owner acknowledge', a
   expect(await (await read()).json()).toEqual({ event: null });
   expect((await SELF.fetch('https://test.local/api/user/events/next')).status).toBe(401);
 });
+
+it('rejects anonymous guest accounts on GET /api/user/stats', async () => {
+  const guest = await createAnonymousSession();
+  const res = await SELF.fetch('https://test.local/api/user/stats', {
+    headers: { Authorization: `Bearer ${guest.access_token}` },
+  });
+  expect(res.status).toBe(403);
+  expect(await res.json()).toEqual({ success: false, reason: 'ANONYMOUS_NOT_SUPPORTED' });
+});

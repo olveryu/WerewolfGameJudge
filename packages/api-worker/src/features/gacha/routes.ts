@@ -44,7 +44,7 @@ import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { parseCanonicalIsoTimestampMs } from '../../platform/time/canonicalIsoTimestamp';
 import { userStats } from '../account/dbSchema';
-import { requireAuth } from '../auth/tokenAuth';
+import { requireAuth, requireNonAnonymous } from '../auth/tokenAuth';
 import {
   commitGachaDraw,
   commitGachaExchange,
@@ -57,6 +57,13 @@ const log = createLogger('gacha');
 
 /** Gacha system routes (draws / daily reward / unlocks). */
 export const gachaRoutes = new Hono<AppEnv>();
+
+/**
+ * Middleware chain for gacha mutations (draw / daily reward / exchange):
+ * authenticated non-anonymous principals only — guest accounts do not
+ * accumulate growth or rewards (see `requireNonAnonymous`).
+ */
+const mutationAuth = [requireAuth, requireNonAnonymous] as const;
 
 /** Minimum hours between daily reward claims (server-side cooldown guard) */
 const DAILY_REWARD_COOLDOWN_HOURS = 20;
@@ -110,7 +117,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
 const MAX_GACHA_OCC_ATTEMPTS = 3;
 
 /** POST /api/gacha/draw */
-gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c) => {
+gachaRoutes.post('/gacha/draw', ...mutationAuth, jsonBody(gachaDrawSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
   const { drawType, count, idempotencyKey } = c.req.valid('json');
@@ -261,7 +268,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 });
 
 /** POST /api/gacha/daily-reward -- daily login reward: claim normal draws + 1 golden draw */
-gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema), async (c) => {
+gachaRoutes.post('/gacha/daily-reward', ...mutationAuth, jsonBody(dailyRewardSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
 
@@ -350,7 +357,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
 });
 
 /** POST /api/gacha/exchange -- exchange shards for a specific item */
-gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), async (c) => {
+gachaRoutes.post('/gacha/exchange', ...mutationAuth, jsonBody(shardExchangeSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
   const { rewardId, idempotencyKey } = c.req.valid('json');

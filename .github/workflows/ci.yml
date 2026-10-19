@@ -571,8 +571,10 @@ jobs:
           path: dist/
           retention-days: 1
 
+  # The job body lives in e2e-run.yml (reusable workflow) — the same single
+  # implementation e2e-single-spec.yml calls. This job contributes only the
+  # gate, the shard matrix, and its parameters.
   e2e:
-    runs-on: ubuntu-latest
     # Decoupled gate: e2e's only hard input is the web dist from build-web
     # (plus quality/lint, which build-web already implies — listed here so
     # the needs context carries them for the explicit result checks below).
@@ -589,96 +591,31 @@ jobs:
       matrix:
         include:
           # ── Balanced by measured runtime (target ~10min wall each) ──
-          - shard: 1
+          - shard: '1'
             specs: 'werewolf-night-block.spec.ts werewolf-night-seed-wolf.spec.ts werewolf-night-special-roles.spec.ts'
-          - shard: 2
+          - shard: '2'
             specs: 'werewolf-night-protect.spec.ts werewolf-night-gargoyle.spec.ts'
-          - shard: 3
+          - shard: '3'
             specs: 'werewolf-night-kill.spec.ts werewolf-night-special-roles-2.spec.ts'
-          - shard: 4
+          - shard: '4'
             specs: 'werewolf-night-gun-status.spec.ts werewolf-night-check-interactions.spec.ts'
-          - shard: 5
+          - shard: '5'
             specs: 'werewolf-night-check.spec.ts werewolf-night-piper.spec.ts'
-          - shard: 6
+          - shard: '6'
             specs: 'resilience-reconnect.spec.ts werewolf-night-flow.spec.ts resilience-db-recovery.spec.ts'
           # avalon runs solo: a single 10-player full-game test (~7min,
           # 20min spec timeout) that cannot be split across shards.
-          - shard: 7
+          - shard: '7'
             specs: 'avalon.spec.ts'
-          - shard: 8
+          - shard: '8'
             specs: 'werewolf-night-completion.spec.ts pictionary.spec.ts resilience-restart.spec.ts resilience-offline-canary.spec.ts'
-          - shard: 9
+          - shard: '9'
             specs: 'undercover.spec.ts werewolf-seating.spec.ts fibking.spec.ts fibking-responsive.spec.ts storyrelay.spec.ts drawguess.spec.ts app-entry-flow.spec.ts app-home.spec.ts werewolf-config.spec.ts werewolf-sheriff-election.spec.ts app-room-lifecycle.spec.ts resilience-rejoin.spec.ts'
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      # ── Playwright ──────────────────────────────────────
-      - name: Get Playwright version
-        id: pw-version
-        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        id: pw-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
-
-      - name: Install Playwright browsers
-        if: steps.pw-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Install Playwright system deps only
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
-
-      # Download the pre-built web bundle from the build-web job.
-      # (Previously each shard ran `expo export` independently — 5x waste.
-      # PR #81 moved export out of the Playwright webServer; this dedupes it
-      # across shards.)
-      - name: Download web dist
-        uses: actions/download-artifact@v7
-        with:
-          name: web-dist
-          path: dist/
-
-      # Apply D1 migrations as a dedicated step (not buried inside the
-      # Playwright webServer) so migration failures fail fast with clear logs
-      # instead of hanging "Run E2E tests" with no visible cause.
-      - name: Setup D1 migrations
-        run: node scripts/setup-d1-migrations.mjs
-
-      - name: Run E2E tests (shard ${{ matrix.shard }}/9)
-        env:
-          E2E_BUNDLE_RUN_ID: ${{ github.run_id }}
-          E2E_BUNDLE_SHARD: ${{ matrix.shard }}
-        run: pnpm exec playwright test ${{ matrix.specs }} --reporter=list,blob,./e2e/reporters/failureBundle.ts
-
-      - name: Upload blob report
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: blob-report-${{ matrix.shard }}
-          path: blob-report/
-          retention-days: 1
-
-      - name: Upload failure bundle
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: failure-bundle-${{ matrix.shard }}
-          path: failure-bundles/
-          if-no-files-found: ignore
-          retention-days: 30
+    uses: ./.github/workflows/e2e-run.yml
+    with:
+      specs: ${{ matrix.specs }}
+      shard: ${{ matrix.shard }}
+      build-web: false
 
   merge-reports:
     runs-on: ubuntu-latest
